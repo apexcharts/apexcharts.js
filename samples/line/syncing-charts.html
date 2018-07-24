@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Syncing charts</title>
+
+
+  <link href="../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #wrapper {
+      padding-top: 20px;
+      padding-left: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrapper">
+    <div id="chart-line">
+
+    </div>
+
+    <div id="chart-line2">
+
+    </div>
+  </div>
+
+
+
+  <script src="../../dist/apexcharts.min.js"></script>
+
+  <script>
+    var optionsline2 = {
+      chart: {
+        type: 'line',
+        height: 160,
+        toolbar: {
+          tools: {
+            zoom: false,
+            pan: false,
+            selection: false,
+            download: false,
+            reset: true,
+          }
+        }
+      },
+      colors: ['#546E7A'],
+      stroke: {
+        curve: 'straight'
+      },
+      dataLabels: {
+        enabled: false
+      },
+      fill: {
+        opacity: 1,
+      },
+      series: [{
+        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+          min: 10,
+          max: 30
+        })
+      }],
+      xaxis: {
+        type: 'datetime'
+      }
+    }
+
+    var chartline2 = new ApexCharts(
+      document.querySelector("#chart-line2"),
+      optionsline2
+    );
+
+    chartline2.render();
+
+    var options = {
+      chart: {
+        height: 200,
+        type: 'line',
+        stacked: true,
+        scroller: {
+          enabled: true,
+          thumb: {
+            height: 4,
+            background: '#00E396'
+          },
+          scrollButtons: {
+            enabled: true,
+            size: 6,
+            borderWidth: 2,
+            borderColor: '#00E396',
+            fillColor: '#00E396'
+          },
+        },
+        selection: {
+          xaxis: {
+            min: new Date('19 Feb 2017').getTime(),
+            max: new Date('26 Feb 2017').getTime()
+          }
+        },
+        events: {
+          selection: function (chart, e) {
+            chartline2.updateOptions({
+              xaxis: {
+                min: e.xaxis.min,
+                max: e.xaxis.max
+              }
+            }, false, false)
+          },
+          updated: function (chart, e) {
+            chartline2.updateOptions({
+              xaxis: {
+                min: e.config.xaxis.min,
+                max: e.config.xaxis.max
+              },
+            }, false, false)
+          }
+        },
+
+      },
+      colors: ['#008FFB', '#00E396', '#CED4DC'],
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'smooth'
+      },
+
+      series: [{
+        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+          min: 10,
+          max: 60
+        })
+      }],
+      fill: {
+        gradient: {
+          enabled: true,
+          opacityFrom: 0.6,
+          opacityTo: 0.8,
+        }
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'left'
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#chart-line"),
+      options
+    );
+
+    chart.render();
+
+    /*
+      // this function will generate output in this format
+      // data = [
+          [timestamp, 23],
+          [timestamp, 33],
+          [timestamp, 12]
+          ...
+      ]
+    */
+    function generateDayWiseTimeSeries(baseval, count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = baseval;
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        series.push([x, y]);
+        baseval += 86400000;
+        i++;
+      }
+      return series;
+    }
+  </script>
+</body>
+
+</html>

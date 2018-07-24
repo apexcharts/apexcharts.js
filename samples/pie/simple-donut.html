@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Simple Donut</title>
+
+    
+    <link href="../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 380px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+    
+    <script src="../../dist/apexcharts.min.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                width: 380,
+                type: 'donut',
+            },
+            series: [44, 55, 41, 17, 15],
+           
+
+        }
+
+       var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+        
+        chart.render();
+    </script>
+</body>
+
+</html>

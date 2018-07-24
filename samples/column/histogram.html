@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Time Series</title>
+
+
+  <link href="../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 800px;
+      margin: 35px auto;
+    }
+
+    #timeline-chart .apexcharts-toolbar {
+      opacity: 1;
+      border: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="chart">
+    <div id="timeline-chart"></div>
+    Selected: <span id="selected-count">0</span>
+  </div>
+
+
+  <script src="../../dist/apexcharts.min.js"></script>
+
+  <script>
+
+    var options = {
+      annotations: {
+      },
+      chart: {
+        type: "histogram",
+        height: 380,
+        foreColor: "#999",
+        scroller: {
+          enabled: true,
+          thumb: {
+            background: '#00D8B6',
+          }
+        },
+        events: {
+          dataPointSelection: function(e, chart,opts) {
+            var arraySelected = []
+            opts.selectedDataPoints.map((selectedIndex) => {
+              selectedIndex.map((s) => {
+                arraySelected.push(chart.w.globals.series[0][s])
+              })
+
+            });
+            arraySelected = arraySelected.reduce((acc, curr) => {
+              return acc + curr;
+            }, 0)
+                        
+            document.querySelector("#selected-count").innerHTML = arraySelected
+          }
+        }
+      },
+      plotOptions: {
+        bar: {
+          distributed: true,
+          dataLabels: {
+            enabled: false
+          }
+        }
+      },
+      series: [{
+          data: [4, 3, 10, 9, 29, 19, 22]
+      }],
+      states: {
+        active: {
+          allowMultipleDataPointsSelection: true
+        }
+      },
+      markers: {
+        size: 5,
+        strokeColor: "#fff",
+        strokeWidth: 3,
+        strokeOpacity: 1,
+        fillOpacity: 1,
+        hover: {
+          size: 8
+        }
+      },
+      xaxis: {
+        categories: [10,20,30,40,50,60,70],
+        axisBorder: {
+          show: false
+        },
+        axisTicks: {
+          show: false
+        }
+      },
+      yaxis: {
+        tickAmount: 4,
+        labels: {
+          offsetX: -5,
+          offsetY: -5
+        },
+      },
+
+      tooltip: {
+        x: {
+          format: "dd MMM yyyy"
+        },
+      },
+    };
+
+    var chart = new ApexCharts(document.querySelector("#timeline-chart"), options);
+
+    chart.render();
+
+    
+
+     chart.addEventListener("dataPointSelection", function(e, opts) { 
+            console.log(e, opts)
+        })
+
+        
+
+  </script>
+</body>
+
+</html>

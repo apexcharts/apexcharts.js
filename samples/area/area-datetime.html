@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Area Chart - Datetime X-Axis</title>
+
+
+  <link href="../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+
+    .toolbar {
+      margin-left: 45px;
+    }
+
+    button {
+      background: #fff;
+      color: #222;
+      border: 1px solid #e7e7e7;
+      border-bottom: 2px solid #ddd;
+      border-radius: 2px;
+      padding: 4px 17px;
+    }
+
+    button.active {
+      color: #fff;
+      background: #008FFB;
+      border: 1px solid blue;
+      border-bottom: 2px solid blue;
+    }
+
+    button:focus {
+      outline: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="chart">
+    <div class="toolbar">
+      <button id="one_month">1M</button>
+      <button id="six_months">6M</button>
+      <button id="one_year" class="active">1Y</button>
+      <button id="ytd">YTD</button>
+      <button id="all">ALL</button>
+    </div>
+    <div id="timeline-chart"></div>
+  </div>
+
+
+  <script src="../../dist/apexcharts.min.js"></script>
+  <script src="../assets/series1000.js"></script>
+
+  <script>
+    var options = {
+      annotations: {
+        yaxis: [{
+          value: 30,
+          borderColor: '#999',
+          yAxisIndex: 0,
+          label: {
+            show: true,
+            text: 'Support',
+            style: {
+              color: "#fff",
+              background: '#00E396'
+            }
+          }
+        }],
+        xaxis: [{
+          value: new Date('14 Nov 2012').getTime(),
+          borderColor: '#999',
+          yAxisIndex: 0,
+          label: {
+            show: true,
+            text: 'Rally',
+            style: {
+              color: "#fff",
+              background: '#775DD0'
+            }
+          }
+        }]
+      },
+      chart: {
+        type: 'area',
+        height: 380,
+        scroller: {
+          enabled: true
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      series: [{
+          data: dateSeries1
+        },
+
+      ],
+      markers: {
+        size: 0,
+        style: 'hollow',
+      },
+      xaxis: {
+        type: 'datetime',
+        min: new Date('01 Mar 2012').getTime()
+      },
+      yaxis: {
+        // min: 24,
+      },
+      tooltip: {
+        key: {
+          format: 'dd MMM yyyy'
+        }
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.7,
+          opacityTo: 0,
+          stops: [0, 40, 100]
+        }
+      },
+
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#timeline-chart"),
+      options
+    );
+
+    chart.render();
+
+    var resetCssClasses = function (activeEl) {
+      var els = document.querySelectorAll("button");
+      Array.prototype.forEach.call(els, function (el) {
+        el.classList.remove('active');
+      });
+
+      activeEl.target.classList.add('active')
+    }
+
+    document.querySelector("#one_month").addEventListener('click', function (e) {
+      resetCssClasses(e)
+      chart.updateOptions({
+        xaxis: {
+          min: new Date('28 Jan 2013').getTime(),
+          max: new Date('27 Feb 2013').getTime(),
+        }
+      })
+    })
+
+    document.querySelector("#six_months").addEventListener('click', function (e) {
+      resetCssClasses(e)
+      chart.updateOptions({
+        xaxis: {
+          min: new Date('27 Sep 2012').getTime(),
+          max: new Date('27 Feb 2013').getTime(),
+        }
+      })
+    })
+
+    document.querySelector("#one_year").addEventListener('click', function (e) {
+      resetCssClasses(e)
+      chart.updateOptions({
+        xaxis: {
+          min: new Date('27 Feb 2012').getTime(),
+          max: new Date('27 Feb 2013').getTime(),
+        }
+      })
+    })
+
+    document.querySelector("#ytd").addEventListener('click', function (e) {
+      resetCssClasses(e)
+      chart.updateOptions({
+        xaxis: {
+          min: new Date('01 Jan 2013').getTime(),
+          max: new Date('27 Feb 2013').getTime(),
+        }
+      })
+    })
+
+    document.querySelector("#all").addEventListener('click', function (e) {
+      resetCssClasses(e)
+      chart.updateOptions({
+        xaxis: {
+          min: undefined,
+          max: undefined,
+        }
+      })
+    })
+
+    document.querySelector("#ytd").addEventListener('click', function () {
+
+    })
+  </script>
+</body>
+
+</html>

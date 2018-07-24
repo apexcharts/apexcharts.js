@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Multiple Y Axis Chart</title>
+
+  
+  <link href="../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart,
+    #chart2 {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="chart">
+
+  </div>
+
+  <div id="chart2">
+
+  </div>
+
+
+  <script src="../../dist/apexcharts.min.js"></script>
+
+  <script>
+
+    
+    var options = {
+      chart: {
+        height: 380,
+        type: 'line',
+        stacked: false
+      },
+      dataLabels: {
+        enabled: false
+      },
+      series: [{
+        name: 'Income',
+        type: 'column',
+        data: [1.4, 2, 2.5, 1.5, 2.5, 2.8, 3.8, 4.6]
+      }, {
+        name: 'Cashflow',
+        type: 'column',
+        data: [1.1, 3, 3.1, 4, 4.1, 4.9, 6.5, 8.5]
+      }, {
+        name: 'Revenue',
+        type: 'line',
+        data: [20, 29, 37, 36, 44, 45, 50, 58]
+      }],
+   
+      title: {
+        text: 'XYZ - Stock Analysis (2009 - 2016)',
+        align: 'left',
+        offsetX: 110
+      },
+      xaxis: {
+        categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016],
+      },
+      yaxis: [
+        {
+          axisTicks: {
+            show: true,
+          },
+          axisBorder: {
+            show: true,
+            color: '#3f51b5'
+          },
+          labels: {
+            style: {
+              color: '#3f51b5',
+            }
+          },
+          title: {
+            text: "Income (thousand crores)"
+          },
+        },
+
+        {
+          axisTicks: {
+            show: true,
+          },
+          axisBorder: {
+            show: true,
+            color: '#FFA600'
+          },
+          labels: {
+            style: {
+              color: '#FFA600',
+            }
+          },
+          title: {
+            text: "Operating Cashflow (thousand crores)",
+          },
+        },
+        {
+          opposite: true,
+          axisTicks: {
+            show: true,
+          },
+          axisBorder: {
+            show: true,
+            color: '#03a9f4'
+          },
+          labels: {
+            style: {
+              color: '#03a9f4',
+            }
+          },
+          title: {
+            text: "Revenue (thousand crores)"
+          }
+        },
+
+      ],
+      tooltip: {
+        followCursor: true,
+        y: {
+          formatter: function (y) {
+            if(typeof y !== "undefined") {
+              return y + " thousand crores"
+            }
+            return y;
+          }
+        }
+      }
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#chart"),
+      options
+    );
+
+
+    chart.render();
+  </script>
+</body>
+
+</html>

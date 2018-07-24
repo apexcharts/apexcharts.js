@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Dynamic Updating Line Chart</title>
+
+
+    <link href="../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+
+    <script src="../../dist/apexcharts.min.js"></script>
+    <script src="../assets/data.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                height: 380,
+                type: 'line',
+                animations: {
+                    dynamicAnimation: {
+                        enabled: false
+                    }
+                },
+                toolbar: {
+                    show: false
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                curve: 'smooth'
+            },
+            series: [{
+                    name: "Laptops",
+                    data: [45, 52, 38, 24, 33, 26, 21, 20, 6, 8, 15, 10, 51, 32, 12]
+                },
+                {
+                    name: "Desktops",
+                    data: [35, 41, 62, 42, 13, 18, 29, 37, 36, 51, 32, 35, 20, 51, 36]
+                }
+            ],
+            title: {
+                text: 'Dynamic Updating Chart',
+                align: 'left'
+            },
+            markers: {
+                size: 0
+            },
+            xaxis: {
+                range: 14,
+                tickAmount: 14
+            },
+            legend: {
+                show: false
+            },
+        }
+
+        var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+
+        chart.render();
+
+        window.setInterval(function () {
+            chart.appendData([{
+                data: [Math.floor((Math.random() * 20) + 20)]
+            }, {
+                data: [Math.floor((Math.random() * 20) + 20)]
+            }])
+        }, 1000)
+    </script>
+</body>
+
+</html>
