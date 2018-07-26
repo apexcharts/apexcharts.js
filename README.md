@@ -65,6 +65,19 @@ An example of loading dynamic series into charts is shown below
 <p align="left"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/dynamic-loaded-chart/"><img src="https://apexcharts.com/media/dynamic-selection.gif" alt="dynamic-loading-chart" /></a></p>
 
 
+## Annotations
+Annotations allows you to write custom text on specific values or on axes values. Valuable to expand the visual appeal of your chart and make it more informative.
+<p align="left"><a href="https://apexcharts.com/docs/annotations/"><img src="https://apexcharts.com/media/annotations" alt="annotations" /></a></p>
+
+
+## Heatmaps
+use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and area of focus. 
+<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap.png" alt="heatmap" /></a></p>
+
+## Gauges
+The tiny little gauges are an important part of a dashboard and are useful in displaying single digit data. A demo of these gauges:
+<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars.png" alt="radialbar-chart" /></a></p>
+
 ## What's included
 
 The download bundle includes the following files and directories providing a minified single file in the dist folder. Every asset including icon/css is bundled in the js itself to avoid loading multiple files.
