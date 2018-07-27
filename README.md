@@ -71,12 +71,17 @@ Annotations allows you to write custom text on specific values or on axes values
 
 
 ## Heatmaps
-use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and area of focus. 
+Use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and area of focus. 
 <p align="left"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap.png" alt="heatmap" /></a></p>
 
 ## Gauges
 The tiny little gauges are an important part of a dashboard and are useful in displaying single digit data. A demo of these gauges:
 <p align="left"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars.png" alt="radialbar-chart" /></a></p>
+
+## Sparklines
+Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature most extreme and least values:
+<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
+
 
 ## What's included
 
@@ -112,9 +117,6 @@ npm run build
 ## Where do I go next?
 
 Head over to the <a href="https://apexcharts.com/docs/">documentation</a> section to read more about how to use different kinds of charts and explore all options.
-
-## Support
-ApexCharts has professional <a href="https://apexcharts.com/plans/">Support Plans</a> that can be purchased from the authors of ApexCharts to provide assistance with questions you might have.
 
 ## Credits.
 ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood.
