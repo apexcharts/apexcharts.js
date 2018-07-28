@@ -2,9 +2,7 @@ var webpack = require('webpack');
 var path = require('path');
 
 module.exports = {
-    entry: {
-      app: path.resolve(__dirname, 'src/apexcharts.js') ,
-    },
+    entry: ['core-js/fn/promise','core-js/fn/array/includes', path.resolve(__dirname, 'src/apexcharts.js')],
     output: {
         library: 'ApexCharts',
         libraryTarget: 'umd',
@@ -35,7 +33,10 @@ module.exports = {
           loader:'babel-loader',
           options: {
             presets: ['es2015', 'stage-0'],
-            plugins: ['transform-class-properties', 'transform-decorators-legacy']
+            plugins: [
+              'transform-class-properties', 
+              'transform-decorators-legacy'
+            ]
           }
         },
         

@@ -396,7 +396,7 @@ class Dimensions {
       w.globals.overlappingXLabels = true
     }
 
-    virtualText.node.remove()
+    virtualText.node.parentNode.removeChild(virtualText.node)
 
     return {
       width: rect.width,
@@ -465,7 +465,7 @@ class Dimensions {
       w.globals.rotateXLabels = false
     }
 
-    virtualText.node.remove()
+    virtualText.node.parentNode.removeChild(virtualText.node)
 
     return {
       width: rect.width,
@@ -583,7 +583,7 @@ class Dimensions {
 
         let rect = virtualText.node.getBoundingClientRect()
 
-        virtualText.node.remove()
+        virtualText.node.parentNode.removeChild(virtualText.node)
 
         ret.push({
           width: rect.width + labelPad,
@@ -629,7 +629,7 @@ class Dimensions {
       width = rect.width
       height = rect.height
 
-      virtualText.node.remove()
+      virtualText.node.parentNode.removeChild(virtualText.node)
     }
 
     return {
@@ -671,7 +671,7 @@ class Dimensions {
           height: rect.height
         })
 
-        virtualText.node.remove()
+        virtualText.node.parentNode.removeChild(virtualText.node)
       } else {
         ret.push({
           width: 0,

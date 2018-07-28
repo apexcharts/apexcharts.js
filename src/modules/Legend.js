@@ -177,7 +177,7 @@ class Legend {
       }
 
       // we are done with virtual texts, remove it
-      virtualText.node.remove()
+      virtualText.node.parentNode.removeChild(virtualText.node)
 
       let elPointOptions = {
         pSize: pSize,

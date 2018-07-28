@@ -576,7 +576,7 @@ class Graphics {
 
     let rect = virtualText.bbox()
 
-    virtualText.node.remove()
+    virtualText.node.parentNode.removeChild(virtualText.node)
 
     return {
       width: rect.width,

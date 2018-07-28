@@ -12,6 +12,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "core-js": "^2.5.7",
+    "es6-promise-promise": "^1.0.0",
     "svg.draggable.js": "^2.2.1",
     "svg.easing.js": "^2.0.0",
     "svg.filter.js": "^2.0.2",

@@ -72,11 +72,11 @@ Annotations allows you to write custom text on specific values or on axes values
 
 ## Heatmaps
 Use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and area of focus. 
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap.png" alt="heatmap" /></a></p>
+<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap-charts.png" alt="heatmap" /></a></p>
 
 ## Gauges
 The tiny little gauges are an important part of a dashboard and are useful in displaying single digit data. A demo of these gauges:
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars.png" alt="radialbar-chart" /></a></p>
+<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbar-charts.png" alt="radialbar-chart" /></a></p>
 
 ## Sparklines
 Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature most extreme and least values:

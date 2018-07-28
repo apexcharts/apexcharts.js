@@ -398,11 +398,11 @@ class XAxis {
       let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
 
       if (firstLabelPos.x < -25) {
-        xAxisTexts[0].remove()
+        xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
       }
 
       if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth) {
-        xAxisTexts[xAxisTexts.length - 1].remove()
+        xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
       }
     }
 
@@ -412,11 +412,11 @@ class XAxis {
       let lastLabelPosX = yAxisTextsInversed[0].getBBox()
 
       if (firstLabelPosX.x < -20) {
-        yAxisTextsInversed[yAxisTextsInversed.length - 1].remove()
+        yAxisTextsInversed[yAxisTextsInversed.length - 1].parentNode.removeChild(yAxisTextsInversed[yAxisTextsInversed.length - 1])
       }
 
       if (lastLabelPosX.x + lastLabelPosX.width > w.globals.gridWidth) {
-        yAxisTextsInversed[0].remove()
+        yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0])
       }
 
       // truncate y axis in bar chart
