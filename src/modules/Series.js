@@ -150,7 +150,7 @@ export default class Series {
     w.globals.previousPaths = []
 
     function pushPaths (seriesEls, i, type) {
-      let paths = seriesEls[i].children
+      let paths = seriesEls[i].childNodes
       let dArr = {
         type,
         paths: [],
