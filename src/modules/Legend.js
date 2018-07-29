@@ -33,7 +33,9 @@ class Legend {
     const cnf = w.config
 
     if ((gl.series.length > 1 || !gl.axisCharts) && cnf.legend.show) {
-      gl.dom.elLegendWrap.innerHTML = ' '
+      while (gl.dom.elLegendWrap.firstChild) {
+        gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild)
+      }
 
       this.drawLegends(cnf.chart.type, gl.series.length)
 
@@ -292,7 +294,12 @@ class Legend {
     for (let lp = 0; lp < points.length; lp++) {
       if (offsetY === null) {
         let y = points[lp].getAttribute('transform')
-        offsetY = parseFloat(y.split(',')[1])
+        if (y.indexOf(',') > -1) {
+          offsetY = parseFloat(y.split(',')[1])
+        } else if (y.indexOf(' ') > -1) {
+          offsetY = parseFloat(y.split(' ')[1])
+        }
+        if (!offsetY) { offsetY = 0 }
       }
       points[lp].setAttribute(
         'transform',
@@ -307,9 +314,11 @@ class Legend {
     let legends = w.globals.dom.baseEl.querySelectorAll(
       '.apexcharts-legend-series'
     )
+
     for (let l = 0; l < legends.length; l++) {
       let currX = parseInt(legends[l].getAttribute('x'))
       let currY = parseInt(legends[l].getAttribute('y'))
+
       Graphics.setAttrs(legends[l], {
         x: currX + offsetX,
         y: currY + offsetY

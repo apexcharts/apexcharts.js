@@ -168,13 +168,11 @@ class YAxis {
 
         elXaxisTexts.add(elTick)
 
-        let elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title')
-        elTooltipTitle.innerHTML = val
-        elTick.node.appendChild(elTooltipTitle)
+        elTick.tspan(val)
 
-        let elText = document.createElementNS(w.globals.svgNS, 'tspan')
-        elText.innerHTML = val
-        elTick.node.appendChild(elText)
+        let elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title')
+        elTooltipTitle.textContent = val
+        elTick.node.appendChild(elTooltipTitle)
 
         l = l + labelsDivider
       }

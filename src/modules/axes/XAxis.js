@@ -129,13 +129,12 @@ class XAxis {
 
         elXaxisTexts.add(elTick)
 
+        elTick.tspan(label)
+
         let elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title')
-        elTooltipTitle.innerHTML = label
+        elTooltipTitle.textContent = label
         elTick.node.appendChild(elTooltipTitle)
 
-        let elText = document.createElementNS(w.globals.svgNS, 'tspan')
-        elText.innerHTML = label
-        elTick.node.appendChild(elText)
 
         xPos = xPos + colWidth
       }
@@ -371,12 +370,12 @@ class XAxis {
 
         xAxis.setAttribute('transform', `translate(0, ${-offsetHeight})`)
 
-        let tSpan = xAxisTexts[xat].children
+        let tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim) {
           graphics.placeTextWithEllipsis(
-            tSpan[1],
-            tSpan[1].innerHTML,
+            tSpan[0],
+            tSpan[0].textContent,
             w.config.xaxis.labels.maxHeight - 40
           )
         }
@@ -385,10 +384,10 @@ class XAxis {
       let width = w.globals.gridWidth / w.globals.labels.length
 
       for (let xat = 0; xat < xAxisTexts.length; xat++) {
-        let tSpan = xAxisTexts[xat].children
+        let tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim && (w.config.chart.type !== 'bar' && w.config.plotOptions.bar.horizontal)) {
-          graphics.placeTextWithEllipsis(tSpan[1], tSpan[1].innerHTML, width)
+          graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, width)
         }
       }
     }
@@ -423,7 +422,7 @@ class XAxis {
       for (let xat = 0; xat < xAxisTextsInversed.length; xat++) {
         graphics.placeTextWithEllipsis(
           xAxisTextsInversed[xat],
-          xAxisTextsInversed[xat].innerHTML,
+          xAxisTextsInversed[xat].textContent,
           w.config.yaxis[0].labels.maxWidth -
             parseInt(w.config.yaxis[0].title.style.fontSize) * 2 -
             20

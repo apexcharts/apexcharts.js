@@ -137,13 +137,17 @@ class Range {
     gl.minY = Number.MIN_VALUE
     const yaxis = cnf.yaxis
 
-    let minValInSeries = Number.MAX_SAFE_INTEGER
+    let minValInSeries = Number.MAX_VALUE
 
     const getMinYMaxY = (startingIndex, len) => {
       let maxY = -Number.MAX_VALUE
       let minY = Number.MIN_VALUE
       for (let i = startingIndex; i < len; i++) {
         gl.dataPoints = Math.max(gl.dataPoints, gl.series[i].length)
+        if (Utils.isIE()) {
+          minY = Math.min(...gl.series[i])
+        }
+
         for (let j = 0; j < gl.series[i].length; j++) {
           if (gl.series[i][j] !== null && Utils.isInt(gl.series[i][j])) {
             maxY = Math.max(maxY, gl.series[i][j])
