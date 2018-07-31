@@ -174,11 +174,6 @@ class ZoomPanSelection extends Toolbar {
         me.hideSelectionRect()
       }
 
-      if (typeof me.w.config.chart.events.click === 'function') {
-        me.w.config.chart.events.click(e, me.ctx)
-      }
-      me.ctx.fireEvent('click', [e, this.ctx, w])
-
       me.dragged = false
       me.clicked = false
       me.w.globals.scrollerThumbDown = false

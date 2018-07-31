@@ -142,6 +142,8 @@ class ApexCharts {
 
     this.core.setupElements()
 
+    this.setupEventHandlers()
+
     if (ser.length === 0) {
       const series = new Series(this.ctx)
       series.handleNoData({appendToRoot: true})
@@ -527,6 +529,38 @@ class ApexCharts {
           return chart.destroy()
         }
       }
+    }
+  }
+
+  setupEventHandlers () {
+    const w = this.w
+    const me = this
+
+    let clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
+
+    let eventList = [
+      'mousedown',
+      'mousemove',
+      'touchstart',
+      'touchmove',
+      'mouseup',
+      'touchend'
+    ]
+    for (let event of eventList) {
+      clickableArea.addEventListener(
+        event,
+        function (e) {
+          if ((e.type === 'mousedown' && e.which === 1)) {
+            // todo - provide a mousedown event too
+          } else if ((e.type === 'mouseup' && e.which === 1) || e.type === 'touchend') {
+            if (typeof w.config.chart.events.click === 'function') {
+              w.config.chart.events.click(e, me, w)
+            }
+            me.fireEvent('click', [e, me, w])
+          }
+        },
+        false
+      )
     }
   }
 

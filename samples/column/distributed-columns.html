@@ -35,6 +35,11 @@
             chart: {
                 height: 380,
                 type: 'bar',
+                events: {
+                    click: function(chart, w, e) {
+                        console.log(chart, w, e )
+                    }
+                },
             },
             colors: colors,
             plotOptions: {

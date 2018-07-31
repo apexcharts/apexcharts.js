@@ -135,7 +135,6 @@ class XAxis {
         elTooltipTitle.textContent = label
         elTick.node.appendChild(elTooltipTitle)
 
-
         xPos = xPos + colWidth
       }
     }
