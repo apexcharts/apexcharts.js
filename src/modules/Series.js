@@ -75,7 +75,7 @@ export default class Series {
     const selectedActive = function (range) {
       for (let i = 0; i < allHeatMapElements.length; i++) {
         const val = parseInt(allHeatMapElements[i].getAttribute('val'))
-        if (val > range.from && val < range.to) {
+        if (val >= range.from && val <= range.to) {
           allHeatMapElements[i].classList.remove('legend-mouseover-inactive')
         }
       }
