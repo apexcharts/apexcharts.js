@@ -248,6 +248,11 @@ class Utils {
       !isNaN(parseInt(value, 10))
   }
 
+  static isFloat(n){
+    return Number(n) === n && n % 1 !== 0;
+  }
+
+
   static isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   static isIE () {

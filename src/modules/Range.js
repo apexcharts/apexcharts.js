@@ -243,9 +243,6 @@ class Range {
       } else {
         ticksY = 8
       }
-      if (maxY < 8) {
-        ticksY = Math.floor(maxY)
-      }
 
       if (maxY === -Number.MAX_VALUE) {
         // no value in series. draw blank grid
