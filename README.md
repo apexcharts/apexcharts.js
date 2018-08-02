@@ -13,6 +13,10 @@
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
+## Why another Chart Library?
+It's a long read, so I have written a detailed explanation on this <a href="https://medium.com/@juned.chhipa/bridging-the-gap-between-low-level-and-high-level-charting-libraries-a8f6c1819ba5" target="_blank">medium post</a>
+
+
 ## Download and Installation
 
 ##### Installing via npm
@@ -69,6 +73,9 @@ An example of loading dynamic series into charts is shown below
 Annotations allows you to write custom text on specific values or on axes values. Valuable to expand the visual appeal of your chart and make it more informative.
 <p align="left"><a href="https://apexcharts.com/docs/annotations/"><img src="https://apexcharts.com/media/annotations" alt="annotations" /></a></p>
 
+## Mixed Charts
+You can combine more than one chart type to create a combo/mixed chart. Possible combinations can be line/area/column together in a single chart. Each chart-type can have it's own y-axis.
+<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/mixed-charts/"><img src="https://apexcharts.com/wp-content/uploads/2018/05/line-column-area-mixed-chart.svg" alt="annotations" width="490" /></a></p>
 
 ## Heatmaps
 Use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and area of focus. 
@@ -76,7 +83,7 @@ Use Heatmaps to represent data through colors and shades. Frequently used with b
 
 ## Gauges
 The tiny little gauges are an important part of a dashboard and are useful in displaying single digit data. A demo of these gauges:
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbar-charts.png" alt="radialbar-chart" /></a></p>
+<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars.png" alt="radialbar-chart" /></a></p>
 
 ## Sparklines
 Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature most extreme and least values:
