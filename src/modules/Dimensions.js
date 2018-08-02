@@ -552,7 +552,7 @@ class Dimensions {
 
     w.config.yaxis.map((yaxe, index) => {
       if (yaxe.labels.show && w.globals.yAxisScale[index].result.length) {
-        let lbFormatter = yaxe.labels.formatter
+        let lbFormatter = w.globals.yLabelFormatters[index]
         let val = lbFormatter(w.globals.yAxisScale[index].niceMax)
 
         if (this.isBarHorizontal) {

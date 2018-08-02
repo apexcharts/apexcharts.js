@@ -114,12 +114,7 @@ export const yAxis = {
       fontSize: '12px',
       cssClass: 'apexcharts-yaxis-label'
     },
-    formatter: function (val) {
-      if (typeof val === 'number') {
-        return val ? val.toFixed(0) : val
-      }
-      return val
-    }
+    formatter: undefined
   },
   axisBorder: {
     show: false,

@@ -19,17 +19,17 @@ class Labels {
     let w = this.w
     const ttCtx = this.ttCtx
 
-    let yLbFormatter = w.config.yaxis[0].labels.formatter
+    let yLbFormatter = w.globals.yLabelFormatters[i]
 
     let zVal = null
     let zFormatter = w.globals.ttZFormatter
 
-    if (w.globals.isMultipleYAxis) {
-      yLbFormatter = w.config.yaxis[i].labels.formatter
-    }
-
     if (w.globals.ttValFormatter !== undefined) {
       yLbFormatter = w.globals.ttValFormatter
+    }
+
+    if (!yLbFormatter) {
+      yLbFormatter = function (val) { return val }
     }
 
     let xVal = ''

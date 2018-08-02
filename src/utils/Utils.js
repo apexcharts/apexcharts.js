@@ -242,7 +242,7 @@ class Utils {
     }
   }
 
-  static isInt (value) {
+  static isNumber (value) {
     return !isNaN(value) &&
       parseFloat(Number(value)) === value &&
       !isNaN(parseInt(value, 10))

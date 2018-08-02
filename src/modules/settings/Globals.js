@@ -54,6 +54,7 @@ export default class Globals {
       yRange: [], // this property is the absolute sum of positive and negative values [eg (-100 + 200 = 300)] - yAxis
       zRange: 0, // zAxis Range (for bubble charts)
       xRange: 0, // xAxis range
+      yValueDecimal: 0, // are there floating numbers in the series. If yes, this represent the len of the decimals
       total: 0,
       svgNS: 'http://www.w3.org/2000/svg', // svg namespace
       svgWidth: 0, // the whole svg width
@@ -103,6 +104,7 @@ export default class Globals {
       rotateXLabels: false,
       defaultLabels: false,
       xLabelFormatter: undefined, // formatter for x axis labels
+      yLabelFormatters: [],
       xaxisTooltipLabelFormatter: undefined, // formatter for x axis tooltip
       ttKeyFormatter: undefined,
       ttValFormatter: undefined,

@@ -190,7 +190,10 @@ class ApexCharts {
       gl.yAxisScale[0].niceMax = longest
       gl.yAxisScale[0].niceMin = longest
 
-      cnf.yaxis[0].labels.formatter = function (val) {
+      // cnf.yaxis[0].labels.formatter = function (val) {
+      //   return val
+      // }
+      w.globals.yLabelFormatters[0] = function (val) {
         return val
       }
     }

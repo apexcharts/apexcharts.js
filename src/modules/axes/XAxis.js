@@ -209,7 +209,7 @@ class XAxis {
     colHeight = w.globals.gridHeight / labels.length
     yPos = -(colHeight / 2.2)
 
-    let lbFormatter = w.config.yaxis[0].labels.formatter
+    let lbFormatter = w.globals.yLabelFormatters[0]
 
     if (w.config.yaxis[0].labels.show) {
       for (let i = 0; i <= labels.length - 1; i++) {

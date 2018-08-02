@@ -151,7 +151,7 @@ class AxesTooltip {
     const ttCtx = this.ttCtx
     const w = this.w
 
-    let lbFormatter = w.config.yaxis[index].labels.formatter
+    let lbFormatter = w.globals.yLabelFormatters[index]
 
     if (ttCtx.blyaxisTooltip) {
       const hoverY = (clientY - seriesBound.top) * xyRatios.yRatio[index]

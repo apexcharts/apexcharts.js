@@ -75,13 +75,27 @@ class Formatters {
     if (w.config.xaxis.labels.formatter !== undefined) {
       w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
     } else {
-      w.globals.xLabelFormatter = function (val, opts) {
-        if (Utils.isInt(val)) {
+      w.globals.xLabelFormatter = function (val) {
+        if (Utils.isNumber(val)) {
           return val.toFixed(0)
         }
         return val
       }
     }
+
+    // formatter function will always overwrite format property
+    w.config.yaxis.map((yaxe, i) => {
+      if (yaxe.labels.formatter !== undefined) {
+        w.globals.yLabelFormatters[i] = yaxe.labels.formatter
+      } else {
+        w.globals.yLabelFormatters[i] = function (val) {
+          if (Utils.isNumber(val)) {
+            return val.toFixed(w.globals.yValueDecimal)
+          }
+          return val
+        }
+      }
+    })
   }
 }
 

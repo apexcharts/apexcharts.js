@@ -47,13 +47,14 @@ class YAxis {
 
     // initial label position = 0;
     let l = w.globals.translateY
-    let lbFormatter = w.config.yaxis[realIndex].labels.formatter
+    let lbFormatter = w.globals.yLabelFormatters[realIndex]
 
     if (w.config.yaxis[realIndex].labels.show) {
       for (let i = tickAmount; i >= 0; i--) {
         let val = w.globals.yAxisScale[realIndex].result[i]
 
         val = lbFormatter(val)
+
         let xPad = 20
         if (w.config.yaxis[realIndex].opposite) {
           xPad = xPad * -1
