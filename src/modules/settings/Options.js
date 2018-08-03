@@ -103,6 +103,7 @@ export const yAxis = {
   tickAmount: 6,
   max: undefined,
   min: undefined,
+  decimalsInFloat: 2,
   floating: false,
   labels: {
     show: true,

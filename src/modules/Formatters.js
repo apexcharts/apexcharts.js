@@ -90,7 +90,11 @@ class Formatters {
       } else {
         w.globals.yLabelFormatters[i] = function (val) {
           if (Utils.isNumber(val)) {
-            return val.toFixed(w.globals.yValueDecimal)
+            if (w.globals.yValueDecimal !== 0) {
+              return val.toFixed(yaxe.decimalsInFloat)
+            } else {
+              return val.toFixed(0)
+            }
           }
           return val
         }
