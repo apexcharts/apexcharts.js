@@ -55,7 +55,7 @@ This will render the following chart
 
 ### A little more than the basic
 
-You can create a combination of different charts, sync them and give your desired look with unlimited possibilites.
+You can create a combination of different charts, sync them and give your desired look with unlimited possibilities.
 Below is an example of synchronized charts with github style.
 <p align="left"><a href="https://apexcharts.com/javascript-chart-demos/area-charts/github-style/"><img src="https://apexcharts.com/media/github-charts.gif"></a></p>
 
@@ -116,7 +116,7 @@ apexcharts/
 npm install
 npm run start
 ```
-This will start the webpack watch and any changes you make to `src` folder will autocompile and output will be produced in `dist` folder.
+This will start the webpack watch and any changes you make to `src` folder will auto-compile and output will be produced in the `dist` folder.
 
 #### Minifying the src
 ```bash
