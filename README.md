@@ -3,8 +3,10 @@
 <p align="center">
   <a href="https://github.com/apexcharts/apexcharts.js/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen.svg" alt="License"></a>
   <a href="https://github.com/apexcharts/apexcharts.js/blob/master/LICENSE"><img src="https://img.shields.io/badge/price-FREE-0098f7.svg" alt="FREE"></a>
-  <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="Version"></a>
+  <a href="https://qalint.com/open-source" ><img src="https://img.shields.io/badge/QA%20Lint-Open%20Source-brightgreen.svg?longCache=true&style=popout-square" alt="QA Lint" /></a>
+  <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="ver"></a>
 </p>
+
 <p align="center">
   <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
 </p>
@@ -53,7 +55,7 @@ This will render the following chart
 
 ### A little more than the basic
 
-You can create a combination of different charts, sync them and give your desired look with unlimited possibilites.
+You can create a combination of different charts, sync them and give your desired look with unlimited possibilities.
 Below is an example of synchronized charts with github style.
 <p align="left"><a href="https://apexcharts.com/javascript-chart-demos/area-charts/github-style/"><img src="https://apexcharts.com/media/github-charts.gif"></a></p>
 
@@ -114,7 +116,7 @@ apexcharts/
 npm install
 npm run start
 ```
-This will start the webpack watch and any changes you make to `src` folder will autocompile and output will be produced in `dist` folder.
+This will start the webpack watch and any changes you make to `src` folder will auto-compile and output will be produced in the `dist` folder.
 
 #### Minifying the src
 ```bash
