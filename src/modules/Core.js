@@ -465,7 +465,7 @@ class Core {
               }
             }
 
-            if (typeof series[i].data[0].z !== 'undefined') {
+            if (series[i].data[0] && typeof series[i].data[0].z !== 'undefined') {
               for (let t = 0; t < series[i].data.length; t++) {
                 threeDSeries.push(series[i].data[t].z)
               }
