@@ -47,6 +47,8 @@ class ApexCharts {
     this.responsiveConfigOverrided = false
 
     this.create = Utils.bind(this.create, this)
+
+    this.windowResizeHandler = this.windowResize.bind(this)
   }
 
   /**
@@ -84,7 +86,7 @@ class ApexCharts {
         }).catch((e) => {
           // handle error in case no data or element not found
         })
-        window.addEventListener('resize', this.windowResize.bind(this))
+        window.addEventListener('resize', this.windowResizeHandler)
       } else {
         reject(new Error('Element not found'))
       }
@@ -138,7 +140,7 @@ class ApexCharts {
       return null
     }
 
-    this.destroy()
+    this.clear()
 
     this.core.setupElements()
 
@@ -475,18 +477,22 @@ class ApexCharts {
     })
   }
 
-  /**
-   * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
-   */
-  destroy () {
+  clear () {
     if (this.el !== null) {
       // remove all child elements - resetting the whole chart
       while (this.el.firstChild) {
         this.el.removeChild(this.el.firstChild)
       }
     }
-    window.removeEventListener('resize', this.windowResize)
     this.w.globals.dom = {} // empty the property which contains all DOM nodes
+  }
+
+  /**
+   * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
+   */
+  destroy () {
+    this.clear()
+    window.removeEventListener('resize', this.windowResizeHandler)
   }
 
   /**
