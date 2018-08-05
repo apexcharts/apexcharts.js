@@ -233,7 +233,7 @@ class Defaults {
       },
       dataLabels: {
         formatter: function (val) {
-          return Math.ceil(val) + '%'
+          return Math.round(val) + '%'
         },
         style: {
           colors: ['#fff']
@@ -272,7 +272,7 @@ class Defaults {
       },
       dataLabels: {
         formatter: function (val) {
-          return Math.ceil(val) + '%'
+          return Math.round(val) + '%'
         },
         style: {
           colors: ['#fff']

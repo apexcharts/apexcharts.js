@@ -26,7 +26,7 @@ It's a long read, so I have written a detailed explanation on this <a href="http
 
 ##### Direct &lt;script&gt; include
 ```html
-<script src="https://unpkg.com/apexcharts/dist/apexcharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 ```
 
 ## Usage
@@ -51,45 +51,45 @@ var chart = new ApexCharts(document.querySelector("#chart"), options);
 chart.render();
 ```
 This will render the following chart
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/"><img src="https://apexcharts.com/media/first-bar-chart.svg"></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/"><img src="https://apexcharts.com/media/first-bar-chart.svg"></a></p>
 
 ### A little more than the basic
 
 You can create a combination of different charts, sync them and give your desired look with unlimited possibilities.
 Below is an example of synchronized charts with github style.
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/area-charts/github-style/"><img src="https://apexcharts.com/media/github-charts.gif"></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/area-charts/github-style/"><img src="https://apexcharts.com/media/github-charts.gif"></a></p>
 
 
 ## Some interactivity
 Zoom, Pan, Scroll through data. Make selections and load other charts using those selections.
 An example showing some interactivity
-<p align="left"><a href="https://codepen.io/apexcharts/pen/QrbEQg" target="_blank"><img src="https://apexcharts.com/media/interactivity.gif" alt="interactive chart"></a></p>
+<p align="center"><a href="https://codepen.io/apexcharts/pen/QrbEQg" target="_blank"><img src="https://apexcharts.com/media/interactivity.gif" alt="interactive chart"></a></p>
 
 ## Dynamic Data Updation
 Another approach to Drill down charts where one selection updates the data of other charts.
 An example of loading dynamic series into charts is shown below
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/dynamic-loaded-chart/"><img src="https://apexcharts.com/media/dynamic-selection.gif" alt="dynamic-loading-chart" /></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/dynamic-loaded-chart/"><img src="https://apexcharts.com/media/dynamic-selection.gif" alt="dynamic-loading-chart" /></a></p>
 
 
 ## Annotations
 Annotations allows you to write custom text on specific values or on axes values. Valuable to expand the visual appeal of your chart and make it more informative.
-<p align="left"><a href="https://apexcharts.com/docs/annotations/"><img src="https://apexcharts.com/media/annotations" alt="annotations" /></a></p>
+<p align="center"><a href="https://apexcharts.com/docs/annotations/"><img src="https://apexcharts.com/media/annotations" alt="annotations" /></a></p>
 
 ## Mixed Charts
 You can combine more than one chart type to create a combo/mixed chart. Possible combinations can be line/area/column together in a single chart. Each chart-type can have it's own y-axis.
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/mixed-charts/"><img src="https://apexcharts.com/wp-content/uploads/2018/05/line-column-area-mixed-chart.svg" alt="annotations" width="490" /></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/mixed-charts/"><img src="https://apexcharts.com/wp-content/uploads/2018/05/line-column-area-mixed-chart.svg" alt="annotations" width="490" /></a></p>
 
 ## Heatmaps
 Use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and area of focus. 
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap-charts.png" alt="heatmap" /></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap-charts.png" alt="heatmap" /></a></p>
 
 ## Gauges
 The tiny gauges are an important part of a dashboard and are useful in displaying single series data. A demo of these gauges:
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars-gauges.png" alt="radialbar-chart" /></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars-gauges.png" alt="radialbar-chart" /></a></p>
 
 ## Sparklines
 Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature most extreme and least values:
-<p align="left"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
 
 
 ## What's included

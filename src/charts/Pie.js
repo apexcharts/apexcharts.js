@@ -67,7 +67,7 @@ class Pie {
 
     for (let i = 0; i < series.length; i++) {
       // CALCULATE THE ANGLES
-      let angle = Math.round(this.fullAngle * Utils.negToZero(series[i]) / total)
+      let angle = (this.fullAngle * Utils.negToZero(series[i]) / total)
       sectorAngleArr.push(angle)
     }
 
@@ -82,7 +82,7 @@ class Pie {
 
       for (let i = 0; i < w.globals.previousPaths.length; i++) {
         // CALCULATE THE PREVIOUS ANGLES
-        previousAngle = Math.round(
+        previousAngle = (
           this.fullAngle * Utils.negToZero(w.globals.previousPaths[i]) / prevTotal
         )
         this.prevSectorAngleArr.push(previousAngle)
@@ -279,13 +279,13 @@ class Pie {
         let xPos = labelPosition.x
         let yPos = labelPosition.y
         let text =
-        Math.round(100 * (endAngle - startAngle) / 360) + '%'
+        (100 * (endAngle - startAngle) / 360) + '%'
 
         if (angle !== 0) {
           let formatter = w.config.dataLabels.formatter
-
           if (formatter !== undefined) {
             text = formatter(w.globals.seriesPercent[i][0], { seriesIndex: i, globals: w.globals })
+            console.log(text, formatter, 'KLK')
           }
           let foreColor = w.config.dataLabels.style.colors[i]
 
