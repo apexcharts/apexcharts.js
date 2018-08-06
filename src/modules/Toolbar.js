@@ -194,13 +194,14 @@ class Toolbar {
   handleZoomOut () {
     const w = this.w
 
+    // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
+    if (w.config.xaxis.type === 'datetime' && new Date(w.globals.minX).getUTCFullYear() < 1000) {
+      return
+    }
+
     const centerX = (w.globals.minX + w.globals.maxX) / 2
     const newMinX = w.globals.minX - (centerX - w.globals.minX)
     const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
-
-    if (newMinX < w.globals.initialminX / 1.00001) {
-      return
-    }
 
     this.ctx.updateOptions({
       xaxis: {
