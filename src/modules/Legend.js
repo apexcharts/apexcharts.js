@@ -70,7 +70,7 @@ class Legend {
     let currentRow = 1
     let currentCol = 0
     let legendNames = w.globals.seriesNames
-    let fillcolor = w.config.colors.slice()
+    let fillcolor = w.globals.colors.slice()
 
     if (w.config.chart.type === 'heatmap') {
       const ranges = w.config.plotOptions.heatmap.colorScale.ranges
@@ -211,7 +211,7 @@ class Legend {
       let elTextOpts = {
         x: x,
         y: y,
-        foreColor: w.config.legend.useSeriesColors ? w.config.colors[i] : w.config.legend.labels.color,
+        foreColor: w.config.legend.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.color,
         text,
         textAnchor: w.config.legend.textAnchor,
         fontSize: fontSize,

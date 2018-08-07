@@ -98,7 +98,7 @@ class HeatMap {
           j,
           val: series[i][j],
           'stroke-width': this.strokeWidth,
-          stroke: w.config.stroke.colors[0],
+          stroke: w.globals.stroke.colors[0],
           color: color
         })
 
@@ -148,7 +148,7 @@ class HeatMap {
 
     const val = w.globals.series[i][j]
 
-    let color = w.config.colors[i]
+    let color = w.globals.colors[i]
     let min = Math.min(...w.globals.series[i])
     let max = Math.max(...w.globals.series[i])
     let total = Math.abs(max) + Math.abs(min)

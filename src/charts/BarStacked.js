@@ -178,7 +178,7 @@ class BarStacked extends Bar {
           color: fillColor
         })
 
-        let lineFill = w.config.stroke.colors[realIndex]
+        let lineFill = w.globals.stroke.colors[realIndex]
 
         let delay =
         (j /

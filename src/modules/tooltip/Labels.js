@@ -35,9 +35,9 @@ class Labels {
     let xVal = ''
     let val
 
-    let pColor = w.config.colors[i]
+    let pColor = w.globals.colors[i]
     if ((j !== null && w.config.plotOptions.bar.distributed)) {
-      pColor = w.config.colors[j]
+      pColor = w.globals.colors[j]
     }
 
     if (shared) {
@@ -108,7 +108,7 @@ class Labels {
         const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
         seriesName = w.config.tooltip.y.title.formatter(String(w.globals.seriesNames[tIndex]), { series: w.globals.series, seriesIndex: i, dataPointIndex: j, w })
-        pColor = w.config.colors[tIndex]
+        pColor = w.globals.colors[tIndex]
         // for plot charts, not for pie/donuts
         val = yLbFormatter(w.globals.series[tIndex][j], { series: w.globals.series, seriesIndex: i, dataPointIndex: j, w })
 

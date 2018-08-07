@@ -58,11 +58,11 @@ class Radial extends Pie {
       size = w.config.plotOptions.radialBar.size
     }
 
-    let colorArr = w.config.fill.colors
+    let colorArr = w.globals.fill.colors
 
-    let lineColorArr = w.config.stroke.colors !== undefined
-      ? w.config.stroke.colors
-      : w.config.colors
+    let lineColorArr = w.globals.stroke.colors !== undefined
+      ? w.globals.stroke.colors
+      : w.globals.colors
 
     if (w.config.plotOptions.radialBar.track.show) {
       let elTracks = this.drawTracks({
@@ -445,7 +445,7 @@ class Radial extends Pie {
 
     if (w.config.plotOptions.radialBar.dataLabels.name.color === undefined) {
       labelColor =
-        w.config.colors[parseInt(el.parentNode.getAttribute('rel')) - 1]
+        w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1]
     } else {
       labelColor = w.config.plotOptions.radialBar.dataLabels.name.color
     }
@@ -492,7 +492,7 @@ class Radial extends Pie {
     let labelColor, valueColor
 
     if (w.config.plotOptions.radialBar.dataLabels.name.color === undefined) {
-      labelColor = w.config.colors[0]
+      labelColor = w.globals.colors[0]
     } else {
       labelColor = w.config.plotOptions.radialBar.dataLabels.name.color
     }

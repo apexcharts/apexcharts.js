@@ -138,7 +138,7 @@ class DataLabels {
         height: parseInt(dataLabelsConfig.style.fontSize),
         x: x,
         y: y,
-        foreColor: dataLabelsConfig.style.colors[i],
+        foreColor: w.globals.dataLabels.style.colors[i],
         textAnchor: dataLabelsConfig.textAnchor,
         text: text,
         fontSize: dataLabelsConfig.style.fontSize

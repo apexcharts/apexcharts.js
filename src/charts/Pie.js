@@ -48,11 +48,11 @@ class Pie {
       class: 'apexcharts-pie'
     })
 
-    let colorArr = w.config.fill.colors
+    let colorArr = w.globals.fill.colors
 
-    let lineColorArr = w.config.stroke.colors !== undefined
-      ? w.config.stroke.colors
-      : w.config.colors
+    let lineColorArr = w.globals.stroke.colors !== undefined
+      ? w.globals.stroke.colors
+      : w.globals.colors
 
     let total = 0
     for (let k = 0; k < series.length; k++) {
@@ -287,7 +287,7 @@ class Pie {
             text = formatter(w.globals.seriesPercent[i][0], { seriesIndex: i, globals: w.globals })
             console.log(text, formatter, 'KLK')
           }
-          let foreColor = w.config.dataLabels.style.colors[i]
+          let foreColor = w.globals.dataLabels.style.colors[i]
 
           let elPieLabel = graphics.drawText({
             x: xPos,

@@ -180,7 +180,7 @@ class Bar {
 
         if (this.barOptions.colors.ranges.length > 0) {
           const colorRange = this.barOptions.colors.ranges
-          colorRange.map((range, index) => {
+          colorRange.map((range) => {
             if (series[i][j] >= range.from && series[i][j] <= range.to) {
               fillColor = range.color
             }
@@ -194,7 +194,7 @@ class Bar {
           color: fillColor
         })
 
-        let lineFill = w.config.stroke.colors[realIndex]
+        let lineFill = w.globals.stroke.colors[realIndex]
 
         if (this.isNullValue) {
           pathFill = 'none'

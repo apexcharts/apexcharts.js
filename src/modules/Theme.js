@@ -22,10 +22,12 @@ class Theme {
     let utils = new Utils()
 
     if (w.config.colors === undefined) {
-      w.config.colors = this.predefined()
+      w.globals.colors = this.predefined()
+    } else {
+      w.globals.colors = w.config.colors
     }
 
-    const defaultColors = w.config.colors.slice()
+    const defaultColors = w.globals.colors.slice()
 
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
@@ -52,38 +54,42 @@ class Theme {
 
         monoArr.push(newColor)
       }
-      w.config.colors = monoArr.slice()
+      w.globals.colors = monoArr.slice()
     }
 
     // if user specfied less colors than no. of series, push the same colors again
-    this.pushExtraColors(w.config.colors)
+    this.pushExtraColors(w.globals.colors)
 
     // The Border colors
     if (w.config.stroke.colors === undefined) {
-      w.config.stroke.colors = defaultColors
+      w.globals.stroke.colors = defaultColors
     } else {
-      this.pushExtraColors(w.config.stroke.colors)
+      w.globals.stroke.colors = w.config.stroke.colors
     }
+    this.pushExtraColors(w.globals.stroke.colors)
 
     // The FILL colors
     if (w.config.fill.colors === undefined) {
-      w.config.fill.colors = w.config.colors
+      w.globals.fill.colors = defaultColors
     } else {
-      this.pushExtraColors(w.config.fill.colors)
+      w.globals.fill.colors = w.config.fill.colors
     }
+    this.pushExtraColors(w.globals.fill.colors)
 
     if (w.config.dataLabels.style.colors === undefined) {
-      w.config.dataLabels.style.colors = defaultColors
+      w.globals.dataLabels.style.colors = defaultColors
     } else {
-      this.pushExtraColors(w.config.dataLabels.style.colors)
+      w.globals.dataLabels.style.colors = w.config.dataLabels.style.colors
     }
+    this.pushExtraColors(w.globals.dataLabels.style.colors)
 
     // The point colors
     if (w.config.markers.colors === undefined) {
-      w.config.markers.colors = defaultColors
+      w.globals.markers.colors = defaultColors
     } else {
-      this.pushExtraColors(w.config.markers.colors)
+      w.globals.markers.colors = w.config.markers.colors
     }
+    this.pushExtraColors(w.globals.markers.colors)
   }
 
   // When the number of colors provided is less than the number of series, this method

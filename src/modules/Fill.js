@@ -95,28 +95,28 @@ class Fill {
 
     if (w.globals.comboCharts) {
       if (w.config.series[seriesIndex()].type === 'line') {
-        if (cnf.stroke.colors instanceof Array) {
-          fillColors = cnf.stroke.colors
+        if (w.globals.stroke.colors instanceof Array) {
+          fillColors = w.globals.stroke.colors
         } else {
-          fillColors.push(cnf.stroke.colors)
+          fillColors.push(w.globals.stroke.colors)
         }
       } else {
-        if (cnf.fill.colors instanceof Array) {
-          fillColors = cnf.fill.colors
+        if (w.globals.fill.colors instanceof Array) {
+          fillColors = w.globals.fill.colors
         } else {
-          fillColors.push(cnf.fill.colors)
+          fillColors.push(w.globals.fill.colors)
         }
       }
     } else {
       if (cnf.chart.type === 'line') {
-        if (cnf.stroke.colors instanceof Array) { fillColors = cnf.stroke.colors } else {
-          fillColors.push(cnf.stroke.colors)
+        if (w.globals.stroke.colors instanceof Array) { fillColors = w.globals.stroke.colors } else {
+          fillColors.push(w.globals.stroke.colors)
         }
       } else {
-        if (cnf.fill.colors instanceof Array) {
-          fillColors = cnf.fill.colors
+        if (w.globals.fill.colors instanceof Array) {
+          fillColors = w.globals.fill.colors
         } else {
-          fillColors.push(cnf.fill.colors)
+          fillColors.push(w.globals.fill.colors)
         }
       }
     }

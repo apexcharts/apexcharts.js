@@ -285,7 +285,7 @@ class Line {
             i: i
           })
         } else {
-          lineFill = w.config.stroke.colors[realIndex]
+          lineFill = w.globals.stroke.colors[realIndex]
         }
 
         for (let p = 0; p < linePaths.length; p++) {

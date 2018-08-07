@@ -15,6 +15,21 @@ export default class Globals {
         zoomed: [],
         scrolled: []
       },
+      colors: [],
+      fill: {
+        colors: []
+      },
+      stroke: {
+        colors: []
+      },
+      dataLabels: {
+        style: {
+          colors: []
+        }
+      },
+      markers: {
+        colors: []
+      },
       initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
       series: [], // the MAIN series array (y values)
       seriesPercent: [], // the percentage values of the given series

@@ -125,7 +125,7 @@ class Tooltip {
 
       let point = document.createElement('span')
       point.classList.add('apexcharts-tooltip-marker')
-      point.style.backgroundColor = w.config.colors[i]
+      point.style.backgroundColor = w.globals.colors[i]
       gTxt.appendChild(point)
 
       const gYZ = document.createElement('div')

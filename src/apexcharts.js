@@ -541,6 +541,10 @@ class ApexCharts {
     }
   }
 
+  static merge (target, source) {
+    return Utils.extend(target, source)
+  }
+
   setupEventHandlers () {
     const w = this.w
     const me = this

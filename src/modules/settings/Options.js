@@ -742,7 +742,7 @@ export default class Options {
       },
       yaxis: yAxis,
       theme: {
-        palette: 'palette1', // If defined, it will overwrite config.colors variable
+        palette: 'palette1', // If defined, it will overwrite globals.colors variable
         monochrome: { // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
           enabled: false,
           color: '#008FFB',

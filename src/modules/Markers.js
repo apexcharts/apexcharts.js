@@ -143,7 +143,7 @@ class Markers {
   getMarkerStyle (seriesIndex) {
     let w = this.w
 
-    let colors = w.config.markers.colors
+    let colors = w.globals.markers.colors
 
     let pointStrokeColor = w.config.markers.strokeColor
     let pointFillColor = (colors instanceof Array ? colors[seriesIndex] : colors)
