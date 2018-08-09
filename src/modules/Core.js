@@ -251,7 +251,7 @@ class Core {
       }
     } else {
       if (gl.axisCharts) {
-        gl.svgHeight = gl.svgWidth / 1.5
+        gl.svgHeight = gl.svgWidth / 1.61
       } else {
         gl.svgHeight = gl.svgWidth
       }
@@ -413,7 +413,7 @@ class Core {
               if (typeof ser[i].data[j][1] !== 'undefined') {
                 twoDSeries.push(ser[i].data[j][1])
               }
-              if (cnf.xaxis.type !== 'datetime') {
+              if (cnf.xaxis.type === 'datetime') {
                 // if timestamps are provided and xaxis type is datettime,
 
                 let ts = new Date(ser[i].data[j][0])

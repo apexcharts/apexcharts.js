@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Circle Concept 2</title>
+
+
+  <link href="../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #card {
+      background: #fff;
+      max-width: 290px;
+      margin: 35px auto;
+      padding-top: 0px;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin-bottom: 0;
+      color: rgb(192, 192, 192);
+    }
+    h1 {
+      font-size: 22px;
+      margin-top: 0;
+      color: #333;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 16px;
+      left: 0;
+      right: 0;
+      font-size: 14px;
+      text-align: center
+    }
+  </style>
+</head>
+
+<body>
+  <div id="card">
+    <div id="chart">
+
+    </div>
+
+  </div>
+
+
+  <script src="../../dist/apexcharts.min.js"></script>
+
+  <script>
+    var options = {
+      chart: {
+        height: 300,
+        type: 'radialBar',
+      },
+      plotOptions: {
+        radialBar: {
+          startAngle: -135,
+          endAngle: 225,
+           hollow: {
+            margin: 0,
+            size: '70%',
+            background: '#fff',
+            image: undefined,
+            imageOffsetX: 0,
+            imageOffsetY: 0,
+            position: 'front',
+            dropShadow: {
+              enabled: true,
+              top: 3,
+              left: 0,
+              blur: 4,
+              opacity: 0.24
+            }
+          },
+          track: {
+            background: '#fff',
+            strokeWidth: '67%',
+            margin: 0, // margin is in pixels
+            dropShadow: {
+              enabled: true,
+              top: -3,
+              left: 0,
+              blur: 4,
+              opacity: 0.35
+            }
+          },
+
+          dataLabels: {
+            showOn: 'always',
+            name: {
+              offsetY: -20,
+              show: true,
+              color: '#888',
+              fontSize: '13px'
+            },
+            value: {
+              formatter: function(val) {
+                return 75;
+              },
+              color: '#111',
+              fontSize: '30px',
+              show: true,
+            }
+          }
+        }
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shade: 'dark',
+          type: 'horizontal',
+          shadeIntensity: 0.5,
+          gradientToColors: ['#ABE5A1'],
+          inverseColors: true,
+          opacityFrom: 1,
+          opacityTo: 1,
+          stops: [0, 100]
+        }
+      },
+      series: [75],
+      stroke: {
+        lineCap: 'round'
+      },
+      labels: ['Percent'],
+
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#chart"),
+      options
+    );
+
+    chart.render();
+  </script>
+</body>
+
+</html>

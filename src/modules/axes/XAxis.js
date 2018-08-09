@@ -24,6 +24,7 @@ class XAxis {
     } else {
       this.offY = w.globals.gridHeight + 1
     }
+    this.offY = this.offY + w.config.xaxis.axisBorder.offsetY
 
     this.xaxisFontSize = w.config.xaxis.labels.style.fontSize
     this.xaxisForeColors = w.config.xaxis.labels.style.colors
@@ -171,7 +172,9 @@ class XAxis {
         this.offY,
         w.globals.gridWidth,
         this.offY,
-        w.config.xaxis.axisBorder.color
+        w.config.xaxis.axisBorder.color,
+        0,
+        w.config.xaxis.axisBorder.strokeWidth
       )
 
       elXaxis.add(elHorzLine)
@@ -258,7 +261,9 @@ class XAxis {
         this.offY,
         w.globals.gridWidth,
         this.offY,
-        this.yaxis.axisBorder.color
+        this.yaxis.axisBorder.color,
+        0,
+        w.config.xaxis.axisBorder.strokeWidth
       )
 
       elYaxis.add(elHorzLine)

@@ -77,10 +77,12 @@ class Labels {
     if (w.globals.dataXY && w.config.xaxis.type === 'datetime') {
       let xFormat = new Formatters(this.ctx)
       xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal)
-    } else if (w.config.tooltip.x.formatter !== undefined) {
-      xVal = w.globals.ttKeyFormatter(bufferXVal, { series: w.globals.series, seriesIndex: i, dataPointIndex: j, w })
     } else {
       xVal = w.globals.xLabelFormatter(bufferXVal, { series: w.globals.series, seriesIndex: i, dataPointIndex: j, w })
+    }
+
+    if (w.config.tooltip.x.formatter !== undefined) {
+      xVal = w.globals.ttKeyFormatter(bufferXVal, { series: w.globals.series, seriesIndex: i, dataPointIndex: j, w })
     }
 
     if (ttCtx.showTooltipTitle) {

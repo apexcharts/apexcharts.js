@@ -681,7 +681,8 @@ export default class Options {
           show: true,
           color: '#78909C',
           offsetX: 0,
-          offsetY: 0
+          offsetY: 0,
+          strokeWidth: 1 // TODO: add in the website docs
         },
         axisTicks: {
           show: true,

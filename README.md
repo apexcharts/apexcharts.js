@@ -29,9 +29,17 @@ It's a long read, so I have written a detailed explanation on this <a href="http
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 ```
 
-## Usage
+## Wrappers for Vue/React/Angular
+Integrate easily with 3rd party frameworks
+- [vue-apexcharts](https://github.com/apexcharts/vue-apexcharts)
+- [react-apexcharts] - (not released yet)
+- [angular-apexcharts] - (not released yet)
 
-### Creating your first chart
+## Usage
+```js
+import ApexCharts from 'apexcharts'
+```
+
 To create a basic bar chart with minimal configuration, write as follows:
 ```js
 var options = {
@@ -60,7 +68,7 @@ Below is an example of synchronized charts with github style.
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/area-charts/github-style/"><img src="https://apexcharts.com/media/github-charts.gif"></a></p>
 
 
-## Some interactivity
+## Interactivity
 Zoom, Pan, Scroll through data. Make selections and load other charts using those selections.
 An example showing some interactivity
 <p align="center"><a href="https://codepen.io/apexcharts/pen/QrbEQg" target="_blank"><img src="https://apexcharts.com/media/interactivity.gif" alt="interactive chart"></a></p>
@@ -127,8 +135,15 @@ npm run build
 
 Head over to the <a href="https://apexcharts.com/docs/">documentation</a> section to read more about how to use different kinds of charts and explore all options.
 
-## Credits.
-ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood.
+## Contacts
+Email: <a href="info@apexcharts.com">info@apexcharts.com</a>
+
+Twitter: <a href="https://twitter.com/apexcharts">@apexcharts</a>
+
+Facebook: <a href="https://facebook.com/apexcharts">fb.com/apexcharts</a>
+
+## Dependency
+ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
 
 ## License
 ApexCharts is released under MIT license. You are free to use, modify and distribute this software, as long as the copyright header is left intact.
