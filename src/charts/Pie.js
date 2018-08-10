@@ -285,7 +285,6 @@ class Pie {
           let formatter = w.config.dataLabels.formatter
           if (formatter !== undefined) {
             text = formatter(w.globals.seriesPercent[i][0], { seriesIndex: i, globals: w.globals })
-            console.log(text, formatter, 'KLK')
           }
           let foreColor = w.globals.dataLabels.style.colors[i]
 
