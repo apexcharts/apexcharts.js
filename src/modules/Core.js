@@ -492,6 +492,8 @@ class Core {
                 let isDate = dt.isValidDate(dates[j])
                 if (isDate) {
                   twoDseriesX.push(new Date(dates[j]).getTime())
+                } else {
+                  throw new Error('You have provided invalid Date format. Please provide a valid JavaScript Date')
                 }
               }
             }
