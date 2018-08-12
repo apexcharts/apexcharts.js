@@ -405,6 +405,8 @@ class ApexCharts {
       w.config = Utils.extend(w.config, options)
     }
 
+    w.globals.isDirty = true
+
     return this.update()
   }
 
@@ -427,6 +429,8 @@ class ApexCharts {
     }
 
     me.w.config.series = newSeries.slice()
+
+    me.w.globals.isDirty = true
 
     return this.update()
   }
@@ -455,6 +459,8 @@ class ApexCharts {
       }
     }
     me.w.config.series = newSeries
+
+    me.w.globals.isDirty = true
 
     return this.update()
   }

@@ -265,7 +265,8 @@ export default class Options {
             zoomout: true,
             pan: true,
             reset: true
-          }
+          },
+          autoSelected: 'zoom' // accepts -> zoom, pan, selection
         },
         type: 'line',
         width: '100%',

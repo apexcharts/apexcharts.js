@@ -108,6 +108,12 @@ class Toolbar {
       this.elToolbarWrap.appendChild(toolbarControls[i].el)
     }
 
+    if (!w.globals.isDirty) {
+      w.globals.zoomEnabled = w.config.chart.toolbar.autoSelected === 'zoom'
+      w.globals.panEnabled = w.config.chart.toolbar.autoSelected === 'pan'
+      w.globals.selectionEnabled = w.config.chart.toolbar.autoSelected === 'selection'
+    }
+
     if (w.globals.zoomEnabled) {
       this.elZoom.classList.add('selected')
     } else if (w.globals.panEnabled) {
