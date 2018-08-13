@@ -443,7 +443,7 @@ class Core {
                 // user supplied '01/01/2017' or a date string (a JS date object is not supported)
                 if (isXString) {
                   if (cnf.xaxis.type === 'datetime') {
-                    twoDseriesX.push(new Date(ser[i].data[j].x).getTime())
+                    twoDseriesX.push(dt.parseDate(ser[i].data[j].x))
                   } else {
                     // a category and not a numeric x value
                     fallbackToCategory = true
@@ -451,7 +451,7 @@ class Core {
                   }
                 } else if (isXDate) {
                   if (cnf.xaxis.type === 'datetime') {
-                    twoDseriesX.push(new Date(ser[i].data[j].x.toString()).getTime())
+                    twoDseriesX.push(dt.parseDate(ser[i].data[j].x.toString()))
                   } else {
                     twoDseriesX.push(parseInt(ser[i].data[j].x))
                   }
@@ -491,7 +491,7 @@ class Core {
               if (typeof (dates[j]) === 'string') {
                 let isDate = dt.isValidDate(dates[j])
                 if (isDate) {
-                  twoDseriesX.push(new Date(dates[j]).getTime())
+                  twoDseriesX.push(dt.parseDate(dates[j]))
                 } else {
                   throw new Error('You have provided invalid Date format. Please provide a valid JavaScript Date')
                 }

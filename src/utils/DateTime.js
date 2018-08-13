@@ -20,7 +20,16 @@ class DateTime {
   }
 
   isValidDate (date) {
-    return !isNaN(Date.parse(date))
+    return !isNaN(this.parseDate(date))
+  }
+
+  parseDate (date) {
+    const parsed = Date.parse(date)
+    if (!isNaN(parsed)) {
+      return parsed
+    }
+
+    return Date.parse(date.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
   }
 
   // https://stackoverflow.com/a/11252167/6495043
