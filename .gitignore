@@ -1,2 +1,3 @@
 node_modules/
+tests/e2e/snapshots/
 .DS_Store
