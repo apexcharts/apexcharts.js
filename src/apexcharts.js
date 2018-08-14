@@ -1,14 +1,13 @@
 import Annotations from './modules/Annotations'
 import Animations from './modules/Animations'
 import Base from './modules/Base'
-import Config from './modules/settings/Config'
 import Core from './modules/Core'
 import Crosshairs from './modules/Crosshairs'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
 import Legend from './modules/Legend'
+import Responsive from './modules/Responsive'
 import Series from './modules/Series'
-import TimeScale from './modules/TimeScale'
 import Theme from './modules/Theme'
 import Tooltip from './modules/tooltip/Tooltip'
 import Utils from './utils/Utils'
@@ -128,23 +127,7 @@ class ApexCharts {
 
   create (ser) {
     let w = this.w
-
     let gl = this.w.globals
-    let cnf = this.w.config
-
-    if (!this.responsiveConfigOverrided) {
-      this.checkResponsiveConfig()
-    }
-
-    if (this.el === null) {
-      return null
-    }
-
-    this.clear()
-
-    this.core.setupElements()
-
-    this.setupEventHandlers()
 
     if (ser.length === 0) {
       const series = new Series(this.ctx)
@@ -152,84 +135,49 @@ class ApexCharts {
       return null
     }
 
+    if (!this.responsiveConfigOverrided) {
+      const responsive = new Responsive(this.ctx)
+      responsive.checkResponsiveConfig()
+    }
+
+    if (this.el === null) {
+      return null
+    }
+
+    this.clear()
+    this.core.setupElements()
+    this.setupEventHandlers()
     this.core.parseData(ser)
     this.core.setSparkLineOptions()
-
     // this is a good time to set theme colors first
     let theme = new Theme(this.ctx)
     theme.init()
-
     // labelFormatters should be called before dimensions as in dimensions we need text labels width
     let formatters = new Formatters(this.ctx)
     formatters.setLabelFormatters()
-
     const title = new Title(this.ctx)
     title.drawTitle()
-
     const subtitle = new SubTitle(this.ctx)
     subtitle.drawSubtitle()
-
     // legend is calculated here before coreCalculations because it affects the plottable area
     new Legend(this.ctx).init()
 
     // coreCalculations will give the min/max range and yaxis/axis values. It should be called here to set series variable from config to globals
     if (gl.axisCharts) {
       this.core.coreCalculations()
-
       // as we have minX and maxX values, determine the default DateTimeFormat for time series
       formatters.setLabelFormatters()
     }
 
     // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
-    // Also we need to do this before calcuting Dimentions plotCoords() method
-    if (w.config.chart.type === 'heatmap') {
-      gl.yAxisScale[0].result = gl.seriesNames.slice()
-
-      //  get the longest string from the labels array and also apply label formatter to it
-      let longest = gl.seriesNames.reduce(function (a, b) {
-        return a.length > b.length ? a : b
-      })
-      gl.yAxisScale[0].niceMax = longest
-      gl.yAxisScale[0].niceMin = longest
-
-      // cnf.yaxis[0].labels.formatter = function (val) {
-      //   return val
-      // }
-      w.globals.yLabelFormatters[0] = function (val) {
-        return val
-      }
-    }
+    // Also we need to do this before calcuting Dimentions plotCoords() method of Dimensions
+    formatters.heatmapLabelFormatters()
 
     // We got plottable area here, next task would be to calculate axis areas
     let dimensions = new Dimensions(this.ctx)
     dimensions.plotCoords()
 
-    if (w.config.chart.type === 'heatmap') {
-      // adjust yaxis labels for heatmap
-      gl.yAxisScale[0].result.push('')
-      let yDivision = w.globals.gridHeight / w.globals.series.length
-      cnf.yaxis[0].labels.offsetY = -(yDivision / 2)
-    }
-
-    let xyRatios = null
-
-    if (gl.axisCharts) {
-      if (cnf.xaxis.crosshairs.position === 'back') {
-        const crosshairs = new Crosshairs(this.ctx)
-        crosshairs.drawXCrosshairs()
-      }
-      if (cnf.yaxis[0].crosshairs.position === 'back') {
-        const crosshairs = new Crosshairs(this.ctx)
-        crosshairs.drawYCrosshairs()
-      }
-
-      xyRatios = this.core.getCalculatedRatios()
-
-      if (cnf.xaxis.type === 'datetime' && cnf.xaxis.labels.formatter === undefined) {
-        let ts = new TimeScale(this.ctx)
-        ts.calculateTimeScaleTicks()
-      }
-    }
+    const xyRatios = this.core.xySettings()
 
     this.core.createGridMask()
 
@@ -238,18 +186,20 @@ class ApexCharts {
     // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
     this.core.shiftGraphPosition()
 
+    const dim = {
+      plot: {
+        left: w.globals.translateX,
+        top: w.globals.translateY,
+        width: w.globals.gridWidth,
+        height: w.globals.gridHeight
+      }
+    }
+
     return {
       elGraph,
       xyRatios,
       elInner: w.globals.dom.elGraphical,
-      dimensions: {
-        plot: {
-          left: w.globals.translateX,
-          top: w.globals.translateY,
-          width: w.globals.gridWidth,
-          height: w.globals.gridHeight
-        }
-      }
+      dimensions: dim
     }
   }
 
@@ -400,7 +350,8 @@ class ApexCharts {
     }
 
     if (options && typeof options === 'object') {
-      this.checkResponsiveConfig()
+      const responsive = new Responsive(this.ctx)
+      responsive.checkResponsiveConfig()
       this.responsiveConfigOverrided = true
       w.config = Utils.extend(w.config, options)
     }
@@ -519,30 +470,29 @@ class ApexCharts {
 
   static exec (chartID, fn, opts) {
     const chart = this.getChartByID(chartID)
+    if (!chart) return
 
-    if (chart) {
-      switch (fn) {
-        case 'updateOptions': {
-          return chart.updateOptions(opts)
-        }
-        case 'updateSeries': {
-          return chart.updateSeries(opts)
-        }
-        case 'appendData': {
-          return chart.appendData(opts)
-        }
-        case 'addXaxisAnnotation': {
-          return chart.addXaxisAnnotation(opts)
-        }
-        case 'addYaxisAnnotation': {
-          return chart.addYaxisAnnotation(opts)
-        }
-        case 'addPointAnnotation': {
-          return chart.addPointAnnotation(opts)
-        }
-        case 'destroy': {
-          return chart.destroy()
-        }
+    switch (fn) {
+      case 'updateOptions': {
+        return chart.updateOptions(opts)
+      }
+      case 'updateSeries': {
+        return chart.updateSeries(opts)
+      }
+      case 'appendData': {
+        return chart.appendData(opts)
+      }
+      case 'addXaxisAnnotation': {
+        return chart.addXaxisAnnotation(opts)
+      }
+      case 'addYaxisAnnotation': {
+        return chart.addYaxisAnnotation(opts)
+      }
+      case 'addPointAnnotation': {
+        return chart.addPointAnnotation(opts)
+      }
+      case 'destroy': {
+        return chart.destroy()
       }
     }
   }
@@ -720,33 +670,6 @@ class ApexCharts {
     }
 
     return context
-  }
-
-  checkResponsiveConfig () {
-    const w = this.w
-    const cnf = w.config
-
-    // check if responsive config exists
-    if (cnf.responsive !== undefined) {
-      let newOptions = {}
-      for (let i = 0; i < cnf.responsive.length; i++) {
-        const width = (window.innerWidth > 0) ? window.innerWidth : screen.width
-
-        if (width < cnf.responsive[i].breakpoint) {
-          newOptions = Utils.extend(w.config, cnf.responsive[i].options)
-          this.overrideResponsiveOptions(newOptions)
-          break
-        } else {
-          newOptions = Utils.extend(w.config, w.globals.initialConfig)
-          this.overrideResponsiveOptions(newOptions)
-        }
-      }
-    }
-  }
-
-  overrideResponsiveOptions (newOptions) {
-    let newConfig = new Config(newOptions).init()
-    this.w.config = newConfig
   }
 
   getChartArea () {

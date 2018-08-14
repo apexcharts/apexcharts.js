@@ -140,6 +140,11 @@ class HeatMap {
       ret.add(elSeries)
     }
 
+    // adjust yaxis labels for heatmap
+    w.globals.yAxisScale[0].result.push('')
+    let divisor = w.globals.gridHeight / w.globals.series.length
+    w.config.yaxis[0].labels.offsetY = -(divisor / 2)
+
     return ret
   }
 

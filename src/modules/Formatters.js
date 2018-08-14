@@ -99,6 +99,27 @@ class Formatters {
       }
     })
   }
+
+  heatmapLabelFormatters () {
+    const w = this.w
+    if (w.config.chart.type === 'heatmap') {
+      w.globals.yAxisScale[0].result = w.globals.seriesNames.slice()
+
+      //  get the longest string from the labels array and also apply label formatter to it
+      let longest = w.globals.seriesNames.reduce(function (a, b) {
+        return a.length > b.length ? a : b
+      })
+      w.globals.yAxisScale[0].niceMax = longest
+      w.globals.yAxisScale[0].niceMin = longest
+
+      // cnf.yaxis[0].labels.formatter = function (val) {
+      //   return val
+      // }
+      w.globals.yLabelFormatters[0] = function (val) {
+        return val
+      }
+    }
+  }
 }
 
 export default Formatters

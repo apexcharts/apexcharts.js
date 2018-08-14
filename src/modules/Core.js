@@ -1,5 +1,6 @@
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
+import Crosshairs from './Crosshairs'
 import HeatMap from '../charts/HeatMap'
 import Pie from '../charts/Pie'
 import Radial from '../charts/Radial'
@@ -13,6 +14,7 @@ import Range from './Range'
 import Utils from '../utils/Utils'
 import ClassListPolyfill from '../utils/ClassListPolyfill'
 import Series from './Series'
+import TimeScale from './TimeScale'
 
 import * as SVG from 'svg.js'
 require('svg.filter.js')
@@ -700,6 +702,30 @@ class Core {
   coreCalculations () {
     const range = new Range(this.ctx, this.checkComboCharts)
     range.init()
+  }
+
+  xySettings () {
+    let xyRatios = null
+    const w = this.w
+
+    if (w.globals.axisCharts) {
+      if (w.config.xaxis.crosshairs.position === 'back') {
+        const crosshairs = new Crosshairs(this.ctx)
+        crosshairs.drawXCrosshairs()
+      }
+      if (w.config.yaxis[0].crosshairs.position === 'back') {
+        const crosshairs = new Crosshairs(this.ctx)
+        crosshairs.drawYCrosshairs()
+      }
+
+      xyRatios = this.getCalculatedRatios()
+
+      if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined) {
+        let ts = new TimeScale(this.ctx)
+        ts.calculateTimeScaleTicks()
+      }
+    }
+    return xyRatios
   }
 
   getCalculatedRatios () {
