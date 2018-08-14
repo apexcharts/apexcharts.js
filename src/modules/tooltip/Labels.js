@@ -81,6 +81,7 @@ class Labels {
       xVal = w.globals.xLabelFormatter(bufferXVal, { series: w.globals.series, seriesIndex: i, dataPointIndex: j, w })
     }
 
+    // override default x-axis formatter with tooltip formatter
     if (w.config.tooltip.x.formatter !== undefined) {
       xVal = w.globals.ttKeyFormatter(bufferXVal, { series: w.globals.series, seriesIndex: i, dataPointIndex: j, w })
     }

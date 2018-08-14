@@ -225,7 +225,7 @@ class ApexCharts {
 
       xyRatios = this.core.getCalculatedRatios()
 
-      if (cnf.xaxis.type === 'datetime') {
+      if (cnf.xaxis.type === 'datetime' && cnf.xaxis.labels.formatter === undefined) {
         let ts = new TimeScale(this.ctx)
         ts.calculateTimeScaleTicks()
       }

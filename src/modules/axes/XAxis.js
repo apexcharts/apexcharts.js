@@ -98,6 +98,7 @@ class XAxis {
     }
 
     let xlbFormatter = w.globals.xLabelFormatter
+    let customFormatter = w.config.xaxis.labels.formatter
 
     let labelsLen = labels.length
 
@@ -107,6 +108,9 @@ class XAxis {
 
         let xFormat = new Formatters(this.ctx)
         label = xFormat.xLabelFormat(xlbFormatter, label)
+        if (customFormatter !== undefined) {
+          label = customFormatter(label)
+        }
 
         let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
         if (w.globals.timelineLabels.length > 0) {

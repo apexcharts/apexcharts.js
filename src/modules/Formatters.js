@@ -14,13 +14,11 @@ class Formatters {
     this.tooltipKeyFormat = 'dd MMM'
   }
 
-  // xLabelFormat is the formatter function which is used
   xLabelFormat (fn, val) {
     let w = this.w
 
-    // if datetime series
     if (w.config.xaxis.type === 'datetime') {
-      // if user has not specified a custom formatter, use the
+      // if user has not specified a custom formatter, use the default tooltip.x.format
       if (w.config.tooltip.x.formatter === undefined) {
         let datetimeObj = new DateTime(this.ctx)
         return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format)
