@@ -221,10 +221,6 @@ class Core {
       cnf.chart.zoom.enabled = false
       cnf.xaxis.tooltip.enabled = false
       cnf.xaxis.axisBorder.show = false
-      for (const yaxe of cnf.yaxis) {
-        yaxe.tooltip.enabled = false
-        yaxe.labels.show = false
-      }
       cnf.chart.scroller.enabled = false
       cnf.dataLabels.enabled = false
     }

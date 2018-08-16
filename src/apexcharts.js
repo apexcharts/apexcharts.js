@@ -33,13 +33,13 @@ window.Apex = {}
 class ApexCharts {
   constructor (el, opts) {
     this.opts = opts
-
-    // Pass the user supplied options to the Base Class where these options will be extended with defaults. The returned object from Base Class will become the config object in the entire codebase.
-    this.w = new Base(this.opts).init()
     this.ctx = this
 
+    // Pass the user supplied options to the Base Class where these options will be extended with defaults. The returned object from Base Class will become the config object in the entire codebase.
+    this.w = new Base(opts).init()
+
     this.el = el
-    this.core = new Core(el, this.ctx)
+    this.core = new Core(el, this)
 
     this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4)
     this.w.globals.chartID = this.w.config.chart.id ? this.w.config.chart.id : this.w.globals.cuid

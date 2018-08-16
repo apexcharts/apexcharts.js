@@ -1,4 +1,3 @@
-
 /**
  * ApexCharts Options for setting the initial configuration of ApexCharts.
  **/

@@ -71,45 +71,40 @@ class Utils {
     return arrToExtend
   }
 
-  static addProps(obj, arr, val) {
+  static addProps (obj, arr, val) {
+    if (typeof arr === 'string') { arr = arr.split('.') }
 
-    if (typeof arr == 'string')
-        arr = arr.split(".");
+    obj[arr[0]] = obj[arr[0]] || {}
 
-    obj[arr[0]] = obj[arr[0]] || {};
-
-    var tmpObj = obj[arr[0]];
+    var tmpObj = obj[arr[0]]
 
     if (arr.length > 1) {
-        arr.shift();
-        this.addProps(tmpObj, arr, val);
-    }
-    else
-        obj[arr[0]] = val;
+      arr.shift()
+      this.addProps(tmpObj, arr, val)
+    } else { obj[arr[0]] = val }
 
-    return obj;
+    return obj
+  }
 
-}
-
-  static clone(source) {
+  static clone (source) {
     if (Object.prototype.toString.call(source) === '[object Array]') {
-        let cloneResult = [];
-        for (let i=0; i<source.length; i++) {
-          cloneResult[i] = this.clone(source[i]);
+      let cloneResult = []
+      for (let i = 0; i < source.length; i++) {
+        cloneResult[i] = this.clone(source[i])
+      }
+      return cloneResult
+    } else if (typeof (source) === 'object') {
+      let cloneResult = {}
+      for (let prop in source) {
+        if (source.hasOwnProperty(prop)) {
+          cloneResult[prop] = this.clone(source[prop])
         }
-        return cloneResult;
-    } else if (typeof(source)==="object") {
-      let cloneResult = {};
-        for (let prop in source) {
-            if (source.hasOwnProperty(prop)) {
-              cloneResult[prop] = this.clone(source[prop]);
-            }
-        }
-        return cloneResult;
+      }
+      return cloneResult
     } else {
-        return source;
+      return source
     }
-}
+  }
 
   static getDimensions (el) {
     let computedStyle = getComputedStyle(el)
@@ -159,17 +154,17 @@ class Utils {
   }
 
   static rgb2hex (rgb) {
-    rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
-    return (rgb && rgb.length === 4) ? "#" +
-     ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) +
-     ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) +
-     ("0" + parseInt(rgb[3],10).toString(16)).slice(-2) : '';
-   }
+    rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i)
+    return (rgb && rgb.length === 4) ? '#' +
+     ('0' + parseInt(rgb[1], 10).toString(16)).slice(-2) +
+     ('0' + parseInt(rgb[2], 10).toString(16)).slice(-2) +
+     ('0' + parseInt(rgb[3], 10).toString(16)).slice(-2) : ''
+  }
 
   // beautiful color shading blending code
   // http://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
   shadeColor (p, from, to = undefined) {
-    if(from[0] !== '#' || from[0] !== 'r') {
+    if (from[0] !== '#' || from[0] !== 'r') {
       from = this.getHexColorFromName(from)
     }
     if (typeof (p) !== 'number' || p < -1 || p > 1 || typeof (from) !== 'string' || (from[0] !== 'r' && from[0] !== '#') || (typeof (to) !== 'string' && typeof (to) !== 'undefined')) return null // ErrorCheck
@@ -206,12 +201,12 @@ class Utils {
   }
 
   // https://stackoverflow.com/questions/1573053/javascript-function-to-convert-color-names-to-hex-codes
-  getHexColorFromName(colorStr) {
-    var a = document.createElement('div');
-    a.style.color = colorStr;
-    var colors = window.getComputedStyle( document.body.appendChild(a) ).color.match(/\d+/g).map(function(a){ return parseInt(a,10); });
-    document.body.removeChild(a);
-    return (colors.length >= 3) ? '#' + (((1 << 24) + (colors[0] << 16) + (colors[1] << 8) + colors[2]).toString(16).substr(1)) : false;
+  getHexColorFromName (colorStr) {
+    var a = document.createElement('div')
+    a.style.color = colorStr
+    var colors = window.getComputedStyle(document.body.appendChild(a)).color.match(/\d+/g).map(function (a) { return parseInt(a, 10) })
+    document.body.removeChild(a)
+    return (colors.length >= 3) ? '#' + (((1 << 24) + (colors[0] << 16) + (colors[1] << 8) + colors[2]).toString(16).substr(1)) : false
   }
 
   static polarToCartesian (centerX, centerY, radius, angleInDegrees) {
@@ -257,10 +252,9 @@ class Utils {
       !isNaN(parseInt(value, 10))
   }
 
-  static isFloat(n){
-    return Number(n) === n && n % 1 !== 0;
+  static isFloat (n) {
+    return Number(n) === n && n % 1 !== 0
   }
-
 
   static isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
