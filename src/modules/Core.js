@@ -1,12 +1,12 @@
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
 import Crosshairs from './Crosshairs'
+import DateTime from './../utils/DateTime'
 import HeatMap from '../charts/HeatMap'
 import Pie from '../charts/Pie'
 import Radial from '../charts/Radial'
 import Line from '../charts/Line'
 import Graphics from './Graphics'
-import DateTime from '../utils/DateTime'
 import Grid from './axes/Grid'
 import XAxis from './axes/XAxis'
 import YAxis from './axes/YAxis'
@@ -33,6 +33,10 @@ class Core {
     this.ctx = ctx
     this.w = ctx.w
     this.el = el
+
+    this.twoDSeries = []
+    this.threeDSeries = []
+    this.twoDSeriesX = []
   }
 
   // get data and store into appropriate vars
@@ -286,6 +290,14 @@ class Core {
     Graphics.setAttrs(gl.dom.elGraphical.node, scalingAttrs)
   }
 
+  /*
+   ** All the calculations for setting range in charts will be done here
+   */
+  coreCalculations () {
+    const range = new Range(this.ctx, this.checkComboCharts)
+    range.init()
+  }
+
   resetGlobals () {
     let gl = this.w.globals
     gl.series = []
@@ -347,196 +359,265 @@ class Core {
     }
   }
 
+  excludeCollapsedSeriesInYAxis () {
+    const w = this.w
+    w.globals.ignoreYAxisIndexes = w.globals.collapsedSeries.map((collapsed, i) => {
+      if (this.w.globals.isMultipleYAxis) {
+        return collapsed.index
+      }
+    })
+  }
+
+  isMultiFormat = () => {
+    return this.isFormatXY() || this.isFormat2DArray()
+  }
+
+  // given format is [{x, y}, {x, y}]
+  isFormatXY = () => {
+    const series = this.w.config.series.slice()
+
+    const sr = new Series(this.ctx)
+    const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+
+    if (typeof series[activeSeriesIndex].data !== 'undefined' &&
+      series[activeSeriesIndex].data.length > 0 &&
+      series[activeSeriesIndex].data[0] !== null &&
+      typeof series[activeSeriesIndex].data[0].x !== 'undefined' &&
+      series[activeSeriesIndex].data[0] !== null) {
+      return true
+    }
+  }
+
+  // given format is [[x, y], [x, y]]
+  isFormat2DArray = () => {
+    const series = this.w.config.series.slice()
+
+    const sr = new Series(this.ctx)
+    const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+
+    if (typeof series[activeSeriesIndex].data !== 'undefined' &&
+      series[activeSeriesIndex].data.length > 0 &&
+      typeof series[activeSeriesIndex].data[0] !== 'undefined' &&
+      series[activeSeriesIndex].data[0] !== null &&
+      series[activeSeriesIndex].data[0].constructor === Array) {
+      return true
+    }
+  }
+
+  handleFormat2DArray (ser, i) {
+    const cnf = this.w.config
+    const gl = this.w.globals
+
+    for (let j = 0; j < ser[i].data.length; j++) {
+      if (typeof ser[i].data[j][1] !== 'undefined') {
+        this.twoDSeries.push(ser[i].data[j][1])
+      }
+      if (cnf.xaxis.type === 'datetime') {
+        // if timestamps are provided and xaxis type is datettime,
+
+        let ts = new Date(ser[i].data[j][0])
+        ts = new Date(ts).getTime()
+        this.twoDSeriesX.push(ts)
+      } else {
+        this.twoDSeriesX.push(ser[i].data[j][0])
+      }
+    }
+
+    for (let j = 0; j < ser[i].data.length; j++) {
+      if (typeof ser[i].data[j][2] !== 'undefined') {
+        this.threeDSeries.push(ser[i].data[j][2])
+        gl.dataXYZ = true
+      }
+    }
+  }
+
+  handleFormatXY (ser, i) {
+    const cnf = this.w.config
+    const gl = this.w.globals
+    const series = this.w.config.series.slice()
+
+    const dt = new DateTime(this.ctx)
+
+    for (let j = 0; j < ser[i].data.length; j++) {
+      if (typeof ser[i].data[j].y !== 'undefined') {
+        this.twoDSeries.push(ser[i].data[j].y)
+      }
+
+      const isXString = typeof ser[i].data[j].x === 'string'
+      const isXDate = dt.isValidDate(ser[i].data[j].x.toString())
+
+      if (isXString || isXDate) {
+        // user supplied '01/01/2017' or a date string (a JS date object is not supported)
+        if (isXString) {
+          if (cnf.xaxis.type === 'datetime') {
+            this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x))
+          } else {
+            // a category and not a numeric x value
+            this.fallbackToCategory = true
+            this.twoDSeriesX.push((ser[i].data[j].x))
+          }
+        } else if (isXDate) {
+          if (cnf.xaxis.type === 'datetime') {
+            this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x.toString()))
+          } else {
+            this.twoDSeriesX.push(parseInt(ser[i].data[j].x))
+          }
+        } else {
+          this.fallbackToCategory = true
+          this.twoDSeriesX.push(parseInt(ser[i].data[j].x))
+        }
+      } else {
+        // a numeric value in x property
+        this.twoDSeriesX.push(ser[i].data[j].x)
+      }
+    }
+
+    if (series[i].data[0] && typeof series[i].data[0].z !== 'undefined') {
+      for (let t = 0; t < series[i].data.length; t++) {
+        this.threeDSeries.push(series[i].data[t].z)
+      }
+      gl.dataXYZ = true
+    }
+  }
+
+  parseDataAxisCharts (ser, series) {
+    const cnf = this.w.config
+    const gl = this.w.globals
+
+    const dt = new DateTime(this.ctx)
+
+    for (let i = 0; i < series.length; i++) {
+      this.twoDSeries = []
+      this.twoDSeriesX = []
+      this.threeDSeries = []
+
+      if (typeof series[i].data === 'undefined') {
+        console.warn("It is a possibility that you may have not included 'data' property in series.")
+        return
+      }
+
+      if (this.isMultiFormat()) {
+        if (this.isFormat2DArray()) {
+          this.handleFormat2DArray(ser, i)
+        } else if (this.isFormatXY()) {
+          this.handleFormatXY(ser, i)
+        }
+
+        gl.series.push(this.twoDSeries)
+        gl.labels.push(this.twoDSeriesX)
+        gl.seriesX.push(this.twoDSeriesX)
+
+        if (!this.fallbackToCategory) {
+          gl.dataXY = true
+        }
+      } else {
+        if (cnf.xaxis.type === 'datetime') {
+          // user didn't supplied [{x,y}] or [[x,y]], but single array in data.
+          // Also labels were supplied differently
+          gl.dataXY = true
+          const dates = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
+
+          for (let j = 0; j < dates.length; j++) {
+            if (typeof (dates[j]) === 'string') {
+              let isDate = dt.isValidDate(dates[j])
+              if (isDate) {
+                this.twoDSeriesX.push(dt.parseDate(dates[j]))
+              } else {
+                throw new Error('You have provided invalid Date format. Please provide a valid JavaScript Date')
+              }
+            }
+          }
+
+          gl.seriesX.push(this.twoDSeriesX)
+        }
+        gl.labels.push(this.twoDSeriesX)
+        gl.series.push(ser[i].data)
+      }
+      gl.seriesZ.push(this.threeDSeries)
+
+      // gl.series.push(ser[i].data)
+      if (ser[i].name !== undefined) {
+        gl.seriesNames.push(ser[i].name)
+      } else {
+        gl.seriesNames.push('series-' + parseInt(i + 1))
+      }
+    }
+  }
+
+  parseDataNonAxisCharts (ser) {
+    const gl = this.w.globals
+    const cnf = this.w.config
+
+    gl.series = ser.slice()
+    gl.seriesNames = cnf.labels.slice()
+    for (let i = 0; i < gl.series.length; i++) {
+      if (gl.seriesNames[i] === undefined) {
+        gl.seriesNames.push('series-' + (i + 1))
+      }
+    }
+  }
+
+  handleExternalLabels (ser) {
+    const cnf = this.w.config
+    const gl = this.w.globals
+
+    // user provided labels in category axis
+    if (cnf.xaxis.categories.length > 0) {
+      gl.labels = cnf.xaxis.categories
+    } else if (cnf.labels.length > 0) {
+      gl.labels = cnf.labels.slice()
+    } else if (this.fallbackToCategory) {
+      gl.labels = gl.labels[0]
+    } else {
+      // user didn't provided labels, fallback to 1-2-3-4-5
+      let labelArr = []
+      if (gl.axisCharts) {
+        for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+          labelArr.push(i + 1)
+        }
+
+        for (let i = 0; i < ser.length; i++) {
+          gl.seriesX.push(labelArr)
+        }
+
+        gl.dataXY = true
+      }
+
+      // no series to pull labels from, put a 0-10 series
+      if (labelArr.length === 0) {
+        labelArr = [0, 10]
+        for (let i = 0; i < ser.length; i++) {
+          gl.seriesX.push(labelArr)
+        }
+      }
+
+      gl.labels = labelArr
+      gl.noLabelsProvided = true
+    }
+  }
+
   // Segregate user provided data into appropriate vars
   parseData (ser) {
     let w = this.w
     let cnf = w.config
     let gl = w.globals
-
-    const sr = new Series(this.ctx)
-
-    gl.ignoreYAxisIndexes = gl.collapsedSeries.map((collapsed, i) => {
-      if (this.w.globals.isMultipleYAxis) {
-        return collapsed.index
-      }
-    })
+    this.excludeCollapsedSeriesInYAxis()
 
     // to determine whether data is in XY format or array format, we use original config
-    const series = cnf.series.slice()
-    const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+    const configSeries = cnf.series.slice()
 
-    // given format is [{x, y}, {x, y}]
-    const isFormatXY = () => {
-      if (typeof series[activeSeriesIndex].data !== 'undefined' &&
-      series[activeSeriesIndex].data.length > 0 &&
-      series[activeSeriesIndex].data[0] !== null &&
-        typeof series[activeSeriesIndex].data[0].x !== 'undefined' &&
-        series[activeSeriesIndex].data[0] !== null) {
-        return true
-      }
-    }
-
-    // given format is [[x, y], [x, y]]
-    const isFormat2DArray = () => {
-      if (typeof series[activeSeriesIndex].data !== 'undefined' &&
-      series[activeSeriesIndex].data.length > 0 &&
-        typeof series[activeSeriesIndex].data[0] !== 'undefined' &&
-        series[activeSeriesIndex].data[0] !== null &&
-        series[activeSeriesIndex].data[0].constructor === Array) {
-        return true
-      }
-    }
-
-    const dt = new DateTime(this.ctx)
-
-    let fallbackToCategory = false
+    this.fallbackToCategory = false
 
     this.resetGlobals()
     this.isMultipleY()
 
     if (gl.axisCharts) {
-      for (let i = 0; i < series.length; i++) {
-        let twoDSeries = []
-        let threeDSeries = []
-        let twoDseriesX = []
-
-        if (typeof series[i].data === 'undefined') {
-          console.warn("It is a possibility that you may have not included 'data' property in series.")
-          return
-        }
-
-        const isMultiFormat = () => {
-          return isFormatXY() || isFormat2DArray()
-        }
-
-        if (isMultiFormat()) {
-          if (isFormat2DArray()) {
-            for (let j = 0; j < ser[i].data.length; j++) {
-              if (typeof ser[i].data[j][1] !== 'undefined') {
-                twoDSeries.push(ser[i].data[j][1])
-              }
-              if (cnf.xaxis.type === 'datetime') {
-                // if timestamps are provided and xaxis type is datettime,
-
-                let ts = new Date(ser[i].data[j][0])
-                ts = new Date(ts).getTime()
-                twoDseriesX.push(ts)
-              } else {
-                twoDseriesX.push(ser[i].data[j][0])
-              }
-            }
-
-            for (let j = 0; j < ser[i].data.length; j++) {
-              if (typeof ser[i].data[j][2] !== 'undefined') {
-                threeDSeries.push(ser[i].data[j][2])
-                gl.dataXYZ = true
-              }
-            }
-          } else if (isFormatXY()) {
-            for (let j = 0; j < ser[i].data.length; j++) {
-              if (typeof ser[i].data[j].y !== 'undefined') {
-                twoDSeries.push(ser[i].data[j].y)
-              }
-
-              const isXString = typeof ser[i].data[j].x === 'string'
-              const isXDate = dt.isValidDate(ser[i].data[j].x.toString())
-
-              if (isXString || isXDate) {
-                // user supplied '01/01/2017' or a date string (a JS date object is not supported)
-                if (isXString) {
-                  if (cnf.xaxis.type === 'datetime') {
-                    twoDseriesX.push(dt.parseDate(ser[i].data[j].x))
-                  } else {
-                    // a category and not a numeric x value
-                    fallbackToCategory = true
-                    twoDseriesX.push((ser[i].data[j].x))
-                  }
-                } else if (isXDate) {
-                  if (cnf.xaxis.type === 'datetime') {
-                    twoDseriesX.push(dt.parseDate(ser[i].data[j].x.toString()))
-                  } else {
-                    twoDseriesX.push(parseInt(ser[i].data[j].x))
-                  }
-                } else {
-                  fallbackToCategory = true
-                  twoDseriesX.push(parseInt(ser[i].data[j].x))
-                }
-              } else {
-                // a numeric value in x property
-                twoDseriesX.push(ser[i].data[j].x)
-              }
-            }
-
-            if (series[i].data[0] && typeof series[i].data[0].z !== 'undefined') {
-              for (let t = 0; t < series[i].data.length; t++) {
-                threeDSeries.push(series[i].data[t].z)
-              }
-              gl.dataXYZ = true
-            }
-          }
-
-          gl.series.push(twoDSeries)
-          gl.labels.push(twoDseriesX)
-          gl.seriesX.push(twoDseriesX)
-
-          if (!fallbackToCategory) {
-            gl.dataXY = true
-          }
-        } else {
-          if (cnf.xaxis.type === 'datetime') {
-            // user didn't supplied [{x,y}] or [[x,y]], but single array in data.
-            // Also labels were supplied differently
-            gl.dataXY = true
-            const dates = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
-
-            for (let j = 0; j < dates.length; j++) {
-              if (typeof (dates[j]) === 'string') {
-                let isDate = dt.isValidDate(dates[j])
-                if (isDate) {
-                  twoDseriesX.push(dt.parseDate(dates[j]))
-                } else {
-                  throw new Error('You have provided invalid Date format. Please provide a valid JavaScript Date')
-                }
-              }
-            }
-
-            gl.seriesX.push(twoDseriesX)
-          }
-          gl.labels.push(twoDseriesX)
-          gl.series.push(ser[i].data)
-        }
-        gl.seriesZ.push(threeDSeries)
-
-        // gl.series.push(ser[i].data)
-        if (ser[i].name !== undefined) {
-          gl.seriesNames.push(ser[i].name)
-        } else {
-          gl.seriesNames.push('series-' + parseInt(i + 1))
-        }
-      }
+      this.parseDataAxisCharts(ser, configSeries)
     } else {
-      gl.series = ser.slice()
-      gl.seriesNames = cnf.labels.slice()
-      for (let i = 0; i < gl.series.length; i++) {
-        if (gl.seriesNames[i] === undefined) {
-          gl.seriesNames.push('series-' + (i + 1))
-        }
-      }
+      this.parseDataNonAxisCharts(ser)
     }
 
-    // maxValsInArrayIndex is the index of series[] which has the largest number of items
-    gl.maxValsInArrayIndex = gl.series
-      .map(function (a) {
-        return a.length
-      })
-      .indexOf(
-        Math.max.apply(
-          Math,
-          gl.series.map(function (a) {
-            return a.length
-          })
-        )
-      )
+    this.getLargestSeries()
 
     // set Null values to 0 in all series when user hides/shows some series
     if (cnf.chart.type === 'bar' && cnf.chart.stacked) {
@@ -553,39 +634,7 @@ class Core {
 
     // user didn't provide a [[x,y],[x,y]] series, but a named series
     if (!gl.dataXY) {
-      // user provided labels in category axis
-      if (cnf.xaxis.categories.length > 0) {
-        gl.labels = cnf.xaxis.categories
-      } else if (cnf.labels.length > 0) {
-        gl.labels = cnf.labels.slice()
-      } else if (fallbackToCategory) {
-        gl.labels = gl.labels[0]
-      } else {
-        // user didn't provided labels, fallback to 1-2-3-4-5
-        let labelArr = []
-        if (gl.axisCharts) {
-          for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-            labelArr.push(i + 1)
-          }
-
-          for (let i = 0; i < ser.length; i++) {
-            gl.seriesX.push(labelArr)
-          }
-
-          gl.dataXY = true
-        }
-
-        // no series to pull labels from, put a 0-10 series
-        if (labelArr.length === 0) {
-          labelArr = [0, 10]
-          for (let i = 0; i < ser.length; i++) {
-            gl.seriesX.push(labelArr)
-          }
-        }
-
-        gl.labels = labelArr
-        gl.noLabelsProvided = true
-      }
+      this.handleExternalLabels(ser)
     }
   }
 
@@ -622,6 +671,23 @@ class Core {
         return acc + cur
       })
     }
+  }
+
+  // maxValsInArrayIndex is the index of series[] which has the largest number of items
+  getLargestSeries () {
+    const w = this.w
+    w.globals.maxValsInArrayIndex = w.globals.series
+      .map(function (a) {
+        return a.length
+      })
+      .indexOf(
+        Math.max.apply(
+          Math,
+          w.globals.series.map(function (a) {
+            return a.length
+          })
+        )
+      )
   }
 
   /**
@@ -694,14 +760,6 @@ class Core {
 
       return seriesPercent
     })
-  }
-
-  /*
-   ** All the calculations for setting range in charts will be done here
-   */
-  coreCalculations () {
-    const range = new Range(this.ctx, this.checkComboCharts)
-    range.init()
   }
 
   xySettings () {
@@ -802,7 +860,7 @@ class Core {
     let w = this.w
     let cnf = w.config
 
-    cnf.series.map((series, st) => {
+    cnf.series.map((series) => {
       if (typeof series.type !== 'undefined') {
         w.globals.comboCharts = true
       }

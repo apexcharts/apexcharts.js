@@ -35,9 +35,9 @@ class Responsive {
     }
   }
 
-  overrideResponsiveOptions (newOptions, ctx) {
+  overrideResponsiveOptions (newOptions) {
     let newConfig = new Config(newOptions).init()
-    ctx.w.config = newConfig
+    this.w.config = newConfig
   }
 }
 
