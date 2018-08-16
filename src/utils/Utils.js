@@ -62,6 +62,15 @@ class Utils {
     return output
   }
 
+  static extendArray (arrToExtend, resultArr) {
+    let extendedArr = []
+    arrToExtend.map((item) => {
+      extendedArr.push(Utils.extend(resultArr, item))
+    })
+    arrToExtend = extendedArr
+    return arrToExtend
+  }
+
   static addProps(obj, arr, val) {
 
     if (typeof arr == 'string')

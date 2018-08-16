@@ -1,6 +1,7 @@
 import Annotations from './modules/Annotations'
 import Animations from './modules/Animations'
 import Base from './modules/Base'
+import Config from './modules/settings/Config'
 import Core from './modules/Core'
 import Crosshairs from './modules/Crosshairs'
 import Dimensions from './modules/Dimensions'
@@ -353,6 +354,23 @@ class ApexCharts {
       const responsive = new Responsive(this.ctx)
       responsive.checkResponsiveConfig()
       this.responsiveConfigOverrided = true
+
+      const config = new Config(options)
+
+      if (options.yaxis) {
+        options = config.extendYAxis(options)
+      }
+      if (options.annotations) {
+        if (options.annotations.yaxis) {
+          options = config.extendYAxisAnnotations(options)
+        }
+        if (options.annotations.xaxis) {
+          options = config.extendXAxisAnnotations(options)
+        }
+        if (options.annotations.points) {
+          options = config.extendPointAnnotations(options)
+        }
+      }
       w.config = Utils.extend(w.config, options)
     }
 

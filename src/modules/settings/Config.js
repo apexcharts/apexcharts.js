@@ -17,10 +17,6 @@ class Config {
     let options = new Options()
     let defaults = new Defaults(opts)
 
-    if (typeof opts.yaxis === 'undefined') {
-      opts.yaxis = {}
-    }
-
     this.chartType = opts.chart.type
 
     if (this.chartType === 'histogram') {
@@ -34,34 +30,8 @@ class Config {
       }, opts)
     }
 
-    if (typeof opts.annotations === 'undefined') {
-      opts.annotations = {}
-      opts.annotations.yaxis = []
-      opts.annotations.xaxis = []
-    }
-
-    const extendArray = (arrToExtend, resultArr) => {
-      let extendedArr = []
-      arrToExtend.map((item) => {
-        extendedArr.push(Utils.extend(resultArr, item))
-      })
-      arrToExtend = extendedArr
-      return arrToExtend
-    }
-
-    // as we can't extend nested object's array with extend, we need to do it first
-    // user can provide either an array or object in yaxis config
-    if (opts.yaxis.constructor !== Array) {
-      // convert the yaxis to array if user supplied object
-      opts.yaxis = [Utils.extend(yAxis, opts.yaxis)]
-    } else {
-      opts.yaxis = extendArray(opts.yaxis, yAxis)
-    }
-
-    // annotations also accepts array, so we need to extend them manually
-    opts.annotations.xaxis = extendArray(typeof opts.annotations.xaxis !== 'undefined' ? opts.annotations.xaxis : [], xAxisAnnotation)
-    opts.annotations.yaxis = extendArray(typeof opts.annotations.yaxis !== 'undefined' ? opts.annotations.yaxis : [], yAxisAnnotation)
-    opts.annotations.points = extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], pointAnnotation)
+    opts = this.extendYAxis(opts)
+    opts = this.extendAnnotations(opts)
 
     let config = options.init()
     let newDefaults = {}
@@ -121,6 +91,52 @@ class Config {
     config = this.handleUserInputErrors(config)
 
     return config
+  }
+
+  extendYAxis (opts) {
+    if (typeof opts.yaxis === 'undefined') {
+      opts.yaxis = {}
+    }
+
+    // as we can't extend nested object's array with extend, we need to do it first
+    // user can provide either an array or object in yaxis config
+    if (opts.yaxis.constructor !== Array) {
+      // convert the yaxis to array if user supplied object
+      opts.yaxis = [Utils.extend(yAxis, opts.yaxis)]
+    } else {
+      opts.yaxis = Utils.extendArray(opts.yaxis, yAxis)
+    }
+    return opts
+  }
+
+  // annotations also accepts array, so we need to extend them manually
+  extendAnnotations (opts) {
+    if (typeof opts.annotations === 'undefined') {
+      opts.annotations = {}
+      opts.annotations.yaxis = []
+      opts.annotations.xaxis = []
+      opts.annotations.points = []
+    }
+
+    opts = this.extendYAxisAnnotations(opts)
+    opts = this.extendXAxisAnnotations(opts)
+    opts = this.extendPointAnnotations(opts)
+
+    return opts
+  }
+
+  extendYAxisAnnotations (opts) {
+    opts.annotations.yaxis = Utils.extendArray(typeof opts.annotations.yaxis !== 'undefined' ? opts.annotations.yaxis : [], yAxisAnnotation)
+    return opts
+  }
+
+  extendXAxisAnnotations (opts) {
+    opts.annotations.xaxis = Utils.extendArray(typeof opts.annotations.xaxis !== 'undefined' ? opts.annotations.xaxis : [], xAxisAnnotation)
+    return opts
+  }
+  extendPointAnnotations (opts) {
+    opts.annotations.points = Utils.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], pointAnnotation)
+    return opts
   }
 
   handleUserInputErrors (opts) {
