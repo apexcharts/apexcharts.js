@@ -161,11 +161,7 @@ export default class Series {
         if (paths[j].hasAttribute('pathTo')) {
           let d = paths[j].getAttribute('pathTo')
           if (type === 'area') {
-            if (paths[j].classList.contains('apexcharts-line')) {
-              dArr.paths.push({
-                d
-              })
-            } else if (paths[j].classList.contains('apexcharts-area')) {
+            if (paths[j].classList.contains('apexcharts-line') || paths[j].classList.contains('apexcharts-area')) {
               dArr.paths.push({
                 d
               })

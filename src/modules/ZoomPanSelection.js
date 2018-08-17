@@ -176,7 +176,6 @@ class ZoomPanSelection extends Toolbar {
 
       me.dragged = false
       me.clicked = false
-      me.w.globals.scrollerThumbDown = false
     }
 
     this.makeSelectionRectDraggable()

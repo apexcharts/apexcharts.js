@@ -755,12 +755,6 @@ class Bar {
               opts.barYPosition + opts.barHeight - opts.strokeWidth
             )
             break
-          default:
-            endingShape = graphics.line(
-              x,
-              opts.barYPosition + opts.barHeight - opts.strokeWidth
-            )
-            break
         }
       }
       return {
@@ -814,12 +808,6 @@ class Bar {
             endingShape = graphics.quadraticCurve(
               opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
               y - eY,
-              opts.barXPosition + opts.barWidth - opts.strokeWidth,
-              y
-            )
-            break
-          default:
-            endingShape = graphics.line(
               opts.barXPosition + opts.barWidth - opts.strokeWidth,
               y
             )
