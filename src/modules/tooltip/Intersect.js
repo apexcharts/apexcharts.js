@@ -120,7 +120,6 @@ class Intersect {
       })
       x = barXY.x
       y = barXY.y
-      j = barXY.j
       bx = x
     } else {
       if (!w.globals.comboCharts && !w.config.tooltip.shared) {
@@ -141,6 +140,13 @@ class Intersect {
     //   // y less than 0, touch the top of grid
     //   y = 0
     // }
+
+    // x exceeds gridWidth
+    if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
+      x = x - ttCtx.tooltipRect.ttWidth
+    } else if (x < 0) {
+      x = x + ttCtx.tooltipRect.ttWidth
+    }
 
     if (ttCtx.w.config.tooltip.followCursor) {
       y = ttCtx.e.clientY - ttCtx.seriesBound.top
