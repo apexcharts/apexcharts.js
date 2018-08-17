@@ -155,7 +155,7 @@ class Scroller {
 
     if (scrollerRect.x < 0 || scrollerRect.x2 > this.scrollerWidth) return
 
-    this.ctx.updateOptions({
+    this.ctx.updateOptionsInternal({
       xaxis: {
         min: minX,
         max: maxX

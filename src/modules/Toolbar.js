@@ -186,7 +186,7 @@ class Toolbar {
     const newMinX = (w.globals.minX + centerX) / 2
     const newMaxX = (w.globals.maxX + centerX) / 2
 
-    this.ctx.updateOptions({
+    this.ctx.updateOptionsInternal({
       xaxis: {
         min: newMinX,
         max: newMaxX
@@ -209,7 +209,7 @@ class Toolbar {
     const newMinX = w.globals.minX - (centerX - w.globals.minX)
     const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
 
-    this.ctx.updateOptions({
+    this.ctx.updateOptionsInternal({
       xaxis: {
         min: newMinX,
         max: newMaxX
@@ -244,7 +244,7 @@ class Toolbar {
     xaxis.min = undefined
     xaxis.max = undefined
 
-    me.ctx.updateOptions(w.globals.initialConfig, false, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled)
+    me.ctx.updateOptionsInternal(w.globals.initialConfig, false, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled)
   }
 }
 

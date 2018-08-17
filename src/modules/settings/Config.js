@@ -75,6 +75,9 @@ class Config {
       if (opts.chart.stacked && opts.chart.stackType === '100%') {
         defaults.stacked100()
       }
+      if (opts.chart.sparkline && opts.chart.sparkline.enabled) {
+        chartDefaults = defaults.sparkline()
+      }
       newDefaults = Utils.extend(config, chartDefaults)
     }
 

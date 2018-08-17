@@ -34,6 +34,45 @@ class Defaults {
     }
   }
 
+  sparkline () {
+    this.opts.yaxis[0].labels.show = false
+    this.opts.yaxis[0].floating = true
+
+    return {
+      grid: {
+        show: false
+      },
+      legend: {
+        show: false
+      },
+      xaxis: {
+        labels: {
+          show: false
+        },
+        tooltip: {
+          enabled: false
+        },
+        axisBorder: {
+          show: false
+        }
+      },
+      chart: {
+        toolbar: {
+          show: false
+        },
+        zoom: {
+          enabled: false
+        },
+        scroller: {
+          enabled: false
+        }
+      },
+      dataLabels: {
+        show: false
+      }
+    }
+  }
+
   bar () {
     return {
       chart: {
@@ -89,11 +128,11 @@ class Defaults {
           }
         }
       },
-      yaxis: {
+      yaxis: [{
         tooltip: {
           enabled: false
         }
-      }
+      }]
 
     }
   }

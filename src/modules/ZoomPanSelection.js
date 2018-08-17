@@ -444,7 +444,7 @@ class ZoomPanSelection extends Toolbar {
         }
 
         if (zoomtype === 'x') {
-          me.ctx.updateOptions({
+          me.ctx.updateOptionsInternal({
             xaxis: {
               min: xLowestValue,
               max: xHighestValue
@@ -454,14 +454,14 @@ class ZoomPanSelection extends Toolbar {
           w.globals.initialConfig.chart.animations.dynamicAnimation.enabled
           )
         } else if (zoomtype === 'y') {
-          me.ctx.updateOptions({
+          me.ctx.updateOptionsInternal({
             yaxis: yaxis
           },
           false,
           w.globals.initialConfig.chart.animations.dynamicAnimation.enabled
           )
         } else {
-          me.ctx.updateOptions({
+          me.ctx.updateOptionsInternal({
             xaxis: {
               min: xLowestValue,
               max: xHighestValue
@@ -564,7 +564,7 @@ class ZoomPanSelection extends Toolbar {
       xHighestValue = w.globals.maxX
     }
 
-    this.ctx.updateOptions({
+    this.ctx.updateOptionsInternal({
       xaxis: {
         min: xLowestValue,
         max: xHighestValue

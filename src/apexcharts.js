@@ -149,7 +149,6 @@ class ApexCharts {
     this.core.setupElements()
     this.setupEventHandlers()
     this.core.parseData(ser)
-    this.core.setSparkLineOptions()
     // this is a good time to set theme colors first
     let theme = new Theme(this.ctx)
     theme.init()
@@ -335,9 +334,23 @@ class ApexCharts {
    */
   updateOptions (options, redraw = false, animate = true) {
     const me = this
-    let w = this.w
 
     me.w.config.chart.animations.dynamicAnimation.enabled = animate
+
+    return me.updateOptionsInternal(options, redraw, animate, true)
+  }
+
+  /**
+   * private method to update Options.
+   *
+   * @param {object} options - A new config object can be passed which will be merged with the existing config object
+   * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
+   * @param {boolean} animate - should animate or not on updating Options
+   * @param {boolean} makeDefaultConfig - should update the default config or not
+   */
+  updateOptionsInternal (options, redraw = false, animate = true, makeDefaultConfig = false) {
+    let w = this.w
+    const me = this
 
     if (!redraw) {
       w.globals.resized = true
@@ -372,9 +385,12 @@ class ApexCharts {
         }
       }
       w.config = Utils.extend(w.config, options)
-    }
 
-    w.globals.isDirty = true
+      if (makeDefaultConfig) {
+        me.w.globals.initialConfig = Utils.extend({}, w.config)
+        me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.globals.initialConfig.series))
+      }
+    }
 
     return this.update()
   }
@@ -384,22 +400,32 @@ class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  updateSeries (newSeries = [], animate = true) {
-    let me = this
+  updateSeries (newSeries = [], animate = true, makeDefaultConfig = false) {
+    this.w.config.chart.animations.dynamicAnimation.enabled = animate
 
-    me.w.config.chart.animations.dynamicAnimation.enabled = animate
+    return this.updateSeriesInternal(newSeries, animate, makeDefaultConfig)
+  }
 
-    let series = new Series(me.ctx)
+  /**
+   * Private method to update Series.
+   *
+   * @param {array} series - New series which will override the existing
+   */
+  updateSeriesInternal (newSeries, animate, makeDefaultConfig) {
+    const w = this.w
+    let series = new Series(this.ctx)
 
-    me.w.globals.dataChanged = true
+    w.globals.dataChanged = true
 
     if (animate) {
       series.getPreviousPaths()
     }
 
-    me.w.config.series = newSeries.slice()
-
-    me.w.globals.isDirty = true
+    w.config.series = newSeries.slice()
+    if (makeDefaultConfig) {
+      w.globals.initialConfig = Utils.extend({}, w.config)
+      w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series))
+    }
 
     return this.update()
   }
@@ -429,8 +455,6 @@ class ApexCharts {
     }
     me.w.config.series = newSeries
 
-    me.w.globals.isDirty = true
-
     return this.update()
   }
 
@@ -444,6 +468,8 @@ class ApexCharts {
           me.w.config.chart.events.updated(me, me.w)
         }
         me.fireEvent('updated', [this, this.w])
+
+        me.w.globals.isDirty = true
 
         resolve(me)
       }).catch(() => {

@@ -209,23 +209,6 @@ class Core {
     return elGraph
   }
 
-  setSparkLineOptions () {
-    const w = this.w
-    const cnf = w.config
-
-    if (w.config.chart.sparkline.enabled) {
-      cnf.grid.show = false
-      cnf.xaxis.labels.show = false
-      cnf.legend.show = false
-      cnf.chart.toolbar.show = false
-      cnf.chart.zoom.enabled = false
-      cnf.xaxis.tooltip.enabled = false
-      cnf.xaxis.axisBorder.show = false
-      cnf.chart.scroller.enabled = false
-      cnf.dataLabels.enabled = false
-    }
-  }
-
   setSVGDimensions () {
     let gl = this.w.globals
     let cnf = this.w.config
