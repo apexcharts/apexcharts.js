@@ -68,7 +68,7 @@ class Defaults {
         }
       },
       dataLabels: {
-        show: false
+        enabled: false
       }
     }
   }

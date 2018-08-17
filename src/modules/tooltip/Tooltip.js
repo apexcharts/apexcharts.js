@@ -473,8 +473,6 @@ class Tooltip {
         } else {
           y = parseInt(opt.tooltipY[j]) - tooltipRect.ttHeight
         }
-        self.tooltip.style.left = x + 'px'
-        self.tooltip.style.top = y + 'px'
       } else {
         if (w.config.chart.type === 'heatmap') {
           let markerXY = this.intersect.handleHeatTooltip({
@@ -510,9 +508,6 @@ class Tooltip {
             })
             x = markerXY.x
             y = markerXY.y
-
-            self.tooltip.style.left = x + 'px'
-            self.tooltip.style.top = y + 'px'
           }
         }
       }

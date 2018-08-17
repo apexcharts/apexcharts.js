@@ -384,6 +384,7 @@ class ApexCharts {
           options = config.extendPointAnnotations(options)
         }
       }
+
       w.config = Utils.extend(w.config, options)
 
       if (makeDefaultConfig) {

@@ -65,6 +65,10 @@ class Filters {
     const w = this.w
     const { intensity } = attrs
 
+    if (Utils.isFirefox) {
+      return
+    }
+
     el.unfilter(true)
 
     let filter = new window.SVG.Filter()
@@ -88,6 +92,10 @@ class Filters {
   addDarkenFilter (el, attrs) {
     const w = this.w
     const { intensity } = attrs
+
+    if (Utils.isFirefox) {
+      return
+    }
 
     el.unfilter(true)
 
@@ -127,9 +135,7 @@ class Filters {
         break
       }
       case 'desaturate': {
-        this.addDesaturateFilter(el, {
-          intensity
-        })
+        this.addDesaturateFilter(el)
         break
       }
       default:
