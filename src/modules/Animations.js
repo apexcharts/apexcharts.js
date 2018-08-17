@@ -13,7 +13,7 @@ class Animations {
   }
 
   setEasingFunctions () {
-    let easing = '<>'
+    let easing
 
     const userDefinedEasing = this.w.config.chart.animations.easing
 

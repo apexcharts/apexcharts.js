@@ -17,8 +17,6 @@ import Scroller from './modules/Scroller'
 import Title from './modules/Title'
 import Toolbar from './modules/Toolbar'
 import SubTitle from './modules/SubTitle'
-import { xAxisAnnotation, yAxisAnnotation, pointAnnotation } from './modules/settings/Options'
-import Graphics from './modules/Graphics'
 
 require('./assets/apexcharts.css')
 
@@ -207,34 +205,12 @@ class ApexCharts {
     let w = this.w
     let me = this
     let series = new Series(me.ctx)
+    const annotations = new Annotations(me.ctx)
 
     return new Promise(function (resolve, reject) {
       // no data to display
       if (me.el === null || graphData === null) {
         return reject(new Error('Not enough data to display or element not found'))
-      }
-
-      const drawAnnotations = () => {
-        if (me.w.globals.axisCharts) {
-          let annotations = new Annotations(me.ctx)
-          let yAnnotations = annotations.drawYAxisAnnotations()
-          let xAnnotations = annotations.drawXAxisAnnotations()
-          let pointAnnotations = annotations.drawPointAnnotations()
-
-          w.globals.dom.elGraphical.add(yAnnotations)
-          w.globals.dom.elGraphical.add(xAnnotations)
-          w.globals.dom.elGraphical.add(pointAnnotations)
-
-          w.globals.delayedElements.push({el: xAnnotations.node, index: 0})
-          w.globals.delayedElements.push({el: yAnnotations.node, index: 0})
-          w.globals.delayedElements.push({ el: pointAnnotations.node, index: 0 })
-
-          // after placing the annotations on svg, set any vertically placed annotations
-          annotations.setOrientations(w.config.annotations.xaxis)
-
-          // background sizes needs to be calculated after text is drawn, so calling them last
-          annotations.annotationsBackground()
-        }
       }
 
       me.core.drawAxis(
@@ -247,7 +223,7 @@ class ApexCharts {
       }
 
       if (w.config.annotations.position === 'back') {
-        drawAnnotations()
+        annotations.drawAnnotations()
       }
 
       let animations = new Animations(me.ctx)
@@ -276,7 +252,7 @@ class ApexCharts {
       }
 
       if (w.config.annotations.position === 'front') {
-        drawAnnotations()
+        annotations.drawAnnotations()
       }
 
       if (w.globals.allSeriesCollapsed) {
@@ -301,12 +277,13 @@ class ApexCharts {
             scroller.init(graphData.xyRatios)
           }
         } else {
-          w.config.chart.toolbar.tools.zoom = false
-          w.config.chart.toolbar.tools.zoomin = false
-          w.config.chart.toolbar.tools.zoomout = false
-          w.config.chart.toolbar.tools.selection = false
-          w.config.chart.toolbar.tools.pan = false
-          w.config.chart.toolbar.tools.reset = false
+          const tools = w.config.chart.toolbar.tools
+          tools.zoom = false
+          tools.zoomin = false
+          tools.zoomout = false
+          tools.selection = false
+          tools.pan = false
+          tools.reset = false
         }
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
@@ -450,6 +427,9 @@ class ApexCharts {
     }
     me.w.config.series = newSeries
 
+    me.w.globals.initialConfig = Utils.extend({}, me.w.config)
+    me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.globals.initialConfig.series))
+
     return this.update()
   }
 
@@ -506,7 +486,6 @@ class ApexCharts {
    * @param {function} fn - The method name to call
    * @param {object} opts - the same arguments of the fn which are used directly even when calling the methods on class instance
    */
-
   static exec (chartID, fn, opts) {
     const chart = this.getChartByID(chartID)
     if (!chart) return
@@ -572,143 +551,43 @@ class ApexCharts {
     }
   }
 
-  addXaxisAnnotation (opts, pushToMemory = true, context) {
+  addXaxisAnnotation (opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
     }
-    const w = me.w
     const annotations = new Annotations(me.ctx)
-
-    const parent = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-annotations')
-    const index = parent.childNodes.length + 1
-
-    const xAxisAnno = Object.assign({}, xAxisAnnotation)
-    const anno = Utils.extend(xAxisAnno, opts)
-
-    annotations.addXAxisAnnotation(anno, parent, index)
-
-    // set if orientation changed for xaxis
-    annotations.setOrientations([anno], index)
-
-    // add background
-    let xAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${index}']`)
-    const elRect = annotations.addBackgroundToAnno(xAnnoLabel, anno, index)
-    parent.insertBefore(elRect.node, xAnnoLabel)
-
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addXaxisAnnotation,
-        params: opts
-      })
-    }
-
-    return context
+    annotations.addXaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
-  addYaxisAnnotation (opts, pushToMemory = true, context) {
+  addYaxisAnnotation (opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
     }
-    const w = me.w
     const annotations = new Annotations(me.ctx)
-
-    const parent = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-annotations')
-    const index = parent.childNodes.length + 1
-
-    const yAxisAnno = Object.assign({}, yAxisAnnotation)
-    const anno = Utils.extend(yAxisAnno, opts)
-
-    annotations.addYAxisAnnotation(anno, parent, index)
-
-    // add background
-    let yAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-yaxis-annotations .apexcharts-yaxis-annotation-label[rel='${index}']`)
-    const elRect = annotations.addBackgroundToAnno(yAnnoLabel, anno, index)
-    parent.insertBefore(elRect.node, yAnnoLabel)
-
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addYaxisAnnotation,
-        params: opts
-      })
-    }
-
-    return context
+    annotations.addYaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
-  addPointAnnotation (opts, pushToMemory = true, context) {
+  addPointAnnotation (opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
     }
-    const w = me.w
     const annotations = new Annotations(me.ctx)
-
-    const parent = w.globals.dom.baseEl.querySelector('.apexcharts-point-annotations')
-    const index = parent.childNodes.length + 1
-
-    const pointAnno = Object.assign({}, pointAnnotation)
-    const anno = Utils.extend(pointAnno, opts)
-
-    annotations.addPointAnnotation(anno, parent, index)
-
-    // add background
-    let pointLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-point-annotations .apexcharts-point-annotation-label[rel='${index}']`)
-    const elRect = annotations.addBackgroundToAnno(pointLabel, anno, index)
-    parent.insertBefore(elRect.node, pointLabel)
-
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addPointAnnotation,
-        params: opts
-      })
-    }
-
-    return context
+    annotations.addPointAnnotationExternal(opts, pushToMemory, me)
   }
 
   // This method is never used internally and will be only called externally on the chart instance.
   // Hence, we need to keep all these elements in memory when the chart gets updated and redraw again
-  addText ({ x, y, text, textAnchor, appendTo = '.apexcharts-inner', foreColor, fontSize, cssClass, backgroundColor, borderWidth, strokeDashArray, radius, borderColor, paddingLeft = 4, paddingRight = 4, paddingBottom = 2, paddingTop = 2 }, pushToMemory = true, context) {
+  addText (options, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
     }
-    const w = me.w
 
-    const graphics = new Graphics(me.ctx)
-    const parentNode = w.globals.dom.baseEl.querySelector(appendTo)
-
-    let elText = graphics.drawText({
-      x: x,
-      y: y,
-      text,
-      textAnchor: textAnchor || 'start',
-      fontSize: fontSize || '12px',
-      foreColor: foreColor || w.config.chart.foreColor,
-      cssClass: 'apexcharts-text ' + cssClass ? cssClass : ''
-    })
-
-    parentNode.appendChild(elText.node)
-
-    const textRect = elText.bbox()
-    const elRect = graphics.drawRect(textRect.x - paddingLeft, textRect.y - paddingTop, textRect.width + paddingLeft + paddingRight, textRect.height + paddingBottom + paddingTop, radius, backgroundColor, 1, borderWidth, borderColor, strokeDashArray)
-
-    elText.before(elRect)
-
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addText,
-        params: { x, y, text, textAnchor, appendTo, foreColor, fontSize, cssClass, backgroundColor, borderWidth, strokeDashArray, radius, borderColor, paddingLeft, paddingRight, paddingBottom, paddingTop }
-      })
-    }
-
-    return context
+    const annotations = new Annotations(me.ctx)
+    annotations.addText(options, pushToMemory, me)
   }
 
   getChartArea () {

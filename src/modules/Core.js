@@ -142,9 +142,7 @@ class Core {
           lineSeries.i.push(st)
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
-          // make default to line
-          lineSeries.series.push(series)
-          lineSeries.i.push(st)
+          throw new Error('You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar')
         }
         gl.comboCharts = true
       } else {
@@ -536,7 +534,7 @@ class Core {
     }
   }
 
-  handleExternalLabels (ser) {
+  handleExternalLabelsData (ser) {
     const cnf = this.w.config
     const gl = this.w.globals
 
@@ -613,7 +611,7 @@ class Core {
 
     // user didn't provide a [[x,y],[x,y]] series, but a named series
     if (!gl.dataXY) {
-      this.handleExternalLabels(ser)
+      this.handleExternalLabelsData(ser)
     }
   }
 

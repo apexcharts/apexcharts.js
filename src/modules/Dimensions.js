@@ -53,16 +53,10 @@ class Dimensions {
 
     let xPad = 0
 
-    let xtitleCoords = {
-      width: 0,
-      height: 0
-    }
+    let xtitleCoords
+    let xaxisLabelCoords
     let ytitleCoords = []
     let yaxisLabelCoords = {
-      width: 0,
-      height: 0
-    }
-    let xaxisLabelCoords = {
       width: 0,
       height: 0
     }
@@ -391,8 +385,6 @@ class Dimensions {
     if (
       totalWidthRotated > w.globals.gridWidth && w.config.xaxis.labels.rotate !== 0
     ) {
-      w.globals.overlappingXLabels = true
-    } else {
       w.globals.overlappingXLabels = true
     }
 

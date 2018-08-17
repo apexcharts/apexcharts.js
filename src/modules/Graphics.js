@@ -263,7 +263,7 @@ class Graphics {
     return el
   }
 
-  drawPattern (style, width, height, stroke = '#a8a8a8', strokeWidth, opacity) {
+  drawPattern (style, width, height, stroke = '#a8a8a8', strokeWidth = 0, opacity = 1) {
     let w = this.w
 
     let p = w.globals.dom.Paper.pattern(width, height, function (add) {
@@ -364,9 +364,13 @@ class Graphics {
 
     let { x, y, text, textAnchor, fontSize, foreColor, opacity } = opts
 
-    if (!textAnchor) textAnchor = 'start'
+    if (!textAnchor) {
+      textAnchor = 'start'
+    }
 
-    if (typeof foreColor === 'undefined' || foreColor === undefined) foreColor = w.config.chart.foreColor
+    if (!foreColor) {
+      foreColor = w.config.chart.foreColor
+    }
 
     let elText = w.globals.dom.Paper.plain(text).attr({
       x: x,

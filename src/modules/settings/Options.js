@@ -2,167 +2,169 @@
  * ApexCharts Options for setting the initial configuration of ApexCharts.
  **/
 
-export const xAxisAnnotation = {
-  x: 0,
-  strokeDashArray: 4,
-  borderColor: '#c2c2c2',
-  offsetX: 0,
-  offsetY: 0,
-  label: {
-    borderColor: '#c2c2c2',
-    borderWidth: 1,
-    text: undefined,
-    textAnchor: 'middle',
-    orientation: 'vertical',
-    position: 'top',
-    offsetX: 0,
-    offsetY: 0,
-    style: {
-      background: '#fff',
-      color: '#777',
-      fontSize: '12px',
-      cssClass: 'apexcharts-xaxis-annotation-label',
-      padding: {
-        left: 5,
-        right: 5,
-        top: 2,
-        bottom: 2
-      }
-    }
-  }
-}
-
-export const pointAnnotation = {
-  x: 0,
-  y: null,
-  yAxisIndex: 0,
-  seriesIndex: 0,
-  marker: {
-    size: 0,
-    fillColor: '#fff',
-    strokeWidth: 2,
-    strokeColor: '#333',
-    shape: 'circle',
-    radius: 2
-  },
-  label: {
-    borderColor: '#c2c2c2',
-    borderWidth: 1,
-    text: undefined,
-    textAnchor: 'middle',
-    offsetX: 0,
-    offsetY: -15,
-    style: {
-      background: '#fff',
-      color: '#777',
-      fontSize: '12px',
-      cssClass: 'apexcharts-point-annotation-label',
-      padding: {
-        left: 5,
-        right: 5,
-        top: 0,
-        bottom: 2
-      }
-    }
-  }
-}
-
-export const yAxisAnnotation = {
-  y: 0,
-  strokeDashArray: 4,
-  borderColor: '#c2c2c2',
-  offsetX: 0,
-  offsetY: 0,
-  yAxisIndex: 0,
-  label: {
-    borderColor: '#c2c2c2',
-    borderWidth: 1,
-    text: undefined,
-    textAnchor: 'end',
-    position: 'right',
-    offsetX: 0,
-    offsetY: -3,
-    style: {
-      background: '#fff',
-      color: '#777',
-      fontSize: '12px',
-      cssClass: 'apexcharts-yaxis-annotation-label',
-      padding: {
-        left: 5,
-        right: 5,
-        top: 0,
-        bottom: 2
-      }
-    }
-  }
-}
-
-export const yAxis = {
-  opposite: false,
-  tickAmount: 6,
-  max: undefined,
-  min: undefined,
-  decimalsInFloat: 2,
-  floating: false,
-  labels: {
-    show: true,
-    maxWidth: 160,
-    offsetX: 0,
-    offsetY: 0,
-    style: {
-      colors: [],
-      fontSize: '12px',
-      cssClass: 'apexcharts-yaxis-label'
-    },
-    formatter: undefined
-  },
-  axisBorder: {
-    show: false,
-    color: '#78909C',
-    offsetX: 0,
-    offsetY: 0
-  },
-  axisTicks: {
-    show: false,
-    color: '#78909C',
-    width: 6,
-    offsetX: 0,
-    offsetY: 0
-  },
-  title: {
-    text: undefined,
-    rotate: -90,
-    offsetY: 0,
-    offsetX: 0,
-    style: {
-      color: undefined,
-      fontSize: '12px',
-      cssClass: 'apexcharts-yaxis-title'
-    }
-  },
-  tooltip: {
-    enabled: false,
-    offsetX: 0
-  },
-  crosshairs: {
-    show: true,
-    position: 'front',
-    stroke: {
-      color: '#b6b6b6',
-      width: 1,
-      dashArray: 0
-    }
-  }
-}
-
 export default class Options {
+  constructor () {
+    this.yAxis = {
+      opposite: false,
+      tickAmount: 6,
+      max: undefined,
+      min: undefined,
+      decimalsInFloat: 2,
+      floating: false,
+      labels: {
+        show: true,
+        maxWidth: 160,
+        offsetX: 0,
+        offsetY: 0,
+        style: {
+          colors: [],
+          fontSize: '12px',
+          cssClass: 'apexcharts-yaxis-label'
+        },
+        formatter: undefined
+      },
+      axisBorder: {
+        show: false,
+        color: '#78909C',
+        offsetX: 0,
+        offsetY: 0
+      },
+      axisTicks: {
+        show: false,
+        color: '#78909C',
+        width: 6,
+        offsetX: 0,
+        offsetY: 0
+      },
+      title: {
+        text: undefined,
+        rotate: -90,
+        offsetY: 0,
+        offsetX: 0,
+        style: {
+          color: undefined,
+          fontSize: '12px',
+          cssClass: 'apexcharts-yaxis-title'
+        }
+      },
+      tooltip: {
+        enabled: false,
+        offsetX: 0
+      },
+      crosshairs: {
+        show: true,
+        position: 'front',
+        stroke: {
+          color: '#b6b6b6',
+          width: 1,
+          dashArray: 0
+        }
+      }
+    }
+
+    this.xAxisAnnotation = {
+      x: 0,
+      strokeDashArray: 4,
+      borderColor: '#c2c2c2',
+      offsetX: 0,
+      offsetY: 0,
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'middle',
+        orientation: 'vertical',
+        position: 'top',
+        offsetX: 0,
+        offsetY: 0,
+        style: {
+          background: '#fff',
+          color: '#777',
+          fontSize: '12px',
+          cssClass: 'apexcharts-xaxis-annotation-label',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 2,
+            bottom: 2
+          }
+        }
+      }
+    }
+
+    this.yAxisAnnotation = {
+      y: 0,
+      strokeDashArray: 4,
+      borderColor: '#c2c2c2',
+      offsetX: 0,
+      offsetY: 0,
+      yAxisIndex: 0,
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'end',
+        position: 'right',
+        offsetX: 0,
+        offsetY: -3,
+        style: {
+          background: '#fff',
+          color: '#777',
+          fontSize: '12px',
+          cssClass: 'apexcharts-yaxis-annotation-label',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 0,
+            bottom: 2
+          }
+        }
+      }
+    }
+
+    this.pointAnnotation = {
+      x: 0,
+      y: null,
+      yAxisIndex: 0,
+      seriesIndex: 0,
+      marker: {
+        size: 0,
+        fillColor: '#fff',
+        strokeWidth: 2,
+        strokeColor: '#333',
+        shape: 'circle',
+        radius: 2
+      },
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'middle',
+        offsetX: 0,
+        offsetY: -15,
+        style: {
+          background: '#fff',
+          color: '#777',
+          fontSize: '12px',
+          cssClass: 'apexcharts-point-annotation-label',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 0,
+            bottom: 2
+          }
+        }
+      }
+    }
+  }
+
   init () {
     return {
       annotations: {
         position: 'front',
-        yaxis: [yAxisAnnotation],
-        xaxis: [xAxisAnnotation],
-        points: [pointAnnotation]
+        yaxis: [this.yAxisAnnotation],
+        xaxis: [this.xAxisAnnotation],
+        points: [this.pointAnnotation]
       },
       chart: {
         animations: {
@@ -741,7 +743,7 @@ export default class Options {
           offsetY: 0
         }
       },
-      yaxis: yAxis,
+      yaxis: this.yAxis,
       theme: {
         palette: 'palette1', // If defined, it will overwrite globals.colors variable
         monochrome: { // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)

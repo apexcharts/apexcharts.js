@@ -35,11 +35,6 @@ class Formatters {
       return val
     }
 
-    // this is commented for now, can be give as a customization to user later
-    // w.globals.xaxisTooltipLabelFormatter = function (val) {
-    //   return val
-    // }
-
     w.globals.ttKeyFormatter = function (val, opts) {
       return val
     }

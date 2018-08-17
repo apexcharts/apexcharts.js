@@ -1,6 +1,6 @@
 import Defaults from './Defaults'
 import Utils from './../../utils/Utils'
-import Options, { yAxis, xAxisAnnotation, yAxisAnnotation, pointAnnotation } from './Options'
+import Options from './Options'
 
 /**
  * ApexCharts Config Class for extending user options with pre-defined ApexCharts config.
@@ -97,6 +97,7 @@ class Config {
   }
 
   extendYAxis (opts) {
+    let options = new Options()
     if (typeof opts.yaxis === 'undefined') {
       opts.yaxis = {}
     }
@@ -105,9 +106,9 @@ class Config {
     // user can provide either an array or object in yaxis config
     if (opts.yaxis.constructor !== Array) {
       // convert the yaxis to array if user supplied object
-      opts.yaxis = [Utils.extend(yAxis, opts.yaxis)]
+      opts.yaxis = [Utils.extend(options.yAxis, opts.yaxis)]
     } else {
-      opts.yaxis = Utils.extendArray(opts.yaxis, yAxis)
+      opts.yaxis = Utils.extendArray(opts.yaxis, options.yAxis)
     }
     return opts
   }
@@ -129,16 +130,19 @@ class Config {
   }
 
   extendYAxisAnnotations (opts) {
-    opts.annotations.yaxis = Utils.extendArray(typeof opts.annotations.yaxis !== 'undefined' ? opts.annotations.yaxis : [], yAxisAnnotation)
+    let options = new Options()
+    opts.annotations.yaxis = Utils.extendArray(typeof opts.annotations.yaxis !== 'undefined' ? opts.annotations.yaxis : [], options.yAxisAnnotation)
     return opts
   }
 
   extendXAxisAnnotations (opts) {
-    opts.annotations.xaxis = Utils.extendArray(typeof opts.annotations.xaxis !== 'undefined' ? opts.annotations.xaxis : [], xAxisAnnotation)
+    let options = new Options()
+    opts.annotations.xaxis = Utils.extendArray(typeof opts.annotations.xaxis !== 'undefined' ? opts.annotations.xaxis : [], options.xAxisAnnotation)
     return opts
   }
   extendPointAnnotations (opts) {
-    opts.annotations.points = Utils.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], pointAnnotation)
+    let options = new Options()
+    opts.annotations.points = Utils.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], options.pointAnnotation)
     return opts
   }
 
