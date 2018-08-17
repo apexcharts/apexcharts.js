@@ -333,11 +333,7 @@ class ApexCharts {
    * @param {boolean} animate - should animate or not on updating Options
    */
   updateOptions (options, redraw = false, animate = true) {
-    const me = this
-
-    me.w.config.chart.animations.dynamicAnimation.enabled = animate
-
-    return me.updateOptionsInternal(options, redraw, animate, true)
+    return this.updateOptionsInternal(options, redraw, animate, true)
   }
 
   /**
@@ -350,15 +346,15 @@ class ApexCharts {
    */
   updateOptionsInternal (options, redraw = false, animate = true, makeDefaultConfig = false) {
     let w = this.w
-    const me = this
+    this.w.config.chart.animations.dynamicAnimation.enabled = animate
 
     if (!redraw) {
       w.globals.resized = true
-      let series = new Series(me.ctx)
+      let series = new Series(this.ctx)
 
-      me.w.globals.dataChanged = true
+      this.w.globals.dataChanged = true
 
-      if (animate && me.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
+      if (animate && this.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
         series.getPreviousPaths()
       }
     }
@@ -388,8 +384,8 @@ class ApexCharts {
       w.config = Utils.extend(w.config, options)
 
       if (makeDefaultConfig) {
-        me.w.globals.initialConfig = Utils.extend({}, w.config)
-        me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.globals.initialConfig.series))
+        w.globals.initialConfig = Utils.extend({}, w.config)
+        w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series))
       }
     }
 
@@ -402,8 +398,6 @@ class ApexCharts {
    * @param {array} series - New series which will override the existing
    */
   updateSeries (newSeries = [], animate = true, makeDefaultConfig = false) {
-    this.w.config.chart.animations.dynamicAnimation.enabled = animate
-
     return this.updateSeriesInternal(newSeries, animate, makeDefaultConfig)
   }
 
@@ -414,8 +408,8 @@ class ApexCharts {
    */
   updateSeriesInternal (newSeries, animate, makeDefaultConfig) {
     const w = this.w
+    this.w.config.chart.animations.dynamicAnimation.enabled = animate
     let series = new Series(this.ctx)
-
     w.globals.dataChanged = true
 
     if (animate) {
