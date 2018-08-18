@@ -108,12 +108,6 @@ class Toolbar {
       this.elToolbarWrap.appendChild(toolbarControls[i].el)
     }
 
-    if (!w.globals.isDirty) {
-      w.globals.zoomEnabled = w.config.chart.toolbar.autoSelected === 'zoom'
-      w.globals.panEnabled = w.config.chart.toolbar.autoSelected === 'pan'
-      w.globals.selectionEnabled = w.config.chart.toolbar.autoSelected === 'selection'
-    }
-
     if (w.globals.zoomEnabled) {
       this.elZoom.classList.add('selected')
     } else if (w.globals.panEnabled) {
@@ -186,7 +180,7 @@ class Toolbar {
     const newMinX = (w.globals.minX + centerX) / 2
     const newMaxX = (w.globals.maxX + centerX) / 2
 
-    this.ctx.updateOptionsInternal({
+    this.ctx.updateOptions({
       xaxis: {
         min: newMinX,
         max: newMaxX
@@ -209,7 +203,7 @@ class Toolbar {
     const newMinX = w.globals.minX - (centerX - w.globals.minX)
     const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
 
-    this.ctx.updateOptionsInternal({
+    this.ctx.updateOptions({
       xaxis: {
         min: newMinX,
         max: newMaxX
@@ -244,7 +238,7 @@ class Toolbar {
     xaxis.min = undefined
     xaxis.max = undefined
 
-    me.ctx.updateOptionsInternal(w.globals.initialConfig, false, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled)
+    me.ctx.updateOptions(w.globals.initialConfig, false, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled)
   }
 }
 

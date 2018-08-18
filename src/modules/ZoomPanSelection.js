@@ -111,9 +111,9 @@ class ZoomPanSelection extends Toolbar {
     let me = this
     let zoomtype = w.globals.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type
 
-    const isSelectionMouseDown = e.target.classList.contains('apexcharts-selection-rect')
+    const falsePositives = e.target.classList.contains('apexcharts-selection-rect') || e.target.parentNode.classList.contains('apexcharts-toolbar')
 
-    if (isSelectionMouseDown) return
+    if (falsePositives) return
 
     me.clientX = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientX : (e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX)
     me.clientY = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientY : (e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY)
@@ -200,6 +200,8 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w
     const xyRatios = this.xyRatios
 
+    console.log('dfsfgdgdgdf')
+
     if (!w.globals.zoomEnabled) {
       if (typeof w.globals.selection !== 'undefined' && w.globals.selection !== null) {
         this.drawSelectionRect(w.globals.selection)
@@ -238,8 +240,7 @@ class ZoomPanSelection extends Toolbar {
     width,
     height,
     translateX,
-    translateY,
-    selectionEnabled
+    translateY
   }) {
     const w = this.w
     if (this.dragged || w.globals.selection !== null) {
@@ -248,7 +249,8 @@ class ZoomPanSelection extends Toolbar {
       }
 
       // change styles based on zoom or selection
-      if (w.globals.zoomEnabled) {
+      // zoom is Enabled and user has dragged, so draw blue rect
+      if (w.globals.zoomEnabled && this.dragged) {
         this.zoomRect.attr({
           x,
           y,
@@ -262,7 +264,9 @@ class ZoomPanSelection extends Toolbar {
         })
         Graphics.setAttrs(this.zoomRect.node, scalingAttrs)
       }
-      if (w.globals.selectionEnabled || selectionEnabled) {
+
+      // selection is enabled
+      if (w.globals.selectionEnabled) {
         this.selectionRect.attr({
           x,
           y,

@@ -1,7 +1,7 @@
 import Utils from './../../utils/Utils'
 
 export default class Globals {
-  globalVars () {
+  globalVars (config) {
     return {
       chartID: null, // chart ID - apexcharts-cuid
       cuid: null, // chart ID - random numbers excluding "apexcharts" part
@@ -30,7 +30,7 @@ export default class Globals {
       markers: {
         colors: []
       },
-      isDirty: false, // chart has been updated after the initial render
+      isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
       initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
       series: [], // the MAIN series array (y values)
       seriesPercent: [], // the percentage values of the given series
@@ -49,9 +49,9 @@ export default class Globals {
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       padHorizontal: 0,
       maxValsInArrayIndex: 0,
-      zoomEnabled: false,
-      panEnabled: false,
-      selectionEnabled: false,
+      zoomEnabled: config.chart.toolbar.autoSelected === 'zoom',
+      panEnabled: config.chart.toolbar.autoSelected === 'pan',
+      selectionEnabled: config.chart.toolbar.autoSelected === 'selection',
       yaxis: null,
       minY: Number.MIN_VALUE, //  is 5e-324, i.e. the smallest positive number
       // NOTE: If there are multiple y axis, the first yaxis array element will be considered for all y values calculations. Rest all will be calculated based on that
@@ -143,7 +143,7 @@ export default class Globals {
   }
 
   init (config) {
-    let globals = this.globalVars()
+    let globals = this.globalVars(config)
 
     globals.initialConfig = Utils.extend({}, config)
     globals.initialSeries = JSON.parse(JSON.stringify(globals.initialConfig.series))
