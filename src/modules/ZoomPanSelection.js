@@ -200,8 +200,6 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w
     const xyRatios = this.xyRatios
 
-    console.log('dfsfgdgdgdf')
-
     if (!w.globals.zoomEnabled) {
       if (typeof w.globals.selection !== 'undefined' && w.globals.selection !== null) {
         this.drawSelectionRect(w.globals.selection)
