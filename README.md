@@ -32,7 +32,7 @@ It's a long read, so I have written a detailed explanation on this <a href="http
 ## Wrappers for Vue/React/Angular
 Integrate easily with 3rd party frameworks
 - [vue-apexcharts](https://github.com/apexcharts/vue-apexcharts)
-- [react-apexcharts] - (not released yet)
+- [react-apexcharts](https://github.com/apexcharts/react-apexcharts)
 - [angular-apexcharts] - (not released yet)
 
 ## Usage
