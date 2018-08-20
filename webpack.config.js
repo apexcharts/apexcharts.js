@@ -1,7 +1,8 @@
 var path = require('path');
 
 module.exports = {
-    entry: ['core-js/fn/promise','core-js/fn/array/includes', path.resolve(__dirname, 'src/apexcharts.js')],
+    entry: ['core-js/fn/promise','core-js/fn/array/includes', 'core-js/fn/array/reduce', 'core-js/fn/array/from', 'core-js/fn/symbol', path.resolve(__dirname, 'src/apexcharts.js')],
+   // entry: ['babel-polyfill', path.resolve(__dirname, 'src/apexcharts.js')],
     output: {
         library: 'ApexCharts',
         libraryTarget: 'umd',
