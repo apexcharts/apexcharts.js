@@ -12,6 +12,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "babel-polyfill": "^6.26.0",
     "core-js": "^2.5.7",
     "es6-promise-promise": "^1.0.0",
     "svg.draggable.js": "^2.2.1",

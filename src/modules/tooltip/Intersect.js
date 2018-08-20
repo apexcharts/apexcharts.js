@@ -67,12 +67,14 @@ class Intersect {
       i = parseInt(opt.paths.parentNode.getAttribute('rel')) - 1
 
       if (ttCtx.intersect) {
-        i = parseInt(
+        const el =
           Utils.findAncestor(
             opt.paths,
             'apexcharts-series'
-          ).getAttribute('data:realIndex')
-        )
+          )
+        if (el) {
+          i = parseInt(el.getAttribute('data:realIndex'))
+        }
       }
 
       ttCtx.tooltipLabels.drawSeriesTexts({
