@@ -128,7 +128,7 @@ class XAxis {
           text: '',
           textAnchor: 'middle',
           fontSize: this.xaxisFontSize,
-          foreColor: this.xaxisForeColors[i],
+          foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[i] : this.xaxisForeColors,
           cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
 
@@ -397,19 +397,6 @@ class XAxis {
         if (w.config.xaxis.labels.trim && (w.config.chart.type !== 'bar' && w.config.plotOptions.bar.horizontal)) {
           graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, width)
         }
-      }
-    }
-
-    if (xAxisTexts.length > 0) {
-      let firstLabelPos = xAxisTexts[0].getBBox()
-      let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
-
-      if (firstLabelPos.x < -25) {
-        xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
-      }
-
-      if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth) {
-        xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
       }
     }
 

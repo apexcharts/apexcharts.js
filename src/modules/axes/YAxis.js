@@ -12,8 +12,10 @@ class YAxis {
     this.w = ctx.w
 
     this.xaxisFontSize = this.w.config.xaxis.labels.style.fontSize
-    this.isBarHorizontal = !!((this.w.config.chart.type === 'bar' &&
-    this.w.config.plotOptions.bar.horizontal))
+    this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.horizontal)
+
+    this.xaxisForeColors = this.w.config.xaxis.labels.style.colors
 
     this.xAxisoffX = 0
     if (this.w.config.xaxis.position === 'bottom') {
@@ -163,6 +165,7 @@ class YAxis {
           y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
           text: '',
           textAnchor: 'middle',
+          foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[realIndex] : this.xaxisForeColors,
           fontSize: this.xaxisFontSize,
           cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
