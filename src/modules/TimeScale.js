@@ -180,9 +180,6 @@ class TimeScale {
             shouldNotSkipUnit = true
           }
           break
-        default:
-          shouldNotSkipUnit = false
-          break
       }
 
       if ((value % modulo === 0 || shouldNotSkipUnit) && !shouldNotPrint) {

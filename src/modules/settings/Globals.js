@@ -49,9 +49,9 @@ export default class Globals {
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       padHorizontal: 0,
       maxValsInArrayIndex: 0,
-      zoomEnabled: config.chart.toolbar.autoSelected === 'zoom',
-      panEnabled: config.chart.toolbar.autoSelected === 'pan',
-      selectionEnabled: config.chart.toolbar.autoSelected === 'selection',
+      zoomEnabled: config.chart.toolbar.autoSelected === 'zoom' && config.chart.toolbar.tools.zoom,
+      panEnabled: config.chart.toolbar.autoSelected === 'pan' && config.chart.toolbar.tools.pan,
+      selectionEnabled: config.chart.toolbar.autoSelected === 'selection' && config.chart.toolbar.tools.selection,
       yaxis: null,
       minY: Number.MIN_VALUE, //  is 5e-324, i.e. the smallest positive number
       // NOTE: If there are multiple y axis, the first yaxis array element will be considered for all y values calculations. Rest all will be calculated based on that

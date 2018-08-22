@@ -261,7 +261,7 @@ export default class Options {
           tools: {
             download: true,
             selection: true,
-            zoom: true,
+            zoom: false,
             zoomin: true,
             zoomout: true,
             pan: true,
