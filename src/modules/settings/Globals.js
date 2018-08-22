@@ -49,7 +49,7 @@ export default class Globals {
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       padHorizontal: 0,
       maxValsInArrayIndex: 0,
-      zoomEnabled: config.chart.toolbar.autoSelected === 'zoom' && config.chart.toolbar.tools.zoom,
+      zoomEnabled: config.chart.toolbar.autoSelected === 'zoom' && config.chart.toolbar.tools.zoom && config.chart.zoom.enabled,
       panEnabled: config.chart.toolbar.autoSelected === 'pan' && config.chart.toolbar.tools.pan,
       selectionEnabled: config.chart.toolbar.autoSelected === 'selection' && config.chart.toolbar.tools.selection,
       yaxis: null,
