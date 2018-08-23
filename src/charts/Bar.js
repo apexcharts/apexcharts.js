@@ -213,6 +213,7 @@ class Bar {
           pathTo: pathTo,
           stroke: lineFill,
           strokeWidth,
+          strokeLineCap: w.config.stroke.lineCap,
           fill: pathFill,
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,

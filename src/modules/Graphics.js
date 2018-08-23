@@ -168,6 +168,7 @@ class Graphics {
     pathTo,
     stroke,
     strokeWidth,
+    strokeLinecap,
     fill,
     animationDelay,
     initialSpeed,
@@ -208,7 +209,7 @@ class Graphics {
       fill,
       fillOpacity: 1,
       classes: className,
-      strokeLinecap: 'butt',
+      strokeLinecap,
       strokeDashArray
     })
 
