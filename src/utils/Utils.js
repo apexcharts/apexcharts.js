@@ -1,5 +1,5 @@
 /*
- ** Generic functions which are not dependent on ApexCharts.
+ ** Generic functions which are not dependent on ApexCharts
  */
 
 class Utils {
@@ -256,9 +256,13 @@ class Utils {
     return Number(n) === n && n % 1 !== 0
   }
 
-  static isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  static isSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  }
   
-  static isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+  static isFirefox() {
+    return navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+  }
 
   static isIE () {
     let ua = window.navigator.userAgent

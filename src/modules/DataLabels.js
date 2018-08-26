@@ -111,7 +111,7 @@ class DataLabels {
     return elDataLabelsWrap
   }
 
-  plotDataLabelsText = (x, y, text, i, j, elToAppendTo, dataLabelsConfig) => {
+  plotDataLabelsText (x, y, text, i, j, elToAppendTo, dataLabelsConfig) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 

@@ -75,7 +75,7 @@ class Fill {
     w.globals.dom.elDefs.node.appendChild(elPattern)
   }
 
-  getSeriesIndex = (opts) => {
+  getSeriesIndex (opts) {
     const w = this.w
 
     if ((w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) || w.config.chart.type === 'heatmap') {

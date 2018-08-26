@@ -1,5 +1,5 @@
 /**
- * ApexCharts Options for setting the initial configuration of ApexCharts.
+ * ApexCharts Options for setting the initial configuration of ApexCharts
  **/
 
 export default class Options {

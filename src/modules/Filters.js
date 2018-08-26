@@ -1,6 +1,4 @@
 import Utils from './../utils/Utils'
-require('svg.js')
-require('svg.filter.js')
 
 /**
  * ApexCharts Filters Class for setting value formatters for axes as well as tooltips.

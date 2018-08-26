@@ -9,7 +9,7 @@ module.exports = {
         umdNamedDefine: true,
       	path: path.resolve(__dirname, 'dist/'),
         filename: 'apexcharts.min.js' ,
-    },
+  },
     module: {
       rules: [
         {

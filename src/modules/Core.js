@@ -22,6 +22,7 @@ require('svg.pathmorphing.js')
 require('svg.draggable.js')
 require('svg.select.js')
 require('svg.resize.js')
+
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.
  *
@@ -345,12 +346,12 @@ class Core {
     })
   }
 
-  isMultiFormat = () => {
+  isMultiFormat () {
     return this.isFormatXY() || this.isFormat2DArray()
   }
 
   // given format is [{x, y}, {x, y}]
-  isFormatXY = () => {
+  isFormatXY () {
     const series = this.w.config.series.slice()
 
     const sr = new Series(this.ctx)
@@ -366,7 +367,7 @@ class Core {
   }
 
   // given format is [[x, y], [x, y]]
-  isFormat2DArray = () => {
+  isFormat2DArray () {
     const series = this.w.config.series.slice()
 
     const sr = new Series(this.ctx)
@@ -421,7 +422,7 @@ class Core {
       }
 
       const isXString = typeof ser[i].data[j].x === 'string'
-      const isXDate = dt.isValidDate(ser[i].data[j].x.toString())
+      const isXDate = !!dt.isValidDate(ser[i].data[j].x.toString())
 
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
@@ -457,11 +458,11 @@ class Core {
     }
   }
 
-  parseDataAxisCharts (ser, series) {
+  parseDataAxisCharts (ser, series, ctx = this.ctx) {
     const cnf = this.w.config
     const gl = this.w.globals
 
-    const dt = new DateTime(this.ctx)
+    const dt = new DateTime(ctx)
 
     for (let i = 0; i < series.length; i++) {
       this.twoDSeries = []
@@ -519,6 +520,8 @@ class Core {
         gl.seriesNames.push('series-' + parseInt(i + 1))
       }
     }
+
+    return this.w
   }
 
   parseDataNonAxisCharts (ser) {
@@ -532,6 +535,8 @@ class Core {
         gl.seriesNames.push('series-' + (i + 1))
       }
     }
+
+    return this.w
   }
 
   handleExternalLabelsData (ser) {
