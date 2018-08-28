@@ -118,6 +118,8 @@ class XAxis {
           label = w.globals.timelineLabels[i].value
         }
 
+        if (!isFinite(label)) label = ''
+
         let offsetYCorrection = 28
         if (w.globals.rotateXLabels) {
           offsetYCorrection = 22

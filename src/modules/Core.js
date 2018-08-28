@@ -760,7 +760,7 @@ class Core {
 
       xyRatios = this.getCalculatedRatios()
 
-      if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined) {
+      if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined && isFinite(w.globals.minX) && isFinite(w.globals.maxX)) {
         let ts = new TimeScale(this.ctx)
         ts.calculateTimeScaleTicks()
       }

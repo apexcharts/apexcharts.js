@@ -322,7 +322,7 @@ class Range {
 
     let niceXRange = new Range(this.ctx)
     if (gl.dataXY || gl.noLabelsProvided) {
-      let ticks = 8
+      let ticks
 
       if (cnf.xaxis.tickAmount === undefined) {
         ticks = Math.round(gl.svgWidth / 150)
