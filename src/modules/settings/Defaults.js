@@ -150,7 +150,7 @@ class Defaults {
           type: 'vertical',
           opacityFrom: 0.65,
           opacityTo: 0.5,
-          stops: [0, 100, 100, 100]
+          stops: [0, 100, 100]
         }
       },
       tooltip: {
@@ -289,7 +289,7 @@ class Defaults {
           shade: 'dark',
           shadeIntensity: 0.35,
           inverseColors: false,
-          stops: [0, 100, 100, 100]
+          stops: [0, 100, 100]
         }
       },
       tooltip: {
@@ -331,7 +331,7 @@ class Defaults {
           type: 'vertical',
           opacityFrom: 1,
           opacityTo: 1,
-          stops: [0, 50, 53, 91]
+          stops: [70, 98, 100]
         }
       },
       tooltip: {
@@ -365,7 +365,7 @@ class Defaults {
           type: 'diagonal2',
           opacityFrom: 1,
           opacityTo: 1,
-          stops: [0, 50, 53, 91]
+          stops: [70, 98, 100]
         }
       },
       legend: {
