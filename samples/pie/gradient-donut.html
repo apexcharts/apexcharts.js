@@ -17,12 +17,12 @@
         }
         
 
-        .apexcharts-legend-text.apexcharts-legend-series tspan:nth-child(1) {
+        .apexcharts-legend-text tspan:nth-child(1) {
             font-weight: lighter;
             fill: #999;
         }
 
-        .apexcharts-legend-text.apexcharts-legend-series tspan:nth-child(3) {
+        .apexcharts-legend-text tspan:nth-child(3) {
             font-weight: bold;
         }
     </style>
@@ -52,8 +52,7 @@
             },
             legend: {
                 formatter: function(val, opts) {
-                    const arr = [val, " - ",opts.globals.series[opts.seriesIndex]]
-                    return arr;
+                    return [val, " - ", opts.globals.series[opts.seriesIndex]]
                 }
             }
 
