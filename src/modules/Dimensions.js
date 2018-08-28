@@ -360,10 +360,12 @@ class Dimensions {
     let val = labels.reduce(function (a, b) {
       // if undefined, maybe user didn't pass the datetime(x) values
       if (typeof a === 'undefined') {
-        throw new Error('You have possibly supplied invalid Date format. Please supply a valid JavaScript Date')
+        console.error('You have possibly supplied invalid Date format. Please supply a valid JavaScript Date')
+        return 0
+      } else {
+        return a.length > b.length ? a : b
       }
-      return a.length > b.length ? a : b
-    })
+    }, 0)
 
     let graphics = new Graphics(this.ctx)
     let virtualText = graphics.drawText({
@@ -411,7 +413,7 @@ class Dimensions {
     //  get the longest string from the labels array and also apply label formatter to it
     let val = xaxisLabels.reduce(function (a, b) {
       return a.length > b.length ? a : b
-    })
+    }, 0)
 
     let xlbFormatter = w.globals.xLabelFormatter
 
@@ -555,7 +557,7 @@ class Dimensions {
           //  get the longest string from the labels array and also apply label formatter to it
           val = barYaxisLabels.reduce(function (a, b) {
             return a.length > b.length ? a : b
-          })
+          }, 0)
 
           val = lbFormatter(val)
         }
