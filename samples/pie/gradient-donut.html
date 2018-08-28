@@ -15,6 +15,16 @@
             max-width: 380px;
             margin: 35px auto;
         }
+        
+
+        .apexcharts-legend-text.apexcharts-legend-series tspan:nth-child(1) {
+            font-weight: lighter;
+            fill: #999;
+        }
+
+        .apexcharts-legend-text.apexcharts-legend-series tspan:nth-child(3) {
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -32,12 +42,19 @@
                 width: 380,
                 type: 'donut',
             },
-            
+            dataLabels: {
+                enabled: false
+            },
             series: [44, 55, 41, 17, 15],
-            
             fill: {
                 type: 'gradient',
                
+            },
+            legend: {
+                formatter: function(val, opts) {
+                    const arr = [val, " - ",opts.globals.series[opts.seriesIndex]]
+                    return arr;
+                }
             }
 
         }
@@ -48,6 +65,8 @@
         );
 
         chart.render();
+        
+        const paper = chart.paper()
     </script>
 </body>
 

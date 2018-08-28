@@ -373,7 +373,18 @@ class Graphics {
       foreColor = w.config.chart.foreColor
     }
 
-    let elText = w.globals.dom.Paper.plain(text).attr({
+    let elText
+    if (Array.isArray(text)) {
+      elText = w.globals.dom.Paper.text((add) => {
+        for (let i = 0; i < text.length; i++) {
+          add.tspan(text[i])
+        }
+      })
+    } else {
+      elText = w.globals.dom.Paper.plain(text)
+    }
+
+    elText.attr({
       x: x,
       y: y,
       'text-anchor': textAnchor,
