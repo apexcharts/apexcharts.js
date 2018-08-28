@@ -104,6 +104,10 @@ export default class Globals {
       // some way to get x value depending on mouse pointer
       seriesYvalues: [], // we will need this when deciding which series
       // user hovered on
+      seriesCandleO: [], // candle stick open values
+      seriesCandleH: [], // candle stick high values
+      seriesCandleL: [], // candle stick low values
+      seriesCandleC: [], // candle stick close values
       dataPoints: 0, // the longest series length
       pointsArray: [], // store the points positions here to draw later on hover
       // format is - [[x,y],[x,y]... [x,y]]

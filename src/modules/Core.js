@@ -1,5 +1,6 @@
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
+import CandleStick from '../charts/CandleStick'
 import Crosshairs from './Crosshairs'
 import DateTime from './../utils/DateTime'
 import HeatMap from '../charts/HeatMap'
@@ -55,7 +56,8 @@ class Core {
       'area',
       'scatter',
       'bubble',
-      'heatmap'
+      'heatmap',
+      'candlestick'
     ]
 
     let xyChartsArrTypes = [
@@ -188,6 +190,10 @@ class Core {
             let bar = new Bar(this.ctx, xyRatios)
             elGraph = bar.draw(gl.series)
           }
+          break
+        case 'candlestick':
+          let candleStick = new CandleStick(this.ctx, xyRatios)
+          elGraph = candleStick.draw(gl.series)
           break
         case 'heatmap':
           let heatmap = new HeatMap(this.ctx, xyRatios)
@@ -388,7 +394,11 @@ class Core {
 
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j][1] !== 'undefined') {
-        this.twoDSeries.push(ser[i].data[j][1])
+        if (Array.isArray(ser[i].data[j][1]) && ser[i].data[j][1].length === 4) {
+          this.twoDSeries.push(ser[i].data[j][1][3])
+        } else {
+          this.twoDSeries.push(ser[i].data[j][1])
+        }
       }
       if (cnf.xaxis.type === 'datetime') {
         // if timestamps are provided and xaxis type is datettime,
@@ -418,7 +428,11 @@ class Core {
 
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j].y !== 'undefined') {
-        this.twoDSeries.push(ser[i].data[j].y)
+        if (Array.isArray(ser[i].data[j].y) && ser[i].data[j].y.length === 4) {
+          this.twoDSeries.push(ser[i].data[j].y[3])
+        } else {
+          this.twoDSeries.push(ser[i].data[j].y)
+        }
       }
 
       const isXString = typeof ser[i].data[j].x === 'string'
@@ -458,6 +472,59 @@ class Core {
     }
   }
 
+  handleCandleStickData (ser, i) {
+    const gl = this.w.globals
+
+    let ohlc = {}
+    if (this.isFormat2DArray()) {
+      ohlc = this.handleCandleStickDataFormat('array', ser, i)
+    } else if (this.isFormatXY()) {
+      ohlc = this.handleCandleStickDataFormat('xy', ser, i)
+    }
+
+    gl.seriesCandleO.push(ohlc.o)
+    gl.seriesCandleH.push(ohlc.h)
+    gl.seriesCandleL.push(ohlc.l)
+    gl.seriesCandleC.push(ohlc.c)
+
+    return ohlc
+  }
+
+  handleCandleStickDataFormat (format, ser, i) {
+    const serO = []
+    const serH = []
+    const serL = []
+    const serC = []
+
+    const err = 'Please provide [Open, High, Low and Close] values in valid format. Read more https://apexcharts.com/docs/series/#candlestick'
+
+    if (format === 'array') {
+      if (ser[i].data[0][1].length !== 4) {
+        throw new Error(err)
+      }
+      for (let j = 0; j < ser[i].data.length; j++) {
+        serO.push(ser[i].data[j][1][0])
+        serH.push(ser[i].data[j][1][1])
+        serL.push(ser[i].data[j][1][2])
+        serC.push(ser[i].data[j][1][3])
+      }
+    } else if (format === 'xy') {
+      if (ser[i].data[0].y.length !== 4) {
+        throw new Error(err)
+      }
+      for (let j = 0; j < ser[i].data.length; j++) {
+        serO.push(ser[i].data[j].y[0])
+        serH.push(ser[i].data[j].y[1])
+        serL.push(ser[i].data[j].y[2])
+        serC.push(ser[i].data[j].y[3])
+      }
+    }
+
+    return {
+      o: serO, h: serH, l: serL, c: serC
+    }
+  }
+
   parseDataAxisCharts (ser, series, ctx = this.ctx) {
     const cnf = this.w.config
     const gl = this.w.globals
@@ -470,7 +537,7 @@ class Core {
       this.threeDSeries = []
 
       if (typeof series[i].data === 'undefined') {
-        console.warn("It is a possibility that you may have not included 'data' property in series.")
+        console.error("It is a possibility that you may have not included 'data' property in series.")
         return
       }
 
@@ -479,6 +546,10 @@ class Core {
           this.handleFormat2DArray(ser, i)
         } else if (this.isFormatXY()) {
           this.handleFormatXY(ser, i)
+        }
+
+        if (cnf.chart.type === 'candlestick') {
+          this.handleCandleStickData(ser, i)
         }
 
         gl.series.push(this.twoDSeries)

@@ -76,13 +76,7 @@ class Defaults {
   bar () {
     return {
       chart: {
-        stacked: false,
-        toolbar: {
-          show: true
-        },
-        scroller: {
-          enabled: true
-        }
+        stacked: false
       },
       plotOptions: {
         bar: {
@@ -110,7 +104,6 @@ class Defaults {
         }
       },
       tooltip: {
-        // TODO: make shared false
         shared: false
       },
       xaxis: {
@@ -134,6 +127,19 @@ class Defaults {
         }
       }]
 
+    }
+  }
+
+  candlestick () {
+    return {
+      dataLabels: {
+        enabled: false
+      },
+      xaxis: {
+        crosshairs: {
+          width: 1
+        }
+      }
     }
   }
 

@@ -20,6 +20,7 @@ class Config {
     this.chartType = opts.chart.type
 
     if (this.chartType === 'histogram') {
+      // technically, a histogram can be drawn by a column chart with no spaces in between
       opts.chart.type = 'bar'
       opts = Utils.extend({
         plotOptions: {
@@ -45,6 +46,9 @@ class Config {
           chartDefaults = defaults.area()
           break
         case 'bar':
+          chartDefaults = defaults.bar()
+          break
+        case 'candlestick':
           chartDefaults = defaults.bar()
           break
         case 'histogram':
