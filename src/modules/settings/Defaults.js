@@ -40,7 +40,13 @@ class Defaults {
 
     return {
       grid: {
-        show: false
+        show: false,
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0
+        }
       },
       legend: {
         show: false
