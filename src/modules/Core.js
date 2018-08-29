@@ -762,7 +762,8 @@ class Core {
 
       if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined && isFinite(w.globals.minX) && isFinite(w.globals.maxX)) {
         let ts = new TimeScale(this.ctx)
-        ts.calculateTimeScaleTicks()
+        const formattedTimeScale = ts.calculateTimeScaleTicks(w.globals.minX, w.globals.maxX)
+        ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
     }
     return xyRatios

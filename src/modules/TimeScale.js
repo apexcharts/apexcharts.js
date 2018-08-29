@@ -15,7 +15,7 @@ class TimeScale {
     this.timeScaleArray = []
   }
 
-  calculateTimeScaleTicks () {
+  calculateTimeScaleTicks (minX, maxX) {
     let w = this.w
 
     // null check when no series to show
@@ -27,10 +27,10 @@ class TimeScale {
 
     let dt = new DateTime(this.ctx)
 
-    const daysDiff = (w.globals.maxX - w.globals.minX) / (1000 * 60 * 60 * 24)
+    const daysDiff = (maxX - minX) / (1000 * 60 * 60 * 24)
     this.determineInterval(daysDiff)
 
-    const timeIntervals = dt.getTimeUnitsfromTimestamp(w.globals.minX, w.globals.maxX)
+    const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX)
 
     const daysWidthOnXAxis = w.globals.gridWidth / daysDiff
     const hoursWidthOnXAxis = daysWidthOnXAxis / 24
@@ -187,6 +187,11 @@ class TimeScale {
       }
     })
 
+    return filteredTimeScale
+  }
+
+  recalcDimensionsBasedOnFormat (filteredTimeScale) {
+    const w = this.w
     const reformattedTimescaleArray = this.formatDates(filteredTimeScale)
 
     const removedOverlappingTS = this.removeOverlappingTS(reformattedTimescaleArray)
@@ -198,8 +203,6 @@ class TimeScale {
     // TODO - find an alternate way to avoid calling this Heavy method twice
     var dimensions = new Dimensions(this.ctx)
     dimensions.plotCoords()
-
-    return filteredTimeScale
   }
 
   determineInterval (daysDiff) {
