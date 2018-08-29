@@ -471,6 +471,8 @@ class Pie {
       size
     })
 
+    if (angle === 360) return
+
     elPath.plot(path).animate(1).plot(pathFrom).animate(100).plot(path)
   }
 
