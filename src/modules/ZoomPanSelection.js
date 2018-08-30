@@ -16,7 +16,6 @@ class ZoomPanSelection extends Toolbar {
     this.w = ctx.w
 
     this.dragged = false
-    this.clicked = false
 
     this.clientX = 0
     this.clientY = 0
@@ -26,6 +25,8 @@ class ZoomPanSelection extends Toolbar {
     this.startY = 0
     this.endY = 0
     this.dragY = 0
+
+    this.toolbar = new Toolbar(this.ctx)
 
     this.zoomResetIcon = null
   }
@@ -75,20 +76,6 @@ class ZoomPanSelection extends Toolbar {
       )
     }
 
-    let gridRectDim = self.gridRect.getBoundingClientRect()
-
-    let gridRectH = gridRectDim.height
-
-    // diffInH will help to give the actual height of clickable area.
-    // our eventHandler is bound to SVG, but SVG has axis/legends, we need to omit them.
-    let diffInH = (w.globals.svgHeight - gridRectH) * xyRatios.yRatio[0]
-
-    let opts = {
-      hoverArea,
-      hoverDimensions: gridRectDim,
-      diffInHeight: diffInH
-    }
-
     let eventList = [
       'mousedown',
       'mousemove',
@@ -100,16 +87,27 @@ class ZoomPanSelection extends Toolbar {
     for (let event of eventList) {
       hoverArea.addEventListener(
         event,
-        self.svgMouseEvents.bind(self, opts, xyRatios),
+        self.svgMouseEvents.bind(self, xyRatios),
         false
       )
     }
   }
 
-  svgMouseEvents (opt, xyRatios, e) {
+  svgMouseEvents (xyRatios, e) {
     let w = this.w
     let me = this
+
     let zoomtype = w.globals.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type
+
+    if (e.shiftKey) {
+      this.shiftWasPressed = true
+      this.toolbar.enablePanning()
+    } else {
+      if (this.shiftWasPressed) {
+        this.toolbar.enableZooming()
+        this.shiftWasPressed = false
+      }
+    }
 
     const falsePositives = e.target.classList.contains('apexcharts-selection-rect') || e.target.parentNode.classList.contains('apexcharts-toolbar')
 
@@ -118,44 +116,45 @@ class ZoomPanSelection extends Toolbar {
     me.clientX = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientX : (e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX)
     me.clientY = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientY : (e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY)
 
-    const mouseDownOnZoomArea = () => {
-      // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
+    if ((e.type === 'mousedown' && e.which === 1)) {
       let gridRectDim = me.gridRect.getBoundingClientRect()
 
       me.startX = me.clientX - gridRectDim.left
       me.startY = me.clientY - gridRectDim.top
 
       me.dragged = false
-      me.clicked = true
+      me.w.globals.mousedown = true
     }
 
-    if ((e.type === 'mousedown' && e.which === 1)) {
-      mouseDownOnZoomArea()
-    } else if ((e.type === 'mousemove' && e.which === 1) ||
+    if ((e.type === 'mousemove' && e.which === 1) ||
       (e.type === 'touchmove')) {
       me.dragged = true
 
       if (w.globals.panEnabled) {
         w.globals.selection = null
-        me.panDragging({
-          context: me,
-          zoomtype,
-          xyRatios
-        })
+        if (me.w.globals.mousedown) {
+          me.panDragging({
+            context: me,
+            zoomtype,
+            xyRatios
+          })
+        }
       } else {
-        if ((me.clicked && w.globals.zoomEnabled) ||
-          (me.clicked && w.globals.selectionEnabled)) {
+        if ((me.w.globals.mousedown && w.globals.zoomEnabled) ||
+          (me.w.globals.mousedown && w.globals.selectionEnabled)) {
           me.selection = me.selectionDrawing({
             context: me,
             zoomtype
           })
         }
       }
-    } else if ((e.type === 'mouseup' && e.which === 1) || e.type === 'touchend') {
+    }
+
+    if ((e.type === 'mouseup') || e.type === 'touchend') {
       // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
       let gridRectDim = me.gridRect.getBoundingClientRect()
 
-      if (me.clicked) {
+      if (me.w.globals.mousedown) {
         // user released the drag, now do all the calculations
         me.endX = me.clientX - gridRectDim.left
         me.endY = me.clientY - gridRectDim.top
@@ -175,7 +174,7 @@ class ZoomPanSelection extends Toolbar {
       }
 
       me.dragged = false
-      me.clicked = false
+      me.w.globals.mousedown = false
     }
 
     this.makeSelectionRectDraggable()
@@ -452,14 +451,14 @@ class ZoomPanSelection extends Toolbar {
             }
           },
           false,
-          w.globals.initialConfig.chart.animations.dynamicAnimation.enabled
+          true
           )
         } else if (zoomtype === 'y') {
           me.ctx.updateOptionsInternal({
             yaxis: yaxis
           },
           false,
-          w.globals.initialConfig.chart.animations.dynamicAnimation.enabled
+          true
           )
         } else {
           me.ctx.updateOptionsInternal({
@@ -470,7 +469,7 @@ class ZoomPanSelection extends Toolbar {
             yaxis: yaxis
           },
           false,
-          w.globals.initialConfig.chart.animations.dynamicAnimation.enabled
+          true
           )
         }
 

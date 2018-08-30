@@ -207,7 +207,6 @@ class Dimensions {
       w.config.grid.padding.bottom -
       scrollerHeight
 
-    console.log(gl.gridHeight)
     gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right
 
     gl.translateX = gl.translateX + w.config.grid.padding.left
