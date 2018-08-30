@@ -17,22 +17,6 @@
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
 
-# Announcement for Website
-
-### We will be undergoing maintenance on our website on the following date and time
-
-Day & Date: Thursday, August 30, 2018
-
-Start time: 02:30 UTC
-
-Maintenance Window: 5 hours.
-
-The website will be down during that period - Sorry for the inconvenience
-
-## Why another Chart Library?
-It's a long read, so I have written a detailed explanation on this <a href="https://medium.com/@juned.chhipa/bridging-the-gap-between-low-level-and-high-level-charting-libraries-a8f6c1819ba5" target="_blank">medium post</a>
-
-
 ## Download and Installation
 
 ##### Installing via npm
