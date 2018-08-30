@@ -51,8 +51,6 @@ class Dimensions {
     let w = this.w
     let gl = w.globals
 
-    let xPad = 0
-
     let xtitleCoords
     let xaxisLabelCoords
     let ytitleCoords = []
@@ -154,12 +152,13 @@ class Dimensions {
       xAxisHeight = 35
     }
 
-    if (w.config.chart.sparkline.enabled) {
+    this.isSparkline = w.config.chart.sparkline.enabled
+
+    if (this.isSparkline) {
       lgRect = {
         height: 0,
         width: 0
       }
-      xPad = 0
       xAxisHeight = 0
       yAxisWidth = 0
       translateY = 0
@@ -169,32 +168,32 @@ class Dimensions {
       case 'bottom':
         gl.translateY = translateY
         gl.translateX = yAxisWidth
-        gl.gridHeight = gl.svgHeight - lgRect.height - xAxisHeight - (w.globals.rotateXLabels ? 10 : 15)
-        gl.gridWidth = gl.svgWidth - xPad - yAxisWidth
+        gl.gridHeight = gl.svgHeight - lgRect.height - xAxisHeight - (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
+        gl.gridWidth = gl.svgWidth - yAxisWidth
         break
       case 'top':
         gl.translateY = lgRect.height + translateY
         gl.translateX = yAxisWidth
-        gl.gridHeight = gl.svgHeight - lgRect.height - xAxisHeight - (w.globals.rotateXLabels ? 10 : 15)
-        gl.gridWidth = gl.svgWidth - xPad - yAxisWidth
+        gl.gridHeight = gl.svgHeight - lgRect.height - xAxisHeight - (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
+        gl.gridWidth = gl.svgWidth - yAxisWidth
         break
       case 'left':
         gl.translateY = translateY
         gl.translateX = lgRect.width + yAxisWidth
         gl.gridHeight = gl.svgHeight - xAxisHeight
-        gl.gridWidth = gl.svgWidth - lgRect.width - xPad - yAxisWidth
+        gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth
         break
       case 'right':
         gl.translateY = translateY
         gl.translateX = yAxisWidth
         gl.gridHeight = gl.svgHeight - xAxisHeight
-        gl.gridWidth = gl.svgWidth - lgRect.width - xPad - yAxisWidth
+        gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth
         break
       default:
         gl.translateY = translateY
         gl.translateX = yAxisWidth
         gl.gridHeight = gl.svgHeight - lgRect.height - xAxisHeight
-        gl.gridWidth = gl.svgWidth - xPad
+        gl.gridWidth = gl.svgWidth
         break
     }
 
@@ -208,6 +207,7 @@ class Dimensions {
       w.config.grid.padding.bottom -
       scrollerHeight
 
+    console.log(gl.gridHeight)
     gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right
 
     gl.translateX = gl.translateX + w.config.grid.padding.left
@@ -290,18 +290,18 @@ class Dimensions {
   titleSubtitleOffset () {
     const w = this.w
     const gl = w.globals
-    let gridShrinkOffset = 10
+    let gridShrinkOffset = this.isSparkline ? 0 : 10
 
     if (w.config.title.text !== undefined) {
       gridShrinkOffset += w.config.title.margin
     } else {
-      gridShrinkOffset += 5
+      gridShrinkOffset += this.isSparkline ? 0 : 5
     }
 
     if (w.config.subtitle.text !== undefined) {
       gridShrinkOffset += w.config.subtitle.margin
     } else {
-      gridShrinkOffset += 5
+      gridShrinkOffset += this.isSparkline ? 0 : 5
     }
 
     if (w.config.legend.show && w.config.legend.position === 'bottom' && !w.config.legend.floating && w.config.series.length > 1) {
@@ -312,7 +312,6 @@ class Dimensions {
     let subtitleCoords = this.getSubTitleCoords()
 
     gl.gridHeight = gl.gridHeight - titleCoords.height - subtitleCoords.height - gridShrinkOffset
-
     gl.translateY = gl.translateY + titleCoords.height + subtitleCoords.height + gridShrinkOffset
   }
 
