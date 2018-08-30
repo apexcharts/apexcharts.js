@@ -33,7 +33,6 @@ describe("Generate TimeScale", () => {
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleHours = timeScale.calculateTimeScaleTicks(range.hours[0], range.hours[1])
     
-    console.log(generatedTimeScaleHours)
     expect(generatedTimeScaleHours).toHaveLength(9)
   })
 });
