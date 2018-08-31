@@ -561,7 +561,7 @@ class Bar {
 
       const emptySpaceBackwards = w.globals.gridWidth - baseline
 
-      let valIsNegative = !!(x < emptySpaceBackwards && Math.abs(this.baseLineInvertedY) !== 0)
+      let valIsNegative = !!((x + 0.15) < emptySpaceBackwards && Math.abs(this.baseLineInvertedY) !== 0)
 
       switch (barDataLabelsConfig.position) {
         case 'center':
@@ -605,6 +605,12 @@ class Bar {
         val: series[i][j],
         barHeight: barHeight
       })
+
+      if (dataLabelsX < 0) {
+        dataLabelsX = textRects.width + strokeWidth
+      } else if (dataLabelsX + textRects.width > w.globals.gridWidth) {
+        dataLabelsX = dataLabelsX - textRects.width - strokeWidth
+      }
 
       dataLabels = this.drawCalculatedBarDataLabels({ x: dataLabelsX, y: dataLabelsY, val: series[i][j], i: realIndex, j: j, dataLabelsConfig })
     } else {
@@ -685,10 +691,10 @@ class Bar {
       })
 
       let text = ''
-      if (val) {
+      if (typeof val !== 'undefined') {
         text = formatter(val, { seriesIndex: i, dataPointIndex: j, globals: w.globals })
       }
-      dataLabels.plotDataLabelsText(x, y, text, i, j, elDataLabelsWrap, dataLabelsConfig)
+      dataLabels.plotDataLabelsText(x, y, text, i, j, elDataLabelsWrap, dataLabelsConfig, true)
     }
 
     return elDataLabelsWrap
