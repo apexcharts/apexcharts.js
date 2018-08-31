@@ -235,6 +235,10 @@ class Legend {
       if (collapsedSeries) {
         elLegend.node.classList.add('inactive-legend')
       }
+
+      if (!w.config.legend.onItemClick.toggleDataSeries) {
+        elLegend.node.classList.add('no-click')
+      }
     }
 
     const clickAllowed = w.config.chart.type !== 'heatmap'
