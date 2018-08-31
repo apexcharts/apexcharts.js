@@ -370,11 +370,7 @@ class ApexCharts {
       }
     }
 
-    return this.update().then(() => {
-      // update successful
-    }).catch((e) => {
-      throw new Error(e)
-    })
+    return this.update()
   }
 
   /**
@@ -407,11 +403,7 @@ class ApexCharts {
       w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series))
     }
 
-    return this.update().then(() => {
-      // update successful
-    }).catch((e) => {
-      throw new Error(e)
-    })
+    return this.update()
   }
 
   /**
@@ -442,11 +434,7 @@ class ApexCharts {
     me.w.globals.initialConfig = Utils.extend({}, me.w.config)
     me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.globals.initialConfig.series))
 
-    return this.update().then(() => {
-      // update successful
-    }).catch((e) => {
-      throw new Error(e)
-    })
+    return this.update()
   }
 
   update () {
@@ -643,11 +631,7 @@ class ApexCharts {
 
       // we need to redraw the whole chart on window resize (with a small delay).
       let graphData = this.create(this.w.config.series)
-      this.mount(graphData).then(() => {
-        // mount was successful
-      }).catch((e) => {
-        throw new Error(e)
-      })
+      this.mount(graphData)
     }, 150)
   }
 }
