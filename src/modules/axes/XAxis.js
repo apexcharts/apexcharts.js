@@ -118,7 +118,10 @@ class XAxis {
           label = w.globals.timelineLabels[i].value
         }
 
-        if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0) label = ''
+        label = label.toString()
+        if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0) {
+          label = ''
+        }
 
         let offsetYCorrection = 28
         if (w.globals.rotateXLabels) {

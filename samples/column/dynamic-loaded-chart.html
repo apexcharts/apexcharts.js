@@ -208,10 +208,10 @@
           colors.push(yearSeries.data[selectedIndex].color)
         }
         return ApexCharts.exec(destChartIDToUpdate, 'updateOptions', {
-          series,
-          colors,
+          series: series,
+          colors: colors,
           fill: {
-            colors
+            colors: colors
           }
         })
 
