@@ -406,10 +406,10 @@ class XAxis {
       let firstLabelPos = xAxisTexts[0].getBBox()
       let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
       if (firstLabelPos.x < -25) {
-        xAxisTexts[0].remove()
+        xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
       }
       if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
-        xAxisTexts[xAxisTexts.length - 1].remove()
+        xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
       }
     }
 
