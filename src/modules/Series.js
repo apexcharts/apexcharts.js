@@ -272,7 +272,7 @@ export default class Series {
     }
   }
 
-  handleNoData ({ appendToRoot = false, rootEl }) {
+  handleNoData () {
     const w = this.w
     const me = this
 

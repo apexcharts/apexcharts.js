@@ -308,21 +308,23 @@ class Range {
       gl.initialminX = 1
     }
 
-    this.checkComboCharts()
-
-    // for bars in numeric xaxis, we need to adjust some padding left and right
-    if ((gl.comboCharts || cnf.chart.type === 'bar') && (cnf.xaxis.type === 'datetime' || gl.dataXY)) {
-      const minX = gl.minX - (gl.svgWidth / (gl.dataPoints)) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)
-      gl.minX = minX
-      gl.initialminX = minX
-      const maxX = gl.maxX + (gl.svgWidth / (gl.dataPoints)) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)
-      gl.maxX = maxX
-      gl.initialmaxX = maxX
+    // for numeric/datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
+    // If user willingly disables this option, then skip
+    if (cnf.grid.padding.left !== 0 && cnf.grid.padding.right !== 0) {
+      if (cnf.xaxis.type === 'datetime' || gl.dataXY) {
+        const minX = gl.minX - (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3
+        gl.minX = minX
+        gl.initialminX = minX
+        const maxX = gl.maxX + (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3
+        gl.maxX = maxX
+        gl.initialmaxX = maxX
+      }
     }
+    // this.checkComboCharts()
 
     let niceXRange = new Range(this.ctx)
     if (gl.dataXY || gl.noLabelsProvided) {
-      let ticks = 8
+      let ticks
 
       if (cnf.xaxis.tickAmount === undefined) {
         ticks = Math.round(gl.svgWidth / 150)

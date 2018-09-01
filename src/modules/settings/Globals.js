@@ -66,6 +66,7 @@ export default class Globals {
       initialminX: Number.MAX_VALUE,
       minZ: Number.MAX_VALUE, // Max Z value in charts with Z axis
       maxZ: -Number.MAX_VALUE, // Max Z value in charts with Z axis
+      mousedown: false,
       lastClientPosition: {}, // don't reset this variable this the chart is destroyed. It is used to detect right or left mousemove in panning
       visibleXRange: undefined,
       yRange: [], // this property is the absolute sum of positive and negative values [eg (-100 + 200 = 300)] - yAxis

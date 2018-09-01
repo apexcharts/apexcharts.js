@@ -151,6 +151,33 @@ class Toolbar {
     }
   }
 
+  getToolbarIconsReference () {
+    const w = this.w
+    if (!this.elZoom) {
+      this.elZoom = w.globals.dom.baseEl.querySelector('.apexcharts-zoom-icon')
+    }
+    if (!this.elPan) {
+      this.elPan = w.globals.dom.baseEl.querySelector('.apexcharts-pan-icon')
+    }
+    if (!this.elSelection) {
+      this.elSelection = w.globals.dom.baseEl.querySelector('.apexcharts-selection-icon')
+    }
+  }
+
+  enableZooming () {
+    this.toggleOtherControls()
+    this.w.globals.zoomEnabled = true
+    this.elZoom.classList.add('selected')
+    this.elPan.classList.remove('selected')
+  }
+
+  enablePanning () {
+    this.toggleOtherControls()
+    this.w.globals.panEnabled = true
+    this.elPan.classList.add('selected')
+    this.elZoom.classList.remove('selected')
+  }
+
   togglePanning () {
     this.toggleOtherControls()
     this.w.globals.panEnabled = !this.w.globals.panEnabled
@@ -168,6 +195,8 @@ class Toolbar {
     w.globals.zoomEnabled = false
     w.globals.selectionEnabled = false
 
+    this.getToolbarIconsReference()
+
     this.elPan.classList.remove('selected')
     this.elSelection.classList.remove('selected')
     this.elZoom.classList.remove('selected')
@@ -180,14 +209,14 @@ class Toolbar {
     const newMinX = (w.globals.minX + centerX) / 2
     const newMaxX = (w.globals.maxX + centerX) / 2
 
-    this.ctx.updateOptions({
+    this.ctx.updateOptionsInternal({
       xaxis: {
         min: newMinX,
         max: newMaxX
       }
     },
     false,
-    w.globals.initialConfig.chart.animations.dynamicAnimation.enabled
+    true
     )
   }
 
@@ -203,14 +232,14 @@ class Toolbar {
     const newMinX = w.globals.minX - (centerX - w.globals.minX)
     const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
 
-    this.ctx.updateOptions({
+    this.ctx.updateOptionsInternal({
       xaxis: {
         min: newMinX,
         max: newMaxX
       }
     },
     false,
-    w.globals.initialConfig.chart.animations.dynamicAnimation.enabled
+    true
     )
   }
 
@@ -238,7 +267,7 @@ class Toolbar {
     xaxis.min = undefined
     xaxis.max = undefined
 
-    me.ctx.updateOptions(w.globals.initialConfig, false, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled)
+    me.ctx.updateOptionsInternal(w.globals.initialConfig, false, true)
   }
 }
 

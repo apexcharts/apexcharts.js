@@ -82,6 +82,7 @@ class ApexCharts {
 
           this.fireEvent('mounted', [this, this.w])
         }).catch((e) => {
+          reject(e)
           // handle error in case no data or element not found
         })
         window.addEventListener('resize', this.windowResizeHandler)
@@ -130,7 +131,7 @@ class ApexCharts {
 
     if (ser.length === 0) {
       const series = new Series(this.ctx)
-      series.handleNoData({appendToRoot: true})
+      series.handleNoData()
       return null
     }
 
@@ -209,8 +210,11 @@ class ApexCharts {
 
     return new Promise(function (resolve, reject) {
       // no data to display
-      if (me.el === null || graphData === null) {
+      if (me.el === null) {
         return reject(new Error('Not enough data to display or element not found'))
+      } else if (graphData === null) {
+        series.handleNoData()
+        return null
       }
 
       me.core.drawAxis(
@@ -447,8 +451,8 @@ class ApexCharts {
         me.w.globals.isDirty = true
 
         resolve(me)
-      }).catch(() => {
-        //
+      }).catch((e) => {
+        reject(e)
       })
     })
   }

@@ -13,10 +13,8 @@
 
 <p align="center">A modern JavaScript charting library to build interactive charts and visualizations with simple API.</p>
 
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
-## Why another Chart Library?
-It's a long read, so I have written a detailed explanation on this <a href="https://medium.com/@juned.chhipa/bridging-the-gap-between-low-level-and-high-level-charting-libraries-a8f6c1819ba5" target="_blank">medium post</a>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
 
 ## Download and Installation

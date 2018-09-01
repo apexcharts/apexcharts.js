@@ -1,7 +1,7 @@
 {
   "name": "apexcharts",
   "description": "A JavaScript Chart Library",
-  "version": "1.3.12",
+  "version": "1.3.20",
   "main": "dist/apexcharts.min.js",
   "directories": {
     "test": "tests"
@@ -18,7 +18,7 @@
     "svg.draggable.js": "^2.2.1",
     "svg.easing.js": "^2.0.0",
     "svg.filter.js": "^2.0.2",
-    "svg.js": "^2.6.5",
+    "svg.js": "^2.6.6",
     "svg.pathmorphing.js": "^0.1.3",
     "svg.resize.js": "^1.4.1",
     "svg.select.js": "^2.1.2"
@@ -47,7 +47,7 @@
     "eslint-plugin-standard": "^3.0.1",
     "imports-loader": "^0.7.1",
     "jest": "^23.5.0",
-    "jest-puppeteer": "^3.2.1",
+    "jest-puppeteer": "^3.3.1",
     "puppeteer": "^1.7.0",
     "puppeteer-core": "^1.7.0",
     "style-loader": "^0.20.2",

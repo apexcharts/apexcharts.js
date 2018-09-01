@@ -16,7 +16,7 @@ class DataLabels {
 
   // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
   // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
-  dataLabelsCorrection (x, y, val, i, realIndexP, fontSize, pointSize) {
+  dataLabelsCorrection (x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize, pointSize) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
     let drawnextLabel = false //
@@ -46,7 +46,8 @@ class DataLabels {
         drawnextLabel = true
       }
     }
-    if (realIndexP === 0) {
+
+    if (realIndexP === 0 || alwaysDrawDataLabel) {
       drawnextLabel = true
     }
 
@@ -98,7 +99,7 @@ class DataLabels {
               let centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, realIndexP)
               y = centerTextInBubbleCoords.y
             } else {
-              if (val) {
+              if (typeof val !== 'undefined') {
                 text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals })
               }
             }
@@ -111,7 +112,7 @@ class DataLabels {
     return elDataLabelsWrap
   }
 
-  plotDataLabelsText (x, y, text, i, j, elToAppendTo, dataLabelsConfig) {
+  plotDataLabelsText (x, y, text, i, j, elToAppendTo, dataLabelsConfig, alwaysDrawDataLabel = false) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
@@ -121,6 +122,7 @@ class DataLabels {
       text,
       i,
       j,
+      alwaysDrawDataLabel,
       parseInt(dataLabelsConfig.style.fontSize),
       w.config.markers.size <= w.config.markers.hover.size ? w.config.markers.hover.size : w.config.markers.size
     )

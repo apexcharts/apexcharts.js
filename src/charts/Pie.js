@@ -190,7 +190,9 @@ class Pie {
       })
 
       elPath.attr({
-        id: 'apexcharts-pieSlice-' + i
+        id: 'apexcharts-pieSlice-' + i,
+        index: 0,
+        j: i
       })
 
       if (w.config.chart.dropShadow.enabled) {
@@ -206,6 +208,15 @@ class Pie {
       elPath.node.addEventListener(
         'mouseleave',
         graphics.pathMouseLeave.bind(this, elPath)
+      )
+
+      elPath.node.addEventListener(
+        'mousedown',
+        graphics.pathMouseDown.bind(this, elPath)
+      )
+      elPath.node.addEventListener(
+        'touchStart',
+        graphics.pathMouseDown.bind(this, elPath)
       )
 
       Graphics.setAttrs(elPath.node, {
@@ -399,12 +410,6 @@ class Pie {
 
         el.node.setAttribute('data:pathOrig', path)
 
-        if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
-          el.attr({
-            'stroke-width': 0
-          })
-        }
-
         el.attr({
           d: path
         })
@@ -436,7 +441,6 @@ class Pie {
     let pathFrom = elPath.attr('d')
 
     if (elPath.attr('data:pieClicked') === 'true') {
-      size = me.size
       elPath.attr({
         'data:pieClicked': 'false'
       })
@@ -466,6 +470,8 @@ class Pie {
       angle,
       size
     })
+
+    if (angle === 360) return
 
     elPath.plot(path).animate(1).plot(pathFrom).animate(100).plot(path)
   }

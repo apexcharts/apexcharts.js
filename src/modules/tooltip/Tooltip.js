@@ -174,11 +174,11 @@ class Tooltip {
 
     let hoverArea = w.globals.dom.Paper.node
 
-    let elGrid = w.globals.dom.baseEl.querySelector(
+    this.elGrid = w.globals.dom.baseEl.querySelector(
       '.apexcharts-grid'
     )
-    if (elGrid) {
-      this.seriesBound = elGrid.getBoundingClientRect()
+    if (this.elGrid) {
+      this.seriesBound = this.elGrid.getBoundingClientRect()
     }
 
     let tooltipY = []
@@ -186,7 +186,7 @@ class Tooltip {
 
     let seriesHoverParams = {
       hoverArea,
-      elGrid,
+      elGrid: this.elGrid,
       tooltip: this.tooltip,
       tooltipY,
       tooltipX,
@@ -460,19 +460,6 @@ class Tooltip {
             self.create(self, 0, j, opt.ttItems)
           }
         }
-
-        x = parseInt(opt.tooltipX[j]) - tooltipRect.ttWidth / 2
-
-        if (w.globals.dataXY && capturedSeries !== null) {
-          x =
-            (w.globals.seriesX[capturedSeries][j] - w.globals.minX) /
-            self.xyRatios.xRatio
-        }
-        if (w.config.tooltip.followCursor) {
-          y = clientY - this.seriesBound.top - tooltipRect.ttHeight / 2
-        } else {
-          y = parseInt(opt.tooltipY[j]) - tooltipRect.ttHeight
-        }
       } else {
         if (w.config.chart.type === 'heatmap') {
           let markerXY = this.intersect.handleHeatTooltip({
@@ -500,14 +487,12 @@ class Tooltip {
 
           if (hasMarkers) {
             // intersect - line/area/scatter/bubble
-            let markerXY = this.intersect.handleMarkerTooltip({
+            this.intersect.handleMarkerTooltip({
               e,
               opt,
               x,
               y
             })
-            x = markerXY.x
-            y = markerXY.y
           }
         }
       }

@@ -11,6 +11,10 @@
   cursor: pointer;
 }
 
+.apexcharts-legend-series.no-click {
+  cursor: auto;
+}
+
 .apexcharts-series-collapsed {
   opacity: 0;
 }

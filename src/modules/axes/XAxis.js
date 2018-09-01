@@ -118,6 +118,8 @@ class XAxis {
           label = w.globals.timelineLabels[i].value
         }
 
+        if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0) label = ''
+
         let offsetYCorrection = 28
         if (w.globals.rotateXLabels) {
           offsetYCorrection = 22
@@ -397,6 +399,17 @@ class XAxis {
         if (w.config.xaxis.labels.trim && (w.config.chart.type !== 'bar' && w.config.plotOptions.bar.horizontal)) {
           graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, width)
         }
+      }
+    }
+
+    if (xAxisTexts.length > 0) {
+      let firstLabelPos = xAxisTexts[0].getBBox()
+      let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
+      if (firstLabelPos.x < -25) {
+        xAxisTexts[0].remove()
+      }
+      if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
+        xAxisTexts[xAxisTexts.length - 1].remove()
       }
     }
 

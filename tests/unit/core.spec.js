@@ -1,25 +1,15 @@
-import ApexCharts from '../../dist/apexcharts.min.js'
 import Core from '../../src/modules/Core.js'
 import seriesxy from './data/seriesxy.js'
+import { createChart } from './utils/utils.js'
 
 describe("Parse Data", () => {
 
-  function createChart(type, series) {
-    document.body.innerHTML = '<div id="chart" />';
-    
-    const chart = new ApexCharts(document.querySelector("#chart"), {
-      chart: {
-        type
-      },
-      series
-    })
-
-    return chart
-  }
-
-
   it("should parse data for cartesian charts", () => {
     const chart = createChart('line', seriesxy)
+    chart.w.globals.series = []
+    chart.w.globals.seriesX = []
+    chart.w.globals.labels = []
+
     const core = new Core(document.querySelector("#chart"), chart)
     const w = core.parseDataAxisCharts(seriesxy, seriesxy, chart)
 
@@ -31,6 +21,9 @@ describe("Parse Data", () => {
   it("should parse data for non-cartesian charts", () => {
     const series = [30, 23, 12, 43];
     const chart = createChart('donut', series)
+    
+    chart.w.globals.series = []
+    chart.w.globals.seriesNames = []
 
     const core = new Core(document.querySelector("#chart"), chart)
     const w = core.parseDataNonAxisCharts(series)

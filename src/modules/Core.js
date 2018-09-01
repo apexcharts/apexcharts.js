@@ -717,12 +717,12 @@ class Core {
       // non-plot chart types - pie / donut / circle
       return this.w.config.series.reduce((acc, cur) => {
         return acc + cur
-      })
+      }, 0)
     } else {
       // axis charts - supporting multiple series
       return this.w.config.series[index].data.reduce((acc, cur) => {
         return acc + cur
-      })
+      }, 0)
     }
   }
 
@@ -806,7 +806,7 @@ class Core {
       } else {
         const total = w.globals.seriesTotals.reduce((acc, val) => {
           return acc + val
-        })
+        }, 0)
         let percent = (100 * ser) / total
         seriesPercent.push(percent)
       }
@@ -831,9 +831,10 @@ class Core {
 
       xyRatios = this.getCalculatedRatios()
 
-      if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined) {
+      if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined && isFinite(w.globals.minX) && isFinite(w.globals.maxX)) {
         let ts = new TimeScale(this.ctx)
-        ts.calculateTimeScaleTicks()
+        const formattedTimeScale = ts.calculateTimeScaleTicks(w.globals.minX, w.globals.maxX)
+        ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
     }
     return xyRatios

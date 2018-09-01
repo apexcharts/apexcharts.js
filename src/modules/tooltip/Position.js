@@ -181,7 +181,8 @@ class Position {
     }
 
     if (w.config.tooltip.followCursor) {
-      y = ttCtx.e.clientY - ttCtx.seriesBound.top - tooltipRect.ttHeight / 2
+      const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+      y = ttCtx.e.clientY - seriesBound.top - tooltipRect.ttHeight / 2
     }
 
     if (tooltipRect.ttHeight + y > w.globals.gridHeight) {
@@ -331,10 +332,7 @@ class Position {
     }
 
     // tooltip will move vertically along with mouse as it is a shared tooltip
-    let elGrid = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-grid'
-    )
-    let seriesBound = elGrid.getBoundingClientRect()
+    let seriesBound = ttCtx.elGrid.getBoundingClientRect()
 
     bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
 

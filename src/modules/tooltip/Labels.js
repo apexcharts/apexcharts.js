@@ -24,7 +24,7 @@ class Labels {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
-      this.handleCustomTooltip()
+      this.handleCustomTooltip({i, j})
       return
     }
 

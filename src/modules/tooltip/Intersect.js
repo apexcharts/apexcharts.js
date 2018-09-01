@@ -38,10 +38,7 @@ class Intersect {
       y = cy + (ttCtx.tooltipRect.ttHeight / 2) - height / 2
 
       if (ttCtx.w.config.tooltip.followCursor) {
-        let elGrid = ttCtx.w.globals.dom.baseEl.querySelector(
-          '.apexcharts-grid'
-        )
-        const seriesBound = elGrid.getBoundingClientRect()
+        const seriesBound = ttCtx.elGrid.getBoundingClientRect()
         y = ttCtx.e.clientY - seriesBound.top
       }
     }
@@ -92,7 +89,8 @@ class Intersect {
       y = cy - ttCtx.tooltipRect.ttHeight * 1.4
 
       if (ttCtx.w.config.tooltip.followCursor) {
-        y = ttCtx.e.clientY - ttCtx.seriesBound.top
+        const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+        y = ttCtx.e.clientY - seriesBound.top
       }
 
       if (val < 0) {
@@ -151,7 +149,8 @@ class Intersect {
     }
 
     if (ttCtx.w.config.tooltip.followCursor) {
-      y = ttCtx.e.clientY - ttCtx.seriesBound.top
+      const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+      y = ttCtx.e.clientY - seriesBound.top
     }
 
     // if tooltip is still null, querySelector
