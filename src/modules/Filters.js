@@ -162,7 +162,7 @@ class Filters {
 
     el.filter(function (add) {
       let shadowBlur = null
-      if (Utils.isSafari() || Utils.isFirefox()) {
+      if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
         // safari/firefox has some alternative way to use this filter
         shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur)
       } else {

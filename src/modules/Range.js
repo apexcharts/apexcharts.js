@@ -147,7 +147,7 @@ class Range {
       for (let i = startingIndex; i < len; i++) {
         gl.dataPoints = Math.max(gl.dataPoints, gl.series[i].length)
         if (Utils.isIE()) {
-          minY = Math.min(...gl.series[i])
+          minY = Math.min(...gl.series[i], 0)
         }
 
         for (let j = 0; j < gl.series[i].length; j++) {
