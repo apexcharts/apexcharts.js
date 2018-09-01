@@ -61,7 +61,7 @@ class Intersect {
       let val = parseFloat(opt.paths.getAttribute('val'))
 
       j = parseInt(opt.paths.getAttribute('rel'))
-      i = parseInt(opt.paths.parentNode.getAttribute('rel')) - 1
+      i = parseInt(opt.paths.parentNode.parentNode.parentNode.getAttribute('rel')) - 1
 
       if (ttCtx.intersect) {
         const el =
