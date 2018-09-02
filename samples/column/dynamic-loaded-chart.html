@@ -208,10 +208,10 @@
           colors.push(yearSeries.data[selectedIndex].color)
         }
         return ApexCharts.exec(destChartIDToUpdate, 'updateOptions', {
-          series,
-          colors,
+          series: series,
+          colors: colors,
           fill: {
-            colors
+            colors: colors
           }
         })
 
@@ -234,7 +234,9 @@
           horizontal: false
         }
       },
-      series: [],
+      series: [{
+        data: []
+      }],
       legend: {
         show: false
       },
@@ -285,14 +287,6 @@
       var quarterChartEl = document.querySelector("#chart-quarter");
       var yearChartEl = document.querySelector("#chart-year");
 
-      var dataPointHandler = function (event) {
-        if (event.propertyName === 'transform') {
-          updateQuarterChart(chart, 'barQuarter')
-          quarterChartEl.removeEventListener("transitionend", dataPointHandler);
-        }
-
-      }
-
       if (opts.selectedDataPoints[0].length === 1) {
         if(quarterChartEl.classList.contains("active")) {
           updateQuarterChart(chart, 'barQuarter')
@@ -300,7 +294,7 @@
         else {
           yearChartEl.classList.add("chart-quarter-activated")
           quarterChartEl.classList.add("active");
-          quarterChartEl.addEventListener("transitionend", dataPointHandler);
+          updateQuarterChart(chart, 'barQuarter')
         }
       } else {
         updateQuarterChart(chart, 'barQuarter')

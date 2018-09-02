@@ -63,9 +63,8 @@
     var options = {
       annotations: {
         yaxis: [{
-          value: 30,
+          y: 30,
           borderColor: '#999',
-          yAxisIndex: 0,
           label: {
             show: true,
             text: 'Support',
@@ -76,7 +75,7 @@
           }
         }],
         xaxis: [{
-          value: new Date('14 Nov 2012').getTime(),
+          x: new Date('14 Nov 2012').getTime(),
           borderColor: '#999',
           yAxisIndex: 0,
           label: {
@@ -113,7 +112,8 @@
         min: new Date('01 Mar 2012').getTime()
       },
       yaxis: {
-        // min: 24,
+        min: 24,
+        max: 89,
       },
       tooltip: {
         key: {

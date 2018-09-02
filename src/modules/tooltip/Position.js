@@ -326,7 +326,7 @@ class Position {
       bcx = bcx - bw / 2
     } else {
       bcx = ttCtx.xAxisTicksPositions[j - 1] + (ttCtx.dataPointsDividedWidth / 2)
-      if (Number.isNaN(bcx)) {
+      if (isNaN(bcx)) {
         bcx = ttCtx.xAxisTicksPositions[j] - (ttCtx.dataPointsDividedWidth / 2)
       }
     }

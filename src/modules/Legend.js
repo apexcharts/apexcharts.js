@@ -339,12 +339,19 @@ class Legend {
       '.apexcharts-legend'
     )
 
+    const legendRect = elLegendWrap.getBBox()
+    const legendTopPlusHeight = legendRect.y + legendRect.height
+
     let x = w.config.legend.containerMargin.left - w.config.legend.containerMargin.right
-    let y = w.config.legend.containerMargin.top - w.config.legend.markers.size - 2
+    let y = w.config.legend.containerMargin.top - w.config.legend.markers.size - 3
 
     if (w.config.legend.position === 'bottom') {
       if (w.globals.dataXY && w.config.chart.scroller.enabled) {
         y = y - w.config.chart.scroller.height + 1
+      }
+
+      if (legendTopPlusHeight - 10 > w.globals.svgHeight) {
+        y = y - (w.globals.svgHeight - legendRect.y + legendRect.height) / 8
       }
     }
 

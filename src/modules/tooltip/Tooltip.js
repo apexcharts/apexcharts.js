@@ -274,11 +274,11 @@ class Tooltip {
     let x = w.config.tooltip.fixed.offsetX
     let y = w.config.tooltip.fixed.offsetY
 
-    if (w.config.tooltip.fixed.position.toLowerCase().includes('right')) {
+    if (w.config.tooltip.fixed.position.toLowerCase().indexOf('right') > -1) {
       x = x + w.globals.svgWidth - 10
     }
 
-    if (w.config.tooltip.fixed.position.toLowerCase().includes('bottom')) {
+    if (w.config.tooltip.fixed.position.toLowerCase().indexOf('bottom') > -1) {
       y = y + w.globals.svgWidth - ttHeight - 10
     }
 

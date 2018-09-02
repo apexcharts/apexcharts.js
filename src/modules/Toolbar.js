@@ -261,11 +261,11 @@ class Toolbar {
     if (w.globals.minX === w.globals.initialminX && w.globals.maxX === w.globals.initialmaxX) return
 
     w.config.yaxis.map((yaxe, index) => {
-      yaxis[index].min = undefined
-      yaxis[index].max = undefined
+      yaxis[index].min = w.globals.initialConfig.yaxis[index].min
+      yaxis[index].max = w.globals.initialConfig.yaxis[index].max
     })
-    xaxis.min = undefined
-    xaxis.max = undefined
+    xaxis.min = w.globals.initialConfig.xaxis.min
+    xaxis.max = w.globals.initialConfig.xaxis.max
 
     me.ctx.updateOptionsInternal(w.globals.initialConfig, false, true)
   }
