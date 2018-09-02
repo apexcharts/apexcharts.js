@@ -205,6 +205,15 @@ export default class Series {
       }
     }
 
+    let candlestickPaths = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-candlestick-series .apexcharts-series'
+    )
+    if (candlestickPaths.length > 0) {
+      for (let p = 0; p < candlestickPaths.length; p++) {
+        pushPaths(candlestickPaths, p, 'candlestick')
+      }
+    }
+
     let bubblepaths = w.globals.dom.baseEl.querySelectorAll(
       '.apexcharts-bubble-series .apexcharts-series'
     )

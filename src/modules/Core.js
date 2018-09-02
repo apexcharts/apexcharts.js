@@ -52,18 +52,19 @@ class Core {
     let ct = cnf.chart.type
     let axisChartsArryTypes = [
       'line',
-      'bar',
       'area',
+      'bar',
+      'candlestick',
       'scatter',
       'bubble',
-      'heatmap',
-      'candlestick'
+      'heatmap'
     ]
 
     let xyChartsArrTypes = [
       'line',
-      'bar',
       'area',
+      'bar',
+      'candlestick',
       'scatter',
       'bubble'
     ]

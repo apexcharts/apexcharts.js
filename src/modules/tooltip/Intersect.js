@@ -104,19 +104,19 @@ class Intersect {
     }
   }
 
-  handleBarTooltip ({ e, opt, x, y }) {
+  handleBarTooltip ({ e, opt }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
     let bx = 0
     let j = 0
+    let x = 0
+    let y = 0
 
     if (ttCtx.isBarHorizontal || !w.config.tooltip.shared) {
       let barXY = this.getBarTooltipXY({
         e,
-        opt,
-        x,
-        y
+        opt
       })
       x = barXY.x
       y = barXY.y
@@ -132,14 +132,6 @@ class Intersect {
     if (isNaN(y)) {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
     }
-
-    // y exceeds gridHeight
-    // if (ttCtx.tooltipRect.ttHeight + y - 20 > w.globals.gridHeight) {
-    //   y = w.globals.gridHeight - ttCtx.tooltipRect.ttHeight / 2
-    // } else if (y < 0) {
-    //   // y less than 0, touch the top of grid
-    //   y = 0
-    // }
 
     // x exceeds gridWidth
     if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
@@ -171,12 +163,16 @@ class Intersect {
     }
   }
 
-  getBarTooltipXY ({ e, opt, x, y }) {
+  getBarTooltipXY ({ e, opt }) {
     let w = this.w
     let j = null
     const ttCtx = this.ttCtx
+    let x = 0
+    let y = 0
 
-    if (e.target.classList.contains('apexcharts-bar-area')) {
+    const cl = e.target.classList
+
+    if (cl.contains('apexcharts-bar-area') || cl.contains('apexcharts-candlestick-area')) {
       let bar = e.target
       let barRect = bar.getBoundingClientRect()
 

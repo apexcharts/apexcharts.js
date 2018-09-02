@@ -16,25 +16,12 @@ class CandleStick extends Bar {
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
 
-    this.series = series
-    this.totalItems = 0
-    this.seriesLen = 0
-    this.visibleI = -1
+    this.candlestickOptions = this.w.config.plotOptions.candlestick
 
-    for (let sl = 0; sl < series.length; sl++) {
-      if (series[sl].length > 0) {
-        this.seriesLen = this.seriesLen + 1
-        this.totalItems += series[sl].length
-      }
-    }
-
-    if (this.seriesLen === 0) {
-      // A small adjustment when combo charts are used
-      this.seriesLen = 1
-    }
+    this.initVariables(series)
 
     let ret = graphics.group({
-      class: 'apexcharts-bar-series apexcharts-plot-series'
+      class: 'apexcharts-candlestick-series apexcharts-plot-series'
     })
 
     ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
@@ -43,9 +30,7 @@ class CandleStick extends Bar {
       let pathTo, pathFrom
       let x, y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
-        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
-        zeroH, // zeroH is the baseline where 0 meets y axis
-        zeroW // zeroW is the baseline where 0 meets x axis
+        zeroH // zeroH is the baseline where 0 meets y axis
 
       let yArrj = [] // hold y values of current iterating series
       let xArrj = [] // hold x values of current iterating series
@@ -75,17 +60,13 @@ class CandleStick extends Bar {
 
       y = initPositions.y
       barHeight = initPositions.barHeight
-      yDivision = initPositions.yDivision
-      zeroW = initPositions.zeroW
 
       x = initPositions.x
       barWidth = initPositions.barWidth
       xDivision = initPositions.xDivision
       zeroH = initPositions.zeroH
 
-      if (!this.horizontal) {
-        xArrj.push(x + barWidth / 2)
-      }
+      xArrj.push(x + barWidth / 2)
 
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
@@ -106,34 +87,18 @@ class CandleStick extends Bar {
           }
         }
 
-        let paths = null
-        if (this.isHorizontal) {
-          paths = this.drawBarPaths({
-            indexes: { i, j, realIndex, bc },
-            barHeight,
-            strokeWidth,
-            pathTo,
-            pathFrom,
-            zeroW,
-            x,
-            y,
-            yDivision,
-            elSeries
-          })
-        } else {
-          paths = this.drawColumnPaths({
-            indexes: { i, j, realIndex, bc },
-            x,
-            y,
-            xDivision,
-            pathTo,
-            pathFrom,
-            barWidth,
-            zeroH,
-            strokeWidth,
-            elSeries
-          })
-        }
+        let paths = this.drawCandleStickPaths({
+          indexes: { i, j, realIndex, bc },
+          x,
+          y,
+          xDivision,
+          pathTo,
+          pathFrom,
+          barWidth,
+          zeroH,
+          strokeWidth,
+          elSeries
+        })
 
         pathTo = paths.pathTo
         pathFrom = paths.pathFrom
@@ -147,23 +112,10 @@ class CandleStick extends Bar {
 
         yArrj.push(y)
 
-        let seriesNumber = this.barOptions.distributed ? j : i
-
         let fillColor = null
 
-        if (this.barOptions.colors.ranges.length > 0) {
-          const colorRange = this.barOptions.colors.ranges
-          colorRange.map((range) => {
-            if (series[i][j] >= range.from && series[i][j] <= range.to) {
-              fillColor = range.color
-            }
-          })
-        }
-
         let pathFill = fill.fillPath(elSeries, {
-          seriesNumber: this.barOptions.distributed
-            ? seriesNumber
-            : realIndex,
+          seriesNumber: realIndex,
           color: fillColor
         })
 
@@ -191,8 +143,8 @@ class CandleStick extends Bar {
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
           dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-          className: 'apexcharts-bar-area',
-          id: 'apexcharts-bar-area'
+          className: 'apexcharts-candlestick-area',
+          id: 'apexcharts-candlestick-area'
         })
 
         this.setSelectedBarFilter(renderedPath, realIndex, j)
@@ -231,133 +183,87 @@ class CandleStick extends Bar {
     elSeries
   }) {
     let w = this.w
+    let graphics = new Graphics(this.ctx)
+
     let i = indexes.i
     let j = indexes.j
+
     let realIndex = indexes.realIndex
     let bc = indexes.bc
 
     if (w.globals.dataXY) {
-      let seriesVal = w.globals.seriesX[i][j]
-      if (!seriesVal) seriesVal = 0
-      x = ((seriesVal - w.globals.minX) / this.xRatio) - barWidth / 2
+      x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
     }
 
-    let barXPosition = x
-    let barYPosition
+    let barXPosition = x + barWidth * this.visibleI
 
-    let prevBarH = 0
-    for (let k = 0; k < this.prevYF.length; k++) {
-      prevBarH = prevBarH + this.prevYF[k][j]
+    pathTo = graphics.move(barXPosition, zeroH)
+
+    pathFrom = graphics.move(barXPosition, zeroH)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPathFrom(realIndex, j, true)
     }
 
-    if (i > 0) {
-      let bYP = w.globals.gridHeight - zeroH
-      let prevYValue = this.prevY[i - 1][j]
-
-      if (this.prevYVal[i - 1][j] < 0) {
-        if (this.series[i][j] >= 0) {
-          bYP = prevYValue - prevBarH
-        } else {
-          bYP = prevYValue
-        }
-      } else {
-        if (this.series[i][j] >= 0) {
-          bYP = prevYValue
-        } else {
-          bYP = prevYValue + prevBarH
-        }
-      }
-
-      barYPosition = bYP
+    if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
+      y = zeroH
     } else {
-      // the first series will not have prevY values
-      barYPosition = w.globals.gridHeight - zeroH
-    }
-
-    if (this.series[i][j] === null) {
-      y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex]
-    } else {
-      y = (barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex])
+      y = (zeroH - this.series[i][j] / this.yRatio[this.yaxisIndex])
     }
 
     let endingShapeOpts = {
       barWidth,
       strokeWidth,
-      yRatio: this.yRatio[this.yaxisIndex],
       barXPosition,
-      y
+      y,
+      zeroH
     }
-    let endingShape = this.bar.barEndingShape(
-      w,
-      endingShapeOpts,
-      this.series,
-      i,
-      j
-    )
-
-    if (this.series.length > 1 && i !== this.endingShapeOnSeriesNumber) {
-      /* if(this.zeroSerieses) {} */
-      // revert back to flat shape if not last series
-      endingShape.path = this.graphics.line(
-        barXPosition + barWidth - strokeWidth,
-        endingShape.newY
-      )
-    }
-
-    this.yArrj.push(endingShape.newY)
-    this.yArrjF.push(Math.abs(barYPosition - endingShape.newY))
-    this.yArrjVal.push(this.series[i][j])
-
-    pathTo = this.graphics.move(barXPosition, barYPosition)
-    pathFrom = this.graphics.move(barXPosition, barYPosition)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.bar.getPathFrom(realIndex, j, false)
-    }
+    let endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j)
 
     pathTo =
       pathTo +
-      this.graphics.line(barXPosition, endingShape.newY) +
+      graphics.line(barXPosition, endingShape.newY) +
       endingShape.path +
-      this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition, barYPosition)
+      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
+      graphics.line(barXPosition, zeroH)
     pathFrom =
       pathFrom +
-      this.graphics.line(barXPosition, barYPosition) +
-      this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition, barYPosition)
+      graphics.line(barXPosition, zeroH) +
+      endingShape.ending_p_from +
+      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
+      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
+      graphics.line(barXPosition, zeroH)
+
+    if (!w.globals.dataXY) {
+      x = x + xDivision
+    }
 
     if (
-      w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 &&
+      this.barOptions.colors.backgroundBarColors.length > 0 &&
       i === 0
     ) {
-      if (
-        bc >= w.config.plotOptions.bar.colors.backgroundBarColors.length
-      ) {
+      if (bc >= this.barOptions.colors.backgroundBarColors.length) {
         bc = 0
       }
-      let bcolor = w.config.plotOptions.bar.colors.backgroundBarColors[bc]
-      let rect = this.graphics.drawRect(
-        barXPosition,
+      let bcolor = this.barOptions.colors.backgroundBarColors[bc]
+      let rect = graphics.drawRect(
+        barXPosition - barWidth * this.visibleI,
         0,
-        barWidth,
+        barWidth * this.seriesLen,
         w.globals.gridHeight,
         0,
         bcolor,
-        w.config.plotOptions.bar.colors.backgroundBarOpacity
+        this.barOptions.colors.backgroundBarOpacity
       )
       elSeries.add(rect)
-      rect.classList.add('apexcharts-backgroundBar')
+      rect.node.classList.add('apexcharts-backgroundBar')
     }
-
-    x = x + xDivision
 
     return {
       pathTo,
       pathFrom,
       x,
-      y
+      y,
+      barXPosition
     }
   }
 }

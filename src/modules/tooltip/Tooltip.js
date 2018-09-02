@@ -26,15 +26,17 @@ class Tooltip {
     this.marker = new Marker(this)
     this.intersect = new Intersect(this)
     this.axesTooltip = new AxesTooltip(this)
-    this.showOnIntersect = false
+    this.showOnIntersect = w.config.tooltip.intersect
     this.showTooltipTitle = w.config.tooltip.x.show
     this.fixedTooltip = w.config.tooltip.fixed.enabled
     this.blxaxisTooltip = w.config.xaxis.tooltip.enabled && w.globals.axisCharts
     this.blyaxisTooltip = w.config.yaxis[0].tooltip.enabled && w.globals.axisCharts
     this.xaxisTooltip = null
     this.yaxisTTEls = null
-    this.bars = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bar-series')
+    this.bars = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bar-series,  .apexcharts-candlestick-series')
     this.hasBars = this.bars.length > 0
+    this.markers = w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers')
+    this.hasMarkers = this.markers.length > 0
     this.isBarHorizontal = this.hasBars && w.config.plotOptions.bar.horizontal
     this.isBarShared = this.hasBars && (!w.config.plotOptions.bar.horizontal && w.config.tooltip.shared)
   }
@@ -172,6 +174,8 @@ class Tooltip {
     const w = this.w
     let type = w.config.chart.type
 
+    const barOrCandlestick = !!(type === 'bar' || type === 'candlestick')
+
     let hoverArea = w.globals.dom.Paper.node
 
     this.elGrid = w.globals.dom.baseEl.querySelector(
@@ -205,9 +209,10 @@ class Tooltip {
         points = w.globals.dom.baseEl.querySelectorAll(
           ".apexcharts-series[data\\:longestSeries='true'] .apexcharts-marker"
         )
-      } else if (type === 'bar') {
+      } else if (barOrCandlestick) {
         points = w.globals.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-bar-area'
+          '.apexcharts-series .apexcharts-bar-area',
+          '.apexcharts-series .apexcharts-candlestick-area'
         )
       } else if (type === 'heatmap') {
         points = w.globals.dom.baseEl.querySelectorAll(
@@ -226,9 +231,9 @@ class Tooltip {
     if (
       (w.globals.xyCharts && !this.showOnIntersect) ||
       (w.globals.comboCharts && !this.showOnIntersect) ||
-      (type === 'bar' && !this.isBarHorizontal && w.config.tooltip.shared)) {
+      ((barOrCandlestick) && !this.isBarHorizontal && w.config.tooltip.shared)) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
-    } else if (type === 'bar' && !w.globals.comboCharts) {
+    } else if ((barOrCandlestick) && !w.globals.comboCharts) {
       this.addBarsEventListeners(seriesHoverParams)
     } else if ((type === 'bubble' || type === 'scatter') ||
       (this.showOnIntersect && (type === 'area' || type === 'line'))) {
@@ -304,7 +309,7 @@ class Tooltip {
   addBarsEventListeners (seriesHoverParams) {
     let w = this.w
     let bars = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-area'
+      '.apexcharts-bar-area, .apexcharts-candlestick-area'
     )
 
     this.addPathsEventListeners(bars, seriesHoverParams)
@@ -477,15 +482,11 @@ class Tooltip {
           if (this.hasBars) {
             this.intersect.handleBarTooltip({
               e,
-              opt,
-              x,
-              y
+              opt
             })
           }
 
-          const hasMarkers = w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers').length > 0
-
-          if (hasMarkers) {
+          if (this.hasMarkers) {
             // intersect - line/area/scatter/bubble
             this.intersect.handleMarkerTooltip({
               e,
@@ -614,8 +615,6 @@ class Tooltip {
     let w = this.w
     let self = context
 
-    const hasMarkers = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers').length > 0
-
     if (shared === null) shared = w.config.tooltip.shared
 
     if (shared) {
@@ -626,7 +625,7 @@ class Tooltip {
         shared: this.showOnIntersect ? false : w.config.tooltip.shared
       })
 
-      if (hasMarkers) {
+      if (this.hasMarkers) {
         if (w.config.markers.size > 0) {
           self.marker.enlargePoints(j)
         } else {
@@ -658,7 +657,11 @@ class Tooltip {
         i: capturedSeries,
         j
       })
-      self.tooltipPosition.moveMarkers(capturedSeries, j)
+      if (this.hasMarkers) {
+        self.tooltipPosition.moveMarkers(capturedSeries, j)
+      } else if (this.hasBars) {
+        this.tooltipPosition.moveStickyTooltipOverBars(j)
+      }
     }
   }
 }

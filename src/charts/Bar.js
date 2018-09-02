@@ -43,22 +43,7 @@ class Bar {
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
 
-    this.series = series
-    this.totalItems = 0
-    this.seriesLen = 0
-    this.visibleI = -1
-
-    for (let sl = 0; sl < series.length; sl++) {
-      if (series[sl].length > 0) {
-        this.seriesLen = this.seriesLen + 1
-        this.totalItems += series[sl].length
-      }
-    }
-
-    if (this.seriesLen === 0) {
-      // A small adjustment when combo charts are used
-      this.seriesLen = 1
-    }
+    this.initVariables(series)
 
     let ret = graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series'
@@ -243,6 +228,25 @@ class Bar {
     }
 
     return ret
+  }
+
+  initVariables (series) {
+    this.series = series
+    this.totalItems = 0
+    this.seriesLen = 0
+    this.visibleI = -1
+
+    for (let sl = 0; sl < series.length; sl++) {
+      if (series[sl].length > 0) {
+        this.seriesLen = this.seriesLen + 1
+        this.totalItems += series[sl].length
+      }
+    }
+
+    if (this.seriesLen === 0) {
+      // A small adjustment when combo charts are used
+      this.seriesLen = 1
+    }
   }
 
   initialPositions () {

@@ -49,7 +49,7 @@ class Config {
           chartDefaults = defaults.bar()
           break
         case 'candlestick':
-          chartDefaults = defaults.bar()
+          chartDefaults = defaults.candlestick()
           break
         case 'histogram':
           chartDefaults = defaults.bar()

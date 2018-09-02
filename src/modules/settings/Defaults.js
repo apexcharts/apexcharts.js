@@ -141,6 +141,10 @@ class Defaults {
       dataLabels: {
         enabled: false
       },
+      tooltip: {
+        shared: false,
+        intersect: true
+      },
       xaxis: {
         crosshairs: {
           width: 1

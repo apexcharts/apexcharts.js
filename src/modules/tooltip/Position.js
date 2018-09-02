@@ -32,14 +32,8 @@ class Position {
     }
 
     if (w.config.xaxis.crosshairs.width === 'tickWidth' || w.config.xaxis.crosshairs.width === 'barWidth') {
-      if (ttCtx.isBarShared) {
-        if (x + ttCtx.xcrosshairsWidth > w.globals.gridWidth) {
-          x = w.globals.gridWidth - ttCtx.xcrosshairsWidth
-        }
-      } else {
-        if (x + ttCtx.xcrosshairsWidth > w.globals.gridWidth) {
-          x = w.globals.gridWidth - ttCtx.xcrosshairsWidth
-        }
+      if (x + ttCtx.xcrosshairsWidth > w.globals.gridWidth) {
+        x = w.globals.gridWidth - ttCtx.xcrosshairsWidth
       }
 
       if (x < 0) {
@@ -316,7 +310,7 @@ class Position {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    let jBar = w.globals.dom.baseEl.querySelector(`.apexcharts-bar-series .apexcharts-series[rel='1'] path[j='${j}']`)
+    let jBar = w.globals.dom.baseEl.querySelector(`.apexcharts-bar-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='1'] path[j='${j}']`)
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
     let bcy = 0
