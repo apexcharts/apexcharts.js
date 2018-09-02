@@ -266,6 +266,7 @@ class Pie {
           startAngle,
           prevStartAngle,
           prevEndAngle,
+          animateStartingPos: true,
           i,
           animBeginArr: this.animBeginArr,
           dur: w.config.chart.animations.dynamicAnimation.speed
@@ -385,7 +386,9 @@ class Pie {
         }
       }).during(function (pos) {
         currAngle = fromAngle + (angle - fromAngle) * pos
-        startAngle = (fromStartAngle - currAngle) + (toStartAngle - (fromStartAngle - currAngle)) * pos
+        if (params.animateStartingPos) {
+          startAngle = (fromStartAngle - currAngle) + (toStartAngle - (fromStartAngle - currAngle)) * pos
+        }
 
         path = me.getPiePath({
           me,
