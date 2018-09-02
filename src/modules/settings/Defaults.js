@@ -291,6 +291,7 @@ class Defaults {
         colors: ['#fff']
       },
       fill: {
+        opacity: 1,
         gradient: {
           shade: 'dark',
           shadeIntensity: 0.35,
@@ -330,6 +331,7 @@ class Defaults {
         colors: ['#fff']
       },
       fill: {
+        opacity: 1,
         gradient: {
           shade: 'dark',
           shadeIntensity: 0.4,

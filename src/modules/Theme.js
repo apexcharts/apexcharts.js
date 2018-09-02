@@ -27,8 +27,6 @@ class Theme {
       w.globals.colors = w.config.colors
     }
 
-    const defaultColors = w.globals.colors.slice()
-
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
       let glsCnt = w.globals.series.length
@@ -42,7 +40,7 @@ class Theme {
       let percent = 0
 
       for (let gsl = 0; gsl < glsCnt; gsl++) {
-        let newColor = mainColor
+        let newColor
 
         if (shade === 'dark') {
           newColor = utils.shadeColor(percent * -1, mainColor)
@@ -56,6 +54,7 @@ class Theme {
       }
       w.globals.colors = monoArr.slice()
     }
+    const defaultColors = w.globals.colors.slice()
 
     // if user specfied less colors than no. of series, push the same colors again
     this.pushExtraColors(w.globals.colors)
