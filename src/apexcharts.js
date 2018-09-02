@@ -391,7 +391,14 @@ class ApexCharts {
     const w = this.w
     this.w.config.chart.animations.dynamicAnimation.enabled = animate
     let series = new Series(this.ctx)
+
     w.globals.dataChanged = true
+
+    // while updateing pie/donut series, user completely changed the series length too
+    if (!w.globals.axisCharts && newSeries.length !== w.globals.series.length) {
+      w.globals.dataChanged = false
+      animate = false
+    }
 
     if (animate) {
       series.getPreviousPaths()

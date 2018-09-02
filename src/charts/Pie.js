@@ -260,25 +260,25 @@ class Pie {
         this.animBeginArr.push(0)
       }
 
-      this.animatePaths(elPath, {
-        endAngle,
-        startAngle,
-        i,
-        totalItems: sectorAngleArr.length - 1,
-        animBeginArr: this.animBeginArr,
-        dur
-      })
-
       if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           endAngle,
           startAngle,
           prevStartAngle,
           prevEndAngle,
-          i,
           animateStartingPos: true,
+          i,
           animBeginArr: this.animBeginArr,
           dur: w.config.chart.animations.dynamicAnimation.speed
+        })
+      } else {
+        this.animatePaths(elPath, {
+          endAngle,
+          startAngle,
+          i,
+          totalItems: sectorAngleArr.length - 1,
+          animBeginArr: this.animBeginArr,
+          dur
         })
       }
 
@@ -377,17 +377,6 @@ class Pie {
     let startAngle = toStartAngle
     let fromAngle = (fromStartAngle - toStartAngle)
 
-    if (w.globals.dataChanged) {
-      // to avoid flickering, set prev path first and then we will animate from there
-      path = me.getPiePath({
-        me,
-        startAngle,
-        angle: prevAngle,
-        size
-      })
-      el.attr({ d: path })
-    }
-
     if (opts.dur !== 0) {
       el.animate(opts.dur, w.globals.easing, opts.animBeginArr[opts.i]).afterAll(function () {
         if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
@@ -398,9 +387,9 @@ class Pie {
       }).during(function (pos) {
         currAngle = fromAngle + (angle - fromAngle) * pos
         if (params.animateStartingPos) {
-          startAngle = fromAngle + (toStartAngle - fromAngle) * pos
-          currAngle = fromStartAngle + (angle - fromStartAngle) * pos
+          startAngle = (fromStartAngle - currAngle) + (toStartAngle - (fromStartAngle - currAngle)) * pos
         }
+
         path = me.getPiePath({
           me,
           startAngle,

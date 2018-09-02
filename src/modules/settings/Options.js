@@ -430,7 +430,7 @@ export default class Options {
       fill: {
         type: 'solid',
         colors: undefined, // array of colors,
-        opacity: 0.9,
+        opacity: 0.85,
         gradient: {
           shade: 'dark',
           type: 'horizontal',
