@@ -363,6 +363,12 @@ class Legend {
       y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0)
     }
 
+    if (w.config.legend.position === 'right' || w.config.legend.position === 'left') {
+      if (y < w.config.legend.markers.size) y = w.config.legend.markers.size
+    }
+
+    console.log(y)
+
     elLegendWrap.setAttribute('transform', `translate(${x}, ${y})`)
   }
 

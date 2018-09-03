@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Simple Pie</title>
+
+    
+    <link href="../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 480px;
+            margin: 35px auto;
+        }
+        .actions {
+            margin-top: 130px;
+            text-align: center;
+        }
+        button {
+            color: #fff;
+            background: #6CBCFF;
+            border: 0;
+            padding: 10px 20px;
+            margin: 5px;
+            font-weight: bold;
+            font-size: 13px;
+            box-shadow: 1px 1px 2px 1px #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+    <div class="actions">
+        <button id="randomize">RANDOMIZE</button>
+        <button id="add">ADD</button>
+        <button id="remove">REMOVE</button>
+        <button id="reset">RESET</button>
+    </div>
+    
+    <script src="../../dist/apexcharts.min.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                width: 380,
+                type: 'donut',
+            },
+            dataLabels: {
+                enabled: false
+            },
+            series: [44, 55, 13, 33],
+
+        }
+
+        var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+
+        chart.render();
+
+        function appendData() {
+            var arr = chart.w.globals.series.map(() => {
+                return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+            })
+            arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
+            return arr;
+        }
+
+        function removeData() {
+            var arr = chart.w.globals.series.map(() => {
+                return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+            })
+            arr.pop()
+            return arr;
+        }
+
+        function randomize() {
+            return chart.w.globals.series.map(() => {
+                return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+            })
+        }
+
+        function reset() {
+            return options.series
+        }
+
+        document.querySelector("#randomize").addEventListener("click", function() {
+            chart.updateSeries(randomize())
+        })
+
+        document.querySelector("#add").addEventListener("click", function() {
+            console.log(appendData())
+            chart.updateSeries(appendData())
+        })
+
+        document.querySelector("#remove").addEventListener("click", function() {
+            chart.updateSeries(removeData())
+        })
+
+        document.querySelector("#reset").addEventListener("click", function() {
+            chart.updateSeries(reset())
+        })
+
+    </script>
+</body>
+
+</html>
