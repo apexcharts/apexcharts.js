@@ -87,6 +87,8 @@ class CandleStick extends Bar {
           }
         }
 
+        let color
+
         let paths = this.drawCandleStickPaths({
           indexes: { i, j, realIndex, bc },
           x,
@@ -104,6 +106,7 @@ class CandleStick extends Bar {
         pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
+        color = paths.color
 
         // push current X
         if (j > 0) {
@@ -112,11 +115,9 @@ class CandleStick extends Bar {
 
         yArrj.push(y)
 
-        let fillColor = null
-
         let pathFill = fill.fillPath(elSeries, {
           seriesNumber: realIndex,
-          color: fillColor
+          color
         })
 
         let lineFill = w.globals.stroke.colors[realIndex]
@@ -179,8 +180,7 @@ class CandleStick extends Bar {
     pathFrom,
     barWidth,
     zeroH,
-    strokeWidth,
-    elSeries
+    strokeWidth
   }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
@@ -188,8 +188,22 @@ class CandleStick extends Bar {
     let i = indexes.i
     let j = indexes.j
 
+    let isPositive = true
+    let colorPos = w.config.plotOptions.candlestick.colors.positive
+    let colorNeg = w.config.plotOptions.candlestick.colors.negative
+
+    const yRatio = this.yRatio[this.yaxisIndex]
     let realIndex = indexes.realIndex
-    let bc = indexes.bc
+
+    const ohlc = this.getOHLCValue(realIndex, j)
+    let l1 = zeroH; let l2 = zeroH
+
+    if (ohlc.o < ohlc.c) {
+      isPositive = false
+    }
+
+    let y1 = Math.min(ohlc.o, ohlc.c)
+    let y2 = Math.max(ohlc.o, ohlc.c)
 
     if (w.globals.dataXY) {
       x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
@@ -198,72 +212,58 @@ class CandleStick extends Bar {
     let barXPosition = x + barWidth * this.visibleI
 
     pathTo = graphics.move(barXPosition, zeroH)
-
     pathFrom = graphics.move(barXPosition, zeroH)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPathFrom(realIndex, j, true)
     }
 
     if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
-      y = zeroH
+      y1 = zeroH
     } else {
-      y = (zeroH - this.series[i][j] / this.yRatio[this.yaxisIndex])
+      y1 = zeroH - y1 / yRatio
+      y2 = zeroH - y2 / yRatio
+      l1 = zeroH - ohlc.h / yRatio
+      l2 = zeroH - ohlc.l / yRatio
     }
-
-    let endingShapeOpts = {
-      barWidth,
-      strokeWidth,
-      barXPosition,
-      y,
-      zeroH
-    }
-    let endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j)
 
     pathTo =
-      pathTo +
-      graphics.line(barXPosition, endingShape.newY) +
-      endingShape.path +
-      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
-      graphics.line(barXPosition, zeroH)
+      graphics.move(barXPosition, y2) +
+      graphics.line(barXPosition + barWidth / 2, y2) +
+      graphics.line(barXPosition + barWidth / 2, l1) +
+      graphics.line(barXPosition + barWidth / 2, y2) +
+      graphics.line(barXPosition + barWidth, y2) +
+      graphics.line(barXPosition + barWidth, y1) +
+      graphics.line(barXPosition + barWidth / 2, y1) +
+      graphics.line(barXPosition + barWidth / 2, l2) +
+      graphics.line(barXPosition + barWidth / 2, y1) +
+      graphics.line(barXPosition, y1) +
+      graphics.line(barXPosition, y2)
+
     pathFrom =
       pathFrom +
-      graphics.line(barXPosition, zeroH) +
-      endingShape.ending_p_from +
-      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
-      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition, zeroH)
 
     if (!w.globals.dataXY) {
       x = x + xDivision
     }
 
-    if (
-      this.barOptions.colors.backgroundBarColors.length > 0 &&
-      i === 0
-    ) {
-      if (bc >= this.barOptions.colors.backgroundBarColors.length) {
-        bc = 0
-      }
-      let bcolor = this.barOptions.colors.backgroundBarColors[bc]
-      let rect = graphics.drawRect(
-        barXPosition - barWidth * this.visibleI,
-        0,
-        barWidth * this.seriesLen,
-        w.globals.gridHeight,
-        0,
-        bcolor,
-        this.barOptions.colors.backgroundBarOpacity
-      )
-      elSeries.add(rect)
-      rect.node.classList.add('apexcharts-backgroundBar')
-    }
-
     return {
       pathTo,
       pathFrom,
       x,
-      y,
-      barXPosition
+      y: y2,
+      barXPosition,
+      color: isPositive ? colorPos : colorNeg
+    }
+  }
+
+  getOHLCValue (i, j) {
+    const w = this.w
+    return {
+      o: w.globals.seriesCandleO[i][j],
+      h: w.globals.seriesCandleH[i][j],
+      l: w.globals.seriesCandleL[i][j],
+      c: w.globals.seriesCandleC[i][j]
     }
   }
 }

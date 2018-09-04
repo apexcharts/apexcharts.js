@@ -71,7 +71,7 @@ Zoom, Pan, Scroll through data. Make selections and load other charts using thos
 An example showing some interactivity
 <p align="center"><a href="https://codepen.io/apexcharts/pen/QrbEQg" target="_blank"><img src="https://apexcharts.com/media/interactivity.gif" alt="interactive chart"></a></p>
 
-## Dynamic Data Updation
+## Dynamic Series Update
 Another approach to Drill down charts where one selection updates the data of other charts.
 An example of loading dynamic series into charts is shown below
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/dynamic-loaded-chart/"><img src="https://apexcharts.com/media/dynamic-selection.gif" alt="dynamic-loading-chart" /></a></p>

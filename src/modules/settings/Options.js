@@ -304,6 +304,12 @@ export default class Options {
           }
           // stackedLabels: true
         },
+        candlestick: {
+          colors: {
+            positive: 'green',
+            negative: 'red'
+          }
+        },
         heatmap: {
           radius: 2,
           enableShades: true,

@@ -312,10 +312,11 @@ class YAxis {
       x = yAxisLabelsCoord.width +
       w.config.yaxis[realIndex].title.offsetX + padd + yAxisTitleCoord.width / 2 - 15
 
+      oppositeAxisCount += 1
+
       if (oppositeAxisCount === 0) {
         x = x - 15
       }
-      oppositeAxisCount += 1
     } else {
       x = yAxisLabelsCoord.width * -1 +
           w.config.yaxis[realIndex].title.offsetX + padd + yAxisTitleCoord.width / 2 - 15

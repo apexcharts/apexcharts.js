@@ -138,6 +138,10 @@ class Defaults {
 
   candlestick () {
     return {
+      stroke: {
+        width: 1,
+        colors: ['#555']
+      },
       dataLabels: {
         enabled: false
       },

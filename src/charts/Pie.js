@@ -345,7 +345,6 @@ class Pie {
       fromStartAngle = opts.prevEndAngle
       prevAngle = opts.prevEndAngle - opts.prevStartAngle
     }
-
     if (opts.i === w.config.series.length - 1) {
       // some adjustments for the last overlapping paths
       if (angle + toStartAngle > this.fullAngle) {
@@ -373,6 +372,12 @@ class Pie {
     let path
     let opts = params
 
+    if (isNaN(fromStartAngle) || isNaN(prevAngle)) {
+      fromStartAngle = toStartAngle
+      prevAngle = angle
+      opts.dur = 0
+    }
+
     let currAngle = angle
     let startAngle = toStartAngle
     let fromAngle = (fromStartAngle - toStartAngle)
@@ -387,7 +392,8 @@ class Pie {
       }).during(function (pos) {
         currAngle = fromAngle + (angle - fromAngle) * pos
         if (params.animateStartingPos) {
-          startAngle = (fromStartAngle - currAngle) + (toStartAngle - (fromStartAngle - currAngle)) * pos
+          currAngle = (prevAngle) + (angle - (prevAngle)) * pos
+          startAngle = (fromStartAngle - prevAngle) + (toStartAngle - (fromStartAngle - prevAngle)) * pos
         }
 
         path = me.getPiePath({

@@ -394,12 +394,6 @@ class ApexCharts {
 
     w.globals.dataChanged = true
 
-    // while updateing pie/donut series, user completely changed the series length too
-    if (!w.globals.axisCharts && newSeries.length !== w.globals.series.length) {
-      w.globals.dataChanged = false
-      animate = false
-    }
-
     if (animate) {
       series.getPreviousPaths()
     }

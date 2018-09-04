@@ -112,7 +112,7 @@ class Range {
 
     let step = range / ticks
     if (ticks === Number.MAX_VALUE) {
-      range = 10; ticks = 10; step = 1
+      ticks = 10; step = 1
     }
 
     let result = []
