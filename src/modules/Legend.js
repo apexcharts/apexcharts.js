@@ -367,8 +367,6 @@ class Legend {
       if (y < w.config.legend.markers.size) y = w.config.legend.markers.size
     }
 
-    console.log(y)
-
     elLegendWrap.setAttribute('transform', `translate(${x}, ${y})`)
   }
 
