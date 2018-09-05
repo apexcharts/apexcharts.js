@@ -189,8 +189,8 @@ class CandleStick extends Bar {
     let j = indexes.j
 
     let isPositive = true
-    let colorPos = w.config.plotOptions.candlestick.colors.positive
-    let colorNeg = w.config.plotOptions.candlestick.colors.negative
+    let colorPos = w.config.plotOptions.candlestick.colors.upward
+    let colorNeg = w.config.plotOptions.candlestick.colors.downward
 
     const yRatio = this.yRatio[this.yaxisIndex]
     let realIndex = indexes.realIndex
@@ -198,7 +198,7 @@ class CandleStick extends Bar {
     const ohlc = this.getOHLCValue(realIndex, j)
     let l1 = zeroH; let l2 = zeroH
 
-    if (ohlc.o < ohlc.c) {
+    if (ohlc.o > ohlc.c) {
       isPositive = false
     }
 
@@ -237,11 +237,7 @@ class CandleStick extends Bar {
       graphics.line(barXPosition + barWidth / 2, l2) +
       graphics.line(barXPosition + barWidth / 2, y1) +
       graphics.line(barXPosition, y1) +
-      graphics.line(barXPosition, y2)
-
-    pathFrom =
-      pathFrom +
-      graphics.line(barXPosition, zeroH)
+      graphics.line(barXPosition, y2 - strokeWidth / 2)
 
     if (!w.globals.dataXY) {
       x = x + xDivision

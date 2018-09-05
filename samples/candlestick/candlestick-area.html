@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>CandleStick Chart</title>
+
+
+    <link href="../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart-candlestick, #chart-line {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart-candlestick">
+
+    </div>
+
+    <div id="chart-line">
+
+    </div>
+
+
+    <script src="../../dist/apexcharts.min.js"></script>
+    <script src="../assets/ohlc.js"></script>
+
+    <script>
+        var optionsCandlestick = {
+            chart: {
+                height: 380,
+                type: 'candlestick',
+            },
+            series: [{
+              data: seriesData
+            }],
+            title: {
+                text: 'CandleStick Chart',
+                align: 'left'
+            },
+            
+            xaxis: {
+                type: 'datetime'
+            }
+        }
+
+        var chartCandlestick = new ApexCharts(
+            document.querySelector("#chart-candlestick"),
+            optionsCandlestick
+        );
+
+        chartCandlestick.render();
+
+        var options = {
+            chart: {
+                height: 200,
+                type: 'area',
+                stacked: true,
+                toolbar: {
+                    show: false,
+                    autoSelected: 'selection'
+                },
+                selection: {
+                    xaxis: {
+                        min: new Date('01 Nov 2016').getTime(),
+                        max: new Date('01 Nov 2017').getTime()
+                    }
+                },
+                events: {
+                selection: function (chart, e) {
+                    chartCandlestick.updateOptions({
+                    xaxis: {
+                        min: e.xaxis.min,
+                        max: e.xaxis.max
+                    }
+                    }, false, false)
+                },
+                updated: function (chart, e) {
+                    chartCandlestick.updateOptions({
+                    xaxis: {
+                        min: e.config.xaxis.min,
+                        max: e.config.xaxis.max
+                    },
+                    }, false, false)
+                }
+                },
+
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                curve: 'smooth'
+            },
+            series: [{
+                data: seriesDataLinear
+            }],
+            fill: {
+                gradient: {
+                enabled: true,
+                opacityFrom: 0.6,
+                opacityTo: 0.8,
+                }
+            },
+            xaxis: {
+                type: 'datetime'
+            },
+            }
+
+            var chart = new ApexCharts(
+            document.querySelector("#chart-line"),
+            options
+            );
+
+            chart.render();
+        
+    </script>
+</body>
+
+</html>

@@ -216,10 +216,10 @@ class Range {
 
     // if the numbers are too big, reduce the range
     // for eg, if number is between 10000-12000, putting 0 as the lowest value is not so good idea
-    if (cnf.chart.type === 'line' || cnf.chart.type === 'area') {
+    if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
       if (gl.minY === Number.MIN_VALUE && minValInSeries !== Number.MAX_SAFE_INTEGER) {
-        gl.minY = Math.round(minValInSeries - ((minValInSeries * 2 / 100)))
-        gl.maxY = Math.round(gl.maxY + ((gl.maxY * 2 / 100)))
+        gl.minY = Math.round(minValInSeries - (minValInSeries * 2 / 100))
+        gl.maxY = Math.round(gl.maxY + (gl.maxY * 2 / 100))
       }
     }
 

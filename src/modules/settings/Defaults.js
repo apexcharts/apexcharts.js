@@ -140,14 +140,25 @@ class Defaults {
     return {
       stroke: {
         width: 1,
-        colors: ['#555']
+        colors: ['#333']
       },
       dataLabels: {
         enabled: false
       },
       tooltip: {
         shared: false,
-        intersect: true
+        custom: function ({ seriesIndex, dataPointIndex, w }) {
+          const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
+          const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
+          const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
+          const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex]
+          return '<div class="arrow_box">' +
+            '<div>Open: ' + o + '</div>' +
+            '<div>High: ' + h + '</div>' +
+            '<div>Low: ' + l + '</div>' +
+            '<div>Close: ' + c + '</div>' +
+            '</div>'
+        }
       },
       xaxis: {
         crosshairs: {

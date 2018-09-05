@@ -306,8 +306,8 @@ export default class Options {
         },
         candlestick: {
           colors: {
-            positive: 'green',
-            negative: 'red'
+            upward: '#00B746',
+            downward: '#EF403C'
           }
         },
         heatmap: {

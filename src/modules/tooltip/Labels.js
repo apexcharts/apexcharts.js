@@ -25,10 +25,9 @@ class Labels {
 
     if (w.config.tooltip.custom !== undefined) {
       this.handleCustomTooltip({i, j})
-      return
+    } else {
+      this.toggleActiveInactiveSeries(shared)
     }
-
-    this.toggleActiveInactiveSeries(shared)
 
     let values = this.getValuesToPrint({
       i,
