@@ -249,6 +249,11 @@ class Defaults {
       fill: {
         opacity: 1
       },
+      dataLabels: {
+        style: {
+          colors: ['#fff']
+        }
+      },
       stroke: {
         colors: ['#fff']
       },

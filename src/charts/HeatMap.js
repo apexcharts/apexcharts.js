@@ -157,7 +157,7 @@ class HeatMap {
     let min = Math.min(...w.globals.series[i])
     let max = Math.max(...w.globals.series[i])
     let total = Math.abs(max) + Math.abs(min)
-    let percent = (100 * val) / total
+    let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
 
     if (w.config.plotOptions.heatmap.colorScale.ranges.length > 0) {
       const colorRange = w.config.plotOptions.heatmap.colorScale.ranges
