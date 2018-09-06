@@ -285,7 +285,7 @@ class BarStacked extends Bar {
   }) {
     let w = this.w
     let barYPosition = y
-    let barXPosition = zeroW
+    let barXPosition
     let i = indexes.i
     let j = indexes.j
     let realIndex = indexes.realIndex

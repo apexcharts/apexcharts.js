@@ -556,12 +556,9 @@ class Bar {
     if (this.isHorizontal) {
       dataLabelsY = bcy - dataPointsDividedHeight + (barHeight / 2) + textRects.height / 2 + offY - 3
 
-      let baseline = w.globals.gridWidth - this.baseLineInvertedY
       let barWidth = series[i][j] / this.invertedYRatio
 
-      const emptySpaceBackwards = w.globals.gridWidth - baseline
-
-      let valIsNegative = !!((x + 0.15) < emptySpaceBackwards && Math.abs(this.baseLineInvertedY) !== 0)
+      let valIsNegative = series[i][j] <= 0
 
       switch (barDataLabelsConfig.position) {
         case 'center':
@@ -608,7 +605,7 @@ class Bar {
 
       if (dataLabelsX < 0) {
         dataLabelsX = textRects.width + strokeWidth
-      } else if (dataLabelsX + textRects.width > w.globals.gridWidth) {
+      } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
         dataLabelsX = dataLabelsX - textRects.width - strokeWidth
       }
 
