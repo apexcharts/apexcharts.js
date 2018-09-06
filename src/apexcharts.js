@@ -483,6 +483,20 @@ class ApexCharts {
   }
 
   /**
+   * Allows the user to provide data attrs in the element and the chart will render automatically when this method is called by searching for the elements containing 'data-apexcharts' attribute
+   */
+  static initOnLoad () {
+    const els = document.querySelectorAll('[data-apexcharts]')
+
+    for (let i = 0; i < els.length; i++) {
+      const el = els[i]
+      const options = JSON.parse(els[i].getAttribute('data-options'))
+      const apexChart = new ApexCharts(el, options)
+      apexChart.render()
+    }
+  }
+
+  /**
    * This static method allows users to call chart methods without necessarily from the
    * instance of the chart in case user has assigned chartID to the targetted chart.
    * The chartID is used for mapping the instance stored in Apex._chartInstances global variable

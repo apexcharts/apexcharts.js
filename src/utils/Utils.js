@@ -10,7 +10,7 @@ class Utils {
   }
 
   static isObject (item) {
-    return (item && typeof item === 'object' && !Array.isArray(item) && item !== null)
+    return (item && typeof item === 'object' && !Array.isArray(item) && item != null)
   }
 
   // to extend defaults with user options
