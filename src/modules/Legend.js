@@ -211,7 +211,7 @@ class Legend {
       let elTextOpts = {
         x: x,
         y: y,
-        foreColor: w.config.legend.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.color,
+        foreColor: w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors[i],
         text,
         textAnchor: w.config.legend.textAnchor,
         fontSize: fontSize,

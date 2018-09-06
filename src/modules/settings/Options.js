@@ -501,7 +501,7 @@ export default class Options {
         offsetX: 0,
         formatter: undefined,
         labels: {
-          color: undefined,
+          colors: undefined,
           useSeriesColors: false
         },
         markers: {
