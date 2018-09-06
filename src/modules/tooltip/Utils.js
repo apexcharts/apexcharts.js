@@ -25,7 +25,7 @@ class Utils {
   * - capturedSeries = i
   * - j is the inner index of the capturedSeries
   */
-  getNearestValues ({ context, hoverArea, elGrid, clientX, clientY, plotSeriesWidth, hasBars }) {
+  getNearestValues ({ hoverArea, elGrid, clientX, clientY, hasBars }) {
     let w = this.w
 
     const hoverWidth = w.globals.gridWidth // - (w.globals.gridWidth - plotSeriesWidth)
