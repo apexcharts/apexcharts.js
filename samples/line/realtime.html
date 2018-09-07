@@ -33,8 +33,9 @@
                 height: 380,
                 type: 'line',
                 animations: {
+                    easing: 'linear',
                     dynamicAnimation: {
-                        enabled: false
+                        speed: 2000
                     }
                 },
                 toolbar: {
@@ -85,7 +86,7 @@
             }, {
                 data: [Math.floor((Math.random() * 20) + 20)]
             }])
-        }, 1000)
+        }, 2000)
     </script>
 </body>
 

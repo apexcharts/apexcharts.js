@@ -21,17 +21,7 @@
 <body>
     <div id="chart" data-apexcharts data-options='{
         "chart": {
-            "height": 380,
-            "type": "line",
-            "zoom": {
-                "enabled": false
-            }
-        },
-        "dataLabels": {
-            "enabled": false
-        },
-        "stroke": {
-            "curve": "straight"
+            "type": "line"
         },
         "series": [{
             "name": "Desktops",
@@ -48,6 +38,17 @@
     <script src="../../dist/apexcharts.min.js"></script>
 
     <script>
+        window.Apex = {
+            chart: {
+                height: 380
+            },
+            stroke: {
+                curve: "smooth"
+            },
+            dataLabels: {
+                enabled: false
+            }
+        }
         ApexCharts.initOnLoad()
     </script>
 </body>
