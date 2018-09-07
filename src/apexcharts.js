@@ -63,6 +63,9 @@ class ApexCharts {
         if (this.w.config.chart.id) {
           Apex._chartInstances.push({id: this.w.globals.chartID, chart: this})
         }
+
+        // set the culture here
+        this.setCulture(this.w.config.defaultCulture)
         const beforeMount = this.w.config.chart.events.beforeMount
         if (typeof beforeMount === 'function') {
           beforeMount(this, this.w)
@@ -628,6 +631,23 @@ class ApexCharts {
 
   getSeriesTotal () {
     return this.w.globals.seriesTotals
+  }
+
+  setCulture (cultureName) {
+    this.setCurrentCultureValues(cultureName)
+  }
+
+  setCurrentCultureValues (cultureName) {
+    const selectedCulture = this.w.config.cultures.find((c) => {
+      return c.name === cultureName
+    })
+
+    if (selectedCulture) {
+      this.w.globals.culture = selectedCulture.options
+      return selectedCulture.options
+    } else {
+      throw new Error('Wrong culture name provided. Please make sure you set the correct culture name in options')
+    }
   }
 
   paper () {

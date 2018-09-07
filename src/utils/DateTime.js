@@ -15,8 +15,6 @@ class DateTime {
     this.months30 = [2, 4, 6, 9, 11]
 
     this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-
-    this.MMMM = ['\x00', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   }
 
   isValidDate (date) {
@@ -41,10 +39,12 @@ class DateTime {
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
   formatDate (date, format, utc = true) {
-    let MMMM = ['\x00', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-    let MMM = ['\x01', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    let dddd = ['\x02', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    let ddd = ['\x03', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const culture = this.w.globals.culture
+
+    let MMMM = ['\x00', ...culture.months]
+    let MMM = ['\x01', ...culture.shortMonths]
+    let dddd = ['\x02', ...culture.days]
+    let ddd = ['\x03', ...culture.shortDays]
 
     function ii (i, len) {
       let s = i + ''

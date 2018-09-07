@@ -5257,6 +5257,8 @@ var _TimeScale2 = _interopRequireDefault(_TimeScale);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /**
@@ -5276,8 +5278,6 @@ var DateTime = function () {
     this.months30 = [2, 4, 6, 9, 11];
 
     this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-
-    this.MMMM = ['\x00', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   }
 
   _createClass(DateTime, [{
@@ -5313,10 +5313,12 @@ var DateTime = function () {
     value: function formatDate(date, format) {
       var utc = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      var MMMM = ['\x00', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      var MMM = ['\x01', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      var dddd = ['\x02', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      var ddd = ['\x03', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      var culture = this.w.globals.culture;
+
+      var MMMM = ['\x00'].concat(_toConsumableArray(culture.months));
+      var MMM = ['\x01'].concat(_toConsumableArray(culture.shortMonths));
+      var dddd = ['\x02'].concat(_toConsumableArray(culture.days));
+      var ddd = ['\x03'].concat(_toConsumableArray(culture.shortDays));
 
       function ii(i, len) {
         var s = i + '';
@@ -8397,6 +8399,8 @@ var Toolbar = function () {
 
     this.ctx = ctx;
     this.w = ctx.w;
+
+    this.cultureValues = this.w.globals.culture.toolbar;
   }
 
   _createClass(Toolbar, [{
@@ -8421,7 +8425,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elCamera,
           icon: _icoCamera2.default,
-          title: 'Download SVG',
+          title: this.cultureValues.download,
           class: 'apexcharts-download-icon'
         });
       }
@@ -8430,7 +8434,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elSelection,
           icon: _icoSelect2.default,
-          title: 'Select',
+          title: this.cultureValues.selection,
           class: 'apexcharts-selection-icon'
         });
       }
@@ -8439,7 +8443,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoomIn,
           icon: _icoPlus2.default,
-          title: 'Zoom In',
+          title: this.cultureValues.zoomIn,
           class: 'apexcharts-zoom-in-icon'
         });
       }
@@ -8448,7 +8452,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoomOut,
           icon: _icoMinus2.default,
-          title: 'Zoom Out',
+          title: this.cultureValues.zoomOut,
           class: 'apexcharts-zoom-out-icon'
         });
       }
@@ -8457,7 +8461,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoom,
           icon: _icoZoomIn2.default,
-          title: 'Zoom',
+          title: this.cultureValues.selectionZoom,
           class: 'apexcharts-zoom-icon'
         });
       }
@@ -8466,7 +8470,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elPan,
           icon: _icoPanHand2.default,
-          title: 'Panning',
+          title: this.cultureValues.panning,
           class: 'apexcharts-pan-icon'
         });
       }
@@ -8475,7 +8479,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoomReset,
           icon: _icoHome2.default,
-          title: 'Reset Zoom',
+          title: this.cultureValues.reset,
           class: 'apexcharts-reset-zoom-icon'
         });
       }
@@ -9091,6 +9095,25 @@ var Options = function () {
           }
         },
         colors: undefined,
+        cultures: [{
+          name: 'en',
+          options: {
+            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            toolbar: {
+              selectionZoom: 'Selection Zoom',
+              zoomIn: 'Zoom In',
+              zoomOut: 'Zoom Out',
+              reset: 'Reset Zoom',
+              pan: 'Panning',
+              selection: 'Selection',
+              download: 'Download SVG'
+            }
+          }
+        }],
+        defaultCulture: 'en',
         dataLabels: {
           enabled: true,
           formatter: function formatter(val) {
@@ -10384,6 +10407,9 @@ var ApexCharts = function () {
           if (_this.w.config.chart.id) {
             Apex._chartInstances.push({ id: _this.w.globals.chartID, chart: _this });
           }
+
+          // set the culture here
+          _this.setCulture(_this.w.config.defaultCulture);
           var beforeMount = _this.w.config.chart.events.beforeMount;
           if (typeof beforeMount === 'function') {
             beforeMount(_this, _this.w);
@@ -10992,9 +11018,27 @@ var ApexCharts = function () {
       return this.w.globals.seriesTotals;
     }
   }, {
+    key: 'setCulture',
+    value: function setCulture(cultureName) {
+      this.setCurrentCultureValues(cultureName);
+    }
+  }, {
+    key: 'setCurrentCultureValues',
+    value: function setCurrentCultureValues(cultureName) {
+      var selectedCulture = this.w.config.cultures.find(function (c) {
+        return c.name === cultureName;
+      });
+
+      if (selectedCulture) {
+        this.w.globals.culture = selectedCulture.options;
+        return selectedCulture.options;
+      } else {
+        throw new Error('Wrong culture name provided. Please make sure you set the correct culture name in options');
+      }
+    }
+  }, {
     key: 'paper',
     value: function paper() {
-      console.log('fdsfsdf');
       return this.w.globals.dom.Paper;
     }
   }, {
@@ -19299,6 +19343,7 @@ var Globals = function () {
         svgNS: 'http://www.w3.org/2000/svg', // svg namespace
         svgWidth: 0, // the whole svg width
         svgHeight: 0, // the whole svg height
+        culture: {}, // the current culture values will be preserved here for global access
         dom: {}, // for storing all dom nodes in this particular property
         // elWrap: null, // the element that wraps everything
         // elGraphical: null, // this contains lines/areas/bars/pies
