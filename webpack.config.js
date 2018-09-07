@@ -8,7 +8,7 @@ module.exports = {
         libraryTarget: 'umd',
         umdNamedDefine: true,
       	path: path.resolve(__dirname, 'dist/'),
-        filename: 'apexcharts.min.js' ,
+        filename: 'apexcharts.js' ,
   },
     module: {
       rules: [

@@ -32,7 +32,7 @@ export default class Title {
         text: w.config.title.text,
         textAnchor: textAnchor,
         fontSize: w.config.title.style.fontSize,
-        foreColor: w.config.title.style.foreColor,
+        foreColor: w.config.title.style.color,
         opacity: 1
       })
 
