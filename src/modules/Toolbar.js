@@ -269,7 +269,7 @@ class Toolbar {
     xaxis.min = w.globals.initialConfig.xaxis.min
     xaxis.max = w.globals.initialConfig.xaxis.max
 
-    me.ctx.updateOptionsInternal(w.globals.initialConfig, false, true)
+    me.ctx.updateSeriesInternal(w.globals.initialSeries, true)
   }
 }
 

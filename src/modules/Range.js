@@ -93,9 +93,6 @@ class Range {
       let valuesDivider = Math.abs(yMax - yMin) / ticks
       for (let i = 0; i <= ticks - 1; i++) {
         v = v + valuesDivider
-        if (v % 1 !== 0 && typeof (toFixed) !== 'undefined') {
-          v = parseFloat(v.toFixed(toFixed))
-        }
         result.push(v)
       }
 

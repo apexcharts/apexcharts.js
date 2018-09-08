@@ -8678,7 +8678,7 @@ var Toolbar = function () {
       xaxis.min = w.globals.initialConfig.xaxis.min;
       xaxis.max = w.globals.initialConfig.xaxis.max;
 
-      me.ctx.updateOptionsInternal(w.globals.initialConfig, false, true);
+      me.ctx.updateSeriesInternal(w.globals.initialSeries, true);
     }
   }]);
 
@@ -10718,8 +10718,9 @@ var ApexCharts = function () {
     value: function updateOptions(options) {
       var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+      var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
 
-      return this.updateOptionsInternal(options, redraw, animate, true);
+      return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig);
     }
 
     /**
@@ -10728,7 +10729,7 @@ var ApexCharts = function () {
      * @param {object} options - A new config object can be passed which will be merged with the existing config object
      * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
      * @param {boolean} animate - should animate or not on updating Options
-     * @param {boolean} makeDefaultConfig - should update the default config or not
+     * @param {boolean} overwriteInitialConfig - should update the initial config or not
      */
 
   }, {
@@ -10736,7 +10737,7 @@ var ApexCharts = function () {
     value: function updateOptionsInternal(options) {
       var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-      var makeDefaultConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+      var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
       var w = this.w;
       this.w.config.chart.animations.dynamicAnimation.enabled = animate;
@@ -10776,9 +10777,8 @@ var ApexCharts = function () {
 
         w.config = _Utils2.default.extend(w.config, options);
 
-        if (makeDefaultConfig) {
+        if (overwriteInitialConfig) {
           w.globals.initialConfig = _Utils2.default.extend({}, w.config);
-          w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series));
         }
       }
 
@@ -10796,9 +10796,9 @@ var ApexCharts = function () {
     value: function updateSeries() {
       var newSeries = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
       var animate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-      var makeDefaultConfig = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+      var overwriteInitialSeries = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      return this.updateSeriesInternal(newSeries, animate, makeDefaultConfig);
+      return this.updateSeriesInternal(newSeries, animate, overwriteInitialSeries);
     }
 
     /**
@@ -10809,27 +10809,22 @@ var ApexCharts = function () {
 
   }, {
     key: 'updateSeriesInternal',
-    value: function updateSeriesInternal(newSeries, animate, makeDefaultConfig) {
+    value: function updateSeriesInternal(newSeries, animate) {
+      var overwriteInitialSeries = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
       var w = this.w;
       this.w.config.chart.animations.dynamicAnimation.enabled = animate;
       var series = new _Series2.default(this.ctx);
 
       w.globals.dataChanged = true;
 
-      // while updateing pie/donut series, user completely changed the series length too
-      // if (!w.globals.axisCharts && newSeries.length !== w.globals.series.length) {
-      //   w.globals.dataChanged = false
-      //   animate = false
-      // }
-
       if (animate) {
         series.getPreviousPaths();
       }
 
       w.config.series = newSeries.slice();
-      if (makeDefaultConfig) {
-        w.globals.initialConfig = _Utils2.default.extend({}, w.config);
-        w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series));
+      if (overwriteInitialSeries) {
+        w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series));
       }
 
       return this.update();
@@ -10844,6 +10839,8 @@ var ApexCharts = function () {
   }, {
     key: 'appendData',
     value: function appendData(newData) {
+      var overwriteInitialSeries = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
       var me = this;
 
       var series = new _Series2.default(me.ctx);
@@ -10862,9 +10859,9 @@ var ApexCharts = function () {
         }
       }
       me.w.config.series = newSeries;
-
-      me.w.globals.initialConfig = _Utils2.default.extend({}, me.w.config);
-      me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.globals.initialConfig.series));
+      if (overwriteInitialSeries) {
+        me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.config.series));
+      }
 
       return this.update();
     }
@@ -17001,9 +16998,6 @@ var Range = function () {
         var valuesDivider = Math.abs(yMax - yMin) / ticks;
         for (var i = 0; i <= ticks - 1; i++) {
           v = v + valuesDivider;
-          if (v % 1 !== 0 && typeof toFixed !== 'undefined') {
-            v = parseFloat(v.toFixed(toFixed));
-          }
           result.push(v);
         }
 

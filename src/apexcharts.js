@@ -315,8 +315,8 @@ class ApexCharts {
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
    */
-  updateOptions (options, redraw = false, animate = true) {
-    return this.updateOptionsInternal(options, redraw, animate, true)
+  updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = true) {
+    return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig)
   }
 
   /**
@@ -325,9 +325,9 @@ class ApexCharts {
    * @param {object} options - A new config object can be passed which will be merged with the existing config object
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
-   * @param {boolean} makeDefaultConfig - should update the default config or not
+   * @param {boolean} overwriteInitialConfig - should update the initial config or not
    */
-  updateOptionsInternal (options, redraw = false, animate = true, makeDefaultConfig = false) {
+  updateOptionsInternal (options, redraw = false, animate = true, overwriteInitialConfig = false) {
     let w = this.w
     this.w.config.chart.animations.dynamicAnimation.enabled = animate
 
@@ -366,9 +366,8 @@ class ApexCharts {
 
       w.config = Utils.extend(w.config, options)
 
-      if (makeDefaultConfig) {
+      if (overwriteInitialConfig) {
         w.globals.initialConfig = Utils.extend({}, w.config)
-        w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series))
       }
     }
 
@@ -380,8 +379,8 @@ class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  updateSeries (newSeries = [], animate = true, makeDefaultConfig = false) {
-    return this.updateSeriesInternal(newSeries, animate, makeDefaultConfig)
+  updateSeries (newSeries = [], animate = true, overwriteInitialSeries = true) {
+    return this.updateSeriesInternal(newSeries, animate, overwriteInitialSeries)
   }
 
   /**
@@ -389,27 +388,20 @@ class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  updateSeriesInternal (newSeries, animate, makeDefaultConfig) {
+  updateSeriesInternal (newSeries, animate, overwriteInitialSeries = false) {
     const w = this.w
     this.w.config.chart.animations.dynamicAnimation.enabled = animate
     let series = new Series(this.ctx)
 
     w.globals.dataChanged = true
 
-    // while updateing pie/donut series, user completely changed the series length too
-    // if (!w.globals.axisCharts && newSeries.length !== w.globals.series.length) {
-    //   w.globals.dataChanged = false
-    //   animate = false
-    // }
-
     if (animate) {
       series.getPreviousPaths()
     }
 
     w.config.series = newSeries.slice()
-    if (makeDefaultConfig) {
-      w.globals.initialConfig = Utils.extend({}, w.config)
-      w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series))
+    if (overwriteInitialSeries) {
+      w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
     }
 
     return this.update()
@@ -420,7 +412,7 @@ class ApexCharts {
    *
    * @param {array} newData - New data in the same format as series
    */
-  appendData (newData) {
+  appendData (newData, overwriteInitialSeries = true) {
     let me = this
 
     let series = new Series(me.ctx)
@@ -439,9 +431,9 @@ class ApexCharts {
       }
     }
     me.w.config.series = newSeries
-
-    me.w.globals.initialConfig = Utils.extend({}, me.w.config)
-    me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.globals.initialConfig.series))
+    if (overwriteInitialSeries) {
+      me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.config.series))
+    }
 
     return this.update()
   }
