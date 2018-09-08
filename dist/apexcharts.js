@@ -8672,8 +8672,8 @@ var Toolbar = function () {
       if (w.globals.minX === w.globals.initialminX && w.globals.maxX === w.globals.initialmaxX) return;
 
       w.config.yaxis.map(function (yaxe, index) {
-        yaxis[index].min = w.globals.initialConfig.yaxis[index].min;
-        yaxis[index].max = w.globals.initialConfig.yaxis[index].max;
+        yaxis[index].min = w.globals.initialYAxis[index].min;
+        yaxis[index].max = w.globals.initialYAxis[index].max;
       });
       xaxis.min = w.globals.initialConfig.xaxis.min;
       xaxis.max = w.globals.initialConfig.xaxis.max;
@@ -10720,6 +10720,11 @@ var ApexCharts = function () {
       var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
       var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
 
+      if (options.series) {
+        // user updated the series via updateOptions() function.
+        // Hence, we need to reset axis min/max to avoid zooming issues
+        this.revertDefaultAxisMinMax();
+      }
       return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig);
     }
 
@@ -10779,6 +10784,7 @@ var ApexCharts = function () {
 
         if (overwriteInitialConfig) {
           w.globals.initialConfig = _Utils2.default.extend({}, w.config);
+          w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series));
         }
       }
 
@@ -10798,6 +10804,7 @@ var ApexCharts = function () {
       var animate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
       var overwriteInitialSeries = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
+      this.revertDefaultAxisMinMax();
       return this.updateSeriesInternal(newSeries, animate, overwriteInitialSeries);
     }
 
@@ -10886,6 +10893,26 @@ var ApexCharts = function () {
         }).catch(function (e) {
           reject(e);
         });
+      });
+    }
+
+    /**
+     * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
+     * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
+     * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
+     */
+
+  }, {
+    key: 'revertDefaultAxisMinMax',
+    value: function revertDefaultAxisMinMax() {
+      var w = this.w;
+
+      w.config.xaxis.min = w.globals.initialConfig.xaxis.min;
+      w.config.xaxis.max = w.globals.initialConfig.xaxis.max;
+
+      w.config.yaxis.map(function (yaxe, index) {
+        w.config.yaxis[index].min = w.globals.initialYAxis[index].min;
+        w.config.yaxis[index].max = w.globals.initialYAxis[index].max;
       });
     }
   }, {
@@ -16565,6 +16592,7 @@ var Legend = function () {
         }
       }
 
+      // for now - just prevent click on heatmap legend - and allow hover only
       var clickAllowed = w.config.chart.type !== 'heatmap';
 
       if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
@@ -19305,6 +19333,7 @@ var Globals = function () {
         },
         isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
         initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
+        initialYAxis: [],
         series: [], // the MAIN series array (y values)
         seriesPercent: [], // the percentage values of the given series
         seriesTotals: [],
@@ -19424,7 +19453,7 @@ var Globals = function () {
 
       globals.initialConfig = _Utils2.default.extend({}, config);
       globals.initialSeries = JSON.parse(JSON.stringify(globals.initialConfig.series));
-
+      globals.initialYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis));
       return globals;
     }
   }]);

@@ -466,7 +466,7 @@ class ZoomPanSelection extends Toolbar {
               min: xLowestValue,
               max: xHighestValue
             },
-            yaxis: yaxis
+            yaxis
           },
           false,
           true

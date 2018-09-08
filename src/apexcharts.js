@@ -316,6 +316,11 @@ class ApexCharts {
    * @param {boolean} animate - should animate or not on updating Options
    */
   updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = true) {
+    if (options.series) {
+      // user updated the series via updateOptions() function.
+      // Hence, we need to reset axis min/max to avoid zooming issues
+      this.revertDefaultAxisMinMax()
+    }
     return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig)
   }
 
@@ -368,6 +373,7 @@ class ApexCharts {
 
       if (overwriteInitialConfig) {
         w.globals.initialConfig = Utils.extend({}, w.config)
+        w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
       }
     }
 
@@ -380,6 +386,7 @@ class ApexCharts {
    * @param {array} series - New series which will override the existing
    */
   updateSeries (newSeries = [], animate = true, overwriteInitialSeries = true) {
+    this.revertDefaultAxisMinMax()
     return this.updateSeriesInternal(newSeries, animate, overwriteInitialSeries)
   }
 
@@ -455,6 +462,23 @@ class ApexCharts {
       }).catch((e) => {
         reject(e)
       })
+    })
+  }
+
+  /**
+   * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
+   * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
+   * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
+   */
+  revertDefaultAxisMinMax () {
+    const w = this.w
+
+    w.config.xaxis.min = w.globals.initialConfig.xaxis.min
+    w.config.xaxis.max = w.globals.initialConfig.xaxis.max
+
+    w.config.yaxis.map((yaxe, index) => {
+      w.config.yaxis[index].min = w.globals.initialYAxis[index].min
+      w.config.yaxis[index].max = w.globals.initialYAxis[index].max
     })
   }
 

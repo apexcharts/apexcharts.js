@@ -32,6 +32,7 @@ export default class Globals {
       },
       isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
       initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
+      initialYAxis: [],
       series: [], // the MAIN series array (y values)
       seriesPercent: [], // the percentage values of the given series
       seriesTotals: [],
@@ -150,7 +151,7 @@ export default class Globals {
 
     globals.initialConfig = Utils.extend({}, config)
     globals.initialSeries = JSON.parse(JSON.stringify(globals.initialConfig.series))
-
+    globals.initialYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis))
     return globals
   }
 }
