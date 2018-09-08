@@ -109,7 +109,12 @@
       },
       xaxis: {
         type: 'datetime',
-        min: new Date('01 Mar 2012').getTime()
+        min: new Date('01 Mar 2012').getTime(),
+        labels: {
+          formatter: function(val, timestamp) {
+           return val;
+          }
+        }
       },
       tooltip: {
         key: {

@@ -19,6 +19,7 @@ class XAxis {
       //  timeline labels are there
       this.xaxisLabels = w.globals.timelineLabels.slice()
     }
+
     if (w.config.xaxis.position === 'top') {
       this.offY = 0
     } else {
@@ -109,7 +110,7 @@ class XAxis {
         let xFormat = new Formatters(this.ctx)
         label = xFormat.xLabelFormat(xlbFormatter, label)
         if (customFormatter !== undefined) {
-          label = customFormatter(label)
+          label = customFormatter(label, this.xaxisLabels[i])
         }
 
         let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX

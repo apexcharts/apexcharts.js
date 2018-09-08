@@ -65,7 +65,7 @@ class ApexCharts {
         }
 
         // set the culture here
-        this.setCulture(this.w.config.defaultCulture)
+        this.setCulture(this.w.config.chart.defaultCulture)
         const beforeMount = this.w.config.chart.events.beforeMount
         if (typeof beforeMount === 'function') {
           beforeMount(this, this.w)
@@ -638,7 +638,7 @@ class ApexCharts {
   }
 
   setCurrentCultureValues (cultureName) {
-    const selectedCulture = this.w.config.cultures.find((c) => {
+    const selectedCulture = this.w.config.chart.cultures.find((c) => {
       return c.name === cultureName
     })
 

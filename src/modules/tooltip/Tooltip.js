@@ -425,7 +425,6 @@ class Tooltip {
         j = capj.j
         let capturedSeries = capj.capturedSeries
 
-        // TODO: the hoverY is causing issues currently, hence commented out
         if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth || capj.hoverY < 0 || capj.hoverY > w.globals.gridHeight) {
           self.handleMouseOut(opt)
           return

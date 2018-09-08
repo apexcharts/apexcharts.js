@@ -78,7 +78,7 @@ class Range {
       if (val > ub) { break }
     }
 
-    // TODO: need to remove this stupid condition below which makes this function tightly coupled.
+    // TODO: need to remove this condition below which makes this function tightly coupled with w.
     if (this.w.config.yaxis[0].max === undefined &&
       this.w.config.yaxis[0].min === undefined) {
       return {

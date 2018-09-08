@@ -26,7 +26,6 @@ class Defaults {
       },
       xaxis: {
         crosshairs: {
-          // TODO: make default 1
           width: 1
         }
       }
@@ -116,7 +115,6 @@ class Defaults {
         }
       },
       tooltip: {
-        // TODO: make shared false
         shared: false
       },
       xaxis: {

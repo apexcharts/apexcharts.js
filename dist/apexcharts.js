@@ -4281,6 +4281,7 @@ var XAxis = function () {
       //  timeline labels are there
       this.xaxisLabels = w.globals.timelineLabels.slice();
     }
+
     if (w.config.xaxis.position === 'top') {
       this.offY = 0;
     } else {
@@ -4369,7 +4370,7 @@ var XAxis = function () {
           var xFormat = new _Formatters2.default(this.ctx);
           label = xFormat.xLabelFormat(xlbFormatter, label);
           if (customFormatter !== undefined) {
-            label = customFormatter(label);
+            label = customFormatter(label, this.xaxisLabels[_i]);
           }
 
           var x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX;
@@ -7879,7 +7880,8 @@ var TimeScale = function () {
             value: ts.value + 1,
             unit: ts.unit,
             year: ts.year,
-            month: ts.month + 1
+            month: ts.month + 1,
+            day: 1
           };
         } else if (ts.unit === 'day' || ts.unit === 'hour') {
           return {
@@ -7887,7 +7889,8 @@ var TimeScale = function () {
             value: ts.value,
             unit: ts.unit,
             year: ts.year,
-            month: ts.month + 1
+            month: ts.month + 1,
+            day: ts.day
           };
         }
 
@@ -8161,7 +8164,7 @@ var TimeScale = function () {
       var month = changeMonth(date, currentMonth, currentYear);
 
       // push the first tick in the array
-      this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit: unit, year: currentYear, month: this.monthMod(month) });
+      this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit: unit, year: currentYear, month: this.monthMod(month), day: firstTickValue });
 
       var pos = firstTickPosition;
       // keep drawing rest of the ticks
@@ -8174,7 +8177,7 @@ var TimeScale = function () {
 
         pos = 24 * hoursWidthOnXAxis + pos;
         var val = date === 1 ? this.monthMod(month) : date;
-        this.timeScaleArray.push({ position: pos, value: val, unit: unit, year: year, month: this.monthMod(month) });
+        this.timeScaleArray.push({ position: pos, value: val, unit: unit, year: year, month: this.monthMod(month), day: val });
       }
     }
   }, {
@@ -8264,11 +8267,11 @@ var TimeScale = function () {
 
         var dt = new _DateTime2.default(_this2.ctx);
 
-        var dateString = ts.year;
-        dateString += '-' + ('0' + ts.month.toString()).slice(-2);
-        dateString += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01';
-        dateString += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) + ':00:00' : 'T00:00:00';
-        dateString = new Date(Date.parse(dateString));
+        var raw = ts.year;
+        raw += '-' + ('0' + ts.month.toString()).slice(-2);
+        raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01';
+        raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) + ':00:00' : 'T00:00:00.000Z';
+        var dateString = new Date(Date.parse(raw));
 
         if (w.config.xaxis.labels.format === undefined) {
           var customFormat = 'dd MMM';
@@ -8284,6 +8287,7 @@ var TimeScale = function () {
         }
 
         return {
+          dateString: raw,
           position: ts.position,
           value: value,
           unit: ts.unit,
@@ -8869,7 +8873,25 @@ var Options = function () {
             }
           },
           background: 'transparent',
-          foreColor: '#373d3f',
+          cultures: [{
+            name: 'en',
+            options: {
+              months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+              shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+              days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+              shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+              toolbar: {
+                selectionZoom: 'Selection Zoom',
+                zoomIn: 'Zoom In',
+                zoomOut: 'Zoom Out',
+                reset: 'Reset Zoom',
+                pan: 'Panning',
+                selection: 'Selection',
+                download: 'Download SVG'
+              }
+            }
+          }],
+          defaultCulture: 'en',
           dropShadow: {
             enabled: false,
             enabledSeries: undefined,
@@ -8888,6 +8910,7 @@ var Options = function () {
             zoomed: undefined,
             scrolled: undefined
           },
+          foreColor: '#373d3f',
           height: 'auto',
           offsetX: 0,
           offsetY: 0,
@@ -9095,25 +9118,6 @@ var Options = function () {
           }
         },
         colors: undefined,
-        cultures: [{
-          name: 'en',
-          options: {
-            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-            toolbar: {
-              selectionZoom: 'Selection Zoom',
-              zoomIn: 'Zoom In',
-              zoomOut: 'Zoom Out',
-              reset: 'Reset Zoom',
-              pan: 'Panning',
-              selection: 'Selection',
-              download: 'Download SVG'
-            }
-          }
-        }],
-        defaultCulture: 'en',
         dataLabels: {
           enabled: true,
           formatter: function formatter(val) {
@@ -9391,7 +9395,7 @@ var Options = function () {
             color: '#78909C',
             offsetX: 0,
             offsetY: 0,
-            strokeWidth: 1 // TODO: add in the website docs
+            strokeWidth: 1
           },
           axisTicks: {
             show: true,
@@ -10409,7 +10413,7 @@ var ApexCharts = function () {
           }
 
           // set the culture here
-          _this.setCulture(_this.w.config.defaultCulture);
+          _this.setCulture(_this.w.config.chart.defaultCulture);
           var beforeMount = _this.w.config.chart.events.beforeMount;
           if (typeof beforeMount === 'function') {
             beforeMount(_this, _this.w);
@@ -11025,7 +11029,7 @@ var ApexCharts = function () {
   }, {
     key: 'setCurrentCultureValues',
     value: function setCurrentCultureValues(cultureName) {
-      var selectedCulture = this.w.config.cultures.find(function (c) {
+      var selectedCulture = this.w.config.chart.cultures.find(function (c) {
         return c.name === cultureName;
       });
 
@@ -16969,7 +16973,7 @@ var Range = function () {
         }
       }
 
-      // TODO: need to remove this stupid condition below which makes this function tightly coupled.
+      // TODO: need to remove this condition below which makes this function tightly coupled with w.
       if (this.w.config.yaxis[0].max === undefined && this.w.config.yaxis[0].min === undefined) {
         return {
           result: result,
@@ -18857,7 +18861,6 @@ var Defaults = function () {
         },
         xaxis: {
           crosshairs: {
-            // TODO: make default 1
             width: 1
           }
         }
@@ -18949,7 +18952,6 @@ var Defaults = function () {
           }
         },
         tooltip: {
-          // TODO: make shared false
           shared: false
         },
         xaxis: {
@@ -20864,7 +20866,6 @@ var Tooltip = function () {
           j = capj.j;
           var capturedSeries = capj.capturedSeries;
 
-          // TODO: the hoverY is causing issues currently, hence commented out
           if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth || capj.hoverY < 0 || capj.hoverY > w.globals.gridHeight) {
             self.handleMouseOut(opt);
             return;
