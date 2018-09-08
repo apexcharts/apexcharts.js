@@ -17221,9 +17221,6 @@ var Range = function () {
           }
         } else {
           ticks = cnf.xaxis.tickAmount;
-          if (!gl.noLabelsProvided) {
-            ticks = cnf.xaxis.tickAmount - 3;
-          }
         }
 
         // override all min/max values by user defined values (x axis)
