@@ -2596,6 +2596,8 @@ var Series = function () {
       var y = w.globals.svgHeight / 2;
       var textAnchor = 'middle';
 
+      w.globals.noData = true;
+
       if (noDataOpts.align === 'left') {
         x = 10;
         textAnchor = 'start';
@@ -4320,6 +4322,8 @@ var XAxis = function () {
       var xPos = w.globals.padHorizontal;
       var labels = [];
 
+      if (w.globals.noData) return elXaxis;
+
       for (var i = 0; i < this.xaxisLabels.length; i++) {
         labels.push(this.xaxisLabels[i]);
       }
@@ -5058,6 +5062,8 @@ var Config = function () {
         }, opts);
       }
 
+      opts.series = this.checkEmptySeries(opts.series);
+
       opts = this.extendYAxis(opts);
       opts = this.extendAnnotations(opts);
 
@@ -5180,6 +5186,16 @@ var Config = function () {
       var options = new _Options2.default();
       opts.annotations.points = _Utils2.default.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], options.pointAnnotation);
       return opts;
+    }
+  }, {
+    key: 'checkEmptySeries',
+    value: function checkEmptySeries(ser) {
+      if (ser.length === 0) {
+        return [{
+          data: []
+        }];
+      }
+      return ser;
     }
   }, {
     key: 'handleUserInputErrors',
@@ -10492,11 +10508,7 @@ var ApexCharts = function () {
       var w = this.w;
       var gl = this.w.globals;
 
-      if (ser.length === 0) {
-        var series = new _Series2.default(this.ctx);
-        series.handleNoData();
-        return null;
-      }
+      gl.noData = false;
 
       if (!this.responsiveConfigOverrided) {
         var responsive = new _Responsive2.default(this.ctx);
@@ -10509,6 +10521,12 @@ var ApexCharts = function () {
 
       this.clear();
       this.core.setupElements();
+
+      if (ser.length === 0 || ser.length === 1 && ser[0].data.length === 0) {
+        var series = new _Series2.default(this.ctx);
+        series.handleNoData();
+      }
+
       this.setupEventHandlers();
       this.core.parseData(ser);
       // this is a good time to set theme colors first
@@ -10580,7 +10598,6 @@ var ApexCharts = function () {
           return reject(new Error('Not enough data to display or element not found'));
         } else if (graphData === null) {
           series.handleNoData();
-          return null;
         }
 
         me.core.drawAxis(w.config.chart.type, graphData.xyRatios);
@@ -10626,7 +10643,7 @@ var ApexCharts = function () {
           series.handleNoData();
         } else {
           // draw tooltips at the end
-          if (w.config.tooltip.enabled) {
+          if (w.config.tooltip.enabled && !w.globals.noData) {
             var tooltip = new _Tooltip2.default(me.ctx);
             tooltip.drawTooltip(graphData.xyRatios);
           }
@@ -16913,7 +16930,6 @@ var Range = function () {
     key: 'niceScale',
     value: function niceScale(yMin, yMax) {
       var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
-      var toFixed = arguments[3];
 
       if (yMin === Number.MIN_VALUE && yMax === 0 || !_Utils2.default.isNumber(yMin) && !_Utils2.default.isNumber(yMax)) {
         // when all values are 0
@@ -17009,7 +17025,7 @@ var Range = function () {
 
       var step = range / ticks;
       if (ticks === Number.MAX_VALUE) {
-        range = 10;ticks = 10;step = 1;
+        ticks = 10;step = 1;
       }
 
       var result = [];
@@ -17146,7 +17162,7 @@ var Range = function () {
 
         if (maxY === -Number.MAX_VALUE || !_Utils2.default.isNumber(maxY)) {
           // no value in series. draw blank grid
-          gl.yAxisScale.push(_this.justRange(0, 1, 1));
+          gl.yAxisScale.push(_this.justRange(0, 5, 5));
         } else {
           gl.allSeriesCollapsed = false;
           gl.yAxisScale.push(_this.niceScale(minY, maxY, ticksY));
@@ -19342,6 +19358,7 @@ var Globals = function () {
         svgNS: 'http://www.w3.org/2000/svg', // svg namespace
         svgWidth: 0, // the whole svg width
         svgHeight: 0, // the whole svg height
+        noData: false, // whether there is any data to display or not
         culture: {}, // the current culture values will be preserved here for global access
         dom: {}, // for storing all dom nodes in this particular property
         // elWrap: null, // the element that wraps everything

@@ -21,7 +21,7 @@ class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale (yMin, yMax, ticks = 10, toFixed) {
+  niceScale (yMin, yMax, ticks = 10) {
     if ((yMin === Number.MIN_VALUE && yMax === 0) || (!Utils.isNumber(yMin) && !Utils.isNumber(yMax))) {
       // when all values are 0
       yMin = 0
@@ -112,7 +112,7 @@ class Range {
 
     let step = range / ticks
     if (ticks === Number.MAX_VALUE) {
-      range = 10; ticks = 10; step = 1
+      ticks = 10; step = 1
     }
 
     let result = []
@@ -254,8 +254,8 @@ class Range {
         // no value in series. draw blank grid
         gl.yAxisScale.push(this.justRange(
           0,
-          1,
-          1
+          5,
+          5
         ))
       } else {
         gl.allSeriesCollapsed = false

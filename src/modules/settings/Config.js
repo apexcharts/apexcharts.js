@@ -30,6 +30,8 @@ class Config {
       }, opts)
     }
 
+    opts.series = this.checkEmptySeries(opts.series)
+
     opts = this.extendYAxis(opts)
     opts = this.extendAnnotations(opts)
 
@@ -144,6 +146,15 @@ class Config {
     let options = new Options()
     opts.annotations.points = Utils.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], options.pointAnnotation)
     return opts
+  }
+
+  checkEmptySeries (ser) {
+    if (ser.length === 0) {
+      return [{
+        data: []
+      }]
+    }
+    return ser
   }
 
   handleUserInputErrors (opts) {

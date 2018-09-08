@@ -132,11 +132,7 @@ class ApexCharts {
     let w = this.w
     let gl = this.w.globals
 
-    if (ser.length === 0) {
-      const series = new Series(this.ctx)
-      series.handleNoData()
-      return null
-    }
+    gl.noData = false
 
     if (!this.responsiveConfigOverrided) {
       const responsive = new Responsive(this.ctx)
@@ -149,6 +145,12 @@ class ApexCharts {
 
     this.clear()
     this.core.setupElements()
+
+    if (ser.length === 0 || (ser.length === 1 && ser[0].data.length === 0)) {
+      const series = new Series(this.ctx)
+      series.handleNoData()
+    }
+
     this.setupEventHandlers()
     this.core.parseData(ser)
     // this is a good time to set theme colors first
@@ -217,7 +219,6 @@ class ApexCharts {
         return reject(new Error('Not enough data to display or element not found'))
       } else if (graphData === null) {
         series.handleNoData()
-        return null
       }
 
       me.core.drawAxis(
@@ -266,7 +267,7 @@ class ApexCharts {
         series.handleNoData()
       } else {
         // draw tooltips at the end
-        if (w.config.tooltip.enabled) {
+        if (w.config.tooltip.enabled && !w.globals.noData) {
           let tooltip = new Tooltip(me.ctx)
           tooltip.drawTooltip(graphData.xyRatios)
         }

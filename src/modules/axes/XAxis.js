@@ -57,6 +57,8 @@ class XAxis {
     let xPos = w.globals.padHorizontal
     let labels = []
 
+    if (w.globals.noData) return elXaxis
+
     for (let i = 0; i < this.xaxisLabels.length; i++) {
       labels.push(this.xaxisLabels[i])
     }
