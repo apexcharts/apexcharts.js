@@ -10596,7 +10596,7 @@ var ApexCharts = function () {
         // no data to display
         if (me.el === null) {
           return reject(new Error('Not enough data to display or element not found'));
-        } else if (graphData === null) {
+        } else if (graphData === null || w.globals.allSeriesCollapsed) {
           series.handleNoData();
         }
 
@@ -10639,9 +10639,7 @@ var ApexCharts = function () {
           annotations.drawAnnotations();
         }
 
-        if (w.globals.allSeriesCollapsed) {
-          series.handleNoData();
-        } else {
+        if (!w.globals.noData) {
           // draw tooltips at the end
           if (w.config.tooltip.enabled && !w.globals.noData) {
             var tooltip = new _Tooltip2.default(me.ctx);
