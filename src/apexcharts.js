@@ -17,6 +17,7 @@ import Scroller from './modules/Scroller'
 import Title from './modules/Title'
 import Toolbar from './modules/Toolbar'
 import SubTitle from './modules/SubTitle'
+import Options from './modules/settings/Options'
 
 require('./assets/apexcharts.css')
 
@@ -653,13 +654,27 @@ class ApexCharts {
   }
 
   setCurrentCultureValues (cultureName) {
-    const selectedCulture = this.w.config.chart.cultures.find((c) => {
+    let cultures = this.w.config.chart.cultures
+    const options = new Options()
+
+    // check if user has specified cultures in global Apex variable
+    // if yes - then extend those with local chart's culture
+    if (window.Apex.chart && window.Apex.chart.cultures && window.Apex.chart.cultures.length > 0) {
+      cultures = this.w.config.chart.cultures.concat(window.Apex.chart.cultures)
+    }
+
+    // find the culture from the array of cultures which user has set (either by chart.defaultCulture or by calling setCulture() method.)
+    const selectedCulture = cultures.find((c) => {
       return c.name === cultureName
     })
 
     if (selectedCulture) {
-      this.w.globals.culture = selectedCulture.options
-      return selectedCulture.options
+      // create a complete culture object by extending defaults so you don't get undefined errors.
+      let ret = Utils.extend(options.defaultCultureOptions, selectedCulture)
+
+      // store these culture options in global var for ease access
+      this.w.globals.culture = ret.options
+      return options
     } else {
       throw new Error('Wrong culture name provided. Please make sure you set the correct culture name in options')
     }

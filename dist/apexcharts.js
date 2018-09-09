@@ -8868,6 +8868,25 @@ var Options = function () {
         }
       }
     };
+
+    this.defaultCultureOptions = {
+      name: 'en',
+      options: {
+        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        toolbar: {
+          selectionZoom: 'Selection Zoom',
+          zoomIn: 'Zoom In',
+          zoomOut: 'Zoom Out',
+          reset: 'Reset Zoom',
+          pan: 'Panning',
+          selection: 'Selection',
+          download: 'Download SVG'
+        }
+      }
+    };
   }
 
   _createClass(Options, [{
@@ -8895,24 +8914,7 @@ var Options = function () {
             }
           },
           background: 'transparent',
-          cultures: [{
-            name: 'en',
-            options: {
-              months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-              shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-              days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-              shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-              toolbar: {
-                selectionZoom: 'Selection Zoom',
-                zoomIn: 'Zoom In',
-                zoomOut: 'Zoom Out',
-                reset: 'Reset Zoom',
-                pan: 'Panning',
-                selection: 'Selection',
-                download: 'Download SVG'
-              }
-            }
-          }],
+          cultures: [this.defaultCultureOptions],
           defaultCulture: 'en',
           dropShadow: {
             enabled: false,
@@ -10376,6 +10378,10 @@ var _SubTitle = __webpack_require__(136);
 
 var _SubTitle2 = _interopRequireDefault(_SubTitle);
 
+var _Options = __webpack_require__(77);
+
+var _Options2 = _interopRequireDefault(_Options);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -11074,13 +11080,27 @@ var ApexCharts = function () {
   }, {
     key: 'setCurrentCultureValues',
     value: function setCurrentCultureValues(cultureName) {
-      var selectedCulture = this.w.config.chart.cultures.find(function (c) {
+      var cultures = this.w.config.chart.cultures;
+      var options = new _Options2.default();
+
+      // check if user has specified cultures in global Apex variable
+      // if yes - then extend those with local chart's culture
+      if (window.Apex.chart && window.Apex.chart.cultures && window.Apex.chart.cultures.length > 0) {
+        cultures = this.w.config.chart.cultures.concat(window.Apex.chart.cultures);
+      }
+
+      // find the culture from the array of cultures which user has set (either by chart.defaultCulture or by calling setCulture() method.)
+      var selectedCulture = cultures.find(function (c) {
         return c.name === cultureName;
       });
 
       if (selectedCulture) {
-        this.w.globals.culture = selectedCulture.options;
-        return selectedCulture.options;
+        // create a complete culture object by extending defaults so you don't get undefined errors.
+        var ret = _Utils2.default.extend(options.defaultCultureOptions, selectedCulture);
+
+        // store these culture options in global var for ease access
+        this.w.globals.culture = ret.options;
+        return options;
       } else {
         throw new Error('Wrong culture name provided. Please make sure you set the correct culture name in options');
       }
