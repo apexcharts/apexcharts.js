@@ -79,7 +79,7 @@ class Defaults {
       }
     }
 
-    return Utils.extend(ret, defaults)
+    return Utils.extend(defaults, ret)
   }
 
   bar () {
