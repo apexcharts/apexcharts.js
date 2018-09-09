@@ -657,6 +657,7 @@ class Tooltip {
         i: capturedSeries,
         j
       })
+
       self.tooltipPosition.moveMarkers(capturedSeries, j)
     }
   }

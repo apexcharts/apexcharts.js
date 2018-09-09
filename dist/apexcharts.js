@@ -5107,10 +5107,10 @@ var Config = function () {
         }
 
         if (opts.chart.stacked && opts.chart.stackType === '100%') {
-          defaults.stacked100();
+          defaults.stacked100(chartDefaults);
         }
-        if (opts.chart.sparkline && opts.chart.sparkline.enabled) {
-          chartDefaults = defaults.sparkline();
+        if (opts.chart.sparkline && opts.chart.sparkline.enabled || window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled) {
+          chartDefaults = defaults.sparkline(chartDefaults);
         }
         newDefaults = _Utils2.default.extend(config, chartDefaults);
       }
@@ -5135,6 +5135,11 @@ var Config = function () {
       var options = new _Options2.default();
       if (typeof opts.yaxis === 'undefined') {
         opts.yaxis = {};
+      }
+
+      // extend global yaxis config (only if object is provided / not an array)
+      if (opts.yaxis.constructor !== Array && window.Apex.yaxis && window.Apex.yaxis.constructor !== Array) {
+        opts.yaxis = _Utils2.default.extend(opts.yaxis, window.Apex.yaxis);
       }
 
       // as we can't extend nested object's array with extend, we need to do it first
@@ -7577,19 +7582,20 @@ var Scatter = function () {
 
               if (x === 0 && y === 0) finishRadius = 0;
 
-              if (!w.globals.risingSeries.includes(realIndex)) {
-                anim.animateCircle(circle, {
-                  cx: prevX, cy: prevY, r: prevR
-                }, {
-                  cx: x, cy: y, r: finishRadius
-                }, _speed);
-              } else {
-                anim.animateCircle(circle, {
-                  cx: prevX, cy: prevY, r: prevR
-                }, {
-                  cx: x, cy: y, r: finishRadius
-                }, _speed);
-              }
+              // if (!w.globals.risingSeries.includes(realIndex)) {
+              //   anim.animateCircle(circle, {
+              //     cx: prevX, cy: prevY, r: prevR
+              //   }, {
+              //     cx: x, cy: y, r: finishRadius
+              //   }, speed)
+              // }
+              // else {
+              anim.animateCircle(circle, {
+                cx: prevX, cy: prevY, r: prevR
+              }, {
+                cx: x, cy: y, r: finishRadius
+              }, _speed);
+              // }
             } else {
               circle.attr({
                 r: finishRadius
@@ -10522,7 +10528,7 @@ var ApexCharts = function () {
       this.clear();
       this.core.setupElements();
 
-      if (ser.length === 0 || ser.length === 1 && ser[0].data.length === 0) {
+      if (ser.length === 0 || ser[0] && ser[0].data && ser[0].data.length === 0) {
         var series = new _Series2.default(this.ctx);
         series.handleNoData();
       }
@@ -18860,6 +18866,12 @@ exports.default = Grid;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /**
@@ -18902,11 +18914,11 @@ var Defaults = function () {
     }
   }, {
     key: 'sparkline',
-    value: function sparkline() {
+    value: function sparkline(defaults) {
       this.opts.yaxis[0].labels.show = false;
       this.opts.yaxis[0].floating = true;
 
-      return {
+      var ret = {
         grid: {
           show: false,
           padding: {
@@ -18945,6 +18957,8 @@ var Defaults = function () {
           enabled: false
         }
       };
+
+      return _Utils2.default.extend(ret, defaults);
     }
   }, {
     key: 'bar',
@@ -21130,6 +21144,7 @@ var Tooltip = function () {
           i: capturedSeries,
           j: j
         });
+
         self.tooltipPosition.moveMarkers(capturedSeries, j);
       }
     }
