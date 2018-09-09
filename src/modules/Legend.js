@@ -211,7 +211,7 @@ class Legend {
       let elTextOpts = {
         x: x,
         y: y,
-        foreColor: w.config.legend.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.color,
+        foreColor: w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.color,
         text,
         textAnchor: w.config.legend.textAnchor,
         fontSize: fontSize,
@@ -241,6 +241,7 @@ class Legend {
       }
     }
 
+    // for now - just prevent click on heatmap legend - and allow hover only
     const clickAllowed = w.config.chart.type !== 'heatmap'
 
     if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {

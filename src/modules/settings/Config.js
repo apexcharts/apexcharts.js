@@ -31,6 +31,8 @@ class Config {
       }, opts)
     }
 
+    opts.series = this.checkEmptySeries(opts.series)
+
     opts = this.extendYAxis(opts)
     opts = this.extendAnnotations(opts)
 
@@ -77,10 +79,10 @@ class Config {
       }
 
       if (opts.chart.stacked && opts.chart.stackType === '100%') {
-        defaults.stacked100()
+        defaults.stacked100(chartDefaults)
       }
-      if (opts.chart.sparkline && opts.chart.sparkline.enabled) {
-        chartDefaults = defaults.sparkline()
+      if ((opts.chart.sparkline && opts.chart.sparkline.enabled) || (window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled)) {
+        chartDefaults = defaults.sparkline(chartDefaults)
       }
       newDefaults = Utils.extend(config, chartDefaults)
     }
@@ -104,6 +106,11 @@ class Config {
     let options = new Options()
     if (typeof opts.yaxis === 'undefined') {
       opts.yaxis = {}
+    }
+
+    // extend global yaxis config (only if object is provided / not an array)
+    if (opts.yaxis.constructor !== Array && window.Apex.yaxis && window.Apex.yaxis.constructor !== Array) {
+      opts.yaxis = Utils.extend(opts.yaxis, window.Apex.yaxis)
     }
 
     // as we can't extend nested object's array with extend, we need to do it first
@@ -148,6 +155,15 @@ class Config {
     let options = new Options()
     opts.annotations.points = Utils.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], options.pointAnnotation)
     return opts
+  }
+
+  checkEmptySeries (ser) {
+    if (ser.length === 0) {
+      return [{
+        data: []
+      }]
+    }
+    return ser
   }
 
   handleUserInputErrors (opts) {

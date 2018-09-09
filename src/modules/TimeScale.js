@@ -103,7 +103,8 @@ class TimeScale {
           value: ts.value + 1,
           unit: ts.unit,
           year: ts.year,
-          month: ts.month + 1
+          month: ts.month + 1,
+          day: 1
         }
       } else if (ts.unit === 'day' || ts.unit === 'hour') {
         return {
@@ -111,7 +112,8 @@ class TimeScale {
           value: ts.value,
           unit: ts.unit,
           year: ts.year,
-          month: ts.month + 1
+          month: ts.month + 1,
+          day: ts.day
         }
       }
 
@@ -333,7 +335,7 @@ class TimeScale {
       }
       let year = currentYear + Math.floor(month / 12) + (yrCounter)
 
-      pos = ((dt.determineDaysOfMonths(month, year) * daysWidthOnXAxis)) + pos
+      pos = (dt.determineDaysOfMonths(month, year) * daysWidthOnXAxis) + pos
       let monthVal = month === 0 ? year : month
       this.timeScaleArray.push({ position: pos, value: monthVal, unit, year, month: month === 0 ? 1 : month })
       month++
@@ -375,7 +377,7 @@ class TimeScale {
     let month = changeMonth(date, currentMonth, currentYear)
 
     // push the first tick in the array
-    this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit, year: currentYear, month: this.monthMod(month) })
+    this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit, year: currentYear, month: this.monthMod(month), day: firstTickValue })
 
     let pos = firstTickPosition
     // keep drawing rest of the ticks
@@ -388,7 +390,7 @@ class TimeScale {
 
       pos = (24 * hoursWidthOnXAxis) + pos
       let val = (date === 1) ? this.monthMod(month) : date
-      this.timeScaleArray.push({ position: pos, value: val, unit, year, month: this.monthMod(month) })
+      this.timeScaleArray.push({ position: pos, value: val, unit, year, month: this.monthMod(month), day: val })
     }
   }
 
@@ -473,11 +475,11 @@ class TimeScale {
 
       let dt = new DateTime(this.ctx)
 
-      let dateString = ts.year
-      dateString += '-' + ('0' + ts.month.toString()).slice(-2)
-      dateString += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01'
-      dateString += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) + ':00:00' : 'T00:00:00'
-      dateString = new Date(Date.parse(dateString))
+      let raw = ts.year
+      raw += '-' + ('0' + ts.month.toString()).slice(-2)
+      raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01'
+      raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) + ':00:00' : 'T00:00:00.000Z'
+      const dateString = new Date(Date.parse(raw))
 
       if (w.config.xaxis.labels.format === undefined) {
         let customFormat = 'dd MMM'
@@ -493,6 +495,7 @@ class TimeScale {
       }
 
       return {
+        dateString: raw,
         position: ts.position,
         value: value,
         unit: ts.unit,

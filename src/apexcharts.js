@@ -63,6 +63,9 @@ class ApexCharts {
         if (this.w.config.chart.id) {
           Apex._chartInstances.push({id: this.w.globals.chartID, chart: this})
         }
+
+        // set the culture here
+        this.setCulture(this.w.config.chart.defaultCulture)
         const beforeMount = this.w.config.chart.events.beforeMount
         if (typeof beforeMount === 'function') {
           beforeMount(this, this.w)
@@ -129,11 +132,7 @@ class ApexCharts {
     let w = this.w
     let gl = this.w.globals
 
-    if (ser.length === 0) {
-      const series = new Series(this.ctx)
-      series.handleNoData()
-      return null
-    }
+    gl.noData = false
 
     if (!this.responsiveConfigOverrided) {
       const responsive = new Responsive(this.ctx)
@@ -146,6 +145,12 @@ class ApexCharts {
 
     this.clear()
     this.core.setupElements()
+
+    if (ser.length === 0 || (ser[0] && ser[0].data && ser[0].data.length === 0)) {
+      const series = new Series(this.ctx)
+      series.handleNoData()
+    }
+
     this.setupEventHandlers()
     this.core.parseData(ser)
     // this is a good time to set theme colors first
@@ -212,9 +217,8 @@ class ApexCharts {
       // no data to display
       if (me.el === null) {
         return reject(new Error('Not enough data to display or element not found'))
-      } else if (graphData === null) {
+      } else if (graphData === null || w.globals.allSeriesCollapsed) {
         series.handleNoData()
-        return null
       }
 
       me.core.drawAxis(
@@ -259,11 +263,9 @@ class ApexCharts {
         annotations.drawAnnotations()
       }
 
-      if (w.globals.allSeriesCollapsed) {
-        series.handleNoData()
-      } else {
+      if (!w.globals.noData) {
         // draw tooltips at the end
-        if (w.config.tooltip.enabled) {
+        if (w.config.tooltip.enabled && !w.globals.noData) {
           let tooltip = new Tooltip(me.ctx)
           tooltip.drawTooltip(graphData.xyRatios)
         }
@@ -313,8 +315,13 @@ class ApexCharts {
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
    */
-  updateOptions (options, redraw = false, animate = true) {
-    return this.updateOptionsInternal(options, redraw, animate, true)
+  updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = true) {
+    if (options.series) {
+      // user updated the series via updateOptions() function.
+      // Hence, we need to reset axis min/max to avoid zooming issues
+      this.revertDefaultAxisMinMax()
+    }
+    return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig)
   }
 
   /**
@@ -323,9 +330,9 @@ class ApexCharts {
    * @param {object} options - A new config object can be passed which will be merged with the existing config object
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
-   * @param {boolean} makeDefaultConfig - should update the default config or not
+   * @param {boolean} overwriteInitialConfig - should update the initial config or not
    */
-  updateOptionsInternal (options, redraw = false, animate = true, makeDefaultConfig = false) {
+  updateOptionsInternal (options, redraw = false, animate = true, overwriteInitialConfig = false) {
     let w = this.w
     this.w.config.chart.animations.dynamicAnimation.enabled = animate
 
@@ -364,9 +371,9 @@ class ApexCharts {
 
       w.config = Utils.extend(w.config, options)
 
-      if (makeDefaultConfig) {
+      if (overwriteInitialConfig) {
         w.globals.initialConfig = Utils.extend({}, w.config)
-        w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series))
+        w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
       }
     }
 
@@ -378,8 +385,9 @@ class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  updateSeries (newSeries = [], animate = true, makeDefaultConfig = false) {
-    return this.updateSeriesInternal(newSeries, animate, makeDefaultConfig)
+  updateSeries (newSeries = [], animate = true, overwriteInitialSeries = true) {
+    this.revertDefaultAxisMinMax()
+    return this.updateSeriesInternal(newSeries, animate, overwriteInitialSeries)
   }
 
   /**
@@ -387,7 +395,7 @@ class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  updateSeriesInternal (newSeries, animate, makeDefaultConfig) {
+  updateSeriesInternal (newSeries, animate, overwriteInitialSeries = false) {
     const w = this.w
     this.w.config.chart.animations.dynamicAnimation.enabled = animate
     let series = new Series(this.ctx)
@@ -399,9 +407,8 @@ class ApexCharts {
     }
 
     w.config.series = newSeries.slice()
-    if (makeDefaultConfig) {
-      w.globals.initialConfig = Utils.extend({}, w.config)
-      w.globals.initialSeries = JSON.parse(JSON.stringify(w.globals.initialConfig.series))
+    if (overwriteInitialSeries) {
+      w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
     }
 
     return this.update()
@@ -412,7 +419,7 @@ class ApexCharts {
    *
    * @param {array} newData - New data in the same format as series
    */
-  appendData (newData) {
+  appendData (newData, overwriteInitialSeries = true) {
     let me = this
 
     let series = new Series(me.ctx)
@@ -431,9 +438,9 @@ class ApexCharts {
       }
     }
     me.w.config.series = newSeries
-
-    me.w.globals.initialConfig = Utils.extend({}, me.w.config)
-    me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.globals.initialConfig.series))
+    if (overwriteInitialSeries) {
+      me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.config.series))
+    }
 
     return this.update()
   }
@@ -458,6 +465,23 @@ class ApexCharts {
     })
   }
 
+  /**
+   * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
+   * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
+   * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
+   */
+  revertDefaultAxisMinMax () {
+    const w = this.w
+
+    w.config.xaxis.min = w.globals.initialConfig.xaxis.min
+    w.config.xaxis.max = w.globals.initialConfig.xaxis.max
+
+    w.config.yaxis.map((yaxe, index) => {
+      w.config.yaxis[index].min = w.globals.initialYAxis[index].min
+      w.config.yaxis[index].max = w.globals.initialYAxis[index].max
+    })
+  }
+
   clear () {
     if (this.el !== null) {
       // remove all child elements - resetting the whole chart
@@ -474,6 +498,20 @@ class ApexCharts {
   destroy () {
     this.clear()
     window.removeEventListener('resize', this.windowResizeHandler)
+  }
+
+  /**
+   * Allows the user to provide data attrs in the element and the chart will render automatically when this method is called by searching for the elements containing 'data-apexcharts' attribute
+   */
+  static initOnLoad () {
+    const els = document.querySelectorAll('[data-apexcharts]')
+
+    for (let i = 0; i < els.length; i++) {
+      const el = els[i]
+      const options = JSON.parse(els[i].getAttribute('data-options'))
+      const apexChart = new ApexCharts(el, options)
+      apexChart.render()
+    }
   }
 
   /**
@@ -608,6 +646,23 @@ class ApexCharts {
 
   getSeriesTotal () {
     return this.w.globals.seriesTotals
+  }
+
+  setCulture (cultureName) {
+    this.setCurrentCultureValues(cultureName)
+  }
+
+  setCurrentCultureValues (cultureName) {
+    const selectedCulture = this.w.config.chart.cultures.find((c) => {
+      return c.name === cultureName
+    })
+
+    if (selectedCulture) {
+      this.w.globals.culture = selectedCulture.options
+      return selectedCulture.options
+    } else {
+      throw new Error('Wrong culture name provided. Please make sure you set the correct culture name in options')
+    }
   }
 
   paper () {

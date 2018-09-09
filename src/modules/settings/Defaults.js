@@ -1,3 +1,5 @@
+import Utils from '../../utils/Utils'
+
 /**
  * ApexCharts Default Class for setting default options for all chart types.
  *
@@ -26,7 +28,6 @@ class Defaults {
       },
       xaxis: {
         crosshairs: {
-          // TODO: make default 1
           width: 1
         }
       }
@@ -34,11 +35,11 @@ class Defaults {
     }
   }
 
-  sparkline () {
+  sparkline (defaults) {
     this.opts.yaxis[0].labels.show = false
     this.opts.yaxis[0].floating = true
 
-    return {
+    const ret = {
       grid: {
         show: false,
         padding: {
@@ -77,6 +78,8 @@ class Defaults {
         enabled: false
       }
     }
+
+    return Utils.extend(ret, defaults)
   }
 
   bar () {
@@ -273,6 +276,11 @@ class Defaults {
       },
       fill: {
         opacity: 1
+      },
+      dataLabels: {
+        style: {
+          colors: ['#fff']
+        }
       },
       stroke: {
         colors: ['#fff']

@@ -181,7 +181,25 @@ export default class Options {
           }
         },
         background: 'transparent',
-        foreColor: '#373d3f',
+        cultures: [{
+          name: 'en',
+          options: {
+            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            toolbar: {
+              selectionZoom: 'Selection Zoom',
+              zoomIn: 'Zoom In',
+              zoomOut: 'Zoom Out',
+              reset: 'Reset Zoom',
+              pan: 'Panning',
+              selection: 'Selection',
+              download: 'Download SVG'
+            }
+          }
+        }],
+        defaultCulture: 'en',
         dropShadow: {
           enabled: false,
           enabledSeries: undefined,
@@ -200,6 +218,7 @@ export default class Options {
           zoomed: undefined,
           scrolled: undefined
         },
+        foreColor: '#373d3f',
         height: 'auto',
         offsetX: 0,
         offsetY: 0,
@@ -507,7 +526,7 @@ export default class Options {
         offsetX: 0,
         formatter: undefined,
         labels: {
-          color: undefined,
+          colors: undefined,
           useSeriesColors: false
         },
         markers: {
@@ -690,7 +709,7 @@ export default class Options {
           color: '#78909C',
           offsetX: 0,
           offsetY: 0,
-          strokeWidth: 1 // TODO: add in the website docs
+          strokeWidth: 1
         },
         axisTicks: {
           show: true,

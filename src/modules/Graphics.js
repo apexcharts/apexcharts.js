@@ -426,7 +426,7 @@ class Graphics {
         fill: opts.pointFillColor,
         'fill-opacity': opts.pointFillOpacity ? opts.pointFillOpacity : 1,
         stroke: opts.pointStrokeColor,
-        'stroke-width': opts.pWidth ? opts.pWidth : 1,
+        'stroke-width': opts.pWidth ? opts.pWidth : 0,
         'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
       })
 

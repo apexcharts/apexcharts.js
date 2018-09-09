@@ -292,6 +292,8 @@ export default class Series {
     let y = w.globals.svgHeight / 2
     let textAnchor = 'middle'
 
+    w.globals.noData = true
+
     if (noDataOpts.align === 'left') {
       x = 10
       textAnchor = 'start'

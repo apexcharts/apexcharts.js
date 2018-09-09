@@ -18,6 +18,8 @@ class Toolbar {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
+
+    this.cultureValues = this.w.globals.culture.toolbar
   }
 
   createToolbar () {
@@ -40,7 +42,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elCamera,
         icon: icoCamera,
-        title: 'Download SVG',
+        title: this.cultureValues.download,
         class: 'apexcharts-download-icon'
       })
     }
@@ -49,7 +51,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elSelection,
         icon: icoSelect,
-        title: 'Select',
+        title: this.cultureValues.selection,
         class: 'apexcharts-selection-icon'
       })
     }
@@ -58,7 +60,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoomIn,
         icon: icoZoomIn,
-        title: 'Zoom In',
+        title: this.cultureValues.zoomIn,
         class: 'apexcharts-zoom-in-icon'
       })
     }
@@ -67,7 +69,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoomOut,
         icon: icoZoomOut,
-        title: 'Zoom Out',
+        title: this.cultureValues.zoomOut,
         class: 'apexcharts-zoom-out-icon'
       })
     }
@@ -76,7 +78,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoom,
         icon: icoZoom,
-        title: 'Zoom',
+        title: this.cultureValues.selectionZoom,
         class: 'apexcharts-zoom-icon'
       })
     }
@@ -85,7 +87,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elPan,
         icon: icoPan,
-        title: 'Panning',
+        title: this.cultureValues.panning,
         class: 'apexcharts-pan-icon'
       })
     }
@@ -94,7 +96,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoomReset,
         icon: icoReset,
-        title: 'Reset Zoom',
+        title: this.cultureValues.reset,
         class: 'apexcharts-reset-zoom-icon'
       })
     }
@@ -261,13 +263,13 @@ class Toolbar {
     if (w.globals.minX === w.globals.initialminX && w.globals.maxX === w.globals.initialmaxX) return
 
     w.config.yaxis.map((yaxe, index) => {
-      yaxis[index].min = w.globals.initialConfig.yaxis[index].min
-      yaxis[index].max = w.globals.initialConfig.yaxis[index].max
+      yaxis[index].min = w.globals.initialYAxis[index].min
+      yaxis[index].max = w.globals.initialYAxis[index].max
     })
     xaxis.min = w.globals.initialConfig.xaxis.min
     xaxis.max = w.globals.initialConfig.xaxis.max
 
-    me.ctx.updateOptionsInternal(w.globals.initialConfig, false, true)
+    me.ctx.updateSeriesInternal(w.globals.initialSeries, true)
   }
 }
 

@@ -56,7 +56,7 @@
   </div>
 
 
-  <script src="../../dist/apexcharts.min.js"></script>
+  <script src="../../dist/apexcharts.js"></script>
   <script src="../assets/series1000.js"></script>
 
   <script>
@@ -109,7 +109,13 @@
       },
       xaxis: {
         type: 'datetime',
-        min: new Date('01 Mar 2012').getTime()
+        min: new Date('01 Mar 2012').getTime(),
+        tickAmount: 6,
+        labels: {
+          formatter: function(val, timestamp) {
+           return val;
+          }
+        }
       },
       tooltip: {
         key: {
@@ -151,7 +157,7 @@
           min: new Date('28 Jan 2013').getTime(),
           max: new Date('27 Feb 2013').getTime(),
         }
-      })
+      }, false, true, false)
     })
 
     document.querySelector("#six_months").addEventListener('click', function (e) {
@@ -161,7 +167,7 @@
           min: new Date('27 Sep 2012').getTime(),
           max: new Date('27 Feb 2013').getTime(),
         }
-      })
+      }, false, true, false)
     })
 
     document.querySelector("#one_year").addEventListener('click', function (e) {
@@ -171,7 +177,7 @@
           min: new Date('27 Feb 2012').getTime(),
           max: new Date('27 Feb 2013').getTime(),
         }
-      })
+      }, false, true, false)
     })
 
     document.querySelector("#ytd").addEventListener('click', function (e) {
@@ -181,7 +187,7 @@
           min: new Date('01 Jan 2013').getTime(),
           max: new Date('27 Feb 2013').getTime(),
         }
-      })
+      }, false, true, false)
     })
 
     document.querySelector("#all").addEventListener('click', function (e) {
@@ -191,7 +197,7 @@
           min: undefined,
           max: undefined,
         }
-      })
+      }, false, true, false)
     })
 
     document.querySelector("#ytd").addEventListener('click', function () {

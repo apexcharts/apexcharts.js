@@ -124,11 +124,20 @@ class Scatter {
 
             if (x === 0 && y === 0) finishRadius = 0
 
+            // if (!w.globals.risingSeries.includes(realIndex)) {
+            //   anim.animateCircle(circle, {
+            //     cx: prevX, cy: prevY, r: prevR
+            //   }, {
+            //     cx: x, cy: y, r: finishRadius
+            //   }, speed)
+            // }
+            // else {
             anim.animateCircle(circle, {
               cx: prevX, cy: prevY, r: prevR
             }, {
               cx: x, cy: y, r: finishRadius
             }, speed)
+            // }
           } else {
             circle.attr({
               r: finishRadius

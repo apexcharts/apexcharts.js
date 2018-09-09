@@ -1,14 +1,14 @@
 {
   "name": "apexcharts",
   "description": "A JavaScript Chart Library",
-  "version": "1.4.3",
+  "version": "1.4.10",
   "main": "dist/apexcharts.min.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
     "start": "webpack --watch",
-    "build": "webpack -p",
+    "build": "gulp build",
     "test": "jest"
   },
   "dependencies": {
@@ -45,6 +45,11 @@
     "eslint-plugin-node": "^6.0.1",
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
+    "gulp": "^3.9.1",
+    "gulp-remove-logging": "^1.2.0",
+    "gulp-rename": "^1.4.0",
+    "gulp-strip-debug": "^3.0.0",
+    "gulp-uglify": "^3.0.1",
     "imports-loader": "^0.7.1",
     "jest": "^23.5.0",
     "jest-puppeteer": "^3.3.1",

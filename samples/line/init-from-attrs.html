@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Circle Gauge Chart</title>
+    <title>Init Chart from data attrs</title>
 
 
     <link href="../assets/styles.css" rel="stylesheet" />
@@ -19,7 +19,18 @@
 </head>
 
 <body>
-    <div id="chart">
+    <div id="chart" data-apexcharts data-options='{
+        "chart": {
+            "type": "line"
+        },
+        "series": [{
+            "name": "Desktops",
+            "data": [30, 41, 35, 51]
+        }],
+        "xaxis": {
+            "categories": ["Jan", "Feb", "Mar", "Apr"]
+        }
+    }'>
 
     </div>
 
@@ -27,29 +38,18 @@
     <script src="../../dist/apexcharts.js"></script>
 
     <script>
-        var options = {
+        window.Apex = {
             chart: {
-                height: 380,
-                type: 'radialBar',
+                height: 380
             },
-            plotOptions: {
-                radialBar: {
-                    hollow: {
-                        size: '70%',
-                    }
-                },
+            stroke: {
+                curve: "smooth"
             },
-            series: [70],
-            labels: ['Cricket'],
-
+            dataLabels: {
+                enabled: false
+            }
         }
-
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
+        ApexCharts.initOnLoad()
     </script>
 </body>
 

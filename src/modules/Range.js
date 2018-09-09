@@ -21,7 +21,7 @@ class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale (yMin, yMax, ticks = 10, toFixed) {
+  niceScale (yMin, yMax, ticks = 10) {
     if ((yMin === Number.MIN_VALUE && yMax === 0) || (!Utils.isNumber(yMin) && !Utils.isNumber(yMax))) {
       // when all values are 0
       yMin = 0
@@ -78,7 +78,7 @@ class Range {
       if (val > ub) { break }
     }
 
-    // TODO: need to remove this stupid condition below which makes this function tightly coupled.
+    // TODO: need to remove this condition below which makes this function tightly coupled with w.
     if (this.w.config.yaxis[0].max === undefined &&
       this.w.config.yaxis[0].min === undefined) {
       return {
@@ -93,9 +93,6 @@ class Range {
       let valuesDivider = Math.abs(yMax - yMin) / ticks
       for (let i = 0; i <= ticks - 1; i++) {
         v = v + valuesDivider
-        if (v % 1 !== 0 && typeof (toFixed) !== 'undefined') {
-          v = parseFloat(v.toFixed(toFixed))
-        }
         result.push(v)
       }
 
@@ -254,8 +251,8 @@ class Range {
         // no value in series. draw blank grid
         gl.yAxisScale.push(this.justRange(
           0,
-          1,
-          1
+          5,
+          5
         ))
       } else {
         gl.allSeriesCollapsed = false
@@ -334,9 +331,6 @@ class Range {
         }
       } else {
         ticks = cnf.xaxis.tickAmount
-        if (!gl.noLabelsProvided) {
-          ticks = cnf.xaxis.tickAmount - 3
-        }
       }
 
       // override all min/max values by user defined values (x axis)
