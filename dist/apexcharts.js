@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 165);
+/******/ 	return __webpack_require__(__webpack_require__.s = 166);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -1228,8 +1228,8 @@ if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 var global = __webpack_require__(3);
 var core = __webpack_require__(4);
 var hide = __webpack_require__(12);
-var redefine = __webpack_require__(14);
-var ctx = __webpack_require__(13);
+var redefine = __webpack_require__(15);
+var ctx = __webpack_require__(14);
 var PROTOTYPE = 'prototype';
 
 var $export = function $export(type, name, source) {
@@ -1569,7 +1569,7 @@ module.exports = function (it) {
 
 
 var anObject = __webpack_require__(7);
-var IE8_DOM_DEFINE = __webpack_require__(53);
+var IE8_DOM_DEFINE = __webpack_require__(54);
 var toPrimitive = __webpack_require__(43);
 var dP = Object.defineProperty;
 
@@ -1629,90 +1629,6 @@ module.exports = __webpack_require__(10) ? function (object, key, value) {
 
 /***/ }),
 /* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// optional / simple context binding
-var aFunction = __webpack_require__(17);
-module.exports = function (fn, that, length) {
-  aFunction(fn);
-  if (that === undefined) return fn;
-  switch (length) {
-    case 1:
-      return function (a) {
-        return fn.call(that, a);
-      };
-    case 2:
-      return function (a, b) {
-        return fn.call(that, a, b);
-      };
-    case 3:
-      return function (a, b, c) {
-        return fn.call(that, a, b, c);
-      };
-  }
-  return function () /* ...args */{
-    return fn.apply(that, arguments);
-  };
-};
-
-/***/ }),
-/* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var global = __webpack_require__(3);
-var hide = __webpack_require__(12);
-var has = __webpack_require__(11);
-var SRC = __webpack_require__(24)('src');
-var TO_STRING = 'toString';
-var $toString = Function[TO_STRING];
-var TPL = ('' + $toString).split(TO_STRING);
-
-__webpack_require__(4).inspectSource = function (it) {
-  return $toString.call(it);
-};
-
-(module.exports = function (O, key, val, safe) {
-  var isFunction = typeof val == 'function';
-  if (isFunction) has(val, 'name') || hide(val, 'name', key);
-  if (O[key] === val) return;
-  if (isFunction) has(val, SRC) || hide(val, SRC, O[key] ? '' + O[key] : TPL.join(String(key)));
-  if (O === global) {
-    O[key] = val;
-  } else if (!safe) {
-    delete O[key];
-    hide(O, key, val);
-  } else if (O[key]) {
-    O[key] = val;
-  } else {
-    hide(O, key, val);
-  }
-  // add fake Function#toString for correct work wrapped methods / constructors with methods like LoDash isNative
-})(Function.prototype, TO_STRING, function toString() {
-  return typeof this == 'function' && this[SRC] || $toString.call(this);
-});
-
-/***/ }),
-/* 15 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// to indexed object, toObject with fallback for non-array-like ES3 strings
-var IObject = __webpack_require__(37);
-var defined = __webpack_require__(34);
-module.exports = function (it) {
-  return IObject(defined(it));
-};
-
-/***/ }),
-/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1992,6 +1908,90 @@ var Fill = function () {
 }();
 
 exports.default = Fill;
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// optional / simple context binding
+var aFunction = __webpack_require__(17);
+module.exports = function (fn, that, length) {
+  aFunction(fn);
+  if (that === undefined) return fn;
+  switch (length) {
+    case 1:
+      return function (a) {
+        return fn.call(that, a);
+      };
+    case 2:
+      return function (a, b) {
+        return fn.call(that, a, b);
+      };
+    case 3:
+      return function (a, b, c) {
+        return fn.call(that, a, b, c);
+      };
+  }
+  return function () /* ...args */{
+    return fn.apply(that, arguments);
+  };
+};
+
+/***/ }),
+/* 15 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var global = __webpack_require__(3);
+var hide = __webpack_require__(12);
+var has = __webpack_require__(11);
+var SRC = __webpack_require__(24)('src');
+var TO_STRING = 'toString';
+var $toString = Function[TO_STRING];
+var TPL = ('' + $toString).split(TO_STRING);
+
+__webpack_require__(4).inspectSource = function (it) {
+  return $toString.call(it);
+};
+
+(module.exports = function (O, key, val, safe) {
+  var isFunction = typeof val == 'function';
+  if (isFunction) has(val, 'name') || hide(val, 'name', key);
+  if (O[key] === val) return;
+  if (isFunction) has(val, SRC) || hide(val, SRC, O[key] ? '' + O[key] : TPL.join(String(key)));
+  if (O === global) {
+    O[key] = val;
+  } else if (!safe) {
+    delete O[key];
+    hide(O, key, val);
+  } else if (O[key]) {
+    O[key] = val;
+  } else {
+    hide(O, key, val);
+  }
+  // add fake Function#toString for correct work wrapped methods / constructors with methods like LoDash isNative
+})(Function.prototype, TO_STRING, function toString() {
+  return typeof this == 'function' && this[SRC] || $toString.call(this);
+});
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// to indexed object, toObject with fallback for non-array-like ES3 strings
+var IObject = __webpack_require__(37);
+var defined = __webpack_require__(34);
+module.exports = function (it) {
+  return IObject(defined(it));
+};
 
 /***/ }),
 /* 17 */
@@ -2664,7 +2664,7 @@ exports.default = Series;
 
 
 // 19.1.2.14 / 15.2.3.14 Object.keys(O)
-var $keys = __webpack_require__(62);
+var $keys = __webpack_require__(63);
 var enumBugKeys = __webpack_require__(36);
 
 module.exports = Object.keys || function keys(O) {
@@ -2720,7 +2720,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _YAxis = __webpack_require__(48);
+var _YAxis = __webpack_require__(49);
 
 var _YAxis2 = _interopRequireDefault(_YAxis);
 
@@ -3503,7 +3503,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DateTime = __webpack_require__(50);
+var _DateTime = __webpack_require__(51);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
@@ -3853,7 +3853,7 @@ module.exports = function (it, S) {
 var global = __webpack_require__(3);
 var core = __webpack_require__(4);
 var LIBRARY = __webpack_require__(21);
-var wksExt = __webpack_require__(67);
+var wksExt = __webpack_require__(68);
 var defineProperty = __webpack_require__(9).f;
 module.exports = function (name) {
   var $Symbol = core.Symbol || (core.Symbol = LIBRARY ? {} : global.Symbol || {});
@@ -3873,2209 +3873,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Scatter = __webpack_require__(73);
-
-var _Scatter2 = _interopRequireDefault(_Scatter);
-
-var _Graphics = __webpack_require__(0);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-var _Filters = __webpack_require__(6);
-
-var _Filters2 = _interopRequireDefault(_Filters);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
- *
- * @module DataLabels
- **/
-
-var DataLabels = function () {
-  function DataLabels(ctx) {
-    _classCallCheck(this, DataLabels);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
-  // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
-
-
-  _createClass(DataLabels, [{
-    key: 'dataLabelsCorrection',
-    value: function dataLabelsCorrection(x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize, pointSize) {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-      var drawnextLabel = false; //
-
-      var textRects = graphics.getTextRects(val, fontSize);
-      var width = textRects.width;
-      var height = textRects.height;
-
-      // first value in series, so push an empty array
-      if (typeof w.globals.dataLabelsRects[i] === 'undefined') w.globals.dataLabelsRects[i] = [];
-
-      // then start pushing actual rects in that sub-array
-      w.globals.dataLabelsRects[i].push({ x: x, y: y, width: width, height: height });
-
-      var len = w.globals.dataLabelsRects[i].length - 2;
-      var lastDrawnIndex = typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined' ? w.globals.lastDrawnDataLabelsIndexes[i][w.globals.lastDrawnDataLabelsIndexes[i].length - 1] : 0;
-
-      if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
-        var lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex];
-        if (
-        // next label forward and x not intersecting
-        x > lastDataLabelRect.x + lastDataLabelRect.width + 2 || y > lastDataLabelRect.y + lastDataLabelRect.height + 2 || x + width < lastDataLabelRect.x // next label is going to be drawn backwards
-        ) {
-            // the 2 indexes don't override, so OK to draw next label
-            drawnextLabel = true;
-          }
-      }
-
-      if (realIndexP === 0 || alwaysDrawDataLabel) {
-        drawnextLabel = true;
-      }
-
-      return {
-        x: x,
-        y: y,
-        drawnextLabel: drawnextLabel
-      };
-    }
-  }, {
-    key: 'drawDataLabel',
-    value: function drawDataLabel(pos, i, j) {
-      var z = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
-
-      // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
-      // all other charts like bars / heatmaps will define their own drawDataLabel routine
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var dataLabelsConfig = w.config.dataLabels;
-
-      var x = 0;
-      var y = 0;
-
-      var realIndexP = j;
-
-      var elDataLabelsWrap = null;
-
-      if (dataLabelsConfig.enabled) {
-        elDataLabelsWrap = graphics.group({
-          class: 'apexcharts-data-labels'
-        });
-
-        if (pos.x instanceof Array) {
-          for (var q = 0; q < pos.x.length; q++) {
-            x = pos.x[q] + dataLabelsConfig.offsetX;
-            y = pos.y[q] + dataLabelsConfig.offsetY - w.config.markers.size - 5;
-
-            if (!isNaN(x)) {
-              // a small hack as we have 2 points for the first val to connect it
-              if (j === 1 && q === 0) realIndexP = 0;
-              if (j === 1 && q === 1) realIndexP = 1;
-
-              var val = w.globals.series[i][realIndexP];
-
-              var text = '';
-
-              if (w.config.chart.type === 'bubble') {
-                text = w.globals.seriesZ[i][realIndexP];
-                y = pos.y[q] + w.config.dataLabels.offsetY;
-                var scatter = new _Scatter2.default(this.ctx);
-                var centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, realIndexP);
-                y = centerTextInBubbleCoords.y;
-              } else {
-                if (typeof val !== 'undefined') {
-                  text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals });
-                }
-              }
-              this.plotDataLabelsText(x, y, text, i, realIndexP, elDataLabelsWrap, w.config.dataLabels);
-            }
-          }
-        }
-      }
-
-      return elDataLabelsWrap;
-    }
-  }, {
-    key: 'plotDataLabelsText',
-    value: function plotDataLabelsText(x, y, text, i, j, elToAppendTo, dataLabelsConfig) {
-      var alwaysDrawDataLabel = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : false;
-
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var correctedLabels = this.dataLabelsCorrection(x, y, text, i, j, alwaysDrawDataLabel, parseInt(dataLabelsConfig.style.fontSize), w.config.markers.size <= w.config.markers.hover.size ? w.config.markers.hover.size : w.config.markers.size);
-
-      // when zoomed, we don't need to correct labels offsets,
-      // but if normally, labels get cropped, correct them
-      if (!w.globals.zoomed) {
-        x = correctedLabels.x;
-        y = correctedLabels.y;
-      }
-
-      if (correctedLabels.drawnextLabel) {
-        var dataLabelText = graphics.drawText({
-          width: 100,
-          height: parseInt(dataLabelsConfig.style.fontSize),
-          x: x,
-          y: y,
-          foreColor: w.globals.dataLabels.style.colors[i],
-          textAnchor: dataLabelsConfig.textAnchor,
-          text: text,
-          fontSize: dataLabelsConfig.style.fontSize
-        });
-
-        dataLabelText.attr({
-          class: 'apexcharts-datalabel',
-          cx: x,
-          cy: y
-        });
-
-        if (dataLabelsConfig.dropShadow.enabled) {
-          var textShadow = dataLabelsConfig.dropShadow;
-          var filters = new _Filters2.default(this.ctx);
-          filters.dropShadow(dataLabelText, textShadow);
-        }
-
-        elToAppendTo.add(dataLabelText);
-
-        if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
-          w.globals.lastDrawnDataLabelsIndexes[i] = [];
-        }
-
-        w.globals.lastDrawnDataLabelsIndexes[i].push(j);
-      }
-    }
-  }]);
-
-  return DataLabels;
-}();
-
-exports.default = DataLabels;
-
-/***/ }),
-/* 46 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Filters = __webpack_require__(6);
-
-var _Filters2 = _interopRequireDefault(_Filters);
-
-var _Graphics = __webpack_require__(0);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Markers Class for drawing points on y values in axes charts.
- *
- * @module Markers
- **/
-
-var Markers = function () {
-  function Markers(ctx, opts) {
-    _classCallCheck(this, Markers);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  _createClass(Markers, [{
-    key: 'plotChartMarkers',
-    value: function plotChartMarkers(pointsPos, seriesIndex, j) {
-      var _this = this;
-
-      var w = this.w;
-
-      var p = pointsPos;
-      var elPointsWrap = null;
-
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var point = void 0;
-
-      if (w.config.markers.size > 0) {
-        elPointsWrap = graphics.group({
-          class: 'apexcharts-series-markers'
-        });
-      }
-
-      if (p.x instanceof Array) {
-        var _loop = function _loop(q) {
-          var realIndexP = j;
-
-          var PointClasses = 'apexcharts-marker';
-          if ((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts && !w.config.tooltip.intersect) {
-            PointClasses += ' no-pointer-events';
-          }
-
-          if (w.config.markers.size > 0) {
-            if (p.y[q] !== null) {
-              PointClasses += ' w' + (Math.random() + 1).toString(36).substring(4);
-            } else {
-              PointClasses = 'apexcharts-nullpoint';
-            }
-
-            var opts = _this.getMarkerConfig(PointClasses, seriesIndex);
-            w.config.markers.discrete.map(function (marker, mIndex) {
-              if (marker.i === seriesIndex && marker.j === realIndexP) {
-                opts.pointStrokeColor = marker.strokeColor;
-                opts.pointFillColor = marker.fillColor;
-                opts.size = marker.size;
-              }
-            });
-
-            point = graphics.drawMarker(p.x[q], p.y[q], opts);
-
-            // a small hack as we have 2 points for the first val to connect it
-            if (j === 1 && q === 0) realIndexP = 0;
-            if (j === 1 && q === 1) realIndexP = 1;
-
-            point.attr('rel', realIndexP);
-            point.attr('j', realIndexP);
-            point.attr('index', seriesIndex);
-
-            _this.setSelectedPointFilter(point, seriesIndex, realIndexP);
-            _this.addEvents(point);
-
-            elPointsWrap.add(point);
-          } else {
-            // dynamic array creation - multidimensional
-            if (typeof w.globals.pointsArray[seriesIndex] === 'undefined') w.globals.pointsArray[seriesIndex] = [];
-
-            w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]]);
-          }
-        };
-
-        for (var q = 0; q < p.x.length; q++) {
-          _loop(q);
-        }
-      }
-
-      return elPointsWrap;
-    }
-  }, {
-    key: 'getMarkerConfig',
-    value: function getMarkerConfig(cssClass, seriesIndex) {
-      var w = this.w;
-      var pStyle = this.getMarkerStyle(seriesIndex);
-
-      var pSize = w.config.markers.size;
-
-      return {
-        pSize: pSize instanceof Array ? pSize[seriesIndex] : pSize,
-        pRadius: w.config.markers.radius,
-        pWidth: w.config.markers.strokeWidth,
-        pointStrokeColor: pStyle.pointStrokeColor,
-        pointFillColor: pStyle.pointFillColor,
-        shape: w.config.markers.shape instanceof Array ? w.config.markers.shape[seriesIndex] : w.config.markers.shape,
-        class: cssClass,
-        pointStrokeOpacity: w.config.markers.strokeOpacity,
-        pointFillOpacity: w.config.markers.fillOpacity,
-        seriesIndex: seriesIndex
-      };
-    }
-  }, {
-    key: 'addEvents',
-    value: function addEvents(circle) {
-      var graphics = new _Graphics2.default(this.ctx);
-      circle.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this.ctx, circle));
-      circle.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this.ctx, circle));
-
-      circle.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this.ctx, circle));
-
-      circle.node.addEventListener('touchstart', graphics.pathMouseDown.bind(this.ctx, circle));
-    }
-  }, {
-    key: 'setSelectedPointFilter',
-    value: function setSelectedPointFilter(circle, realIndex, realIndexP) {
-      var w = this.w;
-      if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-        if (w.globals.selectedDataPoints[realIndex].includes(realIndexP)) {
-          circle.node.setAttribute('selected', true);
-          var activeFilter = w.config.states.active.filter;
-          if (activeFilter !== 'none') {
-            var filters = new _Filters2.default(this.ctx);
-            filters.applyFilter(circle, activeFilter.type, activeFilter.value);
-          }
-        }
-      }
-    }
-  }, {
-    key: 'getMarkerStyle',
-    value: function getMarkerStyle(seriesIndex) {
-      var w = this.w;
-
-      var colors = w.globals.markers.colors;
-
-      var pointStrokeColor = w.config.markers.strokeColor;
-      var pointFillColor = colors instanceof Array ? colors[seriesIndex] : colors;
-
-      return {
-        pointStrokeColor: pointStrokeColor, pointFillColor: pointFillColor
-      };
-    }
-  }]);
-
-  return Markers;
-}();
-
-module.exports = Markers;
-
-/***/ }),
-/* 47 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Graphics = __webpack_require__(0);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-var _YAxis = __webpack_require__(48);
-
-var _YAxis2 = _interopRequireDefault(_YAxis);
-
-var _Formatters = __webpack_require__(31);
-
-var _Formatters2 = _interopRequireDefault(_Formatters);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts XAxis Class for drawing X-Axis.
- *
- * @module XAxis
- **/
-
-var XAxis = function () {
-  function XAxis(ctx) {
-    _classCallCheck(this, XAxis);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-
-    var w = this.w;
-    this.xaxisLabels = w.globals.labels.slice();
-    if (w.globals.timelineLabels.length > 0) {
-      //  timeline labels are there
-      this.xaxisLabels = w.globals.timelineLabels.slice();
-    }
-
-    if (w.config.xaxis.position === 'top') {
-      this.offY = 0;
-    } else {
-      this.offY = w.globals.gridHeight + 1;
-    }
-    this.offY = this.offY + w.config.xaxis.axisBorder.offsetY;
-
-    this.xaxisFontSize = w.config.xaxis.labels.style.fontSize;
-    this.xaxisForeColors = w.config.xaxis.labels.style.colors;
-
-    // For bars, we will only consider single y xais,
-    // as we are not providing multiple yaxis for bar charts
-    this.yaxis = w.config.yaxis[0];
-  }
-
-  _createClass(XAxis, [{
-    key: 'drawXaxis',
-    value: function drawXaxis() {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var elXaxis = graphics.group({
-        'class': 'apexcharts-xaxis'
-      });
-
-      var elXaxisTexts = graphics.group({
-        'class': 'apexcharts-xaxis-texts-g',
-        'transform': 'translate(' + w.globals.translateXAxisX + ', ' + w.globals.translateXAxisY + ')'
-      });
-
-      elXaxis.add(elXaxisTexts);
-
-      var colWidth = void 0;
-
-      // initial x Position (keep adding column width in the loop)
-      var xPos = w.globals.padHorizontal;
-      var labels = [];
-
-      if (w.globals.noData) return elXaxis;
-
-      for (var i = 0; i < this.xaxisLabels.length; i++) {
-        labels.push(this.xaxisLabels[i]);
-      }
-
-      if (w.config.chart.type === 'line' || w.config.chart.type === 'area') {
-        if (w.globals.dataXY) {
-          colWidth = w.globals.gridWidth / (labels.length - 1);
-          xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
-        } else {
-          // no dataXY, only y values values and labels not provided
-          if (w.globals.noLabelsProvided) {
-            colWidth = w.globals.gridWidth / this.xaxisLabels.length;
-          } else {
-            // labels provided
-            colWidth = w.globals.gridWidth / labels.length;
-          }
-          xPos = xPos + colWidth + w.config.xaxis.labels.offsetX;
-        }
-      } else {
-        if (w.globals.dataXY) {
-          if (w.config.chart.type !== 'bar') {
-            colWidth = w.globals.gridWidth / (this.xaxisLabels.length - 1);
-            xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
-          } else {
-            colWidth = w.globals.gridWidth / w.globals.labels.length;
-            xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
-          }
-        } else {
-          if (w.globals.noLabelsProvided && w.config.chart.type !== 'bar') {
-            colWidth = w.globals.gridWidth / this.xaxisLabels.length;
-            xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
-          } else {
-            colWidth = w.globals.gridWidth / labels.length;
-            xPos = xPos + colWidth + w.config.xaxis.labels.offsetX;
-          }
-        }
-      }
-
-      var xlbFormatter = w.globals.xLabelFormatter;
-      var customFormatter = w.config.xaxis.labels.formatter;
-
-      var labelsLen = labels.length;
-
-      if (w.config.xaxis.labels.show) {
-        for (var _i = 0; _i <= labelsLen - 1; _i++) {
-          var label = typeof labels[_i] === 'undefined' ? '' : labels[_i];
-
-          var xFormat = new _Formatters2.default(this.ctx);
-          label = xFormat.xLabelFormat(xlbFormatter, label);
-          if (customFormatter !== undefined) {
-            label = customFormatter(label, this.xaxisLabels[_i]);
-          }
-
-          var x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX;
-          if (w.globals.timelineLabels.length > 0) {
-            x = w.globals.timelineLabels[_i].position;
-            label = w.globals.timelineLabels[_i].value;
-          }
-
-          label = label.toString();
-          if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0) {
-            label = '';
-          }
-
-          var offsetYCorrection = 28;
-          if (w.globals.rotateXLabels) {
-            offsetYCorrection = 22;
-          }
-          var elTick = graphics.drawText({
-            x: x,
-            y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
-            text: '',
-            textAnchor: 'middle',
-            fontSize: this.xaxisFontSize,
-            foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[_i] : this.xaxisForeColors,
-            cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
-          });
-
-          elXaxisTexts.add(elTick);
-
-          elTick.tspan(label);
-
-          var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
-          elTooltipTitle.textContent = label;
-          elTick.node.appendChild(elTooltipTitle);
-
-          xPos = xPos + colWidth;
-        }
-      }
-
-      if (w.config.xaxis.title.text !== undefined) {
-        var elXaxisTitle = graphics.group({
-          class: 'apexcharts-xaxis-title'
-        });
-
-        var elXAxisTitleText = graphics.drawText({
-          x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
-          y: this.offY - parseInt(this.xaxisFontSize) + w.globals.xAxisLabelsHeight + w.config.xaxis.title.offsetY,
-          text: w.config.xaxis.title.text,
-          textAnchor: 'middle',
-          fontSize: w.config.xaxis.title.style.fontSize,
-          foreColor: w.config.xaxis.title.style.color,
-          cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
-        });
-
-        elXaxisTitle.add(elXAxisTitleText);
-
-        elXaxis.add(elXaxisTitle);
-      }
-
-      if (w.config.xaxis.axisBorder.show) {
-        var lineCorrection = 0;
-        if (w.config.chart.type === 'bar' && w.globals.dataXY) {
-          lineCorrection = lineCorrection - 15;
-        }
-        var elHorzLine = graphics.drawLine(w.globals.padHorizontal + lineCorrection + w.config.xaxis.axisBorder.offsetX, this.offY, w.globals.gridWidth, this.offY, w.config.xaxis.axisBorder.color, 0, w.config.xaxis.axisBorder.strokeWidth);
-
-        elXaxis.add(elHorzLine);
-      }
-
-      return elXaxis;
-    }
-
-    // this actually becomes the vertical axis (for bar charts)
-
-  }, {
-    key: 'drawXaxisInversed',
-    value: function drawXaxisInversed(realIndex) {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var elYaxis = graphics.group({
-        class: 'apexcharts-yaxis apexcharts-xaxis-inversed',
-        'rel': realIndex
-      });
-
-      var elYaxisTexts = graphics.group({
-        class: 'apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g'
-      });
-
-      elYaxis.add(elYaxisTexts);
-
-      var colHeight = void 0;
-
-      // initial x Position (keep adding column width in the loop)
-      var yPos = void 0;
-      var labels = [];
-
-      for (var i = 0; i < this.xaxisLabels.length; i++) {
-        labels.push(this.xaxisLabels[i]);
-      }
-
-      colHeight = w.globals.gridHeight / labels.length;
-      yPos = -(colHeight / 2.2);
-
-      var lbFormatter = w.globals.yLabelFormatters[0];
-
-      if (w.config.yaxis[0].labels.show) {
-        for (var _i2 = 0; _i2 <= labels.length - 1; _i2++) {
-          var label = typeof labels[_i2] === 'undefined' ? '' : labels[_i2];
-
-          label = lbFormatter(label);
-
-          var elTick = graphics.drawText({
-            x: w.config.yaxis[0].labels.offsetX - 15,
-            y: yPos + colHeight + w.config.yaxis[0].labels.offsetY,
-            text: label,
-            textAnchor: 'end',
-            foreColor: w.config.yaxis[0].labels.style.colors[_i2],
-            fontSize: w.config.yaxis[0].labels.style.fontSize,
-            cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[0].labels.style.cssClass
-          });
-
-          elYaxisTexts.add(elTick);
-          yPos = yPos + colHeight;
-        }
-      }
-
-      if (w.config.yaxis[0].title.text !== undefined) {
-        var elXaxisTitle = graphics.group({
-          class: 'apexcharts-yaxis-title apexcharts-xaxis-title-inversed'
-        });
-
-        var elXAxisTitleText = graphics.drawText({
-          x: 0,
-          y: w.globals.gridHeight / 2,
-          text: w.config.yaxis[0].title.text,
-          textAnchor: 'middle',
-          foreColor: w.config.yaxis[0].title.style.color,
-          fontSize: w.config.yaxis[0].title.style.fontSize,
-          cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[0].title.style.cssClass
-        });
-
-        elXaxisTitle.add(elXAxisTitleText);
-
-        elYaxis.add(elXaxisTitle);
-      }
-
-      if (w.config.xaxis.axisBorder.show) {
-        var elHorzLine = graphics.drawLine(w.globals.padHorizontal + w.config.xaxis.axisBorder.offsetX, this.offY, w.globals.gridWidth, this.offY, this.yaxis.axisBorder.color, 0, w.config.xaxis.axisBorder.strokeWidth);
-
-        elYaxis.add(elHorzLine);
-
-        // let x = w.globals.yAxisWidths[0] / 2
-        // if (w.config.yaxis[0].opposite) {
-        //   x = -w.globals.yAxisWidths[0] / 2
-        // }
-
-        var yaxis = new _YAxis2.default(this.ctx);
-
-        yaxis.drawAxisTicks(0, labels.length, w.config.yaxis[0].axisBorder, w.config.yaxis[0].axisTicks, 0, colHeight, elYaxis);
-      }
-
-      return elYaxis;
-    }
-  }, {
-    key: 'drawXaxisTicks',
-    value: function drawXaxisTicks(x1, appendToElement) {
-      var w = this.w;
-      var x2 = x1;
-
-      if (x1 < 0 || x1 > w.globals.gridWidth) return;
-
-      var y1 = this.offY + w.config.xaxis.axisTicks.offsetY;
-      var y2 = y1 + w.config.xaxis.axisTicks.height;
-
-      if (w.config.xaxis.axisTicks.show) {
-        var graphics = new _Graphics2.default(this.ctx);
-
-        var line = graphics.drawLine(x1 + w.config.xaxis.axisTicks.offsetX, y1, x2 + w.config.xaxis.axisTicks.offsetX, y2, w.config.xaxis.axisTicks.color);
-
-        // we are not returning anything, but appending directly to the element pased in param
-        appendToElement.add(line);
-        line.node.classList.add('apexcharts-xaxis-tick');
-      }
-    }
-  }, {
-    key: 'getXAxisTicksPositions',
-    value: function getXAxisTicksPositions() {
-      var w = this.w;
-      var xAxisTicksPositions = [];
-
-      var xCount = this.xaxisLabels.length;
-      var x1 = w.globals.padHorizontal;
-
-      if (w.globals.timelineLabels.length > 0) {
-        for (var i = 0; i < xCount; i++) {
-          x1 = this.xaxisLabels[i].position;
-          xAxisTicksPositions.push(x1);
-        }
-      } else {
-        var xCountForCategoryCharts = xCount;
-        for (var _i3 = 0; _i3 < xCountForCategoryCharts; _i3++) {
-          var x1Count = xCountForCategoryCharts;
-          if (w.globals.dataXY && w.config.chart.type !== 'bar') {
-            x1Count -= 1;
-          }
-          x1 = x1 + w.globals.gridWidth / x1Count;
-          xAxisTicksPositions.push(x1);
-        }
-      }
-
-      return xAxisTicksPositions;
-    }
-
-    // to rotate x-axis labels or to put ... for longer text in xaxis
-
-  }, {
-    key: 'xAxisLabelCorrections',
-    value: function xAxisLabelCorrections() {
-      var w = this.w;
-
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var xAxis = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g');
-
-      var xAxisTexts = w.globals.dom.baseEl.querySelectorAll('.apexcharts-xaxis-texts-g text');
-      var yAxisTextsInversed = w.globals.dom.baseEl.querySelectorAll('.apexcharts-yaxis-inversed text');
-      var xAxisTextsInversed = w.globals.dom.baseEl.querySelectorAll('.apexcharts-xaxis-inversed-texts-g text');
-
-      if (w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways) {
-        for (var xat = 0; xat < xAxisTexts.length; xat++) {
-          var textRotatingCenter = graphics.rotateAroundCenter(xAxisTexts[xat]);
-          textRotatingCenter.y = textRotatingCenter.y - 1; // + tickWidth/4;
-          textRotatingCenter.x = textRotatingCenter.x + 1;
-
-          xAxisTexts[xat].setAttribute('transform', 'rotate(' + w.config.xaxis.labels.rotate + ' ' + textRotatingCenter.x + ' ' + textRotatingCenter.y + ')');
-
-          xAxisTexts[xat].setAttribute('text-anchor', 'end');
-
-          var offsetHeight = 10;
-
-          xAxis.setAttribute('transform', 'translate(0, ' + -offsetHeight + ')');
-
-          var tSpan = xAxisTexts[xat].childNodes;
-
-          if (w.config.xaxis.labels.trim) {
-            graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, w.config.xaxis.labels.maxHeight - 40);
-          }
-        }
-      } else {
-        var width = w.globals.gridWidth / w.globals.labels.length;
-
-        for (var _xat = 0; _xat < xAxisTexts.length; _xat++) {
-          var _tSpan = xAxisTexts[_xat].childNodes;
-
-          if (w.config.xaxis.labels.trim && w.config.chart.type !== 'bar' && w.config.plotOptions.bar.horizontal) {
-            graphics.placeTextWithEllipsis(_tSpan[0], _tSpan[0].textContent, width);
-          }
-        }
-      }
-
-      if (xAxisTexts.length > 0) {
-        var firstLabelPos = xAxisTexts[0].getBBox();
-        var lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox();
-        if (firstLabelPos.x < -25) {
-          xAxisTexts[0].parentNode.removeChild(xAxisTexts[0]);
-        }
-        if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
-          xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1]);
-        }
-      }
-
-      if (yAxisTextsInversed.length > 0) {
-        // truncate y axis in bar chart
-        var firstLabelPosX = yAxisTextsInversed[yAxisTextsInversed.length - 1].getBBox();
-        var lastLabelPosX = yAxisTextsInversed[0].getBBox();
-
-        if (firstLabelPosX.x < -20) {
-          yAxisTextsInversed[yAxisTextsInversed.length - 1].parentNode.removeChild(yAxisTextsInversed[yAxisTextsInversed.length - 1]);
-        }
-
-        if (lastLabelPosX.x + lastLabelPosX.width > w.globals.gridWidth) {
-          yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0]);
-        }
-
-        // truncate y axis in bar chart
-        for (var _xat2 = 0; _xat2 < xAxisTextsInversed.length; _xat2++) {
-          graphics.placeTextWithEllipsis(xAxisTextsInversed[_xat2], xAxisTextsInversed[_xat2].textContent, w.config.yaxis[0].labels.maxWidth - parseInt(w.config.yaxis[0].title.style.fontSize) * 2 - 20);
-        }
-      }
-    }
-
-    // renderXAxisBands() {
-    //   let w = this.w;
-
-    //   let plotBand = document.createElementNS(w.globals.svgNS, 'rect')
-    //   w.globals.dom.elGraphical.add(plotBand)
-    // }
-
-  }]);
-
-  return XAxis;
-}();
-
-module.exports = XAxis;
-
-/***/ }),
-/* 48 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Graphics = __webpack_require__(0);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts YAxis Class for drawing Y-Axis.
- *
- * @module YAxis
- **/
-
-var YAxis = function () {
-  function YAxis(ctx) {
-    _classCallCheck(this, YAxis);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-
-    this.xaxisFontSize = this.w.config.xaxis.labels.style.fontSize;
-    this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal);
-
-    this.xaxisForeColors = this.w.config.xaxis.labels.style.colors;
-
-    this.xAxisoffX = 0;
-    if (this.w.config.xaxis.position === 'bottom') {
-      this.xAxisoffX = this.w.globals.gridHeight;
-    }
-  }
-
-  _createClass(YAxis, [{
-    key: 'drawYaxis',
-    value: function drawYaxis(xyRatios, realIndex) {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var yaxisFontSize = w.config.yaxis[realIndex].labels.style.fontSize;
-
-      var elYaxis = graphics.group({
-        class: 'apexcharts-yaxis',
-        'rel': realIndex,
-        'transform': 'translate(' + w.globals.translateYAxisX[realIndex] + ', 0)'
-      });
-
-      var elYaxisTexts = graphics.group({
-        'class': 'apexcharts-yaxis-texts-g'
-      });
-
-      elYaxis.add(elYaxisTexts);
-
-      var tickAmount = w.globals.yAxisScale[realIndex].result.length - 1;
-
-      // labelsDivider is simply svg height/number of ticks
-      var labelsDivider = w.globals.gridHeight / tickAmount + 0.1;
-
-      // initial label position = 0;
-      var l = w.globals.translateY;
-      var lbFormatter = w.globals.yLabelFormatters[realIndex];
-
-      if (w.config.yaxis[realIndex].labels.show) {
-        for (var i = tickAmount; i >= 0; i--) {
-          var val = w.globals.yAxisScale[realIndex].result[i];
-
-          val = lbFormatter(val);
-
-          var xPad = 20;
-          if (w.config.yaxis[realIndex].opposite) {
-            xPad = xPad * -1;
-          }
-
-          if (w.config.yaxis.length === 0) {
-            xPad = 20;
-          }
-
-          var label = graphics.drawText({
-            x: xPad,
-            y: l + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY + 1,
-            text: val,
-            textAnchor: w.config.yaxis[realIndex].opposite ? 'start' : 'end',
-            fontSize: yaxisFontSize,
-            foreColor: w.config.yaxis[realIndex].labels.style.color,
-            cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[realIndex].labels.style.cssClass
-          });
-          elYaxisTexts.add(label);
-          l = l + labelsDivider;
-        }
-      }
-
-      if (w.config.yaxis[realIndex].title.text !== undefined) {
-        var elYaxisTitle = graphics.group({
-          'class': 'apexcharts-yaxis-title'
-        });
-
-        var x = 0;
-        if (w.config.yaxis[realIndex].opposite) {
-          x = w.globals.translateYAxisX[realIndex];
-        }
-        var elYAxisTitleText = graphics.drawText({
-          x: x,
-          y: w.globals.gridHeight / 2 + w.globals.translateY,
-          text: w.config.yaxis[realIndex].title.text,
-          textAnchor: 'end',
-          foreColor: w.config.yaxis[realIndex].labels.style.color,
-          fontSize: w.config.yaxis[realIndex].title.style.fontSize,
-          cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[realIndex].title.style.cssClass
-        });
-
-        elYaxisTitle.add(elYAxisTitleText);
-
-        elYaxis.add(elYaxisTitle);
-      }
-
-      var axisBorder = w.config.yaxis[realIndex].axisBorder;
-      if (axisBorder.show) {
-        var _x = 31 + axisBorder.offsetX;
-        if (w.config.yaxis[realIndex].opposite) {
-          _x = -31 - axisBorder.offsetX;
-        }
-
-        var elVerticalLine = graphics.drawLine(_x, w.globals.translateY + axisBorder.offsetY - 2, _x, w.globals.gridHeight + w.globals.translateY + axisBorder.offsetY + 2, axisBorder.color);
-
-        elYaxis.add(elVerticalLine);
-
-        this.drawAxisTicks(_x, tickAmount, axisBorder, w.config.yaxis[realIndex].axisTicks, realIndex, labelsDivider, elYaxis);
-      }
-
-      return elYaxis;
-    }
-
-    // This actually becomes horizonal axis (for bar charts)
-
-  }, {
-    key: 'drawYaxisInversed',
-    value: function drawYaxisInversed(realIndex) {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var elXaxis = graphics.group({
-        'class': 'apexcharts-xaxis apexcharts-yaxis-inversed'
-      });
-
-      var elXaxisTexts = graphics.group({
-        'class': 'apexcharts-xaxis-texts-g',
-        'transform': 'translate(' + w.globals.translateXAxisX + ', ' + w.globals.translateXAxisY + ')'
-      });
-
-      elXaxis.add(elXaxisTexts);
-
-      var tickAmount = w.globals.yAxisScale[realIndex].result.length - 1;
-
-      // labelsDivider is simply svg width/number of ticks
-      var labelsDivider = w.globals.gridWidth / tickAmount + 0.1;
-
-      // initial label position;
-      var l = labelsDivider + w.config.xaxis.labels.offsetX;
-      var lbFormatter = w.globals.xLabelFormatter;
-
-      if (w.config.xaxis.labels.show) {
-        for (var i = tickAmount; i >= 0; i--) {
-          var val = w.globals.yAxisScale[realIndex].result[i];
-          val = lbFormatter(val);
-
-          var elTick = graphics.drawText({
-            x: w.globals.gridWidth + w.globals.padHorizontal - (l - labelsDivider + w.config.xaxis.labels.offsetX),
-            y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
-            text: '',
-            textAnchor: 'middle',
-            foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[realIndex] : this.xaxisForeColors,
-            fontSize: this.xaxisFontSize,
-            cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
-          });
-
-          elXaxisTexts.add(elTick);
-
-          elTick.tspan(val);
-
-          var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
-          elTooltipTitle.textContent = val;
-          elTick.node.appendChild(elTooltipTitle);
-
-          l = l + labelsDivider;
-        }
-      }
-
-      if (w.config.xaxis.title.text !== undefined) {
-        var elYaxisTitle = graphics.group({
-          'class': 'apexcharts-xaxis-title apexcharts-yaxis-title-inversed'
-        });
-
-        var elYAxisTitleText = graphics.drawText({
-          x: w.globals.gridWidth / 2,
-          y: this.xAxisoffX + parseInt(this.xaxisFontSize) + parseInt(w.config.xaxis.title.style.fontSize) + 20,
-          text: w.config.xaxis.title.text,
-          textAnchor: 'middle',
-          fontSize: w.config.xaxis.title.style.fontSize,
-          cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
-        });
-
-        elYaxisTitle.add(elYAxisTitleText);
-
-        elXaxis.add(elYaxisTitle);
-      }
-
-      var axisBorder = w.config.yaxis[realIndex].axisBorder;
-      if (axisBorder.show) {
-        var elVerticalLine = graphics.drawLine(w.globals.padHorizontal + axisBorder.offsetX, 1 + axisBorder.offsetY, w.globals.padHorizontal + axisBorder.offsetX, w.globals.gridHeight + axisBorder.offsetY, axisBorder.color);
-
-        elXaxis.add(elVerticalLine);
-      }
-
-      return elXaxis;
-    }
-  }, {
-    key: 'drawAxisTicks',
-    value: function drawAxisTicks(x, tickAmount, axisBorder, axisTicks, realIndex, labelsDivider, elYaxis) {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      // initial label position = 0;
-      var t = w.globals.translateY;
-
-      if (axisTicks.show) {
-        if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width;
-
-        for (var i = tickAmount; i >= 0; i--) {
-          var tY = t + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY - 1;
-          if (this.isBarHorizontal) {
-            tY = labelsDivider * i;
-          }
-          var elTick = graphics.drawLine(x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX, tY + axisTicks.offsetY, x + axisBorder.offsetX + axisTicks.offsetX, tY + axisTicks.offsetY, axisBorder.color);
-          elYaxis.add(elTick);
-          t = t + labelsDivider;
-        }
-      }
-    }
-  }, {
-    key: 'yAxisTitleRotate',
-    value: function yAxisTitleRotate(realIndex, yAxisOpposite) {
-      var w = this.w;
-
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var yAxisLabelsCoord = {
-        width: 0,
-        height: 0
-      };
-      var yAxisTitleCoord = {
-        width: 0,
-        height: 0
-      };
-
-      var elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(' .apexcharts-yaxis[rel=\'' + realIndex + '\'] .apexcharts-yaxis-texts-g');
-
-      if (elYAxisLabelsWrap !== null) {
-        yAxisLabelsCoord = elYAxisLabelsWrap.getBoundingClientRect();
-      }
-
-      var yAxisTitle = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis[rel=\'' + realIndex + '\'] .apexcharts-yaxis-title text');
-
-      if (yAxisTitle !== null) {
-        yAxisTitleCoord = yAxisTitle.getBoundingClientRect();
-      }
-
-      if (yAxisTitle !== null) {
-        var x = this.xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite);
-
-        yAxisTitle.setAttribute('x', x.xPos);
-      }
-
-      if (yAxisTitle !== null) {
-        var titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle);
-        if (!yAxisOpposite) {
-          yAxisTitle.setAttribute('transform', 'rotate(-90 ' + titleRotatingCenter.x + ' ' + titleRotatingCenter.y + ')');
-        } else {
-          yAxisTitle.setAttribute('transform', 'rotate(90 ' + titleRotatingCenter.x + ' ' + titleRotatingCenter.y + ')');
-        }
-      }
-    }
-  }, {
-    key: 'xPaddingForYAxisTitle',
-    value: function xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite) {
-      var w = this.w;
-      var oppositeAxisCount = 0;
-
-      var x = 0;
-      var padd = 20;
-      if (yAxisOpposite) {
-        x = yAxisLabelsCoord.width + w.config.yaxis[realIndex].title.offsetX + padd + yAxisTitleCoord.width / 2 - 15;
-
-        if (oppositeAxisCount === 0) {
-          x = x - 15;
-        }
-        oppositeAxisCount += 1;
-      } else {
-        x = yAxisLabelsCoord.width * -1 + w.config.yaxis[realIndex].title.offsetX + padd + yAxisTitleCoord.width / 2 - 15;
-
-        if (this.isBarHorizontal) {
-          padd = 25;
-          x = yAxisLabelsCoord.width * -1 - w.config.yaxis[realIndex].title.offsetX - padd;
-        }
-      }
-
-      return { xPos: x, padd: padd };
-    }
-  }]);
-
-  return YAxis;
-}();
-
-module.exports = YAxis;
-
-/***/ }),
-/* 49 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Defaults = __webpack_require__(140);
-
-var _Defaults2 = _interopRequireDefault(_Defaults);
-
-var _Utils = __webpack_require__(1);
-
-var _Utils2 = _interopRequireDefault(_Utils);
-
-var _Options = __webpack_require__(77);
-
-var _Options2 = _interopRequireDefault(_Options);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Config Class for extending user options with pre-defined ApexCharts config.
- *
- * @module Config
- **/
-var Config = function () {
-  function Config(opts) {
-    _classCallCheck(this, Config);
-
-    this.opts = opts;
-  }
-
-  _createClass(Config, [{
-    key: 'init',
-    value: function init() {
-      var opts = this.opts;
-      var options = new _Options2.default();
-      var defaults = new _Defaults2.default(opts);
-
-      this.chartType = opts.chart.type;
-
-      if (this.chartType === 'histogram') {
-        opts.chart.type = 'bar';
-        opts = _Utils2.default.extend({
-          plotOptions: {
-            bar: {
-              columnWidth: '99.99%'
-            }
-          }
-        }, opts);
-      }
-
-      opts.series = this.checkEmptySeries(opts.series);
-
-      opts = this.extendYAxis(opts);
-      opts = this.extendAnnotations(opts);
-
-      var config = options.init();
-      var newDefaults = {};
-      if (opts && (typeof opts === 'undefined' ? 'undefined' : _typeof(opts)) === 'object') {
-        var chartDefaults = {};
-        switch (this.chartType) {
-          case 'line':
-            chartDefaults = defaults.line();
-            break;
-          case 'area':
-            chartDefaults = defaults.area();
-            break;
-          case 'bar':
-            chartDefaults = defaults.bar();
-            break;
-          case 'histogram':
-            chartDefaults = defaults.bar();
-            break;
-          case 'bubble':
-            chartDefaults = defaults.bubble();
-            break;
-          case 'scatter':
-            chartDefaults = defaults.scatter();
-            break;
-          case 'heatmap':
-            chartDefaults = defaults.heatmap();
-            break;
-          case 'pie':
-            chartDefaults = defaults.pie();
-            break;
-          case 'donut':
-            chartDefaults = defaults.donut();
-            break;
-          case 'radialBar':
-            chartDefaults = defaults.radialBar();
-            break;
-          default:
-            chartDefaults = defaults.line();
-        }
-
-        if (opts.chart.stacked && opts.chart.stackType === '100%') {
-          defaults.stacked100(chartDefaults);
-        }
-        if (opts.chart.sparkline && opts.chart.sparkline.enabled || window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled) {
-          chartDefaults = defaults.sparkline(chartDefaults);
-        }
-        newDefaults = _Utils2.default.extend(config, chartDefaults);
-      }
-
-      // config should override in this fashion
-      // default config < global apex variable config < user defined config
-
-      // get GLOBALLY defined options and merge with the default config
-      var mergedWithDefaultConfig = _Utils2.default.extend(newDefaults, window.Apex);
-
-      // get the merged config and extend with user defined config
-      config = _Utils2.default.extend(mergedWithDefaultConfig, opts);
-
-      // some features are not supported. those mismatches should be handled
-      config = this.handleUserInputErrors(config);
-
-      return config;
-    }
-  }, {
-    key: 'extendYAxis',
-    value: function extendYAxis(opts) {
-      var options = new _Options2.default();
-      if (typeof opts.yaxis === 'undefined') {
-        opts.yaxis = {};
-      }
-
-      // extend global yaxis config (only if object is provided / not an array)
-      if (opts.yaxis.constructor !== Array && window.Apex.yaxis && window.Apex.yaxis.constructor !== Array) {
-        opts.yaxis = _Utils2.default.extend(opts.yaxis, window.Apex.yaxis);
-      }
-
-      // as we can't extend nested object's array with extend, we need to do it first
-      // user can provide either an array or object in yaxis config
-      if (opts.yaxis.constructor !== Array) {
-        // convert the yaxis to array if user supplied object
-        opts.yaxis = [_Utils2.default.extend(options.yAxis, opts.yaxis)];
-      } else {
-        opts.yaxis = _Utils2.default.extendArray(opts.yaxis, options.yAxis);
-      }
-      return opts;
-    }
-
-    // annotations also accepts array, so we need to extend them manually
-
-  }, {
-    key: 'extendAnnotations',
-    value: function extendAnnotations(opts) {
-      if (typeof opts.annotations === 'undefined') {
-        opts.annotations = {};
-        opts.annotations.yaxis = [];
-        opts.annotations.xaxis = [];
-        opts.annotations.points = [];
-      }
-
-      opts = this.extendYAxisAnnotations(opts);
-      opts = this.extendXAxisAnnotations(opts);
-      opts = this.extendPointAnnotations(opts);
-
-      return opts;
-    }
-  }, {
-    key: 'extendYAxisAnnotations',
-    value: function extendYAxisAnnotations(opts) {
-      var options = new _Options2.default();
-      opts.annotations.yaxis = _Utils2.default.extendArray(typeof opts.annotations.yaxis !== 'undefined' ? opts.annotations.yaxis : [], options.yAxisAnnotation);
-      return opts;
-    }
-  }, {
-    key: 'extendXAxisAnnotations',
-    value: function extendXAxisAnnotations(opts) {
-      var options = new _Options2.default();
-      opts.annotations.xaxis = _Utils2.default.extendArray(typeof opts.annotations.xaxis !== 'undefined' ? opts.annotations.xaxis : [], options.xAxisAnnotation);
-      return opts;
-    }
-  }, {
-    key: 'extendPointAnnotations',
-    value: function extendPointAnnotations(opts) {
-      var options = new _Options2.default();
-      opts.annotations.points = _Utils2.default.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], options.pointAnnotation);
-      return opts;
-    }
-  }, {
-    key: 'checkEmptySeries',
-    value: function checkEmptySeries(ser) {
-      if (ser.length === 0) {
-        return [{
-          data: []
-        }];
-      }
-      return ser;
-    }
-  }, {
-    key: 'handleUserInputErrors',
-    value: function handleUserInputErrors(opts) {
-      var config = opts;
-      // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
-      if (config.tooltip.shared && config.tooltip.intersect) {
-        throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false');
-      }
-
-      if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
-        // No time series for horizontal bars
-        if (config.xaxis.type === 'datetime') {
-          throw new Error('Timelines on bars are not supported yet. Switch to column chart by setting plotOptions.bar.horizontal=false');
-        }
-
-        // No multiple yaxis for bars
-        if (config.yaxis.length > 1) {
-          throw new Error('Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false');
-        }
-
-        config.xaxis.tooltip.enabled = false; // no xaxis tooltip for horizontal bar
-        config.yaxis[0].tooltip.enabled = false; // no xaxis tooltip for horizontal bar
-        config.chart.zoom.enabled = false; // no zooming for bars
-      }
-
-      if (config.chart.type === 'bar') {
-        if (config.tooltip.shared) {
-          if (config.xaxis.crosshairs.width === 'barWidth' && config.series.length > 1) {
-            console.warn('crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart');
-            config.xaxis.crosshairs.width = 'tickWidth';
-          }
-          if (config.plotOptions.bar.horizontal) {
-            config.states.hover.type = 'none';
-          }
-          if (!config.tooltip.followCursor) {
-            console.warn('followCursor option in shared columns cannot be turned off');
-            config.tooltip.followCursor = true;
-          }
-        }
-      }
-
-      // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
-      if (Array.isArray(config.stroke.width)) {
-        if (config.chart.type !== 'line' && config.chart.type !== 'area') {
-          console.warn('stroke.width option accepts array only for line and area charts. Reverted back to Number');
-          config.stroke.width = config.stroke.width[0];
-        }
-      }
-
-      return config;
-    }
-  }]);
-
-  return Config;
-}();
-
-module.exports = Config;
-
-/***/ }),
-/* 50 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _TimeScale = __webpack_require__(75);
-
-var _TimeScale2 = _interopRequireDefault(_TimeScale);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * DateTime Class to manipulate datetime values.
- *
- * @module DateTime
- **/
-
-var DateTime = function () {
-  function DateTime(ctx) {
-    _classCallCheck(this, DateTime);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-
-    this.months31 = [1, 3, 5, 7, 8, 10, 12];
-    this.months30 = [2, 4, 6, 9, 11];
-
-    this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-  }
-
-  _createClass(DateTime, [{
-    key: 'isValidDate',
-    value: function isValidDate(date) {
-      return !isNaN(this.parseDate(date));
-    }
-  }, {
-    key: 'parseDate',
-    value: function parseDate(date) {
-      var parsed = Date.parse(date);
-      if (!isNaN(parsed)) {
-        return parsed;
-      }
-
-      return Date.parse(date.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
-    }
-
-    // https://stackoverflow.com/a/11252167/6495043
-
-  }, {
-    key: 'treatAsUtc',
-    value: function treatAsUtc(dateStr) {
-      var result = new Date(dateStr);
-      result.setMinutes(result.getMinutes() - result.getTimezoneOffset());
-      return result;
-    }
-
-    // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
-
-  }, {
-    key: 'formatDate',
-    value: function formatDate(date, format) {
-      var utc = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      var culture = this.w.globals.culture;
-
-      var MMMM = ['\x00'].concat(_toConsumableArray(culture.months));
-      var MMM = ['\x01'].concat(_toConsumableArray(culture.shortMonths));
-      var dddd = ['\x02'].concat(_toConsumableArray(culture.days));
-      var ddd = ['\x03'].concat(_toConsumableArray(culture.shortDays));
-
-      function ii(i, len) {
-        var s = i + '';
-        len = len || 2;
-        while (s.length < len) {
-          s = '0' + s;
-        }return s;
-      }
-
-      date = this.treatAsUtc(date);
-
-      var y = utc ? date.getUTCFullYear() : date.getFullYear();
-      format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y);
-      format = format.replace(/(^|[^\\])yy/g, '$1' + y.toString().substr(2, 2));
-      format = format.replace(/(^|[^\\])y/g, '$1' + y);
-
-      var M = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
-      format = format.replace(/(^|[^\\])MMMM+/g, '$1' + MMMM[0]);
-      format = format.replace(/(^|[^\\])MMM/g, '$1' + MMM[0]);
-      format = format.replace(/(^|[^\\])MM/g, '$1' + ii(M));
-      format = format.replace(/(^|[^\\])M/g, '$1' + M);
-
-      var d = utc ? date.getUTCDate() : date.getDate();
-      format = format.replace(/(^|[^\\])dddd+/g, '$1' + dddd[0]);
-      format = format.replace(/(^|[^\\])ddd/g, '$1' + ddd[0]);
-      format = format.replace(/(^|[^\\])dd/g, '$1' + ii(d));
-      format = format.replace(/(^|[^\\])d/g, '$1' + d);
-
-      var H = utc ? date.getUTCHours() : date.getHours();
-      format = format.replace(/(^|[^\\])HH+/g, '$1' + ii(H));
-      format = format.replace(/(^|[^\\])H/g, '$1' + H);
-
-      var h = H > 12 ? H - 12 : H === 0 ? 12 : H;
-      format = format.replace(/(^|[^\\])hh+/g, '$1' + ii(h));
-      format = format.replace(/(^|[^\\])h/g, '$1' + h);
-
-      var m = utc ? date.getUTCMinutes() : date.getMinutes();
-      format = format.replace(/(^|[^\\])mm+/g, '$1' + ii(m));
-      format = format.replace(/(^|[^\\])m/g, '$1' + m);
-
-      var s = utc ? date.getUTCSeconds() : date.getSeconds();
-      format = format.replace(/(^|[^\\])ss+/g, '$1' + ii(s));
-      format = format.replace(/(^|[^\\])s/g, '$1' + s);
-
-      var f = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
-      format = format.replace(/(^|[^\\])fff+/g, '$1' + ii(f, 3));
-      f = Math.round(f / 10);
-      format = format.replace(/(^|[^\\])ff/g, '$1' + ii(f));
-      f = Math.round(f / 10);
-      format = format.replace(/(^|[^\\])f/g, '$1' + f);
-
-      var T = H < 12 ? 'AM' : 'PM';
-      format = format.replace(/(^|[^\\])TT+/g, '$1' + T);
-      format = format.replace(/(^|[^\\])T/g, '$1' + T.charAt(0));
-
-      var t = T.toLowerCase();
-      format = format.replace(/(^|[^\\])tt+/g, '$1' + t);
-      format = format.replace(/(^|[^\\])t/g, '$1' + t.charAt(0));
-
-      var tz = -date.getTimezoneOffset();
-      var K = utc || !tz ? 'Z' : tz > 0 ? '+' : '-';
-      if (!utc) {
-        tz = Math.abs(tz);
-        var tzHrs = Math.floor(tz / 60);
-        var tzMin = tz % 60;
-        K += ii(tzHrs) + ':' + ii(tzMin);
-      }
-      format = format.replace(/(^|[^\\])K/g, '$1' + K);
-
-      var day = (utc ? date.getUTCDay() : date.getDay()) + 1;
-      format = format.replace(new RegExp(dddd[0], 'g'), dddd[day]);
-      format = format.replace(new RegExp(ddd[0], 'g'), ddd[day]);
-
-      format = format.replace(new RegExp(MMMM[0], 'g'), MMMM[M]);
-      format = format.replace(new RegExp(MMM[0], 'g'), MMM[M]);
-
-      format = format.replace(/\\(.)/g, '$1');
-
-      return format;
-    }
-  }, {
-    key: 'getTimeUnitsfromTimestamp',
-    value: function getTimeUnitsfromTimestamp(minX, maxX) {
-      var w = this.w;
-
-      if (w.config.xaxis.min !== undefined) {
-        minX = w.config.xaxis.min;
-      }
-      if (w.config.xaxis.max !== undefined) {
-        maxX = w.config.xaxis.max;
-      }
-
-      var minYear = new Date(minX).getFullYear();
-      var maxYear = new Date(maxX).getFullYear();
-
-      var minMonth = new Date(minX).getMonth();
-      var maxMonth = new Date(maxX).getMonth();
-
-      var minDate = new Date(minX).getDate();
-      var maxDate = new Date(maxX).getDate();
-
-      var minHour = new Date(minX).getHours();
-      var maxHour = new Date(maxX).getHours();
-
-      var minMinute = new Date(minX).getMinutes();
-      var maxMinute = new Date(maxX).getMinutes();
-
-      return {
-        minMinute: minMinute, maxMinute: maxMinute, minHour: minHour, maxHour: maxHour, minDate: minDate, maxDate: maxDate, minMonth: minMonth, maxMonth: maxMonth, minYear: minYear, maxYear: maxYear
-      };
-    }
-  }, {
-    key: 'isLeapYear',
-    value: function isLeapYear(year) {
-      return year % 4 === 0 && year % 100 !== 0 || year % 400 === 0;
-    }
-  }, {
-    key: 'calculcateLastDaysOfMonth',
-    value: function calculcateLastDaysOfMonth(month, year, subtract) {
-      var days = this.determineDaysOfMonths(month, year);
-
-      // whatever days we get, subtract the number of days asked
-      return days - subtract;
-    }
-  }, {
-    key: 'determineDaysOfYear',
-    value: function determineDaysOfYear(year) {
-      var days = 365;
-
-      if (this.isLeapYear(year)) {
-        days = 366;
-      }
-
-      return days;
-    }
-  }, {
-    key: 'determineRemainingDaysOfYear',
-    value: function determineRemainingDaysOfYear(year, month, date) {
-      var dayOfYear = this.daysCntOfYear[month] + date;
-      if (month > 1 && this.isLeapYear()) dayOfYear++;
-      return dayOfYear;
-    }
-  }, {
-    key: 'determineDaysOfMonths',
-    value: function determineDaysOfMonths(month, year) {
-      var days = 30;
-
-      var ts = new _TimeScale2.default(this.ctx);
-      month = ts.monthMod(month);
-
-      switch (true) {
-        case this.months30.includes(month):
-          if (month === 2) {
-            if (this.isLeapYear(year)) {
-              days = 29;
-            } else {
-              days = 28;
-            }
-          }
-
-          break;
-
-        case this.months31.includes(month):
-          days = 31;
-          break;
-
-        default:
-          days = 31;
-          break;
-      }
-
-      return days;
-    }
-  }]);
-
-  return DateTime;
-}();
-
-exports.default = DateTime;
-
-/***/ }),
-/* 51 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// false -> Array#indexOf
-// true  -> Array#includes
-var toIObject = __webpack_require__(15);
-var toLength = __webpack_require__(23);
-var toAbsoluteIndex = __webpack_require__(108);
-module.exports = function (IS_INCLUDES) {
-  return function ($this, el, fromIndex) {
-    var O = toIObject($this);
-    var length = toLength(O.length);
-    var index = toAbsoluteIndex(fromIndex, length);
-    var value;
-    // Array#includes uses SameValueZero equality algorithm
-    // eslint-disable-next-line no-self-compare
-    if (IS_INCLUDES && el != el) while (length > index) {
-      value = O[index++];
-      // eslint-disable-next-line no-self-compare
-      if (value != value) return true;
-      // Array#indexOf ignores holes, Array#includes - not
-    } else for (; length > index; index++) {
-      if (IS_INCLUDES || index in O) {
-        if (O[index] === el) return IS_INCLUDES || index || 0;
-      }
-    }return !IS_INCLUDES && -1;
-  };
-};
-
-/***/ }),
-/* 52 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var document = __webpack_require__(3).document;
-module.exports = document && document.documentElement;
-
-/***/ }),
-/* 53 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = !__webpack_require__(10) && !__webpack_require__(19)(function () {
-  return Object.defineProperty(__webpack_require__(35)('div'), 'a', { get: function get() {
-      return 7;
-    } }).a != 7;
-});
-
-/***/ }),
-/* 54 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// check on default Array iterator
-var Iterators = __webpack_require__(20);
-var ITERATOR = __webpack_require__(2)('iterator');
-var ArrayProto = Array.prototype;
-
-module.exports = function (it) {
-  return it !== undefined && (Iterators.Array === it || ArrayProto[ITERATOR] === it);
-};
-
-/***/ }),
-/* 55 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// 7.2.2 IsArray(argument)
-var cof = __webpack_require__(18);
-module.exports = Array.isArray || function isArray(arg) {
-  return cof(arg) == 'Array';
-};
-
-/***/ }),
-/* 56 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// call something on iterator step with safe closing on error
-var anObject = __webpack_require__(7);
-module.exports = function (iterator, fn, value, entries) {
-  try {
-    return entries ? fn(anObject(value)[0], value[1]) : fn(value);
-    // 7.4.6 IteratorClose(iterator, completion)
-  } catch (e) {
-    var ret = iterator['return'];
-    if (ret !== undefined) anObject(ret.call(iterator));
-    throw e;
-  }
-};
-
-/***/ }),
-/* 57 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var LIBRARY = __webpack_require__(21);
-var $export = __webpack_require__(5);
-var redefine = __webpack_require__(14);
-var hide = __webpack_require__(12);
-var Iterators = __webpack_require__(20);
-var $iterCreate = __webpack_require__(96);
-var setToStringTag = __webpack_require__(28);
-var getPrototypeOf = __webpack_require__(103);
-var ITERATOR = __webpack_require__(2)('iterator');
-var BUGGY = !([].keys && 'next' in [].keys()); // Safari has buggy iterators w/o `next`
-var FF_ITERATOR = '@@iterator';
-var KEYS = 'keys';
-var VALUES = 'values';
-
-var returnThis = function returnThis() {
-  return this;
-};
-
-module.exports = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORCED) {
-  $iterCreate(Constructor, NAME, next);
-  var getMethod = function getMethod(kind) {
-    if (!BUGGY && kind in proto) return proto[kind];
-    switch (kind) {
-      case KEYS:
-        return function keys() {
-          return new Constructor(this, kind);
-        };
-      case VALUES:
-        return function values() {
-          return new Constructor(this, kind);
-        };
-    }return function entries() {
-      return new Constructor(this, kind);
-    };
-  };
-  var TAG = NAME + ' Iterator';
-  var DEF_VALUES = DEFAULT == VALUES;
-  var VALUES_BUG = false;
-  var proto = Base.prototype;
-  var $native = proto[ITERATOR] || proto[FF_ITERATOR] || DEFAULT && proto[DEFAULT];
-  var $default = $native || getMethod(DEFAULT);
-  var $entries = DEFAULT ? !DEF_VALUES ? $default : getMethod('entries') : undefined;
-  var $anyNative = NAME == 'Array' ? proto.entries || $native : $native;
-  var methods, key, IteratorPrototype;
-  // Fix native
-  if ($anyNative) {
-    IteratorPrototype = getPrototypeOf($anyNative.call(new Base()));
-    if (IteratorPrototype !== Object.prototype && IteratorPrototype.next) {
-      // Set @@toStringTag to native iterators
-      setToStringTag(IteratorPrototype, TAG, true);
-      // fix for some old engines
-      if (!LIBRARY && typeof IteratorPrototype[ITERATOR] != 'function') hide(IteratorPrototype, ITERATOR, returnThis);
-    }
-  }
-  // fix Array#{values, @@iterator}.name in V8 / FF
-  if (DEF_VALUES && $native && $native.name !== VALUES) {
-    VALUES_BUG = true;
-    $default = function values() {
-      return $native.call(this);
-    };
-  }
-  // Define iterator
-  if ((!LIBRARY || FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
-    hide(proto, ITERATOR, $default);
-  }
-  // Plug for library
-  Iterators[NAME] = $default;
-  Iterators[TAG] = returnThis;
-  if (DEFAULT) {
-    methods = {
-      values: DEF_VALUES ? $default : getMethod(VALUES),
-      keys: IS_SET ? $default : getMethod(KEYS),
-      entries: $entries
-    };
-    if (FORCED) for (key in methods) {
-      if (!(key in proto)) redefine(proto, key, methods[key]);
-    } else $export($export.P + $export.F * (BUGGY || VALUES_BUG), NAME, methods);
-  }
-  return methods;
-};
-
-/***/ }),
-/* 58 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var ITERATOR = __webpack_require__(2)('iterator');
-var SAFE_CLOSING = false;
-
-try {
-  var riter = [7][ITERATOR]();
-  riter['return'] = function () {
-    SAFE_CLOSING = true;
-  };
-  // eslint-disable-next-line no-throw-literal
-  Array.from(riter, function () {
-    throw 2;
-  });
-} catch (e) {/* empty */}
-
-module.exports = function (exec, skipClosing) {
-  if (!skipClosing && !SAFE_CLOSING) return false;
-  var safe = false;
-  try {
-    var arr = [7];
-    var iter = arr[ITERATOR]();
-    iter.next = function () {
-      return { done: safe = true };
-    };
-    arr[ITERATOR] = function () {
-      return iter;
-    };
-    exec(arr);
-  } catch (e) {/* empty */}
-  return safe;
-};
-
-/***/ }),
-/* 59 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// 19.1.2.2 / 15.2.3.5 Object.create(O [, Properties])
-var anObject = __webpack_require__(7);
-var dPs = __webpack_require__(100);
-var enumBugKeys = __webpack_require__(36);
-var IE_PROTO = __webpack_require__(40)('IE_PROTO');
-var Empty = function Empty() {/* empty */};
-var PROTOTYPE = 'prototype';
-
-// Create object with fake `null` prototype: use iframe Object with cleared prototype
-var _createDict = function createDict() {
-  // Thrash, waste and sodomy: IE GC bug
-  var iframe = __webpack_require__(35)('iframe');
-  var i = enumBugKeys.length;
-  var lt = '<';
-  var gt = '>';
-  var iframeDocument;
-  iframe.style.display = 'none';
-  __webpack_require__(52).appendChild(iframe);
-  iframe.src = 'javascript:'; // eslint-disable-line no-script-url
-  // createDict = iframe.contentWindow.Object;
-  // html.removeChild(iframe);
-  iframeDocument = iframe.contentWindow.document;
-  iframeDocument.open();
-  iframeDocument.write(lt + 'script' + gt + 'document.F=Object' + lt + '/script' + gt);
-  iframeDocument.close();
-  _createDict = iframeDocument.F;
-  while (i--) {
-    delete _createDict[PROTOTYPE][enumBugKeys[i]];
-  }return _createDict();
-};
-
-module.exports = Object.create || function create(O, Properties) {
-  var result;
-  if (O !== null) {
-    Empty[PROTOTYPE] = anObject(O);
-    result = new Empty();
-    Empty[PROTOTYPE] = null;
-    // add "__proto__" for Object.getPrototypeOf polyfill
-    result[IE_PROTO] = O;
-  } else result = _createDict();
-  return Properties === undefined ? result : dPs(result, Properties);
-};
-
-/***/ }),
-/* 60 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
-var $keys = __webpack_require__(62);
-var hiddenKeys = __webpack_require__(36).concat('length', 'prototype');
-
-exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
-  return $keys(O, hiddenKeys);
-};
-
-/***/ }),
-/* 61 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-exports.f = Object.getOwnPropertySymbols;
-
-/***/ }),
-/* 62 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var has = __webpack_require__(11);
-var toIObject = __webpack_require__(15);
-var arrayIndexOf = __webpack_require__(51)(false);
-var IE_PROTO = __webpack_require__(40)('IE_PROTO');
-
-module.exports = function (object, names) {
-  var O = toIObject(object);
-  var i = 0;
-  var result = [];
-  var key;
-  for (key in O) {
-    if (key != IE_PROTO) has(O, key) && result.push(key);
-  } // Don't enum bug & hidden keys
-  while (names.length > i) {
-    if (has(O, key = names[i++])) {
-      ~arrayIndexOf(result, key) || result.push(key);
-    }
-  }return result;
-};
-
-/***/ }),
-/* 63 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = function (exec) {
-  try {
-    return { e: false, v: exec() };
-  } catch (e) {
-    return { e: true, v: e };
-  }
-};
-
-/***/ }),
-/* 64 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var anObject = __webpack_require__(7);
-var isObject = __webpack_require__(8);
-var newPromiseCapability = __webpack_require__(38);
-
-module.exports = function (C, x) {
-  anObject(C);
-  if (isObject(x) && x.constructor === C) return x;
-  var promiseCapability = newPromiseCapability.f(C);
-  var resolve = promiseCapability.resolve;
-  resolve(x);
-  return promiseCapability.promise;
-};
-
-/***/ }),
-/* 65 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// 7.3.20 SpeciesConstructor(O, defaultConstructor)
-var anObject = __webpack_require__(7);
-var aFunction = __webpack_require__(17);
-var SPECIES = __webpack_require__(2)('species');
-module.exports = function (O, D) {
-  var C = anObject(O).constructor;
-  var S;
-  return C === undefined || (S = anObject(C)[SPECIES]) == undefined ? D : aFunction(S);
-};
-
-/***/ }),
-/* 66 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var ctx = __webpack_require__(13);
-var invoke = __webpack_require__(95);
-var html = __webpack_require__(52);
-var cel = __webpack_require__(35);
-var global = __webpack_require__(3);
-var process = global.process;
-var setTask = global.setImmediate;
-var clearTask = global.clearImmediate;
-var MessageChannel = global.MessageChannel;
-var Dispatch = global.Dispatch;
-var counter = 0;
-var queue = {};
-var ONREADYSTATECHANGE = 'onreadystatechange';
-var defer, channel, port;
-var run = function run() {
-  var id = +this;
-  // eslint-disable-next-line no-prototype-builtins
-  if (queue.hasOwnProperty(id)) {
-    var fn = queue[id];
-    delete queue[id];
-    fn();
-  }
-};
-var listener = function listener(event) {
-  run.call(event.data);
-};
-// Node.js 0.9+ & IE10+ has setImmediate, otherwise:
-if (!setTask || !clearTask) {
-  setTask = function setImmediate(fn) {
-    var args = [];
-    var i = 1;
-    while (arguments.length > i) {
-      args.push(arguments[i++]);
-    }queue[++counter] = function () {
-      // eslint-disable-next-line no-new-func
-      invoke(typeof fn == 'function' ? fn : Function(fn), args);
-    };
-    defer(counter);
-    return counter;
-  };
-  clearTask = function clearImmediate(id) {
-    delete queue[id];
-  };
-  // Node.js 0.8-
-  if (__webpack_require__(18)(process) == 'process') {
-    defer = function defer(id) {
-      process.nextTick(ctx(run, id, 1));
-    };
-    // Sphere (JS game engine) Dispatch API
-  } else if (Dispatch && Dispatch.now) {
-    defer = function defer(id) {
-      Dispatch.now(ctx(run, id, 1));
-    };
-    // Browsers with MessageChannel, includes WebWorkers
-  } else if (MessageChannel) {
-    channel = new MessageChannel();
-    port = channel.port2;
-    channel.port1.onmessage = listener;
-    defer = ctx(port.postMessage, port, 1);
-    // Browsers with postMessage, skip WebWorkers
-    // IE8 has postMessage, but it's sync & typeof its postMessage is 'object'
-  } else if (global.addEventListener && typeof postMessage == 'function' && !global.importScripts) {
-    defer = function defer(id) {
-      global.postMessage(id + '', '*');
-    };
-    global.addEventListener('message', listener, false);
-    // IE8-
-  } else if (ONREADYSTATECHANGE in cel('script')) {
-    defer = function defer(id) {
-      html.appendChild(cel('script'))[ONREADYSTATECHANGE] = function () {
-        html.removeChild(this);
-        run.call(id);
-      };
-    };
-    // Rest old browsers
-  } else {
-    defer = function defer(id) {
-      setTimeout(ctx(run, id, 1), 0);
-    };
-  }
-}
-module.exports = {
-  set: setTask,
-  clear: clearTask
-};
-
-/***/ }),
-/* 67 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-exports.f = __webpack_require__(2);
-
-/***/ }),
-/* 68 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var classof = __webpack_require__(33);
-var ITERATOR = __webpack_require__(2)('iterator');
-var Iterators = __webpack_require__(20);
-module.exports = __webpack_require__(4).getIteratorMethod = function (it) {
-  if (it != undefined) return it[ITERATOR] || it['@@iterator'] || Iterators[classof(it)];
-};
-
-/***/ }),
-/* 69 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-// 19.1.3.6 Object.prototype.toString()
-
-var classof = __webpack_require__(33);
-var test = {};
-test[__webpack_require__(2)('toStringTag')] = 'z';
-if (test + '' != '[object z]') {
-  __webpack_require__(14)(Object.prototype, 'toString', function toString() {
-    return '[object ' + classof(this) + ']';
-  }, true);
-}
-
-/***/ }),
-/* 70 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var $at = __webpack_require__(107)(true);
-
-// 21.1.3.27 String.prototype[@@iterator]()
-__webpack_require__(57)(String, 'String', function (iterated) {
-  this._t = String(iterated); // target
-  this._i = 0; // next index
-  // 21.1.5.2.1 %StringIteratorPrototype%.next()
-}, function () {
-  var O = this._t;
-  var index = this._i;
-  var point;
-  if (index >= O.length) return { value: undefined, done: true };
-  point = $at(O, index);
-  this._i += point.length;
-  return { value: point, done: false };
-});
-
-/***/ }),
-/* 71 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Fill = __webpack_require__(16);
+var _Fill = __webpack_require__(13);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -6087,7 +3885,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _DataLabels = __webpack_require__(45);
+var _DataLabels = __webpack_require__(46);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
@@ -6905,6 +4703,2208 @@ var Bar = function () {
 exports.default = Bar;
 
 /***/ }),
+/* 46 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Scatter = __webpack_require__(73);
+
+var _Scatter2 = _interopRequireDefault(_Scatter);
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+var _Filters = __webpack_require__(6);
+
+var _Filters2 = _interopRequireDefault(_Filters);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
+ *
+ * @module DataLabels
+ **/
+
+var DataLabels = function () {
+  function DataLabels(ctx) {
+    _classCallCheck(this, DataLabels);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
+  // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
+
+
+  _createClass(DataLabels, [{
+    key: 'dataLabelsCorrection',
+    value: function dataLabelsCorrection(x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize, pointSize) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+      var drawnextLabel = false; //
+
+      var textRects = graphics.getTextRects(val, fontSize);
+      var width = textRects.width;
+      var height = textRects.height;
+
+      // first value in series, so push an empty array
+      if (typeof w.globals.dataLabelsRects[i] === 'undefined') w.globals.dataLabelsRects[i] = [];
+
+      // then start pushing actual rects in that sub-array
+      w.globals.dataLabelsRects[i].push({ x: x, y: y, width: width, height: height });
+
+      var len = w.globals.dataLabelsRects[i].length - 2;
+      var lastDrawnIndex = typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined' ? w.globals.lastDrawnDataLabelsIndexes[i][w.globals.lastDrawnDataLabelsIndexes[i].length - 1] : 0;
+
+      if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
+        var lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex];
+        if (
+        // next label forward and x not intersecting
+        x > lastDataLabelRect.x + lastDataLabelRect.width + 2 || y > lastDataLabelRect.y + lastDataLabelRect.height + 2 || x + width < lastDataLabelRect.x // next label is going to be drawn backwards
+        ) {
+            // the 2 indexes don't override, so OK to draw next label
+            drawnextLabel = true;
+          }
+      }
+
+      if (realIndexP === 0 || alwaysDrawDataLabel) {
+        drawnextLabel = true;
+      }
+
+      return {
+        x: x,
+        y: y,
+        drawnextLabel: drawnextLabel
+      };
+    }
+  }, {
+    key: 'drawDataLabel',
+    value: function drawDataLabel(pos, i, j) {
+      var z = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
+      // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
+      // all other charts like bars / heatmaps will define their own drawDataLabel routine
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var dataLabelsConfig = w.config.dataLabels;
+
+      var x = 0;
+      var y = 0;
+
+      var realIndexP = j;
+
+      var elDataLabelsWrap = null;
+
+      if (dataLabelsConfig.enabled) {
+        elDataLabelsWrap = graphics.group({
+          class: 'apexcharts-data-labels'
+        });
+
+        if (pos.x instanceof Array) {
+          for (var q = 0; q < pos.x.length; q++) {
+            x = pos.x[q] + dataLabelsConfig.offsetX;
+            y = pos.y[q] + dataLabelsConfig.offsetY - w.config.markers.size - 5;
+
+            if (!isNaN(x)) {
+              // a small hack as we have 2 points for the first val to connect it
+              if (j === 1 && q === 0) realIndexP = 0;
+              if (j === 1 && q === 1) realIndexP = 1;
+
+              var val = w.globals.series[i][realIndexP];
+
+              var text = '';
+
+              if (w.config.chart.type === 'bubble') {
+                text = w.globals.seriesZ[i][realIndexP];
+                y = pos.y[q] + w.config.dataLabels.offsetY;
+                var scatter = new _Scatter2.default(this.ctx);
+                var centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, realIndexP);
+                y = centerTextInBubbleCoords.y;
+              } else {
+                if (typeof val !== 'undefined') {
+                  text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals });
+                }
+              }
+              this.plotDataLabelsText(x, y, text, i, realIndexP, elDataLabelsWrap, w.config.dataLabels);
+            }
+          }
+        }
+      }
+
+      return elDataLabelsWrap;
+    }
+  }, {
+    key: 'plotDataLabelsText',
+    value: function plotDataLabelsText(x, y, text, i, j, elToAppendTo, dataLabelsConfig) {
+      var alwaysDrawDataLabel = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : false;
+
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var correctedLabels = this.dataLabelsCorrection(x, y, text, i, j, alwaysDrawDataLabel, parseInt(dataLabelsConfig.style.fontSize), w.config.markers.size <= w.config.markers.hover.size ? w.config.markers.hover.size : w.config.markers.size);
+
+      // when zoomed, we don't need to correct labels offsets,
+      // but if normally, labels get cropped, correct them
+      if (!w.globals.zoomed) {
+        x = correctedLabels.x;
+        y = correctedLabels.y;
+      }
+
+      if (correctedLabels.drawnextLabel) {
+        var dataLabelText = graphics.drawText({
+          width: 100,
+          height: parseInt(dataLabelsConfig.style.fontSize),
+          x: x,
+          y: y,
+          foreColor: w.globals.dataLabels.style.colors[i],
+          textAnchor: dataLabelsConfig.textAnchor,
+          text: text,
+          fontSize: dataLabelsConfig.style.fontSize
+        });
+
+        dataLabelText.attr({
+          class: 'apexcharts-datalabel',
+          cx: x,
+          cy: y
+        });
+
+        if (dataLabelsConfig.dropShadow.enabled) {
+          var textShadow = dataLabelsConfig.dropShadow;
+          var filters = new _Filters2.default(this.ctx);
+          filters.dropShadow(dataLabelText, textShadow);
+        }
+
+        elToAppendTo.add(dataLabelText);
+
+        if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
+          w.globals.lastDrawnDataLabelsIndexes[i] = [];
+        }
+
+        w.globals.lastDrawnDataLabelsIndexes[i].push(j);
+      }
+    }
+  }]);
+
+  return DataLabels;
+}();
+
+exports.default = DataLabels;
+
+/***/ }),
+/* 47 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Filters = __webpack_require__(6);
+
+var _Filters2 = _interopRequireDefault(_Filters);
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Markers Class for drawing points on y values in axes charts.
+ *
+ * @module Markers
+ **/
+
+var Markers = function () {
+  function Markers(ctx, opts) {
+    _classCallCheck(this, Markers);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  _createClass(Markers, [{
+    key: 'plotChartMarkers',
+    value: function plotChartMarkers(pointsPos, seriesIndex, j) {
+      var _this = this;
+
+      var w = this.w;
+
+      var p = pointsPos;
+      var elPointsWrap = null;
+
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var point = void 0;
+
+      if (w.config.markers.size > 0) {
+        elPointsWrap = graphics.group({
+          class: 'apexcharts-series-markers'
+        });
+      }
+
+      if (p.x instanceof Array) {
+        var _loop = function _loop(q) {
+          var realIndexP = j;
+
+          var PointClasses = 'apexcharts-marker';
+          if ((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts && !w.config.tooltip.intersect) {
+            PointClasses += ' no-pointer-events';
+          }
+
+          if (w.config.markers.size > 0) {
+            if (p.y[q] !== null) {
+              PointClasses += ' w' + (Math.random() + 1).toString(36).substring(4);
+            } else {
+              PointClasses = 'apexcharts-nullpoint';
+            }
+
+            var opts = _this.getMarkerConfig(PointClasses, seriesIndex);
+            w.config.markers.discrete.map(function (marker, mIndex) {
+              if (marker.i === seriesIndex && marker.j === realIndexP) {
+                opts.pointStrokeColor = marker.strokeColor;
+                opts.pointFillColor = marker.fillColor;
+                opts.size = marker.size;
+              }
+            });
+
+            point = graphics.drawMarker(p.x[q], p.y[q], opts);
+
+            // a small hack as we have 2 points for the first val to connect it
+            if (j === 1 && q === 0) realIndexP = 0;
+            if (j === 1 && q === 1) realIndexP = 1;
+
+            point.attr('rel', realIndexP);
+            point.attr('j', realIndexP);
+            point.attr('index', seriesIndex);
+
+            _this.setSelectedPointFilter(point, seriesIndex, realIndexP);
+            _this.addEvents(point);
+
+            elPointsWrap.add(point);
+          } else {
+            // dynamic array creation - multidimensional
+            if (typeof w.globals.pointsArray[seriesIndex] === 'undefined') w.globals.pointsArray[seriesIndex] = [];
+
+            w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]]);
+          }
+        };
+
+        for (var q = 0; q < p.x.length; q++) {
+          _loop(q);
+        }
+      }
+
+      return elPointsWrap;
+    }
+  }, {
+    key: 'getMarkerConfig',
+    value: function getMarkerConfig(cssClass, seriesIndex) {
+      var w = this.w;
+      var pStyle = this.getMarkerStyle(seriesIndex);
+
+      var pSize = w.config.markers.size;
+
+      return {
+        pSize: pSize instanceof Array ? pSize[seriesIndex] : pSize,
+        pRadius: w.config.markers.radius,
+        pWidth: w.config.markers.strokeWidth,
+        pointStrokeColor: pStyle.pointStrokeColor,
+        pointFillColor: pStyle.pointFillColor,
+        shape: w.config.markers.shape instanceof Array ? w.config.markers.shape[seriesIndex] : w.config.markers.shape,
+        class: cssClass,
+        pointStrokeOpacity: w.config.markers.strokeOpacity,
+        pointFillOpacity: w.config.markers.fillOpacity,
+        seriesIndex: seriesIndex
+      };
+    }
+  }, {
+    key: 'addEvents',
+    value: function addEvents(circle) {
+      var graphics = new _Graphics2.default(this.ctx);
+      circle.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this.ctx, circle));
+      circle.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this.ctx, circle));
+
+      circle.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this.ctx, circle));
+
+      circle.node.addEventListener('touchstart', graphics.pathMouseDown.bind(this.ctx, circle));
+    }
+  }, {
+    key: 'setSelectedPointFilter',
+    value: function setSelectedPointFilter(circle, realIndex, realIndexP) {
+      var w = this.w;
+      if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
+        if (w.globals.selectedDataPoints[realIndex].includes(realIndexP)) {
+          circle.node.setAttribute('selected', true);
+          var activeFilter = w.config.states.active.filter;
+          if (activeFilter !== 'none') {
+            var filters = new _Filters2.default(this.ctx);
+            filters.applyFilter(circle, activeFilter.type, activeFilter.value);
+          }
+        }
+      }
+    }
+  }, {
+    key: 'getMarkerStyle',
+    value: function getMarkerStyle(seriesIndex) {
+      var w = this.w;
+
+      var colors = w.globals.markers.colors;
+
+      var pointStrokeColor = w.config.markers.strokeColor;
+      var pointFillColor = colors instanceof Array ? colors[seriesIndex] : colors;
+
+      return {
+        pointStrokeColor: pointStrokeColor, pointFillColor: pointFillColor
+      };
+    }
+  }]);
+
+  return Markers;
+}();
+
+module.exports = Markers;
+
+/***/ }),
+/* 48 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+var _YAxis = __webpack_require__(49);
+
+var _YAxis2 = _interopRequireDefault(_YAxis);
+
+var _Formatters = __webpack_require__(31);
+
+var _Formatters2 = _interopRequireDefault(_Formatters);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts XAxis Class for drawing X-Axis.
+ *
+ * @module XAxis
+ **/
+
+var XAxis = function () {
+  function XAxis(ctx) {
+    _classCallCheck(this, XAxis);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+
+    var w = this.w;
+    this.xaxisLabels = w.globals.labels.slice();
+    if (w.globals.timelineLabels.length > 0) {
+      //  timeline labels are there
+      this.xaxisLabels = w.globals.timelineLabels.slice();
+    }
+
+    if (w.config.xaxis.position === 'top') {
+      this.offY = 0;
+    } else {
+      this.offY = w.globals.gridHeight + 1;
+    }
+    this.offY = this.offY + w.config.xaxis.axisBorder.offsetY;
+
+    this.xaxisFontSize = w.config.xaxis.labels.style.fontSize;
+    this.xaxisForeColors = w.config.xaxis.labels.style.colors;
+
+    // For bars, we will only consider single y xais,
+    // as we are not providing multiple yaxis for bar charts
+    this.yaxis = w.config.yaxis[0];
+  }
+
+  _createClass(XAxis, [{
+    key: 'drawXaxis',
+    value: function drawXaxis() {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var elXaxis = graphics.group({
+        'class': 'apexcharts-xaxis'
+      });
+
+      var elXaxisTexts = graphics.group({
+        'class': 'apexcharts-xaxis-texts-g',
+        'transform': 'translate(' + w.globals.translateXAxisX + ', ' + w.globals.translateXAxisY + ')'
+      });
+
+      elXaxis.add(elXaxisTexts);
+
+      var colWidth = void 0;
+
+      // initial x Position (keep adding column width in the loop)
+      var xPos = w.globals.padHorizontal;
+      var labels = [];
+
+      if (w.globals.noData) return elXaxis;
+
+      for (var i = 0; i < this.xaxisLabels.length; i++) {
+        labels.push(this.xaxisLabels[i]);
+      }
+
+      if (w.config.chart.type === 'line' || w.config.chart.type === 'area') {
+        if (w.globals.dataXY) {
+          colWidth = w.globals.gridWidth / (labels.length - 1);
+          xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
+        } else {
+          // no dataXY, only y values values and labels not provided
+          if (w.globals.noLabelsProvided) {
+            colWidth = w.globals.gridWidth / this.xaxisLabels.length;
+          } else {
+            // labels provided
+            colWidth = w.globals.gridWidth / labels.length;
+          }
+          xPos = xPos + colWidth + w.config.xaxis.labels.offsetX;
+        }
+      } else {
+        if (w.globals.dataXY) {
+          if (w.config.chart.type !== 'bar') {
+            colWidth = w.globals.gridWidth / (this.xaxisLabels.length - 1);
+            xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
+          } else {
+            colWidth = w.globals.gridWidth / w.globals.labels.length;
+            xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
+          }
+        } else {
+          if (w.globals.noLabelsProvided && w.config.chart.type !== 'bar') {
+            colWidth = w.globals.gridWidth / this.xaxisLabels.length;
+            xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
+          } else {
+            colWidth = w.globals.gridWidth / labels.length;
+            xPos = xPos + colWidth + w.config.xaxis.labels.offsetX;
+          }
+        }
+      }
+
+      var xlbFormatter = w.globals.xLabelFormatter;
+      var customFormatter = w.config.xaxis.labels.formatter;
+
+      var labelsLen = labels.length;
+
+      if (w.config.xaxis.labels.show) {
+        for (var _i = 0; _i <= labelsLen - 1; _i++) {
+          var label = typeof labels[_i] === 'undefined' ? '' : labels[_i];
+
+          var xFormat = new _Formatters2.default(this.ctx);
+          label = xFormat.xLabelFormat(xlbFormatter, label);
+          if (customFormatter !== undefined) {
+            label = customFormatter(label, this.xaxisLabels[_i]);
+          }
+
+          var x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX;
+          if (w.globals.timelineLabels.length > 0) {
+            x = w.globals.timelineLabels[_i].position;
+            label = w.globals.timelineLabels[_i].value;
+          }
+
+          label = label.toString();
+          if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0) {
+            label = '';
+          }
+
+          var offsetYCorrection = 28;
+          if (w.globals.rotateXLabels) {
+            offsetYCorrection = 22;
+          }
+          var elTick = graphics.drawText({
+            x: x,
+            y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
+            text: '',
+            textAnchor: 'middle',
+            fontSize: this.xaxisFontSize,
+            foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[_i] : this.xaxisForeColors,
+            cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
+          });
+
+          elXaxisTexts.add(elTick);
+
+          elTick.tspan(label);
+
+          var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
+          elTooltipTitle.textContent = label;
+          elTick.node.appendChild(elTooltipTitle);
+
+          xPos = xPos + colWidth;
+        }
+      }
+
+      if (w.config.xaxis.title.text !== undefined) {
+        var elXaxisTitle = graphics.group({
+          class: 'apexcharts-xaxis-title'
+        });
+
+        var elXAxisTitleText = graphics.drawText({
+          x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
+          y: this.offY - parseInt(this.xaxisFontSize) + w.globals.xAxisLabelsHeight + w.config.xaxis.title.offsetY,
+          text: w.config.xaxis.title.text,
+          textAnchor: 'middle',
+          fontSize: w.config.xaxis.title.style.fontSize,
+          foreColor: w.config.xaxis.title.style.color,
+          cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
+        });
+
+        elXaxisTitle.add(elXAxisTitleText);
+
+        elXaxis.add(elXaxisTitle);
+      }
+
+      if (w.config.xaxis.axisBorder.show) {
+        var lineCorrection = 0;
+        if (w.config.chart.type === 'bar' && w.globals.dataXY) {
+          lineCorrection = lineCorrection - 15;
+        }
+        var elHorzLine = graphics.drawLine(w.globals.padHorizontal + lineCorrection + w.config.xaxis.axisBorder.offsetX, this.offY, w.globals.gridWidth, this.offY, w.config.xaxis.axisBorder.color, 0, w.config.xaxis.axisBorder.strokeWidth);
+
+        elXaxis.add(elHorzLine);
+      }
+
+      return elXaxis;
+    }
+
+    // this actually becomes the vertical axis (for bar charts)
+
+  }, {
+    key: 'drawXaxisInversed',
+    value: function drawXaxisInversed(realIndex) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var elYaxis = graphics.group({
+        class: 'apexcharts-yaxis apexcharts-xaxis-inversed',
+        'rel': realIndex
+      });
+
+      var elYaxisTexts = graphics.group({
+        class: 'apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g'
+      });
+
+      elYaxis.add(elYaxisTexts);
+
+      var colHeight = void 0;
+
+      // initial x Position (keep adding column width in the loop)
+      var yPos = void 0;
+      var labels = [];
+
+      for (var i = 0; i < this.xaxisLabels.length; i++) {
+        labels.push(this.xaxisLabels[i]);
+      }
+
+      colHeight = w.globals.gridHeight / labels.length;
+      yPos = -(colHeight / 2.2);
+
+      var lbFormatter = w.globals.yLabelFormatters[0];
+
+      if (w.config.yaxis[0].labels.show) {
+        for (var _i2 = 0; _i2 <= labels.length - 1; _i2++) {
+          var label = typeof labels[_i2] === 'undefined' ? '' : labels[_i2];
+
+          label = lbFormatter(label);
+
+          var elTick = graphics.drawText({
+            x: w.config.yaxis[0].labels.offsetX - 15,
+            y: yPos + colHeight + w.config.yaxis[0].labels.offsetY,
+            text: label,
+            textAnchor: 'end',
+            foreColor: w.config.yaxis[0].labels.style.colors[_i2],
+            fontSize: w.config.yaxis[0].labels.style.fontSize,
+            cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[0].labels.style.cssClass
+          });
+
+          elYaxisTexts.add(elTick);
+          yPos = yPos + colHeight;
+        }
+      }
+
+      if (w.config.yaxis[0].title.text !== undefined) {
+        var elXaxisTitle = graphics.group({
+          class: 'apexcharts-yaxis-title apexcharts-xaxis-title-inversed'
+        });
+
+        var elXAxisTitleText = graphics.drawText({
+          x: 0,
+          y: w.globals.gridHeight / 2,
+          text: w.config.yaxis[0].title.text,
+          textAnchor: 'middle',
+          foreColor: w.config.yaxis[0].title.style.color,
+          fontSize: w.config.yaxis[0].title.style.fontSize,
+          cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[0].title.style.cssClass
+        });
+
+        elXaxisTitle.add(elXAxisTitleText);
+
+        elYaxis.add(elXaxisTitle);
+      }
+
+      if (w.config.xaxis.axisBorder.show) {
+        var elHorzLine = graphics.drawLine(w.globals.padHorizontal + w.config.xaxis.axisBorder.offsetX, this.offY, w.globals.gridWidth, this.offY, this.yaxis.axisBorder.color, 0, w.config.xaxis.axisBorder.strokeWidth);
+
+        elYaxis.add(elHorzLine);
+
+        // let x = w.globals.yAxisWidths[0] / 2
+        // if (w.config.yaxis[0].opposite) {
+        //   x = -w.globals.yAxisWidths[0] / 2
+        // }
+
+        var yaxis = new _YAxis2.default(this.ctx);
+
+        yaxis.drawAxisTicks(0, labels.length, w.config.yaxis[0].axisBorder, w.config.yaxis[0].axisTicks, 0, colHeight, elYaxis);
+      }
+
+      return elYaxis;
+    }
+  }, {
+    key: 'drawXaxisTicks',
+    value: function drawXaxisTicks(x1, appendToElement) {
+      var w = this.w;
+      var x2 = x1;
+
+      if (x1 < 0 || x1 > w.globals.gridWidth) return;
+
+      var y1 = this.offY + w.config.xaxis.axisTicks.offsetY;
+      var y2 = y1 + w.config.xaxis.axisTicks.height;
+
+      if (w.config.xaxis.axisTicks.show) {
+        var graphics = new _Graphics2.default(this.ctx);
+
+        var line = graphics.drawLine(x1 + w.config.xaxis.axisTicks.offsetX, y1, x2 + w.config.xaxis.axisTicks.offsetX, y2, w.config.xaxis.axisTicks.color);
+
+        // we are not returning anything, but appending directly to the element pased in param
+        appendToElement.add(line);
+        line.node.classList.add('apexcharts-xaxis-tick');
+      }
+    }
+  }, {
+    key: 'getXAxisTicksPositions',
+    value: function getXAxisTicksPositions() {
+      var w = this.w;
+      var xAxisTicksPositions = [];
+
+      var xCount = this.xaxisLabels.length;
+      var x1 = w.globals.padHorizontal;
+
+      if (w.globals.timelineLabels.length > 0) {
+        for (var i = 0; i < xCount; i++) {
+          x1 = this.xaxisLabels[i].position;
+          xAxisTicksPositions.push(x1);
+        }
+      } else {
+        var xCountForCategoryCharts = xCount;
+        for (var _i3 = 0; _i3 < xCountForCategoryCharts; _i3++) {
+          var x1Count = xCountForCategoryCharts;
+          if (w.globals.dataXY && w.config.chart.type !== 'bar') {
+            x1Count -= 1;
+          }
+          x1 = x1 + w.globals.gridWidth / x1Count;
+          xAxisTicksPositions.push(x1);
+        }
+      }
+
+      return xAxisTicksPositions;
+    }
+
+    // to rotate x-axis labels or to put ... for longer text in xaxis
+
+  }, {
+    key: 'xAxisLabelCorrections',
+    value: function xAxisLabelCorrections() {
+      var w = this.w;
+
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var xAxis = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g');
+
+      var xAxisTexts = w.globals.dom.baseEl.querySelectorAll('.apexcharts-xaxis-texts-g text');
+      var yAxisTextsInversed = w.globals.dom.baseEl.querySelectorAll('.apexcharts-yaxis-inversed text');
+      var xAxisTextsInversed = w.globals.dom.baseEl.querySelectorAll('.apexcharts-xaxis-inversed-texts-g text');
+
+      if (w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways) {
+        for (var xat = 0; xat < xAxisTexts.length; xat++) {
+          var textRotatingCenter = graphics.rotateAroundCenter(xAxisTexts[xat]);
+          textRotatingCenter.y = textRotatingCenter.y - 1; // + tickWidth/4;
+          textRotatingCenter.x = textRotatingCenter.x + 1;
+
+          xAxisTexts[xat].setAttribute('transform', 'rotate(' + w.config.xaxis.labels.rotate + ' ' + textRotatingCenter.x + ' ' + textRotatingCenter.y + ')');
+
+          xAxisTexts[xat].setAttribute('text-anchor', 'end');
+
+          var offsetHeight = 10;
+
+          xAxis.setAttribute('transform', 'translate(0, ' + -offsetHeight + ')');
+
+          var tSpan = xAxisTexts[xat].childNodes;
+
+          if (w.config.xaxis.labels.trim) {
+            graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, w.config.xaxis.labels.maxHeight - 40);
+          }
+        }
+      } else {
+        var width = w.globals.gridWidth / w.globals.labels.length;
+
+        for (var _xat = 0; _xat < xAxisTexts.length; _xat++) {
+          var _tSpan = xAxisTexts[_xat].childNodes;
+
+          if (w.config.xaxis.labels.trim && w.config.chart.type !== 'bar' && w.config.plotOptions.bar.horizontal) {
+            graphics.placeTextWithEllipsis(_tSpan[0], _tSpan[0].textContent, width);
+          }
+        }
+      }
+
+      if (xAxisTexts.length > 0) {
+        var firstLabelPos = xAxisTexts[0].getBBox();
+        var lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox();
+        if (firstLabelPos.x < -25) {
+          xAxisTexts[0].parentNode.removeChild(xAxisTexts[0]);
+        }
+        if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
+          xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1]);
+        }
+      }
+
+      if (yAxisTextsInversed.length > 0) {
+        // truncate y axis in bar chart
+        var firstLabelPosX = yAxisTextsInversed[yAxisTextsInversed.length - 1].getBBox();
+        var lastLabelPosX = yAxisTextsInversed[0].getBBox();
+
+        if (firstLabelPosX.x < -20) {
+          yAxisTextsInversed[yAxisTextsInversed.length - 1].parentNode.removeChild(yAxisTextsInversed[yAxisTextsInversed.length - 1]);
+        }
+
+        if (lastLabelPosX.x + lastLabelPosX.width > w.globals.gridWidth) {
+          yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0]);
+        }
+
+        // truncate y axis in bar chart
+        for (var _xat2 = 0; _xat2 < xAxisTextsInversed.length; _xat2++) {
+          graphics.placeTextWithEllipsis(xAxisTextsInversed[_xat2], xAxisTextsInversed[_xat2].textContent, w.config.yaxis[0].labels.maxWidth - parseInt(w.config.yaxis[0].title.style.fontSize) * 2 - 20);
+        }
+      }
+    }
+
+    // renderXAxisBands() {
+    //   let w = this.w;
+
+    //   let plotBand = document.createElementNS(w.globals.svgNS, 'rect')
+    //   w.globals.dom.elGraphical.add(plotBand)
+    // }
+
+  }]);
+
+  return XAxis;
+}();
+
+module.exports = XAxis;
+
+/***/ }),
+/* 49 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts YAxis Class for drawing Y-Axis.
+ *
+ * @module YAxis
+ **/
+
+var YAxis = function () {
+  function YAxis(ctx) {
+    _classCallCheck(this, YAxis);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+
+    this.xaxisFontSize = this.w.config.xaxis.labels.style.fontSize;
+    this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal);
+
+    this.xaxisForeColors = this.w.config.xaxis.labels.style.colors;
+
+    this.xAxisoffX = 0;
+    if (this.w.config.xaxis.position === 'bottom') {
+      this.xAxisoffX = this.w.globals.gridHeight;
+    }
+  }
+
+  _createClass(YAxis, [{
+    key: 'drawYaxis',
+    value: function drawYaxis(xyRatios, realIndex) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var yaxisFontSize = w.config.yaxis[realIndex].labels.style.fontSize;
+
+      var elYaxis = graphics.group({
+        class: 'apexcharts-yaxis',
+        'rel': realIndex,
+        'transform': 'translate(' + w.globals.translateYAxisX[realIndex] + ', 0)'
+      });
+
+      var elYaxisTexts = graphics.group({
+        'class': 'apexcharts-yaxis-texts-g'
+      });
+
+      elYaxis.add(elYaxisTexts);
+
+      var tickAmount = w.globals.yAxisScale[realIndex].result.length - 1;
+
+      // labelsDivider is simply svg height/number of ticks
+      var labelsDivider = w.globals.gridHeight / tickAmount + 0.1;
+
+      // initial label position = 0;
+      var l = w.globals.translateY;
+      var lbFormatter = w.globals.yLabelFormatters[realIndex];
+
+      if (w.config.yaxis[realIndex].labels.show) {
+        for (var i = tickAmount; i >= 0; i--) {
+          var val = w.globals.yAxisScale[realIndex].result[i];
+
+          val = lbFormatter(val);
+
+          var xPad = 20;
+          if (w.config.yaxis[realIndex].opposite) {
+            xPad = xPad * -1;
+          }
+
+          if (w.config.yaxis.length === 0) {
+            xPad = 20;
+          }
+
+          var label = graphics.drawText({
+            x: xPad,
+            y: l + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY + 1,
+            text: val,
+            textAnchor: w.config.yaxis[realIndex].opposite ? 'start' : 'end',
+            fontSize: yaxisFontSize,
+            foreColor: w.config.yaxis[realIndex].labels.style.color,
+            cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[realIndex].labels.style.cssClass
+          });
+          elYaxisTexts.add(label);
+          l = l + labelsDivider;
+        }
+      }
+
+      if (w.config.yaxis[realIndex].title.text !== undefined) {
+        var elYaxisTitle = graphics.group({
+          'class': 'apexcharts-yaxis-title'
+        });
+
+        var x = 0;
+        if (w.config.yaxis[realIndex].opposite) {
+          x = w.globals.translateYAxisX[realIndex];
+        }
+        var elYAxisTitleText = graphics.drawText({
+          x: x,
+          y: w.globals.gridHeight / 2 + w.globals.translateY,
+          text: w.config.yaxis[realIndex].title.text,
+          textAnchor: 'end',
+          foreColor: w.config.yaxis[realIndex].labels.style.color,
+          fontSize: w.config.yaxis[realIndex].title.style.fontSize,
+          cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[realIndex].title.style.cssClass
+        });
+
+        elYaxisTitle.add(elYAxisTitleText);
+
+        elYaxis.add(elYaxisTitle);
+      }
+
+      var axisBorder = w.config.yaxis[realIndex].axisBorder;
+      if (axisBorder.show) {
+        var _x = 31 + axisBorder.offsetX;
+        if (w.config.yaxis[realIndex].opposite) {
+          _x = -31 - axisBorder.offsetX;
+        }
+
+        var elVerticalLine = graphics.drawLine(_x, w.globals.translateY + axisBorder.offsetY - 2, _x, w.globals.gridHeight + w.globals.translateY + axisBorder.offsetY + 2, axisBorder.color);
+
+        elYaxis.add(elVerticalLine);
+
+        this.drawAxisTicks(_x, tickAmount, axisBorder, w.config.yaxis[realIndex].axisTicks, realIndex, labelsDivider, elYaxis);
+      }
+
+      return elYaxis;
+    }
+
+    // This actually becomes horizonal axis (for bar charts)
+
+  }, {
+    key: 'drawYaxisInversed',
+    value: function drawYaxisInversed(realIndex) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var elXaxis = graphics.group({
+        'class': 'apexcharts-xaxis apexcharts-yaxis-inversed'
+      });
+
+      var elXaxisTexts = graphics.group({
+        'class': 'apexcharts-xaxis-texts-g',
+        'transform': 'translate(' + w.globals.translateXAxisX + ', ' + w.globals.translateXAxisY + ')'
+      });
+
+      elXaxis.add(elXaxisTexts);
+
+      var tickAmount = w.globals.yAxisScale[realIndex].result.length - 1;
+
+      // labelsDivider is simply svg width/number of ticks
+      var labelsDivider = w.globals.gridWidth / tickAmount + 0.1;
+
+      // initial label position;
+      var l = labelsDivider + w.config.xaxis.labels.offsetX;
+      var lbFormatter = w.globals.xLabelFormatter;
+
+      if (w.config.xaxis.labels.show) {
+        for (var i = tickAmount; i >= 0; i--) {
+          var val = w.globals.yAxisScale[realIndex].result[i];
+          val = lbFormatter(val);
+
+          var elTick = graphics.drawText({
+            x: w.globals.gridWidth + w.globals.padHorizontal - (l - labelsDivider + w.config.xaxis.labels.offsetX),
+            y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
+            text: '',
+            textAnchor: 'middle',
+            foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[realIndex] : this.xaxisForeColors,
+            fontSize: this.xaxisFontSize,
+            cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
+          });
+
+          elXaxisTexts.add(elTick);
+
+          elTick.tspan(val);
+
+          var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
+          elTooltipTitle.textContent = val;
+          elTick.node.appendChild(elTooltipTitle);
+
+          l = l + labelsDivider;
+        }
+      }
+
+      if (w.config.xaxis.title.text !== undefined) {
+        var elYaxisTitle = graphics.group({
+          'class': 'apexcharts-xaxis-title apexcharts-yaxis-title-inversed'
+        });
+
+        var elYAxisTitleText = graphics.drawText({
+          x: w.globals.gridWidth / 2,
+          y: this.xAxisoffX + parseInt(this.xaxisFontSize) + parseInt(w.config.xaxis.title.style.fontSize) + 20,
+          text: w.config.xaxis.title.text,
+          textAnchor: 'middle',
+          fontSize: w.config.xaxis.title.style.fontSize,
+          cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
+        });
+
+        elYaxisTitle.add(elYAxisTitleText);
+
+        elXaxis.add(elYaxisTitle);
+      }
+
+      var axisBorder = w.config.yaxis[realIndex].axisBorder;
+      if (axisBorder.show) {
+        var elVerticalLine = graphics.drawLine(w.globals.padHorizontal + axisBorder.offsetX, 1 + axisBorder.offsetY, w.globals.padHorizontal + axisBorder.offsetX, w.globals.gridHeight + axisBorder.offsetY, axisBorder.color);
+
+        elXaxis.add(elVerticalLine);
+      }
+
+      return elXaxis;
+    }
+  }, {
+    key: 'drawAxisTicks',
+    value: function drawAxisTicks(x, tickAmount, axisBorder, axisTicks, realIndex, labelsDivider, elYaxis) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      // initial label position = 0;
+      var t = w.globals.translateY;
+
+      if (axisTicks.show) {
+        if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width;
+
+        for (var i = tickAmount; i >= 0; i--) {
+          var tY = t + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY - 1;
+          if (this.isBarHorizontal) {
+            tY = labelsDivider * i;
+          }
+          var elTick = graphics.drawLine(x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX, tY + axisTicks.offsetY, x + axisBorder.offsetX + axisTicks.offsetX, tY + axisTicks.offsetY, axisBorder.color);
+          elYaxis.add(elTick);
+          t = t + labelsDivider;
+        }
+      }
+    }
+  }, {
+    key: 'yAxisTitleRotate',
+    value: function yAxisTitleRotate(realIndex, yAxisOpposite) {
+      var w = this.w;
+
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var yAxisLabelsCoord = {
+        width: 0,
+        height: 0
+      };
+      var yAxisTitleCoord = {
+        width: 0,
+        height: 0
+      };
+
+      var elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(' .apexcharts-yaxis[rel=\'' + realIndex + '\'] .apexcharts-yaxis-texts-g');
+
+      if (elYAxisLabelsWrap !== null) {
+        yAxisLabelsCoord = elYAxisLabelsWrap.getBoundingClientRect();
+      }
+
+      var yAxisTitle = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis[rel=\'' + realIndex + '\'] .apexcharts-yaxis-title text');
+
+      if (yAxisTitle !== null) {
+        yAxisTitleCoord = yAxisTitle.getBoundingClientRect();
+      }
+
+      if (yAxisTitle !== null) {
+        var x = this.xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite);
+
+        yAxisTitle.setAttribute('x', x.xPos);
+      }
+
+      if (yAxisTitle !== null) {
+        var titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle);
+        if (!yAxisOpposite) {
+          yAxisTitle.setAttribute('transform', 'rotate(-90 ' + titleRotatingCenter.x + ' ' + titleRotatingCenter.y + ')');
+        } else {
+          yAxisTitle.setAttribute('transform', 'rotate(90 ' + titleRotatingCenter.x + ' ' + titleRotatingCenter.y + ')');
+        }
+      }
+    }
+  }, {
+    key: 'xPaddingForYAxisTitle',
+    value: function xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite) {
+      var w = this.w;
+      var oppositeAxisCount = 0;
+
+      var x = 0;
+      var padd = 20;
+      if (yAxisOpposite) {
+        x = yAxisLabelsCoord.width + w.config.yaxis[realIndex].title.offsetX + padd + yAxisTitleCoord.width / 2 - 15;
+
+        if (oppositeAxisCount === 0) {
+          x = x - 15;
+        }
+        oppositeAxisCount += 1;
+      } else {
+        x = yAxisLabelsCoord.width * -1 + w.config.yaxis[realIndex].title.offsetX + padd + yAxisTitleCoord.width / 2 - 15;
+
+        if (this.isBarHorizontal) {
+          padd = 25;
+          x = yAxisLabelsCoord.width * -1 - w.config.yaxis[realIndex].title.offsetX - padd;
+        }
+      }
+
+      return { xPos: x, padd: padd };
+    }
+  }]);
+
+  return YAxis;
+}();
+
+module.exports = YAxis;
+
+/***/ }),
+/* 50 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Defaults = __webpack_require__(141);
+
+var _Defaults2 = _interopRequireDefault(_Defaults);
+
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
+var _Options = __webpack_require__(77);
+
+var _Options2 = _interopRequireDefault(_Options);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Config Class for extending user options with pre-defined ApexCharts config.
+ *
+ * @module Config
+ **/
+var Config = function () {
+  function Config(opts) {
+    _classCallCheck(this, Config);
+
+    this.opts = opts;
+  }
+
+  _createClass(Config, [{
+    key: 'init',
+    value: function init() {
+      var opts = this.opts;
+      var options = new _Options2.default();
+      var defaults = new _Defaults2.default(opts);
+
+      this.chartType = opts.chart.type;
+
+      if (this.chartType === 'histogram') {
+        opts.chart.type = 'bar';
+        opts = _Utils2.default.extend({
+          plotOptions: {
+            bar: {
+              columnWidth: '99.99%'
+            }
+          }
+        }, opts);
+      }
+
+      opts.series = this.checkEmptySeries(opts.series);
+
+      opts = this.extendYAxis(opts);
+      opts = this.extendAnnotations(opts);
+
+      var config = options.init();
+      var newDefaults = {};
+      if (opts && (typeof opts === 'undefined' ? 'undefined' : _typeof(opts)) === 'object') {
+        var chartDefaults = {};
+        switch (this.chartType) {
+          case 'line':
+            chartDefaults = defaults.line();
+            break;
+          case 'area':
+            chartDefaults = defaults.area();
+            break;
+          case 'bar':
+            chartDefaults = defaults.bar();
+            break;
+          case 'histogram':
+            chartDefaults = defaults.bar();
+            break;
+          case 'bubble':
+            chartDefaults = defaults.bubble();
+            break;
+          case 'scatter':
+            chartDefaults = defaults.scatter();
+            break;
+          case 'heatmap':
+            chartDefaults = defaults.heatmap();
+            break;
+          case 'pie':
+            chartDefaults = defaults.pie();
+            break;
+          case 'donut':
+            chartDefaults = defaults.donut();
+            break;
+          case 'radialBar':
+            chartDefaults = defaults.radialBar();
+            break;
+          default:
+            chartDefaults = defaults.line();
+        }
+
+        if (opts.chart.stacked && opts.chart.stackType === '100%') {
+          defaults.stacked100(chartDefaults);
+        }
+        if (opts.chart.sparkline && opts.chart.sparkline.enabled || window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled) {
+          chartDefaults = defaults.sparkline(chartDefaults);
+        }
+        newDefaults = _Utils2.default.extend(config, chartDefaults);
+      }
+
+      // config should override in this fashion
+      // default config < global apex variable config < user defined config
+
+      // get GLOBALLY defined options and merge with the default config
+      var mergedWithDefaultConfig = _Utils2.default.extend(newDefaults, window.Apex);
+
+      // get the merged config and extend with user defined config
+      config = _Utils2.default.extend(mergedWithDefaultConfig, opts);
+
+      // some features are not supported. those mismatches should be handled
+      config = this.handleUserInputErrors(config);
+
+      return config;
+    }
+  }, {
+    key: 'extendYAxis',
+    value: function extendYAxis(opts) {
+      var options = new _Options2.default();
+      if (typeof opts.yaxis === 'undefined') {
+        opts.yaxis = {};
+      }
+
+      // extend global yaxis config (only if object is provided / not an array)
+      if (opts.yaxis.constructor !== Array && window.Apex.yaxis && window.Apex.yaxis.constructor !== Array) {
+        opts.yaxis = _Utils2.default.extend(opts.yaxis, window.Apex.yaxis);
+      }
+
+      // as we can't extend nested object's array with extend, we need to do it first
+      // user can provide either an array or object in yaxis config
+      if (opts.yaxis.constructor !== Array) {
+        // convert the yaxis to array if user supplied object
+        opts.yaxis = [_Utils2.default.extend(options.yAxis, opts.yaxis)];
+      } else {
+        opts.yaxis = _Utils2.default.extendArray(opts.yaxis, options.yAxis);
+      }
+      return opts;
+    }
+
+    // annotations also accepts array, so we need to extend them manually
+
+  }, {
+    key: 'extendAnnotations',
+    value: function extendAnnotations(opts) {
+      if (typeof opts.annotations === 'undefined') {
+        opts.annotations = {};
+        opts.annotations.yaxis = [];
+        opts.annotations.xaxis = [];
+        opts.annotations.points = [];
+      }
+
+      opts = this.extendYAxisAnnotations(opts);
+      opts = this.extendXAxisAnnotations(opts);
+      opts = this.extendPointAnnotations(opts);
+
+      return opts;
+    }
+  }, {
+    key: 'extendYAxisAnnotations',
+    value: function extendYAxisAnnotations(opts) {
+      var options = new _Options2.default();
+      opts.annotations.yaxis = _Utils2.default.extendArray(typeof opts.annotations.yaxis !== 'undefined' ? opts.annotations.yaxis : [], options.yAxisAnnotation);
+      return opts;
+    }
+  }, {
+    key: 'extendXAxisAnnotations',
+    value: function extendXAxisAnnotations(opts) {
+      var options = new _Options2.default();
+      opts.annotations.xaxis = _Utils2.default.extendArray(typeof opts.annotations.xaxis !== 'undefined' ? opts.annotations.xaxis : [], options.xAxisAnnotation);
+      return opts;
+    }
+  }, {
+    key: 'extendPointAnnotations',
+    value: function extendPointAnnotations(opts) {
+      var options = new _Options2.default();
+      opts.annotations.points = _Utils2.default.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], options.pointAnnotation);
+      return opts;
+    }
+  }, {
+    key: 'checkEmptySeries',
+    value: function checkEmptySeries(ser) {
+      if (ser.length === 0) {
+        return [{
+          data: []
+        }];
+      }
+      return ser;
+    }
+  }, {
+    key: 'handleUserInputErrors',
+    value: function handleUserInputErrors(opts) {
+      var config = opts;
+      // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
+      if (config.tooltip.shared && config.tooltip.intersect) {
+        throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false');
+      }
+
+      if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
+        // No time series for horizontal bars
+        if (config.xaxis.type === 'datetime') {
+          throw new Error('Timelines on bars are not supported yet. Switch to column chart by setting plotOptions.bar.horizontal=false');
+        }
+
+        // No multiple yaxis for bars
+        if (config.yaxis.length > 1) {
+          throw new Error('Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false');
+        }
+
+        config.xaxis.tooltip.enabled = false; // no xaxis tooltip for horizontal bar
+        config.yaxis[0].tooltip.enabled = false; // no xaxis tooltip for horizontal bar
+        config.chart.zoom.enabled = false; // no zooming for bars
+      }
+
+      if (config.chart.type === 'bar') {
+        if (config.tooltip.shared) {
+          if (config.xaxis.crosshairs.width === 'barWidth' && config.series.length > 1) {
+            console.warn('crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart');
+            config.xaxis.crosshairs.width = 'tickWidth';
+          }
+          if (config.plotOptions.bar.horizontal) {
+            config.states.hover.type = 'none';
+          }
+          if (!config.tooltip.followCursor) {
+            console.warn('followCursor option in shared columns cannot be turned off');
+            config.tooltip.followCursor = true;
+          }
+        }
+      }
+
+      // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
+      if (Array.isArray(config.stroke.width)) {
+        if (config.chart.type !== 'line' && config.chart.type !== 'area') {
+          console.warn('stroke.width option accepts array only for line and area charts. Reverted back to Number');
+          config.stroke.width = config.stroke.width[0];
+        }
+      }
+
+      return config;
+    }
+  }]);
+
+  return Config;
+}();
+
+module.exports = Config;
+
+/***/ }),
+/* 51 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _TimeScale = __webpack_require__(75);
+
+var _TimeScale2 = _interopRequireDefault(_TimeScale);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * DateTime Class to manipulate datetime values.
+ *
+ * @module DateTime
+ **/
+
+var DateTime = function () {
+  function DateTime(ctx) {
+    _classCallCheck(this, DateTime);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+
+    this.months31 = [1, 3, 5, 7, 8, 10, 12];
+    this.months30 = [2, 4, 6, 9, 11];
+
+    this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  }
+
+  _createClass(DateTime, [{
+    key: 'isValidDate',
+    value: function isValidDate(date) {
+      return !isNaN(this.parseDate(date));
+    }
+  }, {
+    key: 'parseDate',
+    value: function parseDate(date) {
+      var parsed = Date.parse(date);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+
+      return Date.parse(date.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
+    }
+
+    // https://stackoverflow.com/a/11252167/6495043
+
+  }, {
+    key: 'treatAsUtc',
+    value: function treatAsUtc(dateStr) {
+      var result = new Date(dateStr);
+      result.setMinutes(result.getMinutes() - result.getTimezoneOffset());
+      return result;
+    }
+
+    // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
+
+  }, {
+    key: 'formatDate',
+    value: function formatDate(date, format) {
+      var utc = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      var culture = this.w.globals.culture;
+
+      var MMMM = ['\x00'].concat(_toConsumableArray(culture.months));
+      var MMM = ['\x01'].concat(_toConsumableArray(culture.shortMonths));
+      var dddd = ['\x02'].concat(_toConsumableArray(culture.days));
+      var ddd = ['\x03'].concat(_toConsumableArray(culture.shortDays));
+
+      function ii(i, len) {
+        var s = i + '';
+        len = len || 2;
+        while (s.length < len) {
+          s = '0' + s;
+        }return s;
+      }
+
+      date = this.treatAsUtc(date);
+
+      var y = utc ? date.getUTCFullYear() : date.getFullYear();
+      format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y);
+      format = format.replace(/(^|[^\\])yy/g, '$1' + y.toString().substr(2, 2));
+      format = format.replace(/(^|[^\\])y/g, '$1' + y);
+
+      var M = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
+      format = format.replace(/(^|[^\\])MMMM+/g, '$1' + MMMM[0]);
+      format = format.replace(/(^|[^\\])MMM/g, '$1' + MMM[0]);
+      format = format.replace(/(^|[^\\])MM/g, '$1' + ii(M));
+      format = format.replace(/(^|[^\\])M/g, '$1' + M);
+
+      var d = utc ? date.getUTCDate() : date.getDate();
+      format = format.replace(/(^|[^\\])dddd+/g, '$1' + dddd[0]);
+      format = format.replace(/(^|[^\\])ddd/g, '$1' + ddd[0]);
+      format = format.replace(/(^|[^\\])dd/g, '$1' + ii(d));
+      format = format.replace(/(^|[^\\])d/g, '$1' + d);
+
+      var H = utc ? date.getUTCHours() : date.getHours();
+      format = format.replace(/(^|[^\\])HH+/g, '$1' + ii(H));
+      format = format.replace(/(^|[^\\])H/g, '$1' + H);
+
+      var h = H > 12 ? H - 12 : H === 0 ? 12 : H;
+      format = format.replace(/(^|[^\\])hh+/g, '$1' + ii(h));
+      format = format.replace(/(^|[^\\])h/g, '$1' + h);
+
+      var m = utc ? date.getUTCMinutes() : date.getMinutes();
+      format = format.replace(/(^|[^\\])mm+/g, '$1' + ii(m));
+      format = format.replace(/(^|[^\\])m/g, '$1' + m);
+
+      var s = utc ? date.getUTCSeconds() : date.getSeconds();
+      format = format.replace(/(^|[^\\])ss+/g, '$1' + ii(s));
+      format = format.replace(/(^|[^\\])s/g, '$1' + s);
+
+      var f = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
+      format = format.replace(/(^|[^\\])fff+/g, '$1' + ii(f, 3));
+      f = Math.round(f / 10);
+      format = format.replace(/(^|[^\\])ff/g, '$1' + ii(f));
+      f = Math.round(f / 10);
+      format = format.replace(/(^|[^\\])f/g, '$1' + f);
+
+      var T = H < 12 ? 'AM' : 'PM';
+      format = format.replace(/(^|[^\\])TT+/g, '$1' + T);
+      format = format.replace(/(^|[^\\])T/g, '$1' + T.charAt(0));
+
+      var t = T.toLowerCase();
+      format = format.replace(/(^|[^\\])tt+/g, '$1' + t);
+      format = format.replace(/(^|[^\\])t/g, '$1' + t.charAt(0));
+
+      var tz = -date.getTimezoneOffset();
+      var K = utc || !tz ? 'Z' : tz > 0 ? '+' : '-';
+      if (!utc) {
+        tz = Math.abs(tz);
+        var tzHrs = Math.floor(tz / 60);
+        var tzMin = tz % 60;
+        K += ii(tzHrs) + ':' + ii(tzMin);
+      }
+      format = format.replace(/(^|[^\\])K/g, '$1' + K);
+
+      var day = (utc ? date.getUTCDay() : date.getDay()) + 1;
+      format = format.replace(new RegExp(dddd[0], 'g'), dddd[day]);
+      format = format.replace(new RegExp(ddd[0], 'g'), ddd[day]);
+
+      format = format.replace(new RegExp(MMMM[0], 'g'), MMMM[M]);
+      format = format.replace(new RegExp(MMM[0], 'g'), MMM[M]);
+
+      format = format.replace(/\\(.)/g, '$1');
+
+      return format;
+    }
+  }, {
+    key: 'getTimeUnitsfromTimestamp',
+    value: function getTimeUnitsfromTimestamp(minX, maxX) {
+      var w = this.w;
+
+      if (w.config.xaxis.min !== undefined) {
+        minX = w.config.xaxis.min;
+      }
+      if (w.config.xaxis.max !== undefined) {
+        maxX = w.config.xaxis.max;
+      }
+
+      var minYear = new Date(minX).getFullYear();
+      var maxYear = new Date(maxX).getFullYear();
+
+      var minMonth = new Date(minX).getMonth();
+      var maxMonth = new Date(maxX).getMonth();
+
+      var minDate = new Date(minX).getDate();
+      var maxDate = new Date(maxX).getDate();
+
+      var minHour = new Date(minX).getHours();
+      var maxHour = new Date(maxX).getHours();
+
+      var minMinute = new Date(minX).getMinutes();
+      var maxMinute = new Date(maxX).getMinutes();
+
+      return {
+        minMinute: minMinute, maxMinute: maxMinute, minHour: minHour, maxHour: maxHour, minDate: minDate, maxDate: maxDate, minMonth: minMonth, maxMonth: maxMonth, minYear: minYear, maxYear: maxYear
+      };
+    }
+  }, {
+    key: 'isLeapYear',
+    value: function isLeapYear(year) {
+      return year % 4 === 0 && year % 100 !== 0 || year % 400 === 0;
+    }
+  }, {
+    key: 'calculcateLastDaysOfMonth',
+    value: function calculcateLastDaysOfMonth(month, year, subtract) {
+      var days = this.determineDaysOfMonths(month, year);
+
+      // whatever days we get, subtract the number of days asked
+      return days - subtract;
+    }
+  }, {
+    key: 'determineDaysOfYear',
+    value: function determineDaysOfYear(year) {
+      var days = 365;
+
+      if (this.isLeapYear(year)) {
+        days = 366;
+      }
+
+      return days;
+    }
+  }, {
+    key: 'determineRemainingDaysOfYear',
+    value: function determineRemainingDaysOfYear(year, month, date) {
+      var dayOfYear = this.daysCntOfYear[month] + date;
+      if (month > 1 && this.isLeapYear()) dayOfYear++;
+      return dayOfYear;
+    }
+  }, {
+    key: 'determineDaysOfMonths',
+    value: function determineDaysOfMonths(month, year) {
+      var days = 30;
+
+      var ts = new _TimeScale2.default(this.ctx);
+      month = ts.monthMod(month);
+
+      switch (true) {
+        case this.months30.includes(month):
+          if (month === 2) {
+            if (this.isLeapYear(year)) {
+              days = 29;
+            } else {
+              days = 28;
+            }
+          }
+
+          break;
+
+        case this.months31.includes(month):
+          days = 31;
+          break;
+
+        default:
+          days = 31;
+          break;
+      }
+
+      return days;
+    }
+  }]);
+
+  return DateTime;
+}();
+
+exports.default = DateTime;
+
+/***/ }),
+/* 52 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// false -> Array#indexOf
+// true  -> Array#includes
+var toIObject = __webpack_require__(16);
+var toLength = __webpack_require__(23);
+var toAbsoluteIndex = __webpack_require__(108);
+module.exports = function (IS_INCLUDES) {
+  return function ($this, el, fromIndex) {
+    var O = toIObject($this);
+    var length = toLength(O.length);
+    var index = toAbsoluteIndex(fromIndex, length);
+    var value;
+    // Array#includes uses SameValueZero equality algorithm
+    // eslint-disable-next-line no-self-compare
+    if (IS_INCLUDES && el != el) while (length > index) {
+      value = O[index++];
+      // eslint-disable-next-line no-self-compare
+      if (value != value) return true;
+      // Array#indexOf ignores holes, Array#includes - not
+    } else for (; length > index; index++) {
+      if (IS_INCLUDES || index in O) {
+        if (O[index] === el) return IS_INCLUDES || index || 0;
+      }
+    }return !IS_INCLUDES && -1;
+  };
+};
+
+/***/ }),
+/* 53 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var document = __webpack_require__(3).document;
+module.exports = document && document.documentElement;
+
+/***/ }),
+/* 54 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = !__webpack_require__(10) && !__webpack_require__(19)(function () {
+  return Object.defineProperty(__webpack_require__(35)('div'), 'a', { get: function get() {
+      return 7;
+    } }).a != 7;
+});
+
+/***/ }),
+/* 55 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// check on default Array iterator
+var Iterators = __webpack_require__(20);
+var ITERATOR = __webpack_require__(2)('iterator');
+var ArrayProto = Array.prototype;
+
+module.exports = function (it) {
+  return it !== undefined && (Iterators.Array === it || ArrayProto[ITERATOR] === it);
+};
+
+/***/ }),
+/* 56 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// 7.2.2 IsArray(argument)
+var cof = __webpack_require__(18);
+module.exports = Array.isArray || function isArray(arg) {
+  return cof(arg) == 'Array';
+};
+
+/***/ }),
+/* 57 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// call something on iterator step with safe closing on error
+var anObject = __webpack_require__(7);
+module.exports = function (iterator, fn, value, entries) {
+  try {
+    return entries ? fn(anObject(value)[0], value[1]) : fn(value);
+    // 7.4.6 IteratorClose(iterator, completion)
+  } catch (e) {
+    var ret = iterator['return'];
+    if (ret !== undefined) anObject(ret.call(iterator));
+    throw e;
+  }
+};
+
+/***/ }),
+/* 58 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var LIBRARY = __webpack_require__(21);
+var $export = __webpack_require__(5);
+var redefine = __webpack_require__(15);
+var hide = __webpack_require__(12);
+var Iterators = __webpack_require__(20);
+var $iterCreate = __webpack_require__(96);
+var setToStringTag = __webpack_require__(28);
+var getPrototypeOf = __webpack_require__(103);
+var ITERATOR = __webpack_require__(2)('iterator');
+var BUGGY = !([].keys && 'next' in [].keys()); // Safari has buggy iterators w/o `next`
+var FF_ITERATOR = '@@iterator';
+var KEYS = 'keys';
+var VALUES = 'values';
+
+var returnThis = function returnThis() {
+  return this;
+};
+
+module.exports = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORCED) {
+  $iterCreate(Constructor, NAME, next);
+  var getMethod = function getMethod(kind) {
+    if (!BUGGY && kind in proto) return proto[kind];
+    switch (kind) {
+      case KEYS:
+        return function keys() {
+          return new Constructor(this, kind);
+        };
+      case VALUES:
+        return function values() {
+          return new Constructor(this, kind);
+        };
+    }return function entries() {
+      return new Constructor(this, kind);
+    };
+  };
+  var TAG = NAME + ' Iterator';
+  var DEF_VALUES = DEFAULT == VALUES;
+  var VALUES_BUG = false;
+  var proto = Base.prototype;
+  var $native = proto[ITERATOR] || proto[FF_ITERATOR] || DEFAULT && proto[DEFAULT];
+  var $default = $native || getMethod(DEFAULT);
+  var $entries = DEFAULT ? !DEF_VALUES ? $default : getMethod('entries') : undefined;
+  var $anyNative = NAME == 'Array' ? proto.entries || $native : $native;
+  var methods, key, IteratorPrototype;
+  // Fix native
+  if ($anyNative) {
+    IteratorPrototype = getPrototypeOf($anyNative.call(new Base()));
+    if (IteratorPrototype !== Object.prototype && IteratorPrototype.next) {
+      // Set @@toStringTag to native iterators
+      setToStringTag(IteratorPrototype, TAG, true);
+      // fix for some old engines
+      if (!LIBRARY && typeof IteratorPrototype[ITERATOR] != 'function') hide(IteratorPrototype, ITERATOR, returnThis);
+    }
+  }
+  // fix Array#{values, @@iterator}.name in V8 / FF
+  if (DEF_VALUES && $native && $native.name !== VALUES) {
+    VALUES_BUG = true;
+    $default = function values() {
+      return $native.call(this);
+    };
+  }
+  // Define iterator
+  if ((!LIBRARY || FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
+    hide(proto, ITERATOR, $default);
+  }
+  // Plug for library
+  Iterators[NAME] = $default;
+  Iterators[TAG] = returnThis;
+  if (DEFAULT) {
+    methods = {
+      values: DEF_VALUES ? $default : getMethod(VALUES),
+      keys: IS_SET ? $default : getMethod(KEYS),
+      entries: $entries
+    };
+    if (FORCED) for (key in methods) {
+      if (!(key in proto)) redefine(proto, key, methods[key]);
+    } else $export($export.P + $export.F * (BUGGY || VALUES_BUG), NAME, methods);
+  }
+  return methods;
+};
+
+/***/ }),
+/* 59 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var ITERATOR = __webpack_require__(2)('iterator');
+var SAFE_CLOSING = false;
+
+try {
+  var riter = [7][ITERATOR]();
+  riter['return'] = function () {
+    SAFE_CLOSING = true;
+  };
+  // eslint-disable-next-line no-throw-literal
+  Array.from(riter, function () {
+    throw 2;
+  });
+} catch (e) {/* empty */}
+
+module.exports = function (exec, skipClosing) {
+  if (!skipClosing && !SAFE_CLOSING) return false;
+  var safe = false;
+  try {
+    var arr = [7];
+    var iter = arr[ITERATOR]();
+    iter.next = function () {
+      return { done: safe = true };
+    };
+    arr[ITERATOR] = function () {
+      return iter;
+    };
+    exec(arr);
+  } catch (e) {/* empty */}
+  return safe;
+};
+
+/***/ }),
+/* 60 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// 19.1.2.2 / 15.2.3.5 Object.create(O [, Properties])
+var anObject = __webpack_require__(7);
+var dPs = __webpack_require__(100);
+var enumBugKeys = __webpack_require__(36);
+var IE_PROTO = __webpack_require__(40)('IE_PROTO');
+var Empty = function Empty() {/* empty */};
+var PROTOTYPE = 'prototype';
+
+// Create object with fake `null` prototype: use iframe Object with cleared prototype
+var _createDict = function createDict() {
+  // Thrash, waste and sodomy: IE GC bug
+  var iframe = __webpack_require__(35)('iframe');
+  var i = enumBugKeys.length;
+  var lt = '<';
+  var gt = '>';
+  var iframeDocument;
+  iframe.style.display = 'none';
+  __webpack_require__(53).appendChild(iframe);
+  iframe.src = 'javascript:'; // eslint-disable-line no-script-url
+  // createDict = iframe.contentWindow.Object;
+  // html.removeChild(iframe);
+  iframeDocument = iframe.contentWindow.document;
+  iframeDocument.open();
+  iframeDocument.write(lt + 'script' + gt + 'document.F=Object' + lt + '/script' + gt);
+  iframeDocument.close();
+  _createDict = iframeDocument.F;
+  while (i--) {
+    delete _createDict[PROTOTYPE][enumBugKeys[i]];
+  }return _createDict();
+};
+
+module.exports = Object.create || function create(O, Properties) {
+  var result;
+  if (O !== null) {
+    Empty[PROTOTYPE] = anObject(O);
+    result = new Empty();
+    Empty[PROTOTYPE] = null;
+    // add "__proto__" for Object.getPrototypeOf polyfill
+    result[IE_PROTO] = O;
+  } else result = _createDict();
+  return Properties === undefined ? result : dPs(result, Properties);
+};
+
+/***/ }),
+/* 61 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
+var $keys = __webpack_require__(63);
+var hiddenKeys = __webpack_require__(36).concat('length', 'prototype');
+
+exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
+  return $keys(O, hiddenKeys);
+};
+
+/***/ }),
+/* 62 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.f = Object.getOwnPropertySymbols;
+
+/***/ }),
+/* 63 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var has = __webpack_require__(11);
+var toIObject = __webpack_require__(16);
+var arrayIndexOf = __webpack_require__(52)(false);
+var IE_PROTO = __webpack_require__(40)('IE_PROTO');
+
+module.exports = function (object, names) {
+  var O = toIObject(object);
+  var i = 0;
+  var result = [];
+  var key;
+  for (key in O) {
+    if (key != IE_PROTO) has(O, key) && result.push(key);
+  } // Don't enum bug & hidden keys
+  while (names.length > i) {
+    if (has(O, key = names[i++])) {
+      ~arrayIndexOf(result, key) || result.push(key);
+    }
+  }return result;
+};
+
+/***/ }),
+/* 64 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = function (exec) {
+  try {
+    return { e: false, v: exec() };
+  } catch (e) {
+    return { e: true, v: e };
+  }
+};
+
+/***/ }),
+/* 65 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var anObject = __webpack_require__(7);
+var isObject = __webpack_require__(8);
+var newPromiseCapability = __webpack_require__(38);
+
+module.exports = function (C, x) {
+  anObject(C);
+  if (isObject(x) && x.constructor === C) return x;
+  var promiseCapability = newPromiseCapability.f(C);
+  var resolve = promiseCapability.resolve;
+  resolve(x);
+  return promiseCapability.promise;
+};
+
+/***/ }),
+/* 66 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// 7.3.20 SpeciesConstructor(O, defaultConstructor)
+var anObject = __webpack_require__(7);
+var aFunction = __webpack_require__(17);
+var SPECIES = __webpack_require__(2)('species');
+module.exports = function (O, D) {
+  var C = anObject(O).constructor;
+  var S;
+  return C === undefined || (S = anObject(C)[SPECIES]) == undefined ? D : aFunction(S);
+};
+
+/***/ }),
+/* 67 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var ctx = __webpack_require__(14);
+var invoke = __webpack_require__(95);
+var html = __webpack_require__(53);
+var cel = __webpack_require__(35);
+var global = __webpack_require__(3);
+var process = global.process;
+var setTask = global.setImmediate;
+var clearTask = global.clearImmediate;
+var MessageChannel = global.MessageChannel;
+var Dispatch = global.Dispatch;
+var counter = 0;
+var queue = {};
+var ONREADYSTATECHANGE = 'onreadystatechange';
+var defer, channel, port;
+var run = function run() {
+  var id = +this;
+  // eslint-disable-next-line no-prototype-builtins
+  if (queue.hasOwnProperty(id)) {
+    var fn = queue[id];
+    delete queue[id];
+    fn();
+  }
+};
+var listener = function listener(event) {
+  run.call(event.data);
+};
+// Node.js 0.9+ & IE10+ has setImmediate, otherwise:
+if (!setTask || !clearTask) {
+  setTask = function setImmediate(fn) {
+    var args = [];
+    var i = 1;
+    while (arguments.length > i) {
+      args.push(arguments[i++]);
+    }queue[++counter] = function () {
+      // eslint-disable-next-line no-new-func
+      invoke(typeof fn == 'function' ? fn : Function(fn), args);
+    };
+    defer(counter);
+    return counter;
+  };
+  clearTask = function clearImmediate(id) {
+    delete queue[id];
+  };
+  // Node.js 0.8-
+  if (__webpack_require__(18)(process) == 'process') {
+    defer = function defer(id) {
+      process.nextTick(ctx(run, id, 1));
+    };
+    // Sphere (JS game engine) Dispatch API
+  } else if (Dispatch && Dispatch.now) {
+    defer = function defer(id) {
+      Dispatch.now(ctx(run, id, 1));
+    };
+    // Browsers with MessageChannel, includes WebWorkers
+  } else if (MessageChannel) {
+    channel = new MessageChannel();
+    port = channel.port2;
+    channel.port1.onmessage = listener;
+    defer = ctx(port.postMessage, port, 1);
+    // Browsers with postMessage, skip WebWorkers
+    // IE8 has postMessage, but it's sync & typeof its postMessage is 'object'
+  } else if (global.addEventListener && typeof postMessage == 'function' && !global.importScripts) {
+    defer = function defer(id) {
+      global.postMessage(id + '', '*');
+    };
+    global.addEventListener('message', listener, false);
+    // IE8-
+  } else if (ONREADYSTATECHANGE in cel('script')) {
+    defer = function defer(id) {
+      html.appendChild(cel('script'))[ONREADYSTATECHANGE] = function () {
+        html.removeChild(this);
+        run.call(id);
+      };
+    };
+    // Rest old browsers
+  } else {
+    defer = function defer(id) {
+      setTimeout(ctx(run, id, 1), 0);
+    };
+  }
+}
+module.exports = {
+  set: setTask,
+  clear: clearTask
+};
+
+/***/ }),
+/* 68 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.f = __webpack_require__(2);
+
+/***/ }),
+/* 69 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var classof = __webpack_require__(33);
+var ITERATOR = __webpack_require__(2)('iterator');
+var Iterators = __webpack_require__(20);
+module.exports = __webpack_require__(4).getIteratorMethod = function (it) {
+  if (it != undefined) return it[ITERATOR] || it['@@iterator'] || Iterators[classof(it)];
+};
+
+/***/ }),
+/* 70 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+// 19.1.3.6 Object.prototype.toString()
+
+var classof = __webpack_require__(33);
+var test = {};
+test[__webpack_require__(2)('toStringTag')] = 'z';
+if (test + '' != '[object z]') {
+  __webpack_require__(15)(Object.prototype, 'toString', function toString() {
+    return '[object ' + classof(this) + ']';
+  }, true);
+}
+
+/***/ }),
+/* 71 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var $at = __webpack_require__(107)(true);
+
+// 21.1.3.27 String.prototype[@@iterator]()
+__webpack_require__(58)(String, 'String', function (iterated) {
+  this._t = String(iterated); // target
+  this._i = 0; // next index
+  // 21.1.5.2.1 %StringIteratorPrototype%.next()
+}, function () {
+  var O = this._t;
+  var index = this._i;
+  var point;
+  if (index >= O.length) return { value: undefined, done: true };
+  point = $at(O, index);
+  this._i += point.length;
+  return { value: point, done: false };
+});
+
+/***/ }),
 /* 72 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -6917,7 +6917,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Fill = __webpack_require__(16);
+var _Fill = __webpack_require__(13);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -7438,7 +7438,7 @@ var _Animations = __webpack_require__(25);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
-var _Fill = __webpack_require__(16);
+var _Fill = __webpack_require__(13);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -7450,7 +7450,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Markers = __webpack_require__(46);
+var _Markers = __webpack_require__(47);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -7776,7 +7776,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DateTime = __webpack_require__(50);
+var _DateTime = __webpack_require__(51);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
@@ -8377,35 +8377,35 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Exports = __webpack_require__(130);
+var _Exports = __webpack_require__(131);
 
 var _Exports2 = _interopRequireDefault(_Exports);
 
-var _icoPanHand = __webpack_require__(161);
+var _icoPanHand = __webpack_require__(162);
 
 var _icoPanHand2 = _interopRequireDefault(_icoPanHand);
 
-var _icoZoomIn = __webpack_require__(164);
+var _icoZoomIn = __webpack_require__(165);
 
 var _icoZoomIn2 = _interopRequireDefault(_icoZoomIn);
 
-var _icoHome = __webpack_require__(159);
+var _icoHome = __webpack_require__(160);
 
 var _icoHome2 = _interopRequireDefault(_icoHome);
 
-var _icoPlus = __webpack_require__(162);
+var _icoPlus = __webpack_require__(163);
 
 var _icoPlus2 = _interopRequireDefault(_icoPlus);
 
-var _icoMinus = __webpack_require__(160);
+var _icoMinus = __webpack_require__(161);
 
 var _icoMinus2 = _interopRequireDefault(_icoMinus);
 
-var _icoSelect = __webpack_require__(163);
+var _icoSelect = __webpack_require__(164);
 
 var _icoSelect2 = _interopRequireDefault(_icoSelect);
 
-var _icoCamera = __webpack_require__(158);
+var _icoCamera = __webpack_require__(159);
 
 var _icoCamera2 = _interopRequireDefault(_icoCamera);
 
@@ -10237,7 +10237,7 @@ module.exports = __webpack_require__(4).Array.find;
 "use strict";
 
 
-__webpack_require__(70);
+__webpack_require__(71);
 __webpack_require__(111);
 module.exports = __webpack_require__(4).Array.from;
 
@@ -10268,8 +10268,8 @@ module.exports = __webpack_require__(4).Array.reduce;
 "use strict";
 
 
-__webpack_require__(69);
 __webpack_require__(70);
+__webpack_require__(71);
 __webpack_require__(121);
 __webpack_require__(114);
 __webpack_require__(117);
@@ -10284,7 +10284,7 @@ module.exports = __webpack_require__(4).Promise;
 
 
 __webpack_require__(115);
-__webpack_require__(69);
+__webpack_require__(70);
 __webpack_require__(119);
 __webpack_require__(120);
 module.exports = __webpack_require__(4).Symbol;
@@ -10300,7 +10300,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Annotations = __webpack_require__(127);
+var _Annotations = __webpack_require__(128);
 
 var _Annotations2 = _interopRequireDefault(_Annotations);
 
@@ -10308,15 +10308,15 @@ var _Animations = __webpack_require__(25);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
-var _Base = __webpack_require__(128);
+var _Base = __webpack_require__(129);
 
 var _Base2 = _interopRequireDefault(_Base);
 
-var _Config = __webpack_require__(49);
+var _Config = __webpack_require__(50);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Core = __webpack_require__(129);
+var _Core = __webpack_require__(130);
 
 var _Core2 = _interopRequireDefault(_Core);
 
@@ -10332,11 +10332,11 @@ var _Formatters = __webpack_require__(31);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
-var _Legend = __webpack_require__(131);
+var _Legend = __webpack_require__(132);
 
 var _Legend2 = _interopRequireDefault(_Legend);
 
-var _Responsive = __webpack_require__(133);
+var _Responsive = __webpack_require__(134);
 
 var _Responsive2 = _interopRequireDefault(_Responsive);
 
@@ -10344,11 +10344,11 @@ var _Series = __webpack_require__(26);
 
 var _Series2 = _interopRequireDefault(_Series);
 
-var _Theme = __webpack_require__(136);
+var _Theme = __webpack_require__(137);
 
 var _Theme2 = _interopRequireDefault(_Theme);
 
-var _Tooltip = __webpack_require__(146);
+var _Tooltip = __webpack_require__(147);
 
 var _Tooltip2 = _interopRequireDefault(_Tooltip);
 
@@ -10356,15 +10356,15 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _ZoomPanSelection = __webpack_require__(138);
+var _ZoomPanSelection = __webpack_require__(139);
 
 var _ZoomPanSelection2 = _interopRequireDefault(_ZoomPanSelection);
 
-var _Scroller = __webpack_require__(134);
+var _Scroller = __webpack_require__(135);
 
 var _Scroller2 = _interopRequireDefault(_Scroller);
 
-var _Title = __webpack_require__(137);
+var _Title = __webpack_require__(138);
 
 var _Title2 = _interopRequireDefault(_Title);
 
@@ -10372,7 +10372,7 @@ var _Toolbar = __webpack_require__(76);
 
 var _Toolbar2 = _interopRequireDefault(_Toolbar);
 
-var _SubTitle = __webpack_require__(135);
+var _SubTitle = __webpack_require__(136);
 
 var _SubTitle2 = _interopRequireDefault(_SubTitle);
 
@@ -10380,7 +10380,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-__webpack_require__(156);
+__webpack_require__(157);
 
 // global Apex object which user can use to override chart's defaults globally
 window.Apex = {};
@@ -11223,7 +11223,7 @@ module.exports = function (it, Constructor, name, forbiddenField) {
 // 4 -> Array#every
 // 5 -> Array#find
 // 6 -> Array#findIndex
-var ctx = __webpack_require__(13);
+var ctx = __webpack_require__(14);
 var IObject = __webpack_require__(37);
 var toObject = __webpack_require__(29);
 var toLength = __webpack_require__(23);
@@ -11311,7 +11311,7 @@ module.exports = function (that, callbackfn, aLen, memo, isRight) {
 
 
 var isObject = __webpack_require__(8);
-var isArray = __webpack_require__(55);
+var isArray = __webpack_require__(56);
 var SPECIES = __webpack_require__(2)('species');
 
 module.exports = function (original) {
@@ -11364,7 +11364,7 @@ module.exports = function (object, index, value) {
 
 // all enumerable object keys, includes symbols
 var getKeys = __webpack_require__(27);
-var gOPS = __webpack_require__(61);
+var gOPS = __webpack_require__(62);
 var pIE = __webpack_require__(39);
 module.exports = function (it) {
   var result = getKeys(it);
@@ -11387,12 +11387,12 @@ module.exports = function (it) {
 "use strict";
 
 
-var ctx = __webpack_require__(13);
-var call = __webpack_require__(56);
-var isArrayIter = __webpack_require__(54);
+var ctx = __webpack_require__(14);
+var call = __webpack_require__(57);
+var isArrayIter = __webpack_require__(55);
 var anObject = __webpack_require__(7);
 var toLength = __webpack_require__(23);
-var getIterFn = __webpack_require__(68);
+var getIterFn = __webpack_require__(69);
 var BREAK = {};
 var RETURN = {};
 var _exports = module.exports = function (iterable, entries, fn, that, ITERATOR) {
@@ -11446,7 +11446,7 @@ module.exports = function (fn, args, that) {
 "use strict";
 
 
-var create = __webpack_require__(59);
+var create = __webpack_require__(60);
 var descriptor = __webpack_require__(22);
 var setToStringTag = __webpack_require__(28);
 var IteratorPrototype = {};
@@ -11543,7 +11543,7 @@ var meta = module.exports = {
 
 
 var global = __webpack_require__(3);
-var macrotask = __webpack_require__(66).set;
+var macrotask = __webpack_require__(67).set;
 var Observer = global.MutationObserver || global.WebKitMutationObserver;
 var process = global.process;
 var Promise = global.Promise;
@@ -11642,10 +11642,10 @@ module.exports = __webpack_require__(10) ? Object.defineProperties : function de
 
 var pIE = __webpack_require__(39);
 var createDesc = __webpack_require__(22);
-var toIObject = __webpack_require__(15);
+var toIObject = __webpack_require__(16);
 var toPrimitive = __webpack_require__(43);
 var has = __webpack_require__(11);
-var IE8_DOM_DEFINE = __webpack_require__(53);
+var IE8_DOM_DEFINE = __webpack_require__(54);
 var gOPD = Object.getOwnPropertyDescriptor;
 
 exports.f = __webpack_require__(10) ? gOPD : function getOwnPropertyDescriptor(O, P) {
@@ -11667,8 +11667,8 @@ exports.f = __webpack_require__(10) ? gOPD : function getOwnPropertyDescriptor(O
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 // fallback for IE11 buggy Object.getOwnPropertyNames with iframe and window
-var toIObject = __webpack_require__(15);
-var gOPN = __webpack_require__(60).f;
+var toIObject = __webpack_require__(16);
+var gOPN = __webpack_require__(61).f;
 var toString = {}.toString;
 
 var windowNames = (typeof window === 'undefined' ? 'undefined' : _typeof(window)) == 'object' && window && Object.getOwnPropertyNames ? Object.getOwnPropertyNames(window) : [];
@@ -11713,7 +11713,7 @@ module.exports = Object.getPrototypeOf || function (O) {
 "use strict";
 
 
-var redefine = __webpack_require__(14);
+var redefine = __webpack_require__(15);
 module.exports = function (target, src, safe) {
   for (var key in src) {
     redefine(target, key, src[key], safe);
@@ -11838,16 +11838,16 @@ __webpack_require__(32)(KEY);
 "use strict";
 
 
-var ctx = __webpack_require__(13);
+var ctx = __webpack_require__(14);
 var $export = __webpack_require__(5);
 var toObject = __webpack_require__(29);
-var call = __webpack_require__(56);
-var isArrayIter = __webpack_require__(54);
+var call = __webpack_require__(57);
+var isArrayIter = __webpack_require__(55);
 var toLength = __webpack_require__(23);
 var createProperty = __webpack_require__(92);
-var getIterFn = __webpack_require__(68);
+var getIterFn = __webpack_require__(69);
 
-$export($export.S + $export.F * !__webpack_require__(58)(function (iter) {
+$export($export.S + $export.F * !__webpack_require__(59)(function (iter) {
   Array.from(iter);
 }), 'Array', {
   // 22.1.2.1 Array.from(arrayLike, mapfn = undefined, thisArg = undefined)
@@ -11887,13 +11887,13 @@ $export($export.S + $export.F * !__webpack_require__(58)(function (iter) {
 var addToUnscopables = __webpack_require__(32);
 var step = __webpack_require__(97);
 var Iterators = __webpack_require__(20);
-var toIObject = __webpack_require__(15);
+var toIObject = __webpack_require__(16);
 
 // 22.1.3.4 Array.prototype.entries()
 // 22.1.3.13 Array.prototype.keys()
 // 22.1.3.29 Array.prototype.values()
 // 22.1.3.30 Array.prototype[@@iterator]()
-module.exports = __webpack_require__(57)(Array, 'Array', function (iterated, kind) {
+module.exports = __webpack_require__(58)(Array, 'Array', function (iterated, kind) {
   this._t = toIObject(iterated); // target
   this._i = 0; // next index
   this._k = kind; // kind
@@ -11944,20 +11944,20 @@ $export($export.P + $export.F * !__webpack_require__(106)([].reduce, true), 'Arr
 
 var LIBRARY = __webpack_require__(21);
 var global = __webpack_require__(3);
-var ctx = __webpack_require__(13);
+var ctx = __webpack_require__(14);
 var classof = __webpack_require__(33);
 var $export = __webpack_require__(5);
 var isObject = __webpack_require__(8);
 var aFunction = __webpack_require__(17);
 var anInstance = __webpack_require__(87);
 var forOf = __webpack_require__(94);
-var speciesConstructor = __webpack_require__(65);
-var task = __webpack_require__(66).set;
+var speciesConstructor = __webpack_require__(66);
+var task = __webpack_require__(67).set;
 var microtask = __webpack_require__(99)();
 var newPromiseCapabilityModule = __webpack_require__(38);
-var perform = __webpack_require__(63);
+var perform = __webpack_require__(64);
 var userAgent = __webpack_require__(109);
-var promiseResolve = __webpack_require__(64);
+var promiseResolve = __webpack_require__(65);
 var PROMISE = 'Promise';
 var TypeError = global.TypeError;
 var process = global.process;
@@ -12180,7 +12180,7 @@ $export($export.S + $export.F * (LIBRARY || !USE_NATIVE), PROMISE, {
     return promiseResolve(LIBRARY && this === Wrapper ? $Promise : this, x);
   }
 });
-$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(58)(function (iter) {
+$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(59)(function (iter) {
   $Promise.all(iter)['catch'](empty);
 })), PROMISE, {
   // 25.4.4.1 Promise.all(iterable)
@@ -12239,23 +12239,23 @@ var global = __webpack_require__(3);
 var has = __webpack_require__(11);
 var DESCRIPTORS = __webpack_require__(10);
 var $export = __webpack_require__(5);
-var redefine = __webpack_require__(14);
+var redefine = __webpack_require__(15);
 var META = __webpack_require__(98).KEY;
 var $fails = __webpack_require__(19);
 var shared = __webpack_require__(41);
 var setToStringTag = __webpack_require__(28);
 var uid = __webpack_require__(24);
 var wks = __webpack_require__(2);
-var wksExt = __webpack_require__(67);
+var wksExt = __webpack_require__(68);
 var wksDefine = __webpack_require__(44);
 var enumKeys = __webpack_require__(93);
-var isArray = __webpack_require__(55);
+var isArray = __webpack_require__(56);
 var anObject = __webpack_require__(7);
 var isObject = __webpack_require__(8);
-var toIObject = __webpack_require__(15);
+var toIObject = __webpack_require__(16);
 var toPrimitive = __webpack_require__(43);
 var createDesc = __webpack_require__(22);
-var _create = __webpack_require__(59);
+var _create = __webpack_require__(60);
 var gOPNExt = __webpack_require__(102);
 var $GOPD = __webpack_require__(101);
 var $DP = __webpack_require__(9);
@@ -12385,9 +12385,9 @@ if (!USE_NATIVE) {
 
   $GOPD.f = $getOwnPropertyDescriptor;
   $DP.f = $defineProperty;
-  __webpack_require__(60).f = gOPNExt.f = $getOwnPropertyNames;
+  __webpack_require__(61).f = gOPNExt.f = $getOwnPropertyNames;
   __webpack_require__(39).f = $propertyIsEnumerable;
-  __webpack_require__(61).f = $getOwnPropertySymbols;
+  __webpack_require__(62).f = $getOwnPropertySymbols;
 
   if (DESCRIPTORS && !__webpack_require__(21)) {
     redefine(ObjectProto, 'propertyIsEnumerable', $propertyIsEnumerable, true);
@@ -12484,7 +12484,7 @@ setToStringTag(global.JSON, 'JSON', true);
 // https://github.com/tc39/Array.prototype.includes
 
 var $export = __webpack_require__(5);
-var $includes = __webpack_require__(51)(true);
+var $includes = __webpack_require__(52)(true);
 
 $export($export.P, 'Array', {
   includes: function includes(el /* , fromIndex = 0 */) {
@@ -12505,8 +12505,8 @@ __webpack_require__(32)('includes');
 var $export = __webpack_require__(5);
 var core = __webpack_require__(4);
 var global = __webpack_require__(3);
-var speciesConstructor = __webpack_require__(65);
-var promiseResolve = __webpack_require__(64);
+var speciesConstructor = __webpack_require__(66);
+var promiseResolve = __webpack_require__(65);
 
 $export($export.P + $export.R, 'Promise', { 'finally': function _finally(onFinally) {
     var C = speciesConstructor(this, core.Promise || global.Promise);
@@ -12532,7 +12532,7 @@ $export($export.P + $export.R, 'Promise', { 'finally': function _finally(onFinal
 
 var $export = __webpack_require__(5);
 var newPromiseCapability = __webpack_require__(38);
-var perform = __webpack_require__(63);
+var perform = __webpack_require__(64);
 
 $export($export.S, 'Promise', { 'try': function _try(callbackfn) {
     var promiseCapability = newPromiseCapability.f(this);
@@ -12568,7 +12568,7 @@ __webpack_require__(44)('observable');
 
 var $iterators = __webpack_require__(112);
 var getKeys = __webpack_require__(27);
-var redefine = __webpack_require__(14);
+var redefine = __webpack_require__(15);
 var global = __webpack_require__(3);
 var hide = __webpack_require__(12);
 var Iterators = __webpack_require__(20);
@@ -12722,11 +12722,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar2 = __webpack_require__(71);
+var _Bar2 = __webpack_require__(45);
 
 var _Bar3 = _interopRequireDefault(_Bar2);
 
-var _Fill = __webpack_require__(16);
+var _Fill = __webpack_require__(13);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -13283,7 +13283,8 @@ var BarStacked = function (_Bar) {
 exports.default = BarStacked;
 
 /***/ }),
-/* 124 */
+/* 124 */,
+/* 125 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13291,7 +13292,7 @@ exports.default = BarStacked;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DataLabels = __webpack_require__(45);
+var _DataLabels = __webpack_require__(46);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
@@ -13554,7 +13555,7 @@ var HeatMap = function () {
 module.exports = HeatMap;
 
 /***/ }),
-/* 125 */
+/* 126 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13570,15 +13571,15 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Fill = __webpack_require__(16);
+var _Fill = __webpack_require__(13);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
-var _DataLabels = __webpack_require__(45);
+var _DataLabels = __webpack_require__(46);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
-var _Markers = __webpack_require__(46);
+var _Markers = __webpack_require__(47);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -14149,7 +14150,7 @@ var Line = function () {
 exports.default = Line;
 
 /***/ }),
-/* 126 */
+/* 127 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14169,7 +14170,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Fill = __webpack_require__(16);
+var _Fill = __webpack_require__(13);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -14688,7 +14689,7 @@ var Radial = function (_Pie) {
 exports.default = Radial;
 
 /***/ }),
-/* 127 */
+/* 128 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15192,7 +15193,7 @@ var Annotations = function () {
 module.exports = Annotations;
 
 /***/ }),
-/* 128 */
+/* 129 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15200,11 +15201,11 @@ module.exports = Annotations;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Config = __webpack_require__(49);
+var _Config = __webpack_require__(50);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Globals = __webpack_require__(141);
+var _Globals = __webpack_require__(142);
 
 var _Globals2 = _interopRequireDefault(_Globals);
 
@@ -15245,7 +15246,7 @@ var Base = function () {
 module.exports = Base;
 
 /***/ }),
-/* 129 */
+/* 130 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15253,7 +15254,7 @@ module.exports = Base;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar = __webpack_require__(71);
+var _Bar = __webpack_require__(45);
 
 var _Bar2 = _interopRequireDefault(_Bar);
 
@@ -15265,11 +15266,11 @@ var _Crosshairs = __webpack_require__(74);
 
 var _Crosshairs2 = _interopRequireDefault(_Crosshairs);
 
-var _DateTime = __webpack_require__(50);
+var _DateTime = __webpack_require__(51);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
-var _HeatMap = __webpack_require__(124);
+var _HeatMap = __webpack_require__(125);
 
 var _HeatMap2 = _interopRequireDefault(_HeatMap);
 
@@ -15277,11 +15278,11 @@ var _Pie = __webpack_require__(72);
 
 var _Pie2 = _interopRequireDefault(_Pie);
 
-var _Radial = __webpack_require__(126);
+var _Radial = __webpack_require__(127);
 
 var _Radial2 = _interopRequireDefault(_Radial);
 
-var _Line = __webpack_require__(125);
+var _Line = __webpack_require__(126);
 
 var _Line2 = _interopRequireDefault(_Line);
 
@@ -15289,19 +15290,19 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Grid = __webpack_require__(139);
+var _Grid = __webpack_require__(140);
 
 var _Grid2 = _interopRequireDefault(_Grid);
 
-var _XAxis = __webpack_require__(47);
+var _XAxis = __webpack_require__(48);
 
 var _XAxis2 = _interopRequireDefault(_XAxis);
 
-var _YAxis = __webpack_require__(48);
+var _YAxis = __webpack_require__(49);
 
 var _YAxis2 = _interopRequireDefault(_YAxis);
 
-var _Range = __webpack_require__(132);
+var _Range = __webpack_require__(133);
 
 var _Range2 = _interopRequireDefault(_Range);
 
@@ -15309,7 +15310,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _ClassListPolyfill = __webpack_require__(154);
+var _ClassListPolyfill = __webpack_require__(155);
 
 var _ClassListPolyfill2 = _interopRequireDefault(_ClassListPolyfill);
 
@@ -15321,7 +15322,7 @@ var _TimeScale = __webpack_require__(75);
 
 var _TimeScale2 = _interopRequireDefault(_TimeScale);
 
-var _svg = __webpack_require__(150);
+var _svg = __webpack_require__(151);
 
 var SVG = _interopRequireWildcard(_svg);
 
@@ -15331,11 +15332,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-__webpack_require__(149);
-__webpack_require__(151);
-__webpack_require__(148);
-__webpack_require__(153);
+__webpack_require__(150);
 __webpack_require__(152);
+__webpack_require__(149);
+__webpack_require__(154);
+__webpack_require__(153);
 
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.
@@ -16277,7 +16278,7 @@ var Core = function () {
 module.exports = Core;
 
 /***/ }),
-/* 130 */
+/* 131 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16338,7 +16339,7 @@ var Exports = function () {
 exports.default = Exports;
 
 /***/ }),
-/* 131 */
+/* 132 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16907,7 +16908,7 @@ var Legend = function () {
 exports.default = Legend;
 
 /***/ }),
-/* 132 */
+/* 133 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17325,7 +17326,7 @@ var Range = function () {
 exports.default = Range;
 
 /***/ }),
-/* 133 */
+/* 134 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17333,7 +17334,7 @@ exports.default = Range;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Config = __webpack_require__(49);
+var _Config = __webpack_require__(50);
 
 var _Config2 = _interopRequireDefault(_Config);
 
@@ -17396,7 +17397,7 @@ var Responsive = function () {
 module.exports = Responsive;
 
 /***/ }),
-/* 134 */
+/* 135 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17594,7 +17595,7 @@ var Scroller = function () {
 exports.default = Scroller;
 
 /***/ }),
-/* 135 */
+/* 136 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17668,7 +17669,7 @@ var SubTitle = function () {
 exports.default = SubTitle;
 
 /***/ }),
-/* 136 */
+/* 137 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17864,7 +17865,7 @@ var Theme = function () {
 module.exports = Theme;
 
 /***/ }),
-/* 137 */
+/* 138 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17938,7 +17939,7 @@ var Title = function () {
 exports.default = Title;
 
 /***/ }),
-/* 138 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18556,7 +18557,7 @@ var ZoomPanSelection = function (_Toolbar) {
 module.exports = ZoomPanSelection;
 
 /***/ }),
-/* 139 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18576,7 +18577,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _XAxis = __webpack_require__(47);
+var _XAxis = __webpack_require__(48);
 
 var _XAxis2 = _interopRequireDefault(_XAxis);
 
@@ -18858,7 +18859,7 @@ var Grid = function () {
 exports.default = Grid;
 
 /***/ }),
-/* 140 */
+/* 141 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19288,7 +19289,7 @@ var Defaults = function () {
 module.exports = Defaults;
 
 /***/ }),
-/* 141 */
+/* 142 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19478,7 +19479,7 @@ var Globals = function () {
 exports.default = Globals;
 
 /***/ }),
-/* 142 */
+/* 143 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19666,7 +19667,7 @@ var AxesTooltip = function () {
 exports.default = AxesTooltip;
 
 /***/ }),
-/* 143 */
+/* 144 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19965,7 +19966,7 @@ var Intersect = function () {
 exports.default = Intersect;
 
 /***/ }),
-/* 144 */
+/* 145 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20292,7 +20293,7 @@ var Labels = function () {
 module.exports = Labels;
 
 /***/ }),
-/* 145 */
+/* 146 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20308,7 +20309,7 @@ var _Position = __webpack_require__(78);
 
 var _Position2 = _interopRequireDefault(_Position);
 
-var _Markers = __webpack_require__(46);
+var _Markers = __webpack_require__(47);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -20467,7 +20468,7 @@ var Marker = function () {
 module.exports = Marker;
 
 /***/ }),
-/* 146 */
+/* 147 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20475,7 +20476,7 @@ module.exports = Marker;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Labels = __webpack_require__(144);
+var _Labels = __webpack_require__(145);
 
 var _Labels2 = _interopRequireDefault(_Labels);
 
@@ -20483,15 +20484,15 @@ var _Position = __webpack_require__(78);
 
 var _Position2 = _interopRequireDefault(_Position);
 
-var _Marker = __webpack_require__(145);
+var _Marker = __webpack_require__(146);
 
 var _Marker2 = _interopRequireDefault(_Marker);
 
-var _Intersect = __webpack_require__(143);
+var _Intersect = __webpack_require__(144);
 
 var _Intersect2 = _interopRequireDefault(_Intersect);
 
-var _AxesTooltip = __webpack_require__(142);
+var _AxesTooltip = __webpack_require__(143);
 
 var _AxesTooltip2 = _interopRequireDefault(_AxesTooltip);
 
@@ -20503,7 +20504,7 @@ var _Series = __webpack_require__(26);
 
 var _Series2 = _interopRequireDefault(_Series);
 
-var _XAxis = __webpack_require__(47);
+var _XAxis = __webpack_require__(48);
 
 var _XAxis2 = _interopRequireDefault(_XAxis);
 
@@ -21156,7 +21157,7 @@ var Tooltip = function () {
 module.exports = Tooltip;
 
 /***/ }),
-/* 147 */
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21251,7 +21252,7 @@ module.exports = function (css) {
 };
 
 /***/ }),
-/* 148 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21486,7 +21487,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 149 */
+/* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22090,7 +22091,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 150 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22149,7 +22150,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   SVG.supported = function () {
     return true;
     // !!document.createElementNS &&
-    //    !! document.createElementNS(SVG.ns,'svg').createSVGRect
+    //     !! document.createElementNS(SVG.ns,'svg').createSVGRect
   }();
 
   // Don't bother to continue if SVG is not supported
@@ -27387,7 +27388,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 });
 
 /***/ }),
-/* 151 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27812,7 +27813,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 152 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28314,7 +28315,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 153 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28626,7 +28627,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 154 */
+/* 155 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28868,7 +28869,7 @@ var ClassListPolyfill = function () {
 module.exports = ClassListPolyfill;
 
 /***/ }),
-/* 155 */
+/* 156 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(122)(false);
@@ -28882,11 +28883,11 @@ exports.push([module.i, ".apexcharts-canvas {\n  position: relative;\n  user-sel
 
 
 /***/ }),
-/* 156 */
+/* 157 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(155);
+var content = __webpack_require__(156);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -28900,7 +28901,7 @@ var options = {"hmr":true}
 options.transform = transform
 options.insertInto = undefined;
 
-var update = __webpack_require__(157)(content, options);
+var update = __webpack_require__(158)(content, options);
 
 if(content.locals) module.exports = content.locals;
 
@@ -28932,7 +28933,7 @@ if(false) {
 }
 
 /***/ }),
-/* 157 */
+/* 158 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -28998,7 +28999,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(147);
+var	fixUrls = __webpack_require__(148);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -29314,49 +29315,49 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"12\" cy=\"12\" r=\"3.2\"></circle><path d=\"M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" viewBox=\"0 0 24 24\"><defs><path d=\"M0 0h24v24H0z\" id=\"a\"></path></defs><clipPath id=\"b\"><use overflow=\"visible\" xlink:href=\"#a\"></use></clipPath><path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"></path></svg>"
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#6E8192\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"></path></svg>"
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" viewBox=\"0 0 24 24\"><path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path><path d=\"M0 0h24v24H0V0z\" fill=\"none\"></path><path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"></path></svg>"
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ (function(module, exports, __webpack_require__) {
 
 __webpack_require__(84);
