@@ -128,6 +128,15 @@
 .apexcharts-tooltip-y-group {
   padding: 6px 0 5px;
 }
+.apexcharts-tooltip-candlestick {
+  padding: 4px 8px;
+}
+.apexcharts-tooltip-candlestick > div {
+  margin: 4px 0;
+}
+.apexcharts-tooltip-candlestick span.value {
+  font-weight: bold;
+}
 
 .apexcharts-xaxistooltip {
   opacity: 0;

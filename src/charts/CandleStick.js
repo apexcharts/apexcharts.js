@@ -56,7 +56,7 @@ class CandleStick extends Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions()
+      let initPositions = this.initialPositions({fullWidthColumns: true})
 
       y = initPositions.y
       barHeight = initPositions.barHeight

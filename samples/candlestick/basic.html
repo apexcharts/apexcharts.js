@@ -24,7 +24,7 @@
     </div>
 
 
-    <script src="../../dist/apexcharts.min.js"></script>
+    <script src="../../dist/apexcharts.js"></script>
     <script src="../assets/ohlc.js"></script>
 
     <script>
@@ -34,13 +34,15 @@
                 type: 'candlestick',
             },
             series: [{
-              data: seriesData
+                data: seriesData
             }],
             title: {
                 text: 'CandleStick Chart',
                 align: 'left'
             },
-            
+            stroke: {
+                width: [1, 4]
+            },
             xaxis: {
                 type: 'datetime'
             }

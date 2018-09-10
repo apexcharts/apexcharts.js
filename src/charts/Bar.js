@@ -249,7 +249,7 @@ class Bar {
     }
   }
 
-  initialPositions () {
+  initialPositions ({ fullWidthColumns = false }) {
     let w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
     if (this.isHorizontal) {
@@ -275,9 +275,15 @@ class Bar {
         xDivision / this.seriesLen
 
       if (w.globals.dataXY) {
-        xDivision = w.globals.gridWidth / (this.totalItems / 2)
-        barWidth =
-          xDivision / (this.seriesLen + 1) * (parseInt(this.barOptions.columnWidth) / 100)
+        if (fullWidthColumns) {
+          xDivision = w.globals.gridWidth / (this.totalItems / 2)
+          barWidth =
+            xDivision / (this.seriesLen + 1) * 0.6
+        } else {
+          xDivision = w.globals.gridWidth / (this.totalItems / 2)
+          barWidth =
+            xDivision / (this.seriesLen + 1) * (parseInt(this.barOptions.columnWidth) / 100)
+        }
       } else {
         barWidth = barWidth * parseInt(this.barOptions.columnWidth) / 100
       }

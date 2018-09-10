@@ -131,6 +131,11 @@ class Core {
       i: []
     }
 
+    let candlestickSeries = {
+      series: [],
+      i: []
+    }
+
     gl.series.map((series, st) => {
       // if user has specified a particular type for particular series
       if (typeof ser[st].type !== 'undefined') {
@@ -144,6 +149,9 @@ class Core {
         } else if (ser[st].type === 'line') {
           lineSeries.series.push(series)
           lineSeries.i.push(st)
+        } else if (ser[st].type === 'candlestick') {
+          candlestickSeries.series.push(series)
+          candlestickSeries.i.push(st)
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
           throw new Error('You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar')
@@ -156,6 +164,7 @@ class Core {
     })
 
     let line = new Line(this.ctx, xyRatios)
+    let candlestick = new CandleStick(this.ctx, xyRatios)
     let pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
     let elGraph = []
@@ -173,6 +182,11 @@ class Core {
       if (lineSeries.series.length > 0) {
         elGraph.push(
           line.draw(lineSeries.series, 'line', lineSeries.i)
+        )
+      }
+      if (candlestickSeries.series.length > 0) {
+        elGraph.push(
+          candlestick.draw(candlestickSeries.series, candlestickSeries.i)
         )
       }
     } else {
@@ -549,7 +563,7 @@ class Core {
           this.handleFormatXY(ser, i)
         }
 
-        if (cnf.chart.type === 'candlestick') {
+        if (cnf.chart.type === 'candlestick' || ser[i].type === 'candlestick') {
           this.handleCandleStickData(ser, i)
         }
 
