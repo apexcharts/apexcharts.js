@@ -215,7 +215,7 @@ class Position {
     }
   }
 
-  // This function is used when you need to show points only on hover -
+  // This function is used when you need to show markers/points only on hover -
   // DIFFERENT X VALUES in multiple series
   moveDynamicPointOnHover (j, capturedSeries) {
     let w = this.w
@@ -279,7 +279,7 @@ class Position {
       for (let p = 0; p < points.length; p++) {
         let pointArr = pointsArr[p]
 
-        if (pointArr && pointArr.length && typeof pointArr !== 'undefined') {
+        if (pointArr && pointArr.length) {
           let pcy = pointsArr[p][j][1]
           points[p].setAttribute('cx', cx)
           let realIndex = parseInt(

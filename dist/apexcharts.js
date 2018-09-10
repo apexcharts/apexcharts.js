@@ -9778,7 +9778,7 @@ var Position = function () {
       }
     }
 
-    // This function is used when you need to show points only on hover -
+    // This function is used when you need to show markers/points only on hover -
     // DIFFERENT X VALUES in multiple series
 
   }, {
@@ -9844,7 +9844,7 @@ var Position = function () {
         for (var p = 0; p < points.length; p++) {
           var pointArr = pointsArr[p];
 
-          if (pointArr && pointArr.length && typeof pointArr !== 'undefined') {
+          if (pointArr && pointArr.length) {
             var pcy = pointsArr[p][j][1];
             points[p].setAttribute('cx', cx);
             var realIndex = parseInt(points[p].parentNode.parentNode.parentNode.getAttribute('data:realIndex'));
@@ -19479,7 +19479,12 @@ var Defaults = function () {
           crosshairs: {
             width: 1
           }
-        }
+        },
+        yaxis: [{
+          tooltip: {
+            enabled: true
+          }
+        }]
       };
     }
   }, {
@@ -21554,6 +21559,9 @@ var Tooltip = function () {
       var self = context;
 
       if (shared === null) shared = w.config.tooltip.shared;
+
+      this.markers = w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers');
+      this.hasMarkers = this.markers.length > 0;
 
       if (shared) {
         self.tooltipLabels.drawSeriesTexts({

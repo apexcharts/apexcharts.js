@@ -616,6 +616,9 @@ class Tooltip {
 
     if (shared === null) shared = w.config.tooltip.shared
 
+    this.markers = w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers')
+    this.hasMarkers = this.markers.length > 0
+
     if (shared) {
       self.tooltipLabels.drawSeriesTexts({
         ttItems,

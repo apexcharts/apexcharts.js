@@ -167,7 +167,12 @@ class Defaults {
         crosshairs: {
           width: 1
         }
-      }
+      },
+      yaxis: [{
+        tooltip: {
+          enabled: true
+        }
+      }]
     }
   }
 
