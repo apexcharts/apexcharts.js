@@ -156,6 +156,25 @@ export default class Options {
         }
       }
     }
+
+    this.defaultCultureOptions = {
+      name: 'en',
+      options: {
+        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        toolbar: {
+          selectionZoom: 'Selection Zoom',
+          zoomIn: 'Zoom In',
+          zoomOut: 'Zoom Out',
+          reset: 'Reset Zoom',
+          pan: 'Panning',
+          selection: 'Selection',
+          download: 'Download SVG'
+        }
+      }
+    }
   }
 
   init () {
@@ -181,24 +200,7 @@ export default class Options {
           }
         },
         background: 'transparent',
-        cultures: [{
-          name: 'en',
-          options: {
-            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-            toolbar: {
-              selectionZoom: 'Selection Zoom',
-              zoomIn: 'Zoom In',
-              zoomOut: 'Zoom Out',
-              reset: 'Reset Zoom',
-              pan: 'Panning',
-              selection: 'Selection',
-              download: 'Download SVG'
-            }
-          }
-        }],
+        cultures: [this.defaultCultureOptions],
         defaultCulture: 'en',
         dropShadow: {
           enabled: false,
