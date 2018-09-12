@@ -322,8 +322,8 @@ export default class Options {
           },
           dataLabels: {
             position: 'top' // top, center, bottom
+            // TODO: provide stackedLabels for stacked charts which gives additions of values
           }
-          // stackedLabels: true
         },
         candlestick: {
           colors: {

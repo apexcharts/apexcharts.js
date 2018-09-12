@@ -87,7 +87,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elPan,
         icon: icoPan,
-        title: this.cultureValues.panning,
+        title: this.cultureValues.pan,
         class: 'apexcharts-pan-icon'
       })
     }

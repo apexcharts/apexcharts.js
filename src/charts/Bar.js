@@ -83,7 +83,7 @@ class Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions()
+      let initPositions = this.initialPositions({ makeWidthForVisibleItems: false })
 
       y = initPositions.y
       barHeight = initPositions.barHeight
@@ -230,16 +230,25 @@ class Bar {
     return ret
   }
 
-  initVariables (series) {
+  initVariables (series, shouldGetVisibleItems) {
+    const w = this.w
     this.series = series
     this.totalItems = 0
     this.seriesLen = 0
     this.visibleI = -1
+    this.visibleItems = 1 // number of visible bars after user zoomed in/out
 
     for (let sl = 0; sl < series.length; sl++) {
       if (series[sl].length > 0) {
         this.seriesLen = this.seriesLen + 1
         this.totalItems += series[sl].length
+      }
+      if (shouldGetVisibleItems) {
+        for (let j = 0; j < series[sl].length; j++) {
+          if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
+            this.visibleItems++
+          }
+        }
       }
     }
 
@@ -249,7 +258,7 @@ class Bar {
     }
   }
 
-  initialPositions ({ fullWidthColumns = false }) {
+  initialPositions ({ makeWidthForVisibleItems = false }) {
     let w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
     if (this.isHorizontal) {
@@ -275,10 +284,10 @@ class Bar {
         xDivision / this.seriesLen
 
       if (w.globals.dataXY) {
-        if (fullWidthColumns) {
-          xDivision = w.globals.gridWidth / (this.totalItems / 2)
+        if (makeWidthForVisibleItems) {
+          xDivision = w.globals.gridWidth / (this.visibleItems)
           barWidth =
-            xDivision / (this.seriesLen + 1) * 0.6
+            xDivision / (this.seriesLen) * 0.7
         } else {
           xDivision = w.globals.gridWidth / (this.totalItems / 2)
           barWidth =

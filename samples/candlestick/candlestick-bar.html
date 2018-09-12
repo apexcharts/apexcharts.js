@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>CandleStick Chart with Bar</title>
+
+
+    <link href="../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        .chart-box {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+        #chart-candlestick,
+        #chart-bar {
+            max-width: 640px;
+        }
+
+        #chart-bar {
+            margin-top: -50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-box">
+        <div id="chart-candlestick">
+
+        </div>
+    
+        <div id="chart-bar">
+    
+        </div>
+    </div>
+
+
+
+    <script src="../../dist/apexcharts.js"></script>
+    <script src="../assets/ohlc.js"></script>
+
+    <script>
+        var optionsCandlestick = {
+            chart: {
+                height: 290,
+                type: 'candlestick',
+                toolbar: {
+                    show: false
+                },
+                zoom: {
+                    enabled: false
+                },
+            },
+            series: [{
+                data: seriesData
+            }],
+            xaxis: {
+                type: 'datetime'
+            }
+        }
+
+        var chartCandlestick = new ApexCharts(
+            document.querySelector("#chart-candlestick"),
+            optionsCandlestick
+        );
+
+        chartCandlestick.render();
+
+        var options = {
+            chart: {
+                height: 160,
+                type: 'bar',
+                toolbar: {
+                    show: false,
+                    autoSelected: 'selection'
+                },
+                selection: {
+                    xaxis: {
+                        min: new Date('20 Jan 2017').getTime(),
+                        max: new Date('10 Dec 2017').getTime()
+                    },
+                    fill: {
+                        color: '#90CAF9',
+                        opacity: 0.4
+                    },
+                    stroke: {
+                        color: '#0D47A1',
+                    }
+                },
+                events: {
+                    selection: function (chart, e) {
+                        chartCandlestick.updateOptions({
+                            xaxis: {
+                                min: e.xaxis.min,
+                                max: e.xaxis.max
+                            }
+                        }, false, false)
+                    }
+                },
+
+            },
+            dataLabels: {
+                enabled: false
+            },
+            plotOptions: {
+                bar: {
+                    columnWidth: '80%',
+                    colors: {
+                        ranges: [
+                            {
+                                from: -1000,
+                                to: 0,
+                                color: '#F15B46'
+                            }, {
+                                from: 1,
+                                to: 10000,
+                                color: '#FEB019'
+                            }
+                        ],
+                       
+                    },
+                }        
+            },
+            series: [{
+                name: 'volume',
+                data: seriesDataLinear
+            }],
+            xaxis: {
+                type: 'datetime',
+                axisBorder: {
+                    offsetX: 13
+                }
+            },
+            yaxis: {
+                labels: {
+                    show: false
+                }
+            }
+        }
+
+        var chart = new ApexCharts(
+            document.querySelector("#chart-bar"),
+            options
+        );
+
+        chart.render();
+    </script>
+</body>
+
+</html>

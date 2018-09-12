@@ -3993,7 +3993,7 @@ var Bar = function () {
           _this.yaxisIndex = realIndex;
         }
 
-        var initPositions = _this.initialPositions();
+        var initPositions = _this.initialPositions({ makeWidthForVisibleItems: false });
 
         y = initPositions.y;
         barHeight = initPositions.barHeight;
@@ -4143,16 +4143,25 @@ var Bar = function () {
     }
   }, {
     key: 'initVariables',
-    value: function initVariables(series) {
+    value: function initVariables(series, shouldGetVisibleItems) {
+      var w = this.w;
       this.series = series;
       this.totalItems = 0;
       this.seriesLen = 0;
       this.visibleI = -1;
+      this.visibleItems = 1; // number of visible bars after user zoomed in/out
 
       for (var sl = 0; sl < series.length; sl++) {
         if (series[sl].length > 0) {
           this.seriesLen = this.seriesLen + 1;
           this.totalItems += series[sl].length;
+        }
+        if (shouldGetVisibleItems) {
+          for (var j = 0; j < series[sl].length; j++) {
+            if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
+              this.visibleItems++;
+            }
+          }
         }
       }
 
@@ -4164,8 +4173,8 @@ var Bar = function () {
   }, {
     key: 'initialPositions',
     value: function initialPositions(_ref) {
-      var _ref$fullWidthColumns = _ref.fullWidthColumns,
-          fullWidthColumns = _ref$fullWidthColumns === undefined ? false : _ref$fullWidthColumns;
+      var _ref$makeWidthForVisi = _ref.makeWidthForVisibleItems,
+          makeWidthForVisibleItems = _ref$makeWidthForVisi === undefined ? false : _ref$makeWidthForVisi;
 
       var w = this.w;
       var x = void 0,
@@ -4197,9 +4206,9 @@ var Bar = function () {
         barWidth = xDivision / this.seriesLen;
 
         if (w.globals.dataXY) {
-          if (fullWidthColumns) {
-            xDivision = w.globals.gridWidth / (this.totalItems / 2);
-            barWidth = xDivision / (this.seriesLen + 1) * 0.6;
+          if (makeWidthForVisibleItems) {
+            xDivision = w.globals.gridWidth / this.visibleItems;
+            barWidth = xDivision / this.seriesLen * 0.7;
           } else {
             xDivision = w.globals.gridWidth / (this.totalItems / 2);
             barWidth = xDivision / (this.seriesLen + 1) * (parseInt(this.barOptions.columnWidth) / 100);
@@ -6470,9 +6479,9 @@ var Options = function () {
             },
             dataLabels: {
               position: 'top' // top, center, bottom
-
-              // stackedLabels: true
-            } },
+              // TODO: provide stackedLabels for stacked charts which gives additions of values
+            }
+          },
           candlestick: {
             colors: {
               upward: '#00B746',
@@ -9331,7 +9340,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elPan,
           icon: _icoPanHand2.default,
-          title: this.cultureValues.panning,
+          title: this.cultureValues.pan,
           class: 'apexcharts-pan-icon'
         });
       }
@@ -13386,7 +13395,7 @@ var CandleStick = function (_Bar) {
 
       this.candlestickOptions = this.w.config.plotOptions.candlestick;
 
-      this.initVariables(series);
+      this.initVariables(series, true);
 
       var ret = graphics.group({
         class: 'apexcharts-candlestick-series apexcharts-plot-series'
@@ -13427,7 +13436,7 @@ var CandleStick = function (_Bar) {
           this.yaxisIndex = realIndex;
         }
 
-        var initPositions = this.initialPositions({ fullWidthColumns: true });
+        var initPositions = this.initialPositions({ makeWidthForVisibleItems: true });
 
         y = initPositions.y;
         barHeight = initPositions.barHeight;

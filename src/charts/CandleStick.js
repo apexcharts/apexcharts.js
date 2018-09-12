@@ -18,7 +18,7 @@ class CandleStick extends Bar {
 
     this.candlestickOptions = this.w.config.plotOptions.candlestick
 
-    this.initVariables(series)
+    this.initVariables(series, true)
 
     let ret = graphics.group({
       class: 'apexcharts-candlestick-series apexcharts-plot-series'
@@ -56,7 +56,7 @@ class CandleStick extends Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions({fullWidthColumns: true})
+      let initPositions = this.initialPositions({makeWidthForVisibleItems: true})
 
       y = initPositions.y
       barHeight = initPositions.barHeight
