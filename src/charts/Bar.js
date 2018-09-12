@@ -16,17 +16,19 @@ class Bar {
     const w = this.w
     this.barOptions = w.config.plotOptions.bar
 
-    this.xRatio = xyRatios.xRatio
-    this.yRatio = xyRatios.yRatio
-    this.invertedXRatio = xyRatios.invertedXRatio
-    this.invertedYRatio = xyRatios.invertedYRatio
-    this.baseLineY = xyRatios.baseLineY
-    this.baseLineInvertedY = xyRatios.baseLineInvertedY
     this.isHorizontal = this.barOptions.horizontal
     this.strokeWidth = w.config.stroke.width
     this.isNullValue = false
 
     this.xyRatios = xyRatios
+    if (this.xyRatios !== null) {
+      this.xRatio = xyRatios.xRatio
+      this.yRatio = xyRatios.yRatio
+      this.invertedXRatio = xyRatios.invertedXRatio
+      this.invertedYRatio = xyRatios.invertedYRatio
+      this.baseLineY = xyRatios.baseLineY
+      this.baseLineInvertedY = xyRatios.baseLineInvertedY
+    }
     this.yaxisIndex = 0
 
     this.seriesLen = 0
