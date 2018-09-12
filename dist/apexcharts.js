@@ -5448,7 +5448,7 @@ var Options = function () {
       }
     };
 
-    this.defaultCultureOptions = {
+    this.defaultLocaleOptions = {
       name: 'en',
       options: {
         months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -5493,8 +5493,8 @@ var Options = function () {
             }
           },
           background: 'transparent',
-          cultures: [this.defaultCultureOptions],
-          defaultCulture: 'en',
+          locales: [this.defaultLocaleOptions],
+          defaultLocale: 'en',
           dropShadow: {
             enabled: false,
             enabledSeries: undefined,
@@ -6157,12 +6157,12 @@ var DateTime = function () {
     value: function formatDate(date, format) {
       var utc = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      var culture = this.w.globals.culture;
+      var locale = this.w.globals.locale;
 
-      var MMMM = ['\x00'].concat(_toConsumableArray(culture.months));
-      var MMM = ['\x01'].concat(_toConsumableArray(culture.shortMonths));
-      var dddd = ['\x02'].concat(_toConsumableArray(culture.days));
-      var ddd = ['\x03'].concat(_toConsumableArray(culture.shortDays));
+      var MMMM = ['\x00'].concat(_toConsumableArray(locale.months));
+      var MMM = ['\x01'].concat(_toConsumableArray(locale.shortMonths));
+      var dddd = ['\x02'].concat(_toConsumableArray(locale.days));
+      var ddd = ['\x03'].concat(_toConsumableArray(locale.shortDays));
 
       function ii(i, len) {
         var s = i + '';
@@ -9272,7 +9272,7 @@ var Toolbar = function () {
     this.ctx = ctx;
     this.w = ctx.w;
 
-    this.cultureValues = this.w.globals.culture.toolbar;
+    this.localeValues = this.w.globals.locale.toolbar;
   }
 
   _createClass(Toolbar, [{
@@ -9297,7 +9297,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elCamera,
           icon: _icoCamera2.default,
-          title: this.cultureValues.download,
+          title: this.localeValues.download,
           class: 'apexcharts-download-icon'
         });
       }
@@ -9306,7 +9306,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elSelection,
           icon: _icoSelect2.default,
-          title: this.cultureValues.selection,
+          title: this.localeValues.selection,
           class: 'apexcharts-selection-icon'
         });
       }
@@ -9315,7 +9315,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoomIn,
           icon: _icoPlus2.default,
-          title: this.cultureValues.zoomIn,
+          title: this.localeValues.zoomIn,
           class: 'apexcharts-zoom-in-icon'
         });
       }
@@ -9324,7 +9324,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoomOut,
           icon: _icoMinus2.default,
-          title: this.cultureValues.zoomOut,
+          title: this.localeValues.zoomOut,
           class: 'apexcharts-zoom-out-icon'
         });
       }
@@ -9333,7 +9333,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoom,
           icon: _icoZoomIn2.default,
-          title: this.cultureValues.selectionZoom,
+          title: this.localeValues.selectionZoom,
           class: 'apexcharts-zoom-icon'
         });
       }
@@ -9342,7 +9342,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elPan,
           icon: _icoPanHand2.default,
-          title: this.cultureValues.pan,
+          title: this.localeValues.pan,
           class: 'apexcharts-pan-icon'
         });
       }
@@ -9351,7 +9351,7 @@ var Toolbar = function () {
         toolbarControls.push({
           el: this.elZoomReset,
           icon: _icoHome2.default,
-          title: this.cultureValues.reset,
+          title: this.localeValues.reset,
           class: 'apexcharts-reset-zoom-icon'
         });
       }
@@ -10476,8 +10476,8 @@ var ApexCharts = function () {
             Apex._chartInstances.push({ id: _this.w.globals.chartID, chart: _this });
           }
 
-          // set the culture here
-          _this.setCulture(_this.w.config.chart.defaultCulture);
+          // set the locale here
+          _this.setLocale(_this.w.config.chart.defaultLocale);
           var beforeMount = _this.w.config.chart.events.beforeMount;
           if (typeof beforeMount === 'function') {
             beforeMount(_this, _this.w);
@@ -11109,36 +11109,36 @@ var ApexCharts = function () {
       return this.w.globals.seriesTotals;
     }
   }, {
-    key: 'setCulture',
-    value: function setCulture(cultureName) {
-      this.setCurrentCultureValues(cultureName);
+    key: 'setLocale',
+    value: function setLocale(localeName) {
+      this.setCurrentLocaleValues(localeName);
     }
   }, {
-    key: 'setCurrentCultureValues',
-    value: function setCurrentCultureValues(cultureName) {
-      var cultures = this.w.config.chart.cultures;
+    key: 'setCurrentLocaleValues',
+    value: function setCurrentLocaleValues(localeName) {
+      var locales = this.w.config.chart.locales;
       var options = new _Options2.default();
 
-      // check if user has specified cultures in global Apex variable
-      // if yes - then extend those with local chart's culture
-      if (window.Apex.chart && window.Apex.chart.cultures && window.Apex.chart.cultures.length > 0) {
-        cultures = this.w.config.chart.cultures.concat(window.Apex.chart.cultures);
+      // check if user has specified locales in global Apex variable
+      // if yes - then extend those with local chart's locale
+      if (window.Apex.chart && window.Apex.chart.locales && window.Apex.chart.locales.length > 0) {
+        locales = this.w.config.chart.locales.concat(window.Apex.chart.locales);
       }
 
-      // find the culture from the array of cultures which user has set (either by chart.defaultCulture or by calling setCulture() method.)
-      var selectedCulture = cultures.find(function (c) {
-        return c.name === cultureName;
+      // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)
+      var selectedLocale = locales.find(function (c) {
+        return c.name === localeName;
       });
 
-      if (selectedCulture) {
-        // create a complete culture object by extending defaults so you don't get undefined errors.
-        var ret = _Utils2.default.extend(options.defaultCultureOptions, selectedCulture);
+      if (selectedLocale) {
+        // create a complete locale object by extending defaults so you don't get undefined errors.
+        var ret = _Utils2.default.extend(options.defaultLocaleOptions, selectedLocale);
 
-        // store these culture options in global var for ease access
-        this.w.globals.culture = ret.options;
+        // store these locale options in global var for ease access
+        this.w.globals.locale = ret.options;
         return options;
       } else {
-        throw new Error('Wrong culture name provided. Please make sure you set the correct culture name in options');
+        throw new Error('Wrong locale name provided. Please make sure you set the correct locale name in options');
       }
     }
   }, {
@@ -19568,7 +19568,7 @@ var Globals = function () {
         svgWidth: 0, // the whole svg width
         svgHeight: 0, // the whole svg height
         noData: false, // whether there is any data to display or not
-        culture: {}, // the current culture values will be preserved here for global access
+        locale: {}, // the current locale values will be preserved here for global access
         dom: {}, // for storing all dom nodes in this particular property
         // elWrap: null, // the element that wraps everything
         // elGraphical: null, // this contains lines/areas/bars/pies

@@ -157,7 +157,7 @@ export default class Options {
       }
     }
 
-    this.defaultCultureOptions = {
+    this.defaultLocaleOptions = {
       name: 'en',
       options: {
         months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -200,8 +200,8 @@ export default class Options {
           }
         },
         background: 'transparent',
-        cultures: [this.defaultCultureOptions],
-        defaultCulture: 'en',
+        locales: [this.defaultLocaleOptions],
+        defaultLocale: 'en',
         dropShadow: {
           enabled: false,
           enabledSeries: undefined,

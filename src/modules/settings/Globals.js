@@ -79,7 +79,7 @@ export default class Globals {
       svgWidth: 0, // the whole svg width
       svgHeight: 0, // the whole svg height
       noData: false, // whether there is any data to display or not
-      culture: {}, // the current culture values will be preserved here for global access
+      locale: {}, // the current locale values will be preserved here for global access
       dom: {}, // for storing all dom nodes in this particular property
       // elWrap: null, // the element that wraps everything
       // elGraphical: null, // this contains lines/areas/bars/pies

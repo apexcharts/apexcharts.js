@@ -65,8 +65,8 @@ class ApexCharts {
           Apex._chartInstances.push({id: this.w.globals.chartID, chart: this})
         }
 
-        // set the culture here
-        this.setCulture(this.w.config.chart.defaultCulture)
+        // set the locale here
+        this.setLocale(this.w.config.chart.defaultLocale)
         const beforeMount = this.w.config.chart.events.beforeMount
         if (typeof beforeMount === 'function') {
           beforeMount(this, this.w)
@@ -649,34 +649,34 @@ class ApexCharts {
     return this.w.globals.seriesTotals
   }
 
-  setCulture (cultureName) {
-    this.setCurrentCultureValues(cultureName)
+  setLocale (localeName) {
+    this.setCurrentLocaleValues(localeName)
   }
 
-  setCurrentCultureValues (cultureName) {
-    let cultures = this.w.config.chart.cultures
+  setCurrentLocaleValues (localeName) {
+    let locales = this.w.config.chart.locales
     const options = new Options()
 
-    // check if user has specified cultures in global Apex variable
-    // if yes - then extend those with local chart's culture
-    if (window.Apex.chart && window.Apex.chart.cultures && window.Apex.chart.cultures.length > 0) {
-      cultures = this.w.config.chart.cultures.concat(window.Apex.chart.cultures)
+    // check if user has specified locales in global Apex variable
+    // if yes - then extend those with local chart's locale
+    if (window.Apex.chart && window.Apex.chart.locales && window.Apex.chart.locales.length > 0) {
+      locales = this.w.config.chart.locales.concat(window.Apex.chart.locales)
     }
 
-    // find the culture from the array of cultures which user has set (either by chart.defaultCulture or by calling setCulture() method.)
-    const selectedCulture = cultures.find((c) => {
-      return c.name === cultureName
+    // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)
+    const selectedLocale = locales.find((c) => {
+      return c.name === localeName
     })
 
-    if (selectedCulture) {
-      // create a complete culture object by extending defaults so you don't get undefined errors.
-      let ret = Utils.extend(options.defaultCultureOptions, selectedCulture)
+    if (selectedLocale) {
+      // create a complete locale object by extending defaults so you don't get undefined errors.
+      let ret = Utils.extend(options.defaultLocaleOptions, selectedLocale)
 
-      // store these culture options in global var for ease access
-      this.w.globals.culture = ret.options
+      // store these locale options in global var for ease access
+      this.w.globals.locale = ret.options
       return options
     } else {
-      throw new Error('Wrong culture name provided. Please make sure you set the correct culture name in options')
+      throw new Error('Wrong locale name provided. Please make sure you set the correct locale name in options')
     }
   }
 

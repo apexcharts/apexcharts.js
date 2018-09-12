@@ -39,12 +39,12 @@ class DateTime {
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
   formatDate (date, format, utc = true) {
-    const culture = this.w.globals.culture
+    const locale = this.w.globals.locale
 
-    let MMMM = ['\x00', ...culture.months]
-    let MMM = ['\x01', ...culture.shortMonths]
-    let dddd = ['\x02', ...culture.days]
-    let ddd = ['\x03', ...culture.shortDays]
+    let MMMM = ['\x00', ...locale.months]
+    let MMM = ['\x01', ...locale.shortMonths]
+    let dddd = ['\x02', ...locale.days]
+    let ddd = ['\x03', ...locale.shortDays]
 
     function ii (i, len) {
       let s = i + ''

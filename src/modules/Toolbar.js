@@ -19,7 +19,7 @@ class Toolbar {
     this.ctx = ctx
     this.w = ctx.w
 
-    this.cultureValues = this.w.globals.culture.toolbar
+    this.localeValues = this.w.globals.locale.toolbar
   }
 
   createToolbar () {
@@ -42,7 +42,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elCamera,
         icon: icoCamera,
-        title: this.cultureValues.download,
+        title: this.localeValues.download,
         class: 'apexcharts-download-icon'
       })
     }
@@ -51,7 +51,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elSelection,
         icon: icoSelect,
-        title: this.cultureValues.selection,
+        title: this.localeValues.selection,
         class: 'apexcharts-selection-icon'
       })
     }
@@ -60,7 +60,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoomIn,
         icon: icoZoomIn,
-        title: this.cultureValues.zoomIn,
+        title: this.localeValues.zoomIn,
         class: 'apexcharts-zoom-in-icon'
       })
     }
@@ -69,7 +69,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoomOut,
         icon: icoZoomOut,
-        title: this.cultureValues.zoomOut,
+        title: this.localeValues.zoomOut,
         class: 'apexcharts-zoom-out-icon'
       })
     }
@@ -78,7 +78,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoom,
         icon: icoZoom,
-        title: this.cultureValues.selectionZoom,
+        title: this.localeValues.selectionZoom,
         class: 'apexcharts-zoom-icon'
       })
     }
@@ -87,7 +87,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elPan,
         icon: icoPan,
-        title: this.cultureValues.pan,
+        title: this.localeValues.pan,
         class: 'apexcharts-pan-icon'
       })
     }
@@ -96,7 +96,7 @@ class Toolbar {
       toolbarControls.push({
         el: this.elZoomReset,
         icon: icoReset,
-        title: this.cultureValues.reset,
+        title: this.localeValues.reset,
         class: 'apexcharts-reset-zoom-icon'
       })
     }
