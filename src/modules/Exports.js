@@ -32,7 +32,7 @@ class Exports {
     const svgUrl = URL.createObjectURL(svgBlob)
     const downloadLink = document.createElement('a')
     downloadLink.href = svgUrl
-    downloadLink.download = 'apexcharts-' + w.globals.cuid + '.svg'
+    downloadLink.download = this.w.globals.chartID + '.svg'
     document.body.appendChild(downloadLink)
     downloadLink.click()
     document.body.removeChild(downloadLink)

@@ -222,6 +222,7 @@ export default class Options {
         },
         foreColor: '#373d3f',
         height: 'auto',
+        id: undefined,
         offsetX: 0,
         offsetY: 0,
         scroller: {

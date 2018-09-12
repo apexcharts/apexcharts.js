@@ -5515,6 +5515,7 @@ var Options = function () {
           },
           foreColor: '#373d3f',
           height: 'auto',
+          id: undefined,
           offsetX: 0,
           offsetY: 0,
           scroller: {
@@ -16468,7 +16469,7 @@ var Exports = function () {
       var svgUrl = URL.createObjectURL(svgBlob);
       var downloadLink = document.createElement('a');
       downloadLink.href = svgUrl;
-      downloadLink.download = 'apexcharts-' + w.globals.cuid + '.svg';
+      downloadLink.download = this.w.globals.chartID + '.svg';
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
