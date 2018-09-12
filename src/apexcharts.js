@@ -148,7 +148,7 @@ class ApexCharts {
     this.core.setupElements()
 
     if (ser.length === 0 || (ser.length === 1 && ser[0].data && ser[0].data.length === 0)) {
-	    const series = new Series(this.ctx)
+      const series = new Series(this.ctx)
       series.handleNoData()
     }
 
