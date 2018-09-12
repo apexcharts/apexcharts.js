@@ -1569,7 +1569,7 @@ module.exports = function (it) {
 
 
 var anObject = __webpack_require__(7);
-var IE8_DOM_DEFINE = __webpack_require__(54);
+var IE8_DOM_DEFINE = __webpack_require__(53);
 var toPrimitive = __webpack_require__(43);
 var dP = Object.defineProperty;
 
@@ -2664,7 +2664,7 @@ exports.default = Series;
 
 
 // 19.1.2.14 / 15.2.3.14 Object.keys(O)
-var $keys = __webpack_require__(63);
+var $keys = __webpack_require__(62);
 var enumBugKeys = __webpack_require__(36);
 
 module.exports = Object.keys || function keys(O) {
@@ -3503,7 +3503,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DateTime = __webpack_require__(51);
+var _DateTime = __webpack_require__(50);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
@@ -3853,7 +3853,7 @@ module.exports = function (it, S) {
 var global = __webpack_require__(3);
 var core = __webpack_require__(4);
 var LIBRARY = __webpack_require__(21);
-var wksExt = __webpack_require__(68);
+var wksExt = __webpack_require__(67);
 var defineProperty = __webpack_require__(9).f;
 module.exports = function (name) {
   var $Symbol = core.Symbol || (core.Symbol = LIBRARY ? {} : global.Symbol || {});
@@ -3873,7 +3873,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Scatter = __webpack_require__(74);
+var _Scatter = __webpack_require__(73);
 
 var _Scatter2 = _interopRequireDefault(_Scatter);
 
@@ -5022,7 +5022,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Options = __webpack_require__(50);
+var _Options = __webpack_require__(77);
 
 var _Options2 = _interopRequireDefault(_Options);
 
@@ -5273,811 +5273,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Options for setting the initial configuration of ApexCharts
- **/
-
-var Options = function () {
-  function Options() {
-    _classCallCheck(this, Options);
-
-    this.yAxis = {
-      opposite: false,
-      tickAmount: 6,
-      max: undefined,
-      min: undefined,
-      decimalsInFloat: 2,
-      floating: false,
-      labels: {
-        show: true,
-        maxWidth: 160,
-        offsetX: 0,
-        offsetY: 0,
-        style: {
-          colors: [],
-          fontSize: '12px',
-          cssClass: 'apexcharts-yaxis-label'
-        },
-        formatter: undefined
-      },
-      axisBorder: {
-        show: false,
-        color: '#78909C',
-        offsetX: 0,
-        offsetY: 0
-      },
-      axisTicks: {
-        show: false,
-        color: '#78909C',
-        width: 6,
-        offsetX: 0,
-        offsetY: 0
-      },
-      title: {
-        text: undefined,
-        rotate: -90,
-        offsetY: 0,
-        offsetX: 0,
-        style: {
-          color: undefined,
-          fontSize: '12px',
-          cssClass: 'apexcharts-yaxis-title'
-        }
-      },
-      tooltip: {
-        enabled: false,
-        offsetX: 0
-      },
-      crosshairs: {
-        show: true,
-        position: 'front',
-        stroke: {
-          color: '#b6b6b6',
-          width: 1,
-          dashArray: 0
-        }
-      }
-    };
-
-    this.xAxisAnnotation = {
-      x: 0,
-      strokeDashArray: 4,
-      borderColor: '#c2c2c2',
-      offsetX: 0,
-      offsetY: 0,
-      label: {
-        borderColor: '#c2c2c2',
-        borderWidth: 1,
-        text: undefined,
-        textAnchor: 'middle',
-        orientation: 'vertical',
-        position: 'top',
-        offsetX: 0,
-        offsetY: 0,
-        style: {
-          background: '#fff',
-          color: '#777',
-          fontSize: '12px',
-          cssClass: 'apexcharts-xaxis-annotation-label',
-          padding: {
-            left: 5,
-            right: 5,
-            top: 2,
-            bottom: 2
-          }
-        }
-      }
-    };
-
-    this.yAxisAnnotation = {
-      y: 0,
-      strokeDashArray: 4,
-      borderColor: '#c2c2c2',
-      offsetX: 0,
-      offsetY: 0,
-      yAxisIndex: 0,
-      label: {
-        borderColor: '#c2c2c2',
-        borderWidth: 1,
-        text: undefined,
-        textAnchor: 'end',
-        position: 'right',
-        offsetX: 0,
-        offsetY: -3,
-        style: {
-          background: '#fff',
-          color: '#777',
-          fontSize: '12px',
-          cssClass: 'apexcharts-yaxis-annotation-label',
-          padding: {
-            left: 5,
-            right: 5,
-            top: 0,
-            bottom: 2
-          }
-        }
-      }
-    };
-
-    this.pointAnnotation = {
-      x: 0,
-      y: null,
-      yAxisIndex: 0,
-      seriesIndex: 0,
-      marker: {
-        size: 0,
-        fillColor: '#fff',
-        strokeWidth: 2,
-        strokeColor: '#333',
-        shape: 'circle',
-        radius: 2
-      },
-      label: {
-        borderColor: '#c2c2c2',
-        borderWidth: 1,
-        text: undefined,
-        textAnchor: 'middle',
-        offsetX: 0,
-        offsetY: -15,
-        style: {
-          background: '#fff',
-          color: '#777',
-          fontSize: '12px',
-          cssClass: 'apexcharts-point-annotation-label',
-          padding: {
-            left: 5,
-            right: 5,
-            top: 0,
-            bottom: 2
-          }
-        }
-      }
-    };
-
-    this.defaultCultureOptions = {
-      name: 'en',
-      options: {
-        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-        shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-        shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-        toolbar: {
-          selectionZoom: 'Selection Zoom',
-          zoomIn: 'Zoom In',
-          zoomOut: 'Zoom Out',
-          reset: 'Reset Zoom',
-          pan: 'Panning',
-          selection: 'Selection',
-          download: 'Download SVG'
-        }
-      }
-    };
-  }
-
-  _createClass(Options, [{
-    key: 'init',
-    value: function init() {
-      return {
-        annotations: {
-          position: 'front',
-          yaxis: [this.yAxisAnnotation],
-          xaxis: [this.xAxisAnnotation],
-          points: [this.pointAnnotation]
-        },
-        chart: {
-          animations: {
-            enabled: true,
-            easing: 'easeinout', // linear, easeout, easein, easeinout
-            speed: 800,
-            animateGradually: {
-              delay: 150,
-              enabled: true
-            },
-            dynamicAnimation: {
-              enabled: true,
-              speed: 350
-            }
-          },
-          background: 'transparent',
-          cultures: [this.defaultCultureOptions],
-          defaultCulture: 'en',
-          dropShadow: {
-            enabled: false,
-            enabledSeries: undefined,
-            top: 2,
-            left: 2,
-            blur: 4,
-            opacity: 0.35
-          },
-          events: {
-            beforeMount: undefined,
-            mounted: undefined,
-            updated: undefined,
-            clicked: undefined,
-            selection: undefined,
-            dataPointSelection: undefined,
-            zoomed: undefined,
-            scrolled: undefined
-          },
-          foreColor: '#373d3f',
-          height: 'auto',
-          offsetX: 0,
-          offsetY: 0,
-          scroller: {
-            enabled: false,
-            height: 30,
-            track: {
-              height: 2,
-              background: '#e0e0e0'
-            },
-            thumb: {
-              height: 2,
-              background: '#008FFB'
-            },
-            scrollButtons: {
-              enabled: true,
-              size: 6,
-              borderWidth: 2,
-              borderColor: '#c3c3c3',
-              fillColor: '#fff'
-            },
-            padding: {
-              left: 10,
-              right: 10
-            },
-            offsetX: 0,
-            offsetY: 0
-          },
-          selection: {
-            enabled: true,
-            type: 'x',
-            selectedPoints: undefined,
-            fill: {
-              color: '#24292e',
-              opacity: 0.1
-            },
-            stroke: {
-              width: 1,
-              color: '#24292e',
-              opacity: 0.4,
-              dashArray: 3
-            },
-            xaxis: {
-              min: undefined,
-              max: undefined
-            },
-            yaxis: {
-              min: undefined,
-              max: undefined
-            }
-          },
-          sparkline: {
-            enabled: false
-          },
-          stacked: false,
-          stackType: 'normal',
-          toolbar: {
-            show: true,
-            tools: {
-              download: true,
-              selection: true,
-              zoom: true,
-              zoomin: true,
-              zoomout: true,
-              pan: true,
-              reset: true
-            },
-            autoSelected: 'zoom' // accepts -> zoom, pan, selection
-          },
-          type: 'line',
-          width: '100%',
-          zoom: {
-            enabled: true,
-            type: 'x',
-            zoomedArea: {
-              fill: {
-                color: '#90CAF9',
-                opacity: 0.4
-              },
-              stroke: {
-                color: '#0D47A1',
-                opacity: 0.4,
-                width: 1
-              }
-            }
-          }
-        },
-        plotOptions: {
-          bar: {
-            horizontal: false,
-            endingShape: 'flat',
-            columnWidth: '70%', // should be in percent 0 - 100
-            barHeight: '70%', // should be in percent 0 - 100
-            distributed: false,
-            colors: {
-              ranges: [],
-              backgroundBarColors: [],
-              backgroundBarOpacity: 1
-            },
-            dataLabels: {
-              position: 'top' // top, center, bottom
-
-              // stackedLabels: true
-            } },
-          heatmap: {
-            radius: 2,
-            enableShades: true,
-            shadeIntensity: 0.5,
-            colorScale: {
-              ranges: []
-            }
-          },
-          radialBar: {
-            size: undefined,
-            inverseOrder: false,
-            startAngle: 0,
-            endAngle: 360,
-            offsetX: 0,
-            offsetY: 0,
-            hollow: {
-              margin: 5,
-              size: '50%',
-              background: 'transparent',
-              image: undefined,
-              imageWidth: 150,
-              imageHeight: 150,
-              imageOffsetX: 0,
-              imageOffsetY: 0,
-              imageClipped: true,
-              position: 'front',
-              dropShadow: {
-                enabled: false,
-                top: 0,
-                left: 0,
-                blur: 3,
-                opacity: 0.5
-              }
-            },
-            track: {
-              show: true,
-              startAngle: undefined,
-              endAngle: undefined,
-              background: '#f2f2f2',
-              strokeWidth: '97%',
-              opacity: 1,
-              margin: 5, // margin is in pixels
-              dropShadow: {
-                enabled: false,
-                top: 0,
-                left: 0,
-                blur: 3,
-                opacity: 0.5
-              }
-            },
-            dataLabels: {
-              showOn: 'always', // hover/always
-              name: {
-                show: true,
-                fontSize: '22px',
-                color: undefined,
-                offsetY: -10
-              },
-              value: {
-                show: true,
-                fontSize: '16px',
-                color: undefined,
-                offsetY: 16,
-                formatter: function formatter(val) {
-                  return val + '%';
-                }
-              }
-            }
-          },
-          pie: {
-            size: undefined,
-            donut: {
-              size: '65%',
-              background: 'transparent'
-              // TODO: draw labels in donut area
-              // labels: {
-              //   showOn: 'hover',
-              //   name: {
-              //     show: false,
-              //     fontSize: '22px',
-              //     color: undefined,
-              //     offsetY: -10
-              //   },
-              //   value: {
-              //     show: true,
-              //     offsetY: 16,
-              //     fontSize: '16px',
-              //     color: undefined,
-              //     formatter: function (val) {
-              //       return val + '%'
-              //     }
-              //   }
-              // }
-            },
-            customScale: 0,
-            offsetX: 0,
-            offsetY: 0,
-            dataLabels: {
-              offset: 0 // offset by which labels will move outside
-            }
-          }
-        },
-        colors: undefined,
-        dataLabels: {
-          enabled: true,
-          formatter: function formatter(val) {
-            return val;
-          },
-          textAnchor: 'middle',
-          offsetX: 0,
-          offsetY: 0,
-          style: {
-            fontSize: '14px',
-            colors: undefined
-          },
-          dropShadow: {
-            enabled: false,
-            top: 1,
-            left: 1,
-            blur: 1,
-            opacity: 0.45
-          }
-        },
-        fill: {
-          type: 'solid',
-          colors: undefined, // array of colors,
-          opacity: 0.85,
-          gradient: {
-            shade: 'dark',
-            type: 'horizontal',
-            shadeIntensity: 0.5,
-            gradientToColors: undefined,
-            inverseColors: true,
-            opacityFrom: 1,
-            opacityTo: 1,
-            stops: [0, 50, 100]
-          },
-          image: {
-            src: [],
-            width: undefined, // optional
-            height: undefined // optional
-          },
-          pattern: {
-            style: 'sqaures', // string or array of strings
-            width: 6,
-            height: 6,
-            strokeWidth: 2
-          }
-        },
-        grid: {
-          show: true,
-          borderColor: '#e0e0e0',
-          strokeDashArray: 0,
-          position: 'back',
-          xaxis: {
-            lines: {
-              show: false,
-              animate: false
-            }
-          },
-          yaxis: {
-            lines: {
-              show: true,
-              animate: true
-            }
-          },
-          row: {
-            colors: undefined, // takes as array which will be repeated on rows
-            opacity: 0.5
-          },
-          column: {
-            colors: undefined, // takes an array which will be repeated on columns
-            opacity: 0.5
-          },
-          padding: {
-            top: 0,
-            right: 10,
-            bottom: 0,
-            left: 10
-          }
-        },
-        labels: [],
-        legend: {
-          show: true,
-          floating: false,
-          position: 'bottom', // whether to position legends in 1 of 4
-          // direction - top, bottom, left, right
-          horizontalAlign: 'center', // when position top/bottom, you can
-          // specify whether to align legends
-          // left, right or center
-          verticalAlign: 'middle',
-          fontSize: '14px',
-          textAnchor: 'start',
-          offsetY: 0,
-          offsetX: 0,
-          formatter: undefined,
-          labels: {
-            colors: undefined,
-            useSeriesColors: false
-          },
-          markers: {
-            size: 6,
-            strokeWidth: 0,
-            strokeColor: '#fff',
-            offsetX: 0,
-            offsetY: 0,
-            shape: 'circle',
-            radius: 2
-          },
-          itemMargin: {
-            horizontal: 20,
-            vertical: 5
-          },
-          containerMargin: {
-            left: 5,
-            top: 4,
-            right: 0,
-            bottom: 0
-          },
-          onItemClick: {
-            toggleDataSeries: true
-          },
-          onItemHover: {
-            highlightDataSeries: true
-          }
-        },
-        markers: {
-          discrete: [],
-          size: 0,
-          colors: undefined,
-          strokeColor: '#fff',
-          strokeWidth: 2,
-          strokeOpacity: 0.9,
-          fillOpacity: 1,
-          shape: 'circle',
-          radius: 2,
-          offsetX: 0,
-          offsetY: 0,
-          hover: {
-            size: 6
-          }
-        },
-        noData: {
-          text: undefined,
-          align: 'center',
-          verticalAlign: 'middle',
-          offsetX: 0,
-          offsetY: 0,
-          style: {
-            color: '#888',
-            fontSize: '16px'
-          }
-        },
-        responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
-        series: undefined,
-        states: {
-          normal: {
-            filter: {
-              type: 'none',
-              value: 0
-            }
-          },
-          hover: {
-            filter: {
-              type: 'lighten',
-              value: 0.15
-            }
-          },
-          active: {
-            allowMultipleDataPointsSelection: false,
-            filter: {
-              type: 'darken',
-              value: 0.35
-            }
-          }
-        },
-        title: {
-          text: undefined,
-          align: 'left',
-          margin: 10,
-          offsetX: 0,
-          offsetY: 0,
-          floating: false,
-          style: {
-            fontSize: '16px',
-            color: '#263238'
-          }
-        },
-        subtitle: {
-          text: undefined,
-          align: 'left',
-          margin: 10,
-          offsetX: 0,
-          offsetY: 0,
-          floating: false,
-          style: {
-            fontSize: '14px',
-            color: '#9699a2'
-          }
-        },
-        stroke: {
-          show: true,
-          curve: 'smooth', // "smooth" or "straight"
-          lineCap: 'butt', // round, butt , square
-          width: 2,
-          colors: undefined, // array of colors
-          dashArray: 0 // single value or array of values
-        },
-        tooltip: {
-          enabled: true,
-          shared: true,
-          followCursor: false, // when disabled, the tooltip will show on top of the series instead of mouse position
-          intersect: false, // when enabled, tooltip will only show when user directly hovers over point
-          inverseOrder: false,
-          custom: undefined,
-          fillSeriesColor: false,
-          onDatasetHover: {
-            highlightDataSeries: false
-          },
-          theme: 'light',
-          x: { // x value
-            show: true,
-            format: 'dd MMM', // dd/MM, dd MMM yy, dd MMM yyyy
-            formatter: undefined // a custom user supplied formatter function
-          },
-          y: {
-            formatter: undefined,
-            title: {
-              formatter: function formatter(seriesName) {
-                return seriesName;
-              }
-            }
-          },
-          z: {
-            formatter: undefined,
-            title: 'Size: '
-          },
-          marker: {
-            show: true
-          },
-          items: {
-            display: 'flex'
-          },
-          fixed: {
-            enabled: false,
-            position: 'topRight', // topRight, topLeft, bottomRight, bottomLeft
-            offsetX: -100,
-            offsetY: 0
-          }
-        },
-        xaxis: {
-          type: 'category',
-          categories: [],
-          labels: {
-            show: true,
-            rotate: -45,
-            rotateAlways: false,
-            trim: true,
-            maxHeight: 120,
-            style: {
-              colors: [],
-              fontSize: '12px',
-              cssClass: 'apexcharts-xaxis-label'
-            },
-            offsetX: 0,
-            offsetY: 0,
-            format: undefined,
-            formatter: undefined, // custom formatter function which will override format
-            datetimeFormatter: {
-              year: 'yyyy',
-              month: 'MMM \'yy',
-              day: 'dd MMM',
-              hour: 'HH:mm'
-            }
-          },
-          axisBorder: {
-            show: true,
-            color: '#78909C',
-            offsetX: 0,
-            offsetY: 0,
-            strokeWidth: 1
-          },
-          axisTicks: {
-            show: true,
-            color: '#78909C',
-            height: 6,
-            offsetX: 0,
-            offsetY: 0
-          },
-          tickAmount: undefined,
-          min: undefined,
-          max: undefined,
-          range: undefined,
-          floating: false,
-          position: 'bottom',
-          title: {
-            text: undefined,
-            offsetX: 0,
-            offsetY: 0,
-            style: {
-              color: undefined,
-              fontSize: '12px',
-              cssClass: 'apexcharts-xaxis-title'
-            }
-          },
-          crosshairs: {
-            show: true,
-            width: 1, // tickWidth/barWidth or an integer
-            position: 'back',
-            opacity: 0.9,
-            stroke: {
-              color: '#b6b6b6',
-              width: 0,
-              dashArray: 0
-            },
-            fill: {
-              type: 'solid', // solid, gradient
-              color: '#B1B9C4',
-              gradient: {
-                colorFrom: '#D8E3F0',
-                colorTo: '#BED1E6',
-                stops: [0, 100],
-                opacityFrom: 0.4,
-                opacityTo: 0.5
-              }
-            },
-            dropShadow: {
-              enabled: false,
-              left: 0,
-              top: 0,
-              blur: 1,
-              opacity: 0.4
-            }
-          },
-          tooltip: {
-            enabled: true,
-            offsetY: 0
-          }
-        },
-        yaxis: this.yAxis,
-        theme: {
-          palette: 'palette1', // If defined, it will overwrite globals.colors variable
-          monochrome: { // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
-            enabled: false,
-            color: '#008FFB',
-            shadeTo: 'light',
-            shadeIntensity: 0.65
-          }
-        }
-      };
-    }
-  }]);
-
-  return Options;
-}();
-
-exports.default = Options;
-
-/***/ }),
-/* 51 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _TimeScale = __webpack_require__(76);
+var _TimeScale = __webpack_require__(75);
 
 var _TimeScale2 = _interopRequireDefault(_TimeScale);
 
@@ -6326,7 +5522,7 @@ var DateTime = function () {
 exports.default = DateTime;
 
 /***/ }),
-/* 52 */
+/* 51 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6359,7 +5555,7 @@ module.exports = function (IS_INCLUDES) {
 };
 
 /***/ }),
-/* 53 */
+/* 52 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6369,7 +5565,7 @@ var document = __webpack_require__(3).document;
 module.exports = document && document.documentElement;
 
 /***/ }),
-/* 54 */
+/* 53 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6382,7 +5578,7 @@ module.exports = !__webpack_require__(10) && !__webpack_require__(19)(function (
 });
 
 /***/ }),
-/* 55 */
+/* 54 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6398,7 +5594,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 56 */
+/* 55 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6411,7 +5607,7 @@ module.exports = Array.isArray || function isArray(arg) {
 };
 
 /***/ }),
-/* 57 */
+/* 56 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6431,7 +5627,7 @@ module.exports = function (iterator, fn, value, entries) {
 };
 
 /***/ }),
-/* 58 */
+/* 57 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6519,7 +5715,7 @@ module.exports = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORCE
 };
 
 /***/ }),
-/* 59 */
+/* 58 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6557,7 +5753,7 @@ module.exports = function (exec, skipClosing) {
 };
 
 /***/ }),
-/* 60 */
+/* 59 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6580,7 +5776,7 @@ var _createDict = function createDict() {
   var gt = '>';
   var iframeDocument;
   iframe.style.display = 'none';
-  __webpack_require__(53).appendChild(iframe);
+  __webpack_require__(52).appendChild(iframe);
   iframe.src = 'javascript:'; // eslint-disable-line no-script-url
   // createDict = iframe.contentWindow.Object;
   // html.removeChild(iframe);
@@ -6607,14 +5803,14 @@ module.exports = Object.create || function create(O, Properties) {
 };
 
 /***/ }),
-/* 61 */
+/* 60 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
-var $keys = __webpack_require__(63);
+var $keys = __webpack_require__(62);
 var hiddenKeys = __webpack_require__(36).concat('length', 'prototype');
 
 exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
@@ -6622,7 +5818,7 @@ exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
 };
 
 /***/ }),
-/* 62 */
+/* 61 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6631,7 +5827,7 @@ exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
 exports.f = Object.getOwnPropertySymbols;
 
 /***/ }),
-/* 63 */
+/* 62 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6639,7 +5835,7 @@ exports.f = Object.getOwnPropertySymbols;
 
 var has = __webpack_require__(11);
 var toIObject = __webpack_require__(15);
-var arrayIndexOf = __webpack_require__(52)(false);
+var arrayIndexOf = __webpack_require__(51)(false);
 var IE_PROTO = __webpack_require__(40)('IE_PROTO');
 
 module.exports = function (object, names) {
@@ -6658,7 +5854,7 @@ module.exports = function (object, names) {
 };
 
 /***/ }),
-/* 64 */
+/* 63 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6673,7 +5869,7 @@ module.exports = function (exec) {
 };
 
 /***/ }),
-/* 65 */
+/* 64 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6693,7 +5889,7 @@ module.exports = function (C, x) {
 };
 
 /***/ }),
-/* 66 */
+/* 65 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6710,7 +5906,7 @@ module.exports = function (O, D) {
 };
 
 /***/ }),
-/* 67 */
+/* 66 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6718,7 +5914,7 @@ module.exports = function (O, D) {
 
 var ctx = __webpack_require__(13);
 var invoke = __webpack_require__(95);
-var html = __webpack_require__(53);
+var html = __webpack_require__(52);
 var cel = __webpack_require__(35);
 var global = __webpack_require__(3);
 var process = global.process;
@@ -6803,7 +5999,7 @@ module.exports = {
 };
 
 /***/ }),
-/* 68 */
+/* 67 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6812,7 +6008,7 @@ module.exports = {
 exports.f = __webpack_require__(2);
 
 /***/ }),
-/* 69 */
+/* 68 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6826,7 +6022,7 @@ module.exports = __webpack_require__(4).getIteratorMethod = function (it) {
 };
 
 /***/ }),
-/* 70 */
+/* 69 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6843,7 +6039,7 @@ if (test + '' != '[object z]') {
 }
 
 /***/ }),
-/* 71 */
+/* 70 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6852,7 +6048,7 @@ if (test + '' != '[object z]') {
 var $at = __webpack_require__(107)(true);
 
 // 21.1.3.27 String.prototype[@@iterator]()
-__webpack_require__(58)(String, 'String', function (iterated) {
+__webpack_require__(57)(String, 'String', function (iterated) {
   this._t = String(iterated); // target
   this._i = 0; // next index
   // 21.1.5.2.1 %StringIteratorPrototype%.next()
@@ -6867,7 +6063,7 @@ __webpack_require__(58)(String, 'String', function (iterated) {
 });
 
 /***/ }),
-/* 72 */
+/* 71 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7709,7 +6905,7 @@ var Bar = function () {
 exports.default = Bar;
 
 /***/ }),
-/* 73 */
+/* 72 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8230,7 +7426,7 @@ var Pie = function () {
 exports.default = Pie;
 
 /***/ }),
-/* 74 */
+/* 73 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8443,7 +7639,7 @@ var Scatter = function () {
 module.exports = Scatter;
 
 /***/ }),
-/* 75 */
+/* 74 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8568,7 +7764,7 @@ var Crosshairs = function () {
 exports.default = Crosshairs;
 
 /***/ }),
-/* 76 */
+/* 75 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8580,7 +7776,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DateTime = __webpack_require__(51);
+var _DateTime = __webpack_require__(50);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
@@ -9169,7 +8365,7 @@ var TimeScale = function () {
 exports.default = TimeScale;
 
 /***/ }),
-/* 77 */
+/* 76 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9496,6 +8692,810 @@ var Toolbar = function () {
 }();
 
 module.exports = Toolbar;
+
+/***/ }),
+/* 77 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Options for setting the initial configuration of ApexCharts
+ **/
+
+var Options = function () {
+  function Options() {
+    _classCallCheck(this, Options);
+
+    this.yAxis = {
+      opposite: false,
+      tickAmount: 6,
+      max: undefined,
+      min: undefined,
+      decimalsInFloat: 2,
+      floating: false,
+      labels: {
+        show: true,
+        maxWidth: 160,
+        offsetX: 0,
+        offsetY: 0,
+        style: {
+          colors: [],
+          fontSize: '12px',
+          cssClass: 'apexcharts-yaxis-label'
+        },
+        formatter: undefined
+      },
+      axisBorder: {
+        show: false,
+        color: '#78909C',
+        offsetX: 0,
+        offsetY: 0
+      },
+      axisTicks: {
+        show: false,
+        color: '#78909C',
+        width: 6,
+        offsetX: 0,
+        offsetY: 0
+      },
+      title: {
+        text: undefined,
+        rotate: -90,
+        offsetY: 0,
+        offsetX: 0,
+        style: {
+          color: undefined,
+          fontSize: '12px',
+          cssClass: 'apexcharts-yaxis-title'
+        }
+      },
+      tooltip: {
+        enabled: false,
+        offsetX: 0
+      },
+      crosshairs: {
+        show: true,
+        position: 'front',
+        stroke: {
+          color: '#b6b6b6',
+          width: 1,
+          dashArray: 0
+        }
+      }
+    };
+
+    this.xAxisAnnotation = {
+      x: 0,
+      strokeDashArray: 4,
+      borderColor: '#c2c2c2',
+      offsetX: 0,
+      offsetY: 0,
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'middle',
+        orientation: 'vertical',
+        position: 'top',
+        offsetX: 0,
+        offsetY: 0,
+        style: {
+          background: '#fff',
+          color: '#777',
+          fontSize: '12px',
+          cssClass: 'apexcharts-xaxis-annotation-label',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 2,
+            bottom: 2
+          }
+        }
+      }
+    };
+
+    this.yAxisAnnotation = {
+      y: 0,
+      strokeDashArray: 4,
+      borderColor: '#c2c2c2',
+      offsetX: 0,
+      offsetY: 0,
+      yAxisIndex: 0,
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'end',
+        position: 'right',
+        offsetX: 0,
+        offsetY: -3,
+        style: {
+          background: '#fff',
+          color: '#777',
+          fontSize: '12px',
+          cssClass: 'apexcharts-yaxis-annotation-label',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 0,
+            bottom: 2
+          }
+        }
+      }
+    };
+
+    this.pointAnnotation = {
+      x: 0,
+      y: null,
+      yAxisIndex: 0,
+      seriesIndex: 0,
+      marker: {
+        size: 0,
+        fillColor: '#fff',
+        strokeWidth: 2,
+        strokeColor: '#333',
+        shape: 'circle',
+        radius: 2
+      },
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'middle',
+        offsetX: 0,
+        offsetY: -15,
+        style: {
+          background: '#fff',
+          color: '#777',
+          fontSize: '12px',
+          cssClass: 'apexcharts-point-annotation-label',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 0,
+            bottom: 2
+          }
+        }
+      }
+    };
+
+    this.defaultCultureOptions = {
+      name: 'en',
+      options: {
+        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        toolbar: {
+          selectionZoom: 'Selection Zoom',
+          zoomIn: 'Zoom In',
+          zoomOut: 'Zoom Out',
+          reset: 'Reset Zoom',
+          pan: 'Panning',
+          selection: 'Selection',
+          download: 'Download SVG'
+        }
+      }
+    };
+  }
+
+  _createClass(Options, [{
+    key: 'init',
+    value: function init() {
+      return {
+        annotations: {
+          position: 'front',
+          yaxis: [this.yAxisAnnotation],
+          xaxis: [this.xAxisAnnotation],
+          points: [this.pointAnnotation]
+        },
+        chart: {
+          animations: {
+            enabled: true,
+            easing: 'easeinout', // linear, easeout, easein, easeinout
+            speed: 800,
+            animateGradually: {
+              delay: 150,
+              enabled: true
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 350
+            }
+          },
+          background: 'transparent',
+          cultures: [this.defaultCultureOptions],
+          defaultCulture: 'en',
+          dropShadow: {
+            enabled: false,
+            enabledSeries: undefined,
+            top: 2,
+            left: 2,
+            blur: 4,
+            opacity: 0.35
+          },
+          events: {
+            beforeMount: undefined,
+            mounted: undefined,
+            updated: undefined,
+            clicked: undefined,
+            selection: undefined,
+            dataPointSelection: undefined,
+            zoomed: undefined,
+            scrolled: undefined
+          },
+          foreColor: '#373d3f',
+          height: 'auto',
+          offsetX: 0,
+          offsetY: 0,
+          scroller: {
+            enabled: false,
+            height: 30,
+            track: {
+              height: 2,
+              background: '#e0e0e0'
+            },
+            thumb: {
+              height: 2,
+              background: '#008FFB'
+            },
+            scrollButtons: {
+              enabled: true,
+              size: 6,
+              borderWidth: 2,
+              borderColor: '#c3c3c3',
+              fillColor: '#fff'
+            },
+            padding: {
+              left: 10,
+              right: 10
+            },
+            offsetX: 0,
+            offsetY: 0
+          },
+          selection: {
+            enabled: true,
+            type: 'x',
+            selectedPoints: undefined,
+            fill: {
+              color: '#24292e',
+              opacity: 0.1
+            },
+            stroke: {
+              width: 1,
+              color: '#24292e',
+              opacity: 0.4,
+              dashArray: 3
+            },
+            xaxis: {
+              min: undefined,
+              max: undefined
+            },
+            yaxis: {
+              min: undefined,
+              max: undefined
+            }
+          },
+          sparkline: {
+            enabled: false
+          },
+          stacked: false,
+          stackType: 'normal',
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: true,
+              zoom: true,
+              zoomin: true,
+              zoomout: true,
+              pan: true,
+              reset: true
+            },
+            autoSelected: 'zoom' // accepts -> zoom, pan, selection
+          },
+          type: 'line',
+          width: '100%',
+          zoom: {
+            enabled: true,
+            type: 'x',
+            zoomedArea: {
+              fill: {
+                color: '#90CAF9',
+                opacity: 0.4
+              },
+              stroke: {
+                color: '#0D47A1',
+                opacity: 0.4,
+                width: 1
+              }
+            }
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            endingShape: 'flat',
+            columnWidth: '70%', // should be in percent 0 - 100
+            barHeight: '70%', // should be in percent 0 - 100
+            distributed: false,
+            colors: {
+              ranges: [],
+              backgroundBarColors: [],
+              backgroundBarOpacity: 1
+            },
+            dataLabels: {
+              position: 'top' // top, center, bottom
+
+              // stackedLabels: true
+            } },
+          heatmap: {
+            radius: 2,
+            enableShades: true,
+            shadeIntensity: 0.5,
+            colorScale: {
+              ranges: []
+            }
+          },
+          radialBar: {
+            size: undefined,
+            inverseOrder: false,
+            startAngle: 0,
+            endAngle: 360,
+            offsetX: 0,
+            offsetY: 0,
+            hollow: {
+              margin: 5,
+              size: '50%',
+              background: 'transparent',
+              image: undefined,
+              imageWidth: 150,
+              imageHeight: 150,
+              imageOffsetX: 0,
+              imageOffsetY: 0,
+              imageClipped: true,
+              position: 'front',
+              dropShadow: {
+                enabled: false,
+                top: 0,
+                left: 0,
+                blur: 3,
+                opacity: 0.5
+              }
+            },
+            track: {
+              show: true,
+              startAngle: undefined,
+              endAngle: undefined,
+              background: '#f2f2f2',
+              strokeWidth: '97%',
+              opacity: 1,
+              margin: 5, // margin is in pixels
+              dropShadow: {
+                enabled: false,
+                top: 0,
+                left: 0,
+                blur: 3,
+                opacity: 0.5
+              }
+            },
+            dataLabels: {
+              showOn: 'always', // hover/always
+              name: {
+                show: true,
+                fontSize: '22px',
+                color: undefined,
+                offsetY: -10
+              },
+              value: {
+                show: true,
+                fontSize: '16px',
+                color: undefined,
+                offsetY: 16,
+                formatter: function formatter(val) {
+                  return val + '%';
+                }
+              }
+            }
+          },
+          pie: {
+            size: undefined,
+            donut: {
+              size: '65%',
+              background: 'transparent'
+              // TODO: draw labels in donut area
+              // labels: {
+              //   showOn: 'hover',
+              //   name: {
+              //     show: false,
+              //     fontSize: '22px',
+              //     color: undefined,
+              //     offsetY: -10
+              //   },
+              //   value: {
+              //     show: true,
+              //     offsetY: 16,
+              //     fontSize: '16px',
+              //     color: undefined,
+              //     formatter: function (val) {
+              //       return val + '%'
+              //     }
+              //   }
+              // }
+            },
+            customScale: 0,
+            offsetX: 0,
+            offsetY: 0,
+            dataLabels: {
+              offset: 0 // offset by which labels will move outside
+            }
+          }
+        },
+        colors: undefined,
+        dataLabels: {
+          enabled: true,
+          formatter: function formatter(val) {
+            return val;
+          },
+          textAnchor: 'middle',
+          offsetX: 0,
+          offsetY: 0,
+          style: {
+            fontSize: '14px',
+            colors: undefined
+          },
+          dropShadow: {
+            enabled: false,
+            top: 1,
+            left: 1,
+            blur: 1,
+            opacity: 0.45
+          }
+        },
+        fill: {
+          type: 'solid',
+          colors: undefined, // array of colors,
+          opacity: 0.85,
+          gradient: {
+            shade: 'dark',
+            type: 'horizontal',
+            shadeIntensity: 0.5,
+            gradientToColors: undefined,
+            inverseColors: true,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 50, 100]
+          },
+          image: {
+            src: [],
+            width: undefined, // optional
+            height: undefined // optional
+          },
+          pattern: {
+            style: 'sqaures', // string or array of strings
+            width: 6,
+            height: 6,
+            strokeWidth: 2
+          }
+        },
+        grid: {
+          show: true,
+          borderColor: '#e0e0e0',
+          strokeDashArray: 0,
+          position: 'back',
+          xaxis: {
+            lines: {
+              show: false,
+              animate: false
+            }
+          },
+          yaxis: {
+            lines: {
+              show: true,
+              animate: true
+            }
+          },
+          row: {
+            colors: undefined, // takes as array which will be repeated on rows
+            opacity: 0.5
+          },
+          column: {
+            colors: undefined, // takes an array which will be repeated on columns
+            opacity: 0.5
+          },
+          padding: {
+            top: 0,
+            right: 10,
+            bottom: 0,
+            left: 10
+          }
+        },
+        labels: [],
+        legend: {
+          show: true,
+          floating: false,
+          position: 'bottom', // whether to position legends in 1 of 4
+          // direction - top, bottom, left, right
+          horizontalAlign: 'center', // when position top/bottom, you can
+          // specify whether to align legends
+          // left, right or center
+          verticalAlign: 'middle',
+          fontSize: '14px',
+          textAnchor: 'start',
+          offsetY: 0,
+          offsetX: 0,
+          formatter: undefined,
+          labels: {
+            colors: undefined,
+            useSeriesColors: false
+          },
+          markers: {
+            size: 6,
+            strokeWidth: 0,
+            strokeColor: '#fff',
+            offsetX: 0,
+            offsetY: 0,
+            shape: 'circle',
+            radius: 2
+          },
+          itemMargin: {
+            horizontal: 20,
+            vertical: 5
+          },
+          containerMargin: {
+            left: 5,
+            top: 4,
+            right: 0,
+            bottom: 0
+          },
+          onItemClick: {
+            toggleDataSeries: true
+          },
+          onItemHover: {
+            highlightDataSeries: true
+          }
+        },
+        markers: {
+          discrete: [],
+          size: 0,
+          colors: undefined,
+          strokeColor: '#fff',
+          strokeWidth: 2,
+          strokeOpacity: 0.9,
+          fillOpacity: 1,
+          shape: 'circle',
+          radius: 2,
+          offsetX: 0,
+          offsetY: 0,
+          hover: {
+            size: 6
+          }
+        },
+        noData: {
+          text: undefined,
+          align: 'center',
+          verticalAlign: 'middle',
+          offsetX: 0,
+          offsetY: 0,
+          style: {
+            color: '#888',
+            fontSize: '16px'
+          }
+        },
+        responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
+        series: undefined,
+        states: {
+          normal: {
+            filter: {
+              type: 'none',
+              value: 0
+            }
+          },
+          hover: {
+            filter: {
+              type: 'lighten',
+              value: 0.15
+            }
+          },
+          active: {
+            allowMultipleDataPointsSelection: false,
+            filter: {
+              type: 'darken',
+              value: 0.35
+            }
+          }
+        },
+        title: {
+          text: undefined,
+          align: 'left',
+          margin: 10,
+          offsetX: 0,
+          offsetY: 0,
+          floating: false,
+          style: {
+            fontSize: '16px',
+            color: '#263238'
+          }
+        },
+        subtitle: {
+          text: undefined,
+          align: 'left',
+          margin: 10,
+          offsetX: 0,
+          offsetY: 0,
+          floating: false,
+          style: {
+            fontSize: '14px',
+            color: '#9699a2'
+          }
+        },
+        stroke: {
+          show: true,
+          curve: 'smooth', // "smooth" or "straight"
+          lineCap: 'butt', // round, butt , square
+          width: 2,
+          colors: undefined, // array of colors
+          dashArray: 0 // single value or array of values
+        },
+        tooltip: {
+          enabled: true,
+          shared: true,
+          followCursor: false, // when disabled, the tooltip will show on top of the series instead of mouse position
+          intersect: false, // when enabled, tooltip will only show when user directly hovers over point
+          inverseOrder: false,
+          custom: undefined,
+          fillSeriesColor: false,
+          onDatasetHover: {
+            highlightDataSeries: false
+          },
+          theme: 'light',
+          x: { // x value
+            show: true,
+            format: 'dd MMM', // dd/MM, dd MMM yy, dd MMM yyyy
+            formatter: undefined // a custom user supplied formatter function
+          },
+          y: {
+            formatter: undefined,
+            title: {
+              formatter: function formatter(seriesName) {
+                return seriesName;
+              }
+            }
+          },
+          z: {
+            formatter: undefined,
+            title: 'Size: '
+          },
+          marker: {
+            show: true
+          },
+          items: {
+            display: 'flex'
+          },
+          fixed: {
+            enabled: false,
+            position: 'topRight', // topRight, topLeft, bottomRight, bottomLeft
+            offsetX: -100,
+            offsetY: 0
+          }
+        },
+        xaxis: {
+          type: 'category',
+          categories: [],
+          labels: {
+            show: true,
+            rotate: -45,
+            rotateAlways: false,
+            trim: true,
+            maxHeight: 120,
+            style: {
+              colors: [],
+              fontSize: '12px',
+              cssClass: 'apexcharts-xaxis-label'
+            },
+            offsetX: 0,
+            offsetY: 0,
+            format: undefined,
+            formatter: undefined, // custom formatter function which will override format
+            datetimeFormatter: {
+              year: 'yyyy',
+              month: 'MMM \'yy',
+              day: 'dd MMM',
+              hour: 'HH:mm'
+            }
+          },
+          axisBorder: {
+            show: true,
+            color: '#78909C',
+            offsetX: 0,
+            offsetY: 0,
+            strokeWidth: 1
+          },
+          axisTicks: {
+            show: true,
+            color: '#78909C',
+            height: 6,
+            offsetX: 0,
+            offsetY: 0
+          },
+          tickAmount: undefined,
+          min: undefined,
+          max: undefined,
+          range: undefined,
+          floating: false,
+          position: 'bottom',
+          title: {
+            text: undefined,
+            offsetX: 0,
+            offsetY: 0,
+            style: {
+              color: undefined,
+              fontSize: '12px',
+              cssClass: 'apexcharts-xaxis-title'
+            }
+          },
+          crosshairs: {
+            show: true,
+            width: 1, // tickWidth/barWidth or an integer
+            position: 'back',
+            opacity: 0.9,
+            stroke: {
+              color: '#b6b6b6',
+              width: 0,
+              dashArray: 0
+            },
+            fill: {
+              type: 'solid', // solid, gradient
+              color: '#B1B9C4',
+              gradient: {
+                colorFrom: '#D8E3F0',
+                colorTo: '#BED1E6',
+                stops: [0, 100],
+                opacityFrom: 0.4,
+                opacityTo: 0.5
+              }
+            },
+            dropShadow: {
+              enabled: false,
+              left: 0,
+              top: 0,
+              blur: 1,
+              opacity: 0.4
+            }
+          },
+          tooltip: {
+            enabled: true,
+            offsetY: 0
+          }
+        },
+        yaxis: this.yAxis,
+        theme: {
+          palette: 'palette1', // If defined, it will overwrite globals.colors variable
+          monochrome: { // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
+            enabled: false,
+            color: '#008FFB',
+            shadeTo: 'light',
+            shadeIntensity: 0.65
+          }
+        }
+      };
+    }
+  }]);
+
+  return Options;
+}();
+
+exports.default = Options;
 
 /***/ }),
 /* 78 */
@@ -10239,7 +10239,7 @@ module.exports = __webpack_require__(4).Array.find;
 "use strict";
 
 
-__webpack_require__(71);
+__webpack_require__(70);
 __webpack_require__(111);
 module.exports = __webpack_require__(4).Array.from;
 
@@ -10270,8 +10270,8 @@ module.exports = __webpack_require__(4).Array.reduce;
 "use strict";
 
 
+__webpack_require__(69);
 __webpack_require__(70);
-__webpack_require__(71);
 __webpack_require__(121);
 __webpack_require__(114);
 __webpack_require__(117);
@@ -10286,7 +10286,7 @@ module.exports = __webpack_require__(4).Promise;
 
 
 __webpack_require__(115);
-__webpack_require__(70);
+__webpack_require__(69);
 __webpack_require__(119);
 __webpack_require__(120);
 module.exports = __webpack_require__(4).Symbol;
@@ -10322,7 +10322,7 @@ var _Core = __webpack_require__(129);
 
 var _Core2 = _interopRequireDefault(_Core);
 
-var _Crosshairs = __webpack_require__(75);
+var _Crosshairs = __webpack_require__(74);
 
 var _Crosshairs2 = _interopRequireDefault(_Crosshairs);
 
@@ -10370,7 +10370,7 @@ var _Title = __webpack_require__(137);
 
 var _Title2 = _interopRequireDefault(_Title);
 
-var _Toolbar = __webpack_require__(77);
+var _Toolbar = __webpack_require__(76);
 
 var _Toolbar2 = _interopRequireDefault(_Toolbar);
 
@@ -10378,7 +10378,7 @@ var _SubTitle = __webpack_require__(135);
 
 var _SubTitle2 = _interopRequireDefault(_SubTitle);
 
-var _Options = __webpack_require__(50);
+var _Options = __webpack_require__(77);
 
 var _Options2 = _interopRequireDefault(_Options);
 
@@ -10534,7 +10534,7 @@ var ApexCharts = function () {
       this.clear();
       this.core.setupElements();
 
-      if (ser.length === 0 || ser[0] && ser[0].data && ser[0].data.length === 0) {
+      if (ser.length === 0 || ser.length === 1 && ser[0].data && ser[0].data.length === 0) {
         var series = new _Series2.default(this.ctx);
         series.handleNoData();
       }
@@ -11331,7 +11331,7 @@ module.exports = function (that, callbackfn, aLen, memo, isRight) {
 
 
 var isObject = __webpack_require__(8);
-var isArray = __webpack_require__(56);
+var isArray = __webpack_require__(55);
 var SPECIES = __webpack_require__(2)('species');
 
 module.exports = function (original) {
@@ -11384,7 +11384,7 @@ module.exports = function (object, index, value) {
 
 // all enumerable object keys, includes symbols
 var getKeys = __webpack_require__(27);
-var gOPS = __webpack_require__(62);
+var gOPS = __webpack_require__(61);
 var pIE = __webpack_require__(39);
 module.exports = function (it) {
   var result = getKeys(it);
@@ -11408,11 +11408,11 @@ module.exports = function (it) {
 
 
 var ctx = __webpack_require__(13);
-var call = __webpack_require__(57);
-var isArrayIter = __webpack_require__(55);
+var call = __webpack_require__(56);
+var isArrayIter = __webpack_require__(54);
 var anObject = __webpack_require__(7);
 var toLength = __webpack_require__(23);
-var getIterFn = __webpack_require__(69);
+var getIterFn = __webpack_require__(68);
 var BREAK = {};
 var RETURN = {};
 var _exports = module.exports = function (iterable, entries, fn, that, ITERATOR) {
@@ -11466,7 +11466,7 @@ module.exports = function (fn, args, that) {
 "use strict";
 
 
-var create = __webpack_require__(60);
+var create = __webpack_require__(59);
 var descriptor = __webpack_require__(22);
 var setToStringTag = __webpack_require__(28);
 var IteratorPrototype = {};
@@ -11563,7 +11563,7 @@ var meta = module.exports = {
 
 
 var global = __webpack_require__(3);
-var macrotask = __webpack_require__(67).set;
+var macrotask = __webpack_require__(66).set;
 var Observer = global.MutationObserver || global.WebKitMutationObserver;
 var process = global.process;
 var Promise = global.Promise;
@@ -11665,7 +11665,7 @@ var createDesc = __webpack_require__(22);
 var toIObject = __webpack_require__(15);
 var toPrimitive = __webpack_require__(43);
 var has = __webpack_require__(11);
-var IE8_DOM_DEFINE = __webpack_require__(54);
+var IE8_DOM_DEFINE = __webpack_require__(53);
 var gOPD = Object.getOwnPropertyDescriptor;
 
 exports.f = __webpack_require__(10) ? gOPD : function getOwnPropertyDescriptor(O, P) {
@@ -11688,7 +11688,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 // fallback for IE11 buggy Object.getOwnPropertyNames with iframe and window
 var toIObject = __webpack_require__(15);
-var gOPN = __webpack_require__(61).f;
+var gOPN = __webpack_require__(60).f;
 var toString = {}.toString;
 
 var windowNames = (typeof window === 'undefined' ? 'undefined' : _typeof(window)) == 'object' && window && Object.getOwnPropertyNames ? Object.getOwnPropertyNames(window) : [];
@@ -11861,13 +11861,13 @@ __webpack_require__(32)(KEY);
 var ctx = __webpack_require__(13);
 var $export = __webpack_require__(5);
 var toObject = __webpack_require__(29);
-var call = __webpack_require__(57);
-var isArrayIter = __webpack_require__(55);
+var call = __webpack_require__(56);
+var isArrayIter = __webpack_require__(54);
 var toLength = __webpack_require__(23);
 var createProperty = __webpack_require__(92);
-var getIterFn = __webpack_require__(69);
+var getIterFn = __webpack_require__(68);
 
-$export($export.S + $export.F * !__webpack_require__(59)(function (iter) {
+$export($export.S + $export.F * !__webpack_require__(58)(function (iter) {
   Array.from(iter);
 }), 'Array', {
   // 22.1.2.1 Array.from(arrayLike, mapfn = undefined, thisArg = undefined)
@@ -11913,7 +11913,7 @@ var toIObject = __webpack_require__(15);
 // 22.1.3.13 Array.prototype.keys()
 // 22.1.3.29 Array.prototype.values()
 // 22.1.3.30 Array.prototype[@@iterator]()
-module.exports = __webpack_require__(58)(Array, 'Array', function (iterated, kind) {
+module.exports = __webpack_require__(57)(Array, 'Array', function (iterated, kind) {
   this._t = toIObject(iterated); // target
   this._i = 0; // next index
   this._k = kind; // kind
@@ -11971,13 +11971,13 @@ var isObject = __webpack_require__(8);
 var aFunction = __webpack_require__(17);
 var anInstance = __webpack_require__(87);
 var forOf = __webpack_require__(94);
-var speciesConstructor = __webpack_require__(66);
-var task = __webpack_require__(67).set;
+var speciesConstructor = __webpack_require__(65);
+var task = __webpack_require__(66).set;
 var microtask = __webpack_require__(99)();
 var newPromiseCapabilityModule = __webpack_require__(38);
-var perform = __webpack_require__(64);
+var perform = __webpack_require__(63);
 var userAgent = __webpack_require__(109);
-var promiseResolve = __webpack_require__(65);
+var promiseResolve = __webpack_require__(64);
 var PROMISE = 'Promise';
 var TypeError = global.TypeError;
 var process = global.process;
@@ -12200,7 +12200,7 @@ $export($export.S + $export.F * (LIBRARY || !USE_NATIVE), PROMISE, {
     return promiseResolve(LIBRARY && this === Wrapper ? $Promise : this, x);
   }
 });
-$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(59)(function (iter) {
+$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(58)(function (iter) {
   $Promise.all(iter)['catch'](empty);
 })), PROMISE, {
   // 25.4.4.1 Promise.all(iterable)
@@ -12266,16 +12266,16 @@ var shared = __webpack_require__(41);
 var setToStringTag = __webpack_require__(28);
 var uid = __webpack_require__(24);
 var wks = __webpack_require__(2);
-var wksExt = __webpack_require__(68);
+var wksExt = __webpack_require__(67);
 var wksDefine = __webpack_require__(44);
 var enumKeys = __webpack_require__(93);
-var isArray = __webpack_require__(56);
+var isArray = __webpack_require__(55);
 var anObject = __webpack_require__(7);
 var isObject = __webpack_require__(8);
 var toIObject = __webpack_require__(15);
 var toPrimitive = __webpack_require__(43);
 var createDesc = __webpack_require__(22);
-var _create = __webpack_require__(60);
+var _create = __webpack_require__(59);
 var gOPNExt = __webpack_require__(102);
 var $GOPD = __webpack_require__(101);
 var $DP = __webpack_require__(9);
@@ -12405,9 +12405,9 @@ if (!USE_NATIVE) {
 
   $GOPD.f = $getOwnPropertyDescriptor;
   $DP.f = $defineProperty;
-  __webpack_require__(61).f = gOPNExt.f = $getOwnPropertyNames;
+  __webpack_require__(60).f = gOPNExt.f = $getOwnPropertyNames;
   __webpack_require__(39).f = $propertyIsEnumerable;
-  __webpack_require__(62).f = $getOwnPropertySymbols;
+  __webpack_require__(61).f = $getOwnPropertySymbols;
 
   if (DESCRIPTORS && !__webpack_require__(21)) {
     redefine(ObjectProto, 'propertyIsEnumerable', $propertyIsEnumerable, true);
@@ -12504,7 +12504,7 @@ setToStringTag(global.JSON, 'JSON', true);
 // https://github.com/tc39/Array.prototype.includes
 
 var $export = __webpack_require__(5);
-var $includes = __webpack_require__(52)(true);
+var $includes = __webpack_require__(51)(true);
 
 $export($export.P, 'Array', {
   includes: function includes(el /* , fromIndex = 0 */) {
@@ -12525,8 +12525,8 @@ __webpack_require__(32)('includes');
 var $export = __webpack_require__(5);
 var core = __webpack_require__(4);
 var global = __webpack_require__(3);
-var speciesConstructor = __webpack_require__(66);
-var promiseResolve = __webpack_require__(65);
+var speciesConstructor = __webpack_require__(65);
+var promiseResolve = __webpack_require__(64);
 
 $export($export.P + $export.R, 'Promise', { 'finally': function _finally(onFinally) {
     var C = speciesConstructor(this, core.Promise || global.Promise);
@@ -12552,7 +12552,7 @@ $export($export.P + $export.R, 'Promise', { 'finally': function _finally(onFinal
 
 var $export = __webpack_require__(5);
 var newPromiseCapability = __webpack_require__(38);
-var perform = __webpack_require__(64);
+var perform = __webpack_require__(63);
 
 $export($export.S, 'Promise', { 'try': function _try(callbackfn) {
     var promiseCapability = newPromiseCapability.f(this);
@@ -12742,7 +12742,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar2 = __webpack_require__(72);
+var _Bar2 = __webpack_require__(71);
 
 var _Bar3 = _interopRequireDefault(_Bar2);
 
@@ -13602,7 +13602,7 @@ var _Markers = __webpack_require__(46);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
-var _Scatter = __webpack_require__(74);
+var _Scatter = __webpack_require__(73);
 
 var _Scatter2 = _interopRequireDefault(_Scatter);
 
@@ -14181,7 +14181,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Pie2 = __webpack_require__(73);
+var _Pie2 = __webpack_require__(72);
 
 var _Pie3 = _interopRequireDefault(_Pie2);
 
@@ -14720,7 +14720,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Options = __webpack_require__(50);
+var _Options = __webpack_require__(77);
 
 var _Options2 = _interopRequireDefault(_Options);
 
@@ -15273,7 +15273,7 @@ module.exports = Base;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar = __webpack_require__(72);
+var _Bar = __webpack_require__(71);
 
 var _Bar2 = _interopRequireDefault(_Bar);
 
@@ -15281,11 +15281,11 @@ var _BarStacked = __webpack_require__(123);
 
 var _BarStacked2 = _interopRequireDefault(_BarStacked);
 
-var _Crosshairs = __webpack_require__(75);
+var _Crosshairs = __webpack_require__(74);
 
 var _Crosshairs2 = _interopRequireDefault(_Crosshairs);
 
-var _DateTime = __webpack_require__(51);
+var _DateTime = __webpack_require__(50);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
@@ -15293,7 +15293,7 @@ var _HeatMap = __webpack_require__(124);
 
 var _HeatMap2 = _interopRequireDefault(_HeatMap);
 
-var _Pie = __webpack_require__(73);
+var _Pie = __webpack_require__(72);
 
 var _Pie2 = _interopRequireDefault(_Pie);
 
@@ -15337,7 +15337,7 @@ var _Series = __webpack_require__(26);
 
 var _Series2 = _interopRequireDefault(_Series);
 
-var _TimeScale = __webpack_require__(76);
+var _TimeScale = __webpack_require__(75);
 
 var _TimeScale2 = _interopRequireDefault(_TimeScale);
 
@@ -17974,7 +17974,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Toolbar2 = __webpack_require__(77);
+var _Toolbar2 = __webpack_require__(76);
 
 var _Toolbar3 = _interopRequireDefault(_Toolbar2);
 
