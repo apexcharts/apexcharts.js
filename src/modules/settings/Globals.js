@@ -132,7 +132,8 @@ export default class Globals {
       yLabelFormatters: [],
       xaxisTooltipLabelFormatter: undefined, // formatter for x axis tooltip
       ttKeyFormatter: undefined,
-      ttValFormatter: undefined,
+      ttVal: undefined,
+      ttValFormatter: [],
       ttZFormatter: undefined,
       lineHeightRatio: 1.618,
       xAxisLabelsHeight: 0,

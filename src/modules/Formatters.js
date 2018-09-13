@@ -51,8 +51,8 @@ class Formatters {
       w.globals.ttKeyFormatter = w.config.tooltip.x.formatter
     }
 
-    if (w.config.tooltip.y.formatter !== undefined) {
-      w.globals.ttValFormatter = w.config.tooltip.y.formatter
+    if (w.config.tooltip.y.length > 0 || w.config.tooltip.y !== undefined) {
+      w.globals.ttVal = w.config.tooltip.y
     }
 
     if (w.config.tooltip.z.formatter !== undefined) {

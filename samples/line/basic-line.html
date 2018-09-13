@@ -42,10 +42,26 @@
             stroke: {
                 curve: 'straight'
             },
-            series: [{
-                name: "Desktops",
-                data: [30, 41, 35, 51, 49, 62, 69, 91, 126]
-            }],
+            chartOptions: {
+        xaxis: {
+          categories: ['In', 'Out']
+        },
+        yaxis: [{
+        },{
+          labels: {show: false}
+        }]
+      },
+      
+      series: [
+        {
+          name: 'Summer',
+          data: [27,40]
+        },
+        {
+          name: 'Winter',
+          data: [21,0]
+        }
+      ],
             title: {
                 text: 'Product Trends by Month',
                 align: 'left'

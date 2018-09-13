@@ -77,6 +77,9 @@
           labels: {
             style: {
               color: '#3f51b5',
+            },
+            formatter: function(val) {
+              return val + "%"
             }
           },
           title: {
@@ -98,6 +101,9 @@
           labels: {
             style: {
               color: '#FFA600',
+            },
+            formatter: function(val) {
+              return val + "**"
             }
           },
           title: {
@@ -116,6 +122,9 @@
           labels: {
             style: {
               color: '#03a9f4',
+            },
+            formatter: function(val) {
+              return val + "!!"
             }
           },
           title: {
@@ -126,14 +135,28 @@
       ],
       tooltip: {
         followCursor: true,
-        y: {
-          formatter: function (y) {
-            if(typeof y !== "undefined") {
-              return y + " thousand crores"
-            }
-            return y;
-          }
-        }
+        // y: [{
+        //   formatter: function (y) {
+        //     if(typeof y !== "undefined") {
+        //       return y + " f"
+        //     }
+        //     return y;
+        //   }
+        // }, {
+        //   formatter: function (y) {
+        //     if(typeof y !== "undefined") {
+        //       return y + "  crores"
+        //     }
+        //     return y;
+        //   }
+        // }, {
+        //   formatter: function (y) {
+        //     if(typeof y !== "undefined") {
+        //       return y + " lakhs crores"
+        //     }
+        //     return y;
+        //   }
+        // }]
       }
     }
 

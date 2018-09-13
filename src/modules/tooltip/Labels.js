@@ -65,9 +65,17 @@ class Labels {
     }
 
     let yLbFormatter = w.globals.yLabelFormatters[i]
+    let yLbTitleFormatter = function (val) { return val }
 
-    if (w.globals.ttValFormatter !== undefined) {
-      yLbFormatter = w.globals.ttValFormatter
+    if (w.globals.ttVal !== undefined) {
+      if (Array.isArray(w.globals.ttVal)) {
+        yLbFormatter = w.globals.ttVal[i].formatter
+        console.log(w.globals.ttVal[i].formatter)
+        yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter
+      } else {
+        yLbFormatter = w.globals.ttVal.formatter
+        yLbTitleFormatter = w.globals.ttVal.title.formatter
+      }
     }
 
     if (!yLbFormatter) {
@@ -76,8 +84,14 @@ class Labels {
       }
     }
 
+    if (!yLbTitleFormatter) {
+      yLbTitleFormatter = function (label) {
+        return label
+      }
+    }
+
     for (let t = 0, inverset = w.globals.series.length - 1; t < w.globals.series.length; t++, inverset--) {
-      seriesName = w.config.tooltip.y.title.formatter(String(w.globals.seriesNames[i]), {
+      seriesName = yLbTitleFormatter(String(w.globals.seriesNames[i]), {
         series: w.globals.series,
         seriesIndex: i,
         dataPointIndex: j,
@@ -87,7 +101,7 @@ class Labels {
       if (shared) {
         const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
-        seriesName = w.config.tooltip.y.title.formatter(String(w.globals.seriesNames[tIndex]), {
+        seriesName = yLbTitleFormatter(String(w.globals.seriesNames[tIndex]), {
           series: w.globals.series,
           seriesIndex: i,
           dataPointIndex: j,
