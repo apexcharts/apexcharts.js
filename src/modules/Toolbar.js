@@ -220,6 +220,8 @@ class Toolbar {
     false,
     true
     )
+
+    this.zoomCallback(newMinX, newMaxX)
   }
 
   handleZoomOut () {
@@ -243,6 +245,22 @@ class Toolbar {
     false,
     true
     )
+
+    this.zoomCallback(newMinX, newMaxX)
+  }
+
+  zoomCallback (xLowestValue, xHighestValue) {
+    const w = this.w
+
+    if (typeof w.config.chart.events.zoomed === 'function') {
+      w.config.chart.events.zoomed(this.ctx,
+        {
+          xaxis: {
+            min: xLowestValue,
+            max: xHighestValue
+          }
+        })
+    }
   }
 
   downloadSVG () {
