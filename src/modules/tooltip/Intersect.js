@@ -18,6 +18,7 @@ class Intersect {
 
   handleHeatTooltip ({ e, opt, x, y }) {
     const ttCtx = this.ttCtx
+    const w = this.w
 
     if (e.target.classList.contains('apexcharts-heatmap-rect')) {
       let i = this.getAttr(e, 'i')
@@ -34,11 +35,15 @@ class Intersect {
         shared: false
       })
 
-      x = cx + (ttCtx.tooltipRect.ttWidth / 2) - width
+      x = cx + (ttCtx.tooltipRect.ttWidth / 2) + width / 2
       y = cy + (ttCtx.tooltipRect.ttHeight / 2) - height / 2
 
+      if (x > w.globals.gridWidth / 2) {
+        x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
+      }
       if (ttCtx.w.config.tooltip.followCursor) {
         const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+        // x = ttCtx.e.clientX - seriesBound.left
         y = ttCtx.e.clientY - seriesBound.top
       }
     }
