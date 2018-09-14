@@ -217,7 +217,8 @@ class Dimensions {
     }
 
     // after drawing everything, set the Y axis positions
-    this.setYAxisXPosition(yaxisLabelCoords, ytitleCoords)
+    let objyAxis = new YAxis(this.ctx)
+    objyAxis.setYAxisXPosition(yaxisLabelCoords, ytitleCoords)
   }
 
   setGridCoordsForNonAxisCharts (lgRect) {
@@ -275,15 +276,13 @@ class Dimensions {
 
   setGridXPosForDualYAxis (ytitleCoords, yaxisLabelCoords) {
     let w = this.w
-    // if(w.config.yaxis.length > 1) {
     w.config.yaxis.map((yaxe, index) => {
       if (!w.globals.ignoreYAxisIndexes.includes(index) && !w.config.yaxis[index].floating) {
         if (yaxe.opposite) {
-          w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + ytitleCoords[index].width) - (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2)
+          w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + ytitleCoords[index].width) - (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) - 12
         }
       }
     })
-    // }
   }
 
   titleSubtitleOffset () {
@@ -317,11 +316,12 @@ class Dimensions {
   getTotalYAxisWidth () {
     let w = this.w
     let yAxisWidth = 0
+    let padding = 10
 
     w.globals.yLabelsCoords.map((yLabelCoord, index) => {
       let floating = w.config.yaxis[index].floating
       if (yLabelCoord.width > 0 && !floating) {
-        yAxisWidth = yAxisWidth + yLabelCoord.width
+        yAxisWidth = yAxisWidth + yLabelCoord.width + padding
         if (w.globals.ignoreYAxisIndexes.includes(index)) {
           yAxisWidth = yAxisWidth - yLabelCoord.width
         }
@@ -463,70 +463,6 @@ class Dimensions {
       width: rect.width,
       height: rect.height
     }
-  }
-
-  setYAxisXPosition (yaxisLabelCoords, ytitleCoords) {
-    let w = this.w
-
-    let xLeft = 0
-    let xRight = 0
-    let leftDrawnYs = 0 // already drawn y axis on left side
-    let rightDrawnYs = 4 // already drawn y axis on right side
-    let multipleYPadd = 5
-    this.multipleYs = false
-
-    if (w.config.yaxis.length > 1) {
-      this.multipleYs = true
-    }
-
-    w.config.yaxis.map((yaxe, index) => {
-      let yAxisWidth = (yaxisLabelCoords[index].width + ytitleCoords[index].width)
-
-      let objyAxis = new YAxis(this.ctx)
-
-      let paddingForYAxisTitle = objyAxis.xPaddingForYAxisTitle(index, {
-        width: yaxisLabelCoords[index].width
-      }, {
-        width: ytitleCoords[index].width
-      }, yaxe.opposite)
-
-      if (w.config.yaxis.length > 1) {
-        // multiple yaxis
-        yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
-      } else {
-        // just a single y axis in axis chart
-        if (yaxe.title.text === undefined) {
-          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd) + 15
-        } else {
-          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
-        }
-      }
-
-      if (!yaxe.opposite) {
-        // left side y axis
-        let offset = yAxisWidth
-        if (w.globals.ignoreYAxisIndexes.includes(index)) {
-          offset = 0
-        }
-
-        if (this.multipleYs) {
-          xLeft = w.globals.translateX - yAxisWidth - leftDrawnYs + multipleYPadd + (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) + yaxe.labels.offsetX + 5
-        } else {
-          xLeft = w.globals.translateX - yAxisWidth + yaxisLabelCoords[index].width + yaxe.labels.offsetX + 2
-        }
-
-        leftDrawnYs = leftDrawnYs + offset
-        w.globals.translateYAxisX[index] = xLeft
-      } else {
-        // right side y axis
-        xRight = w.globals.gridWidth + (w.globals.translateX) + rightDrawnYs + 26 + (w.globals.series.length - w.globals.collapsedSeries.length)
-
-        rightDrawnYs = rightDrawnYs + yAxisWidth
-        w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX
-      }
-
-      // w.globals.yAxisWidths.push(yAxisWidth)
-    })
   }
 
   /**

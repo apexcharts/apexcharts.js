@@ -282,7 +282,7 @@ class YAxis {
       let x = this.xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite)
 
       yAxisTitle.setAttribute(
-        'x', x.xPos
+        'x', x.xPos - (yAxisOpposite ? 10 : 0)
       )
     }
 
@@ -329,6 +329,74 @@ class YAxis {
     }
 
     return {xPos: x, padd}
+  }
+
+  // sets the x position of the y-axis by counting the labels width, title width and any offset
+  setYAxisXPosition (yaxisLabelCoords, ytitleCoords) {
+    let w = this.w
+
+    let xLeft = 0
+    let xRight = 0
+    let leftDrawnYs = 0 // already drawn y axis on left side
+    let rightDrawnYs = 1 // already drawn y axis on right side
+    let multipleYPadd = 20
+    this.multipleYs = false
+
+    if (w.config.yaxis.length > 1) {
+      this.multipleYs = true
+    }
+
+    w.config.yaxis.map((yaxe, index) => {
+      let yAxisWidth = (yaxisLabelCoords[index].width + ytitleCoords[index].width)
+
+      let paddingForYAxisTitle = this.xPaddingForYAxisTitle(index, {
+        width: yaxisLabelCoords[index].width
+      }, {
+        width: ytitleCoords[index].width
+      }, yaxe.opposite)
+
+      if (w.config.yaxis.length > 1) {
+        // multiple yaxis
+        yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
+      } else {
+        // just a single y axis in axis chart
+        if (yaxe.title.text === undefined) {
+          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd) + 15
+        } else {
+          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
+        }
+      }
+
+      if (!yaxe.opposite) {
+        // left side y axis
+        let offset = yAxisWidth + 5
+        if (w.globals.ignoreYAxisIndexes.includes(index)) {
+          offset = 0
+        }
+
+        if (this.multipleYs) {
+          xLeft = w.globals.translateX - yAxisWidth - leftDrawnYs + multipleYPadd + (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) + yaxe.labels.offsetX
+        } else {
+          xLeft = w.globals.translateX - yAxisWidth + yaxisLabelCoords[index].width + yaxe.labels.offsetX
+        }
+
+        leftDrawnYs = leftDrawnYs + offset
+        w.globals.translateYAxisX[index] = xLeft
+      } else {
+        // right side y axis
+        xRight = w.globals.gridWidth + (w.globals.translateX) + rightDrawnYs + 30 + (w.globals.series.length - w.globals.collapsedSeries.length)
+
+        w.globals.collapsedSeries.forEach((c) => {
+          if (c.index === index) {
+            rightDrawnYs = rightDrawnYs - yAxisWidth
+          }
+        })
+        rightDrawnYs = rightDrawnYs + yAxisWidth
+        w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX
+      }
+
+      // w.globals.yAxisWidths.push(yAxisWidth)
+    })
   }
 }
 

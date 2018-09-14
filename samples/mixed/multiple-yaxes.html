@@ -72,18 +72,15 @@
           },
           axisBorder: {
             show: true,
-            color: '#3f51b5'
+            color: '#008FFB'
           },
           labels: {
             style: {
-              color: '#3f51b5',
-            },
-            formatter: function(val) {
-              return val + "%"
+              color: '#008FFB',
             }
           },
           title: {
-            text: "Income (thousand crores)"
+            text: "Income (thousand crores)",
           },
           tooltip: {
             enabled: true
@@ -91,19 +88,17 @@
         },
 
         {
+          opposite: true,
           axisTicks: {
             show: true,
           },
           axisBorder: {
             show: true,
-            color: '#FFA600'
+            color: '#00E396'
           },
           labels: {
             style: {
-              color: '#FFA600',
-            },
-            formatter: function(val) {
-              return val + "**"
+              color: '#00E396',
             }
           },
           title: {
@@ -117,15 +112,12 @@
           },
           axisBorder: {
             show: true,
-            color: '#03a9f4'
+            color: '#FEB019'
           },
           labels: {
             style: {
-              color: '#03a9f4',
+              color: '#FEB019',
             },
-            formatter: function(val) {
-              return val + "!!"
-            }
           },
           title: {
             text: "Revenue (thousand crores)"
@@ -135,28 +127,14 @@
       ],
       tooltip: {
         followCursor: true,
-        // y: [{
-        //   formatter: function (y) {
-        //     if(typeof y !== "undefined") {
-        //       return y + " f"
-        //     }
-        //     return y;
-        //   }
-        // }, {
-        //   formatter: function (y) {
-        //     if(typeof y !== "undefined") {
-        //       return y + "  crores"
-        //     }
-        //     return y;
-        //   }
-        // }, {
-        //   formatter: function (y) {
-        //     if(typeof y !== "undefined") {
-        //       return y + " lakhs crores"
-        //     }
-        //     return y;
-        //   }
-        // }]
+        y: {
+          formatter: function (y) {
+            if(typeof y !== "undefined") {
+              return y + " thousand crores"
+            }
+            return y;
+          }
+        }
       }
     }
 
