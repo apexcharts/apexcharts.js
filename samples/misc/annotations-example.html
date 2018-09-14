@@ -126,7 +126,53 @@
         );
 
         chart.render();
-        console.log(chart, "cha")
+
+        // adding annotation through chart instance by calling direct method
+        chart.addYaxisAnnotation({
+            y: 9000,
+            borderColor: '#FEB019',
+            label: {
+                borderColor: '#333',
+                style: {
+                    fontSize: '15px',
+                    color: '#333',
+                    background: '#FEB019',
+                },
+                text: 'Y-axis - runtime',
+            }
+        });
+
+        chart.addXaxisAnnotation({
+            x: new Date('25 Nov 2017').getTime(),
+            borderColor: '#00E396',
+            label: {
+                orientation: 'vertical',
+                borderColor: '#00E396',
+                style: {
+                    fontSize: '15px',
+                    color: '#fff',
+                    background: '#00E396',
+                },
+                offsetY: -10,
+                text: 'xaxis - runtime',
+            }
+        });
+
+        chart.addPointAnnotation({
+            x: new Date('17 Nov 2017').getTime(),
+            y: 9425,
+            label: {
+                borderColor: '#FF4560',
+                offsetY: 0,
+                style: {
+                    fontSize: '15px',
+                    color: '#fff',
+                    background: '#FF4560',
+                },
+                
+                text: 'Point - runtime',
+            } 
+        })
 
     </script>
 </body>
