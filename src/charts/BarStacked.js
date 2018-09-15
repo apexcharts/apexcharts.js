@@ -178,41 +178,7 @@ class BarStacked extends Bar {
           color: fillColor
         })
 
-        let lineFill = w.globals.stroke.colors[realIndex]
-
-        let delay =
-        (j /
-          w.config.chart.animations.animateGradually.delay *
-          (w.config.chart.animations.speed /
-          w.globals.dataPoints)) / 2.4
-
-        let renderedPath = this.graphics.renderPaths({
-          i,
-          realIndex,
-          pathFrom: pathFrom,
-          pathTo: pathTo,
-          stroke: lineFill,
-          strokeWidth: strokeWidth,
-          strokeLineCap: w.config.stroke.lineCap,
-          fill: pathFill,
-          animationDelay: delay,
-          initialSpeed: w.config.chart.animations.speed,
-          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-          className: 'apexcharts-bar-area',
-          id: 'apexcharts-bar-area'
-        })
-
-        elSeries.add(renderedPath)
-
-        this.setSelectedBarFilter(renderedPath, realIndex, j)
-
-        let dataLabels = this.bar.calculateBarDataLabels({ x, y, i, j, realIndex, series, barHeight, barWidth, visibleSeries: 0, renderedPath })
-
-        if (dataLabels !== null) {
-          elDataLabelsWrap.add(dataLabels)
-        }
-
-        elSeries.add(elDataLabelsWrap)
+        elSeries = this.renderSeries({ realIndex, pathFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, type: 'bar', visibleSeries: 0 })
       }
 
       // push all x val arrays into main xArr
