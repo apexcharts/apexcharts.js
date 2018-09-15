@@ -6,7 +6,7 @@ import Scatter from './Scatter'
 
 /**
  * ApexCharts Line Class responsible for drawing Line / Area Charts.
- * This class is also responsible for generating values for Bubble/Scatter charts
+ * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
  * @module Line
  **/
 

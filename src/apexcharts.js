@@ -14,9 +14,8 @@ import Tooltip from './modules/tooltip/Tooltip'
 import Utils from './utils/Utils'
 import ZoomPanSelection from './modules/ZoomPanSelection'
 import Scroller from './modules/Scroller'
-import Title from './modules/Title'
+import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
-import SubTitle from './modules/SubTitle'
 import Options from './modules/settings/Options'
 
 require('./assets/apexcharts.css')
@@ -160,10 +159,9 @@ class ApexCharts {
     // labelFormatters should be called before dimensions as in dimensions we need text labels width
     let formatters = new Formatters(this.ctx)
     formatters.setLabelFormatters()
-    const title = new Title(this.ctx)
-    title.drawTitle()
-    const subtitle = new SubTitle(this.ctx)
-    subtitle.drawSubtitle()
+    const titleSubtitle = new TitleSubtitle(this.ctx)
+    titleSubtitle.draw()
+
     // legend is calculated here before coreCalculations because it affects the plottable area
     new Legend(this.ctx).init()
 

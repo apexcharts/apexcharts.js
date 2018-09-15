@@ -181,45 +181,7 @@ class Bar {
           color: fillColor
         })
 
-        let lineFill = w.globals.stroke.colors[realIndex]
-
-        if (this.isNullValue) {
-          pathFill = 'none'
-        }
-
-        let delay =
-        (j /
-        w.config.chart.animations.animateGradually.delay *
-        (w.config.chart.animations.speed /
-        w.globals.dataPoints)) / 2.4
-
-        let renderedPath = graphics.renderPaths({
-          i,
-          realIndex,
-          pathFrom: pathFrom,
-          pathTo: pathTo,
-          stroke: lineFill,
-          strokeWidth,
-          strokeLineCap: w.config.stroke.lineCap,
-          fill: pathFill,
-          animationDelay: delay,
-          initialSpeed: w.config.chart.animations.speed,
-          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-          className: 'apexcharts-bar-area',
-          id: 'apexcharts-bar-area'
-        })
-
-        this.setSelectedBarFilter(renderedPath, realIndex, j)
-
-        elSeries.add(renderedPath)
-
-        let dataLabels = this.calculateBarDataLabels({ x, y, i, j, series, realIndex, barHeight, barWidth, renderedPath, visibleSeries: this.visibleI })
-
-        if (dataLabels !== null) {
-          elDataLabelsWrap.add(dataLabels)
-        }
-
-        elSeries.add(elDataLabelsWrap)
+        elSeries = this.renderSeries({ realIndex, pathFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries: this.visibleI, type: 'bar' })
       }
 
       // push all x val arrays into main xArr
@@ -230,6 +192,47 @@ class Bar {
     }
 
     return ret
+  }
+
+  renderSeries ({ realIndex, pathFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries, type }) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+
+    let lineFill = w.globals.stroke.colors[realIndex]
+    if (this.isNullValue) {
+      pathFill = 'none'
+    }
+
+    let delay = (j /
+      w.config.chart.animations.animateGradually.delay *
+      (w.config.chart.animations.speed /
+        w.globals.dataPoints)) / 2.4
+
+    let renderedPath = graphics.renderPaths({
+      i,
+      realIndex,
+      pathFrom: pathFrom,
+      pathTo: pathTo,
+      stroke: lineFill,
+      strokeWidth,
+      strokeLineCap: w.config.stroke.lineCap,
+      fill: pathFill,
+      animationDelay: delay,
+      initialSpeed: w.config.chart.animations.speed,
+      dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+      className: `apexcharts-${type}-area`,
+      id: `apexcharts-${type}-area`
+    })
+    this.setSelectedBarFilter(renderedPath, realIndex, j)
+    elSeries.add(renderedPath)
+
+    let dataLabels = this.calculateBarDataLabels({ x, y, i, j, series, realIndex, barHeight, barWidth, renderedPath, visibleSeries })
+    if (dataLabels !== null) {
+      elDataLabelsWrap.add(dataLabels)
+    }
+
+    elSeries.add(elDataLabelsWrap)
+    return elSeries
   }
 
   initVariables (series, shouldGetVisibleItems) {

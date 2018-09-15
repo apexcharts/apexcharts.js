@@ -37,7 +37,7 @@ class Annotations {
     }
   }
 
-  addXAxisAnnotation (anno, parent, index) {
+  addXaxisAnnotation (anno, parent, index) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
@@ -85,13 +85,13 @@ class Annotations {
     })
 
     w.config.annotations.xaxis.map((anno, index) => {
-      this.addXAxisAnnotation(anno, elg.node, index)
+      this.addXaxisAnnotation(anno, elg.node, index)
     })
 
     return elg
   }
 
-  addYAxisAnnotation (anno, parent, index) {
+  addYaxisAnnotation (anno, parent, index) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
@@ -139,7 +139,7 @@ class Annotations {
     })
 
     w.config.annotations.yaxis.map((anno, index) => {
-      this.addYAxisAnnotation(anno, elg.node, index)
+      this.addYaxisAnnotation(anno, elg.node, index)
     })
 
     return elg
@@ -296,31 +296,25 @@ class Annotations {
   annotationsBackground () {
     const w = this.w
 
+    const add = (anno, i, type) => {
+      let annoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`)
+
+      const parent = annoLabel.parentNode
+      const elRect = this.addBackgroundToAnno(annoLabel, anno)
+
+      parent.insertBefore(elRect.node, annoLabel)
+    }
+
     w.config.annotations.xaxis.map((anno, i) => {
-      let xAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`)
-
-      const parent = xAnnoLabel.parentNode
-      const elRect = this.addBackgroundToAnno(xAnnoLabel, anno)
-
-      parent.insertBefore(elRect.node, xAnnoLabel)
+      add(anno, i, 'xaxis')
     })
 
     w.config.annotations.yaxis.map((anno, i) => {
-      let yAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-yaxis-annotations .apexcharts-yaxis-annotation-label[rel='${i}']`)
-
-      const parent = yAnnoLabel.parentNode
-      const elRect = this.addBackgroundToAnno(yAnnoLabel, anno)
-
-      parent.insertBefore(elRect.node, yAnnoLabel)
+      add(anno, i, 'yaxis')
     })
 
     w.config.annotations.points.map((anno, i) => {
-      let pointAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-point-annotations .apexcharts-point-annotation-label[rel='${i}']`)
-
-      const parent = pointAnnoLabel.parentNode
-      const elRect = this.addBackgroundToAnno(pointAnnoLabel, anno)
-
-      parent.insertBefore(elRect.node, pointAnnoLabel)
+      add(anno, i, 'point')
     })
   }
 
@@ -362,89 +356,53 @@ class Annotations {
   }
 
   addPointAnnotationExternal (params, pushToMemory, context) {
-    const me = context
-    const w = me.w
-
-    const parent = w.globals.dom.baseEl.querySelector('.apexcharts-point-annotations')
-    const index = parent.childNodes.length + 1
-
-    const options = new Options()
-    const pointAnno = Object.assign({}, options.pointAnnotation)
-    const anno = Utils.extend(pointAnno, params)
-
-    this.addPointAnnotation(anno, parent, index)
-
-    // add background
-    let pointLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-point-annotations .apexcharts-point-annotation-label[rel='${index}']`)
-    const elRect = this.addBackgroundToAnno(pointLabel, anno)
-    parent.insertBefore(elRect.node, pointLabel)
-
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addPointAnnotation,
-        params: params
-      })
-    }
-
+    this.addAnnotationExternal({params, pushToMemory, context, type: 'point', contextMethod: context.addPointAnnotation})
     return context
   }
 
-  addYAxisAnnotationExternal (params, pushToMemory, context) {
-    const me = context
-    const w = me.w
-
-    const parent = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-annotations')
-    const index = parent.childNodes.length + 1
-
-    const options = new Options()
-    const yAxisAnno = Object.assign({}, options.yAxisAnnotation)
-    const anno = Utils.extend(yAxisAnno, params)
-
-    this.addYAxisAnnotation(anno, parent, index)
-
-    // add background
-    let yAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-yaxis-annotations .apexcharts-yaxis-annotation-label[rel='${index}']`)
-    const elRect = this.addBackgroundToAnno(yAnnoLabel, anno)
-    parent.insertBefore(elRect.node, yAnnoLabel)
-
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addYaxisAnnotation,
-        params: params
-      })
-    }
-
+  addYaxisAnnotationExternal (params, pushToMemory, context) {
+    this.addAnnotationExternal({params, pushToMemory, context, type: 'yaxis', contextMethod: context.addYaxisAnnotation})
     return context
   }
 
-  // The addXAxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method
-  addXAxisAnnotationExternal (params, pushToMemory, context) {
+  // The addXaxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method
+  addXaxisAnnotationExternal (params, pushToMemory, context) {
+    this.addAnnotationExternal({ params, pushToMemory, context, type: 'xaxis', contextMethod: context.addXaxisAnnotation })
+    return context
+  }
+
+  addAnnotationExternal ({ params, pushToMemory, context, type, contextMethod }) {
     const me = context
     const w = me.w
-
-    const parent = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-annotations')
+    const parent = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`)
     const index = parent.childNodes.length + 1
 
-    const options = new Options()
-    const xAxisAnno = Object.assign({}, options.xAxisAnnotation)
-    const anno = Utils.extend(xAxisAnno, params)
+    const opt = new Options()
+    const axesAnno = Object.assign({}, (type === 'xaxis') ? (opt.xAxisAnnotation) : ((type === 'yaxis') ? (opt.yAxisAnnotation) : (opt.pointAnnotation)))
 
-    this.addXAxisAnnotation(anno, parent, index)
+    const anno = Utils.extend(axesAnno, params)
 
-    // set if orientation changed for xaxis
-    this.setOrientations([anno], index)
+    switch (type) {
+      case 'xaxis':
+        this.addXaxisAnnotation(anno, parent, index)
+        break
+      case 'yaxis':
+        this.addYaxisAnnotation(anno, parent, index)
+        break
+      case 'point':
+        this.addPointAnnotation(anno, parent, index)
+        break
+    }
 
     // add background
-    let xAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${index}']`)
-    const elRect = this.addBackgroundToAnno(xAnnoLabel, anno)
-    parent.insertBefore(elRect.node, xAnnoLabel)
+    let axesAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`)
+    const elRect = this.addBackgroundToAnno(axesAnnoLabel, anno)
+    parent.insertBefore(elRect.node, axesAnnoLabel)
 
     if (pushToMemory) {
       w.globals.memory.methodsToExec.push({
         context: me,
-        method: me.addXaxisAnnotation,
+        method: contextMethod,
         params: params
       })
     }
