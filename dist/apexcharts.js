@@ -15329,31 +15329,25 @@ var Annotations = function () {
 
       var w = this.w;
 
+      var add = function add(anno, i, type) {
+        var annoLabel = w.globals.dom.baseEl.querySelector('.apexcharts-' + type + '-annotations .apexcharts-' + type + '-annotation-label[rel=\'' + i + '\']');
+
+        var parent = annoLabel.parentNode;
+        var elRect = _this4.addBackgroundToAnno(annoLabel, anno);
+
+        parent.insertBefore(elRect.node, annoLabel);
+      };
+
       w.config.annotations.xaxis.map(function (anno, i) {
-        var xAnnoLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel=\'' + i + '\']');
-
-        var parent = xAnnoLabel.parentNode;
-        var elRect = _this4.addBackgroundToAnno(xAnnoLabel, anno);
-
-        parent.insertBefore(elRect.node, xAnnoLabel);
+        add(anno, i, 'xaxis');
       });
 
       w.config.annotations.yaxis.map(function (anno, i) {
-        var yAnnoLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-annotations .apexcharts-yaxis-annotation-label[rel=\'' + i + '\']');
-
-        var parent = yAnnoLabel.parentNode;
-        var elRect = _this4.addBackgroundToAnno(yAnnoLabel, anno);
-
-        parent.insertBefore(elRect.node, yAnnoLabel);
+        add(anno, i, 'yaxis');
       });
 
       w.config.annotations.points.map(function (anno, i) {
-        var pointAnnoLabel = w.globals.dom.baseEl.querySelector('.apexcharts-point-annotations .apexcharts-point-annotation-label[rel=\'' + i + '\']');
-
-        var parent = pointAnnoLabel.parentNode;
-        var elRect = _this4.addBackgroundToAnno(pointAnnoLabel, anno);
-
-        parent.insertBefore(elRect.node, pointAnnoLabel);
+        add(anno, i, 'point');
       });
     }
   }, {

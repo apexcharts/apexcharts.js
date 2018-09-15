@@ -296,31 +296,25 @@ class Annotations {
   annotationsBackground () {
     const w = this.w
 
+    const add = (anno, i, type) => {
+      let annoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`)
+
+      const parent = annoLabel.parentNode
+      const elRect = this.addBackgroundToAnno(annoLabel, anno)
+
+      parent.insertBefore(elRect.node, annoLabel)
+    }
+
     w.config.annotations.xaxis.map((anno, i) => {
-      let xAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`)
-
-      const parent = xAnnoLabel.parentNode
-      const elRect = this.addBackgroundToAnno(xAnnoLabel, anno)
-
-      parent.insertBefore(elRect.node, xAnnoLabel)
+      add(anno, i, 'xaxis')
     })
 
     w.config.annotations.yaxis.map((anno, i) => {
-      let yAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-yaxis-annotations .apexcharts-yaxis-annotation-label[rel='${i}']`)
-
-      const parent = yAnnoLabel.parentNode
-      const elRect = this.addBackgroundToAnno(yAnnoLabel, anno)
-
-      parent.insertBefore(elRect.node, yAnnoLabel)
+      add(anno, i, 'yaxis')
     })
 
     w.config.annotations.points.map((anno, i) => {
-      let pointAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-point-annotations .apexcharts-point-annotation-label[rel='${i}']`)
-
-      const parent = pointAnnoLabel.parentNode
-      const elRect = this.addBackgroundToAnno(pointAnnoLabel, anno)
-
-      parent.insertBefore(elRect.node, pointAnnoLabel)
+      add(anno, i, 'point')
     })
   }
 
