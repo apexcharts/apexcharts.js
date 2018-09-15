@@ -81,7 +81,6 @@ class Core {
       id: gl.chartClass.substring(1),
       class: 'apexcharts-canvas ' + gl.chartClass.substring(1)
     })
-    gl.dom.elWrap.style.background = cnf.chart.background
     this.el.appendChild(gl.dom.elWrap)
 
     gl.dom.Paper = new SVG.Doc(gl.dom.elWrap)
@@ -90,6 +89,8 @@ class Core {
       'xmlns:data': 'ApexChartsNS',
       transform: `translate(${cnf.chart.offsetX}, ${cnf.chart.offsetY})`
     })
+
+    gl.dom.Paper.node.style.background = cnf.chart.background
 
     this.setSVGDimensions()
 
