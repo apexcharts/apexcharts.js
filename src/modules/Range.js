@@ -238,6 +238,7 @@ class Range {
       }
     })
 
+    // after getting the yAxisScale, we need to call this function to recalculate the minYmaxY
     let reCalculateMinMaxY = (startingIndex, minY, maxY) => {
       // user didn't provide tickAmount as well as y values are in small range
       let ticksY = yaxis[startingIndex]
@@ -264,12 +265,21 @@ class Range {
       }
     }
 
+    // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
-      for (let i = 0; i < gl.series.length; i++) {
-        reCalculateMinMaxY(i, gl.minYArr[i], gl.maxYArr[i])
+      // here, we loop through the yaxis array and find the item which has "seriesName" property
+      cnf.yaxis.forEach((y, i) => {
+        let index = i
+        cnf.series.forEach((s, si) => {
+          // if seriesName matches and that series is not collapsed, we use that scale
+          if (s.name === y.seriesName && !gl.collapsedSeriesIndices.includes(si)) {
+            index = si
+          }
+        })
+        reCalculateMinMaxY(i, gl.minYArr[index], gl.maxYArr[index])
         gl.minYArr[i] = gl.yAxisScale[i].niceMin
         gl.maxYArr[i] = gl.yAxisScale[i].niceMax
-      }
+      })
     } else {
       reCalculateMinMaxY(0, gl.minY, gl.maxY)
       gl.minY = gl.yAxisScale[0].niceMin

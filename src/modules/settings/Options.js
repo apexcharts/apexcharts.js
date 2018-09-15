@@ -11,6 +11,7 @@ export default class Options {
       min: undefined,
       decimalsInFloat: 2,
       floating: false,
+      seriesName: undefined,
       labels: {
         show: true,
         maxWidth: 160,

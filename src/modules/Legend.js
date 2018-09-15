@@ -508,10 +508,12 @@ class Legend {
                 if (w.globals.axisCharts) {
                   w.config.series[realIndex].data = w.globals.collapsedSeries[c].data.slice()
                   w.globals.collapsedSeries.splice(c, 1)
+                  w.globals.collapsedSeriesIndices.splice(c, 1)
                   w.globals.risingSeries.push(realIndex)
                 } else {
                   w.config.series[realIndex] = w.globals.collapsedSeries[c].data
                   w.globals.collapsedSeries.splice(c, 1)
+                  w.globals.collapsedSeriesIndices.splice(c, 1)
                   w.globals.risingSeries.push(realIndex)
                 }
                 me.ctx.updateSeriesInternal(w.config.series, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled)
@@ -525,6 +527,7 @@ class Legend {
               data: w.config.series[realIndex].data.slice(),
               type: seriesEl.parentNode.className.baseVal.split('-')[1]
             })
+            w.globals.collapsedSeriesIndices.push(realIndex)
 
             let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
 
@@ -537,6 +540,7 @@ class Legend {
               index: realIndex,
               data: w.config.series[realIndex]
             })
+            w.globals.collapsedSeriesIndices.push(realIndex)
             w.config.series[realIndex] = 0
           }
 
