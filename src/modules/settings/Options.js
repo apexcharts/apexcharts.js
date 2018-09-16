@@ -626,7 +626,7 @@ export default class Options {
         align: 'left',
         margin: 10,
         offsetX: 0,
-        offsetY: 0,
+        offsetY: 30,
         floating: false,
         style: {
           fontSize: '14px',
