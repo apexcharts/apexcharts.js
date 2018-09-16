@@ -753,7 +753,9 @@ var Graphics = function () {
     }
   }, {
     key: 'getTextRects',
-    value: function getTextRects(text, fontSize) {
+    value: function getTextRects(text, fontSize, transform) {
+      var useBBox = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+
       var w = this.w;
       var virtualText = this.drawText({
         x: -200,
@@ -765,9 +767,15 @@ var Graphics = function () {
         opacity: 0
       });
 
+      if (transform) {
+        virtualText.attr('transform', transform);
+      }
       w.globals.dom.Paper.add(virtualText);
 
       var rect = virtualText.bbox();
+      if (!useBBox) {
+        rect = virtualText.node.getBoundingClientRect();
+      }
 
       virtualText.node.parentNode.removeChild(virtualText.node);
 
@@ -2941,7 +2949,8 @@ var Dimensions = function () {
       }
 
       // after drawing everything, set the Y axis positions
-      this.setYAxisXPosition(yaxisLabelCoords, ytitleCoords);
+      var objyAxis = new _YAxis2.default(this.ctx);
+      objyAxis.setYAxisXPosition(yaxisLabelCoords, ytitleCoords);
     }
   }, {
     key: 'setGridCoordsForNonAxisCharts',
@@ -3000,15 +3009,13 @@ var Dimensions = function () {
     key: 'setGridXPosForDualYAxis',
     value: function setGridXPosForDualYAxis(ytitleCoords, yaxisLabelCoords) {
       var w = this.w;
-      // if(w.config.yaxis.length > 1) {
       w.config.yaxis.map(function (yaxe, index) {
         if (!w.globals.ignoreYAxisIndexes.includes(index) && !w.config.yaxis[index].floating) {
           if (yaxe.opposite) {
-            w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + ytitleCoords[index].width) - parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2;
+            w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + ytitleCoords[index].width) - parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2 - 12;
           }
         }
       });
-      // }
     }
   }, {
     key: 'titleSubtitleOffset',
@@ -3044,11 +3051,12 @@ var Dimensions = function () {
     value: function getTotalYAxisWidth() {
       var w = this.w;
       var yAxisWidth = 0;
+      var padding = 10;
 
       w.globals.yLabelsCoords.map(function (yLabelCoord, index) {
         var floating = w.config.yaxis[index].floating;
         if (yLabelCoord.width > 0 && !floating) {
-          yAxisWidth = yAxisWidth + yLabelCoord.width;
+          yAxisWidth = yAxisWidth + yLabelCoord.width + padding;
           if (w.globals.ignoreYAxisIndexes.includes(index)) {
             yAxisWidth = yAxisWidth - yLabelCoord.width;
           }
@@ -3094,27 +3102,13 @@ var Dimensions = function () {
       }, 0);
 
       var graphics = new _Graphics2.default(this.ctx);
-      var virtualText = graphics.drawText({
-        x: -200,
-        y: -200,
-        text: val,
-        textAnchor: 'start',
-        fontSize: w.config.xaxis.labels.style.fontSize,
-        foreColor: '#fff',
-        opacity: 0
-      });
-
-      w.globals.dom.Paper.add(virtualText);
-
-      var rect = virtualText.node.getBoundingClientRect();
+      var rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
 
       var totalWidthRotated = rect.width * 1.05 * labels.length;
 
       if (totalWidthRotated > w.globals.gridWidth && w.config.xaxis.labels.rotate !== 0) {
         w.globals.overlappingXLabels = true;
       }
-
-      virtualText.node.parentNode.removeChild(virtualText.node);
 
       return {
         width: rect.width,
@@ -3148,19 +3142,7 @@ var Dimensions = function () {
       val = xFormat.xLabelFormat(xlbFormatter, val);
 
       var graphics = new _Graphics2.default(this.ctx);
-      var virtualText = graphics.drawText({
-        x: -200,
-        y: -200,
-        text: val,
-        textAnchor: 'start',
-        fontSize: w.config.xaxis.labels.style.fontSize,
-        foreColor: '#fff',
-        opacity: 0
-      });
-
-      w.globals.dom.Paper.add(virtualText);
-
-      var xLabelrect = virtualText.node.getBoundingClientRect();
+      var xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
 
       var rect = {
         width: xLabelrect.width,
@@ -3170,88 +3152,17 @@ var Dimensions = function () {
       if (rect.width * xaxisLabels.length > w.globals.svgWidth - lgWidthForSideLegends - this.yAxisWidth && w.config.xaxis.labels.rotate !== 0) {
         if (!this.isBarHorizontal) {
           w.globals.rotateXLabels = true;
-          virtualText.attr('transform', 'rotate(' + w.config.xaxis.labels.rotate + ' 0 0)');
-
-          xLabelrect = virtualText.node.getBoundingClientRect();
+          xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, 'rotate(' + w.config.xaxis.labels.rotate + ' 0 0)', false);
           rect.height = xLabelrect.height / 1.65;
         }
       } else {
         w.globals.rotateXLabels = false;
       }
 
-      virtualText.node.parentNode.removeChild(virtualText.node);
-
       return {
         width: rect.width,
         height: rect.height
       };
-    }
-  }, {
-    key: 'setYAxisXPosition',
-    value: function setYAxisXPosition(yaxisLabelCoords, ytitleCoords) {
-      var _this = this;
-
-      var w = this.w;
-
-      var xLeft = 0;
-      var xRight = 0;
-      var leftDrawnYs = 0; // already drawn y axis on left side
-      var rightDrawnYs = 4; // already drawn y axis on right side
-      var multipleYPadd = 5;
-      this.multipleYs = false;
-
-      if (w.config.yaxis.length > 1) {
-        this.multipleYs = true;
-      }
-
-      w.config.yaxis.map(function (yaxe, index) {
-        var yAxisWidth = yaxisLabelCoords[index].width + ytitleCoords[index].width;
-
-        var objyAxis = new _YAxis2.default(_this.ctx);
-
-        var paddingForYAxisTitle = objyAxis.xPaddingForYAxisTitle(index, {
-          width: yaxisLabelCoords[index].width
-        }, {
-          width: ytitleCoords[index].width
-        }, yaxe.opposite);
-
-        if (w.config.yaxis.length > 1) {
-          // multiple yaxis
-          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd);
-        } else {
-          // just a single y axis in axis chart
-          if (yaxe.title.text === undefined) {
-            yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd) + 15;
-          } else {
-            yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd);
-          }
-        }
-
-        if (!yaxe.opposite) {
-          // left side y axis
-          var offset = yAxisWidth;
-          if (w.globals.ignoreYAxisIndexes.includes(index)) {
-            offset = 0;
-          }
-
-          if (_this.multipleYs) {
-            xLeft = w.globals.translateX - yAxisWidth - leftDrawnYs + multipleYPadd + parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2 + yaxe.labels.offsetX + 5;
-          } else {
-            xLeft = w.globals.translateX - yAxisWidth + yaxisLabelCoords[index].width + yaxe.labels.offsetX + 2;
-          }
-
-          leftDrawnYs = leftDrawnYs + offset;
-          w.globals.translateYAxisX[index] = xLeft;
-        } else {
-          // right side y axis
-          xRight = w.globals.gridWidth + w.globals.translateX + rightDrawnYs + 26 + (w.globals.series.length - w.globals.collapsedSeries.length);
-
-          rightDrawnYs = rightDrawnYs + yAxisWidth;
-          w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX;
-        }
-
-        // w.globals.yAxisWidths.push(yAxisWidth)
-      });
     }
 
     /**
@@ -3263,7 +3174,7 @@ var Dimensions = function () {
   }, {
     key: 'getyAxisLabelsCoords',
     value: function getyAxisLabelsCoords() {
-      var _this2 = this;
+      var _this = this;
 
       var w = this.w;
 
@@ -3277,7 +3188,7 @@ var Dimensions = function () {
           var lbFormatter = w.globals.yLabelFormatters[index];
           var val = lbFormatter(w.globals.yAxisScale[index].niceMax);
 
-          if (_this2.isBarHorizontal) {
+          if (_this.isBarHorizontal) {
             labelPad = 0;
 
             var barYaxisLabels = w.globals.labels.slice();
@@ -3290,22 +3201,8 @@ var Dimensions = function () {
             val = lbFormatter(val);
           }
 
-          var graphics = new _Graphics2.default(_this2.ctx);
-          var virtualText = graphics.drawText({
-            x: 0,
-            y: 0,
-            text: val,
-            textAnchor: 'start',
-            fontSize: yaxe.labels.style.fontSize,
-            foreColor: '#fff',
-            opacity: 0
-          });
-
-          w.globals.dom.Paper.add(virtualText);
-
-          var rect = virtualText.node.getBoundingClientRect();
-
-          virtualText.node.parentNode.removeChild(virtualText.node);
+          var graphics = new _Graphics2.default(_this.ctx);
+          var rect = graphics.getTextRects(val, yaxe.labels.style.fontSize);
 
           ret.push({
             width: rect.width + labelPad,
@@ -3337,24 +3234,11 @@ var Dimensions = function () {
 
       if (w.config.xaxis.title.text !== undefined) {
         var graphics = new _Graphics2.default(this.ctx);
-        var virtualText = graphics.drawText({
-          x: 0,
-          y: 0,
-          text: w.config.xaxis.title.text,
-          textAnchor: 'start',
-          fontSize: w.config.xaxis.title.style.fontSize,
-          foreColor: '#fff',
-          opacity: 0
-        });
 
-        w.globals.dom.Paper.add(virtualText);
-
-        var rect = virtualText.node.getBoundingClientRect();
+        var rect = graphics.getTextRects(w.config.xaxis.title.text, w.config.xaxis.title.style.fontSize);
 
         width = rect.width;
         height = rect.height;
-
-        virtualText.node.parentNode.removeChild(virtualText.node);
       }
 
       return {
@@ -3372,36 +3256,20 @@ var Dimensions = function () {
   }, {
     key: 'getyAxisTitleCoords',
     value: function getyAxisTitleCoords() {
-      var _this3 = this;
+      var _this2 = this;
 
       var w = this.w;
       var ret = [];
 
       w.config.yaxis.map(function (yaxe, index) {
         if (yaxe.title.text !== undefined) {
-          var graphics = new _Graphics2.default(_this3.ctx);
-          var virtualText = graphics.drawText({
-            x: 0,
-            y: 0,
-            text: yaxe.title.text,
-            textAnchor: 'middle',
-            fontSize: yaxe.title.style.fontSize,
-            foreColor: '#fff',
-            opacity: 0
-          });
-
-          virtualText.attr('transform', 'rotate(-90 0 0)');
-
-          w.globals.dom.Paper.add(virtualText);
-
-          var rect = virtualText.node.getBoundingClientRect();
+          var graphics = new _Graphics2.default(_this2.ctx);
+          var rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, 'rotate(-90 0 0)', false);
 
           ret.push({
             width: rect.width,
             height: rect.height
           });
-
-          virtualText.node.parentNode.removeChild(virtualText.node);
         } else {
           ret.push({
             width: 0,
@@ -3577,8 +3445,8 @@ var Formatters = function () {
         w.globals.ttKeyFormatter = w.config.tooltip.x.formatter;
       }
 
-      if (w.config.tooltip.y.formatter !== undefined) {
-        w.globals.ttValFormatter = w.config.tooltip.y.formatter;
+      if (w.config.tooltip.y.length > 0 || w.config.tooltip.y !== undefined) {
+        w.globals.ttVal = w.config.tooltip.y;
       }
 
       if (w.config.tooltip.z.formatter !== undefined) {
@@ -5855,7 +5723,7 @@ var YAxis = function () {
       if (yAxisTitle !== null) {
         var x = this.xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite);
 
-        yAxisTitle.setAttribute('x', x.xPos);
+        yAxisTitle.setAttribute('x', x.xPos - (yAxisOpposite ? 10 : 0));
       }
 
       if (yAxisTitle !== null) {
@@ -5893,6 +5761,79 @@ var YAxis = function () {
       }
 
       return { xPos: x, padd: padd };
+    }
+
+    // sets the x position of the y-axis by counting the labels width, title width and any offset
+
+  }, {
+    key: 'setYAxisXPosition',
+    value: function setYAxisXPosition(yaxisLabelCoords, ytitleCoords) {
+      var _this = this;
+
+      var w = this.w;
+
+      var xLeft = 0;
+      var xRight = 0;
+      var leftDrawnYs = 0; // already drawn y axis on left side
+      var rightDrawnYs = 1; // already drawn y axis on right side
+      var multipleYPadd = 20;
+      this.multipleYs = false;
+
+      if (w.config.yaxis.length > 1) {
+        this.multipleYs = true;
+      }
+
+      w.config.yaxis.map(function (yaxe, index) {
+        var yAxisWidth = yaxisLabelCoords[index].width + ytitleCoords[index].width;
+
+        var paddingForYAxisTitle = _this.xPaddingForYAxisTitle(index, {
+          width: yaxisLabelCoords[index].width
+        }, {
+          width: ytitleCoords[index].width
+        }, yaxe.opposite);
+
+        if (w.config.yaxis.length > 1) {
+          // multiple yaxis
+          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd);
+        } else {
+          // just a single y axis in axis chart
+          if (yaxe.title.text === undefined) {
+            yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd) + 15;
+          } else {
+            yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd);
+          }
+        }
+
+        if (!yaxe.opposite) {
+          // left side y axis
+          var offset = yAxisWidth + 5;
+          if (w.globals.ignoreYAxisIndexes.includes(index)) {
+            offset = 0;
+          }
+
+          if (_this.multipleYs) {
+            xLeft = w.globals.translateX - yAxisWidth - leftDrawnYs + multipleYPadd + parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2 + yaxe.labels.offsetX;
+          } else {
+            xLeft = w.globals.translateX - yAxisWidth + yaxisLabelCoords[index].width + yaxe.labels.offsetX;
+          }
+
+          leftDrawnYs = leftDrawnYs + offset;
+          w.globals.translateYAxisX[index] = xLeft;
+        } else {
+          // right side y axis
+          xRight = w.globals.gridWidth + w.globals.translateX + rightDrawnYs + 30 + (w.globals.series.length - w.globals.collapsedSeries.length);
+
+          w.globals.collapsedSeries.forEach(function (c) {
+            if (c.index === index) {
+              rightDrawnYs = rightDrawnYs - yAxisWidth;
+            }
+          });
+          rightDrawnYs = rightDrawnYs + yAxisWidth;
+          w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX;
+        }
+
+        // w.globals.yAxisWidths.push(yAxisWidth)
+      });
     }
   }]);
 
@@ -6192,6 +6133,7 @@ var Options = function () {
       min: undefined,
       decimalsInFloat: 2,
       floating: false,
+      seriesName: undefined,
       labels: {
         show: true,
         maxWidth: 160,
@@ -16832,8 +16774,6 @@ var Legend = function () {
       }
       var legendFormatter = w.globals.legendFormatter;
 
-      var virtualText = void 0;
-
       for (var i = 0; i <= legendNames.length - 1; i++) {
         var horizontal = !!(w.config.legend.position === 'top' || w.config.legend.position === 'bottom');
 
@@ -16854,19 +16794,7 @@ var Legend = function () {
         }
 
         if (horizontal) {
-          virtualText = graphics.drawText({
-            x: this.existingWidth,
-            y: 0,
-            foreColor: 'transparent',
-            opacity: 0,
-            text: text,
-            cssClass: 'apexcharts-virtual-text',
-            fontSize: fontSize
-          });
-
-          w.globals.dom.Paper.add(virtualText);
-          var rect = virtualText.bbox();
-
+          var rect = graphics.getTextRects(text, fontSize);
           width = rect.width;
 
           this.rowHeight = rect.height + marginVert;
@@ -16888,20 +16816,7 @@ var Legend = function () {
 
           y = y + this.rowHeight * currentRow;
         } else {
-          virtualText = graphics.drawText({
-            x: 0,
-            y: this.existingHeight,
-            foreColor: 'transparent',
-            opacity: 0,
-            text: text,
-            textAnchor: 'start',
-            cssClass: 'apexcharts-virtual-text',
-            fontSize: fontSize
-          });
-
-          w.globals.dom.Paper.add(virtualText);
-
-          var _rect = virtualText.bbox();
+          var _rect = graphics.getTextRects(text, fontSize);
 
           var height = _rect.height;
           this.rowHeight = height + marginVert;
@@ -16921,9 +16836,6 @@ var Legend = function () {
           x = padding + currentCol * _width;
           y = this.existingHeight + height;
         }
-
-        // we are done with virtual texts, remove it
-        virtualText.node.parentNode.removeChild(virtualText.node);
 
         var elPointOptions = {
           pSize: pSize,
@@ -17227,10 +17139,12 @@ var Legend = function () {
                   if (w.globals.axisCharts) {
                     w.config.series[realIndex].data = w.globals.collapsedSeries[c].data.slice();
                     w.globals.collapsedSeries.splice(c, 1);
+                    w.globals.collapsedSeriesIndices.splice(c, 1);
                     w.globals.risingSeries.push(realIndex);
                   } else {
                     w.config.series[realIndex] = w.globals.collapsedSeries[c].data;
                     w.globals.collapsedSeries.splice(c, 1);
+                    w.globals.collapsedSeriesIndices.splice(c, 1);
                     w.globals.risingSeries.push(realIndex);
                   }
                   me.ctx.updateSeriesInternal(w.config.series, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled);
@@ -17244,6 +17158,7 @@ var Legend = function () {
                 data: w.config.series[realIndex].data.slice(),
                 type: seriesEl.parentNode.className.baseVal.split('-')[1]
               });
+              w.globals.collapsedSeriesIndices.push(realIndex);
 
               var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
 
@@ -17256,6 +17171,7 @@ var Legend = function () {
                 index: realIndex,
                 data: w.config.series[realIndex]
               });
+              w.globals.collapsedSeriesIndices.push(realIndex);
               w.config.series[realIndex] = 0;
             }
 
@@ -17560,6 +17476,7 @@ var Range = function () {
         }
       });
 
+      // after getting the yAxisScale, we need to call this function to recalculate the minYmaxY
       var reCalculateMinMaxY = function reCalculateMinMaxY(startingIndex, minY, maxY) {
         // user didn't provide tickAmount as well as y values are in small range
         var ticksY = yaxis[startingIndex];
@@ -17578,12 +17495,21 @@ var Range = function () {
         }
       };
 
+      // for multi y-axis we need different scales for each
       if (gl.isMultipleYAxis) {
-        for (var _i2 = 0; _i2 < gl.series.length; _i2++) {
-          reCalculateMinMaxY(_i2, gl.minYArr[_i2], gl.maxYArr[_i2]);
-          gl.minYArr[_i2] = gl.yAxisScale[_i2].niceMin;
-          gl.maxYArr[_i2] = gl.yAxisScale[_i2].niceMax;
-        }
+        // here, we loop through the yaxis array and find the item which has "seriesName" property
+        cnf.yaxis.forEach(function (y, i) {
+          var index = i;
+          cnf.series.forEach(function (s, si) {
+            // if seriesName matches and that series is not collapsed, we use that scale
+            if (s.name === y.seriesName && !gl.collapsedSeriesIndices.includes(si)) {
+              index = si;
+            }
+          });
+          reCalculateMinMaxY(i, gl.minYArr[index], gl.maxYArr[index]);
+          gl.minYArr[i] = gl.yAxisScale[i].niceMin;
+          gl.maxYArr[i] = gl.yAxisScale[i].niceMax;
+        });
       } else {
         reCalculateMinMaxY(0, gl.minY, gl.maxY);
         gl.minY = gl.yAxisScale[0].niceMin;
@@ -19281,7 +19207,10 @@ var Defaults = function () {
     value: function bar() {
       return {
         chart: {
-          stacked: false
+          stacked: false,
+          toolbar: {
+            show: false
+          }
         },
         plotOptions: {
           bar: {
@@ -19707,6 +19636,7 @@ var Globals = function () {
         seriesNames: [], // same as labels, used in non axis charts
         noLabelsProvided: false, // if user didn't provide any categories/labels or x values, fallback to 1,2,3,4...
         collapsedSeries: [], // when user collapses a series, it goes into this array
+        collapsedSeriesIndices: [], // this just stores the index of the collapsedSeries instead of whole object
         risingSeries: [], // when user re-opens a collapsed series, it goes here
         selectedDataPoints: [],
         ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
@@ -19794,7 +19724,8 @@ var Globals = function () {
         yLabelFormatters: [],
         xaxisTooltipLabelFormatter: undefined, // formatter for x axis tooltip
         ttKeyFormatter: undefined,
-        ttValFormatter: undefined,
+        ttVal: undefined,
+        ttValFormatter: [],
         ttZFormatter: undefined,
         lineHeightRatio: 1.618,
         xAxisLabelsHeight: 0,
@@ -20404,9 +20335,19 @@ var Labels = function () {
       }
 
       var yLbFormatter = w.globals.yLabelFormatters[i];
+      var yLbTitleFormatter = function yLbTitleFormatter(val) {
+        return val;
+      };
 
-      if (w.globals.ttValFormatter !== undefined) {
-        yLbFormatter = w.globals.ttValFormatter;
+      if (w.globals.ttVal !== undefined) {
+        if (Array.isArray(w.globals.ttVal)) {
+          yLbFormatter = w.globals.ttVal[i].formatter;
+          console.log(w.globals.ttVal[i].formatter);
+          yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter;
+        } else {
+          yLbFormatter = w.globals.ttVal.formatter;
+          yLbTitleFormatter = w.globals.ttVal.title.formatter;
+        }
       }
 
       if (!yLbFormatter) {
@@ -20415,8 +20356,14 @@ var Labels = function () {
         };
       }
 
+      if (!yLbTitleFormatter) {
+        yLbTitleFormatter = function yLbTitleFormatter(label) {
+          return label;
+        };
+      }
+
       for (var t = 0, inverset = w.globals.series.length - 1; t < w.globals.series.length; t++, inverset--) {
-        seriesName = w.config.tooltip.y.title.formatter(String(w.globals.seriesNames[i]), {
+        seriesName = yLbTitleFormatter(String(w.globals.seriesNames[i]), {
           series: w.globals.series,
           seriesIndex: i,
           dataPointIndex: j,
@@ -20426,7 +20373,7 @@ var Labels = function () {
         if (shared) {
           var tIndex = w.config.tooltip.inverseOrder ? inverset : t;
 
-          seriesName = w.config.tooltip.y.title.formatter(String(w.globals.seriesNames[tIndex]), {
+          seriesName = yLbTitleFormatter(String(w.globals.seriesNames[tIndex]), {
             series: w.globals.series,
             seriesIndex: i,
             dataPointIndex: j,

@@ -405,19 +405,7 @@ class Dimensions {
     val = xFormat.xLabelFormat(xlbFormatter, val)
 
     let graphics = new Graphics(this.ctx)
-    let virtualText = graphics.drawText({
-      x: -200,
-      y: -200,
-      text: val,
-      textAnchor: 'start',
-      fontSize: w.config.xaxis.labels.style.fontSize,
-      foreColor: '#fff',
-      opacity: 0
-    })
-
-    w.globals.dom.Paper.add(virtualText)
-
-    let xLabelrect = virtualText.node.getBoundingClientRect()
+    let xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
 
     let rect = {
       width: xLabelrect.width,
@@ -431,19 +419,12 @@ class Dimensions {
     ) {
       if (!this.isBarHorizontal) {
         w.globals.rotateXLabels = true
-        virtualText.attr(
-          'transform',
-          `rotate(${w.config.xaxis.labels.rotate} 0 0)`
-        )
-
-        xLabelrect = virtualText.node.getBoundingClientRect()
+        xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, `rotate(${w.config.xaxis.labels.rotate} 0 0)`, false)
         rect.height = xLabelrect.height / 1.65
       }
     } else {
       w.globals.rotateXLabels = false
     }
-
-    virtualText.node.parentNode.removeChild(virtualText.node)
 
     return {
       width: rect.width,
@@ -537,7 +518,7 @@ class Dimensions {
     w.config.yaxis.map((yaxe, index) => {
       if (yaxe.title.text !== undefined) {
         let graphics = new Graphics(this.ctx)
-        let rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize)
+        let rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, 'rotate(-90 0 0)', false)
 
         ret.push({
           width: rect.width,

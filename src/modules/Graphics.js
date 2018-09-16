@@ -573,7 +573,7 @@ class Graphics {
     }
   }
 
-  getTextRects (text, fontSize) {
+  getTextRects (text, fontSize, transform, useBBox = true) {
     let w = this.w
     let virtualText = this.drawText({
       x: -200,
@@ -585,9 +585,15 @@ class Graphics {
       opacity: 0
     })
 
+    if (transform) {
+      virtualText.attr('transform', transform)
+    }
     w.globals.dom.Paper.add(virtualText)
 
     let rect = virtualText.bbox()
+    if (!useBBox) {
+      rect = virtualText.node.getBoundingClientRect()
+    }
 
     virtualText.node.parentNode.removeChild(virtualText.node)
 
