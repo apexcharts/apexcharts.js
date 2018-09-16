@@ -64,52 +64,19 @@ class Labels {
       pColor = w.globals.colors[j]
     }
 
-    let yLbFormatter = w.globals.yLabelFormatters[i]
-    let yLbTitleFormatter = function (val) { return val }
-
-    if (w.globals.ttVal !== undefined) {
-      if (Array.isArray(w.globals.ttVal)) {
-        yLbFormatter = w.globals.ttVal[i].formatter
-        console.log(w.globals.ttVal[i].formatter)
-        yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter
-      } else {
-        yLbFormatter = w.globals.ttVal.formatter
-        yLbTitleFormatter = w.globals.ttVal.title.formatter
-      }
-    }
-
-    if (!yLbFormatter) {
-      yLbFormatter = function (label) {
-        return label
-      }
-    }
-
-    if (!yLbTitleFormatter) {
-      yLbTitleFormatter = function (label) {
-        return label
-      }
-    }
-
     for (let t = 0, inverset = w.globals.series.length - 1; t < w.globals.series.length; t++, inverset--) {
-      seriesName = yLbTitleFormatter(String(w.globals.seriesNames[i]), {
-        series: w.globals.series,
-        seriesIndex: i,
-        dataPointIndex: j,
-        w
-      })
+      let f = this.getFormatters(i)
+      seriesName = this.getSeriesName({ fn: f.yLbTitleFormatter, index: i, seriesIndex: i, j })
 
       if (shared) {
         const tIndex = w.config.tooltip.inverseOrder ? inverset : t
+        f = this.getFormatters(tIndex)
 
-        seriesName = yLbTitleFormatter(String(w.globals.seriesNames[tIndex]), {
-          series: w.globals.series,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        })
+        seriesName = this.getSeriesName({ fn: f.yLbTitleFormatter, index: tIndex, seriesIndex: i, j })
         pColor = w.globals.colors[tIndex]
+
         // for plot charts, not for pie/donuts
-        val = yLbFormatter(w.globals.series[tIndex][j], {
+        val = f.yLbFormatter(w.globals.series[tIndex][j], {
           series: w.globals.series,
           seriesIndex: i,
           dataPointIndex: j,
@@ -121,12 +88,12 @@ class Labels {
           val = undefined
         }
       } else {
-        val = yLbFormatter(w.globals.series[i][j], w)
+        val = f.yLbFormatter(w.globals.series[i][j], w)
       }
 
       // for pie / donuts
       if (j === null) {
-        val = yLbFormatter(w.globals.series[i], w)
+        val = f.yLbFormatter(w.globals.series[i], w)
       }
 
       this.DOMHandling({
@@ -142,6 +109,50 @@ class Labels {
         pColor
       })
     }
+  }
+
+  getFormatters (i) {
+    const w = this.w
+
+    let yLbFormatter = w.globals.yLabelFormatters[i]
+    let yLbTitleFormatter = function (val) { return val }
+
+    if (w.globals.ttVal !== undefined) {
+      if (Array.isArray(w.globals.ttVal)) {
+        yLbFormatter = w.globals.ttVal[i].formatter
+        yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter
+      } else {
+        yLbFormatter = w.globals.ttVal.formatter
+        yLbTitleFormatter = w.globals.ttVal.title.formatter
+      }
+    }
+
+    if (typeof yLbFormatter !== 'function') {
+      yLbFormatter = function (label) {
+        return label
+      }
+    }
+
+    if (typeof yLbTitleFormatter !== 'function') {
+      yLbTitleFormatter = function (label) {
+        return label
+      }
+    }
+
+    return {
+      yLbFormatter,
+      yLbTitleFormatter
+    }
+  }
+
+  getSeriesName ({ fn, index, seriesIndex, j }) {
+    const w = this.w
+    return fn(String(w.globals.seriesNames[index]), {
+      series: w.globals.series,
+      seriesIndex: seriesIndex,
+      dataPointIndex: j,
+      w
+    })
   }
 
   DOMHandling ({

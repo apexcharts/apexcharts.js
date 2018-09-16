@@ -11,20 +11,23 @@
   <link href="../assets/styles.css" rel="stylesheet" />
 
   <style>
-    #chart,
-    #chart2 {
+    #chart {
       max-width: 650px;
       margin: 35px auto;
+    }
+    .apexcharts-tooltip-title {
+      display: none;
+    }
+    #chart .apexcharts-tooltip {
+      display: flex;
+      border: 0;
+      box-shadow: none;
     }
   </style>
 </head>
 
 <body>
   <div id="chart">
-
-  </div>
-
-  <div id="chart2">
 
   </div>
 
@@ -56,7 +59,9 @@
         type: 'line',
         data: [20, 29, 37, 36, 44, 45, 50, 58]
       }],
-   
+      stroke: {
+        width: [1, 1, 4]
+      },
       title: {
         text: 'XYZ - Stock Analysis (2009 - 2016)',
         align: 'left',
@@ -125,18 +130,18 @@
             text: "Revenue (thousand crores)"
           }
         },
-
       ],
       tooltip: {
-        followCursor: true,
-        y: {
-          formatter: function (y) {
-            if(typeof y !== "undefined") {
-              return y + " thousand crores"
-            }
-            return y;
-          }
-        }
+        fixed: {
+          enabled: true,
+          position: 'topLeft', // topRight, topLeft, bottomRight, bottomLeft
+          offsetY: 30,
+          offsetX: 60
+        },
+      },
+      legend: {
+        horizontalAlign: 'left',
+        offsetX: 40
       }
     }
 
