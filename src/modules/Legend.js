@@ -83,12 +83,10 @@ class Legend {
     }
     let legendFormatter = w.globals.legendFormatter
 
-    let virtualText
-
     for (let i = 0; i <= legendNames.length - 1; i++) {
       let horizontal =
-        !!((w.config.legend.position === 'top' ||
-        w.config.legend.position === 'bottom'))
+        !!(w.config.legend.position === 'top' ||
+        w.config.legend.position === 'bottom')
 
       let y = 0
       let x = 0
@@ -107,19 +105,7 @@ class Legend {
       }
 
       if (horizontal) {
-        virtualText = graphics.drawText({
-          x: this.existingWidth,
-          y: 0,
-          foreColor: 'transparent',
-          opacity: 0,
-          text,
-          cssClass: 'apexcharts-virtual-text',
-          fontSize
-        })
-
-        w.globals.dom.Paper.add(virtualText)
-        let rect = virtualText.bbox()
-
+        let rect = graphics.getTextRects(text, fontSize)
         width = rect.width
 
         this.rowHeight = rect.height + marginVert
@@ -144,20 +130,7 @@ class Legend {
 
         y = y + this.rowHeight * currentRow
       } else {
-        virtualText = graphics.drawText({
-          x: 0,
-          y: this.existingHeight,
-          foreColor: 'transparent',
-          opacity: 0,
-          text,
-          textAnchor: 'start',
-          cssClass: 'apexcharts-virtual-text',
-          fontSize
-        })
-
-        w.globals.dom.Paper.add(virtualText)
-
-        let rect = virtualText.bbox()
+        let rect = graphics.getTextRects(text, fontSize)
 
         let height = rect.height
         this.rowHeight = height + marginVert
@@ -177,9 +150,6 @@ class Legend {
         x = padding + currentCol * width
         y = this.existingHeight + height
       }
-
-      // we are done with virtual texts, remove it
-      virtualText.node.parentNode.removeChild(virtualText.node)
 
       let elPointOptions = {
         pSize: pSize,

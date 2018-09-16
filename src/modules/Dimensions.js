@@ -366,19 +366,7 @@ class Dimensions {
     }, 0)
 
     let graphics = new Graphics(this.ctx)
-    let virtualText = graphics.drawText({
-      x: -200,
-      y: -200,
-      text: val,
-      textAnchor: 'start',
-      fontSize: w.config.xaxis.labels.style.fontSize,
-      foreColor: '#fff',
-      opacity: 0
-    })
-
-    w.globals.dom.Paper.add(virtualText)
-
-    let rect = virtualText.node.getBoundingClientRect()
+    let rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
 
     let totalWidthRotated = (rect.width * 1.05) * labels.length
 
@@ -387,8 +375,6 @@ class Dimensions {
     ) {
       w.globals.overlappingXLabels = true
     }
-
-    virtualText.node.parentNode.removeChild(virtualText.node)
 
     return {
       width: rect.width,
@@ -497,21 +483,7 @@ class Dimensions {
         }
 
         let graphics = new Graphics(this.ctx)
-        let virtualText = graphics.drawText({
-          x: 0,
-          y: 0,
-          text: val,
-          textAnchor: 'start',
-          fontSize: yaxe.labels.style.fontSize,
-          foreColor: '#fff',
-          opacity: 0
-        })
-
-        w.globals.dom.Paper.add(virtualText)
-
-        let rect = virtualText.node.getBoundingClientRect()
-
-        virtualText.node.parentNode.removeChild(virtualText.node)
+        let rect = graphics.getTextRects(val, yaxe.labels.style.fontSize)
 
         ret.push({
           width: rect.width + labelPad,
@@ -540,24 +512,11 @@ class Dimensions {
 
     if (w.config.xaxis.title.text !== undefined) {
       let graphics = new Graphics(this.ctx)
-      let virtualText = graphics.drawText({
-        x: 0,
-        y: 0,
-        text: w.config.xaxis.title.text,
-        textAnchor: 'start',
-        fontSize: w.config.xaxis.title.style.fontSize,
-        foreColor: '#fff',
-        opacity: 0
-      })
 
-      w.globals.dom.Paper.add(virtualText)
-
-      let rect = virtualText.node.getBoundingClientRect()
+      let rect = graphics.getTextRects(w.config.xaxis.title.text, w.config.xaxis.title.style.fontSize)
 
       width = rect.width
       height = rect.height
-
-      virtualText.node.parentNode.removeChild(virtualText.node)
     }
 
     return {
@@ -578,28 +537,12 @@ class Dimensions {
     w.config.yaxis.map((yaxe, index) => {
       if (yaxe.title.text !== undefined) {
         let graphics = new Graphics(this.ctx)
-        let virtualText = graphics.drawText({
-          x: 0,
-          y: 0,
-          text: yaxe.title.text,
-          textAnchor: 'middle',
-          fontSize: yaxe.title.style.fontSize,
-          foreColor: '#fff',
-          opacity: 0
-        })
-
-        virtualText.attr('transform', `rotate(-90 0 0)`)
-
-        w.globals.dom.Paper.add(virtualText)
-
-        let rect = virtualText.node.getBoundingClientRect()
+        let rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize)
 
         ret.push({
           width: rect.width,
           height: rect.height
         })
-
-        virtualText.node.parentNode.removeChild(virtualText.node)
       } else {
         ret.push({
           width: 0,

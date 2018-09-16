@@ -85,7 +85,10 @@ class Defaults {
   bar () {
     return {
       chart: {
-        stacked: false
+        stacked: false,
+        toolbar: {
+          show: false
+        }
       },
       plotOptions: {
         bar: {
