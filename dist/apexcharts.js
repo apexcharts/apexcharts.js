@@ -20334,54 +20334,19 @@ var Labels = function () {
         pColor = w.globals.colors[j];
       }
 
-      var yLbFormatter = w.globals.yLabelFormatters[i];
-      var yLbTitleFormatter = function yLbTitleFormatter(val) {
-        return val;
-      };
-
-      if (w.globals.ttVal !== undefined) {
-        if (Array.isArray(w.globals.ttVal)) {
-          yLbFormatter = w.globals.ttVal[i].formatter;
-          console.log(w.globals.ttVal[i].formatter);
-          yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter;
-        } else {
-          yLbFormatter = w.globals.ttVal.formatter;
-          yLbTitleFormatter = w.globals.ttVal.title.formatter;
-        }
-      }
-
-      if (!yLbFormatter) {
-        yLbFormatter = function yLbFormatter(label) {
-          return label;
-        };
-      }
-
-      if (!yLbTitleFormatter) {
-        yLbTitleFormatter = function yLbTitleFormatter(label) {
-          return label;
-        };
-      }
-
       for (var t = 0, inverset = w.globals.series.length - 1; t < w.globals.series.length; t++, inverset--) {
-        seriesName = yLbTitleFormatter(String(w.globals.seriesNames[i]), {
-          series: w.globals.series,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w: w
-        });
+        var f = this.getFormatters(i);
+        seriesName = this.getSeriesName({ fn: f.yLbTitleFormatter, index: i, seriesIndex: i, j: j });
 
         if (shared) {
           var tIndex = w.config.tooltip.inverseOrder ? inverset : t;
+          f = this.getFormatters(tIndex);
 
-          seriesName = yLbTitleFormatter(String(w.globals.seriesNames[tIndex]), {
-            series: w.globals.series,
-            seriesIndex: i,
-            dataPointIndex: j,
-            w: w
-          });
+          seriesName = this.getSeriesName({ fn: f.yLbTitleFormatter, index: tIndex, seriesIndex: i, j: j });
           pColor = w.globals.colors[tIndex];
+
           // for plot charts, not for pie/donuts
-          val = yLbFormatter(w.globals.series[tIndex][j], {
+          val = f.yLbFormatter(w.globals.series[tIndex][j], {
             series: w.globals.series,
             seriesIndex: i,
             dataPointIndex: j,
@@ -20393,12 +20358,12 @@ var Labels = function () {
             val = undefined;
           }
         } else {
-          val = yLbFormatter(w.globals.series[i][j], w);
+          val = f.yLbFormatter(w.globals.series[i][j], w);
         }
 
         // for pie / donuts
         if (j === null) {
-          val = yLbFormatter(w.globals.series[i], w);
+          val = f.yLbFormatter(w.globals.series[i], w);
         }
 
         this.DOMHandling({
@@ -20416,14 +20381,67 @@ var Labels = function () {
       }
     }
   }, {
+    key: 'getFormatters',
+    value: function getFormatters(i) {
+      var w = this.w;
+
+      var yLbFormatter = w.globals.yLabelFormatters[i];
+      var yLbTitleFormatter = function yLbTitleFormatter(val) {
+        return val;
+      };
+
+      if (w.globals.ttVal !== undefined) {
+        if (Array.isArray(w.globals.ttVal)) {
+          yLbFormatter = w.globals.ttVal[i].formatter;
+          yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter;
+        } else {
+          yLbFormatter = w.globals.ttVal.formatter;
+          yLbTitleFormatter = w.globals.ttVal.title.formatter;
+        }
+      }
+
+      if (typeof yLbFormatter !== 'function') {
+        yLbFormatter = function yLbFormatter(label) {
+          return label;
+        };
+      }
+
+      if (typeof yLbTitleFormatter !== 'function') {
+        yLbTitleFormatter = function yLbTitleFormatter(label) {
+          return label;
+        };
+      }
+
+      return {
+        yLbFormatter: yLbFormatter,
+        yLbTitleFormatter: yLbTitleFormatter
+      };
+    }
+  }, {
+    key: 'getSeriesName',
+    value: function getSeriesName(_ref3) {
+      var fn = _ref3.fn,
+          index = _ref3.index,
+          seriesIndex = _ref3.seriesIndex,
+          j = _ref3.j;
+
+      var w = this.w;
+      return fn(String(w.globals.seriesNames[index]), {
+        series: w.globals.series,
+        seriesIndex: seriesIndex,
+        dataPointIndex: j,
+        w: w
+      });
+    }
+  }, {
     key: 'DOMHandling',
-    value: function DOMHandling(_ref3) {
-      var t = _ref3.t,
-          ttItems = _ref3.ttItems,
-          values = _ref3.values,
-          seriesName = _ref3.seriesName,
-          shared = _ref3.shared,
-          pColor = _ref3.pColor;
+    value: function DOMHandling(_ref4) {
+      var t = _ref4.t,
+          ttItems = _ref4.ttItems,
+          values = _ref4.values,
+          seriesName = _ref4.seriesName,
+          shared = _ref4.shared,
+          pColor = _ref4.pColor;
 
       var w = this.w;
       var ttCtx = this.ttCtx;
@@ -20505,9 +20523,9 @@ var Labels = function () {
     }
   }, {
     key: 'getValuesToPrint',
-    value: function getValuesToPrint(_ref4) {
-      var i = _ref4.i,
-          j = _ref4.j;
+    value: function getValuesToPrint(_ref5) {
+      var i = _ref5.i,
+          j = _ref5.j;
 
       var w = this.w;
       var filteredSeriesX = this.tooltipUtil.filteredSeriesX();
@@ -20564,9 +20582,9 @@ var Labels = function () {
     }
   }, {
     key: 'handleCustomTooltip',
-    value: function handleCustomTooltip(_ref5) {
-      var i = _ref5.i,
-          j = _ref5.j;
+    value: function handleCustomTooltip(_ref6) {
+      var i = _ref6.i,
+          j = _ref6.j;
 
       var w = this.w;
       // override everything with a custom html tooltip and replace it
