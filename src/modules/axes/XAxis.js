@@ -408,19 +408,21 @@ class XAxis {
       }
     }
 
-    if (xAxisTexts.length > 0) {
-      let firstLabelPos = xAxisTexts[0].getBBox()
-      let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
-      if (firstLabelPos.x < -25) {
-        xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
-      }
-      if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
-        xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
-      }
-    }
+    // the below code removes any labels which doesn't fits in the grid area.
+    // but many users didn't liked it - so commented out, will remove it
+    // if (xAxisTexts.length > 0) {
+    // let firstLabelPos = xAxisTexts[0].getBBox()
+    // let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
+    // if (xAxisTexts[0].getAttribute('x') < -10) {
+    //   xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
+    // }
+    // if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
+    //   xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
+    // }
+    // }
 
     if (yAxisTextsInversed.length > 0) {
-      // truncate y axis in bar chart
+      // truncate rotated y axis in bar chart (x axis)
       let firstLabelPosX = yAxisTextsInversed[yAxisTextsInversed.length - 1].getBBox()
       let lastLabelPosX = yAxisTextsInversed[0].getBBox()
 
@@ -432,7 +434,7 @@ class XAxis {
         yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0])
       }
 
-      // truncate y axis in bar chart
+      // truncate rotated x axis in bar chart (y axis)
       for (let xat = 0; xat < xAxisTextsInversed.length; xat++) {
         graphics.placeTextWithEllipsis(
           xAxisTextsInversed[xat],

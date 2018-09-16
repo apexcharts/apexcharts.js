@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 166);
+/******/ 	return __webpack_require__(__webpack_require__.s = 165);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -5531,19 +5531,21 @@ var XAxis = function () {
         }
       }
 
-      if (xAxisTexts.length > 0) {
-        var firstLabelPos = xAxisTexts[0].getBBox();
-        var lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox();
-        if (firstLabelPos.x < -25) {
-          xAxisTexts[0].parentNode.removeChild(xAxisTexts[0]);
-        }
-        if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
-          xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1]);
-        }
-      }
+      // the below code removes any labels which doesn't fits in the grid area.
+      // but many users didn't liked it - so commented out, will remove it
+      // if (xAxisTexts.length > 0) {
+      // let firstLabelPos = xAxisTexts[0].getBBox()
+      // let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
+      // if (xAxisTexts[0].getAttribute('x') < -10) {
+      //   xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
+      // }
+      // if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
+      //   xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
+      // }
+      // }
 
       if (yAxisTextsInversed.length > 0) {
-        // truncate y axis in bar chart
+        // truncate rotated y axis in bar chart (x axis)
         var firstLabelPosX = yAxisTextsInversed[yAxisTextsInversed.length - 1].getBBox();
         var lastLabelPosX = yAxisTextsInversed[0].getBBox();
 
@@ -5555,7 +5557,7 @@ var XAxis = function () {
           yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0]);
         }
 
-        // truncate y axis in bar chart
+        // truncate rotated x axis in bar chart (y axis)
         for (var _xat2 = 0; _xat2 < xAxisTextsInversed.length; _xat2++) {
           graphics.placeTextWithEllipsis(xAxisTextsInversed[_xat2], xAxisTextsInversed[_xat2].textContent, w.config.yaxis[0].labels.maxWidth - parseInt(w.config.yaxis[0].title.style.fontSize) * 2 - 20);
         }
@@ -5910,7 +5912,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Defaults = __webpack_require__(141);
+var _Defaults = __webpack_require__(140);
 
 var _Defaults2 = _interopRequireDefault(_Defaults);
 
@@ -9250,31 +9252,31 @@ var _Exports = __webpack_require__(131);
 
 var _Exports2 = _interopRequireDefault(_Exports);
 
-var _icoPanHand = __webpack_require__(162);
+var _icoPanHand = __webpack_require__(161);
 
 var _icoPanHand2 = _interopRequireDefault(_icoPanHand);
 
-var _icoZoomIn = __webpack_require__(165);
+var _icoZoomIn = __webpack_require__(164);
 
 var _icoZoomIn2 = _interopRequireDefault(_icoZoomIn);
 
-var _icoHome = __webpack_require__(160);
+var _icoHome = __webpack_require__(159);
 
 var _icoHome2 = _interopRequireDefault(_icoHome);
 
-var _icoPlus = __webpack_require__(163);
+var _icoPlus = __webpack_require__(162);
 
 var _icoPlus2 = _interopRequireDefault(_icoPlus);
 
-var _icoMinus = __webpack_require__(161);
+var _icoMinus = __webpack_require__(160);
 
 var _icoMinus2 = _interopRequireDefault(_icoMinus);
 
-var _icoSelect = __webpack_require__(164);
+var _icoSelect = __webpack_require__(163);
 
 var _icoSelect2 = _interopRequireDefault(_icoSelect);
 
-var _icoCamera = __webpack_require__(159);
+var _icoCamera = __webpack_require__(158);
 
 var _icoCamera2 = _interopRequireDefault(_icoCamera);
 
@@ -10423,11 +10425,11 @@ var _Series = __webpack_require__(26);
 
 var _Series2 = _interopRequireDefault(_Series);
 
-var _Theme = __webpack_require__(137);
+var _Theme = __webpack_require__(136);
 
 var _Theme2 = _interopRequireDefault(_Theme);
 
-var _Tooltip = __webpack_require__(147);
+var _Tooltip = __webpack_require__(146);
 
 var _Tooltip2 = _interopRequireDefault(_Tooltip);
 
@@ -10435,7 +10437,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _ZoomPanSelection = __webpack_require__(139);
+var _ZoomPanSelection = __webpack_require__(138);
 
 var _ZoomPanSelection2 = _interopRequireDefault(_ZoomPanSelection);
 
@@ -10443,7 +10445,7 @@ var _Scroller = __webpack_require__(135);
 
 var _Scroller2 = _interopRequireDefault(_Scroller);
 
-var _TitleSubtitle = __webpack_require__(168);
+var _TitleSubtitle = __webpack_require__(137);
 
 var _TitleSubtitle2 = _interopRequireDefault(_TitleSubtitle);
 
@@ -10459,7 +10461,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-__webpack_require__(157);
+__webpack_require__(156);
 
 // global Apex object which user can use to override chart's defaults globally
 window.Apex = {};
@@ -15497,7 +15499,7 @@ var _Config = __webpack_require__(50);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Globals = __webpack_require__(142);
+var _Globals = __webpack_require__(141);
 
 var _Globals2 = _interopRequireDefault(_Globals);
 
@@ -15586,7 +15588,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Grid = __webpack_require__(140);
+var _Grid = __webpack_require__(139);
 
 var _Grid2 = _interopRequireDefault(_Grid);
 
@@ -15606,7 +15608,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _ClassListPolyfill = __webpack_require__(155);
+var _ClassListPolyfill = __webpack_require__(154);
 
 var _ClassListPolyfill2 = _interopRequireDefault(_ClassListPolyfill);
 
@@ -15618,7 +15620,7 @@ var _TimeScale = __webpack_require__(76);
 
 var _TimeScale2 = _interopRequireDefault(_TimeScale);
 
-var _svg = __webpack_require__(151);
+var _svg = __webpack_require__(150);
 
 var SVG = _interopRequireWildcard(_svg);
 
@@ -15628,11 +15630,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-__webpack_require__(150);
-__webpack_require__(152);
 __webpack_require__(149);
-__webpack_require__(154);
+__webpack_require__(151);
+__webpack_require__(148);
 __webpack_require__(153);
+__webpack_require__(152);
 
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.
@@ -15680,7 +15682,6 @@ var Core = function () {
         id: gl.chartClass.substring(1),
         class: 'apexcharts-canvas ' + gl.chartClass.substring(1)
       });
-      gl.dom.elWrap.style.background = cnf.chart.background;
       this.el.appendChild(gl.dom.elWrap);
 
       gl.dom.Paper = new SVG.Doc(gl.dom.elWrap);
@@ -15689,6 +15690,8 @@ var Core = function () {
         'xmlns:data': 'ApexChartsNS',
         transform: 'translate(' + cnf.chart.offsetX + ', ' + cnf.chart.offsetY + ')'
       });
+
+      gl.dom.Paper.node.style.background = cnf.chart.background;
 
       this.setSVGDimensions();
 
@@ -17974,8 +17977,7 @@ var Scroller = function () {
 exports.default = Scroller;
 
 /***/ }),
-/* 136 */,
-/* 137 */
+/* 136 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18171,8 +18173,88 @@ var Theme = function () {
 module.exports = Theme;
 
 /***/ }),
-/* 138 */,
-/* 139 */
+/* 137 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TitleSubtitle = function () {
+  function TitleSubtitle(ctx) {
+    _classCallCheck(this, TitleSubtitle);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  _createClass(TitleSubtitle, [{
+    key: 'draw',
+    value: function draw() {
+      this.drawTitleSubtitle('title');
+      this.drawTitleSubtitle('subtitle');
+    }
+  }, {
+    key: 'drawTitleSubtitle',
+    value: function drawTitleSubtitle(type) {
+      var w = this.w;
+      var tsConfig = type === 'title' ? w.config.title : w.config.subtitle;
+
+      var x = w.globals.svgWidth / 2;
+      var y = tsConfig.offsetY;
+      var textAnchor = 'middle';
+
+      if (tsConfig.align === 'left') {
+        x = 10;
+        textAnchor = 'start';
+      } else if (tsConfig.align === 'right') {
+        x = w.globals.svgWidth - 10;
+        textAnchor = 'end';
+      }
+
+      x = x + tsConfig.offsetX;
+      y = y + parseInt(tsConfig.style.fontSize) + 2;
+
+      if (tsConfig.text !== undefined) {
+        var graphics = new _Graphics2.default(this.ctx);
+        var titleText = graphics.drawText({
+          x: x,
+          y: y,
+          text: tsConfig.text,
+          textAnchor: textAnchor,
+          fontSize: tsConfig.style.fontSize,
+          foreColor: tsConfig.style.color,
+          opacity: 1
+        });
+
+        titleText.node.setAttribute('class', 'apexcharts-' + type + '-text');
+
+        w.globals.dom.Paper.add(titleText);
+      }
+    }
+  }]);
+
+  return TitleSubtitle;
+}();
+
+exports.default = TitleSubtitle;
+
+/***/ }),
+/* 138 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18790,7 +18872,7 @@ var ZoomPanSelection = function (_Toolbar) {
 module.exports = ZoomPanSelection;
 
 /***/ }),
-/* 140 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19092,7 +19174,7 @@ var Grid = function () {
 exports.default = Grid;
 
 /***/ }),
-/* 141 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19553,7 +19635,7 @@ var Defaults = function () {
 module.exports = Defaults;
 
 /***/ }),
-/* 142 */
+/* 141 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19747,7 +19829,7 @@ var Globals = function () {
 exports.default = Globals;
 
 /***/ }),
-/* 143 */
+/* 142 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19935,7 +20017,7 @@ var AxesTooltip = function () {
 exports.default = AxesTooltip;
 
 /***/ }),
-/* 144 */
+/* 143 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20231,7 +20313,7 @@ var Intersect = function () {
 exports.default = Intersect;
 
 /***/ }),
-/* 145 */
+/* 144 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20557,7 +20639,7 @@ var Labels = function () {
 module.exports = Labels;
 
 /***/ }),
-/* 146 */
+/* 145 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20732,7 +20814,7 @@ var Marker = function () {
 module.exports = Marker;
 
 /***/ }),
-/* 147 */
+/* 146 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20740,7 +20822,7 @@ module.exports = Marker;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Labels = __webpack_require__(145);
+var _Labels = __webpack_require__(144);
 
 var _Labels2 = _interopRequireDefault(_Labels);
 
@@ -20748,15 +20830,15 @@ var _Position = __webpack_require__(78);
 
 var _Position2 = _interopRequireDefault(_Position);
 
-var _Marker = __webpack_require__(146);
+var _Marker = __webpack_require__(145);
 
 var _Marker2 = _interopRequireDefault(_Marker);
 
-var _Intersect = __webpack_require__(144);
+var _Intersect = __webpack_require__(143);
 
 var _Intersect2 = _interopRequireDefault(_Intersect);
 
-var _AxesTooltip = __webpack_require__(143);
+var _AxesTooltip = __webpack_require__(142);
 
 var _AxesTooltip2 = _interopRequireDefault(_AxesTooltip);
 
@@ -21422,7 +21504,7 @@ var Tooltip = function () {
 module.exports = Tooltip;
 
 /***/ }),
-/* 148 */
+/* 147 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21517,7 +21599,7 @@ module.exports = function (css) {
 };
 
 /***/ }),
-/* 149 */
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21752,7 +21834,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 150 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22356,7 +22438,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 151 */
+/* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27653,7 +27735,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 });
 
 /***/ }),
-/* 152 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28078,7 +28160,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 153 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28580,7 +28662,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 154 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28892,7 +28974,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 155 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -29134,7 +29216,7 @@ var ClassListPolyfill = function () {
 module.exports = ClassListPolyfill;
 
 /***/ }),
-/* 156 */
+/* 155 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(122)(false);
@@ -29148,11 +29230,11 @@ exports.push([module.i, ".apexcharts-canvas {\n  position: relative;\n  user-sel
 
 
 /***/ }),
-/* 157 */
+/* 156 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(156);
+var content = __webpack_require__(155);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -29166,7 +29248,7 @@ var options = {"hmr":true}
 options.transform = transform
 options.insertInto = undefined;
 
-var update = __webpack_require__(158)(content, options);
+var update = __webpack_require__(157)(content, options);
 
 if(content.locals) module.exports = content.locals;
 
@@ -29198,7 +29280,7 @@ if(false) {
 }
 
 /***/ }),
-/* 158 */
+/* 157 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -29264,7 +29346,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(148);
+var	fixUrls = __webpack_require__(147);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -29580,49 +29662,49 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 159 */
+/* 158 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"12\" cy=\"12\" r=\"3.2\"></circle><path d=\"M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 160 */
+/* 159 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 161 */
+/* 160 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 162 */
+/* 161 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" viewBox=\"0 0 24 24\"><defs><path d=\"M0 0h24v24H0z\" id=\"a\"></path></defs><clipPath id=\"b\"><use overflow=\"visible\" xlink:href=\"#a\"></use></clipPath><path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"></path></svg>"
 
 /***/ }),
-/* 163 */
+/* 162 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 164 */
+/* 163 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#6E8192\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"></path></svg>"
 
 /***/ }),
-/* 165 */
+/* 164 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" viewBox=\"0 0 24 24\"><path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path><path d=\"M0 0h24v24H0V0z\" fill=\"none\"></path><path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"></path></svg>"
 
 /***/ }),
-/* 166 */
+/* 165 */
 /***/ (function(module, exports, __webpack_require__) {
 
 __webpack_require__(84);
@@ -29633,88 +29715,6 @@ __webpack_require__(80);
 __webpack_require__(85);
 module.exports = __webpack_require__(86);
 
-
-/***/ }),
-/* 167 */,
-/* 168 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = undefined;
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Graphics = __webpack_require__(0);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var TitleSubtitle = function () {
-  function TitleSubtitle(ctx) {
-    _classCallCheck(this, TitleSubtitle);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  _createClass(TitleSubtitle, [{
-    key: 'draw',
-    value: function draw() {
-      this.drawTitleSubtitle('title');
-      this.drawTitleSubtitle('subtitle');
-    }
-  }, {
-    key: 'drawTitleSubtitle',
-    value: function drawTitleSubtitle(type) {
-      var w = this.w;
-      var tsConfig = type === 'title' ? w.config.title : w.config.subtitle;
-
-      var x = w.globals.svgWidth / 2;
-      var y = tsConfig.offsetY;
-      var textAnchor = 'middle';
-
-      if (tsConfig.align === 'left') {
-        x = 10;
-        textAnchor = 'start';
-      } else if (tsConfig.align === 'right') {
-        x = w.globals.svgWidth - 10;
-        textAnchor = 'end';
-      }
-
-      x = x + tsConfig.offsetX;
-      y = y + parseInt(tsConfig.style.fontSize) + 2;
-
-      if (tsConfig.text !== undefined) {
-        var graphics = new _Graphics2.default(this.ctx);
-        var titleText = graphics.drawText({
-          x: x,
-          y: y,
-          text: tsConfig.text,
-          textAnchor: textAnchor,
-          fontSize: tsConfig.style.fontSize,
-          foreColor: tsConfig.style.color,
-          opacity: 1
-        });
-
-        titleText.node.setAttribute('class', 'apexcharts-' + type + '-text');
-
-        w.globals.dom.Paper.add(titleText);
-      }
-    }
-  }]);
-
-  return TitleSubtitle;
-}();
-
-exports.default = TitleSubtitle;
 
 /***/ })
 /******/ ]);

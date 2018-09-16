@@ -1,7 +1,7 @@
 {
   "name": "apexcharts",
   "description": "A JavaScript Chart Library",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "main": "dist/apexcharts.min.js",
   "directories": {
     "test": "tests"

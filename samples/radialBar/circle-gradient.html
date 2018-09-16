@@ -13,7 +13,7 @@
   <style>
     #card {
       background: #fff;
-      max-width: 290px;
+      max-width: 650px;
       margin: 35px auto;
       padding-top: 0px;
       text-align: center;
@@ -55,8 +55,11 @@
   <script>
     var options = {
       chart: {
-        height: 300,
+        height: 380,
         type: 'radialBar',
+        toolbar: {
+          show: true
+        }
       },
       plotOptions: {
         radialBar: {
@@ -97,14 +100,14 @@
               offsetY: -20,
               show: true,
               color: '#888',
-              fontSize: '13px'
+              fontSize: '17px'
             },
             value: {
               formatter: function(val) {
                 return 75;
               },
               color: '#111',
-              fontSize: '30px',
+              fontSize: '36px',
               show: true,
             }
           }
