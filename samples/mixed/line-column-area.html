@@ -81,7 +81,7 @@
       tooltip: {
         shared: true,
         intersect: false,
-        y: {
+        y: [{
           formatter: function (y) {
             if(typeof y !== "undefined") {
               return  y.toFixed(0) + " points";
@@ -89,7 +89,15 @@
             return y;
             
           }
-        }
+        }, {
+          formatter: function (y) {
+            if(typeof y !== "undefined") {
+              return  y.toFixed(2) + "points";
+            }
+            return y;
+            
+          }
+        }]
       }
 
     }

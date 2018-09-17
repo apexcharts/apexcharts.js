@@ -6750,7 +6750,7 @@ var Options = function () {
           align: 'left',
           margin: 10,
           offsetX: 0,
-          offsetY: 0,
+          offsetY: 30,
           floating: false,
           style: {
             fontSize: '14px',
@@ -20143,7 +20143,7 @@ var Intersect = function () {
       }
 
       // move tooltip here
-      if (!w.config.tooltip.shared || ttCtx.isBarHorizontal) {
+      if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || ttCtx.isBarHorizontal)) {
         ttCtx.tooltip.style.left = x + w.globals.translateX + 'px';
         ttCtx.tooltip.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px';
       }
@@ -20392,8 +20392,8 @@ var Labels = function () {
 
       if (w.globals.ttVal !== undefined) {
         if (Array.isArray(w.globals.ttVal)) {
-          yLbFormatter = w.globals.ttVal[i].formatter;
-          yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter;
+          yLbFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].formatter;
+          yLbTitleFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter;
         } else {
           yLbFormatter = w.globals.ttVal.formatter;
           yLbTitleFormatter = w.globals.ttVal.title.formatter;

@@ -119,8 +119,8 @@ class Labels {
 
     if (w.globals.ttVal !== undefined) {
       if (Array.isArray(w.globals.ttVal)) {
-        yLbFormatter = w.globals.ttVal[i].formatter
-        yLbTitleFormatter = w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter
+        yLbFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].formatter
+        yLbTitleFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter
       } else {
         yLbFormatter = w.globals.ttVal.formatter
         yLbTitleFormatter = w.globals.ttVal.title.formatter
