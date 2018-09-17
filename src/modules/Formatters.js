@@ -51,8 +51,12 @@ class Formatters {
       w.globals.ttKeyFormatter = w.config.tooltip.x.formatter
     }
 
-    if (w.config.tooltip.y.length > 0 || w.config.tooltip.y !== undefined) {
+    if (Array.isArray(w.config.tooltip.y)) {
       w.globals.ttVal = w.config.tooltip.y
+    } else {
+      if (w.config.tooltip.y.formatter !== undefined) {
+        w.globals.ttVal = w.config.tooltip.y
+      }
     }
 
     if (w.config.tooltip.z.formatter !== undefined) {
@@ -77,8 +81,8 @@ class Formatters {
     }
 
     // formatter function will always overwrite format property
-    w.config.yaxis.map((yaxe, i) => {
-      if (yaxe.labels.formatter !== undefined) {
+    w.config.yaxis.forEach((yaxe, i) => {
+      if (typeof yaxe.labels.formatter === 'function') {
         w.globals.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
         w.globals.yLabelFormatters[i] = function (val) {
@@ -93,6 +97,8 @@ class Formatters {
         }
       }
     })
+
+    return w.globals
   }
 
   heatmapLabelFormatters () {

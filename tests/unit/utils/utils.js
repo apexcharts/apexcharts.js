@@ -13,5 +13,13 @@ module.exports = {
     chart.render()
   
     return chart
-  }
+  },
+  createChartWithOptions: function(options) {
+    document.body.innerHTML = '<div id="chart" />';
+
+    const chart = new ApexCharts(document.querySelector("#chart"), options)
+    chart.render()
+  
+    return chart
+  },
 } 

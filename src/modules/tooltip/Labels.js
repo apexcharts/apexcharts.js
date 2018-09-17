@@ -128,8 +128,12 @@ class Labels {
     }
 
     if (typeof yLbFormatter !== 'function') {
-      yLbFormatter = function (label) {
-        return label
+      if (w.globals.yLabelFormatters[0]) {
+        yLbFormatter = w.globals.yLabelFormatters[0]
+      } else {
+        yLbFormatter = function (label) {
+          return label
+        }
       }
     }
 

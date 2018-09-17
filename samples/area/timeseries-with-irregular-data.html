@@ -98,14 +98,13 @@
             },
       },
         yaxis: {
-          //floating: true,
           labels: {
               style: {
                   color: '#8e8da4',
               },
               offsetX: 0,
               formatter: function(val) {
-                return (val / 1000000).toFixed(0);
+                return (val / 1000000).toFixed(2);
               },
           },
           axisBorder: {
@@ -119,6 +118,8 @@
           type: 'datetime',
           tickAmount: 8,
           labels: {
+              rotate: -15,
+              rotateAlways: true,
               formatter: function(val) {
                 return moment(new Date(val)).format("DD MMM YYYY")
             }
@@ -130,12 +131,7 @@
           offsetX: 14
         },
         tooltip: {
-          shared: true,
-          y: {
-            formatter: function(val) {
-              return ( val/1000000).toFixed(0) + " points"
-            }
-          }
+          shared: true
         },
         legend: {
           position: 'top',

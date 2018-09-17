@@ -3445,8 +3445,12 @@ var Formatters = function () {
         w.globals.ttKeyFormatter = w.config.tooltip.x.formatter;
       }
 
-      if (w.config.tooltip.y.length > 0 || w.config.tooltip.y !== undefined) {
+      if (Array.isArray(w.config.tooltip.y)) {
         w.globals.ttVal = w.config.tooltip.y;
+      } else {
+        if (w.config.tooltip.y.formatter !== undefined) {
+          w.globals.ttVal = w.config.tooltip.y;
+        }
       }
 
       if (w.config.tooltip.z.formatter !== undefined) {
@@ -3471,8 +3475,8 @@ var Formatters = function () {
       }
 
       // formatter function will always overwrite format property
-      w.config.yaxis.map(function (yaxe, i) {
-        if (yaxe.labels.formatter !== undefined) {
+      w.config.yaxis.forEach(function (yaxe, i) {
+        if (typeof yaxe.labels.formatter === 'function') {
           w.globals.yLabelFormatters[i] = yaxe.labels.formatter;
         } else {
           w.globals.yLabelFormatters[i] = function (val) {
@@ -3487,6 +3491,8 @@ var Formatters = function () {
           };
         }
       });
+
+      return w.globals;
     }
   }, {
     key: 'heatmapLabelFormatters',
@@ -20401,9 +20407,13 @@ var Labels = function () {
       }
 
       if (typeof yLbFormatter !== 'function') {
-        yLbFormatter = function yLbFormatter(label) {
-          return label;
-        };
+        if (w.globals.yLabelFormatters[0]) {
+          yLbFormatter = w.globals.yLabelFormatters[0];
+        } else {
+          yLbFormatter = function yLbFormatter(label) {
+            return label;
+          };
+        }
       }
 
       if (typeof yLbTitleFormatter !== 'function') {

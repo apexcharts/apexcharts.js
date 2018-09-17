@@ -50,21 +50,24 @@
             },
             series: [{
                 name: 'PRODUCT A',
-                data: [44, 55, 41, 67, 22, 43, 21, 49]
+                data: [44, 55, 41, 67, 22, 43]
             },{
                 name: 'PRODUCT B',
-                data: [13, 23, 20, 8, 13, 27, 33, 12]
+                data: [13, 23, 20, 8, 13, 27]
             },{
                 name: 'PRODUCT C',
-                data: [11, 17, 15, 15, 21, 14, 15, 13]
+                data: [11, 17, 15, 15, 21, 14]
+            },{
+                name: 'PRODUCT D',
+                data: [21, 7, 25, 13, 22, 8]
             }],
             xaxis: {
-                categories: ['2011 Q1', '2011 Q2', '2011 Q3', '2011 Q4', '2012 Q1', '2012 Q2', '2012 Q3', '2012 Q4'],
+                type: 'datetime',
+                categories: ['01/01/2011', '01/02/2011', '01/03/2011', '01/04/2011', '01/05/2011', '01/06/2011'],
             },
             fill: {
                 opacity: 1
             },
-            
             legend: {
                 position: 'right',
                 verticalAlign: 'top',
