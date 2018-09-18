@@ -4493,7 +4493,10 @@ var Bar = function () {
 
       var elDataLabelsWrap = null;
 
-      if (dataLabelsConfig.enabled) {
+      var isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.includes(i);
+      console.log(isSeriesNotCollapsed);
+
+      if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
         elDataLabelsWrap = graphics.group({
           class: 'apexcharts-data-labels'
         });
@@ -4766,6 +4769,7 @@ var DataLabels = function () {
                   text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals });
                 }
               }
+
               this.plotDataLabelsText(x, y, text, i, realIndexP, elDataLabelsWrap, w.config.dataLabels);
             }
           }
@@ -6678,9 +6682,9 @@ var Options = function () {
             vertical: 5
           },
           containerMargin: {
-            left: 5,
+            left: 10,
             top: 4,
-            right: 0,
+            right: 10,
             bottom: 0
           },
           onItemClick: {
@@ -9451,18 +9455,7 @@ var Toolbar = function () {
       var newMinX = (w.globals.minX + centerX) / 2;
       var newMaxX = (w.globals.maxX + centerX) / 2;
 
-      if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
-        return;
-      }
-
-      this.ctx.updateOptionsInternal({
-        xaxis: {
-          min: newMinX,
-          max: newMaxX
-        }
-      }, false, true);
-
-      this.zoomCallback({ min: newMinX, max: newMaxX });
+      this.zoomUpdateOptions(newMinX, newMaxX);
     }
   }, {
     key: 'handleZoomOut',
@@ -9478,15 +9471,23 @@ var Toolbar = function () {
       var newMinX = w.globals.minX - (centerX - w.globals.minX);
       var newMaxX = w.globals.maxX - (centerX - w.globals.maxX);
 
-      if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
-        return;
+      this.zoomUpdateOptions(newMinX, newMaxX);
+    }
+  }, {
+    key: 'zoomUpdateOptions',
+    value: function zoomUpdateOptions(newMinX, newMaxX) {
+      var xaxis = {
+        min: newMinX,
+        max: newMaxX
+      };
+
+      var beforeZoomRange = this.getBeforeZoomRange(xaxis);
+      if (beforeZoomRange !== null) {
+        xaxis = beforeZoomRange.xaxis;
       }
 
       this.ctx.updateOptionsInternal({
-        xaxis: {
-          min: newMinX,
-          max: newMaxX
-        }
+        xaxis: xaxis
       }, false, true);
 
       this.zoomCallback({ min: newMinX, max: newMaxX });
@@ -9497,6 +9498,16 @@ var Toolbar = function () {
       if (typeof this.ev.zoomed === 'function') {
         this.ev.zoomed(this.ctx, { xaxis: xaxis, yaxis: yaxis });
       }
+    }
+  }, {
+    key: 'getBeforeZoomRange',
+    value: function getBeforeZoomRange(xaxis, yaxis) {
+      var newRange = null;
+      if (typeof this.ev.beforeZoom === 'function') {
+        newRange = this.ev.beforeZoom(this, { xaxis: xaxis, yaxis: yaxis });
+      }
+
+      return newRange;
     }
   }, {
     key: 'downloadSVG',
@@ -13030,8 +13041,8 @@ var BarStacked = function (_Bar) {
         barWidth = xDivision;
 
         if (w.globals.dataXY) {
-          xDivision = w.globals.gridWidth / this.totalItems;
-          barWidth = xDivision / 2;
+          xDivision = w.globals.gridWidth / (this.totalItems / w.globals.series.length);
+          barWidth = xDivision / 1.8;
         } else {
           barWidth = barWidth * parseInt(w.config.plotOptions.bar.columnWidth) / 100;
         }
@@ -13184,7 +13195,7 @@ var BarStacked = function (_Bar) {
       }
 
       if (i > 0) {
-        var bYP = w.globals.gridHeight - zeroH;
+        var bYP = void 0;
         var prevYValue = this.prevY[i - 1][j];
 
         if (this.prevYVal[i - 1][j] < 0) {
@@ -13256,7 +13267,7 @@ var BarStacked = function (_Bar) {
       return {
         pathTo: pathTo,
         pathFrom: pathFrom,
-        x: x,
+        x: w.globals.dataXY ? x - xDivision : x,
         y: y
       };
     }
@@ -18654,33 +18665,37 @@ var ZoomPanSelection = function (_Toolbar) {
       var yHighestValue = [];
       var yLowestValue = [];
 
-      w.config.yaxis.map(function (yaxe, index) {
+      w.config.yaxis.forEach(function (yaxe, index) {
         yHighestValue.push(Math.floor(w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.startY));
         yLowestValue.push(Math.floor(w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.endY));
       });
 
       if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
         if (w.globals.zoomEnabled) {
-          if (typeof w.config.chart.events.beforeZoom === 'function' && !w.config.chart.events.beforeZoom()) {
-            return;
-          }
-
           w.globals.zoomed = true;
-          var yaxis = w.config.yaxis;
+          var yaxis = _Utils2.default.clone(w.config.yaxis);
+          var xaxis = {
+            min: xLowestValue,
+            max: xHighestValue
+          };
 
           if (zoomtype === 'xy' || zoomtype === 'y') {
-            yaxis.map(function (yaxe, index) {
+            yaxis.forEach(function (yaxe, index) {
               yaxis[index].min = yLowestValue[index];
               yaxis[index].max = yHighestValue[index];
             });
           }
 
+          var beforeZoomRange = this.getBeforeZoomRange(xaxis, yaxis);
+
+          if (beforeZoomRange !== null) {
+            xaxis = beforeZoomRange.xaxis;
+            yaxis = beforeZoomRange.yaxis;
+          }
+
           if (zoomtype === 'x') {
             me.ctx.updateOptionsInternal({
-              xaxis: {
-                min: xLowestValue,
-                max: xHighestValue
-              }
+              xaxis: xaxis
             }, false, true);
           } else if (zoomtype === 'y') {
             me.ctx.updateOptionsInternal({
@@ -18688,28 +18703,23 @@ var ZoomPanSelection = function (_Toolbar) {
             }, false, true);
           } else {
             me.ctx.updateOptionsInternal({
-              xaxis: {
-                min: xLowestValue,
-                max: xHighestValue
-              },
+              xaxis: xaxis,
               yaxis: yaxis
             }, false, true);
           }
 
           if (typeof w.config.chart.events.zoomed === 'function') {
-            this.toolbar.zoomCallback({
-              min: xLowestValue, max: xHighestValue
-            }, yaxis);
+            this.toolbar.zoomCallback(xaxis, yaxis);
           }
         } else if (w.globals.selectionEnabled) {
-          var _yaxis = null;var xaxis = null;
-          xaxis = {
+          var _yaxis = null;var _xaxis = null;
+          _xaxis = {
             min: xLowestValue,
             max: xHighestValue
           };
           if (zoomtype === 'xy' || zoomtype === 'y') {
             _yaxis = _Utils2.default.clone(w.config.yaxis);
-            _yaxis.map(function (yaxe, index) {
+            _yaxis.forEach(function (yaxe, index) {
               _yaxis[index].min = yLowestValue[index];
               _yaxis[index].max = yHighestValue[index];
             });
@@ -18718,7 +18728,7 @@ var ZoomPanSelection = function (_Toolbar) {
           w.globals.selection = me.selection;
           if (typeof w.config.chart.events.selection === 'function') {
             w.config.chart.events.selection(me.ctx, {
-              xaxis: xaxis,
+              xaxis: _xaxis,
               yaxis: _yaxis
             });
           }
@@ -20107,7 +20117,6 @@ var Intersect = function () {
       var ttCtx = this.ttCtx;
 
       var bx = 0;
-      var j = 0;
       var x = 0;
       var y = 0;
 
@@ -20122,7 +20131,6 @@ var Intersect = function () {
       } else {
         if (!w.globals.comboCharts && !w.config.tooltip.shared) {
           bx = bx / 2;
-          ttCtx.tooltipPosition.moveXCrosshairs(bx, j);
         }
       }
 

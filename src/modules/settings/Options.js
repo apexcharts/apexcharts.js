@@ -548,9 +548,9 @@ export default class Options {
           vertical: 5
         },
         containerMargin: {
-          left: 5,
+          left: 10,
           top: 4,
-          right: 0,
+          right: 10,
           bottom: 0
         },
         onItemClick: {

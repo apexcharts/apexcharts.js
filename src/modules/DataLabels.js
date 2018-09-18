@@ -103,6 +103,7 @@ class DataLabels {
                 text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals })
               }
             }
+
             this.plotDataLabelsText(x, y, text, i, realIndexP, elDataLabelsWrap, w.config.dataLabels)
           }
         }

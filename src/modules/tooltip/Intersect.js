@@ -114,7 +114,6 @@ class Intersect {
     const ttCtx = this.ttCtx
 
     let bx = 0
-    let j = 0
     let x = 0
     let y = 0
 
@@ -129,7 +128,6 @@ class Intersect {
     } else {
       if (!w.globals.comboCharts && !w.config.tooltip.shared) {
         bx = bx / 2
-        ttCtx.tooltipPosition.moveXCrosshairs(bx, j)
       }
     }
 

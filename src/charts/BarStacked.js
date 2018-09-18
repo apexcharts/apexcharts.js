@@ -221,8 +221,8 @@ class BarStacked extends Bar {
       barWidth = xDivision
 
       if (w.globals.dataXY) {
-        xDivision = w.globals.gridWidth / this.totalItems
-        barWidth = xDivision / 2
+        xDivision = w.globals.gridWidth / (this.totalItems / w.globals.series.length)
+        barWidth = xDivision / 1.8
       } else {
         barWidth = (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
       }
@@ -406,7 +406,7 @@ class BarStacked extends Bar {
     }
 
     if (i > 0) {
-      let bYP = w.globals.gridHeight - zeroH
+      let bYP
       let prevYValue = this.prevY[i - 1][j]
 
       if (this.prevYVal[i - 1][j] < 0) {
@@ -511,7 +511,7 @@ class BarStacked extends Bar {
     return {
       pathTo,
       pathFrom,
-      x,
+      x: w.globals.dataXY ? x - xDivision : x,
       y
     }
   }

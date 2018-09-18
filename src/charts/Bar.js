@@ -706,7 +706,10 @@ class Bar {
 
     let elDataLabelsWrap = null
 
-    if (dataLabelsConfig.enabled) {
+    const isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.includes(i)
+    console.log(isSeriesNotCollapsed)
+
+    if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
       elDataLabelsWrap = graphics.group({
         class: 'apexcharts-data-labels'
       })
