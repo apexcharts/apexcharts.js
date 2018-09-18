@@ -19,7 +19,7 @@ export default class Options {
         offsetY: 0,
         style: {
           colors: [],
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-yaxis-label'
         },
         formatter: undefined
@@ -44,7 +44,7 @@ export default class Options {
         offsetX: 0,
         style: {
           color: undefined,
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-yaxis-title'
         }
       },
@@ -81,7 +81,7 @@ export default class Options {
         style: {
           background: '#fff',
           color: '#777',
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-xaxis-annotation-label',
           padding: {
             left: 5,
@@ -111,7 +111,7 @@ export default class Options {
         style: {
           background: '#fff',
           color: '#777',
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-yaxis-annotation-label',
           padding: {
             left: 5,
@@ -146,7 +146,7 @@ export default class Options {
         style: {
           background: '#fff',
           color: '#777',
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-point-annotation-label',
           padding: {
             left: 5,
@@ -388,13 +388,13 @@ export default class Options {
             showOn: 'always', // hover/always
             name: {
               show: true,
-              fontSize: '22px',
+              fontSize: '16px',
               color: undefined,
               offsetY: -10
             },
             value: {
               show: true,
-              fontSize: '16px',
+              fontSize: '14px',
               color: undefined,
               offsetY: 16,
               formatter: function (val) {
@@ -413,14 +413,14 @@ export default class Options {
             //   showOn: 'hover',
             //   name: {
             //     show: false,
-            //     fontSize: '22px',
+            //     fontSize: '14px',
             //     color: undefined,
             //     offsetY: -10
             //   },
             //   value: {
             //     show: true,
             //     offsetY: 16,
-            //     fontSize: '16px',
+            //     fontSize: '12px',
             //     color: undefined,
             //     formatter: function (val) {
             //       return val + '%'
@@ -446,7 +446,7 @@ export default class Options {
         offsetX: 0,
         offsetY: 0,
         style: {
-          fontSize: '14px',
+          fontSize: '12px',
           colors: undefined
         },
         dropShadow: {
@@ -525,7 +525,7 @@ export default class Options {
         // specify whether to align legends
         // left, right or center
         verticalAlign: 'middle',
-        fontSize: '14px',
+        fontSize: '12px',
         textAnchor: 'start',
         offsetY: 0,
         offsetX: 0,
@@ -584,7 +584,7 @@ export default class Options {
         offsetY: 0,
         style: {
           color: '#888',
-          fontSize: '16px'
+          fontSize: '14px'
         }
       },
       responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
@@ -618,7 +618,7 @@ export default class Options {
         offsetY: 0,
         floating: false,
         style: {
-          fontSize: '16px',
+          fontSize: '14px',
           color: '#263238'
         }
       },
@@ -630,7 +630,7 @@ export default class Options {
         offsetY: 30,
         floating: false,
         style: {
-          fontSize: '14px',
+          fontSize: '12px',
           color: '#9699a2'
         }
       },

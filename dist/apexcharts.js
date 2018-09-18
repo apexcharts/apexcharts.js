@@ -3153,7 +3153,7 @@ var Dimensions = function () {
         if (!this.isBarHorizontal) {
           w.globals.rotateXLabels = true;
           xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, 'rotate(' + w.config.xaxis.labels.rotate + ' 0 0)', false);
-          rect.height = xLabelrect.height / 1.65;
+          rect.height = xLabelrect.height / 1.66;
         }
       } else {
         w.globals.rotateXLabels = false;
@@ -6147,7 +6147,7 @@ var Options = function () {
         offsetY: 0,
         style: {
           colors: [],
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-yaxis-label'
         },
         formatter: undefined
@@ -6172,7 +6172,7 @@ var Options = function () {
         offsetX: 0,
         style: {
           color: undefined,
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-yaxis-title'
         }
       },
@@ -6209,7 +6209,7 @@ var Options = function () {
         style: {
           background: '#fff',
           color: '#777',
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-xaxis-annotation-label',
           padding: {
             left: 5,
@@ -6239,7 +6239,7 @@ var Options = function () {
         style: {
           background: '#fff',
           color: '#777',
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-yaxis-annotation-label',
           padding: {
             left: 5,
@@ -6274,7 +6274,7 @@ var Options = function () {
         style: {
           background: '#fff',
           color: '#777',
-          fontSize: '12px',
+          fontSize: '11px',
           cssClass: 'apexcharts-point-annotation-label',
           padding: {
             left: 5,
@@ -6348,6 +6348,7 @@ var Options = function () {
             clicked: undefined,
             selection: undefined,
             dataPointSelection: undefined,
+            beforeZoom: undefined, // if defined, should return true for the zoom event to occur
             zoomed: undefined,
             scrolled: undefined
           },
@@ -6517,13 +6518,13 @@ var Options = function () {
               showOn: 'always', // hover/always
               name: {
                 show: true,
-                fontSize: '22px',
+                fontSize: '16px',
                 color: undefined,
                 offsetY: -10
               },
               value: {
                 show: true,
-                fontSize: '16px',
+                fontSize: '14px',
                 color: undefined,
                 offsetY: 16,
                 formatter: function formatter(val) {
@@ -6542,14 +6543,14 @@ var Options = function () {
               //   showOn: 'hover',
               //   name: {
               //     show: false,
-              //     fontSize: '22px',
+              //     fontSize: '14px',
               //     color: undefined,
               //     offsetY: -10
               //   },
               //   value: {
               //     show: true,
               //     offsetY: 16,
-              //     fontSize: '16px',
+              //     fontSize: '12px',
               //     color: undefined,
               //     formatter: function (val) {
               //       return val + '%'
@@ -6575,7 +6576,7 @@ var Options = function () {
           offsetX: 0,
           offsetY: 0,
           style: {
-            fontSize: '14px',
+            fontSize: '12px',
             colors: undefined
           },
           dropShadow: {
@@ -6654,7 +6655,7 @@ var Options = function () {
           // specify whether to align legends
           // left, right or center
           verticalAlign: 'middle',
-          fontSize: '14px',
+          fontSize: '12px',
           textAnchor: 'start',
           offsetY: 0,
           offsetX: 0,
@@ -6713,7 +6714,7 @@ var Options = function () {
           offsetY: 0,
           style: {
             color: '#888',
-            fontSize: '16px'
+            fontSize: '14px'
           }
         },
         responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
@@ -6747,7 +6748,7 @@ var Options = function () {
           offsetY: 0,
           floating: false,
           style: {
-            fontSize: '16px',
+            fontSize: '14px',
             color: '#263238'
           }
         },
@@ -6759,7 +6760,7 @@ var Options = function () {
           offsetY: 30,
           floating: false,
           style: {
-            fontSize: '14px',
+            fontSize: '12px',
             color: '#9699a2'
           }
         },
@@ -9245,6 +9246,8 @@ var Toolbar = function () {
     this.ctx = ctx;
     this.w = ctx.w;
 
+    this.ev = this.w.config.chart.events;
+
     this.localeValues = this.w.globals.locale.toolbar;
   }
 
@@ -9448,6 +9451,10 @@ var Toolbar = function () {
       var newMinX = (w.globals.minX + centerX) / 2;
       var newMaxX = (w.globals.maxX + centerX) / 2;
 
+      if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
+        return;
+      }
+
       this.ctx.updateOptionsInternal({
         xaxis: {
           min: newMinX,
@@ -9455,7 +9462,7 @@ var Toolbar = function () {
         }
       }, false, true);
 
-      this.zoomCallback(newMinX, newMaxX);
+      this.zoomCallback({ min: newMinX, max: newMaxX });
     }
   }, {
     key: 'handleZoomOut',
@@ -9471,6 +9478,10 @@ var Toolbar = function () {
       var newMinX = w.globals.minX - (centerX - w.globals.minX);
       var newMaxX = w.globals.maxX - (centerX - w.globals.maxX);
 
+      if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
+        return;
+      }
+
       this.ctx.updateOptionsInternal({
         xaxis: {
           min: newMinX,
@@ -9478,20 +9489,13 @@ var Toolbar = function () {
         }
       }, false, true);
 
-      this.zoomCallback(newMinX, newMaxX);
+      this.zoomCallback({ min: newMinX, max: newMaxX });
     }
   }, {
     key: 'zoomCallback',
-    value: function zoomCallback(xLowestValue, xHighestValue) {
-      var w = this.w;
-
-      if (typeof w.config.chart.events.zoomed === 'function') {
-        w.config.chart.events.zoomed(this.ctx, {
-          xaxis: {
-            min: xLowestValue,
-            max: xHighestValue
-          }
-        });
+    value: function zoomCallback(xaxis, yaxis) {
+      if (typeof this.ev.zoomed === 'function') {
+        this.ev.zoomed(this.ctx, { xaxis: xaxis, yaxis: yaxis });
       }
     }
   }, {
@@ -18657,6 +18661,10 @@ var ZoomPanSelection = function (_Toolbar) {
 
       if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
         if (w.globals.zoomEnabled) {
+          if (typeof w.config.chart.events.beforeZoom === 'function' && !w.config.chart.events.beforeZoom()) {
+            return;
+          }
+
           w.globals.zoomed = true;
           var yaxis = w.config.yaxis;
 
@@ -18689,13 +18697,9 @@ var ZoomPanSelection = function (_Toolbar) {
           }
 
           if (typeof w.config.chart.events.zoomed === 'function') {
-            w.config.chart.events.zoomed(me.ctx, {
-              xaxis: {
-                min: xLowestValue,
-                max: xHighestValue
-              },
-              yaxis: yaxis
-            });
+            this.toolbar.zoomCallback({
+              min: xLowestValue, max: xHighestValue
+            }, yaxis);
           }
         } else if (w.globals.selectionEnabled) {
           var _yaxis = null;var xaxis = null;
