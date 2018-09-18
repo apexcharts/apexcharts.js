@@ -418,7 +418,7 @@ class ZoomPanSelection extends Toolbar {
     let yHighestValue = []
     let yLowestValue = []
 
-    w.config.yaxis.map((yaxe, index) => {
+    w.config.yaxis.forEach((yaxe, index) => {
       yHighestValue.push(Math.floor(
         w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.startY
       ))
@@ -433,43 +433,44 @@ class ZoomPanSelection extends Toolbar {
       xLowestValue !== xHighestValue
     ) {
       if (w.globals.zoomEnabled) {
-        if (typeof w.config.chart.events.beforeZoom === 'function' && !w.config.chart.events.beforeZoom()) {
-          return
+        w.globals.zoomed = true
+        let yaxis = Utils.clone(w.config.yaxis)
+        let xaxis = {
+          min: xLowestValue,
+          max: xHighestValue
         }
 
-        w.globals.zoomed = true
-        let yaxis = w.config.yaxis
-
         if (zoomtype === 'xy' || zoomtype === 'y') {
-          yaxis.map((yaxe, index) => {
+          yaxis.forEach((yaxe, index) => {
             yaxis[index].min = yLowestValue[index]
             yaxis[index].max = yHighestValue[index]
           })
         }
 
+        let beforeZoomRange = this.getBeforeZoomRange(xaxis, yaxis)
+
+        if (beforeZoomRange !== null) {
+          xaxis = beforeZoomRange.xaxis
+          yaxis = beforeZoomRange.yaxis
+        }
+
         if (zoomtype === 'x') {
           me.ctx.updateOptionsInternal({
-            xaxis: {
-              min: xLowestValue,
-              max: xHighestValue
-            }
+            xaxis
           },
           false,
           true
           )
         } else if (zoomtype === 'y') {
           me.ctx.updateOptionsInternal({
-            yaxis: yaxis
+            yaxis
           },
           false,
           true
           )
         } else {
           me.ctx.updateOptionsInternal({
-            xaxis: {
-              min: xLowestValue,
-              max: xHighestValue
-            },
+            xaxis,
             yaxis
           },
           false,
@@ -478,10 +479,7 @@ class ZoomPanSelection extends Toolbar {
         }
 
         if (typeof w.config.chart.events.zoomed === 'function') {
-          this.toolbar.zoomCallback({
-            min: xLowestValue, max: xHighestValue
-          },
-          yaxis)
+          this.toolbar.zoomCallback(xaxis, yaxis)
         }
       } else if (w.globals.selectionEnabled) {
         let yaxis = null; let xaxis = null
@@ -491,7 +489,7 @@ class ZoomPanSelection extends Toolbar {
         }
         if (zoomtype === 'xy' || zoomtype === 'y') {
           yaxis = Utils.clone(w.config.yaxis)
-          yaxis.map((yaxe, index) => {
+          yaxis.forEach((yaxe, index) => {
             yaxis[index].min = yLowestValue[index]
             yaxis[index].max = yHighestValue[index]
           })

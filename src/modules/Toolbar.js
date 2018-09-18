@@ -213,21 +213,7 @@ class Toolbar {
     const newMinX = (w.globals.minX + centerX) / 2
     const newMaxX = (w.globals.maxX + centerX) / 2
 
-    if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
-      return
-    }
-
-    this.ctx.updateOptionsInternal({
-      xaxis: {
-        min: newMinX,
-        max: newMaxX
-      }
-    },
-    false,
-    true
-    )
-
-    this.zoomCallback({ min: newMinX, max: newMaxX })
+    this.zoomUpdateOptions(newMinX, newMaxX)
   }
 
   handleZoomOut () {
@@ -242,15 +228,22 @@ class Toolbar {
     const newMinX = w.globals.minX - (centerX - w.globals.minX)
     const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
 
-    if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
-      return
+    this.zoomUpdateOptions(newMinX, newMaxX)
+  }
+
+  zoomUpdateOptions (newMinX, newMaxX) {
+    let xaxis = {
+      min: newMinX,
+      max: newMaxX
+    }
+
+    const beforeZoomRange = this.getBeforeZoomRange(xaxis)
+    if (beforeZoomRange !== null) {
+      xaxis = beforeZoomRange.xaxis
     }
 
     this.ctx.updateOptionsInternal({
-      xaxis: {
-        min: newMinX,
-        max: newMaxX
-      }
+      xaxis
     },
     false,
     true
@@ -263,6 +256,15 @@ class Toolbar {
     if (typeof this.ev.zoomed === 'function') {
       this.ev.zoomed(this.ctx, { xaxis, yaxis })
     }
+  }
+
+  getBeforeZoomRange (xaxis, yaxis) {
+    let newRange = null
+    if (typeof this.ev.beforeZoom === 'function') {
+      newRange = this.ev.beforeZoom(this, { xaxis, yaxis })
+    }
+
+    return newRange
   }
 
   downloadSVG () {

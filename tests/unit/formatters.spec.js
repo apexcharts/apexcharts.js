@@ -88,7 +88,7 @@ describe("Format Y-axis and tooltip Labels", () => {
       })
     })
 
-    expect(fnTtVal.formatter).toBe(undefined)
+    expect(fnTtVal).toBe(undefined)
 
     expect(yFormat).toEqual([['0', '1', '5', '10', '100'], ['10', '21', '35', '20', '40']])
     
