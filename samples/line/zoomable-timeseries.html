@@ -46,6 +46,11 @@
         zoom: {
           enabled: true
         },
+        events: {
+          beforeZoom: function(ctx, range) {
+            return true
+          }
+        },
         toolbar: {
           autoSelected: 'zoom'
         }

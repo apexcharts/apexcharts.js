@@ -19,6 +19,8 @@ class Toolbar {
     this.ctx = ctx
     this.w = ctx.w
 
+    this.ev = this.w.config.chart.events
+
     this.localeValues = this.w.globals.locale.toolbar
   }
 
@@ -211,6 +213,10 @@ class Toolbar {
     const newMinX = (w.globals.minX + centerX) / 2
     const newMaxX = (w.globals.maxX + centerX) / 2
 
+    if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
+      return
+    }
+
     this.ctx.updateOptionsInternal({
       xaxis: {
         min: newMinX,
@@ -221,7 +227,7 @@ class Toolbar {
     true
     )
 
-    this.zoomCallback(newMinX, newMaxX)
+    this.zoomCallback({ min: newMinX, max: newMaxX })
   }
 
   handleZoomOut () {
@@ -236,6 +242,10 @@ class Toolbar {
     const newMinX = w.globals.minX - (centerX - w.globals.minX)
     const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
 
+    if (typeof this.ev.beforeZoom === 'function' && !this.ev.beforeZoom(this.ctx, { min: newMinX, max: newMaxX })) {
+      return
+    }
+
     this.ctx.updateOptionsInternal({
       xaxis: {
         min: newMinX,
@@ -246,20 +256,12 @@ class Toolbar {
     true
     )
 
-    this.zoomCallback(newMinX, newMaxX)
+    this.zoomCallback({ min: newMinX, max: newMaxX })
   }
 
-  zoomCallback (xLowestValue, xHighestValue) {
-    const w = this.w
-
-    if (typeof w.config.chart.events.zoomed === 'function') {
-      w.config.chart.events.zoomed(this.ctx,
-        {
-          xaxis: {
-            min: xLowestValue,
-            max: xHighestValue
-          }
-        })
+  zoomCallback (xaxis, yaxis) {
+    if (typeof this.ev.zoomed === 'function') {
+      this.ev.zoomed(this.ctx, { xaxis, yaxis })
     }
   }
 

@@ -433,6 +433,10 @@ class ZoomPanSelection extends Toolbar {
       xLowestValue !== xHighestValue
     ) {
       if (w.globals.zoomEnabled) {
+        if (typeof w.config.chart.events.beforeZoom === 'function' && !w.config.chart.events.beforeZoom()) {
+          return
+        }
+
         w.globals.zoomed = true
         let yaxis = w.config.yaxis
 
@@ -474,14 +478,10 @@ class ZoomPanSelection extends Toolbar {
         }
 
         if (typeof w.config.chart.events.zoomed === 'function') {
-          w.config.chart.events.zoomed(me.ctx,
-            {
-              xaxis: {
-                min: xLowestValue,
-                max: xHighestValue
-              },
-              yaxis
-            })
+          this.toolbar.zoomCallback({
+            min: xLowestValue, max: xHighestValue
+          },
+          yaxis)
         }
       } else if (w.globals.selectionEnabled) {
         let yaxis = null; let xaxis = null
