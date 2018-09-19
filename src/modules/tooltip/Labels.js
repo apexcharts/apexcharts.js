@@ -115,7 +115,7 @@ class Labels {
     const w = this.w
 
     let yLbFormatter = w.globals.yLabelFormatters[i]
-    let yLbTitleFormatter = function (val) { return val }
+    let yLbTitleFormatter
 
     if (w.globals.ttVal !== undefined) {
       if (Array.isArray(w.globals.ttVal)) {
@@ -123,8 +123,12 @@ class Labels {
         yLbTitleFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter
       } else {
         yLbFormatter = w.globals.ttVal.formatter
-        yLbTitleFormatter = w.globals.ttVal.title.formatter
+        if (typeof w.globals.ttVal.title.formatter === 'function') {
+          yLbTitleFormatter = w.globals.ttVal.title.formatter
+        }
       }
+    } else {
+      yLbTitleFormatter = w.config.tooltip.y.formatter
     }
 
     if (typeof yLbFormatter !== 'function') {
