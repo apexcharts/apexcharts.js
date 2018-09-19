@@ -22,13 +22,28 @@ class Range {
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
   niceScale (yMin, yMax, ticks = 10) {
-    if ((yMin === Number.MIN_VALUE && yMax === 0) || (!Utils.isNumber(yMin) && !Utils.isNumber(yMax))) {
+    if (
+      (yMin === Number.MIN_VALUE && yMax === 0) ||
+      (!Utils.isNumber(yMin) && !Utils.isNumber(yMax))
+    ) {
       // when all values are 0
       yMin = 0
       yMax = 1
       ticks = 1
       let justRange = this.justRange(yMin, yMax, ticks)
       return justRange
+    }
+
+    if (yMin > yMax) {
+      // if somehow due to some wrong config, user sent max less than min,
+      // adjust the min/max again
+      yMin = yMax - 0.1
+    } else if (yMin === yMax) {
+      // If yMin and yMax are identical, then
+      // adjust the yMin and yMax values to actually
+      // make a graph. Also avoids division by zero errors.
+      yMin = yMin - 10 // some small value
+      yMax = yMax + 10 // some small value
     }
 
     // Calculate Min amd Max graphical labels and graph
@@ -40,13 +55,7 @@ class Range {
     // Output will be an array of the Y axis values that
     // encompass the Y values.
     let result = []
-    // If yMin and yMax are identical, then
-    // adjust the yMin and yMax values to actually
-    // make a graph. Also avoids division by zero errors.
-    if (yMin === yMax) {
-      yMin = yMin - 10 // some small value
-      yMax = yMax + 10 // some small value
-    }
+
     // Determine Range
     let range = yMax - yMin
     let tiks = ticks + 1

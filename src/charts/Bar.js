@@ -707,7 +707,6 @@ class Bar {
     let elDataLabelsWrap = null
 
     const isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.includes(i)
-    console.log(isSeriesNotCollapsed)
 
     if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
       elDataLabelsWrap = graphics.group({
