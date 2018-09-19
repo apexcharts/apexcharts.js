@@ -128,7 +128,7 @@ class Labels {
         }
       }
     } else {
-      yLbTitleFormatter = w.config.tooltip.y.formatter
+      yLbTitleFormatter = w.config.tooltip.y.title.formatter
     }
 
     if (typeof yLbFormatter !== 'function') {
