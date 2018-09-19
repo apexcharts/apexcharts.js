@@ -57,8 +57,6 @@ class XAxis {
     let xPos = w.globals.padHorizontal
     let labels = []
 
-    if (w.globals.noData) return elXaxis
-
     for (let i = 0; i < this.xaxisLabels.length; i++) {
       labels.push(this.xaxisLabels[i])
     }
@@ -122,7 +120,7 @@ class XAxis {
         }
 
         label = label.toString()
-        if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0) {
+        if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0 || label.indexOf('Invalid') >= 0) {
           label = ''
         }
 
@@ -407,19 +405,6 @@ class XAxis {
         }
       }
     }
-
-    // the below code removes any labels which doesn't fits in the grid area.
-    // but many users didn't liked it - so commented out, will remove it
-    // if (xAxisTexts.length > 0) {
-    // let firstLabelPos = xAxisTexts[0].getBBox()
-    // let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
-    // if (xAxisTexts[0].getAttribute('x') < -10) {
-    //   xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
-    // }
-    // if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
-    //   xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
-    // }
-    // }
 
     if (yAxisTextsInversed.length > 0) {
       // truncate rotated y axis in bar chart (x axis)

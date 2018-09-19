@@ -117,11 +117,13 @@
         xaxis: {
           type: 'datetime',
           tickAmount: 8,
+          min: new Date("01/01/2014").getTime(),
+          max: new Date("01/20/2014").getTime(),
           labels: {
               rotate: -15,
               rotateAlways: true,
-              formatter: function(val) {
-                return moment(new Date(val)).format("DD MMM YYYY")
+              formatter: function(val, timestamp) {
+                return moment(new Date(timestamp)).format("DD MMM YYYY")
             }
           }
         },
