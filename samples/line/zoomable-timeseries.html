@@ -44,17 +44,8 @@
         stacked: false,
         height: 350,
         zoom: {
-          type: 'xy',
+          type: 'x',
           enabled: true
-        },
-        events: {
-          // beforeZoom is used to set a custom range for zooming in/out before the actual zoom occurs
-          beforeZoom: function(ctx, opts) {
-            return {
-              xaxis: {min: new Date("12/01/2016").getTime(), max: new Date("04/01/2017").getTime()},
-              yaxis: opts.yaxis
-            }
-          }
         },
         toolbar: {
           autoSelected: 'zoom'

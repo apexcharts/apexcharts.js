@@ -46,13 +46,13 @@
             }],
 
             xaxis: {
-                categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
+                type: 'datetime',
+                categories: ["2018-09-19T00:00:00", "2018-09-19T01:30:00", "2018-09-19T02:30:00", "2018-09-19T03:30:00", "2018-09-19T04:30:00", "2018-09-19T05:30:00", "2018-09-19T06:30:00"],                
             },
             tooltip: {
-                fixed: {
-                    enabled: false,
-                    position: 'topRight'
-                }
+                x: {
+                    format: 'dd/MM/yy HH:mm'
+                },
             }
         }
 

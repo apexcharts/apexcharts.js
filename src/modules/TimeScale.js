@@ -440,7 +440,7 @@ class TimeScale {
     let month = changeMonth(date, currentMonth)
 
     // push the first tick in the array
-    this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit, day: date, year: currentYear, month: this.monthMod(month) })
+    this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit, day: date, hour, year: currentYear, month: this.monthMod(month) })
 
     let pos = firstTickPosition
     // keep drawing rest of the ticks
@@ -459,9 +459,9 @@ class TimeScale {
       }
 
       let year = currentYear + Math.floor(month / 12) + (yrCounter)
-      pos = (60 * minutesWidthOnXAxis) + pos
+      pos = (hour === 0 && i === 0) ? (remainingMins * minutesWidthOnXAxis) : (60 * minutesWidthOnXAxis) + pos
       let val = (hour === 0) ? date : hour
-      this.timeScaleArray.push({ position: pos, value: val, unit, day: date, year, month: this.monthMod(month) })
+      this.timeScaleArray.push({ position: pos, value: val, unit, hour, day: date, year, month: this.monthMod(month) })
 
       hour++
     }

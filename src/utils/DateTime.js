@@ -21,13 +21,19 @@ class DateTime {
     return !isNaN(this.parseDate(date))
   }
 
-  parseDate (date) {
-    const parsed = Date.parse(date)
+  getUTCTimeStamp (dateStr) {
+    return new Date(new Date(dateStr).toUTCString().substr(0, 25)).getTime()
+  }
+
+  parseDate (dateStr) {
+    const parsed = Date.parse(dateStr)
     if (!isNaN(parsed)) {
-      return parsed
+      return this.getUTCTimeStamp(dateStr)
     }
 
-    return Date.parse(date.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
+    let output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
+    output = this.getUTCTimeStamp(output)
+    return output
   }
 
   // https://stackoverflow.com/a/11252167/6495043

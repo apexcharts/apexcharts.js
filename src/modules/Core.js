@@ -464,15 +464,12 @@ class Core {
             this.fallbackToCategory = true
             this.twoDSeriesX.push((ser[i].data[j].x))
           }
-        } else if (isXDate) {
+        } else {
           if (cnf.xaxis.type === 'datetime') {
             this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x.toString()))
           } else {
             this.twoDSeriesX.push(parseInt(ser[i].data[j].x))
           }
-        } else {
-          this.fallbackToCategory = true
-          this.twoDSeriesX.push(parseInt(ser[i].data[j].x))
         }
       } else {
         // a numeric value in x property
