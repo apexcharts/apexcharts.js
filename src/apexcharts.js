@@ -472,12 +472,14 @@ class ApexCharts {
   revertDefaultAxisMinMax () {
     const w = this.w
 
-    w.config.xaxis.min = w.globals.initialConfig.xaxis.min
-    w.config.xaxis.max = w.globals.initialConfig.xaxis.max
+    w.config.xaxis.min = w.globals.lastXAxis.min
+    w.config.xaxis.max = w.globals.lastXAxis.max
 
     w.config.yaxis.map((yaxe, index) => {
-      w.config.yaxis[index].min = w.globals.initialYAxis[index].min
-      w.config.yaxis[index].max = w.globals.initialYAxis[index].max
+      if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+        yaxe.min = w.globals.lastYAxis[index].min
+        yaxe.max = w.globals.lastYAxis[index].max
+      }
     })
   }
 

@@ -435,6 +435,11 @@ class ZoomPanSelection extends Toolbar {
       if (w.globals.zoomEnabled) {
         w.globals.zoomed = true
         let yaxis = Utils.clone(w.config.yaxis)
+
+        // before zooming in/out, store the last yaxis and xaxis range, so that when user hits the RESET button, we get the original range
+        w.globals.lastYAxis = Utils.clone(w.config.yaxis)
+        w.globals.lastXAxis = Utils.clone(w.config.xaxis)
+
         let xaxis = {
           min: xLowestValue,
           max: xHighestValue
@@ -447,7 +452,7 @@ class ZoomPanSelection extends Toolbar {
           })
         }
 
-        let beforeZoomRange = this.getBeforeZoomRange(xaxis, yaxis)
+        let beforeZoomRange = this.toolbar.getBeforeZoomRange(xaxis, yaxis)
 
         if (beforeZoomRange !== null) {
           xaxis = beforeZoomRange.xaxis

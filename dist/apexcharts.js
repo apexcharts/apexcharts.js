@@ -4494,7 +4494,6 @@ var Bar = function () {
       var elDataLabelsWrap = null;
 
       var isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.includes(i);
-      console.log(isSeriesNotCollapsed);
 
       if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
         elDataLabelsWrap = graphics.group({
@@ -5095,8 +5094,6 @@ var XAxis = function () {
       var xPos = w.globals.padHorizontal;
       var labels = [];
 
-      if (w.globals.noData) return elXaxis;
-
       for (var i = 0; i < this.xaxisLabels.length; i++) {
         labels.push(this.xaxisLabels[i]);
       }
@@ -5157,7 +5154,7 @@ var XAxis = function () {
           }
 
           label = label.toString();
-          if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0) {
+          if (label.indexOf('NaN') >= 0 || label.indexOf('undefined') >= 0 || label.indexOf('Invalid') >= 0) {
             label = '';
           }
 
@@ -5408,19 +5405,6 @@ var XAxis = function () {
           }
         }
       }
-
-      // the below code removes any labels which doesn't fits in the grid area.
-      // but many users didn't liked it - so commented out, will remove it
-      // if (xAxisTexts.length > 0) {
-      // let firstLabelPos = xAxisTexts[0].getBBox()
-      // let lastLabelPos = xAxisTexts[xAxisTexts.length - 1].getBBox()
-      // if (xAxisTexts[0].getAttribute('x') < -10) {
-      //   xAxisTexts[0].parentNode.removeChild(xAxisTexts[0])
-      // }
-      // if (lastLabelPos.x + lastLabelPos.width > w.globals.gridWidth + 15) {
-      //   xAxisTexts[xAxisTexts.length - 1].parentNode.removeChild(xAxisTexts[xAxisTexts.length - 1])
-      // }
-      // }
 
       if (yAxisTextsInversed.length > 0) {
         // truncate rotated y axis in bar chart (x axis)
@@ -6974,14 +6958,21 @@ var DateTime = function () {
       return !isNaN(this.parseDate(date));
     }
   }, {
+    key: 'getUTCTimeStamp',
+    value: function getUTCTimeStamp(dateStr) {
+      return new Date(new Date(dateStr).toUTCString().substr(0, 25)).getTime();
+    }
+  }, {
     key: 'parseDate',
-    value: function parseDate(date) {
-      var parsed = Date.parse(date);
+    value: function parseDate(dateStr) {
+      var parsed = Date.parse(dateStr);
       if (!isNaN(parsed)) {
-        return parsed;
+        return this.getUTCTimeStamp(dateStr);
       }
 
-      return Date.parse(date.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
+      var output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
+      output = this.getUTCTimeStamp(output);
+      return output;
     }
 
     // https://stackoverflow.com/a/11252167/6495043
@@ -9075,7 +9066,7 @@ var TimeScale = function () {
       var month = changeMonth(date, currentMonth);
 
       // push the first tick in the array
-      this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit: unit, day: date, year: currentYear, month: this.monthMod(month) });
+      this.timeScaleArray.push({ position: firstTickPosition, value: firstTickValue, unit: unit, day: date, hour: hour, year: currentYear, month: this.monthMod(month) });
 
       var pos = firstTickPosition;
       // keep drawing rest of the ticks
@@ -9094,9 +9085,9 @@ var TimeScale = function () {
         }
 
         var year = currentYear + Math.floor(month / 12) + yrCounter;
-        pos = 60 * minutesWidthOnXAxis + pos;
+        pos = hour === 0 && i === 0 ? remainingMins * minutesWidthOnXAxis : 60 * minutesWidthOnXAxis + pos;
         var val = hour === 0 ? date : hour;
-        this.timeScaleArray.push({ position: pos, value: val, unit: unit, day: date, year: year, month: this.monthMod(month) });
+        this.timeScaleArray.push({ position: pos, value: val, unit: unit, hour: hour, day: date, year: year, month: this.monthMod(month) });
 
         hour++;
       }
@@ -9523,18 +9514,11 @@ var Toolbar = function () {
       var w = this.w;
 
       var me = this;
-      var yaxis = w.config.yaxis;
-      var xaxis = w.config.xaxis;
       w.globals.zoomed = false;
 
       if (w.globals.minX === w.globals.initialminX && w.globals.maxX === w.globals.initialmaxX) return;
 
-      w.config.yaxis.map(function (yaxe, index) {
-        yaxis[index].min = w.globals.initialYAxis[index].min;
-        yaxis[index].max = w.globals.initialYAxis[index].max;
-      });
-      xaxis.min = w.globals.initialConfig.xaxis.min;
-      xaxis.max = w.globals.initialConfig.xaxis.max;
+      me.ctx.revertDefaultAxisMinMax();
 
       me.ctx.updateSeriesInternal(w.globals.initialSeries, true);
     }
@@ -10956,12 +10940,14 @@ var ApexCharts = function () {
     value: function revertDefaultAxisMinMax() {
       var w = this.w;
 
-      w.config.xaxis.min = w.globals.initialConfig.xaxis.min;
-      w.config.xaxis.max = w.globals.initialConfig.xaxis.max;
+      w.config.xaxis.min = w.globals.lastXAxis.min;
+      w.config.xaxis.max = w.globals.lastXAxis.max;
 
       w.config.yaxis.map(function (yaxe, index) {
-        w.config.yaxis[index].min = w.globals.initialYAxis[index].min;
-        w.config.yaxis[index].max = w.globals.initialYAxis[index].max;
+        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+          yaxe.min = w.globals.lastYAxis[index].min;
+          yaxe.max = w.globals.lastYAxis[index].max;
+        }
       });
     }
   }, {
@@ -16034,15 +16020,12 @@ var Core = function () {
               this.fallbackToCategory = true;
               this.twoDSeriesX.push(ser[i].data[j].x);
             }
-          } else if (isXDate) {
+          } else {
             if (cnf.xaxis.type === 'datetime') {
               this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x.toString()));
             } else {
               this.twoDSeriesX.push(parseInt(ser[i].data[j].x));
             }
-          } else {
-            this.fallbackToCategory = true;
-            this.twoDSeriesX.push(parseInt(ser[i].data[j].x));
           }
         } else {
           // a numeric value in x property
@@ -17289,6 +17272,18 @@ var Range = function () {
         return justRange;
       }
 
+      if (yMin > yMax) {
+        // if somehow due to some wrong config, user sent max less than min,
+        // adjust the min/max again
+        yMin = yMax - 0.1;
+      } else if (yMin === yMax) {
+        // If yMin and yMax are identical, then
+        // adjust the yMin and yMax values to actually
+        // make a graph. Also avoids division by zero errors.
+        yMin = yMin - 10; // some small value
+        yMax = yMax + 10; // some small value
+      }
+
       // Calculate Min amd Max graphical labels and graph
       // increments.  The number of ticks defaults to
       // 10 which is the SUGGESTED value.  Any tick value
@@ -17298,13 +17293,7 @@ var Range = function () {
       // Output will be an array of the Y axis values that
       // encompass the Y values.
       var result = [];
-      // If yMin and yMax are identical, then
-      // adjust the yMin and yMax values to actually
-      // make a graph. Also avoids division by zero errors.
-      if (yMin === yMax) {
-        yMin = yMin - 10; // some small value
-        yMax = yMax + 10; // some small value
-      }
+
       // Determine Range
       var range = yMax - yMin;
       var tiks = ticks + 1;
@@ -18674,6 +18663,11 @@ var ZoomPanSelection = function (_Toolbar) {
         if (w.globals.zoomEnabled) {
           w.globals.zoomed = true;
           var yaxis = _Utils2.default.clone(w.config.yaxis);
+
+          // before zooming in/out, store the last yaxis and xaxis range, so that when user hits the RESET button, we get the original range
+          w.globals.lastYAxis = _Utils2.default.clone(w.config.yaxis);
+          w.globals.lastXAxis = _Utils2.default.clone(w.config.xaxis);
+
           var xaxis = {
             min: xLowestValue,
             max: xHighestValue
@@ -18686,7 +18680,7 @@ var ZoomPanSelection = function (_Toolbar) {
             });
           }
 
-          var beforeZoomRange = this.getBeforeZoomRange(xaxis, yaxis);
+          var beforeZoomRange = this.toolbar.getBeforeZoomRange(xaxis, yaxis);
 
           if (beforeZoomRange !== null) {
             xaxis = beforeZoomRange.xaxis;
@@ -19643,7 +19637,8 @@ var Globals = function () {
         },
         isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
         initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
-        initialYAxis: [],
+        lastXAxis: [],
+        lastYAxis: [],
         series: [], // the MAIN series array (y values)
         seriesPercent: [], // the percentage values of the given series
         seriesTotals: [],
@@ -19769,7 +19764,8 @@ var Globals = function () {
 
       globals.initialConfig = _Utils2.default.extend({}, config);
       globals.initialSeries = JSON.parse(JSON.stringify(globals.initialConfig.series));
-      globals.initialYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis));
+      globals.lastXAxis = JSON.parse(JSON.stringify(globals.initialConfig.xaxis));
+      globals.lastYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis));
       return globals;
     }
   }]);
@@ -20404,9 +20400,7 @@ var Labels = function () {
       var w = this.w;
 
       var yLbFormatter = w.globals.yLabelFormatters[i];
-      var yLbTitleFormatter = function yLbTitleFormatter(val) {
-        return val;
-      };
+      var yLbTitleFormatter = void 0;
 
       if (w.globals.ttVal !== undefined) {
         if (Array.isArray(w.globals.ttVal)) {
@@ -20414,8 +20408,12 @@ var Labels = function () {
           yLbTitleFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter;
         } else {
           yLbFormatter = w.globals.ttVal.formatter;
-          yLbTitleFormatter = w.globals.ttVal.title.formatter;
+          if (typeof w.globals.ttVal.title.formatter === 'function') {
+            yLbTitleFormatter = w.globals.ttVal.title.formatter;
+          }
         }
+      } else {
+        yLbTitleFormatter = w.config.tooltip.y.title.formatter;
       }
 
       if (typeof yLbFormatter !== 'function') {

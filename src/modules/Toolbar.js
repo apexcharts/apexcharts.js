@@ -278,18 +278,11 @@ class Toolbar {
     let w = this.w
 
     let me = this
-    let yaxis = w.config.yaxis
-    let xaxis = w.config.xaxis
     w.globals.zoomed = false
 
     if (w.globals.minX === w.globals.initialminX && w.globals.maxX === w.globals.initialmaxX) return
 
-    w.config.yaxis.map((yaxe, index) => {
-      yaxis[index].min = w.globals.initialYAxis[index].min
-      yaxis[index].max = w.globals.initialYAxis[index].max
-    })
-    xaxis.min = w.globals.initialConfig.xaxis.min
-    xaxis.max = w.globals.initialConfig.xaxis.max
+    me.ctx.revertDefaultAxisMinMax()
 
     me.ctx.updateSeriesInternal(w.globals.initialSeries, true)
   }
