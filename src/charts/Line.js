@@ -116,7 +116,7 @@ class Line {
       this.appendPathFrom = true
 
       let pX = x
-      let pY = zeroY
+      let pY
 
       let prevX = pX
       let prevY = zeroY // w.globals.svgHeight;
@@ -134,7 +134,6 @@ class Line {
         lineYPosition
       })
       prevY = firstPrevY.prevY
-      lineYPosition = firstPrevY.lineYPosition
 
       yArrj.push(prevY)
       pY = prevY
@@ -176,6 +175,7 @@ class Line {
             i > 0 &&
             w.globals.collapsedSeries.length < w.config.series.length - 1
           ) {
+            console.log(prevSeriesY)
             lineYPosition = prevSeriesY[i - 1][j + 1]
           } else {
             // the first series will not have prevY values
@@ -183,13 +183,13 @@ class Line {
           }
 
           if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-            y = lineYPosition - 1 / yRatio[this.yaxisIndex]
+            y = lineYPosition - (w.globals.minY) / yRatio[this.yaxisIndex]
           } else {
             y = (lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex])
           }
         } else {
           if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-            y = zeroY - 1 / yRatio[this.yaxisIndex]
+            y = zeroY - (w.globals.minY) / yRatio[this.yaxisIndex]
           } else {
             y = (zeroY - series[i][j + 1] / yRatio[this.yaxisIndex])
           }
