@@ -320,8 +320,8 @@ class Labels {
   }) {
     const w = this.w
     // override everything with a custom html tooltip and replace it
-    this.ttCtx.tooltip.innerHTML = ''
-    this.ttCtx.tooltip.innerHTML = w.config.tooltip.custom({
+    this.ttCtx.tooltipEl.innerHTML = ''
+    this.ttCtx.tooltipEl.innerHTML = w.config.tooltip.custom({
       series: w.globals.series,
       seriesIndex: i,
       dataPointIndex: j,

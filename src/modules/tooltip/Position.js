@@ -186,8 +186,8 @@ class Position {
     if (!isNaN(x)) {
       x = x + w.globals.translateX
 
-      ttCtx.tooltip.style.left = x + 'px'
-      ttCtx.tooltip.style.top = y + 'px'
+      ttCtx.tooltipEl.style.left = x + 'px'
+      ttCtx.tooltipEl.style.top = y + 'px'
     }
   }
 

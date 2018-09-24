@@ -161,8 +161,8 @@ class Intersect {
 
     // move tooltip here
     if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || ttCtx.isBarHorizontal)) {
-      ttCtx.tooltip.style.left = x + w.globals.translateX + 'px'
-      ttCtx.tooltip.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
+      ttCtx.tooltipEl.style.left = x + w.globals.translateX + 'px'
+      ttCtx.tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
     }
   }
 

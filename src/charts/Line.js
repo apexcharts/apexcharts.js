@@ -175,7 +175,6 @@ class Line {
             i > 0 &&
             w.globals.collapsedSeries.length < w.config.series.length - 1
           ) {
-            console.log(prevSeriesY)
             lineYPosition = prevSeriesY[i - 1][j + 1]
           } else {
             // the first series will not have prevY values

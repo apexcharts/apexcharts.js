@@ -61,7 +61,7 @@ class ApexCharts {
           Apex._chartInstances = []
         }
         if (this.w.config.chart.id) {
-          Apex._chartInstances.push({id: this.w.globals.chartID, chart: this})
+          Apex._chartInstances.push({id: this.w.globals.chartID, group: this.w.config.chart.group, chart: this})
         }
 
         // set the locale here
@@ -265,8 +265,8 @@ class ApexCharts {
       if (!w.globals.noData) {
         // draw tooltips at the end
         if (w.config.tooltip.enabled && !w.globals.noData) {
-          let tooltip = new Tooltip(me.ctx)
-          tooltip.drawTooltip(graphData.xyRatios)
+          w.globals.tooltip = new Tooltip(me.ctx)
+          w.globals.tooltip.drawTooltip(graphData.xyRatios)
         }
 
         if (w.globals.axisCharts && w.globals.dataXY) {
