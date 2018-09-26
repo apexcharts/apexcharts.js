@@ -61,7 +61,11 @@ class ApexCharts {
           Apex._chartInstances = []
         }
         if (this.w.config.chart.id) {
-          Apex._chartInstances.push({id: this.w.globals.chartID, group: this.w.config.chart.group, chart: this})
+          Apex._chartInstances.push({
+            id: this.w.globals.chartID,
+            group: this.w.config.chart.group,
+            chart: this
+          })
         }
 
         // set the locale here
@@ -107,18 +111,26 @@ class ApexCharts {
 
   removeEventListener (name, handler) {
     const w = this.w
-    if (!w.globals.events.hasOwnProperty(name)) { return }
+    if (!w.globals.events.hasOwnProperty(name)) {
+      return
+    }
 
     var index = w.globals.events[name].indexOf(handler)
-    if (index !== -1) { w.globals.events[name].splice(index, 1) }
+    if (index !== -1) {
+      w.globals.events[name].splice(index, 1)
+    }
   };
 
   fireEvent (name, args) {
     const w = this.w
 
-    if (!w.globals.events.hasOwnProperty(name)) { return }
+    if (!w.globals.events.hasOwnProperty(name)) {
+      return
+    }
 
-    if (!args || !args.length) { args = [] }
+    if (!args || !args.length) {
+      args = []
+    }
 
     let evs = w.globals.events[name]
     let l = evs.length
@@ -143,7 +155,6 @@ class ApexCharts {
       return null
     }
 
-    this.clear()
     this.core.setupElements()
 
     if (ser.length === 0 || (ser.length === 1 && ser[0].data && ser[0].data.length === 0)) {
@@ -332,51 +343,55 @@ class ApexCharts {
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
    */
   updateOptionsInternal (options, redraw = false, animate = true, overwriteInitialConfig = false) {
-    let w = this.w
-    this.w.config.chart.animations.dynamicAnimation.enabled = animate
+    const charts = this.getSyncedCharts()
 
-    if (!redraw) {
-      w.globals.resized = true
-      let series = new Series(this.ctx)
+    charts.forEach((ch) => {
+      let w = ch.w
+      ch.w.config.chart.animations.dynamicAnimation.enabled = animate
 
-      this.w.globals.dataChanged = true
+      if (!redraw) {
+        w.globals.resized = true
+        let series = new Series(ch.ctx)
 
-      if (animate && this.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
-        series.getPreviousPaths()
-      }
-    }
+        ch.w.globals.dataChanged = true
 
-    if (options && typeof options === 'object') {
-      const responsive = new Responsive(this.ctx)
-      responsive.checkResponsiveConfig()
-      this.responsiveConfigOverrided = true
-
-      const config = new Config(options)
-
-      if (options.yaxis) {
-        options = config.extendYAxis(options)
-      }
-      if (options.annotations) {
-        if (options.annotations.yaxis) {
-          options = config.extendYAxisAnnotations(options)
-        }
-        if (options.annotations.xaxis) {
-          options = config.extendXAxisAnnotations(options)
-        }
-        if (options.annotations.points) {
-          options = config.extendPointAnnotations(options)
+        if (animate && ch.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
+          series.getPreviousPaths()
         }
       }
 
-      w.config = Utils.extend(w.config, options)
+      if (options && typeof options === 'object') {
+        const responsive = new Responsive(ch.ctx)
+        responsive.checkResponsiveConfig()
+        ch.responsiveConfigOverrided = true
 
-      if (overwriteInitialConfig) {
-        w.globals.initialConfig = Utils.extend({}, w.config)
-        w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
+        const config = new Config(options)
+
+        if (options.yaxis) {
+          options = config.extendYAxis(options)
+        }
+        if (options.annotations) {
+          if (options.annotations.yaxis) {
+            options = config.extendYAxisAnnotations(options)
+          }
+          if (options.annotations.xaxis) {
+            options = config.extendXAxisAnnotations(options)
+          }
+          if (options.annotations.points) {
+            options = config.extendPointAnnotations(options)
+          }
+        }
+
+        w.config = Utils.extend(w.config, options)
+
+        if (overwriteInitialConfig) {
+          w.globals.initialConfig = Utils.extend({}, w.config)
+          w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
+        }
       }
-    }
 
-    return this.update()
+      return ch.update()
+    })
   }
 
   /**
@@ -396,6 +411,7 @@ class ApexCharts {
    */
   updateSeriesInternal (newSeries, animate, overwriteInitialSeries = false) {
     const w = this.w
+
     this.w.config.chart.animations.dynamicAnimation.enabled = animate
     let series = new Series(this.ctx)
 
@@ -411,6 +427,31 @@ class ApexCharts {
     }
 
     return this.update()
+  }
+
+  /**
+   * Get all charts in the same "group" (including the instance which is called upon) to sync them when user zooms in/out or pan.
+   */
+  getSyncedCharts () {
+    const chartGroups = this.getGroupedCharts()
+
+    const allCharts = [this]
+    if (chartGroups.length) {
+      chartGroups.forEach((ch) => {
+        allCharts.push(ch)
+      })
+    }
+
+    return allCharts
+  }
+
+  /**
+   * Get charts in the same "group" (excluding the instance which is called upon) to perform operations on the other charts of the same group (eg., tooltip hovering)
+   */
+  getGroupedCharts () {
+    return Apex._chartInstances.map((ch) => {
+      return this.w.config.chart.group === ch.group ? ch.chart : null
+    })
   }
 
   /**
@@ -447,6 +488,7 @@ class ApexCharts {
   update () {
     const me = this
     return new Promise((resolve, reject) => {
+      me.destroy()
       const graphData = me.create(me.w.config.series)
 
       me.mount(graphData).then(() => {
@@ -490,6 +532,7 @@ class ApexCharts {
         this.el.removeChild(this.el.firstChild)
       }
     }
+    this.w.globals.dom.Paper.clear()
     this.w.globals.dom = {} // empty the property which contains all DOM nodes
   }
 
@@ -535,25 +578,32 @@ class ApexCharts {
     if (!chart) return
 
     switch (fn) {
-      case 'updateOptions': {
+      case 'updateOptions':
+      {
         return chart.updateOptions(opts)
       }
-      case 'updateSeries': {
+      case 'updateSeries':
+      {
         return chart.updateSeries(opts)
       }
-      case 'appendData': {
+      case 'appendData':
+      {
         return chart.appendData(opts)
       }
-      case 'addXaxisAnnotation': {
+      case 'addXaxisAnnotation':
+      {
         return chart.addXaxisAnnotation(opts)
       }
-      case 'addYaxisAnnotation': {
+      case 'addYaxisAnnotation':
+      {
         return chart.addYaxisAnnotation(opts)
       }
-      case 'addPointAnnotation': {
+      case 'addPointAnnotation':
+      {
         return chart.addPointAnnotation(opts)
       }
-      case 'destroy': {
+      case 'destroy':
+      {
         return chart.destroy()
       }
     }
@@ -701,8 +751,7 @@ class ApexCharts {
       this.w.globals.dataChanged = false
 
       // we need to redraw the whole chart on window resize (with a small delay).
-      let graphData = this.create(this.w.config.series)
-      this.mount(graphData)
+      this.update()
     }, 150)
   }
 }

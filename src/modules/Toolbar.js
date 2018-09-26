@@ -275,16 +275,17 @@ class Toolbar {
   }
 
   handleZoomReset (e) {
-    let w = this.w
+    const charts = this.ctx.getSyncedCharts()
 
-    let me = this
-    w.globals.zoomed = false
+    charts.forEach((ch) => {
+      let w = ch.w
+      w.globals.zoomed = false
 
-    if (w.globals.minX === w.globals.initialminX && w.globals.maxX === w.globals.initialmaxX) return
-
-    me.ctx.revertDefaultAxisMinMax()
-
-    me.ctx.updateSeriesInternal(w.globals.initialSeries, true)
+      if (w.globals.minX !== w.globals.initialminX && w.globals.maxX !== w.globals.initialmaxX) {
+        ch.revertDefaultAxisMinMax()
+        ch.updateSeriesInternal(w.globals.initialSeries, true)
+      }
+    })
   }
 }
 

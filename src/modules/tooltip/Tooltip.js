@@ -343,9 +343,7 @@ class Tooltip {
    ** The actual series hover function
    */
   seriesHover (opt, e) {
-    const chartGroups = Apex._chartInstances.map((ch) => {
-      return this.ctx.w.config.chart.group === ch.group ? ch.chart : null
-    })
+    const chartGroups = this.ctx.getGroupedCharts()
 
     if (chartGroups.length) {
       chartGroups.forEach((ch) => {
@@ -358,7 +356,11 @@ class Tooltip {
           hoverArea: opt.hoverArea,
           ttItems: ch.w.globals.tooltip.ttItems
         }
-        ch.w.globals.tooltip.seriesHoverByContext({ chartCtx: ch, ttCtx: ch.w.globals.tooltip, opt: newOpts, e })
+
+        // all the charts should have the same minX and maxX (same xaxis) for multiple tooltips to work correctly
+        if (ch.w.globals.minX === this.w.globals.minX && ch.w.globals.maxX === this.w.globals.maxX) {
+          ch.w.globals.tooltip.seriesHoverByContext({ chartCtx: ch, ttCtx: ch.w.globals.tooltip, opt: newOpts, e })
+        }
       })
     } else {
       this.seriesHoverByContext({ chartCtx: this.ctx, ttCtx: this.w.globals.tooltip, opt, e })

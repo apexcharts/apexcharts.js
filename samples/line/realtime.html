@@ -25,14 +25,60 @@
 
 
     <script src="../../dist/apexcharts.js"></script>
-    <script src="../assets/data.js"></script>
 
     <script>
+
+        /*
+        // this function will generate output in this format
+        // data = [
+            [timestamp, 23],
+            [timestamp, 33],
+            [timestamp, 12]
+            ...
+        ]
+        */
+
+        var lastDate = 0;
+        function generateDayWiseTimeSeries(baseval, count, yrange) {
+            var i = 0;
+            var series = [];
+            while (i < count) {
+                var x = baseval;
+                var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+                series.push({
+                    x, y
+                });
+                lastDate = baseval
+                baseval += 86400000;
+                i++;
+            }
+
+            return series;
+        }
+
+        function appendNewDateData(i, yrange) {
+            if(!yrange) {
+                yrange = {
+                    min: 10,
+                    max: 90
+                }
+            }
+            if(i === 0) {
+                lastDate = lastDate + 86400000;
+            }
+            return {
+                x: lastDate,
+                y: Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+            }
+        }
+
         var options = {
             chart: {
                 height: 350,
                 type: 'line',
                 animations: {
+                    enabled: true,
                     easing: 'linear',
                     dynamicAnimation: {
                         speed: 2000
@@ -53,11 +99,18 @@
             },
             series: [{
                     name: "Laptops",
-                    data: [45, 52, 38, 24, 33, 26, 21, 20, 6, 8, 15, 10, 51, 32, 12]
-                },
-                {
-                    name: "Desktops",
-                    data: [35, 41, 62, 42, 13, 18, 29, 37, 36, 51, 32, 35, 20, 51, 36]
+                    data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+                        min: 10,
+                        max: 90
+                    })
+                
+                }, {
+                    name: "Laptops",
+                    data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+                        min: 10,
+                        max: 90
+                    })
+                
                 }
             ],
             title: {
@@ -68,8 +121,8 @@
                 size: 0
             },
             xaxis: {
-                range: 14,
-                tickAmount: 14
+                type: 'datetime',
+                range: 777600000,
             },
             legend: {
                 show: false
@@ -85,9 +138,9 @@
 
         window.setInterval(function () {
             chart.appendData([{
-                data: [Math.floor((Math.random() * 20) + 20)]
+                data: [appendNewDateData(0)]
             }, {
-                data: [Math.floor((Math.random() * 20) + 20)]
+                data: [appendNewDateData(1)]
             }])
         }, 2000)
     </script>
