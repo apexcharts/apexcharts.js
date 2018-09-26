@@ -110,7 +110,7 @@ class XAxis {
         let xFormat = new Formatters(this.ctx)
         label = xFormat.xLabelFormat(xlbFormatter, label)
         if (customFormatter !== undefined) {
-          label = customFormatter(label, this.xaxisLabels[i])
+          label = customFormatter(label, this.xaxisLabels[i], i)
         }
 
         let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
