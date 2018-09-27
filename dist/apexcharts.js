@@ -4927,7 +4927,9 @@ var Markers = function () {
             _this.setSelectedPointFilter(point, seriesIndex, realIndexP);
             _this.addEvents(point);
 
-            elPointsWrap.add(point);
+            if (elPointsWrap) {
+              elPointsWrap.add(point);
+            }
           } else {
             // dynamic array creation - multidimensional
             if (typeof w.globals.pointsArray[seriesIndex] === 'undefined') w.globals.pointsArray[seriesIndex] = [];
@@ -5144,7 +5146,7 @@ var XAxis = function () {
           var xFormat = new _Formatters2.default(this.ctx);
           label = xFormat.xLabelFormat(xlbFormatter, label);
           if (customFormatter !== undefined) {
-            label = customFormatter(label, this.xaxisLabels[_i]);
+            label = customFormatter(label, this.xaxisLabels[_i], _i);
           }
 
           var x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX;
@@ -9251,9 +9253,9 @@ var Toolbar = function () {
     value: function createToolbar() {
       var w = this.w;
 
-      this.elToolbarWrap = document.createElement('div');
-      this.elToolbarWrap.setAttribute('class', 'apexcharts-toolbar');
-      w.globals.dom.elWrap.appendChild(this.elToolbarWrap);
+      var elToolbarWrap = document.createElement('div');
+      elToolbarWrap.setAttribute('class', 'apexcharts-toolbar');
+      w.globals.dom.elWrap.appendChild(elToolbarWrap);
 
       this.elZoom = document.createElement('div');
       this.elZoomIn = document.createElement('div');
@@ -9333,7 +9335,7 @@ var Toolbar = function () {
           title: toolbarControls[i].title
         });
         toolbarControls[i].el.innerHTML = toolbarControls[i].icon;
-        this.elToolbarWrap.appendChild(toolbarControls[i].el);
+        elToolbarWrap.appendChild(toolbarControls[i].el);
       }
 
       if (w.globals.zoomEnabled) {
@@ -9582,6 +9584,8 @@ var Position = function () {
       var ttCtx = this.ttCtx;
       var w = this.w;
 
+      var xcrosshairs = ttCtx.getElXCrosshairs();
+
       var x = cx - ttCtx.xcrosshairsWidth / 2;
 
       var tickAmount = w.globals.labels.slice().length;
@@ -9603,9 +9607,9 @@ var Position = function () {
         }
       }
 
-      if (ttCtx.xcrosshairs !== null) {
-        ttCtx.xcrosshairs.setAttribute('x', x);
-        ttCtx.xcrosshairs.classList.add('active');
+      if (xcrosshairs !== null) {
+        xcrosshairs.setAttribute('x', x);
+        xcrosshairs.classList.add('active');
       }
 
       if (ttCtx.blxaxisTooltip) {
@@ -9746,7 +9750,8 @@ var Position = function () {
       }
 
       if (w.config.tooltip.followCursor) {
-        var seriesBound = ttCtx.elGrid.getBoundingClientRect();
+        var elGrid = ttCtx.getElGrid();
+        var seriesBound = elGrid.getBoundingClientRect();
         y = ttCtx.e.clientY - seriesBound.top - tooltipRect.ttHeight / 2;
       }
 
@@ -9837,8 +9842,10 @@ var Position = function () {
       }
 
       var points = null;
-      if (ttCtx.allPoints !== null) {
-        points = ttCtx.allPoints;
+      var allPoints = ttCtx.getAllMarkers();
+
+      if (allPoints !== null) {
+        points = allPoints;
       } else {
         points = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers circle');
       }
@@ -9891,7 +9898,8 @@ var Position = function () {
       }
 
       // tooltip will move vertically along with mouse as it is a shared tooltip
-      var seriesBound = ttCtx.elGrid.getBoundingClientRect();
+      var elGrid = ttCtx.getElGrid();
+      var seriesBound = elGrid.getBoundingClientRect();
 
       bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2;
 
@@ -10410,7 +10418,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+__webpack_require__(150);
+__webpack_require__(149);
+__webpack_require__(151);
+__webpack_require__(148);
+__webpack_require__(153);
+__webpack_require__(152);
+
 __webpack_require__(156);
+__webpack_require__(154);
 
 // global Apex object which user can use to override chart's defaults globally
 window.Apex = {};
@@ -10634,7 +10650,7 @@ var ApexCharts = function () {
       return new Promise(function (resolve, reject) {
         // no data to display
         if (me.el === null) {
-          return reject(new Error('Not enough data to display or element not found'));
+          return reject(new Error('Not enough data to display or target element not found'));
         } else if (graphData === null || w.globals.allSeriesCollapsed) {
           series.handleNoData();
         }
@@ -11005,12 +11021,8 @@ var ApexCharts = function () {
           this.el.removeChild(this.el.firstChild);
         }
       }
-      // domEls.Paper.clear()
-      // domEls.Paper.remove()
-      this.ctx = null;
-      delete this.ctx;
-      this.ctx = this;
-      domEls.Paper = null;
+      domEls.Paper.clear();
+      domEls.Paper.remove();
       domEls.elWrap = null;
       domEls.elGraphical = null;
       domEls.elLegendWrap = null;
@@ -15614,10 +15626,6 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _ClassListPolyfill = __webpack_require__(154);
-
-var _ClassListPolyfill2 = _interopRequireDefault(_ClassListPolyfill);
-
 var _Series = __webpack_require__(26);
 
 var _Series2 = _interopRequireDefault(_Series);
@@ -15626,21 +15634,9 @@ var _TimeScale = __webpack_require__(76);
 
 var _TimeScale2 = _interopRequireDefault(_TimeScale);
 
-var _svg = __webpack_require__(150);
-
-var SVG = _interopRequireWildcard(_svg);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-__webpack_require__(149);
-__webpack_require__(151);
-__webpack_require__(148);
-__webpack_require__(153);
-__webpack_require__(152);
 
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.
@@ -15690,7 +15686,7 @@ var Core = function () {
       });
       this.el.appendChild(gl.dom.elWrap);
 
-      gl.dom.Paper = new SVG.Doc(gl.dom.elWrap);
+      gl.dom.Paper = new window.SVG.Doc(gl.dom.elWrap);
       gl.dom.Paper.attr({
         class: 'apexcharts-svg',
         'xmlns:data': 'ApexChartsNS',
@@ -15715,10 +15711,6 @@ var Core = function () {
       gl.dom.Paper.add(gl.dom.elLegendWrap);
       gl.dom.Paper.add(gl.dom.elGraphical);
       gl.dom.elGraphical.add(gl.dom.elDefs);
-
-      if (_Utils2.default.isIE()) {
-        _ClassListPolyfill2.default.fnClassList();
-      }
     }
   }, {
     key: 'plotChartType',
@@ -15899,7 +15891,7 @@ var Core = function () {
   }, {
     key: 'coreCalculations',
     value: function coreCalculations() {
-      var range = new _Range2.default(this.ctx, this.checkComboCharts);
+      var range = new _Range2.default(this.ctx);
       range.init();
     }
   }, {
@@ -17299,12 +17291,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  **/
 
 var Range = function () {
-  function Range(ctx, checkComboCharts) {
+  function Range(ctx) {
     _classCallCheck(this, Range);
 
     this.ctx = ctx;
     this.w = ctx.w;
-    this.checkComboCharts = checkComboCharts;
   }
 
   _createClass(Range, [{
@@ -17628,7 +17619,6 @@ var Range = function () {
           gl.initialmaxX = maxX;
         }
       }
-      // this.checkComboCharts()
 
       var niceXRange = new Range(this.ctx);
       if (gl.dataXY || gl.noLabelsProvided) {
@@ -19816,7 +19806,6 @@ var Globals = function () {
         xaxisTooltipLabelFormatter: undefined, // formatter for x axis tooltip
         ttKeyFormatter: undefined,
         ttVal: undefined,
-        ttValFormatter: [],
         ttZFormatter: undefined,
         lineHeightRatio: 1.618,
         xAxisLabelsHeight: 0,
@@ -19968,7 +19957,7 @@ var AxesTooltip = function () {
       var ttCtx = this.ttCtx;
 
       // set xcrosshairs width
-      ttCtx.xcrosshairs = w.globals.dom.baseEl.querySelector('.apexcharts-xcrosshairs');
+      var xcrosshairs = ttCtx.getElXCrosshairs();
       ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width);
 
       if (!w.globals.comboCharts) {
@@ -20000,8 +19989,8 @@ var AxesTooltip = function () {
       if (w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal) {
         ttCtx.xcrosshairsWidth = 0;
       }
-      if (ttCtx.xcrosshairs !== null) {
-        ttCtx.xcrosshairs.setAttribute('width', ttCtx.xcrosshairsWidth);
+      if (xcrosshairs !== null) {
+        xcrosshairs.setAttribute('width', ttCtx.xcrosshairsWidth);
       }
     }
   }, {
@@ -20113,7 +20102,8 @@ var Intersect = function () {
           x = cx - ttCtx.tooltipRect.ttWidth / 2 + width;
         }
         if (ttCtx.w.config.tooltip.followCursor) {
-          var seriesBound = ttCtx.elGrid.getBoundingClientRect();
+          var elGrid = ttCtx.getElGrid();
+          var seriesBound = elGrid.getBoundingClientRect();
           // x = ttCtx.e.clientX - seriesBound.left
           y = ttCtx.e.clientY - seriesBound.top;
         }
@@ -20167,7 +20157,8 @@ var Intersect = function () {
         y = cy - ttCtx.tooltipRect.ttHeight * 1.4;
 
         if (ttCtx.w.config.tooltip.followCursor) {
-          var seriesBound = ttCtx.elGrid.getBoundingClientRect();
+          var elGrid = ttCtx.getElGrid();
+          var seriesBound = elGrid.getBoundingClientRect();
           y = ttCtx.e.clientY - seriesBound.top;
         }
 
@@ -20223,7 +20214,8 @@ var Intersect = function () {
       }
 
       if (ttCtx.w.config.tooltip.followCursor) {
-        var seriesBound = ttCtx.elGrid.getBoundingClientRect();
+        var elGrid = ttCtx.getElGrid();
+        var seriesBound = elGrid.getBoundingClientRect();
         y = ttCtx.e.clientY - seriesBound.top;
       }
 
@@ -20748,7 +20740,6 @@ var Marker = function () {
   _createClass(Marker, [{
     key: 'drawDynamicPoints',
     value: function drawDynamicPoints() {
-      var ttCtx = this.ttCtx;
       var w = this.w;
 
       var graphics = new _Graphics2.default(this.ctx);
@@ -20779,8 +20770,6 @@ var Marker = function () {
 
           elPointsG.appendChild(point.node);
           pointsMain.appendChild(elPointsG);
-
-          ttCtx.allPoints = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers .apexcharts-marker');
         }
       }
     }
@@ -20966,6 +20955,16 @@ var Tooltip = function () {
       return ctx.w.globals.dom.baseEl.querySelector('.apexcharts-tooltip');
     }
   }, {
+    key: 'getElXCrosshairs',
+    value: function getElXCrosshairs() {
+      return this.w.globals.dom.baseEl.querySelector('.apexcharts-xcrosshairs');
+    }
+  }, {
+    key: 'getElGrid',
+    value: function getElGrid() {
+      return this.w.globals.dom.baseEl.querySelector('.apexcharts-grid');
+    }
+  }, {
     key: 'drawTooltip',
     value: function drawTooltip(xyRatios) {
       var w = this.w;
@@ -20986,8 +20985,6 @@ var Tooltip = function () {
         this.axesTooltip.drawYaxisTooltip();
         this.axesTooltip.setXCrosshairWidth();
         this.axesTooltip.handleYCrosshair();
-
-        this.allPoints = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers .apexcharts-marker');
 
         var xAxis = new _XAxis2.default(this.ctx);
         this.xAxisTicksPositions = xAxis.getXAxisTicksPositions();
@@ -21093,9 +21090,9 @@ var Tooltip = function () {
 
       var hoverArea = w.globals.dom.Paper.node;
 
-      this.elGrid = w.globals.dom.baseEl.querySelector('.apexcharts-grid');
-      if (this.elGrid) {
-        this.seriesBound = this.elGrid.getBoundingClientRect();
+      var elGrid = this.getElGrid();
+      if (elGrid) {
+        this.seriesBound = elGrid.getBoundingClientRect();
       }
 
       var tooltipY = [];
@@ -21103,7 +21100,7 @@ var Tooltip = function () {
 
       var seriesHoverParams = {
         hoverArea: hoverArea,
-        elGrid: this.elGrid,
+        elGrid: elGrid,
         tooltipEl: tooltipEl,
         tooltipY: tooltipY,
         tooltipX: tooltipX,
@@ -21336,6 +21333,7 @@ var Tooltip = function () {
       var capj = null;
 
       var tooltipEl = this.getElTooltip();
+      var xcrosshairs = this.getElXCrosshairs();
 
       var clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
       var clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
@@ -21350,8 +21348,8 @@ var Tooltip = function () {
       }
 
       if (e.type === 'mousemove' || e.type === 'touchmove') {
-        if (self.xcrosshairs !== null) {
-          self.xcrosshairs.classList.add('active');
+        if (xcrosshairs !== null) {
+          xcrosshairs.classList.add('active');
         }
 
         if (self.ycrosshairs !== null && self.blyaxisTooltip) {
@@ -21522,14 +21520,15 @@ var Tooltip = function () {
     key: 'handleMouseOut',
     value: function handleMouseOut(opt) {
       var w = this.w;
+      var xcrosshairs = this.getElXCrosshairs();
 
       opt.tooltipEl.classList.remove('active');
       this.deactivateHoverFilter();
       if (w.config.chart.type !== 'bubble') {
         this.marker.resetPointsSize();
       }
-      if (this.xcrosshairs !== null) {
-        this.xcrosshairs.classList.remove('active');
+      if (xcrosshairs !== null) {
+        xcrosshairs.classList.remove('active');
       }
       if (this.ycrosshairs !== null) {
         this.ycrosshairs.classList.remove('active');
@@ -21550,6 +21549,11 @@ var Tooltip = function () {
     key: 'getElMarkers',
     value: function getElMarkers() {
       return this.w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers');
+    }
+  }, {
+    key: 'getAllMarkers',
+    value: function getAllMarkers() {
+      return this.w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers .apexcharts-marker');
     }
   }, {
     key: 'hasMarkers',
@@ -29110,240 +29114,75 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 "use strict";
 
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+(function () {
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+  if (typeof window.Element === "undefined" || "classList" in document.documentElement) return;
 
-var ClassListPolyfill = function () {
-  function ClassListPolyfill() {
-    _classCallCheck(this, ClassListPolyfill);
+  var prototype = Array.prototype,
+      push = prototype.push,
+      splice = prototype.splice,
+      join = prototype.join;
+
+  function DOMTokenList(el) {
+    this.el = el;
+    // The className needs to be trimmed and split on whitespace
+    // to retrieve a list of classes.
+    var classes = el.className.replace(/^\s+|\s+$/g, '').split(/\s+/);
+    for (var i = 0; i < classes.length; i++) {
+      push.call(this, classes[i]);
+    }
+  };
+
+  DOMTokenList.prototype = {
+    add: function add(token) {
+      if (this.contains(token)) return;
+      push.call(this, token);
+      this.el.className = this.toString();
+    },
+    contains: function contains(token) {
+      return this.el.className.indexOf(token) != -1;
+    },
+    item: function item(index) {
+      return this[index] || null;
+    },
+    remove: function remove(token) {
+      if (!this.contains(token)) return;
+      for (var i = 0; i < this.length; i++) {
+        if (this[i] == token) break;
+      }
+      splice.call(this, i, 1);
+      this.el.className = this.toString();
+    },
+    toString: function toString() {
+      return join.call(this, ' ');
+    },
+    toggle: function toggle(token) {
+      if (!this.contains(token)) {
+        this.add(token);
+      } else {
+        this.remove(token);
+      }
+
+      return this.contains(token);
+    }
+  };
+
+  window.DOMTokenList = DOMTokenList;
+
+  function defineElementGetter(obj, prop, getter) {
+    if (Object.defineProperty) {
+      Object.defineProperty(obj, prop, {
+        get: getter
+      });
+    } else {
+      obj.__defineGetter__(prop, getter);
+    }
   }
 
-  _createClass(ClassListPolyfill, null, [{
-    key: 'fnClassList',
-
-    /*
-     * classList.js: Cross-browser full element.classList implementation.
-     * 1.1.20150312
-     *
-     * By Eli Grey, http://eligrey.com
-     * License: Dedicated to the public domain.
-     *   See https://github.com/eligrey/classList.js/blob/master/LICENSE.md
-     */
-    value: function fnClassList() {
-      /* global self, document, DOMException */
-
-      /*! @source http://purl.eligrey.com/github/classList.js/blob/master/classList.js */
-
-      if ('document' in self) {
-        // Full polyfill for browsers with no classList support
-        // Including IE < Edge missing SVGElement.classList
-        if (!('classList' in document.createElement('_')) || document.createElementNS && !('classList' in document.createElementNS('http://www.w3.org/2000/svg', 'g'))) {
-          (function (view) {
-            'use strict';
-
-            if (!('Element' in view)) return;
-
-            var classListProp = 'classList',
-                protoProp = 'prototype',
-                elemCtrProto = view.Element[protoProp],
-                objCtr = Object,
-                strTrim = String[protoProp].trim || function () {
-              return this.replace(/^\s+|\s+$/g, '');
-            },
-                arrIndexOf = Array[protoProp].indexOf || function (item) {
-              var i = 0,
-                  len = this.length;
-
-              for (; i < len; i++) {
-                if (i in this && this[i] === item) {
-                  return i;
-                }
-              }
-              return -1;
-            },
-
-            // Vendors: please allow content code to instantiate DOMExceptions
-            DOMEx = function DOMEx(type, message) {
-              this.name = type;
-              this.code = DOMException[type];
-              this.message = message;
-            },
-                checkTokenAndGetIndex = function checkTokenAndGetIndex(classList, token) {
-              if (token === '') {
-                throw new DOMEx('SYNTAX_ERR', 'An invalid or illegal string was specified');
-              }
-              if (/\s/.test(token)) {
-                throw new DOMEx('INVALID_CHARACTER_ERR', 'String contains an invalid character');
-              }
-              return arrIndexOf.call(classList, token);
-            },
-                ClassList = function ClassList(elem) {
-              var trimmedClasses = strTrim.call(elem.getAttribute('class') || ''),
-                  classes = trimmedClasses ? trimmedClasses.split(/\s+/) : [],
-                  i = 0,
-                  len = classes.length;
-
-              for (; i < len; i++) {
-                this.push(classes[i]);
-              }
-              this._updateClassName = function () {
-                elem.setAttribute('class', this.toString());
-              };
-            },
-                classListProto = ClassList[protoProp] = [],
-                classListGetter = function classListGetter() {
-              return new ClassList(this);
-            };
-
-            // Most DOMException implementations don't allow calling DOMException's toString()
-            // on non-DOMExceptions. Error's toString() is sufficient here.
-            DOMEx[protoProp] = Error[protoProp];
-            classListProto.item = function (i) {
-              return this[i] || null;
-            };
-            classListProto.contains = function (token) {
-              token += '';
-              return checkTokenAndGetIndex(this, token) !== -1;
-            };
-            classListProto.add = function () {
-              var tokens = arguments,
-                  i = 0,
-                  l = tokens.length,
-                  token,
-                  updated = false;
-
-              do {
-                token = tokens[i] + '';
-                if (checkTokenAndGetIndex(this, token) === -1) {
-                  this.push(token);
-                  updated = true;
-                }
-              } while (++i < l);
-
-              if (updated) {
-                this._updateClassName();
-              }
-            };
-            classListProto.remove = function () {
-              var tokens = arguments,
-                  i = 0,
-                  l = tokens.length,
-                  token,
-                  updated = false,
-                  index;
-
-              do {
-                token = tokens[i] + '';
-                index = checkTokenAndGetIndex(this, token);
-                while (index !== -1) {
-                  this.splice(index, 1);
-                  updated = true;
-                  index = checkTokenAndGetIndex(this, token);
-                }
-              } while (++i < l);
-
-              if (updated) {
-                this._updateClassName();
-              }
-            };
-            classListProto.toggle = function (token, force) {
-              token += '';
-
-              var result = this.contains(token),
-                  method = result ? force !== true && 'remove' : force !== false && 'add';
-
-              if (method) {
-                this[method](token);
-              }
-
-              if (force === true || force === false) {
-                return force;
-              } else {
-                return !result;
-              }
-            };
-            classListProto.toString = function () {
-              return this.join(' ');
-            };
-
-            if (objCtr.defineProperty) {
-              var classListPropDesc = {
-                get: classListGetter,
-                enumerable: true,
-                configurable: true
-              };
-              try {
-                objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
-              } catch (ex) {
-                // IE 8 doesn't support enumerable:true
-                if (ex.number === -0x7FF5EC54) {
-                  classListPropDesc.enumerable = false;
-                  objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
-                }
-              }
-            } else if (objCtr[protoProp].__defineGetter__) {
-              elemCtrProto.__defineGetter__(classListProp, classListGetter);
-            }
-          })(self);
-        } else {
-          // There is full or partial native classList support, so just check if we need
-          // to normalize the add/remove and toggle APIs.
-
-          (function () {
-            'use strict';
-
-            var testElement = document.createElement('_');
-
-            testElement.classList.add('c1', 'c2');
-
-            // Polyfill for IE 10/11 and Firefox <26, where classList.add and
-            // classList.remove exist but support only one argument at a time.
-            if (!testElement.classList.contains('c2')) {
-              var createMethod = function createMethod(method) {
-                var original = DOMTokenList.prototype[method];
-
-                DOMTokenList.prototype[method] = function (token) {
-                  var i = void 0,
-                      len = arguments.length;
-
-                  for (i = 0; i < len; i++) {
-                    token = arguments[i];
-                    original.call(this, token);
-                  }
-                };
-              };
-              createMethod('add');
-              createMethod('remove');
-            }
-
-            testElement.classList.toggle('c3', false);
-
-            // Polyfill for IE 10 and Firefox <24, where classList.toggle does not
-            // support the second argument.
-            if (testElement.classList.contains('c3')) {
-              var _toggle = DOMTokenList.prototype.toggle;
-
-              DOMTokenList.prototype.toggle = function (token, force) {
-                if (1 in arguments && !this.contains(token) === !force) {
-                  return force;
-                } else {
-                  return _toggle.call(this, token);
-                }
-              };
-            }
-
-            testElement = null;
-          })();
-        }
-      }
-    }
-  }]);
-
-  return ClassListPolyfill;
-}();
-
-module.exports = ClassListPolyfill;
+  defineElementGetter(Element.prototype, 'classList', function () {
+    return new DOMTokenList(this);
+  });
+})();
 
 /***/ }),
 /* 155 */
