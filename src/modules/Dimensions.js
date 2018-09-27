@@ -190,11 +190,7 @@ class Dimensions {
         gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth
         break
       default:
-        gl.translateY = translateY
-        gl.translateX = yAxisWidth
-        gl.gridHeight = gl.svgHeight - lgRect.height - xAxisHeight
-        gl.gridWidth = gl.svgWidth
-        break
+        throw new Error('Legend position not supported')
     }
 
     let scrollerHeight = 0
@@ -227,7 +223,7 @@ class Dimensions {
     let xPad =
       w.config.legend.markers.size * 4 + w.config.legend.itemMargin.horizontal
 
-    let offY = 15
+    let offY = 10
 
     if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
       offY = offY + w.config.plotOptions.pie.offsetY
@@ -240,7 +236,7 @@ class Dimensions {
         gl.gridHeight = gl.svgHeight - lgRect.height - 35
         gl.gridWidth = gl.gridHeight
 
-        gl.translateY = offY
+        gl.translateY = offY - 20
         gl.translateX = (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':
@@ -265,12 +261,7 @@ class Dimensions {
 
         break
       default:
-        gl.gridHeight = gl.svgHeight - lgRect.height - 30
-        gl.gridWidth = gl.gridHeight
-
-        gl.translateY = offY
-        gl.translateX = (gl.svgWidth - gl.gridWidth) / 2
-        break
+        throw new Error('Legend position not supported')
     }
   }
 
@@ -552,7 +543,7 @@ class Dimensions {
     if (elTitle !== null && !w.config.title.floating) {
       let titleCoords = elTitle.getBoundingClientRect()
       width = titleCoords.width
-      height = titleCoords.height + 5
+      height = w.globals.axisCharts ? titleCoords.height + 5 : titleCoords.height
     }
 
     return {
@@ -578,7 +569,7 @@ class Dimensions {
     if (elSubTitle !== null && !w.config.subtitle.floating) {
       let subtitleCoords = elSubTitle.getBoundingClientRect()
       width = subtitleCoords.width
-      height = subtitleCoords.height + 5
+      height = w.globals.axisCharts ? subtitleCoords.height + 5 : subtitleCoords.height
     }
 
     return {
