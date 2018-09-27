@@ -37,7 +37,6 @@ class ApexCharts {
     this.w = new Base(opts).init()
 
     this.el = el
-    this.core = new Core(el, this)
 
     this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4)
     this.w.globals.chartID = this.w.config.chart.id ? this.w.config.chart.id : this.w.globals.cuid
@@ -143,6 +142,7 @@ class ApexCharts {
   create (ser) {
     let w = this.w
     let gl = this.w.globals
+    const core = new Core(this.el, this)
 
     gl.noData = false
 
@@ -155,7 +155,7 @@ class ApexCharts {
       return null
     }
 
-    this.core.setupElements()
+    core.setupElements()
 
     if (ser.length === 0 || (ser.length === 1 && ser[0].data && ser[0].data.length === 0)) {
       const series = new Series(this.ctx)
@@ -163,7 +163,7 @@ class ApexCharts {
     }
 
     this.setupEventHandlers()
-    this.core.parseData(ser)
+    core.parseData(ser)
     // this is a good time to set theme colors first
     let theme = new Theme(this.ctx)
     theme.init()
@@ -178,7 +178,7 @@ class ApexCharts {
 
     // coreCalculations will give the min/max range and yaxis/axis values. It should be called here to set series variable from config to globals
     if (gl.axisCharts) {
-      this.core.coreCalculations()
+      core.coreCalculations()
       // as we have minX and maxX values, determine the default DateTimeFormat for time series
       formatters.setLabelFormatters()
     }
@@ -191,14 +191,14 @@ class ApexCharts {
     let dimensions = new Dimensions(this.ctx)
     dimensions.plotCoords()
 
-    const xyRatios = this.core.xySettings()
+    const xyRatios = core.xySettings()
 
-    this.core.createGridMask()
+    core.createGridMask()
 
-    const elGraph = this.core.plotChartType(ser, xyRatios)
+    const elGraph = core.plotChartType(ser, xyRatios)
 
     // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
-    this.core.shiftGraphPosition()
+    core.shiftGraphPosition()
 
     const dim = {
       plot: {
@@ -221,6 +221,7 @@ class ApexCharts {
     let w = this.w
     let me = this
     let series = new Series(me.ctx)
+    const core = new Core(this.el, this)
     const annotations = new Annotations(me.ctx)
 
     return new Promise(function (resolve, reject) {
@@ -231,13 +232,13 @@ class ApexCharts {
         series.handleNoData()
       }
 
-      me.core.drawAxis(
+      core.drawAxis(
         w.config.chart.type,
         graphData.xyRatios
       )
 
       if (w.config.grid.position === 'back') {
-        me.core.drawGrid()
+        core.drawGrid()
       }
 
       if (w.config.annotations.position === 'back') {
@@ -256,7 +257,7 @@ class ApexCharts {
       }
 
       if (w.config.grid.position === 'front') {
-        me.core.drawGrid()
+        core.drawGrid()
       }
 
       if (w.config.xaxis.crosshairs.position === 'front') {
@@ -526,14 +527,26 @@ class ApexCharts {
   }
 
   clear () {
+    const domEls = this.w.globals.dom
     if (this.el !== null) {
       // remove all child elements - resetting the whole chart
       while (this.el.firstChild) {
         this.el.removeChild(this.el.firstChild)
       }
     }
-    this.w.globals.dom.Paper.clear()
-    this.w.globals.dom = {} // empty the property which contains all DOM nodes
+    // domEls.Paper.clear()
+    // domEls.Paper.remove()
+    this.ctx = null
+    delete this.ctx
+    this.ctx = this
+    domEls.Paper = null
+    domEls.elWrap = null
+    domEls.elGraphical = null
+    domEls.elLegendWrap = null
+    domEls.baseEl = null
+    domEls.elGridRect = null
+    domEls.elGridRectMask = null
+    domEls.elDefs = null
   }
 
   /**
@@ -692,7 +705,8 @@ class ApexCharts {
   }
 
   getSeriesTotalXRange (minX, maxX) {
-    return this.core.getSeriesTotalsXRange(minX, maxX)
+    const core = new Core(this.el, this)
+    return core.getSeriesTotalsXRange(minX, maxX)
   }
 
   getSeriesTotal () {

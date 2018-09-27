@@ -113,11 +113,13 @@ class Intersect {
     const w = this.w
     const ttCtx = this.ttCtx
 
+    const tooltipEl = ttCtx.getElTooltip()
+
     let bx = 0
     let x = 0
     let y = 0
 
-    if (ttCtx.isBarHorizontal || !w.config.tooltip.shared) {
+    if ((ttCtx.isBarHorizontal && ttCtx.hasBars()) || !w.config.tooltip.shared) {
       let barXY = this.getBarTooltipXY({
         e,
         opt
@@ -160,9 +162,9 @@ class Intersect {
     }
 
     // move tooltip here
-    if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || ttCtx.isBarHorizontal)) {
-      ttCtx.tooltipEl.style.left = x + w.globals.translateX + 'px'
-      ttCtx.tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
+    if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || (ttCtx.isBarHorizontal && ttCtx.hasBars()))) {
+      tooltipEl.style.left = x + w.globals.translateX + 'px'
+      tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
     }
   }
 

@@ -39,38 +39,34 @@
         */
 
         var lastDate = 0;
-        function generateDayWiseTimeSeries(baseval, count, yrange) {
+        var data = []
+        function getDayWiseTimeSeries(baseval, count, yrange) {
             var i = 0;
-            var series = [];
             while (i < count) {
                 var x = baseval;
                 var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
 
-                series.push({
+                data.push({
                     x, y
                 });
                 lastDate = baseval
                 baseval += 86400000;
                 i++;
             }
-
-            return series;
         }
 
-        function appendNewDateData(i, yrange) {
-            if(!yrange) {
-                yrange = {
-                    min: 10,
-                    max: 90
-                }
-            }
-            if(i === 0) {
-                lastDate = lastDate + 86400000;
-            }
-            return {
-                x: lastDate,
+        getDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+            min: 10,
+            max: 90
+        })
+
+        function getNewSeries(baseval, yrange) {
+            var newDate = baseval + 86400000;
+            lastDate = newDate
+            data.push({
+                x: newDate,
                 y: Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
-            }
+            })
         }
 
         var options = {
@@ -78,7 +74,7 @@
                 height: 350,
                 type: 'line',
                 animations: {
-                    enabled: true,
+                    enabled: false,
                     easing: 'linear',
                     dynamicAnimation: {
                         speed: 2000
@@ -98,21 +94,8 @@
                 curve: 'smooth'
             },
             series: [{
-                    name: "Laptops",
-                    data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-                        min: 10,
-                        max: 90
-                    })
-                
-                }, {
-                    name: "Laptops",
-                    data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-                        min: 10,
-                        max: 90
-                    })
-                
-                }
-            ],
+                data: data
+            }],
             title: {
                 text: 'Dynamic Updating Chart',
                 align: 'left'
@@ -136,13 +119,24 @@
 
         chart.render();
 
+        var dataPointsLength = 10;
+
         window.setInterval(function () {
-            chart.appendData([{
-                data: [appendNewDateData(0)]
-            }, {
-                data: [appendNewDateData(1)]
+            getNewSeries(lastDate, {
+                min: 10,
+                max: 90
+            })
+
+            if(data.length > dataPointsLength) {
+                data.shift()
+                // data[0].x = lastDate - 777600000
+                // data[0].y = 0
+            }
+            chart.updateSeries([{
+                data: data
             }])
-        }, 2000)
+        }, 1500)
+
     </script>
 </body>
 

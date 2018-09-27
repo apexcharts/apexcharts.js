@@ -155,6 +155,7 @@ class Position {
     let w = this.w
 
     let ttCtx = this.ttCtx
+    const tooltipEl = ttCtx.getElTooltip()
     let tooltipRect = ttCtx.tooltipRect
 
     let pointR = r !== null ? parseInt(r) : 1
@@ -186,8 +187,8 @@ class Position {
     if (!isNaN(x)) {
       x = x + w.globals.translateX
 
-      ttCtx.tooltipEl.style.left = x + 'px'
-      ttCtx.tooltipEl.style.top = y + 'px'
+      tooltipEl.style.left = x + 'px'
+      tooltipEl.style.top = y + 'px'
     }
   }
 

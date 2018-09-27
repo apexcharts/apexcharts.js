@@ -311,6 +311,9 @@ class Core {
     gl.timelineLabels = []
     gl.noLabelsProvided = false
     gl.timescaleTicks = []
+    gl.tooltip = null
+    gl.resizeTimer = null
+    gl.selectionResizeTimer = null
     gl.seriesXvalues = (() => {
       return this.w.config.series.map((s) => {
         return []

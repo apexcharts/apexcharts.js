@@ -84,7 +84,7 @@ class Labels {
         })
 
         // discard 0 values in BARS
-        if ((this.ttCtx.bars.length && w.config.chart.stacked && w.globals.series[tIndex][j] === 0) || typeof w.globals.series[tIndex][j] === 'undefined') {
+        if ((this.ttCtx.hasBars() && w.config.chart.stacked && w.globals.series[tIndex][j] === 0) || typeof w.globals.series[tIndex][j] === 'undefined') {
           val = undefined
         }
       } else {
@@ -319,9 +319,10 @@ class Labels {
     j
   }) {
     const w = this.w
+    const tooltipEl = this.ttCtx.getElTooltip()
+
     // override everything with a custom html tooltip and replace it
-    this.ttCtx.tooltipEl.innerHTML = ''
-    this.ttCtx.tooltipEl.innerHTML = w.config.tooltip.custom({
+    tooltipEl.innerHTML = w.config.tooltip.custom({
       series: w.globals.series,
       seriesIndex: i,
       dataPointIndex: j,
