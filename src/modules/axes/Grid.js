@@ -79,7 +79,7 @@ class Grid {
       if (tickAmount > 2) break
     }
 
-    let xCount = tickAmount
+    let xCount
 
     let inversedGrid = !!(w.config.plotOptions.bar.horizontal &&
       w.config.chart.type === 'bar')

@@ -42,7 +42,8 @@ class Intersect {
         x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
       }
       if (ttCtx.w.config.tooltip.followCursor) {
-        const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+        const elGrid = ttCtx.getElGrid()
+        const seriesBound = elGrid.getBoundingClientRect()
         // x = ttCtx.e.clientX - seriesBound.left
         y = ttCtx.e.clientY - seriesBound.top
       }
@@ -94,7 +95,8 @@ class Intersect {
       y = cy - ttCtx.tooltipRect.ttHeight * 1.4
 
       if (ttCtx.w.config.tooltip.followCursor) {
-        const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+        const elGrid = ttCtx.getElGrid()
+        const seriesBound = elGrid.getBoundingClientRect()
         y = ttCtx.e.clientY - seriesBound.top
       }
 
@@ -113,11 +115,13 @@ class Intersect {
     const w = this.w
     const ttCtx = this.ttCtx
 
+    const tooltipEl = ttCtx.getElTooltip()
+
     let bx = 0
     let x = 0
     let y = 0
 
-    if (ttCtx.isBarHorizontal || !w.config.tooltip.shared) {
+    if ((ttCtx.isBarHorizontal && ttCtx.hasBars()) || !w.config.tooltip.shared) {
       let barXY = this.getBarTooltipXY({
         e,
         opt
@@ -144,7 +148,8 @@ class Intersect {
     }
 
     if (ttCtx.w.config.tooltip.followCursor) {
-      const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+      const elGrid = ttCtx.getElGrid()
+      const seriesBound = elGrid.getBoundingClientRect()
       y = ttCtx.e.clientY - seriesBound.top
     }
 
@@ -160,9 +165,9 @@ class Intersect {
     }
 
     // move tooltip here
-    if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || ttCtx.isBarHorizontal)) {
-      ttCtx.tooltip.style.left = x + w.globals.translateX + 'px'
-      ttCtx.tooltip.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
+    if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || (ttCtx.isBarHorizontal && ttCtx.hasBars()))) {
+      tooltipEl.style.left = x + w.globals.translateX + 'px'
+      tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
     }
   }
 

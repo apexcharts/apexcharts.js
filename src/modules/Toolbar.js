@@ -27,9 +27,9 @@ class Toolbar {
   createToolbar () {
     let w = this.w
 
-    this.elToolbarWrap = document.createElement('div')
-    this.elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
-    w.globals.dom.elWrap.appendChild(this.elToolbarWrap)
+    const elToolbarWrap = document.createElement('div')
+    elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
+    w.globals.dom.elWrap.appendChild(elToolbarWrap)
 
     this.elZoom = document.createElement('div')
     this.elZoomIn = document.createElement('div')
@@ -109,7 +109,7 @@ class Toolbar {
         title: toolbarControls[i].title
       })
       toolbarControls[i].el.innerHTML = toolbarControls[i].icon
-      this.elToolbarWrap.appendChild(toolbarControls[i].el)
+      elToolbarWrap.appendChild(toolbarControls[i].el)
     }
 
     if (w.globals.zoomEnabled) {
@@ -275,16 +275,17 @@ class Toolbar {
   }
 
   handleZoomReset (e) {
-    let w = this.w
+    const charts = this.ctx.getSyncedCharts()
 
-    let me = this
-    w.globals.zoomed = false
+    charts.forEach((ch) => {
+      let w = ch.w
+      w.globals.zoomed = false
 
-    if (w.globals.minX === w.globals.initialminX && w.globals.maxX === w.globals.initialmaxX) return
-
-    me.ctx.revertDefaultAxisMinMax()
-
-    me.ctx.updateSeriesInternal(w.globals.initialSeries, true)
+      if (w.globals.minX !== w.globals.initialminX && w.globals.maxX !== w.globals.initialmaxX) {
+        ch.revertDefaultAxisMinMax()
+        ch.updateSeriesInternal(w.globals.initialSeries, true)
+      }
+    })
   }
 }
 

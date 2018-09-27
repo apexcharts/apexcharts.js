@@ -71,7 +71,9 @@ class Markers {
           this.setSelectedPointFilter(point, seriesIndex, realIndexP)
           this.addEvents(point)
 
-          elPointsWrap.add(point)
+          if (elPointsWrap) {
+            elPointsWrap.add(point)
+          }
         } else {
           // dynamic array creation - multidimensional
           if (typeof (w.globals.pointsArray[seriesIndex]) === 'undefined') w.globals.pointsArray[seriesIndex] = []

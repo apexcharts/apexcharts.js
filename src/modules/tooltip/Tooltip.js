@@ -33,12 +33,25 @@ class Tooltip {
     this.blyaxisTooltip = w.config.yaxis[0].tooltip.enabled && w.globals.axisCharts
     this.xaxisTooltip = null
     this.yaxisTTEls = null
-    this.bars = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bar-series,  .apexcharts-candlestick-series')
-    this.hasBars = this.bars.length > 0
-    this.markers = w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers')
-    this.hasMarkers = this.markers.length > 0
-    this.isBarHorizontal = this.hasBars && w.config.plotOptions.bar.horizontal
-    this.isBarShared = this.hasBars && (!w.config.plotOptions.bar.horizontal && w.config.tooltip.shared)
+    this.isBarHorizontal = w.config.plotOptions.bar.horizontal
+    this.isBarShared = (!w.config.plotOptions.bar.horizontal && w.config.tooltip.shared)
+  }
+
+  getElTooltip (ctx) {
+    if (!ctx) ctx = this
+    return ctx.w.globals.dom.baseEl.querySelector('.apexcharts-tooltip')
+  }
+
+  getElXCrosshairs () {
+    return this.w.globals.dom.baseEl.querySelector(
+      '.apexcharts-xcrosshairs'
+    )
+  }
+
+  getElGrid () {
+    return this.w.globals.dom.baseEl.querySelector(
+      '.apexcharts-grid'
+    )
   }
 
   drawTooltip (xyRatios) {
@@ -50,27 +63,16 @@ class Tooltip {
       this.showTooltipTitle = false
     }
 
-    this.tooltip = document.createElement('div')
-    this.tooltip.classList.add('apexcharts-tooltip')
-    this.tooltip.classList.add(w.config.tooltip.theme)
-    w.globals.dom.elWrap.appendChild(this.tooltip)
+    const tooltipEl = document.createElement('div')
+    tooltipEl.classList.add('apexcharts-tooltip')
+    tooltipEl.classList.add(w.config.tooltip.theme)
+    w.globals.dom.elWrap.appendChild(tooltipEl)
 
     if (w.globals.axisCharts) {
-      this.plotSeries = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-plot-series'
-      )
-      if (this.plotSeries !== null) {
-        this.plotSeriesWidth = this.plotSeries.getBBox().width
-      }
-
       this.axesTooltip.drawXaxisTooltip()
       this.axesTooltip.drawYaxisTooltip()
       this.axesTooltip.setXCrosshairWidth()
       this.axesTooltip.handleYCrosshair()
-
-      this.allPoints = w.globals.dom.baseEl.querySelectorAll(
-        '.apexcharts-series-markers .apexcharts-marker'
-      )
 
       let xAxis = new XAxis(this.ctx)
       this.xAxisTicksPositions = xAxis.getXAxisTicksPositions()
@@ -99,7 +101,7 @@ class Tooltip {
     if (this.showTooltipTitle) {
       this.tooltipTitle = document.createElement('div')
       this.tooltipTitle.classList.add('apexcharts-tooltip-title')
-      this.tooltip.appendChild(this.tooltipTitle)
+      tooltipEl.appendChild(this.tooltipTitle)
     }
 
     let ttItemsCnt = w.globals.series.length // whether shared or not, default is shared
@@ -114,13 +116,15 @@ class Tooltip {
       }
     }
 
-    let ttItems = this.createTTElements(ttItemsCnt)
-    this.addSVGEvents(ttItems)
+    this.ttItems = this.createTTElements(ttItemsCnt)
+    this.addSVGEvents()
   }
 
   createTTElements (ttItemsCnt) {
     const w = this.w
     let ttItems = []
+
+    const tooltipEl = this.getElTooltip()
     for (let i = 0; i < ttItemsCnt; i++) {
       let gTxt = document.createElement('div')
       gTxt.classList.add('apexcharts-tooltip-series-group')
@@ -162,7 +166,7 @@ class Tooltip {
 
       gTxt.appendChild(gYZ)
 
-      this.tooltip.appendChild(gTxt)
+      tooltipEl.appendChild(gTxt)
 
       ttItems.push(gTxt)
     }
@@ -170,19 +174,18 @@ class Tooltip {
     return ttItems
   }
 
-  addSVGEvents (ttItems) {
+  addSVGEvents () {
     const w = this.w
     let type = w.config.chart.type
+    const tooltipEl = this.getElTooltip()
 
     const barOrCandlestick = !!(type === 'bar' || type === 'candlestick')
 
     let hoverArea = w.globals.dom.Paper.node
 
-    this.elGrid = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-grid'
-    )
-    if (this.elGrid) {
-      this.seriesBound = this.elGrid.getBoundingClientRect()
+    const elGrid = this.getElGrid()
+    if (elGrid) {
+      this.seriesBound = elGrid.getBoundingClientRect()
     }
 
     let tooltipY = []
@@ -190,11 +193,11 @@ class Tooltip {
 
     let seriesHoverParams = {
       hoverArea,
-      elGrid: this.elGrid,
-      tooltip: this.tooltip,
+      elGrid: elGrid,
+      tooltipEl: tooltipEl,
       tooltipY,
       tooltipX,
-      ttItems
+      ttItems: this.ttItems
     }
 
     let points
@@ -231,7 +234,7 @@ class Tooltip {
     if (
       (w.globals.xyCharts && !this.showOnIntersect) ||
       (w.globals.comboCharts && !this.showOnIntersect) ||
-      ((barOrCandlestick) && !this.isBarHorizontal && w.config.tooltip.shared)) {
+      ((barOrCandlestick) && (!this.isBarHorizontal && this.hasBars()) && w.config.tooltip.shared)) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if ((barOrCandlestick) && !w.globals.comboCharts) {
       this.addBarsEventListeners(seriesHoverParams)
@@ -261,7 +264,7 @@ class Tooltip {
       }
 
       // combo charts may have bars, so add event listeners here too
-      if (this.hasBars && !w.config.tooltip.shared) {
+      if (this.hasBars() && !w.config.tooltip.shared) {
         this.addBarsEventListeners(seriesHoverParams)
       }
     }
@@ -270,9 +273,9 @@ class Tooltip {
   drawFixedTooltipRect () {
     let w = this.w
 
-    let tooltip = w.globals.dom.baseEl.querySelector('.apexcharts-tooltip')
+    const tooltipEl = this.getElTooltip()
 
-    let tooltipRect = tooltip.getBoundingClientRect()
+    let tooltipRect = tooltipEl.getBoundingClientRect()
 
     let ttWidth = tooltipRect.width + 10
     let ttHeight = tooltipRect.height + 10
@@ -287,8 +290,8 @@ class Tooltip {
       y = y + w.globals.svgWidth - ttHeight - 10
     }
 
-    this.tooltip.style.left = x + 'px'
-    this.tooltip.style.top = y + 'px'
+    tooltipEl.style.left = x + 'px'
+    tooltipEl.style.top = y + 'px'
 
     return {
       x,
@@ -321,13 +324,15 @@ class Tooltip {
     for (let p = 0; p < paths.length; p++) {
       let extendedOpts = {
         paths: paths[p],
-        tooltip: opts.tooltip,
+        tooltipEl: opts.tooltipEl,
         tooltipY: opts.tooltipY,
         tooltipX: opts.tooltipX,
         elGrid: opts.elGrid,
         hoverArea: opts.hoverArea,
         ttItems: opts.ttItems
       }
+
+      this.w.globals.tooltipOpts = extendedOpts
 
       let events = ['mousemove', 'touchmove', 'mouseout', 'touchend']
 
@@ -341,41 +346,69 @@ class Tooltip {
    ** The actual series hover function
    */
   seriesHover (opt, e) {
-    let w = this.w
+    const chartGroups = this.ctx.getGroupedCharts()
+
+    if (chartGroups.length) {
+      chartGroups.forEach((ch) => {
+        const tooltipEl = this.getElTooltip(ch)
+
+        const newOpts = {
+          paths: opt.paths,
+          tooltipEl: tooltipEl,
+          tooltipY: opt.tooltipY,
+          tooltipX: opt.tooltipX,
+          elGrid: opt.elGrid,
+          hoverArea: opt.hoverArea,
+          ttItems: ch.w.globals.tooltip.ttItems
+        }
+
+        // all the charts should have the same minX and maxX (same xaxis) for multiple tooltips to work correctly
+        if (ch.w.globals.minX === this.w.globals.minX && ch.w.globals.maxX === this.w.globals.maxX) {
+          ch.w.globals.tooltip.seriesHoverByContext({ chartCtx: ch, ttCtx: ch.w.globals.tooltip, opt: newOpts, e })
+        }
+      })
+    } else {
+      this.seriesHoverByContext({ chartCtx: this.ctx, ttCtx: this.w.globals.tooltip, opt, e })
+    }
+  }
+
+  seriesHoverByContext ({ chartCtx, ttCtx, opt, e }) {
+    let w = chartCtx.w
+    const tooltipEl = this.getElTooltip()
 
     // tooltipRect is calculated on every mousemove, because the text is dynamic
-    this.tooltipRect = {
+    ttCtx.tooltipRect = {
       x: 0,
       y: 0,
-      ttWidth: this.tooltip.getBoundingClientRect().width,
-      ttHeight: this.tooltip.getBoundingClientRect().height
+      ttWidth: tooltipEl.getBoundingClientRect().width,
+      ttHeight: tooltipEl.getBoundingClientRect().height
     }
-    this.e = e
+    ttCtx.e = e
 
     // highlight the current hovered bars
-    if (this.hasBars && !w.globals.comboCharts && !this.isBarShared) {
+    if (ttCtx.hasBars() && !w.globals.comboCharts && !ttCtx.isBarShared) {
       if (w.config.tooltip.onDatasetHover.highlightDataSeries) {
-        let series = new Series(this.ctx)
+        let series = new Series(chartCtx)
         series.toggleSeriesOnHover(e, e.target.parentNode)
       }
     }
 
-    if (this.fixedTooltip) {
-      this.drawFixedTooltipRect()
+    if (ttCtx.fixedTooltip) {
+      ttCtx.drawFixedTooltipRect()
     }
 
     if (w.globals.axisCharts) {
-      this.axisChartsTooltips({
+      ttCtx.axisChartsTooltips({
         e,
         opt,
-        tooltipRect: this.tooltipRect
+        tooltipRect: ttCtx.tooltipRect
       })
     } else {
       // non-plot charts i.e pie/donut/circle
-      this.nonAxisChartsTooltips({
+      ttCtx.nonAxisChartsTooltips({
         e,
         opt,
-        tooltipRect: this.tooltipRect
+        tooltipRect: ttCtx.tooltipRect
       })
     }
   }
@@ -383,14 +416,16 @@ class Tooltip {
   // tooltip handling for line/area/bar/columns/scatter
   axisChartsTooltips ({
     e,
-    opt,
-    tooltipRect
+    opt
   }) {
     let w = this.w
     let j, x, y
 
     let self = this
     let capj = null
+
+    const tooltipEl = this.getElTooltip()
+    const xcrosshairs = this.getElXCrosshairs()
 
     const clientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX
     const clientY = (e.type === 'touchmove') ? e.touches[0].clientY : e.clientY
@@ -400,16 +435,16 @@ class Tooltip {
 
     let isStickyTooltip =
       w.globals.xyCharts ||
-      (w.config.chart.type === 'bar' && !this.isBarHorizontal && w.config.tooltip.shared) ||
+      (w.config.chart.type === 'bar' && (!this.isBarHorizontal && this.hasBars()) && w.config.tooltip.shared) ||
         (w.globals.comboCharts && this.hasBars)
 
-    if (w.config.chart.type === 'bar' && this.isBarHorizontal) {
+    if (w.config.chart.type === 'bar' && (this.isBarHorizontal && this.hasBars())) {
       isStickyTooltip = false
     }
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
-      if (self.xcrosshairs !== null) {
-        self.xcrosshairs.classList.add('active')
+      if (xcrosshairs !== null) {
+        xcrosshairs.classList.add('active')
       }
 
       if (self.ycrosshairs !== null && self.blyaxisTooltip) {
@@ -423,7 +458,6 @@ class Tooltip {
           elGrid: opt.elGrid,
           clientX,
           clientY,
-          plotSeriesWidth: self.plotSeriesWidth,
           hasBars: self.hasBars
         })
 
@@ -438,7 +472,7 @@ class Tooltip {
         if (capturedSeries !== null) {
           let ignoreNull = w.globals.series[capturedSeries][j] === null
           if (ignoreNull) {
-            opt.tooltip.classList.remove('active')
+            opt.tooltipEl.classList.remove('active')
             return
           }
 
@@ -475,8 +509,8 @@ class Tooltip {
           x = markerXY.x
           y = markerXY.y
 
-          self.tooltip.style.left = x + 'px'
-          self.tooltip.style.top = y + 'px'
+          tooltipEl.style.left = x + 'px'
+          tooltipEl.style.top = y + 'px'
         } else {
           if (this.hasBars) {
             this.intersect.handleBarTooltip({
@@ -503,7 +537,7 @@ class Tooltip {
         }
       }
 
-      opt.tooltip.classList.add('active')
+      opt.tooltipEl.classList.add('active')
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       this.handleMouseOut(opt)
     }
@@ -517,6 +551,8 @@ class Tooltip {
   }) {
     let w = this.w
     let rel = opt.paths.getAttribute('rel')
+
+    const tooltipEl = this.getElTooltip()
 
     let trX = 0
     let trY = 0
@@ -540,7 +576,7 @@ class Tooltip {
     let seriesBound = elPie.getBoundingClientRect()
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
-      opt.tooltip.classList.add('active')
+      opt.tooltipEl.classList.add('active')
 
       this.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
@@ -565,10 +601,10 @@ class Tooltip {
         )
       }
 
-      this.tooltip.style.left = x + w.globals.translateX + 'px'
-      this.tooltip.style.top = y + 'px'
+      tooltipEl.style.left = x + w.globals.translateX + 'px'
+      tooltipEl.style.top = y + 'px'
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
-      opt.tooltip.classList.remove('active')
+      opt.tooltipEl.classList.remove('active')
     }
   }
 
@@ -585,14 +621,15 @@ class Tooltip {
 
   handleMouseOut (opt) {
     const w = this.w
+    const xcrosshairs = this.getElXCrosshairs()
 
-    opt.tooltip.classList.remove('active')
+    opt.tooltipEl.classList.remove('active')
     this.deactivateHoverFilter()
     if (w.config.chart.type !== 'bubble') {
       this.marker.resetPointsSize()
     }
-    if (this.xcrosshairs !== null) {
-      this.xcrosshairs.classList.remove('active')
+    if (xcrosshairs !== null) {
+      xcrosshairs.classList.remove('active')
     }
     if (this.ycrosshairs !== null) {
       this.ycrosshairs.classList.remove('active')
@@ -610,14 +647,39 @@ class Tooltip {
     }
   }
 
+  getElMarkers () {
+    return this.w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers')
+  }
+
+  getAllMarkers () {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-series-markers .apexcharts-marker'
+    )
+  }
+
+  hasMarkers () {
+    const markers = this.getElMarkers()
+    return markers.length > 0
+  }
+
+  getElBars () {
+    return this.w.globals.dom.baseEl.querySelectorAll('.apexcharts-bar-series,  .apexcharts-candlestick-series')
+  }
+
+  hasBars () {
+    const bars = this.getElBars()
+    return bars.length > 0
+  }
+
   create (context, capturedSeries, j, ttItems, shared = null) {
     let w = this.w
     let self = context
 
     if (shared === null) shared = w.config.tooltip.shared
 
-    this.markers = w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers')
-    this.hasMarkers = this.markers.length > 0
+    const hasMarkers = this.hasMarkers()
+
+    const bars = this.getElBars()
 
     if (shared) {
       self.tooltipLabels.drawSeriesTexts({
@@ -627,7 +689,7 @@ class Tooltip {
         shared: this.showOnIntersect ? false : w.config.tooltip.shared
       })
 
-      if (this.hasMarkers) {
+      if (hasMarkers) {
         if (w.config.markers.size > 0) {
           self.marker.enlargePoints(j)
         } else {
@@ -635,8 +697,8 @@ class Tooltip {
         }
       }
 
-      if (this.hasBars) {
-        this.barSeriesHeight = this.tooltipUtil.getBarsHeight(this.bars)
+      if (this.hasBars()) {
+        this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars)
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
           let graphics = new Graphics(this.ctx)

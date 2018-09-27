@@ -148,7 +148,9 @@ export default class Globals {
       yTitleCoords: [],
       yAxisWidths: [],
       translateXAxisY: 0,
-      translateXAxisX: 0
+      translateXAxisX: 0,
+      tooltip: null,
+      tooltipOpts: null
     }
   }
 

@@ -25,17 +25,59 @@
 
 
     <script src="../../dist/apexcharts.js"></script>
-    <script src="../assets/data.js"></script>
 
     <script>
+
+        /*
+        // this function will generate output in this format
+        // data = [
+            [timestamp, 23],
+            [timestamp, 33],
+            [timestamp, 12]
+            ...
+        ]
+        */
+
+        var lastDate = 0;
+        var data = []
+        function getDayWiseTimeSeries(baseval, count, yrange) {
+            var i = 0;
+            while (i < count) {
+                var x = baseval;
+                var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+                data.push({
+                    x, y
+                });
+                lastDate = baseval
+                baseval += 86400000;
+                i++;
+            }
+        }
+
+        getDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+            min: 10,
+            max: 90
+        })
+
+        function getNewSeries(baseval, yrange) {
+            var newDate = baseval + 86400000;
+            lastDate = newDate
+            data.push({
+                x: newDate,
+                y: Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+            })
+        }
+
         var options = {
             chart: {
                 height: 350,
                 type: 'line',
                 animations: {
+                    enabled: false,
                     easing: 'linear',
                     dynamicAnimation: {
-                        speed: 2000
+                        speed: 1000
                     }
                 },
                 toolbar: {
@@ -52,14 +94,8 @@
                 curve: 'smooth'
             },
             series: [{
-                    name: "Laptops",
-                    data: [45, 52, 38, 24, 33, 26, 21, 20, 6, 8, 15, 10, 51, 32, 12]
-                },
-                {
-                    name: "Desktops",
-                    data: [35, 41, 62, 42, 13, 18, 29, 37, 36, 51, 32, 35, 20, 51, 36]
-                }
-            ],
+                data: data
+            }],
             title: {
                 text: 'Dynamic Updating Chart',
                 align: 'left'
@@ -68,8 +104,11 @@
                 size: 0
             },
             xaxis: {
-                range: 14,
-                tickAmount: 14
+                type: 'datetime',
+                range: 777600000,
+            },
+            yaxis: {
+                max: 100
             },
             legend: {
                 show: false
@@ -83,13 +122,24 @@
 
         chart.render();
 
+        var dataPointsLength = 10;
+
         window.setInterval(function () {
-            chart.appendData([{
-                data: [Math.floor((Math.random() * 20) + 20)]
-            }, {
-                data: [Math.floor((Math.random() * 20) + 20)]
+            getNewSeries(lastDate, {
+                min: 10,
+                max: 90
+            })
+
+            if(data.length > dataPointsLength) {
+               // data.shift()
+                data[0].x = lastDate - 777600000
+                data[0].y = 0
+            }
+            chart.updateSeries([{
+                data: data
             }])
-        }, 2000)
+        }, 1000)
+
     </script>
 </body>
 

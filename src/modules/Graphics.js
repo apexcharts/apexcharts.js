@@ -595,7 +595,7 @@ class Graphics {
       rect = virtualText.node.getBoundingClientRect()
     }
 
-    virtualText.node.parentNode.removeChild(virtualText.node)
+    virtualText.remove()
 
     return {
       width: rect.width,

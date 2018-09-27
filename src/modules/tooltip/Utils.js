@@ -28,7 +28,7 @@ class Utils {
   getNearestValues ({ hoverArea, elGrid, clientX, clientY, hasBars }) {
     let w = this.w
 
-    const hoverWidth = w.globals.gridWidth // - (w.globals.gridWidth - plotSeriesWidth)
+    const hoverWidth = w.globals.gridWidth
 
     let xDivisor = hoverWidth / (w.globals.dataPoints - 1)
 

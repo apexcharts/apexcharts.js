@@ -7,10 +7,9 @@ import Utils from '../utils/Utils'
  **/
 
 class Range {
-  constructor (ctx, checkComboCharts) {
+  constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
-    this.checkComboCharts = checkComboCharts
   }
 
   init () {
@@ -336,7 +335,6 @@ class Range {
         gl.initialmaxX = maxX
       }
     }
-    // this.checkComboCharts()
 
     let niceXRange = new Range(this.ctx)
     if (gl.dataXY || gl.noLabelsProvided) {
