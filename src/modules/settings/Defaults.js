@@ -23,12 +23,24 @@ class Defaults {
       markers: {
         size: 5
       },
+      title: {
+        style: {
+          fontFamily: 'Helvetica, Arial, sans-serif'
+        }
+      },
       tooltip: {
         // followCursor: true,
       },
       xaxis: {
         crosshairs: {
           width: 1
+        }
+      },
+      yaxis: {
+        labels: {
+          style: {
+            fontFamily: 'Helvetica, Arial, sans-serif'
+          }
         }
       }
 
@@ -50,7 +62,8 @@ class Defaults {
         }
       },
       legend: {
-        show: false
+        show: false,
+        fontFamily: 'Helvetica, Arial, sans-serif'
       },
       xaxis: {
         labels: {
@@ -99,7 +112,8 @@ class Defaults {
       },
       dataLabels: {
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       },
       stroke: {
@@ -113,6 +127,12 @@ class Defaults {
           shape: 'square',
           radius: 2,
           size: 8
+        },
+        fontFamily: 'Helvetica, Arial, sans-serif'
+      },
+      title: {
+        style: {
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       },
       tooltip: {
@@ -225,7 +245,16 @@ class Defaults {
     return {
       dataLabels: {
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
+          fontFamily: 'Helvetica, Arial, sans-serif'
+        }
+      },
+      legend: {
+        fontFamily: 'Helvetica, Arial, sans-serif'
+      },
+      title: {
+        style: {
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       },
       tooltip: {
@@ -287,7 +316,8 @@ class Defaults {
       },
       dataLabels: {
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       },
       stroke: {
@@ -305,7 +335,8 @@ class Defaults {
           shape: 'square',
           size: 10,
           offsetY: 2
-        }
+        },
+        fontFamily: 'Helvetica, Arial, sans-serif'
       }
     }
   }
@@ -322,7 +353,8 @@ class Defaults {
           return val.toFixed(1) + '%'
         },
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
+          fontFamily: 'Helvetica, Arial, sans-serif'
         },
         dropShadow: {
           enabled: true
@@ -345,7 +377,8 @@ class Defaults {
         fillSeriesColor: true
       },
       legend: {
-        position: 'right'
+        position: 'right',
+        fontFamily: 'Helvetica, Arial, sans-serif'
       }
     }
   }
@@ -362,7 +395,8 @@ class Defaults {
           return val.toFixed(1) + '%'
         },
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
+          fontFamily: 'Helvetica, Arial, sans-serif'
         },
         dropShadow: {
           enabled: true
@@ -388,7 +422,8 @@ class Defaults {
         fillSeriesColor: true
       },
       legend: {
-        position: 'right'
+        position: 'right',
+        fontFamily: 'Helvetica, Arial, sans-serif'
       }
     }
   }
@@ -418,7 +453,8 @@ class Defaults {
         }
       },
       legend: {
-        show: false
+        show: false,
+        fontFamily: 'Helvetica, Arial, sans-serif'
       },
       tooltip: {
         enabled: false,
