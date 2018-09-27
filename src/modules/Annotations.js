@@ -65,6 +65,7 @@ class Annotations {
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
+      fontFamily: anno.label.style.fontFamily,
       foreColor: anno.label.style.color,
       cssClass: 'apexcharts-xaxis-annotation-label ' + anno.label.style.cssClass
     })
@@ -119,6 +120,7 @@ class Annotations {
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
+      fontFamily: anno.label.style.fontFamily,
       foreColor: anno.label.style.color,
       cssClass: 'apexcharts-yaxis-annotation-label ' + anno.label.style.cssClass
     })
@@ -197,6 +199,7 @@ class Annotations {
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
+      fontFamily: anno.label.style.fontFamily,
       foreColor: anno.label.style.color,
       cssClass: 'apexcharts-point-annotation-label ' + anno.label.style.cssClass
     })
@@ -319,7 +322,7 @@ class Annotations {
   }
 
   addText (params, pushToMemory, context) {
-    const { x, y, text, textAnchor, appendTo = '.apexcharts-inner', foreColor, fontSize, cssClass, backgroundColor, borderWidth, strokeDashArray, radius, borderColor, paddingLeft = 4, paddingRight = 4, paddingBottom = 2, paddingTop = 2 } = params
+    const { x, y, text, textAnchor, appendTo = '.apexcharts-inner', foreColor, fontSize, fontFamily, cssClass, backgroundColor, borderWidth, strokeDashArray, radius, borderColor, paddingLeft = 4, paddingRight = 4, paddingBottom = 2, paddingTop = 2 } = params
 
     const me = context
     const w = me.w
@@ -333,6 +336,7 @@ class Annotations {
       text,
       textAnchor: textAnchor || 'start',
       fontSize: fontSize || '12px',
+      fontFamily: fontFamily || 'Arial',
       foreColor: foreColor || w.config.chart.foreColor,
       cssClass: 'apexcharts-text ' + cssClass ? cssClass : ''
     })

@@ -12,6 +12,7 @@ class YAxis {
     this.w = ctx.w
 
     this.xaxisFontSize = this.w.config.xaxis.labels.style.fontSize
+    this.axisFontFamily = this.w.config.xaxis.labels.style.fontFamily
     this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' &&
       this.w.config.plotOptions.bar.horizontal)
 
@@ -28,6 +29,7 @@ class YAxis {
     let graphics = new Graphics(this.ctx)
 
     let yaxisFontSize = w.config.yaxis[realIndex].labels.style.fontSize
+    let yaxisFontFamily = w.config.yaxis[realIndex].labels.style.fontFamily
 
     let elYaxis = graphics.group({
       class: 'apexcharts-yaxis',
@@ -72,6 +74,7 @@ class YAxis {
           text: val,
           textAnchor: w.config.yaxis[realIndex].opposite ? 'start' : 'end',
           fontSize: yaxisFontSize,
+          fontFamily: yaxisFontFamily,
           foreColor: w.config.yaxis[realIndex].labels.style.color,
           cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[realIndex].labels.style.cssClass
         })
@@ -96,6 +99,7 @@ class YAxis {
         textAnchor: 'end',
         foreColor: w.config.yaxis[realIndex].labels.style.color,
         fontSize: w.config.yaxis[realIndex].title.style.fontSize,
+        fontFamily: w.config.yaxis[realIndex].title.style.fontFamily,
         cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[realIndex].title.style.cssClass
       })
 
@@ -167,6 +171,7 @@ class YAxis {
           textAnchor: 'middle',
           foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[realIndex] : this.xaxisForeColors,
           fontSize: this.xaxisFontSize,
+          fontFamily: this.xaxisFontFamily,
           cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
 
@@ -196,6 +201,7 @@ class YAxis {
         text: w.config.xaxis.title.text,
         textAnchor: 'middle',
         fontSize: w.config.xaxis.title.style.fontSize,
+        fontFamily: w.config.xaxis.title.style.fontFamily,
         cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
       })
 

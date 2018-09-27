@@ -57,6 +57,7 @@ class Legend {
 
     let pSize = w.config.legend.markers.size
     let fontSize = w.config.legend.fontSize
+    let fontFamily = w.config.legend.fontFamily
 
     let marginHorz = w.config.legend.itemMargin.horizontal
     let marginVert = w.config.legend.itemMargin.vertical
@@ -185,6 +186,7 @@ class Legend {
         text,
         textAnchor: w.config.legend.textAnchor,
         fontSize: fontSize,
+        fontFamily: fontFamily,
         cssClass: 'apexcharts-legend-text'
       }
 

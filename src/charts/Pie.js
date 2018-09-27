@@ -305,6 +305,7 @@ class Pie {
             text: text,
             textAnchor: 'middle',
             fontSize: w.config.dataLabels.style.fontSize,
+            fontFamily: w.config.dataLabels.style.fontFamily,
             foreColor
           })
 

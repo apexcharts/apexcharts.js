@@ -363,7 +363,7 @@ class Graphics {
   drawText (opts) {
     let w = this.w
 
-    let { x, y, text, textAnchor, fontSize, foreColor, opacity } = opts
+    let { x, y, text, textAnchor, fontSize, fontFamily, foreColor, opacity } = opts
 
     if (!textAnchor) {
       textAnchor = 'start'
@@ -393,6 +393,7 @@ class Graphics {
     })
 
     elText.node.style.fontSize = fontSize
+    elText.node.style.fontFamily = fontFamily
     elText.node.style.fill = foreColor
     elText.node.style.opacity = opacity
 
@@ -573,7 +574,7 @@ class Graphics {
     }
   }
 
-  getTextRects (text, fontSize, transform, useBBox = true) {
+  getTextRects (text, fontSize, fontFamily, transform, useBBox = true) {
     let w = this.w
     let virtualText = this.drawText({
       x: -200,
@@ -581,6 +582,7 @@ class Graphics {
       text: text,
       textAnchor: 'start',
       fontSize: fontSize,
+      fontFamily: fontFamily,
       foreColor: '#fff',
       opacity: 0
     })

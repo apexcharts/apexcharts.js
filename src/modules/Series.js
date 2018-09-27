@@ -318,6 +318,7 @@ export default class Series {
         text: noDataOpts.text,
         textAnchor: textAnchor,
         fontSize: noDataOpts.style.fontSize,
+        fontFamily: noDataOpts.style.fontFamily,
         foreColor: noDataOpts.style.color,
         opacity: 1,
         class: 'apexcharts-text-nodata'

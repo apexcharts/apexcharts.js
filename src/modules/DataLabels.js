@@ -144,7 +144,8 @@ class DataLabels {
         foreColor: w.globals.dataLabels.style.colors[i],
         textAnchor: dataLabelsConfig.textAnchor,
         text: text,
-        fontSize: dataLabelsConfig.style.fontSize
+        fontSize: dataLabelsConfig.style.fontSize,
+        fontFamily: dataLabelsConfig.style.fontFamily
       })
 
       dataLabelText.attr({
