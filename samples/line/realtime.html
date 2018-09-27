@@ -77,7 +77,7 @@
                     enabled: false,
                     easing: 'linear',
                     dynamicAnimation: {
-                        speed: 2000
+                        speed: 1000
                     }
                 },
                 toolbar: {
@@ -107,6 +107,9 @@
                 type: 'datetime',
                 range: 777600000,
             },
+            yaxis: {
+                max: 100
+            },
             legend: {
                 show: false
             },
@@ -128,14 +131,14 @@
             })
 
             if(data.length > dataPointsLength) {
-                data.shift()
-                // data[0].x = lastDate - 777600000
-                // data[0].y = 0
+               // data.shift()
+                data[0].x = lastDate - 777600000
+                data[0].y = 0
             }
             chart.updateSeries([{
                 data: data
             }])
-        }, 1500)
+        }, 1000)
 
     </script>
 </body>

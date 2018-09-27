@@ -42,6 +42,18 @@ class Tooltip {
     return ctx.w.globals.dom.baseEl.querySelector('.apexcharts-tooltip')
   }
 
+  getElXCrosshairs () {
+    return this.w.globals.dom.baseEl.querySelector(
+      '.apexcharts-xcrosshairs'
+    )
+  }
+
+  getElGrid () {
+    return this.w.globals.dom.baseEl.querySelector(
+      '.apexcharts-grid'
+    )
+  }
+
   drawTooltip (xyRatios) {
     let w = this.w
     this.xyRatios = xyRatios
@@ -61,10 +73,6 @@ class Tooltip {
       this.axesTooltip.drawYaxisTooltip()
       this.axesTooltip.setXCrosshairWidth()
       this.axesTooltip.handleYCrosshair()
-
-      this.allPoints = w.globals.dom.baseEl.querySelectorAll(
-        '.apexcharts-series-markers .apexcharts-marker'
-      )
 
       let xAxis = new XAxis(this.ctx)
       this.xAxisTicksPositions = xAxis.getXAxisTicksPositions()
@@ -175,11 +183,9 @@ class Tooltip {
 
     let hoverArea = w.globals.dom.Paper.node
 
-    this.elGrid = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-grid'
-    )
-    if (this.elGrid) {
-      this.seriesBound = this.elGrid.getBoundingClientRect()
+    const elGrid = this.getElGrid()
+    if (elGrid) {
+      this.seriesBound = elGrid.getBoundingClientRect()
     }
 
     let tooltipY = []
@@ -187,7 +193,7 @@ class Tooltip {
 
     let seriesHoverParams = {
       hoverArea,
-      elGrid: this.elGrid,
+      elGrid: elGrid,
       tooltipEl: tooltipEl,
       tooltipY,
       tooltipX,
@@ -419,6 +425,7 @@ class Tooltip {
     let capj = null
 
     const tooltipEl = this.getElTooltip()
+    const xcrosshairs = this.getElXCrosshairs()
 
     const clientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX
     const clientY = (e.type === 'touchmove') ? e.touches[0].clientY : e.clientY
@@ -436,8 +443,8 @@ class Tooltip {
     }
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
-      if (self.xcrosshairs !== null) {
-        self.xcrosshairs.classList.add('active')
+      if (xcrosshairs !== null) {
+        xcrosshairs.classList.add('active')
       }
 
       if (self.ycrosshairs !== null && self.blyaxisTooltip) {
@@ -614,14 +621,15 @@ class Tooltip {
 
   handleMouseOut (opt) {
     const w = this.w
+    const xcrosshairs = this.getElXCrosshairs()
 
     opt.tooltipEl.classList.remove('active')
     this.deactivateHoverFilter()
     if (w.config.chart.type !== 'bubble') {
       this.marker.resetPointsSize()
     }
-    if (this.xcrosshairs !== null) {
-      this.xcrosshairs.classList.remove('active')
+    if (xcrosshairs !== null) {
+      xcrosshairs.classList.remove('active')
     }
     if (this.ycrosshairs !== null) {
       this.ycrosshairs.classList.remove('active')
@@ -641,6 +649,12 @@ class Tooltip {
 
   getElMarkers () {
     return this.w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers')
+  }
+
+  getAllMarkers () {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-series-markers .apexcharts-marker'
+    )
   }
 
   hasMarkers () {

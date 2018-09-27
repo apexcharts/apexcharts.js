@@ -87,9 +87,7 @@ class AxesTooltip {
     const ttCtx = this.ttCtx
 
     // set xcrosshairs width
-    ttCtx.xcrosshairs = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-xcrosshairs'
-    )
+    const xcrosshairs = ttCtx.getElXCrosshairs()
     ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width)
 
     if (!w.globals.comboCharts) {
@@ -128,8 +126,8 @@ class AxesTooltip {
     ) {
       ttCtx.xcrosshairsWidth = 0
     }
-    if (ttCtx.xcrosshairs !== null) {
-      ttCtx.xcrosshairs.setAttribute('width', ttCtx.xcrosshairsWidth)
+    if (xcrosshairs !== null) {
+      xcrosshairs.setAttribute('width', ttCtx.xcrosshairsWidth)
     }
   }
 

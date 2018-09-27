@@ -24,6 +24,8 @@ class Position {
     const ttCtx = this.ttCtx
     let w = this.w
 
+    const xcrosshairs = ttCtx.getElXCrosshairs()
+
     let x = cx - ttCtx.xcrosshairsWidth / 2
 
     let tickAmount = w.globals.labels.slice().length
@@ -45,9 +47,9 @@ class Position {
       }
     }
 
-    if (ttCtx.xcrosshairs !== null) {
-      ttCtx.xcrosshairs.setAttribute('x', x)
-      ttCtx.xcrosshairs.classList.add('active')
+    if (xcrosshairs !== null) {
+      xcrosshairs.setAttribute('x', x)
+      xcrosshairs.classList.add('active')
     }
 
     if (ttCtx.blxaxisTooltip) {
@@ -176,7 +178,8 @@ class Position {
     }
 
     if (w.config.tooltip.followCursor) {
-      const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+      const elGrid = ttCtx.getElGrid()
+      const seriesBound = elGrid.getBoundingClientRect()
       y = ttCtx.e.clientY - seriesBound.top - tooltipRect.ttHeight / 2
     }
 
@@ -197,10 +200,7 @@ class Position {
     let ttCtx = this.ttCtx
 
     if (w.config.markers.size > 0) {
-      let allPoints = w.globals.dom.baseEl.querySelectorAll(
-
-        ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`
-      )
+      let allPoints = w.globals.dom.baseEl.querySelectorAll(` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`)
       for (let p = 0; p < allPoints.length; p++) {
         if (parseInt(allPoints[p].getAttribute('rel')) === j) {
           ttCtx.marker.resetPointsSize()
@@ -268,8 +268,10 @@ class Position {
     }
 
     let points = null
-    if (ttCtx.allPoints !== null) {
-      points = ttCtx.allPoints
+    const allPoints = ttCtx.getAllMarkers()
+
+    if (allPoints !== null) {
+      points = allPoints
     } else {
       points = w.globals.dom.baseEl.querySelectorAll(
         '.apexcharts-series-markers circle'
@@ -327,7 +329,8 @@ class Position {
     }
 
     // tooltip will move vertically along with mouse as it is a shared tooltip
-    let seriesBound = ttCtx.elGrid.getBoundingClientRect()
+    const elGrid = ttCtx.getElGrid()
+    let seriesBound = elGrid.getBoundingClientRect()
 
     bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
 

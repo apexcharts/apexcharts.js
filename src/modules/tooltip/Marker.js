@@ -17,7 +17,6 @@ class Marker {
   }
 
   drawDynamicPoints () {
-    const ttCtx = this.ttCtx
     let w = this.w
 
     let graphics = new Graphics(this.ctx)
@@ -52,10 +51,6 @@ class Marker {
 
         elPointsG.appendChild(point.node)
         pointsMain.appendChild(elPointsG)
-
-        ttCtx.allPoints = w.globals.dom.baseEl.querySelectorAll(
-          '.apexcharts-series-markers .apexcharts-marker'
-        )
       }
     }
   }

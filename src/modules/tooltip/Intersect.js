@@ -42,7 +42,8 @@ class Intersect {
         x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
       }
       if (ttCtx.w.config.tooltip.followCursor) {
-        const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+        const elGrid = ttCtx.getElGrid()
+        const seriesBound = elGrid.getBoundingClientRect()
         // x = ttCtx.e.clientX - seriesBound.left
         y = ttCtx.e.clientY - seriesBound.top
       }
@@ -94,7 +95,8 @@ class Intersect {
       y = cy - ttCtx.tooltipRect.ttHeight * 1.4
 
       if (ttCtx.w.config.tooltip.followCursor) {
-        const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+        const elGrid = ttCtx.getElGrid()
+        const seriesBound = elGrid.getBoundingClientRect()
         y = ttCtx.e.clientY - seriesBound.top
       }
 
@@ -146,7 +148,8 @@ class Intersect {
     }
 
     if (ttCtx.w.config.tooltip.followCursor) {
-      const seriesBound = ttCtx.elGrid.getBoundingClientRect()
+      const elGrid = ttCtx.getElGrid()
+      const seriesBound = elGrid.getBoundingClientRect()
       y = ttCtx.e.clientY - seriesBound.top
     }
 

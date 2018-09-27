@@ -18,7 +18,15 @@ import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
 
+require('svg.js')
+require('svg.filter.js')
+require('svg.pathmorphing.js')
+require('svg.draggable.js')
+require('svg.select.js')
+require('svg.resize.js')
+
 require('./assets/apexcharts.css')
+require('./utils/ClassListPolyfill')
 
 // global Apex object which user can use to override chart's defaults globally
 window.Apex = {}
@@ -227,7 +235,7 @@ class ApexCharts {
     return new Promise(function (resolve, reject) {
       // no data to display
       if (me.el === null) {
-        return reject(new Error('Not enough data to display or element not found'))
+        return reject(new Error('Not enough data to display or target element not found'))
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         series.handleNoData()
       }
@@ -534,12 +542,8 @@ class ApexCharts {
         this.el.removeChild(this.el.firstChild)
       }
     }
-    // domEls.Paper.clear()
-    // domEls.Paper.remove()
-    this.ctx = null
-    delete this.ctx
-    this.ctx = this
-    domEls.Paper = null
+    domEls.Paper.clear()
+    domEls.Paper.remove()
     domEls.elWrap = null
     domEls.elGraphical = null
     domEls.elLegendWrap = null

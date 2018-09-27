@@ -13,16 +13,8 @@ import XAxis from './axes/XAxis'
 import YAxis from './axes/YAxis'
 import Range from './Range'
 import Utils from '../utils/Utils'
-import ClassListPolyfill from '../utils/ClassListPolyfill'
 import Series from './Series'
 import TimeScale from './TimeScale'
-
-import * as SVG from 'svg.js'
-require('svg.filter.js')
-require('svg.pathmorphing.js')
-require('svg.draggable.js')
-require('svg.select.js')
-require('svg.resize.js')
 
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.
@@ -83,7 +75,7 @@ class Core {
     })
     this.el.appendChild(gl.dom.elWrap)
 
-    gl.dom.Paper = new SVG.Doc(gl.dom.elWrap)
+    gl.dom.Paper = new window.SVG.Doc(gl.dom.elWrap)
     gl.dom.Paper.attr({
       class: 'apexcharts-svg',
       'xmlns:data': 'ApexChartsNS',
@@ -108,10 +100,6 @@ class Core {
     gl.dom.Paper.add(gl.dom.elLegendWrap)
     gl.dom.Paper.add(gl.dom.elGraphical)
     gl.dom.elGraphical.add(gl.dom.elDefs)
-
-    if (Utils.isIE()) {
-      ClassListPolyfill.fnClassList()
-    }
   }
 
   plotChartType (ser, xyRatios) {
@@ -294,7 +282,7 @@ class Core {
    ** All the calculations for setting range in charts will be done here
    */
   coreCalculations () {
-    const range = new Range(this.ctx, this.checkComboCharts)
+    const range = new Range(this.ctx)
     range.init()
   }
 
