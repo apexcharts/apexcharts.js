@@ -23,6 +23,7 @@ class DateTime {
 
   getUTCTimeStamp (dateStr) {
     return new Date(new Date(dateStr).toUTCString().substr(0, 25)).getTime()
+    // return new Date(new Date(dateStr).setMinutes(new Date().getTimezoneOffset()))
   }
 
   parseDate (dateStr) {
@@ -44,7 +45,7 @@ class DateTime {
   }
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
-  formatDate (date, format, utc = true) {
+  formatDate (date, format, utc = true, forceUTC = true) {
     const locale = this.w.globals.locale
 
     let MMMM = ['\x00', ...locale.months]
@@ -59,7 +60,9 @@ class DateTime {
       return s
     }
 
+    // if (forceUTC) {
     date = this.treatAsUtc(date)
+    // }
 
     let y = utc ? date.getUTCFullYear() : date.getFullYear()
     format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y)

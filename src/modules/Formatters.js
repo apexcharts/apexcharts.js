@@ -21,7 +21,7 @@ class Formatters {
       // if user has not specified a custom formatter, use the default tooltip.x.format
       if (w.config.tooltip.x.formatter === undefined) {
         let datetimeObj = new DateTime(this.ctx)
-        return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format)
+        return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format, true, true)
       }
     }
 

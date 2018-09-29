@@ -1,6 +1,7 @@
 .apexcharts-canvas {
   position: relative;
   user-select: none;
+  overflow: hidden;
 }
 
 .apexcharts-inner {

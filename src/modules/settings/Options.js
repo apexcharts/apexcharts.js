@@ -681,7 +681,8 @@ export default class Options {
             year: 'yyyy',
             month: 'MMM \'yy',
             day: 'dd MMM',
-            hour: 'HH:mm'
+            hour: 'HH:mm',
+            minute: 'HH:mm:ss'
           }
         },
         axisBorder: {
