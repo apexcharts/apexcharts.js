@@ -377,9 +377,9 @@ class Line {
               graphics.move(pX, pY) +
               graphics.curve(pX + length, pY, x - length, y, x + 1, y)
             areaPath =
-              graphics.move(pX, pY) +
+              graphics.move(pX + 1, pY) +
               graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
-              graphics.line(x + 1, zeroY) +
+              graphics.line(x, zeroY) +
               graphics.line(pX, zeroY) +
               'z'
           } else {

@@ -16,6 +16,16 @@ class ZoomPanSelection extends Toolbar {
     this.w = ctx.w
 
     this.dragged = false
+    this.graphics = new Graphics(this.ctx)
+
+    this.eventList = [
+      'mousedown',
+      'mousemove',
+      'touchstart',
+      'touchmove',
+      'mouseup',
+      'touchend'
+    ]
 
     this.clientX = 0
     this.clientY = 0
@@ -31,63 +41,75 @@ class ZoomPanSelection extends Toolbar {
     xyRatios
   }) {
     let w = this.w
-    let self = this
+    var me = this
 
     this.xyRatios = xyRatios
 
-    const graphics = new Graphics(this.ctx)
+    this.zoomRect = this.graphics.drawRect(0, 0, 0, 0)
+    this.selectionRect = this.graphics.drawRect(0, 0, 0, 0)
+    this.gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
 
-    const zoomRect = graphics.drawRect(0, 0, 0, 0)
-    const selectionRect = graphics.drawRect(0, 0, 0, 0)
-
-    zoomRect.node.classList.add('apexcharts-zoom-rect')
-    selectionRect.node.classList.add('apexcharts-selection-rect')
-    w.globals.dom.elGraphical.add(zoomRect)
-    w.globals.dom.elGraphical.add(selectionRect)
+    this.zoomRect.node.classList.add('apexcharts-zoom-rect')
+    this.selectionRect.node.classList.add('apexcharts-selection-rect')
+    w.globals.dom.elGraphical.add(this.zoomRect)
+    w.globals.dom.elGraphical.add(this.selectionRect)
 
     if (w.config.chart.selection.type === 'x') {
-      selectionRect.draggable({
+      this.slDraggableRect = this.selectionRect.draggable({
         minX: 0,
         minY: 0,
         maxX: w.globals.gridWidth,
         maxY: w.globals.gridHeight
       }).on('dragmove', this.selectionDragging.bind(this, 'dragging'))
     } else if (w.config.chart.selection.type === 'y') {
-      selectionRect.draggable({
+      this.slDraggableRect = this.selectionRect.draggable({
         minX: 0,
         maxX: w.globals.gridWidth
       }).on('dragmove', this.selectionDragging.bind(this, 'dragging'))
     } else {
-      selectionRect.draggable().on('dragmove', this.selectionDragging.bind(this, 'dragging'))
+      this.slDraggableRect = this.selectionRect.draggable().on('dragmove', this.selectionDragging.bind(this, 'dragging'))
     }
     this.preselectedSelection()
 
-    let hoverArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
-    hoverArea.classList.add('zoomable')
+    this.hoverArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
+    this.hoverArea.classList.add('zoomable')
 
-    let eventList = [
-      'mousedown',
-      'mousemove',
-      'touchstart',
-      'touchmove',
-      'mouseup',
-      'touchend'
-    ]
-    for (let event of eventList) {
-      hoverArea.addEventListener(
+    for (let event of this.eventList) {
+      this.hoverArea.addEventListener(
         event,
-        self.svgMouseEvents.bind(self, xyRatios),
+        me.svgMouseEvents.bind(me, xyRatios),
         false
       )
     }
   }
 
+  // remove the event listeners which were previously added on hover area
+  destroy () {
+    const me = this
+    for (let event of this.eventList) {
+      if (this.hoverArea) {
+        this.hoverArea.removeEventListener(
+          event,
+          me.svgMouseEvents.bind(me, me.xyRatios),
+          false
+        )
+      }
+    }
+    if (this.slDraggableRect) {
+      this.slDraggableRect.draggable(false)
+      this.slDraggableRect.off()
+      this.selectionRect.off()
+    }
+
+    this.selectionRect = null
+    this.zoomRect = null
+    this.gridRect = null
+  }
+
   svgMouseEvents (xyRatios, e) {
     let w = this.w
     let me = this
-    const toolbar = new Toolbar(this.ctx)
-
-    const gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
+    const toolbar = this.ctx.toolbar
 
     let zoomtype = w.globals.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type
 
@@ -109,7 +131,7 @@ class ZoomPanSelection extends Toolbar {
     me.clientY = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientY : (e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY)
 
     if ((e.type === 'mousedown' && e.which === 1)) {
-      let gridRectDim = gridRect.getBoundingClientRect()
+      let gridRectDim = me.gridRect.getBoundingClientRect()
 
       me.startX = me.clientX - gridRectDim.left
       me.startY = me.clientY - gridRectDim.top
@@ -144,7 +166,7 @@ class ZoomPanSelection extends Toolbar {
 
     if ((e.type === 'mouseup') || e.type === 'touchend') {
       // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-      let gridRectDim = gridRect.getBoundingClientRect()
+      let gridRectDim = me.gridRect.getBoundingClientRect()
 
       if (me.w.globals.mousedown) {
         // user released the drag, now do all the calculations
@@ -174,11 +196,12 @@ class ZoomPanSelection extends Toolbar {
 
   makeSelectionRectDraggable () {
     const w = this.w
-    const selectionRect = this.getSelectionRectSVG()
 
-    const rectDim = selectionRect.first().node.getBoundingClientRect()
+    if (!this.selectionRect) return
+
+    const rectDim = this.selectionRect.node.getBoundingClientRect()
     if (rectDim.width > 0 && rectDim.height > 0) {
-      selectionRect.selectize().resize({
+      this.slDraggableRect.selectize().resize({
         constraint: {
           minX: 0,
           minY: 0,
@@ -234,8 +257,8 @@ class ZoomPanSelection extends Toolbar {
     translateY
   }) {
     const w = this.w
-    const zoomRect = this.getZoomRectSVG()
-    const selectionRect = this.getSelectionRectSVG()
+    const zoomRect = this.zoomRect
+    const selectionRect = this.selectionRect
     if (this.dragged || w.globals.selection !== null) {
       let scalingAttrs = {
         transform: 'translate(' + translateX + ', ' + translateY + ')'
@@ -255,7 +278,7 @@ class ZoomPanSelection extends Toolbar {
           'stroke-width': w.config.chart.zoom.zoomedArea.stroke.width,
           'stroke-opacity': w.config.chart.zoom.zoomedArea.stroke.opacity
         })
-        Graphics.setAttrs(zoomRect, scalingAttrs)
+        Graphics.setAttrs(zoomRect.node, scalingAttrs)
       }
 
       // selection is enabled
@@ -273,20 +296,22 @@ class ZoomPanSelection extends Toolbar {
           'stroke-opacity': w.config.chart.selection.stroke.opacity
         })
 
-        Graphics.setAttrs(selectionRect.first().node, scalingAttrs)
+        Graphics.setAttrs(selectionRect.node, scalingAttrs)
       }
     }
   }
 
   hideSelectionRect () {
-    const selectionRect = this.getSelectionRectSVG()
+    const selectionRect = this.selectionRect
 
-    selectionRect.attr({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0
-    })
+    if (selectionRect) {
+      selectionRect.attr({
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+      })
+    }
   }
 
   selectionDrawing ({
@@ -295,9 +320,8 @@ class ZoomPanSelection extends Toolbar {
   }) {
     const w = this.w
     let me = context
-    const gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
 
-    let gridRectDim = gridRect.getBoundingClientRect()
+    let gridRectDim = this.gridRect.getBoundingClientRect()
 
     let startX = me.startX - 1
     let startY = me.startY
@@ -357,9 +381,8 @@ class ZoomPanSelection extends Toolbar {
   selectionDragging (type, e) {
     const w = this.w
     const xyRatios = this.xyRatios
-    const gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
 
-    const selRect = this.getSelectionRectSVG()
+    const selRect = this.selectionRect
 
     let timerInterval = 0
 
@@ -370,8 +393,8 @@ class ZoomPanSelection extends Toolbar {
       // a small debouncer is required when resizing to avoid freezing the chart
       clearTimeout(this.w.globals.selectionResizeTimer)
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-        const gridRectDim = gridRect.getBoundingClientRect()
-        const selectionRect = selRect.first().node.getBoundingClientRect()
+        const gridRectDim = this.gridRect.getBoundingClientRect()
+        const selectionRect = selRect.node.getBoundingClientRect()
 
         const minX = w.globals.xAxisScale.niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.xRatio
         const maxX = w.globals.xAxisScale.niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.xRatio
@@ -400,7 +423,7 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w
     const me = context
     const xyRatios = this.xyRatios
-    const toolbar = new Toolbar(this.ctx)
+    const toolbar = this.ctx.toolbar
 
     if (me.startX > me.endX) {
       let tempX = me.startX
@@ -589,14 +612,6 @@ class ZoomPanSelection extends Toolbar {
         }
       })
     }
-  }
-
-  getZoomRectSVG () {
-    return this.w.globals.dom.Paper.select('.apexcharts-zoom-rect')
-  }
-
-  getSelectionRectSVG () {
-    return this.w.globals.dom.Paper.select('.apexcharts-selection-rect')
   }
 }
 

@@ -225,7 +225,7 @@ class Labels {
 
     if (shared) {
       // hide when no Val
-      if (typeof val === 'undefined') {
+      if (typeof val === 'undefined' || val === null || isNaN(val)) {
         ttItemsChildren[0].parentNode.style.display = 'none'
       } else {
         ttItemsChildren[0].parentNode.style.display = w.config.tooltip.items.display

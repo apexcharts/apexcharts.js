@@ -130,10 +130,10 @@
                 max: 90
             })
 
-            if(data.length > dataPointsLength) {
-               // data.shift()
-                data[0].x = lastDate - 777600000
-                data[0].y = 0
+            if(data.length > dataPointsLength + 1) {
+                data.shift()
+                // data[0].x = lastDate - 777600000
+                // data[0].y = 0
             }
             chart.updateSeries([{
                 data: data

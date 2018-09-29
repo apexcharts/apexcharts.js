@@ -85,7 +85,7 @@ class Toolbar {
       })
     }
 
-    if (w.config.chart.toolbar.tools.pan && (w.config.chart.zoom.enabled || w.config.chart.scroller.enabled)) {
+    if (w.config.chart.toolbar.tools.pan && w.config.chart.zoom.enabled) {
       toolbarControls.push({
         el: this.elPan,
         icon: icoPan,
@@ -268,7 +268,6 @@ class Toolbar {
   }
 
   downloadSVG () {
-    // const w = this.w
     const downloadSVG = new Exports(this.ctx)
 
     downloadSVG.exportToSVG()
@@ -286,6 +285,26 @@ class Toolbar {
         ch.updateSeriesInternal(w.globals.initialSeries, true)
       }
     })
+  }
+
+  destroy () {
+    if (this.elZoomReset) {
+      this.elZoomReset.removeEventListener('click', this.handleZoomReset.bind(this))
+      this.elSelection.removeEventListener('click', this.toggleSelection.bind(this))
+      this.elZoom.removeEventListener('click', this.toggleZooming.bind(this))
+      this.elZoomIn.removeEventListener('click', this.handleZoomIn.bind(this))
+      this.elZoomOut.removeEventListener('click', this.handleZoomOut.bind(this))
+      this.elPan.removeEventListener('click', this.togglePanning.bind(this))
+      this.elCamera.removeEventListener('click', this.downloadSVG.bind(this))
+    }
+
+    this.elZoom = null
+    this.elZoomIn = null
+    this.elZoomOut = null
+    this.elPan = null
+    this.elSelection = null
+    this.elZoomReset = null
+    this.elCamera = null
   }
 }
 

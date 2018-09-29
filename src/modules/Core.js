@@ -299,7 +299,6 @@ class Core {
     gl.timelineLabels = []
     gl.noLabelsProvided = false
     gl.timescaleTicks = []
-    gl.tooltip = null
     gl.resizeTimer = null
     gl.selectionResizeTimer = null
     gl.seriesXvalues = (() => {
@@ -713,6 +712,7 @@ class Core {
       total.push(t)
     }
     w.globals.stackedSeriesTotals = total
+    return total
   }
 
   // get total of the all values inside all series

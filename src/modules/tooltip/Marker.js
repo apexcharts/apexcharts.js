@@ -84,7 +84,7 @@ class Marker {
     let col = j
 
     let points = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-marker'
+      '.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker'
     )
 
     let newSize = w.config.markers.hover.size

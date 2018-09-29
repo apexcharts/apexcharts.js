@@ -15,10 +15,6 @@
   cursor: auto;
 }
 
-.apexcharts-series-collapsed {
-  opacity: 0;
-}
-
 .inactive-legend {
   opacity: 0.45;
 }
@@ -26,6 +22,10 @@
 .legend-mouseover-inactive {
   transition: 0.15s ease all;
   opacity: 0.20;
+}
+
+.apexcharts-series-collapsed {
+  opacity: 0;
 }
 
 .apexcharts-gridline, .apexcharts-text {
@@ -379,10 +379,6 @@
 }
 .apexcharts-pan-icon:not(.selected):hover svg {
   stroke: #333;
-}
-
-.apexcharts-scroller-thumb, .apexcharts-scrollbutton {
-  cursor: ew-resize;
 }
 
 .apexcharts-toolbar {

@@ -69,9 +69,6 @@ class Defaults {
         },
         zoom: {
           enabled: false
-        },
-        scroller: {
-          enabled: false
         }
       },
       dataLabels: {
@@ -273,9 +270,6 @@ class Defaults {
     return {
       chart: {
         zoom: {
-          enabled: false
-        },
-        scroller: {
           enabled: false
         },
         toolbar: {

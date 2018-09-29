@@ -193,15 +193,9 @@ class Dimensions {
         throw new Error('Legend position not supported')
     }
 
-    let scrollerHeight = 0
-    if (w.config.chart.scroller.enabled && w.globals.dataXY) {
-      scrollerHeight = w.config.chart.scroller.height
-    }
-
     gl.gridHeight = gl.gridHeight -
       w.config.grid.padding.top -
-      w.config.grid.padding.bottom -
-      scrollerHeight
+      w.config.grid.padding.bottom
 
     gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right
 

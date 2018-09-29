@@ -207,13 +207,18 @@
           })
           colors.push(yearSeries.data[selectedIndex].color)
         }
+
+        if(series.length === 0) series = [{
+          data: []
+        }]
+         
         return ApexCharts.exec(destChartIDToUpdate, 'updateOptions', {
           series: series,
           colors: colors,
           fill: {
             colors: colors
           }
-        })
+        })        
 
       }
 
@@ -297,7 +302,7 @@
           updateQuarterChart(chart, 'barQuarter')
         }
       } else {
-        updateQuarterChart(chart, 'barQuarter')
+         updateQuarterChart(chart, 'barQuarter')
       }
 
       if (opts.selectedDataPoints[0].length === 0) {

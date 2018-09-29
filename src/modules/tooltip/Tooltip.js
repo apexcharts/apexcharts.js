@@ -346,7 +346,10 @@ class Tooltip {
    ** The actual series hover function
    */
   seriesHover (opt, e) {
-    const chartGroups = this.ctx.getGroupedCharts()
+    let chartGroups = []
+    if (this.w.config.chart.group) {
+      chartGroups = this.ctx.getGroupedCharts()
+    }
 
     if (chartGroups.length) {
       chartGroups.forEach((ch) => {
@@ -576,7 +579,7 @@ class Tooltip {
     let seriesBound = elPie.getBoundingClientRect()
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
-      opt.tooltipEl.classList.add('active')
+      tooltipEl.classList.add('active')
 
       this.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
@@ -595,16 +598,10 @@ class Tooltip {
       }
       if (y < 0) y = tooltipRect.ttHeight + 20
 
-      if (this.tooltip === null) {
-        this.tooltip = w.globals.dom.baseEl.querySelector(
-          '.apexcharts-tooltip'
-        )
-      }
-
       tooltipEl.style.left = x + w.globals.translateX + 'px'
       tooltipEl.style.top = y + 'px'
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
-      opt.tooltipEl.classList.remove('active')
+      tooltipEl.classList.remove('active')
     }
   }
 

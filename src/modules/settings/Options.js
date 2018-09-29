@@ -227,31 +227,6 @@ export default class Options {
         id: undefined,
         offsetX: 0,
         offsetY: 0,
-        scroller: {
-          enabled: false,
-          height: 30,
-          track: {
-            height: 2,
-            background: '#e0e0e0'
-          },
-          thumb: {
-            height: 2,
-            background: '#008FFB'
-          },
-          scrollButtons: {
-            enabled: true,
-            size: 6,
-            borderWidth: 2,
-            borderColor: '#c3c3c3',
-            fillColor: '#fff'
-          },
-          padding: {
-            left: 10,
-            right: 10
-          },
-          offsetX: 0,
-          offsetY: 0
-        },
         selection: {
           enabled: true,
           type: 'x',

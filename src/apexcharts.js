@@ -13,7 +13,6 @@ import Theme from './modules/Theme'
 import Tooltip from './modules/tooltip/Tooltip'
 import Utils from './utils/Utils'
 import ZoomPanSelection from './modules/ZoomPanSelection'
-import Scroller from './modules/Scroller'
 import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
@@ -48,6 +47,8 @@ class ApexCharts {
 
     this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4)
     this.w.globals.chartID = this.w.config.chart.id ? this.w.config.chart.id : this.w.globals.cuid
+
+    this.initModules()
 
     this.responsiveConfigOverrided = false
 
@@ -85,9 +86,9 @@ class ApexCharts {
         this.fireEvent('beforeMount', [this, this.w])
 
         let graphData = this.create(this.w.config.series)
+        if (!graphData) return resolve(this)
         this.mount(graphData).then(() => {
-          let animations = new Animations(this.ctx)
-          animations.showDelayedElements()
+          this.animations.showDelayedElements()
           resolve(graphData)
 
           if (typeof this.w.config.chart.events.mounted === 'function') {
@@ -104,6 +105,24 @@ class ApexCharts {
         reject(new Error('Element not found'))
       }
     })
+  }
+
+  initModules () {
+    this.animations = new Animations(this.ctx)
+    this.annotations = new Annotations(this.ctx)
+    this.core = new Core(this.el, this)
+    this.crosshairs = new Crosshairs(this.ctx)
+    this.options = new Options()
+    this.responsive = new Responsive(this.ctx)
+    this.series = new Series(this.ctx)
+    this.theme = new Theme(this.ctx)
+    this.formatters = new Formatters(this.ctx)
+    this.titleSubtitle = new TitleSubtitle(this.ctx)
+    this.legend = new Legend(this.ctx)
+    this.dimensions = new Dimensions(this.ctx)
+    this.toolbar = new Toolbar(this.ctx)
+    this.zoomPanSelection = new ZoomPanSelection(this.ctx)
+    this.w.globals.tooltip = new Tooltip(this.ctx)
   }
 
   addEventListener (name, handler) {
@@ -149,64 +168,59 @@ class ApexCharts {
 
   create (ser) {
     let w = this.w
+    this.initModules()
     let gl = this.w.globals
-    const core = new Core(this.el, this)
 
     gl.noData = false
 
     if (!this.responsiveConfigOverrided) {
-      const responsive = new Responsive(this.ctx)
-      responsive.checkResponsiveConfig()
+      this.responsive.checkResponsiveConfig()
     }
 
     if (this.el === null) {
       return null
     }
 
-    core.setupElements()
+    this.core.setupElements()
 
     if (ser.length === 0 || (ser.length === 1 && ser[0].data && ser[0].data.length === 0)) {
-      const series = new Series(this.ctx)
-      series.handleNoData()
+      this.series.handleNoData()
     }
 
     this.setupEventHandlers()
-    core.parseData(ser)
+    this.core.parseData(ser)
     // this is a good time to set theme colors first
-    let theme = new Theme(this.ctx)
-    theme.init()
+    this.theme.init()
     // labelFormatters should be called before dimensions as in dimensions we need text labels width
-    let formatters = new Formatters(this.ctx)
-    formatters.setLabelFormatters()
-    const titleSubtitle = new TitleSubtitle(this.ctx)
-    titleSubtitle.draw()
+
+    this.formatters.setLabelFormatters()
+    this.titleSubtitle.draw()
 
     // legend is calculated here before coreCalculations because it affects the plottable area
-    new Legend(this.ctx).init()
+    this.legend.init()
 
     // coreCalculations will give the min/max range and yaxis/axis values. It should be called here to set series variable from config to globals
     if (gl.axisCharts) {
-      core.coreCalculations()
+      this.core.coreCalculations()
       // as we have minX and maxX values, determine the default DateTimeFormat for time series
-      formatters.setLabelFormatters()
+      this.formatters.setLabelFormatters()
     }
 
     // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
     // Also we need to do this before calcuting Dimentions plotCoords() method of Dimensions
-    formatters.heatmapLabelFormatters()
+    this.formatters.heatmapLabelFormatters()
 
     // We got plottable area here, next task would be to calculate axis areas
-    let dimensions = new Dimensions(this.ctx)
-    dimensions.plotCoords()
+    this.dimensions.plotCoords()
 
-    const xyRatios = core.xySettings()
+    const xyRatios = this.core.xySettings()
 
-    core.createGridMask()
+    this.core.createGridMask()
 
-    const elGraph = core.plotChartType(ser, xyRatios)
+    const elGraph = this.core.plotChartType(ser, xyRatios)
 
     // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
-    core.shiftGraphPosition()
+    this.core.shiftGraphPosition()
 
     const dim = {
       plot: {
@@ -226,35 +240,31 @@ class ApexCharts {
   }
 
   mount (graphData = null) {
-    let w = this.w
     let me = this
-    let series = new Series(me.ctx)
-    const core = new Core(this.el, this)
-    const annotations = new Annotations(me.ctx)
+    let w = me.w
 
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
       // no data to display
       if (me.el === null) {
         return reject(new Error('Not enough data to display or target element not found'))
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
-        series.handleNoData()
+        me.series.handleNoData()
       }
 
-      core.drawAxis(
+      me.core.drawAxis(
         w.config.chart.type,
         graphData.xyRatios
       )
 
       if (w.config.grid.position === 'back') {
-        core.drawGrid()
+        me.core.drawGrid()
       }
 
       if (w.config.annotations.position === 'back') {
-        annotations.drawAnnotations()
+        me.annotations.drawAnnotations()
       }
 
-      let animations = new Animations(me.ctx)
-      animations.showDelayedElements()
+      me.animations.showDelayedElements()
 
       if (graphData.elGraph instanceof Array) {
         for (let g = 0; g < graphData.elGraph.length; g++) {
@@ -265,41 +275,32 @@ class ApexCharts {
       }
 
       if (w.config.grid.position === 'front') {
-        core.drawGrid()
+        me.core.drawGrid()
       }
 
       if (w.config.xaxis.crosshairs.position === 'front') {
-        const crosshairs = new Crosshairs(me.ctx)
-        crosshairs.drawXCrosshairs()
+        me.crosshairs.drawXCrosshairs()
       }
 
       if (w.config.yaxis[0].crosshairs.position === 'front') {
-        const crosshairs = new Crosshairs(me.ctx)
-        crosshairs.drawYCrosshairs()
+        me.crosshairs.drawYCrosshairs()
       }
 
       if (w.config.annotations.position === 'front') {
-        annotations.drawAnnotations()
+        me.annotations.drawAnnotations()
       }
 
       if (!w.globals.noData) {
         // draw tooltips at the end
         if (w.config.tooltip.enabled && !w.globals.noData) {
-          w.globals.tooltip = new Tooltip(me.ctx)
-          w.globals.tooltip.drawTooltip(graphData.xyRatios)
+          me.w.globals.tooltip.drawTooltip(graphData.xyRatios)
         }
 
         if (w.globals.axisCharts && w.globals.dataXY) {
-          if (w.config.chart.zoom.enabled || w.config.chart.scroller.enabled || w.config.chart.selection.enabled) {
-            const zoomPanSelection = new ZoomPanSelection(me.ctx)
-            zoomPanSelection.init({
+          if (w.config.chart.zoom.enabled || w.config.chart.selection.enabled) {
+            me.zoomPanSelection.init({
               xyRatios: graphData.xyRatios
             })
-          }
-
-          if (w.config.chart.scroller.enabled) {
-            const scroller = new Scroller(me.ctx)
-            scroller.init(graphData.xyRatios)
           }
         } else {
           const tools = w.config.chart.toolbar.tools
@@ -312,8 +313,7 @@ class ApexCharts {
         }
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
-          const toolbar = new Toolbar(me.ctx)
-          toolbar.createToolbar()
+          me.toolbar.createToolbar()
         }
       }
 
@@ -356,38 +356,35 @@ class ApexCharts {
 
     charts.forEach((ch) => {
       let w = ch.w
+
       ch.w.config.chart.animations.dynamicAnimation.enabled = animate
 
       if (!redraw) {
         w.globals.resized = true
-        let series = new Series(ch.ctx)
-
         ch.w.globals.dataChanged = true
 
         if (animate && ch.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
-          series.getPreviousPaths()
+          ch.series.getPreviousPaths()
         }
       }
 
       if (options && typeof options === 'object') {
-        const responsive = new Responsive(ch.ctx)
-        responsive.checkResponsiveConfig()
+        ch.responsive.checkResponsiveConfig()
         ch.responsiveConfigOverrided = true
-
-        const config = new Config(options)
+        ch.config = new Config(options)
 
         if (options.yaxis) {
-          options = config.extendYAxis(options)
+          options = ch.config.extendYAxis(options)
         }
         if (options.annotations) {
           if (options.annotations.yaxis) {
-            options = config.extendYAxisAnnotations(options)
+            options = ch.config.extendYAxisAnnotations(options)
           }
           if (options.annotations.xaxis) {
-            options = config.extendXAxisAnnotations(options)
+            options = ch.config.extendXAxisAnnotations(options)
           }
           if (options.annotations.points) {
-            options = config.extendPointAnnotations(options)
+            options = ch.config.extendPointAnnotations(options)
           }
         }
 
@@ -422,12 +419,11 @@ class ApexCharts {
     const w = this.w
 
     this.w.config.chart.animations.dynamicAnimation.enabled = animate
-    let series = new Series(this.ctx)
 
     w.globals.dataChanged = true
 
     if (animate) {
-      series.getPreviousPaths()
+      this.series.getPreviousPaths()
     }
 
     w.config.series = newSeries.slice()
@@ -444,8 +440,9 @@ class ApexCharts {
   getSyncedCharts () {
     const chartGroups = this.getGroupedCharts()
 
-    const allCharts = [this]
+    let allCharts = [this]
     if (chartGroups.length) {
+      allCharts = []
       chartGroups.forEach((ch) => {
         allCharts.push(ch)
       })
@@ -458,7 +455,11 @@ class ApexCharts {
    * Get charts in the same "group" (excluding the instance which is called upon) to perform operations on the other charts of the same group (eg., tooltip hovering)
    */
   getGroupedCharts () {
-    return Apex._chartInstances.map((ch) => {
+    return Apex._chartInstances.filter((ch) => {
+      if (ch.group) {
+        return true
+      }
+    }).map((ch) => {
       return this.w.config.chart.group === ch.group ? ch.chart : null
     })
   }
@@ -471,11 +472,9 @@ class ApexCharts {
   appendData (newData, overwriteInitialSeries = true) {
     let me = this
 
-    let series = new Series(me.ctx)
-
     me.w.globals.dataChanged = true
 
-    series.getPreviousPaths()
+    me.series.getPreviousPaths()
 
     let newSeries = me.w.config.series.slice()
 
@@ -496,10 +495,11 @@ class ApexCharts {
 
   update () {
     const me = this
+
     return new Promise((resolve, reject) => {
       me.destroy()
       const graphData = me.create(me.w.config.series)
-
+      if (!graphData) return resolve(me)
       me.mount(graphData).then(() => {
         if (typeof me.w.config.chart.events.updated === 'function') {
           me.w.config.chart.events.updated(me, me.w)
@@ -535,14 +535,38 @@ class ApexCharts {
   }
 
   clear () {
+    this.zoomPanSelection.destroy()
+    this.toolbar.destroy()
+
+    this.animations = null
+    this.annotations = null
+    this.core = null
+    this.series = null
+    this.responsive = null
+    this.theme = null
+    this.formatters = null
+    this.titleSubtitle = null
+    this.legend = null
+    this.dimensions = null
+    this.options = null
+    this.crosshairs = null
+    this.zoomPanSelection = null
+    this.toolbar = null
+    this.w.globals.tooltip = null
+
+    this.clearDomElements()
+  }
+
+  clearDomElements () {
     const domEls = this.w.globals.dom
+
     if (this.el !== null) {
       // remove all child elements - resetting the whole chart
       while (this.el.firstChild) {
         this.el.removeChild(this.el.firstChild)
       }
     }
-    domEls.Paper.clear()
+
     domEls.Paper.remove()
     domEls.elWrap = null
     domEls.elGraphical = null
@@ -592,6 +616,7 @@ class ApexCharts {
    */
   static exec (chartID, fn, opts) {
     const chart = this.getChartByID(chartID)
+
     if (!chart) return
 
     switch (fn) {
@@ -667,8 +692,7 @@ class ApexCharts {
     if (context) {
       me = context
     }
-    const annotations = new Annotations(me.ctx)
-    annotations.addXaxisAnnotationExternal(opts, pushToMemory, me)
+    me.annotations.addXaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
   addYaxisAnnotation (opts, pushToMemory = true, context = undefined) {
@@ -676,8 +700,7 @@ class ApexCharts {
     if (context) {
       me = context
     }
-    const annotations = new Annotations(me.ctx)
-    annotations.addYaxisAnnotationExternal(opts, pushToMemory, me)
+    me.annotations.addYaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
   addPointAnnotation (opts, pushToMemory = true, context = undefined) {
@@ -685,8 +708,7 @@ class ApexCharts {
     if (context) {
       me = context
     }
-    const annotations = new Annotations(me.ctx)
-    annotations.addPointAnnotationExternal(opts, pushToMemory, me)
+    me.annotations.addPointAnnotationExternal(opts, pushToMemory, me)
   }
 
   // This method is never used internally and will be only called externally on the chart instance.
@@ -697,8 +719,7 @@ class ApexCharts {
       me = context
     }
 
-    const annotations = new Annotations(me.ctx)
-    annotations.addText(options, pushToMemory, me)
+    me.annotations.addText(options, pushToMemory, me)
   }
 
   getChartArea () {
@@ -709,8 +730,7 @@ class ApexCharts {
   }
 
   getSeriesTotalXRange (minX, maxX) {
-    const core = new Core(this.el, this)
-    return core.getSeriesTotalsXRange(minX, maxX)
+    return this.core.getSeriesTotalsXRange(minX, maxX)
   }
 
   getSeriesTotal () {
@@ -723,7 +743,6 @@ class ApexCharts {
 
   setCurrentLocaleValues (localeName) {
     let locales = this.w.config.chart.locales
-    const options = new Options()
 
     // check if user has specified locales in global Apex variable
     // if yes - then extend those with local chart's locale
@@ -738,11 +757,10 @@ class ApexCharts {
 
     if (selectedLocale) {
       // create a complete locale object by extending defaults so you don't get undefined errors.
-      let ret = Utils.extend(options.defaultLocaleOptions, selectedLocale)
+      let ret = Utils.extend(this.options.defaultLocaleOptions, selectedLocale)
 
       // store these locale options in global var for ease access
       this.w.globals.locale = ret.options
-      return options
     } else {
       throw new Error('Wrong locale name provided. Please make sure you set the correct locale name in options')
     }
