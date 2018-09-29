@@ -6036,6 +6036,10 @@ var Config = function () {
         throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false');
       }
 
+      if (config.chart.scroller) {
+        console.warn('Scroller has been deprecated since v2.0.0. Please remove the configuration for chart.scroller');
+      }
+
       if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
         // No time series for horizontal bars
         if (config.xaxis.type === 'datetime') {
