@@ -180,8 +180,18 @@ class Pie {
         size: this.size
       }) // additionaly, pass size for gradient drawing in the fillPath function
 
+      let path = ''
+      if (this.dynamicAnim && w.globals.dataChanged) {
+        path = this.getPiePath({
+          me: this,
+          startAngle: prevStartAngle,
+          angle: prevEndAngle - prevStartAngle,
+          size: this.size
+        })
+      }
+
       let elPath = graphics.drawPath({
-        d: '',
+        d: path,
         stroke: lineColorArr instanceof Array ? lineColorArr[i] : lineColorArr,
         strokeWidth: this.strokeWidth,
         fill: pathFill,
