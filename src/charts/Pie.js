@@ -26,7 +26,7 @@ class Pie {
     this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.svgHeight - 35 : w.globals.gridWidth
 
     this.centerY = this.defaultSize / 2
-    this.centerX = this.defaultSize / 2
+    this.centerX = w.globals.gridWidth / 2
 
     if (w.config.chart.type === 'radialBar') {
       this.fullAngle = 360 - w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle
@@ -102,10 +102,10 @@ class Pie {
       this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100
 
     let scaleSize = 1 + w.config.plotOptions.pie.customScale
-    let halfW = this.defaultSize / 2
-    let halfH = this.defaultSize / 2
-    let translateX = halfW - this.defaultSize / 2 * scaleSize
-    let translateY = halfH - this.defaultSize / 2 * scaleSize
+    let halfW = w.globals.gridWidth / 2
+    let halfH = w.globals.gridHeight / 2
+    let translateX = halfW - w.globals.gridWidth / 2 * scaleSize
+    let translateY = halfH - w.globals.gridHeight / 2 * scaleSize
 
     if (w.config.chart.type === 'donut') {
       // draw the inner circle and add some text to it

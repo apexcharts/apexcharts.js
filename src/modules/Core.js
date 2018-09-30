@@ -42,7 +42,7 @@ class Core {
     const graphics = new Graphics(this.ctx)
 
     let ct = cnf.chart.type
-    let axisChartsArryTypes = [
+    let axisChartsArrTypes = [
       'line',
       'area',
       'bar',
@@ -61,7 +61,8 @@ class Core {
       'bubble'
     ]
 
-    gl.axisCharts = axisChartsArryTypes.indexOf(ct) > -1
+    gl.axisCharts = axisChartsArrTypes.indexOf(ct) > -1
+
     gl.xyCharts = xyChartsArrTypes.indexOf(ct) > -1
 
     gl.chartClass = '.apexcharts' + gl.cuid

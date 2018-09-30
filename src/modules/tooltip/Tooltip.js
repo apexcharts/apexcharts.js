@@ -29,8 +29,6 @@ class Tooltip {
     this.showOnIntersect = w.config.tooltip.intersect
     this.showTooltipTitle = w.config.tooltip.x.show
     this.fixedTooltip = w.config.tooltip.fixed.enabled
-    this.blxaxisTooltip = w.config.xaxis.tooltip.enabled && w.globals.axisCharts
-    this.blyaxisTooltip = w.config.yaxis[0].tooltip.enabled && w.globals.axisCharts
     this.xaxisTooltip = null
     this.yaxisTTEls = null
     this.isBarHorizontal = w.config.plotOptions.bar.horizontal
@@ -57,6 +55,8 @@ class Tooltip {
   drawTooltip (xyRatios) {
     let w = this.w
     this.xyRatios = xyRatios
+    this.blxaxisTooltip = w.config.xaxis.tooltip.enabled && w.globals.axisCharts
+    this.blyaxisTooltip = w.config.yaxis[0].tooltip.enabled && w.globals.axisCharts
     this.allTooltipSeriesGroups = []
 
     if (!w.globals.axisCharts) {

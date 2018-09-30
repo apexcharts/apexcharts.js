@@ -214,8 +214,11 @@ class Dimensions {
   setGridCoordsForNonAxisCharts (lgRect) {
     let w = this.w
     let gl = w.globals
-    let xPad =
-      w.config.legend.markers.size * 4 + w.config.legend.itemMargin.horizontal
+    let xPad = 0
+
+    if (w.config.legend.show && !w.config.legend.floating) {
+      xPad = w.config.legend.markers.size * 4 + w.config.legend.itemMargin.horizontal
+    }
 
     let offY = 10
 
@@ -583,7 +586,7 @@ class Dimensions {
     lgRect.height = lgRect.height + w.config.legend.containerMargin.top + w.config.legend.containerMargin.bottom
     lgRect.width = lgRect.width + w.config.legend.containerMargin.left + w.config.legend.containerMargin.right
 
-    if (elLegendWrap !== null && !w.config.legend.floating) {
+    if (elLegendWrap !== null && !w.config.legend.floating && w.config.legend.show) {
       this.lgRect = lgRect
     } else {
       this.lgRect = {

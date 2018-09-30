@@ -45,12 +45,11 @@ class Radial extends Pie {
 
     let elSeries = graphics.group()
 
-    let centerY, centerX
-    centerY = w.globals.gridHeight / 2
-    centerX = w.globals.gridWidth / 2
+    let centerY = this.defaultSize / 2
+    let centerX = w.globals.gridWidth / 2
 
     let size =
-      w.globals.gridWidth / 2.05 -
+      this.defaultSize / 2.05 -
       w.config.stroke.width -
       w.config.chart.dropShadow.blur
 
