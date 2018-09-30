@@ -1000,7 +1000,12 @@ class Core {
     )
     w.globals.dom.elGridRectMask.setAttribute('id', `gridRectMask${w.globals.cuid}`)
 
-    w.globals.dom.elGridRect = graphics.drawRect(0, 0, w.globals.gridWidth, w.globals.gridHeight + 1, 0, '#fff')
+    let markerSize = 0
+    if (!w.config.grid.clipMarkers) {
+      markerSize = w.config.markers.size > w.config.markers.hover.size ? w.config.markers.size : w.config.markers.hover.size
+    }
+
+    w.globals.dom.elGridRect = graphics.drawRect(0, 0 - markerSize, w.globals.gridWidth, w.globals.gridHeight + markerSize * 2, 0, '#fff')
     w.globals.dom.elGridRectMask.appendChild(w.globals.dom.elGridRect.node)
 
     let defs = w.globals.dom.baseEl.querySelector('defs')
