@@ -1,7 +1,8 @@
 .apexcharts-canvas {
   position: relative;
   user-select: none;
-  overflow: hidden;
+  /* cannot give overflow: hidden as it will crop tooltips which overflow outside chart are */
+  /* overflow: hidden; */
 }
 
 .apexcharts-inner {

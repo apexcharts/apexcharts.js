@@ -282,10 +282,11 @@ class Toolbar {
 
     charts.forEach((ch) => {
       let w = ch.w
-      w.globals.zoomed = false
 
       if (w.globals.minX !== w.globals.initialminX && w.globals.maxX !== w.globals.initialmaxX) {
         ch.revertDefaultAxisMinMax()
+        w.globals.zoomed = false
+
         ch.updateSeriesInternal(w.globals.initialSeries, true)
       }
     })

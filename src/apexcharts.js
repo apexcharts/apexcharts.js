@@ -527,9 +527,13 @@ class ApexCharts {
     w.config.xaxis.max = w.globals.lastXAxis.max
 
     w.config.yaxis.map((yaxe, index) => {
-      if (typeof w.globals.lastYAxis[index] !== 'undefined') {
-        yaxe.min = w.globals.lastYAxis[index].min
-        yaxe.max = w.globals.lastYAxis[index].max
+      if (w.globals.zoomed) {
+        // if user has zoomed, and this function is called
+        // then we need to get the lastAxis min and max
+        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+          yaxe.min = w.globals.lastYAxis[index].min
+          yaxe.max = w.globals.lastYAxis[index].max
+        }
       }
     })
   }

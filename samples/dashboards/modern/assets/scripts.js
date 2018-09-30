@@ -434,7 +434,7 @@ chartBar.render();
 var optionDonut = {
   chart: {
       type: 'donut',
-      height: 380,
+      width: '100%'
   },
   dataLabels: {
     enabled: false,
