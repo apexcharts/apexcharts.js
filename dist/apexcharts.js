@@ -5141,8 +5141,6 @@ var XAxis = function () {
             label = w.globals.timelineLabels[_i].value;
           }
 
-          console.log(label);
-
           label = label.toString();
           if (label.toLowerCase().indexOf('nan') >= 0 || label.indexOf('undefined') >= 0 || label.toLowerCase().indexOf('invalid') >= 0 || label.toLowerCase().indexOf('infinity') >= 0) {
             label = '';
@@ -5596,6 +5594,7 @@ var YAxis = function () {
 
       // initial label position;
       var l = labelsDivider + w.config.xaxis.labels.offsetX;
+
       var lbFormatter = w.globals.xLabelFormatter;
 
       if (w.config.xaxis.labels.show) {
@@ -6575,6 +6574,7 @@ var Options = function () {
           borderColor: '#e0e0e0',
           strokeDashArray: 0,
           position: 'back',
+          clipMarkers: true,
           xaxis: {
             lines: {
               show: false,
@@ -6962,7 +6962,7 @@ var DateTime = function () {
     key: 'formatDate',
     value: function formatDate(date, format) {
       var utc = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-      var forceUTC = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+      var convertToUTC = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
 
       var locale = this.w.globals.locale;
 
@@ -6979,9 +6979,9 @@ var DateTime = function () {
         }return s;
       }
 
-      // if (forceUTC) {
-      date = this.treatAsUtc(date);
-      // }
+      if (convertToUTC) {
+        date = this.treatAsUtc(date);
+      }
 
       var y = utc ? date.getUTCFullYear() : date.getFullYear();
       format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y);
@@ -7900,8 +7900,18 @@ var Pie = function () {
           size: this.size
         }); // additionaly, pass size for gradient drawing in the fillPath function
 
+        var path = '';
+        if (this.dynamicAnim && w.globals.dataChanged) {
+          path = this.getPiePath({
+            me: this,
+            startAngle: prevStartAngle,
+            angle: prevEndAngle - prevStartAngle,
+            size: this.size
+          });
+        }
+
         var elPath = graphics.drawPath({
-          d: '',
+          d: path,
           stroke: lineColorArr instanceof Array ? lineColorArr[i] : lineColorArr,
           strokeWidth: this.strokeWidth,
           fill: pathFill,
@@ -8617,6 +8627,15 @@ var TimeScale = function () {
       var daysDiff = (maxX - minX) / (1000 * 60 * 60 * 24);
       this.determineInterval(daysDiff);
 
+      w.globals.disableZoomIn = false;
+      w.globals.disableZoomOut = false;
+
+      if (daysDiff < 0.005) {
+        w.globals.disableZoomIn = true;
+      } else if (daysDiff > 50000) {
+        w.globals.disableZoomOut = true;
+      }
+
       var timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX);
 
       var daysWidthOnXAxis = w.globals.gridWidth / daysDiff;
@@ -8698,22 +8717,21 @@ var TimeScale = function () {
           position: ts.position,
           unit: ts.unit,
           year: ts.year,
+          day: ts.day ? ts.day : 1,
+          hour: ts.hour ? ts.hour : 0,
           month: ts.month + 1
         };
         if (ts.unit === 'month') {
           return _extends({}, defaultReturn, {
-            value: ts.value + 1,
-            day: 1
+            value: ts.value + 1
           });
         } else if (ts.unit === 'day' || ts.unit === 'hour') {
           return _extends({}, defaultReturn, {
-            value: ts.value,
-            day: ts.day
+            value: ts.value
           });
         } else if (ts.unit === 'minute') {
           return _extends({}, defaultReturn, {
             value: ts.value,
-            day: ts.day,
             minute: ts.value
           });
         }
@@ -9203,7 +9221,9 @@ var TimeScale = function () {
         if (minute >= 60) {
           minute = 0;
           hour += 1;
-          if (hour > 24) hour = 1;
+          if (hour === 24) {
+            hour = 0;
+          }
         }
 
         var _year2 = currentYear + Math.floor(month / 12) + yrCounter;
@@ -9236,10 +9256,27 @@ var TimeScale = function () {
         var dt = new _DateTime2.default(_this2.ctx);
 
         var raw = ts.year;
+
         raw += '-' + ('0' + ts.month.toString()).slice(-2);
-        raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01';
-        raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00';
+
+        // unit is day
+        if (ts.unit === 'day') {
+          raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01';
+        } else {
+          raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2);
+        }
+
+        // unit is hour
+        if (ts.unit === 'hour') {
+          raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00';
+        } else {
+          raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2);
+        }
+
+        // unit is minute
         raw += ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00.000Z' : ':00:00.000Z';
+
+        // parse the whole ISO datestring
         var dateString = new Date(Date.parse(raw));
 
         if (w.config.xaxis.labels.format === undefined) {
@@ -9579,7 +9616,9 @@ var Toolbar = function () {
       var newMinX = (w.globals.minX + centerX) / 2;
       var newMaxX = (w.globals.maxX + centerX) / 2;
 
-      this.zoomUpdateOptions(newMinX, newMaxX);
+      if (!w.globals.disableZoomIn) {
+        this.zoomUpdateOptions(newMinX, newMaxX);
+      }
     }
   }, {
     key: 'handleZoomOut',
@@ -9595,7 +9634,9 @@ var Toolbar = function () {
       var newMinX = w.globals.minX - (centerX - w.globals.minX);
       var newMaxX = w.globals.maxX - (centerX - w.globals.maxX);
 
-      this.zoomUpdateOptions(newMinX, newMaxX);
+      if (!w.globals.disableZoomOut) {
+        this.zoomUpdateOptions(newMinX, newMaxX);
+      }
     }
   }, {
     key: 'zoomUpdateOptions',
@@ -16812,7 +16853,12 @@ var Core = function () {
       w.globals.dom.elGridRectMask = document.createElementNS(w.globals.svgNS, 'clipPath');
       w.globals.dom.elGridRectMask.setAttribute('id', 'gridRectMask' + w.globals.cuid);
 
-      w.globals.dom.elGridRect = graphics.drawRect(0, 0, w.globals.gridWidth, w.globals.gridHeight + 1, 0, '#fff');
+      var markerSize = 0;
+      if (!w.config.grid.clipMarkers) {
+        markerSize = w.config.markers.size > w.config.markers.hover.size ? w.config.markers.size : w.config.markers.hover.size;
+      }
+
+      w.globals.dom.elGridRect = graphics.drawRect(0, 0 - markerSize, w.globals.gridWidth, w.globals.gridHeight + markerSize * 2, 0, '#fff');
       w.globals.dom.elGridRectMask.appendChild(w.globals.dom.elGridRect.node);
 
       var defs = w.globals.dom.baseEl.querySelector('defs');
@@ -18727,12 +18773,14 @@ var ZoomPanSelection = function (_Toolbar) {
 
       if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
         if (w.globals.zoomEnabled) {
-          w.globals.zoomed = true;
           var yaxis = _Utils2.default.clone(w.config.yaxis);
 
           // before zooming in/out, store the last yaxis and xaxis range, so that when user hits the RESET button, we get the original range
-          w.globals.lastYAxis = _Utils2.default.clone(w.config.yaxis);
-          w.globals.lastXAxis = _Utils2.default.clone(w.config.xaxis);
+          // also - make sure user is not already zoomed in/out - otherwise we will store zoomed values in lastAxis
+          if (!w.globals.zoomed) {
+            w.globals.lastXAxis = _Utils2.default.clone(w.config.xaxis);
+            w.globals.lastYAxis = _Utils2.default.clone(w.config.yaxis);
+          }
 
           var xaxis = {
             min: xLowestValue,
@@ -18771,6 +18819,8 @@ var ZoomPanSelection = function (_Toolbar) {
           if (typeof w.config.chart.events.zoomed === 'function') {
             toolbar.zoomCallback(xaxis, yaxis);
           }
+
+          w.globals.zoomed = true;
         } else if (w.globals.selectionEnabled) {
           var _yaxis = null;var _xaxis = null;
           _xaxis = {
