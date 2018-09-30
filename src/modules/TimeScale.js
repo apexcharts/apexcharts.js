@@ -30,6 +30,15 @@ class TimeScale {
     const daysDiff = (maxX - minX) / (1000 * 60 * 60 * 24)
     this.determineInterval(daysDiff)
 
+    w.globals.disableZoomIn = false
+    w.globals.disableZoomOut = false
+
+    if (daysDiff < 0.005) {
+      w.globals.disableZoomIn = true
+    } else if (daysDiff > 50000) {
+      w.globals.disableZoomOut = true
+    }
+
     const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX)
 
     const daysWidthOnXAxis = w.globals.gridWidth / daysDiff
@@ -111,25 +120,24 @@ class TimeScale {
         position: ts.position,
         unit: ts.unit,
         year: ts.year,
+        day: ts.day ? ts.day : 1,
+        hour: ts.hour ? ts.hour : 0,
         month: ts.month + 1
       }
       if (ts.unit === 'month') {
         return {
           ...defaultReturn,
-          value: ts.value + 1,
-          day: 1
+          value: ts.value + 1
         }
       } else if (ts.unit === 'day' || ts.unit === 'hour') {
         return {
           ...defaultReturn,
-          value: ts.value,
-          day: ts.day
+          value: ts.value
         }
       } else if (ts.unit === 'minute') {
         return {
           ...defaultReturn,
           value: ts.value,
-          day: ts.day,
           minute: ts.value
         }
       }
@@ -615,7 +623,9 @@ class TimeScale {
       if (minute >= 60) {
         minute = 0
         hour += 1
-        if (hour > 24) hour = 1
+        if (hour === 24) {
+          hour = 0
+        }
       }
 
       let year = currentYear + Math.floor(month / 12) + (yrCounter)
@@ -645,10 +655,27 @@ class TimeScale {
       let dt = new DateTime(this.ctx)
 
       let raw = ts.year
+
       raw += '-' + ('0' + ts.month.toString()).slice(-2)
-      raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01'
-      raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00'
+
+      // unit is day
+      if (ts.unit === 'day') {
+        raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01'
+      } else {
+        raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2)
+      }
+
+      // unit is hour
+      if (ts.unit === 'hour') {
+        raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00'
+      } else {
+        raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2)
+      }
+
+      // unit is minute
       raw += ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00.000Z' : ':00:00.000Z'
+
+      // parse the whole ISO datestring
       const dateString = new Date(Date.parse(raw))
 
       if (w.config.xaxis.labels.format === undefined) {

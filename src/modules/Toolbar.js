@@ -213,7 +213,9 @@ class Toolbar {
     const newMinX = (w.globals.minX + centerX) / 2
     const newMaxX = (w.globals.maxX + centerX) / 2
 
-    this.zoomUpdateOptions(newMinX, newMaxX)
+    if (!w.globals.disableZoomIn) {
+      this.zoomUpdateOptions(newMinX, newMaxX)
+    }
   }
 
   handleZoomOut () {
@@ -228,7 +230,9 @@ class Toolbar {
     const newMinX = w.globals.minX - (centerX - w.globals.minX)
     const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
 
-    this.zoomUpdateOptions(newMinX, newMaxX)
+    if (!w.globals.disableZoomOut) {
+      this.zoomUpdateOptions(newMinX, newMaxX)
+    }
   }
 
   zoomUpdateOptions (newMinX, newMaxX) {

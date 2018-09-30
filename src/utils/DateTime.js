@@ -45,7 +45,7 @@ class DateTime {
   }
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
-  formatDate (date, format, utc = true, forceUTC = true) {
+  formatDate (date, format, utc = true, convertToUTC = true) {
     const locale = this.w.globals.locale
 
     let MMMM = ['\x00', ...locale.months]
@@ -60,9 +60,9 @@ class DateTime {
       return s
     }
 
-    // if (forceUTC) {
-    date = this.treatAsUtc(date)
-    // }
+    if (convertToUTC) {
+      date = this.treatAsUtc(date)
+    }
 
     let y = utc ? date.getUTCFullYear() : date.getFullYear()
     format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y)

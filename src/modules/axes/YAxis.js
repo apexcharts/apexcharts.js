@@ -151,6 +151,7 @@ class YAxis {
 
     // initial label position;
     let l = labelsDivider + w.config.xaxis.labels.offsetX
+
     let lbFormatter = w.globals.xLabelFormatter
 
     if (w.config.xaxis.labels.show) {
