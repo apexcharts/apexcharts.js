@@ -382,6 +382,9 @@ class Graphics {
       })
     } else {
       elText = w.globals.dom.Paper.plain(text)
+      elText.font({
+        family: fontFamily
+      })
     }
 
     elText.attr({
