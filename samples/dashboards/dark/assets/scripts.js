@@ -26,6 +26,8 @@ window.Apex = {
 
 var spark1 = {
   chart: {
+    id: 'spark1',
+    group: 'sparks',
     type: 'line',
     height: 80,
     sparkline: {
@@ -72,6 +74,8 @@ var spark1 = {
 
 var spark2 = {
   chart: {
+    id: 'spark2',
+    group: 'sparks',
     type: 'line',
     height: 80,
     sparkline: {
@@ -118,6 +122,8 @@ var spark2 = {
 
 var spark3 = {
   chart: {
+    id: 'spark3',
+    group: 'sparks',
     type: 'line',
     height: 80,
     sparkline: {
@@ -169,6 +175,8 @@ var spark3 = {
 
 var spark4 = {
   chart: {
+    id: 'spark4',
+    group: 'sparks',
     type: 'line',
     height: 80,
     sparkline: {

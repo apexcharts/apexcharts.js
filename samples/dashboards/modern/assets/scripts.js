@@ -35,6 +35,8 @@ var colorPalette = ['#00D8B6','#008FFB',  '#FEB019', '#FF4560', '#775DD0']
 
 var spark1 = {
   chart: {
+    id: 'sparkline1',
+    group: 'sparklines',
     type: 'area',
     height: 160,
     sparkline: {
@@ -48,10 +50,15 @@ var spark1 = {
     opacity: 1,
   },
   series: [{
+    name: 'Sales',
     data: randomizeArray(sparklineData)
   }],
+  labels: [...Array(24).keys()].map(n => `2018-09-0${n+1}`),
   yaxis: {
     min: 0
+  },
+  xaxis: {
+    type: 'datetime',
   },
   colors: ['#DCE6EC'],
   title: {
@@ -74,6 +81,8 @@ var spark1 = {
 
 var spark2 = {
   chart: {
+    id: 'sparkline2',
+    group: 'sparklines',
     type: 'area',
     height: 160,
     sparkline: {
@@ -87,10 +96,15 @@ var spark2 = {
     opacity: 1,
   },
   series: [{
+    name: 'Expenses',
     data: randomizeArray(sparklineData)
   }],
+  labels: [...Array(24).keys()].map(n => `2018-09-0${n+1}`),
   yaxis: {
     min: 0
+  },
+  xaxis: {
+    type: 'datetime',
   },
   colors: ['#DCE6EC'],
   title: {
@@ -113,6 +127,8 @@ var spark2 = {
 
 var spark3 = {
   chart: {
+    id: 'sparkline3',
+    group: 'sparklines',
     type: 'area',
     height: 160,
     sparkline: {
@@ -126,12 +142,12 @@ var spark3 = {
     opacity: 1,
   },
   series: [{
+    name: 'Profits',
     data: randomizeArray(sparklineData)
   }],
+  labels: [...Array(24).keys()].map(n => `2018-09-0${n+1}`),
   xaxis: {
-    crosshairs: {
-      width: 1
-    },
+    type: 'datetime',
   },
   yaxis: {
     min: 0
@@ -218,11 +234,6 @@ new ApexCharts(document.querySelector("#spark3"), spark3).render();
 
 var monthlyEarningsChart = new ApexCharts(document.querySelector("#monthly-earnings-chart"), monthlyEarningsOpt);
 
-monthlyEarningsChart.render().then(function(data, error) {
-  var plotArea = document.querySelector("#monthly-earnings-chart .apexcharts-inner").getBoundingClientRect();
-
-  console.log(plotArea)
-})
 
 var optionsArea = {
   chart: {
@@ -326,7 +337,6 @@ var optionsArea = {
       fontSize: '18px'
     }
   },
-    
   markers: {
     size: 0,
     style: 'hollow',

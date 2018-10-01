@@ -53,7 +53,6 @@ class ApexCharts {
     this.responsiveConfigOverrided = false
 
     this.create = Utils.bind(this.create, this)
-
     this.windowResizeHandler = this.windowResize.bind(this)
   }
 
@@ -84,6 +83,7 @@ class ApexCharts {
         }
 
         this.fireEvent('beforeMount', [this, this.w])
+        window.addEventListener('resize', this.windowResizeHandler)
 
         let graphData = this.create(this.w.config.series)
         if (!graphData) return resolve(this)
@@ -100,7 +100,6 @@ class ApexCharts {
           reject(e)
           // handle error in case no data or element not found
         })
-        window.addEventListener('resize', this.windowResizeHandler)
       } else {
         reject(new Error('Element not found'))
       }
@@ -497,7 +496,7 @@ class ApexCharts {
     const me = this
 
     return new Promise((resolve, reject) => {
-      me.destroy()
+      me.clear()
       const graphData = me.create(me.w.config.series)
       if (!graphData) return resolve(me)
       me.mount(graphData).then(() => {

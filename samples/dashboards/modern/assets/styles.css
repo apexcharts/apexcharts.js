@@ -110,6 +110,10 @@ h1, h2, h3, h4, h5, h6, strong {
   font-size: 22px;
 }
 
+.box {
+  max-height: 444px;
+}
+
 .box .banana {
   min-height: 404px;
   background-image: url('img/banana.png');

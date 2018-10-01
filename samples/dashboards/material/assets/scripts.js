@@ -6,13 +6,16 @@ window.Apex = {
 
 var spark1 = {
   chart: {
+    id: 'sparkline1',
     type: 'line',
     height: 140,
     sparkline: {
       enabled: true
     },
+    group: 'sparklines'
   },
   series: [{
+    name: 'purple',
     data: [25, 66, 41, 59, 25, 44, 12, 36, 9, 21]
   }],
   stroke: {
@@ -20,6 +23,15 @@ var spark1 = {
   },
   markers: {
     size: 0
+  },
+  tooltip: {
+    fixed: {
+      enabled: true,
+      position: 'right'
+    },
+    x: {
+      show: false
+    }
   },
   title: {
     text: '439',
@@ -32,13 +44,16 @@ var spark1 = {
 
 var spark2 = {
   chart: {
+    id: 'sparkline2',
     type: 'line',
     height: 140,
     sparkline: {
       enabled: true
     },
+    group: 'sparklines'
   },
   series: [{
+    name: 'green',
     data: [12, 14, 2, 47, 32, 44, 14, 55, 41, 69]
   }],
   stroke: {
@@ -46,6 +61,15 @@ var spark2 = {
   },
   markers: {
     size: 0
+  },
+  tooltip: {
+    fixed: {
+      enabled: true,
+      position: 'right'
+    },
+    x: {
+      show: false
+    }
   },
   title: {
     text: '387',
@@ -58,13 +82,16 @@ var spark2 = {
 
 var spark3 = {
   chart: {
+    id: 'sparkline3',
     type: 'line',
     height: 140,
     sparkline: {
       enabled: true
     },
+    group: 'sparklines'
   },
   series: [{
+    name: 'red',
     data: [47, 45, 74, 32, 56, 31, 44, 33, 45, 19]
   }],
   stroke: {
@@ -73,7 +100,15 @@ var spark3 = {
   markers: {
     size: 0
   },
-  labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  tooltip: {
+    fixed: {
+      enabled: true,
+      position: 'right'
+    },
+    x: {
+      show: false
+    }
+  },
   colors: ['#f4516c'],
   title: {
     text: '577',
@@ -90,13 +125,16 @@ var spark3 = {
 
 var spark4 = {
   chart: {
+    id: 'sparkline4',
     type: 'line',
     height: 140,
     sparkline: {
       enabled: true
     },
+    group: 'sparklines'
   },
   series: [{
+    name: 'teal',
     data: [15, 75, 47, 65, 14, 32, 19, 54, 44, 61]
   }],
   stroke: {
@@ -105,7 +143,15 @@ var spark4 = {
   markers: {
     size: 0
   },
-  labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  tooltip: {
+    fixed: {
+      enabled: true,
+      position: 'right'
+    },
+    x: {
+      show: false
+    }
+  },
   colors: ['#00c5dc'],
   title: {
     text: '615',
@@ -222,8 +268,11 @@ var optionsCircle1 = {
   plotOptions: {
     radialBar: {
       dataLabels: {
-        label: {
+        name: {
           show: false
+        },
+        value: {
+          offsetY: 0
         }
       }
     }
@@ -246,14 +295,12 @@ chartCircle1.render();
 
 var optionsDonutTop = {
   chart: {
-    type: 'donut',
     height: 250,
-    offsetY: 20,
-    offsetX: -10
+    type: 'donut',
   },
   plotOptions: {
     pie: {
-      size: 80,
+      size: 76,
       donut: {
         size: '72%',
       },
@@ -269,17 +316,16 @@ var optionsDonutTop = {
   series: [2, 7, 5],
   labels: ['Social Media', 'Blog', 'External'],
   legend: {
-    margin: {
-      left: 0,
-      top: 0,
-    },
-    offsetX: -25,
-    offsetY: 20
+    show: false
   }
 }
 
 var chartCircle2 = new ApexCharts(document.querySelector('#donutTop'), optionsDonutTop);
-chartCircle2.render();
+chartCircle2.render().then(function () {
+  window.setInterval(function () {
+    chartCircle2.updateSeries([getRandom(), getRandom(), getRandom()])
+  }, 1000)
+});
 
 var optionsArea = {
   chart: {
@@ -415,6 +461,10 @@ function generateData(baseval, count, yrange) {
   return series;
 }
 
+function getRandom() {
+  return Math.floor(Math.random() * (100 - 1 + 1)) + 1;
+}
+
 
 var options = {
   chart: {
@@ -422,7 +472,7 @@ var options = {
     type: 'bubble',
     sparkline: {
       enabled: true
-    }
+    },
   },
   plotOptions: {
     bubble: {

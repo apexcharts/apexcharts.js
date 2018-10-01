@@ -12,30 +12,33 @@
 
     <style>
         #chart {
-            padding-left: 0;
             max-width: 480px;
             margin: 35px auto;
         }
         .actions {
-            margin-top: 130px;
+            margin-top: -80px;
             text-align: center;
+            position: relative;
+            z-index: 10;
+            left: -60px;
         }
         button {
             color: #fff;
             background: #6CBCFF;
-            border: 0;
-            padding: 10px 20px;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
             margin: 5px;
             font-weight: bold;
             font-size: 13px;
-            box-shadow: 1px 1px 2px 1px #ccc;
         }
     </style>
 </head>
 
 <body>
-    <div id="chart">
+    <div class="chart-wrap">
+        <div id="chart">
 
+        </div>
     </div>
 
     <div class="actions">
@@ -98,7 +101,6 @@
         })
 
         document.querySelector("#add").addEventListener("click", function() {
-            console.log(appendData())
             chart.updateSeries(appendData())
         })
 
