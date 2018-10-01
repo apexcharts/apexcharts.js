@@ -501,6 +501,7 @@ var Graphics = function () {
           text = opts.text,
           textAnchor = opts.textAnchor,
           fontSize = opts.fontSize,
+          fontFamily = opts.fontFamily,
           foreColor = opts.foreColor,
           opacity = opts.opacity;
 
@@ -522,6 +523,9 @@ var Graphics = function () {
         });
       } else {
         elText = w.globals.dom.Paper.plain(text);
+        elText.font({
+          family: fontFamily
+        });
       }
 
       elText.attr({
@@ -533,6 +537,7 @@ var Graphics = function () {
       });
 
       elText.node.style.fontSize = fontSize;
+      elText.node.style.fontFamily = fontFamily;
       elText.node.style.fill = foreColor;
       elText.node.style.opacity = opacity;
 
@@ -753,8 +758,8 @@ var Graphics = function () {
     }
   }, {
     key: 'getTextRects',
-    value: function getTextRects(text, fontSize, transform) {
-      var useBBox = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+    value: function getTextRects(text, fontSize, fontFamily, transform) {
+      var useBBox = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
 
       var w = this.w;
       var virtualText = this.drawText({
@@ -763,6 +768,7 @@ var Graphics = function () {
         text: text,
         textAnchor: 'start',
         fontSize: fontSize,
+        fontFamily: fontFamily,
         foreColor: '#fff',
         opacity: 0
       });
@@ -2637,6 +2643,7 @@ var Series = function () {
           text: noDataOpts.text,
           textAnchor: textAnchor,
           fontSize: noDataOpts.style.fontSize,
+          fontFamily: noDataOpts.style.fontFamily,
           foreColor: noDataOpts.style.color,
           opacity: 1,
           class: 'apexcharts-text-nodata'
@@ -4152,7 +4159,8 @@ var DataLabels = function () {
           foreColor: w.globals.dataLabels.style.colors[i],
           textAnchor: dataLabelsConfig.textAnchor,
           text: text,
-          fontSize: dataLabelsConfig.style.fontSize
+          fontSize: dataLabelsConfig.style.fontSize,
+          fontFamily: dataLabelsConfig.style.fontFamily
         });
 
         dataLabelText.attr({
@@ -5056,6 +5064,7 @@ var XAxis = function () {
     this.offY = this.offY + w.config.xaxis.axisBorder.offsetY;
 
     this.xaxisFontSize = w.config.xaxis.labels.style.fontSize;
+    this.xaxisFontFamily = w.config.xaxis.labels.style.fontFamily;
     this.xaxisForeColors = w.config.xaxis.labels.style.colors;
 
     // For bars, we will only consider single y xais,
@@ -5160,13 +5169,15 @@ var XAxis = function () {
             text: '',
             textAnchor: 'middle',
             fontSize: this.xaxisFontSize,
+            fontFamily: this.xaxisFontFamily,
             foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[_i] : this.xaxisForeColors,
             cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
           });
 
           elXaxisTexts.add(elTick);
 
-          elTick.tspan(label);
+          var tspan = elTick.tspan(label);
+          tspan.node.style.fontFamily = this.xaxisFontFamily;
 
           var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
           elTooltipTitle.textContent = label;
@@ -5187,6 +5198,7 @@ var XAxis = function () {
           text: w.config.xaxis.title.text,
           textAnchor: 'middle',
           fontSize: w.config.xaxis.title.style.fontSize,
+          fontFamily: w.config.xaxis.title.style.fontFamily,
           foreColor: w.config.xaxis.title.style.color,
           cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
         });
@@ -5256,6 +5268,7 @@ var XAxis = function () {
             textAnchor: 'end',
             foreColor: w.config.yaxis[0].labels.style.colors[_i2],
             fontSize: w.config.yaxis[0].labels.style.fontSize,
+            fontFamily: w.config.yaxis[0].labels.style.fontFamily,
             cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[0].labels.style.cssClass
           });
 
@@ -5276,6 +5289,7 @@ var XAxis = function () {
           textAnchor: 'middle',
           foreColor: w.config.yaxis[0].title.style.color,
           fontSize: w.config.yaxis[0].title.style.fontSize,
+          fontFamily: w.config.yaxis[0].title.style.fontFamily,
           cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[0].title.style.cssClass
         });
 
@@ -5463,6 +5477,7 @@ var YAxis = function () {
     this.w = ctx.w;
 
     this.xaxisFontSize = this.w.config.xaxis.labels.style.fontSize;
+    this.axisFontFamily = this.w.config.xaxis.labels.style.fontFamily;
     this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal);
 
     this.xaxisForeColors = this.w.config.xaxis.labels.style.colors;
@@ -5480,6 +5495,7 @@ var YAxis = function () {
       var graphics = new _Graphics2.default(this.ctx);
 
       var yaxisFontSize = w.config.yaxis[realIndex].labels.style.fontSize;
+      var yaxisFontFamily = w.config.yaxis[realIndex].labels.style.fontFamily;
 
       var elYaxis = graphics.group({
         class: 'apexcharts-yaxis',
@@ -5523,6 +5539,7 @@ var YAxis = function () {
             text: val,
             textAnchor: w.config.yaxis[realIndex].opposite ? 'start' : 'end',
             fontSize: yaxisFontSize,
+            fontFamily: yaxisFontFamily,
             foreColor: w.config.yaxis[realIndex].labels.style.color,
             cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[realIndex].labels.style.cssClass
           });
@@ -5547,6 +5564,7 @@ var YAxis = function () {
           textAnchor: 'end',
           foreColor: w.config.yaxis[realIndex].labels.style.color,
           fontSize: w.config.yaxis[realIndex].title.style.fontSize,
+          fontFamily: w.config.yaxis[realIndex].title.style.fontFamily,
           cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[realIndex].title.style.cssClass
         });
 
@@ -5613,6 +5631,7 @@ var YAxis = function () {
             textAnchor: 'middle',
             foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[realIndex] : this.xaxisForeColors,
             fontSize: this.xaxisFontSize,
+            fontFamily: this.xaxisFontFamily,
             cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
           });
 
@@ -5639,6 +5658,7 @@ var YAxis = function () {
           text: w.config.xaxis.title.text,
           textAnchor: 'middle',
           fontSize: w.config.xaxis.title.style.fontSize,
+          fontFamily: w.config.xaxis.title.style.fontFamily,
           cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
         });
 
@@ -6133,6 +6153,7 @@ var Options = function () {
         style: {
           colors: [],
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-yaxis-label'
         },
         formatter: undefined
@@ -6158,6 +6179,7 @@ var Options = function () {
         style: {
           color: undefined,
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-yaxis-title'
         }
       },
@@ -6195,6 +6217,7 @@ var Options = function () {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-xaxis-annotation-label',
           padding: {
             left: 5,
@@ -6225,6 +6248,7 @@ var Options = function () {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-yaxis-annotation-label',
           padding: {
             left: 5,
@@ -6260,6 +6284,7 @@ var Options = function () {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-point-annotation-label',
           padding: {
             left: 5,
@@ -6479,12 +6504,14 @@ var Options = function () {
               name: {
                 show: true,
                 fontSize: '16px',
+                fontFamily: 'Helvetica, Arial, sans-serif',
                 color: undefined,
                 offsetY: -10
               },
               value: {
                 show: true,
                 fontSize: '14px',
+                fontFamily: 'Helvetica, Arial, sans-serif',
                 color: undefined,
                 offsetY: 16,
                 formatter: function formatter(val) {
@@ -6537,6 +6564,7 @@ var Options = function () {
           offsetY: 0,
           style: {
             fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
             colors: undefined
           },
           dropShadow: {
@@ -6617,6 +6645,7 @@ var Options = function () {
           // left, right or center
           verticalAlign: 'middle',
           fontSize: '12px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           textAnchor: 'start',
           offsetY: 0,
           offsetX: 0,
@@ -6675,7 +6704,8 @@ var Options = function () {
           offsetY: 0,
           style: {
             color: '#888',
-            fontSize: '14px'
+            fontSize: '14px',
+            fontFamily: 'Helvetica, Arial, sans-serif'
           }
         },
         responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
@@ -6710,6 +6740,7 @@ var Options = function () {
           floating: false,
           style: {
             fontSize: '14px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
             color: '#263238'
           }
         },
@@ -6722,6 +6753,7 @@ var Options = function () {
           floating: false,
           style: {
             fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
             color: '#9699a2'
           }
         },
@@ -6787,6 +6819,7 @@ var Options = function () {
             style: {
               colors: [],
               fontSize: '12px',
+              fontFamily: 'Helvetica, Arial, sans-serif',
               cssClass: 'apexcharts-xaxis-label'
             },
             offsetX: 0,
@@ -6828,6 +6861,7 @@ var Options = function () {
             style: {
               color: undefined,
               fontSize: '12px',
+              fontFamily: 'Helvetica, Arial, sans-serif',
               cssClass: 'apexcharts-xaxis-title'
             }
           },
@@ -8013,6 +8047,7 @@ var Pie = function () {
               text: text,
               textAnchor: 'middle',
               fontSize: w.config.dataLabels.style.fontSize,
+              fontFamily: w.config.dataLabels.style.fontFamily,
               foreColor: foreColor
             });
 
@@ -10649,7 +10684,6 @@ var ApexCharts = function () {
     this.responsiveConfigOverrided = false;
 
     this.create = _Utils2.default.bind(this.create, this);
-
     this.windowResizeHandler = this.windowResize.bind(this);
   }
 
@@ -10686,6 +10720,7 @@ var ApexCharts = function () {
           }
 
           _this.fireEvent('beforeMount', [_this, _this.w]);
+          window.addEventListener('resize', _this.windowResizeHandler);
 
           var graphData = _this.create(_this.w.config.series);
           if (!graphData) return resolve(_this);
@@ -10702,7 +10737,6 @@ var ApexCharts = function () {
             reject(e);
             // handle error in case no data or element not found
           });
-          window.addEventListener('resize', _this.windowResizeHandler);
         } else {
           reject(new Error('Element not found'));
         }
@@ -11167,7 +11201,7 @@ var ApexCharts = function () {
       var me = this;
 
       return new Promise(function (resolve, reject) {
-        me.destroy();
+        me.clear();
         var graphData = me.create(me.w.config.series);
         if (!graphData) return resolve(me);
         me.mount(graphData).then(function () {
@@ -15221,7 +15255,8 @@ var Radial = function (_Pie) {
           text: w.globals.seriesNames[0],
           textAnchor: 'middle',
           foreColor: labelColor,
-          fontSize: w.config.plotOptions.radialBar.dataLabels.name.fontSize
+          fontSize: w.config.plotOptions.radialBar.dataLabels.name.fontSize,
+          fontFamily: w.config.plotOptions.radialBar.dataLabels.name.fontFamily
         });
         elLabel.node.classList.add('apexcharts-datalabel-label');
         g.add(elLabel);
@@ -15236,7 +15271,8 @@ var Radial = function (_Pie) {
           text: val,
           textAnchor: 'middle',
           foreColor: valueColor,
-          fontSize: w.config.plotOptions.radialBar.dataLabels.value.fontSize
+          fontSize: w.config.plotOptions.radialBar.dataLabels.value.fontSize,
+          fontFamily: w.config.plotOptions.radialBar.dataLabels.value.fontFamily
         });
         elValue.node.classList.add('apexcharts-datalabel-value');
         g.add(elValue);
@@ -15337,6 +15373,7 @@ var Annotations = function () {
         text: text,
         textAnchor: anno.label.textAnchor,
         fontSize: anno.label.style.fontSize,
+        fontFamily: anno.label.style.fontFamily,
         foreColor: anno.label.style.color,
         cssClass: 'apexcharts-xaxis-annotation-label ' + anno.label.style.cssClass
       });
@@ -15388,6 +15425,7 @@ var Annotations = function () {
         text: text,
         textAnchor: anno.label.textAnchor,
         fontSize: anno.label.style.fontSize,
+        fontFamily: anno.label.style.fontFamily,
         foreColor: anno.label.style.color,
         cssClass: 'apexcharts-yaxis-annotation-label ' + anno.label.style.cssClass
       });
@@ -15470,6 +15508,7 @@ var Annotations = function () {
         text: text,
         textAnchor: anno.label.textAnchor,
         fontSize: anno.label.style.fontSize,
+        fontFamily: anno.label.style.fontFamily,
         foreColor: anno.label.style.color,
         cssClass: 'apexcharts-point-annotation-label ' + anno.label.style.cssClass
       });
@@ -15597,6 +15636,7 @@ var Annotations = function () {
           appendTo = _params$appendTo === undefined ? '.apexcharts-inner' : _params$appendTo,
           foreColor = params.foreColor,
           fontSize = params.fontSize,
+          fontFamily = params.fontFamily,
           cssClass = params.cssClass,
           backgroundColor = params.backgroundColor,
           borderWidth = params.borderWidth,
@@ -15625,6 +15665,7 @@ var Annotations = function () {
         text: text,
         textAnchor: textAnchor || 'start',
         fontSize: fontSize || '12px',
+        fontFamily: fontFamily || 'Arial',
         foreColor: foreColor || w.config.chart.foreColor,
         cssClass:  true ? cssClass : ''
       });
@@ -17026,6 +17067,7 @@ var Legend = function () {
 
       var pSize = w.config.legend.markers.size;
       var fontSize = w.config.legend.fontSize;
+      var fontFamily = w.config.legend.fontFamily;
 
       var marginHorz = w.config.legend.itemMargin.horizontal;
       var marginVert = w.config.legend.itemMargin.vertical;
@@ -17145,6 +17187,7 @@ var Legend = function () {
           text: text,
           textAnchor: w.config.legend.textAnchor,
           fontSize: fontSize,
+          fontFamily: fontFamily,
           cssClass: 'apexcharts-legend-text'
         };
 
@@ -18243,6 +18286,7 @@ var TitleSubtitle = function () {
           text: tsConfig.text,
           textAnchor: textAnchor,
           fontSize: tsConfig.style.fontSize,
+          fontFamily: tsConfig.style.fontFamily,
           foreColor: tsConfig.style.color,
           opacity: 1
         });
@@ -19281,12 +19325,24 @@ var Defaults = function () {
         markers: {
           size: 5
         },
+        title: {
+          style: {
+            fontFamily: 'Helvetica, Arial, sans-serif'
+          }
+        },
         tooltip: {
           // followCursor: true,
         },
         xaxis: {
           crosshairs: {
             width: 1
+          }
+        },
+        yaxis: {
+          labels: {
+            style: {
+              fontFamily: 'Helvetica, Arial, sans-serif'
+            }
           }
         }
 
@@ -19309,7 +19365,8 @@ var Defaults = function () {
           }
         },
         legend: {
-          show: false
+          show: false,
+          fontFamily: 'Helvetica, Arial, sans-serif'
         },
         xaxis: {
           labels: {
@@ -19356,7 +19413,8 @@ var Defaults = function () {
         },
         dataLabels: {
           style: {
-            colors: ['#fff']
+            colors: ['#fff'],
+            fontFamily: 'Helvetica, Arial, sans-serif'
           }
         },
         stroke: {
@@ -19370,6 +19428,12 @@ var Defaults = function () {
             shape: 'square',
             radius: 2,
             size: 8
+          },
+          fontFamily: 'Helvetica, Arial, sans-serif'
+        },
+        title: {
+          style: {
+            fontFamily: 'Helvetica, Arial, sans-serif'
           }
         },
         tooltip: {
@@ -19485,7 +19549,16 @@ var Defaults = function () {
       return {
         dataLabels: {
           style: {
-            colors: ['#fff']
+            colors: ['#fff'],
+            fontFamily: 'Helvetica, Arial, sans-serif'
+          }
+        },
+        legend: {
+          fontFamily: 'Helvetica, Arial, sans-serif'
+        },
+        title: {
+          style: {
+            fontFamily: 'Helvetica, Arial, sans-serif'
           }
         },
         tooltip: {
@@ -19546,7 +19619,8 @@ var Defaults = function () {
         },
         dataLabels: {
           style: {
-            colors: ['#fff']
+            colors: ['#fff'],
+            fontFamily: 'Helvetica, Arial, sans-serif'
           }
         },
         stroke: {
@@ -19564,7 +19638,8 @@ var Defaults = function () {
             shape: 'square',
             size: 10,
             offsetY: 2
-          }
+          },
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       };
     }
@@ -19582,7 +19657,8 @@ var Defaults = function () {
             return val.toFixed(1) + '%';
           },
           style: {
-            colors: ['#fff']
+            colors: ['#fff'],
+            fontFamily: 'Helvetica, Arial, sans-serif'
           },
           dropShadow: {
             enabled: true
@@ -19605,7 +19681,8 @@ var Defaults = function () {
           fillSeriesColor: true
         },
         legend: {
-          position: 'right'
+          position: 'right',
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       };
     }
@@ -19623,7 +19700,8 @@ var Defaults = function () {
             return val.toFixed(1) + '%';
           },
           style: {
-            colors: ['#fff']
+            colors: ['#fff'],
+            fontFamily: 'Helvetica, Arial, sans-serif'
           },
           dropShadow: {
             enabled: true
@@ -19649,7 +19727,8 @@ var Defaults = function () {
           fillSeriesColor: true
         },
         legend: {
-          position: 'right'
+          position: 'right',
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       };
     }
@@ -19680,7 +19759,8 @@ var Defaults = function () {
           }
         },
         legend: {
-          show: false
+          show: false,
+          fontFamily: 'Helvetica, Arial, sans-serif'
         },
         tooltip: {
           enabled: false,
@@ -20638,7 +20718,7 @@ var Labels = function () {
 
       if (shared) {
         // hide when no Val
-        if (typeof val === 'undefined' || val === null || isNaN(val)) {
+        if (typeof val === 'undefined' || val === null) {
           ttItemsChildren[0].parentNode.style.display = 'none';
         } else {
           ttItemsChildren[0].parentNode.style.display = w.config.tooltip.items.display;
