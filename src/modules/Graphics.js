@@ -1,6 +1,7 @@
 import Utils from '../utils/Utils'
 import Filters from './Filters'
 import Animations from './Animations'
+import { isNumber } from 'util'
 
 /**
  * ApexCharts Graphics Class for all drawing operations.
@@ -436,7 +437,7 @@ class Graphics {
 
       elPoint = p
     } else if (opts.shape === 'circle') {
-      if (!y) {
+      if (!Utils.isNumber(y)) {
         size = 0
         y = 0
       }
