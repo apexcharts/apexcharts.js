@@ -407,7 +407,7 @@ class Dimensions {
     ) {
       if (!this.isBarHorizontal) {
         w.globals.rotateXLabels = true
-        xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, `rotate(${w.config.xaxis.labels.rotate} 0 0)`, false)
+        xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, `rotate(${w.config.xaxis.labels.rotate} 0 0)`, false)
         rect.height = xLabelrect.height / 1.66
       }
     } else {
@@ -506,7 +506,7 @@ class Dimensions {
     w.config.yaxis.map((yaxe, index) => {
       if (yaxe.title.text !== undefined) {
         let graphics = new Graphics(this.ctx)
-        let rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, 'rotate(-90 0 0)', false)
+        let rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, 'rotate(-90 0 0)', false)
 
         ret.push({
           width: rect.width,
