@@ -28,6 +28,7 @@ class XAxis {
     this.offY = this.offY + w.config.xaxis.axisBorder.offsetY
 
     this.xaxisFontSize = w.config.xaxis.labels.style.fontSize
+    this.xaxisFontFamily = w.config.xaxis.labels.style.fontFamily
     this.xaxisForeColors = w.config.xaxis.labels.style.colors
 
     // For bars, we will only consider single y xais,
@@ -134,6 +135,7 @@ class XAxis {
           text: '',
           textAnchor: 'middle',
           fontSize: this.xaxisFontSize,
+          fontFamily: this.xaxisFontFamily,
           foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[i] : this.xaxisForeColors,
           cssClass: 'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
@@ -163,6 +165,7 @@ class XAxis {
         text: w.config.xaxis.title.text,
         textAnchor: 'middle',
         fontSize: w.config.xaxis.title.style.fontSize,
+        fontFamily: w.config.xaxis.title.style.fontFamily,
         foreColor: w.config.xaxis.title.style.color,
         cssClass: 'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
       })
@@ -237,6 +240,7 @@ class XAxis {
           textAnchor: 'end',
           foreColor: w.config.yaxis[0].labels.style.colors[i],
           fontSize: w.config.yaxis[0].labels.style.fontSize,
+          fontFamily: w.config.yaxis[0].labels.style.fontFamily,
           cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[0].labels.style.cssClass
         })
 
@@ -257,6 +261,7 @@ class XAxis {
         textAnchor: 'middle',
         foreColor: w.config.yaxis[0].title.style.color,
         fontSize: w.config.yaxis[0].title.style.fontSize,
+        fontFamily: w.config.yaxis[0].title.style.fontFamily,
         cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[0].title.style.cssClass
       })
 

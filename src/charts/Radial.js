@@ -512,7 +512,8 @@ class Radial extends Pie {
         text: w.globals.seriesNames[0],
         textAnchor: 'middle',
         foreColor: labelColor,
-        fontSize: w.config.plotOptions.radialBar.dataLabels.name.fontSize
+        fontSize: w.config.plotOptions.radialBar.dataLabels.name.fontSize,
+        fontFamily: w.config.plotOptions.radialBar.dataLabels.name.fontFamily
       })
       elLabel.node.classList.add('apexcharts-datalabel-label')
       g.add(elLabel)
@@ -527,7 +528,8 @@ class Radial extends Pie {
         text: val,
         textAnchor: 'middle',
         foreColor: valueColor,
-        fontSize: w.config.plotOptions.radialBar.dataLabels.value.fontSize
+        fontSize: w.config.plotOptions.radialBar.dataLabels.value.fontSize,
+        fontFamily: w.config.plotOptions.radialBar.dataLabels.value.fontFamily
       })
       elValue.node.classList.add('apexcharts-datalabel-value')
       g.add(elValue)

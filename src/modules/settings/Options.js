@@ -20,6 +20,7 @@ export default class Options {
         style: {
           colors: [],
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-yaxis-label'
         },
         formatter: undefined
@@ -45,6 +46,7 @@ export default class Options {
         style: {
           color: undefined,
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-yaxis-title'
         }
       },
@@ -82,6 +84,7 @@ export default class Options {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-xaxis-annotation-label',
           padding: {
             left: 5,
@@ -112,6 +115,7 @@ export default class Options {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-yaxis-annotation-label',
           padding: {
             left: 5,
@@ -147,6 +151,7 @@ export default class Options {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           cssClass: 'apexcharts-point-annotation-label',
           padding: {
             left: 5,
@@ -364,12 +369,14 @@ export default class Options {
             name: {
               show: true,
               fontSize: '16px',
+              fontFamily: 'Helvetica, Arial, sans-serif',
               color: undefined,
               offsetY: -10
             },
             value: {
               show: true,
               fontSize: '14px',
+              fontFamily: 'Helvetica, Arial, sans-serif',
               color: undefined,
               offsetY: 16,
               formatter: function (val) {
@@ -422,6 +429,7 @@ export default class Options {
         offsetY: 0,
         style: {
           fontSize: '12px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           colors: undefined
         },
         dropShadow: {
@@ -502,6 +510,7 @@ export default class Options {
         // left, right or center
         verticalAlign: 'middle',
         fontSize: '12px',
+        fontFamily: 'Helvetica, Arial, sans-serif',
         textAnchor: 'start',
         offsetY: 0,
         offsetX: 0,
@@ -560,7 +569,8 @@ export default class Options {
         offsetY: 0,
         style: {
           color: '#888',
-          fontSize: '14px'
+          fontSize: '14px',
+          fontFamily: 'Helvetica, Arial, sans-serif'
         }
       },
       responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
@@ -595,6 +605,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '14px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           color: '#263238'
         }
       },
@@ -607,6 +618,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '12px',
+          fontFamily: 'Helvetica, Arial, sans-serif',
           color: '#9699a2'
         }
       },
@@ -672,6 +684,7 @@ export default class Options {
           style: {
             colors: [],
             fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
             cssClass: 'apexcharts-xaxis-label'
           },
           offsetX: 0,
@@ -713,6 +726,7 @@ export default class Options {
           style: {
             color: undefined,
             fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
             cssClass: 'apexcharts-xaxis-title'
           }
         },

@@ -38,6 +38,7 @@ export default class TitleSubtitle {
         text: tsConfig.text,
         textAnchor: textAnchor,
         fontSize: tsConfig.style.fontSize,
+        fontFamily: tsConfig.style.fontFamily,
         foreColor: tsConfig.style.color,
         opacity: 1
       })
