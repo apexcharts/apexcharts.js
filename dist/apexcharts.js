@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 164);
+/******/ 	return __webpack_require__(__webpack_require__.s = 169);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -578,7 +578,7 @@ var Graphics = function () {
 
         elPoint = p;
       } else if (opts.shape === 'circle') {
-        if (!y) {
+        if (!_Utils2.default.isNumber(y)) {
           size = 0;
           y = 0;
         }
@@ -4392,13 +4392,13 @@ var Dimensions = function () {
         case 'left':
           gl.translateY = translateY;
           gl.translateX = lgRect.width + yAxisWidth;
-          gl.gridHeight = gl.svgHeight - xAxisHeight;
+          gl.gridHeight = gl.svgHeight - xAxisHeight - 12;
           gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth;
           break;
         case 'right':
           gl.translateY = translateY;
           gl.translateX = yAxisWidth;
-          gl.gridHeight = gl.svgHeight - xAxisHeight;
+          gl.gridHeight = gl.svgHeight - xAxisHeight - 12;
           gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth;
           break;
         default:
@@ -4620,6 +4620,7 @@ var Dimensions = function () {
         if (!this.isBarHorizontal) {
           w.globals.rotateXLabels = true;
           xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, 'rotate(' + w.config.xaxis.labels.rotate + ' 0 0)', false);
+
           rect.height = xLabelrect.height / 1.66;
         }
       } else {
@@ -6132,6 +6133,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 /**
  * ApexCharts Options for setting the initial configuration of ApexCharts
  **/
+var en = __webpack_require__(170);
 
 var Options = function () {
   function Options() {
@@ -6295,25 +6297,6 @@ var Options = function () {
         }
       }
     };
-
-    this.defaultLocaleOptions = {
-      name: 'en',
-      options: {
-        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-        shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-        shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-        toolbar: {
-          selectionZoom: 'Selection Zoom',
-          zoomIn: 'Zoom In',
-          zoomOut: 'Zoom Out',
-          reset: 'Reset Zoom',
-          pan: 'Panning',
-          selection: 'Selection',
-          download: 'Download SVG'
-        }
-      }
-    };
   }
 
   _createClass(Options, [{
@@ -6341,7 +6324,7 @@ var Options = function () {
             }
           },
           background: 'transparent',
-          locales: [this.defaultLocaleOptions],
+          locales: [en],
           defaultLocale: 'en',
           dropShadow: {
             enabled: false,
@@ -9405,31 +9388,31 @@ var _Exports = __webpack_require__(131);
 
 var _Exports2 = _interopRequireDefault(_Exports);
 
-var _icoPanHand = __webpack_require__(160);
+var _icoPanHand = __webpack_require__(165);
 
 var _icoPanHand2 = _interopRequireDefault(_icoPanHand);
 
-var _icoZoomIn = __webpack_require__(163);
+var _icoZoomIn = __webpack_require__(168);
 
 var _icoZoomIn2 = _interopRequireDefault(_icoZoomIn);
 
-var _icoHome = __webpack_require__(158);
+var _icoHome = __webpack_require__(163);
 
 var _icoHome2 = _interopRequireDefault(_icoHome);
 
-var _icoPlus = __webpack_require__(161);
+var _icoPlus = __webpack_require__(166);
 
 var _icoPlus2 = _interopRequireDefault(_icoPlus);
 
-var _icoMinus = __webpack_require__(159);
+var _icoMinus = __webpack_require__(164);
 
 var _icoMinus2 = _interopRequireDefault(_icoMinus);
 
-var _icoSelect = __webpack_require__(162);
+var _icoSelect = __webpack_require__(167);
 
 var _icoSelect2 = _interopRequireDefault(_icoSelect);
 
-var _icoCamera = __webpack_require__(157);
+var _icoCamera = __webpack_require__(162);
 
 var _icoCamera2 = _interopRequireDefault(_icoCamera);
 
@@ -10646,15 +10629,17 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-__webpack_require__(149);
-__webpack_require__(148);
-__webpack_require__(150);
-__webpack_require__(147);
-__webpack_require__(152);
 __webpack_require__(151);
-
-__webpack_require__(155);
+__webpack_require__(150);
+__webpack_require__(152);
+__webpack_require__(149);
+__webpack_require__(154);
 __webpack_require__(153);
+
+__webpack_require__(160);
+__webpack_require__(158);
+
+var en = __webpack_require__(170);
 
 // global Apex object which user can use to override chart's defaults globally
 window.Apex = {};
@@ -11442,7 +11427,7 @@ var ApexCharts = function () {
 
       if (selectedLocale) {
         // create a complete locale object by extending defaults so you don't get undefined errors.
-        var ret = _Utils2.default.extend(this.options.defaultLocaleOptions, selectedLocale);
+        var ret = _Utils2.default.extend(en, selectedLocale);
 
         // store these locale options in global var for ease access
         this.w.globals.locale = ret.options;
@@ -16103,7 +16088,8 @@ var Core = function () {
       if (gl.svgHeight !== 'auto' && gl.svgHeight !== '') {
         var heightUnit = cnf.chart.height.toString().split(/[0-9]+/g).pop();
         if (heightUnit === '%') {
-          gl.svgHeight = elDim[1] * parseInt(cnf.chart.height) / 100;
+          var elParentDim = _Utils2.default.getDimensions(this.el.parentNode);
+          gl.svgHeight = elParentDim[1] * parseInt(cnf.chart.height) / 100;
         } else {
           gl.svgHeight = parseInt(cnf.chart.height);
         }
@@ -16907,7 +16893,7 @@ var Core = function () {
         markerSize = w.config.markers.size > w.config.markers.hover.size ? w.config.markers.size : w.config.markers.hover.size;
       }
 
-      w.globals.dom.elGridRect = graphics.drawRect(0, 0 - markerSize, w.globals.gridWidth, w.globals.gridHeight + markerSize * 2, 0, '#fff');
+      w.globals.dom.elGridRect = graphics.drawRect(0, 0 - markerSize * 1.2, w.globals.gridWidth, w.globals.gridHeight + markerSize * 2.4, 0, '#fff');
       w.globals.dom.elGridRectMask.appendChild(w.globals.dom.elGridRect.node);
 
       var defs = w.globals.dom.baseEl.querySelector('defs');
@@ -21769,7 +21755,9 @@ var Tooltip = function () {
 module.exports = Tooltip;
 
 /***/ }),
-/* 146 */
+/* 146 */,
+/* 147 */,
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21864,7 +21852,7 @@ module.exports = function (css) {
 };
 
 /***/ }),
-/* 147 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22099,7 +22087,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 148 */
+/* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22703,7 +22691,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 149 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28000,7 +27988,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 });
 
 /***/ }),
-/* 150 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28425,7 +28413,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 151 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28927,7 +28915,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 152 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -29239,7 +29227,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 153 */
+/* 155 */,
+/* 156 */,
+/* 157 */,
+/* 158 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -29316,7 +29307,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 154 */
+/* 159 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(122)(false);
@@ -29330,11 +29321,11 @@ exports.push([module.i, ".apexcharts-canvas {\n  position: relative;\n  user-sel
 
 
 /***/ }),
-/* 155 */
+/* 160 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(154);
+var content = __webpack_require__(159);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -29348,7 +29339,7 @@ var options = {"hmr":true}
 options.transform = transform
 options.insertInto = undefined;
 
-var update = __webpack_require__(156)(content, options);
+var update = __webpack_require__(161)(content, options);
 
 if(content.locals) module.exports = content.locals;
 
@@ -29380,7 +29371,7 @@ if(false) {
 }
 
 /***/ }),
-/* 156 */
+/* 161 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -29446,7 +29437,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(146);
+var	fixUrls = __webpack_require__(148);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -29762,49 +29753,49 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 157 */
+/* 162 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"12\" cy=\"12\" r=\"3.2\"></circle><path d=\"M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 158 */
+/* 163 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 159 */
+/* 164 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 160 */
+/* 165 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" viewBox=\"0 0 24 24\"><defs><path d=\"M0 0h24v24H0z\" id=\"a\"></path></defs><clipPath id=\"b\"><use overflow=\"visible\" xlink:href=\"#a\"></use></clipPath><path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"></path></svg>"
 
 /***/ }),
-/* 161 */
+/* 166 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 162 */
+/* 167 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#6E8192\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"></path></svg>"
 
 /***/ }),
-/* 163 */
+/* 168 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" viewBox=\"0 0 24 24\"><path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path><path d=\"M0 0h24v24H0V0z\" fill=\"none\"></path><path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"></path></svg>"
 
 /***/ }),
-/* 164 */
+/* 169 */
 /***/ (function(module, exports, __webpack_require__) {
 
 __webpack_require__(84);
@@ -29815,6 +29806,12 @@ __webpack_require__(80);
 __webpack_require__(85);
 module.exports = __webpack_require__(86);
 
+
+/***/ }),
+/* 170 */
+/***/ (function(module, exports) {
+
+module.exports = {"name":"en","options":{"months":["January","February","March","April","May","June","July","August","September","October","November","December"],"shortMonths":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"days":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"shortDays":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"toolbar":{"download":"Download SVG","selection":"Selection","selectionZoom":"Selection Zoom","zoomIn":"Zoom In","zoomOut":"Zoom Out","pan":"Panning","reset":"Reset Zoom"}}}
 
 /***/ })
 /******/ ]);
