@@ -180,13 +180,13 @@ class Dimensions {
       case 'left':
         gl.translateY = translateY
         gl.translateX = lgRect.width + yAxisWidth
-        gl.gridHeight = gl.svgHeight - xAxisHeight
+        gl.gridHeight = gl.svgHeight - xAxisHeight - 12
         gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth
         break
       case 'right':
         gl.translateY = translateY
         gl.translateX = yAxisWidth
-        gl.gridHeight = gl.svgHeight - xAxisHeight
+        gl.gridHeight = gl.svgHeight - xAxisHeight - 12
         gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth
         break
       default:
@@ -408,6 +408,7 @@ class Dimensions {
       if (!this.isBarHorizontal) {
         w.globals.rotateXLabels = true
         xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, `rotate(${w.config.xaxis.labels.rotate} 0 0)`, false)
+
         rect.height = xLabelrect.height / 1.66
       }
     } else {

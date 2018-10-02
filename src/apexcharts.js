@@ -27,6 +27,8 @@ require('svg.resize.js')
 require('./assets/apexcharts.css')
 require('./utils/ClassListPolyfill')
 
+const en = require('./locales/en.json')
+
 // global Apex object which user can use to override chart's defaults globally
 window.Apex = {}
 
@@ -760,7 +762,7 @@ class ApexCharts {
 
     if (selectedLocale) {
       // create a complete locale object by extending defaults so you don't get undefined errors.
-      let ret = Utils.extend(this.options.defaultLocaleOptions, selectedLocale)
+      let ret = Utils.extend(en, selectedLocale)
 
       // store these locale options in global var for ease access
       this.w.globals.locale = ret.options
