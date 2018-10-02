@@ -1,7 +1,6 @@
 import Utils from '../utils/Utils'
 import Filters from './Filters'
 import Animations from './Animations'
-import { isNumber } from 'util'
 
 /**
  * ApexCharts Graphics Class for all drawing operations.

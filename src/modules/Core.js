@@ -240,7 +240,8 @@ class Core {
     if (gl.svgHeight !== 'auto' && gl.svgHeight !== '') {
       let heightUnit = cnf.chart.height.toString().split(/[0-9]+/g).pop()
       if (heightUnit === '%') {
-        gl.svgHeight = elDim[1] * parseInt(cnf.chart.height) / 100
+        let elParentDim = Utils.getDimensions(this.el.parentNode)
+        gl.svgHeight = elParentDim[1] * parseInt(cnf.chart.height) / 100
       } else {
         gl.svgHeight = parseInt(cnf.chart.height)
       }
