@@ -227,8 +227,8 @@ class Range {
     if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
       if (gl.minY === Number.MIN_VALUE && minValInSeries !== Number.MAX_SAFE_INTEGER) {
         let diff = gl.maxY - minValInSeries
-        if (minValInSeries === 0) {
-          // if minY is already 0, we don't want to go negatives here - so this check is essential.
+        if (minValInSeries >= 0 && minValInSeries <= 10) {
+          // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
         gl.minY = (minValInSeries - (diff * 10) / 100)

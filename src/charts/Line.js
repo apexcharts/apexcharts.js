@@ -70,6 +70,11 @@ class Line {
       // zeroY is the 0 value in y series which can be used in negative charts
       let zeroY = w.globals.gridHeight - baseLineY[this.yaxisIndex]
 
+      let areaBottomY = zeroY
+      if (zeroY > w.globals.gridHeight) {
+        areaBottomY = w.globals.gridHeight
+      }
+
       categoryAxisCorrection = xDivision / 2
 
       let x = w.globals.padHorizontal + categoryAxisCorrection
@@ -145,13 +150,13 @@ class Line {
             prevX = xDivision * s
             prevY = (zeroY - series[i][s] / yRatio[this.yaxisIndex])
             linePath = graphics.move(prevX, prevY)
-            areaPath = graphics.move(prevX, zeroY)
+            areaPath = graphics.move(prevX, areaBottomY)
             break
           }
         }
       } else {
         linePath = graphics.move(prevX, prevY)
-        areaPath = graphics.move(prevX, zeroY) + graphics.line(prevX, prevY)
+        areaPath = graphics.move(prevX, areaBottomY) + graphics.line(prevX, prevY)
       }
 
       pathFromLine = graphics.move(-1, zeroY) + graphics.line(-1, zeroY)
@@ -209,7 +214,7 @@ class Line {
           xDivision,
           pX,
           pY,
-          zeroY,
+          areaBottomY,
           linePath,
           areaPath,
           linePaths,
@@ -357,7 +362,7 @@ class Line {
     pX,
     pY,
     xDivision,
-    zeroY,
+    areaBottomY,
     linePath,
     areaPath,
     linePaths,
@@ -379,8 +384,8 @@ class Line {
             areaPath =
               graphics.move(pX + 1, pY) +
               graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
-              graphics.line(x, zeroY) +
-              graphics.line(pX, zeroY) +
+              graphics.line(x, areaBottomY) +
+              graphics.line(pX, areaBottomY) +
               'z'
           } else {
             linePath = graphics.move(pX, pY)
@@ -400,7 +405,7 @@ class Line {
 
       if (j === series[i].length - 2) {
         // last loop, close path
-        areaPath = areaPath + graphics.curve(pX, zeroY, x, zeroY, x, zeroY) + 'z'
+        areaPath = areaPath + graphics.curve(pX, areaBottomY, x, areaBottomY, x, areaBottomY) + 'z'
         if (!w.globals.hasNullValues) {
           linePaths.push(linePath)
           areaPaths.push(areaPath)
@@ -409,18 +414,18 @@ class Line {
     } else {
       if (series[i][j + 1] === null) {
         linePath = linePath + graphics.move(x, y)
-        areaPath = areaPath + graphics.line(x - xDivision, zeroY) + graphics.move(x, y)
+        areaPath = areaPath + graphics.line(x - xDivision, areaBottomY) + graphics.move(x, y)
       }
       if (series[i][j] === null) {
         linePath = linePath + graphics.move(x, y)
-        areaPath = areaPath + graphics.move(x, zeroY)
+        areaPath = areaPath + graphics.move(x, areaBottomY)
       }
       linePath = linePath + graphics.line(x, y)
       areaPath = areaPath + graphics.line(x, y)
 
       if (j === series[i].length - 2) {
         // last loop, close path
-        areaPath = areaPath + graphics.line(x, zeroY) + 'z'
+        areaPath = areaPath + graphics.line(x, areaBottomY) + 'z'
         linePaths.push(linePath)
         areaPaths.push(areaPath)
       }
