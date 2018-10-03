@@ -646,6 +646,31 @@ class TimeScale {
     }
   }
 
+  createRawDateString (ts, value) {
+    let raw = ts.year
+
+    raw += '-' + ('0' + ts.month.toString()).slice(-2)
+
+    // unit is day
+    if (ts.unit === 'day') {
+      raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01'
+    } else {
+      raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2)
+    }
+
+    // unit is hour
+    if (ts.unit === 'hour') {
+      raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00'
+    } else {
+      raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2)
+    }
+
+    // unit is minute
+    raw += ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00.000Z' : ':00:00.000Z'
+
+    return raw
+  }
+
   formatDates (filteredTimeScale) {
     const w = this.w
 
@@ -654,26 +679,7 @@ class TimeScale {
 
       let dt = new DateTime(this.ctx)
 
-      let raw = ts.year
-
-      raw += '-' + ('0' + ts.month.toString()).slice(-2)
-
-      // unit is day
-      if (ts.unit === 'day') {
-        raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01'
-      } else {
-        raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2)
-      }
-
-      // unit is hour
-      if (ts.unit === 'hour') {
-        raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00'
-      } else {
-        raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2)
-      }
-
-      // unit is minute
-      raw += ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00.000Z' : ':00:00.000Z'
+      const raw = this.createRawDateString(ts, value)
 
       // parse the whole ISO datestring
       const dateString = new Date(Date.parse(raw))
