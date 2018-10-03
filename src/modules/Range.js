@@ -136,6 +136,36 @@ class Range {
     }
   }
 
+  getMinYMaxY (startingIndex, minValInSeries, len) {
+    const gl = this.w.globals
+    let maxY = -Number.MAX_VALUE
+    let minY = Number.MIN_VALUE
+
+    for (let i = startingIndex; i < len; i++) {
+      gl.dataPoints = Math.max(gl.dataPoints, gl.series[i].length)
+      if (Utils.isIE()) {
+        minY = Math.min(...gl.series[i], 0)
+      }
+
+      for (let j = 0; j < gl.series[i].length; j++) {
+        if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
+          maxY = Math.max(maxY, gl.series[i][j])
+          minValInSeries = Math.min(minValInSeries, gl.series[i][j])
+          if (Utils.isFloat(gl.series[i][j])) {
+            gl.yValueDecimal = Math.max(gl.yValueDecimal, gl.series[i][j].toString().split('.')[1].length)
+          }
+          if (minY > gl.series[i][j] && gl.series[i][j] < 0) {
+            minY = gl.series[i][j]
+          }
+        } else {
+          gl.hasNullValues = true
+        }
+      }
+    }
+
+    return { minY, maxY, minValInSeries }
+  }
+
   handleMinYMaxY () {
     let gl = this.w.globals
     let cnf = this.w.config
@@ -145,47 +175,20 @@ class Range {
 
     let minValInSeries = Number.MAX_VALUE
 
-    const getMinYMaxY = (startingIndex, len) => {
-      let maxY = -Number.MAX_VALUE
-      let minY = Number.MIN_VALUE
-
-      for (let i = startingIndex; i < len; i++) {
-        gl.dataPoints = Math.max(gl.dataPoints, gl.series[i].length)
-        if (Utils.isIE()) {
-          minY = Math.min(...gl.series[i], 0)
-        }
-
-        for (let j = 0; j < gl.series[i].length; j++) {
-          if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
-            maxY = Math.max(maxY, gl.series[i][j])
-            minValInSeries = Math.min(minValInSeries, gl.series[i][j])
-            if (Utils.isFloat(gl.series[i][j])) {
-              gl.yValueDecimal = Math.max(gl.yValueDecimal, gl.series[i][j].toString().split('.')[1].length)
-            }
-            if (minY > gl.series[i][j] && gl.series[i][j] < 0) {
-              minY = gl.series[i][j]
-            }
-          } else {
-            gl.hasNullValues = true
-          }
-        }
-      }
-
-      return { minY, maxY }
-    }
-
     if (gl.isMultipleYAxis) {
       // we need to get minY and maxY for multiple y axis
       for (let i = 0; i < gl.series.length; i++) {
-        const minYMaxYArr = getMinYMaxY(i, i + 1)
+        const minYMaxYArr = this.getMinYMaxY(i, minValInSeries, i + 1)
         gl.minYArr.push(minYMaxYArr.minY)
         gl.maxYArr.push(minYMaxYArr.maxY)
+        minValInSeries = minYMaxYArr.minValInSeries
       }
     }
 
     // and then, get the minY and maxY from all series
-    const minYMaxY = getMinYMaxY(0, gl.series.length)
+    const minYMaxY = this.getMinYMaxY(0, minValInSeries, gl.series.length)
     gl.minY = minYMaxY.minY; gl.maxY = minYMaxY.maxY
+    minValInSeries = minYMaxY.minValInSeries
 
     if (cnf.chart.stacked) {
       // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
@@ -220,11 +223,16 @@ class Range {
     }
 
     // if the numbers are too big, reduce the range
-    // for eg, if number is between 10000-12000, putting 0 as the lowest value is not so good idea
+    // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
     if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
       if (gl.minY === Number.MIN_VALUE && minValInSeries !== Number.MAX_SAFE_INTEGER) {
-        gl.minY = Math.round(minValInSeries - (minValInSeries * 2 / 100))
-        gl.maxY = Math.round(gl.maxY + (gl.maxY * 2 / 100))
+        let diff = gl.maxY - minValInSeries
+        if (minValInSeries === 0) {
+          // if minY is already 0, we don't want to go negatives here - so this check is essential.
+          diff = 0
+        }
+        gl.minY = (minValInSeries - (diff * 10) / 100)
+        gl.maxY = (gl.maxY + (diff * 8) / 100)
       }
     }
 

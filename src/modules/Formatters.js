@@ -31,24 +31,32 @@ class Formatters {
   setLabelFormatters () {
     let w = this.w
 
-    w.globals.xLabelFormatter = function (val, opts) {
+    w.globals.xLabelFormatter = function (val) {
       return val
     }
 
-    w.globals.ttKeyFormatter = function (val, opts) {
+    w.globals.xaxisTooltipFormatter = function (val) {
       return val
     }
 
-    w.globals.ttZFormatter = function (val, opts) {
+    w.globals.ttKeyFormatter = function (val) {
       return val
     }
 
-    w.globals.legendFormatter = function (val, opts) {
+    w.globals.ttZFormatter = function (val) {
       return val
     }
 
-    if (w.config.tooltip.x.formatter !== undefined) {
+    w.globals.legendFormatter = function (val) {
+      return val
+    }
+
+    if (typeof w.config.tooltip.x.formatter === 'function') {
       w.globals.ttKeyFormatter = w.config.tooltip.x.formatter
+    }
+
+    if (typeof w.config.xaxis.tooltip.formatter === 'function') {
+      w.globals.xaxisTooltipFormatter = w.config.xaxis.tooltip.formatter
     }
 
     if (Array.isArray(w.config.tooltip.y)) {

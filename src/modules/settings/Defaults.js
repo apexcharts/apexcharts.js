@@ -151,12 +151,10 @@ class Defaults {
         }
       },
       yaxis: [{
-        min: 0,
         tooltip: {
           enabled: false
         }
       }]
-
     }
   }
 

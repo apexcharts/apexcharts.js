@@ -23,8 +23,6 @@
 
     </div>
 
-    <button onclick="update()">Update</button>
-
 
     <script src="../../dist/apexcharts.js"></script>
     <script src="../assets/ohlc.js"></script>
@@ -42,9 +40,6 @@
                 text: 'CandleStick Chart',
                 align: 'left'
             },
-            stroke: {
-                width: [1, 4]
-            },
             xaxis: {
                 type: 'datetime'
             }
@@ -57,11 +52,6 @@
 
         chart.render();
 
-        function update() {
-            chart.updateSeries([{
-                data: seriesDataLarger
-            }])
-        }
         
     </script>
 </body>

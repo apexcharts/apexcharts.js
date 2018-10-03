@@ -132,7 +132,7 @@ export default class Globals {
       defaultLabels: false,
       xLabelFormatter: undefined, // formatter for x axis labels
       yLabelFormatters: [],
-      xaxisTooltipLabelFormatter: undefined, // formatter for x axis tooltip
+      xaxisTooltipFormatter: undefined, // formatter for x axis tooltip
       ttKeyFormatter: undefined,
       ttVal: undefined,
       ttZFormatter: undefined,

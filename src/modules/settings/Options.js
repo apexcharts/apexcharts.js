@@ -745,7 +745,8 @@ export default class Options {
         },
         tooltip: {
           enabled: true,
-          offsetY: 0
+          offsetY: 0,
+          formatter: undefined
         }
       },
       yaxis: this.yAxis,

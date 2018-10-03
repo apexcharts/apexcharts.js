@@ -54,7 +54,8 @@ class Labels {
     let val
     const {
       xVal,
-      zVal
+      zVal,
+      xAxisTTVal
     } = values
 
     let seriesName = ''
@@ -102,6 +103,7 @@ class Labels {
         values: {
           val,
           xVal,
+          xAxisTTVal,
           zVal
         },
         seriesName,
@@ -177,6 +179,7 @@ class Labels {
     const {
       val,
       xVal,
+      xAxisTTVal,
       zVal
     } = values
 
@@ -199,8 +202,9 @@ class Labels {
       ttCtx.tooltipTitle.innerHTML = xVal
     }
 
+    // if xaxis tooltip is constructed, we need to replace the innerHTML
     if (ttCtx.blxaxisTooltip) {
-      ttCtx.xaxisTooltipText.innerHTML = xVal
+      ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
     }
 
     const ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label')
@@ -262,8 +266,16 @@ class Labels {
     const filteredSeriesX = this.tooltipUtil.filteredSeriesX()
 
     let xVal = ''
+    let xAxisTTVal = ''
     let zVal = null
     let val = null
+
+    const customFormatterOpts = {
+      series: w.globals.series,
+      seriesIndex: i,
+      dataPointIndex: j,
+      w
+    }
 
     let zFormatter = w.globals.ttZFormatter
 
@@ -285,31 +297,28 @@ class Labels {
       let xFormat = new Formatters(this.ctx)
       xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal)
     } else {
-      xVal = w.globals.xLabelFormatter(bufferXVal, {
-        series: w.globals.series,
-        seriesIndex: i,
-        dataPointIndex: j,
-        w
-      })
+      xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts)
     }
 
     // override default x-axis formatter with tooltip formatter
     if (w.config.tooltip.x.formatter !== undefined) {
-      xVal = w.globals.ttKeyFormatter(bufferXVal, {
-        series: w.globals.series,
-        seriesIndex: i,
-        dataPointIndex: j,
-        w
-      })
+      xVal = w.globals.ttKeyFormatter(bufferXVal, customFormatterOpts)
     }
 
     if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[0].length > 0) {
       zVal = zFormatter(w.globals.seriesZ[i][j], w)
     }
 
+    if (typeof w.config.xaxis.tooltip.formatter === 'function') {
+      xAxisTTVal = w.globals.xaxisTooltipFormatter(bufferXVal, customFormatterOpts)
+    } else {
+      xAxisTTVal = xVal
+    }
+
     return {
       val,
       xVal,
+      xAxisTTVal,
       zVal
     }
   }
