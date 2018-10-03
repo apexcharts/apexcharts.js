@@ -326,8 +326,8 @@ class Legend {
 
     if (w.config.legend.position === 'top') {
       const dim = new Dimensions(this.ctx)
-      const titleH = dim.getMainTitleCoords().height
-      const subtitleH = dim.getSubTitleCoords().height
+      const titleH = dim.getTitleSubtitleCoords('title').height
+      const subtitleH = dim.getTitleSubtitleCoords('subtitle').height
 
       y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0)
     }
@@ -345,8 +345,8 @@ class Legend {
     let lRect = this.getLegendBBox()
 
     let dimensions = new Dimensions(this.ctx)
-    let titleRect = dimensions.getMainTitleCoords()
-    let subtitleRect = dimensions.getSubTitleCoords()
+    let titleRect = dimensions.getTitleSubtitleCoords('title')
+    let subtitleRect = dimensions.getTitleSubtitleCoords('subtitle')
 
     let offsetX = 20
     let offsetY = 0

@@ -339,7 +339,7 @@ class YAxis {
   }
 
   // sets the x position of the y-axis by counting the labels width, title width and any offset
-  setYAxisXPosition (yaxisLabelCoords, ytitleCoords) {
+  setYAxisXPosition (yaxisLabelCoords, yTitleCoords) {
     let w = this.w
 
     let xLeft = 0
@@ -354,12 +354,12 @@ class YAxis {
     }
 
     w.config.yaxis.map((yaxe, index) => {
-      let yAxisWidth = (yaxisLabelCoords[index].width + ytitleCoords[index].width)
+      let yAxisWidth = (yaxisLabelCoords[index].width + yTitleCoords[index].width)
 
       let paddingForYAxisTitle = this.xPaddingForYAxisTitle(index, {
         width: yaxisLabelCoords[index].width
       }, {
-        width: ytitleCoords[index].width
+        width: yTitleCoords[index].width
       }, yaxe.opposite)
 
       if (w.config.yaxis.length > 1) {

@@ -16,9 +16,10 @@ class Dimensions {
     this.lgRect = {}
     this.yAxisWidth = 0
     this.xAxisHeight = 0
+    this.isSparkline = this.w.config.chart.sparkline.enabled
 
-    this.isBarHorizontal = !!((this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal))
+    this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.horizontal)
   }
 
   /**
@@ -47,59 +48,8 @@ class Dimensions {
     this.titleSubtitleOffset()
   }
 
-  setGridCoordsForAxisCharts (lgRect) {
-    let w = this.w
-    let gl = w.globals
-
-    let xtitleCoords
-    let xaxisLabelCoords
-    let ytitleCoords = []
-    let yaxisLabelCoords = {
-      width: 0,
-      height: 0
-    }
-
-    yaxisLabelCoords = this.getyAxisLabelsCoords()
-    xaxisLabelCoords = this.getxAxisLabelsCoords()
-
-    if (w.globals.timelineLabels.length > 0) {
-      xaxisLabelCoords = this.getxAxisTimeScaleLabelsCoords()
-    }
-
-    xtitleCoords = this.getxAxisTitleCoords()
-    ytitleCoords = this.getyAxisTitleCoords()
-
-    if (
-      this.isBarHorizontal
-    ) {
-      // move x with y for horizontal bars
-      // let tempObj = Object.assign({}, yaxisLabelCoords)
-      // yaxisLabelCoords = Object.assign({}, xaxisLabelCoords)
-      // xaxisLabelCoords = Object.assign({}, tempObj)
-    }
-
-    // no x labels, make w=0,h=0
-    if (!w.config.xaxis.labels.show) {
-      xaxisLabelCoords = {
-        height: 0,
-        width: 0
-      }
-    }
-
-    w.globals.yLabelsCoords = []
-    w.globals.yTitleCoords = []
-    w.config.yaxis.map((yaxe, index) => {
-      // store the labels and titles coords in global vars
-      w.globals.yLabelsCoords.push({
-        width: yaxisLabelCoords[index].width,
-        index
-      })
-      w.globals.yTitleCoords.push({
-        width: ytitleCoords[index].width,
-        index
-      })
-    })
-
+  conditionalChecksForAxisCoords (xaxisLabelCoords, xtitleCoords) {
+    const w = this.w
     this.xAxisHeight = (xaxisLabelCoords.height + xtitleCoords.height) * w.globals.lineHeightRatio + 15
 
     this.xAxisWidth = xaxisLabelCoords.width
@@ -111,11 +61,49 @@ class Dimensions {
       this.xAxisHeight = w.config.xaxis.labels.maxHeight
     }
 
+    if (w.config.xaxis.labels.minHeight && this.xAxisHeight < w.config.xaxis.labels.minHeight) {
+      this.xAxisHeight = w.config.xaxis.labels.minHeight
+    }
+
     if (w.config.xaxis.floating) {
       this.xAxisHeight = 0
     }
 
-    gl.xAxisLabelsHeight = this.xAxisHeight
+    if (!this.isBarHorizontal) {
+      this.yAxisWidth = this.getTotalYAxisWidth()
+    } else {
+      this.yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
+      if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
+        this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
+      }
+    }
+  }
+
+  setGridCoordsForAxisCharts (lgRect) {
+    let w = this.w
+    let gl = w.globals
+
+    let yaxisLabelCoords = this.getyAxisLabelsCoords()
+    let xaxisLabelCoords = this.getxAxisLabelsCoords()
+
+    let yTitleCoords = this.getyAxisTitleCoords()
+    let xtitleCoords = this.getxAxisTitleCoords()
+
+    w.globals.yLabelsCoords = []
+    w.globals.yTitleCoords = []
+    w.config.yaxis.map((yaxe, index) => {
+      // store the labels and titles coords in global vars
+      w.globals.yLabelsCoords.push({
+        width: yaxisLabelCoords[index].width,
+        index
+      })
+      w.globals.yTitleCoords.push({
+        width: yTitleCoords[index].width,
+        index
+      })
+    })
+
+    this.conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords)
 
     gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX = w.globals.rotateXLabels &&
@@ -134,25 +122,15 @@ class Dimensions {
     gl.translateXAxisY = gl.translateXAxisY + w.config.xaxis.labels.offsetY
     gl.translateXAxisX = gl.translateXAxisX + w.config.xaxis.labels.offsetX
 
-    if (!this.isBarHorizontal) {
-      this.yAxisWidth = this.getTotalYAxisWidth()
-    } else {
-      this.yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
-      if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
-        this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
-      }
-    }
-
     let yAxisWidth = this.yAxisWidth
     let xAxisHeight = this.xAxisHeight
+    gl.xAxisHeight = this.xAxisHeight
     let translateY = 10
 
     if (!w.config.grid.show) {
       yAxisWidth = 0
       xAxisHeight = 35
     }
-
-    this.isSparkline = w.config.chart.sparkline.enabled
 
     if (this.isSparkline) {
       lgRect = {
@@ -203,12 +181,12 @@ class Dimensions {
     gl.translateY = gl.translateY + w.config.grid.padding.top
 
     if (!this.isBarHorizontal) {
-      this.setGridXPosForDualYAxis(ytitleCoords, yaxisLabelCoords)
+      this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
     }
 
     // after drawing everything, set the Y axis positions
     let objyAxis = new YAxis(this.ctx)
-    objyAxis.setYAxisXPosition(yaxisLabelCoords, ytitleCoords)
+    objyAxis.setYAxisXPosition(yaxisLabelCoords, yTitleCoords)
   }
 
   setGridCoordsForNonAxisCharts (lgRect) {
@@ -262,12 +240,12 @@ class Dimensions {
     }
   }
 
-  setGridXPosForDualYAxis (ytitleCoords, yaxisLabelCoords) {
+  setGridXPosForDualYAxis (yTitleCoords, yaxisLabelCoords) {
     let w = this.w
     w.config.yaxis.map((yaxe, index) => {
       if (!w.globals.ignoreYAxisIndexes.includes(index) && !w.config.yaxis[index].floating) {
         if (yaxe.opposite) {
-          w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + ytitleCoords[index].width) - (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) - 12
+          w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + yTitleCoords[index].width) - (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) - 12
         }
       }
     })
@@ -294,8 +272,8 @@ class Dimensions {
       gridShrinkOffset += 10
     }
 
-    let titleCoords = this.getMainTitleCoords()
-    let subtitleCoords = this.getSubTitleCoords()
+    let titleCoords = this.getTitleSubtitleCoords('title')
+    let subtitleCoords = this.getTitleSubtitleCoords('subtitle')
 
     gl.gridHeight = gl.gridHeight - titleCoords.height - subtitleCoords.height - gridShrinkOffset
     gl.translateY = gl.translateY + titleCoords.height + subtitleCoords.height + gridShrinkOffset
@@ -335,6 +313,7 @@ class Dimensions {
 
   getxAxisTimeScaleLabelsCoords () {
     let w = this.w
+    let rect
 
     let timescaleLabels = w.globals.timelineLabels.slice()
 
@@ -354,7 +333,7 @@ class Dimensions {
     }, 0)
 
     let graphics = new Graphics(this.ctx)
-    let rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
+    rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
 
     let totalWidthRotated = (rect.width * 1.05) * labels.length
 
@@ -364,10 +343,7 @@ class Dimensions {
       w.globals.overlappingXLabels = true
     }
 
-    return {
-      width: rect.width,
-      height: rect.height
-    }
+    return rect
   }
 
   /**
@@ -379,40 +355,59 @@ class Dimensions {
     let w = this.w
 
     let xaxisLabels = w.globals.labels.slice()
-
-    let lgWidthForSideLegends = w.config.legend.position === 'left' && w.config.legend.position === 'right' && !w.config.legend.floating ? this.lgRect.width : 0
-
-    //  get the longest string from the labels array and also apply label formatter to it
-    let val = xaxisLabels.reduce(function (a, b) {
-      return a.length > b.length ? a : b
-    }, 0)
-
-    let xlbFormatter = w.globals.xLabelFormatter
-
-    let xFormat = new Formatters(this.ctx)
-    val = xFormat.xLabelFormat(xlbFormatter, val)
-
-    let graphics = new Graphics(this.ctx)
-    let xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
-
     let rect = {
-      width: xLabelrect.width,
-      height: xLabelrect.height
+      width: 0,
+      height: 0
     }
 
-    if (
-      rect.width * xaxisLabels.length >
-      w.globals.svgWidth - lgWidthForSideLegends - this.yAxisWidth &&
-      w.config.xaxis.labels.rotate !== 0
-    ) {
-      if (!this.isBarHorizontal) {
-        w.globals.rotateXLabels = true
-        xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, `rotate(${w.config.xaxis.labels.rotate} 0 0)`, false)
-
-        rect.height = xLabelrect.height / 1.66
+    if (w.globals.timelineLabels.length > 0) {
+      const coords = this.getxAxisTimeScaleLabelsCoords()
+      rect = {
+        width: coords.width,
+        height: coords.height
       }
     } else {
-      w.globals.rotateXLabels = false
+      let lgWidthForSideLegends = w.config.legend.position === 'left' && w.config.legend.position === 'right' && !w.config.legend.floating ? this.lgRect.width : 0
+
+      //  get the longest string from the labels array and also apply label formatter to it
+      let val = xaxisLabels.reduce(function (a, b) {
+        return a.length > b.length ? a : b
+      }, 0)
+
+      let xlbFormatter = w.globals.xLabelFormatter
+
+      let xFormat = new Formatters(this.ctx)
+      val = xFormat.xLabelFormat(xlbFormatter, val)
+
+      let graphics = new Graphics(this.ctx)
+      let xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
+
+      rect = {
+        width: xLabelrect.width,
+        height: xLabelrect.height
+      }
+
+      if (
+        rect.width * xaxisLabels.length >
+        w.globals.svgWidth - lgWidthForSideLegends - this.yAxisWidth &&
+        w.config.xaxis.labels.rotate !== 0
+      ) {
+        if (!this.isBarHorizontal) {
+          w.globals.rotateXLabels = true
+          xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, `rotate(${w.config.xaxis.labels.rotate} 0 0)`, false)
+
+          rect.height = xLabelrect.height / 1.66
+        }
+      } else {
+        w.globals.rotateXLabels = false
+      }
+    }
+
+    if (!w.config.xaxis.labels.show) {
+      rect = {
+        width: 0,
+        height: 0
+      }
     }
 
     return {
@@ -525,49 +520,25 @@ class Dimensions {
   }
 
   /**
-   * Get Chart Title Dimensions
+   * Get Chart Title/Subtitle Dimensions
    * @memberof Dimensions
    * @return {{width, height}}
    **/
-  getMainTitleCoords () {
+  getTitleSubtitleCoords (type) {
     let w = this.w
     let width = 0
     let height = 0
 
-    let elTitle = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-title-text'
+    const floating = type === 'title' ? w.config.title.floating : w.config.subtitle.floating
+
+    let el = w.globals.dom.baseEl.querySelector(
+      `.apexcharts-${type}-text`
     )
 
-    if (elTitle !== null && !w.config.title.floating) {
-      let titleCoords = elTitle.getBoundingClientRect()
-      width = titleCoords.width
-      height = w.globals.axisCharts ? titleCoords.height + 5 : titleCoords.height
-    }
-
-    return {
-      width,
-      height
-    }
-  }
-
-  /**
-   * Get Chart Title Dimensions
-   * @memberof Dimensions
-   * @return {{width, height}}
-   **/
-  getSubTitleCoords () {
-    let w = this.w
-    let width = 0
-    let height = 0
-
-    let elSubTitle = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-subtitle-text'
-    )
-
-    if (elSubTitle !== null && !w.config.subtitle.floating) {
-      let subtitleCoords = elSubTitle.getBoundingClientRect()
-      width = subtitleCoords.width
-      height = w.globals.axisCharts ? subtitleCoords.height + 5 : subtitleCoords.height
+    if (el !== null && !floating) {
+      let coord = el.getBoundingClientRect()
+      width = coord.width
+      height = w.globals.axisCharts ? coord.height + 5 : coord.height
     }
 
     return {

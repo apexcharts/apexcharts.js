@@ -205,9 +205,10 @@ export default class Options {
           clicked: undefined,
           selection: undefined,
           dataPointSelection: undefined,
+          dataPointMouseEnter: undefined,
+          dataPointMouseLeave: undefined,
           beforeZoom: undefined, // if defined, should return true for the zoom event to occur
-          zoomed: undefined,
-          scrolled: undefined
+          zoomed: undefined
         },
         foreColor: '#373d3f',
         height: 'auto',
@@ -662,6 +663,7 @@ export default class Options {
           rotate: -45,
           rotateAlways: false,
           trim: true,
+          minHeight: undefined,
           maxHeight: 120,
           style: {
             colors: [],

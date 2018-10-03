@@ -291,6 +291,10 @@ class Core {
   resetGlobals () {
     let gl = this.w.globals
     gl.series = []
+    gl.seriesCandleO = []
+    gl.seriesCandleH = []
+    gl.seriesCandleL = []
+    gl.seriesCandleC = []
     gl.seriesPercent = []
     gl.seriesX = []
     gl.seriesZ = []

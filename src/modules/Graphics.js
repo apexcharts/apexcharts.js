@@ -458,9 +458,17 @@ class Graphics {
     return elPoint
   }
 
-  pathMouseEnter (path) {
+  pathMouseEnter (path, e) {
     let w = this.w
     const filters = new Filters(this.ctx)
+
+    const i = parseInt(path.node.getAttribute('index'))
+    const j = parseInt(path.node.getAttribute('j'))
+
+    if (typeof w.config.chart.events.dataPointMouseEnter === 'function') {
+      w.config.chart.events.dataPointMouseEnter(e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
+    }
+    this.ctx.fireEvent('dataPointMouseEnter', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
 
     if (w.config.states.active.filter.type !== 'none') {
       if (path.node.getAttribute('selected') === 'true') {
@@ -474,9 +482,17 @@ class Graphics {
     }
   }
 
-  pathMouseLeave (path) {
+  pathMouseLeave (path, e) {
     let w = this.w
     const filters = new Filters(this.ctx)
+
+    const i = parseInt(path.node.getAttribute('index'))
+    const j = parseInt(path.node.getAttribute('j'))
+
+    if (typeof w.config.chart.events.dataPointMouseLeave === 'function') {
+      w.config.chart.events.dataPointMouseLeave(e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
+    }
+    this.ctx.fireEvent('dataPointMouseLeave', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
 
     if (w.config.states.active.filter.type !== 'none') {
       if (path.node.getAttribute('selected') === 'true') {
