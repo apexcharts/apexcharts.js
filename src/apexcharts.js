@@ -341,6 +341,10 @@ class ApexCharts {
       // Hence, we need to reset axis min/max to avoid zooming issues
       this.revertDefaultAxisMinMax()
     }
+    // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
+    if (options.xaxis && (options.xaxis.min || options.xaxis.max)) {
+      this.forceXAxisUpdate(options)
+    }
     return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig)
   }
 
@@ -514,6 +518,18 @@ class ApexCharts {
         reject(e)
       })
     })
+  }
+
+  forceXAxisUpdate (options) {
+    const w = this.w
+    if (typeof options.xaxis.min !== 'undefined') {
+      w.config.xaxis.min = options.xaxis.min
+      w.globals.lastXAxis.min = options.xaxis.min
+    }
+    if (typeof options.xaxis.max !== 'undefined') {
+      w.config.xaxis.max = options.xaxis.max
+      w.globals.lastXAxis.max = options.xaxis.max
+    }
   }
 
   /**

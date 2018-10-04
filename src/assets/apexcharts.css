@@ -117,10 +117,6 @@
   align-items: center;
 }
 
-.apexcharts-tooltip-series-group.active {
-  display: flex;
-}
-
 .apexcharts-tooltip-series-group.active .apexcharts-tooltip-marker {
   opacity: 1;
 }

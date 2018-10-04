@@ -91,7 +91,7 @@ class Grid {
       if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
         let x1 = w.globals.padHorizontal
         let y1 = 0
-        let x2 = w.globals.padHorizontal
+        let x2
         let y2 = w.globals.gridHeight
 
         if (w.globals.timelineLabels.length > 0) {

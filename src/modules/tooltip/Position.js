@@ -184,7 +184,7 @@ class Position {
     }
 
     if (tooltipRect.ttHeight + y > w.globals.gridHeight) {
-      y = w.globals.gridHeight - tooltipRect.ttHeight / 2 - pointR
+      y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
     }
 
     if (!isNaN(x)) {

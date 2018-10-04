@@ -512,9 +512,6 @@ class Graphics {
     const i = parseInt(path.node.getAttribute('index'))
     const j = parseInt(path.node.getAttribute('j'))
 
-    // if (w.config.states.active.filter.type !== 'none') {
-    // toggle selection
-
     let selected = 'false'
     if (path.node.getAttribute('selected') === 'true') {
       path.node.setAttribute('selected', 'false')
@@ -553,21 +550,17 @@ class Graphics {
       let activeFilter = w.config.states.active.filter
       if (activeFilter !== 'none') {
         filters.applyFilter(path, activeFilter.type, activeFilter.value)
-
-        if (typeof w.config.chart.events.dataPointSelection === 'function') {
-          w.config.chart.events.dataPointSelection(e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
-        }
-        this.ctx.fireEvent('dataPointSelection', [e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
       }
     } else {
       if (w.config.states.active.filter.type !== 'none') {
         filters.getDefaultFilter(path)
       }
-      if (typeof w.config.chart.events.dataPointSelection === 'function') {
-        w.config.chart.events.dataPointSelection(e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
-      }
-      this.ctx.fireEvent('dataPointSelection', [e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
     }
+
+    if (typeof w.config.chart.events.dataPointSelection === 'function') {
+      w.config.chart.events.dataPointSelection(e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
+    }
+    this.ctx.fireEvent('dataPointSelection', [e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
 
     if (this.w.config.chart.selection.selectedPoints !== undefined) {
       this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)

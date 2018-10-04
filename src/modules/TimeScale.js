@@ -433,7 +433,15 @@ class TimeScale {
     const dt = new DateTime(this.ctx)
 
     let unit = 'day'
+
+    let remainingHours = 24 - firstVal.minHour
     let yrCounter = 0
+
+    // calculate the first tick position
+    let firstTickPosition = remainingHours * hoursWidthOnXAxis
+    let firstTickValue = firstVal.minDate + 1
+
+    let val = firstTickValue
 
     const changeMonth = (dateVal, month, year) => {
       let monthdays = dt.determineDaysOfMonths(month + 1, year)
@@ -442,17 +450,12 @@ class TimeScale {
         month = month + 1
         date = 1
         unit = 'month'
+        val = month
         return month
       }
 
       return month
     }
-
-    let remainingHours = 24 - firstVal.minHour
-
-    // calculate the first tick position
-    let firstTickPosition = remainingHours * hoursWidthOnXAxis
-    let firstTickValue = firstVal.minDate + 1
 
     let date = firstTickValue
     let month = changeMonth(date, currentMonth, currentYear)
@@ -460,11 +463,11 @@ class TimeScale {
     // push the first tick in the array
     this.timeScaleArray.push({
       position: firstTickPosition,
-      value: firstTickValue,
+      value: val,
       unit,
       year: currentYear,
       month: this.monthMod(month),
-      day: firstTickValue
+      day: date
     })
 
     let pos = firstTickPosition

@@ -280,6 +280,16 @@ class Line {
         w.globals.delayedElements.push({el: elPointsMain.node, index: realIndex})
       }
 
+      const defaultRenderedPathOptions = {
+        i,
+        realIndex,
+        animationDelay: i,
+        initialSpeed: w.config.chart.animations.speed,
+        dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+        className: `apexcharts-${type}`,
+        id: `apexcharts-${type}`
+      }
+
       if (w.config.stroke.show && !this.pointsChart) {
         let lineFill = null
         if (type === 'line') {
@@ -294,19 +304,13 @@ class Line {
 
         for (let p = 0; p < linePaths.length; p++) {
           let renderedPath = graphics.renderPaths({
-            i,
-            realIndex,
+            ...defaultRenderedPathOptions,
             pathFrom: pathFromLine,
             pathTo: linePaths[p],
             stroke: lineFill,
             strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[realIndex] : w.config.stroke.width,
             strokeLineCap: w.config.stroke.lineCap,
-            fill: 'none',
-            animationDelay: i,
-            initialSpeed: w.config.chart.animations.speed,
-            dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-            className: 'apexcharts-line',
-            id: 'apexcharts-line'
+            fill: 'none'
           })
 
           elSeries.add(renderedPath)
@@ -321,19 +325,13 @@ class Line {
 
         for (let p = 0; p < areaPaths.length; p++) {
           let renderedPath = graphics.renderPaths({
-            i,
-            realIndex,
+            ...defaultRenderedPathOptions,
             pathFrom: pathFromArea,
             pathTo: areaPaths[p],
             stroke: 'none',
             strokeWidth: 0,
             strokeLineCap: null,
-            fill: pathFill,
-            animationDelay: i,
-            initialSpeed: w.config.chart.animations.speed,
-            dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-            className: 'apexcharts-area',
-            id: 'apexcharts-area'
+            fill: pathFill
           })
 
           elSeries.add(renderedPath)
@@ -355,12 +353,7 @@ class Line {
 
   createPaths ({
     series,
-    i,
-    j,
-    x,
-    y,
-    pX,
-    pY,
+    i, j, x, y, pX, pY,
     xDivision,
     areaBottomY,
     linePath,
@@ -444,10 +437,7 @@ class Line {
   calculatePoints ({
     series,
     realIndex,
-    x,
-    y,
-    i,
-    j,
+    x, y, i, j,
     prevY,
     categoryAxisCorrection,
     xRatio
@@ -520,12 +510,9 @@ class Line {
   }
 
   determineFirstPrevY ({
-    i,
-    series,
+    i, series,
     yRatio,
-    zeroY,
-    prevY,
-    prevSeriesY,
+    zeroY, prevY, prevSeriesY,
     lineYPosition
   }) {
     let w = this.w
@@ -544,19 +531,14 @@ class Line {
       }
     } else {
       // the first value in the current series is null
-
-      if (w.config.chart.stacked) {
-        if (i > 0) {
-          // check again for undefined value (undefined value will occur when we clear the series while user clicks on legend to hide serieses)
-          if (typeof series[i][0] === 'undefined') {
-            for (let s = i - 1; s >= 0; s--) {
-              // for loop to get to 1st previous value until we get it
-              if (series[s][0] !== null && typeof series[s][0] !== 'undefined') {
-                lineYPosition = prevSeriesY[s][0]
-                prevY = (lineYPosition)
-                break
-              }
-            }
+      if (w.config.chart.stacked && i > 0 && typeof series[i][0] === 'undefined') {
+        // check for undefined value (undefined value will occur when we clear the series while user clicks on legend to hide serieses)
+        for (let s = i - 1; s >= 0; s--) {
+          // for loop to get to 1st previous value until we get it
+          if (series[s][0] !== null && typeof series[s][0] !== 'undefined') {
+            lineYPosition = prevSeriesY[s][0]
+            prevY = (lineYPosition)
+            break
           }
         }
       }

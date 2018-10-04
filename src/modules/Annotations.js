@@ -11,6 +11,7 @@ class Annotations {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
+    this.graphics = new Graphics(this.ctx)
 
     this.xDivision = this.w.globals.gridWidth / this.w.globals.dataPoints
   }
@@ -39,13 +40,12 @@ class Annotations {
 
   addXaxisAnnotation (anno, parent, index) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     let strokeDashArray = anno.strokeDashArray
 
     let x1 = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
 
-    let line = graphics.drawLine(
+    let line = this.graphics.drawLine(
       x1 + anno.offsetX,
       0 + anno.offsetY,
       x1 + anno.offsetX,
@@ -59,7 +59,7 @@ class Annotations {
 
     const text = anno.label.text ? anno.label.text : ''
 
-    let elText = graphics.drawText({
+    let elText = this.graphics.drawText({
       x: x1 + anno.label.offsetX,
       y: textY + anno.label.offsetY,
       text,
@@ -79,9 +79,8 @@ class Annotations {
 
   drawXAxisAnnotations () {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
-    let elg = graphics.group({
+    let elg = this.graphics.group({
       class: 'apexcharts-xaxis-annotations'
     })
 
@@ -94,7 +93,6 @@ class Annotations {
 
   addYaxisAnnotation (anno, parent, index) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     let strokeDashArray = anno.strokeDashArray
 
@@ -102,7 +100,7 @@ class Annotations {
 
     const text = anno.label.text ? anno.label.text : ''
 
-    let line = graphics.drawLine(
+    let line = this.graphics.drawLine(
       0 + anno.offsetX,
       y1 + anno.offsetY,
       w.globals.gridWidth + anno.offsetX,
@@ -114,7 +112,7 @@ class Annotations {
 
     let textX = anno.label.position === 'right' ? w.globals.gridWidth : 0
 
-    let elText = graphics.drawText({
+    let elText = this.graphics.drawText({
       x: textX + anno.label.offsetX,
       y: y1 + anno.label.offsetY - 3,
       text,
@@ -134,9 +132,8 @@ class Annotations {
 
   drawYAxisAnnotations () {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
-    let elg = graphics.group({
+    let elg = this.graphics.group({
       class: 'apexcharts-yaxis-annotations'
     })
 
@@ -149,7 +146,6 @@ class Annotations {
 
   addPointAnnotation (anno, parent, index) {
     const w = this.w
-    let graphics = new Graphics(this.ctx)
 
     let x = 0
     let y = 0
@@ -188,12 +184,12 @@ class Annotations {
       shape: anno.marker.shape,
       radius: anno.marker.radius
     }
-    let point = graphics.drawMarker(x, pointY, optsPoints)
+    let point = this.graphics.drawMarker(x, pointY, optsPoints)
     parent.appendChild(point.node)
 
     const text = anno.label.text ? anno.label.text : ''
 
-    let elText = graphics.drawText({
+    let elText = this.graphics.drawText({
       x: x + anno.label.offsetX,
       y: y + anno.label.offsetY,
       text,
@@ -213,9 +209,8 @@ class Annotations {
 
   drawPointAnnotations () {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
-    let elg = graphics.group({
+    let elg = this.graphics.group({
       class: 'apexcharts-point-annotations'
     })
 
@@ -228,7 +223,6 @@ class Annotations {
 
   setOrientations (annos, annoIndex = null) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     annos.map((anno, index) => {
       if (anno.label.orientation === 'vertical') {
@@ -245,7 +239,7 @@ class Annotations {
             xAnno.setAttribute('y', parseInt(xAnno.getAttribute('y')) - xAnnoCoord.width)
           }
 
-          let annoRotatingCenter = graphics.rotateAroundCenter(xAnno)
+          let annoRotatingCenter = this.graphics.rotateAroundCenter(xAnno)
           const x = annoRotatingCenter.x
           const y = annoRotatingCenter.y
 
@@ -260,7 +254,6 @@ class Annotations {
 
   addBackgroundToAnno (annoEl, anno) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
 
     const elGridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid').getBoundingClientRect()
 
@@ -280,7 +273,7 @@ class Annotations {
 
     const x1 = coords.left - elGridRect.left - pleft
     const y1 = coords.top - elGridRect.top - ptop
-    const elRect = graphics.drawRect(
+    const elRect = this.graphics.drawRect(
       x1,
       y1,
       coords.width + pleft + pright,
@@ -327,10 +320,9 @@ class Annotations {
     const me = context
     const w = me.w
 
-    const graphics = new Graphics(me.ctx)
     const parentNode = w.globals.dom.baseEl.querySelector(appendTo)
 
-    let elText = graphics.drawText({
+    let elText = this.graphics.drawText({
       x: x,
       y: y,
       text,
@@ -344,7 +336,7 @@ class Annotations {
     parentNode.appendChild(elText.node)
 
     const textRect = elText.bbox()
-    const elRect = graphics.drawRect(textRect.x - paddingLeft, textRect.y - paddingTop, textRect.width + paddingLeft + paddingRight, textRect.height + paddingBottom + paddingTop, radius, backgroundColor, 1, borderWidth, borderColor, strokeDashArray)
+    const elRect = this.graphics.drawRect(textRect.x - paddingLeft, textRect.y - paddingTop, textRect.width + paddingLeft + paddingRight, textRect.height + paddingBottom + paddingTop, radius, backgroundColor, 1, borderWidth, borderColor, strokeDashArray)
 
     elText.before(elRect)
 
@@ -360,12 +352,12 @@ class Annotations {
   }
 
   addPointAnnotationExternal (params, pushToMemory, context) {
-    this.addAnnotationExternal({params, pushToMemory, context, type: 'point', contextMethod: context.addPointAnnotation})
+    this.addAnnotationExternal({ params, pushToMemory, context, type: 'point', contextMethod: context.addPointAnnotation })
     return context
   }
 
   addYaxisAnnotationExternal (params, pushToMemory, context) {
-    this.addAnnotationExternal({params, pushToMemory, context, type: 'yaxis', contextMethod: context.addYaxisAnnotation})
+    this.addAnnotationExternal({ params, pushToMemory, context, type: 'yaxis', contextMethod: context.addYaxisAnnotation })
     return context
   }
 

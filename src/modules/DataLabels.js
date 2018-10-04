@@ -73,40 +73,40 @@ class DataLabels {
 
     let elDataLabelsWrap = null
 
-    if (dataLabelsConfig.enabled) {
-      elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-data-labels'
-      })
+    if (!dataLabelsConfig.enabled || pos.x instanceof Array !== true) {
+      return elDataLabelsWrap
+    }
 
-      if (pos.x instanceof Array) {
-        for (let q = 0; q < pos.x.length; q++) {
-          x = pos.x[q] + dataLabelsConfig.offsetX
-          y = pos.y[q] + dataLabelsConfig.offsetY - w.config.markers.size - 5
+    elDataLabelsWrap = graphics.group({
+      class: 'apexcharts-data-labels'
+    })
 
-          if (!isNaN(x)) {
-            // a small hack as we have 2 points for the first val to connect it
-            if (j === 1 && q === 0) realIndexP = 0
-            if (j === 1 && q === 1) realIndexP = 1
+    for (let q = 0; q < pos.x.length; q++) {
+      x = pos.x[q] + dataLabelsConfig.offsetX
+      y = pos.y[q] + dataLabelsConfig.offsetY - w.config.markers.size - 5
 
-            let val = w.globals.series[i][realIndexP]
+      if (!isNaN(x)) {
+        // a small hack as we have 2 points for the first val to connect it
+        if (j === 1 && q === 0) realIndexP = 0
+        if (j === 1 && q === 1) realIndexP = 1
 
-            let text = ''
+        let val = w.globals.series[i][realIndexP]
 
-            if (w.config.chart.type === 'bubble') {
-              text = w.globals.seriesZ[i][realIndexP]
-              y = pos.y[q] + w.config.dataLabels.offsetY
-              const scatter = new Scatter(this.ctx)
-              let centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, realIndexP)
-              y = centerTextInBubbleCoords.y
-            } else {
-              if (typeof val !== 'undefined') {
-                text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals })
-              }
-            }
+        let text = ''
 
-            this.plotDataLabelsText(x, y, text, i, realIndexP, elDataLabelsWrap, w.config.dataLabels)
+        if (w.config.chart.type === 'bubble') {
+          text = w.globals.seriesZ[i][realIndexP]
+          y = pos.y[q] + w.config.dataLabels.offsetY
+          const scatter = new Scatter(this.ctx)
+          let centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, realIndexP)
+          y = centerTextInBubbleCoords.y
+        } else {
+          if (typeof val !== 'undefined') {
+            text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals })
           }
         }
+
+        this.plotDataLabelsText(x, y, text, i, realIndexP, elDataLabelsWrap, w.config.dataLabels)
       }
     }
 

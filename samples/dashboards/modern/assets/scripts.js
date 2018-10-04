@@ -345,7 +345,7 @@ var optionsArea = {
     }
   },
   tooltip: {
-    showOnMarkerHover: true,
+    intersect: true,
     shared: false,
   },
   xaxis: {
