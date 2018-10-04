@@ -601,9 +601,17 @@ var Graphics = function () {
     }
   }, {
     key: 'pathMouseEnter',
-    value: function pathMouseEnter(path) {
+    value: function pathMouseEnter(path, e) {
       var w = this.w;
       var filters = new _Filters2.default(this.ctx);
+
+      var i = parseInt(path.node.getAttribute('index'));
+      var j = parseInt(path.node.getAttribute('j'));
+
+      if (typeof w.config.chart.events.dataPointMouseEnter === 'function') {
+        w.config.chart.events.dataPointMouseEnter(e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals });
+      }
+      this.ctx.fireEvent('dataPointMouseEnter', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }]);
 
       if (w.config.states.active.filter.type !== 'none') {
         if (path.node.getAttribute('selected') === 'true') {
@@ -618,9 +626,17 @@ var Graphics = function () {
     }
   }, {
     key: 'pathMouseLeave',
-    value: function pathMouseLeave(path) {
+    value: function pathMouseLeave(path, e) {
       var w = this.w;
       var filters = new _Filters2.default(this.ctx);
+
+      var i = parseInt(path.node.getAttribute('index'));
+      var j = parseInt(path.node.getAttribute('j'));
+
+      if (typeof w.config.chart.events.dataPointMouseLeave === 'function') {
+        w.config.chart.events.dataPointMouseLeave(e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals });
+      }
+      this.ctx.fireEvent('dataPointMouseLeave', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }]);
 
       if (w.config.states.active.filter.type !== 'none') {
         if (path.node.getAttribute('selected') === 'true') {
@@ -2781,24 +2797,32 @@ var Formatters = function () {
     value: function setLabelFormatters() {
       var w = this.w;
 
-      w.globals.xLabelFormatter = function (val, opts) {
+      w.globals.xLabelFormatter = function (val) {
         return val;
       };
 
-      w.globals.ttKeyFormatter = function (val, opts) {
+      w.globals.xaxisTooltipFormatter = function (val) {
         return val;
       };
 
-      w.globals.ttZFormatter = function (val, opts) {
+      w.globals.ttKeyFormatter = function (val) {
         return val;
       };
 
-      w.globals.legendFormatter = function (val, opts) {
+      w.globals.ttZFormatter = function (val) {
         return val;
       };
 
-      if (w.config.tooltip.x.formatter !== undefined) {
+      w.globals.legendFormatter = function (val) {
+        return val;
+      };
+
+      if (typeof w.config.tooltip.x.formatter === 'function') {
         w.globals.ttKeyFormatter = w.config.tooltip.x.formatter;
+      }
+
+      if (typeof w.config.xaxis.tooltip.formatter === 'function') {
+        w.globals.xaxisTooltipFormatter = w.config.xaxis.tooltip.formatter;
       }
 
       if (Array.isArray(w.config.tooltip.y)) {
@@ -4235,6 +4259,7 @@ var Dimensions = function () {
     this.lgRect = {};
     this.yAxisWidth = 0;
     this.xAxisHeight = 0;
+    this.isSparkline = this.w.config.chart.sparkline.enabled;
 
     this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal);
   }
@@ -4269,43 +4294,45 @@ var Dimensions = function () {
       this.titleSubtitleOffset();
     }
   }, {
+    key: 'conditionalChecksForAxisCoords',
+    value: function conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords) {
+      var w = this.w;
+      this.xAxisHeight = (xaxisLabelCoords.height + xtitleCoords.height) * w.globals.lineHeightRatio + 15;
+
+      this.xAxisWidth = xaxisLabelCoords.width;
+
+      if (this.xAxisHeight - xtitleCoords.height > w.config.xaxis.labels.maxHeight) {
+        this.xAxisHeight = w.config.xaxis.labels.maxHeight;
+      }
+
+      if (w.config.xaxis.labels.minHeight && this.xAxisHeight < w.config.xaxis.labels.minHeight) {
+        this.xAxisHeight = w.config.xaxis.labels.minHeight;
+      }
+
+      if (w.config.xaxis.floating) {
+        this.xAxisHeight = 0;
+      }
+
+      if (!this.isBarHorizontal) {
+        this.yAxisWidth = this.getTotalYAxisWidth();
+      } else {
+        this.yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15;
+        if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
+          this.yAxisWidth = w.config.yaxis[0].labels.maxWidth;
+        }
+      }
+    }
+  }, {
     key: 'setGridCoordsForAxisCharts',
     value: function setGridCoordsForAxisCharts(lgRect) {
       var w = this.w;
       var gl = w.globals;
 
-      var xtitleCoords = void 0;
-      var xaxisLabelCoords = void 0;
-      var ytitleCoords = [];
-      var yaxisLabelCoords = {
-        width: 0,
-        height: 0
-      };
+      var yaxisLabelCoords = this.getyAxisLabelsCoords();
+      var xaxisLabelCoords = this.getxAxisLabelsCoords();
 
-      yaxisLabelCoords = this.getyAxisLabelsCoords();
-      xaxisLabelCoords = this.getxAxisLabelsCoords();
-
-      if (w.globals.timelineLabels.length > 0) {
-        xaxisLabelCoords = this.getxAxisTimeScaleLabelsCoords();
-      }
-
-      xtitleCoords = this.getxAxisTitleCoords();
-      ytitleCoords = this.getyAxisTitleCoords();
-
-      if (this.isBarHorizontal) {}
-      // move x with y for horizontal bars
-      // let tempObj = Object.assign({}, yaxisLabelCoords)
-      // yaxisLabelCoords = Object.assign({}, xaxisLabelCoords)
-      // xaxisLabelCoords = Object.assign({}, tempObj)
-
-
-      // no x labels, make w=0,h=0
-      if (!w.config.xaxis.labels.show) {
-        xaxisLabelCoords = {
-          height: 0,
-          width: 0
-        };
-      }
+      var yTitleCoords = this.getyAxisTitleCoords();
+      var xtitleCoords = this.getxAxisTitleCoords();
 
       w.globals.yLabelsCoords = [];
       w.globals.yTitleCoords = [];
@@ -4316,24 +4343,12 @@ var Dimensions = function () {
           index: index
         });
         w.globals.yTitleCoords.push({
-          width: ytitleCoords[index].width,
+          width: yTitleCoords[index].width,
           index: index
         });
       });
 
-      this.xAxisHeight = (xaxisLabelCoords.height + xtitleCoords.height) * w.globals.lineHeightRatio + 15;
-
-      this.xAxisWidth = xaxisLabelCoords.width;
-
-      if (this.xAxisHeight - xtitleCoords.height > w.config.xaxis.labels.maxHeight) {
-        this.xAxisHeight = w.config.xaxis.labels.maxHeight;
-      }
-
-      if (w.config.xaxis.floating) {
-        this.xAxisHeight = 0;
-      }
-
-      gl.xAxisLabelsHeight = this.xAxisHeight;
+      this.conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords);
 
       gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4;
       gl.translateXAxisX = w.globals.rotateXLabels && w.globals.dataXY && w.config.xaxis.labels.rotate <= -45 ? -this.xAxisWidth / 4 : 0;
@@ -4346,25 +4361,16 @@ var Dimensions = function () {
       gl.translateXAxisY = gl.translateXAxisY + w.config.xaxis.labels.offsetY;
       gl.translateXAxisX = gl.translateXAxisX + w.config.xaxis.labels.offsetX;
 
-      if (!this.isBarHorizontal) {
-        this.yAxisWidth = this.getTotalYAxisWidth();
-      } else {
-        this.yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15;
-        if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
-          this.yAxisWidth = w.config.yaxis[0].labels.maxWidth;
-        }
-      }
-
       var yAxisWidth = this.yAxisWidth;
       var xAxisHeight = this.xAxisHeight;
+      gl.xAxisLabelsHeight = this.xAxisHeight;
+      gl.xAxisHeight = this.xAxisHeight;
       var translateY = 10;
 
       if (!w.config.grid.show) {
         yAxisWidth = 0;
         xAxisHeight = 35;
       }
-
-      this.isSparkline = w.config.chart.sparkline.enabled;
 
       if (this.isSparkline) {
         lgRect = {
@@ -4413,12 +4419,12 @@ var Dimensions = function () {
       gl.translateY = gl.translateY + w.config.grid.padding.top;
 
       if (!this.isBarHorizontal) {
-        this.setGridXPosForDualYAxis(ytitleCoords, yaxisLabelCoords);
+        this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords);
       }
 
       // after drawing everything, set the Y axis positions
       var objyAxis = new _YAxis2.default(this.ctx);
-      objyAxis.setYAxisXPosition(yaxisLabelCoords, ytitleCoords);
+      objyAxis.setYAxisXPosition(yaxisLabelCoords, yTitleCoords);
     }
   }, {
     key: 'setGridCoordsForNonAxisCharts',
@@ -4474,12 +4480,12 @@ var Dimensions = function () {
     }
   }, {
     key: 'setGridXPosForDualYAxis',
-    value: function setGridXPosForDualYAxis(ytitleCoords, yaxisLabelCoords) {
+    value: function setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords) {
       var w = this.w;
       w.config.yaxis.map(function (yaxe, index) {
         if (!w.globals.ignoreYAxisIndexes.includes(index) && !w.config.yaxis[index].floating) {
           if (yaxe.opposite) {
-            w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + ytitleCoords[index].width) - parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2 - 12;
+            w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + yTitleCoords[index].width) - parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2 - 12;
           }
         }
       });
@@ -4507,8 +4513,8 @@ var Dimensions = function () {
         gridShrinkOffset += 10;
       }
 
-      var titleCoords = this.getMainTitleCoords();
-      var subtitleCoords = this.getSubTitleCoords();
+      var titleCoords = this.getTitleSubtitleCoords('title');
+      var subtitleCoords = this.getTitleSubtitleCoords('subtitle');
 
       gl.gridHeight = gl.gridHeight - titleCoords.height - subtitleCoords.height - gridShrinkOffset;
       gl.translateY = gl.translateY + titleCoords.height + subtitleCoords.height + gridShrinkOffset;
@@ -4550,6 +4556,7 @@ var Dimensions = function () {
     key: 'getxAxisTimeScaleLabelsCoords',
     value: function getxAxisTimeScaleLabelsCoords() {
       var w = this.w;
+      var rect = void 0;
 
       var timescaleLabels = w.globals.timelineLabels.slice();
 
@@ -4569,7 +4576,7 @@ var Dimensions = function () {
       }, 0);
 
       var graphics = new _Graphics2.default(this.ctx);
-      var rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
+      rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
 
       var totalWidthRotated = rect.width * 1.05 * labels.length;
 
@@ -4577,10 +4584,7 @@ var Dimensions = function () {
         w.globals.overlappingXLabels = true;
       }
 
-      return {
-        width: rect.width,
-        height: rect.height
-      };
+      return rect;
     }
 
     /**
@@ -4595,36 +4599,55 @@ var Dimensions = function () {
       var w = this.w;
 
       var xaxisLabels = w.globals.labels.slice();
-
-      var lgWidthForSideLegends = w.config.legend.position === 'left' && w.config.legend.position === 'right' && !w.config.legend.floating ? this.lgRect.width : 0;
-
-      //  get the longest string from the labels array and also apply label formatter to it
-      var val = xaxisLabels.reduce(function (a, b) {
-        return a.length > b.length ? a : b;
-      }, 0);
-
-      var xlbFormatter = w.globals.xLabelFormatter;
-
-      var xFormat = new _Formatters2.default(this.ctx);
-      val = xFormat.xLabelFormat(xlbFormatter, val);
-
-      var graphics = new _Graphics2.default(this.ctx);
-      var xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
-
       var rect = {
-        width: xLabelrect.width,
-        height: xLabelrect.height
+        width: 0,
+        height: 0
       };
 
-      if (rect.width * xaxisLabels.length > w.globals.svgWidth - lgWidthForSideLegends - this.yAxisWidth && w.config.xaxis.labels.rotate !== 0) {
-        if (!this.isBarHorizontal) {
-          w.globals.rotateXLabels = true;
-          xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, 'rotate(' + w.config.xaxis.labels.rotate + ' 0 0)', false);
-
-          rect.height = xLabelrect.height / 1.66;
-        }
+      if (w.globals.timelineLabels.length > 0) {
+        var coords = this.getxAxisTimeScaleLabelsCoords();
+        rect = {
+          width: coords.width,
+          height: coords.height
+        };
       } else {
-        w.globals.rotateXLabels = false;
+        var lgWidthForSideLegends = w.config.legend.position === 'left' && w.config.legend.position === 'right' && !w.config.legend.floating ? this.lgRect.width : 0;
+
+        //  get the longest string from the labels array and also apply label formatter to it
+        var val = xaxisLabels.reduce(function (a, b) {
+          return a.length > b.length ? a : b;
+        }, 0);
+
+        var xlbFormatter = w.globals.xLabelFormatter;
+
+        var xFormat = new _Formatters2.default(this.ctx);
+        val = xFormat.xLabelFormat(xlbFormatter, val);
+
+        var graphics = new _Graphics2.default(this.ctx);
+        var xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
+
+        rect = {
+          width: xLabelrect.width,
+          height: xLabelrect.height
+        };
+
+        if (rect.width * xaxisLabels.length > w.globals.svgWidth - lgWidthForSideLegends - this.yAxisWidth && w.config.xaxis.labels.rotate !== 0) {
+          if (!this.isBarHorizontal) {
+            w.globals.rotateXLabels = true;
+            xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, 'rotate(' + w.config.xaxis.labels.rotate + ' 0 0)', false);
+
+            rect.height = xLabelrect.height / 1.66;
+          }
+        } else {
+          w.globals.rotateXLabels = false;
+        }
+      }
+
+      if (!w.config.xaxis.labels.show) {
+        rect = {
+          width: 0,
+          height: 0
+        };
       }
 
       return {
@@ -4750,51 +4773,26 @@ var Dimensions = function () {
     }
 
     /**
-     * Get Chart Title Dimensions
+     * Get Chart Title/Subtitle Dimensions
      * @memberof Dimensions
      * @return {{width, height}}
      **/
 
   }, {
-    key: 'getMainTitleCoords',
-    value: function getMainTitleCoords() {
+    key: 'getTitleSubtitleCoords',
+    value: function getTitleSubtitleCoords(type) {
       var w = this.w;
       var width = 0;
       var height = 0;
 
-      var elTitle = w.globals.dom.baseEl.querySelector('.apexcharts-title-text');
+      var floating = type === 'title' ? w.config.title.floating : w.config.subtitle.floating;
 
-      if (elTitle !== null && !w.config.title.floating) {
-        var titleCoords = elTitle.getBoundingClientRect();
-        width = titleCoords.width;
-        height = w.globals.axisCharts ? titleCoords.height + 5 : titleCoords.height;
-      }
+      var el = w.globals.dom.baseEl.querySelector('.apexcharts-' + type + '-text');
 
-      return {
-        width: width,
-        height: height
-      };
-    }
-
-    /**
-     * Get Chart Title Dimensions
-     * @memberof Dimensions
-     * @return {{width, height}}
-     **/
-
-  }, {
-    key: 'getSubTitleCoords',
-    value: function getSubTitleCoords() {
-      var w = this.w;
-      var width = 0;
-      var height = 0;
-
-      var elSubTitle = w.globals.dom.baseEl.querySelector('.apexcharts-subtitle-text');
-
-      if (elSubTitle !== null && !w.config.subtitle.floating) {
-        var subtitleCoords = elSubTitle.getBoundingClientRect();
-        width = subtitleCoords.width;
-        height = w.globals.axisCharts ? subtitleCoords.height + 5 : subtitleCoords.height;
+      if (el !== null && !floating) {
+        var coord = el.getBoundingClientRect();
+        width = coord.width;
+        height = w.globals.axisCharts ? coord.height + 5 : coord.height;
       }
 
       return {
@@ -5775,7 +5773,7 @@ var YAxis = function () {
 
   }, {
     key: 'setYAxisXPosition',
-    value: function setYAxisXPosition(yaxisLabelCoords, ytitleCoords) {
+    value: function setYAxisXPosition(yaxisLabelCoords, yTitleCoords) {
       var _this = this;
 
       var w = this.w;
@@ -5792,12 +5790,12 @@ var YAxis = function () {
       }
 
       w.config.yaxis.map(function (yaxe, index) {
-        var yAxisWidth = yaxisLabelCoords[index].width + ytitleCoords[index].width;
+        var yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width;
 
         var paddingForYAxisTitle = _this.xPaddingForYAxisTitle(index, {
           width: yaxisLabelCoords[index].width
         }, {
-          width: ytitleCoords[index].width
+          width: yTitleCoords[index].width
         }, yaxe.opposite);
 
         if (w.config.yaxis.length > 1) {
@@ -6341,9 +6339,10 @@ var Options = function () {
             clicked: undefined,
             selection: undefined,
             dataPointSelection: undefined,
+            dataPointMouseEnter: undefined,
+            dataPointMouseLeave: undefined,
             beforeZoom: undefined, // if defined, should return true for the zoom event to occur
-            zoomed: undefined,
-            scrolled: undefined
+            zoomed: undefined
           },
           foreColor: '#373d3f',
           height: 'auto',
@@ -6798,6 +6797,7 @@ var Options = function () {
             rotate: -45,
             rotateAlways: false,
             trim: true,
+            minHeight: undefined,
             maxHeight: 120,
             style: {
               colors: [],
@@ -6879,7 +6879,8 @@ var Options = function () {
           },
           tooltip: {
             enabled: true,
-            offsetY: 0
+            offsetY: 0,
+            formatter: undefined
           }
         },
         yaxis: this.yAxis,
@@ -9266,6 +9267,32 @@ var TimeScale = function () {
       }
     }
   }, {
+    key: 'createRawDateString',
+    value: function createRawDateString(ts, value) {
+      var raw = ts.year;
+
+      raw += '-' + ('0' + ts.month.toString()).slice(-2);
+
+      // unit is day
+      if (ts.unit === 'day') {
+        raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01';
+      } else {
+        raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2);
+      }
+
+      // unit is hour
+      if (ts.unit === 'hour') {
+        raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00';
+      } else {
+        raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2);
+      }
+
+      // unit is minute
+      raw += ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00.000Z' : ':00:00.000Z';
+
+      return raw;
+    }
+  }, {
     key: 'formatDates',
     value: function formatDates(filteredTimeScale) {
       var _this2 = this;
@@ -9277,26 +9304,7 @@ var TimeScale = function () {
 
         var dt = new _DateTime2.default(_this2.ctx);
 
-        var raw = ts.year;
-
-        raw += '-' + ('0' + ts.month.toString()).slice(-2);
-
-        // unit is day
-        if (ts.unit === 'day') {
-          raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01';
-        } else {
-          raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2);
-        }
-
-        // unit is hour
-        if (ts.unit === 'hour') {
-          raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00';
-        } else {
-          raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2);
-        }
-
-        // unit is minute
-        raw += ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00.000Z' : ':00:00.000Z';
+        var raw = _this2.createRawDateString(ts, value);
 
         // parse the whole ISO datestring
         var dateString = new Date(Date.parse(raw));
@@ -14245,6 +14253,11 @@ var Line = function () {
         // zeroY is the 0 value in y series which can be used in negative charts
         var zeroY = w.globals.gridHeight - baseLineY[this.yaxisIndex];
 
+        var areaBottomY = zeroY;
+        if (zeroY > w.globals.gridHeight) {
+          areaBottomY = w.globals.gridHeight;
+        }
+
         categoryAxisCorrection = xDivision / 2;
 
         var x = w.globals.padHorizontal + categoryAxisCorrection;
@@ -14323,13 +14336,13 @@ var Line = function () {
               prevX = xDivision * s;
               prevY = zeroY - series[i][s] / yRatio[this.yaxisIndex];
               linePath = graphics.move(prevX, prevY);
-              areaPath = graphics.move(prevX, zeroY);
+              areaPath = graphics.move(prevX, areaBottomY);
               break;
             }
           }
         } else {
           linePath = graphics.move(prevX, prevY);
-          areaPath = graphics.move(prevX, zeroY) + graphics.line(prevX, prevY);
+          areaPath = graphics.move(prevX, areaBottomY) + graphics.line(prevX, prevY);
         }
 
         pathFromLine = graphics.move(-1, zeroY) + graphics.line(-1, zeroY);
@@ -14384,7 +14397,7 @@ var Line = function () {
             xDivision: xDivision,
             pX: pX,
             pY: pY,
-            zeroY: zeroY,
+            areaBottomY: areaBottomY,
             linePath: linePath,
             areaPath: areaPath,
             linePaths: linePaths,
@@ -14533,7 +14546,7 @@ var Line = function () {
           pX = _ref.pX,
           pY = _ref.pY,
           xDivision = _ref.xDivision,
-          zeroY = _ref.zeroY,
+          areaBottomY = _ref.areaBottomY,
           linePath = _ref.linePath,
           areaPath = _ref.areaPath,
           linePaths = _ref.linePaths,
@@ -14550,7 +14563,7 @@ var Line = function () {
           if (series[i][j] !== null) {
             if (series[i][j + 1] !== null) {
               linePath = graphics.move(pX, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y);
-              areaPath = graphics.move(pX + 1, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y) + graphics.line(x, zeroY) + graphics.line(pX, zeroY) + 'z';
+              areaPath = graphics.move(pX + 1, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y) + graphics.line(x, areaBottomY) + graphics.line(pX, areaBottomY) + 'z';
             } else {
               linePath = graphics.move(pX, pY);
               areaPath = graphics.move(pX, pY) + 'z';
@@ -14569,7 +14582,7 @@ var Line = function () {
 
         if (j === series[i].length - 2) {
           // last loop, close path
-          areaPath = areaPath + graphics.curve(pX, zeroY, x, zeroY, x, zeroY) + 'z';
+          areaPath = areaPath + graphics.curve(pX, areaBottomY, x, areaBottomY, x, areaBottomY) + 'z';
           if (!w.globals.hasNullValues) {
             linePaths.push(linePath);
             areaPaths.push(areaPath);
@@ -14578,18 +14591,18 @@ var Line = function () {
       } else {
         if (series[i][j + 1] === null) {
           linePath = linePath + graphics.move(x, y);
-          areaPath = areaPath + graphics.line(x - xDivision, zeroY) + graphics.move(x, y);
+          areaPath = areaPath + graphics.line(x - xDivision, areaBottomY) + graphics.move(x, y);
         }
         if (series[i][j] === null) {
           linePath = linePath + graphics.move(x, y);
-          areaPath = areaPath + graphics.move(x, zeroY);
+          areaPath = areaPath + graphics.move(x, areaBottomY);
         }
         linePath = linePath + graphics.line(x, y);
         areaPath = areaPath + graphics.line(x, y);
 
         if (j === series[i].length - 2) {
           // last loop, close path
-          areaPath = areaPath + graphics.line(x, zeroY) + 'z';
+          areaPath = areaPath + graphics.line(x, areaBottomY) + 'z';
           linePaths.push(linePath);
           areaPaths.push(areaPath);
         }
@@ -16145,6 +16158,10 @@ var Core = function () {
 
       var gl = this.w.globals;
       gl.series = [];
+      gl.seriesCandleO = [];
+      gl.seriesCandleH = [];
+      gl.seriesCandleL = [];
+      gl.seriesCandleC = [];
       gl.seriesPercent = [];
       gl.seriesX = [];
       gl.seriesZ = [];
@@ -17300,8 +17317,8 @@ var Legend = function () {
 
       if (w.config.legend.position === 'top') {
         var dim = new _Dimensions2.default(this.ctx);
-        var titleH = dim.getMainTitleCoords().height;
-        var subtitleH = dim.getSubTitleCoords().height;
+        var titleH = dim.getTitleSubtitleCoords('title').height;
+        var subtitleH = dim.getTitleSubtitleCoords('subtitle').height;
 
         y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0);
       }
@@ -17320,8 +17337,8 @@ var Legend = function () {
       var lRect = this.getLegendBBox();
 
       var dimensions = new _Dimensions2.default(this.ctx);
-      var titleRect = dimensions.getMainTitleCoords();
-      var subtitleRect = dimensions.getSubTitleCoords();
+      var titleRect = dimensions.getTitleSubtitleCoords('title');
+      var subtitleRect = dimensions.getTitleSubtitleCoords('subtitle');
 
       var offsetX = 20;
       var offsetY = 0;
@@ -17677,6 +17694,37 @@ var Range = function () {
       };
     }
   }, {
+    key: 'getMinYMaxY',
+    value: function getMinYMaxY(startingIndex, minValInSeries, len) {
+      var gl = this.w.globals;
+      var maxY = -Number.MAX_VALUE;
+      var minY = Number.MIN_VALUE;
+
+      for (var i = startingIndex; i < len; i++) {
+        gl.dataPoints = Math.max(gl.dataPoints, gl.series[i].length);
+        if (_Utils2.default.isIE()) {
+          minY = Math.min.apply(Math, _toConsumableArray(gl.series[i]).concat([0]));
+        }
+
+        for (var j = 0; j < gl.series[i].length; j++) {
+          if (gl.series[i][j] !== null && _Utils2.default.isNumber(gl.series[i][j])) {
+            maxY = Math.max(maxY, gl.series[i][j]);
+            minValInSeries = Math.min(minValInSeries, gl.series[i][j]);
+            if (_Utils2.default.isFloat(gl.series[i][j])) {
+              gl.yValueDecimal = Math.max(gl.yValueDecimal, gl.series[i][j].toString().split('.')[1].length);
+            }
+            if (minY > gl.series[i][j] && gl.series[i][j] < 0) {
+              minY = gl.series[i][j];
+            }
+          } else {
+            gl.hasNullValues = true;
+          }
+        }
+      }
+
+      return { minY: minY, maxY: maxY, minValInSeries: minValInSeries };
+    }
+  }, {
     key: 'handleMinYMaxY',
     value: function handleMinYMaxY() {
       var _this = this;
@@ -17689,47 +17737,20 @@ var Range = function () {
 
       var minValInSeries = Number.MAX_VALUE;
 
-      var getMinYMaxY = function getMinYMaxY(startingIndex, len) {
-        var maxY = -Number.MAX_VALUE;
-        var minY = Number.MIN_VALUE;
-
-        for (var i = startingIndex; i < len; i++) {
-          gl.dataPoints = Math.max(gl.dataPoints, gl.series[i].length);
-          if (_Utils2.default.isIE()) {
-            minY = Math.min.apply(Math, _toConsumableArray(gl.series[i]).concat([0]));
-          }
-
-          for (var j = 0; j < gl.series[i].length; j++) {
-            if (gl.series[i][j] !== null && _Utils2.default.isNumber(gl.series[i][j])) {
-              maxY = Math.max(maxY, gl.series[i][j]);
-              minValInSeries = Math.min(minValInSeries, gl.series[i][j]);
-              if (_Utils2.default.isFloat(gl.series[i][j])) {
-                gl.yValueDecimal = Math.max(gl.yValueDecimal, gl.series[i][j].toString().split('.')[1].length);
-              }
-              if (minY > gl.series[i][j] && gl.series[i][j] < 0) {
-                minY = gl.series[i][j];
-              }
-            } else {
-              gl.hasNullValues = true;
-            }
-          }
-        }
-
-        return { minY: minY, maxY: maxY };
-      };
-
       if (gl.isMultipleYAxis) {
         // we need to get minY and maxY for multiple y axis
         for (var i = 0; i < gl.series.length; i++) {
-          var minYMaxYArr = getMinYMaxY(i, i + 1);
+          var minYMaxYArr = this.getMinYMaxY(i, minValInSeries, i + 1);
           gl.minYArr.push(minYMaxYArr.minY);
           gl.maxYArr.push(minYMaxYArr.maxY);
+          minValInSeries = minYMaxYArr.minValInSeries;
         }
       }
 
       // and then, get the minY and maxY from all series
-      var minYMaxY = getMinYMaxY(0, gl.series.length);
+      var minYMaxY = this.getMinYMaxY(0, minValInSeries, gl.series.length);
       gl.minY = minYMaxY.minY;gl.maxY = minYMaxY.maxY;
+      minValInSeries = minYMaxY.minValInSeries;
 
       if (cnf.chart.stacked) {
         // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
@@ -17764,11 +17785,16 @@ var Range = function () {
       }
 
       // if the numbers are too big, reduce the range
-      // for eg, if number is between 10000-12000, putting 0 as the lowest value is not so good idea
+      // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
       if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
         if (gl.minY === Number.MIN_VALUE && minValInSeries !== Number.MAX_SAFE_INTEGER) {
-          gl.minY = Math.round(minValInSeries - minValInSeries * 2 / 100);
-          gl.maxY = Math.round(gl.maxY + gl.maxY * 2 / 100);
+          var diff = gl.maxY - minValInSeries;
+          if (minValInSeries >= 0 && minValInSeries <= 10) {
+            // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
+            diff = 0;
+          }
+          gl.minY = minValInSeries - diff * 10 / 100;
+          gl.maxY = gl.maxY + diff * 8 / 100;
         }
       }
 
@@ -19445,7 +19471,6 @@ var Defaults = function () {
             enabled: false
           }
         }]
-
       };
     }
   }, {
@@ -19921,7 +19946,7 @@ var Globals = function () {
         defaultLabels: false,
         xLabelFormatter: undefined, // formatter for x axis labels
         yLabelFormatters: [],
-        xaxisTooltipLabelFormatter: undefined, // formatter for x axis tooltip
+        xaxisTooltipFormatter: undefined, // formatter for x axis tooltip
         ttKeyFormatter: undefined,
         ttVal: undefined,
         ttZFormatter: undefined,
@@ -20528,7 +20553,8 @@ var Labels = function () {
       var w = this.w;
       var val = void 0;
       var xVal = values.xVal,
-          zVal = values.zVal;
+          zVal = values.zVal,
+          xAxisTTVal = values.xAxisTTVal;
 
 
       var seriesName = '';
@@ -20576,6 +20602,7 @@ var Labels = function () {
           values: {
             val: val,
             xVal: xVal,
+            xAxisTTVal: xAxisTTVal,
             zVal: zVal
           },
           seriesName: seriesName,
@@ -20658,6 +20685,7 @@ var Labels = function () {
 
       var val = values.val,
           xVal = values.xVal,
+          xAxisTTVal = values.xAxisTTVal,
           zVal = values.zVal;
 
 
@@ -20678,8 +20706,9 @@ var Labels = function () {
         ttCtx.tooltipTitle.innerHTML = xVal;
       }
 
+      // if xaxis tooltip is constructed, we need to replace the innerHTML
       if (ttCtx.blxaxisTooltip) {
-        ttCtx.xaxisTooltipText.innerHTML = xVal;
+        ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal;
       }
 
       var ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label');
@@ -20741,8 +20770,16 @@ var Labels = function () {
       var filteredSeriesX = this.tooltipUtil.filteredSeriesX();
 
       var xVal = '';
+      var xAxisTTVal = '';
       var zVal = null;
       var val = null;
+
+      var customFormatterOpts = {
+        series: w.globals.series,
+        seriesIndex: i,
+        dataPointIndex: j,
+        w: w
+      };
 
       var zFormatter = w.globals.ttZFormatter;
 
@@ -20762,31 +20799,28 @@ var Labels = function () {
         var xFormat = new _Formatters2.default(this.ctx);
         xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal);
       } else {
-        xVal = w.globals.xLabelFormatter(bufferXVal, {
-          series: w.globals.series,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w: w
-        });
+        xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts);
       }
 
       // override default x-axis formatter with tooltip formatter
       if (w.config.tooltip.x.formatter !== undefined) {
-        xVal = w.globals.ttKeyFormatter(bufferXVal, {
-          series: w.globals.series,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w: w
-        });
+        xVal = w.globals.ttKeyFormatter(bufferXVal, customFormatterOpts);
       }
 
       if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[0].length > 0) {
         zVal = zFormatter(w.globals.seriesZ[i][j], w);
       }
 
+      if (typeof w.config.xaxis.tooltip.formatter === 'function') {
+        xAxisTTVal = w.globals.xaxisTooltipFormatter(bufferXVal, customFormatterOpts);
+      } else {
+        xAxisTTVal = xVal;
+      }
+
       return {
         val: val,
         xVal: xVal,
+        xAxisTTVal: xAxisTTVal,
         zVal: zVal
       };
     }
