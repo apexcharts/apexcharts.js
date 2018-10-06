@@ -481,11 +481,12 @@ class ZoomPanSelection extends Toolbar {
           })
         }
 
-        let beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis)
-
-        if (beforeZoomRange !== null) {
-          xaxis = beforeZoomRange.xaxis
-          yaxis = beforeZoomRange.yaxis
+        if (toolbar) {
+          let beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis)
+          if (beforeZoomRange !== null) {
+            xaxis = beforeZoomRange.xaxis
+            yaxis = beforeZoomRange.yaxis
+          }
         }
 
         if (zoomtype === 'x') {

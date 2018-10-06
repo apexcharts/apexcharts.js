@@ -187,6 +187,10 @@ class Position {
       y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
     }
 
+    if (y < 0) {
+      y = 0
+    }
+
     if (!isNaN(x)) {
       x = x + w.globals.translateX
 

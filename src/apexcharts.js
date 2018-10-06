@@ -3,6 +3,7 @@ import Animations from './modules/Animations'
 import Base from './modules/Base'
 import Config from './modules/settings/Config'
 import Core from './modules/Core'
+import CoreUtils from './modules/CoreUtils'
 import Crosshairs from './modules/Crosshairs'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
@@ -112,6 +113,7 @@ class ApexCharts {
     this.animations = new Animations(this.ctx)
     this.annotations = new Annotations(this.ctx)
     this.core = new Core(this.el, this)
+    this.config = new Config({})
     this.crosshairs = new Crosshairs(this.ctx)
     this.options = new Options()
     this.responsive = new Responsive(this.ctx)
@@ -120,8 +122,8 @@ class ApexCharts {
     this.formatters = new Formatters(this.ctx)
     this.titleSubtitle = new TitleSubtitle(this.ctx)
     this.legend = new Legend(this.ctx)
-    this.dimensions = new Dimensions(this.ctx)
     this.toolbar = new Toolbar(this.ctx)
+    this.dimensions = new Dimensions(this.ctx)
     this.zoomPanSelection = new ZoomPanSelection(this.ctx)
     this.w.globals.tooltip = new Tooltip(this.ctx)
   }
@@ -298,7 +300,7 @@ class ApexCharts {
         }
 
         if (w.globals.axisCharts && w.globals.dataXY) {
-          if (w.config.chart.zoom.enabled || w.config.chart.selection.enabled) {
+          if (w.config.chart.zoom.enabled || w.config.chart.selection.enabled || w.config.chart.pan.enabled) {
             me.zoomPanSelection.init({
               xyRatios: graphData.xyRatios
             })
@@ -362,11 +364,11 @@ class ApexCharts {
     charts.forEach((ch) => {
       let w = ch.w
 
-      ch.w.config.chart.animations.dynamicAnimation.enabled = animate
+      w.config.chart.animations.dynamicAnimation.enabled = animate
 
       if (!redraw) {
         w.globals.resized = true
-        ch.w.globals.dataChanged = true
+        w.globals.dataChanged = true
 
         if (animate && ch.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
           ch.series.getPreviousPaths()
@@ -377,21 +379,7 @@ class ApexCharts {
         ch.responsive.checkResponsiveConfig()
         ch.responsiveConfigOverrided = true
         ch.config = new Config(options)
-
-        if (options.yaxis) {
-          options = ch.config.extendYAxis(options)
-        }
-        if (options.annotations) {
-          if (options.annotations.yaxis) {
-            options = ch.config.extendYAxisAnnotations(options)
-          }
-          if (options.annotations.xaxis) {
-            options = ch.config.extendXAxisAnnotations(options)
-          }
-          if (options.annotations.points) {
-            options = ch.config.extendPointAnnotations(options)
-          }
-        }
+        options = CoreUtils.extendArrayProps(ch.config, options)
 
         w.config = Utils.extend(w.config, options)
 
@@ -444,7 +432,6 @@ class ApexCharts {
    */
   getSyncedCharts () {
     const chartGroups = this.getGroupedCharts()
-
     let allCharts = [this]
     if (chartGroups.length) {
       allCharts = []
@@ -557,7 +544,9 @@ class ApexCharts {
 
   clear () {
     this.zoomPanSelection.destroy()
-    this.toolbar.destroy()
+    if (this.toolbar) {
+      this.toolbar.destroy()
+    }
 
     this.animations = null
     this.annotations = null
@@ -676,6 +665,54 @@ class ApexCharts {
     return Utils.extend(target, source)
   }
 
+  setupBrushHandler () {
+    const w = this.w
+
+    // only for brush charts
+    if (!w.config.chart.brush.enabled) {
+      return
+    }
+
+    // if user has not defined a custom function for selection - we handle the brush chart
+    // otherwise we leave it to the user to define the functionality for selection
+    if (typeof w.config.chart.events.selection !== 'function') {
+      const targetChart = ApexCharts.getChartByID(w.config.chart.brush.target)
+      targetChart.w.globals.brushSource = this
+
+      const updateSourceChart = () => {
+        this.updateOptionsInternal({
+          chart: {
+            selection: {
+              xaxis: {
+                min: targetChart.w.globals.minX,
+                max: targetChart.w.globals.maxX
+              }
+            }
+          }
+        }, false, false)
+      }
+      if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
+        targetChart.w.config.chart.events.zoomed = () => {
+          updateSourceChart()
+        }
+      }
+      if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
+        targetChart.w.config.chart.events.scrolled = () => {
+          updateSourceChart()
+        }
+      }
+
+      w.config.chart.events.selection = (chart, e) => {
+        targetChart.updateOptionsInternal({
+          xaxis: {
+            min: e.xaxis.min,
+            max: e.xaxis.max
+          }
+        }, false, false)
+      }
+    }
+  }
+
   setupEventHandlers () {
     const w = this.w
     const me = this
@@ -706,6 +743,8 @@ class ApexCharts {
         false
       )
     }
+
+    this.setupBrushHandler()
   }
 
   addXaxisAnnotation (opts, pushToMemory = true, context = undefined) {

@@ -171,15 +171,24 @@ class Toolbar {
   enableZooming () {
     this.toggleOtherControls()
     this.w.globals.zoomEnabled = true
-    this.elZoom.classList.add('selected')
-    this.elPan.classList.remove('selected')
+    if (this.elZoom) {
+      this.elZoom.classList.add('selected')
+    }
+    if (this.elPan) {
+      this.elPan.classList.remove('selected')
+    }
   }
 
   enablePanning () {
     this.toggleOtherControls()
     this.w.globals.panEnabled = true
-    this.elPan.classList.add('selected')
-    this.elZoom.classList.remove('selected')
+
+    if (this.elPan) {
+      this.elPan.classList.add('selected')
+    }
+    if (this.elZoom) {
+      this.elZoom.classList.remove('selected')
+    }
   }
 
   togglePanning () {
@@ -201,9 +210,15 @@ class Toolbar {
 
     this.getToolbarIconsReference()
 
-    this.elPan.classList.remove('selected')
-    this.elSelection.classList.remove('selected')
-    this.elZoom.classList.remove('selected')
+    if (this.elPan) {
+      this.elPan.classList.remove('selected')
+    }
+    if (this.elSelection) {
+      this.elSelection.classList.remove('selected')
+    }
+    if (this.elZoom) {
+      this.elZoom.classList.remove('selected')
+    }
   }
 
   handleZoomIn () {

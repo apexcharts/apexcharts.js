@@ -46,7 +46,7 @@
   top: 20px;
   overflow: hidden;
   white-space: nowrap;
-  z-index: 10;
+  z-index: 12;
   transition: 0.15s ease all;
 }
 .apexcharts-tooltip.light {

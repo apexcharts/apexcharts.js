@@ -15,6 +15,7 @@ export default class Options {
       seriesName: undefined,
       labels: {
         show: true,
+        minWidth: 0,
         maxWidth: 160,
         offsetX: 0,
         offsetY: 0,
@@ -208,7 +209,8 @@ export default class Options {
           dataPointMouseEnter: undefined,
           dataPointMouseLeave: undefined,
           beforeZoom: undefined, // if defined, should return true for the zoom event to occur
-          zoomed: undefined
+          zoomed: undefined,
+          scrolled: undefined
         },
         foreColor: '#373d3f',
         height: 'auto',
@@ -241,6 +243,11 @@ export default class Options {
         sparkline: {
           enabled: false
         },
+        brush: {
+          enabled: false,
+          target: undefined
+        },
+        brushSource: undefined,
         stacked: false,
         stackType: 'normal',
         toolbar: {
@@ -651,7 +658,7 @@ export default class Options {
         fixed: {
           enabled: false,
           position: 'topRight', // topRight, topLeft, bottomRight, bottomLeft
-          offsetX: -100,
+          offsetX: 0,
           offsetY: 0
         }
       },
@@ -686,9 +693,10 @@ export default class Options {
         axisBorder: {
           show: true,
           color: '#78909C',
+          width: '100%',
+          height: 1,
           offsetX: 0,
-          offsetY: 0,
-          strokeWidth: 1
+          offsetY: 0
         },
         axisTicks: {
           show: true,

@@ -78,8 +78,12 @@ class Config {
           chartDefaults = defaults.line()
       }
 
+      if (opts.chart.brush && opts.chart.brush.enabled) {
+        chartDefaults = defaults.brush(chartDefaults)
+      }
+
       if (opts.chart.stacked && opts.chart.stackType === '100%') {
-        defaults.stacked100(chartDefaults)
+        defaults.stacked100()
       }
       if ((opts.chart.sparkline && opts.chart.sparkline.enabled) || (window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled)) {
         chartDefaults = defaults.sparkline(chartDefaults)
@@ -87,8 +91,8 @@ class Config {
       newDefaults = Utils.extend(config, chartDefaults)
     }
 
-    // config should override in this fashion
-    // default config < global apex variable config < user defined config
+    // config should cascade in this fashion
+    // default-config < global-apex-variable-config < user-defined-config
 
     // get GLOBALLY defined options and merge with the default config
     let mergedWithDefaultConfig = Utils.extend(newDefaults, window.Apex)
@@ -190,7 +194,8 @@ class Config {
 
       config.xaxis.tooltip.enabled = false // no xaxis tooltip for horizontal bar
       config.yaxis[0].tooltip.enabled = false // no xaxis tooltip for horizontal bar
-      config.chart.zoom.enabled = false // no zooming for bars
+      config.chart.zoom.enabled = false // no zooming for horz bars
+      config.chart.pan.enabled = false // no panning for horz bars
     }
 
     if (config.chart.type === 'bar') {

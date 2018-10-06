@@ -30,6 +30,14 @@ class XAxis {
     this.xaxisFontSize = w.config.xaxis.labels.style.fontSize
     this.xaxisFontFamily = w.config.xaxis.labels.style.fontFamily
     this.xaxisForeColors = w.config.xaxis.labels.style.colors
+    this.xaxisBorderWidth = w.config.xaxis.axisBorder.width
+
+    if (this.xaxisBorderWidth.includes('%')) {
+      this.xaxisBorderWidth = (w.globals.gridWidth * parseInt(this.xaxisBorderWidth)) / 100
+    } else {
+      this.xaxisBorderWidth = parseInt(this.xaxisBorderWidth)
+    }
+    this.xaxisBorderHeight = w.config.xaxis.axisBorder.height
 
     // For bars, we will only consider single y xais,
     // as we are not providing multiple yaxis for bar charts
@@ -184,11 +192,11 @@ class XAxis {
       let elHorzLine = graphics.drawLine(
         w.globals.padHorizontal + lineCorrection + w.config.xaxis.axisBorder.offsetX,
         this.offY,
-        w.globals.gridWidth,
+        this.xaxisBorderWidth,
         this.offY,
         w.config.xaxis.axisBorder.color,
         0,
-        w.config.xaxis.axisBorder.strokeWidth
+        this.xaxisBorderHeight
       )
 
       elXaxis.add(elHorzLine)
@@ -275,11 +283,11 @@ class XAxis {
       let elHorzLine = graphics.drawLine(
         w.globals.padHorizontal + w.config.xaxis.axisBorder.offsetX,
         this.offY,
-        w.globals.gridWidth,
+        this.xaxisBorderWidth,
         this.offY,
         this.yaxis.axisBorder.color,
         0,
-        w.config.xaxis.axisBorder.strokeWidth
+        this.xaxisBorderHeight
       )
 
       elYaxis.add(elHorzLine)

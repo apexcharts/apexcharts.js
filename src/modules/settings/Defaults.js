@@ -35,13 +35,6 @@ class Defaults {
         crosshairs: {
           width: 1
         }
-      },
-      yaxis: {
-        labels: {
-          style: {
-            fontFamily: 'Helvetica, Arial, sans-serif'
-          }
-        }
       }
 
     }
@@ -149,12 +142,7 @@ class Defaults {
             enabled: false
           }
         }
-      },
-      yaxis: [{
-        tooltip: {
-          enabled: false
-        }
-      }]
+      }
     }
   }
 
@@ -186,12 +174,7 @@ class Defaults {
         crosshairs: {
           width: 1
         }
-      },
-      yaxis: [{
-        tooltip: {
-          enabled: true
-        }
-      }]
+      }
     }
   }
 
@@ -215,6 +198,36 @@ class Defaults {
         followCursor: false
       }
     }
+  }
+
+  brush (defaults) {
+    const ret = {
+      chart: {
+        toolbar: {
+          autoSelected: 'selection',
+          show: false
+        },
+        zoom: {
+          enabled: false
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        width: 1
+      },
+      tooltip: {
+        enabled: false
+      },
+      xaxis: {
+        tooltip: {
+          enabled: false
+        }
+      }
+    }
+
+    return Utils.extend(defaults, ret)
   }
 
   stacked100 () {

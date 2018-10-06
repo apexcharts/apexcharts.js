@@ -73,9 +73,12 @@ class Dimensions {
       this.yAxisWidth = this.getTotalYAxisWidth()
     } else {
       this.yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
-      if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
-        this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
-      }
+    }
+    if (this.yAxisWidth < w.config.yaxis[0].labels.minWidth) {
+      this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
+    }
+    if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
+      this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
     }
   }
 

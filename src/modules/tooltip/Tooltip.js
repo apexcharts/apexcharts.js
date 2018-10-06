@@ -283,11 +283,11 @@ class Tooltip {
     let y = w.config.tooltip.fixed.offsetY
 
     if (w.config.tooltip.fixed.position.toLowerCase().indexOf('right') > -1) {
-      x = x + w.globals.svgWidth - 10
+      x = x + w.globals.svgWidth - ttWidth + 10
     }
 
     if (w.config.tooltip.fixed.position.toLowerCase().indexOf('bottom') > -1) {
-      y = y + w.globals.svgWidth - ttHeight - 10
+      y = y + w.globals.svgHeight - ttHeight - 10
     }
 
     tooltipEl.style.left = x + 'px'
@@ -467,7 +467,9 @@ class Tooltip {
         j = capj.j
         let capturedSeries = capj.capturedSeries
 
-        if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth || capj.hoverY < 0 || capj.hoverY > w.globals.gridHeight) {
+        if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth) {
+        // capj.hoverY causing issues in grouped charts, so commented out that condition for now
+        // if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth || capj.hoverY < 0 || capj.hoverY > w.globals.gridHeight) {
           self.handleMouseOut(opt)
           return
         }

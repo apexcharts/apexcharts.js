@@ -181,67 +181,6 @@ class Grid {
           y2 = y1
         }
       }
-
-      // rows background bands
-      if (
-        w.config.grid.row.colors !== undefined &&
-        w.config.grid.row.colors.length > 0
-      ) {
-        let x1 = 0
-        let y1 = 0
-        let y2 = w.globals.gridHeight / tickAmount
-        let x2 = w.globals.gridWidth
-
-        for (let i = 0, c = 0; i < tickAmount; i++, c++) {
-          if (c >= w.config.grid.row.colors.length) {
-            c = 0
-          }
-          const color = w.config.grid.row.colors[c]
-          let rect = graphics.drawRect(
-            x1,
-            y1,
-            x2,
-            y2,
-            0,
-            color,
-            w.config.grid.row.opacity
-          )
-          elg.add(rect)
-          rect.node.classList.add('apexcharts-gridRow')
-
-          y1 = y1 + w.globals.gridHeight / tickAmount
-        }
-      }
-
-      // columns background bands
-      if (
-        w.config.grid.column.colors !== undefined &&
-        w.config.grid.column.colors.length > 0
-      ) {
-        let x1 = w.globals.padHorizontal
-        let y1 = 0
-        let x2 = w.globals.padHorizontal + (w.globals.gridWidth / xCount)
-        let y2 = w.globals.gridHeight
-        for (let i = 0, c = 0; i < xCount; i++, c++) {
-          if (c >= w.config.grid.column.colors.length) {
-            c = 0
-          }
-          const color = w.config.grid.column.colors[c]
-          let rect = graphics.drawRect(
-            x1,
-            y1,
-            x2,
-            y2,
-            0,
-            color,
-            w.config.grid.column.opacity
-          )
-          rect.node.classList.add('apexcharts-gridColumn')
-          elg.add(rect)
-
-          x1 = (x1 + w.globals.gridWidth / xCount)
-        }
-      }
     } else {
       xCount = tickAmount
 
@@ -249,7 +188,7 @@ class Grid {
       if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
         let x1 = w.globals.padHorizontal
         let y1 = 0
-        let x2 = w.globals.padHorizontal
+        let x2
         let y2 = w.globals.gridHeight
         for (let i = 0; i < xCount + 1; i++) {
           x1 = (x1 + w.globals.gridWidth / xCount) + 0.3
@@ -310,12 +249,78 @@ class Grid {
       }
     }
 
+    this.drawGridBands(elg, xCount, tickAmount)
     return {
       el: elg,
       xAxisTickWidth: (w.globals.gridWidth / xCount)
     }
   }
 
+  drawGridBands (elg, xCount, tickAmount) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+
+    // rows background bands
+    if (
+      w.config.grid.row.colors !== undefined &&
+      w.config.grid.row.colors.length > 0
+    ) {
+      let x1 = 0
+      let y1 = 0
+      let y2 = w.globals.gridHeight / tickAmount
+      let x2 = w.globals.gridWidth
+
+      for (let i = 0, c = 0; i < tickAmount; i++, c++) {
+        if (c >= w.config.grid.row.colors.length) {
+          c = 0
+        }
+        const color = w.config.grid.row.colors[c]
+        let rect = graphics.drawRect(
+          x1,
+          y1,
+          x2,
+          y2,
+          0,
+          color,
+          w.config.grid.row.opacity
+        )
+        elg.add(rect)
+        rect.node.classList.add('apexcharts-gridRow')
+
+        y1 = y1 + w.globals.gridHeight / tickAmount
+      }
+    }
+
+    // columns background bands
+    if (
+      w.config.grid.column.colors !== undefined &&
+      w.config.grid.column.colors.length > 0
+    ) {
+      let x1 = w.globals.padHorizontal
+      let y1 = 0
+      let x2 = w.globals.padHorizontal + (w.globals.gridWidth / xCount)
+      let y2 = w.globals.gridHeight
+      for (let i = 0, c = 0; i < xCount; i++, c++) {
+        if (c >= w.config.grid.column.colors.length) {
+          c = 0
+        }
+        const color = w.config.grid.column.colors[c]
+        let rect = graphics.drawRect(
+          x1,
+          y1,
+          x2,
+          y2,
+          0,
+          color,
+          w.config.grid.column.opacity
+        )
+        rect.node.classList.add('apexcharts-gridColumn')
+        elg.add(rect)
+
+        x1 = (x1 + w.globals.gridWidth / xCount)
+      }
+    }
+  }
   animateLine (line, from, to) {
     const w = this.w
 

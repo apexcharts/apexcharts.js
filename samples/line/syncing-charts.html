@@ -33,6 +33,10 @@
     <div id="chart-line2">
 
     </div>
+
+    <div id="chart-area">
+
+      </div>
   </div>
 
 
@@ -40,90 +44,41 @@
   <script src="../../dist/apexcharts.js"></script>
 
   <script>
-    var optionsline2 = {
-      chart: {
-        type: 'line',
-        height: 160,
-        toolbar: {
-          tools: {
-            zoom: false,
-            pan: false,
-            selection: false,
-            download: false,
-            reset: true,
-          },
-        }
-      },
-      colors: ['#546E7A'],
-      stroke: {
-        curve: 'straight'
-      },
-      dataLabels: {
-        enabled: false
-      },
-      fill: {
-        opacity: 1,
-      },
-      series: [{
-        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-          min: 10,
-          max: 30
-        })
-      }],
-      xaxis: {
-        type: 'datetime'
-      }
-    }
 
-    var chartline2 = new ApexCharts(
-      document.querySelector("#chart-line2"),
-      optionsline2
-    );
-
-    chartline2.render();
-
-    var options = {
+    // The global window.Apex variable below can be used to set common options for all charts on the page
+    Apex = {
       chart: {
         height: 200,
-        type: 'line',
-        stacked: true,
-        toolbar: {
-          autoSelected: 'selection'
-        },
-        selection: {
-          xaxis: {
-            min: new Date('19 Feb 2017').getTime(),
-            max: new Date('26 Feb 2017').getTime()
-          }
-        },
-        events: {
-          selection: function (chart, e) {
-            chartline2.updateOptions({
-              xaxis: {
-                min: e.xaxis.min,
-                max: e.xaxis.max
-              }
-            }, false, false)
-          },
-          updated: function (chart, e) {
-            chartline2.updateOptions({
-              xaxis: {
-                min: e.config.xaxis.min,
-                max: e.config.xaxis.max
-              },
-            }, false, false)
-          }
-        },
-
       },
-      colors: ['#008FFB', '#00E396', '#CED4DC'],
       dataLabels: {
         enabled: false
       },
       stroke: {
         curve: 'smooth'
       },
+      toolbar: {
+        tools: {
+          selection: false
+        }
+      },
+      tooltip: {
+        followCursor: false,
+        x: {
+          show: false
+        }
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+    }
 
+    var optionsLine1 = {
+      chart: {
+        id: 'fb',
+        group: 'social',
+        type: 'line',
+      },
+      colors: ['#008FFB', '#00E396', '#CED4DC'],
       series: [{
         data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
           min: 10,
@@ -137,21 +92,69 @@
           opacityTo: 0.8,
         }
       },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'left'
-      },
       xaxis: {
         type: 'datetime'
       },
     }
 
-    var chart = new ApexCharts(
+    var chartLine1 = new ApexCharts(
       document.querySelector("#chart-line"),
-      options
+      optionsLine1
     );
 
-    chart.render();
+    chartLine1.render();
+
+    var optionsline2 = {
+      chart: {
+        id: 'tw',
+        group: 'social',
+        type: 'line',
+      },
+      colors: ['#546E7A'],
+      series: [{
+        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+          min: 10,
+          max: 30
+        })
+      }],
+    }
+
+    var chartline2 = new ApexCharts(
+      document.querySelector("#chart-line2"),
+      optionsline2
+    );
+
+    chartline2.render();
+
+
+    var optionsArea = {
+      chart: {
+        id: 'yt',
+        group: 'social',
+        type: 'area'        
+      },
+      colors: ['#008FFB', '#00E396', '#CED4DC'],
+      series: [{
+        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+          min: 10,
+          max: 60
+        })
+      }],
+      fill: {
+        gradient: {
+          enabled: true,
+          opacityFrom: 0.6,
+          opacityTo: 0.8,
+        }
+      },
+    }
+
+    var chartArea = new ApexCharts(
+      document.querySelector("#chart-area"),
+      optionsArea
+    );
+
+    chartArea.render();
 
     /*
       // this function will generate output in this format
