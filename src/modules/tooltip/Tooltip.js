@@ -538,7 +538,7 @@ class Tooltip {
 
       if (this.blyaxisTooltip) {
         for (let yt = 0; yt < w.config.yaxis.length; yt++) {
-          self.axesTooltip.drawYaxisTooltipText(yt, clientY, self.seriesBound, self.xyRatios)
+          self.axesTooltip.drawYaxisTooltipText(yt, clientY, self.xyRatios)
         }
       }
 
@@ -620,6 +620,7 @@ class Tooltip {
 
   handleMouseOut (opt) {
     const w = this.w
+
     const xcrosshairs = this.getElXCrosshairs()
 
     opt.tooltipEl.classList.remove('active')

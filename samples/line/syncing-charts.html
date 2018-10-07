@@ -48,24 +48,47 @@
     // The global window.Apex variable below can be used to set common options for all charts on the page
     Apex = {
       chart: {
-        height: 200,
+        height: 160,
       },
       dataLabels: {
         enabled: false
       },
       stroke: {
-        curve: 'smooth'
+        curve: 'straight'
       },
       toolbar: {
         tools: {
           selection: false
         }
       },
+      markers: {
+        size: 6,
+        hover: {
+          size: 10
+        }
+      },
       tooltip: {
         followCursor: false,
+        theme: 'dark',
         x: {
           show: false
+        },
+        marker: {
+          show: false
+        },
+        y: {
+          title: {
+            formatter: function() {
+              return ''
+            }
+          }
         }
+      },
+      grid: {
+        clipMarkers: false
+      },
+      yaxis: {
+        tickAmount: 2
       },
       xaxis: {
         type: 'datetime'
@@ -78,7 +101,7 @@
         group: 'social',
         type: 'line',
       },
-      colors: ['#008FFB', '#00E396', '#CED4DC'],
+      colors: ['#008FFB'],
       series: [{
         data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
           min: 10,
@@ -133,7 +156,7 @@
         group: 'social',
         type: 'area'        
       },
-      colors: ['#008FFB', '#00E396', '#CED4DC'],
+      colors: ['#00E396'],
       series: [{
         data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
           min: 10,

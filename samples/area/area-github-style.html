@@ -83,11 +83,13 @@
   <script>
     var optionsarea2 = {
       chart: {
+        id: 'chartyear',
         type: 'area',
         height: 160,
         background: '#F6F8FA',
         toolbar: {
           show: false,
+          autoSelected: 'pan'
         },
         events: {
           mounted: function (chart) {
@@ -146,31 +148,16 @@
         toolbar: {
           autoSelected: 'selection',
         },
+        brush: {
+          enabled: true,
+          target: 'chartyear'
+        },
         selection: {
           xaxis: {
             min: new Date('05 Jan 2014').getTime(),
             max: new Date('04 Jan 2015').getTime()
           }
         },
-        events: {
-          selection: function (chart, e) {
-            chartarea2.updateOptions({
-              xaxis: {
-                min: e.xaxis.min,
-                max: e.xaxis.max
-              }
-            }, false, false)
-          },
-          updated: function (chart, e) {
-            chartarea2.updateOptions({
-              xaxis: {
-                min: e.config.xaxis.min,
-                max: e.config.xaxis.max
-              },
-            }, false, false)
-          }
-        },
-
       },
       colors: ['#7BD39A'],
       dataLabels: {

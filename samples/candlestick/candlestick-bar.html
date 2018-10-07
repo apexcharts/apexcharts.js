@@ -45,9 +45,11 @@
     <script>
         var optionsCandlestick = {
             chart: {
+                id: 'candles',
                 height: 290,
                 type: 'candlestick',
                 toolbar: {
+                    autoSelected: 'pan',
                     show: false
                 },
                 zoom: {
@@ -73,9 +75,9 @@
             chart: {
                 height: 160,
                 type: 'bar',
-                toolbar: {
-                    show: false,
-                    autoSelected: 'selection'
+                brush: {
+                    enabled: true,
+                    target: 'candles'
                 },
                 selection: {
                     xaxis: {
@@ -83,24 +85,13 @@
                         max: new Date('10 Dec 2017').getTime()
                     },
                     fill: {
-                        color: '#90CAF9',
+                        color: '#ccc',
                         opacity: 0.4
                     },
                     stroke: {
                         color: '#0D47A1',
                     }
                 },
-                events: {
-                    selection: function (chart, e) {
-                        chartCandlestick.updateOptions({
-                            xaxis: {
-                                min: e.xaxis.min,
-                                max: e.xaxis.max
-                            }
-                        }, false, false)
-                    }
-                },
-
             },
             dataLabels: {
                 enabled: false
@@ -123,6 +114,9 @@
                        
                     },
                 }        
+            },
+            stroke: {
+                width: 0
             },
             series: [{
                 name: 'volume',

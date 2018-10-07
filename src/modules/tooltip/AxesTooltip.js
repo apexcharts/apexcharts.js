@@ -145,13 +145,16 @@ class AxesTooltip {
     )
   }
 
-  drawYaxisTooltipText (index, clientY, seriesBound, xyRatios) {
+  drawYaxisTooltipText (index, clientY, xyRatios) {
     const ttCtx = this.ttCtx
     const w = this.w
 
     let lbFormatter = w.globals.yLabelFormatters[index]
 
     if (ttCtx.blyaxisTooltip) {
+      const elGrid = ttCtx.getElGrid()
+      const seriesBound = elGrid.getBoundingClientRect()
+
       const hoverY = (clientY - seriesBound.top) * xyRatios.yRatio[index]
       const height = w.globals.maxYArr[index] - w.globals.minYArr[index]
 

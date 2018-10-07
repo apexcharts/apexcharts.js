@@ -128,8 +128,8 @@ class Position {
       ttCtx.yaxisTTEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-yaxistooltip')
     }
 
-    const ycrosshairsHiddenRect = parseInt(ttCtx.ycrosshairsHidden.getAttribute('y1'))
-    let cy = w.globals.translateY + ycrosshairsHiddenRect
+    const ycrosshairsHiddenRectY1 = parseInt(ttCtx.ycrosshairsHidden.getAttribute('y1'))
+    let cy = w.globals.translateY + ycrosshairsHiddenRectY1
 
     const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
     const yAxisTTHeight = yAxisTTRect.height
