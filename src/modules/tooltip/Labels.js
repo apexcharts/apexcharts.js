@@ -284,6 +284,11 @@ class Labels {
     } else {
       if (w.globals.dataXY) {
         xVal = filteredSeriesX[i][j]
+        if (filteredSeriesX[i].length === 0) {
+          // a series (possibly the first one) might be collapsed, so get the next active index
+          const firstActiveSeriesIndex = this.tooltipUtil.getFirstActiveXArray(filteredSeriesX)
+          xVal = filteredSeriesX[firstActiveSeriesIndex][j]
+        }
       } else {
         xVal = typeof w.globals.labels[j] !== 'undefined'
           ? w.globals.labels[j]
