@@ -5,6 +5,8 @@ const en = require('./../../locales/en.json')
 
 export default class Options {
   constructor () {
+    this.defaultFont = 'Helvetica, Arial, sans-serif'
+
     this.yAxis = {
       opposite: false,
       tickAmount: 6,
@@ -22,7 +24,7 @@ export default class Options {
         style: {
           colors: [],
           fontSize: '11px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           cssClass: 'apexcharts-yaxis-label'
         },
         formatter: undefined
@@ -48,7 +50,7 @@ export default class Options {
         style: {
           color: undefined,
           fontSize: '11px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           cssClass: 'apexcharts-yaxis-title'
         }
       },
@@ -86,7 +88,7 @@ export default class Options {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           cssClass: 'apexcharts-xaxis-annotation-label',
           padding: {
             left: 5,
@@ -117,7 +119,7 @@ export default class Options {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           cssClass: 'apexcharts-yaxis-annotation-label',
           padding: {
             left: 5,
@@ -153,7 +155,7 @@ export default class Options {
           background: '#fff',
           color: '#777',
           fontSize: '11px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           cssClass: 'apexcharts-point-annotation-label',
           padding: {
             left: 5,
@@ -359,14 +361,14 @@ export default class Options {
             name: {
               show: true,
               fontSize: '16px',
-              fontFamily: 'Helvetica, Arial, sans-serif',
+              fontFamily: this.defaultFont,
               color: undefined,
               offsetY: -10
             },
             value: {
               show: true,
               fontSize: '14px',
-              fontFamily: 'Helvetica, Arial, sans-serif',
+              fontFamily: this.defaultFont,
               color: undefined,
               offsetY: 16,
               formatter: function (val) {
@@ -419,7 +421,7 @@ export default class Options {
         offsetY: 0,
         style: {
           fontSize: '12px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           colors: undefined
         },
         dropShadow: {
@@ -500,7 +502,7 @@ export default class Options {
         // left, right or center
         verticalAlign: 'middle',
         fontSize: '12px',
-        fontFamily: 'Helvetica, Arial, sans-serif',
+        fontFamily: this.defaultFont,
         textAnchor: 'start',
         offsetY: 0,
         offsetX: 0,
@@ -560,7 +562,7 @@ export default class Options {
         style: {
           color: '#888',
           fontSize: '14px',
-          fontFamily: 'Helvetica, Arial, sans-serif'
+          fontFamily: this.defaultFont
         }
       },
       responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
@@ -595,7 +597,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '14px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           color: '#263238'
         }
       },
@@ -608,7 +610,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '12px',
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          fontFamily: this.defaultFont,
           color: '#9699a2'
         }
       },
@@ -675,7 +677,7 @@ export default class Options {
           style: {
             colors: [],
             fontSize: '12px',
-            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontFamily: this.defaultFont,
             cssClass: 'apexcharts-xaxis-label'
           },
           offsetX: 0,
@@ -718,7 +720,7 @@ export default class Options {
           style: {
             color: undefined,
             fontSize: '12px',
-            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontFamily: this.defaultFont,
             cssClass: 'apexcharts-xaxis-title'
           }
         },

@@ -125,8 +125,6 @@ class Legend {
 
         if (w.config.legend.position === 'bottom') {
           y = w.globals.svgHeight - this.rowHeight
-        } else if (w.config.legend.position === 'top') {
-          y = 0
         }
 
         y = y + this.rowHeight * currentRow

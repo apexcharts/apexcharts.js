@@ -141,21 +141,30 @@ class Range {
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
 
+    const series = gl.series
+    let seriesMin = series
+    let seriesMax = series
+
+    if (this.w.config.chart.type === 'candlestick') {
+      seriesMin = gl.seriesCandleL
+      seriesMax = gl.seriesCandleH
+    }
+
     for (let i = startingIndex; i < len; i++) {
-      gl.dataPoints = Math.max(gl.dataPoints, gl.series[i].length)
+      gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
       if (Utils.isIE()) {
-        minY = Math.min(...gl.series[i], 0)
+        minY = Math.min(...seriesMin[i], 0)
       }
 
       for (let j = 0; j < gl.series[i].length; j++) {
-        if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
-          maxY = Math.max(maxY, gl.series[i][j])
-          minValInSeries = Math.min(minValInSeries, gl.series[i][j])
-          if (Utils.isFloat(gl.series[i][j])) {
-            gl.yValueDecimal = Math.max(gl.yValueDecimal, gl.series[i][j].toString().split('.')[1].length)
+        if (series[i][j] !== null && Utils.isNumber(series[i][j])) {
+          maxY = Math.max(maxY, seriesMax[i][j])
+          minValInSeries = Math.min(minValInSeries, seriesMin[i][j])
+          if (Utils.isFloat(series[i][j])) {
+            gl.yValueDecimal = Math.max(gl.yValueDecimal, series[i][j].toString().split('.')[1].length)
           }
-          if (minY > gl.series[i][j] && gl.series[i][j] < 0) {
-            minY = gl.series[i][j]
+          if (minY > seriesMin[i][j] && seriesMin[i][j] < 0) {
+            minY = seriesMin[i][j]
           }
         } else {
           gl.hasNullValues = true
@@ -231,8 +240,8 @@ class Range {
           // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
-        gl.minY = (minValInSeries - (diff * 10) / 100)
-        gl.maxY = (gl.maxY + (diff * 8) / 100)
+        gl.minY = (minValInSeries - (diff * 5) / 100)
+        gl.maxY = (gl.maxY + (diff * 5) / 100)
       }
     }
 

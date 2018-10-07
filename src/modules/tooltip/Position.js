@@ -37,14 +37,18 @@ class Position {
       if (x + ttCtx.xcrosshairsWidth > w.globals.gridWidth) {
         x = w.globals.gridWidth - ttCtx.xcrosshairsWidth
       }
-
-      if (x < 0) {
-        x = 0
-      }
     } else {
       if (j !== null) {
         x = x + (w.globals.gridWidth / tickAmount) / 2
       }
+    }
+
+    if (x < 0) {
+      x = 0
+    }
+
+    if (x > w.globals.gridWidth) {
+      x = w.globals.gridWidth
     }
 
     if (xcrosshairs !== null) {

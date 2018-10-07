@@ -69,15 +69,19 @@
             })
         }
 
+        function resetData(){
+            data = data.slice(data.length - 10, data.length);
+        }
+
         var options = {
             chart: {
                 height: 350,
                 type: 'line',
                 animations: {
-                    enabled: false,
+                    enabled: true,
                     easing: 'linear',
                     dynamicAnimation: {
-                        speed: 1000
+                        speed: 2000
                     }
                 },
                 toolbar: {
@@ -130,15 +134,18 @@
                 max: 90
             })
 
-            if(data.length > dataPointsLength + 1) {
-                data.shift()
-                // data[0].x = lastDate - 777600000
-                // data[0].y = 0
-            }
             chart.updateSeries([{
                 data: data
             }])
-        }, 1000)
+        }, 2000)
+        
+        // every 60 seconds, we reset the data 
+        window.setInterval(function() {
+            resetData()
+            chart.updateSeries([{
+                data
+            }], false, true)
+        }, 60000)
 
     </script>
 </body>

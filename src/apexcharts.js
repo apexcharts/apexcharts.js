@@ -113,6 +113,7 @@ class ApexCharts {
     this.animations = new Animations(this.ctx)
     this.annotations = new Annotations(this.ctx)
     this.core = new Core(this.el, this)
+    this.coreUtils = new CoreUtils(this)
     this.config = new Config({})
     this.crosshairs = new Crosshairs(this.ctx)
     this.options = new Options()
@@ -790,7 +791,7 @@ class ApexCharts {
   }
 
   getSeriesTotalXRange (minX, maxX) {
-    return this.core.getSeriesTotalsXRange(minX, maxX)
+    return this.coreUtils.getSeriesTotalsXRange(minX, maxX)
   }
 
   getSeriesTotal () {
