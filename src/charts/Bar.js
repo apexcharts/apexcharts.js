@@ -226,7 +226,7 @@ class Bar {
     this.setSelectedBarFilter(renderedPath, realIndex, j)
     elSeries.add(renderedPath)
 
-    let dataLabels = this.calculateBarDataLabels({ x, y, i, j, series, realIndex, barHeight, barWidth, renderedPath, visibleSeries })
+    let dataLabels = this.calculateDataLabelsPos({ x, y, i, j, series, realIndex, barHeight, barWidth, renderedPath, visibleSeries })
     if (dataLabels !== null) {
       elDataLabelsWrap.add(dataLabels)
     }
@@ -540,7 +540,7 @@ class Bar {
    * drawing function
    * @return {object} dataLabels node-element which you can append later
    **/
-  calculateBarDataLabels ({ x, y, i, j, realIndex, series, barHeight, barWidth, visibleSeries, renderedPath }) {
+  calculateDataLabelsPos ({ x, y, i, j, realIndex, series, barHeight, barWidth, visibleSeries, renderedPath }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
@@ -548,9 +548,6 @@ class Bar {
 
     let bcx = x + parseFloat(barWidth * visibleSeries)
     let bcy = y + parseFloat(barHeight * visibleSeries)
-
-    const offX = w.config.dataLabels.offsetX
-    const offY = w.config.dataLabels.offsetY
 
     if (w.globals.dataXY) {
       bcx =
@@ -567,137 +564,159 @@ class Bar {
     let dataLabels = null
     let dataLabelsX = x
     let dataLabelsY = y
+    let dataLabelsPos = {}
     let dataLabelsConfig = w.config.dataLabels
     let barDataLabelsConfig = this.barOptions.dataLabels
 
-    let dataPointsDividedHeight = w.globals.gridHeight / (w.globals.dataPoints)
-    let dataPointsDividedWidth = w.globals.gridWidth / (w.globals.dataPoints)
-
-    let negValuesPresent = Math.abs(w.globals.minY) !== 0
+    const offX = dataLabelsConfig.offsetX
+    const offY = dataLabelsConfig.offsetY
 
     let textRects = graphics.getTextRects(w.globals.series[i][j], parseInt(dataLabelsConfig.style.fontSize))
 
     if (this.isHorizontal) {
-      dataLabelsY = bcy - dataPointsDividedHeight + (barHeight / 2) + textRects.height / 2 + offY - 3
-
-      let barWidth = series[i][j] / this.invertedYRatio
-
-      let valIsNegative = series[i][j] <= 0
-
-      switch (barDataLabelsConfig.position) {
-        case 'center':
-          dataLabelsX = x - barWidth / 2 + offX
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsX = x - barWidth / 2 - offX
-            } else {
-              dataLabelsX = x - barWidth / 2 + offX
-            }
-          }
-          break
-        case 'bottom':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsX = x - barWidth - strokeWidth - Math.round(textRects.width / 2) - offX
-            } else {
-              dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
-            }
-          } else {
-            dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
-          }
-          break
-        case 'top':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsX = x - strokeWidth + Math.round(textRects.width / 2) - offX
-            } else {
-              dataLabelsX = x - strokeWidth - Math.round(textRects.width / 2) + offX
-            }
-          } else {
-            dataLabelsX = x + strokeWidth - Math.round(textRects.width / 2) + offX
-          }
-          break
-      }
-
-      renderedPath.attr({
-        cy: bcy,
-        cx: x,
-        j: j,
-        val: series[i][j],
-        barHeight: barHeight
-      })
-
-      if (dataLabelsX < 0) {
-        dataLabelsX = textRects.width + strokeWidth
-      } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
-        dataLabelsX = dataLabelsX - textRects.width - strokeWidth
-      }
-
-      dataLabels = this.drawCalculatedBarDataLabels({ x: dataLabelsX, y: dataLabelsY, val: series[i][j], i: realIndex, j: j, dataLabelsConfig })
+      dataLabelsPos = this.calculateBarsDataLabelsPosition({ x, y, i, j, bcy, barHeight, textRects, strokeWidth, dataLabelsX, dataLabelsY, barDataLabelsConfig, offX, offY })
     } else {
-      // columns
-      let barHeight = series[i][j] / this.yRatio[this.yaxisIndex]
-      bcx = bcx - strokeWidth / 2
-
-      if (w.globals.dataXY) {
-        dataLabelsX = bcx - barWidth / 2 + offX
-      } else {
-        dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
-      }
-
-      let baseline = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
-      let valIsNegative = !!(y > baseline && Math.abs(this.baseLineY[this.yaxisIndex]) !== 0)
-
-      switch (barDataLabelsConfig.position) {
-        case 'center':
-          dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
-            } else {
-              dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
-            }
-          }
-          break
-        case 'bottom':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
-            } else {
-              dataLabelsY = y + barHeight - textRects.height / 2 + strokeWidth - offY
-            }
-          } else {
-            dataLabelsY = (w.globals.gridHeight) - textRects.height / 2 - offY
-          }
-          break
-        case 'top':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsY = y - textRects.height / 2 - offY
-            } else {
-              dataLabelsY = y + textRects.height + offY
-            }
-          } else {
-            dataLabelsY = y + textRects.height + offY
-          }
-          break
-      }
-
-      renderedPath.attr({
-        cy: y,
-        cx: bcx,
-        j: j,
-        val: series[i][j],
-        barWidth: barWidth
-      })
-
-      dataLabels = this.drawCalculatedBarDataLabels({ x: dataLabelsX, y: dataLabelsY, val: series[i][j], i: realIndex, j: j, dataLabelsConfig })
+      dataLabelsPos = this.calculateColumnsDataLabelsPosition({ x, y, i, j, bcx, bcy, barHeight, barWidth, textRects, strokeWidth, dataLabelsY, barDataLabelsConfig, offX, offY })
     }
+
+    renderedPath.attr({
+      cy: dataLabelsPos.bcy,
+      cx: dataLabelsPos.bcx,
+      j: j,
+      val: series[i][j],
+      barHeight: barHeight,
+      barWidth: barWidth
+    })
+
+    dataLabels = this.drawCalculatedDataLabels({ x: dataLabelsPos.dataLabelsX, y: dataLabelsPos.dataLabelsY, val: series[i][j], i: realIndex, j: j, dataLabelsConfig })
 
     return dataLabels
   }
 
-  drawCalculatedBarDataLabels ({ x, y, val, i, j, dataLabelsConfig }) {
+  calculateColumnsDataLabelsPosition (opts) {
+    const w = this.w
+    let { i, j, y, bcx, barWidth, textRects, dataLabelsY, barDataLabelsConfig, strokeWidth, offX, offY } = opts
+    let dataLabelsX
+    let barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
+
+    let dataPointsDividedWidth = w.globals.gridWidth / (w.globals.dataPoints)
+    bcx = bcx - strokeWidth / 2
+
+    if (w.globals.dataXY) {
+      dataLabelsX = bcx - barWidth / 2 + offX
+    } else {
+      dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
+    }
+
+    let baseline = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
+    let valIsNegative = !!(y > baseline && Math.abs(this.baseLineY[this.yaxisIndex]) !== 0)
+    let negValuesPresent = Math.abs(w.globals.minY) !== 0
+
+    switch (barDataLabelsConfig.position) {
+      case 'center':
+        dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
+        if (negValuesPresent) {
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
+          } else {
+            dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
+          }
+        }
+        break
+      case 'bottom':
+        if (negValuesPresent) {
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
+          } else {
+            dataLabelsY = y + barHeight - textRects.height / 2 + strokeWidth - offY
+          }
+        } else {
+          dataLabelsY = (w.globals.gridHeight) - textRects.height / 2 - offY
+        }
+        break
+      case 'top':
+        if (negValuesPresent) {
+          if (valIsNegative) {
+            dataLabelsY = y - textRects.height / 2 - offY
+          } else {
+            dataLabelsY = y + textRects.height + offY
+          }
+        } else {
+          dataLabelsY = y + textRects.height + offY
+        }
+        break
+    }
+
+    return {
+      bcx,
+      bcy: y,
+      dataLabelsX,
+      dataLabelsY
+    }
+  }
+
+  calculateBarsDataLabelsPosition (opts) {
+    const w = this.w
+    let { x, i, j, bcy, barHeight, textRects, dataLabelsX, strokeWidth, barDataLabelsConfig, offX, offY } = opts
+
+    let dataPointsDividedHeight = w.globals.gridHeight / (w.globals.dataPoints)
+
+    let dataLabelsY = bcy - dataPointsDividedHeight + (barHeight / 2) + textRects.height / 2 + offY - 3
+    let barWidth = this.series[i][j] / this.invertedYRatio
+
+    let valIsNegative = this.series[i][j] <= 0
+    let negValuesPresent = Math.abs(w.globals.minY) !== 0
+
+    switch (barDataLabelsConfig.position) {
+      case 'center':
+        dataLabelsX = x - barWidth / 2 + offX
+        if (negValuesPresent) {
+          if (valIsNegative) {
+            dataLabelsX = x - barWidth / 2 - offX
+          } else {
+            dataLabelsX = x - barWidth / 2 + offX
+          }
+        }
+        break
+      case 'bottom':
+        if (negValuesPresent) {
+          if (valIsNegative) {
+            dataLabelsX = x - barWidth - strokeWidth - Math.round(textRects.width / 2) - offX
+          } else {
+            dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
+          }
+        } else {
+          dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
+        }
+        break
+      case 'top':
+        if (negValuesPresent) {
+          if (valIsNegative) {
+            dataLabelsX = x - strokeWidth + Math.round(textRects.width / 2) - offX
+          } else {
+            dataLabelsX = x - strokeWidth - Math.round(textRects.width / 2) + offX
+          }
+        } else {
+          dataLabelsX = x + strokeWidth - Math.round(textRects.width / 2) + offX
+        }
+        break
+    }
+
+    if (dataLabelsX < 0) {
+      dataLabelsX = textRects.width + strokeWidth
+    } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
+      dataLabelsX = dataLabelsX - textRects.width - strokeWidth
+    }
+
+    return {
+      bcx: x,
+      bcy,
+      dataLabelsX,
+      dataLabelsY
+    }
+  }
+
+  drawCalculatedDataLabels ({ x, y, val, i, j, dataLabelsConfig }) {
     const w = this.w
 
     const dataLabels = new DataLabels(this.ctx)

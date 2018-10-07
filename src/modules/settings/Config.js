@@ -195,7 +195,6 @@ class Config {
       config.xaxis.tooltip.enabled = false // no xaxis tooltip for horizontal bar
       config.yaxis[0].tooltip.enabled = false // no xaxis tooltip for horizontal bar
       config.chart.zoom.enabled = false // no zooming for horz bars
-      config.chart.pan.enabled = false // no panning for horz bars
     }
 
     if (config.chart.type === 'bar') {
