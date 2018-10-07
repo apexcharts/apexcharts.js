@@ -59,17 +59,12 @@ class Radial extends Pie {
 
     let colorArr = w.globals.fill.colors
 
-    let lineColorArr = w.globals.stroke.colors !== undefined
-      ? w.globals.stroke.colors
-      : w.globals.colors
-
     if (w.config.plotOptions.radialBar.track.show) {
       let elTracks = this.drawTracks({
         size,
         centerX,
         centerY,
         colorArr,
-        lineColorArr,
         series
       })
       elSeries.add(elTracks)
@@ -80,7 +75,6 @@ class Radial extends Pie {
       centerX,
       centerY,
       colorArr,
-      lineColorArr,
       series
     })
 
@@ -105,12 +99,8 @@ class Radial extends Pie {
     let filters = new Filters(this.ctx)
     let fill = new Fill(this.ctx)
 
-    let strokeWidth =
-      opts.size *
-        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size)) /
-        100 /
-        (opts.series.length + 1) -
-      this.margin
+    let strokeWidth = this.getStrokeWidth(opts)
+
     opts.size = opts.size - strokeWidth / 2
 
     for (let i = 0; i < opts.series.length; i++) {
@@ -188,14 +178,9 @@ class Radial extends Pie {
     let filters = new Filters(this.ctx)
     let g = graphics.group()
 
-    let strokeWidth =
-      opts.size *
-        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size)) /
-        100 /
-        (opts.series.length + 1) - this.margin
+    let strokeWidth = this.getStrokeWidth(opts)
     opts.size = opts.size - strokeWidth / 2
 
-    let hollowFillImg = w.config.plotOptions.radialBar.hollow.image
     let hollowFillID = w.config.plotOptions.radialBar.hollow.background
     let hollowSize =
       opts.size -
@@ -206,40 +191,10 @@ class Radial extends Pie {
         100 /
         2
 
-    let randID = (Math.random() + 1).toString(36).substring(4)
     let hollowRadius = hollowSize - w.config.plotOptions.radialBar.hollow.margin
 
     if (w.config.plotOptions.radialBar.hollow.image !== undefined) {
-      if (w.config.plotOptions.radialBar.hollow.imageClipped) {
-        fill.clippedImgArea({
-          width: hollowSize,
-          height: hollowSize,
-          image: hollowFillImg,
-          patternID: `pattern${w.globals.cuid}${randID}`
-        })
-        hollowFillID = `url(#pattern${w.globals.cuid}${randID})`
-      } else {
-        const imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth
-        const imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight
-        if (imgWidth === undefined && imgHeight === undefined) {
-          let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
-            this.move(
-              opts.centerX - loader.width / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
-              opts.centerY - loader.height / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
-            )
-          })
-          g.add(image)
-        } else {
-          let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
-            this.move(
-              opts.centerX - imgWidth / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
-              opts.centerY - imgHeight / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
-            )
-            this.size(imgWidth, imgHeight)
-          })
-          g.add(image)
-        }
-      }
+      hollowFillID = this.drawHollowImage(opts, g, hollowSize, hollowFillID)
     }
 
     let elHollow = this.drawHollow({
@@ -318,8 +273,10 @@ class Radial extends Pie {
 
       let angle = endAngle - startAngle
 
+      let path = this.getChangedPath(prevStartAngle, prevEndAngle)
+
       let elPath = graphics.drawPath({
-        d: '',
+        d: path,
         stroke: pathFill,
         strokeWidth,
         fill: 'none',
@@ -338,14 +295,7 @@ class Radial extends Pie {
         filters.dropShadow(elPath, shadow)
       }
 
-      elPath.node.addEventListener(
-        'mouseenter',
-        graphics.pathMouseEnter.bind(this, elPath)
-      )
-      elPath.node.addEventListener(
-        'mouseleave',
-        graphics.pathMouseLeave.bind(this, elPath)
-      )
+      this.addListeners(elPath)
 
       elPath.node.addEventListener(
         'mouseenter',
@@ -417,6 +367,46 @@ class Radial extends Pie {
     return circle
   }
 
+  drawHollowImage (opts, g, hollowSize, hollowFillID) {
+    const w = this.w
+    let fill = new Fill(this.ctx)
+
+    let randID = (Math.random() + 1).toString(36).substring(4)
+    let hollowFillImg = w.config.plotOptions.radialBar.hollow.image
+
+    if (w.config.plotOptions.radialBar.hollow.imageClipped) {
+      fill.clippedImgArea({
+        width: hollowSize,
+        height: hollowSize,
+        image: hollowFillImg,
+        patternID: `pattern${w.globals.cuid}${randID}`
+      })
+      hollowFillID = `url(#pattern${w.globals.cuid}${randID})`
+    } else {
+      const imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth
+      const imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight
+      if (imgWidth === undefined && imgHeight === undefined) {
+        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
+          this.move(
+            opts.centerX - loader.width / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
+            opts.centerY - loader.height / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
+          )
+        })
+        g.add(image)
+      } else {
+        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
+          this.move(
+            opts.centerX - imgWidth / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
+            opts.centerY - imgHeight / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
+          )
+          this.size(imgWidth, imgHeight)
+        })
+        g.add(image)
+      }
+    }
+    return hollowFillID
+  }
+
   dataLabelsMouseIn (el) {
     let w = this.w
 
@@ -473,6 +463,14 @@ class Radial extends Pie {
         dataLabelsGroup.style.opacity = 0
       }
     }
+  }
+
+  getStrokeWidth (opts) {
+    const w = this.w
+    return opts.size *
+    (100 - parseInt(w.config.plotOptions.radialBar.hollow.size)) /
+    100 /
+    (opts.series.length + 1) - this.margin
   }
 
   renderDataLabels (opts) {

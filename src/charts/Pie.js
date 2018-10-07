@@ -23,16 +23,16 @@ class Pie {
 
     const w = this.w
 
+    this.lineColorArr = w.globals.stroke.colors !== undefined
+      ? w.globals.stroke.colors
+      : w.globals.colors
+
     this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.svgHeight - 35 : w.globals.gridWidth
 
     this.centerY = this.defaultSize / 2
     this.centerX = w.globals.gridWidth / 2
 
-    if (w.config.chart.type === 'radialBar') {
-      this.fullAngle = 360 - w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle
-    } else {
-      this.fullAngle = 360
-    }
+    this.fullAngle = 360
 
     this.size = 0
     this.donutSize = 0
@@ -49,10 +49,6 @@ class Pie {
     let ret = graphics.group({
       class: 'apexcharts-pie'
     })
-
-    let lineColorArr = w.globals.stroke.colors !== undefined
-      ? w.globals.stroke.colors
-      : w.globals.colors
 
     let total = 0
     for (let k = 0; k < series.length; k++) {
@@ -120,7 +116,7 @@ class Pie {
       elSeries.add(circle)
     }
 
-    let elG = self.drawArcs(lineColorArr, sectorAngleArr, series)
+    let elG = self.drawArcs(sectorAngleArr, series)
 
     elSeries.attr({
       'transform': `translate(${translateX}, ${translateY - 25}) scale(${scaleSize})`
@@ -139,7 +135,7 @@ class Pie {
   }
 
   // core function for drawing pie arcs
-  drawArcs (lineColorArr, sectorAngleArr, series) {
+  drawArcs (sectorAngleArr, series) {
     let w = this.w
     const filters = new Filters(this.ctx)
 
@@ -180,19 +176,11 @@ class Pie {
         size: this.size
       }) // additionaly, pass size for gradient drawing in the fillPath function
 
-      let path = ''
-      if (this.dynamicAnim && w.globals.dataChanged) {
-        path = this.getPiePath({
-          me: this,
-          startAngle: prevStartAngle,
-          angle: prevEndAngle - prevStartAngle,
-          size: this.size
-        })
-      }
+      let path = this.getChangedPath(prevStartAngle, prevEndAngle)
 
       let elPath = graphics.drawPath({
         d: path,
-        stroke: lineColorArr instanceof Array ? lineColorArr[i] : lineColorArr,
+        stroke: this.lineColorArr instanceof Array ? this.lineColorArr[i] : this.lineColorArr,
         strokeWidth: this.strokeWidth,
         fill: pathFill,
         fillOpacity: w.config.fill.opacity,
@@ -210,24 +198,7 @@ class Pie {
         filters.dropShadow(elPath, shadow)
       }
 
-      // append filters on mouseenter and mouseleave
-      elPath.node.addEventListener(
-        'mouseenter',
-        graphics.pathMouseEnter.bind(this, elPath)
-      )
-      elPath.node.addEventListener(
-        'mouseleave',
-        graphics.pathMouseLeave.bind(this, elPath)
-      )
-
-      elPath.node.addEventListener(
-        'mousedown',
-        graphics.pathMouseDown.bind(this, elPath)
-      )
-      elPath.node.addEventListener(
-        'touchStart',
-        graphics.pathMouseDown.bind(this, elPath)
-      )
+      this.addListeners(elPath)
 
       Graphics.setAttrs(elPath.node, {
         'data:angle': angle,
@@ -339,6 +310,28 @@ class Pie {
     }
 
     return g
+  }
+
+  addListeners (elPath) {
+    const graphics = new Graphics(this.ctx)
+    // append filters on mouseenter and mouseleave
+    elPath.node.addEventListener(
+      'mouseenter',
+      graphics.pathMouseEnter.bind(this, elPath)
+    )
+    elPath.node.addEventListener(
+      'mouseleave',
+      graphics.pathMouseLeave.bind(this, elPath)
+    )
+
+    elPath.node.addEventListener(
+      'mousedown',
+      graphics.pathMouseDown.bind(this, elPath)
+    )
+    elPath.node.addEventListener(
+      'touchStart',
+      graphics.pathMouseDown.bind(this, elPath)
+    )
   }
 
   // This function can be used for other circle charts too
@@ -480,6 +473,19 @@ class Pie {
     if (angle === 360) return
 
     elPath.plot(path).animate(1).plot(pathFrom).animate(100).plot(path)
+  }
+
+  getChangedPath (prevStartAngle, prevEndAngle) {
+    let path = ''
+    if (this.dynamicAnim && this.w.globals.dataChanged) {
+      path = this.getPiePath({
+        me: this,
+        startAngle: prevStartAngle,
+        angle: prevEndAngle - prevStartAngle,
+        size: this.size
+      })
+    }
+    return path
   }
 
   getPiePath ({
