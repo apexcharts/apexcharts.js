@@ -522,7 +522,7 @@ class Graphics {
     if (path.node.getAttribute('selected') === 'true') {
       path.node.setAttribute('selected', 'false')
 
-      if (w.globals.selectedDataPoints[i].includes(j)) {
+      if (w.globals.selectedDataPoints[i].indexOf(j) > -1) {
         var index = w.globals.selectedDataPoints[i].indexOf(j)
         w.globals.selectedDataPoints[i].splice(index, 1)
       }

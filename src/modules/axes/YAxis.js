@@ -381,7 +381,7 @@ class YAxis {
       if (!yaxe.opposite) {
         // left side y axis
         let offset = yAxisWidth + 5
-        if (w.globals.ignoreYAxisIndexes.includes(index)) {
+        if (w.globals.ignoreYAxisIndexes.indexOf(index) > -1) {
           offset = 0
         }
 

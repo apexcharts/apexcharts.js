@@ -34,7 +34,7 @@ class XAxis {
     this.xaxisForeColors = w.config.xaxis.labels.style.colors
     this.xaxisBorderWidth = w.config.xaxis.axisBorder.width
 
-    if (this.xaxisBorderWidth.includes('%')) {
+    if (this.xaxisBorderWidth.indexOf('%') > -1) {
       this.xaxisBorderWidth = (w.globals.gridWidth * parseInt(this.xaxisBorderWidth)) / 100
     } else {
       this.xaxisBorderWidth = parseInt(this.xaxisBorderWidth)

@@ -131,7 +131,7 @@ class Markers {
   setSelectedPointFilter (circle, realIndex, realIndexP) {
     const w = this.w
     if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-      if (w.globals.selectedDataPoints[realIndex].includes(realIndexP)) {
+      if (w.globals.selectedDataPoints[realIndex].indexOf(realIndexP) > -1) {
         circle.node.setAttribute('selected', true)
         let activeFilter = w.config.states.active.filter
         if (activeFilter !== 'none') {

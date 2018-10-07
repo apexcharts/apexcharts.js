@@ -839,7 +839,7 @@ class Core {
         gl.dom.elGraphical.add(elXaxis)
 
         cnf.yaxis.map((yaxe, index) => {
-          if (!gl.ignoreYAxisIndexes.includes(index)) {
+          if (!gl.ignoreYAxisIndexes.indexOf(index) > -1) {
             elYaxis = yAxis.drawYaxis(xyRatios, index)
             gl.dom.Paper.add(elYaxis)
           }
@@ -848,7 +848,7 @@ class Core {
     }
 
     cnf.yaxis.map((yaxe, index) => {
-      if (!gl.ignoreYAxisIndexes.includes(index)) {
+      if (!gl.ignoreYAxisIndexes.indexOf(index) > -1) {
         yAxis.yAxisTitleRotate(index, yaxe.opposite)
       }
     })

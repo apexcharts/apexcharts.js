@@ -719,7 +719,7 @@ class Bar {
 
     let elDataLabelsWrap = null
 
-    const isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.includes(i)
+    const isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) > -1
 
     if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
       elDataLabelsWrap = graphics.group({
@@ -868,7 +868,7 @@ class Bar {
   setSelectedBarFilter (el, realIndex, j) {
     const w = this.w
     if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-      if (w.globals.selectedDataPoints[realIndex].includes(j)) {
+      if (w.globals.selectedDataPoints[realIndex].indexOf(j) > -1) {
         el.node.setAttribute('selected', true)
         let activeFilter = w.config.states.active.filter
         if (activeFilter !== 'none') {

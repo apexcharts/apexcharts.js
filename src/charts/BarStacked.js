@@ -542,7 +542,7 @@ class BarStacked extends Bar {
     // After getting all zeroserieses, we need to ensure whether endingshapeonSeries is not in that zeroseries array
     for (let s = series.length - 1; s >= 0; s--) {
       if (
-        this.zeroSerieses.includes(s) &&
+        this.zeroSerieses.indexOf(s) > -1 &&
         s === this.endingShapeOnSeriesNumber
       ) {
         this.endingShapeOnSeriesNumber -= 1

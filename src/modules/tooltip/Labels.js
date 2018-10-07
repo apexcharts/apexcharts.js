@@ -208,11 +208,15 @@ class Labels {
     }
 
     const ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label')
-    ttYLabel.innerHTML = seriesName ? seriesName + ': ' : ''
+    if (ttYLabel) {
+      ttYLabel.innerHTML = seriesName ? seriesName + ': ' : ''
+    }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-value')
-    ttYVal.innerHTML = val
+    if (ttYVal) {
+      ttYVal.innerHTML = val
+    }
 
-    if (ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')) {
+    if (ttItemsChildren[0] && ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')) {
       ttItemsChildren[0].style.backgroundColor = pColor
     }
 
@@ -227,7 +231,7 @@ class Labels {
       ttZVal.innerHTML = zVal
     }
 
-    if (shared) {
+    if (shared && ttItemsChildren[0]) {
       // hide when no Val
       if (typeof val === 'undefined' || val === null) {
         ttItemsChildren[0].parentNode.style.display = 'none'
