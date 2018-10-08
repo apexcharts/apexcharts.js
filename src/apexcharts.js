@@ -623,9 +623,9 @@ class ApexCharts {
    * @param {string} chartID - The unique identifier which will be used to call methods
    * on that chart instance
    * @param {function} fn - The method name to call
-   * @param {object} opts - the same arguments of the fn which are used directly even when calling the methods on class instance
+   * @param {object} opts - The parameters which are accepted in the original method will be passed here in the same order.
    */
-  static exec (chartID, fn, opts) {
+  static exec (chartID, fn, ...opts) {
     const chart = this.getChartByID(chartID)
 
     if (!chart) return
@@ -633,27 +633,27 @@ class ApexCharts {
     switch (fn) {
       case 'updateOptions':
       {
-        return chart.updateOptions(opts)
+        return chart.updateOptions(...opts)
       }
       case 'updateSeries':
       {
-        return chart.updateSeries(opts)
+        return chart.updateSeries(...opts)
       }
       case 'appendData':
       {
-        return chart.appendData(opts)
+        return chart.appendData(...opts)
       }
       case 'addXaxisAnnotation':
       {
-        return chart.addXaxisAnnotation(opts)
+        return chart.addXaxisAnnotation(...opts)
       }
       case 'addYaxisAnnotation':
       {
-        return chart.addYaxisAnnotation(opts)
+        return chart.addYaxisAnnotation(...opts)
       }
       case 'addPointAnnotation':
       {
-        return chart.addPointAnnotation(opts)
+        return chart.addPointAnnotation(...opts)
       }
       case 'destroy':
       {
