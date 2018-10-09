@@ -85,7 +85,7 @@ class Utils {
     })
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       closest = this.closestInMultiArray(hoverX, hoverY, seriesXValArr, seriesYValArr)
       capturedSeries = closest.index
       j = closest.j

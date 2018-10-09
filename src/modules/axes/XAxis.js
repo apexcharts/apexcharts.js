@@ -74,11 +74,11 @@ class XAxis {
       w.config.chart.type === 'line' ||
       w.config.chart.type === 'area'
     ) {
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         colWidth = w.globals.gridWidth / (labels.length - 1)
         xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
       } else {
-        // no dataXY, only y values values and labels not provided
+        // no isXNumeric, only y values values and labels not provided
         if (w.globals.noLabelsProvided) {
           colWidth = w.globals.gridWidth / this.xaxisLabels.length
         } else {
@@ -88,7 +88,7 @@ class XAxis {
         xPos = xPos + colWidth + w.config.xaxis.labels.offsetX
       }
     } else {
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         if (w.config.chart.type !== 'bar') {
           colWidth = w.globals.gridWidth / (this.xaxisLabels.length - 1)
           xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
@@ -186,7 +186,7 @@ class XAxis {
 
     if (w.config.xaxis.axisBorder.show) {
       let lineCorrection = 0
-      if (w.config.chart.type === 'bar' && w.globals.dataXY) {
+      if (w.config.chart.type === 'bar' && w.globals.isXNumeric) {
         lineCorrection = lineCorrection - 15
       }
       let elHorzLine = graphics.drawLine(
@@ -347,7 +347,7 @@ class XAxis {
       let xCountForCategoryCharts = xCount
       for (let i = 0; i < xCountForCategoryCharts; i++) {
         let x1Count = xCountForCategoryCharts
-        if (w.globals.dataXY && w.config.chart.type !== 'bar') {
+        if (w.globals.isXNumeric && w.config.chart.type !== 'bar') {
           x1Count -= 1
         }
         x1 = (x1 + w.globals.gridWidth / x1Count)

@@ -220,7 +220,7 @@ class BarStacked extends Bar {
 
       barWidth = xDivision
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         xDivision = w.globals.gridWidth / (this.totalItems / w.globals.series.length)
         barWidth = xDivision / 1.8
       } else {
@@ -391,7 +391,7 @@ class BarStacked extends Bar {
     let realIndex = indexes.realIndex
     let bc = indexes.bc
 
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       let seriesVal = w.globals.seriesX[i][j]
       if (!seriesVal) seriesVal = 0
       x = ((seriesVal - w.globals.minX) / this.xRatio) - barWidth / 2
@@ -511,7 +511,7 @@ class BarStacked extends Bar {
     return {
       pathTo,
       pathFrom,
-      x: w.globals.dataXY ? x - xDivision : x,
+      x: w.globals.isXNumeric ? x - xDivision : x,
       y
     }
   }

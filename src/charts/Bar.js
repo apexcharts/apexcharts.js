@@ -272,7 +272,7 @@ class Bar {
       barHeight =
         yDivision / this.seriesLen
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         yDivision = w.globals.gridHeight / this.totalItems
         barHeight = yDivision / this.seriesLen
       }
@@ -288,7 +288,7 @@ class Bar {
       barWidth =
         xDivision / this.seriesLen
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         if (makeWidthForVisibleItems) {
           xDivision = w.globals.gridWidth / (this.visibleItems)
           barWidth =
@@ -332,7 +332,7 @@ class Bar {
     let realIndex = indexes.realIndex
     let bc = indexes.bc
 
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       y =
         (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
         barHeight
@@ -377,7 +377,7 @@ class Bar {
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition)
 
-    if (!w.globals.dataXY) {
+    if (!w.globals.isXNumeric) {
       y = y + yDivision
     }
 
@@ -432,7 +432,7 @@ class Bar {
     let realIndex = indexes.realIndex
     let bc = indexes.bc
 
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
     }
 
@@ -474,7 +474,7 @@ class Bar {
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition, zeroH)
 
-    if (!w.globals.dataXY) {
+    if (!w.globals.isXNumeric) {
       x = x + xDivision
     }
 
@@ -549,7 +549,7 @@ class Bar {
     let bcx = x + parseFloat(barWidth * visibleSeries)
     let bcy = y + parseFloat(barHeight * visibleSeries)
 
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       bcx =
         x +
         parseFloat(barWidth * (visibleSeries + 1)) -
@@ -602,7 +602,7 @@ class Bar {
     let dataPointsDividedWidth = w.globals.gridWidth / (w.globals.dataPoints)
     bcx = bcx - strokeWidth / 2
 
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       dataLabelsX = bcx - barWidth / 2 + offX
     } else {
       dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX

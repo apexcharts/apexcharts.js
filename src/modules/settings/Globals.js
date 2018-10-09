@@ -95,8 +95,8 @@ export default class Globals {
       delayedElements: [], // element which appear after animation has finished
       axisCharts: true, // chart type = line or area or bar
       // (refer them also as plot charts in the code)
-      dataXY: false, // bool: data was provided in a {[x,y], [x,y]} pattern
-      dataXYZ: false, // bool: data was provided in a {[x,y,z]} pattern
+      isXNumeric: false, // bool: data was provided in a {[x,y], [x,y]} pattern
+      isDataXYZ: false, // bool: data was provided in a {[x,y,z]} pattern
       resized: false, // bool: user has resized
       resizeTimer: null, // timeout function to make a small delay before
       // drawing when user resized

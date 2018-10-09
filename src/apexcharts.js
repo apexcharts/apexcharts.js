@@ -300,7 +300,7 @@ class ApexCharts {
           me.w.globals.tooltip.drawTooltip(graphData.xyRatios)
         }
 
-        if (w.globals.axisCharts && w.globals.dataXY) {
+        if (w.globals.axisCharts && w.globals.isXNumeric) {
           if (w.config.chart.zoom.enabled || w.config.chart.selection.enabled || w.config.chart.pan.enabled) {
             me.zoomPanSelection.init({
               xyRatios: graphData.xyRatios

@@ -318,7 +318,7 @@ class Range {
     let gl = this.w.globals; let cnf = this.w.config
 
     // minX maxX starts here
-    if (gl.dataXY) {
+    if (gl.isXNumeric) {
       for (let i = 0; i < gl.series.length; i++) {
         if (gl.labels[i]) {
           for (let j = 0; j < gl.labels[i].length; j++) {
@@ -340,10 +340,10 @@ class Range {
       gl.initialminX = 1
     }
 
-    // for numeric/datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
+    // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
     // If user willingly disables this option, then skip
     if (cnf.grid.padding.left !== 0 && cnf.grid.padding.right !== 0) {
-      if (cnf.xaxis.type === 'datetime' || gl.dataXY) {
+      if (cnf.xaxis.type === 'datetime') {
         const minX = gl.minX - (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3
         gl.minX = minX
         gl.initialminX = minX
@@ -354,7 +354,7 @@ class Range {
     }
 
     let niceXRange = new Range(this.ctx)
-    if (gl.dataXY || gl.noLabelsProvided) {
+    if (gl.isXNumeric || gl.noLabelsProvided) {
       let ticks
 
       if (cnf.xaxis.tickAmount === undefined) {
@@ -410,7 +410,7 @@ class Range {
     let gl = this.w.globals
 
     // minZ, maxZ starts here
-    if (gl.dataXYZ) {
+    if (gl.isDataXYZ) {
       for (let i = 0; i < gl.series.length; i++) {
         if (typeof gl.seriesZ[i] !== 'undefined') {
           for (let j = 0; j < gl.seriesZ[i].length; j++) {

@@ -323,8 +323,8 @@ class Core {
     gl.delayedElements = []
     gl.pointsArray = []
     gl.dataLabelsRects = []
-    gl.dataXY = false
-    gl.dataXYZ = false
+    gl.isXNumeric = false
+    gl.isDataXYZ = false
     gl.maxY = -Number.MAX_VALUE
     gl.minY = Number.MIN_VALUE
     gl.minYArr = []
@@ -429,7 +429,7 @@ class Core {
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j][2] !== 'undefined') {
         this.threeDSeries.push(ser[i].data[j][2])
-        gl.dataXYZ = true
+        gl.isDataXYZ = true
       }
     }
   }
@@ -467,7 +467,7 @@ class Core {
           if (cnf.xaxis.type === 'datetime') {
             this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x.toString()))
           } else {
-            this.twoDSeriesX.push(parseInt(ser[i].data[j].x))
+            this.twoDSeriesX.push(parseFloat(ser[i].data[j].x))
           }
         }
       } else {
@@ -480,7 +480,7 @@ class Core {
       for (let t = 0; t < series[i].data.length; t++) {
         this.threeDSeries.push(series[i].data[t].z)
       }
-      gl.dataXYZ = true
+      gl.isDataXYZ = true
     }
   }
 
@@ -569,13 +569,13 @@ class Core {
         gl.seriesX.push(this.twoDSeriesX)
 
         if (!this.fallbackToCategory) {
-          gl.dataXY = true
+          gl.isXNumeric = true
         }
       } else {
         if (cnf.xaxis.type === 'datetime') {
           // user didn't supplied [{x,y}] or [[x,y]], but single array in data.
-          // Also labels were supplied differently
-          gl.dataXY = true
+          // Also labels/categories were supplied differently
+          gl.isXNumeric = true
           const dates = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
 
           for (let j = 0; j < dates.length; j++) {
@@ -589,6 +589,12 @@ class Core {
             }
           }
 
+          gl.seriesX.push(this.twoDSeriesX)
+        } else if (cnf.xaxis.type === 'numeric') {
+          gl.isXNumeric = true
+          const x = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
+
+          this.twoDSeriesX = x
           gl.seriesX.push(this.twoDSeriesX)
         }
         gl.labels.push(this.twoDSeriesX)
@@ -645,7 +651,7 @@ class Core {
           gl.seriesX.push(labelArr)
         }
 
-        gl.dataXY = true
+        gl.isXNumeric = true
       }
 
       // no series to pull labels from, put a 0-10 series
@@ -698,7 +704,7 @@ class Core {
     this.coreUtils.getPercentSeries()
 
     // user didn't provide a [[x,y],[x,y]] series, but a named series
-    if (!gl.dataXY) {
+    if (!gl.isXNumeric) {
       this.handleExternalLabelsData(ser)
     }
   }

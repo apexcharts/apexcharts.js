@@ -167,7 +167,7 @@ class CandleStick extends Bar {
     let y1 = Math.min(ohlc.o, ohlc.c)
     let y2 = Math.max(ohlc.o, ohlc.c)
 
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
     }
 
@@ -201,7 +201,7 @@ class CandleStick extends Bar {
       graphics.line(barXPosition, y1) +
       graphics.line(barXPosition, y2 - strokeWidth / 2)
 
-    if (!w.globals.dataXY) {
+    if (!w.globals.isXNumeric) {
       x = x + xDivision
     }
 

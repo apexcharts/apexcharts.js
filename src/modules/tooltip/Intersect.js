@@ -224,7 +224,7 @@ class Intersect {
             bh / 2 -
             ttCtx.tooltipRect.ttHeight / 2
         } else {
-          if (w.globals.dataXY) {
+          if (w.globals.isXNumeric) {
             x = cx - bw / 2
           } else {
             x = cx - ttCtx.dataPointsDividedWidth + bw / 2
@@ -245,7 +245,7 @@ class Intersect {
             ttCtx.tooltipRect.ttHeight / 2
         } else {
           // if columns
-          if (w.globals.dataXY) {
+          if (w.globals.isXNumeric) {
             x = cx - bw / 2
           } else {
             x = cx - ttCtx.dataPointsDividedWidth + bw / 2

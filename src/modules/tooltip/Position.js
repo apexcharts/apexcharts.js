@@ -327,7 +327,7 @@ class Position {
     let bcy = 0
     let bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0
 
-    if (w.globals.dataXY) {
+    if (w.globals.isXNumeric) {
       bcx = bcx - bw / 2
     } else {
       bcx = ttCtx.xAxisTicksPositions[j - 1] + (ttCtx.dataPointsDividedWidth / 2)

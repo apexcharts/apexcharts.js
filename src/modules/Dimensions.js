@@ -110,7 +110,7 @@ class Dimensions {
 
     gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX = w.globals.rotateXLabels &&
-      w.globals.dataXY &&
+      w.globals.isXNumeric &&
       w.config.xaxis.labels.rotate <= -45
       ? -this.xAxisWidth / 4
       : 0

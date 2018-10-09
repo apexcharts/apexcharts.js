@@ -79,7 +79,7 @@ class Line {
 
       let x = w.globals.padHorizontal + categoryAxisCorrection
       let y = 1
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         x = (w.globals.seriesX[realIndex][0] - w.globals.minX) / xRatio
       }
 
@@ -169,7 +169,7 @@ class Line {
       }
 
       for (let j = 0; j < w.globals.dataPoints - 1; j++) {
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           x = (w.globals.seriesX[realIndex][j + 1] - w.globals.minX) / xRatio
         } else {
           x = x + xDivision
@@ -452,7 +452,7 @@ class Line {
       // the first point for line series
       // we need to check whether it's not a time series, because a time series may
       // start from the middle of the x axis
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         xPT1st =
           (w.globals.seriesX[realIndex][0] - w.globals.minX) / xRatio +
           w.config.markers.offsetX

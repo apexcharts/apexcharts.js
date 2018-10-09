@@ -282,7 +282,7 @@ class Labels {
     if (j === null) {
       val = w.globals.series[i]
     } else {
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         xVal = filteredSeriesX[i][j]
         if (filteredSeriesX[i].length === 0) {
           // a series (possibly the first one) might be collapsed, so get the next active index
@@ -298,7 +298,7 @@ class Labels {
 
     let bufferXVal = xVal
 
-    if (w.globals.dataXY && w.config.xaxis.type === 'datetime') {
+    if (w.globals.isXNumeric && w.config.xaxis.type === 'datetime') {
       let xFormat = new Formatters(this.ctx)
       xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal)
     } else {

@@ -82,7 +82,7 @@ class Formatters {
     } else {
       w.globals.xLabelFormatter = function (val) {
         if (Utils.isNumber(val)) {
-          return val.toFixed(0)
+          return val.toFixed(1)
         }
         return val
       }

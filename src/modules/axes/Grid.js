@@ -121,7 +121,7 @@ class Grid {
           let xCountForCategoryCharts = xCount
           for (let i = 0; i < xCountForCategoryCharts; i++) {
             let x1Count = xCountForCategoryCharts
-            if (w.globals.dataXY && w.config.chart.type !== 'bar') {
+            if (w.globals.isXNumeric && w.config.chart.type !== 'bar') {
               x1Count -= 1
             }
 
