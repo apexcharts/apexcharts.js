@@ -365,13 +365,13 @@ class ApexCharts {
     charts.forEach((ch) => {
       let w = ch.w
 
-      w.config.chart.animations.dynamicAnimation.enabled = animate
+      w.globals.shouldAnimate = animate
 
       if (!redraw) {
         w.globals.resized = true
         w.globals.dataChanged = true
 
-        if (animate && ch.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
+        if (animate) {
           ch.series.getPreviousPaths()
         }
       }
@@ -412,7 +412,7 @@ class ApexCharts {
   updateSeriesInternal (newSeries, animate, overwriteInitialSeries = false) {
     const w = this.w
 
-    this.w.config.chart.animations.dynamicAnimation.enabled = animate
+    this.w.globals.shouldAnimate = animate
 
     w.globals.dataChanged = true
 

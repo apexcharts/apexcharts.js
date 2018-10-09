@@ -104,7 +104,8 @@ class Animations {
 
     if (
       w.config.chart.animations.dynamicAnimation.enabled &&
-      w.globals.dataChanged
+      w.globals.dataChanged &&
+      w.globals.shouldAnimate
     ) {
       delayFactor = 0
     }
@@ -180,7 +181,8 @@ class Animations {
 
     if (
       w.config.chart.animations.dynamicAnimation.enabled &&
-      w.globals.dataChanged
+      w.globals.dataChanged &&
+      w.globals.shouldAnimate
     ) {
       for (let z = 0; z < w.globals.delayedElements.length; z++) {
         let ele = w.globals.delayedElements[z].el

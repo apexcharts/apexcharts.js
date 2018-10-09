@@ -261,11 +261,13 @@ class Toolbar {
       xaxis = beforeZoomRange.xaxis
     }
 
+    this.w.globals.zoomed = true
+
     this.ctx.updateOptionsInternal({
       xaxis
     },
     false,
-    true
+    this.w.config.chart.animations.dynamicAnimation.enabled
     )
 
     this.zoomCallback({ min: newMinX, max: newMaxX })

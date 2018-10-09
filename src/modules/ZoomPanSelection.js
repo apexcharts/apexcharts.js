@@ -494,14 +494,14 @@ class ZoomPanSelection extends Toolbar {
             xaxis
           },
           false,
-          true
+          me.w.config.chart.animations.dynamicAnimation.enabled
           )
         } else if (zoomtype === 'y') {
           me.ctx.updateOptionsInternal({
             yaxis
           },
           false,
-          true
+          me.w.config.chart.animations.dynamicAnimation.enabled
           )
         } else {
           me.ctx.updateOptionsInternal({
@@ -509,7 +509,7 @@ class ZoomPanSelection extends Toolbar {
             yaxis
           },
           false,
-          true
+          me.w.config.chart.animations.dynamicAnimation.enabled
           )
         }
 

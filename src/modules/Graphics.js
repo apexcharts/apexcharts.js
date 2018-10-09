@@ -186,7 +186,7 @@ class Graphics {
 
     let d
     let shouldAnimate = !!((initialAnim && !w.globals.resized) ||
-        (dynamicAnim && w.globals.dataChanged))
+        (dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate))
 
     if (shouldAnimate) {
       d = pathFrom
@@ -251,7 +251,7 @@ class Graphics {
       })
     }
 
-    if (dynamicAnim && w.globals.dataChanged) {
+    if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
       anim.animatePathsGradually({
         el: el,
         pathFrom: pathFrom,
