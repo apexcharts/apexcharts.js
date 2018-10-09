@@ -222,7 +222,7 @@ export default class Options {
         selection: {
           enabled: true,
           type: 'x',
-          selectedPoints: undefined,
+          // selectedPoints: undefined, // default datapoints that should be selected automatically
           fill: {
             color: '#24292e',
             opacity: 0.1
@@ -249,7 +249,6 @@ export default class Options {
           enabled: false,
           target: undefined
         },
-        brushSource: undefined,
         stacked: false,
         stackType: 'normal',
         toolbar: {
@@ -463,7 +462,7 @@ export default class Options {
         borderColor: '#e0e0e0',
         strokeDashArray: 0,
         position: 'back',
-        clipMarkers: true,
+        clipMarkers: false,
         xaxis: {
           lines: {
             show: false,

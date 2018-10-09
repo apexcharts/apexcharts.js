@@ -562,9 +562,9 @@ class Graphics {
     }
     this.ctx.fireEvent('dataPointSelection', [e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
 
-    if (this.w.config.chart.selection.selectedPoints !== undefined) {
-      this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)
-    }
+    // if (this.w.config.chart.selection.selectedPoints !== undefined) {
+    //   this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)
+    // }
   }
 
   rotateAroundCenter (el) {
