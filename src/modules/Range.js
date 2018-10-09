@@ -360,6 +360,12 @@ class Range {
       if (cnf.xaxis.tickAmount === undefined) {
         ticks = Math.round(gl.svgWidth / 150)
 
+        // no labels provided and total number of dataPoints is less than 20
+        if (gl.isXNumeric && gl.dataPoints < 20) {
+          ticks = gl.dataPoints - 1
+        }
+
+        // this check is for when ticks exceeds total datapoints and that would result in duplicate labels
         if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
           ticks = gl.dataPoints - 1
         }

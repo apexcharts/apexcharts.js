@@ -571,7 +571,7 @@ class Bar {
     const offX = dataLabelsConfig.offsetX
     const offY = dataLabelsConfig.offsetY
 
-    let textRects = graphics.getTextRects(w.globals.series[i][j], parseInt(dataLabelsConfig.style.fontSize))
+    let textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](w.globals.maxY), parseInt(dataLabelsConfig.style.fontSize))
 
     if (this.isHorizontal) {
       dataLabelsPos = this.calculateBarsDataLabelsPosition({ x, y, i, j, bcy, barHeight, textRects, strokeWidth, dataLabelsX, dataLabelsY, barDataLabelsConfig, offX, offY })

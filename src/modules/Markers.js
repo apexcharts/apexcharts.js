@@ -124,7 +124,7 @@ class Markers {
 
     circle.node.addEventListener(
       'touchstart',
-      graphics.pathMouseDown.bind(this.ctx, circle)
+      graphics.pathMouseDown.bind(this.ctx, circle), {passive: true}
     )
   }
 

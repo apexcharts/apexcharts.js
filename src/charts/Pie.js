@@ -330,7 +330,7 @@ class Pie {
     )
     elPath.node.addEventListener(
       'touchStart',
-      graphics.pathMouseDown.bind(this, elPath)
+      graphics.pathMouseDown.bind(this, elPath), {passive: true}
     )
   }
 

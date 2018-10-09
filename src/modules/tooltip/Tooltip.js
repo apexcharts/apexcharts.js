@@ -337,7 +337,11 @@ class Tooltip {
       let events = ['mousemove', 'touchmove', 'mouseout', 'touchend']
 
       events.map((ev) => {
-        return paths[p].addEventListener(ev, self.seriesHover.bind(self, extendedOpts), false)
+        return paths[p].addEventListener(
+          ev,
+          self.seriesHover.bind(self, extendedOpts),
+          { capture: false, passive: true }
+        )
       })
     }
   }

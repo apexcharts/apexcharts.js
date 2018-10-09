@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Basic Bar Chart</title>
+    <title>Bar with Custom DataLabels</title>
 
     
     <link href="../assets/styles.css" rel="stylesheet" />
@@ -29,26 +29,20 @@
     <script>
         var options = {
             chart: {
-                height: 350,
-                type: 'bar',
-                dropShadow: {
-                  enabled: true,
-                  blur: 8,
-                  top: 8,
-                  opacity: 0.1
-                }
+                height: 380,
+                type: 'bar'
             },
             plotOptions: {
                 bar: {
-                  barHeight: '90%',
+                    barHeight: '100%',
+                    distributed: true,
                     horizontal: true,
                     dataLabels: {
                         position: 'bottom'
                     },
                 }
             },
-            
-            colors: ['#00E396'],
+            colors: ['#33b2df', '#546E7A', '#d4526e', '#13d8aa', '#A5978B', '#2b908f', '#f9a3a4', '#90ee7e', '#f48024', '#69d2e7'],
             dataLabels: {
                 enabled: true,
                 textAnchor: 'start',
@@ -67,23 +61,37 @@
                 data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380]
             }],
             stroke: {
-                lineCap: 'round',
-                width: 2,
+                width: 1,
               colors: ['#fff']
             },
             xaxis: {
-                categories: ['South Korea', 'Canada', 'United Kingdom', 'Netherlands', 'Italy', 'France', 'Japan', 'United States', 'China', 'Germany'],
+                categories: ['South Korea', 'Canada', 'United Kingdom', 'Netherlands', 'Italy', 'France', 'Japan', 'United States', 'China', 'India'],
             },
             yaxis: {
                 labels: {
                     show: false
                 }
             },
-            fill: {
-                //type: 'gradient',
-                gradient: {
-                  gradientToColors: ['#008FFB'],
-                  stops: [40, 99, 100]
+            title: {
+                text: 'Custom DataLabels',
+                align: 'right',
+                floating: true
+            },
+            subtitle: {
+                text: 'Category Names as DataLabels inside bars',
+                align: 'right',
+            },
+            tooltip: {
+                theme: 'dark',
+                x: {
+                    show: false
+                },
+                y: {
+                    title: {
+                        formatter: function() {
+                            return ''
+                        }
+                    }
                 }
             }
         }

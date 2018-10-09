@@ -129,7 +129,7 @@ class XAxis {
         }
 
         label = label.toString()
-        if (label.toLowerCase().indexOf('nan') >= 0 || label.indexOf('undefined') >= 0 || label.toLowerCase().indexOf('invalid') >= 0 || label.toLowerCase().indexOf('infinity') >= 0) {
+        if (label === 'NaN' || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0) {
           label = ''
         }
 

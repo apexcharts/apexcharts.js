@@ -78,7 +78,7 @@ class ZoomPanSelection extends Toolbar {
       this.hoverArea.addEventListener(
         event,
         me.svgMouseEvents.bind(me, xyRatios),
-        false
+        {capture: false, passive: true}
       )
     }
   }
@@ -91,7 +91,7 @@ class ZoomPanSelection extends Toolbar {
         this.hoverArea.removeEventListener(
           event,
           me.svgMouseEvents.bind(me, me.xyRatios),
-          false
+          {capture: false, passive: true}
         )
       }
     }

@@ -741,7 +741,7 @@ class ApexCharts {
             me.fireEvent('click', [e, me, w])
           }
         },
-        false
+        { capture: false, passive: true }
       )
     }
 
