@@ -53,8 +53,6 @@ class ApexCharts {
 
     this.initModules()
 
-    this.responsiveConfigOverrided = false
-
     this.create = Utils.bind(this.create, this)
     this.windowResizeHandler = this.windowResize.bind(this)
   }
@@ -177,9 +175,7 @@ class ApexCharts {
 
     gl.noData = false
 
-    if (!this.responsiveConfigOverrided) {
-      this.responsive.checkResponsiveConfig()
-    }
+    this.responsive.checkResponsiveConfig()
 
     if (this.el === null) {
       return null
@@ -377,8 +373,6 @@ class ApexCharts {
       }
 
       if (options && typeof options === 'object') {
-        ch.responsive.checkResponsiveConfig()
-        ch.responsiveConfigOverrided = true
         ch.config = new Config(options)
         options = CoreUtils.extendArrayProps(ch.config, options)
 
@@ -422,6 +416,7 @@ class ApexCharts {
 
     w.config.series = newSeries.slice()
     if (overwriteInitialSeries) {
+      w.globals.initialConfig.series = JSON.parse(JSON.stringify(w.config.series))
       w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
     }
 
