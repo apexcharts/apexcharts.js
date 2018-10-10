@@ -326,7 +326,7 @@ var Graphics = function () {
       var dynamicAnim = initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
 
       var d = void 0;
-      var shouldAnimate = !!(initialAnim && !w.globals.resized || dynamicAnim && w.globals.dataChanged);
+      var shouldAnimate = !!(initialAnim && !w.globals.resized || dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate);
 
       if (shouldAnimate) {
         d = pathFrom;
@@ -373,7 +373,7 @@ var Graphics = function () {
       el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el));
 
       el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el));
-      el.node.addEventListener('touchstart', this.pathMouseDown.bind(this, el));
+      el.node.addEventListener('touchstart', this.pathMouseDown.bind(this, el), { passive: true });
 
       el.attr({
         pathTo: pathTo,
@@ -391,7 +391,7 @@ var Graphics = function () {
         });
       }
 
-      if (dynamicAnim && w.globals.dataChanged) {
+      if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
         anim.animatePathsGradually({
           el: el,
           pathFrom: pathFrom,
@@ -749,9 +749,9 @@ var Graphics = function () {
       }
       this.ctx.fireEvent('dataPointSelection', [e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }]);
 
-      if (this.w.config.chart.selection.selectedPoints !== undefined) {
-        this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints);
-      }
+      // if (this.w.config.chart.selection.selectedPoints !== undefined) {
+      //   this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)
+      // }
     }
   }, {
     key: 'rotateAroundCenter',
@@ -2249,7 +2249,7 @@ var Animations = function () {
         delayFactor = w.config.chart.animations.animateGradually.delay;
       }
 
-      if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged) {
+      if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.globals.shouldAnimate) {
         delayFactor = 0;
       }
 
@@ -2314,7 +2314,7 @@ var Animations = function () {
         }
       }
 
-      if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged) {
+      if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.globals.shouldAnimate) {
         for (var _z = 0; _z < w.globals.delayedElements.length; _z++) {
           var _ele = w.globals.delayedElements[_z].el;
           _ele.classList.add('apexcharts-showAfterDelay');
@@ -2841,6 +2841,10 @@ var Formatters = function () {
       } else {
         w.globals.xLabelFormatter = function (val) {
           if (_Utils2.default.isNumber(val)) {
+            // numeric xaxis may have smaller range, so defaulting to 1 decimal
+            if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50 && w.globals.noLabelsProvided) {
+              return val.toFixed(1);
+            }
             return val.toFixed(0);
           }
           return val;
@@ -3461,7 +3465,7 @@ var Bar = function () {
         yDivision = w.globals.gridHeight / w.globals.dataPoints;
         barHeight = yDivision / this.seriesLen;
 
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           yDivision = w.globals.gridHeight / this.totalItems;
           barHeight = yDivision / this.seriesLen;
         }
@@ -3476,7 +3480,7 @@ var Bar = function () {
         xDivision = w.globals.gridWidth / w.globals.dataPoints;
         barWidth = xDivision / this.seriesLen;
 
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           if (makeWidthForVisibleItems) {
             xDivision = w.globals.gridWidth / this.visibleItems;
             barWidth = xDivision / this.seriesLen * 0.7;
@@ -3519,7 +3523,7 @@ var Bar = function () {
       var realIndex = indexes.realIndex;
       var bc = indexes.bc;
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         y = (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio - barHeight;
       }
 
@@ -3551,7 +3555,7 @@ var Bar = function () {
 
       pathFrom = pathFrom + graphics.line(zeroW, barYPosition) + endingShape.ending_p_from + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition);
 
-      if (!w.globals.dataXY) {
+      if (!w.globals.isXNumeric) {
         y = y + yDivision;
       }
 
@@ -3596,7 +3600,7 @@ var Bar = function () {
       var realIndex = indexes.realIndex;
       var bc = indexes.bc;
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
       }
 
@@ -3627,7 +3631,7 @@ var Bar = function () {
       pathTo = pathTo + graphics.line(barXPosition, endingShape.newY) + endingShape.path + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition, zeroH);
       pathFrom = pathFrom + graphics.line(barXPosition, zeroH) + endingShape.ending_p_from + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition, zeroH);
 
-      if (!w.globals.dataXY) {
+      if (!w.globals.isXNumeric) {
         x = x + xDivision;
       }
 
@@ -3707,7 +3711,7 @@ var Bar = function () {
       var bcx = x + parseFloat(barWidth * visibleSeries);
       var bcy = y + parseFloat(barHeight * visibleSeries);
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         bcx = x + parseFloat(barWidth * (visibleSeries + 1)) - strokeWidth;
 
         bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth;
@@ -3723,7 +3727,7 @@ var Bar = function () {
       var offX = dataLabelsConfig.offsetX;
       var offY = dataLabelsConfig.offsetY;
 
-      var textRects = graphics.getTextRects(w.globals.series[i][j], parseInt(dataLabelsConfig.style.fontSize));
+      var textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](w.globals.maxY), parseInt(dataLabelsConfig.style.fontSize));
 
       if (this.isHorizontal) {
         dataLabelsPos = this.calculateBarsDataLabelsPosition({ x: x, y: y, i: i, j: j, bcy: bcy, barHeight: barHeight, textRects: textRects, strokeWidth: strokeWidth, dataLabelsX: dataLabelsX, dataLabelsY: dataLabelsY, barDataLabelsConfig: barDataLabelsConfig, offX: offX, offY: offY });
@@ -3766,7 +3770,7 @@ var Bar = function () {
       var dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints;
       bcx = bcx - strokeWidth / 2;
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         dataLabelsX = bcx - barWidth / 2 + offX;
       } else {
         dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
@@ -4390,7 +4394,7 @@ var Dimensions = function () {
       this.conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords);
 
       gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4;
-      gl.translateXAxisX = w.globals.rotateXLabels && w.globals.dataXY && w.config.xaxis.labels.rotate <= -45 ? -this.xAxisWidth / 4 : 0;
+      gl.translateXAxisX = w.globals.rotateXLabels && w.globals.isXNumeric && w.config.xaxis.labels.rotate <= -45 ? -this.xAxisWidth / 4 : 0;
 
       if (this.isBarHorizontal) {
         gl.rotateXLabels = false;
@@ -5011,7 +5015,7 @@ var Markers = function () {
 
       circle.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this.ctx, circle));
 
-      circle.node.addEventListener('touchstart', graphics.pathMouseDown.bind(this.ctx, circle));
+      circle.node.addEventListener('touchstart', graphics.pathMouseDown.bind(this.ctx, circle), { passive: true });
     }
   }, {
     key: 'setSelectedPointFilter',
@@ -5146,11 +5150,11 @@ var XAxis = function () {
       }
 
       if (w.config.chart.type === 'line' || w.config.chart.type === 'area') {
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           colWidth = w.globals.gridWidth / (labels.length - 1);
           xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
         } else {
-          // no dataXY, only y values values and labels not provided
+          // no isXNumeric, only y values values and labels not provided
           if (w.globals.noLabelsProvided) {
             colWidth = w.globals.gridWidth / this.xaxisLabels.length;
           } else {
@@ -5160,7 +5164,7 @@ var XAxis = function () {
           xPos = xPos + colWidth + w.config.xaxis.labels.offsetX;
         }
       } else {
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           if (w.config.chart.type !== 'bar') {
             colWidth = w.globals.gridWidth / (this.xaxisLabels.length - 1);
             xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
@@ -5201,7 +5205,7 @@ var XAxis = function () {
           }
 
           label = label.toString();
-          if (label.toLowerCase().indexOf('nan') >= 0 || label.indexOf('undefined') >= 0 || label.toLowerCase().indexOf('invalid') >= 0 || label.toLowerCase().indexOf('infinity') >= 0) {
+          if (label === 'NaN' || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0) {
             label = '';
           }
 
@@ -5256,7 +5260,7 @@ var XAxis = function () {
 
       if (w.config.xaxis.axisBorder.show) {
         var lineCorrection = 0;
-        if (w.config.chart.type === 'bar' && w.globals.dataXY) {
+        if (w.config.chart.type === 'bar' && w.globals.isXNumeric) {
           lineCorrection = lineCorrection - 15;
         }
         var elHorzLine = graphics.drawLine(w.globals.padHorizontal + lineCorrection + w.config.xaxis.axisBorder.offsetX, this.offY, this.xaxisBorderWidth, this.offY, w.config.xaxis.axisBorder.color, 0, this.xaxisBorderHeight);
@@ -5400,7 +5404,7 @@ var XAxis = function () {
         var xCountForCategoryCharts = xCount;
         for (var _i3 = 0; _i3 < xCountForCategoryCharts; _i3++) {
           var x1Count = xCountForCategoryCharts;
-          if (w.globals.dataXY && w.config.chart.type !== 'bar') {
+          if (w.globals.isXNumeric && w.config.chart.type !== 'bar') {
             x1Count -= 1;
           }
           x1 = x1 + w.globals.gridWidth / x1Count;
@@ -6407,7 +6411,7 @@ var Options = function () {
           selection: {
             enabled: true,
             type: 'x',
-            selectedPoints: undefined,
+            // selectedPoints: undefined, // default datapoints that should be selected automatically
             fill: {
               color: '#24292e',
               opacity: 0.1
@@ -6434,7 +6438,6 @@ var Options = function () {
             enabled: false,
             target: undefined
           },
-          brushSource: undefined,
           stacked: false,
           stackType: 'normal',
           toolbar: {
@@ -6648,7 +6651,7 @@ var Options = function () {
           borderColor: '#e0e0e0',
           strokeDashArray: 0,
           position: 'back',
-          clipMarkers: true,
+          clipMarkers: false,
           xaxis: {
             lines: {
               show: false,
@@ -8108,7 +8111,7 @@ var Pie = function () {
       elPath.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, elPath));
 
       elPath.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, elPath));
-      elPath.node.addEventListener('touchStart', graphics.pathMouseDown.bind(this, elPath));
+      elPath.node.addEventListener('touchStart', graphics.pathMouseDown.bind(this, elPath), { passive: true });
     }
 
     // This function can be used for other circle charts too
@@ -9961,9 +9964,11 @@ var Toolbar = function () {
         xaxis = beforeZoomRange.xaxis;
       }
 
+      this.w.globals.zoomed = true;
+
       this.ctx.updateOptionsInternal({
         xaxis: xaxis
-      }, false, true);
+      }, false, this.w.config.chart.animations.dynamicAnimation.enabled);
 
       this.zoomCallback({ min: newMinX, max: newMaxX });
     }
@@ -10399,7 +10404,7 @@ var Position = function () {
       var bcy = 0;
       var bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0;
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         bcx = bcx - bw / 2;
       } else {
         bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2;
@@ -10539,7 +10544,7 @@ var Utils = function () {
       });
 
       // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         closest = this.closestInMultiArray(hoverX, hoverY, seriesXValArr, seriesYValArr);
         capturedSeries = closest.index;
         j = closest.j;
@@ -11230,7 +11235,7 @@ var ApexCharts = function () {
             me.w.globals.tooltip.drawTooltip(graphData.xyRatios);
           }
 
-          if (w.globals.axisCharts && w.globals.dataXY) {
+          if (w.globals.axisCharts && w.globals.isXNumeric) {
             if (w.config.chart.zoom.enabled || w.config.chart.selection.enabled || w.config.chart.pan.enabled) {
               me.zoomPanSelection.init({
                 xyRatios: graphData.xyRatios
@@ -11330,13 +11335,13 @@ var ApexCharts = function () {
       charts.forEach(function (ch) {
         var w = ch.w;
 
-        w.config.chart.animations.dynamicAnimation.enabled = animate;
+        w.globals.shouldAnimate = animate;
 
         if (!redraw) {
           w.globals.resized = true;
           w.globals.dataChanged = true;
 
-          if (animate && ch.w.globals.initialConfig.chart.animations.dynamicAnimation.enabled) {
+          if (animate) {
             ch.series.getPreviousPaths();
           }
         }
@@ -11389,7 +11394,7 @@ var ApexCharts = function () {
 
       var w = this.w;
 
-      this.w.config.chart.animations.dynamicAnimation.enabled = animate;
+      this.w.globals.shouldAnimate = animate;
 
       w.globals.dataChanged = true;
 
@@ -11679,7 +11684,7 @@ var ApexCharts = function () {
               }
               me.fireEvent('click', [e, me, w]);
             }
-          }, false);
+          }, { capture: false, passive: true });
         }
       } catch (err) {
         _didIteratorError2 = true;
@@ -11850,40 +11855,44 @@ var ApexCharts = function () {
      * @param {string} chartID - The unique identifier which will be used to call methods
      * on that chart instance
      * @param {function} fn - The method name to call
-     * @param {object} opts - the same arguments of the fn which are used directly even when calling the methods on class instance
+     * @param {object} opts - The parameters which are accepted in the original method will be passed here in the same order.
      */
 
   }, {
     key: 'exec',
-    value: function exec(chartID, fn, opts) {
+    value: function exec(chartID, fn) {
       var chart = this.getChartByID(chartID);
 
       if (!chart) return;
 
+      for (var _len = arguments.length, opts = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+        opts[_key - 2] = arguments[_key];
+      }
+
       switch (fn) {
         case 'updateOptions':
           {
-            return chart.updateOptions(opts);
+            return chart.updateOptions.apply(chart, opts);
           }
         case 'updateSeries':
           {
-            return chart.updateSeries(opts);
+            return chart.updateSeries.apply(chart, opts);
           }
         case 'appendData':
           {
-            return chart.appendData(opts);
+            return chart.appendData.apply(chart, opts);
           }
         case 'addXaxisAnnotation':
           {
-            return chart.addXaxisAnnotation(opts);
+            return chart.addXaxisAnnotation.apply(chart, opts);
           }
         case 'addYaxisAnnotation':
           {
-            return chart.addYaxisAnnotation(opts);
+            return chart.addYaxisAnnotation.apply(chart, opts);
           }
         case 'addPointAnnotation':
           {
-            return chart.addPointAnnotation(opts);
+            return chart.addPointAnnotation.apply(chart, opts);
           }
         case 'destroy':
           {
@@ -13698,7 +13707,7 @@ var BarStacked = function (_Bar) {
 
         barWidth = xDivision;
 
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           xDivision = w.globals.gridWidth / (this.totalItems / w.globals.series.length);
           barWidth = xDivision / 1.8;
         } else {
@@ -13838,7 +13847,7 @@ var BarStacked = function (_Bar) {
       var realIndex = indexes.realIndex;
       var bc = indexes.bc;
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         var seriesVal = w.globals.seriesX[i][j];
         if (!seriesVal) seriesVal = 0;
         x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2;
@@ -13925,7 +13934,7 @@ var BarStacked = function (_Bar) {
       return {
         pathTo: pathTo,
         pathFrom: pathFrom,
-        x: w.globals.dataXY ? x - xDivision : x,
+        x: w.globals.isXNumeric ? x - xDivision : x,
         y: y
       };
     }
@@ -14179,7 +14188,7 @@ var CandleStick = function (_Bar) {
       var y1 = Math.min(ohlc.o, ohlc.c);
       var y2 = Math.max(ohlc.o, ohlc.c);
 
-      if (w.globals.dataXY) {
+      if (w.globals.isXNumeric) {
         x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
       }
 
@@ -14202,7 +14211,7 @@ var CandleStick = function (_Bar) {
 
       pathTo = graphics.move(barXPosition, y2) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth / 2, l1) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth, y2) + graphics.line(barXPosition + barWidth, y1) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition + barWidth / 2, l2) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition, y1) + graphics.line(barXPosition, y2 - strokeWidth / 2);
 
-      if (!w.globals.dataXY) {
+      if (!w.globals.isXNumeric) {
         x = x + xDivision;
       }
 
@@ -14621,7 +14630,7 @@ var Line = function () {
 
         var x = w.globals.padHorizontal + categoryAxisCorrection;
         var y = 1;
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           x = (w.globals.seriesX[realIndex][0] - w.globals.minX) / xRatio;
         }
 
@@ -14714,7 +14723,7 @@ var Line = function () {
         }
 
         for (var j = 0; j < w.globals.dataPoints - 1; j++) {
-          if (w.globals.dataXY) {
+          if (w.globals.isXNumeric) {
             x = (w.globals.seriesX[realIndex][j + 1] - w.globals.minX) / xRatio;
           } else {
             x = x + xDivision;
@@ -14995,7 +15004,7 @@ var Line = function () {
         // the first point for line series
         // we need to check whether it's not a time series, because a time series may
         // start from the middle of the x axis
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           xPT1st = (w.globals.seriesX[realIndex][0] - w.globals.minX) / xRatio + w.config.markers.offsetX;
         }
 
@@ -16551,8 +16560,8 @@ var Core = function () {
       gl.delayedElements = [];
       gl.pointsArray = [];
       gl.dataLabelsRects = [];
-      gl.dataXY = false;
-      gl.dataXYZ = false;
+      gl.isXNumeric = false;
+      gl.isDataXYZ = false;
       gl.maxY = -Number.MAX_VALUE;
       gl.minY = Number.MIN_VALUE;
       gl.minYArr = [];
@@ -16661,7 +16670,7 @@ var Core = function () {
       for (var _j = 0; _j < ser[i].data.length; _j++) {
         if (typeof ser[i].data[_j][2] !== 'undefined') {
           this.threeDSeries.push(ser[i].data[_j][2]);
-          gl.dataXYZ = true;
+          gl.isDataXYZ = true;
         }
       }
     }
@@ -16700,7 +16709,7 @@ var Core = function () {
             if (cnf.xaxis.type === 'datetime') {
               this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x.toString()));
             } else {
-              this.twoDSeriesX.push(parseInt(ser[i].data[j].x));
+              this.twoDSeriesX.push(parseFloat(ser[i].data[j].x));
             }
           }
         } else {
@@ -16713,7 +16722,7 @@ var Core = function () {
         for (var t = 0; t < series[i].data.length; t++) {
           this.threeDSeries.push(series[i].data[t].z);
         }
-        gl.dataXYZ = true;
+        gl.isDataXYZ = true;
       }
     }
   }, {
@@ -16807,13 +16816,13 @@ var Core = function () {
           gl.seriesX.push(this.twoDSeriesX);
 
           if (!this.fallbackToCategory) {
-            gl.dataXY = true;
+            gl.isXNumeric = true;
           }
         } else {
           if (cnf.xaxis.type === 'datetime') {
             // user didn't supplied [{x,y}] or [[x,y]], but single array in data.
-            // Also labels were supplied differently
-            gl.dataXY = true;
+            // Also labels/categories were supplied differently
+            gl.isXNumeric = true;
             var dates = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice();
 
             for (var j = 0; j < dates.length; j++) {
@@ -16827,6 +16836,12 @@ var Core = function () {
               }
             }
 
+            gl.seriesX.push(this.twoDSeriesX);
+          } else if (cnf.xaxis.type === 'numeric') {
+            gl.isXNumeric = true;
+            var x = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice();
+
+            this.twoDSeriesX = x;
             gl.seriesX.push(this.twoDSeriesX);
           }
           gl.labels.push(this.twoDSeriesX);
@@ -16885,7 +16900,7 @@ var Core = function () {
             gl.seriesX.push(labelArr);
           }
 
-          gl.dataXY = true;
+          gl.isXNumeric = true;
         }
 
         // no series to pull labels from, put a 0-10 series
@@ -16941,7 +16956,7 @@ var Core = function () {
       this.coreUtils.getPercentSeries();
 
       // user didn't provide a [[x,y],[x,y]] series, but a named series
-      if (!gl.dataXY) {
+      if (!gl.isXNumeric) {
         this.handleExternalLabelsData(ser);
       }
     }
@@ -17693,7 +17708,7 @@ var Legend = function () {
                     w.globals.collapsedSeriesIndices.splice(c, 1);
                     w.globals.risingSeries.push(realIndex);
                   }
-                  me.ctx.updateSeriesInternal(w.config.series, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled);
+                  me.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
                 }
               }
             }
@@ -17734,7 +17749,7 @@ var Legend = function () {
 
             w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length;
 
-            me.ctx.updateSeriesInternal(w.config.series, w.globals.initialConfig.chart.animations.dynamicAnimation.enabled);
+            me.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
           }
         } else {
           // for non-axis charts i.e pie / donuts
@@ -18093,7 +18108,7 @@ var Range = function () {
       var gl = this.w.globals;var cnf = this.w.config;
 
       // minX maxX starts here
-      if (gl.dataXY) {
+      if (gl.isXNumeric) {
         for (var i = 0; i < gl.series.length; i++) {
           if (gl.labels[i]) {
             for (var j = 0; j < gl.labels[i].length; j++) {
@@ -18115,10 +18130,10 @@ var Range = function () {
         gl.initialminX = 1;
       }
 
-      // for numeric/datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
+      // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
       // If user willingly disables this option, then skip
       if (cnf.grid.padding.left !== 0 && cnf.grid.padding.right !== 0) {
-        if (cnf.xaxis.type === 'datetime' || gl.dataXY) {
+        if (cnf.xaxis.type === 'datetime') {
           var minX = gl.minX - gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3;
           gl.minX = minX;
           gl.initialminX = minX;
@@ -18129,12 +18144,18 @@ var Range = function () {
       }
 
       var niceXRange = new Range(this.ctx);
-      if (gl.dataXY || gl.noLabelsProvided) {
+      if (gl.isXNumeric || gl.noLabelsProvided) {
         var ticks = void 0;
 
         if (cnf.xaxis.tickAmount === undefined) {
           ticks = Math.round(gl.svgWidth / 150);
 
+          // no labels provided and total number of dataPoints is less than 20
+          if (gl.isXNumeric && gl.dataPoints < 20) {
+            ticks = gl.dataPoints - 1;
+          }
+
+          // this check is for when ticks exceeds total datapoints and that would result in duplicate labels
           if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
             ticks = gl.dataPoints - 1;
           }
@@ -18176,7 +18197,7 @@ var Range = function () {
       var gl = this.w.globals;
 
       // minZ, maxZ starts here
-      if (gl.dataXYZ) {
+      if (gl.isDataXYZ) {
         for (var i = 0; i < gl.series.length; i++) {
           if (typeof gl.seriesZ[i] !== 'undefined') {
             for (var j = 0; j < gl.seriesZ[i].length; j++) {
@@ -18659,7 +18680,7 @@ var ZoomPanSelection = function (_Toolbar) {
         for (var _iterator = this.eventList[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
           var event = _step.value;
 
-          this.hoverArea.addEventListener(event, me.svgMouseEvents.bind(me, xyRatios), false);
+          this.hoverArea.addEventListener(event, me.svgMouseEvents.bind(me, xyRatios), { capture: false, passive: true });
         }
       } catch (err) {
         _didIteratorError = true;
@@ -18692,7 +18713,7 @@ var ZoomPanSelection = function (_Toolbar) {
           var event = _step2.value;
 
           if (this.hoverArea) {
-            this.hoverArea.removeEventListener(event, me.svgMouseEvents.bind(me, me.xyRatios), false);
+            this.hoverArea.removeEventListener(event, me.svgMouseEvents.bind(me, me.xyRatios), { capture: false, passive: true });
           }
         }
       } catch (err) {
@@ -19104,16 +19125,16 @@ var ZoomPanSelection = function (_Toolbar) {
           if (zoomtype === 'x') {
             me.ctx.updateOptionsInternal({
               xaxis: xaxis
-            }, false, true);
+            }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
           } else if (zoomtype === 'y') {
             me.ctx.updateOptionsInternal({
               yaxis: yaxis
-            }, false, true);
+            }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
           } else {
             me.ctx.updateOptionsInternal({
               xaxis: xaxis,
               yaxis: yaxis
-            }, false, true);
+            }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
           }
 
           if (typeof w.config.chart.events.zoomed === 'function') {
@@ -19366,7 +19387,7 @@ var Grid = function () {
             var xCountForCategoryCharts = xCount;
             for (var _i2 = 0; _i2 < xCountForCategoryCharts; _i2++) {
               var x1Count = xCountForCategoryCharts;
-              if (w.globals.dataXY && w.config.chart.type !== 'bar') {
+              if (w.globals.isXNumeric && w.config.chart.type !== 'bar') {
                 x1Count -= 1;
               }
 
@@ -20141,8 +20162,8 @@ var Globals = function () {
         delayedElements: [], // element which appear after animation has finished
         axisCharts: true, // chart type = line or area or bar
         // (refer them also as plot charts in the code)
-        dataXY: false, // bool: data was provided in a {[x,y], [x,y]} pattern
-        dataXYZ: false, // bool: data was provided in a {[x,y,z]} pattern
+        isXNumeric: false, // bool: data was provided in a {[x,y], [x,y]} pattern
+        isDataXYZ: false, // bool: data was provided in a {[x,y,z]} pattern
         resized: false, // bool: user has resized
         resizeTimer: null, // timeout function to make a small delay before
         // drawing when user resized
@@ -20666,7 +20687,7 @@ var Intersect = function () {
             x = clientX - seriesBound.left + 15;
             y = cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
           } else {
-            if (w.globals.dataXY) {
+            if (w.globals.isXNumeric) {
               x = cx - bw / 2;
             } else {
               x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
@@ -20683,7 +20704,7 @@ var Intersect = function () {
             y = cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
           } else {
             // if columns
-            if (w.globals.dataXY) {
+            if (w.globals.isXNumeric) {
               x = cx - bw / 2;
             } else {
               x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
@@ -21021,7 +21042,7 @@ var Labels = function () {
       if (j === null) {
         val = w.globals.series[i];
       } else {
-        if (w.globals.dataXY) {
+        if (w.globals.isXNumeric) {
           xVal = filteredSeriesX[i][j];
           if (filteredSeriesX[i].length === 0) {
             // a series (possibly the first one) might be collapsed, so get the next active index
@@ -21035,7 +21056,7 @@ var Labels = function () {
 
       var bufferXVal = xVal;
 
-      if (w.globals.dataXY && w.config.xaxis.type === 'datetime') {
+      if (w.globals.isXNumeric && w.config.xaxis.type === 'datetime') {
         var xFormat = new _Formatters2.default(this.ctx);
         xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal);
       } else {
@@ -21618,7 +21639,7 @@ var Tooltip = function () {
         var events = ['mousemove', 'touchmove', 'mouseout', 'touchend'];
 
         events.map(function (ev) {
-          return paths[p].addEventListener(ev, self.seriesHover.bind(self, extendedOpts), false);
+          return paths[p].addEventListener(ev, self.seriesHover.bind(self, extendedOpts), { capture: false, passive: true });
         });
       };
 
