@@ -20,6 +20,8 @@ class XAxis {
       this.xaxisLabels = w.globals.timelineLabels.slice()
     }
 
+    this.drawnLabels = []
+
     if (w.config.xaxis.position === 'top') {
       this.offY = 0
     } else {
@@ -118,7 +120,7 @@ class XAxis {
 
         let xFormat = new Formatters(this.ctx)
         label = xFormat.xLabelFormat(xlbFormatter, label)
-        if (customFormatter !== undefined) {
+        if (customFormatter !== undefined && xlbFormatter.toString() !== customFormatter.toString()) {
           label = customFormatter(label, this.xaxisLabels[i], i)
         }
 
@@ -129,9 +131,11 @@ class XAxis {
         }
 
         label = label.toString()
-        if (label === 'NaN' || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0) {
+        if (label === 'NaN' || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || (this.drawnLabels.indexOf(label) >= 0 && !w.config.xaxis.labels.showDuplicates)) {
           label = ''
         }
+
+        this.drawnLabels.push(label)
 
         let offsetYCorrection = 28
         if (w.globals.rotateXLabels) {
