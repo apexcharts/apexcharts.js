@@ -7,8 +7,8 @@
     "shortDays": ["Κυρ", "Δευ", "Τρι", "Τετ", "Πεμ", "Παρ", "Σαβ"],
     "toolbar": {
       "download": "Λήψη SVG",
-      "selection": "Selection",
-      "selectionZoom": "Selection Zoom",
+      "selection": "Επιλογή",
+      "selectionZoom": "Μεγένθυση βάση επιλογής",
       "zoomIn": "Μεγένθυνση",
       "zoomOut": "Σμίκρυνση",
       "pan": "Μετατόπιση",
