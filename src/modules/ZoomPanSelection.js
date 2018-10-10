@@ -326,7 +326,7 @@ class ZoomPanSelection extends Toolbar {
     let startX = me.startX - 1
     let startY = me.startY
 
-    let selectionWidth = me.clientX - gridRectDim.left - startX - 1
+    let selectionWidth = me.clientX - gridRectDim.left - startX
     let selectionHeight = me.clientY - gridRectDim.top - startY
     let translateX = 0
     let translateY = 0
