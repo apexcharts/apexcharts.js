@@ -2201,10 +2201,11 @@
             while (topParent.parentNode) {
               topParent = topParent.parentNode
             }
-            if (topParent != document) throw new Exception('Element not in the dom')
+            if (topParent != document) throw new Error('Element not in the dom')
           } else {
           // the element is NOT in the dom, throw error
-            if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
+            // disabling the check below which fixes issue #76
+            // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
           }
 
           // find native bbox
