@@ -2212,6 +2212,10 @@
           box = element.node.getBBox()
         } catch (e) {
           if (element instanceof SVG.Shape) {
+            if (!SVG.parser.draw) {
+              // fixes apexcharts/vue-apexcharts #14
+              SVG.prepare()
+            }
             var clone = element.clone(SVG.parser.draw.instance).show()
             box = clone.node.getBBox()
             clone.remove()
