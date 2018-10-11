@@ -233,7 +233,7 @@ class Radial extends Pie {
 
     for (let i = (reverseLoop ? opts.series.length - 1 : 0); (reverseLoop ? i >= 0 : i < opts.series.length) ; (reverseLoop ? i-- : i++)) {
       let elRadialBarArc = graphics.group({
-        class: 'apexcharts-radial-series apexcharts-series'
+        class: `apexcharts-series apexcharts-radial-series ${w.globals.seriesNames[i].replace(/ /g, '-')}`
       })
       g.add(elRadialBarArc)
 
@@ -241,6 +241,8 @@ class Radial extends Pie {
         id: 'apexcharts-series-' + i,
         'rel': i + 1
       })
+
+      this.ctx.series.addCollapsedClassToSeries(elRadialBarArc, i)
 
       opts.size = opts.size - strokeWidth - this.margin
 

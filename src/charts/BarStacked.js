@@ -78,7 +78,8 @@ class BarStacked extends Bar {
 
       // el to which series will be drawn
       let elSeries = this.graphics.group({
-        class: 'apexcharts-series',
+        class: `apexcharts-series ${w.globals.seriesNames[realIndex].replace(/ /g, '-')
+        }`,
         'rel': i + 1,
         'data:realIndex': i
       })

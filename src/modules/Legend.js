@@ -435,108 +435,110 @@ class Legend {
   }
 
   onLegendClick (e) {
-    let w = this.w
-    let me = this
     if (
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-point')
     ) {
       let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
+      let isHidden = e.target.getAttribute('data:collapsed') === 'true'
 
-      if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
-        w.globals.resized = true // we don't want initial animations again
+      this.toggleDataSeries(seriesCnt, isHidden)
+    }
+  }
 
-        let seriesEl = null
+  toggleDataSeries (seriesCnt, isHidden) {
+    const w = this.w
+    if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
+      w.globals.resized = true // we don't want initial animations again
 
-        let isHidden = e.target.getAttribute('data:collapsed')
+      let seriesEl = null
 
-        let realIndex = null
+      let realIndex = null
 
-        // yes, make it null. 1 series will rise at a time
-        w.globals.risingSeries = []
+      // yes, make it null. 1 series will rise at a time
+      w.globals.risingSeries = []
 
-        if (w.globals.axisCharts) {
-          seriesEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
-          )
-          realIndex = parseInt(seriesEl.getAttribute('data:realIndex'))
-        } else {
-          seriesEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-series[rel='${seriesCnt + 1}']`
-          )
-          realIndex = parseInt(seriesEl.getAttribute('rel')) - 1
-        }
+      if (w.globals.axisCharts) {
+        seriesEl = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
+        )
+        realIndex = parseInt(seriesEl.getAttribute('data:realIndex'))
+      } else {
+        seriesEl = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-series[rel='${seriesCnt + 1}']`
+        )
+        realIndex = parseInt(seriesEl.getAttribute('rel')) - 1
+      }
 
-        if (isHidden === 'true') {
-          if (w.globals.collapsedSeries.length > 0) {
-            for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
-              if (w.globals.collapsedSeries[c].index === realIndex) {
-                if (w.globals.axisCharts) {
-                  w.config.series[realIndex].data = w.globals.collapsedSeries[c].data.slice()
-                  w.globals.collapsedSeries.splice(c, 1)
-                  w.globals.collapsedSeriesIndices.splice(c, 1)
-                  w.globals.risingSeries.push(realIndex)
-                } else {
-                  w.config.series[realIndex] = w.globals.collapsedSeries[c].data
-                  w.globals.collapsedSeries.splice(c, 1)
-                  w.globals.collapsedSeriesIndices.splice(c, 1)
-                  w.globals.risingSeries.push(realIndex)
-                }
-                me.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
-              }
-            }
-          }
-        } else {
-          if (w.globals.axisCharts) {
-            w.globals.collapsedSeries.push({
-              index: realIndex,
-              data: w.config.series[realIndex].data.slice(),
-              type: seriesEl.parentNode.className.baseVal.split('-')[1]
-            })
-            w.globals.collapsedSeriesIndices.push(realIndex)
-
-            let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
-
-            w.globals.risingSeries.splice(removeIndexOfRising, 1)
-
-            // mutating the user's config object here
-            w.config.series[realIndex].data = []
-          } else {
-            w.globals.collapsedSeries.push({
-              index: realIndex,
-              data: w.config.series[realIndex]
-            })
-            w.globals.collapsedSeriesIndices.push(realIndex)
-            w.config.series[realIndex] = 0
-          }
-
-          let seriesChildren = seriesEl.childNodes
-          for (let sc = 0; sc < seriesChildren.length; sc++) {
-            if (
-              seriesChildren[sc].classList.contains(
-                'apexcharts-series-markers-wrap'
-              )
-            ) {
-              if (seriesChildren[sc].classList.contains('apexcharts-hide')) {
-                seriesChildren[sc].classList.remove('apexcharts-hide')
+      if (isHidden) {
+        if (w.globals.collapsedSeries.length > 0) {
+          for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
+            if (w.globals.collapsedSeries[c].index === realIndex) {
+              if (w.globals.axisCharts) {
+                w.config.series[realIndex].data = w.globals.collapsedSeries[c].data.slice()
+                w.globals.collapsedSeries.splice(c, 1)
+                w.globals.collapsedSeriesIndices.splice(c, 1)
+                w.globals.risingSeries.push(realIndex)
               } else {
-                seriesChildren[sc].classList.add('apexcharts-hide')
+                w.config.series[realIndex] = w.globals.collapsedSeries[c].data
+                w.globals.collapsedSeries.splice(c, 1)
+                w.globals.collapsedSeriesIndices.splice(c, 1)
+                w.globals.risingSeries.push(realIndex)
               }
+              this.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
             }
           }
-
-          w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length
-
-          me.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
         }
       } else {
-        // for non-axis charts i.e pie / donuts
-        let seriesEl = w.globals.dom.Paper.select(
-          ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
-        )
+        if (w.globals.axisCharts) {
+          w.globals.collapsedSeries.push({
+            index: realIndex,
+            data: w.config.series[realIndex].data.slice(),
+            type: seriesEl.parentNode.className.baseVal.split('-')[1]
+          })
+          w.globals.collapsedSeriesIndices.push(realIndex)
 
-        seriesEl.fire('click')
+          let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
+
+          w.globals.risingSeries.splice(removeIndexOfRising, 1)
+
+          // mutating the user's config object here
+          w.config.series[realIndex].data = []
+        } else {
+          w.globals.collapsedSeries.push({
+            index: realIndex,
+            data: w.config.series[realIndex]
+          })
+          w.globals.collapsedSeriesIndices.push(realIndex)
+          w.config.series[realIndex] = 0
+        }
+
+        let seriesChildren = seriesEl.childNodes
+        for (let sc = 0; sc < seriesChildren.length; sc++) {
+          if (
+            seriesChildren[sc].classList.contains(
+              'apexcharts-series-markers-wrap'
+            )
+          ) {
+            if (seriesChildren[sc].classList.contains('apexcharts-hide')) {
+              seriesChildren[sc].classList.remove('apexcharts-hide')
+            } else {
+              seriesChildren[sc].classList.add('apexcharts-hide')
+            }
+          }
+        }
+
+        w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length
+
+        this.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
       }
+    } else {
+      // for non-axis charts i.e pie / donuts
+      let seriesEl = w.globals.dom.Paper.select(
+        ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
+      )
+
+      seriesEl.fire('click')
     }
   }
 }

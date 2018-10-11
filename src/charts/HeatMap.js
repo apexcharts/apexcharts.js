@@ -42,7 +42,7 @@ class HeatMap {
     for (let i = series.length - 1; i >= 0; i--) {
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: 'apexcharts-series apexcharts-heatmap-series',
+        class: `apexcharts-series apexcharts-heatmap-series ${w.globals.seriesNames[i].replace(/ /g, '-')}`,
         'rel': i + 1,
         'data:realIndex': i
       })

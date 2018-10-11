@@ -661,6 +661,13 @@ class ApexCharts {
     return Utils.extend(target, source)
   }
 
+  toggleSeries (seriesName) {
+    const targetElement = this.series.getSeriesByName(seriesName)
+    let seriesCnt = parseInt(targetElement.getAttribute('data:realIndex'))
+    let isHidden = targetElement.classList.contains('apexcharts-series-collapsed')
+    this.legend.toggleDataSeries(seriesCnt, isHidden)
+  }
+
   setupBrushHandler () {
     const w = this.w
 

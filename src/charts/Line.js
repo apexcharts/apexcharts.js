@@ -92,7 +92,7 @@ class Line {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: 'apexcharts-series'
+        class: `apexcharts-series ${w.globals.seriesNames[realIndex].replace(/ /g, '-')}`
       })
 
       // points
@@ -105,11 +105,7 @@ class Line {
         class: 'apexcharts-datalabels'
       })
 
-      for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
-        if (w.globals.collapsedSeries[cs].index === realIndex) {
-          elSeries.node.classList.add('apexcharts-series-collapsed')
-        }
-      }
+      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
 
       let longestSeries = series[i].length === w.globals.dataPoints
       elSeries.attr({

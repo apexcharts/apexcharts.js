@@ -12,6 +12,27 @@ export default class Series {
     this.w = ctx.w
   }
 
+  getAllSeriesEls () {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      `.apexcharts-series`
+    )
+  }
+
+  getSeriesByName (seriesName) {
+    return this.w.globals.dom.baseEl.querySelector(
+      `.apexcharts-series.${seriesName.replace(/ /g, '-')}`
+    )
+  }
+
+  addCollapsedClassToSeries (elSeries, index) {
+    const w = this.w
+    for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
+      if (w.globals.collapsedSeries[cs].index === index) {
+        elSeries.node.classList.add('apexcharts-series-collapsed')
+      }
+    }
+  }
+
   toggleSeriesOnHover (e, targetElement) {
     const w = this.w
 
