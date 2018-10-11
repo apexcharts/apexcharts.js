@@ -14,7 +14,7 @@ module.exports = {
         {
           test: /\.(js)$/,
           enforce: 'pre',
-          exclude: [/node_modules/, path.resolve(__dirname, 'src/utils/ClassListPolyfill.js'), path.resolve(__dirname, 'src/utils/Utils.js')],
+          exclude: [/node_modules/, path.resolve(__dirname, 'src/utils/ClassListPolyfill.js'), path.resolve(__dirname, 'src/svgjs/svg.js'), path.resolve(__dirname, 'src/utils/Utils.js')],
           include: path.resolve(__dirname, 'src/'),
           use: [
             {

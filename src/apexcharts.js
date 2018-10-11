@@ -18,7 +18,7 @@ import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
 
-require('svg.js')
+require('./svgjs/svg.js')
 require('svg.filter.js')
 require('svg.pathmorphing.js')
 require('svg.draggable.js')
