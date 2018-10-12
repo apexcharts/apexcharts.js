@@ -226,8 +226,10 @@ class Defaults {
     this.opts.dataLabels.formatter = this.opts.dataLabels.formatter || undefined
     const existingDataLabelFormatter = this.opts.dataLabels.formatter
 
-    this.opts.yaxis[0].min = 0
-    this.opts.yaxis[0].max = 100
+    this.opts.yaxis.forEach((yaxe, index) => {
+      this.opts.yaxis[index].min = 0
+      this.opts.yaxis[index].max = 100
+    })
 
     const isBar = !!(this.opts.chart.type === 'bar')
 

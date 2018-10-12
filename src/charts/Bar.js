@@ -579,7 +579,7 @@ class Bar {
     if (this.isHorizontal) {
       dataLabelsPos = this.calculateBarsDataLabelsPosition({ x, y, i, j, bcy, barHeight, textRects, strokeWidth, dataLabelsX, dataLabelsY, barDataLabelsConfig, offX, offY })
     } else {
-      dataLabelsPos = this.calculateColumnsDataLabelsPosition({ x, y, i, j, bcx, bcy, barHeight, barWidth, textRects, strokeWidth, dataLabelsY, barDataLabelsConfig, offX, offY })
+      dataLabelsPos = this.calculateColumnsDataLabelsPosition({ x, y, i, j, realIndex, bcx, bcy, barHeight, barWidth, textRects, strokeWidth, dataLabelsY, barDataLabelsConfig, offX, offY })
     }
 
     renderedPath.attr({
@@ -598,7 +598,7 @@ class Bar {
 
   calculateColumnsDataLabelsPosition (opts) {
     const w = this.w
-    let { i, j, y, bcx, barWidth, textRects, dataLabelsY, barDataLabelsConfig, strokeWidth, offX, offY } = opts
+    let { i, j, realIndex, y, bcx, barWidth, textRects, dataLabelsY, barDataLabelsConfig, strokeWidth, offX, offY } = opts
     let dataLabelsX
     let barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
 
@@ -613,7 +613,7 @@ class Bar {
 
     let baseline = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
     let valIsNegative = !!(y > baseline && Math.abs(this.baseLineY[this.yaxisIndex]) !== 0)
-    let negValuesPresent = Math.abs(w.globals.minY) !== 0
+    let negValuesPresent = Math.abs(w.globals.minYArr[realIndex]) !== 0
 
     switch (barDataLabelsConfig.position) {
       case 'center':

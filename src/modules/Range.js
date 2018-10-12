@@ -36,13 +36,14 @@ class Range {
     if (yMin > yMax) {
       // if somehow due to some wrong config, user sent max less than min,
       // adjust the min/max again
-      yMin = yMax - 0.1
+      console.warn('yaxis.min cannot be greater than yaxis.max')
+      yMax = yMin + 0.1
     } else if (yMin === yMax) {
       // If yMin and yMax are identical, then
       // adjust the yMin and yMax values to actually
       // make a graph. Also avoids division by zero errors.
-      yMin = yMin - 10 // some small value
-      yMax = yMax + 10 // some small value
+      yMin = yMin - 0.1 // some small value
+      yMax = yMax + 0.1 // some small value
     }
 
     // Calculate Min amd Max graphical labels and graph
@@ -252,13 +253,17 @@ class Range {
         typeof yaxe.max === 'number'
       ) {
         gl.maxYArr[index] = yaxe.max
+
+        // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
         gl.maxY = yaxis[0].max
       }
       if (
-        yaxis[0].min !== undefined &&
-        typeof yaxis[0].min === 'number'
+        yaxe.min !== undefined &&
+        typeof yaxe.min === 'number'
       ) {
         gl.minYArr[index] = yaxe.min
+
+        // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
         gl.minY = yaxis[0].min
       }
     })
@@ -292,16 +297,31 @@ class Range {
 
     // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
+      const minYArr = gl.minYArr.concat([])
+      const maxYArr = gl.maxYArr.concat([])
+
       // here, we loop through the yaxis array and find the item which has "seriesName" property
-      cnf.yaxis.forEach((y, i) => {
+      cnf.yaxis.forEach((yaxe, i) => {
         let index = i
         cnf.series.forEach((s, si) => {
           // if seriesName matches and that series is not collapsed, we use that scale
-          if (s.name === y.seriesName && !gl.collapsedSeriesIndices.includes(si)) {
+          if (s.name === yaxe.seriesName && !gl.collapsedSeriesIndices.includes(si)) {
             index = si
           }
         })
-        reCalculateMinMaxY(i, gl.minYArr[index], gl.maxYArr[index])
+
+        let minY = minYArr[index]
+        let maxY = maxYArr[index]
+
+        if (yaxe.min !== undefined) {
+          minY = yaxe.min
+        }
+        if (yaxe.max !== undefined) {
+          maxY = yaxe.max
+        }
+
+        reCalculateMinMaxY(i, minY, maxY)
+
         gl.minYArr[i] = gl.yAxisScale[i].niceMin
         gl.maxYArr[i] = gl.yAxisScale[i].niceMax
       })
@@ -343,7 +363,7 @@ class Range {
     // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
     // If user willingly disables this option, then skip
     if (cnf.grid.padding.left !== 0 && cnf.grid.padding.right !== 0) {
-      if (cnf.xaxis.type === 'datetime') {
+      if (cnf.xaxis.type !== 'category') {
         const minX = gl.minX - (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3
         gl.minX = minX
         gl.initialminX = minX

@@ -183,13 +183,13 @@ class Line {
           }
 
           if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-            y = lineYPosition - (w.globals.minY) / yRatio[this.yaxisIndex]
+            y = lineYPosition - (w.globals.minYArr[realIndex]) / yRatio[this.yaxisIndex]
           } else {
             y = (lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex])
           }
         } else {
           if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-            y = zeroY - (w.globals.minY) / yRatio[this.yaxisIndex]
+            y = zeroY - (w.globals.minYArr[realIndex]) / yRatio[this.yaxisIndex]
           } else {
             y = (zeroY - series[i][j + 1] / yRatio[this.yaxisIndex])
           }
