@@ -304,7 +304,7 @@ class Toolbar {
         ch.revertDefaultAxisMinMax()
         w.globals.zoomed = false
 
-        ch.updateSeriesInternal(w.globals.initialSeries, true)
+        ch.updateSeriesInternal(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled)
       }
     })
   }
