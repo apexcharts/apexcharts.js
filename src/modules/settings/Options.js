@@ -8,6 +8,7 @@ export default class Options {
     this.defaultFont = 'Helvetica, Arial, sans-serif'
 
     this.yAxis = {
+      show: true,
       opposite: false,
       tickAmount: 6,
       max: undefined,

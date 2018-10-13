@@ -38,6 +38,10 @@ class YAxis {
       'translate(' + w.globals.translateYAxisX[realIndex] + ', 0)'
     })
 
+    if (!w.config.yaxis[realIndex].show) {
+      return elYaxis
+    }
+
     let elYaxisTexts = graphics.group({
       'class': 'apexcharts-yaxis-texts-g'
     })

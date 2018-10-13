@@ -74,11 +74,14 @@ class Dimensions {
     } else {
       this.yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
     }
-    if (this.yAxisWidth < w.config.yaxis[0].labels.minWidth) {
-      this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
-    }
-    if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
-      this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
+
+    if (!w.globals.isMultipleYAxis) {
+      if (this.yAxisWidth < w.config.yaxis[0].labels.minWidth) {
+        this.yAxisWidth = w.config.yaxis[0].labels.minWidth
+      }
+      if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
+        this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
+      }
     }
   }
 
@@ -293,7 +296,7 @@ class Dimensions {
       if (yLabelCoord.width > 0 && !floating) {
         yAxisWidth = yAxisWidth + yLabelCoord.width + padding
         if (w.globals.ignoreYAxisIndexes.includes(index)) {
-          yAxisWidth = yAxisWidth - yLabelCoord.width
+          yAxisWidth = yAxisWidth - yLabelCoord.width - padding
         }
       } else {
         yAxisWidth = yAxisWidth + (floating ? 0 : 5)
@@ -302,10 +305,11 @@ class Dimensions {
 
     w.globals.yTitleCoords.map((yTitleCoord, index) => {
       let floating = w.config.yaxis[index].floating
+      padding = (parseInt(w.config.yaxis[index].title.style.fontSize))
       if (yTitleCoord.width > 0 && !floating) {
-        yAxisWidth = yAxisWidth + yTitleCoord.width + (parseInt(w.config.yaxis[index].title.style.fontSize))
+        yAxisWidth = yAxisWidth + yTitleCoord.width + padding
         if (w.globals.ignoreYAxisIndexes.includes(index)) {
-          yAxisWidth = yAxisWidth - yTitleCoord.width
+          yAxisWidth = yAxisWidth - yTitleCoord.width - padding
         }
       } else {
         yAxisWidth = yAxisWidth + (floating ? 0 : 5)
@@ -434,7 +438,7 @@ class Dimensions {
     let labelPad = 10
 
     w.config.yaxis.map((yaxe, index) => {
-      if (yaxe.labels.show && w.globals.yAxisScale[index].result.length) {
+      if (yaxe.show && yaxe.labels.show && w.globals.yAxisScale[index].result.length) {
         let lbFormatter = w.globals.yLabelFormatters[index]
         let val = lbFormatter(w.globals.yAxisScale[index].niceMax)
 
@@ -504,7 +508,7 @@ class Dimensions {
     let ret = []
 
     w.config.yaxis.map((yaxe, index) => {
-      if (yaxe.title.text !== undefined) {
+      if (yaxe.show && yaxe.title.text !== undefined) {
         let graphics = new Graphics(this.ctx)
         let rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, 'rotate(-90 0 0)', false)
 
