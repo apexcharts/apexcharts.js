@@ -381,7 +381,7 @@ class Range {
         ticks = Math.round(gl.svgWidth / 150)
 
         // no labels provided and total number of dataPoints is less than 20
-        if (gl.isXNumeric && gl.dataPoints < 20) {
+        if (cnf.xaxis.type === 'numeric' && gl.dataPoints < 20) {
           ticks = gl.dataPoints - 1
         }
 

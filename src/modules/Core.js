@@ -592,14 +592,17 @@ class Core {
           gl.seriesX.push(this.twoDSeriesX)
         } else if (cnf.xaxis.type === 'numeric') {
           gl.isXNumeric = true
-          const x = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
+          let x = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
 
-          this.twoDSeriesX = x
-          gl.seriesX.push(this.twoDSeriesX)
+          if (x.length > 0) {
+            this.twoDSeriesX = x
+            gl.seriesX.push(this.twoDSeriesX)
+          }
         }
         gl.labels.push(this.twoDSeriesX)
         gl.series.push(ser[i].data)
       }
+
       gl.seriesZ.push(this.threeDSeries)
 
       // gl.series.push(ser[i].data)
@@ -704,7 +707,7 @@ class Core {
     this.coreUtils.getPercentSeries()
 
     // user didn't provide a [[x,y],[x,y]] series, but a named series
-    if (!gl.isXNumeric) {
+    if (!gl.isXNumeric || (cnf.xaxis.type === 'numeric' && cnf.labels.length === 0 && cnf.xaxis.categories.length === 0)) {
       this.handleExternalLabelsData(ser)
     }
   }
