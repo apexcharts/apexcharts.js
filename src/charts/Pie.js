@@ -386,6 +386,17 @@ class Pie {
     let startAngle = toStartAngle
     let fromAngle = (fromStartAngle - toStartAngle)
 
+    if (w.globals.dataChanged && params.shouldSetPrevPaths) {
+      // to avoid flickering, set prev path first and then we will animate from there
+      path = me.getPiePath({
+        me,
+        startAngle,
+        angle: prevAngle,
+        size
+      })
+      el.attr({ d: path })
+    }
+
     if (opts.dur !== 0) {
       el.animate(opts.dur, w.globals.easing, opts.animBeginArr[opts.i]).afterAll(function () {
         if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
@@ -527,52 +538,11 @@ class Pie {
 
     if (w.config.chart.type === 'donut') {
       path = [
-        'M',
-        x1,
-        y1,
-        'A',
-        size,
-        size,
-        0,
-        largeArc,
-        1,
-        x2,
-        y2,
-        'L',
-        startInner.x,
-        startInner.y,
-        'A',
-        me.donutSize,
-        me.donutSize,
-        0,
-        largeArc,
-        0,
-        endInner.x,
-        endInner.y,
-        'L',
-        x1,
-        y1,
-        'z'
+        'M', x1, y1, 'A', size, size, 0, largeArc, 1, x2, y2, 'L', startInner.x, startInner.y, 'A', me.donutSize, me.donutSize, 0, largeArc, 0, endInner.x, endInner.y, 'L', x1, y1, 'z'
       ].join(' ')
     } else if (w.config.chart.type === 'pie') {
       path = [
-        'M',
-        x1,
-        y1,
-        'A',
-        size,
-        size,
-        0,
-        largeArc,
-        1,
-        x2,
-        y2,
-        'L',
-        me.centerX,
-        me.centerY,
-        'L',
-        x1,
-        y1
+        'M', x1, y1, 'A', size, size, 0, largeArc, 1, x2, y2, 'L', me.centerX, me.centerY, 'L', x1, y1
       ].join(' ')
     } else {
       path = ['M', x1, y1, 'A', size, size, 0, largeArc, 1, x2, y2].join(' ')
