@@ -88,7 +88,7 @@ class Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions({ makeWidthForVisibleItems: false })
+      let initPositions = this.initialPositions()
 
       y = initPositions.y
       barHeight = initPositions.barHeight
@@ -213,6 +213,7 @@ class Bar {
 
     let renderedPath = graphics.renderPaths({
       i,
+      j,
       realIndex,
       pathFrom: pathFrom,
       pathTo: pathTo,
@@ -238,7 +239,7 @@ class Bar {
     return elSeries
   }
 
-  initVariables (series, shouldGetVisibleItems) {
+  initVariables (series) {
     const w = this.w
     this.series = series
     this.totalItems = 0
@@ -251,12 +252,14 @@ class Bar {
         this.seriesLen = this.seriesLen + 1
         this.totalItems += series[sl].length
       }
-      if (shouldGetVisibleItems) {
+      if (w.globals.isXNumeric) {
         for (let j = 0; j < series[sl].length; j++) {
           if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
             this.visibleItems++
           }
         }
+      } else {
+        this.visibleItems = w.globals.dataPoints
       }
     }
 
@@ -266,7 +269,7 @@ class Bar {
     }
   }
 
-  initialPositions ({ makeWidthForVisibleItems = false }) {
+  initialPositions () {
     let w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
     if (this.isHorizontal) {
@@ -287,23 +290,9 @@ class Bar {
       y = (yDivision - barHeight * this.seriesLen) / 2
     } else {
       // width divided into equal parts
-      xDivision = w.globals.gridWidth / w.globals.dataPoints
+      xDivision = w.globals.gridWidth / this.visibleItems
       barWidth =
-        xDivision / this.seriesLen
-
-      if (w.globals.isXNumeric) {
-        if (makeWidthForVisibleItems) {
-          xDivision = w.globals.gridWidth / (this.visibleItems)
-          barWidth =
-            xDivision / (this.seriesLen) * 0.7
-        } else {
-          xDivision = w.globals.gridWidth / (this.totalItems / 2)
-          barWidth =
-            xDivision / (this.seriesLen + 1) * (parseInt(this.barOptions.columnWidth) / 100)
-        }
-      } else {
-        barWidth = barWidth * parseInt(this.barOptions.columnWidth) / 100
-      }
+        xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
 
       zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
 

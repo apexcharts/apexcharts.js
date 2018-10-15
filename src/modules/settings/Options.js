@@ -203,6 +203,7 @@ export default class Options {
           opacity: 0.35
         },
         events: {
+          animationEnd: undefined,
           beforeMount: undefined,
           mounted: undefined,
           updated: undefined,
@@ -671,6 +672,7 @@ export default class Options {
           show: true,
           rotate: -45,
           rotateAlways: false,
+          hideOverlappingLabels: true,
           trim: true,
           minHeight: undefined,
           maxHeight: 120,

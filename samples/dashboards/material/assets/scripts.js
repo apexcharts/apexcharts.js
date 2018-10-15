@@ -320,11 +320,11 @@ var optionsDonutTop = {
   }
 }
 
-var chartCircle2 = new ApexCharts(document.querySelector('#donutTop'), optionsDonutTop);
-chartCircle2.render().then(function () {
-  window.setInterval(function () {
-    chartCircle2.updateSeries([getRandom(), getRandom(), getRandom()])
-  }, 1000)
+var chartDonut2 = new ApexCharts(document.querySelector('#donutTop'), optionsDonutTop);
+chartDonut2.render().then(function () {
+  // window.setInterval(function () {
+  //   chartDonut2.updateSeries([getRandom(), getRandom(), getRandom()])
+  // }, 1000)
 });
 
 var optionsArea = {

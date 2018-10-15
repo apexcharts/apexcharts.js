@@ -100,6 +100,8 @@ class Line {
         class: 'apexcharts-series-markers-wrap'
       })
 
+      elPointsMain.node.classList.add('hidden')
+
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels'

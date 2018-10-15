@@ -89,7 +89,6 @@ class ApexCharts {
         let graphData = this.create(this.w.config.series)
         if (!graphData) return resolve(this)
         this.mount(graphData).then(() => {
-          this.animations.showDelayedElements()
           resolve(graphData)
 
           if (typeof this.w.config.chart.events.mounted === 'function') {
@@ -264,8 +263,6 @@ class ApexCharts {
         me.annotations.drawAnnotations()
       }
 
-      me.animations.showDelayedElements()
-
       if (graphData.elGraph instanceof Array) {
         for (let g = 0; g < graphData.elGraph.length; g++) {
           w.globals.dom.elGraphical.add(graphData.elGraph[g])
@@ -322,7 +319,6 @@ class ApexCharts {
           fn.method(fn.params, false, fn.context)
         }
       }
-
       resolve(me)
     })
   }

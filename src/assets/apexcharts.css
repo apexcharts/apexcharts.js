@@ -425,11 +425,8 @@
   animation-timing-function: ease;
 }
 
-.apexcharts-showAfterDelay {
+.hidden {
   opacity: 0;
-  animation-name: opaque;
-  animation-duration: 0.3s;
-  animation-fill-mode: forwards;
 }
 
 .apexcharts-hide .apexcharts-series-points {

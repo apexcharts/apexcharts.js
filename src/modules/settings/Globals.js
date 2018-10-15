@@ -92,6 +92,7 @@ export default class Globals {
       memory: {
         methodsToExec: []
       },
+      shouldAnimate: true,
       delayedElements: [], // element which appear after animation has finished
       axisCharts: true, // chart type = line or area or bar
       // (refer them also as plot charts in the code)

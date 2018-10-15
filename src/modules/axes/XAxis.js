@@ -131,7 +131,7 @@ class XAxis {
         }
 
         label = label.toString()
-        if (label === 'NaN' || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || (this.drawnLabels.indexOf(label) >= 0 && !w.config.xaxis.labels.showDuplicates)) {
+        if (label.indexOf('NaN') === 0 || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || (this.drawnLabels.indexOf(label) >= 0 && !w.config.xaxis.labels.showDuplicates)) {
           label = ''
         }
 

@@ -1,3 +1,5 @@
+import Utils from '../utils/Utils'
+
 /**
  * ApexCharts Animation Class.
  *
@@ -90,7 +92,7 @@ class Animations {
   }
 
   animatePathsGradually (params) {
-    let { el, pathFrom, pathTo, speed, delay, strokeWidth } = params
+    let { el, j, pathFrom, pathTo, speed, delay, strokeWidth } = params
 
     let me = this
     let w = this.w
@@ -104,14 +106,14 @@ class Animations {
 
     if (
       w.config.chart.animations.dynamicAnimation.enabled &&
-      w.globals.dataChanged &&
-      w.globals.shouldAnimate
+      w.globals.dataChanged
     ) {
       delayFactor = 0
     }
 
     me.morphSVG(
       el,
+      j,
       pathFrom,
       pathTo,
       speed,
@@ -123,6 +125,7 @@ class Animations {
   // SVG.js animation for morphing one path to another
   morphSVG (
     el,
+    j,
     pathFrom,
     pathTo,
     speed,
@@ -147,50 +150,28 @@ class Animations {
       pathTo = `M 0 ${w.globals.gridHeight}`
       speed = 1
     }
+    if (!w.globals.shouldAnimate) {
+      speed = 1
+    }
 
-    el.plot(pathFrom).animate(1, w.globals.easing, delay).plot(pathFrom).animate(speed, w.globals.easing, delay).plot(pathTo)
-  }
+    el.plot(pathFrom).animate(1, w.globals.easing, delay).plot(pathFrom).animate(speed, w.globals.easing, delay).plot(pathTo).afterAll(() => {
+      // a flag to indicate that the original mount function can return true now as animation finished here
 
-  /* This function is called when initial animation ends.
-   ** as we are delaying some elements on axis chart types and showing after initialAnim
-   */
-  showDelayedElements () {
-    let w = this.w
-
-    let anim = w.config.chart.animations
-    let speed = anim.speed
-    let gradualAnimate = anim.animateGradually.enabled
-    let gradualDelay = anim.animateGradually.delay
-
-    if (anim.enabled && !w.globals.resized) {
-      for (let i = 0; i < w.globals.series.length; i++) {
-        let delay = 0
-        if (gradualAnimate) {
-          delay = (i + 1) * (gradualDelay / 1000)
-        }
-
-        for (let z = 0; z < w.globals.delayedElements.length; z++) {
-          if (w.globals.delayedElements[z].index === i) {
-            let ele = w.globals.delayedElements[z].el
-            ele.classList.add('apexcharts-showAfterDelay')
-            ele.style.animationDelay = (speed / 950) + delay + 's'
+      if (typeof w.config.chart.events.animationEnd === 'function') {
+        if (Utils.isNumber(j)) {
+          if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
+            w.config.chart.events.animationEnd(this.ctx, w)
           }
+        } else if (w.globals.shouldAnimate) {
+          w.config.chart.events.animationEnd(this.ctx, w)
         }
       }
-    }
 
-    if (
-      w.config.chart.animations.dynamicAnimation.enabled &&
-      w.globals.dataChanged &&
-      w.globals.shouldAnimate
-    ) {
-      for (let z = 0; z < w.globals.delayedElements.length; z++) {
-        let ele = w.globals.delayedElements[z].el
-        ele.classList.add('apexcharts-showAfterDelay')
-        ele.style.animationDelay =
-          w.config.chart.animations.dynamicAnimation.speed / 950 + 's'
-      }
-    }
+      w.globals.delayedElements.forEach((d) => {
+        const ele = d.el
+        ele.classList.remove('hidden')
+      })
+    })
   }
 }
 

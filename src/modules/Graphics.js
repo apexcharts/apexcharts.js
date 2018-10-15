@@ -163,6 +163,7 @@ class Graphics {
    **/
   renderPaths ({
     i,
+    j,
     realIndex,
     pathFrom,
     pathTo,
@@ -240,24 +241,26 @@ class Graphics {
       pathFrom
     })
 
+    const defaultAnimateOpts = {
+      el: el,
+      j,
+      pathFrom: pathFrom,
+      pathTo: pathTo,
+      strokeWidth
+    }
+
     if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
       anim.animatePathsGradually({
-        el: el,
-        pathFrom: pathFrom,
-        pathTo: pathTo,
+        ...defaultAnimateOpts,
         speed: initialSpeed,
-        delay: animationDelay,
-        strokeWidth
+        delay: animationDelay
       })
     }
 
     if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
       anim.animatePathsGradually({
-        el: el,
-        pathFrom: pathFrom,
-        pathTo: pathTo,
-        speed: dataChangeSpeed,
-        strokeWidth
+        ...defaultAnimateOpts,
+        speed: dataChangeSpeed
       })
     }
 

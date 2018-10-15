@@ -27,6 +27,7 @@ class Annotations {
       const annoElArray = [xAnnotations.node, yAnnotations.node, pointAnnotations.node]
       for (let i = 0; i < 3; i++) {
         w.globals.dom.elGraphical.add(annoArray[i])
+        annoElArray[i].classList.add('hidden')
         w.globals.delayedElements.push({ el: annoElArray[i], index: 0 })
       }
 

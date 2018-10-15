@@ -389,6 +389,8 @@ class Range {
         if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
           ticks = gl.dataPoints - 1
         }
+      } else if (cnf.xaxis.tickAmount === 'dataPoints') {
+        ticks = gl.series[gl.maxValsInArrayIndex].length - 1
       } else {
         ticks = cnf.xaxis.tickAmount
       }

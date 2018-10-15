@@ -285,10 +285,6 @@ var optionsLine = {
   },
   grid: {
     show: true,
-    padding: {
-      left: 0,
-      right: 0
-    }
   },
   labels: ['01/15/2002', '01/16/2002', '01/17/2002', '01/18/2002', '01/19/2002', '01/20/2002'],
   xaxis: {

@@ -59,6 +59,7 @@ class TimeScale {
       minYear: timeIntervals.minYear
     }
 
+    let currentMinute = firstVal.minMinute
     let currentHour = firstVal.minHour
     let currentMonthDate = firstVal.minDate
     let currentDate = firstVal.minDate
@@ -67,6 +68,7 @@ class TimeScale {
 
     const params = {
       firstVal,
+      currentMinute,
       currentHour,
       currentMonthDate,
       currentDate,
@@ -586,6 +588,7 @@ class TimeScale {
   generateMinuteScale (params) {
     const {
       firstVal,
+      currentMinute,
       currentHour,
       currentDate,
       currentMonth,
@@ -597,7 +600,7 @@ class TimeScale {
     let yrCounter = 0
     let unit = 'minute'
 
-    let remainingMins = 60 - firstVal.minMinute
+    let remainingMins = currentMinute - firstVal.minMinute
 
     let firstTickPosition = minutesWidthOnXAxis - remainingMins
     let firstTickValue = firstVal.minMinute + 1
@@ -616,7 +619,7 @@ class TimeScale {
       day: date,
       hour,
       minute,
-      year: year,
+      year,
       month: this.monthMod(month)
     })
 
@@ -719,7 +722,7 @@ class TimeScale {
     let lastDrawnIndex = 0
 
     let filteredArray = arr.map((item, index) => {
-      if (index > 0) {
+      if (index > 0 && this.w.config.xaxis.labels.hideOverlappingLabels) {
         const prevLabelWidth = graphics.getTextRects(arr[lastDrawnIndex].value).width
         const prevPos = arr[lastDrawnIndex].position
         const pos = item.position

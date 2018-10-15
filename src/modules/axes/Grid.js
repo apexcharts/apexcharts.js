@@ -97,7 +97,7 @@ class Grid {
         if (w.globals.timelineLabels.length > 0) {
           for (let i = 0; i < xCount; i++) {
             x1 = this.xaxisLabels[i].position; x2 = this.xaxisLabels[i].position
-            if (w.config.grid.xaxis.lines.show) {
+            if (w.config.grid.xaxis.lines.show && x1 > 0 && x1 < w.globals.gridWidth) {
               let line = graphics.drawLine(
                 x1,
                 y1,

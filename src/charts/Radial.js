@@ -25,6 +25,8 @@ class Radial extends Pie {
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
     this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle
 
+    this.radialDataLabels = w.config.plotOptions.radialBar.dataLabels
+
     if (!this.trackStartAngle) this.trackStartAngle = this.startAngle
     if (!this.trackEndAngle) this.trackEndAngle = this.endAngle
 
@@ -210,7 +212,7 @@ class Radial extends Pie {
     }
 
     let shown = 1
-    if (w.config.plotOptions.radialBar.dataLabels.showOn === 'hover' || w.globals.series.length > 1) {
+    if (this.radialDataLabels.showOn === 'hover' || w.globals.series.length > 1) {
       shown = 0
     }
 
@@ -423,7 +425,7 @@ class Radial extends Pie {
       '.apexcharts-datalabel-value'
     )
 
-    let lbFormatter = w.config.plotOptions.radialBar.dataLabels.value.formatter
+    let lbFormatter = this.radialDataLabels.value.formatter
     val = lbFormatter(val)
 
     if (elLabel !== null) {
@@ -434,11 +436,11 @@ class Radial extends Pie {
       elValue.textContent = val
     }
 
-    if (w.config.plotOptions.radialBar.dataLabels.name.color === undefined) {
+    if (this.radialDataLabels.name.color === undefined) {
       labelColor =
         w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1]
     } else {
-      labelColor = w.config.plotOptions.radialBar.dataLabels.name.color
+      labelColor = this.radialDataLabels.name.color
     }
 
     let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
@@ -458,7 +460,7 @@ class Radial extends Pie {
       '.apexcharts-datalabels-group'
     )
     if (
-      w.config.plotOptions.radialBar.dataLabels.showOn !== 'always' ||
+      this.radialDataLabels.showOn !== 'always' ||
       w.globals.series.length > 1
     ) {
       if (dataLabelsGroup !== null) {
@@ -490,37 +492,37 @@ class Radial extends Pie {
 
     let labelColor, valueColor
 
-    if (w.config.plotOptions.radialBar.dataLabels.name.color === undefined) {
+    if (this.radialDataLabels.name.color === undefined) {
       labelColor = w.globals.colors[0]
     } else {
-      labelColor = w.config.plotOptions.radialBar.dataLabels.name.color
+      labelColor = this.radialDataLabels.name.color
     }
 
-    if (w.config.plotOptions.radialBar.dataLabels.value.color === undefined) {
+    if (this.radialDataLabels.value.color === undefined) {
       valueColor = w.config.chart.foreColor
     } else {
-      valueColor = w.config.plotOptions.radialBar.dataLabels.value.color
+      valueColor = this.radialDataLabels.value.color
     }
 
-    let lbFormatter = w.config.plotOptions.radialBar.dataLabels.value.formatter
+    let lbFormatter = this.radialDataLabels.value.formatter
     let val = lbFormatter(w.globals.series[0])
 
-    if (w.config.plotOptions.radialBar.dataLabels.name.show) {
+    if (this.radialDataLabels.name.show) {
       let elLabel = graphics.drawText({
         x: x,
-        y: y + parseInt(w.config.plotOptions.radialBar.dataLabels.name.offsetY),
+        y: y + parseInt(this.radialDataLabels.name.offsetY),
         text: w.globals.seriesNames[0],
         textAnchor: 'middle',
         foreColor: labelColor,
-        fontSize: w.config.plotOptions.radialBar.dataLabels.name.fontSize,
-        fontFamily: w.config.plotOptions.radialBar.dataLabels.name.fontFamily
+        fontSize: this.radialDataLabels.name.fontSize,
+        fontFamily: this.radialDataLabels.name.fontFamily
       })
       elLabel.node.classList.add('apexcharts-datalabel-label')
       g.add(elLabel)
     }
 
-    if (w.config.plotOptions.radialBar.dataLabels.value.show) {
-      let valOffset = w.config.plotOptions.radialBar.dataLabels.name.show ? parseInt(w.config.plotOptions.radialBar.dataLabels.value.offsetY) + 16 : (w.config.plotOptions.radialBar.dataLabels.value.offsetY)
+    if (this.radialDataLabels.value.show) {
+      let valOffset = this.radialDataLabels.name.show ? parseInt(this.radialDataLabels.value.offsetY) + 16 : (this.radialDataLabels.value.offsetY)
 
       let elValue = graphics.drawText({
         x: x,
@@ -528,8 +530,8 @@ class Radial extends Pie {
         text: val,
         textAnchor: 'middle',
         foreColor: valueColor,
-        fontSize: w.config.plotOptions.radialBar.dataLabels.value.fontSize,
-        fontFamily: w.config.plotOptions.radialBar.dataLabels.value.fontFamily
+        fontSize: this.radialDataLabels.value.fontSize,
+        fontFamily: this.radialDataLabels.value.fontFamily
       })
       elValue.node.classList.add('apexcharts-datalabel-value')
       g.add(elValue)

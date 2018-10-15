@@ -1,0 +1,29 @@
+
+body {
+  background: #18151E;
+  color: #777;
+  font-family: Montserrat, Arial, sans-serif;
+}
+
+.body-bg {
+  background: #F3F4FA !important;
+}
+
+h1, h2, h3, h4, h5, h6, strong {
+  font-weight: 600;
+}
+
+body {
+  /*background: linear-gradient(45deg,#3a3a60,#5f5f8e);
+  min-height: 100vh;*/
+}
+
+.content-area {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.box {
+  background-color: #18151E;
+  padding: 25px 20px;  
+}
