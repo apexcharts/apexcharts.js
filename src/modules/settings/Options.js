@@ -180,7 +180,7 @@ export default class Options {
       chart: {
         animations: {
           enabled: true,
-          easing: 'easeinout', // linear, easeout, easein, easeinout
+          easing: 'swing', // linear, easeout, easein, easeinout, swing, bounce, elastic
           speed: 800,
           animateGradually: {
             delay: 150,

@@ -36,6 +36,35 @@ class Animations {
         easing = '<>'
         break
       }
+      case 'swing': {
+        easing = (pos) => {
+          var s = 1.70158
+          return (pos -= 1) * pos * ((s + 1) * pos + s) + 1
+        }
+        break
+      }
+      case 'bounce': {
+        easing = (pos) => {
+          if ((pos) < (1 / 2.75)) {
+            return (7.5625 * pos * pos)
+          } else if (pos < (2 / 2.75)) {
+            return (7.5625 * (pos -= (1.5 / 2.75)) * pos + 0.75)
+          } else if (pos < (2.5 / 2.75)) {
+            return (7.5625 * (pos -= (2.25 / 2.75)) * pos + 0.9375)
+          } else {
+            return (7.5625 * (pos -= (2.625 / 2.75)) * pos + 0.984375)
+          }
+        }
+        break
+      }
+      case 'elastic': {
+        easing = (pos) => {
+          if (pos === !!pos) return pos
+          return Math.pow(2, -10 * pos) * Math.sin((pos - 0.075) * (2 * Math.PI) / 0.3) + 1
+        }
+        break
+      }
+
       default: {
         easing = '<>'
       }
