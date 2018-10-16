@@ -1,6 +1,6 @@
 window.Apex = {
   chart: {
-    foreColor: '#ccc',
+    foreColor: '#fff',
     toolbar: {
       show: false
     },
@@ -13,7 +13,15 @@ window.Apex = {
     enabled: false
   },
   grid: {
-    borderColor: "#535A6C",
+    borderColor: "#25222c",
+  },
+  xaxis: {
+    axisTicks: {
+      color: '#333'
+    },
+    axisBorder: {
+      color: "#333"
+    }
   },
   tooltip: {
     theme: 'dark',
@@ -121,7 +129,7 @@ var optionsColumn = {
       shade: 'dark',
       type: 'vertical',
       shadeIntensity: 0.5,
-      gradientToColors: ['#EE5A35', '#046EF6'],
+      gradientToColors: ['#EE5A35'],
       inverseColors: false,
       opacityFrom: 1,
       opacityTo: 0.8,
@@ -137,7 +145,7 @@ var optionsColumn = {
     max: 150
   },
   legend: {
-    show: false
+    show: true
   },
 }
 
@@ -234,8 +242,11 @@ var optionsLine = {
     min: 0,
     max: 220
   },
+
   legend: {
-    show: false
+    show: true,
+    floating: true,
+    position: 'top'
   },
 }
 
@@ -248,7 +259,6 @@ chartLine.render()
 var optionsCircle = {
   chart: {
     type: 'radialBar',
-    width: 380,
     height: 360,
   },
   plotOptions: {
@@ -272,9 +282,10 @@ var optionsCircle = {
     },
   },
   series: [71, 63],
-  labels: ['June', 'May'],
+  labels: ['New Customers', 'Existing Customers'],
   legend: {
     show: true,
+    position: 'left'
   },
   fill: {
     type: 'gradient',
@@ -282,7 +293,7 @@ var optionsCircle = {
       shade: 'dark',
       type: 'horizontal',
       shadeIntensity: 0.5,
-      gradientToColors: ['#EE5C36', '#50C7F9'],
+      gradientToColors: ['#EE5C36','#55D0F9'],
       inverseColors: true,
       opacityFrom: 1,
       opacityTo: 1,

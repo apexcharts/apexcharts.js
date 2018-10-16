@@ -257,7 +257,7 @@ class Toolbar {
     }
 
     const beforeZoomRange = this.getBeforeZoomRange(xaxis)
-    if (beforeZoomRange !== null) {
+    if (beforeZoomRange) {
       xaxis = beforeZoomRange.xaxis
     }
 

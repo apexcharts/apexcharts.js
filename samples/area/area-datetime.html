@@ -91,6 +91,14 @@
       chart: {
         type: 'area',
         height: 350,
+        events: {
+          beforeZoom: function(w, opts) {
+           console.log('before')
+          },
+          zoomed: function() {
+            console.log('zoomed')
+          }
+        }
       },
       dataLabels: {
         enabled: false

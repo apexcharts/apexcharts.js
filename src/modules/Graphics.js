@@ -311,11 +311,13 @@ class Graphics {
     let stop1 = 0
     let stop2 = 1
     let stop3 = 1
+    let stop4 = null
 
     if (stops !== null) {
       stop1 = typeof (stops[0]) !== 'undefined' ? stops[0] / 100 : 0
       stop2 = typeof (stops[1]) !== 'undefined' ? stops[1] / 100 : 1
       stop3 = typeof (stops[2]) !== 'undefined' ? stops[2] / 100 : 1
+      stop4 = typeof (stops[3]) !== 'undefined' ? stops[3] / 100 : null
     }
 
     let radial = !!(w.config.chart.type === 'donut' ||
@@ -326,6 +328,9 @@ class Graphics {
       stop.at(stop1, gfrom, opacityFrom)
       stop.at(stop2, gto, opacityTo)
       stop.at(stop3, gto, opacityTo)
+      if (stop4 !== null) {
+        stop.at(stop4, gfrom, opacityFrom)
+      }
     })
 
     if (!radial) {

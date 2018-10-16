@@ -184,7 +184,7 @@ class ZoomPanSelection extends Toolbar {
       }
 
       if (w.globals.zoomEnabled) {
-        me.hideSelectionRect()
+        me.hideSelectionRect(this.selectionRect)
       }
 
       me.dragged = false
@@ -301,11 +301,9 @@ class ZoomPanSelection extends Toolbar {
     }
   }
 
-  hideSelectionRect () {
-    const selectionRect = this.selectionRect
-
-    if (selectionRect) {
-      selectionRect.attr({
+  hideSelectionRect (rect) {
+    if (rect) {
+      rect.attr({
         x: 0,
         y: 0,
         width: 0,
@@ -332,6 +330,14 @@ class ZoomPanSelection extends Toolbar {
     let translateY = 0
 
     let selectionRect = {}
+
+    if (Math.abs(selectionWidth + startX) > w.globals.gridWidth || me.clientX - gridRectDim.left < 0) {
+      // user dragged the mouse outside drawing area
+      // TODO: test the selectionRect and make sure it doesn't crosses drawing area
+      me.hideSelectionRect(this.zoomRect)
+      me.dragged = false
+      me.w.globals.mousedown = false
+    }
 
     // inverse selection X
     if (startX > me.clientX - gridRectDim.left) {
@@ -483,9 +489,9 @@ class ZoomPanSelection extends Toolbar {
 
         if (toolbar) {
           let beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis)
-          if (beforeZoomRange !== null) {
-            xaxis = beforeZoomRange.xaxis
-            yaxis = beforeZoomRange.yaxis
+          if (beforeZoomRange) {
+            xaxis = beforeZoomRange.xaxis ? beforeZoomRange.xaxis : xaxis
+            yaxis = beforeZoomRange.yaxis ? beforeZoomRange.yaxe : yaxis
           }
         }
 
