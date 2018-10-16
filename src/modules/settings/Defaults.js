@@ -13,6 +13,11 @@ class Defaults {
 
   line () {
     return {
+      chart: {
+        animations: {
+          easing: 'swing'
+        }
+      },
       dataLabels: {
         enabled: false
       },
@@ -82,6 +87,9 @@ class Defaults {
         stacked: false,
         toolbar: {
           show: false
+        },
+        animations: {
+          easing: 'swing'
         }
       },
       plotOptions: {

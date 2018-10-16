@@ -180,7 +180,7 @@ export default class Options {
       chart: {
         animations: {
           enabled: true,
-          easing: 'swing', // linear, easeout, easein, easeinout, swing, bounce, elastic
+          easing: 'easeinout', // linear, easeout, easein, easeinout, swing, bounce, elastic
           speed: 800,
           animateGradually: {
             delay: 150,
@@ -305,6 +305,9 @@ export default class Options {
           colors: {
             upward: '#00B746',
             downward: '#EF403C'
+          },
+          wick: {
+            useFillColor: true
           }
         },
         heatmap: {

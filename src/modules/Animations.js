@@ -80,14 +80,14 @@ class Animations {
   /*
   ** Animate radius of a circle element
   */
-  animateCircleRadius (el, from, to, speed) {
+  animateCircleRadius (el, from, to, speed, easing) {
     if (!from) from = 0
 
     el.attr(
       {
         r: from
       }
-    ).animate(speed).attr(
+    ).animate(speed, easing).attr(
       {
         r: to
       }
@@ -97,14 +97,14 @@ class Animations {
   /*
   ** Animate radius and position of a circle element
   */
-  animateCircle (el, from, to, speed) {
+  animateCircle (el, from, to, speed, easing) {
     el.attr(
       {
         r: from.r,
         cx: from.cx,
         cy: from.cy
       }
-    ).animate(speed).attr(
+    ).animate(speed, easing).attr(
       {
         r: to.r,
         cx: to.cx,

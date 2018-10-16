@@ -120,7 +120,9 @@ class CandleStick extends Bar {
           color
         })
 
-        elSeries = this.renderSeries({ realIndex, pathFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries: this.visibleI, type: 'candlestick' })
+        let lineFill = this.candlestickOptions.wick.useFillColor ? color : undefined
+
+        elSeries = this.renderSeries({ realIndex, pathFill, lineFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries: this.visibleI, type: 'candlestick' })
       }
 
       // push all x val arrays into main xArr

@@ -100,8 +100,6 @@ class Line {
         class: 'apexcharts-series-markers-wrap'
       })
 
-      elPointsMain.node.classList.add('hidden')
-
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels'
@@ -245,6 +243,8 @@ class Line {
 
         if (!this.pointsChart) {
           let markers = new Markers(this.ctx)
+          elPointsMain.node.classList.add('hidden')
+
           let elPointsWrap = markers.plotChartMarkers(pointsPos, realIndex, j + 1)
           if (elPointsWrap !== null) {
             elPointsMain.add(elPointsWrap)

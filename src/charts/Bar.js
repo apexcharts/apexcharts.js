@@ -197,11 +197,13 @@ class Bar {
     return ret
   }
 
-  renderSeries ({ realIndex, pathFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries, type }) {
+  renderSeries ({ realIndex, pathFill, lineFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries, type }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
 
-    let lineFill = w.globals.stroke.colors[realIndex]
+    if (!lineFill) {
+      lineFill = w.globals.stroke.colors[realIndex]
+    }
     if (this.isNullValue) {
       pathFill = 'none'
     }

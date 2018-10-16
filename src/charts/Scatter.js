@@ -96,7 +96,7 @@ class Scatter {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed
           }
-          anim.animateCircleRadius(circle, 0, finishRadius, speed)
+          anim.animateCircleRadius(circle, 0, finishRadius, speed, w.globals.easing)
         }
 
         if (w.globals.dataChanged) {
@@ -124,20 +124,11 @@ class Scatter {
 
             if (x === 0 && y === 0) finishRadius = 0
 
-            // if (!w.globals.risingSeries.includes(realIndex)) {
-            //   anim.animateCircle(circle, {
-            //     cx: prevX, cy: prevY, r: prevR
-            //   }, {
-            //     cx: x, cy: y, r: finishRadius
-            //   }, speed)
-            // }
-            // else {
             anim.animateCircle(circle, {
               cx: prevX, cy: prevY, r: prevR
             }, {
               cx: x, cy: y, r: finishRadius
-            }, speed)
-            // }
+            }, speed, w.globals.easing)
           } else {
             circle.attr({
               r: finishRadius
