@@ -564,6 +564,19 @@ class ApexCharts {
     this.clearDomElements()
   }
 
+  killSVG (draw) {
+    return new Promise((resolve, reject) => {
+      draw.each(function (i, children) {
+        this.removeClass('*')
+        this.off()
+        this.stop()
+      }, true)
+      draw.ungroup()
+      draw.clear()
+      resolve('done')
+    })
+  }
+
   clearDomElements () {
     const domEls = this.w.globals.dom
 
@@ -574,7 +587,9 @@ class ApexCharts {
       }
     }
 
+    this.killSVG(domEls.Paper)
     domEls.Paper.remove()
+
     domEls.elWrap = null
     domEls.elGraphical = null
     domEls.elLegendWrap = null

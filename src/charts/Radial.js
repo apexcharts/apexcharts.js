@@ -277,10 +277,8 @@ class Radial extends Pie {
 
       let angle = endAngle - startAngle
 
-      let path = this.getChangedPath(prevStartAngle, prevEndAngle)
-
       let elPath = graphics.drawPath({
-        d: path,
+        d: '',
         stroke: pathFill,
         strokeWidth,
         fill: 'none',
