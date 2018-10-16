@@ -390,9 +390,6 @@ class Graphics {
       })
     } else {
       elText = w.globals.dom.Paper.plain(text)
-      elText.font({
-        family: fontFamily
-      })
     }
 
     elText.attr({
@@ -400,12 +397,13 @@ class Graphics {
       y: y,
       'text-anchor': textAnchor,
       'dominate-baseline': 'central',
+      'font-size': fontSize,
+      'font-family': fontFamily,
+      fill: foreColor,
       class: 'apexcharts-text ' + opts.cssClass ? opts.cssClass : ''
     })
 
-    elText.node.style.fontSize = fontSize
     elText.node.style.fontFamily = fontFamily
-    elText.node.style.fill = foreColor
     elText.node.style.opacity = opacity
 
     return elText
