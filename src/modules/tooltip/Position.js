@@ -187,6 +187,20 @@ class Position {
       y = ttCtx.e.clientY - seriesBound.top - tooltipRect.ttHeight / 2
     }
 
+    const newPositions = this.positionChecks(tooltipRect, x, y)
+    x = newPositions.x
+    y = newPositions.y
+
+    if (!isNaN(x)) {
+      x = x + w.globals.translateX
+
+      tooltipEl.style.left = x + 'px'
+      tooltipEl.style.top = y + 'px'
+    }
+  }
+
+  positionChecks (tooltipRect, x, y) {
+    const w = this.w
     if (tooltipRect.ttHeight + y > w.globals.gridHeight) {
       y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
     }
@@ -195,11 +209,8 @@ class Position {
       y = 0
     }
 
-    if (!isNaN(x)) {
-      x = x + w.globals.translateX
-
-      tooltipEl.style.left = x + 'px'
-      tooltipEl.style.top = y + 'px'
+    return {
+      x, y
     }
   }
 

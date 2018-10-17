@@ -167,7 +167,12 @@ class Intersect {
     // move tooltip here
     if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || (ttCtx.isBarHorizontal && ttCtx.hasBars()))) {
       tooltipEl.style.left = x + w.globals.translateX + 'px'
-      tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
+      if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {
+        y = w.globals.gridHeight - ttCtx.tooltipRect.ttHeight + w.globals.translateY
+        tooltipEl.style.top = y + 'px'
+      } else {
+        tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
+      }
     }
   }
 

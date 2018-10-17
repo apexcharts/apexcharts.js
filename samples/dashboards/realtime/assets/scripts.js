@@ -108,12 +108,6 @@ var optionsColumn = {
   stroke: {
     width: 0,
   },
-  grid: {
-    padding: {
-      left: 0,
-      right: 0
-    }
-  },
   series: [{
     data: generateMinuteWiseTimeSeries(new Date("12/12/2016 00:20:00").getTime(), 12, {
       min: 10,
