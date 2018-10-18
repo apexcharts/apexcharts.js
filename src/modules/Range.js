@@ -211,7 +211,7 @@ class Range {
         for (let i = 0; i < gl.series.length; i++) {
           if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
             if (gl.series[i][j] > 0) {
-              poss = poss + parseInt(gl.series[i][j])
+              poss = poss + parseInt(gl.series[i][j]) + 1
             } else {
               negs = negs + parseInt(gl.series[i][j])
             }

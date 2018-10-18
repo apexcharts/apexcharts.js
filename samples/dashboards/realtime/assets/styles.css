@@ -1,6 +1,6 @@
 
 body {
-  background: #1d1d1d;
+  background: #1B213B;
   color: #777;
   font-family: Montserrat, Arial, sans-serif;
 }
@@ -13,9 +13,9 @@ h1, h2, h3, h4, h5, h6, strong {
   font-weight: 600;
 }
 
-body {
-  /*background: linear-gradient(45deg,#3a3a60,#5f5f8e);
-  min-height: 100vh;*/
+.box .apexcharts-xaxistooltip {
+  background: #1B213B;
+  color: #fff;
 }
 
 .content-area {
@@ -24,6 +24,20 @@ body {
 }
 
 .box {
-  background-color: #18151E;
-  padding: 25px 20px;  
+  background-color: #262D47;
+  padding: 25px 25px; 
+  border-radius: 4px; 
+}
+
+.columnbox {
+  padding-right: 15px;
+}
+.radialbox {
+  max-height: 333px;
+  margin-bottom: 60px;
+}
+
+.apexcharts-legend-series tspan:nth-child(3) {
+  font-weight: bold;
+  font-size: 20px;
 }

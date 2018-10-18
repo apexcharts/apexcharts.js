@@ -361,7 +361,7 @@ class BarStacked extends Bar {
         w.config.plotOptions.bar.colors.backgroundBarOpacity
       )
       elSeries.add(rect)
-      rect.classList.add('apexcharts-backgroundBar')
+      rect.node.classList.add('apexcharts-backgroundBar')
     }
 
     y = y + yDivision
@@ -504,7 +504,7 @@ class BarStacked extends Bar {
         w.config.plotOptions.bar.colors.backgroundBarOpacity
       )
       elSeries.add(rect)
-      rect.classList.add('apexcharts-backgroundBar')
+      rect.node.classList.add('apexcharts-backgroundBar')
     }
 
     x = x + xDivision

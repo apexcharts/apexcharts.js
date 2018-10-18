@@ -87,7 +87,7 @@ export default class Options {
         offsetY: 0,
         style: {
           background: '#fff',
-          color: '#777',
+          color: undefined,
           fontSize: '11px',
           fontFamily: this.defaultFont,
           cssClass: 'apexcharts-xaxis-annotation-label',
@@ -118,7 +118,7 @@ export default class Options {
         offsetY: -3,
         style: {
           background: '#fff',
-          color: '#777',
+          color: undefined,
           fontSize: '11px',
           fontFamily: this.defaultFont,
           cssClass: 'apexcharts-yaxis-annotation-label',
@@ -154,7 +154,7 @@ export default class Options {
         offsetY: -15,
         style: {
           background: '#fff',
-          color: '#777',
+          color: undefined,
           fontSize: '11px',
           fontFamily: this.defaultFont,
           cssClass: 'apexcharts-point-annotation-label',
@@ -564,7 +564,7 @@ export default class Options {
         offsetX: 0,
         offsetY: 0,
         style: {
-          color: '#888',
+          color: undefined,
           fontSize: '14px',
           fontFamily: this.defaultFont
         }
@@ -602,7 +602,7 @@ export default class Options {
         style: {
           fontSize: '14px',
           fontFamily: this.defaultFont,
-          color: '#263238'
+          color: undefined
         }
       },
       subtitle: {
@@ -615,7 +615,7 @@ export default class Options {
         style: {
           fontSize: '12px',
           fontFamily: this.defaultFont,
-          color: '#9699a2'
+          color: undefined
         }
       },
       stroke: {
