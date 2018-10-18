@@ -116,12 +116,14 @@ class XAxis {
 
     if (w.config.xaxis.labels.show) {
       for (let i = 0; i <= labelsLen - 1; i++) {
-        let label = typeof labels[i] === 'undefined' ? '' : labels[i]
+        let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
+        let label
 
         let xFormat = new Formatters(this.ctx)
-        label = xFormat.xLabelFormat(xlbFormatter, label)
-        if (customFormatter !== undefined && xlbFormatter.toString() !== customFormatter.toString()) {
-          label = customFormatter(label, this.xaxisLabels[i], i)
+        label = xFormat.xLabelFormat(xlbFormatter, rawLabel)
+
+        if (customFormatter !== undefined) {
+          label = customFormatter(rawLabel, this.xaxisLabels[i], i)
         }
 
         let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
