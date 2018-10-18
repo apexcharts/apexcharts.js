@@ -20,7 +20,7 @@ export default class Series {
 
   getSeriesByName (seriesName) {
     return this.w.globals.dom.baseEl.querySelector(
-      `.apexcharts-series.${seriesName.replace(/ /g, '-')}`
+      `.apexcharts-series.${seriesName.toString().replace(/ /g, '-')}`
     )
   }
 

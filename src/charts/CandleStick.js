@@ -39,7 +39,7 @@ class CandleStick extends Bar {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${w.globals.seriesNames[realIndex].replace(/ /g, '-')}`,
+        class: `apexcharts-series ${w.globals.seriesNames[realIndex].toString().replace(/ /g, '-')}`,
         'rel': i + 1,
         'data:realIndex': realIndex
       })

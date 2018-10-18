@@ -303,15 +303,38 @@ class Range {
       // here, we loop through the yaxis array and find the item which has "seriesName" property
       cnf.yaxis.forEach((yaxe, i) => {
         let index = i
+        let sameScaleMax = null
+        let sameScaleMin = null
+
         cnf.series.forEach((s, si) => {
           // if seriesName matches and that series is not collapsed, we use that scale
           if (s.name === yaxe.seriesName && !gl.collapsedSeriesIndices.indexOf(si) > -1) {
             index = si
+
+            minYArr.forEach((minYValue, yi) => {
+              if (cnf.yaxis[i].seriesName === cnf.yaxis[i].name) {
+                sameScaleMin = Math.min(minYArr[i], minYValue)
+              }
+            })
+
+            maxYArr.forEach((maxYValue, yi) => {
+              if (cnf.yaxis[i].seriesName === cnf.yaxis[i].name) {
+                sameScaleMax = Math.max(maxYArr[i], maxYValue)
+              }
+            })
           }
         })
 
         let minY = minYArr[index]
         let maxY = maxYArr[index]
+
+        if (sameScaleMin !== null) {
+          minY = sameScaleMin
+        }
+
+        if (sameScaleMax !== null) {
+          maxY = sameScaleMax
+        }
 
         if (yaxe.min !== undefined) {
           minY = yaxe.min
