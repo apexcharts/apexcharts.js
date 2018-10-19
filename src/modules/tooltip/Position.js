@@ -141,7 +141,7 @@ class Position {
 
     cy = cy - yAxisTTHeight / 2
 
-    if (!w.globals.ignoreYAxisIndexes.indexOf(index) > -1) {
+    if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1) {
       ttCtx.yaxisTTEls[index].classList.add('active')
       ttCtx.yaxisTTEls[index].style.top = cy + 'px'
       ttCtx.yaxisTTEls[index].style.left = cx + w.config.yaxis[index].tooltip.offsetX + 'px'

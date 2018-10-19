@@ -3547,7 +3547,7 @@
         delete this._defs
 
         // add back parser
-        if (!SVG.parser.draw.parentNode) { this.node.appendChild(SVG.parser.draw) }
+        if (SVG.parser.draw && !SVG.parser.draw.parentNode) { this.node.appendChild(SVG.parser.draw) }
 
         return this
       },

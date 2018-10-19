@@ -13,7 +13,9 @@ class Responsive {
     this.w = ctx.w
   }
 
-  checkResponsiveConfig () {
+  // the opts parameter if not null has to be set overriding everything
+  // as the opts is set by user externally
+  checkResponsiveConfig (opts) {
     const w = this.w
     const cnf = w.config
 
@@ -32,6 +34,11 @@ class Responsive {
         newOptions = Utils.extend(w.config, w.globals.initialConfig)
         this.overrideResponsiveOptions(newOptions)
       }
+    }
+
+    if (opts !== null) {
+      let options = Utils.extend(w.config, opts)
+      this.overrideResponsiveOptions(options)
     }
   }
 

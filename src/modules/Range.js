@@ -310,7 +310,7 @@ class Range {
         let index = i
         cnf.series.forEach((s, si) => {
           // if seriesName matches and that series is not collapsed, we use that scale
-          if (s.name === yaxe.seriesName && !gl.collapsedSeriesIndices.indexOf(si) > -1) {
+          if (s.name === yaxe.seriesName && gl.collapsedSeriesIndices.indexOf(si) === -1) {
             index = si
 
             if (i !== si) {

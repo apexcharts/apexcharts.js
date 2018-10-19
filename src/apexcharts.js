@@ -167,14 +167,14 @@ class ApexCharts {
     }
   }
 
-  create (ser) {
+  create (ser, opts = {}) {
     let w = this.w
     this.initModules()
     let gl = this.w.globals
 
     gl.noData = false
 
-    this.responsive.checkResponsiveConfig()
+    this.responsive.checkResponsiveConfig(opts)
 
     if (this.el === null) {
       return null
@@ -385,7 +385,7 @@ class ApexCharts {
         }
       }
 
-      return ch.update()
+      return ch.update(options)
     })
   }
 
@@ -415,12 +415,16 @@ class ApexCharts {
       this.series.getPreviousPaths()
     }
 
-    w.config.series = newSeries.map((s, i) => {
-      return {
-        ...w.config.series[i],
-        data: s.data
-      }
-    })
+    if (newSeries[0].data) {
+      w.config.series = newSeries.map((s, i) => {
+        return {
+          ...w.config.series[i],
+          data: s.data
+        }
+      })
+    } else {
+      w.config.series = newSeries.slice()
+    }
 
     if (overwriteInitialSeries) {
       w.globals.initialConfig.series = JSON.parse(JSON.stringify(w.config.series))
@@ -488,12 +492,12 @@ class ApexCharts {
     return this.update()
   }
 
-  update () {
+  update (options) {
     const me = this
 
     return new Promise((resolve, reject) => {
       me.clear()
-      const graphData = me.create(me.w.config.series)
+      const graphData = me.create(me.w.config.series, options)
       if (!graphData) return resolve(me)
       me.mount(graphData).then(() => {
         if (typeof me.w.config.chart.events.updated === 'function') {

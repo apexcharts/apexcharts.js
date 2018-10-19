@@ -250,7 +250,7 @@ class Dimensions {
   setGridXPosForDualYAxis (yTitleCoords, yaxisLabelCoords) {
     let w = this.w
     w.config.yaxis.map((yaxe, index) => {
-      if (!w.globals.ignoreYAxisIndexes.indexOf(index) > -1 && !w.config.yaxis[index].floating && w.config.yaxis[index].show) {
+      if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1 && !w.config.yaxis[index].floating && w.config.yaxis[index].show) {
         if (yaxe.opposite) {
           w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + yTitleCoords[index].width) - (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) - 12
         }
