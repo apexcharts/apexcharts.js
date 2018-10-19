@@ -250,7 +250,7 @@ class Dimensions {
   setGridXPosForDualYAxis (yTitleCoords, yaxisLabelCoords) {
     let w = this.w
     w.config.yaxis.map((yaxe, index) => {
-      if (!w.globals.ignoreYAxisIndexes.indexOf(index) > -1 && !w.config.yaxis[index].floating) {
+      if (!w.globals.ignoreYAxisIndexes.indexOf(index) > -1 && !w.config.yaxis[index].floating && w.config.yaxis[index].show) {
         if (yaxe.opposite) {
           w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + yTitleCoords[index].width) - (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) - 12
         }
@@ -291,15 +291,18 @@ class Dimensions {
     let yAxisWidth = 0
     let padding = 10
 
+    const isHiddenYAxis = function (index) {
+      return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
+    }
     w.globals.yLabelsCoords.map((yLabelCoord, index) => {
       let floating = w.config.yaxis[index].floating
       if (yLabelCoord.width > 0 && !floating) {
         yAxisWidth = yAxisWidth + yLabelCoord.width + padding
-        if (w.globals.ignoreYAxisIndexes.indexOf(index) > -1) {
+        if (isHiddenYAxis(index)) {
           yAxisWidth = yAxisWidth - yLabelCoord.width - padding
         }
       } else {
-        yAxisWidth = yAxisWidth + (floating ? 0 : 5)
+        yAxisWidth = yAxisWidth + (floating || !w.config.yaxis[index].show ? 0 : 5)
       }
     })
 
@@ -308,11 +311,11 @@ class Dimensions {
       padding = (parseInt(w.config.yaxis[index].title.style.fontSize))
       if (yTitleCoord.width > 0 && !floating) {
         yAxisWidth = yAxisWidth + yTitleCoord.width + padding
-        if (w.globals.ignoreYAxisIndexes.indexOf(index) > -1) {
+        if (isHiddenYAxis(index)) {
           yAxisWidth = yAxisWidth - yTitleCoord.width - padding
         }
       } else {
-        yAxisWidth = yAxisWidth + (floating ? 0 : 5)
+        yAxisWidth = yAxisWidth + (floating || !w.config.yaxis[index].show ? 0 : 5)
       }
     })
 

@@ -415,7 +415,13 @@ class ApexCharts {
       this.series.getPreviousPaths()
     }
 
-    w.config.series = newSeries.slice()
+    w.config.series = newSeries.map((s, i) => {
+      return {
+        ...w.config.series[i],
+        data: s.data
+      }
+    })
+
     if (overwriteInitialSeries) {
       w.globals.initialConfig.series = JSON.parse(JSON.stringify(w.config.series))
       w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
