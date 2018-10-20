@@ -60,7 +60,58 @@ class Grid {
     return elGrid
   }
 
-  // actual grid
+  drawGrid () {
+    let w = this.w
+
+    let xAxis = new XAxis(this.ctx)
+
+    let gl = this.w.globals
+
+    let elgrid = null
+
+    if (gl.axisCharts) {
+      if (w.config.grid.show) {
+        // grid is drawn after xaxis and yaxis are drawn
+        elgrid = this.renderGrid()
+        gl.dom.elGraphical.add(elgrid.el)
+
+        this.drawGridArea(elgrid.el)
+      } else {
+        let elgridArea = this.drawGridArea()
+        gl.dom.elGraphical.add(elgridArea)
+      }
+
+      if (elgrid !== null) {
+        xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
+      }
+    }
+  }
+
+  // This mask will clip off overflowing graphics from the drawable area
+  createGridMask () {
+    let w = this.w
+    let gl = w.globals
+    const graphics = new Graphics(this.ctx)
+
+    gl.dom.elGridRectMask = document.createElementNS(
+      gl.svgNS,
+      'clipPath'
+    )
+    gl.dom.elGridRectMask.setAttribute('id', `gridRectMask${gl.cuid}`)
+
+    let markerSize = 0
+    if (!w.config.grid.clipMarkers) {
+      markerSize = w.config.markers.size > w.config.markers.hover.size ? w.config.markers.size : w.config.markers.hover.size
+    }
+
+    gl.dom.elGridRect = graphics.drawRect(0, 0 - markerSize * 1.2, gl.gridWidth, gl.gridHeight + markerSize * 2.4, 0, '#fff')
+    gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node)
+
+    let defs = gl.dom.baseEl.querySelector('defs')
+    defs.appendChild(gl.dom.elGridRectMask)
+  }
+
+  // actual grid rendering
   renderGrid () {
     let w = this.w
     let graphics = new Graphics(this.ctx)

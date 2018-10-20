@@ -7,6 +7,7 @@ import CoreUtils from './modules/CoreUtils'
 import Crosshairs from './modules/Crosshairs'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
+import Grid from './modules/axes/Grid'
 import Legend from './modules/Legend'
 import Responsive from './modules/Responsive'
 import Series from './modules/Series'
@@ -110,6 +111,7 @@ class ApexCharts {
     this.animations = new Animations(this.ctx)
     this.annotations = new Annotations(this.ctx)
     this.core = new Core(this.el, this)
+    this.grid = new Grid(this)
     this.coreUtils = new CoreUtils(this)
     this.config = new Config({})
     this.crosshairs = new Crosshairs(this.ctx)
@@ -214,7 +216,7 @@ class ApexCharts {
 
     const xyRatios = this.core.xySettings()
 
-    this.core.createGridMask()
+    this.grid.createGridMask()
 
     const elGraph = this.core.plotChartType(ser, xyRatios)
 
@@ -256,7 +258,7 @@ class ApexCharts {
       )
 
       if (w.config.grid.position === 'back') {
-        me.core.drawGrid()
+        me.grid.drawGrid()
       }
 
       if (w.config.annotations.position === 'back') {
@@ -272,7 +274,7 @@ class ApexCharts {
       }
 
       if (w.config.grid.position === 'front') {
-        me.core.drawGrid()
+        me.grid.drawGrid()
       }
 
       if (w.config.xaxis.crosshairs.position === 'front') {
@@ -558,6 +560,7 @@ class ApexCharts {
     this.animations = null
     this.annotations = null
     this.core = null
+    this.grid = null
     this.series = null
     this.responsive = null
     this.theme = null

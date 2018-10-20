@@ -106,6 +106,8 @@ class Utils {
     }
   }
 
+  static log10 (x) { return Math.log(x) / Math.LN10 };
+
   static getDimensions (el) {
     let computedStyle = getComputedStyle(el)
     let ret = []

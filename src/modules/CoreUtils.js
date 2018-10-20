@@ -133,6 +133,76 @@ class CoreUtils {
     })
   }
 
+  getCalculatedRatios () {
+    let gl = this.w.globals
+
+    let yRatio = []
+    let invertedYRatio = 0
+    let xRatio = 0
+    let initialXRatio = 0
+    let invertedXRatio = 0
+    let zRatio = 0
+    let baseLineY = []
+    let baseLineInvertedY = 0.1
+    let baseLineX = 0
+
+    gl.yRange = []
+    if (gl.isMultipleYAxis) {
+      for (let i = 0; i < gl.minYArr.length; i++) {
+        gl.yRange.push(Math.abs(gl.minYArr[i] - gl.maxYArr[i]))
+        baseLineY.push(0)
+      }
+    } else {
+      gl.yRange.push(Math.abs(gl.minY - gl.maxY))
+    }
+    gl.xRange = Math.abs(gl.maxX - gl.minX)
+    gl.zRange = Math.abs(gl.maxZ - gl.minZ)
+
+    // multiple y axis
+    for (let i = 0; i < gl.yRange.length; i++) {
+      yRatio.push(gl.yRange[i] / gl.gridHeight)
+    }
+
+    xRatio = gl.xRange / gl.gridWidth
+    initialXRatio = Math.abs(gl.initialmaxX - gl.initialminX) / gl.gridWidth
+
+    invertedYRatio = gl.yRange / gl.gridWidth
+    invertedXRatio = gl.xRange / gl.gridHeight
+    zRatio = gl.zRange / gl.gridHeight * 16
+
+    if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
+      // Negative numbers present in series
+      gl.hasNegs = true
+      baseLineY = []
+
+      // baseline variables is the 0 of the yaxis which will be needed when there are negatives
+      if (gl.isMultipleYAxis) {
+        for (let i = 0; i < yRatio.length; i++) {
+          baseLineY.push(-gl.minYArr[i] / yRatio[i])
+        }
+      } else {
+        baseLineY.push(-gl.minY / yRatio[0])
+      }
+
+      baseLineInvertedY = -gl.minY / invertedYRatio // this is for bar chart
+      baseLineX = gl.minX / xRatio
+    } else {
+      baseLineY.push(0)
+    }
+
+    return {
+      yRatio,
+      invertedYRatio,
+      zRatio,
+      xRatio,
+      initialXRatio,
+      invertedXRatio,
+      baseLineInvertedY,
+      baseLineY,
+      baseLineX
+    }
+  }
+
   // Some config objects can be array - and we need to extend them correctly
   static extendArrayProps (configInstance, options) {
     if (options.yaxis) {

@@ -9,7 +9,6 @@ import Pie from '../charts/Pie'
 import Radial from '../charts/Radial'
 import Line from '../charts/Line'
 import Graphics from './Graphics'
-import Grid from './axes/Grid'
 import XAxis from './axes/XAxis'
 import YAxis from './axes/YAxis'
 import Range from './Range'
@@ -726,7 +725,7 @@ class Core {
         crosshairs.drawYCrosshairs()
       }
 
-      xyRatios = this.getCalculatedRatios()
+      xyRatios = this.coreUtils.getCalculatedRatios()
 
       if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined && isFinite(w.globals.minX) && isFinite(w.globals.maxX)) {
         let ts = new TimeScale(this.ctx)
@@ -735,87 +734,6 @@ class Core {
       }
     }
     return xyRatios
-  }
-
-  getCalculatedRatios () {
-    let gl = this.w.globals
-
-    let yRatio = []
-    let invertedYRatio = 0
-    let xRatio = 0
-    let initialXRatio = 0
-    let invertedXRatio = 0
-    let zRatio = 0
-    let baseLineY = []
-    let baseLineInvertedY = 0.1
-    let baseLineX = 0
-
-    gl.yRange = []
-    if (gl.isMultipleYAxis) {
-      for (let i = 0; i < gl.minYArr.length; i++) {
-        gl.yRange.push(Math.abs(gl.minYArr[i] - gl.maxYArr[i]))
-        baseLineY.push(0)
-      }
-    } else {
-      gl.yRange.push(Math.abs(gl.minY - gl.maxY))
-    }
-    gl.xRange = Math.abs(gl.maxX - gl.minX)
-    gl.zRange = Math.abs(gl.maxZ - gl.minZ)
-
-    // multiple y axis
-    for (let i = 0; i < gl.yRange.length; i++) {
-      yRatio.push(gl.yRange[i] / gl.gridHeight)
-    }
-
-    xRatio = gl.xRange / gl.gridWidth
-    initialXRatio = Math.abs(gl.initialmaxX - gl.initialminX) / gl.gridWidth
-
-    invertedYRatio = gl.yRange / gl.gridWidth
-    invertedXRatio = gl.xRange / gl.gridHeight
-    zRatio = gl.zRange / gl.gridHeight * 16
-
-    if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
-      // Negative numbers present in series
-      gl.hasNegs = true
-      baseLineY = []
-
-      // baseline variables is the 0 of the yaxis which will be needed when there are negatives
-      if (gl.isMultipleYAxis) {
-        for (let i = 0; i < yRatio.length; i++) {
-          baseLineY.push(-gl.minYArr[i] / yRatio[i])
-        }
-      } else {
-        baseLineY.push(-gl.minY / yRatio[0])
-      }
-
-      baseLineInvertedY = -gl.minY / invertedYRatio // this is for bar chart
-      baseLineX = gl.minX / xRatio
-    } else {
-      baseLineY.push(0)
-    }
-
-    return {
-      yRatio,
-      invertedYRatio,
-      zRatio,
-      xRatio,
-      initialXRatio,
-      invertedXRatio,
-      baseLineInvertedY,
-      baseLineY,
-      baseLineX
-    }
-  }
-
-  checkComboCharts () {
-    let w = this.w
-    let cnf = w.config
-
-    cnf.series.map((series) => {
-      if (typeof series.type !== 'undefined') {
-        w.globals.comboCharts = true
-      }
-    })
   }
 
   drawAxis (type, xyRatios) {
@@ -852,57 +770,6 @@ class Core {
         yAxis.yAxisTitleRotate(index, yaxe.opposite)
       }
     })
-  }
-
-  drawGrid () {
-    let w = this.w
-
-    let grid = new Grid(this.ctx)
-    let xAxis = new XAxis(this.ctx)
-
-    let gl = this.w.globals
-
-    let elgrid = null
-
-    if (gl.axisCharts) {
-      if (w.config.grid.show) {
-        // grid is drawn after xaxis and yaxis are drawn
-        elgrid = grid.renderGrid()
-        gl.dom.elGraphical.add(elgrid.el)
-
-        grid.drawGridArea(elgrid.el)
-      } else {
-        let elgridArea = grid.drawGridArea()
-        gl.dom.elGraphical.add(elgridArea)
-      }
-
-      if (elgrid !== null) {
-        xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
-      }
-    }
-  }
-
-  // This mask will clip off overflowing graphics from the drawable area
-  createGridMask () {
-    let w = this.w
-    const graphics = new Graphics(this.ctx)
-
-    w.globals.dom.elGridRectMask = document.createElementNS(
-      w.globals.svgNS,
-      'clipPath'
-    )
-    w.globals.dom.elGridRectMask.setAttribute('id', `gridRectMask${w.globals.cuid}`)
-
-    let markerSize = 0
-    if (!w.config.grid.clipMarkers) {
-      markerSize = w.config.markers.size > w.config.markers.hover.size ? w.config.markers.size : w.config.markers.hover.size
-    }
-
-    w.globals.dom.elGridRect = graphics.drawRect(0, 0 - markerSize * 1.2, w.globals.gridWidth, w.globals.gridHeight + markerSize * 2.4, 0, '#fff')
-    w.globals.dom.elGridRectMask.appendChild(w.globals.dom.elGridRect.node)
-
-    let defs = w.globals.dom.baseEl.querySelector('defs')
-    defs.appendChild(w.globals.dom.elGridRectMask)
   }
 }
 
