@@ -1,3 +1,4 @@
+// import Utils from '../utils/Utils'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'
 import DataLabels from '../modules/DataLabels'
@@ -43,6 +44,7 @@ class Line {
     })
 
     let yRatio = this.xyRatios.yRatio
+
     let zRatio = this.xyRatios.zRatio
     let xRatio = this.xyRatios.xRatio
     let baseLineY = this.xyRatios.baseLineY
@@ -194,6 +196,14 @@ class Line {
             y = (zeroY - series[i][j + 1] / yRatio[this.yaxisIndex])
           }
         }
+
+        const logY = () => {
+          const logVal = Math.log(w.globals.maxYArr[this.yaxisIndex]) / Math.log(series[i][j + 1])
+
+          return logVal * yRatio[this.yaxisIndex]
+        }
+
+        y = logY()
 
         // push current X
         xArrj.push(x)

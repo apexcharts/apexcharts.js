@@ -44,7 +44,7 @@
             },
             series: [{
                 name: "Desktops",
-                data: [30, 41, 35, 51, 49, 62, 69, 91, 126]
+                data: [10, 41, 35, 51, 49, 62, 69, 91, 14888]
             }],
             title: {
                 text: 'Product Trends by Month',
@@ -60,6 +60,9 @@
             xaxis: {
                 categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
             },
+            yaxis: {
+                logarithmic: true
+            }
         }
 
         var chart = new ApexCharts(

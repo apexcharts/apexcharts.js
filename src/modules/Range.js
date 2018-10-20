@@ -29,8 +29,8 @@ class Range {
       yMin = 0
       yMax = 1
       ticks = 1
-      let justRange = this.justRange(yMin, yMax, ticks)
-      return justRange
+      let linearScale = this.linearScale(yMin, yMax, ticks)
+      return linearScale
     }
 
     if (yMin > yMax) {
@@ -115,7 +115,7 @@ class Range {
     }
   }
 
-  justRange (yMin, yMax, ticks = 10) {
+  linearScale (yMin, yMax, ticks = 10) {
     let range = Math.abs(yMax - yMin)
 
     let step = range / ticks
@@ -137,6 +137,42 @@ class Range {
       result,
       niceMin: result[0],
       niceMax: result[result.length - 1]
+    }
+  }
+
+  logarithmicScale (yMin, yMax, ticks) {
+    let range = Math.abs(yMax - yMin)
+
+    let step = range / ticks
+
+    let result = []
+    let v = yMin
+
+    while (ticks >= 0) {
+      result.push(v)
+      v = v + step
+      ticks -= 1
+    }
+
+    const logs = result.map((niceNumber, i) => {
+      if (niceNumber === 0) {
+        return niceNumber
+      }
+
+      const logVal = (Math.pow(yMax, parseInt(niceNumber) / yMax))
+
+      let fn = Math.ceil
+
+      if (i === 0) {
+        fn = Math.round
+      }
+      return fn(logVal / Utils.roundToBase10(logVal)) * Utils.roundToBase10(logVal)
+    })
+
+    return {
+      result: logs,
+      niceMin: logs[0],
+      niceMax: logs[logs.length - 1]
     }
   }
 
@@ -198,21 +234,27 @@ class Range {
     if (typeof gl.yAxisScale[index] === 'undefined') {
       gl.yAxisScale[index] = []
     }
-    if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
-      // no value in series. draw blank grid
-      gl.yAxisScale[index] = this.justRange(
-        0,
-        5,
-        5
-      )
-    } else {
-      gl.allSeriesCollapsed = false
 
-      gl.yAxisScale[index] = this.niceScale(
-        minY,
-        maxY,
-        ticksY
-      )
+    if (cnf.yaxis[index].logarithmic) {
+      gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, ticksY)
+    } else {
+      if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
+        // no data in the chart. Either all series collapsed or user passed a blank array
+        gl.yAxisScale[index] = this.linearScale(
+          0,
+          5,
+          5
+        )
+      } else {
+        // there is some data. Turn off the allSeriesCollapsed flag
+        gl.allSeriesCollapsed = false
+
+        gl.yAxisScale[index] = this.niceScale(
+          minY,
+          maxY,
+          ticksY
+        )
+      }
     }
   }
 
@@ -503,7 +545,7 @@ class Range {
       }
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
-        gl.xAxisScale = niceXRange.justRange(
+        gl.xAxisScale = niceXRange.linearScale(
           gl.minX,
           gl.maxX,
           ticks
@@ -512,9 +554,9 @@ class Range {
         // we will still store these labels as the count for this will be different (to draw grid and labels placement)
         gl.labels = gl.xAxisScale.result.slice()
       } else {
-        gl.xAxisScale = niceXRange.justRange(1, ticks, ticks)
+        gl.xAxisScale = niceXRange.linearScale(1, ticks, ticks)
         if (gl.noLabelsProvided && gl.labels.length > 0) {
-          gl.xAxisScale = niceXRange.justRange(1, gl.labels.length, ticks - 1)
+          gl.xAxisScale = niceXRange.linearScale(1, gl.labels.length, ticks - 1)
           gl.seriesX = gl.labels.slice()
         }
         gl.labels = gl.xAxisScale.result.slice()
