@@ -288,10 +288,10 @@
   visibility: visible;
   fill: #888;
 }
-.zoomable .hovering-zoom {
+.apexcharts-canvas.zoomable .hovering-zoom {
   cursor: crosshair
 }
-.zoomable .hovering-pan {
+.apexcharts-canvas.zoomable .hovering-pan {
   cursor: move
 }
 
@@ -425,7 +425,7 @@
   animation-timing-function: ease;
 }
 
-.hidden {
+.apexcharts-canvas .hidden {
   opacity: 0;
 }
 
