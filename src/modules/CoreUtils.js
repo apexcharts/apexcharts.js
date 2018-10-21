@@ -203,6 +203,56 @@ class CoreUtils {
     }
   }
 
+  getLogSeries (series) {
+    const w = this.w
+
+    w.globals.seriesLog = series.map((s, i) => {
+      if (w.config.yaxis[i].logarithmic) {
+        return s.map((d) => {
+          if (d === null) return null
+
+          const logVal = Math.log(d) / Math.log(w.globals.maxYArr[i] - w.globals.minYArr[i])
+
+          return logVal
+        })
+      } else {
+        return s
+      }
+    })
+
+    return w.globals.seriesLog
+  }
+
+  getLogYRatios (yRatio) {
+    const gl = this.w.globals
+
+    gl.yLogRatio = []
+
+    gl.logYRange = gl.yRange.map((yRange, i) => {
+      if (this.w.config.yaxis[i].logarithmic) {
+        let maxY = Number.MIN_SAFE_INTEGER
+        let minY = Number.MAX_SAFE_INTEGER
+        let range = 1
+        gl.seriesLog.forEach((s, si) => {
+          s.forEach((v) => {
+            maxY = Math.max(v, maxY)
+            minY = Math.min(v, minY)
+          })
+        })
+
+        range = Math.pow(gl.yRange[i], parseInt(Math.abs(minY - maxY)) / gl.yRange[i])
+
+        gl.yLogRatio.push(range / gl.gridHeight)
+        return range
+      } else {
+        gl.yLogRatio.push(yRatio)
+        return yRatio
+      }
+    })
+
+    return gl.yLogRatio
+  }
+
   // Some config objects can be array - and we need to extend them correctly
   static extendArrayProps (configInstance, options) {
     if (options.yaxis) {
