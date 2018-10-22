@@ -324,6 +324,9 @@ class Defaults {
         followCursor: true,
         marker: {
           show: false
+        },
+        x: {
+          show: false
         }
       },
       legend: {

@@ -35,8 +35,10 @@ class Intersect {
         shared: false
       })
 
-      x = cx + (ttCtx.tooltipRect.ttWidth / 2) + width / 2
+      x = cx + (ttCtx.tooltipRect.ttWidth / 2) + width
       y = cy + (ttCtx.tooltipRect.ttHeight / 2) - height / 2
+
+      ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2)
 
       if (x > w.globals.gridWidth / 2) {
         x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
@@ -45,7 +47,7 @@ class Intersect {
         const elGrid = ttCtx.getElGrid()
         const seriesBound = elGrid.getBoundingClientRect()
         // x = ttCtx.e.clientX - seriesBound.left
-        y = ttCtx.e.clientY - seriesBound.top
+        y = ttCtx.e.clientY - seriesBound.top + w.globals.translateY / 2 - 10
       }
     }
 
