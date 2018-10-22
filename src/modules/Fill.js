@@ -99,14 +99,21 @@ class Fill {
     this.seriesIndex = this.getSeriesIndex(opts)
 
     let fillColors = this.getFillColors()
+    let fillColor = fillColors[this.seriesIndex]
     let fillOpacity = Array.isArray(cnf.fill.opacity) ? cnf.fill.opacity[this.seriesIndex] : cnf.fill.opacity
 
-    let defaultColor = Utils.hexToRgba(
-      fillColors[this.seriesIndex],
-      fillOpacity
-    )
+    let defaultColor = fillColor
 
-    let fillColor = fillColors[this.seriesIndex]
+    if (fillColor.indexOf('rgb') === -1) {
+      defaultColor = Utils.hexToRgba(
+        fillColor,
+        fillOpacity
+      )
+    } else {
+      if (fillColor.indexOf('rgba') > -1) {
+        fillOpacity = 0 + '.' + Utils.getOpacityFromRGBA(fillColors[this.seriesIndex])
+      }
+    }
 
     if (cnf.fill.type === 'pattern') {
       patternFill = this.handlePatternFill(patternFill, fillColor, fillOpacity, defaultColor)

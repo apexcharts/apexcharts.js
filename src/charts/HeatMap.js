@@ -117,7 +117,7 @@ class HeatMap {
 
             let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color
 
-            if (!colorFrom) colorFrom = 'rgba(255, 255, 255)'
+            if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 1)'
 
             this.animateHeatColor(rect, Utils.rgb2hex(colorFrom), Utils.rgb2hex(color), speed)
           }

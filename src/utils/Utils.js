@@ -155,6 +155,11 @@ class Utils {
     return 'rgba(' + h.join(',') + ')'
   }
 
+  static getOpacityFromRGBA(rgba) {
+    rgba = rgba.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i)
+    return rgba[3]
+  }
+
   static rgb2hex (rgb) {
     rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i)
     return (rgb && rgb.length === 4) ? '#' +
