@@ -112,11 +112,15 @@ class HeatMap {
 
         if (w.globals.dataChanged) {
           let speed = 1
-          if (this.dynamicAnim.enabled) {
+          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
             speed = this.dynamicAnim.speed
+
+            let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color
+
+            if (!colorFrom) colorFrom = 'rgba(255, 255, 255)'
+
+            this.animateHeatColor(rect, Utils.rgb2hex(colorFrom), Utils.rgb2hex(color), speed)
           }
-          let colorFrom = w.globals.previousPaths[i][j].color
-          this.animateHeatColor(rect, Utils.rgb2hex(colorFrom), Utils.rgb2hex(color), speed)
         }
 
         let dataLabels = this.calculateHeatmapDataLabels({
