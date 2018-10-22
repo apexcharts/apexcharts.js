@@ -240,7 +240,7 @@ class CoreUtils {
           })
         })
 
-        range = Math.pow(gl.yRange[i], parseInt(Math.abs(minY - maxY)) / gl.yRange[i])
+        range = Math.pow(gl.yRange[i], Math.abs(minY - maxY) / gl.yRange[i])
 
         gl.yLogRatio.push(range / gl.gridHeight)
         return range

@@ -160,12 +160,17 @@ class Range {
     // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
       this.scales.setMultipleYScales()
+      gl.yAxisScale.forEach((scale, i) => {
+        gl.minYArr[i] = scale.niceMin
+        gl.maxYArr[i] = scale.niceMax
+      })
     } else {
       this.scales.setYScaleForIndex(0, gl.minY, gl.maxY)
       gl.minY = gl.yAxisScale[0].niceMin
       gl.maxY = gl.yAxisScale[0].niceMax
       gl.minYArr[0] = gl.yAxisScale[0].niceMin
       gl.maxYArr[0] = gl.yAxisScale[0].niceMax
+      console.log(gl.minY, 'UYYY')
     }
   }
 

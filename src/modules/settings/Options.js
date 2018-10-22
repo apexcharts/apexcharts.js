@@ -10,7 +10,7 @@ export default class Options {
     this.yAxis = {
       show: true,
       opposite: false,
-      tickAmount: 6,
+      tickAmount: undefined,
       max: undefined,
       min: undefined,
       decimalsInFloat: 2,

@@ -129,6 +129,8 @@ export default class Range {
   }
 
   logarithmicScale (yMin, yMax, ticks) {
+    if (yMin < 0) yMin = 0.0002
+
     let range = Math.abs(yMax - yMin)
 
     let step = range / ticks
@@ -143,11 +145,11 @@ export default class Range {
     }
 
     const logs = result.map((niceNumber, i) => {
-      if (niceNumber === 0) {
-        return niceNumber
+      if (niceNumber <= 0) {
+        niceNumber = 0.00001
       }
 
-      const logVal = Math.pow(range, parseInt(niceNumber) / range)
+      const logVal = Math.pow(range, (niceNumber / range))
 
       let fn = Math.ceil
 
@@ -156,6 +158,9 @@ export default class Range {
       }
       return fn(logVal / Utils.roundToBase10(logVal)) * Utils.roundToBase10(logVal)
     })
+
+    // Math.floor may have rounded the value to 0, revert back to 1
+    if (logs[0] === 0) logs[0] = 1
 
     return {
       result: logs,
@@ -169,12 +174,12 @@ export default class Range {
     const cnf = this.w.config
 
     // user didn't provide tickAmount as well as y values are in small range
-    let ticksY = cnf.yaxis[index]
-    if (typeof ticksY !== 'undefined') {
-      ticksY = ticksY.tickAmount
-    } else {
-      ticksY = 8
-    }
+    let y = cnf.yaxis[index]
+    // if (typeof ticksY !== 'undefined') {
+    //   ticksY = ticksY.tickAmount
+    // } else {
+    //   ticksY = 6
+    // }
 
     if (typeof gl.yAxisScale[index] === 'undefined') {
       gl.yAxisScale[index] = []
@@ -185,7 +190,7 @@ export default class Range {
       gl.yAxisScale[index] = this.logarithmicScale(
         minY,
         maxY,
-        ticksY
+        y.tickAmount ? y.tickAmount : Math.floor(Math.log10(maxY))
       )
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
@@ -202,7 +207,7 @@ export default class Range {
         gl.yAxisScale[index] = this.niceScale(
           minY,
           maxY,
-          ticksY
+          y.tickAmount ? y.tickAmount : 6
         )
       }
     }
@@ -242,9 +247,6 @@ export default class Range {
       let maxY = maxYArr[index]
 
       this.setYScaleForIndex(i, minY, maxY)
-
-      gl.minYArr[i] = gl.yAxisScale[i].niceMin
-      gl.maxYArr[i] = gl.yAxisScale[i].niceMax
     })
 
     this.sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices)
@@ -252,7 +254,6 @@ export default class Range {
 
   sameScaleInMultipleAxes (minYArr, maxYArr, scalesIndices) {
     const cnf = this.w.config
-    const gl = this.w.globals
 
     // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
     const similarIndices = []
@@ -309,8 +310,6 @@ export default class Range {
           }
 
           this.setYScaleForIndex(i, minY, maxY)
-          gl.minYArr[i] = gl.yAxisScale[i].niceMin
-          gl.maxYArr[i] = gl.yAxisScale[i].niceMax
         }
       })
     })
