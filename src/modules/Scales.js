@@ -146,7 +146,7 @@ export default class Range {
 
     const logs = result.map((niceNumber, i) => {
       if (niceNumber <= 0) {
-        niceNumber = 0.00001
+        niceNumber = 1
       }
 
       var minv = Math.log(yMin)
@@ -155,7 +155,7 @@ export default class Range {
       // calculate adjustment factor
       var scale = (maxv - minv) / (yMax - yMin)
 
-      const logVal = Math.exp(minv + scale * (niceNumber - 0))
+      const logVal = Math.exp(minv + scale * (niceNumber - yMin))
       return Math.round(logVal / Utils.roundToBase10(logVal)) * Utils.roundToBase10(logVal)
     })
 
