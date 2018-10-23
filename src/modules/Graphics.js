@@ -255,6 +255,8 @@ class Graphics {
         speed: initialSpeed,
         delay: animationDelay
       })
+    } else {
+      anim.showDelayedElements()
     }
 
     if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {

@@ -21,7 +21,7 @@ class Range {
     this.setZRange()
   }
 
-  getMinYMaxY (startingIndex, minValInSeries, len) {
+  getMinYMaxY (startingIndex, lowestYInAllSeries, len) {
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
@@ -44,7 +44,7 @@ class Range {
       for (let j = 0; j < gl.series[i].length; j++) {
         if (series[i][j] !== null && Utils.isNumber(series[i][j])) {
           maxY = Math.max(maxY, seriesMax[i][j])
-          minValInSeries = Math.min(minValInSeries, seriesMin[i][j])
+          lowestYInAllSeries = Math.min(lowestYInAllSeries, seriesMin[i][j])
           if (Utils.isFloat(series[i][j])) {
             gl.yValueDecimal = Math.max(gl.yValueDecimal, series[i][j].toString().split('.')[1].length)
           }
@@ -60,7 +60,7 @@ class Range {
     return {
       minY,
       maxY,
-      minValInSeries
+      lowestYInAllSeries
     }
   }
 
@@ -71,23 +71,23 @@ class Range {
     gl.minY = Number.MIN_VALUE
     const yaxis = cnf.yaxis
 
-    let minValInSeries = Number.MAX_VALUE
+    let lowestYInAllSeries = Number.MAX_VALUE
 
     if (gl.isMultipleYAxis) {
       // we need to get minY and maxY for multiple y axis
       for (let i = 0; i < gl.series.length; i++) {
-        const minYMaxYArr = this.getMinYMaxY(i, minValInSeries, i + 1)
+        const minYMaxYArr = this.getMinYMaxY(i, lowestYInAllSeries, i + 1)
         gl.minYArr.push(minYMaxYArr.minY)
         gl.maxYArr.push(minYMaxYArr.maxY)
-        minValInSeries = minYMaxYArr.minValInSeries
+        lowestYInAllSeries = minYMaxYArr.lowestYInAllSeries
       }
     }
 
     // and then, get the minY and maxY from all series
-    const minYMaxY = this.getMinYMaxY(0, minValInSeries, gl.series.length)
+    const minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, gl.series.length)
     gl.minY = minYMaxY.minY
     gl.maxY = minYMaxY.maxY
-    minValInSeries = minYMaxY.minValInSeries
+    lowestYInAllSeries = minYMaxY.lowestYInAllSeries
 
     if (cnf.chart.stacked) {
       // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
@@ -124,13 +124,13 @@ class Range {
     // if the numbers are too big, reduce the range
     // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
     if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
-      if (gl.minY === Number.MIN_VALUE && minValInSeries !== Number.MAX_SAFE_INTEGER) {
-        let diff = gl.maxY - minValInSeries
-        if (minValInSeries >= 0 && minValInSeries <= 10) {
+      if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== Number.MAX_SAFE_INTEGER) {
+        let diff = gl.maxY - lowestYInAllSeries
+        if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {
           // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
-        gl.minY = (minValInSeries - (diff * 5) / 100)
+        gl.minY = (lowestYInAllSeries - (diff * 5) / 100)
         gl.maxY = (gl.maxY + (diff * 5) / 100)
       }
     }
@@ -170,7 +170,6 @@ class Range {
       gl.maxY = gl.yAxisScale[0].niceMax
       gl.minYArr[0] = gl.yAxisScale[0].niceMin
       gl.maxYArr[0] = gl.yAxisScale[0].niceMax
-      console.log(gl.minY, 'UYYY')
     }
   }
 

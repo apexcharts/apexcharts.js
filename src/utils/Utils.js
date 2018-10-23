@@ -108,7 +108,7 @@ class Utils {
 
   static log10(x) { return Math.log(x) / Math.LN10 };
   
-  static roundToBase10(x) { return Math.pow(10, Math.ceil(Math.log10(x))) }
+  static roundToBase10(x) { return Math.pow(10, Math.floor(Math.log10(x))) }
 
   static getDimensions (el) {
     let computedStyle = getComputedStyle(el)

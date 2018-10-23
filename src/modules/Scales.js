@@ -129,7 +129,7 @@ export default class Range {
   }
 
   logarithmicScale (yMin, yMax, ticks) {
-    if (yMin < 0) yMin = 0.0002
+    if (yMin < 0) yMin = 1
 
     let range = Math.abs(yMax - yMin)
 
@@ -149,14 +149,14 @@ export default class Range {
         niceNumber = 0.00001
       }
 
-      const logVal = Math.pow(range, (niceNumber / range))
+      var minv = Math.log(yMin)
+      var maxv = Math.log(yMax)
 
-      let fn = Math.ceil
+      // calculate adjustment factor
+      var scale = (maxv - minv) / (yMax - yMin)
 
-      if (i === 0) {
-        fn = Math.round
-      }
-      return fn(logVal / Utils.roundToBase10(logVal)) * Utils.roundToBase10(logVal)
+      const logVal = Math.exp(minv + scale * (niceNumber - 0))
+      return Math.round(logVal / Utils.roundToBase10(logVal)) * Utils.roundToBase10(logVal)
     })
 
     // Math.floor may have rounded the value to 0, revert back to 1
@@ -173,13 +173,7 @@ export default class Range {
     const gl = this.w.globals
     const cnf = this.w.config
 
-    // user didn't provide tickAmount as well as y values are in small range
     let y = cnf.yaxis[index]
-    // if (typeof ticksY !== 'undefined') {
-    //   ticksY = ticksY.tickAmount
-    // } else {
-    //   ticksY = 6
-    // }
 
     if (typeof gl.yAxisScale[index] === 'undefined') {
       gl.yAxisScale[index] = []

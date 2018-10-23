@@ -211,7 +211,7 @@ class CoreUtils {
         return s.map((d) => {
           if (d === null) return null
 
-          const logVal = Math.log(d) / Math.log(w.globals.maxYArr[i] - w.globals.minYArr[i])
+          const logVal = (Math.log(d) - Math.log(w.globals.minYArr[i])) / (Math.log(w.globals.maxYArr[i]) - Math.log(w.globals.minYArr[i]))
 
           return logVal
         })
