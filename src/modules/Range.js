@@ -1,4 +1,5 @@
 import Utils from '../utils/Utils'
+import Scales from './Scales'
 
 /**
  * Range is used to generates values between min and max.
@@ -10,6 +11,8 @@ class Range {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
+
+    this.scales = new Scales(ctx)
   }
 
   init () {
@@ -18,129 +21,7 @@ class Range {
     this.setZRange()
   }
 
-  // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
-  // This routine creates the Y axis values for a graph.
-  niceScale (yMin, yMax, ticks = 10) {
-    if (
-      (yMin === Number.MIN_VALUE && yMax === 0) ||
-      (!Utils.isNumber(yMin) && !Utils.isNumber(yMax))
-    ) {
-      // when all values are 0
-      yMin = 0
-      yMax = 1
-      ticks = 1
-      let justRange = this.justRange(yMin, yMax, ticks)
-      return justRange
-    }
-
-    if (yMin > yMax) {
-      // if somehow due to some wrong config, user sent max less than min,
-      // adjust the min/max again
-      console.warn('yaxis.min cannot be greater than yaxis.max')
-      yMax = yMin + 0.1
-    } else if (yMin === yMax) {
-      // If yMin and yMax are identical, then
-      // adjust the yMin and yMax values to actually
-      // make a graph. Also avoids division by zero errors.
-      yMin = yMin - 0.1 // some small value
-      yMax = yMax + 0.1 // some small value
-    }
-
-    // Calculate Min amd Max graphical labels and graph
-    // increments.  The number of ticks defaults to
-    // 10 which is the SUGGESTED value.  Any tick value
-    // entered is used as a suggested value which is
-    // adjusted to be a 'pretty' value.
-    //
-    // Output will be an array of the Y axis values that
-    // encompass the Y values.
-    let result = []
-
-    // Determine Range
-    let range = yMax - yMin
-    let tiks = ticks + 1
-    // Adjust ticks if needed
-    if (tiks < 2) {
-      tiks = 2
-    } else if (tiks > 2) {
-      tiks -= 2
-    }
-
-    // Get raw step value
-    let tempStep = range / tiks
-    // Calculate pretty step value
-
-    let mag = Math.floor(Utils.log10(tempStep))
-    let magPow = Math.pow(10, mag)
-    let magMsd = parseInt(tempStep / magPow)
-    let stepSize = magMsd * magPow
-
-    // build Y label array.
-    // Lower and upper bounds calculations
-    let lb = stepSize * Math.floor(yMin / stepSize)
-    let ub = stepSize * Math.ceil((yMax / stepSize))
-    // Build array
-    let val = lb
-    while (1) {
-      result.push(val)
-      val += stepSize
-      if (val > ub) {
-        break
-      }
-    }
-
-    // TODO: need to remove this condition below which makes this function tightly coupled with w.
-    if (this.w.config.yaxis[0].max === undefined &&
-      this.w.config.yaxis[0].min === undefined) {
-      return {
-        result,
-        niceMin: result[0],
-        niceMax: result[result.length - 1]
-      }
-    } else {
-      result = []
-      let v = yMin
-      result.push(v)
-      let valuesDivider = Math.abs(yMax - yMin) / ticks
-      for (let i = 0; i <= ticks - 1; i++) {
-        v = v + valuesDivider
-        result.push(v)
-      }
-
-      return {
-        result,
-        niceMin: result[0],
-        niceMax: result[result.length - 1]
-      }
-    }
-  }
-
-  justRange (yMin, yMax, ticks = 10) {
-    let range = Math.abs(yMax - yMin)
-
-    let step = range / ticks
-    if (ticks === Number.MAX_VALUE) {
-      ticks = 10
-      step = 1
-    }
-
-    let result = []
-    let v = yMin
-
-    while (ticks >= 0) {
-      result.push(v)
-      v = v + step
-      ticks -= 1
-    }
-
-    return {
-      result,
-      niceMin: result[0],
-      niceMax: result[result.length - 1]
-    }
-  }
-
-  getMinYMaxY (startingIndex, minValInSeries, len) {
+  getMinYMaxY (startingIndex, lowestYInAllSeries, len) {
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
@@ -163,7 +44,7 @@ class Range {
       for (let j = 0; j < gl.series[i].length; j++) {
         if (series[i][j] !== null && Utils.isNumber(series[i][j])) {
           maxY = Math.max(maxY, seriesMax[i][j])
-          minValInSeries = Math.min(minValInSeries, seriesMin[i][j])
+          lowestYInAllSeries = Math.min(lowestYInAllSeries, seriesMin[i][j])
           if (Utils.isFloat(series[i][j])) {
             gl.yValueDecimal = Math.max(gl.yValueDecimal, series[i][j].toString().split('.')[1].length)
           }
@@ -179,141 +60,8 @@ class Range {
     return {
       minY,
       maxY,
-      minValInSeries
+      lowestYInAllSeries
     }
-  }
-
-  setYScaleForIndex (index, minY, maxY) {
-    const gl = this.w.globals
-    const cnf = this.w.config
-
-    // user didn't provide tickAmount as well as y values are in small range
-    let ticksY = cnf.yaxis[index]
-    if (typeof ticksY !== 'undefined') {
-      ticksY = ticksY.tickAmount
-    } else {
-      ticksY = 8
-    }
-
-    if (typeof gl.yAxisScale[index] === 'undefined') {
-      gl.yAxisScale[index] = []
-    }
-    if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
-      // no value in series. draw blank grid
-      gl.yAxisScale[index] = this.justRange(
-        0,
-        5,
-        5
-      )
-    } else {
-      gl.allSeriesCollapsed = false
-
-      gl.yAxisScale[index] = this.niceScale(
-        minY,
-        maxY,
-        ticksY
-      )
-    }
-  }
-
-  setMultipleYScales () {
-    const gl = this.w.globals
-    const cnf = this.w.config
-
-    const minYArr = gl.minYArr.concat([])
-    const maxYArr = gl.maxYArr.concat([])
-
-    let scalesIndices = []
-    // here, we loop through the yaxis array and find the item which has "seriesName" property
-    cnf.yaxis.forEach((yaxe, i) => {
-      let index = i
-      cnf.series.forEach((s, si) => {
-        // if seriesName matches and that series is not collapsed, we use that scale
-        if (s.name === yaxe.seriesName && gl.collapsedSeriesIndices.indexOf(si) === -1) {
-          index = si
-
-          if (i !== si) {
-            scalesIndices.push({
-              index: si,
-              similarIndex: i,
-              alreadyExists: true
-            })
-          } else {
-            scalesIndices.push({
-              index: si
-            })
-          }
-        }
-      })
-
-      let minY = minYArr[index]
-      let maxY = maxYArr[index]
-
-      this.setYScaleForIndex(i, minY, maxY)
-
-      gl.minYArr[i] = gl.yAxisScale[i].niceMin
-      gl.maxYArr[i] = gl.yAxisScale[i].niceMax
-    })
-
-    // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
-    const similarIndices = []
-    scalesIndices.forEach((scale) => {
-      if (scale.alreadyExists) {
-        similarIndices.push(scale.index)
-        similarIndices.push(scale.similarIndex)
-      }
-    })
-
-    // then, we remove duplicates from the similarScale array
-    let uniqueSimilarIndices = similarIndices.filter(function (item, pos) {
-      return similarIndices.indexOf(item) === pos
-    })
-
-    let sameScaleMinYArr = []
-    let sameScaleMaxYArr = []
-    minYArr.forEach((minYValue, yi) => {
-      // let sameScaleMin = null
-      uniqueSimilarIndices.forEach((scale) => {
-        // we compare only the yIndex which exists in the uniqueSimilarIndices array
-        if (yi === scale) {
-          sameScaleMinYArr.push({
-            key: yi,
-            value: minYValue
-          })
-          sameScaleMaxYArr.push({
-            key: yi,
-            value: maxYArr[yi]
-          })
-        }
-      })
-    })
-
-    let sameScaleMin = null
-    let sameScaleMax = null
-    sameScaleMinYArr.forEach((s, i) => {
-      sameScaleMin = Math.min(sameScaleMinYArr[i].value, s.value)
-    })
-    sameScaleMaxYArr.forEach((s, i) => {
-      sameScaleMax = Math.min(sameScaleMaxYArr[i].value, s.value)
-    })
-
-    minYArr.forEach((min, i) => {
-      sameScaleMinYArr.forEach((s, si) => {
-        let minY = sameScaleMin
-        let maxY = sameScaleMax
-        if (s.key === i) {
-          if (cnf.yaxis[i].min !== undefined) {
-            minY = cnf.yaxis[i].min
-          }
-          if (cnf.yaxis[i].max !== undefined) {
-            maxY = cnf.yaxis[i].max
-          }
-          this.setYScaleForIndex(i, minY, maxY)
-          gl.minYArr[i] = gl.yAxisScale[i].niceMin
-          gl.maxYArr[i] = gl.yAxisScale[i].niceMax
-        }
-      })
-    })
   }
 
   setYRange () {
@@ -323,23 +71,23 @@ class Range {
     gl.minY = Number.MIN_VALUE
     const yaxis = cnf.yaxis
 
-    let minValInSeries = Number.MAX_VALUE
+    let lowestYInAllSeries = Number.MAX_VALUE
 
     if (gl.isMultipleYAxis) {
       // we need to get minY and maxY for multiple y axis
       for (let i = 0; i < gl.series.length; i++) {
-        const minYMaxYArr = this.getMinYMaxY(i, minValInSeries, i + 1)
+        const minYMaxYArr = this.getMinYMaxY(i, lowestYInAllSeries, i + 1)
         gl.minYArr.push(minYMaxYArr.minY)
         gl.maxYArr.push(minYMaxYArr.maxY)
-        minValInSeries = minYMaxYArr.minValInSeries
+        lowestYInAllSeries = minYMaxYArr.lowestYInAllSeries
       }
     }
 
     // and then, get the minY and maxY from all series
-    const minYMaxY = this.getMinYMaxY(0, minValInSeries, gl.series.length)
+    const minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, gl.series.length)
     gl.minY = minYMaxY.minY
     gl.maxY = minYMaxY.maxY
-    minValInSeries = minYMaxY.minValInSeries
+    lowestYInAllSeries = minYMaxY.lowestYInAllSeries
 
     if (cnf.chart.stacked) {
       // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
@@ -376,13 +124,13 @@ class Range {
     // if the numbers are too big, reduce the range
     // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
     if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
-      if (gl.minY === Number.MIN_VALUE && minValInSeries !== Number.MAX_SAFE_INTEGER) {
-        let diff = gl.maxY - minValInSeries
-        if (minValInSeries >= 0 && minValInSeries <= 10) {
+      if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== Number.MAX_SAFE_INTEGER) {
+        let diff = gl.maxY - lowestYInAllSeries
+        if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {
           // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
-        gl.minY = (minValInSeries - (diff * 5) / 100)
+        gl.minY = (lowestYInAllSeries - (diff * 5) / 100)
         gl.maxY = (gl.maxY + (diff * 5) / 100)
       }
     }
@@ -411,9 +159,13 @@ class Range {
 
     // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
-      this.setMultipleYScales()
+      this.scales.setMultipleYScales()
+      gl.yAxisScale.forEach((scale, i) => {
+        gl.minYArr[i] = scale.niceMin
+        gl.maxYArr[i] = scale.niceMax
+      })
     } else {
-      this.setYScaleForIndex(0, gl.minY, gl.maxY)
+      this.scales.setYScaleForIndex(0, gl.minY, gl.maxY)
       gl.minY = gl.yAxisScale[0].niceMin
       gl.maxY = gl.yAxisScale[0].niceMax
       gl.minYArr[0] = gl.yAxisScale[0].niceMin
@@ -461,7 +213,6 @@ class Range {
       }
     }
 
-    let niceXRange = new Range(this.ctx)
     if (gl.isXNumeric || gl.noLabelsProvided) {
       let ticks
 
@@ -503,7 +254,7 @@ class Range {
       }
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
-        gl.xAxisScale = niceXRange.justRange(
+        gl.xAxisScale = this.scales.linearScale(
           gl.minX,
           gl.maxX,
           ticks
@@ -512,9 +263,9 @@ class Range {
         // we will still store these labels as the count for this will be different (to draw grid and labels placement)
         gl.labels = gl.xAxisScale.result.slice()
       } else {
-        gl.xAxisScale = niceXRange.justRange(1, ticks, ticks)
+        gl.xAxisScale = this.scales.linearScale(1, ticks, ticks)
         if (gl.noLabelsProvided && gl.labels.length > 0) {
-          gl.xAxisScale = niceXRange.justRange(1, gl.labels.length, ticks - 1)
+          gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1)
           gl.seriesX = gl.labels.slice()
         }
         gl.labels = gl.xAxisScale.result.slice()

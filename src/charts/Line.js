@@ -1,3 +1,4 @@
+import CoreUtils from '../modules/CoreUtils'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'
 import DataLabels from '../modules/DataLabels'
@@ -42,7 +43,13 @@ class Line {
       'clip-path': `url(#gridRectMask${w.globals.cuid})`
     })
 
+    const coreUtils = new CoreUtils(this.ctx, w)
+    series = coreUtils.getLogSeries(series)
+
     let yRatio = this.xyRatios.yRatio
+
+    yRatio = coreUtils.getLogYRatios(yRatio)
+
     let zRatio = this.xyRatios.zRatio
     let xRatio = this.xyRatios.xRatio
     let baseLineY = this.xyRatios.baseLineY

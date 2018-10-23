@@ -41,3 +41,12 @@ h1, h2, h3, h4, h5, h6, strong {
   font-weight: bold;
   font-size: 20px;
 }
+
+.edit-on-codepen {
+  text-align: right;
+  width: 100%;
+  padding: 0 20px 40px;
+  position: relative;
+  top: -30px;
+  cursor: pointer;
+}

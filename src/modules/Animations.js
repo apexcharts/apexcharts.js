@@ -151,6 +151,13 @@ class Animations {
     )
   }
 
+  showDelayedElements () {
+    this.w.globals.delayedElements.forEach((d) => {
+      const ele = d.el
+      ele.classList.remove('hidden')
+    })
+  }
+
   // SVG.js animation for morphing one path to another
   morphSVG (
     el,
@@ -196,10 +203,7 @@ class Animations {
         }
       }
 
-      w.globals.delayedElements.forEach((d) => {
-        const ele = d.el
-        ele.classList.remove('hidden')
-      })
+      this.showDelayedElements()
     })
   }
 }
