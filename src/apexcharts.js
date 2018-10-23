@@ -815,8 +815,7 @@ class ApexCharts {
   }
 
   getChartArea () {
-    const paper = this.paper()
-    const el = paper.select('.apexcharts-inner')
+    const el = this.w.globals.dom.baseEl.querySelector('.apexcharts-inner')
 
     return el
   }
