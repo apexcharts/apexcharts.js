@@ -1,5 +1,6 @@
 import Filters from './Filters'
 import Graphics from './Graphics'
+import Utils from '../utils/Utils'
 
 /**
  * ApexCharts Markers Class for drawing points on y values in axes charts.
@@ -39,7 +40,7 @@ class Markers {
         }
 
         if (w.config.markers.size > 0) {
-          if (p.y[q] !== null) {
+          if (Utils.isNumber(p.y[q])) {
             PointClasses += ` w${(Math.random() + 1).toString(36).substring(4)}`
           } else {
             PointClasses = 'apexcharts-nullpoint'

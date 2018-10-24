@@ -6,4 +6,3 @@ cache:
   - node_modules
 script:
   - npm run build
-osx_image: xcode8.3

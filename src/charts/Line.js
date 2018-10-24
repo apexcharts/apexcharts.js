@@ -4,6 +4,7 @@ import Fill from '../modules/Fill'
 import DataLabels from '../modules/DataLabels'
 import Markers from '../modules/Markers'
 import Scatter from './Scatter'
+import Utils from '../utils/Utils'
 
 /**
  * ApexCharts Line Class responsible for drawing Line / Area Charts.
@@ -466,16 +467,16 @@ class Line {
       // push 2 points for the first data values
       ptX.push(xPT1st)
       ptY.push(
-        series[i][0] !== null ? prevY + w.config.markers.offsetY : null
+        Utils.isNumber(series[i][0]) ? prevY + w.config.markers.offsetY : null
       )
       ptX.push(x + w.config.markers.offsetX)
       ptY.push(
-        series[i][j + 1] !== null ? y + w.config.markers.offsetY : null
+        Utils.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null
       )
     } else {
       ptX.push(x + w.config.markers.offsetX)
       ptY.push(
-        series[i][j + 1] !== null ? y + w.config.markers.offsetY : null
+        Utils.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null
       )
     }
 

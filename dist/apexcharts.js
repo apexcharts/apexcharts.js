@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 166);
+/******/ 	return __webpack_require__(__webpack_require__.s = 167);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -99,7 +99,7 @@ var _Filters = __webpack_require__(6);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
-var _Animations = __webpack_require__(25);
+var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
@@ -396,6 +396,10 @@ var Graphics = function () {
           speed: initialSpeed,
           delay: animationDelay
         }));
+      } else {
+        if (w.globals.resized && !w.globals.dataChanged) {
+          anim.showDelayedElements();
+        }
       }
 
       if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
@@ -1054,6 +1058,11 @@ var Utils = function () {
       return Math.log(x) / Math.LN10;
     }
   }, {
+    key: 'roundToBase10',
+    value: function roundToBase10(x) {
+      return Math.pow(10, Math.floor(Math.log10(x)));
+    }
+  }, {
     key: 'getDimensions',
     value: function getDimensions(el) {
       var computedStyle = getComputedStyle(el);
@@ -1107,6 +1116,12 @@ var Utils = function () {
       if (typeof opacity !== 'undefined') h.push(opacity);
 
       return 'rgba(' + h.join(',') + ')';
+    }
+  }, {
+    key: 'getOpacityFromRGBA',
+    value: function getOpacityFromRGBA(rgba) {
+      rgba = rgba.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
+      return rgba[3];
     }
   }, {
     key: 'rgb2hex',
@@ -1218,8 +1233,8 @@ exports.default = Utils;
 "use strict";
 
 
-var store = __webpack_require__(40)('wks');
-var uid = __webpack_require__(24);
+var store = __webpack_require__(41)('wks');
+var uid = __webpack_require__(25);
 var _Symbol = __webpack_require__(3).Symbol;
 var USE_SYMBOL = typeof _Symbol == 'function';
 
@@ -1603,8 +1618,8 @@ module.exports = function (it) {
 
 
 var anObject = __webpack_require__(7);
-var IE8_DOM_DEFINE = __webpack_require__(55);
-var toPrimitive = __webpack_require__(42);
+var IE8_DOM_DEFINE = __webpack_require__(56);
+var toPrimitive = __webpack_require__(43);
 var dP = Object.defineProperty;
 
 exports.f = __webpack_require__(10) ? Object.defineProperty : function defineProperty(O, P, Attributes) {
@@ -1627,7 +1642,7 @@ exports.f = __webpack_require__(10) ? Object.defineProperty : function definePro
 
 
 // Thank's IE8 for his funny defineProperty
-module.exports = !__webpack_require__(19)(function () {
+module.exports = !__webpack_require__(20)(function () {
   return Object.defineProperty({}, 'a', { get: function get() {
       return 7;
     } }).a != 7;
@@ -1653,7 +1668,7 @@ module.exports = function (it, key) {
 
 
 var dP = __webpack_require__(9);
-var createDesc = __webpack_require__(22);
+var createDesc = __webpack_require__(23);
 module.exports = __webpack_require__(10) ? function (object, key, value) {
   return dP.f(object, key, createDesc(1, value));
 } : function (object, key, value) {
@@ -1785,11 +1800,18 @@ var Fill = function () {
       this.seriesIndex = this.getSeriesIndex(opts);
 
       var fillColors = this.getFillColors();
+      var fillColor = fillColors[this.seriesIndex];
       var fillOpacity = Array.isArray(cnf.fill.opacity) ? cnf.fill.opacity[this.seriesIndex] : cnf.fill.opacity;
 
-      var defaultColor = _Utils2.default.hexToRgba(fillColors[this.seriesIndex], fillOpacity);
+      var defaultColor = fillColor;
 
-      var fillColor = fillColors[this.seriesIndex];
+      if (fillColor.indexOf('rgb') === -1) {
+        defaultColor = _Utils2.default.hexToRgba(fillColor, fillOpacity);
+      } else {
+        if (fillColor.indexOf('rgba') > -1) {
+          fillOpacity = 0 + '.' + _Utils2.default.getOpacityFromRGBA(fillColors[this.seriesIndex]);
+        }
+      }
 
       if (cnf.fill.type === 'pattern') {
         patternFill = this.handlePatternFill(patternFill, fillColor, fillOpacity, defaultColor);
@@ -1951,7 +1973,7 @@ exports.default = Fill;
 
 
 // optional / simple context binding
-var aFunction = __webpack_require__(17);
+var aFunction = __webpack_require__(18);
 module.exports = function (fn, that, length) {
   aFunction(fn);
   if (that === undefined) return fn;
@@ -1984,7 +2006,7 @@ module.exports = function (fn, that, length) {
 var global = __webpack_require__(3);
 var hide = __webpack_require__(12);
 var has = __webpack_require__(11);
-var SRC = __webpack_require__(24)('src');
+var SRC = __webpack_require__(25)('src');
 var TO_STRING = 'toString';
 var $toString = Function[TO_STRING];
 var TPL = ('' + $toString).split(TO_STRING);
@@ -2021,8 +2043,8 @@ __webpack_require__(4).inspectSource = function (it) {
 
 
 // to indexed object, toObject with fallback for non-array-like ES3 strings
-var IObject = __webpack_require__(36);
-var defined = __webpack_require__(33);
+var IObject = __webpack_require__(37);
+var defined = __webpack_require__(34);
 module.exports = function (it) {
   return IObject(defined(it));
 };
@@ -2034,13 +2056,331 @@ module.exports = function (it) {
 "use strict";
 
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/*
+ ** Util functions which are dependent on ApexCharts instance
+ */
+
+var CoreUtils = function () {
+  function CoreUtils(ctx) {
+    _classCallCheck(this, CoreUtils);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  /**
+   * @memberof CoreUtils
+   * returns the sum of all individual values in a multiple stacked series
+   * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
+   *  @return [34,36,48,13]
+   **/
+
+
+  _createClass(CoreUtils, [{
+    key: "getStackedSeriesTotals",
+    value: function getStackedSeriesTotals() {
+      var w = this.w;
+      var total = [];
+
+      for (var i = 0; i < w.globals.series[w.globals.maxValsInArrayIndex].length; i++) {
+        var t = 0;
+        for (var j = 0; j < w.globals.series.length; j++) {
+          t += w.globals.series[j][i];
+        }
+        total.push(t);
+      }
+      w.globals.stackedSeriesTotals = total;
+      return total;
+    }
+
+    // get total of the all values inside all series
+
+  }, {
+    key: "getSeriesTotalByIndex",
+    value: function getSeriesTotalByIndex() {
+      var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+
+      if (index === null) {
+        // non-plot chart types - pie / donut / circle
+        return this.w.config.series.reduce(function (acc, cur) {
+          return acc + cur;
+        }, 0);
+      } else {
+        // axis charts - supporting multiple series
+        return this.w.config.series[index].data.reduce(function (acc, cur) {
+          return acc + cur;
+        }, 0);
+      }
+    }
+
+    // maxValsInArrayIndex is the index of series[] which has the largest number of items
+
+  }, {
+    key: "getLargestSeries",
+    value: function getLargestSeries() {
+      var w = this.w;
+      w.globals.maxValsInArrayIndex = w.globals.series.map(function (a) {
+        return a.length;
+      }).indexOf(Math.max.apply(Math, w.globals.series.map(function (a) {
+        return a.length;
+      })));
+    }
+
+    /**
+     * @memberof Core
+     * returns the sum of all values in a series
+     * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
+     *  @return [120, 11]
+     **/
+
+  }, {
+    key: "getSeriesTotals",
+    value: function getSeriesTotals() {
+      var w = this.w;
+
+      w.globals.seriesTotals = w.globals.series.map(function (ser, index) {
+        var total = 0;
+
+        if (Array.isArray(ser)) {
+          for (var j = 0; j < ser.length; j++) {
+            total += ser[j];
+          }
+        } else {
+          // for pie/donuts/gauges
+          total += ser;
+        }
+
+        return total;
+      });
+    }
+  }, {
+    key: "getSeriesTotalsXRange",
+    value: function getSeriesTotalsXRange(minX, maxX) {
+      var w = this.w;
+
+      var seriesTotalsXRange = w.globals.series.map(function (ser, index) {
+        var total = 0;
+
+        for (var j = 0; j < ser.length; j++) {
+          if (w.globals.seriesX[index][j] > minX && w.globals.seriesX[index][j] < maxX) {
+            total += ser[j];
+          }
+        }
+
+        return total;
+      });
+
+      return seriesTotalsXRange;
+    }
+
+    /**
+     * @memberof CoreUtils
+     * returns the percentage value of all individual values which can be used in a 100% stacked series
+     * Eg. w.globals.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
+     *  @return [[94.11, 91.66, 89.58, 92.30], [5.88, 8.33, 10.41, 7.7]]
+     **/
+
+  }, {
+    key: "getPercentSeries",
+    value: function getPercentSeries() {
+      var w = this.w;
+
+      w.globals.seriesPercent = w.globals.series.map(function (ser, index) {
+        var seriesPercent = [];
+        if (Array.isArray(ser)) {
+          for (var j = 0; j < ser.length; j++) {
+            var total = w.globals.stackedSeriesTotals[j];
+            var percent = 100 * ser[j] / total;
+            seriesPercent.push(percent);
+          }
+        } else {
+          var _total = w.globals.seriesTotals.reduce(function (acc, val) {
+            return acc + val;
+          }, 0);
+          var _percent = 100 * ser / _total;
+          seriesPercent.push(_percent);
+        }
+
+        return seriesPercent;
+      });
+    }
+  }, {
+    key: "getCalculatedRatios",
+    value: function getCalculatedRatios() {
+      var gl = this.w.globals;
+
+      var yRatio = [];
+      var invertedYRatio = 0;
+      var xRatio = 0;
+      var initialXRatio = 0;
+      var invertedXRatio = 0;
+      var zRatio = 0;
+      var baseLineY = [];
+      var baseLineInvertedY = 0.1;
+      var baseLineX = 0;
+
+      gl.yRange = [];
+      if (gl.isMultipleYAxis) {
+        for (var i = 0; i < gl.minYArr.length; i++) {
+          gl.yRange.push(Math.abs(gl.minYArr[i] - gl.maxYArr[i]));
+          baseLineY.push(0);
+        }
+      } else {
+        gl.yRange.push(Math.abs(gl.minY - gl.maxY));
+      }
+      gl.xRange = Math.abs(gl.maxX - gl.minX);
+      gl.zRange = Math.abs(gl.maxZ - gl.minZ);
+
+      // multiple y axis
+      for (var _i = 0; _i < gl.yRange.length; _i++) {
+        yRatio.push(gl.yRange[_i] / gl.gridHeight);
+      }
+
+      xRatio = gl.xRange / gl.gridWidth;
+      initialXRatio = Math.abs(gl.initialmaxX - gl.initialminX) / gl.gridWidth;
+
+      invertedYRatio = gl.yRange / gl.gridWidth;
+      invertedXRatio = gl.xRange / gl.gridHeight;
+      zRatio = gl.zRange / gl.gridHeight * 16;
+
+      if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
+        // Negative numbers present in series
+        gl.hasNegs = true;
+        baseLineY = [];
+
+        // baseline variables is the 0 of the yaxis which will be needed when there are negatives
+        if (gl.isMultipleYAxis) {
+          for (var _i2 = 0; _i2 < yRatio.length; _i2++) {
+            baseLineY.push(-gl.minYArr[_i2] / yRatio[_i2]);
+          }
+        } else {
+          baseLineY.push(-gl.minY / yRatio[0]);
+        }
+
+        baseLineInvertedY = -gl.minY / invertedYRatio; // this is for bar chart
+        baseLineX = gl.minX / xRatio;
+      } else {
+        baseLineY.push(0);
+      }
+
+      return {
+        yRatio: yRatio,
+        invertedYRatio: invertedYRatio,
+        zRatio: zRatio,
+        xRatio: xRatio,
+        initialXRatio: initialXRatio,
+        invertedXRatio: invertedXRatio,
+        baseLineInvertedY: baseLineInvertedY,
+        baseLineY: baseLineY,
+        baseLineX: baseLineX
+      };
+    }
+  }, {
+    key: "getLogSeries",
+    value: function getLogSeries(series) {
+      var w = this.w;
+
+      w.globals.seriesLog = series.map(function (s, i) {
+        if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
+          return s.map(function (d) {
+            if (d === null) return null;
+
+            var logVal = (Math.log(d) - Math.log(w.globals.minYArr[i])) / (Math.log(w.globals.maxYArr[i]) - Math.log(w.globals.minYArr[i]));
+
+            return logVal;
+          });
+        } else {
+          return s;
+        }
+      });
+
+      return w.globals.seriesLog;
+    }
+  }, {
+    key: "getLogYRatios",
+    value: function getLogYRatios(yRatio) {
+      var _this = this;
+
+      var w = this.w;
+      var gl = this.w.globals;
+
+      gl.yLogRatio = yRatio.slice();
+
+      gl.logYRange = gl.yRange.map(function (yRange, i) {
+        if (_this.w.config.yaxis[i].logarithmic) {
+          var maxY = Number.MIN_SAFE_INTEGER;
+          var minY = Number.MAX_SAFE_INTEGER;
+          var range = 1;
+          gl.seriesLog.forEach(function (s, si) {
+            s.forEach(function (v) {
+              if (w.config.yaxis[si] && w.config.yaxis[si].logarithmic) {
+                maxY = Math.max(v, maxY);
+                minY = Math.min(v, minY);
+              }
+            });
+          });
+
+          range = Math.pow(gl.yRange[i], Math.abs(minY - maxY) / gl.yRange[i]);
+
+          gl.yLogRatio[i] = range / gl.gridHeight;
+          return range;
+        }
+      });
+
+      return gl.yLogRatio;
+    }
+
+    // Some config objects can be array - and we need to extend them correctly
+
+  }], [{
+    key: "extendArrayProps",
+    value: function extendArrayProps(configInstance, options) {
+      if (options.yaxis) {
+        options = configInstance.extendYAxis(options);
+      }
+      if (options.annotations) {
+        if (options.annotations.yaxis) {
+          options = configInstance.extendYAxisAnnotations(options);
+        }
+        if (options.annotations.xaxis) {
+          options = configInstance.extendXAxisAnnotations(options);
+        }
+        if (options.annotations.points) {
+          options = configInstance.extendPointAnnotations(options);
+        }
+      }
+
+      return options;
+    }
+  }]);
+
+  return CoreUtils;
+}();
+
+exports.default = CoreUtils;
+
+/***/ }),
+/* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 module.exports = function (it) {
   if (typeof it != 'function') throw TypeError(it + ' is not a function!');
   return it;
 };
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2053,7 +2393,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2068,7 +2408,7 @@ module.exports = function (exec) {
 };
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2077,7 +2417,7 @@ module.exports = function (exec) {
 module.exports = {};
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2086,7 +2426,7 @@ module.exports = {};
 module.exports = false;
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2102,21 +2442,21 @@ module.exports = function (bitmap, value) {
 };
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // 7.1.15 ToLength
-var toInteger = __webpack_require__(41);
+var toInteger = __webpack_require__(42);
 var min = Math.min;
 module.exports = function (it) {
   return it > 0 ? min(toInteger(it), 0x1fffffffffffff) : 0; // pow(2, 53) - 1 == 9007199254740991
 };
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2129,7 +2469,7 @@ module.exports = function (key) {
 };
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2305,6 +2645,14 @@ var Animations = function () {
 
       me.morphSVG(el, j, pathFrom, pathTo, speed, strokeWidth, delay * delayFactor);
     }
+  }, {
+    key: 'showDelayedElements',
+    value: function showDelayedElements() {
+      this.w.globals.delayedElements.forEach(function (d) {
+        var ele = d.el;
+        ele.classList.remove('hidden');
+      });
+    }
 
     // SVG.js animation for morphing one path to another
 
@@ -2348,10 +2696,7 @@ var Animations = function () {
           }
         }
 
-        w.globals.delayedElements.forEach(function (d) {
-          var ele = d.el;
-          ele.classList.remove('hidden');
-        });
+        _this.showDelayedElements();
       });
     }
   }]);
@@ -2362,7 +2707,7 @@ var Animations = function () {
 module.exports = Animations;
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2740,22 +3085,22 @@ var Series = function () {
 exports.default = Series;
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // 19.1.2.14 / 15.2.3.14 Object.keys(O)
-var $keys = __webpack_require__(64);
-var enumBugKeys = __webpack_require__(35);
+var $keys = __webpack_require__(65);
+var enumBugKeys = __webpack_require__(36);
 
 module.exports = Object.keys || function keys(O) {
   return $keys(O, enumBugKeys);
 };
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2770,20 +3115,20 @@ module.exports = function (it, tag, stat) {
 };
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // 7.1.13 ToObject(argument)
-var defined = __webpack_require__(33);
+var defined = __webpack_require__(34);
 module.exports = function (it) {
   return Object(defined(it));
 };
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2795,7 +3140,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DateTime = __webpack_require__(52);
+var _DateTime = __webpack_require__(53);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
@@ -2953,7 +3298,7 @@ var Formatters = function () {
 exports.default = Formatters;
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2968,14 +3313,14 @@ module.exports = function (key) {
 };
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // getting tag from 19.1.3.6 Object.prototype.toString()
-var cof = __webpack_require__(18);
+var cof = __webpack_require__(19);
 var TAG = __webpack_require__(2)('toStringTag');
 // ES3 wrong here
 var ARG = cof(function () {
@@ -3001,7 +3346,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3014,7 +3359,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3029,7 +3374,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3039,28 +3384,28 @@ module.exports = function (it) {
 module.exports = 'constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,toLocaleString,toString,valueOf'.split(',');
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // fallback for non-array-like ES3 and non-enumerable old V8 strings
-var cof = __webpack_require__(18);
+var cof = __webpack_require__(19);
 // eslint-disable-next-line no-prototype-builtins
 module.exports = Object('z').propertyIsEnumerable(0) ? Object : function (it) {
   return cof(it) == 'String' ? it.split('') : Object(it);
 };
 
 /***/ }),
-/* 37 */
+/* 38 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 // 25.4.1.5 NewPromiseCapability(C)
 
-var aFunction = __webpack_require__(17);
+var aFunction = __webpack_require__(18);
 
 function PromiseCapability(C) {
   var resolve, reject;
@@ -3078,7 +3423,7 @@ module.exports.f = function (C) {
 };
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3087,20 +3432,20 @@ module.exports.f = function (C) {
 exports.f = {}.propertyIsEnumerable;
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var shared = __webpack_require__(40)('keys');
-var uid = __webpack_require__(24);
+var shared = __webpack_require__(41)('keys');
+var uid = __webpack_require__(25);
 module.exports = function (key) {
   return shared[key] || (shared[key] = uid(key));
 };
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3115,12 +3460,12 @@ var store = global[SHARED] || (global[SHARED] = {});
   return store[key] || (store[key] = value !== undefined ? value : {});
 })('versions', []).push({
   version: core.version,
-  mode: __webpack_require__(21) ? 'pure' : 'global',
+  mode: __webpack_require__(22) ? 'pure' : 'global',
   copyright: '© 2018 Denis Pushkarev (zloirock.ru)'
 });
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3134,7 +3479,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3154,7 +3499,7 @@ module.exports = function (it, S) {
 };
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3162,8 +3507,8 @@ module.exports = function (it, S) {
 
 var global = __webpack_require__(3);
 var core = __webpack_require__(4);
-var LIBRARY = __webpack_require__(21);
-var wksExt = __webpack_require__(69);
+var LIBRARY = __webpack_require__(22);
+var wksExt = __webpack_require__(70);
 var defineProperty = __webpack_require__(9).f;
 module.exports = function (name) {
   var $Symbol = core.Symbol || (core.Symbol = LIBRARY ? {} : global.Symbol || {});
@@ -3171,7 +3516,7 @@ module.exports = function (name) {
 };
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3182,6 +3527,10 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _CoreUtils = __webpack_require__(17);
+
+var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
 var _Fill = __webpack_require__(13);
 
@@ -3195,7 +3544,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _DataLabels = __webpack_require__(45);
+var _DataLabels = __webpack_require__(46);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
@@ -3252,6 +3601,11 @@ var Bar = function () {
       var w = this.w;
       var graphics = new _Graphics2.default(this.ctx);
       var fill = new _Fill2.default(this.ctx);
+
+      var coreUtils = new _CoreUtils2.default(this.ctx, w);
+      this.series = coreUtils.getLogSeries(series);
+      series = this.series;
+      this.yRatio = coreUtils.getLogYRatios(this.yRatio);
 
       this.initVariables(series);
 
@@ -4098,7 +4452,7 @@ var Bar = function () {
 exports.default = Bar;
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4110,7 +4464,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Scatter = __webpack_require__(74);
+var _Scatter = __webpack_require__(75);
 
 var _Scatter2 = _interopRequireDefault(_Scatter);
 
@@ -4302,7 +4656,7 @@ var DataLabels = function () {
 exports.default = DataLabels;
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4314,7 +4668,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Formatters = __webpack_require__(30);
+var _Formatters = __webpack_require__(31);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
@@ -4322,7 +4676,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _YAxis = __webpack_require__(49);
+var _YAxis = __webpack_require__(50);
 
 var _YAxis2 = _interopRequireDefault(_YAxis);
 
@@ -4928,7 +5282,7 @@ var Dimensions = function () {
 module.exports = Dimensions;
 
 /***/ }),
-/* 47 */
+/* 48 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4943,6 +5297,10 @@ var _Filters2 = _interopRequireDefault(_Filters);
 var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
+
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -4992,7 +5350,7 @@ var Markers = function () {
           }
 
           if (w.config.markers.size > 0) {
-            if (p.y[q] !== null) {
+            if (_Utils2.default.isNumber(p.y[q])) {
               PointClasses += ' w' + (Math.random() + 1).toString(36).substring(4);
             } else {
               PointClasses = 'apexcharts-nullpoint';
@@ -5107,7 +5465,7 @@ var Markers = function () {
 module.exports = Markers;
 
 /***/ }),
-/* 48 */
+/* 49 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5119,11 +5477,11 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _YAxis = __webpack_require__(49);
+var _YAxis = __webpack_require__(50);
 
 var _YAxis2 = _interopRequireDefault(_YAxis);
 
-var _Formatters = __webpack_require__(30);
+var _Formatters = __webpack_require__(31);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
@@ -5556,7 +5914,7 @@ var XAxis = function () {
 module.exports = XAxis;
 
 /***/ }),
-/* 49 */
+/* 50 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5963,7 +6321,7 @@ var YAxis = function () {
 module.exports = YAxis;
 
 /***/ }),
-/* 50 */
+/* 51 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5973,7 +6331,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Defaults = __webpack_require__(141);
+var _Defaults = __webpack_require__(142);
 
 var _Defaults2 = _interopRequireDefault(_Defaults);
 
@@ -5981,7 +6339,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Options = __webpack_require__(51);
+var _Options = __webpack_require__(52);
 
 var _Options2 = _interopRequireDefault(_Options);
 
@@ -6232,7 +6590,7 @@ var Config = function () {
 module.exports = Config;
 
 /***/ }),
-/* 51 */
+/* 52 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6260,7 +6618,8 @@ var Options = function () {
     this.yAxis = {
       show: true,
       opposite: false,
-      tickAmount: 6,
+      logarithmic: false,
+      tickAmount: undefined,
       max: undefined,
       min: undefined,
       decimalsInFloat: 2,
@@ -7037,7 +7396,7 @@ var Options = function () {
 exports.default = Options;
 
 /***/ }),
-/* 52 */
+/* 53 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7309,7 +7668,7 @@ var DateTime = function () {
 exports.default = DateTime;
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7318,7 +7677,7 @@ exports.default = DateTime;
 // false -> Array#indexOf
 // true  -> Array#includes
 var toIObject = __webpack_require__(16);
-var toLength = __webpack_require__(23);
+var toLength = __webpack_require__(24);
 var toAbsoluteIndex = __webpack_require__(110);
 module.exports = function (IS_INCLUDES) {
   return function ($this, el, fromIndex) {
@@ -7342,7 +7701,7 @@ module.exports = function (IS_INCLUDES) {
 };
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7352,33 +7711,17 @@ var document = __webpack_require__(3).document;
 module.exports = document && document.documentElement;
 
 /***/ }),
-/* 55 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = !__webpack_require__(10) && !__webpack_require__(19)(function () {
-  return Object.defineProperty(__webpack_require__(34)('div'), 'a', { get: function get() {
-      return 7;
-    } }).a != 7;
-});
-
-/***/ }),
 /* 56 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-// check on default Array iterator
-var Iterators = __webpack_require__(20);
-var ITERATOR = __webpack_require__(2)('iterator');
-var ArrayProto = Array.prototype;
-
-module.exports = function (it) {
-  return it !== undefined && (Iterators.Array === it || ArrayProto[ITERATOR] === it);
-};
+module.exports = !__webpack_require__(10) && !__webpack_require__(20)(function () {
+  return Object.defineProperty(__webpack_require__(35)('div'), 'a', { get: function get() {
+      return 7;
+    } }).a != 7;
+});
 
 /***/ }),
 /* 57 */
@@ -7387,14 +7730,30 @@ module.exports = function (it) {
 "use strict";
 
 
+// check on default Array iterator
+var Iterators = __webpack_require__(21);
+var ITERATOR = __webpack_require__(2)('iterator');
+var ArrayProto = Array.prototype;
+
+module.exports = function (it) {
+  return it !== undefined && (Iterators.Array === it || ArrayProto[ITERATOR] === it);
+};
+
+/***/ }),
+/* 58 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 // 7.2.2 IsArray(argument)
-var cof = __webpack_require__(18);
+var cof = __webpack_require__(19);
 module.exports = Array.isArray || function isArray(arg) {
   return cof(arg) == 'Array';
 };
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7414,19 +7773,19 @@ module.exports = function (iterator, fn, value, entries) {
 };
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var LIBRARY = __webpack_require__(21);
+var LIBRARY = __webpack_require__(22);
 var $export = __webpack_require__(5);
 var redefine = __webpack_require__(15);
 var hide = __webpack_require__(12);
-var Iterators = __webpack_require__(20);
+var Iterators = __webpack_require__(21);
 var $iterCreate = __webpack_require__(98);
-var setToStringTag = __webpack_require__(28);
+var setToStringTag = __webpack_require__(29);
 var getPrototypeOf = __webpack_require__(105);
 var ITERATOR = __webpack_require__(2)('iterator');
 var BUGGY = !([].keys && 'next' in [].keys()); // Safari has buggy iterators w/o `next`
@@ -7502,7 +7861,7 @@ module.exports = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORCE
 };
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7540,7 +7899,7 @@ module.exports = function (exec, skipClosing) {
 };
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7549,21 +7908,21 @@ module.exports = function (exec, skipClosing) {
 // 19.1.2.2 / 15.2.3.5 Object.create(O [, Properties])
 var anObject = __webpack_require__(7);
 var dPs = __webpack_require__(102);
-var enumBugKeys = __webpack_require__(35);
-var IE_PROTO = __webpack_require__(39)('IE_PROTO');
+var enumBugKeys = __webpack_require__(36);
+var IE_PROTO = __webpack_require__(40)('IE_PROTO');
 var Empty = function Empty() {/* empty */};
 var PROTOTYPE = 'prototype';
 
 // Create object with fake `null` prototype: use iframe Object with cleared prototype
 var _createDict = function createDict() {
   // Thrash, waste and sodomy: IE GC bug
-  var iframe = __webpack_require__(34)('iframe');
+  var iframe = __webpack_require__(35)('iframe');
   var i = enumBugKeys.length;
   var lt = '<';
   var gt = '>';
   var iframeDocument;
   iframe.style.display = 'none';
-  __webpack_require__(54).appendChild(iframe);
+  __webpack_require__(55).appendChild(iframe);
   iframe.src = 'javascript:'; // eslint-disable-line no-script-url
   // createDict = iframe.contentWindow.Object;
   // html.removeChild(iframe);
@@ -7590,28 +7949,19 @@ module.exports = Object.create || function create(O, Properties) {
 };
 
 /***/ }),
-/* 62 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
-var $keys = __webpack_require__(64);
-var hiddenKeys = __webpack_require__(35).concat('length', 'prototype');
-
-exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
-  return $keys(O, hiddenKeys);
-};
-
-/***/ }),
 /* 63 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-exports.f = Object.getOwnPropertySymbols;
+// 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
+var $keys = __webpack_require__(65);
+var hiddenKeys = __webpack_require__(36).concat('length', 'prototype');
+
+exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
+  return $keys(O, hiddenKeys);
+};
 
 /***/ }),
 /* 64 */
@@ -7620,10 +7970,19 @@ exports.f = Object.getOwnPropertySymbols;
 "use strict";
 
 
+exports.f = Object.getOwnPropertySymbols;
+
+/***/ }),
+/* 65 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 var has = __webpack_require__(11);
 var toIObject = __webpack_require__(16);
-var arrayIndexOf = __webpack_require__(53)(false);
-var IE_PROTO = __webpack_require__(39)('IE_PROTO');
+var arrayIndexOf = __webpack_require__(54)(false);
+var IE_PROTO = __webpack_require__(40)('IE_PROTO');
 
 module.exports = function (object, names) {
   var O = toIObject(object);
@@ -7641,7 +8000,7 @@ module.exports = function (object, names) {
 };
 
 /***/ }),
-/* 65 */
+/* 66 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7656,7 +8015,7 @@ module.exports = function (exec) {
 };
 
 /***/ }),
-/* 66 */
+/* 67 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7664,7 +8023,7 @@ module.exports = function (exec) {
 
 var anObject = __webpack_require__(7);
 var isObject = __webpack_require__(8);
-var newPromiseCapability = __webpack_require__(37);
+var newPromiseCapability = __webpack_require__(38);
 
 module.exports = function (C, x) {
   anObject(C);
@@ -7676,7 +8035,7 @@ module.exports = function (C, x) {
 };
 
 /***/ }),
-/* 67 */
+/* 68 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7684,7 +8043,7 @@ module.exports = function (C, x) {
 
 // 7.3.20 SpeciesConstructor(O, defaultConstructor)
 var anObject = __webpack_require__(7);
-var aFunction = __webpack_require__(17);
+var aFunction = __webpack_require__(18);
 var SPECIES = __webpack_require__(2)('species');
 module.exports = function (O, D) {
   var C = anObject(O).constructor;
@@ -7693,7 +8052,7 @@ module.exports = function (O, D) {
 };
 
 /***/ }),
-/* 68 */
+/* 69 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7701,8 +8060,8 @@ module.exports = function (O, D) {
 
 var ctx = __webpack_require__(14);
 var invoke = __webpack_require__(97);
-var html = __webpack_require__(54);
-var cel = __webpack_require__(34);
+var html = __webpack_require__(55);
+var cel = __webpack_require__(35);
 var global = __webpack_require__(3);
 var process = global.process;
 var setTask = global.setImmediate;
@@ -7743,7 +8102,7 @@ if (!setTask || !clearTask) {
     delete queue[id];
   };
   // Node.js 0.8-
-  if (__webpack_require__(18)(process) == 'process') {
+  if (__webpack_require__(19)(process) == 'process') {
     defer = function defer(id) {
       process.nextTick(ctx(run, id, 1));
     };
@@ -7786,7 +8145,7 @@ module.exports = {
 };
 
 /***/ }),
-/* 69 */
+/* 70 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7795,28 +8154,28 @@ module.exports = {
 exports.f = __webpack_require__(2);
 
 /***/ }),
-/* 70 */
+/* 71 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var classof = __webpack_require__(32);
+var classof = __webpack_require__(33);
 var ITERATOR = __webpack_require__(2)('iterator');
-var Iterators = __webpack_require__(20);
+var Iterators = __webpack_require__(21);
 module.exports = __webpack_require__(4).getIteratorMethod = function (it) {
   if (it != undefined) return it[ITERATOR] || it['@@iterator'] || Iterators[classof(it)];
 };
 
 /***/ }),
-/* 71 */
+/* 72 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 // 19.1.3.6 Object.prototype.toString()
 
-var classof = __webpack_require__(32);
+var classof = __webpack_require__(33);
 var test = {};
 test[__webpack_require__(2)('toStringTag')] = 'z';
 if (test + '' != '[object z]') {
@@ -7826,7 +8185,7 @@ if (test + '' != '[object z]') {
 }
 
 /***/ }),
-/* 72 */
+/* 73 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7835,7 +8194,7 @@ if (test + '' != '[object z]') {
 var $at = __webpack_require__(109)(true);
 
 // 21.1.3.27 String.prototype[@@iterator]()
-__webpack_require__(59)(String, 'String', function (iterated) {
+__webpack_require__(60)(String, 'String', function (iterated) {
   this._t = String(iterated); // target
   this._i = 0; // next index
   // 21.1.5.2.1 %StringIteratorPrototype%.next()
@@ -7850,7 +8209,7 @@ __webpack_require__(59)(String, 'String', function (iterated) {
 });
 
 /***/ }),
-/* 73 */
+/* 74 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8401,7 +8760,7 @@ var Pie = function () {
 exports.default = Pie;
 
 /***/ }),
-/* 74 */
+/* 75 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8409,7 +8768,7 @@ exports.default = Pie;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Animations = __webpack_require__(25);
+var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
@@ -8425,7 +8784,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Markers = __webpack_require__(47);
+var _Markers = __webpack_require__(48);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -8605,270 +8964,6 @@ var Scatter = function () {
 module.exports = Scatter;
 
 /***/ }),
-/* 75 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/*
- ** Util functions which are dependent on ApexCharts instance
- */
-
-var CoreUtils = function () {
-  function CoreUtils(ctx) {
-    _classCallCheck(this, CoreUtils);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  /**
-   * @memberof CoreUtils
-   * returns the sum of all individual values in a multiple stacked series
-   * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
-   *  @return [34,36,48,13]
-   **/
-
-
-  _createClass(CoreUtils, [{
-    key: "getStackedSeriesTotals",
-    value: function getStackedSeriesTotals() {
-      var w = this.w;
-      var total = [];
-
-      for (var i = 0; i < w.globals.series[w.globals.maxValsInArrayIndex].length; i++) {
-        var t = 0;
-        for (var j = 0; j < w.globals.series.length; j++) {
-          t += w.globals.series[j][i];
-        }
-        total.push(t);
-      }
-      w.globals.stackedSeriesTotals = total;
-      return total;
-    }
-
-    // get total of the all values inside all series
-
-  }, {
-    key: "getSeriesTotalByIndex",
-    value: function getSeriesTotalByIndex() {
-      var index = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
-
-      if (index === null) {
-        // non-plot chart types - pie / donut / circle
-        return this.w.config.series.reduce(function (acc, cur) {
-          return acc + cur;
-        }, 0);
-      } else {
-        // axis charts - supporting multiple series
-        return this.w.config.series[index].data.reduce(function (acc, cur) {
-          return acc + cur;
-        }, 0);
-      }
-    }
-
-    // maxValsInArrayIndex is the index of series[] which has the largest number of items
-
-  }, {
-    key: "getLargestSeries",
-    value: function getLargestSeries() {
-      var w = this.w;
-      w.globals.maxValsInArrayIndex = w.globals.series.map(function (a) {
-        return a.length;
-      }).indexOf(Math.max.apply(Math, w.globals.series.map(function (a) {
-        return a.length;
-      })));
-    }
-
-    /**
-     * @memberof Core
-     * returns the sum of all values in a series
-     * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
-     *  @return [120, 11]
-     **/
-
-  }, {
-    key: "getSeriesTotals",
-    value: function getSeriesTotals() {
-      var w = this.w;
-
-      w.globals.seriesTotals = w.globals.series.map(function (ser, index) {
-        var total = 0;
-
-        if (Array.isArray(ser)) {
-          for (var j = 0; j < ser.length; j++) {
-            total += ser[j];
-          }
-        } else {
-          // for pie/donuts/gauges
-          total += ser;
-        }
-
-        return total;
-      });
-    }
-  }, {
-    key: "getSeriesTotalsXRange",
-    value: function getSeriesTotalsXRange(minX, maxX) {
-      var w = this.w;
-
-      var seriesTotalsXRange = w.globals.series.map(function (ser, index) {
-        var total = 0;
-
-        for (var j = 0; j < ser.length; j++) {
-          if (w.globals.seriesX[index][j] > minX && w.globals.seriesX[index][j] < maxX) {
-            total += ser[j];
-          }
-        }
-
-        return total;
-      });
-
-      return seriesTotalsXRange;
-    }
-
-    /**
-     * @memberof CoreUtils
-     * returns the percentage value of all individual values which can be used in a 100% stacked series
-     * Eg. w.globals.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
-     *  @return [[94.11, 91.66, 89.58, 92.30], [5.88, 8.33, 10.41, 7.7]]
-     **/
-
-  }, {
-    key: "getPercentSeries",
-    value: function getPercentSeries() {
-      var w = this.w;
-
-      w.globals.seriesPercent = w.globals.series.map(function (ser, index) {
-        var seriesPercent = [];
-        if (Array.isArray(ser)) {
-          for (var j = 0; j < ser.length; j++) {
-            var total = w.globals.stackedSeriesTotals[j];
-            var percent = 100 * ser[j] / total;
-            seriesPercent.push(percent);
-          }
-        } else {
-          var _total = w.globals.seriesTotals.reduce(function (acc, val) {
-            return acc + val;
-          }, 0);
-          var _percent = 100 * ser / _total;
-          seriesPercent.push(_percent);
-        }
-
-        return seriesPercent;
-      });
-    }
-  }, {
-    key: "getCalculatedRatios",
-    value: function getCalculatedRatios() {
-      var gl = this.w.globals;
-
-      var yRatio = [];
-      var invertedYRatio = 0;
-      var xRatio = 0;
-      var initialXRatio = 0;
-      var invertedXRatio = 0;
-      var zRatio = 0;
-      var baseLineY = [];
-      var baseLineInvertedY = 0.1;
-      var baseLineX = 0;
-
-      gl.yRange = [];
-      if (gl.isMultipleYAxis) {
-        for (var i = 0; i < gl.minYArr.length; i++) {
-          gl.yRange.push(Math.abs(gl.minYArr[i] - gl.maxYArr[i]));
-          baseLineY.push(0);
-        }
-      } else {
-        gl.yRange.push(Math.abs(gl.minY - gl.maxY));
-      }
-      gl.xRange = Math.abs(gl.maxX - gl.minX);
-      gl.zRange = Math.abs(gl.maxZ - gl.minZ);
-
-      // multiple y axis
-      for (var _i = 0; _i < gl.yRange.length; _i++) {
-        yRatio.push(gl.yRange[_i] / gl.gridHeight);
-      }
-
-      xRatio = gl.xRange / gl.gridWidth;
-      initialXRatio = Math.abs(gl.initialmaxX - gl.initialminX) / gl.gridWidth;
-
-      invertedYRatio = gl.yRange / gl.gridWidth;
-      invertedXRatio = gl.xRange / gl.gridHeight;
-      zRatio = gl.zRange / gl.gridHeight * 16;
-
-      if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
-        // Negative numbers present in series
-        gl.hasNegs = true;
-        baseLineY = [];
-
-        // baseline variables is the 0 of the yaxis which will be needed when there are negatives
-        if (gl.isMultipleYAxis) {
-          for (var _i2 = 0; _i2 < yRatio.length; _i2++) {
-            baseLineY.push(-gl.minYArr[_i2] / yRatio[_i2]);
-          }
-        } else {
-          baseLineY.push(-gl.minY / yRatio[0]);
-        }
-
-        baseLineInvertedY = -gl.minY / invertedYRatio; // this is for bar chart
-        baseLineX = gl.minX / xRatio;
-      } else {
-        baseLineY.push(0);
-      }
-
-      return {
-        yRatio: yRatio,
-        invertedYRatio: invertedYRatio,
-        zRatio: zRatio,
-        xRatio: xRatio,
-        initialXRatio: initialXRatio,
-        invertedXRatio: invertedXRatio,
-        baseLineInvertedY: baseLineInvertedY,
-        baseLineY: baseLineY,
-        baseLineX: baseLineX
-      };
-    }
-
-    // Some config objects can be array - and we need to extend them correctly
-
-  }], [{
-    key: "extendArrayProps",
-    value: function extendArrayProps(configInstance, options) {
-      if (options.yaxis) {
-        options = configInstance.extendYAxis(options);
-      }
-      if (options.annotations) {
-        if (options.annotations.yaxis) {
-          options = configInstance.extendYAxisAnnotations(options);
-        }
-        if (options.annotations.xaxis) {
-          options = configInstance.extendXAxisAnnotations(options);
-        }
-        if (options.annotations.points) {
-          options = configInstance.extendPointAnnotations(options);
-        }
-      }
-
-      return options;
-    }
-  }]);
-
-  return CoreUtils;
-}();
-
-exports.default = CoreUtils;
-
-/***/ }),
 /* 76 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -9008,11 +9103,11 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DateTime = __webpack_require__(52);
+var _DateTime = __webpack_require__(53);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
-var _Dimensions = __webpack_require__(46);
+var _Dimensions = __webpack_require__(47);
 
 var _Dimensions2 = _interopRequireDefault(_Dimensions);
 
@@ -9812,31 +9907,31 @@ var _Exports = __webpack_require__(133);
 
 var _Exports2 = _interopRequireDefault(_Exports);
 
-var _icoPanHand = __webpack_require__(162);
+var _icoPanHand = __webpack_require__(163);
 
 var _icoPanHand2 = _interopRequireDefault(_icoPanHand);
 
-var _icoZoomIn = __webpack_require__(165);
+var _icoZoomIn = __webpack_require__(166);
 
 var _icoZoomIn2 = _interopRequireDefault(_icoZoomIn);
 
-var _icoHome = __webpack_require__(160);
+var _icoHome = __webpack_require__(161);
 
 var _icoHome2 = _interopRequireDefault(_icoHome);
 
-var _icoPlus = __webpack_require__(163);
+var _icoPlus = __webpack_require__(164);
 
 var _icoPlus2 = _interopRequireDefault(_icoPlus);
 
-var _icoMinus = __webpack_require__(161);
+var _icoMinus = __webpack_require__(162);
 
 var _icoMinus2 = _interopRequireDefault(_icoMinus);
 
-var _icoSelect = __webpack_require__(164);
+var _icoSelect = __webpack_require__(165);
 
 var _icoSelect2 = _interopRequireDefault(_icoSelect);
 
-var _icoCamera = __webpack_require__(159);
+var _icoCamera = __webpack_require__(160);
 
 var _icoCamera2 = _interopRequireDefault(_icoCamera);
 
@@ -10201,7 +10296,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Series = __webpack_require__(26);
+var _Series = __webpack_require__(27);
 
 var _Series2 = _interopRequireDefault(_Series);
 
@@ -10957,7 +11052,7 @@ module.exports = __webpack_require__(4).Array.find;
 "use strict";
 
 
-__webpack_require__(72);
+__webpack_require__(73);
 __webpack_require__(113);
 module.exports = __webpack_require__(4).Array.from;
 
@@ -10988,8 +11083,8 @@ module.exports = __webpack_require__(4).Array.reduce;
 "use strict";
 
 
-__webpack_require__(71);
 __webpack_require__(72);
+__webpack_require__(73);
 __webpack_require__(123);
 __webpack_require__(116);
 __webpack_require__(119);
@@ -11004,7 +11099,7 @@ module.exports = __webpack_require__(4).Promise;
 
 
 __webpack_require__(117);
-__webpack_require__(71);
+__webpack_require__(72);
 __webpack_require__(121);
 __webpack_require__(122);
 module.exports = __webpack_require__(4).Symbol;
@@ -11026,7 +11121,7 @@ var _Annotations = __webpack_require__(130);
 
 var _Annotations2 = _interopRequireDefault(_Annotations);
 
-var _Animations = __webpack_require__(25);
+var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
@@ -11034,7 +11129,7 @@ var _Base = __webpack_require__(131);
 
 var _Base2 = _interopRequireDefault(_Base);
 
-var _Config = __webpack_require__(50);
+var _Config = __webpack_require__(51);
 
 var _Config2 = _interopRequireDefault(_Config);
 
@@ -11042,7 +11137,7 @@ var _Core = __webpack_require__(132);
 
 var _Core2 = _interopRequireDefault(_Core);
 
-var _CoreUtils = __webpack_require__(75);
+var _CoreUtils = __webpack_require__(17);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -11050,15 +11145,15 @@ var _Crosshairs = __webpack_require__(76);
 
 var _Crosshairs2 = _interopRequireDefault(_Crosshairs);
 
-var _Dimensions = __webpack_require__(46);
+var _Dimensions = __webpack_require__(47);
 
 var _Dimensions2 = _interopRequireDefault(_Dimensions);
 
-var _Formatters = __webpack_require__(30);
+var _Formatters = __webpack_require__(31);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
-var _Grid = __webpack_require__(140);
+var _Grid = __webpack_require__(141);
 
 var _Grid2 = _interopRequireDefault(_Grid);
 
@@ -11070,15 +11165,15 @@ var _Responsive = __webpack_require__(136);
 
 var _Responsive2 = _interopRequireDefault(_Responsive);
 
-var _Series = __webpack_require__(26);
+var _Series = __webpack_require__(27);
 
 var _Series2 = _interopRequireDefault(_Series);
 
-var _Theme = __webpack_require__(137);
+var _Theme = __webpack_require__(138);
 
 var _Theme2 = _interopRequireDefault(_Theme);
 
-var _Tooltip = __webpack_require__(147);
+var _Tooltip = __webpack_require__(148);
 
 var _Tooltip2 = _interopRequireDefault(_Tooltip);
 
@@ -11086,11 +11181,11 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _ZoomPanSelection = __webpack_require__(139);
+var _ZoomPanSelection = __webpack_require__(140);
 
 var _ZoomPanSelection2 = _interopRequireDefault(_ZoomPanSelection);
 
-var _TitleSubtitle = __webpack_require__(138);
+var _TitleSubtitle = __webpack_require__(139);
 
 var _TitleSubtitle2 = _interopRequireDefault(_TitleSubtitle);
 
@@ -11098,7 +11193,7 @@ var _Toolbar = __webpack_require__(78);
 
 var _Toolbar2 = _interopRequireDefault(_Toolbar);
 
-var _Options = __webpack_require__(51);
+var _Options = __webpack_require__(52);
 
 var _Options2 = _interopRequireDefault(_Options);
 
@@ -11106,15 +11201,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-__webpack_require__(154);
-__webpack_require__(150);
-__webpack_require__(151);
-__webpack_require__(149);
-__webpack_require__(153);
-__webpack_require__(152);
-
-__webpack_require__(157);
 __webpack_require__(155);
+__webpack_require__(151);
+__webpack_require__(152);
+__webpack_require__(150);
+__webpack_require__(154);
+__webpack_require__(153);
+
+__webpack_require__(158);
+__webpack_require__(156);
 
 var en = __webpack_require__(81);
 
@@ -11958,8 +12053,7 @@ var ApexCharts = function () {
   }, {
     key: 'getChartArea',
     value: function getChartArea() {
-      var paper = this.paper();
-      var el = paper.select('.apexcharts-inner');
+      var el = this.w.globals.dom.baseEl.querySelector('.apexcharts-inner');
 
       return el;
     }
@@ -12147,9 +12241,9 @@ module.exports = function (it, Constructor, name, forbiddenField) {
 // 5 -> Array#find
 // 6 -> Array#findIndex
 var ctx = __webpack_require__(14);
-var IObject = __webpack_require__(36);
-var toObject = __webpack_require__(29);
-var toLength = __webpack_require__(23);
+var IObject = __webpack_require__(37);
+var toObject = __webpack_require__(30);
+var toLength = __webpack_require__(24);
 var asc = __webpack_require__(93);
 module.exports = function (TYPE, $create) {
   var IS_MAP = TYPE == 1;
@@ -12196,10 +12290,10 @@ module.exports = function (TYPE, $create) {
 "use strict";
 
 
-var aFunction = __webpack_require__(17);
-var toObject = __webpack_require__(29);
-var IObject = __webpack_require__(36);
-var toLength = __webpack_require__(23);
+var aFunction = __webpack_require__(18);
+var toObject = __webpack_require__(30);
+var IObject = __webpack_require__(37);
+var toLength = __webpack_require__(24);
 
 module.exports = function (that, callbackfn, aLen, memo, isRight) {
   aFunction(callbackfn);
@@ -12234,7 +12328,7 @@ module.exports = function (that, callbackfn, aLen, memo, isRight) {
 
 
 var isObject = __webpack_require__(8);
-var isArray = __webpack_require__(57);
+var isArray = __webpack_require__(58);
 var SPECIES = __webpack_require__(2)('species');
 
 module.exports = function (original) {
@@ -12272,7 +12366,7 @@ module.exports = function (original, length) {
 
 
 var $defineProperty = __webpack_require__(9);
-var createDesc = __webpack_require__(22);
+var createDesc = __webpack_require__(23);
 
 module.exports = function (object, index, value) {
   if (index in object) $defineProperty.f(object, index, createDesc(0, value));else object[index] = value;
@@ -12286,9 +12380,9 @@ module.exports = function (object, index, value) {
 
 
 // all enumerable object keys, includes symbols
-var getKeys = __webpack_require__(27);
-var gOPS = __webpack_require__(63);
-var pIE = __webpack_require__(38);
+var getKeys = __webpack_require__(28);
+var gOPS = __webpack_require__(64);
+var pIE = __webpack_require__(39);
 module.exports = function (it) {
   var result = getKeys(it);
   var getSymbols = gOPS.f;
@@ -12311,11 +12405,11 @@ module.exports = function (it) {
 
 
 var ctx = __webpack_require__(14);
-var call = __webpack_require__(58);
-var isArrayIter = __webpack_require__(56);
+var call = __webpack_require__(59);
+var isArrayIter = __webpack_require__(57);
 var anObject = __webpack_require__(7);
-var toLength = __webpack_require__(23);
-var getIterFn = __webpack_require__(70);
+var toLength = __webpack_require__(24);
+var getIterFn = __webpack_require__(71);
 var BREAK = {};
 var RETURN = {};
 var _exports = module.exports = function (iterable, entries, fn, that, ITERATOR) {
@@ -12369,9 +12463,9 @@ module.exports = function (fn, args, that) {
 "use strict";
 
 
-var create = __webpack_require__(61);
-var descriptor = __webpack_require__(22);
-var setToStringTag = __webpack_require__(28);
+var create = __webpack_require__(62);
+var descriptor = __webpack_require__(23);
+var setToStringTag = __webpack_require__(29);
 var IteratorPrototype = {};
 
 // 25.1.2.1.1 %IteratorPrototype%[@@iterator]()
@@ -12404,7 +12498,7 @@ module.exports = function (done, value) {
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var META = __webpack_require__(24)('meta');
+var META = __webpack_require__(25)('meta');
 var isObject = __webpack_require__(8);
 var has = __webpack_require__(11);
 var setDesc = __webpack_require__(9).f;
@@ -12412,7 +12506,7 @@ var id = 0;
 var isExtensible = Object.isExtensible || function () {
   return true;
 };
-var FREEZE = !__webpack_require__(19)(function () {
+var FREEZE = !__webpack_require__(20)(function () {
   return isExtensible(Object.preventExtensions({}));
 });
 var setMeta = function setMeta(it) {
@@ -12466,11 +12560,11 @@ var meta = module.exports = {
 
 
 var global = __webpack_require__(3);
-var macrotask = __webpack_require__(68).set;
+var macrotask = __webpack_require__(69).set;
 var Observer = global.MutationObserver || global.WebKitMutationObserver;
 var process = global.process;
 var Promise = global.Promise;
-var isNode = __webpack_require__(18)(process) == 'process';
+var isNode = __webpack_require__(19)(process) == 'process';
 
 module.exports = function () {
   var head, last, notify;
@@ -12543,7 +12637,7 @@ module.exports = function () {
 
 var dP = __webpack_require__(9);
 var anObject = __webpack_require__(7);
-var getKeys = __webpack_require__(27);
+var getKeys = __webpack_require__(28);
 
 module.exports = __webpack_require__(10) ? Object.defineProperties : function defineProperties(O, Properties) {
   anObject(O);
@@ -12563,12 +12657,12 @@ module.exports = __webpack_require__(10) ? Object.defineProperties : function de
 "use strict";
 
 
-var pIE = __webpack_require__(38);
-var createDesc = __webpack_require__(22);
+var pIE = __webpack_require__(39);
+var createDesc = __webpack_require__(23);
 var toIObject = __webpack_require__(16);
-var toPrimitive = __webpack_require__(42);
+var toPrimitive = __webpack_require__(43);
 var has = __webpack_require__(11);
-var IE8_DOM_DEFINE = __webpack_require__(55);
+var IE8_DOM_DEFINE = __webpack_require__(56);
 var gOPD = Object.getOwnPropertyDescriptor;
 
 exports.f = __webpack_require__(10) ? gOPD : function getOwnPropertyDescriptor(O, P) {
@@ -12591,7 +12685,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 // fallback for IE11 buggy Object.getOwnPropertyNames with iframe and window
 var toIObject = __webpack_require__(16);
-var gOPN = __webpack_require__(62).f;
+var gOPN = __webpack_require__(63).f;
 var toString = {}.toString;
 
 var windowNames = (typeof window === 'undefined' ? 'undefined' : _typeof(window)) == 'object' && window && Object.getOwnPropertyNames ? Object.getOwnPropertyNames(window) : [];
@@ -12617,8 +12711,8 @@ module.exports.f = function getOwnPropertyNames(it) {
 
 // 19.1.2.9 / 15.2.3.2 Object.getPrototypeOf(O)
 var has = __webpack_require__(11);
-var toObject = __webpack_require__(29);
-var IE_PROTO = __webpack_require__(39)('IE_PROTO');
+var toObject = __webpack_require__(30);
+var IE_PROTO = __webpack_require__(40)('IE_PROTO');
 var ObjectProto = Object.prototype;
 
 module.exports = Object.getPrototypeOf || function (O) {
@@ -12672,7 +12766,7 @@ module.exports = function (KEY) {
 "use strict";
 
 
-var fails = __webpack_require__(19);
+var fails = __webpack_require__(20);
 
 module.exports = function (method, arg) {
   return !!method && fails(function () {
@@ -12688,8 +12782,8 @@ module.exports = function (method, arg) {
 "use strict";
 
 
-var toInteger = __webpack_require__(41);
-var defined = __webpack_require__(33);
+var toInteger = __webpack_require__(42);
+var defined = __webpack_require__(34);
 // true  -> String#at
 // false -> String#codePointAt
 module.exports = function (TO_STRING) {
@@ -12711,7 +12805,7 @@ module.exports = function (TO_STRING) {
 "use strict";
 
 
-var toInteger = __webpack_require__(41);
+var toInteger = __webpack_require__(42);
 var max = Math.max;
 var min = Math.min;
 module.exports = function (index, length) {
@@ -12752,7 +12846,7 @@ $export($export.P + $export.F * forced, 'Array', {
     return $find(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
   }
 });
-__webpack_require__(31)(KEY);
+__webpack_require__(32)(KEY);
 
 /***/ }),
 /* 113 */
@@ -12763,14 +12857,14 @@ __webpack_require__(31)(KEY);
 
 var ctx = __webpack_require__(14);
 var $export = __webpack_require__(5);
-var toObject = __webpack_require__(29);
-var call = __webpack_require__(58);
-var isArrayIter = __webpack_require__(56);
-var toLength = __webpack_require__(23);
+var toObject = __webpack_require__(30);
+var call = __webpack_require__(59);
+var isArrayIter = __webpack_require__(57);
+var toLength = __webpack_require__(24);
 var createProperty = __webpack_require__(94);
-var getIterFn = __webpack_require__(70);
+var getIterFn = __webpack_require__(71);
 
-$export($export.S + $export.F * !__webpack_require__(60)(function (iter) {
+$export($export.S + $export.F * !__webpack_require__(61)(function (iter) {
   Array.from(iter);
 }), 'Array', {
   // 22.1.2.1 Array.from(arrayLike, mapfn = undefined, thisArg = undefined)
@@ -12807,16 +12901,16 @@ $export($export.S + $export.F * !__webpack_require__(60)(function (iter) {
 "use strict";
 
 
-var addToUnscopables = __webpack_require__(31);
+var addToUnscopables = __webpack_require__(32);
 var step = __webpack_require__(99);
-var Iterators = __webpack_require__(20);
+var Iterators = __webpack_require__(21);
 var toIObject = __webpack_require__(16);
 
 // 22.1.3.4 Array.prototype.entries()
 // 22.1.3.13 Array.prototype.keys()
 // 22.1.3.29 Array.prototype.values()
 // 22.1.3.30 Array.prototype[@@iterator]()
-module.exports = __webpack_require__(59)(Array, 'Array', function (iterated, kind) {
+module.exports = __webpack_require__(60)(Array, 'Array', function (iterated, kind) {
   this._t = toIObject(iterated); // target
   this._i = 0; // next index
   this._k = kind; // kind
@@ -12865,22 +12959,22 @@ $export($export.P + $export.F * !__webpack_require__(108)([].reduce, true), 'Arr
 "use strict";
 
 
-var LIBRARY = __webpack_require__(21);
+var LIBRARY = __webpack_require__(22);
 var global = __webpack_require__(3);
 var ctx = __webpack_require__(14);
-var classof = __webpack_require__(32);
+var classof = __webpack_require__(33);
 var $export = __webpack_require__(5);
 var isObject = __webpack_require__(8);
-var aFunction = __webpack_require__(17);
+var aFunction = __webpack_require__(18);
 var anInstance = __webpack_require__(89);
 var forOf = __webpack_require__(96);
-var speciesConstructor = __webpack_require__(67);
-var task = __webpack_require__(68).set;
+var speciesConstructor = __webpack_require__(68);
+var task = __webpack_require__(69).set;
 var microtask = __webpack_require__(101)();
-var newPromiseCapabilityModule = __webpack_require__(37);
-var perform = __webpack_require__(65);
+var newPromiseCapabilityModule = __webpack_require__(38);
+var perform = __webpack_require__(66);
 var userAgent = __webpack_require__(111);
-var promiseResolve = __webpack_require__(66);
+var promiseResolve = __webpack_require__(67);
 var PROMISE = 'Promise';
 var TypeError = global.TypeError;
 var process = global.process;
@@ -13083,7 +13177,7 @@ if (!USE_NATIVE) {
 }
 
 $export($export.G + $export.W + $export.F * !USE_NATIVE, { Promise: $Promise });
-__webpack_require__(28)($Promise, PROMISE);
+__webpack_require__(29)($Promise, PROMISE);
 __webpack_require__(107)(PROMISE);
 Wrapper = __webpack_require__(4)[PROMISE];
 
@@ -13103,7 +13197,7 @@ $export($export.S + $export.F * (LIBRARY || !USE_NATIVE), PROMISE, {
     return promiseResolve(LIBRARY && this === Wrapper ? $Promise : this, x);
   }
 });
-$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(60)(function (iter) {
+$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(61)(function (iter) {
   $Promise.all(iter)['catch'](empty);
 })), PROMISE, {
   // 25.4.4.1 Promise.all(iterable)
@@ -13164,25 +13258,25 @@ var DESCRIPTORS = __webpack_require__(10);
 var $export = __webpack_require__(5);
 var redefine = __webpack_require__(15);
 var META = __webpack_require__(100).KEY;
-var $fails = __webpack_require__(19);
-var shared = __webpack_require__(40);
-var setToStringTag = __webpack_require__(28);
-var uid = __webpack_require__(24);
+var $fails = __webpack_require__(20);
+var shared = __webpack_require__(41);
+var setToStringTag = __webpack_require__(29);
+var uid = __webpack_require__(25);
 var wks = __webpack_require__(2);
-var wksExt = __webpack_require__(69);
-var wksDefine = __webpack_require__(43);
+var wksExt = __webpack_require__(70);
+var wksDefine = __webpack_require__(44);
 var enumKeys = __webpack_require__(95);
-var isArray = __webpack_require__(57);
+var isArray = __webpack_require__(58);
 var anObject = __webpack_require__(7);
 var isObject = __webpack_require__(8);
 var toIObject = __webpack_require__(16);
-var toPrimitive = __webpack_require__(42);
-var createDesc = __webpack_require__(22);
-var _create = __webpack_require__(61);
+var toPrimitive = __webpack_require__(43);
+var createDesc = __webpack_require__(23);
+var _create = __webpack_require__(62);
 var gOPNExt = __webpack_require__(104);
 var $GOPD = __webpack_require__(103);
 var $DP = __webpack_require__(9);
-var $keys = __webpack_require__(27);
+var $keys = __webpack_require__(28);
 var gOPD = $GOPD.f;
 var dP = $DP.f;
 var gOPN = gOPNExt.f;
@@ -13308,11 +13402,11 @@ if (!USE_NATIVE) {
 
   $GOPD.f = $getOwnPropertyDescriptor;
   $DP.f = $defineProperty;
-  __webpack_require__(62).f = gOPNExt.f = $getOwnPropertyNames;
-  __webpack_require__(38).f = $propertyIsEnumerable;
-  __webpack_require__(63).f = $getOwnPropertySymbols;
+  __webpack_require__(63).f = gOPNExt.f = $getOwnPropertyNames;
+  __webpack_require__(39).f = $propertyIsEnumerable;
+  __webpack_require__(64).f = $getOwnPropertySymbols;
 
-  if (DESCRIPTORS && !__webpack_require__(21)) {
+  if (DESCRIPTORS && !__webpack_require__(22)) {
     redefine(ObjectProto, 'propertyIsEnumerable', $propertyIsEnumerable, true);
   }
 
@@ -13407,7 +13501,7 @@ setToStringTag(global.JSON, 'JSON', true);
 // https://github.com/tc39/Array.prototype.includes
 
 var $export = __webpack_require__(5);
-var $includes = __webpack_require__(53)(true);
+var $includes = __webpack_require__(54)(true);
 
 $export($export.P, 'Array', {
   includes: function includes(el /* , fromIndex = 0 */) {
@@ -13415,7 +13509,7 @@ $export($export.P, 'Array', {
   }
 });
 
-__webpack_require__(31)('includes');
+__webpack_require__(32)('includes');
 
 /***/ }),
 /* 119 */
@@ -13428,8 +13522,8 @@ __webpack_require__(31)('includes');
 var $export = __webpack_require__(5);
 var core = __webpack_require__(4);
 var global = __webpack_require__(3);
-var speciesConstructor = __webpack_require__(67);
-var promiseResolve = __webpack_require__(66);
+var speciesConstructor = __webpack_require__(68);
+var promiseResolve = __webpack_require__(67);
 
 $export($export.P + $export.R, 'Promise', { 'finally': function _finally(onFinally) {
     var C = speciesConstructor(this, core.Promise || global.Promise);
@@ -13454,8 +13548,8 @@ $export($export.P + $export.R, 'Promise', { 'finally': function _finally(onFinal
 // https://github.com/tc39/proposal-promise-try
 
 var $export = __webpack_require__(5);
-var newPromiseCapability = __webpack_require__(37);
-var perform = __webpack_require__(65);
+var newPromiseCapability = __webpack_require__(38);
+var perform = __webpack_require__(66);
 
 $export($export.S, 'Promise', { 'try': function _try(callbackfn) {
     var promiseCapability = newPromiseCapability.f(this);
@@ -13471,7 +13565,7 @@ $export($export.S, 'Promise', { 'try': function _try(callbackfn) {
 "use strict";
 
 
-__webpack_require__(43)('asyncIterator');
+__webpack_require__(44)('asyncIterator');
 
 /***/ }),
 /* 122 */
@@ -13480,7 +13574,7 @@ __webpack_require__(43)('asyncIterator');
 "use strict";
 
 
-__webpack_require__(43)('observable');
+__webpack_require__(44)('observable');
 
 /***/ }),
 /* 123 */
@@ -13490,11 +13584,11 @@ __webpack_require__(43)('observable');
 
 
 var $iterators = __webpack_require__(114);
-var getKeys = __webpack_require__(27);
+var getKeys = __webpack_require__(28);
 var redefine = __webpack_require__(15);
 var global = __webpack_require__(3);
 var hide = __webpack_require__(12);
-var Iterators = __webpack_require__(20);
+var Iterators = __webpack_require__(21);
 var wks = __webpack_require__(2);
 var ITERATOR = wks('iterator');
 var TO_STRING_TAG = wks('toStringTag');
@@ -13645,7 +13739,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar2 = __webpack_require__(44);
+var _CoreUtils = __webpack_require__(17);
+
+var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
+
+var _Bar2 = __webpack_require__(45);
 
 var _Bar3 = _interopRequireDefault(_Bar2);
 
@@ -13691,6 +13789,11 @@ var BarStacked = function (_Bar) {
       this.graphics = new _Graphics2.default(this.ctx);
       this.fill = new _Fill2.default(this.ctx);
       this.bar = new _Bar3.default(this.ctx, this.xyRatios);
+
+      var coreUtils = new _CoreUtils2.default(this.ctx, w);
+      this.series = coreUtils.getLogSeries(series);
+      series = this.series;
+      this.yRatio = coreUtils.getLogYRatios(this.yRatio);
 
       this.series = series;
 
@@ -14188,7 +14291,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar2 = __webpack_require__(44);
+var _CoreUtils = __webpack_require__(17);
+
+var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
+
+var _Bar2 = __webpack_require__(45);
 
 var _Bar3 = _interopRequireDefault(_Bar2);
 
@@ -14233,6 +14340,11 @@ var CandleStick = function (_Bar) {
       var fill = new _Fill2.default(this.ctx);
 
       this.candlestickOptions = this.w.config.plotOptions.candlestick;
+
+      var coreUtils = new _CoreUtils2.default(this.ctx, w);
+      this.series = coreUtils.getLogSeries(series);
+      series = this.series;
+      this.yRatio = coreUtils.getLogYRatios(this.yRatio);
 
       this.initVariables(series);
 
@@ -14452,11 +14564,11 @@ exports.default = CandleStick;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DataLabels = __webpack_require__(45);
+var _DataLabels = __webpack_require__(46);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
-var _Animations = __webpack_require__(25);
+var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
@@ -14587,11 +14699,15 @@ var HeatMap = function () {
 
           if (w.globals.dataChanged) {
             var _speed = 1;
-            if (this.dynamicAnim.enabled) {
+            if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               _speed = this.dynamicAnim.speed;
+
+              var colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
+
+              if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 1)';
+
+              this.animateHeatColor(rect, _Utils2.default.rgb2hex(colorFrom), _Utils2.default.rgb2hex(color), _speed);
             }
-            var colorFrom = w.globals.previousPaths[i][j].color;
-            this.animateHeatColor(rect, _Utils2.default.rgb2hex(colorFrom), _Utils2.default.rgb2hex(color), _speed);
           }
 
           var dataLabels = this.calculateHeatmapDataLabels({
@@ -14729,6 +14845,10 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _CoreUtils = __webpack_require__(17);
+
+var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
+
 var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
@@ -14737,17 +14857,21 @@ var _Fill = __webpack_require__(13);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
-var _DataLabels = __webpack_require__(45);
+var _DataLabels = __webpack_require__(46);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
-var _Markers = __webpack_require__(47);
+var _Markers = __webpack_require__(48);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
-var _Scatter = __webpack_require__(74);
+var _Scatter = __webpack_require__(75);
 
 var _Scatter2 = _interopRequireDefault(_Scatter);
+
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -14794,7 +14918,13 @@ var Line = function () {
         'clip-path': 'url(#gridRectMask' + w.globals.cuid + ')'
       });
 
+      var coreUtils = new _CoreUtils2.default(this.ctx, w);
+      series = coreUtils.getLogSeries(series);
+
       var yRatio = this.xyRatios.yRatio;
+
+      yRatio = coreUtils.getLogYRatios(yRatio);
+
       var zRatio = this.xyRatios.zRatio;
       var xRatio = this.xyRatios.xRatio;
       var baseLineY = this.xyRatios.baseLineY;
@@ -15209,12 +15339,12 @@ var Line = function () {
 
         // push 2 points for the first data values
         ptX.push(xPT1st);
-        ptY.push(series[i][0] !== null ? prevY + w.config.markers.offsetY : null);
+        ptY.push(_Utils2.default.isNumber(series[i][0]) ? prevY + w.config.markers.offsetY : null);
         ptX.push(x + w.config.markers.offsetX);
-        ptY.push(series[i][j + 1] !== null ? y + w.config.markers.offsetY : null);
+        ptY.push(_Utils2.default.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null);
       } else {
         ptX.push(x + w.config.markers.offsetX);
-        ptY.push(series[i][j + 1] !== null ? y + w.config.markers.offsetY : null);
+        ptY.push(_Utils2.default.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null);
       }
 
       var pointsPos = {
@@ -15317,7 +15447,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Pie2 = __webpack_require__(73);
+var _Pie2 = __webpack_require__(74);
 
 var _Pie3 = _interopRequireDefault(_Pie2);
 
@@ -15873,7 +16003,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Options = __webpack_require__(51);
+var _Options = __webpack_require__(52);
 
 var _Options2 = _interopRequireDefault(_Options);
 
@@ -16338,11 +16468,11 @@ module.exports = Annotations;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Config = __webpack_require__(50);
+var _Config = __webpack_require__(51);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Globals = __webpack_require__(142);
+var _Globals = __webpack_require__(143);
 
 var _Globals2 = _interopRequireDefault(_Globals);
 
@@ -16391,7 +16521,7 @@ module.exports = Base;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar = __webpack_require__(44);
+var _Bar = __webpack_require__(45);
 
 var _Bar2 = _interopRequireDefault(_Bar);
 
@@ -16403,7 +16533,7 @@ var _CandleStick = __webpack_require__(126);
 
 var _CandleStick2 = _interopRequireDefault(_CandleStick);
 
-var _CoreUtils = __webpack_require__(75);
+var _CoreUtils = __webpack_require__(17);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -16411,7 +16541,7 @@ var _Crosshairs = __webpack_require__(76);
 
 var _Crosshairs2 = _interopRequireDefault(_Crosshairs);
 
-var _DateTime = __webpack_require__(52);
+var _DateTime = __webpack_require__(53);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
@@ -16419,7 +16549,7 @@ var _HeatMap = __webpack_require__(127);
 
 var _HeatMap2 = _interopRequireDefault(_HeatMap);
 
-var _Pie = __webpack_require__(73);
+var _Pie = __webpack_require__(74);
 
 var _Pie2 = _interopRequireDefault(_Pie);
 
@@ -16435,11 +16565,11 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _XAxis = __webpack_require__(48);
+var _XAxis = __webpack_require__(49);
 
 var _XAxis2 = _interopRequireDefault(_XAxis);
 
-var _YAxis = __webpack_require__(49);
+var _YAxis = __webpack_require__(50);
 
 var _YAxis2 = _interopRequireDefault(_YAxis);
 
@@ -16451,7 +16581,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Series = __webpack_require__(26);
+var _Series = __webpack_require__(27);
 
 var _Series2 = _interopRequireDefault(_Series);
 
@@ -17307,7 +17437,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Dimensions = __webpack_require__(46);
+var _Dimensions = __webpack_require__(47);
 
 var _Dimensions2 = _interopRequireDefault(_Dimensions);
 
@@ -17315,7 +17445,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Series = __webpack_require__(26);
+var _Series = __webpack_require__(27);
 
 var _Series2 = _interopRequireDefault(_Series);
 
@@ -17853,6 +17983,10 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
+var _Scales = __webpack_require__(137);
+
+var _Scales2 = _interopRequireDefault(_Scales);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
@@ -17871,6 +18005,8 @@ var Range = function () {
 
     this.ctx = ctx;
     this.w = ctx.w;
+
+    this.scales = new _Scales2.default(ctx);
   }
 
   _createClass(Range, [{
@@ -17880,11 +18016,386 @@ var Range = function () {
       this.setXRange();
       this.setZRange();
     }
-
-    // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
-    // This routine creates the Y axis values for a graph.
-
   }, {
+    key: 'getMinYMaxY',
+    value: function getMinYMaxY(startingIndex, lowestYInAllSeries, len) {
+      var gl = this.w.globals;
+      var maxY = -Number.MAX_VALUE;
+      var minY = Number.MIN_VALUE;
+
+      var series = gl.series;
+      var seriesMin = series;
+      var seriesMax = series;
+
+      if (this.w.config.chart.type === 'candlestick') {
+        seriesMin = gl.seriesCandleL;
+        seriesMax = gl.seriesCandleH;
+      }
+
+      for (var i = startingIndex; i < len; i++) {
+        gl.dataPoints = Math.max(gl.dataPoints, series[i].length);
+        if (_Utils2.default.isIE()) {
+          minY = Math.min.apply(Math, _toConsumableArray(seriesMin[i]).concat([0]));
+        }
+
+        for (var j = 0; j < gl.series[i].length; j++) {
+          if (series[i][j] !== null && _Utils2.default.isNumber(series[i][j])) {
+            maxY = Math.max(maxY, seriesMax[i][j]);
+            lowestYInAllSeries = Math.min(lowestYInAllSeries, seriesMin[i][j]);
+            if (_Utils2.default.isFloat(series[i][j])) {
+              gl.yValueDecimal = Math.max(gl.yValueDecimal, series[i][j].toString().split('.')[1].length);
+            }
+            if (minY > seriesMin[i][j] && seriesMin[i][j] < 0) {
+              minY = seriesMin[i][j];
+            }
+          } else {
+            gl.hasNullValues = true;
+          }
+        }
+      }
+
+      return {
+        minY: minY,
+        maxY: maxY,
+        lowestYInAllSeries: lowestYInAllSeries
+      };
+    }
+  }, {
+    key: 'setYRange',
+    value: function setYRange() {
+      var gl = this.w.globals;
+      var cnf = this.w.config;
+      gl.maxY = -Number.MAX_VALUE;
+      gl.minY = Number.MIN_VALUE;
+      var yaxis = cnf.yaxis;
+
+      var lowestYInAllSeries = Number.MAX_VALUE;
+
+      if (gl.isMultipleYAxis) {
+        // we need to get minY and maxY for multiple y axis
+        for (var i = 0; i < gl.series.length; i++) {
+          var minYMaxYArr = this.getMinYMaxY(i, lowestYInAllSeries, i + 1);
+          gl.minYArr.push(minYMaxYArr.minY);
+          gl.maxYArr.push(minYMaxYArr.maxY);
+          lowestYInAllSeries = minYMaxYArr.lowestYInAllSeries;
+        }
+      }
+
+      // and then, get the minY and maxY from all series
+      var minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, gl.series.length);
+      gl.minY = minYMaxY.minY;
+      gl.maxY = minYMaxY.maxY;
+      lowestYInAllSeries = minYMaxY.lowestYInAllSeries;
+
+      if (cnf.chart.stacked) {
+        // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
+        var stackedPoss = [];
+        var stackedNegs = [];
+
+        for (var j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
+          var poss = 0;
+          var negs = 0;
+          for (var _i = 0; _i < gl.series.length; _i++) {
+            if (gl.series[_i][j] !== null && _Utils2.default.isNumber(gl.series[_i][j])) {
+              if (gl.series[_i][j] > 0) {
+                poss = poss + parseInt(gl.series[_i][j]) + 1;
+              } else {
+                negs = negs + parseInt(gl.series[_i][j]);
+              }
+            }
+
+            if (_i === gl.series.length - 1) {
+              // push all the totals to the array for future use
+              stackedPoss.push(poss);
+              stackedNegs.push(negs);
+            }
+          }
+        }
+
+        // get the max/min out of the added parallel values
+        for (var z = 0; z < stackedPoss.length; z++) {
+          gl.maxY = Math.max(gl.maxY, stackedPoss[z]);
+          gl.minY = Math.min(gl.minY, stackedNegs[z]);
+        }
+      }
+
+      // if the numbers are too big, reduce the range
+      // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
+      if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
+        if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== Number.MAX_SAFE_INTEGER) {
+          var diff = gl.maxY - lowestYInAllSeries;
+          if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {
+            // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
+            diff = 0;
+          }
+          gl.minY = lowestYInAllSeries - diff * 5 / 100;
+          gl.maxY = gl.maxY + diff * 5 / 100;
+        }
+      }
+
+      cnf.yaxis.map(function (yaxe, index) {
+        // override all min/max values by user defined values (y axis)
+        if (yaxe.max !== undefined && typeof yaxe.max === 'number') {
+          gl.maxYArr[index] = yaxe.max;
+
+          // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
+          gl.maxY = yaxis[0].max;
+        }
+        if (yaxe.min !== undefined && typeof yaxe.min === 'number') {
+          gl.minYArr[index] = yaxe.min;
+
+          // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
+          gl.minY = yaxis[0].min;
+        }
+      });
+
+      // for multi y-axis we need different scales for each
+      if (gl.isMultipleYAxis) {
+        this.scales.setMultipleYScales();
+        gl.yAxisScale.forEach(function (scale, i) {
+          gl.minYArr[i] = scale.niceMin;
+          gl.maxYArr[i] = scale.niceMax;
+        });
+      } else {
+        this.scales.setYScaleForIndex(0, gl.minY, gl.maxY);
+        gl.minY = gl.yAxisScale[0].niceMin;
+        gl.maxY = gl.yAxisScale[0].niceMax;
+        gl.minYArr[0] = gl.yAxisScale[0].niceMin;
+        gl.maxYArr[0] = gl.yAxisScale[0].niceMax;
+      }
+    }
+  }, {
+    key: 'setXRange',
+    value: function setXRange() {
+      var gl = this.w.globals;
+      var cnf = this.w.config;
+
+      // minX maxX starts here
+      if (gl.isXNumeric) {
+        for (var i = 0; i < gl.series.length; i++) {
+          if (gl.labels[i]) {
+            for (var j = 0; j < gl.labels[i].length; j++) {
+              if (gl.labels[i][j] !== null && _Utils2.default.isNumber(gl.labels[i][j])) {
+                gl.maxX = Math.max(gl.maxX, gl.labels[i][j]);
+                gl.initialmaxX = Math.max(gl.maxX, gl.labels[i][j]);
+                gl.minX = Math.min(gl.minX, gl.labels[i][j]);
+                gl.initialminX = Math.min(gl.minX, gl.labels[i][j]);
+              }
+            }
+          }
+        }
+      }
+
+      if (gl.noLabelsProvided) {
+        gl.maxX = gl.labels[gl.labels.length - 1];
+        gl.initialmaxX = gl.labels[gl.labels.length - 1];
+        gl.minX = 1;
+        gl.initialminX = 1;
+      }
+
+      // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
+      // If user willingly disables this option, then skip
+      if (cnf.grid.padding.left !== 0 && cnf.grid.padding.right !== 0) {
+        if (cnf.xaxis.type !== 'category') {
+          var minX = gl.minX - gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3;
+          gl.minX = minX;
+          gl.initialminX = minX;
+          var maxX = gl.maxX + gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3;
+          gl.maxX = maxX;
+          gl.initialmaxX = maxX;
+        }
+      }
+
+      if (gl.isXNumeric || gl.noLabelsProvided) {
+        var ticks = void 0;
+
+        if (cnf.xaxis.tickAmount === undefined) {
+          ticks = Math.round(gl.svgWidth / 150);
+
+          // no labels provided and total number of dataPoints is less than 20
+          if (cnf.xaxis.type === 'numeric' && gl.dataPoints < 20) {
+            ticks = gl.dataPoints - 1;
+          }
+
+          // this check is for when ticks exceeds total datapoints and that would result in duplicate labels
+          if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
+            ticks = gl.dataPoints - 1;
+          }
+        } else if (cnf.xaxis.tickAmount === 'dataPoints') {
+          ticks = gl.series[gl.maxValsInArrayIndex].length - 1;
+        } else {
+          ticks = cnf.xaxis.tickAmount;
+        }
+
+        // override all min/max values by user defined values (x axis)
+        if (cnf.xaxis.max !== undefined && typeof cnf.xaxis.max === 'number') {
+          gl.maxX = cnf.xaxis.max;
+        }
+        if (cnf.xaxis.min !== undefined && typeof cnf.xaxis.min === 'number') {
+          gl.minX = cnf.xaxis.min;
+        }
+
+        // if range is provided, adjust the new minX
+        if (cnf.xaxis.range !== undefined) {
+          gl.minX = gl.maxX - cnf.xaxis.range;
+        }
+
+        if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
+          gl.xAxisScale = this.scales.linearScale(gl.minX, gl.maxX, ticks);
+
+          // we will still store these labels as the count for this will be different (to draw grid and labels placement)
+          gl.labels = gl.xAxisScale.result.slice();
+        } else {
+          gl.xAxisScale = this.scales.linearScale(1, ticks, ticks);
+          if (gl.noLabelsProvided && gl.labels.length > 0) {
+            gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1);
+            gl.seriesX = gl.labels.slice();
+          }
+          gl.labels = gl.xAxisScale.result.slice();
+        }
+      }
+    }
+  }, {
+    key: 'setZRange',
+    value: function setZRange() {
+      var gl = this.w.globals;
+
+      // minZ, maxZ starts here
+      if (gl.isDataXYZ) {
+        for (var i = 0; i < gl.series.length; i++) {
+          if (typeof gl.seriesZ[i] !== 'undefined') {
+            for (var j = 0; j < gl.seriesZ[i].length; j++) {
+              if (gl.seriesZ[i][j] !== null && _Utils2.default.isNumber(gl.seriesZ[i][j])) {
+                gl.maxZ = Math.max(gl.maxZ, gl.seriesZ[i][j]);
+                gl.minZ = Math.min(gl.minZ, gl.seriesZ[i][j]);
+              }
+            }
+          }
+        }
+      }
+    }
+  }]);
+
+  return Range;
+}();
+
+exports.default = Range;
+
+/***/ }),
+/* 136 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Config = __webpack_require__(51);
+
+var _Config2 = _interopRequireDefault(_Config);
+
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Responsive Class to override options for different screen sizes.
+ *
+ * @module Responsive
+ **/
+
+var Responsive = function () {
+  function Responsive(ctx) {
+    _classCallCheck(this, Responsive);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  // the opts parameter if not null has to be set overriding everything
+  // as the opts is set by user externally
+
+
+  _createClass(Responsive, [{
+    key: 'checkResponsiveConfig',
+    value: function checkResponsiveConfig(opts) {
+      var w = this.w;
+      var cnf = w.config;
+
+      // check if responsive config exists
+      if (cnf.responsive === undefined) return;
+
+      var newOptions = {};
+      for (var i = 0; i < cnf.responsive.length; i++) {
+        var width = window.innerWidth > 0 ? window.innerWidth : screen.width;
+
+        if (width < cnf.responsive[i].breakpoint) {
+          newOptions = _Utils2.default.extend(w.config, cnf.responsive[i].options);
+          this.overrideResponsiveOptions(newOptions);
+          break;
+        } else {
+          newOptions = _Utils2.default.extend(w.config, w.globals.initialConfig);
+          this.overrideResponsiveOptions(newOptions);
+        }
+      }
+
+      if (opts !== null) {
+        var options = _Utils2.default.extend(w.config, opts);
+        this.overrideResponsiveOptions(options);
+      }
+    }
+  }, {
+    key: 'overrideResponsiveOptions',
+    value: function overrideResponsiveOptions(newOptions) {
+      var newConfig = new _Config2.default(newOptions).init();
+      this.w.config = newConfig;
+    }
+  }]);
+
+  return Responsive;
+}();
+
+module.exports = Responsive;
+
+/***/ }),
+/* 137 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Range = function () {
+  function Range(ctx) {
+    _classCallCheck(this, Range);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
+  // This routine creates the Y axis values for a graph.
+
+
+  _createClass(Range, [{
     key: 'niceScale',
     value: function niceScale(yMin, yMax) {
       var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
@@ -17894,8 +18405,8 @@ var Range = function () {
         yMin = 0;
         yMax = 1;
         ticks = 1;
-        var justRange = this.justRange(yMin, yMax, ticks);
-        return justRange;
+        var linearScale = this.linearScale(yMin, yMax, ticks);
+        return linearScale;
       }
 
       if (yMin > yMax) {
@@ -17979,8 +18490,8 @@ var Range = function () {
       }
     }
   }, {
-    key: 'justRange',
-    value: function justRange(yMin, yMax) {
+    key: 'linearScale',
+    value: function linearScale(yMin, yMax) {
       var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
 
       var range = Math.abs(yMax - yMin);
@@ -18007,47 +18518,45 @@ var Range = function () {
       };
     }
   }, {
-    key: 'getMinYMaxY',
-    value: function getMinYMaxY(startingIndex, minValInSeries, len) {
-      var gl = this.w.globals;
-      var maxY = -Number.MAX_VALUE;
-      var minY = Number.MIN_VALUE;
+    key: 'logarithmicScale',
+    value: function logarithmicScale(yMin, yMax, ticks) {
+      if (yMin < 0) yMin = 1;
 
-      var series = gl.series;
-      var seriesMin = series;
-      var seriesMax = series;
+      var range = Math.abs(yMax - yMin);
 
-      if (this.w.config.chart.type === 'candlestick') {
-        seriesMin = gl.seriesCandleL;
-        seriesMax = gl.seriesCandleH;
+      var step = range / ticks;
+
+      var result = [];
+      var v = yMin;
+
+      while (ticks >= 0) {
+        result.push(v);
+        v = v + step;
+        ticks -= 1;
       }
 
-      for (var i = startingIndex; i < len; i++) {
-        gl.dataPoints = Math.max(gl.dataPoints, series[i].length);
-        if (_Utils2.default.isIE()) {
-          minY = Math.min.apply(Math, _toConsumableArray(seriesMin[i]).concat([0]));
+      var logs = result.map(function (niceNumber, i) {
+        if (niceNumber <= 0) {
+          niceNumber = 1;
         }
 
-        for (var j = 0; j < gl.series[i].length; j++) {
-          if (series[i][j] !== null && _Utils2.default.isNumber(series[i][j])) {
-            maxY = Math.max(maxY, seriesMax[i][j]);
-            minValInSeries = Math.min(minValInSeries, seriesMin[i][j]);
-            if (_Utils2.default.isFloat(series[i][j])) {
-              gl.yValueDecimal = Math.max(gl.yValueDecimal, series[i][j].toString().split('.')[1].length);
-            }
-            if (minY > seriesMin[i][j] && seriesMin[i][j] < 0) {
-              minY = seriesMin[i][j];
-            }
-          } else {
-            gl.hasNullValues = true;
-          }
-        }
-      }
+        var minv = Math.log(yMin);
+        var maxv = Math.log(yMax);
+
+        // calculate adjustment factor
+        var scale = (maxv - minv) / (yMax - yMin);
+
+        var logVal = Math.exp(minv + scale * (niceNumber - yMin));
+        return Math.round(logVal / _Utils2.default.roundToBase10(logVal)) * _Utils2.default.roundToBase10(logVal);
+      });
+
+      // Math.floor may have rounded the value to 0, revert back to 1
+      if (logs[0] === 0) logs[0] = 1;
 
       return {
-        minY: minY,
-        maxY: maxY,
-        minValInSeries: minValInSeries
+        result: logs,
+        niceMin: logs[0],
+        niceMax: logs[logs.length - 1]
       };
     }
   }, {
@@ -18056,24 +18565,25 @@ var Range = function () {
       var gl = this.w.globals;
       var cnf = this.w.config;
 
-      // user didn't provide tickAmount as well as y values are in small range
-      var ticksY = cnf.yaxis[index];
-      if (typeof ticksY !== 'undefined') {
-        ticksY = ticksY.tickAmount;
-      } else {
-        ticksY = 8;
-      }
+      var y = cnf.yaxis[index];
 
       if (typeof gl.yAxisScale[index] === 'undefined') {
         gl.yAxisScale[index] = [];
       }
-      if (maxY === -Number.MAX_VALUE || !_Utils2.default.isNumber(maxY)) {
-        // no value in series. draw blank grid
-        gl.yAxisScale[index] = this.justRange(0, 5, 5);
-      } else {
-        gl.allSeriesCollapsed = false;
 
-        gl.yAxisScale[index] = this.niceScale(minY, maxY, ticksY);
+      if (cnf.yaxis[index].logarithmic) {
+        gl.allSeriesCollapsed = false;
+        gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.tickAmount ? y.tickAmount : Math.floor(Math.log10(maxY)));
+      } else {
+        if (maxY === -Number.MAX_VALUE || !_Utils2.default.isNumber(maxY)) {
+          // no data in the chart. Either all series collapsed or user passed a blank array
+          gl.yAxisScale[index] = this.linearScale(0, 5, 5);
+        } else {
+          // there is some data. Turn off the allSeriesCollapsed flag
+          gl.allSeriesCollapsed = false;
+
+          gl.yAxisScale[index] = this.niceScale(minY, maxY, y.tickAmount ? y.tickAmount : 6);
+        }
       }
     }
   }, {
@@ -18114,10 +18624,16 @@ var Range = function () {
         var maxY = maxYArr[index];
 
         _this.setYScaleForIndex(i, minY, maxY);
-
-        gl.minYArr[i] = gl.yAxisScale[i].niceMin;
-        gl.maxYArr[i] = gl.yAxisScale[i].niceMax;
       });
+
+      this.sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices);
+    }
+  }, {
+    key: 'sameScaleInMultipleAxes',
+    value: function sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices) {
+      var _this2 = this;
+
+      var cnf = this.w.config;
 
       // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
       var similarIndices = [];
@@ -18172,223 +18688,11 @@ var Range = function () {
             if (cnf.yaxis[i].max !== undefined) {
               maxY = cnf.yaxis[i].max;
             }
-            _this.setYScaleForIndex(i, minY, maxY);
-            gl.minYArr[i] = gl.yAxisScale[i].niceMin;
-            gl.maxYArr[i] = gl.yAxisScale[i].niceMax;
+
+            _this2.setYScaleForIndex(i, minY, maxY);
           }
         });
       });
-    }
-  }, {
-    key: 'setYRange',
-    value: function setYRange() {
-      var gl = this.w.globals;
-      var cnf = this.w.config;
-      gl.maxY = -Number.MAX_VALUE;
-      gl.minY = Number.MIN_VALUE;
-      var yaxis = cnf.yaxis;
-
-      var minValInSeries = Number.MAX_VALUE;
-
-      if (gl.isMultipleYAxis) {
-        // we need to get minY and maxY for multiple y axis
-        for (var i = 0; i < gl.series.length; i++) {
-          var minYMaxYArr = this.getMinYMaxY(i, minValInSeries, i + 1);
-          gl.minYArr.push(minYMaxYArr.minY);
-          gl.maxYArr.push(minYMaxYArr.maxY);
-          minValInSeries = minYMaxYArr.minValInSeries;
-        }
-      }
-
-      // and then, get the minY and maxY from all series
-      var minYMaxY = this.getMinYMaxY(0, minValInSeries, gl.series.length);
-      gl.minY = minYMaxY.minY;
-      gl.maxY = minYMaxY.maxY;
-      minValInSeries = minYMaxY.minValInSeries;
-
-      if (cnf.chart.stacked) {
-        // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
-        var stackedPoss = [];
-        var stackedNegs = [];
-
-        for (var j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
-          var poss = 0;
-          var negs = 0;
-          for (var _i = 0; _i < gl.series.length; _i++) {
-            if (gl.series[_i][j] !== null && _Utils2.default.isNumber(gl.series[_i][j])) {
-              if (gl.series[_i][j] > 0) {
-                poss = poss + parseInt(gl.series[_i][j]) + 1;
-              } else {
-                negs = negs + parseInt(gl.series[_i][j]);
-              }
-            }
-
-            if (_i === gl.series.length - 1) {
-              // push all the totals to the array for future use
-              stackedPoss.push(poss);
-              stackedNegs.push(negs);
-            }
-          }
-        }
-
-        // get the max/min out of the added parallel values
-        for (var z = 0; z < stackedPoss.length; z++) {
-          gl.maxY = Math.max(gl.maxY, stackedPoss[z]);
-          gl.minY = Math.min(gl.minY, stackedNegs[z]);
-        }
-      }
-
-      // if the numbers are too big, reduce the range
-      // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
-      if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
-        if (gl.minY === Number.MIN_VALUE && minValInSeries !== Number.MAX_SAFE_INTEGER) {
-          var diff = gl.maxY - minValInSeries;
-          if (minValInSeries >= 0 && minValInSeries <= 10) {
-            // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
-            diff = 0;
-          }
-          gl.minY = minValInSeries - diff * 5 / 100;
-          gl.maxY = gl.maxY + diff * 5 / 100;
-        }
-      }
-
-      cnf.yaxis.map(function (yaxe, index) {
-        // override all min/max values by user defined values (y axis)
-        if (yaxe.max !== undefined && typeof yaxe.max === 'number') {
-          gl.maxYArr[index] = yaxe.max;
-
-          // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
-          gl.maxY = yaxis[0].max;
-        }
-        if (yaxe.min !== undefined && typeof yaxe.min === 'number') {
-          gl.minYArr[index] = yaxe.min;
-
-          // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
-          gl.minY = yaxis[0].min;
-        }
-      });
-
-      // for multi y-axis we need different scales for each
-      if (gl.isMultipleYAxis) {
-        this.setMultipleYScales();
-      } else {
-        this.setYScaleForIndex(0, gl.minY, gl.maxY);
-        gl.minY = gl.yAxisScale[0].niceMin;
-        gl.maxY = gl.yAxisScale[0].niceMax;
-        gl.minYArr[0] = gl.yAxisScale[0].niceMin;
-        gl.maxYArr[0] = gl.yAxisScale[0].niceMax;
-      }
-    }
-  }, {
-    key: 'setXRange',
-    value: function setXRange() {
-      var gl = this.w.globals;
-      var cnf = this.w.config;
-
-      // minX maxX starts here
-      if (gl.isXNumeric) {
-        for (var i = 0; i < gl.series.length; i++) {
-          if (gl.labels[i]) {
-            for (var j = 0; j < gl.labels[i].length; j++) {
-              if (gl.labels[i][j] !== null && _Utils2.default.isNumber(gl.labels[i][j])) {
-                gl.maxX = Math.max(gl.maxX, gl.labels[i][j]);
-                gl.initialmaxX = Math.max(gl.maxX, gl.labels[i][j]);
-                gl.minX = Math.min(gl.minX, gl.labels[i][j]);
-                gl.initialminX = Math.min(gl.minX, gl.labels[i][j]);
-              }
-            }
-          }
-        }
-      }
-
-      if (gl.noLabelsProvided) {
-        gl.maxX = gl.labels[gl.labels.length - 1];
-        gl.initialmaxX = gl.labels[gl.labels.length - 1];
-        gl.minX = 1;
-        gl.initialminX = 1;
-      }
-
-      // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
-      // If user willingly disables this option, then skip
-      if (cnf.grid.padding.left !== 0 && cnf.grid.padding.right !== 0) {
-        if (cnf.xaxis.type !== 'category') {
-          var minX = gl.minX - gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3;
-          gl.minX = minX;
-          gl.initialminX = minX;
-          var maxX = gl.maxX + gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3;
-          gl.maxX = maxX;
-          gl.initialmaxX = maxX;
-        }
-      }
-
-      var niceXRange = new Range(this.ctx);
-      if (gl.isXNumeric || gl.noLabelsProvided) {
-        var ticks = void 0;
-
-        if (cnf.xaxis.tickAmount === undefined) {
-          ticks = Math.round(gl.svgWidth / 150);
-
-          // no labels provided and total number of dataPoints is less than 20
-          if (cnf.xaxis.type === 'numeric' && gl.dataPoints < 20) {
-            ticks = gl.dataPoints - 1;
-          }
-
-          // this check is for when ticks exceeds total datapoints and that would result in duplicate labels
-          if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
-            ticks = gl.dataPoints - 1;
-          }
-        } else if (cnf.xaxis.tickAmount === 'dataPoints') {
-          ticks = gl.series[gl.maxValsInArrayIndex].length - 1;
-        } else {
-          ticks = cnf.xaxis.tickAmount;
-        }
-
-        // override all min/max values by user defined values (x axis)
-        if (cnf.xaxis.max !== undefined && typeof cnf.xaxis.max === 'number') {
-          gl.maxX = cnf.xaxis.max;
-        }
-        if (cnf.xaxis.min !== undefined && typeof cnf.xaxis.min === 'number') {
-          gl.minX = cnf.xaxis.min;
-        }
-
-        // if range is provided, adjust the new minX
-        if (cnf.xaxis.range !== undefined) {
-          gl.minX = gl.maxX - cnf.xaxis.range;
-        }
-
-        if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
-          gl.xAxisScale = niceXRange.justRange(gl.minX, gl.maxX, ticks);
-
-          // we will still store these labels as the count for this will be different (to draw grid and labels placement)
-          gl.labels = gl.xAxisScale.result.slice();
-        } else {
-          gl.xAxisScale = niceXRange.justRange(1, ticks, ticks);
-          if (gl.noLabelsProvided && gl.labels.length > 0) {
-            gl.xAxisScale = niceXRange.justRange(1, gl.labels.length, ticks - 1);
-            gl.seriesX = gl.labels.slice();
-          }
-          gl.labels = gl.xAxisScale.result.slice();
-        }
-      }
-    }
-  }, {
-    key: 'setZRange',
-    value: function setZRange() {
-      var gl = this.w.globals;
-
-      // minZ, maxZ starts here
-      if (gl.isDataXYZ) {
-        for (var i = 0; i < gl.series.length; i++) {
-          if (typeof gl.seriesZ[i] !== 'undefined') {
-            for (var j = 0; j < gl.seriesZ[i].length; j++) {
-              if (gl.seriesZ[i][j] !== null && _Utils2.default.isNumber(gl.seriesZ[i][j])) {
-                gl.maxZ = Math.max(gl.maxZ, gl.seriesZ[i][j]);
-                gl.minZ = Math.min(gl.minZ, gl.seriesZ[i][j]);
-              }
-            }
-          }
-        }
-      }
     }
   }]);
 
@@ -18398,87 +18702,7 @@ var Range = function () {
 exports.default = Range;
 
 /***/ }),
-/* 136 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Config = __webpack_require__(50);
-
-var _Config2 = _interopRequireDefault(_Config);
-
-var _Utils = __webpack_require__(1);
-
-var _Utils2 = _interopRequireDefault(_Utils);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Responsive Class to override options for different screen sizes.
- *
- * @module Responsive
- **/
-
-var Responsive = function () {
-  function Responsive(ctx) {
-    _classCallCheck(this, Responsive);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  // the opts parameter if not null has to be set overriding everything
-  // as the opts is set by user externally
-
-
-  _createClass(Responsive, [{
-    key: 'checkResponsiveConfig',
-    value: function checkResponsiveConfig(opts) {
-      var w = this.w;
-      var cnf = w.config;
-
-      // check if responsive config exists
-      if (cnf.responsive === undefined) return;
-
-      var newOptions = {};
-      for (var i = 0; i < cnf.responsive.length; i++) {
-        var width = window.innerWidth > 0 ? window.innerWidth : screen.width;
-
-        if (width < cnf.responsive[i].breakpoint) {
-          newOptions = _Utils2.default.extend(w.config, cnf.responsive[i].options);
-          this.overrideResponsiveOptions(newOptions);
-          break;
-        } else {
-          newOptions = _Utils2.default.extend(w.config, w.globals.initialConfig);
-          this.overrideResponsiveOptions(newOptions);
-        }
-      }
-
-      if (opts !== null) {
-        var options = _Utils2.default.extend(w.config, opts);
-        this.overrideResponsiveOptions(options);
-      }
-    }
-  }, {
-    key: 'overrideResponsiveOptions',
-    value: function overrideResponsiveOptions(newOptions) {
-      var newConfig = new _Config2.default(newOptions).init();
-      this.w.config = newConfig;
-    }
-  }]);
-
-  return Responsive;
-}();
-
-module.exports = Responsive;
-
-/***/ }),
-/* 137 */
+/* 138 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18674,7 +18898,7 @@ var Theme = function () {
 module.exports = Theme;
 
 /***/ }),
-/* 138 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18756,7 +18980,7 @@ var TitleSubtitle = function () {
 exports.default = TitleSubtitle;
 
 /***/ }),
-/* 139 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19439,7 +19663,7 @@ var ZoomPanSelection = function (_Toolbar) {
 module.exports = ZoomPanSelection;
 
 /***/ }),
-/* 140 */
+/* 141 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19451,7 +19675,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Animations = __webpack_require__(25);
+var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
@@ -19459,7 +19683,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _XAxis = __webpack_require__(48);
+var _XAxis = __webpack_require__(49);
 
 var _XAxis2 = _interopRequireDefault(_XAxis);
 
@@ -19800,7 +20024,7 @@ var Grid = function () {
 exports.default = Grid;
 
 /***/ }),
-/* 141 */
+/* 142 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20154,6 +20378,9 @@ var Defaults = function () {
           followCursor: true,
           marker: {
             show: false
+          },
+          x: {
+            show: false
           }
         },
         legend: {
@@ -20294,7 +20521,7 @@ var Defaults = function () {
 module.exports = Defaults;
 
 /***/ }),
-/* 142 */
+/* 143 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20494,7 +20721,7 @@ var Globals = function () {
 exports.default = Globals;
 
 /***/ }),
-/* 143 */
+/* 144 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20685,7 +20912,7 @@ var AxesTooltip = function () {
 exports.default = AxesTooltip;
 
 /***/ }),
-/* 144 */
+/* 145 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20749,8 +20976,10 @@ var Intersect = function () {
           shared: false
         });
 
-        x = cx + ttCtx.tooltipRect.ttWidth / 2 + width / 2;
+        x = cx + ttCtx.tooltipRect.ttWidth / 2 + width;
         y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2;
+
+        ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
 
         if (x > w.globals.gridWidth / 2) {
           x = cx - ttCtx.tooltipRect.ttWidth / 2 + width;
@@ -20759,7 +20988,7 @@ var Intersect = function () {
           var elGrid = ttCtx.getElGrid();
           var seriesBound = elGrid.getBoundingClientRect();
           // x = ttCtx.e.clientX - seriesBound.left
-          y = ttCtx.e.clientY - seriesBound.top;
+          y = ttCtx.e.clientY - seriesBound.top + w.globals.translateY / 2 - 10;
         }
       }
 
@@ -20989,7 +21218,7 @@ var Intersect = function () {
 exports.default = Intersect;
 
 /***/ }),
-/* 145 */
+/* 146 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20997,7 +21226,7 @@ exports.default = Intersect;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Formatters = __webpack_require__(30);
+var _Formatters = __webpack_require__(31);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
@@ -21374,7 +21603,7 @@ var Labels = function () {
 module.exports = Labels;
 
 /***/ }),
-/* 146 */
+/* 147 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21390,7 +21619,7 @@ var _Position = __webpack_require__(79);
 
 var _Position2 = _interopRequireDefault(_Position);
 
-var _Markers = __webpack_require__(47);
+var _Markers = __webpack_require__(48);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -21546,7 +21775,7 @@ var Marker = function () {
 module.exports = Marker;
 
 /***/ }),
-/* 147 */
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21554,7 +21783,7 @@ module.exports = Marker;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Labels = __webpack_require__(145);
+var _Labels = __webpack_require__(146);
 
 var _Labels2 = _interopRequireDefault(_Labels);
 
@@ -21562,15 +21791,15 @@ var _Position = __webpack_require__(79);
 
 var _Position2 = _interopRequireDefault(_Position);
 
-var _Marker = __webpack_require__(146);
+var _Marker = __webpack_require__(147);
 
 var _Marker2 = _interopRequireDefault(_Marker);
 
-var _Intersect = __webpack_require__(144);
+var _Intersect = __webpack_require__(145);
 
 var _Intersect2 = _interopRequireDefault(_Intersect);
 
-var _AxesTooltip = __webpack_require__(143);
+var _AxesTooltip = __webpack_require__(144);
 
 var _AxesTooltip2 = _interopRequireDefault(_AxesTooltip);
 
@@ -21578,11 +21807,11 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Series = __webpack_require__(26);
+var _Series = __webpack_require__(27);
 
 var _Series2 = _interopRequireDefault(_Series);
 
-var _XAxis = __webpack_require__(48);
+var _XAxis = __webpack_require__(49);
 
 var _XAxis2 = _interopRequireDefault(_XAxis);
 
@@ -22317,7 +22546,7 @@ var Tooltip = function () {
 module.exports = Tooltip;
 
 /***/ }),
-/* 148 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22412,7 +22641,7 @@ module.exports = function (css) {
 };
 
 /***/ }),
-/* 149 */
+/* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22647,7 +22876,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 150 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -23251,7 +23480,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 151 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -23676,7 +23905,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 152 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -24178,7 +24407,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 153 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -24490,7 +24719,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 154 */
+/* 155 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -30047,7 +30276,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 });
 
 /***/ }),
-/* 155 */
+/* 156 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -30288,7 +30517,7 @@ if ("document" in self) {
 }
 
 /***/ }),
-/* 156 */
+/* 157 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(124)(false);
@@ -30302,11 +30531,11 @@ exports.push([module.i, ".apexcharts-canvas {\n  position: relative;\n  user-sel
 
 
 /***/ }),
-/* 157 */
+/* 158 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(156);
+var content = __webpack_require__(157);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -30320,7 +30549,7 @@ var options = {"hmr":true}
 options.transform = transform
 options.insertInto = undefined;
 
-var update = __webpack_require__(158)(content, options);
+var update = __webpack_require__(159)(content, options);
 
 if(content.locals) module.exports = content.locals;
 
@@ -30352,7 +30581,7 @@ if(false) {
 }
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -30418,7 +30647,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(148);
+var	fixUrls = __webpack_require__(149);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -30734,49 +30963,49 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"12\" cy=\"12\" r=\"3.2\"></circle><path d=\"M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" viewBox=\"0 0 24 24\"><defs><path d=\"M0 0h24v24H0z\" id=\"a\"></path></defs><clipPath id=\"b\"><use overflow=\"visible\" xlink:href=\"#a\"></use></clipPath><path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"></path></svg>"
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#6E8192\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"></path></svg>"
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" viewBox=\"0 0 24 24\"><path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path><path d=\"M0 0h24v24H0V0z\" fill=\"none\"></path><path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"></path></svg>"
 
 /***/ }),
-/* 166 */
+/* 167 */
 /***/ (function(module, exports, __webpack_require__) {
 
 __webpack_require__(86);

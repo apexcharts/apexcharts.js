@@ -96,8 +96,6 @@ class Bar {
 
       let initPositions = this.initialPositions()
 
-      console.log(initPositions)
-
       y = initPositions.y
       barHeight = initPositions.barHeight
       yDivision = initPositions.yDivision
