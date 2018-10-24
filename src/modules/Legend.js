@@ -32,7 +32,9 @@ class Legend {
     const gl = w.globals
     const cnf = w.config
 
-    if ((gl.series.length > 1 || !gl.axisCharts) && cnf.legend.show) {
+    const showLegendAlways = (cnf.legend.showForSingleSeries && gl.series.length === 1) || gl.series.length > 1
+
+    if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
       while (gl.dom.elLegendWrap.firstChild) {
         gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild)
       }

@@ -499,6 +499,7 @@ export default class Options {
       labels: [],
       legend: {
         show: true,
+        showForSingleSeries: false,
         floating: false,
         position: 'bottom', // whether to position legends in 1 of 4
         // direction - top, bottom, left, right
