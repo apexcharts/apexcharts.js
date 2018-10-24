@@ -1,3 +1,4 @@
+import CoreUtils from '../modules/CoreUtils'
 import Fill from '../modules/Fill'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
@@ -45,6 +46,11 @@ class Bar {
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
 
+    const coreUtils = new CoreUtils(this.ctx, w)
+    this.series = coreUtils.getLogSeries(series)
+    series = this.series
+    this.yRatio = coreUtils.getLogYRatios(this.yRatio)
+
     this.initVariables(series)
 
     let ret = graphics.group({
@@ -89,6 +95,8 @@ class Bar {
       }
 
       let initPositions = this.initialPositions()
+
+      console.log(initPositions)
 
       y = initPositions.y
       barHeight = initPositions.barHeight

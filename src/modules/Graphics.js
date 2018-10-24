@@ -256,7 +256,9 @@ class Graphics {
         delay: animationDelay
       })
     } else {
-      anim.showDelayedElements()
+      if (w.globals.resized && !w.globals.dataChanged) {
+        anim.showDelayedElements()
+      }
     }
 
     if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {

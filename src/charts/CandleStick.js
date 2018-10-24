@@ -1,3 +1,4 @@
+import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
@@ -17,6 +18,11 @@ class CandleStick extends Bar {
     let fill = new Fill(this.ctx)
 
     this.candlestickOptions = this.w.config.plotOptions.candlestick
+
+    const coreUtils = new CoreUtils(this.ctx, w)
+    this.series = coreUtils.getLogSeries(series)
+    series = this.series
+    this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
     this.initVariables(series)
 

@@ -1,3 +1,4 @@
+import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
@@ -16,6 +17,11 @@ class BarStacked extends Bar {
     this.graphics = new Graphics(this.ctx)
     this.fill = new Fill(this.ctx)
     this.bar = new Bar(this.ctx, this.xyRatios)
+
+    const coreUtils = new CoreUtils(this.ctx, w)
+    this.series = coreUtils.getLogSeries(series)
+    series = this.series
+    this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
     this.series = series
 

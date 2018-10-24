@@ -120,6 +120,14 @@
                 y: 342497123
             }
         ]
+
+        var labelFormatter = function (value) {
+            var val = Math.abs(value)
+            if (val >= 1000000) {
+                val = (val / 1000000).toFixed(1) + ' M';
+            }
+            return val;
+        }
         var options = {
             chart: {
                 height: 350,
@@ -137,6 +145,9 @@
             series: [{
                 name: "Logarithmic",
                 data: data
+            }, {
+                name: "Linear",
+                data: data
             }],
 
             title: {
@@ -144,20 +155,27 @@
                 align: 'left'
             },
 
-            yaxis: {
-                min: 1000000,
-                tickAmount: 5,
-                logarithmic: true,
-                labels: {
-                    formatter: function (value) {
-                        var val = Math.abs(value)
-                        if (val >= 1000000) {
-                            val = (val / 1000000).toFixed(1) + ' M';
-                        }
-                        return val;
+            yaxis: [{
+                    min: 1000000,
+                    max: 500000000,
+                    tickAmount: 4,
+                    logarithmic: true,
+                    seriesName: 'Logarithmic',
+                    labels: {
+                        formatter: labelFormatter
+                    }
+                },
+                {
+                    min: 1000000,
+                    max: 500000000,
+                    opposite: true,
+                    tickAmount: 4,
+                    seriesName: 'Linear',
+                    labels: {
+                        formatter: labelFormatter
                     }
                 }
-            }
+            ]
         }
 
         var chart = new ApexCharts(

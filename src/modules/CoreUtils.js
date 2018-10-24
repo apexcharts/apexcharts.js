@@ -207,7 +207,7 @@ class CoreUtils {
     const w = this.w
 
     w.globals.seriesLog = series.map((s, i) => {
-      if (w.config.yaxis[i].logarithmic) {
+      if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
         return s.map((d) => {
           if (d === null) return null
 
@@ -224,9 +224,10 @@ class CoreUtils {
   }
 
   getLogYRatios (yRatio) {
+    const w = this.w
     const gl = this.w.globals
 
-    gl.yLogRatio = []
+    gl.yLogRatio = yRatio.slice()
 
     gl.logYRange = gl.yRange.map((yRange, i) => {
       if (this.w.config.yaxis[i].logarithmic) {
@@ -235,18 +236,17 @@ class CoreUtils {
         let range = 1
         gl.seriesLog.forEach((s, si) => {
           s.forEach((v) => {
-            maxY = Math.max(v, maxY)
-            minY = Math.min(v, minY)
+            if (w.config.yaxis[si] && w.config.yaxis[si].logarithmic) {
+              maxY = Math.max(v, maxY)
+              minY = Math.min(v, minY)
+            }
           })
         })
 
         range = Math.pow(gl.yRange[i], Math.abs(minY - maxY) / gl.yRange[i])
 
-        gl.yLogRatio.push(range / gl.gridHeight)
+        gl.yLogRatio[i] = range / gl.gridHeight
         return range
-      } else {
-        gl.yLogRatio.push(yRatio)
-        return yRatio
       }
     })
 
