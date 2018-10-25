@@ -230,7 +230,7 @@ class CoreUtils {
     gl.yLogRatio = yRatio.slice()
 
     gl.logYRange = gl.yRange.map((yRange, i) => {
-      if (this.w.config.yaxis[i].logarithmic) {
+      if (w.config.yaxis[i] && this.w.config.yaxis[i].logarithmic) {
         let maxY = Number.MIN_SAFE_INTEGER
         let minY = Number.MAX_SAFE_INTEGER
         let range = 1
