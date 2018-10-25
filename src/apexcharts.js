@@ -257,6 +257,7 @@ class ApexCharts {
         graphData.xyRatios
       )
 
+      me.grid = new Grid(me)
       if (w.config.grid.position === 'back') {
         me.grid.drawGrid()
       }

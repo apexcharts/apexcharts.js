@@ -267,7 +267,7 @@ class Range {
         }
       }
       // we will still store these labels as the count for this will be different (to draw grid and labels placement)
-      if (!gl.isXNumeric) {
+      if (cnf.xaxis.type === 'datetime' || (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)) {
         gl.labels = gl.xAxisScale.result.slice()
       }
     }
