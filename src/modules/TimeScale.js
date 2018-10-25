@@ -216,7 +216,7 @@ class TimeScale {
           break
       }
 
-      if (this.tickInterval === 'minutes') {
+      if (this.tickInterval === 'minutes' || this.tickInterval === 'hours') {
         if (!shouldNotPrint) {
           return true
         }
@@ -536,6 +536,12 @@ class TimeScale {
     let firstTickPosition = remainingMins * minutesWidthOnXAxis
     let firstTickValue = firstVal.minHour + 1
     let hour = firstTickValue + 1
+
+    if (remainingMins === 60) {
+      firstTickPosition = 0
+      firstTickValue = firstVal.minHour
+      hour = firstTickValue + 1
+    }
 
     let date = currentDate
 
