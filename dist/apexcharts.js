@@ -2315,7 +2315,7 @@ var CoreUtils = function () {
       gl.yLogRatio = yRatio.slice();
 
       gl.logYRange = gl.yRange.map(function (yRange, i) {
-        if (_this.w.config.yaxis[i].logarithmic) {
+        if (w.config.yaxis[i] && _this.w.config.yaxis[i].logarithmic) {
           var maxY = Number.MIN_SAFE_INTEGER;
           var minY = Number.MAX_SAFE_INTEGER;
           var range = 1;
@@ -7109,6 +7109,7 @@ var Options = function () {
         labels: [],
         legend: {
           show: true,
+          showForSingleSeries: false,
           floating: false,
           position: 'bottom', // whether to position legends in 1 of 4
           // direction - top, bottom, left, right
@@ -9336,7 +9337,7 @@ var TimeScale = function () {
             break;
         }
 
-        if (_this.tickInterval === 'minutes') {
+        if (_this.tickInterval === 'minutes' || _this.tickInterval === 'hours') {
           if (!shouldNotPrint) {
             return true;
           }
@@ -9660,6 +9661,12 @@ var TimeScale = function () {
       var firstTickPosition = remainingMins * minutesWidthOnXAxis;
       var firstTickValue = firstVal.minHour + 1;
       var hour = firstTickValue + 1;
+
+      if (remainingMins === 60) {
+        firstTickPosition = 0;
+        firstTickValue = firstVal.minHour;
+        hour = firstTickValue + 1;
+      }
 
       var date = currentDate;
 
@@ -11454,6 +11461,7 @@ var ApexCharts = function () {
 
         me.core.drawAxis(w.config.chart.type, graphData.xyRatios);
 
+        me.grid = new _Grid2.default(me);
         if (w.config.grid.position === 'back') {
           me.grid.drawGrid();
         }
@@ -17487,7 +17495,9 @@ var Legend = function () {
       var gl = w.globals;
       var cnf = w.config;
 
-      if ((gl.series.length > 1 || !gl.axisCharts) && cnf.legend.show) {
+      var showLegendAlways = cnf.legend.showForSingleSeries && gl.series.length === 1 || gl.series.length > 1;
+
+      if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
         while (gl.dom.elLegendWrap.firstChild) {
           gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild);
         }
@@ -18242,15 +18252,15 @@ var Range = function () {
 
         if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
           gl.xAxisScale = this.scales.linearScale(gl.minX, gl.maxX, ticks);
-
-          // we will still store these labels as the count for this will be different (to draw grid and labels placement)
-          gl.labels = gl.xAxisScale.result.slice();
         } else {
           gl.xAxisScale = this.scales.linearScale(1, ticks, ticks);
           if (gl.noLabelsProvided && gl.labels.length > 0) {
             gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1);
             gl.seriesX = gl.labels.slice();
           }
+        }
+        // we will still store these labels as the count for this will be different (to draw grid and labels placement)
+        if (cnf.xaxis.type === 'datetime' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided) {
           gl.labels = gl.xAxisScale.result.slice();
         }
       }
