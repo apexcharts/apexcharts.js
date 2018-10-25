@@ -259,15 +259,15 @@ class Range {
           gl.maxX,
           ticks
         )
-
-        // we will still store these labels as the count for this will be different (to draw grid and labels placement)
-        gl.labels = gl.xAxisScale.result.slice()
       } else {
         gl.xAxisScale = this.scales.linearScale(1, ticks, ticks)
         if (gl.noLabelsProvided && gl.labels.length > 0) {
           gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1)
           gl.seriesX = gl.labels.slice()
         }
+      }
+      // we will still store these labels as the count for this will be different (to draw grid and labels placement)
+      if (!gl.isXNumeric) {
         gl.labels = gl.xAxisScale.result.slice()
       }
     }
