@@ -334,7 +334,18 @@ class ApexCharts {
    * @param {boolean} animate - should animate or not on updating Options
    */
   updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = true) {
+    const w = this.w
     if (options.series) {
+      if (options.series[0].data) {
+        options.series = options.series.map((s, i) => {
+          return {
+            ...w.config.series[i],
+            name: s.name ? s.name : w.config.series[i].name,
+            data: s.data
+          }
+        })
+      }
+
       // user updated the series via updateOptions() function.
       // Hence, we need to reset axis min/max to avoid zooming issues
       this.revertDefaultAxisMinMax()
@@ -343,7 +354,7 @@ class ApexCharts {
     if (options.xaxis && (options.xaxis.min || options.xaxis.max)) {
       this.forceXAxisUpdate(options)
     }
-    return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig)
+    return this._updateOptions(options, redraw, animate, overwriteInitialConfig)
   }
 
   /**
@@ -354,7 +365,7 @@ class ApexCharts {
    * @param {boolean} animate - should animate or not on updating Options
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
    */
-  updateOptionsInternal (options, redraw = false, animate = true, overwriteInitialConfig = false) {
+  _updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = false) {
     const charts = this.getSyncedCharts()
 
     charts.forEach((ch) => {
@@ -399,7 +410,7 @@ class ApexCharts {
    */
   updateSeries (newSeries = [], animate = true, overwriteInitialSeries = true) {
     this.revertDefaultAxisMinMax()
-    return this.updateSeriesInternal(newSeries, animate, overwriteInitialSeries)
+    return this._updateSeries(newSeries, animate, overwriteInitialSeries)
   }
 
   /**
@@ -407,7 +418,7 @@ class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  updateSeriesInternal (newSeries, animate, overwriteInitialSeries = false) {
+  _updateSeries (newSeries, animate, overwriteInitialSeries = false) {
     const w = this.w
 
     this.w.globals.shouldAnimate = animate
@@ -418,14 +429,21 @@ class ApexCharts {
       this.series.getPreviousPaths()
     }
 
+    let existingSeries
+
+    // axis charts
     if (newSeries[0].data) {
-      w.config.series = newSeries.map((s, i) => {
+      existingSeries = newSeries.map((s, i) => {
         return {
           ...w.config.series[i],
+          name: s.name ? s.name : w.config.series[i].name,
           data: s.data
         }
       })
+
+      w.config.series = existingSeries
     } else {
+      // non-axis chart (pie/radialbar)
       w.config.series = newSeries.slice()
     }
 
@@ -713,7 +731,7 @@ class ApexCharts {
       targetChart.w.globals.brushSource = this
 
       const updateSourceChart = () => {
-        this.updateOptionsInternal({
+        this._updateOptions({
           chart: {
             selection: {
               xaxis: {
@@ -736,7 +754,7 @@ class ApexCharts {
       }
 
       w.config.chart.events.selection = (chart, e) => {
-        targetChart.updateOptionsInternal({
+        targetChart._updateOptions({
           xaxis: {
             min: e.xaxis.min,
             max: e.xaxis.max

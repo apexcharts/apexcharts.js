@@ -487,7 +487,7 @@ class Legend {
                 w.globals.collapsedSeriesIndices.splice(c, 1)
                 w.globals.risingSeries.push(realIndex)
               }
-              this.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
+              this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
             }
           }
         }
@@ -532,7 +532,7 @@ class Legend {
 
         w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length
 
-        this.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
+        this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
       }
     } else {
       // for non-axis charts i.e pie / donuts

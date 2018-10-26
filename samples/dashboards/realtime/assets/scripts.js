@@ -105,7 +105,6 @@ var optionsColumn = {
         window.setTimeout(function () {
           chartCtx.updateOptions({
             series: [{
-              name: 'Load Average',
               data: newData
             }],
             xaxis: {
@@ -212,10 +211,8 @@ var optionsLine = {
         window.setTimeout(function () {
           chartCtx.updateOptions({
             series: [{
-              name: 'Running',
               data: newData1
             }, {
-              name: 'Waiting',
               data: newData2
             }],
             subtitle: {
@@ -551,7 +548,6 @@ window.setInterval(function () {
   iteration++;
 
   chartColumn.updateSeries([{
-    name: 'Load Average',
     data: [...chartColumn.w.config.series[0].data,
       [
         chartColumn.w.globals.maxX + 210000,
@@ -561,7 +557,6 @@ window.setInterval(function () {
   }])
 
   chartLine.updateSeries([{
-    name: 'Running',
     data: [...chartLine.w.config.series[0].data,
       [
         chartLine.w.globals.maxX + 300000,
@@ -569,7 +564,6 @@ window.setInterval(function () {
       ]
     ]
   }, {
-    name: 'Waiting',
     data: [...chartLine.w.config.series[1].data,
       [
         chartLine.w.globals.maxX + 300000,
@@ -583,7 +577,6 @@ window.setInterval(function () {
   var p1Data = getRangeRandom({ min: 10, max: 100 });
   chartProgress1.updateOptions({
     series: [{
-      name: 'Process 1',
       data: [p1Data]
     }],
     subtitle: {
@@ -594,7 +587,6 @@ window.setInterval(function () {
   var p2Data = getRangeRandom({ min: 10, max: 100 });
   chartProgress2.updateOptions({
     series: [{
-      name: 'Process 2',
       data: [p2Data]
     }],
     subtitle: {
@@ -605,7 +597,6 @@ window.setInterval(function () {
   var p3Data = getRangeRandom({ min: 10, max: 100 });
   chartProgress3.updateOptions({
     series: [{
-      name: 'Process 2',
       data: [p3Data]
     }],
     subtitle: {

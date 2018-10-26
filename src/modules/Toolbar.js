@@ -263,7 +263,7 @@ class Toolbar {
 
     this.w.globals.zoomed = true
 
-    this.ctx.updateOptionsInternal({
+    this.ctx._updateOptions({
       xaxis
     },
     false,
@@ -304,7 +304,7 @@ class Toolbar {
         ch.revertDefaultAxisMinMax()
         w.globals.zoomed = false
 
-        ch.updateSeriesInternal(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled)
+        ch._updateSeries(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled)
       }
     })
   }

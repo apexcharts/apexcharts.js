@@ -194,10 +194,12 @@ class Range {
     }
 
     if (gl.noLabelsProvided) {
-      gl.maxX = gl.labels[gl.labels.length - 1]
-      gl.initialmaxX = gl.labels[gl.labels.length - 1]
-      gl.minX = 1
-      gl.initialminX = 1
+      if (cnf.xaxis.categories.length === 0) {
+        gl.maxX = gl.labels[gl.labels.length - 1]
+        gl.initialmaxX = gl.labels[gl.labels.length - 1]
+        gl.minX = 1
+        gl.initialminX = 1
+      }
     }
 
     // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
