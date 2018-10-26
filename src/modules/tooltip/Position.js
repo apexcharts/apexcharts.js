@@ -218,7 +218,7 @@ class Position {
     let w = this.w
     let ttCtx = this.ttCtx
 
-    if (w.config.markers.size > 0) {
+    if (w.globals.markers.size[i] > 0) {
       let allPoints = w.globals.dom.baseEl.querySelectorAll(` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`)
       for (let p = 0; p < allPoints.length; p++) {
         if (parseInt(allPoints[p].getAttribute('rel')) === j) {
@@ -246,6 +246,11 @@ class Position {
     let pointsArr = w.globals.pointsArray
 
     let hoverSize = w.config.markers.hover.size
+
+    if (hoverSize === undefined) {
+      hoverSize = w.globals.markers.size[capturedSeries] + w.config.markers.hover.sizeOffset
+    }
+
     cx = pointsArr[capturedSeries][j][0]
     cy = pointsArr[capturedSeries][j][1] ? pointsArr[capturedSeries][j][1] : 0
 
@@ -281,6 +286,10 @@ class Position {
     activeSeries = series.getActiveSeriesIndex()
 
     let hoverSize = w.config.markers.hover.size
+    if (hoverSize === undefined) {
+      hoverSize = w.globals.markers.size[activeSeries] + w.config.markers.hover.sizeOffset
+    }
+
     if (pointsArr[activeSeries]) {
       cx = pointsArr[activeSeries][j][0]
       cy = pointsArr[activeSeries][j][1]

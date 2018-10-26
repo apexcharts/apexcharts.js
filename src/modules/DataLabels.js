@@ -16,7 +16,7 @@ class DataLabels {
 
   // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
   // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
-  dataLabelsCorrection (x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize, pointSize) {
+  dataLabelsCorrection (x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
     let drawnextLabel = false //
@@ -83,7 +83,7 @@ class DataLabels {
 
     for (let q = 0; q < pos.x.length; q++) {
       x = pos.x[q] + dataLabelsConfig.offsetX
-      y = pos.y[q] + dataLabelsConfig.offsetY - w.config.markers.size - 5
+      y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5
 
       if (!isNaN(x)) {
         // a small hack as we have 2 points for the first val to connect it
@@ -124,8 +124,7 @@ class DataLabels {
       i,
       j,
       alwaysDrawDataLabel,
-      parseInt(dataLabelsConfig.style.fontSize),
-      w.config.markers.size <= w.config.markers.hover.size ? w.config.markers.hover.size : w.config.markers.size
+      parseInt(dataLabelsConfig.style.fontSize)
     )
 
     // when zoomed, we don't need to correct labels offsets,

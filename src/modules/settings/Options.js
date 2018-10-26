@@ -556,7 +556,8 @@ export default class Options {
         offsetX: 0,
         offsetY: 0,
         hover: {
-          size: 6
+          size: undefined,
+          sizeOffset: 3
         }
       },
       noData: {

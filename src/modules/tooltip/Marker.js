@@ -1,6 +1,7 @@
 import Graphics from '../Graphics'
 import Position from './Position'
 import Markers from '../../modules/Markers'
+import Utils from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Marker Class to draw texts on the tooltip.
@@ -45,6 +46,8 @@ class Marker {
         let elPointOptions = marker.getMarkerConfig(PointClasses, seriesIndex)
 
         point = graphics.drawMarker(0, 0, elPointOptions)
+
+        point.node.setAttribute('default-marker-size', 0)
 
         let elPointsG = document.createElementNS(w.globals.svgNS, 'g')
         elPointsG.classList.add('apexcharts-series-markers')
@@ -91,6 +94,11 @@ class Marker {
 
     for (let p = 0; p < points.length; p++) {
       let rel = points[p].getAttribute('rel')
+      let index = points[p].getAttribute('index')
+
+      if (newSize === undefined) {
+        newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+      }
 
       if (col === parseInt(rel)) {
         me.newPointSize(col, points[p])
@@ -112,6 +120,7 @@ class Marker {
   newPointSize (rel, point) {
     let w = this.w
     let newSize = w.config.markers.hover.size
+
     let elPoint = null
 
     if (rel === 0) {
@@ -120,29 +129,33 @@ class Marker {
       elPoint = point.parentNode.lastChild
     }
 
+    const index = parseInt(elPoint.getAttribute('index'))
+    if (newSize === undefined) {
+      newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+    }
+
     elPoint.setAttribute('r', newSize)
-    // elPoint.style.opacity = w.config.markers.hover.opacity
   }
 
   oldPointSize (point) {
-    let w = this.w
-    let currSize = w.config.markers.size
-
-    point.setAttribute('r', currSize)
-    // point.style.opacity = w.config.markers.opacity
+    const size = parseInt(point.getAttribute('default-marker-size'))
+    point.setAttribute('r', size)
   }
 
   resetPointsSize () {
     let w = this.w
 
-    let currSize = w.config.markers.size
-
     let points = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-marker'
+      '.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker'
     )
+
     for (let p = 0; p < points.length; p++) {
-      points[p].setAttribute('r', currSize)
-      // points[p].style.opacity = w.config.markers.opacity;
+      const size = parseInt(points[p].getAttribute('default-marker-size'))
+      if (Utils.isNumber(size)) {
+        points[p].setAttribute('r', size)
+      } else {
+        points[p].setAttribute('r', 0)
+      }
     }
   }
 }

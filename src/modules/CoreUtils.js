@@ -61,6 +61,19 @@ class CoreUtils {
       )
   }
 
+  getLargestMarkerSize () {
+    const w = this.w
+    let size = 0
+
+    w.globals.markers.size.forEach(function (m) {
+      size = Math.max(size, m)
+    })
+
+    w.globals.markers.largestSize = size
+
+    return size
+  }
+
   /**
    * @memberof Core
    * returns the sum of all values in a series

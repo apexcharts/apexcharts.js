@@ -87,7 +87,7 @@ class Tooltip {
       this.showOnIntersect = true
     }
 
-    if (w.config.markers.size === 0) {
+    if (w.config.markers.size === 0 || w.globals.markers.largestSize === 0) {
       // when user don't want to show points all the time, but only on when hovering on series
       this.marker.drawDynamicPoints(this)
     }
@@ -694,7 +694,7 @@ class Tooltip {
       })
 
       if (hasMarkers) {
-        if (w.config.markers.size > 0) {
+        if (w.globals.markers.largestSize > 0) {
           self.marker.enlargePoints(j)
         } else {
           self.tooltipPosition.moveDynamicPointsOnHover(j)

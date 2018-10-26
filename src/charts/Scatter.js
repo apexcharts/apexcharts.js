@@ -51,7 +51,7 @@ class Scatter {
         if (j === 0 && q === 1) realIndexP = 1
 
         let radius = 0
-        let finishRadius = w.config.markers.size
+        let finishRadius = w.globals.markers.size[realIndex]
 
         if (zRatio !== Infinity) {
           // means we have a bubble
@@ -139,7 +139,8 @@ class Scatter {
         circle.attr({
           'rel': realIndexP,
           'j': realIndexP,
-          'index': realIndex
+          'index': realIndex,
+          'default-marker-size': finishRadius
         })
 
         const markers = new Markers(this.ctx)

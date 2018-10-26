@@ -14,6 +14,21 @@ class Markers {
     this.w = ctx.w
   }
 
+  setGlobalMarkerSize () {
+    const w = this.w
+    if (w.globals.markers.size.length > 0) {
+      if (w.globals.markers.size.length < w.globals.series.length) {
+        for (let i = 0; i < w.globals.series.length - w.globals.markers.size.length + 1; i++) {
+          w.globals.markers.size.push(w.globals.markers.size[0])
+        }
+      }
+    } else {
+      w.globals.markers.size = w.config.series.map((s) => {
+        return w.config.markers.size
+      })
+    }
+  }
+
   plotChartMarkers (pointsPos, seriesIndex, j) {
     let w = this.w
 
@@ -24,7 +39,7 @@ class Markers {
 
     let point
 
-    if (w.config.markers.size > 0) {
+    if (w.globals.markers.size[seriesIndex] > 0) {
       elPointsWrap = graphics.group({
         class: 'apexcharts-series-markers'
       })
@@ -39,7 +54,7 @@ class Markers {
           PointClasses += ' no-pointer-events'
         }
 
-        if (w.config.markers.size > 0) {
+        if (w.globals.markers.size[seriesIndex] > 0) {
           if (Utils.isNumber(p.y[q])) {
             PointClasses += ` w${(Math.random() + 1).toString(36).substring(4)}`
           } else {
@@ -47,11 +62,13 @@ class Markers {
           }
 
           let opts = this.getMarkerConfig(PointClasses, seriesIndex)
+
+          // discrete markers is an option where user can specify a particular marker with different size and color
           w.config.markers.discrete.map((marker, mIndex) => {
             if (marker.i === seriesIndex && marker.j === realIndexP) {
               opts.pointStrokeColor = marker.strokeColor
               opts.pointFillColor = marker.fillColor
-              opts.size = marker.size
+              opts.pSize = marker.size
             }
           })
 
@@ -68,6 +85,7 @@ class Markers {
           point.attr('rel', realIndexP)
           point.attr('j', realIndexP)
           point.attr('index', seriesIndex)
+          point.node.setAttribute('default-marker-size', opts.pSize)
 
           this.setSelectedPointFilter(point, seriesIndex, realIndexP)
           this.addEvents(point)
@@ -91,10 +109,10 @@ class Markers {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
 
-    const pSize = w.config.markers.size
+    const pSize = w.globals.markers.size[seriesIndex]
 
     return {
-      pSize: (pSize instanceof Array ? pSize[seriesIndex] : pSize),
+      pSize,
       pRadius: w.config.markers.radius,
       pWidth: w.config.markers.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,

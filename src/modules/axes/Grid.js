@@ -1,4 +1,5 @@
 import Animations from '../Animations'
+import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
 
@@ -100,8 +101,15 @@ class Grid {
     gl.dom.elGridRectMask.setAttribute('id', `gridRectMask${gl.cuid}`)
 
     let markerSize = 0
+    const coreUtils = new CoreUtils(this)
+    const largestMarkerSize = coreUtils.getLargestMarkerSize()
+    const largestMarkerSizeIndex = w.globals.markers.size.indexOf(largestMarkerSize)
+
     if (!w.config.grid.clipMarkers) {
-      markerSize = w.config.markers.size > w.config.markers.hover.size ? w.config.markers.size : w.config.markers.hover.size
+      const normalMarkerSize = w.globals.markers.size[largestMarkerSizeIndex]
+      const hoverMarkerSize = normalMarkerSize + w.config.markers.hover.sizeOffset
+
+      markerSize = normalMarkerSize > hoverMarkerSize ? normalMarkerSize : hoverMarkerSize
     }
 
     gl.dom.elGridRect = graphics.drawRect(0, 0 - markerSize * 1.2, gl.gridWidth, gl.gridHeight + markerSize * 2.4, 0, '#fff')

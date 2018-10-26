@@ -9,6 +9,7 @@ import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
 import Grid from './modules/axes/Grid'
 import Legend from './modules/Legend'
+import Markers from './modules/Markers'
 import Responsive from './modules/Responsive'
 import Series from './modules/Series'
 import Theme from './modules/Theme'
@@ -193,6 +194,10 @@ class ApexCharts {
     // this is a good time to set theme colors first
     this.theme.init()
     // labelFormatters should be called before dimensions as in dimensions we need text labels width
+
+    // as markers accepts array, we need to setup global markers for easier access
+    const markers = new Markers(this)
+    markers.setGlobalMarkerSize()
 
     this.formatters.setLabelFormatters()
     this.titleSubtitle.draw()

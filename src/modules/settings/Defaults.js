@@ -193,6 +193,12 @@ class Defaults {
           stops: [0, 100, 100]
         }
       },
+      markers: {
+        size: 0,
+        hover: {
+          sizeOffset: 6
+        }
+      },
       tooltip: {
         followCursor: false
       }
@@ -293,7 +299,7 @@ class Defaults {
         size: 6,
         strokeWidth: 2,
         hover: {
-          size: 8
+          sizeOffset: 2
         }
       }
     }
