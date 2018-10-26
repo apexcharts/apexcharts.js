@@ -665,14 +665,10 @@ class Core {
       }
 
       gl.labels = labelArr
+      gl.noLabelsProvided = true
 
-      if (cnf.xaxis.type === 'category' && cnf.xaxis.categories.length === 0) {
-        gl.labels = labelArr
-        cnf.xaxis.categories = gl.labels.slice()
+      if (cnf.xaxis.type === 'category') {
         gl.isXNumeric = false
-        gl.noLabelsProvided = false
-      } else {
-        gl.noLabelsProvided = true
       }
     }
   }
