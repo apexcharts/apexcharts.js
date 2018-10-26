@@ -468,7 +468,7 @@ export default class Options {
         borderColor: '#e0e0e0',
         strokeDashArray: 0,
         position: 'back',
-        clipMarkers: false,
+        clipMarkers: true,
         xaxis: {
           lines: {
             show: false,
