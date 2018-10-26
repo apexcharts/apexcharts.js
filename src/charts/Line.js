@@ -179,6 +179,8 @@ class Line {
           x = x + xDivision
         }
 
+        const minY = Utils.isNumber(w.globals.minYArr[realIndex]) ? w.globals.minYArr[realIndex] : w.globals.minY
+
         if (w.config.chart.stacked) {
           if (
             i > 0 &&
@@ -191,13 +193,13 @@ class Line {
           }
 
           if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-            y = lineYPosition - (w.globals.minYArr[realIndex]) / yRatio[this.yaxisIndex]
+            y = lineYPosition - minY / yRatio[this.yaxisIndex]
           } else {
             y = (lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex])
           }
         } else {
           if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-            y = zeroY - (w.globals.minYArr[realIndex]) / yRatio[this.yaxisIndex]
+            y = zeroY - minY / yRatio[this.yaxisIndex]
           } else {
             y = (zeroY - series[i][j + 1] / yRatio[this.yaxisIndex])
           }

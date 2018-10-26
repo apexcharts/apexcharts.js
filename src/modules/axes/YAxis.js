@@ -38,7 +38,7 @@ class YAxis {
       'translate(' + w.globals.translateYAxisX[realIndex] + ', 0)'
     })
 
-    if (!w.config.yaxis[realIndex].show || w.globals.collapsedSeriesIndices.indexOf(realIndex) > -1) {
+    if (!w.config.yaxis[realIndex].show) {
       return elYaxis
     }
 
