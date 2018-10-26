@@ -1,6 +1,8 @@
 import Core from '../../src/modules/Core.js'
 import seriesxy from './data/seriesxy.js'
-import { createChart } from './utils/utils.js'
+import {
+  createChart
+} from './utils/utils.js'
 
 describe("Parse Data", () => {
 
@@ -13,15 +15,21 @@ describe("Parse Data", () => {
     const core = new Core(document.querySelector("#chart"), chart)
     const w = core.parseDataAxisCharts(seriesxy, seriesxy, chart)
 
-    expect(w.globals.series).toEqual([[300, 230, 210]])
-    expect(w.globals.seriesX).toEqual([[1262284200000, 1262370600000, 1262457000000]])
-    expect(w.globals.labels).toEqual([[1262284200000, 1262370600000, 1262457000000]])
+    expect(w.globals.series).toEqual([
+      [300, 230, 210]
+    ])
+    expect(w.globals.seriesX).toEqual([
+      [1262284200000, 1262370600000, 1262457000000]
+    ])
+    expect(w.globals.labels).toEqual([
+      [1262284200000, 1262370600000, 1262457000000]
+    ])
   })
 
   it("should parse data for non-cartesian charts", () => {
     const series = [30, 23, 12, 43];
     const chart = createChart('donut', series)
-    
+
     chart.w.globals.series = []
     chart.w.globals.seriesNames = []
 

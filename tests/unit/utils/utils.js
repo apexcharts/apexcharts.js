@@ -21,5 +21,5 @@ module.exports = {
     chart.render()
   
     return chart
-  },
+  }
 } 
