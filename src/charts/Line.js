@@ -13,14 +13,14 @@ import Utils from '../utils/Utils'
  **/
 
 class Line {
-  constructor (ctx, xyRatios) {
+  constructor (ctx, xyRatios, isPointsChart) {
     this.ctx = ctx
     this.w = ctx.w
 
     this.xyRatios = xyRatios
 
     this.pointsChart = !(this.w.config.chart.type !== 'bubble' &&
-      this.w.config.chart.type !== 'scatter')
+      this.w.config.chart.type !== 'scatter') || isPointsChart
 
     if (this.pointsChart) {
       this.scatter = new Scatter(this.ctx)

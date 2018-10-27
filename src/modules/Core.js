@@ -118,6 +118,11 @@ class Core {
       series: [],
       i: []
     }
+    let scatterSeries = {
+      series: [],
+      i: []
+    }
+
     let columnSeries = {
       series: [],
       i: []
@@ -141,6 +146,9 @@ class Core {
         } else if (ser[st].type === 'line') {
           lineSeries.series.push(series)
           lineSeries.i.push(st)
+        } else if (ser[st].type === 'scatter') {
+          scatterSeries.series.push(series)
+          scatterSeries.i.push(st)
         } else if (ser[st].type === 'candlestick') {
           candlestickSeries.series.push(series)
           candlestickSeries.i.push(st)
@@ -179,6 +187,12 @@ class Core {
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
           candlestick.draw(candlestickSeries.series, candlestickSeries.i)
+        )
+      }
+      if (scatterSeries.series.length > 0) {
+        const scatterLine = new Line(this.ctx, xyRatios, true)
+        elGraph.push(
+          scatterLine.draw(scatterSeries.series, 'scatter', scatterSeries.i)
         )
       }
     } else {
