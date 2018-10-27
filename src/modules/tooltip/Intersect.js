@@ -122,6 +122,9 @@ class Intersect {
     let bx = 0
     let x = 0
     let y = 0
+    let bW = 0
+    let i = 0
+    let strokeWidth
 
     if ((ttCtx.isBarHorizontal && ttCtx.hasBars()) || !w.config.tooltip.shared) {
       let barXY = this.getBarTooltipXY({
@@ -130,6 +133,9 @@ class Intersect {
       })
       x = barXY.x
       y = barXY.y
+      i = barXY.i
+      strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width
+      bW = barXY.barWidth
       bx = x
     } else {
       if (!w.globals.comboCharts && !w.config.tooltip.shared) {
@@ -162,8 +168,8 @@ class Intersect {
       )
     }
 
-    if (!w.globals.comboCharts && !w.config.tooltip.shared) {
-      ttCtx.tooltipPosition.moveXCrosshairs(bx)
+    if (!w.config.tooltip.shared) {
+      ttCtx.tooltipPosition.moveXCrosshairs(bx + bW / 2 - strokeWidth / 2)
     }
 
     // move tooltip here
@@ -182,8 +188,10 @@ class Intersect {
     let w = this.w
     let j = null
     const ttCtx = this.ttCtx
+    let i = 0
     let x = 0
     let y = 0
+    let barWidth = 0
 
     const cl = e.target.classList
 
@@ -198,10 +206,11 @@ class Intersect {
 
       let cx = parseInt(bar.getAttribute('cx'))
       let cy = parseInt(bar.getAttribute('cy'))
+      barWidth = parseFloat(bar.getAttribute('barWidth'))
       const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
 
       j = parseInt(bar.getAttribute('j'))
-      let i = parseInt(bar.parentNode.getAttribute('rel')) - 1
+      i = parseInt(bar.parentNode.getAttribute('rel')) - 1
 
       if (w.globals.comboCharts) {
         i = parseInt(bar.parentNode.getAttribute('data:realIndex'))
@@ -266,6 +275,8 @@ class Intersect {
     return {
       x,
       y,
+      barWidth,
+      i,
       j
     }
   }

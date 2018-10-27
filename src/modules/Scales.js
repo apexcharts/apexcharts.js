@@ -282,13 +282,14 @@ export default class Range {
       })
     })
 
-    let sameScaleMin = null
-    let sameScaleMax = null
-    sameScaleMinYArr.forEach((s, i) => {
-      sameScaleMin = Math.min(sameScaleMinYArr[i].value, s.value)
+    let sameScaleMin = Number.MAX_SAFE_INTEGER
+    let sameScaleMax = Number.MIN_SAFE_INTEGER
+
+    sameScaleMinYArr.forEach((s) => {
+      sameScaleMin = Math.min(s.value, sameScaleMin)
     })
-    sameScaleMaxYArr.forEach((s, i) => {
-      sameScaleMax = Math.min(sameScaleMaxYArr[i].value, s.value)
+    sameScaleMaxYArr.forEach((s) => {
+      sameScaleMax = Math.max(s.value, sameScaleMax)
     })
 
     minYArr.forEach((min, i) => {
