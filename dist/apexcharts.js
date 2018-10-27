@@ -18767,13 +18767,14 @@ var Range = function () {
         });
       });
 
-      var sameScaleMin = null;
-      var sameScaleMax = null;
-      sameScaleMinYArr.forEach(function (s, i) {
-        sameScaleMin = Math.min(sameScaleMinYArr[i].value, s.value);
+      var sameScaleMin = Number.MAX_SAFE_INTEGER;
+      var sameScaleMax = Number.MIN_SAFE_INTEGER;
+
+      sameScaleMinYArr.forEach(function (s) {
+        sameScaleMin = Math.min(s.value, sameScaleMin);
       });
-      sameScaleMaxYArr.forEach(function (s, i) {
-        sameScaleMax = Math.min(sameScaleMaxYArr[i].value, s.value);
+      sameScaleMaxYArr.forEach(function (s) {
+        sameScaleMax = Math.max(s.value, sameScaleMax);
       });
 
       minYArr.forEach(function (min, i) {
@@ -21187,6 +21188,9 @@ var Intersect = function () {
       var bx = 0;
       var x = 0;
       var y = 0;
+      var bW = 0;
+      var i = 0;
+      var strokeWidth = void 0;
 
       if (ttCtx.isBarHorizontal && ttCtx.hasBars() || !w.config.tooltip.shared) {
         var barXY = this.getBarTooltipXY({
@@ -21195,6 +21199,9 @@ var Intersect = function () {
         });
         x = barXY.x;
         y = barXY.y;
+        i = barXY.i;
+        strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width;
+        bW = barXY.barWidth;
         bx = x;
       } else {
         if (!w.globals.comboCharts && !w.config.tooltip.shared) {
@@ -21225,8 +21232,8 @@ var Intersect = function () {
         ttCtx.tooltip = w.globals.dom.baseEl.querySelector('.apexcharts-tooltip');
       }
 
-      if (!w.globals.comboCharts && !w.config.tooltip.shared) {
-        ttCtx.tooltipPosition.moveXCrosshairs(bx);
+      if (!w.config.tooltip.shared) {
+        ttCtx.tooltipPosition.moveXCrosshairs(bx + bW / 2 - strokeWidth / 2);
       }
 
       // move tooltip here
@@ -21249,8 +21256,10 @@ var Intersect = function () {
       var w = this.w;
       var j = null;
       var ttCtx = this.ttCtx;
+      var i = 0;
       var x = 0;
       var y = 0;
+      var barWidth = 0;
 
       var cl = e.target.classList;
 
@@ -21265,10 +21274,11 @@ var Intersect = function () {
 
         var cx = parseInt(bar.getAttribute('cx'));
         var cy = parseInt(bar.getAttribute('cy'));
+        barWidth = parseFloat(bar.getAttribute('barWidth'));
         var clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
 
         j = parseInt(bar.getAttribute('j'));
-        var i = parseInt(bar.parentNode.getAttribute('rel')) - 1;
+        i = parseInt(bar.parentNode.getAttribute('rel')) - 1;
 
         if (w.globals.comboCharts) {
           i = parseInt(bar.parentNode.getAttribute('data:realIndex'));
@@ -21325,6 +21335,8 @@ var Intersect = function () {
       return {
         x: x,
         y: y,
+        barWidth: barWidth,
+        i: i,
         j: j
       };
     }
