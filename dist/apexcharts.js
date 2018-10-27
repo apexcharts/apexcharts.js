@@ -397,7 +397,7 @@ var Graphics = function () {
           delay: animationDelay
         }));
       } else {
-        if (w.globals.resized && !w.globals.dataChanged) {
+        if (w.globals.resized || !w.globals.dataChanged) {
           anim.showDelayedElements();
         }
       }
@@ -2132,6 +2132,20 @@ var CoreUtils = function () {
       }).indexOf(Math.max.apply(Math, w.globals.series.map(function (a) {
         return a.length;
       })));
+    }
+  }, {
+    key: "getLargestMarkerSize",
+    value: function getLargestMarkerSize() {
+      var w = this.w;
+      var size = 0;
+
+      w.globals.markers.size.forEach(function (m) {
+        size = Math.max(size, m);
+      });
+
+      w.globals.markers.largestSize = size;
+
+      return size;
     }
 
     /**
@@ -4500,7 +4514,7 @@ var DataLabels = function () {
 
   _createClass(DataLabels, [{
     key: 'dataLabelsCorrection',
-    value: function dataLabelsCorrection(x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize, pointSize) {
+    value: function dataLabelsCorrection(x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize) {
       var w = this.w;
       var graphics = new _Graphics2.default(this.ctx);
       var drawnextLabel = false; //
@@ -4568,7 +4582,7 @@ var DataLabels = function () {
 
       for (var q = 0; q < pos.x.length; q++) {
         x = pos.x[q] + dataLabelsConfig.offsetX;
-        y = pos.y[q] + dataLabelsConfig.offsetY - w.config.markers.size - 5;
+        y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5;
 
         if (!isNaN(x)) {
           // a small hack as we have 2 points for the first val to connect it
@@ -4605,7 +4619,7 @@ var DataLabels = function () {
       var w = this.w;
       var graphics = new _Graphics2.default(this.ctx);
 
-      var correctedLabels = this.dataLabelsCorrection(x, y, text, i, j, alwaysDrawDataLabel, parseInt(dataLabelsConfig.style.fontSize), w.config.markers.size <= w.config.markers.hover.size ? w.config.markers.hover.size : w.config.markers.size);
+      var correctedLabels = this.dataLabelsCorrection(x, y, text, i, j, alwaysDrawDataLabel, parseInt(dataLabelsConfig.style.fontSize));
 
       // when zoomed, we don't need to correct labels offsets,
       // but if normally, labels get cropped, correct them
@@ -5321,6 +5335,22 @@ var Markers = function () {
   }
 
   _createClass(Markers, [{
+    key: 'setGlobalMarkerSize',
+    value: function setGlobalMarkerSize() {
+      var w = this.w;
+      if (w.globals.markers.size.length > 0) {
+        if (w.globals.markers.size.length < w.globals.series.length) {
+          for (var i = 0; i < w.globals.series.length - w.globals.markers.size.length + 1; i++) {
+            w.globals.markers.size.push(w.globals.markers.size[0]);
+          }
+        }
+      } else {
+        w.globals.markers.size = w.config.series.map(function (s) {
+          return w.config.markers.size;
+        });
+      }
+    }
+  }, {
     key: 'plotChartMarkers',
     value: function plotChartMarkers(pointsPos, seriesIndex, j) {
       var _this = this;
@@ -5334,7 +5364,7 @@ var Markers = function () {
 
       var point = void 0;
 
-      if (w.config.markers.size > 0) {
+      if (w.globals.markers.size[seriesIndex] > 0) {
         elPointsWrap = graphics.group({
           class: 'apexcharts-series-markers'
         });
@@ -5349,7 +5379,7 @@ var Markers = function () {
             PointClasses += ' no-pointer-events';
           }
 
-          if (w.config.markers.size > 0) {
+          if (w.globals.markers.size[seriesIndex] > 0) {
             if (_Utils2.default.isNumber(p.y[q])) {
               PointClasses += ' w' + (Math.random() + 1).toString(36).substring(4);
             } else {
@@ -5357,11 +5387,13 @@ var Markers = function () {
             }
 
             var opts = _this.getMarkerConfig(PointClasses, seriesIndex);
+
+            // discrete markers is an option where user can specify a particular marker with different size and color
             w.config.markers.discrete.map(function (marker, mIndex) {
               if (marker.i === seriesIndex && marker.j === realIndexP) {
                 opts.pointStrokeColor = marker.strokeColor;
                 opts.pointFillColor = marker.fillColor;
-                opts.size = marker.size;
+                opts.pSize = marker.size;
               }
             });
 
@@ -5374,6 +5406,7 @@ var Markers = function () {
             point.attr('rel', realIndexP);
             point.attr('j', realIndexP);
             point.attr('index', seriesIndex);
+            point.node.setAttribute('default-marker-size', opts.pSize);
 
             _this.setSelectedPointFilter(point, seriesIndex, realIndexP);
             _this.addEvents(point);
@@ -5402,10 +5435,10 @@ var Markers = function () {
       var w = this.w;
       var pStyle = this.getMarkerStyle(seriesIndex);
 
-      var pSize = w.config.markers.size;
+      var pSize = w.globals.markers.size[seriesIndex];
 
       return {
-        pSize: pSize instanceof Array ? pSize[seriesIndex] : pSize,
+        pSize: pSize,
         pRadius: w.config.markers.radius,
         pWidth: w.config.markers.strokeWidth,
         pointStrokeColor: pStyle.pointStrokeColor,
@@ -5970,7 +6003,7 @@ var YAxis = function () {
         'transform': 'translate(' + w.globals.translateYAxisX[realIndex] + ', 0)'
       });
 
-      if (!w.config.yaxis[realIndex].show || w.globals.collapsedSeriesIndices.indexOf(realIndex) > -1) {
+      if (!w.config.yaxis[realIndex].show) {
         return elYaxis;
       }
 
@@ -7078,7 +7111,7 @@ var Options = function () {
           borderColor: '#e0e0e0',
           strokeDashArray: 0,
           position: 'back',
-          clipMarkers: false,
+          clipMarkers: true,
           xaxis: {
             lines: {
               show: false,
@@ -7166,7 +7199,8 @@ var Options = function () {
           offsetX: 0,
           offsetY: 0,
           hover: {
-            size: 6
+            size: undefined,
+            sizeOffset: 3
           }
         },
         noData: {
@@ -8844,7 +8878,7 @@ var Scatter = function () {
           if (j === 0 && q === 1) realIndexP = 1;
 
           var radius = 0;
-          var finishRadius = w.config.markers.size;
+          var finishRadius = w.globals.markers.size[realIndex];
 
           if (zRatio !== Infinity) {
             // means we have a bubble
@@ -8932,7 +8966,8 @@ var Scatter = function () {
           circle.attr({
             'rel': realIndexP,
             'j': realIndexP,
-            'index': realIndex
+            'index': realIndex,
+            'default-marker-size': finishRadius
           });
 
           var markers = new _Markers2.default(this.ctx);
@@ -10216,7 +10251,7 @@ var Toolbar = function () {
 
       this.w.globals.zoomed = true;
 
-      this.ctx.updateOptionsInternal({
+      this.ctx._updateOptions({
         xaxis: xaxis
       }, false, this.w.config.chart.animations.dynamicAnimation.enabled);
 
@@ -10258,7 +10293,7 @@ var Toolbar = function () {
           ch.revertDefaultAxisMinMax();
           w.globals.zoomed = false;
 
-          ch.updateSeriesInternal(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled);
+          ch._updateSeries(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled);
         }
       });
     }
@@ -10550,7 +10585,7 @@ var Position = function () {
       var w = this.w;
       var ttCtx = this.ttCtx;
 
-      if (w.config.markers.size > 0) {
+      if (w.globals.markers.size[i] > 0) {
         var allPoints = w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series[data\\:realIndex=\'' + i + '\'] .apexcharts-marker');
         for (var p = 0; p < allPoints.length; p++) {
           if (parseInt(allPoints[p].getAttribute('rel')) === j) {
@@ -10578,6 +10613,11 @@ var Position = function () {
       var pointsArr = w.globals.pointsArray;
 
       var hoverSize = w.config.markers.hover.size;
+
+      if (hoverSize === undefined) {
+        hoverSize = w.globals.markers.size[capturedSeries] + w.config.markers.hover.sizeOffset;
+      }
+
       cx = pointsArr[capturedSeries][j][0];
       cy = pointsArr[capturedSeries][j][1] ? pointsArr[capturedSeries][j][1] : 0;
 
@@ -10614,6 +10654,10 @@ var Position = function () {
       activeSeries = series.getActiveSeriesIndex();
 
       var hoverSize = w.config.markers.hover.size;
+      if (hoverSize === undefined) {
+        hoverSize = w.globals.markers.size[activeSeries] + w.config.markers.hover.sizeOffset;
+      }
+
       if (pointsArr[activeSeries]) {
         cx = pointsArr[activeSeries][j][0];
         cy = pointsArr[activeSeries][j][1];
@@ -11118,9 +11162,9 @@ module.exports = __webpack_require__(4).Symbol;
 "use strict";
 
 
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -11167,6 +11211,10 @@ var _Grid2 = _interopRequireDefault(_Grid);
 var _Legend = __webpack_require__(134);
 
 var _Legend2 = _interopRequireDefault(_Legend);
+
+var _Markers = __webpack_require__(48);
+
+var _Markers2 = _interopRequireDefault(_Markers);
 
 var _Responsive = __webpack_require__(136);
 
@@ -11398,6 +11446,10 @@ var ApexCharts = function () {
       this.theme.init();
       // labelFormatters should be called before dimensions as in dimensions we need text labels width
 
+      // as markers accepts array, we need to setup global markers for easier access
+      var markers = new _Markers2.default(this);
+      markers.setGlobalMarkerSize();
+
       this.formatters.setLabelFormatters();
       this.titleSubtitle.draw();
 
@@ -11566,7 +11618,17 @@ var ApexCharts = function () {
       var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
       var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
 
+      var w = this.w;
       if (options.series) {
+        if (options.series[0].data) {
+          options.series = options.series.map(function (s, i) {
+            return _extends({}, w.config.series[i], {
+              name: s.name ? s.name : w.config.series[i].name,
+              data: s.data
+            });
+          });
+        }
+
         // user updated the series via updateOptions() function.
         // Hence, we need to reset axis min/max to avoid zooming issues
         this.revertDefaultAxisMinMax();
@@ -11575,7 +11637,7 @@ var ApexCharts = function () {
       if (options.xaxis && (options.xaxis.min || options.xaxis.max)) {
         this.forceXAxisUpdate(options);
       }
-      return this.updateOptionsInternal(options, redraw, animate, overwriteInitialConfig);
+      return this._updateOptions(options, redraw, animate, overwriteInitialConfig);
     }
 
     /**
@@ -11588,8 +11650,8 @@ var ApexCharts = function () {
      */
 
   }, {
-    key: 'updateOptionsInternal',
-    value: function updateOptionsInternal(options) {
+    key: '_updateOptions',
+    value: function _updateOptions(options) {
       var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
       var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
@@ -11645,7 +11707,7 @@ var ApexCharts = function () {
       var overwriteInitialSeries = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       this.revertDefaultAxisMinMax();
-      return this.updateSeriesInternal(newSeries, animate, overwriteInitialSeries);
+      return this._updateSeries(newSeries, animate, overwriteInitialSeries);
     }
 
     /**
@@ -11655,8 +11717,8 @@ var ApexCharts = function () {
      */
 
   }, {
-    key: 'updateSeriesInternal',
-    value: function updateSeriesInternal(newSeries, animate) {
+    key: '_updateSeries',
+    value: function _updateSeries(newSeries, animate) {
       var overwriteInitialSeries = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
       var w = this.w;
@@ -11669,13 +11731,20 @@ var ApexCharts = function () {
         this.series.getPreviousPaths();
       }
 
+      var existingSeries = void 0;
+
+      // axis charts
       if (newSeries[0].data) {
-        w.config.series = newSeries.map(function (s, i) {
+        existingSeries = newSeries.map(function (s, i) {
           return _extends({}, w.config.series[i], {
+            name: s.name ? s.name : w.config.series[i].name,
             data: s.data
           });
         });
+
+        w.config.series = existingSeries;
       } else {
+        // non-axis chart (pie/radialbar)
         w.config.series = newSeries.slice();
       }
 
@@ -11928,7 +11997,7 @@ var ApexCharts = function () {
         targetChart.w.globals.brushSource = this;
 
         var updateSourceChart = function updateSourceChart() {
-          _this4.updateOptionsInternal({
+          _this4._updateOptions({
             chart: {
               selection: {
                 xaxis: {
@@ -11951,7 +12020,7 @@ var ApexCharts = function () {
         }
 
         w.config.chart.events.selection = function (chart, e) {
-          targetChart.updateOptionsInternal({
+          targetChart._updateOptions({
             xaxis: {
               min: e.xaxis.min,
               max: e.xaxis.max
@@ -14892,7 +14961,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  **/
 
 var Line = function () {
-  function Line(ctx, xyRatios) {
+  function Line(ctx, xyRatios, isPointsChart) {
     _classCallCheck(this, Line);
 
     this.ctx = ctx;
@@ -14900,7 +14969,7 @@ var Line = function () {
 
     this.xyRatios = xyRatios;
 
-    this.pointsChart = !(this.w.config.chart.type !== 'bubble' && this.w.config.chart.type !== 'scatter');
+    this.pointsChart = !(this.w.config.chart.type !== 'bubble' && this.w.config.chart.type !== 'scatter') || isPointsChart;
 
     if (this.pointsChart) {
       this.scatter = new _Scatter2.default(this.ctx);
@@ -15064,6 +15133,8 @@ var Line = function () {
             x = x + xDivision;
           }
 
+          var minY = _Utils2.default.isNumber(w.globals.minYArr[realIndex]) ? w.globals.minYArr[realIndex] : w.globals.minY;
+
           if (w.config.chart.stacked) {
             if (i > 0 && w.globals.collapsedSeries.length < w.config.series.length - 1) {
               lineYPosition = prevSeriesY[i - 1][j + 1];
@@ -15073,13 +15144,13 @@ var Line = function () {
             }
 
             if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-              y = lineYPosition - w.globals.minYArr[realIndex] / yRatio[this.yaxisIndex];
+              y = lineYPosition - minY / yRatio[this.yaxisIndex];
             } else {
               y = lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex];
             }
           } else {
             if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-              y = zeroY - w.globals.minYArr[realIndex] / yRatio[this.yaxisIndex];
+              y = zeroY - minY / yRatio[this.yaxisIndex];
             } else {
               y = zeroY - series[i][j + 1] / yRatio[this.yaxisIndex];
             }
@@ -16693,6 +16764,11 @@ var Core = function () {
         series: [],
         i: []
       };
+      var scatterSeries = {
+        series: [],
+        i: []
+      };
+
       var columnSeries = {
         series: [],
         i: []
@@ -16716,6 +16792,9 @@ var Core = function () {
           } else if (ser[st].type === 'line') {
             lineSeries.series.push(series);
             lineSeries.i.push(st);
+          } else if (ser[st].type === 'scatter') {
+            scatterSeries.series.push(series);
+            scatterSeries.i.push(st);
           } else if (ser[st].type === 'candlestick') {
             candlestickSeries.series.push(series);
             candlestickSeries.i.push(st);
@@ -16749,6 +16828,10 @@ var Core = function () {
         }
         if (candlestickSeries.series.length > 0) {
           elGraph.push(candlestick.draw(candlestickSeries.series, candlestickSeries.i));
+        }
+        if (scatterSeries.series.length > 0) {
+          var scatterLine = new _Line2.default(this.ctx, xyRatios, true);
+          elGraph.push(scatterLine.draw(scatterSeries.series, 'scatter', scatterSeries.i));
         }
       } else {
         switch (cnf.chart.type) {
@@ -17253,6 +17336,10 @@ var Core = function () {
 
         gl.labels = labelArr;
         gl.noLabelsProvided = true;
+
+        if (cnf.xaxis.type === 'category') {
+          gl.isXNumeric = false;
+        }
       }
     }
 
@@ -17919,7 +18006,7 @@ var Legend = function () {
                   w.globals.collapsedSeriesIndices.splice(c, 1);
                   w.globals.risingSeries.push(realIndex);
                 }
-                this.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
+                this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
               }
             }
           }
@@ -17960,7 +18047,7 @@ var Legend = function () {
 
           w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length;
 
-          this.ctx.updateSeriesInternal(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
+          this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
         }
       } else {
         // for non-axis charts i.e pie / donuts
@@ -18197,10 +18284,12 @@ var Range = function () {
       }
 
       if (gl.noLabelsProvided) {
-        gl.maxX = gl.labels[gl.labels.length - 1];
-        gl.initialmaxX = gl.labels[gl.labels.length - 1];
-        gl.minX = 1;
-        gl.initialminX = 1;
+        if (cnf.xaxis.categories.length === 0) {
+          gl.maxX = gl.labels[gl.labels.length - 1];
+          gl.initialmaxX = gl.labels[gl.labels.length - 1];
+          gl.minX = 1;
+          gl.initialminX = 1;
+        }
       }
 
       // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
@@ -18260,7 +18349,7 @@ var Range = function () {
           }
         }
         // we will still store these labels as the count for this will be different (to draw grid and labels placement)
-        if (cnf.xaxis.type === 'datetime' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided) {
+        if (cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'datetime' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided) {
           gl.labels = gl.xAxisScale.result.slice();
         }
       }
@@ -18428,8 +18517,8 @@ var Range = function () {
         // If yMin and yMax are identical, then
         // adjust the yMin and yMax values to actually
         // make a graph. Also avoids division by zero errors.
-        yMin = yMin - 0.1; // some small value
-        yMax = yMax + 0.1; // some small value
+        yMin = yMin === 0 ? 0 : yMin - 0.1; // some small value
+        yMax = yMax === 0 ? 2 : yMax + 0.1; // some small value
       }
 
       // Calculate Min amd Max graphical labels and graph
@@ -19547,15 +19636,15 @@ var ZoomPanSelection = function (_Toolbar) {
           }
 
           if (zoomtype === 'x') {
-            me.ctx.updateOptionsInternal({
+            me.ctx._updateOptions({
               xaxis: xaxis
             }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
           } else if (zoomtype === 'y') {
-            me.ctx.updateOptionsInternal({
+            me.ctx._updateOptions({
               yaxis: yaxis
             }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
           } else {
-            me.ctx.updateOptionsInternal({
+            me.ctx._updateOptions({
               xaxis: xaxis,
               yaxis: yaxis
             }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
@@ -19649,7 +19738,7 @@ var ZoomPanSelection = function (_Toolbar) {
         xHighestValue = w.globals.maxX;
       }
 
-      this.ctx.updateOptionsInternal({
+      this.ctx._updateOptions({
         xaxis: {
           min: xLowestValue,
           max: xHighestValue
@@ -19688,6 +19777,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
+
+var _CoreUtils = __webpack_require__(17);
+
+var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
 var _Graphics = __webpack_require__(0);
 
@@ -19796,8 +19889,15 @@ var Grid = function () {
       gl.dom.elGridRectMask.setAttribute('id', 'gridRectMask' + gl.cuid);
 
       var markerSize = 0;
+      var coreUtils = new _CoreUtils2.default(this);
+      var largestMarkerSize = coreUtils.getLargestMarkerSize();
+      var largestMarkerSizeIndex = w.globals.markers.size.indexOf(largestMarkerSize);
+
       if (!w.config.grid.clipMarkers) {
-        markerSize = w.config.markers.size > w.config.markers.hover.size ? w.config.markers.size : w.config.markers.hover.size;
+        var normalMarkerSize = w.globals.markers.size[largestMarkerSizeIndex];
+        var hoverMarkerSize = normalMarkerSize + w.config.markers.hover.sizeOffset;
+
+        markerSize = normalMarkerSize > hoverMarkerSize ? normalMarkerSize : hoverMarkerSize;
       }
 
       gl.dom.elGridRect = graphics.drawRect(0, 0 - markerSize * 1.2, gl.gridWidth, gl.gridHeight + markerSize * 2.4, 0, '#fff');
@@ -20250,6 +20350,12 @@ var Defaults = function () {
             stops: [0, 100, 100]
           }
         },
+        markers: {
+          size: 0,
+          hover: {
+            sizeOffset: 6
+          }
+        },
         tooltip: {
           followCursor: false
         }
@@ -20356,7 +20462,7 @@ var Defaults = function () {
           size: 6,
           strokeWidth: 2,
           hover: {
-            size: 8
+            sizeOffset: 2
           }
         }
       };
@@ -20586,7 +20692,9 @@ var Globals = function () {
           }
         },
         markers: {
-          colors: []
+          colors: [],
+          size: Array.isArray(config.markers.size) ? config.markers.size : [config.markers.size],
+          largestSize: 0
         },
         isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
         initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
@@ -21633,6 +21741,10 @@ var _Markers = __webpack_require__(48);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -21681,6 +21793,8 @@ var Marker = function () {
 
           point = graphics.drawMarker(0, 0, elPointOptions);
 
+          point.node.setAttribute('default-marker-size', 0);
+
           var elPointsG = document.createElementNS(w.globals.svgNS, 'g');
           elPointsG.classList.add('apexcharts-series-markers');
 
@@ -21722,6 +21836,11 @@ var Marker = function () {
 
       for (var p = 0; p < points.length; p++) {
         var rel = points[p].getAttribute('rel');
+        var index = points[p].getAttribute('index');
+
+        if (newSize === undefined) {
+          newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset;
+        }
 
         if (col === parseInt(rel)) {
           me.newPointSize(col, points[p]);
@@ -21744,6 +21863,7 @@ var Marker = function () {
     value: function newPointSize(rel, point) {
       var w = this.w;
       var newSize = w.config.markers.hover.size;
+
       var elPoint = null;
 
       if (rel === 0) {
@@ -21752,29 +21872,33 @@ var Marker = function () {
         elPoint = point.parentNode.lastChild;
       }
 
+      var index = parseInt(elPoint.getAttribute('index'));
+      if (newSize === undefined) {
+        newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset;
+      }
+
       elPoint.setAttribute('r', newSize);
-      // elPoint.style.opacity = w.config.markers.hover.opacity
     }
   }, {
     key: 'oldPointSize',
     value: function oldPointSize(point) {
-      var w = this.w;
-      var currSize = w.config.markers.size;
-
-      point.setAttribute('r', currSize);
-      // point.style.opacity = w.config.markers.opacity
+      var size = parseInt(point.getAttribute('default-marker-size'));
+      point.setAttribute('r', size);
     }
   }, {
     key: 'resetPointsSize',
     value: function resetPointsSize() {
       var w = this.w;
 
-      var currSize = w.config.markers.size;
+      var points = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker');
 
-      var points = w.globals.dom.baseEl.querySelectorAll('.apexcharts-marker');
       for (var p = 0; p < points.length; p++) {
-        points[p].setAttribute('r', currSize);
-        // points[p].style.opacity = w.config.markers.opacity;
+        var size = parseInt(points[p].getAttribute('default-marker-size'));
+        if (_Utils2.default.isNumber(size)) {
+          points[p].setAttribute('r', size);
+        } else {
+          points[p].setAttribute('r', 0);
+        }
       }
     }
   }]);
@@ -21911,7 +22035,7 @@ var Tooltip = function () {
         this.showOnIntersect = true;
       }
 
-      if (w.config.markers.size === 0) {
+      if (w.config.markers.size === 0 || w.globals.markers.largestSize === 0) {
         // when user don't want to show points all the time, but only on when hovering on series
         this.marker.drawDynamicPoints(this);
       }
@@ -22513,7 +22637,7 @@ var Tooltip = function () {
         });
 
         if (hasMarkers) {
-          if (w.config.markers.size > 0) {
+          if (w.globals.markers.largestSize > 0) {
             self.marker.enlargePoints(j);
           } else {
             self.tooltipPosition.moveDynamicPointsOnHover(j);
