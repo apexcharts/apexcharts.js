@@ -384,6 +384,7 @@ class Graphics {
     if (!foreColor) {
       foreColor = w.config.chart.foreColor
     }
+    fontFamily = fontFamily || w.config.chart.fontFamily
 
     let elText
     if (Array.isArray(text)) {
@@ -411,6 +412,15 @@ class Graphics {
     elText.node.style.opacity = opacity
 
     return elText
+  }
+
+  addTspan (textEl, text, fontFamily) {
+    const tspan = textEl.tspan(text)
+
+    if (!fontFamily) {
+      fontFamily = this.w.config.chart.fontFamily
+    }
+    tspan.node.style.fontFamily = fontFamily
   }
 
   drawMarker (x, y, opts) {

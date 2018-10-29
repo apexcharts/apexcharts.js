@@ -156,8 +156,7 @@ class XAxis {
 
         elXaxisTexts.add(elTick)
 
-        const tspan = elTick.tspan(label)
-        tspan.node.style.fontFamily = this.xaxisFontFamily
+        graphics.addTspan(elTick, label, this.xaxisFontFamily)
 
         let elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title')
         elTooltipTitle.textContent = label

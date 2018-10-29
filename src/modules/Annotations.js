@@ -329,7 +329,7 @@ class Annotations {
       text,
       textAnchor: textAnchor || 'start',
       fontSize: fontSize || '12px',
-      fontFamily: fontFamily || 'Arial',
+      fontFamily: fontFamily || w.config.chart.fontFamily,
       foreColor: foreColor || w.config.chart.foreColor,
       cssClass: 'apexcharts-text ' + cssClass ? cssClass : ''
     })

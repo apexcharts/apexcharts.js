@@ -302,6 +302,11 @@ class Toolbar {
 
       if (w.globals.minX !== w.globals.initialminX && w.globals.maxX !== w.globals.initialmaxX) {
         ch.revertDefaultAxisMinMax()
+
+        if (typeof w.config.chart.events.zoomed === 'function') {
+          this.zoomCallback({ min: w.config.xaxis.min, max: w.config.xaxis.max })
+        }
+
         w.globals.zoomed = false
 
         ch._updateSeries(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled)

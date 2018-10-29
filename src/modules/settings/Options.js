@@ -26,7 +26,7 @@ export default class Options {
         style: {
           colors: [],
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-yaxis-label'
         },
         formatter: undefined
@@ -52,7 +52,7 @@ export default class Options {
         style: {
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-yaxis-title'
         }
       },
@@ -90,7 +90,7 @@ export default class Options {
           background: '#fff',
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-xaxis-annotation-label',
           padding: {
             left: 5,
@@ -121,7 +121,7 @@ export default class Options {
           background: '#fff',
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-yaxis-annotation-label',
           padding: {
             left: 5,
@@ -157,7 +157,7 @@ export default class Options {
           background: '#fff',
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-point-annotation-label',
           padding: {
             left: 5,
@@ -218,6 +218,7 @@ export default class Options {
           scrolled: undefined
         },
         foreColor: '#373d3f',
+        fontFamily: this.defaultFont,
         height: 'auto',
         id: undefined,
         offsetX: 0,
@@ -366,14 +367,14 @@ export default class Options {
             name: {
               show: true,
               fontSize: '16px',
-              fontFamily: this.defaultFont,
+              fontFamily: undefined,
               color: undefined,
               offsetY: -10
             },
             value: {
               show: true,
               fontSize: '14px',
-              fontFamily: this.defaultFont,
+              fontFamily: undefined,
               color: undefined,
               offsetY: 16,
               formatter: function (val) {
@@ -426,7 +427,7 @@ export default class Options {
         offsetY: 0,
         style: {
           fontSize: '12px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           colors: undefined
         },
         dropShadow: {
@@ -508,7 +509,7 @@ export default class Options {
         // left, right or center
         verticalAlign: 'middle',
         fontSize: '12px',
-        fontFamily: this.defaultFont,
+        fontFamily: undefined,
         textAnchor: 'start',
         offsetY: 0,
         offsetX: 0,
@@ -569,7 +570,7 @@ export default class Options {
         style: {
           color: undefined,
           fontSize: '14px',
-          fontFamily: this.defaultFont
+          fontFamily: undefined
         }
       },
       responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
@@ -604,7 +605,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '14px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           color: undefined
         }
       },
@@ -617,7 +618,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '12px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           color: undefined
         }
       },
@@ -686,7 +687,7 @@ export default class Options {
           style: {
             colors: [],
             fontSize: '12px',
-            fontFamily: this.defaultFont,
+            fontFamily: undefined,
             cssClass: 'apexcharts-xaxis-label'
           },
           offsetX: 0,
@@ -729,7 +730,7 @@ export default class Options {
           style: {
             color: undefined,
             fontSize: '12px',
-            fontFamily: this.defaultFont,
+            fontFamily: undefined,
             cssClass: 'apexcharts-xaxis-title'
           }
         },

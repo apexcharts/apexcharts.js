@@ -17,8 +17,8 @@ class Markers {
   setGlobalMarkerSize () {
     const w = this.w
     if (w.globals.markers.size.length > 0) {
-      if (w.globals.markers.size.length < w.globals.series.length) {
-        for (let i = 0; i < w.globals.series.length - w.globals.markers.size.length + 1; i++) {
+      if (w.globals.markers.size.length < w.globals.series.length + 1) {
+        for (let i = 0; i <= w.globals.series.length - w.globals.markers.size.length + 1; i++) {
           w.globals.markers.size.push(w.globals.markers.size[0])
         }
       }
