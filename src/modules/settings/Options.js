@@ -469,7 +469,6 @@ export default class Options {
         borderColor: '#e0e0e0',
         strokeDashArray: 0,
         position: 'back',
-        clipMarkers: true,
         xaxis: {
           lines: {
             show: false,
@@ -591,7 +590,7 @@ export default class Options {
         active: {
           allowMultipleDataPointsSelection: false,
           filter: {
-            type: 'darken',
+            type: 'none',
             value: 0.35
           }
         }

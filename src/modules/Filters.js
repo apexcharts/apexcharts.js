@@ -1,7 +1,7 @@
 import Utils from './../utils/Utils'
 
 /**
- * ApexCharts Filters Class for setting value formatters for axes as well as tooltips.
+ * ApexCharts Filters Class for setting hover/active states on the paths.
  *
  * @module Formatters
  **/

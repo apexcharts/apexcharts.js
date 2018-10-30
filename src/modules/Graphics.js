@@ -216,6 +216,9 @@ class Graphics {
 
     el.attr('id', `${id}-${i}`)
     el.attr('index', realIndex)
+    el.attr({
+      'clip-path': `url(#gridRectMask${w.globals.cuid})`
+    })
 
     // const defaultFilter = el.filterer
 
@@ -497,8 +500,10 @@ class Graphics {
     }
 
     if (w.config.states.hover.filter.type !== 'none') {
+      // if (w.config.states.active.filter.type !== 'none' && !w.globals.isTouchDevice) {
       let hoverFilter = w.config.states.hover.filter
       filters.applyFilter(path, hoverFilter.type, hoverFilter.value)
+      // }
     }
   }
 

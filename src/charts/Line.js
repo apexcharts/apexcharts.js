@@ -40,8 +40,7 @@ class Line {
     let type = w.globals.comboCharts ? ptype : w.config.chart.type
 
     let ret = graphics.group({
-      class: `apexcharts-${type}-series apexcharts-plot-series`,
-      'clip-path': `url(#gridRectMask${w.globals.cuid})`
+      class: `apexcharts-${type}-series apexcharts-plot-series`
     })
 
     const coreUtils = new CoreUtils(this.ctx, w)
