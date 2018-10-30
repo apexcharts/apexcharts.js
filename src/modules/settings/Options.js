@@ -637,10 +637,10 @@ export default class Options {
         inverseOrder: false,
         custom: undefined,
         fillSeriesColor: false,
+        theme: 'light',
         onDatasetHover: {
           highlightDataSeries: false
         },
-        theme: 'light',
         x: { // x value
           show: true,
           format: 'dd MMM', // dd/MM, dd MMM yy, dd MMM yyyy

@@ -444,6 +444,13 @@ class Legend {
       let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
       let isHidden = e.target.getAttribute('data:collapsed') === 'true'
 
+      const legendClick = this.w.config.chart.events.legendClick
+      if (typeof legendClick === 'function') {
+        legendClick(this.ctx, seriesCnt, this.w)
+      }
+
+      this.ctx.fireEvent('legendClick', [this.ctx, seriesCnt, this.w])
+
       this.toggleDataSeries(seriesCnt, isHidden)
     }
   }

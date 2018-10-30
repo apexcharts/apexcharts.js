@@ -371,9 +371,11 @@ class Line {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
+    const curve = Array.isArray(w.config.stroke.curve) ? w.config.stroke.curve[i] : w.config.stroke.curve
+
     // logic of smooth curve derived from chartist
     // CREDITS: https://gionkunz.github.io/chartist-js/
-    if (w.config.stroke.curve === 'smooth') {
+    if (curve === 'smooth') {
       let length = (x - pX) * 0.35
       if (w.globals.hasNullValues) {
         if (series[i][j] !== null) {
