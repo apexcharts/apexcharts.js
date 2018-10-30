@@ -235,9 +235,7 @@ class Graphics {
 
     el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el))
     el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el))
-
     el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el))
-    el.node.addEventListener('touchstart', this.pathMouseDown.bind(this, el), {passive: true})
 
     el.attr({
       pathTo,
@@ -500,10 +498,10 @@ class Graphics {
     }
 
     if (w.config.states.hover.filter.type !== 'none') {
-      // if (w.config.states.active.filter.type !== 'none' && !w.globals.isTouchDevice) {
-      let hoverFilter = w.config.states.hover.filter
-      filters.applyFilter(path, hoverFilter.type, hoverFilter.value)
-      // }
+      if (w.config.states.active.filter.type !== 'none' && !w.globals.isTouchDevice) {
+        let hoverFilter = w.config.states.hover.filter
+        filters.applyFilter(path, hoverFilter.type, hoverFilter.value)
+      }
     }
   }
 

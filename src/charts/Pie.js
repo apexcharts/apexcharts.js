@@ -328,10 +328,6 @@ class Pie {
       'mousedown',
       graphics.pathMouseDown.bind(this, elPath)
     )
-    elPath.node.addEventListener(
-      'touchstart',
-      graphics.pathMouseDown.bind(this, elPath), {passive: true}
-    )
   }
 
   // This function can be used for other circle charts too

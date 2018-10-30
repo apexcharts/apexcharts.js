@@ -591,7 +591,7 @@ export default class Options {
         active: {
           allowMultipleDataPointsSelection: false,
           filter: {
-            type: 'none',
+            type: 'darken',
             value: 0.35
           }
         }
