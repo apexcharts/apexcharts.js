@@ -331,6 +331,14 @@ class ApexCharts {
     })
   }
 
+  clearPreviousPaths () {
+    const w = this.w
+    w.globals.previousPaths = []
+    w.globals.allSeriesCollapsed = false
+    w.globals.collapsedSeries = []
+    w.globals.collapsedSeriesIndices = []
+  }
+
   /**
    * Allows users to update Options after the chart has rendered.
    *
@@ -358,6 +366,9 @@ class ApexCharts {
     // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
     if (options.xaxis && (options.xaxis.min || options.xaxis.max)) {
       this.forceXAxisUpdate(options)
+    }
+    if (w.globals.allSeriesCollapsed) {
+      this.clearPreviousPaths()
     }
     return this._updateOptions(options, redraw, animate, overwriteInitialConfig)
   }
@@ -429,6 +440,11 @@ class ApexCharts {
     this.w.globals.shouldAnimate = animate
 
     w.globals.dataChanged = true
+
+    // if user has collapsed some series with legend, we need to clear those
+    if (w.globals.allSeriesCollapsed) {
+      w.globals.allSeriesCollapsed = false
+    }
 
     if (animate) {
       this.series.getPreviousPaths()

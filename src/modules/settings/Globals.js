@@ -48,6 +48,7 @@ export default class Globals {
       timelineLabels: [], // store the timeline Labels in another variable
       seriesNames: [], // same as labels, used in non axis charts
       noLabelsProvided: false, // if user didn't provide any categories/labels or x values, fallback to 1,2,3,4...
+      allSeriesCollapsed: false,
       collapsedSeries: [], // when user collapses a series, it goes into this array
       collapsedSeriesIndices: [], // this just stores the index of the collapsedSeries instead of whole object
       risingSeries: [], // when user re-opens a collapsed series, it goes here
