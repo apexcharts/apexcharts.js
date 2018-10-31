@@ -150,7 +150,8 @@ class DataLabels {
       dataLabelText.attr({
         class: 'apexcharts-datalabel',
         cx: x,
-        cy: y
+        cy: y,
+        'clip-path': `url(#gridRectMask${w.globals.cuid})`
       })
 
       if (dataLabelsConfig.dropShadow.enabled) {
