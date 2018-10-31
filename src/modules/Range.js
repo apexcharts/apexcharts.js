@@ -100,7 +100,8 @@ class Range {
         for (let i = 0; i < gl.series.length; i++) {
           if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
             if (gl.series[i][j] > 0) {
-              poss = poss + parseInt(gl.series[i][j]) + 1
+              // 0.0001 fixes #185 when values are very small
+              poss = poss + parseInt(gl.series[i][j]) + 0.0001
             } else {
               negs = negs + parseInt(gl.series[i][j])
             }

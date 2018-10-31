@@ -358,6 +358,9 @@ var Graphics = function () {
 
       el.attr('id', id + '-' + i);
       el.attr('index', realIndex);
+      el.attr({
+        'clip-path': 'url(#gridRectMask' + w.globals.cuid + ')'
+      });
 
       // const defaultFilter = el.filterer
 
@@ -374,9 +377,7 @@ var Graphics = function () {
 
       el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el));
       el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el));
-
       el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el));
-      el.node.addEventListener('touchstart', this.pathMouseDown.bind(this, el), { passive: true });
 
       el.attr({
         pathTo: pathTo,
@@ -525,6 +526,7 @@ var Graphics = function () {
       if (!foreColor) {
         foreColor = w.config.chart.foreColor;
       }
+      fontFamily = fontFamily || w.config.chart.fontFamily;
 
       var elText = void 0;
       if (Array.isArray(text)) {
@@ -552,6 +554,16 @@ var Graphics = function () {
       elText.node.style.opacity = opacity;
 
       return elText;
+    }
+  }, {
+    key: 'addTspan',
+    value: function addTspan(textEl, text, fontFamily) {
+      var tspan = textEl.tspan(text);
+
+      if (!fontFamily) {
+        fontFamily = this.w.config.chart.fontFamily;
+      }
+      tspan.node.style.fontFamily = fontFamily;
     }
   }, {
     key: 'drawMarker',
@@ -630,8 +642,10 @@ var Graphics = function () {
       }
 
       if (w.config.states.hover.filter.type !== 'none') {
-        var hoverFilter = w.config.states.hover.filter;
-        filters.applyFilter(path, hoverFilter.type, hoverFilter.value);
+        if (w.config.states.active.filter.type !== 'none' && !w.globals.isTouchDevice) {
+          var hoverFilter = w.config.states.hover.filter;
+          filters.applyFilter(path, hoverFilter.type, hoverFilter.value);
+        }
       }
     }
   }, {
@@ -1340,7 +1354,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /**
- * ApexCharts Filters Class for setting value formatters for axes as well as tooltips.
+ * ApexCharts Filters Class for setting hover/active states on the paths.
  *
  * @module Formatters
  **/
@@ -5339,8 +5353,8 @@ var Markers = function () {
     value: function setGlobalMarkerSize() {
       var w = this.w;
       if (w.globals.markers.size.length > 0) {
-        if (w.globals.markers.size.length < w.globals.series.length) {
-          for (var i = 0; i < w.globals.series.length - w.globals.markers.size.length + 1; i++) {
+        if (w.globals.markers.size.length < w.globals.series.length + 1) {
+          for (var i = 0; i <= w.globals.series.length - w.globals.markers.size.length + 1; i++) {
             w.globals.markers.size.push(w.globals.markers.size[0]);
           }
         }
@@ -5676,8 +5690,7 @@ var XAxis = function () {
 
           elXaxisTexts.add(elTick);
 
-          var tspan = elTick.tspan(label);
-          tspan.node.style.fontFamily = this.xaxisFontFamily;
+          graphics.addTspan(elTick, label, this.xaxisFontFamily);
 
           var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
           elTooltipTitle.textContent = label;
@@ -6667,7 +6680,7 @@ var Options = function () {
         style: {
           colors: [],
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-yaxis-label'
         },
         formatter: undefined
@@ -6693,7 +6706,7 @@ var Options = function () {
         style: {
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-yaxis-title'
         }
       },
@@ -6731,7 +6744,7 @@ var Options = function () {
           background: '#fff',
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-xaxis-annotation-label',
           padding: {
             left: 5,
@@ -6762,7 +6775,7 @@ var Options = function () {
           background: '#fff',
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-yaxis-annotation-label',
           padding: {
             left: 5,
@@ -6798,7 +6811,7 @@ var Options = function () {
           background: '#fff',
           color: undefined,
           fontSize: '11px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           cssClass: 'apexcharts-point-annotation-label',
           padding: {
             left: 5,
@@ -6851,7 +6864,8 @@ var Options = function () {
             beforeMount: undefined,
             mounted: undefined,
             updated: undefined,
-            clicked: undefined,
+            click: undefined,
+            legendClick: undefined,
             selection: undefined,
             dataPointSelection: undefined,
             dataPointMouseEnter: undefined,
@@ -6861,6 +6875,7 @@ var Options = function () {
             scrolled: undefined
           },
           foreColor: '#373d3f',
+          fontFamily: this.defaultFont,
           height: 'auto',
           id: undefined,
           offsetX: 0,
@@ -7009,14 +7024,14 @@ var Options = function () {
               name: {
                 show: true,
                 fontSize: '16px',
-                fontFamily: this.defaultFont,
+                fontFamily: undefined,
                 color: undefined,
                 offsetY: -10
               },
               value: {
                 show: true,
                 fontSize: '14px',
-                fontFamily: this.defaultFont,
+                fontFamily: undefined,
                 color: undefined,
                 offsetY: 16,
                 formatter: function formatter(val) {
@@ -7069,7 +7084,7 @@ var Options = function () {
           offsetY: 0,
           style: {
             fontSize: '12px',
-            fontFamily: this.defaultFont,
+            fontFamily: undefined,
             colors: undefined
           },
           dropShadow: {
@@ -7111,7 +7126,6 @@ var Options = function () {
           borderColor: '#e0e0e0',
           strokeDashArray: 0,
           position: 'back',
-          clipMarkers: true,
           xaxis: {
             lines: {
               show: false,
@@ -7151,7 +7165,7 @@ var Options = function () {
           // left, right or center
           verticalAlign: 'middle',
           fontSize: '12px',
-          fontFamily: this.defaultFont,
+          fontFamily: undefined,
           textAnchor: 'start',
           offsetY: 0,
           offsetX: 0,
@@ -7212,7 +7226,7 @@ var Options = function () {
           style: {
             color: undefined,
             fontSize: '14px',
-            fontFamily: this.defaultFont
+            fontFamily: undefined
           }
         },
         responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
@@ -7247,7 +7261,7 @@ var Options = function () {
           floating: false,
           style: {
             fontSize: '14px',
-            fontFamily: this.defaultFont,
+            fontFamily: undefined,
             color: undefined
           }
         },
@@ -7260,7 +7274,7 @@ var Options = function () {
           floating: false,
           style: {
             fontSize: '12px',
-            fontFamily: this.defaultFont,
+            fontFamily: undefined,
             color: undefined
           }
         },
@@ -7280,10 +7294,10 @@ var Options = function () {
           inverseOrder: false,
           custom: undefined,
           fillSeriesColor: false,
+          theme: 'light',
           onDatasetHover: {
             highlightDataSeries: false
           },
-          theme: 'light',
           x: { // x value
             show: true,
             format: 'dd MMM', // dd/MM, dd MMM yy, dd MMM yyyy
@@ -7329,7 +7343,7 @@ var Options = function () {
             style: {
               colors: [],
               fontSize: '12px',
-              fontFamily: this.defaultFont,
+              fontFamily: undefined,
               cssClass: 'apexcharts-xaxis-label'
             },
             offsetX: 0,
@@ -7372,7 +7386,7 @@ var Options = function () {
             style: {
               color: undefined,
               fontSize: '12px',
-              fontFamily: this.defaultFont,
+              fontFamily: undefined,
               cssClass: 'apexcharts-xaxis-title'
             }
           },
@@ -8575,7 +8589,6 @@ var Pie = function () {
       elPath.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, elPath));
 
       elPath.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, elPath));
-      elPath.node.addEventListener('touchStart', graphics.pathMouseDown.bind(this, elPath), { passive: true });
     }
 
     // This function can be used for other circle charts too
@@ -10284,6 +10297,8 @@ var Toolbar = function () {
   }, {
     key: 'handleZoomReset',
     value: function handleZoomReset(e) {
+      var _this = this;
+
       var charts = this.ctx.getSyncedCharts();
 
       charts.forEach(function (ch) {
@@ -10291,6 +10306,11 @@ var Toolbar = function () {
 
         if (w.globals.minX !== w.globals.initialminX && w.globals.maxX !== w.globals.initialmaxX) {
           ch.revertDefaultAxisMinMax();
+
+          if (typeof w.config.chart.events.zoomed === 'function') {
+            _this.zoomCallback({ min: w.config.xaxis.min, max: w.config.xaxis.max });
+          }
+
           w.globals.zoomed = false;
 
           ch._updateSeries(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled);
@@ -11602,6 +11622,15 @@ var ApexCharts = function () {
         resolve(me);
       });
     }
+  }, {
+    key: 'clearPreviousPaths',
+    value: function clearPreviousPaths() {
+      var w = this.w;
+      w.globals.previousPaths = [];
+      w.globals.allSeriesCollapsed = false;
+      w.globals.collapsedSeries = [];
+      w.globals.collapsedSeriesIndices = [];
+    }
 
     /**
      * Allows users to update Options after the chart has rendered.
@@ -11636,6 +11665,9 @@ var ApexCharts = function () {
       // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
       if (options.xaxis && (options.xaxis.min || options.xaxis.max)) {
         this.forceXAxisUpdate(options);
+      }
+      if (w.globals.allSeriesCollapsed) {
+        this.clearPreviousPaths();
       }
       return this._updateOptions(options, redraw, animate, overwriteInitialConfig);
     }
@@ -11726,6 +11758,11 @@ var ApexCharts = function () {
       this.w.globals.shouldAnimate = animate;
 
       w.globals.dataChanged = true;
+
+      // if user has collapsed some series with legend, we need to clear those
+      if (w.globals.allSeriesCollapsed) {
+        w.globals.allSeriesCollapsed = false;
+      }
 
       if (animate) {
         this.series.getPreviousPaths();
@@ -14991,8 +15028,7 @@ var Line = function () {
       var type = w.globals.comboCharts ? ptype : w.config.chart.type;
 
       var ret = graphics.group({
-        class: 'apexcharts-' + type + '-series apexcharts-plot-series',
-        'clip-path': 'url(#gridRectMask' + w.globals.cuid + ')'
+        class: 'apexcharts-' + type + '-series apexcharts-plot-series'
       });
 
       var coreUtils = new _CoreUtils2.default(this.ctx, w);
@@ -15327,9 +15363,11 @@ var Line = function () {
       var w = this.w;
       var graphics = new _Graphics2.default(this.ctx);
 
+      var curve = Array.isArray(w.config.stroke.curve) ? w.config.stroke.curve[i] : w.config.stroke.curve;
+
       // logic of smooth curve derived from chartist
       // CREDITS: https://gionkunz.github.io/chartist-js/
-      if (w.config.stroke.curve === 'smooth') {
+      if (curve === 'smooth') {
         var length = (x - pX) * 0.35;
         if (w.globals.hasNullValues) {
           if (series[i][j] !== null) {
@@ -16442,7 +16480,7 @@ var Annotations = function () {
         text: text,
         textAnchor: textAnchor || 'start',
         fontSize: fontSize || '12px',
-        fontFamily: fontFamily || 'Arial',
+        fontFamily: fontFamily || w.config.chart.fontFamily,
         foreColor: foreColor || w.config.chart.foreColor,
         cssClass:  true ? cssClass : ''
       });
@@ -17966,6 +18004,13 @@ var Legend = function () {
         var seriesCnt = parseInt(e.target.getAttribute('rel')) - 1;
         var isHidden = e.target.getAttribute('data:collapsed') === 'true';
 
+        var legendClick = this.w.config.chart.events.legendClick;
+        if (typeof legendClick === 'function') {
+          legendClick(this.ctx, seriesCnt, this.w);
+        }
+
+        this.ctx.fireEvent('legendClick', [this.ctx, seriesCnt, this.w]);
+
         this.toggleDataSeries(seriesCnt, isHidden);
       }
     }
@@ -18195,7 +18240,8 @@ var Range = function () {
           for (var _i = 0; _i < gl.series.length; _i++) {
             if (gl.series[_i][j] !== null && _Utils2.default.isNumber(gl.series[_i][j])) {
               if (gl.series[_i][j] > 0) {
-                poss = poss + parseInt(gl.series[_i][j]) + 1;
+                // 0.0001 fixes #185 when values are very small
+                poss = poss + parseInt(gl.series[_i][j]) + 0.0001;
               } else {
                 negs = negs + parseInt(gl.series[_i][j]);
               }
@@ -18225,8 +18271,17 @@ var Range = function () {
             // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
             diff = 0;
           }
+
           gl.minY = lowestYInAllSeries - diff * 5 / 100;
-          gl.maxY = gl.maxY + diff * 5 / 100;
+
+          // no negatives present and values are small.
+          if (lowestYInAllSeries > 0 && gl.maxY < 50 || lowestYInAllSeries > 0 && gl.minY < 0) {
+            gl.minY = 0;
+          }
+
+          if (gl.maxY > 10) {
+            gl.maxY = gl.maxY + diff * 5 / 100 + 0.6;
+          }
         }
       }
 
@@ -19871,6 +19926,9 @@ var Grid = function () {
           gl.dom.elGraphical.add(elgridArea);
         }
 
+        var coreUtils = new _CoreUtils2.default(this);
+        coreUtils.getLargestMarkerSize();
+
         if (elgrid !== null) {
           xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth);
         }
@@ -19889,19 +19947,7 @@ var Grid = function () {
       gl.dom.elGridRectMask = document.createElementNS(gl.svgNS, 'clipPath');
       gl.dom.elGridRectMask.setAttribute('id', 'gridRectMask' + gl.cuid);
 
-      var markerSize = 0;
-      var coreUtils = new _CoreUtils2.default(this);
-      var largestMarkerSize = coreUtils.getLargestMarkerSize();
-      var largestMarkerSizeIndex = w.globals.markers.size.indexOf(largestMarkerSize);
-
-      if (!w.config.grid.clipMarkers) {
-        var normalMarkerSize = w.globals.markers.size[largestMarkerSizeIndex];
-        var hoverMarkerSize = normalMarkerSize + w.config.markers.hover.sizeOffset;
-
-        markerSize = normalMarkerSize > hoverMarkerSize ? normalMarkerSize : hoverMarkerSize;
-      }
-
-      gl.dom.elGridRect = graphics.drawRect(0, 0 - markerSize * 1.2, gl.gridWidth, gl.gridHeight + markerSize * 2.4, 0, '#fff');
+      gl.dom.elGridRect = graphics.drawRect(0, 0, gl.gridWidth, gl.gridHeight, 0, '#fff');
       gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node);
 
       var defs = gl.dom.baseEl.querySelector('defs');
@@ -20697,6 +20743,7 @@ var Globals = function () {
           size: Array.isArray(config.markers.size) ? config.markers.size : [config.markers.size],
           largestSize: 0
         },
+        isTouchDevice: 'ontouchstart' in window || navigator.msMaxTouchPoints,
         isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
         initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
         lastXAxis: [],
@@ -20712,6 +20759,7 @@ var Globals = function () {
         timelineLabels: [], // store the timeline Labels in another variable
         seriesNames: [], // same as labels, used in non axis charts
         noLabelsProvided: false, // if user didn't provide any categories/labels or x values, fallback to 1,2,3,4...
+        allSeriesCollapsed: false,
         collapsedSeries: [], // when user collapses a series, it goes into this array
         collapsedSeriesIndices: [], // this just stores the index of the collapsedSeries instead of whole object
         risingSeries: [], // when user re-opens a collapsed series, it goes here
@@ -21233,7 +21281,11 @@ var Intersect = function () {
       }
 
       if (!w.config.tooltip.shared) {
-        ttCtx.tooltipPosition.moveXCrosshairs(bx + bW / 2 - strokeWidth / 2);
+        if (w.globals.comboCharts) {
+          ttCtx.tooltipPosition.moveXCrosshairs(bx + bW / 2 - strokeWidth / 2);
+        } else {
+          ttCtx.tooltipPosition.moveXCrosshairs(bx);
+        }
       }
 
       // move tooltip here
