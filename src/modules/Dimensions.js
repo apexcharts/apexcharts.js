@@ -30,11 +30,6 @@ class Dimensions {
     let w = this.w
     let gl = w.globals
 
-    // if user specified a type in series too, turn on comboCharts flag
-    if (w.config.series.length && typeof w.config.series[0].type !== 'undefined') {
-      w.globals.comboCharts = true
-    }
-
     let lgRect = this.getLegendsRect()
 
     if (gl.axisCharts) {

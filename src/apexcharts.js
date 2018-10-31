@@ -185,6 +185,8 @@ class ApexCharts {
 
     this.core.setupElements()
 
+    this.coreUtils.checkComboSeries()
+
     if (ser.length === 0 || (ser.length === 1 && ser[0].data && ser[0].data.length === 0)) {
       this.series.handleNoData()
     }
@@ -367,7 +369,7 @@ class ApexCharts {
     if (options.xaxis && (options.xaxis.min || options.xaxis.max)) {
       this.forceXAxisUpdate(options)
     }
-    if (w.globals.allSeriesCollapsed) {
+    if (w.globals.collapsedSeriesIndices.length > 0) {
       this.clearPreviousPaths()
     }
     return this._updateOptions(options, redraw, animate, overwriteInitialConfig)

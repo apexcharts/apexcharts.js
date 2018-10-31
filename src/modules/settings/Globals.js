@@ -106,6 +106,7 @@ export default class Globals {
       resizeTimer: null, // timeout function to make a small delay before
       // drawing when user resized
       comboCharts: false, // bool: whether it's a combination of line/column
+      comboChartsHasBars: false, // bool: whether it's a combination of line/column
       dataChanged: false, // bool: has data changed dynamically
       previousPaths: [], // array: when data is changed, it will animate from
       // previous paths

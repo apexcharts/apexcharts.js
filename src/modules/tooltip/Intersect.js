@@ -169,8 +169,8 @@ class Intersect {
     }
 
     if (!w.config.tooltip.shared) {
-      if (w.globals.comboCharts) {
-        ttCtx.tooltipPosition.moveXCrosshairs(bx + bW / 2 - strokeWidth / 2)
+      if (w.globals.comboChartsHasBars) {
+        ttCtx.tooltipPosition.moveXCrosshairs(bx + strokeWidth / 2)
       } else {
         ttCtx.tooltipPosition.moveXCrosshairs(bx)
       }

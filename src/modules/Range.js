@@ -212,9 +212,8 @@ class Range {
       }
     }
 
-    // for datetime xaxis, we need to adjust some padding left and right as it cuts the markers and dataLabels when it's drawn over egde.
-    // If user willingly disables this option, then skip
-    if (cnf.grid.padding.left !== 0 && cnf.grid.padding.right !== 0) {
+    // for numeric xaxis, we need to adjust some padding left and right for bar charts
+    if (gl.comboChartsHasBars || (cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category')) {
       if (cnf.xaxis.type !== 'category') {
         const minX = gl.minX - (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3
         gl.minX = minX
