@@ -6,7 +6,9 @@
       "days": ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"],
       "shortDays": ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"],
       "toolbar": {
-        "download": "Baixar SVG",
+        "exportToSVG": "Baixar SVG",
+        "exportToPNG": "Baixar PNG",
+        "menu": "Menu",
         "selection": "Selecionar",
         "selectionZoom": "Selecionar Zoom",
         "zoomIn": "Aumentar",

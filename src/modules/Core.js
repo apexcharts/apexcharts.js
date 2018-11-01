@@ -789,6 +789,54 @@ class Core {
       }
     })
   }
+
+  setupBrushHandler () {
+    const w = this.w
+
+    // only for brush charts
+    if (!w.config.chart.brush.enabled) {
+      return
+    }
+
+    // if user has not defined a custom function for selection - we handle the brush chart
+    // otherwise we leave it to the user to define the functionality for selection
+    if (typeof w.config.chart.events.selection !== 'function') {
+      const targetChart = ApexCharts.getChartByID(w.config.chart.brush.target)
+      targetChart.w.globals.brushSource = this.ctx
+
+      const updateSourceChart = () => {
+        this.ctx._updateOptions({
+          chart: {
+            selection: {
+              xaxis: {
+                min: targetChart.w.globals.minX,
+                max: targetChart.w.globals.maxX
+              }
+            }
+          }
+        }, false, false)
+      }
+      if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
+        targetChart.w.config.chart.events.zoomed = () => {
+          updateSourceChart()
+        }
+      }
+      if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
+        targetChart.w.config.chart.events.scrolled = () => {
+          updateSourceChart()
+        }
+      }
+
+      w.config.chart.events.selection = (chart, e) => {
+        targetChart._updateOptions({
+          xaxis: {
+            min: e.xaxis.min,
+            max: e.xaxis.max
+          }
+        }, false, false)
+      }
+    }
+  }
 }
 
 module.exports = Core

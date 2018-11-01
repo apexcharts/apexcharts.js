@@ -6,7 +6,7 @@ import icoReset from './../assets/ico-home.svg'
 import icoZoomIn from './../assets/ico-plus.svg'
 import icoZoomOut from './../assets/ico-minus.svg'
 import icoSelect from './../assets/ico-select.svg'
-import icoCamera from './../assets/ico-camera.svg'
+import icoMenu from './../assets/ico-menu.svg'
 
 /**
  * ApexCharts Toolbar Class for creating toolbar in axis based charts.
@@ -37,19 +37,13 @@ class Toolbar {
     this.elPan = document.createElement('div')
     this.elSelection = document.createElement('div')
     this.elZoomReset = document.createElement('div')
-    this.elCamera = document.createElement('div')
+    this.elMenuIcon = document.createElement('div')
+    this.elMenu = document.createElement('div')
+    this.elMenuItems = []
 
     let toolbarControls = []
-    if (w.config.chart.toolbar.tools.download) {
-      toolbarControls.push({
-        el: this.elCamera,
-        icon: icoCamera,
-        title: this.localeValues.download,
-        class: 'apexcharts-download-icon'
-      })
-    }
 
-    if (w.config.chart.toolbar.tools.selection) {
+    if (w.config.chart.toolbar.tools.selection && w.config.chart.selection.enabled) {
       toolbarControls.push({
         el: this.elSelection,
         icon: icoSelect,
@@ -102,6 +96,14 @@ class Toolbar {
         class: 'apexcharts-reset-zoom-icon'
       })
     }
+    if (w.config.chart.toolbar.tools.download) {
+      toolbarControls.push({
+        el: this.elMenuIcon,
+        icon: icoMenu,
+        title: this.localeValues.menu,
+        class: 'apexcharts-menu-icon'
+      })
+    }
 
     for (let i = 0; i < toolbarControls.length; i++) {
       Graphics.setAttrs(toolbarControls[i].el, {
@@ -110,6 +112,29 @@ class Toolbar {
       })
       toolbarControls[i].el.innerHTML = toolbarControls[i].icon
       elToolbarWrap.appendChild(toolbarControls[i].el)
+    }
+
+    elToolbarWrap.appendChild(this.elMenu)
+
+    Graphics.setAttrs(this.elMenu, {
+      class: 'apexcharts-menu'
+    })
+
+    const menuItems = [{
+      name: 'exportSVG',
+      title: this.localeValues.exportToSVG
+    }, {
+      name: 'exportPNG',
+      title: this.localeValues.exportToPNG
+    }]
+    for (let i = 0; i < menuItems.length; i++) {
+      this.elMenuItems.push(document.createElement('div'))
+      this.elMenuItems[i].innerHTML = menuItems[i].title
+      Graphics.setAttrs(this.elMenuItems[i], {
+        class: `apexcharts-menu-item ${menuItems[i].name}`,
+        title: menuItems[i].title
+      })
+      this.elMenu.appendChild(this.elMenuItems[i])
     }
 
     if (w.globals.zoomEnabled) {
@@ -130,7 +155,14 @@ class Toolbar {
     this.elZoomIn.addEventListener('click', this.handleZoomIn.bind(this))
     this.elZoomOut.addEventListener('click', this.handleZoomOut.bind(this))
     this.elPan.addEventListener('click', this.togglePanning.bind(this))
-    this.elCamera.addEventListener('click', this.downloadSVG.bind(this))
+    this.elMenuIcon.addEventListener('click', this.toggleMenu.bind(this))
+    this.elMenuItems.forEach((m) => {
+      if (m.classList.contains('exportSVG')) {
+        m.addEventListener('click', this.downloadSVG.bind(this))
+      } else if (m.classList.contains('exportPNG')) {
+        m.addEventListener('click', this.downloadPNG.bind(this))
+      }
+    })
   }
 
   toggleSelection () {
@@ -288,10 +320,24 @@ class Toolbar {
     return newRange
   }
 
+  toggleMenu () {
+    if (this.elMenu.classList.contains('open')) {
+      this.elMenu.classList.remove('open')
+    } else {
+      this.elMenu.classList.add('open')
+    }
+  }
+
+  downloadPNG () {
+    const downloadPNG = new Exports(this.ctx)
+    downloadPNG.exportToPng(this.ctx)
+    this.toggleMenu()
+  }
+
   downloadSVG () {
     const downloadSVG = new Exports(this.ctx)
-
     downloadSVG.exportToSVG()
+    this.toggleMenu()
   }
 
   handleZoomReset (e) {
@@ -322,7 +368,7 @@ class Toolbar {
       this.elZoomIn.removeEventListener('click', this.handleZoomIn.bind(this))
       this.elZoomOut.removeEventListener('click', this.handleZoomOut.bind(this))
       this.elPan.removeEventListener('click', this.togglePanning.bind(this))
-      this.elCamera.removeEventListener('click', this.downloadSVG.bind(this))
+      this.elMenuIcon.removeEventListener('click', this.toggleMenu.bind(this))
     }
 
     this.elZoom = null
@@ -331,7 +377,7 @@ class Toolbar {
     this.elPan = null
     this.elSelection = null
     this.elZoomReset = null
-    this.elCamera = null
+    this.elMenuIcon = null
   }
 }
 

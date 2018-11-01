@@ -122,7 +122,7 @@ class Intersect {
     let bx = 0
     let x = 0
     let y = 0
-    let bW = 0
+    // let bW = 0
     let i = 0
     let strokeWidth
 
@@ -135,7 +135,7 @@ class Intersect {
       y = barXY.y
       i = barXY.i
       strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width
-      bW = barXY.barWidth
+      // bW = barXY.barWidth
       bx = x
     } else {
       if (!w.globals.comboCharts && !w.config.tooltip.shared) {

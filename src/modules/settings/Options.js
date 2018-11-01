@@ -225,7 +225,7 @@ export default class Options {
         offsetX: 0,
         offsetY: 0,
         selection: {
-          enabled: true,
+          enabled: false,
           type: 'x',
           // selectedPoints: undefined, // default datapoints that should be selected automatically
           fill: {

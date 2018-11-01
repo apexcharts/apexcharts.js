@@ -6,7 +6,9 @@
     "days": ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"],
     "shortDays": ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."],
     "toolbar": {
-      "download": "Télécharger au format SVG",
+      "exportToSVG": "Télécharger au format SVG",
+      "exportToPNG": "Télécharger au format PNG",
+      "menu": "Menu",
       "selection": "Sélection",
       "selectionZoom": "Sélection et zoom",
       "zoomIn": "Zoomer",

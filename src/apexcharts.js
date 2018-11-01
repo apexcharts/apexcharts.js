@@ -10,6 +10,7 @@ import Formatters from './modules/Formatters'
 import Grid from './modules/axes/Grid'
 import Legend from './modules/Legend'
 import Markers from './modules/Markers'
+import Range from './modules/Range'
 import Responsive from './modules/Responsive'
 import Series from './modules/Series'
 import Theme from './modules/Theme'
@@ -304,7 +305,7 @@ class ApexCharts {
         }
 
         if (w.globals.axisCharts && w.globals.isXNumeric) {
-          if (w.config.chart.zoom.enabled || w.config.chart.selection.enabled || w.config.chart.pan.enabled) {
+          if (w.config.chart.zoom.enabled || (w.config.chart.selection && w.config.chart.selection.enabled) || (w.config.chart.pan && w.config.chart.pan.enabled)) {
             me.zoomPanSelection.init({
               xyRatios: graphData.xyRatios
             })
@@ -318,6 +319,8 @@ class ApexCharts {
           tools.pan = false
           tools.reset = false
         }
+
+        console.log(w.config.chart.toolbar.show)
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
           me.toolbar.createToolbar()
@@ -739,54 +742,6 @@ class ApexCharts {
     this.legend.toggleDataSeries(seriesCnt, isHidden)
   }
 
-  setupBrushHandler () {
-    const w = this.w
-
-    // only for brush charts
-    if (!w.config.chart.brush.enabled) {
-      return
-    }
-
-    // if user has not defined a custom function for selection - we handle the brush chart
-    // otherwise we leave it to the user to define the functionality for selection
-    if (typeof w.config.chart.events.selection !== 'function') {
-      const targetChart = ApexCharts.getChartByID(w.config.chart.brush.target)
-      targetChart.w.globals.brushSource = this
-
-      const updateSourceChart = () => {
-        this._updateOptions({
-          chart: {
-            selection: {
-              xaxis: {
-                min: targetChart.w.globals.minX,
-                max: targetChart.w.globals.maxX
-              }
-            }
-          }
-        }, false, false)
-      }
-      if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
-        targetChart.w.config.chart.events.zoomed = () => {
-          updateSourceChart()
-        }
-      }
-      if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
-        targetChart.w.config.chart.events.scrolled = () => {
-          updateSourceChart()
-        }
-      }
-
-      w.config.chart.events.selection = (chart, e) => {
-        targetChart._updateOptions({
-          xaxis: {
-            min: e.xaxis.min,
-            max: e.xaxis.max
-          }
-        }, false, false)
-      }
-    }
-  }
-
   setupEventHandlers () {
     const w = this.w
     const me = this
@@ -818,7 +773,7 @@ class ApexCharts {
       )
     }
 
-    this.setupBrushHandler()
+    this.core.setupBrushHandler()
   }
 
   addXaxisAnnotation (opts, pushToMemory = true, context = undefined) {
@@ -864,6 +819,20 @@ class ApexCharts {
 
   getSeriesTotalXRange (minX, maxX) {
     return this.coreUtils.getSeriesTotalsXRange(minX, maxX)
+  }
+
+  getHighestValueInSeries (seriesIndex = 0) {
+    const range = new Range(this.ctx)
+    const minYmaxY = range.getMinYMaxY(seriesIndex)
+
+    return minYmaxY.highestY
+  }
+
+  getLowestValueInSeries (seriesIndex = 0) {
+    const range = new Range(this.ctx)
+    const minYmaxY = range.getMinYMaxY(seriesIndex)
+
+    return minYmaxY.lowestY
   }
 
   getSeriesTotal () {

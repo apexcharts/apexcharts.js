@@ -21,10 +21,14 @@ class Range {
     this.setZRange()
   }
 
-  getMinYMaxY (startingIndex, lowestYInAllSeries, len) {
+  getMinYMaxY (startingIndex, lowestY = Number.MAX_VALUE, highestY = Number.MIN_SAFE_INTEGER, len = null) {
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
+
+    if (len === null) {
+      len = startingIndex + 1
+    }
 
     const series = gl.series
     let seriesMin = series
@@ -44,7 +48,8 @@ class Range {
       for (let j = 0; j < gl.series[i].length; j++) {
         if (series[i][j] !== null && Utils.isNumber(series[i][j])) {
           maxY = Math.max(maxY, seriesMax[i][j])
-          lowestYInAllSeries = Math.min(lowestYInAllSeries, seriesMin[i][j])
+          lowestY = Math.min(lowestY, seriesMin[i][j])
+          highestY = Math.max(highestY, seriesMin[i][j])
           if (Utils.isFloat(series[i][j])) {
             gl.yValueDecimal = Math.max(gl.yValueDecimal, series[i][j].toString().split('.')[1].length)
           }
@@ -60,7 +65,8 @@ class Range {
     return {
       minY,
       maxY,
-      lowestYInAllSeries
+      lowestY,
+      highestY
     }
   }
 
@@ -76,18 +82,18 @@ class Range {
     if (gl.isMultipleYAxis) {
       // we need to get minY and maxY for multiple y axis
       for (let i = 0; i < gl.series.length; i++) {
-        const minYMaxYArr = this.getMinYMaxY(i, lowestYInAllSeries, i + 1)
+        const minYMaxYArr = this.getMinYMaxY(i, lowestYInAllSeries, null, i + 1)
         gl.minYArr.push(minYMaxYArr.minY)
         gl.maxYArr.push(minYMaxYArr.maxY)
-        lowestYInAllSeries = minYMaxYArr.lowestYInAllSeries
+        lowestYInAllSeries = minYMaxYArr.lowestY
       }
     }
 
     // and then, get the minY and maxY from all series
-    const minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, gl.series.length)
+    const minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, null, gl.series.length)
     gl.minY = minYMaxY.minY
     gl.maxY = minYMaxY.maxY
-    lowestYInAllSeries = minYMaxY.lowestYInAllSeries
+    lowestYInAllSeries = minYMaxY.lowestY
 
     if (cnf.chart.stacked) {
       // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
