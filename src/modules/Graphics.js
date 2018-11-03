@@ -487,9 +487,9 @@ class Graphics {
     const j = parseInt(path.node.getAttribute('j'))
 
     if (typeof w.config.chart.events.dataPointMouseEnter === 'function') {
-      w.config.chart.events.dataPointMouseEnter(e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
+      w.config.chart.events.dataPointMouseEnter(e, this.ctx, { seriesIndex: i, dataPointIndex: j, w })
     }
-    this.ctx.fireEvent('dataPointMouseEnter', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
+    this.ctx.fireEvent('dataPointMouseEnter', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, w }])
 
     if (w.config.states.active.filter.type !== 'none') {
       if (path.node.getAttribute('selected') === 'true') {
@@ -513,9 +513,9 @@ class Graphics {
     const j = parseInt(path.node.getAttribute('j'))
 
     if (typeof w.config.chart.events.dataPointMouseLeave === 'function') {
-      w.config.chart.events.dataPointMouseLeave(e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
+      w.config.chart.events.dataPointMouseLeave(e, this.ctx, { seriesIndex: i, dataPointIndex: j, w })
     }
-    this.ctx.fireEvent('dataPointMouseLeave', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
+    this.ctx.fireEvent('dataPointMouseLeave', [e, this.ctx, { seriesIndex: i, dataPointIndex: j, w }])
 
     if (w.config.states.active.filter.type !== 'none') {
       if (path.node.getAttribute('selected') === 'true') {
@@ -581,9 +581,9 @@ class Graphics {
     }
 
     if (typeof w.config.chart.events.dataPointSelection === 'function') {
-      w.config.chart.events.dataPointSelection(e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals })
+      w.config.chart.events.dataPointSelection(e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, w })
     }
-    this.ctx.fireEvent('dataPointSelection', [e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, config: w.config, globals: w.globals }])
+    this.ctx.fireEvent('dataPointSelection', [e, this.ctx, { selectedDataPoints: w.globals.selectedDataPoints, seriesIndex: i, dataPointIndex: j, w }])
 
     // if (this.w.config.chart.selection.selectedPoints !== undefined) {
     //   this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)

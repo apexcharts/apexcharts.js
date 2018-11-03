@@ -215,7 +215,7 @@ class HeatMap {
       let dataLabelsX = x + rectWidth / 2 + offX
       let dataLabelsY = y + rectHeight / 2 + parseInt(dataLabelsConfig.style.fontSize) / 3 + offY
 
-      let text = formatter(w.globals.series[i][j], { seriesIndex: i, dataPointIndex: j, globals: w.globals })
+      let text = formatter(w.globals.series[i][j], { seriesIndex: i, dataPointIndex: j, w })
       dataLabels.plotDataLabelsText(dataLabelsX, dataLabelsY, text, i, j, elDataLabelsWrap, dataLabelsConfig)
     }
 

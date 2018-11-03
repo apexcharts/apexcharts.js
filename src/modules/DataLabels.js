@@ -102,7 +102,7 @@ class DataLabels {
           y = centerTextInBubbleCoords.y
         } else {
           if (typeof val !== 'undefined') {
-            text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, globals: w.globals })
+            text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, w })
           }
         }
 

@@ -276,7 +276,7 @@ class Pie {
         if (angle !== 0) {
           let formatter = w.config.dataLabels.formatter
           if (formatter !== undefined) {
-            text = formatter(w.globals.seriesPercent[i][0], { seriesIndex: i, globals: w.globals })
+            text = formatter(w.globals.seriesPercent[i][0], { seriesIndex: i, w })
           }
           let foreColor = w.globals.dataLabels.style.colors[i]
 

@@ -96,7 +96,7 @@ class Legend {
 
       let width
 
-      let text = legendFormatter(legendNames[i], { globals: w.globals, seriesIndex: i })
+      let text = legendFormatter(legendNames[i], { seriesIndex: i, w })
 
       let collapsedSeries = false
       if (w.globals.collapsedSeries.length > 0) {

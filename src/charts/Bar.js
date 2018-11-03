@@ -734,7 +734,7 @@ class Bar {
 
       let text = ''
       if (typeof val !== 'undefined') {
-        text = formatter(val, { seriesIndex: i, dataPointIndex: j, globals: w.globals })
+        text = formatter(val, { seriesIndex: i, dataPointIndex: j, w })
       }
       dataLabels.plotDataLabelsText(x, y, text, i, j, elDataLabelsWrap, dataLabelsConfig, true)
     }
