@@ -157,5 +157,12 @@ Facebook: <a href="https://facebook.com/apexcharts">fb.com/apexcharts</a>
 ## Dependency
 ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
 
+
+## Supporting ApexCharts
+ApexCharts is an open source project. <br /> You can help by becoming a sponsor on <a href="https://patreon.com/junedchhipa">Patreon</a> or doing a one time donation on <a href="https://paypal.me/junedchhipa">PayPal</a> <br />
+
+<a href="https://patreon.com/junedchhipa"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patron" /> </a>
+
+
 ## License
 ApexCharts is released under MIT license. You are free to use, modify and distribute this software, as long as the copyright header is left intact.
