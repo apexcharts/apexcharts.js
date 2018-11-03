@@ -171,7 +171,8 @@ class Line {
         pathFromArea = pathFrom.pathFromArea
       }
 
-      for (let j = 0; j < w.globals.dataPoints - 1; j++) {
+      const iterations = w.globals.dataPoints > 1 ? w.globals.dataPoints - 1 : w.globals.dataPoints
+      for (let j = 0; j < iterations; j++) {
         if (w.globals.isXNumeric) {
           x = (w.globals.seriesX[realIndex][j + 1] - w.globals.minX) / xRatio
         } else {
@@ -252,7 +253,9 @@ class Line {
 
         if (!this.pointsChart) {
           let markers = new Markers(this.ctx)
-          elPointsMain.node.classList.add('hidden')
+          if (w.globals.dataPoints > 1) {
+            elPointsMain.node.classList.add('hidden')
+          }
 
           let elPointsWrap = markers.plotChartMarkers(pointsPos, realIndex, j + 1)
           if (elPointsWrap !== null) {
