@@ -45,6 +45,7 @@
     "eslint-plugin-node": "^6.0.1",
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
+    "exec-sh": "^0.3.2",
     "gulp": "^3.9.1",
     "gulp-remove-logging": "^1.2.0",
     "gulp-rename": "^1.4.0",
