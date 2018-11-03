@@ -211,8 +211,10 @@ class ApexCharts {
     // coreCalculations will give the min/max range and yaxis/axis values. It should be called here to set series variable from config to globals
     if (gl.axisCharts) {
       this.core.coreCalculations()
-      // as we have minX and maxX values, determine the default DateTimeFormat for time series
-      this.formatters.setLabelFormatters()
+      if (w.config.xaxis.type !== 'category') {
+        // as we have minX and maxX values, determine the default DateTimeFormat for time series
+        this.formatters.setLabelFormatters()
+      }
     }
 
     // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
@@ -319,8 +321,6 @@ class ApexCharts {
           tools.pan = false
           tools.reset = false
         }
-
-        console.log(w.config.chart.toolbar.show)
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
           me.toolbar.createToolbar()

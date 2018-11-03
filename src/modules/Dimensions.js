@@ -438,7 +438,14 @@ class Dimensions {
     w.config.yaxis.map((yaxe, index) => {
       if (yaxe.show && yaxe.labels.show && w.globals.yAxisScale[index].result.length) {
         let lbFormatter = w.globals.yLabelFormatters[index]
-        let val = lbFormatter(w.globals.yAxisScale[index].niceMax)
+
+        // the second parameter -1 is the index of tick which user can use in the formatter
+        let val = lbFormatter(w.globals.yAxisScale[index].niceMax, -1)
+
+        // if user has specified a custom formatter, and the result is null or empty, we need to discard the formatter and take the value as it is.
+        if (typeof val === 'undefined' || val.length === 0) {
+          val = w.globals.yAxisScale[index].niceMax
+        }
 
         if (this.isBarHorizontal) {
           labelPad = 0
@@ -450,7 +457,7 @@ class Dimensions {
             return a.length > b.length ? a : b
           }, 0)
 
-          val = lbFormatter(val)
+          val = lbFormatter(val, -1)
         }
 
         let graphics = new Graphics(this.ctx)

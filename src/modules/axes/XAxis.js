@@ -51,7 +51,9 @@ class XAxis {
     let graphics = new Graphics(this.ctx)
 
     let elXaxis = graphics.group({
-      'class': 'apexcharts-xaxis'
+      'class': 'apexcharts-xaxis',
+      'transform':
+      `translate(${w.config.xaxis.offsetX}, ${w.config.xaxis.offsetY})`
     })
 
     let elXaxisTexts = graphics.group({
@@ -324,9 +326,9 @@ class XAxis {
 
       let line = graphics.drawLine(
         x1 + w.config.xaxis.axisTicks.offsetX,
-        y1,
+        y1 + w.config.xaxis.offsetY,
         x2 + w.config.xaxis.axisTicks.offsetX,
-        y2,
+        y2 + w.config.xaxis.offsetY,
         w.config.xaxis.axisTicks.color
       )
 

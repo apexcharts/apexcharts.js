@@ -157,7 +157,9 @@ class HeatMap {
 
     const val = w.globals.series[i][j]
 
-    let color = w.globals.colors[i]
+    let seriesNumber = w.config.plotOptions.heatmap.colorScale.inverse ? j : i
+
+    let color = w.globals.colors[seriesNumber]
     let min = Math.min(...w.globals.series[i])
     let max = Math.max(...w.globals.series[i])
     let total = Math.abs(max) + Math.abs(min)

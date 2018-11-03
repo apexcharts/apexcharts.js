@@ -61,7 +61,7 @@ class YAxis {
       for (let i = tickAmount; i >= 0; i--) {
         let val = w.globals.yAxisScale[realIndex].result[i]
 
-        val = lbFormatter(val)
+        val = lbFormatter(val, i)
 
         let xPad = 20
         if (w.config.yaxis[realIndex].opposite) {

@@ -99,7 +99,7 @@ class Position {
     if (ttCtx.xaxisTooltip !== null) {
       ttCtx.xaxisTooltip.classList.add('active')
 
-      let cy = ttCtx.xaxisOffY + w.config.xaxis.tooltip.offsetY + w.globals.translateY + 1
+      let cy = ttCtx.xaxisOffY + w.config.xaxis.tooltip.offsetY + w.globals.translateY + 1 + w.config.xaxis.offsetY
 
       let xaxisTTText = ttCtx.xaxisTooltip.getBoundingClientRect()
       let xaxisTTTextWidth = xaxisTTText.width

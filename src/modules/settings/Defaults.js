@@ -342,6 +342,11 @@ class Defaults {
           size: 10,
           offsetY: 2
         }
+      },
+      grid: {
+        padding: {
+          right: 20
+        }
       }
     }
   }

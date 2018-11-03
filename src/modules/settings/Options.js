@@ -675,6 +675,8 @@ export default class Options {
       xaxis: {
         type: 'category',
         categories: [],
+        offsetX: 0,
+        offsetY: 0,
         labels: {
           show: true,
           rotate: -45,

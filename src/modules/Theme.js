@@ -101,7 +101,7 @@ class Theme {
     let len = w.globals.series.length
 
     if (distributed === null) {
-      distributed = w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed
+      distributed = (w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) || (w.config.chart.type === 'heatmap' && w.config.plotOptions.heatmap.colorScale.inverse)
     } else {
       distributed = false
     }

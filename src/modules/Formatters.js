@@ -94,7 +94,7 @@ class Formatters {
 
     // formatter function will always overwrite format property
     w.config.yaxis.forEach((yaxe, i) => {
-      if (typeof yaxe.labels.formatter === 'function') {
+      if (yaxe.labels.formatter !== undefined) {
         w.globals.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
         w.globals.yLabelFormatters[i] = function (val) {
@@ -124,13 +124,6 @@ class Formatters {
       }, 0)
       w.globals.yAxisScale[0].niceMax = longest
       w.globals.yAxisScale[0].niceMin = longest
-
-      // cnf.yaxis[0].labels.formatter = function (val) {
-      //   return val
-      // }
-      w.globals.yLabelFormatters[0] = function (val) {
-        return val
-      }
     }
   }
 }
