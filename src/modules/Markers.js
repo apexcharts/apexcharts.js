@@ -18,8 +18,10 @@ class Markers {
     const w = this.w
     if (w.globals.markers.size.length > 0) {
       if (w.globals.markers.size.length < w.globals.series.length + 1) {
-        for (let i = 0; i <= w.globals.series.length - w.globals.markers.size.length + 1; i++) {
-          w.globals.markers.size.push(w.globals.markers.size[0])
+        for (let i = 0; i <= w.globals.series.length; i++) {
+          if (typeof w.globals.markers.size[i] === 'undefined') {
+            w.globals.markers.size.push(w.globals.markers.size[0])
+          }
         }
       }
     } else {
