@@ -350,7 +350,6 @@ class YAxis {
     let xRight = 0
     let leftDrawnYs = 0 // already drawn y axis on left side
     let rightDrawnYs = 1 // already drawn y axis on right side
-    let multipleYPadd = 20
     this.multipleYs = false
 
     if (w.config.yaxis.length > 1) {
@@ -359,6 +358,7 @@ class YAxis {
 
     w.config.yaxis.map((yaxe, index) => {
       let yAxisWidth = (yaxisLabelCoords[index].width + yTitleCoords[index].width)
+      let multipleYPadd = this.multipleYs && yTitleCoords[index].width > 0 ? 20 : 7
 
       let paddingForYAxisTitle = this.xPaddingForYAxisTitle(index, {
         width: yaxisLabelCoords[index].width
