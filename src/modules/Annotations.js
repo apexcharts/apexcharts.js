@@ -23,11 +23,15 @@ class Annotations {
       let xAnnotations = this.drawXAxisAnnotations()
       let pointAnnotations = this.drawPointAnnotations()
 
+      const initialAnim = w.config.chart.animations.enabled
+
       const annoArray = [yAnnotations, xAnnotations, pointAnnotations]
       const annoElArray = [xAnnotations.node, yAnnotations.node, pointAnnotations.node]
       for (let i = 0; i < 3; i++) {
         w.globals.dom.elGraphical.add(annoArray[i])
-        annoElArray[i].classList.add('hidden')
+        if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+          annoElArray[i].classList.add('hidden')
+        }
         w.globals.delayedElements.push({ el: annoElArray[i], index: 0 })
       }
 
