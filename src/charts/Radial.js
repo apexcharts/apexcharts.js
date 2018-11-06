@@ -277,6 +277,8 @@ class Radial extends Pie {
 
       let angle = endAngle - startAngle
 
+      const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray
+
       let elPath = graphics.drawPath({
         d: '',
         stroke: pathFill,
@@ -284,7 +286,7 @@ class Radial extends Pie {
         fill: 'none',
         fillOpacity: w.config.fill.opacity,
         classes: 'apexcharts-radialbar-area',
-        strokeDashArray: w.config.stroke.dashArray
+        strokeDashArray: dashArray
       })
 
       Graphics.setAttrs(elPath.node, {

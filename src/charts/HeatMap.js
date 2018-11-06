@@ -162,6 +162,11 @@ class HeatMap {
     let color = w.globals.colors[seriesNumber]
     let min = Math.min(...w.globals.series[i])
     let max = Math.max(...w.globals.series[i])
+
+    if (!w.config.plotOptions.heatmap.distributed) {
+      min = w.globals.minY
+      max = w.globals.maxY
+    }
     let total = Math.abs(max) + Math.abs(min)
     let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
 

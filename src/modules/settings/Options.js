@@ -317,7 +317,9 @@ export default class Options {
           radius: 2,
           enableShades: true,
           shadeIntensity: 0.5,
+          distributed: false,
           colorScale: {
+            inverse: false,
             ranges: []
           }
         },

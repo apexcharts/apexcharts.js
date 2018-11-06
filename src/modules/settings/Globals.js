@@ -29,7 +29,7 @@ export default class Globals {
       },
       markers: {
         colors: [],
-        size: Array.isArray(config.markers.size) ? config.markers.size : [config.markers.size],
+        size: config.markers.size,
         largestSize: 0
       },
       isTouchDevice: 'ontouchstart' in window || navigator.msMaxTouchPoints,

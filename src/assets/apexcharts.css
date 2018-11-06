@@ -407,10 +407,12 @@
   opacity: 0;
   min-width: 110px;
   transition: 0.15s ease all;
+  pointer-events: none;
 }
 
 .apexcharts-menu.open {
   opacity: 1;
+  pointer-events: all;
   transition: 0.15s ease all;
 }
 

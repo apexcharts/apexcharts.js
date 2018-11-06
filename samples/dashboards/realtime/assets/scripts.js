@@ -343,7 +343,7 @@ var optionsCircle = {
       vertical: 20
     },
     formatter: function (val, opts) {
-      return [val, " - ", opts.globals.series[opts.seriesIndex] + '%']
+      return [val, " - ", opts.w.globals.series[opts.seriesIndex] + '%']
     }
   },
   fill: {

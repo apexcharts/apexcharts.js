@@ -85,9 +85,6 @@ class Defaults {
     return {
       chart: {
         stacked: false,
-        toolbar: {
-          show: false
-        },
         animations: {
           easing: 'swing'
         }
@@ -310,9 +307,6 @@ class Defaults {
       chart: {
         zoom: {
           enabled: false
-        },
-        toolbar: {
-          show: false
         }
       },
       fill: {
