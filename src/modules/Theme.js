@@ -141,18 +141,15 @@ class Theme {
         this.colors = ['#449DD1', '#F86624', '#EA3546', '#662E9B', '#C5D86D']
         break
       case 'palette7':
-        this.colors = ['#D7263D', '#1B998B', '#2E294E', '#F46036', '#C5D86D']
+        this.colors = ['#D7263D', '#1B998B', '#2E294E', '#F46036', '#E2C044']
         break
       case 'palette8':
         this.colors = ['#662E9B', '#F86624', '#F9C80E', '#EA3546', '#43BCCD']
         break
       case 'palette9':
-        this.colors = ['#5fba7d', '#f48024', '#8884d8', '#c34459', '#f9ee45']
-        break
-      case 'palette10':
         this.colors = ['#5C4742', '#A5978B', '#8D5B4C', '#5A2A27', '#C4BBAF']
         break
-      case 'palette11':
+      case 'palette10':
         this.colors = ['#A300D6', '#7D02EB', '#5653FE', '#2983FF', '#00B1F2']
         break
       default:

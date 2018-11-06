@@ -724,6 +724,10 @@ class ApexCharts {
       {
         return chart.addPointAnnotation(...opts)
       }
+      case 'clearAnnotations':
+      {
+        return chart.clearAnnotations(...opts)
+      }
       case 'destroy':
       {
         return chart.destroy()
@@ -798,6 +802,14 @@ class ApexCharts {
       me = context
     }
     me.annotations.addPointAnnotationExternal(opts, pushToMemory, me)
+  }
+
+  clearAnnotations (context = undefined) {
+    let me = this
+    if (context) {
+      me = context
+    }
+    me.annotations.clearAnnotations(me)
   }
 
   // This method is never used internally and will be only called externally on the chart instance.

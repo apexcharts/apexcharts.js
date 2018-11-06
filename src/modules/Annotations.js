@@ -149,6 +149,17 @@ class Annotations {
     return elg
   }
 
+  clearAnnotations (ctx) {
+    const w = ctx.w
+    const annos = w.globals.dom.baseEl.querySelectorAll('.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations')
+
+    annos.forEach((a) => {
+      while (a.firstChild) {
+        a.removeChild(a.firstChild)
+      }
+    })
+  }
+
   addPointAnnotation (anno, parent, index) {
     const w = this.w
 
