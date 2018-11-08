@@ -28,44 +28,164 @@
 
     <script>
         var options = {
-            chart: {
-                height: 350,
-                type: 'line',
-                zoom: {
-                    enabled: false
-                }
-            },
-            dataLabels: {
-                enabled: false
-            },
-            stroke: {
-                curve: 'straight'
-            },
-            series: [{
-                name: "Desktops",
-                data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
-            }],
-            title: {
-                text: 'Product Trends by Month',
-                align: 'left'
-            },
-            grid: {
-                row: {
-                    colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
-                    opacity: 0.5
-                },
-            },
-            xaxis: {
-                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
-            }
+  "chart": {
+    "height": "400",
+    "width": "100%",
+    "type": "area",
+    "foreColor": "#000",
+    "animations": {
+      "enabled": true
+    },
+    "toolbar": {
+      "show": true,
+      "tools": {
+        "download": false,
+        "selection": false,
+        "zoom": false,
+        "zoomin": false,
+        "zoomout": false,
+        "pan": false,
+        "reset": false
+      },
+      "autoSelected": "zoom"
+    }
+  },
+  "plotOptions": {},
+  "stroke": {
+    "curve": "smooth"
+  },
+  "series": [
+    {
+      "name": "MCC",
+      "data": [
+        7.666666666666667,
+        6,
+        8.333333333333334,
+        8,
+        4.75,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Me",
+      "data": [
+        16,
+        16,
+        21,
+        9,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "colors": [
+    "#F47B20",
+    "#005596",
+    "#7D4199",
+    "#007DC3",
+    "#DC1D1D",
+    "#FB2ED0",
+    "#FFE70D",
+    "#56CCF2",
+    "#6D7322",
+    "#e98ff2"
+  ],
+  "labels": [],
+  "title": {
+    "text": "Customer Acquisition Vs competition",
+    "align": "left",
+    "style": {
+      "color": "#fff"
+    }
+  },
+  "dataLabels": {
+    "enabled": false
+  },
+  "legend": {
+    "show": true,
+    "position": "top",
+    "horizontalAlign": "center"
+  },
+  "grid": {
+    "show": true,
+    "clipMarkers": false,
+    "borderColor": "transparent"
+  },
+  "xaxis": {
+    "labels": {
+      "show": true,
+      "style": {
+        "colors": []
+      }
+    },
+    "type": "category",
+    "tickAmount": 6,
+    "categories": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "tooltip": {
+      "enabled": true,
+      "offsetY": 0
+    }
+  },
+  "yaxis": [
+    {
+      "show": true,
+      "opposite": false,
+      "logarithmic": false,
+      "tickAmount": 4,
+      "decimalsInFloat": 2,
+      "floating": false,
+      "axisBorder": {
+        "show": false,
+        "color": "#78909C",
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      "axisTicks": {
+        "show": false,
+        "color": "#78909C",
+        "width": 6,
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      "title": {
+        "rotate": -90,
+        "offsetY": 0,
+        "offsetX": 0,
+        "style": {
+          "fontSize": "11px",
+          "cssClass": "apexcharts-yaxis-title"
         }
+      },
+      "tooltip": {
+        "enabled": false,
+        "offsetX": 0
+      },
+      "crosshairs": {
+        "show": true,
+        "position": "front",
+        "stroke": {
+          "color": "#b6b6b6",
+          "width": 1,
+          "dashArray": 0
+        }
+      }
+    }
+  ]
+}
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
+var chart = new ApexCharts(document.querySelector("#chart"), options);
 
-        chart.render();
+chart.render();
         
     </script>
 </body>
