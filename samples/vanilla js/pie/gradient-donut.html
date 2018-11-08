@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Gradient Donut</title>
+
+    
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            
+            max-width: 380px;
+            margin: 35px auto;
+        }
+        
+
+        .apexcharts-legend-text tspan:nth-child(1) {
+            font-weight: lighter;
+            fill: #999;
+        }
+
+        .apexcharts-legend-text tspan:nth-child(3) {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                width: 380,
+                type: 'donut',
+            },
+            dataLabels: {
+                enabled: false
+            },
+            series: [44, 55, 41, 17, 15],
+            fill: {
+                type: 'gradient',
+               
+            },
+            legend: {
+                formatter: function(val, opts) {
+                    return [val, " - ", opts.w.globals.series[opts.seriesIndex]]
+                }
+            },
+            responsive: [{
+                breakpoint: 767,
+                options: {
+                    chart: {
+                        width: 200
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }]
+
+        }
+
+        var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+
+        chart.render();
+        
+        const paper = chart.paper()
+    </script>
+</body>
+
+</html>

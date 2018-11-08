@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Circle Gauge Chart</title>
+
+    
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                height: 350,
+                type: 'radialBar',
+            },
+            plotOptions: {
+              radialBar: {
+                hollow: {
+                  margin: 15,
+                  size: '70%',
+                  image: '../../assets/images/clock.png',
+                  imageWidth: 64,
+                  imageHeight: 64,
+                  imageClipped: false
+                },
+                dataLabels: {
+                  name: {
+                    show: false,
+                    color: '#fff'
+                  },
+                  value: {
+                    show: true,
+                    color: '#333',
+                    offsetY: 60,
+                    fontSize: '22px'
+                    
+                  }
+                }
+              }
+            },
+            fill: {
+                type: 'image',
+                image: {
+                    src: ['../../assets/images/4274635880_809a4b9d0d_z.jpg'],
+                }
+            },
+            series: [67],
+            stroke: {
+              lineCap: 'round'
+            },
+            labels: ['Volatility'],
+            
+        }
+
+       var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+        
+        chart.render();
+    </script>
+</body>
+
+</html>
