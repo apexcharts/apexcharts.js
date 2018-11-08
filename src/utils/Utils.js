@@ -273,6 +273,13 @@ class Utils {
     return navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
   }
 
+  static isIE11 () {
+    if(window.navigator.userAgent.indexOf('MSIE')!==-1
+    || window.navigator.appVersion.indexOf('Trident/') > -1){
+      return true
+    }
+  }
+
   static isIE () {
     let ua = window.navigator.userAgent
 

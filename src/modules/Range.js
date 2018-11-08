@@ -41,7 +41,7 @@ class Range {
 
     for (let i = startingIndex; i < len; i++) {
       gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
-      if (Utils.isIE()) {
+      if (Utils.isIE11()) {
         minY = Math.min(...seriesMin[i], 0)
       }
 
