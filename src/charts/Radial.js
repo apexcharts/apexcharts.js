@@ -212,7 +212,7 @@ class Radial extends Pie {
     }
 
     let shown = 1
-    if (this.radialDataLabels.showOn === 'hover' || w.globals.series.length > 1) {
+    if (!this.radialDataLabels.total.show && w.globals.series.length > 1) {
       shown = 0
     }
 
@@ -412,12 +412,37 @@ class Radial extends Pie {
     return hollowFillID
   }
 
-  dataLabelsMouseIn (el) {
-    let w = this.w
+  /**
+   * This static method allows users to call chart methods without necessarily from the
+   * instance of the chart in case user has assigned chartID to the targetted chart.
+   * The chartID is used for mapping the instance stored in Apex._chartInstances global variable
+   *
+   * This is helpful in cases when you don't have reference of the chart instance
+   * easily and need to call the method from anywhere.
+   * For eg, in React/Vue applications when you have many parent/child components,
+   * and need easy reference to other charts for performing dynamic operations
+   *
+   * @param {string} name - The name of the series
+   * @param {string} val - The value of that series
+   * @param {object} el - Optional el (indicates which series was hovered). If this param is not present, means we need to show total
+   */
+  printLabels (name, val, el) {
+    const w = this.w
 
-    let val = el.getAttribute('data:value')
     let labelColor
-    let name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1]
+
+    if (el) {
+      if (this.radialDataLabels.name.color === undefined) {
+        labelColor =
+          w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1]
+      } else {
+        labelColor = this.radialDataLabels.name.color
+      }
+    } else {
+      if (w.globals.series.length > 1 && this.radialDataLabels.total.show) {
+        labelColor = this.radialDataLabels.total.color
+      }
+    }
 
     let elLabel = w.globals.dom.baseEl.querySelector(
       '.apexcharts-datalabel-label'
@@ -427,7 +452,12 @@ class Radial extends Pie {
     )
 
     let lbFormatter = this.radialDataLabels.value.formatter
-    val = lbFormatter(val)
+    val = lbFormatter(val, w)
+
+    // we need to show Total Val - so get the formatter of it
+    if (!el && typeof this.radialDataLabels.total.formatter === 'function') {
+      val = this.radialDataLabels.total.formatter(w)
+    }
 
     if (elLabel !== null) {
       elLabel.textContent = name
@@ -436,22 +466,24 @@ class Radial extends Pie {
     if (elValue !== null) {
       elValue.textContent = val
     }
-
-    if (this.radialDataLabels.name.color === undefined) {
-      labelColor =
-        w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1]
-    } else {
-      labelColor = this.radialDataLabels.name.color
+    if (elLabel !== null) {
+      elLabel.style.fill = labelColor
     }
+  }
+
+  dataLabelsMouseIn (el) {
+    let w = this.w
+
+    let val = el.getAttribute('data:value')
+    let name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1]
+
+    this.printLabels(name, val, el)
 
     let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
       '.apexcharts-datalabels-group'
     )
     if (dataLabelsGroup !== null) {
       dataLabelsGroup.style.opacity = 1
-    }
-    if (elLabel !== null) {
-      elLabel.style.fill = labelColor
     }
   }
 
@@ -461,9 +493,10 @@ class Radial extends Pie {
       '.apexcharts-datalabels-group'
     )
     if (
-      this.radialDataLabels.showOn !== 'always' ||
-      w.globals.series.length > 1
+      this.radialDataLabels.total.show && w.globals.series.length > 1
     ) {
+      this.printLabels(this.radialDataLabels.total.label, this.radialDataLabels.total.formatter(w))
+    } else {
       if (dataLabelsGroup !== null) {
         dataLabelsGroup.style.opacity = 0
       }
@@ -499,6 +532,10 @@ class Radial extends Pie {
       labelColor = this.radialDataLabels.name.color
     }
 
+    if (w.globals.series.length > 1 && this.radialDataLabels.total.show) {
+      labelColor = this.radialDataLabels.total.color
+    }
+
     if (this.radialDataLabels.value.color === undefined) {
       valueColor = w.config.chart.foreColor
     } else {
@@ -506,7 +543,7 @@ class Radial extends Pie {
     }
 
     let lbFormatter = this.radialDataLabels.value.formatter
-    let val = lbFormatter(w.globals.series[0])
+    let val = lbFormatter(w.globals.series[0], w)
 
     if (this.radialDataLabels.name.show) {
       let elLabel = graphics.drawText({
@@ -537,6 +574,9 @@ class Radial extends Pie {
       elValue.node.classList.add('apexcharts-datalabel-value')
       g.add(elValue)
     }
+
+    // for a multi-series circle chart, we need to show total value instead of first series labels
+    this.dataLabelsMouseout()
 
     return g
   }

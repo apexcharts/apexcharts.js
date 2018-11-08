@@ -366,7 +366,6 @@ export default class Options {
             }
           },
           dataLabels: {
-            showOn: 'always', // hover/always
             name: {
               show: true,
               fontSize: '16px',
@@ -383,6 +382,16 @@ export default class Options {
               formatter: function (val) {
                 return val + '%'
               }
+            },
+            total: {
+              show: true,
+              label: 'Total',
+              color: '#373d3f',
+              formatter: function (w) {
+                return w.globals.seriesTotals.reduce((a, b) => {
+                  return a + b
+                }, 0) / w.globals.series.length
+              }
             }
           }
         },
@@ -393,7 +402,6 @@ export default class Options {
             background: 'transparent'
             // TODO: draw labels in donut area
             // labels: {
-            //   showOn: 'hover',
             //   name: {
             //     show: false,
             //     fontSize: '14px',
