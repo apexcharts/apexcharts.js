@@ -13,6 +13,10 @@ class Annotations {
     this.w = ctx.w
     this.graphics = new Graphics(this.ctx)
 
+    if (this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal) {
+      this.invertAxis = true
+    }
+
     this.xDivision = this.w.globals.gridWidth / this.w.globals.dataPoints
   }
 
@@ -46,9 +50,12 @@ class Annotations {
   addXaxisAnnotation (anno, parent, index) {
     let w = this.w
 
+    const min = this.invertAxis ? w.globals.minY : w.globals.minX
+    const range = this.invertAxis ? w.globals.yRange[0] : w.globals.xRange
+
     let strokeDashArray = anno.strokeDashArray
 
-    let x1 = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
+    let x1 = (anno.x - min) / (range / w.globals.gridWidth)
 
     let line = this.graphics.drawLine(
       x1 + anno.offsetX,
@@ -101,7 +108,16 @@ class Annotations {
 
     let strokeDashArray = anno.strokeDashArray
 
-    let y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+    let y1
+
+    if (this.invertAxis) {
+      let catIndex = w.globals.labels.indexOf(anno.y)
+      const xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')')
+
+      y1 = parseInt(xLabel.getAttribute('y'))
+    } else {
+      y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+    }
 
     const text = anno.label.text ? anno.label.text : ''
 
@@ -166,11 +182,12 @@ class Annotations {
     let x = 0
     let y = 0
     let pointY = 0
-    if (typeof anno.x === 'string') {
-      if (w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal) {
-        // todo
-      }
 
+    if (this.invertAxis) {
+      console.warn('Point annotation is not supported in horizontal bar charts.')
+    }
+
+    if (typeof anno.x === 'string') {
       let catIndex = w.globals.labels.indexOf(anno.x)
       const xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')')
 
