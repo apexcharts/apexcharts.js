@@ -44,18 +44,18 @@ class Scatter {
 
     if (pointsPos.x instanceof Array) {
       for (let q = 0; q < pointsPos.x.length; q++) {
-        let realIndexP = j + 1
+        let dataPointIndex = j + 1
 
         // a small hack as we have 2 points for the first val to connect it
-        if (j === 0 && q === 0) realIndexP = 0
-        if (j === 0 && q === 1) realIndexP = 1
+        if (j === 0 && q === 0) dataPointIndex = 0
+        if (j === 0 && q === 1) dataPointIndex = 1
 
         let radius = 0
         let finishRadius = w.globals.markers.size[realIndex]
 
         if (zRatio !== Infinity) {
           // means we have a bubble
-          finishRadius = w.globals.seriesZ[realIndex][realIndexP] / zRatio
+          finishRadius = w.globals.seriesZ[realIndex][dataPointIndex] / zRatio
           if (typeof this.radiusSizes[realIndex] === 'undefined') {
             this.radiusSizes.push([])
           }
@@ -73,7 +73,7 @@ class Scatter {
         y = y || 0
         radius = radius || 0
 
-        if ((x === 0 && y === 0) || typeof w.globals.series[realIndex][realIndexP] === 'undefined') return
+        if ((x === 0 && y === 0) || typeof w.globals.series[realIndex][dataPointIndex] === 'undefined') return
 
         let circle = graphics.drawCircle(radius)
 
@@ -137,14 +137,14 @@ class Scatter {
         }
 
         circle.attr({
-          'rel': realIndexP,
-          'j': realIndexP,
+          'rel': dataPointIndex,
+          'j': dataPointIndex,
           'index': realIndex,
           'default-marker-size': finishRadius
         })
 
         const markers = new Markers(this.ctx)
-        markers.setSelectedPointFilter(circle, realIndex, realIndexP)
+        markers.setSelectedPointFilter(circle, realIndex, dataPointIndex)
         markers.addEvents(circle)
 
         circle.node.classList.add('apexcharts-marker')
@@ -156,7 +156,7 @@ class Scatter {
     }
   }
 
-  centerTextInBubble (y, i, realIndexP) {
+  centerTextInBubble (y) {
     let w = this.w
     y = y + (parseInt(w.config.dataLabels.style.fontSize) / 4)
 

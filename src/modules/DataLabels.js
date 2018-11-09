@@ -16,7 +16,7 @@ class DataLabels {
 
   // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
   // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
-  dataLabelsCorrection (x, y, val, i, realIndexP, alwaysDrawDataLabel, fontSize) {
+  dataLabelsCorrection (x, y, val, i, dataPointIndex, alwaysDrawDataLabel, fontSize) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
     let drawnextLabel = false //
@@ -47,7 +47,7 @@ class DataLabels {
       }
     }
 
-    if (realIndexP === 0 || alwaysDrawDataLabel) {
+    if (dataPointIndex === 0 || alwaysDrawDataLabel) {
       drawnextLabel = true
     }
 
@@ -69,7 +69,7 @@ class DataLabels {
     let x = 0
     let y = 0
 
-    let realIndexP = j
+    let dataPointIndex = j
 
     let elDataLabelsWrap = null
 
@@ -87,26 +87,26 @@ class DataLabels {
 
       if (!isNaN(x)) {
         // a small hack as we have 2 points for the first val to connect it
-        if (j === 1 && q === 0) realIndexP = 0
-        if (j === 1 && q === 1) realIndexP = 1
+        if (j === 1 && q === 0) dataPointIndex = 0
+        if (j === 1 && q === 1) dataPointIndex = 1
 
-        let val = w.globals.series[i][realIndexP]
+        let val = w.globals.series[i][dataPointIndex]
 
         let text = ''
 
         if (w.config.chart.type === 'bubble') {
-          text = w.globals.seriesZ[i][realIndexP]
+          text = w.globals.seriesZ[i][dataPointIndex]
           y = pos.y[q] + w.config.dataLabels.offsetY
           const scatter = new Scatter(this.ctx)
-          let centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, realIndexP)
+          let centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, dataPointIndex)
           y = centerTextInBubbleCoords.y
         } else {
           if (typeof val !== 'undefined') {
-            text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: realIndexP, w })
+            text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: dataPointIndex, w })
           }
         }
 
-        this.plotDataLabelsText(x, y, text, i, realIndexP, elDataLabelsWrap, w.config.dataLabels)
+        this.plotDataLabelsText(x, y, text, i, dataPointIndex, elDataLabelsWrap, w.config.dataLabels)
       }
     }
 

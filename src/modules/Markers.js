@@ -52,7 +52,7 @@ class Markers {
 
     if (p.x instanceof Array) {
       for (let q = 0; q < p.x.length; q++) {
-        let realIndexP = j
+        let dataPointIndex = j
 
         let PointClasses = 'apexcharts-marker'
         if (((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts) && !w.config.tooltip.intersect) {
@@ -69,8 +69,8 @@ class Markers {
           let opts = this.getMarkerConfig(PointClasses, seriesIndex)
 
           // discrete markers is an option where user can specify a particular marker with different size and color
-          w.config.markers.discrete.map((marker, mIndex) => {
-            if (marker.i === seriesIndex && marker.j === realIndexP) {
+          w.config.markers.discrete.map((marker) => {
+            if (marker.seriesIndex === seriesIndex && marker.dataPointIndex === dataPointIndex) {
               opts.pointStrokeColor = marker.strokeColor
               opts.pointFillColor = marker.fillColor
               opts.pSize = marker.size
@@ -84,15 +84,15 @@ class Markers {
           )
 
           // a small hack as we have 2 points for the first val to connect it
-          if (j === 1 && q === 0) realIndexP = 0
-          if (j === 1 && q === 1) realIndexP = 1
+          if (j === 1 && q === 0) dataPointIndex = 0
+          if (j === 1 && q === 1) dataPointIndex = 1
 
-          point.attr('rel', realIndexP)
-          point.attr('j', realIndexP)
+          point.attr('rel', dataPointIndex)
+          point.attr('j', dataPointIndex)
           point.attr('index', seriesIndex)
           point.node.setAttribute('default-marker-size', opts.pSize)
 
-          this.setSelectedPointFilter(point, seriesIndex, realIndexP)
+          this.setSelectedPointFilter(point, seriesIndex, dataPointIndex)
           this.addEvents(point)
 
           if (elPointsWrap) {
@@ -152,10 +152,10 @@ class Markers {
     )
   }
 
-  setSelectedPointFilter (circle, realIndex, realIndexP) {
+  setSelectedPointFilter (circle, realIndex, dataPointIndex) {
     const w = this.w
     if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-      if (w.globals.selectedDataPoints[realIndex].indexOf(realIndexP) > -1) {
+      if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
         circle.node.setAttribute('selected', true)
         let activeFilter = w.config.states.active.filter
         if (activeFilter !== 'none') {
