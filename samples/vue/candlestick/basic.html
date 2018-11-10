@@ -2,16 +2,16 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>CandleStick Chart</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>CandleStick Chart</title>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
+  <style>
+    #chart {
             max-width: 650px;
             margin: 35px auto;
         }
@@ -19,46 +19,47 @@
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=candlestick height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/ohlc.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+  <script>
+    Vue.use(VueApexCharts);
+
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+          data: seriesData2
+        }],
+        chartOptions: {
 
 
-    <script src="../../../dist/apexcharts.js"></script>
-    <script src="../../assets/ohlc.js"></script>
-
-    <script>
-        var options = {
-            chart: {
-                height: 350,
-                type: 'candlestick',
-            },
-            series: [{
-                data: seriesData2
-            }],
-            title: {
-                text: 'CandleStick Chart',
-                align: 'left'
-            },
-            xaxis: {
-                type: 'datetime'
-            },
-            yaxis: {
-                tooltip: {
-                    enabled: true
-                }
+          title: {
+            text: 'CandleStick Chart',
+            align: 'left'
+          },
+          xaxis: {
+            type: 'datetime'
+          },
+          yaxis: {
+            tooltip: {
+              enabled: true
             }
+          }
         }
+      }
+    })
+  </script>
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
-
-        
-    </script>
 </body>
 
 </html>

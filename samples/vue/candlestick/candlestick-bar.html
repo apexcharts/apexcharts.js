@@ -2,155 +2,152 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>CandleStick Chart with Bar</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>CandleStick Chart with Bar</title>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        .chart-box {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-        #chart-candlestick,
-        #chart-bar {
-            max-width: 640px;
-        }
+  <style>
+    #chart-box {
+        max-width: 650px;
+        margin: 35px auto;
+    }
+    #chart-candlestick,
+    #chart-bar {
+        max-width: 640px;
+    }
 
-        #chart-bar {
-            margin-top: -50px;
-        }
+    #chart-bar {
+        margin-top: -50px;
+    }
     </style>
 </head>
 
+
 <body>
-    <div class="chart-box">
-        <div id="chart-candlestick">
 
-        </div>
-    
-        <div id="chart-bar">
-    
-        </div>
+  <div id="chart-box">
+    <div id="chart-candlestick">
+      <apexchart type=candlestick height=290 :options="chartOptionsCandlestick" :series="seriesCandle" />
+
     </div>
+    <div id="chart-bar">
 
+      <apexchart type=bar height=160 :options="chartOptionsBar" :series="seriesBar" />
+    </div>
+  </div>
 
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/ohlc.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    <script src="../../../dist/apexcharts.js"></script>
-    <script src="../../assets/ohlc.js"></script>
+  <script>
+    Vue.use(VueApexCharts);
 
-    <script>
-        var optionsCandlestick = {
-            chart: {
-                id: 'candles',
-                height: 290,
-                type: 'candlestick',
-                toolbar: {
-                    autoSelected: 'pan',
-                    show: false
-                },
-                zoom: {
-                    enabled: false
-                },
+    new Vue({
+      el: '#chart-box',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        seriesCandle: [{
+          data: seriesData
+        }],
+        seriesBar: [{
+          name: 'volume',
+          data: seriesDataLinear
+        }],
+        chartOptionsCandlestick: {
+          chart: {
+            id: 'candles',
+            toolbar: {
+              autoSelected: 'pan',
+              show: false
             },
-            plotOptions: {
-                candlestick: {
-                    colors: {
-                    upward: '#3C90EB',
-                    downward: '#DF7D46'
-                    }
-                }
+            zoom: {
+              enabled: false
             },
-            series: [{
-                data: seriesData
-            }],
-            xaxis: {
-                type: 'datetime'
+          },
+          plotOptions: {
+            candlestick: {
+              colors: {
+                upward: '#3C90EB',
+                downward: '#DF7D46'
+              }
             }
-        }
+          },
 
-        var chartCandlestick = new ApexCharts(
-            document.querySelector("#chart-candlestick"),
-            optionsCandlestick
-        );
+          xaxis: {
+            type: 'datetime'
+          }
+        },
+        chartOptionsBar: {
+          chart: {
+            height: 160,
+            type: 'bar',
+            brush: {
+              enabled: true,
+              target: 'candles'
+            },
+            selection: {
+              enabled: true,
+              xaxis: {
+                min: new Date('20 Jan 2017').getTime(),
+                max: new Date('10 Dec 2017').getTime()
+              },
+              fill: {
+                color: '#ccc',
+                opacity: 0.4
+              },
+              stroke: {
+                color: '#0D47A1',
+              }
+            },
+          },
+          dataLabels: {
+            enabled: false
+          },
+          plotOptions: {
+            bar: {
+              columnWidth: '80%',
+              colors: {
+                ranges: [{
+                  from: -1000,
+                  to: 0,
+                  color: '#F15B46'
+                }, {
+                  from: 1,
+                  to: 10000,
+                  color: '#FEB019'
+                }],
 
-        chartCandlestick.render();
-
-        var options = {
-            chart: {
-                height: 160,
-                type: 'bar',
-                brush: {
-                    enabled: true,
-                    target: 'candles'
-                },
-                selection: {
-                    enabled: true,
-                    xaxis: {
-                        min: new Date('20 Jan 2017').getTime(),
-                        max: new Date('10 Dec 2017').getTime()
-                    },
-                    fill: {
-                        color: '#ccc',
-                        opacity: 0.4
-                    },
-                    stroke: {
-                        color: '#0D47A1',
-                    }
-                },
-            },
-            dataLabels: {
-                enabled: false
-            },
-            plotOptions: {
-                bar: {
-                    columnWidth: '80%',
-                    colors: {
-                        ranges: [
-                            {
-                                from: -1000,
-                                to: 0,
-                                color: '#F15B46'
-                            }, {
-                                from: 1,
-                                to: 10000,
-                                color: '#FEB019'
-                            }
-                        ],
-                       
-                    },
-                }        
-            },
-            stroke: {
-                width: 0
-            },
-            series: [{
-                name: 'volume',
-                data: seriesDataLinear
-            }],
-            xaxis: {
-                type: 'datetime',
-                axisBorder: {
-                    offsetX: 13
-                }
-            },
-            yaxis: {
-                labels: {
-                    show: false
-                }
+              },
             }
+          },
+          stroke: {
+            width: 0
+          },
+          xaxis: {
+            type: 'datetime',
+            axisBorder: {
+              offsetX: 13
+            }
+          },
+          yaxis: {
+            labels: {
+              show: false
+            }
+          }
         }
+      }
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart-bar"),
-            options
-        );
+    })
+  </script>
 
-        chart.render();
-    </script>
 </body>
 
 </html>

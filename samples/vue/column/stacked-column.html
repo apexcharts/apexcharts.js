@@ -2,90 +2,96 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Stacked Column</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Stacked Column</title>
 
-    
-    <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
     </style>
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=bar height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    
-    <script src="../../../dist/apexcharts.js"></script>
+  <script>
+    Vue.use(VueApexCharts);
 
-    <script>
-        var options = {
-            chart: {
-                height: 350,
-                type: 'bar',
-                stacked: true,
-                toolbar: {
-                    show: true
-                },
-                zoom: {
-                    enabled: true
-                }
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+          name: 'PRODUCT A',
+          data: [44, 55, 41, 67, 22, 43]
+        }, {
+          name: 'PRODUCT B',
+          data: [13, 23, 20, 8, 13, 27]
+        }, {
+          name: 'PRODUCT C',
+          data: [11, 17, 15, 15, 21, 14]
+        }, {
+          name: 'PRODUCT D',
+          data: [21, 7, 25, 13, 22, 8]
+        }],
+        chartOptions: {
+          chart: {
+            stacked: true,
+            toolbar: {
+              show: true
             },
-            responsive: [{
-                breakpoint: 700,
-                options: {
-                    legend: {
-                        position: 'bottom',
-                        offsetX: -10,
-                        offsetY: 0
-                    }
-                }
-            }],
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                },
+            zoom: {
+              enabled: true
+            }
+          },
+          responsive: [{
+            breakpoint: 700,
+            options: {
+              legend: {
+                position: 'bottom',
+                offsetX: -10,
+                offsetY: 0
+              }
+            }
+          }],
+          plotOptions: {
+            bar: {
+              horizontal: false,
             },
-            series: [{
-                name: 'PRODUCT A',
-                data: [44, 55, 41, 67, 22, 43]
-            },{
-                name: 'PRODUCT B',
-                data: [13, 23, 20, 8, 13, 27]
-            },{
-                name: 'PRODUCT C',
-                data: [11, 17, 15, 15, 21, 14]
-            },{
-                name: 'PRODUCT D',
-                data: [21, 7, 25, 13, 22, 8]
-            }],
-            xaxis: {
-                type: 'datetime',
-                categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT', '01/04/2011 GMT', '01/05/2011 GMT', '01/06/2011 GMT'],
-            },
-            legend: {
-                position: 'right',
-            },
-            fill: {
-                opacity: 1
-            },
+          },
+
+          xaxis: {
+            type: 'datetime',
+            categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT', '01/04/2011 GMT',
+              '01/05/2011 GMT', '01/06/2011 GMT'
+            ],
+          },
+          legend: {
+            position: 'right',
+          },
+          fill: {
+            opacity: 1
+          }
         }
+      }
+    })
+  </script>
 
-       var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-        
-        chart.render();
-    </script>
 </body>
 
 </html>

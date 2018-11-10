@@ -2,16 +2,16 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Stacked Column</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Stacked Column</title>
 
-    
-    <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
             max-width: 650px;
             margin: 35px auto;
         }
@@ -19,63 +19,69 @@
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=bar height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    
-    <script src="../../../dist/apexcharts.js"></script>
+  <script>
+    Vue.use(VueApexCharts);
 
-    <script>
-        var options = {
-            chart: {
-                height: 350,
-                type: 'bar',
-                stacked: true,
-                stackType: '100%'
-            },
-            responsive: [{
-                breakpoint: 700,
-                options: {
-                    legend: {
-                        position: 'bottom',
-                        offsetX: -10,
-                        offsetY: 0
-                    }
-                }
-            }],
-            series: [{
-                name: 'PRODUCT A',
-                data: [44, 55, 41, 67, 22, 43, 21, 49]
-            },{
-                name: 'PRODUCT B',
-                data: [13, 23, 20, 8, 13, 27, 33, 12]
-            },{
-                name: 'PRODUCT C',
-                data: [11, 17, 15, 15, 21, 14, 15, 13]
-            }],
-            xaxis: {
-                categories: ['2011 Q1', '2011 Q2', '2011 Q3', '2011 Q4', '2012 Q1', '2012 Q2', '2012 Q3', '2012 Q4'],
-            },
-            fill: {
-                opacity: 1
-            },
-            
-            legend: {
-                position: 'right',
-                verticalAlign: 'top',
-                offsetX: 0,
-                offsetY: 50
-            },
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+          name: 'PRODUCT A',
+          data: [44, 55, 41, 67, 22, 43, 21, 49]
+        }, {
+          name: 'PRODUCT B',
+          data: [13, 23, 20, 8, 13, 27, 33, 12]
+        }, {
+          name: 'PRODUCT C',
+          data: [11, 17, 15, 15, 21, 14, 15, 13]
+        }],
+        chartOptions: {
+          chart: {
+            stacked: true,
+            stackType: '100%'
+          },
+          responsive: [{
+            breakpoint: 700,
+            options: {
+              legend: {
+                position: 'bottom',
+                offsetX: -10,
+                offsetY: 0
+              }
+            }
+          }],
+
+          xaxis: {
+            categories: ['2011 Q1', '2011 Q2', '2011 Q3', '2011 Q4', '2012 Q1', '2012 Q2',
+              '2012 Q3', '2012 Q4'
+            ],
+          },
+          fill: {
+            opacity: 1
+          },
+
+          legend: {
+            position: 'right',
+            verticalAlign: 'top',
+            offsetX: 0,
+            offsetY: 50
+          }
         }
+      }
+    })
+  </script>
 
-       var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-        
-        chart.render();
-    </script>
 </body>
 
 </html>

@@ -2,118 +2,113 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Simple Bubble</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Simple Bubble</title>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
+  <style>
+    #chart {
             max-width: 650px;
             margin: 35px auto;
         }
     </style>
 </head>
 
+
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=bubble height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
 
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    <script src="../../../dist/apexcharts.js"></script>
+  <script>
+    Vue.use(VueApexCharts);
 
-    <script>
-        /*
-        // this function will generate output in this format
-        // data = [
-            [timestamp, 23],
-            [timestamp, 33],
-            [timestamp, 12]
-            ...
-        ]
-        */
-        function generateData(baseval, count, yrange) {
-            var i = 0;
-            var series = [];
-            while (i < count) {
-                var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1;;
-                var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-                var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15;
+    function generateData(baseval, count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1;;
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+        var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15;
 
-                series.push([x, y, z]);
-                baseval += 86400000;
-                i++;
+        series.push([x, y, z]);
+        baseval += 86400000;
+        i++;
+      }
+      return series;
+    }
+
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+            name: 'Bubble1',
+            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          },
+          {
+            name: 'Bubble2',
+            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          },
+          {
+            name: 'Bubble3',
+            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          },
+          {
+            name: 'Bubble4',
+            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          }
+        ],
+        chartOptions: {
+
+          dataLabels: {
+            enabled: false
+          },
+
+          fill: {
+            opacity: 0.8,
+            gradient: {
+              enabled: false
             }
-            return series;
+          },
+          title: {
+            text: 'Simple Bubble Chart'
+          },
+          xaxis: {
+            tickAmount: 12,
+            type: 'category',
+          },
+          yaxis: {
+            max: 70
+          }
         }
+      }
+    })
+  </script>
 
-
-        var options = {
-            chart: {
-                height: 350,
-                type: 'bubble',
-            },
-            dataLabels: {
-                enabled: false
-            },
-            series: [{
-                    name: 'Bubble1',
-                    data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                        min: 10,
-                        max: 60
-                    })
-                },
-                {
-                    name: 'Bubble2',
-                    data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                        min: 10,
-                        max: 60
-                    })
-                },
-                {
-                    name: 'Bubble3',
-                    data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                        min: 10,
-                        max: 60
-                    })
-                },
-                {
-                    name: 'Bubble4',
-                    data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                        min: 10,
-                        max: 60
-                    })
-                }
-            ],
-            fill: {
-                opacity: 0.8,
-                gradient: {
-                    enabled: false
-                }
-            },
-            title: {
-                text: 'Simple Bubble Chart'
-            },
-            xaxis: {
-                tickAmount: 12,
-                type: 'category',
-            },
-            yaxis: {
-                max: 70
-            }
-        }
-
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
-    </script>
 </body>
 
 </html>

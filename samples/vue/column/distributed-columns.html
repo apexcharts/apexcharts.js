@@ -2,76 +2,83 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Distributed Bar</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Distributed Bar</title>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-        #chart .apexcharts-xaxis-label {
-            font-weight: bold;
-        }
+  <style>
+    #chart {
+        max-width: 650px;
+        margin: 35px auto;
+    }
+    #chart .apexcharts-xaxis-label {
+        font-weight: bold;
+    }
     </style>
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=bar height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
+  <script>
+    Vue.use(VueApexCharts);
 
-    <script src="../../../dist/apexcharts.js"></script>
-
-    <script>
-        var colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8'];
-        var options = {
-            chart: {
-                height: 350,
-                type: 'bar',
-                events: {
-                    click: function(chart, w, e) {
-                        console.log(chart, w, e )
-                    }
-                },
+    var colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8'];
+    
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+          data: [21, 22, 10, 28, 16, 21, 13, 30]
+        }],
+        chartOptions: {
+          chart: {
+            height: 350,
+            type: 'bar',
+            events: {
+              click: function (chart, w, e) {
+                console.log(chart, w, e)
+              }
             },
-            colors: colors,
-            plotOptions: {
-                bar: {
-                    columnWidth: '45%',
-                    distributed: true
-                }
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            series: [{
-                data: [21, 22, 10, 28, 16, 21, 13, 30]
-            }],
-            xaxis: {
-                categories: ['John', 'Joe', 'Jake', 'Amber', 'Peter', 'Mary', 'David', 'Lily'],
-                labels: {
-                    style: {
-                        colors: colors,
-                        fontSize: '14px'
-                    }
-                }
+          },
+          colors: colors,
+          plotOptions: {
+            bar: {
+              columnWidth: '45%',
+              distributed: true
             }
+          },
+          dataLabels: {
+            enabled: false,
+          },
+
+          xaxis: {
+            categories: ['John', 'Joe', 'Jake', 'Amber', 'Peter', 'Mary', 'David', 'Lily'],
+            labels: {
+              style: {
+                colors: colors,
+                fontSize: '14px'
+              }
+            }
+          }
         }
+      }
+    })
+  </script>
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
-    </script>
 </body>
 
 </html>
