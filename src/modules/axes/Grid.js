@@ -82,9 +82,6 @@ class Grid {
         gl.dom.elGraphical.add(elgridArea)
       }
 
-      const coreUtils = new CoreUtils(this)
-      coreUtils.getLargestMarkerSize()
-
       if (elgrid !== null) {
         xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
       }
@@ -103,11 +100,26 @@ class Grid {
     )
     gl.dom.elGridRectMask.setAttribute('id', `gridRectMask${gl.cuid}`)
 
+    gl.dom.elGridRectMarkerMask = document.createElementNS(
+      gl.svgNS,
+      'clipPath'
+    )
+    gl.dom.elGridRectMarkerMask.setAttribute('id', `gridRectMarkerMask${gl.cuid}`)
+
     gl.dom.elGridRect = graphics.drawRect(0, 0, gl.gridWidth, gl.gridHeight, 0, '#fff')
+
+    const coreUtils = new CoreUtils(this)
+    coreUtils.getLargestMarkerSize()
+
+    const markerSize = w.globals.markers.largestSize + w.config.markers.hover.sizeOffset + 1
+
+    gl.dom.elGridRectMarker = graphics.drawRect(-markerSize, -markerSize, gl.gridWidth + markerSize * 2, gl.gridHeight + markerSize * 2, 0, '#fff')
     gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node)
+    gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node)
 
     let defs = gl.dom.baseEl.querySelector('defs')
     defs.appendChild(gl.dom.elGridRectMask)
+    defs.appendChild(gl.dom.elGridRectMarkerMask)
   }
 
   // actual grid rendering

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Custom Legend</title>
+
+  
+  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretty-checkbox@3.0/dist/pretty-checkbox.min.css">
+  <link rel="stylesheet" href="">
+
+  <style>
+
+    #chart-wrap {
+      max-width: 650px;
+      position: relative;
+      margin: 35px auto;
+    }
+
+    #chart {
+      padding-bottom: 30px;
+      max-width: 650px;
+    }
+
+    .legend {
+      max-width: 650px;
+      left: 80px;
+      bottom: 20px;
+      position: absolute;
+      text-align: center;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="chart-wrap">
+      <div id="chart">
+    
+      </div>
+    
+      <div class="legend">
+          <div class="pretty p-svg p-smooth">
+              <input type="checkbox" checked onclick="toggleSeries(this)" value="Series Column">
+              <div class="state p-primary">
+                  <svg class="svg svg-icon" viewBox="0 0 20 20">
+                      <path d="M7.629,14.566c0.125,0.125,0.291,0.188,0.456,0.188c0.164,0,0.329-0.062,0.456-0.188l8.219-8.221c0.252-0.252,0.252-0.659,0-0.911c-0.252-0.252-0.659-0.252-0.911,0l-7.764,7.763L4.152,9.267c-0.252-0.251-0.66-0.251-0.911,0c-0.252,0.252-0.252,0.66,0,0.911L7.629,14.566z" style="stroke: #fff;fill:#fff;"></path>
+                  </svg>
+                  <label>Column</label>
+              </div>
+          </div>
+      
+          <div class="pretty  p-svg p-smooth">
+              <input type="checkbox" checked onclick="toggleSeries(this)" value="Series Area">
+              <div class="state p-success">
+                  <svg class="svg svg-icon" viewBox="0 0 20 20">
+                      <path d="M7.629,14.566c0.125,0.125,0.291,0.188,0.456,0.188c0.164,0,0.329-0.062,0.456-0.188l8.219-8.221c0.252-0.252,0.252-0.659,0-0.911c-0.252-0.252-0.659-0.252-0.911,0l-7.764,7.763L4.152,9.267c-0.252-0.251-0.66-0.251-0.911,0c-0.252,0.252-0.252,0.66,0,0.911L7.629,14.566z" style="stroke: #fff;fill:#fff;"></path>
+                  </svg>
+                  <label>Area</label>
+              </div>
+          </div>
+      
+          <div class="pretty p-svg p-smooth">
+              <input type="checkbox" onclick="toggleSeries(this)" value="Series Line">
+              <div class="state p-warning">
+                  <svg class="svg svg-icon" viewBox="0 0 20 20">
+                      <path d="M7.629,14.566c0.125,0.125,0.291,0.188,0.456,0.188c0.164,0,0.329-0.062,0.456-0.188l8.219-8.221c0.252-0.252,0.252-0.659,0-0.911c-0.252-0.252-0.659-0.252-0.911,0l-7.764,7.763L4.152,9.267c-0.252-0.251-0.66-0.251-0.911,0c-0.252,0.252-0.252,0.66,0,0.911L7.629,14.566z" style="stroke: #fff;fill:#fff;"></path>
+                  </svg>
+                  <label>Line</label>
+              </div>
+          </div>
+    
+      </div>
+  </div>
+  
+
+
+  <script src="../../../dist/apexcharts.js"></script>
+
+  <script>
+
+
+    var options = {
+      chart: {
+        height: 310,
+        type: 'line',
+        stacked: false,
+      },
+      stroke: {
+        width: [0, 2, 5],
+        curve: 'smooth'
+      },
+      plotOptions: {
+        bar: {
+          columnWidth: '50%'
+        }
+      },
+      series: [{
+        name: 'Series Column',
+        type: 'column',
+        data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
+      }, {
+        name: 'Series Area',
+        type: 'area',
+        data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
+      }, {
+        name: 'Series Line',
+        type: 'line',
+        data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
+      }],
+      fill: {
+        opacity: [0.85,0.25,1],
+				gradient: {
+					inverseColors: false,
+					shade: 'light',
+					type: "vertical",
+					opacityFrom: 0.85,
+					opacityTo: 0.55,
+					stops: [0, 100, 100, 100]
+				}
+      },
+      labels: ['01/01/2003', '02/01/2003','03/01/2003','04/01/2003','05/01/2003','06/01/2003','07/01/2003','08/01/2003','09/01/2003','10/01/2003','11/01/2003'],
+      markers: {
+        size: 0
+      },
+      xaxis: {
+        type:'datetime'
+      },
+      yaxis: {
+        title: {
+          text: 'Points',
+        },
+        min: 0
+      },
+      legend: {
+        show: false
+      },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        y: {
+          formatter: function (y) {
+            if(typeof y !== "undefined") {
+              return  y.toFixed(0) + " points";
+            }
+            return y;
+            
+          }
+        }
+      }
+
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#chart"),
+      options
+    );
+
+    chart.render();
+
+
+    // check if the checkbox has any unchecked item
+    checkLegends()
+
+    function checkLegends() {
+      var allLegends = document.querySelectorAll(".legend input[type='checkbox']")
+
+      for(var i = 0; i < allLegends.length; i++) {
+        if(!allLegends[i].checked) {
+          chart.toggleSeries(allLegends[i].value)
+        }
+      }
+    }
+
+    // toggleSeries accepts a single argument which should match the series name you're trying to toggle
+    function toggleSeries(checkbox) {
+      chart.toggleSeries(checkbox.value)
+    }
+
+  </script>
+</body>
+
+</html>

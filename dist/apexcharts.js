@@ -3417,6 +3417,8 @@ var Markers = function () {
         elPointsWrap = graphics.group({
           class: 'apexcharts-series-markers'
         });
+
+        elPointsWrap.attr('clip-path', 'url(#gridRectMarkerMask' + w.globals.cuid + ')');
       }
 
       if (p.x instanceof Array) {
@@ -5134,6 +5136,16 @@ var Dimensions = function () {
         offY = offY + w.config.plotOptions.pie.offsetY;
       } else if (w.config.chart.type === 'radialBar') {
         offY = offY + w.config.plotOptions.radialBar.offsetY;
+      }
+
+      if (!w.config.legend.show) {
+        gl.gridHeight = gl.svgHeight - 35;
+        gl.gridWidth = gl.gridHeight;
+
+        gl.translateY = offY - 10;
+        gl.translateX = (gl.svgWidth - gl.gridWidth) / 2;
+
+        return;
       }
 
       switch (w.config.legend.position) {
@@ -7050,7 +7062,7 @@ var Options = function () {
                 fontSize: '16px',
                 fontFamily: undefined,
                 color: undefined,
-                offsetY: -10
+                offsetY: 0
               },
               value: {
                 show: true,
@@ -7063,13 +7075,13 @@ var Options = function () {
                 }
               },
               total: {
-                show: true,
+                show: false,
                 label: 'Total',
                 color: '#373d3f',
                 formatter: function formatter(w) {
                   return w.globals.seriesTotals.reduce(function (a, b) {
                     return a + b;
-                  }, 0) / w.globals.series.length;
+                  }, 0) / w.globals.series.length + '%';
                 }
               }
             }
@@ -7078,25 +7090,37 @@ var Options = function () {
             size: undefined,
             donut: {
               size: '65%',
-              background: 'transparent'
-              // TODO: draw labels in donut area
-              // labels: {
-              //   name: {
-              //     show: false,
-              //     fontSize: '14px',
-              //     color: undefined,
-              //     offsetY: -10
-              //   },
-              //   value: {
-              //     show: true,
-              //     offsetY: 16,
-              //     fontSize: '12px',
-              //     color: undefined,
-              //     formatter: function (val) {
-              //       return val + '%'
-              //     }
-              //   }
-              // }
+              background: 'transparent',
+              labels: {
+                show: true,
+                name: {
+                  show: true,
+                  fontSize: '16px',
+                  fontFamily: undefined,
+                  color: undefined,
+                  offsetY: -10
+                },
+                value: {
+                  show: true,
+                  fontSize: '20px',
+                  fontFamily: undefined,
+                  color: undefined,
+                  offsetY: 10,
+                  formatter: function formatter(val) {
+                    return val;
+                  }
+                },
+                total: {
+                  show: true,
+                  label: 'Total',
+                  color: '#373d3f',
+                  formatter: function formatter(w) {
+                    return w.globals.seriesTotals.reduce(function (a, b) {
+                      return a + b;
+                    }, 0);
+                  }
+                }
+              }
             },
             customScale: 0,
             offsetX: 0,
@@ -8345,6 +8369,8 @@ var Pie = function () {
     this.animBeginArr = [0];
     this.animDur = 0;
 
+    this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
+
     var w = this.w;
 
     this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
@@ -8414,6 +8440,17 @@ var Pie = function () {
       }
 
       this.donutSize = this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100;
+
+      if (this.donutDataLabels.show) {
+        var dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
+          hollowSize: this.donutSize,
+          centerX: this.centerX,
+          centerY: this.centerY,
+          opacity: this.donutDataLabels.show
+        });
+
+        ret.add(dataLabels);
+      }
 
       var scaleSize = 1 + w.config.plotOptions.pie.customScale;
       var halfW = w.globals.gridWidth / 2;
@@ -8621,8 +8658,9 @@ var Pie = function () {
       var graphics = new _Graphics2.default(this.ctx);
       // append filters on mouseenter and mouseleave
       elPath.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this, elPath));
+      elPath.node.addEventListener('mouseenter', this.dataLabelsMouseIn.bind(this, elPath.node, this.donutDataLabels));
       elPath.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, elPath));
-
+      elPath.node.addEventListener('mouseleave', this.dataLabelsMouseout.bind(this, elPath.node, this.donutDataLabels));
       elPath.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, elPath));
     }
 
@@ -8742,7 +8780,7 @@ var Pie = function () {
       var me = this;
       var path = void 0;
 
-      var size = me.size + 10;
+      var size = me.size + 5;
       var elPath = w.globals.dom.Paper.select('#apexcharts-pieSlice-' + i).members[0];
 
       var pathFrom = elPath.attr('d');
@@ -8835,6 +8873,160 @@ var Pie = function () {
 
       return path;
     }
+  }, {
+    key: 'renderInnerDataLabels',
+    value: function renderInnerDataLabels(dataLabelsConfig, opts) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var g = graphics.group({
+        class: 'apexcharts-datalabels-group'
+      });
+
+      var showTotal = w.globals.series.length > 1 && dataLabelsConfig.total.show;
+
+      g.node.style.opacity = opts.opacity;
+
+      var x = opts.centerX;
+      var y = opts.centerY;
+
+      var labelColor = void 0,
+          valueColor = void 0;
+
+      if (dataLabelsConfig.name.color === undefined) {
+        labelColor = w.globals.colors[0];
+      } else {
+        labelColor = dataLabelsConfig.name.color;
+      }
+
+      var lbFormatter = dataLabelsConfig.value.formatter;
+      var val = lbFormatter(w.globals.series[0], w);
+
+      if (showTotal) {
+        labelColor = dataLabelsConfig.total.color;
+        val = dataLabelsConfig.total.formatter(w);
+      }
+
+      if (dataLabelsConfig.value.color === undefined) {
+        valueColor = w.config.chart.foreColor;
+      } else {
+        valueColor = dataLabelsConfig.value.color;
+      }
+
+      if (dataLabelsConfig.name.show) {
+        var elLabel = graphics.drawText({
+          x: x,
+          y: y + parseInt(dataLabelsConfig.name.offsetY) - w.globals.translateY + 5,
+          text: showTotal ? dataLabelsConfig.total.label : w.globals.seriesNames[0],
+          textAnchor: 'middle',
+          foreColor: labelColor,
+          fontSize: dataLabelsConfig.name.fontSize,
+          fontFamily: dataLabelsConfig.name.fontFamily
+        });
+        elLabel.node.classList.add('apexcharts-datalabel-label');
+        g.add(elLabel);
+      }
+
+      if (dataLabelsConfig.value.show) {
+        var valOffset = dataLabelsConfig.name.show ? parseInt(dataLabelsConfig.value.offsetY) + 16 : dataLabelsConfig.value.offsetY;
+
+        var elValue = graphics.drawText({
+          x: x,
+          y: y + valOffset - w.globals.translateY + 5,
+          text: val,
+          textAnchor: 'middle',
+          foreColor: valueColor,
+          fontSize: dataLabelsConfig.value.fontSize,
+          fontFamily: dataLabelsConfig.value.fontFamily
+        });
+        elValue.node.classList.add('apexcharts-datalabel-value');
+        g.add(elValue);
+      }
+
+      // for a multi-series circle chart, we need to show total value instead of first series labels
+
+      return g;
+    }
+
+    /**
+     *
+     * @param {string} name - The name of the series
+     * @param {string} val - The value of that series
+     * @param {object} el - Optional el (indicates which series was hovered). If this param is not present, means we need to show total
+     */
+
+  }, {
+    key: 'printInnerLabels',
+    value: function printInnerLabels(labelsConfig, name, val, el) {
+      var w = this.w;
+
+      var labelColor = void 0;
+
+      if (el) {
+        if (labelsConfig.name.color === undefined) {
+          labelColor = w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1];
+        } else {
+          labelColor = labelsConfig.name.color;
+        }
+      } else {
+        if (w.globals.series.length > 1 && labelsConfig.total.show) {
+          labelColor = labelsConfig.total.color;
+        }
+      }
+
+      var elLabel = w.globals.dom.baseEl.querySelector('.apexcharts-datalabel-label');
+      var elValue = w.globals.dom.baseEl.querySelector('.apexcharts-datalabel-value');
+
+      var lbFormatter = labelsConfig.value.formatter;
+      val = lbFormatter(val, w);
+
+      // we need to show Total Val - so get the formatter of it
+      if (!el && typeof labelsConfig.total.formatter === 'function') {
+        val = labelsConfig.total.formatter(w);
+      }
+
+      if (elLabel !== null) {
+        elLabel.textContent = name;
+      }
+
+      if (elValue !== null) {
+        elValue.textContent = val;
+      }
+      if (elLabel !== null) {
+        elLabel.style.fill = labelColor;
+      }
+    }
+  }, {
+    key: 'dataLabelsMouseIn',
+    value: function dataLabelsMouseIn(el, dataLabelsConfig) {
+      var w = this.w;
+
+      var val = el.getAttribute('data:value');
+      var name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1];
+
+      if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
+        this.printInnerLabels(dataLabelsConfig, name, val, el);
+      }
+
+      var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
+      if (dataLabelsGroup !== null) {
+        dataLabelsGroup.style.opacity = 1;
+      }
+    }
+  }, {
+    key: 'dataLabelsMouseout',
+    value: function dataLabelsMouseout(el, dataLabelsConfig) {
+      var w = this.w;
+      var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
+      if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
+        var pie = new Pie(this.ctx);
+        pie.printInnerLabels(dataLabelsConfig, dataLabelsConfig.total.label, dataLabelsConfig.total.formatter(w));
+      } else {
+        if (dataLabelsGroup !== null && w.globals.series.length > 1) {
+          dataLabelsGroup.style.opacity = 0;
+        }
+      }
+    }
   }]);
 
   return Pie;
@@ -8916,6 +9108,8 @@ var Scatter = function () {
       var elPointsWrap = graphics.group({
         class: 'apexcharts-series-markers apexcharts-series-' + w.config.chart.type
       });
+
+      elPointsWrap.attr('clip-path', 'url(#gridRectMarkerMask' + w.globals.cuid + ')');
 
       if (pointsPos.x instanceof Array) {
         for (var q = 0; q < pointsPos.x.length; q++) {
@@ -12418,6 +12612,7 @@ var ApexCharts = function () {
       domEls.baseEl = null;
       domEls.elGridRect = null;
       domEls.elGridRectMask = null;
+      domEls.elGridRectMarkerMask = null;
       domEls.elDefs = null;
     }
 
@@ -16186,8 +16381,6 @@ var Radial = function (_Pie) {
     key: 'drawArcs',
     value: function drawArcs(opts) {
       var w = this.w;
-
-      var self = this;
       // size, donutSize, centerX, centerY, colorArr, lineColorArr, sectorAngleArr, series
 
       var graphics = new _Graphics2.default(this.ctx);
@@ -16224,7 +16417,9 @@ var Radial = function (_Pie) {
         shown = 0;
       }
 
-      var dataLabels = this.renderDataLabels({
+      var pie = new _Pie3.default(this.ctx);
+
+      var dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
         hollowSize: hollowSize,
         centerX: opts.centerX,
         centerY: opts.centerY,
@@ -16309,17 +16504,17 @@ var Radial = function (_Pie) {
 
         this.addListeners(elPath);
 
-        elPath.node.addEventListener('mouseenter', self.dataLabelsMouseIn.bind(this, elPath.node));
-        elPath.node.addEventListener('mouseleave', self.dataLabelsMouseout.bind(this, elPath.node));
+        var _pie = new _Pie3.default(this.ctx);
+
+        elPath.node.addEventListener('mouseenter', _pie.dataLabelsMouseIn.bind(this, elPath.node, this.radialDataLabels));
+        elPath.node.addEventListener('mouseleave', _pie.dataLabelsMouseout.bind(this, elPath.node, this.radialDataLabels));
 
         elRadialBarArc.add(elPath);
 
         elPath.attr('id', 'apexcharts-radialArc-' + i);
 
-        var pie = new _Pie3.default(this.ctx);
-
         var dur = 0;
-        if (pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+        if (_pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
           dur = (endAngle - startAngle) / 360 * w.config.chart.animations.speed;
 
           this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
@@ -16333,7 +16528,7 @@ var Radial = function (_Pie) {
           this.animBeginArr.push(this.animDur);
         }
 
-        pie.animatePaths(elPath, {
+        _pie.animatePaths(elPath, {
           centerX: opts.centerX,
           centerY: opts.centerY,
           endAngle: endAngle,
@@ -16406,168 +16601,11 @@ var Radial = function (_Pie) {
       }
       return hollowFillID;
     }
-
-    /**
-     * This static method allows users to call chart methods without necessarily from the
-     * instance of the chart in case user has assigned chartID to the targetted chart.
-     * The chartID is used for mapping the instance stored in Apex._chartInstances global variable
-     *
-     * This is helpful in cases when you don't have reference of the chart instance
-     * easily and need to call the method from anywhere.
-     * For eg, in React/Vue applications when you have many parent/child components,
-     * and need easy reference to other charts for performing dynamic operations
-     *
-     * @param {string} name - The name of the series
-     * @param {string} val - The value of that series
-     * @param {object} el - Optional el (indicates which series was hovered). If this param is not present, means we need to show total
-     */
-
-  }, {
-    key: 'printLabels',
-    value: function printLabels(name, val, el) {
-      var w = this.w;
-
-      var labelColor = void 0;
-
-      if (el) {
-        if (this.radialDataLabels.name.color === undefined) {
-          labelColor = w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1];
-        } else {
-          labelColor = this.radialDataLabels.name.color;
-        }
-      } else {
-        if (w.globals.series.length > 1 && this.radialDataLabels.total.show) {
-          labelColor = this.radialDataLabels.total.color;
-        }
-      }
-
-      var elLabel = w.globals.dom.baseEl.querySelector('.apexcharts-datalabel-label');
-      var elValue = w.globals.dom.baseEl.querySelector('.apexcharts-datalabel-value');
-
-      var lbFormatter = this.radialDataLabels.value.formatter;
-      val = lbFormatter(val, w);
-
-      // we need to show Total Val - so get the formatter of it
-      if (!el && typeof this.radialDataLabels.total.formatter === 'function') {
-        val = this.radialDataLabels.total.formatter(w);
-      }
-
-      if (elLabel !== null) {
-        elLabel.textContent = name;
-      }
-
-      if (elValue !== null) {
-        elValue.textContent = val;
-      }
-      if (elLabel !== null) {
-        elLabel.style.fill = labelColor;
-      }
-    }
-  }, {
-    key: 'dataLabelsMouseIn',
-    value: function dataLabelsMouseIn(el) {
-      var w = this.w;
-
-      var val = el.getAttribute('data:value');
-      var name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1];
-
-      this.printLabels(name, val, el);
-
-      var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
-      if (dataLabelsGroup !== null) {
-        dataLabelsGroup.style.opacity = 1;
-      }
-    }
-  }, {
-    key: 'dataLabelsMouseout',
-    value: function dataLabelsMouseout(el) {
-      var w = this.w;
-      var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
-      if (this.radialDataLabels.total.show && w.globals.series.length > 1) {
-        this.printLabels(this.radialDataLabels.total.label, this.radialDataLabels.total.formatter(w));
-      } else {
-        if (dataLabelsGroup !== null) {
-          dataLabelsGroup.style.opacity = 0;
-        }
-      }
-    }
   }, {
     key: 'getStrokeWidth',
     value: function getStrokeWidth(opts) {
       var w = this.w;
       return opts.size * (100 - parseInt(w.config.plotOptions.radialBar.hollow.size)) / 100 / (opts.series.length + 1) - this.margin;
-    }
-  }, {
-    key: 'renderDataLabels',
-    value: function renderDataLabels(opts) {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var g = graphics.group({
-        class: 'apexcharts-datalabels-group'
-      });
-
-      g.node.style.opacity = opts.opacity;
-
-      var x = opts.centerX;
-      var y = opts.centerY;
-
-      var labelColor = void 0,
-          valueColor = void 0;
-
-      if (this.radialDataLabels.name.color === undefined) {
-        labelColor = w.globals.colors[0];
-      } else {
-        labelColor = this.radialDataLabels.name.color;
-      }
-
-      if (w.globals.series.length > 1 && this.radialDataLabels.total.show) {
-        labelColor = this.radialDataLabels.total.color;
-      }
-
-      if (this.radialDataLabels.value.color === undefined) {
-        valueColor = w.config.chart.foreColor;
-      } else {
-        valueColor = this.radialDataLabels.value.color;
-      }
-
-      var lbFormatter = this.radialDataLabels.value.formatter;
-      var val = lbFormatter(w.globals.series[0], w);
-
-      if (this.radialDataLabels.name.show) {
-        var elLabel = graphics.drawText({
-          x: x,
-          y: y + parseInt(this.radialDataLabels.name.offsetY),
-          text: w.globals.seriesNames[0],
-          textAnchor: 'middle',
-          foreColor: labelColor,
-          fontSize: this.radialDataLabels.name.fontSize,
-          fontFamily: this.radialDataLabels.name.fontFamily
-        });
-        elLabel.node.classList.add('apexcharts-datalabel-label');
-        g.add(elLabel);
-      }
-
-      if (this.radialDataLabels.value.show) {
-        var valOffset = this.radialDataLabels.name.show ? parseInt(this.radialDataLabels.value.offsetY) + 16 : this.radialDataLabels.value.offsetY;
-
-        var elValue = graphics.drawText({
-          x: x,
-          y: y + valOffset,
-          text: val,
-          textAnchor: 'middle',
-          foreColor: valueColor,
-          fontSize: this.radialDataLabels.value.fontSize,
-          fontFamily: this.radialDataLabels.value.fontFamily
-        });
-        elValue.node.classList.add('apexcharts-datalabel-value');
-        g.add(elValue);
-      }
-
-      // for a multi-series circle chart, we need to show total value instead of first series labels
-      this.dataLabelsMouseout();
-
-      return g;
     }
   }]);
 
@@ -16614,6 +16652,10 @@ var Annotations = function () {
     this.w = ctx.w;
     this.graphics = new _Graphics2.default(this.ctx);
 
+    if (this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal) {
+      this.invertAxis = true;
+    }
+
     this.xDivision = this.w.globals.gridWidth / this.w.globals.dataPoints;
   }
 
@@ -16650,9 +16692,12 @@ var Annotations = function () {
     value: function addXaxisAnnotation(anno, parent, index) {
       var w = this.w;
 
+      var min = this.invertAxis ? w.globals.minY : w.globals.minX;
+      var range = this.invertAxis ? w.globals.yRange[0] : w.globals.xRange;
+
       var strokeDashArray = anno.strokeDashArray;
 
-      var x1 = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth);
+      var x1 = (anno.x - min) / (range / w.globals.gridWidth);
 
       var line = this.graphics.drawLine(x1 + anno.offsetX, 0 + anno.offsetY, x1 + anno.offsetX, w.globals.gridHeight + anno.offsetY, anno.borderColor, strokeDashArray);
       parent.appendChild(line.node);
@@ -16702,7 +16747,16 @@ var Annotations = function () {
 
       var strokeDashArray = anno.strokeDashArray;
 
-      var y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+      var y1 = void 0;
+
+      if (this.invertAxis) {
+        var catIndex = w.globals.labels.indexOf(anno.y);
+        var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
+
+        y1 = parseInt(xLabel.getAttribute('y'));
+      } else {
+        y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+      }
 
       var text = anno.label.text ? anno.label.text : '';
 
@@ -16765,11 +16819,12 @@ var Annotations = function () {
       var x = 0;
       var y = 0;
       var pointY = 0;
-      if (typeof anno.x === 'string') {
-        if (w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal) {
-          // todo
-        }
 
+      if (this.invertAxis) {
+        console.warn('Point annotation is not supported in horizontal bar charts.');
+      }
+
+      if (typeof anno.x === 'string') {
         var catIndex = w.globals.labels.indexOf(anno.x);
         var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
 
@@ -20179,9 +20234,6 @@ var Grid = function () {
           gl.dom.elGraphical.add(elgridArea);
         }
 
-        var coreUtils = new _CoreUtils2.default(this);
-        coreUtils.getLargestMarkerSize();
-
         if (elgrid !== null) {
           xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth);
         }
@@ -20200,11 +20252,23 @@ var Grid = function () {
       gl.dom.elGridRectMask = document.createElementNS(gl.svgNS, 'clipPath');
       gl.dom.elGridRectMask.setAttribute('id', 'gridRectMask' + gl.cuid);
 
+      gl.dom.elGridRectMarkerMask = document.createElementNS(gl.svgNS, 'clipPath');
+      gl.dom.elGridRectMarkerMask.setAttribute('id', 'gridRectMarkerMask' + gl.cuid);
+
       gl.dom.elGridRect = graphics.drawRect(0, 0, gl.gridWidth, gl.gridHeight, 0, '#fff');
+
+      var coreUtils = new _CoreUtils2.default(this);
+      coreUtils.getLargestMarkerSize();
+
+      var markerSize = w.globals.markers.largestSize + w.config.markers.hover.sizeOffset + 1;
+
+      gl.dom.elGridRectMarker = graphics.drawRect(-markerSize, -markerSize, gl.gridWidth + markerSize * 2, gl.gridHeight + markerSize * 2, 0, '#fff');
       gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node);
+      gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node);
 
       var defs = gl.dom.baseEl.querySelector('defs');
       defs.appendChild(gl.dom.elGridRectMask);
+      defs.appendChild(gl.dom.elGridRectMarkerMask);
     }
 
     // actual grid rendering
@@ -20817,6 +20881,15 @@ var Defaults = function () {
             show: false
           }
         },
+        plotOptions: {
+          pie: {
+            donut: {
+              labels: {
+                show: false
+              }
+            }
+          }
+        },
         dataLabels: {
           formatter: function formatter(val) {
             return val.toFixed(1) + '%';
@@ -20885,6 +20958,7 @@ var Defaults = function () {
           }
         },
         tooltip: {
+          enabled: false,
           theme: 'dark',
           fillSeriesColor: true
         },
@@ -21054,6 +21128,7 @@ var Globals = function () {
         // elGraphical: null, // this contains lines/areas/bars/pies
         // elGridRect: null, // paths going outside this area will be clipped
         // elGridRectMask: null, // clipping will happen with this mask
+        // elGridRectMarkerMask: null, // clipping will happen with this mask
         // elLegendWrap: null, // the whole legend area
         // elDefs: null, // [defs] element
         memory: {

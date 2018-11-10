@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Basic Area</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+  <div id="chart">
+    <apexchart type=area height=350 :options="chartOptions" :series="series" />
+  </div>
+
+
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/stock-prices.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+  <script>
+    Vue.use(VueApexCharts);
+
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+          name: "STOCK ABC",
+          data: series.monthDataSeries1.prices
+        }],
+        chartOptions: {
+          chart: {
+            zoom: {
+              enabled: false
+            }
+          },
+          dataLabels: {
+            enabled: false
+          },
+          stroke: {
+            curve: 'straight'
+          },
+          series: [{
+            name: "STOCK ABC",
+            data: series.monthDataSeries1.prices
+          }],
+          title: {
+            text: 'Fundamental Analysis of Stocks',
+            align: 'left'
+          },
+          subtitle: {
+            text: 'Price Movements',
+            align: 'left'
+          },
+          labels: series.monthDataSeries1.dates,
+          xaxis: {
+            type: 'datetime',
+          },
+          yaxis: {
+            opposite: true
+          },
+          legend: {
+            horizontalAlign: 'left'
+          }
+        }
+
+      }
+
+    })
+  </script>
+
+</body>
+
+</html>

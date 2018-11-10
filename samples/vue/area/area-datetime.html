@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Area Chart - Datetime X-Axis</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+
+    .toolbar {
+      margin-left: 45px;
+    }
+
+    button {
+      background: #fff;
+      color: #222;
+      border: 1px solid #e7e7e7;
+      border-bottom: 2px solid #ddd;
+      border-radius: 2px;
+      padding: 4px 17px;
+    }
+
+    button.active {
+      color: #fff;
+      background: #008FFB;
+      border: 1px solid blue;
+      border-bottom: 2px solid blue;
+    }
+
+    button:focus {
+      outline: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="chart">
+    <div class="toolbar">
+      <button @click="updateData('one_month')" id="one_month" :class="{active: selection==='one_month'}">1M</button>
+      <button @click="updateData('six_months')" id="six_months" :class="{active: selection==='six_months'}">6M</button>
+      <button @click="updateData('one_year')" id="one_year" :class="{active: selection==='one_year'}">1Y</button>
+      <button @click="updateData('ytd')" id="ytd" :class="{active: selection==='ytd'}">YTD</button>
+      <button @click="updateData('all')" id="all" :class="{active: selection==='all'}">ALL</button>
+    </div>
+    <apexchart type=area height=350 :options="chartOptions" :series="series" />
+  </div>
+
+
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/series1000.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+  <script>
+    Vue.use(VueApexCharts);
+
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        selection: 'one_year',
+        series: [{
+          data: dateSeries1
+        }],
+        chartOptions: {
+          annotations: {
+            yaxis: [{
+              y: 30,
+              borderColor: '#999',
+              label: {
+                show: true,
+                text: 'Support',
+                style: {
+                  color: "#fff",
+                  background: '#00E396'
+                }
+              }
+            }],
+            xaxis: [{
+              x: new Date('14 Nov 2012').getTime(),
+              borderColor: '#999',
+              yAxisIndex: 0,
+              label: {
+                show: true,
+                text: 'Rally',
+                style: {
+                  color: "#fff",
+                  background: '#775DD0'
+                }
+              }
+            }]
+          },
+          dataLabels: {
+            enabled: false
+          },
+
+          markers: {
+            size: 0,
+            style: 'hollow',
+          },
+          xaxis: {
+            type: 'datetime',
+            min: new Date('01 Mar 2012').getTime(),
+            tickAmount: 6,
+          },
+          tooltip: {
+            x: {
+              format: 'dd MMM yyyy'
+            }
+          },
+          fill: {
+            type: 'gradient',
+            gradient: {
+              shadeIntensity: 1,
+              opacityFrom: 0.7,
+              opacityTo: 0.9,
+              stops: [0, 100]
+            }
+          },
+        }
+      },
+      methods: {
+        updateData: function (timeline) {
+          this.selection = timeline;
+          
+          switch (timeline) {
+            case 'one_month':
+              this.chartOptions = {
+                xaxis: {
+                  min: new Date('28 Jan 2013').getTime(),
+                  max: new Date('27 Feb 2013').getTime(),
+                }
+              }
+              break;
+            case 'six_months':
+              this.chartOptions = {
+                xaxis: {
+                  min: new Date('27 Sep 2012').getTime(),
+                  max: new Date('27 Feb 2013').getTime(),
+                }
+              }
+              break;
+            case 'one_year':
+              this.chartOptions = {
+                xaxis: {
+                  min: new Date('27 Feb 2012').getTime(),
+                  max: new Date('27 Feb 2013').getTime(),
+                }
+              }
+              break;
+            case 'ytd':
+              this.chartOptions = {
+                xaxis: {
+                  min: new Date('01 Jan 2013').getTime(),
+                  max: new Date('27 Feb 2013').getTime(),
+                }
+              }
+              break;
+            case 'all':
+              this.chartOptions = {
+                xaxis: {
+                  min: undefined,
+                  max: undefined,
+                }
+              }
+              break;
+            default:
+
+          }
+        }
+      }
+    })
+
+
+
+    var resetCssClasses = function (activeEl) {
+      var els = document.querySelectorAll("button");
+      Array.prototype.forEach.call(els, function (el) {
+        el.classList.remove('active');
+      });
+
+      activeEl.target.classList.add('active')
+    }
+
+  </script>
+</body>
+
+</html>

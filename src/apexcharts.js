@@ -654,6 +654,7 @@ class ApexCharts {
     domEls.baseEl = null
     domEls.elGridRect = null
     domEls.elGridRectMask = null
+    domEls.elGridRectMarkerMask = null
     domEls.elDefs = null
   }
 

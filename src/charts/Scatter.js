@@ -42,6 +42,8 @@ class Scatter {
       class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
     })
 
+    elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
+
     if (pointsPos.x instanceof Array) {
       for (let q = 0; q < pointsPos.x.length; q++) {
         let dataPointIndex = j + 1

@@ -91,6 +91,7 @@ export default class Globals {
       // elGraphical: null, // this contains lines/areas/bars/pies
       // elGridRect: null, // paths going outside this area will be clipped
       // elGridRectMask: null, // clipping will happen with this mask
+      // elGridRectMarkerMask: null, // clipping will happen with this mask
       // elLegendWrap: null, // the whole legend area
       // elDefs: null, // [defs] element
       memory: {

@@ -48,6 +48,8 @@ class Markers {
       elPointsWrap = graphics.group({
         class: 'apexcharts-series-markers'
       })
+
+      elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
     }
 
     if (p.x instanceof Array) {

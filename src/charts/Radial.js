@@ -171,8 +171,6 @@ class Radial extends Pie {
 
   drawArcs (opts) {
     let w = this.w
-
-    let self = this
     // size, donutSize, centerX, centerY, colorArr, lineColorArr, sectorAngleArr, series
 
     let graphics = new Graphics(this.ctx)
