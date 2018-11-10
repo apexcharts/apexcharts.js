@@ -371,7 +371,7 @@ export default class Options {
               fontSize: '16px',
               fontFamily: undefined,
               color: undefined,
-              offsetY: -10
+              offsetY: 0
             },
             value: {
               show: true,
@@ -384,13 +384,13 @@ export default class Options {
               }
             },
             total: {
-              show: true,
+              show: false,
               label: 'Total',
               color: '#373d3f',
               formatter: function (w) {
                 return w.globals.seriesTotals.reduce((a, b) => {
                   return a + b
-                }, 0) / w.globals.series.length
+                }, 0) / w.globals.series.length + '%'
               }
             }
           }
@@ -399,25 +399,37 @@ export default class Options {
           size: undefined,
           donut: {
             size: '65%',
-            background: 'transparent'
-            // TODO: draw labels in donut area
-            // labels: {
-            //   name: {
-            //     show: false,
-            //     fontSize: '14px',
-            //     color: undefined,
-            //     offsetY: -10
-            //   },
-            //   value: {
-            //     show: true,
-            //     offsetY: 16,
-            //     fontSize: '12px',
-            //     color: undefined,
-            //     formatter: function (val) {
-            //       return val + '%'
-            //     }
-            //   }
-            // }
+            background: 'transparent',
+            labels: {
+              show: true,
+              name: {
+                show: true,
+                fontSize: '16px',
+                fontFamily: undefined,
+                color: undefined,
+                offsetY: -10
+              },
+              value: {
+                show: true,
+                fontSize: '20px',
+                fontFamily: undefined,
+                color: undefined,
+                offsetY: 10,
+                formatter: function (val) {
+                  return val
+                }
+              },
+              total: {
+                show: true,
+                label: 'Total',
+                color: '#373d3f',
+                formatter: function (w) {
+                  return w.globals.seriesTotals.reduce((a, b) => {
+                    return a + b
+                  }, 0)
+                }
+              }
+            }
           },
           customScale: 0,
           offsetX: 0,

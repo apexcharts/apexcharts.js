@@ -21,6 +21,8 @@ class Pie {
     this.animBeginArr = [0]
     this.animDur = 0
 
+    this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels
+
     const w = this.w
 
     this.lineColorArr = w.globals.stroke.colors !== undefined
@@ -96,6 +98,17 @@ class Pie {
 
     this.donutSize =
       this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100
+
+    if (this.donutDataLabels.show) {
+      let dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
+        hollowSize: this.donutSize,
+        centerX: this.centerX,
+        centerY: this.centerY,
+        opacity: this.donutDataLabels.show
+      })
+
+      ret.add(dataLabels)
+    }
 
     let scaleSize = 1 + w.config.plotOptions.pie.customScale
     let halfW = w.globals.gridWidth / 2
@@ -320,10 +333,17 @@ class Pie {
       graphics.pathMouseEnter.bind(this, elPath)
     )
     elPath.node.addEventListener(
+      'mouseenter',
+      this.dataLabelsMouseIn.bind(this, elPath.node, this.donutDataLabels)
+    )
+    elPath.node.addEventListener(
       'mouseleave',
       graphics.pathMouseLeave.bind(this, elPath)
     )
-
+    elPath.node.addEventListener(
+      'mouseleave',
+      this.dataLabelsMouseout.bind(this, elPath.node, this.donutDataLabels)
+    )
     elPath.node.addEventListener(
       'mousedown',
       graphics.pathMouseDown.bind(this, elPath)
@@ -441,7 +461,7 @@ class Pie {
     let me = this
     let path
 
-    let size = me.size + 10
+    let size = me.size + 5
     let elPath = w.globals.dom.Paper.select('#apexcharts-pieSlice-' + i).members[0]
 
     let pathFrom = elPath.attr('d')
@@ -545,6 +565,164 @@ class Pie {
     }
 
     return path
+  }
+
+  renderInnerDataLabels (dataLabelsConfig, opts) {
+    let w = this.w
+    const graphics = new Graphics(this.ctx)
+
+    let g = graphics.group({
+      class: 'apexcharts-datalabels-group'
+    })
+
+    const showTotal = w.globals.series.length > 1 && dataLabelsConfig.total.show
+
+    g.node.style.opacity = opts.opacity
+
+    let x = opts.centerX
+    let y = opts.centerY
+
+    let labelColor, valueColor
+
+    if (dataLabelsConfig.name.color === undefined) {
+      labelColor = w.globals.colors[0]
+    } else {
+      labelColor = dataLabelsConfig.name.color
+    }
+
+    let lbFormatter = dataLabelsConfig.value.formatter
+    let val = lbFormatter(w.globals.series[0], w)
+
+    if (showTotal) {
+      labelColor = dataLabelsConfig.total.color
+      val = dataLabelsConfig.total.formatter(w)
+    }
+
+    if (dataLabelsConfig.value.color === undefined) {
+      valueColor = w.config.chart.foreColor
+    } else {
+      valueColor = dataLabelsConfig.value.color
+    }
+
+    if (dataLabelsConfig.name.show) {
+      let elLabel = graphics.drawText({
+        x: x,
+        y: y + parseInt(dataLabelsConfig.name.offsetY) - w.globals.translateY + 5,
+        text: showTotal ? dataLabelsConfig.total.label : w.globals.seriesNames[0],
+        textAnchor: 'middle',
+        foreColor: labelColor,
+        fontSize: dataLabelsConfig.name.fontSize,
+        fontFamily: dataLabelsConfig.name.fontFamily
+      })
+      elLabel.node.classList.add('apexcharts-datalabel-label')
+      g.add(elLabel)
+    }
+
+    if (dataLabelsConfig.value.show) {
+      let valOffset = dataLabelsConfig.name.show ? parseInt(dataLabelsConfig.value.offsetY) + 16 : (dataLabelsConfig.value.offsetY)
+
+      let elValue = graphics.drawText({
+        x: x,
+        y: y + valOffset - w.globals.translateY + 5,
+        text: val,
+        textAnchor: 'middle',
+        foreColor: valueColor,
+        fontSize: dataLabelsConfig.value.fontSize,
+        fontFamily: dataLabelsConfig.value.fontFamily
+      })
+      elValue.node.classList.add('apexcharts-datalabel-value')
+      g.add(elValue)
+    }
+
+    // for a multi-series circle chart, we need to show total value instead of first series labels
+
+    return g
+  }
+
+  /**
+   *
+   * @param {string} name - The name of the series
+   * @param {string} val - The value of that series
+   * @param {object} el - Optional el (indicates which series was hovered). If this param is not present, means we need to show total
+   */
+  printInnerLabels (labelsConfig, name, val, el) {
+    const w = this.w
+
+    let labelColor
+
+    if (el) {
+      if (labelsConfig.name.color === undefined) {
+        labelColor =
+          w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1]
+      } else {
+        labelColor = labelsConfig.name.color
+      }
+    } else {
+      if (w.globals.series.length > 1 && labelsConfig.total.show) {
+        labelColor = labelsConfig.total.color
+      }
+    }
+
+    let elLabel = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-datalabel-label'
+    )
+    let elValue = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-datalabel-value'
+    )
+
+    let lbFormatter = labelsConfig.value.formatter
+    val = lbFormatter(val, w)
+
+    // we need to show Total Val - so get the formatter of it
+    if (!el && typeof labelsConfig.total.formatter === 'function') {
+      val = labelsConfig.total.formatter(w)
+    }
+
+    if (elLabel !== null) {
+      elLabel.textContent = name
+    }
+
+    if (elValue !== null) {
+      elValue.textContent = val
+    }
+    if (elLabel !== null) {
+      elLabel.style.fill = labelColor
+    }
+  }
+
+  dataLabelsMouseIn (el, dataLabelsConfig) {
+    let w = this.w
+
+    let val = el.getAttribute('data:value')
+    let name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1]
+
+    if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
+      this.printInnerLabels(dataLabelsConfig, name, val, el)
+    }
+
+    let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-datalabels-group'
+    )
+    if (dataLabelsGroup !== null) {
+      dataLabelsGroup.style.opacity = 1
+    }
+  }
+
+  dataLabelsMouseout (el, dataLabelsConfig) {
+    let w = this.w
+    let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-datalabels-group'
+    )
+    if (
+      dataLabelsConfig.total.show && w.globals.series.length > 1
+    ) {
+      let pie = new Pie(this.ctx)
+      pie.printInnerLabels(dataLabelsConfig, dataLabelsConfig.total.label, dataLabelsConfig.total.formatter(w))
+    } else {
+      if (dataLabelsGroup !== null && w.globals.series.length > 1) {
+        dataLabelsGroup.style.opacity = 0
+      }
+    }
   }
 }
 

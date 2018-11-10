@@ -352,6 +352,15 @@ class Defaults {
           show: false
         }
       },
+      plotOptions: {
+        pie: {
+          donut: {
+            labels: {
+              show: false
+            }
+          }
+        }
+      },
       dataLabels: {
         formatter: function (val) {
           return val.toFixed(1) + '%'
@@ -419,6 +428,7 @@ class Defaults {
         }
       },
       tooltip: {
+        enabled: false,
         theme: 'dark',
         fillSeriesColor: true
       },

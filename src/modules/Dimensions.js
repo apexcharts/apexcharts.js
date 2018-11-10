@@ -208,6 +208,16 @@ class Dimensions {
       offY = offY + w.config.plotOptions.radialBar.offsetY
     }
 
+    if (!w.config.legend.show) {
+      gl.gridHeight = gl.svgHeight - 35
+      gl.gridWidth = gl.gridHeight
+
+      gl.translateY = offY - 10
+      gl.translateX = (gl.svgWidth - gl.gridWidth) / 2
+
+      return
+    }
+
     switch (w.config.legend.position) {
       case 'bottom':
         gl.gridHeight = gl.svgHeight - lgRect.height - 35
