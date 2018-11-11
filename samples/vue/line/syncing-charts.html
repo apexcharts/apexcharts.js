@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Syncing charts</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #wrapper {
+      padding-top: 20px;
+      padding-left: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrapper">
+    <div id="chart-line">
+      <apexchart type=line height=160 :options="chartOptionsLine1" :series="series1" />
+    </div>
+
+    <div id="chart-line2">
+      <apexchart type=line height=160 :options="chartOptionsLine2" :series="series2" />
+    </div>
+
+    <div id="chart-area">
+      <apexchart type=area height=160 :options="chartOptionsArea" :series="series3" />
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+  <script>
+    function generateDayWiseTimeSeries(baseval, count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = baseval;
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        series.push([x, y]);
+        baseval += 86400000;
+        i++;
+      }
+      return series;
+    }
+
+    // The global window.Apex variable below can be used to set common options for all charts on the page
+    Apex = {
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'straight'
+      },
+      toolbar: {
+        tools: {
+          selection: false
+        }
+      },
+      markers: {
+        size: 6,
+        hover: {
+          size: 10
+        }
+      },
+      tooltip: {
+        followCursor: false,
+        theme: 'dark',
+        x: {
+          show: false
+        },
+        marker: {
+          show: false
+        },
+        y: {
+          title: {
+            formatter: function () {
+              return ''
+            }
+          }
+        }
+      },
+      grid: {
+        clipMarkers: false
+      },
+      yaxis: {
+        tickAmount: 2
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+    }
+
+    new Vue({
+      el: '#wrapper',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series1: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 60
+          })
+        }],
+        series2: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 30
+          })
+        }],
+        series3: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 90
+          })
+        }],
+        chartOptionsLine1: {
+          chart: {
+            id: 'fb',
+            group: 'social',
+          },
+          colors: ['#008FFB'],
+        },
+        chartOptionsLine2: {
+          chart: {
+            id: 'tw',
+            group: 'social',
+          },
+          colors: ['#546E7A'],
+
+        },
+        chartOptionsArea: {
+          chart: {
+            id: 'yt',
+            group: 'social',
+          },
+          colors: ['#00E396'],
+
+        }
+      },
+
+    })
+  </script>
+
+</body>
+
+</html>

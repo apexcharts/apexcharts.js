@@ -2,16 +2,16 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Semi Circle Chart</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Semi Circle Chart</title>
 
-    
-    <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
             max-width: 450px;
             margin: 35px auto;
         }
@@ -19,69 +19,69 @@
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    
-    <script src="../../../dist/apexcharts.js"></script>
-
-    <script>
-        var options = {
-            chart: {
-                type: 'radialBar',
-            },
-            plotOptions: {
-                radialBar: {
-                    startAngle: -90,
-                    endAngle: 90,
-                    track: {
-                        background: "#e7e7e7",
-                        strokeWidth: '97%',
-                        margin: 5, // margin is in pixels
-                        shadow: {
-                            enabled: true,
-                            top: 2,
-                            left: 0,
-                            color: '#999',
-                            opacity: 1,
-                            blur: 2
-                        }
-                    },
-                    dataLabels: {
-                        name: {
-                            show: false
-                        },   
-                        value: {
-                            offsetY: 15,
-                            fontSize: '22px'
-                        }                     
-                    }
+  <script>
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [76],
+        chartOptions: {
+          plotOptions: {
+            radialBar: {
+              startAngle: -90,
+              endAngle: 90,
+              track: {
+                background: "#e7e7e7",
+                strokeWidth: '97%',
+                margin: 5, // margin is in pixels
+                shadow: {
+                  enabled: true,
+                  top: 2,
+                  left: 0,
+                  color: '#999',
+                  opacity: 1,
+                  blur: 2
                 }
-            },
-            fill: {
-                gradient: {
-                    enabled: true,
-                    shade: 'light',
-                    shadeIntensity: 0.4,
-                    inverseColors: false,
-                    opacityFrom: 1,
-                    opacityTo: 1,
-                    stops: [0, 50, 53, 91]
+              },
+              dataLabels: {
+                name: {
+                  show: false
                 },
+                value: {
+                  offsetY: 15,
+                  fontSize: '22px'
+                }
+              }
+            }
+          },
+          fill: {
+            gradient: {
+              enabled: true,
+              shade: 'light',
+              shadeIntensity: 0.4,
+              inverseColors: false,
+              opacityFrom: 1,
+              opacityTo: 1,
+              stops: [0, 50, 53, 91]
             },
-            series: [76],
-            labels: ['Average Results'],
-           
+          },
+          labels: ['Average Results'],
         }
+      },
 
-       var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-        
-        chart.render();
-    </script>
+    })
+  </script>
+
 </body>
 
 </html>

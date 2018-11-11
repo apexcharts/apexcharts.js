@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Grouped Bar Chart</title>
+  <title>Line Chart with missing data</title>
 
 
   <link href="../../assets/styles.css" rel="stylesheet" />
@@ -20,17 +20,14 @@
 
 <body>
   <div id="chart">
-    <apexchart type=bar height=350 :options="chartOptions" :series="series" />
+    <apexchart type=line height=350 :options="chartOptions" :series="series" />
   </div>
-
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    
-
     new Vue({
       el: '#chart',
       components: {
@@ -38,38 +35,33 @@
       },
       data: {
         series: [{
-          data: [44, 55, 41, 64, 22, 43, 21]
+          name: 'Peter',
+          data: [5, 5, 10, 8, 7, 5, 4, null, null, null, 10, 10, 7, 8, 6, 9]
         }, {
-          data: [53, 32, 33, 52, 13, 44, 32]
+          name: 'Johnny',
+          data: [10, 15, null, 12, null, 10, 12, 15, null, null, 12, null, 14, null, null, null]
+        }, {
+          name: 'David',
+          data: [null, null, null, null, 3, 4, 1, 3, 4, 6, 7, 9, 5, null, null, null]
         }],
         chartOptions: {
-          plotOptions: {
-            bar: {
-              horizontal: true,
-              dataLabels: {
-                position: 'top',
-              },
-            }
-          },
-          dataLabels: {
-            enabled: true,
-            offsetX: -6,
-            style: {
-              fontSize: '12px',
-              colors: ['#fff']
+          chart: {
+            zoom: {
+              enabled: false
+            },
+            animations: {
+              enabled: false
             }
           },
           stroke: {
-            show: true,
-            width: 1,
-            colors: ['#fff']
+            width: [5, 5, 4],
+            curve: 'straight'
           },
-
-          xaxis: {
-            categories: [2001, 2002, 2003, 2004, 2005, 2006, 2007],
-          },
+          title: {
+            text: 'Missing data (null values)'
+          }
         }
-      }
+      },
     })
   </script>
 

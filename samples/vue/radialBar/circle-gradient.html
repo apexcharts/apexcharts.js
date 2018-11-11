@@ -42,105 +42,99 @@
 </head>
 
 <body>
-  <div id="card">
-    <div id="chart">
-
-    </div>
-
+  <div id="chart">
+    <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
   </div>
 
-
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    var options = {
-      chart: {
-        height: 350,
-        type: 'radialBar',
-        toolbar: {
-          show: true
-        }
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
       },
-      plotOptions: {
-        radialBar: {
-          startAngle: -135,
-          endAngle: 225,
-           hollow: {
-            margin: 0,
-            size: '70%',
-            background: '#fff',
-            image: undefined,
-            imageOffsetX: 0,
-            imageOffsetY: 0,
-            position: 'front',
-            dropShadow: {
-              enabled: true,
-              top: 3,
-              left: 0,
-              blur: 4,
-              opacity: 0.24
+      data: {
+        series: [75],
+        chartOptions: {
+          chart: {
+            toolbar: {
+              show: true
             }
           },
-          track: {
-            background: '#fff',
-            strokeWidth: '67%',
-            margin: 0, // margin is in pixels
-            dropShadow: {
-              enabled: true,
-              top: -3,
-              left: 0,
-              blur: 4,
-              opacity: 0.35
-            }
-          },
-
-          dataLabels: {
-            showOn: 'always',
-            name: {
-              offsetY: -10,
-              show: true,
-              color: '#888',
-              fontSize: '17px'
-            },
-            value: {
-              formatter: function(val) {
-                return parseInt(val);
+          plotOptions: {
+            radialBar: {
+              startAngle: -135,
+              endAngle: 225,
+              hollow: {
+                margin: 0,
+                size: '70%',
+                background: '#fff',
+                position: 'front',
+                dropShadow: {
+                  enabled: true,
+                  top: 3,
+                  left: 0,
+                  blur: 4,
+                  opacity: 0.24
+                }
               },
-              color: '#111',
-              fontSize: '36px',
-              show: true,
+              track: {
+                background: '#fff',
+                strokeWidth: '67%',
+                margin: 0, // margin is in pixels
+                dropShadow: {
+                  enabled: true,
+                  top: -3,
+                  left: 0,
+                  blur: 4,
+                  opacity: 0.35
+                }
+              },
+
+              dataLabels: {
+                name: {
+                  offsetY: -10,
+                  show: true,
+                  color: '#888',
+                  fontSize: '17px'
+                },
+                value: {
+                  formatter: function (val) {
+                    return parseInt(val);
+                  },
+                  color: '#111',
+                  fontSize: '36px',
+                  show: true,
+                }
+              }
             }
-          }
+          },
+          fill: {
+            type: 'gradient',
+            gradient: {
+              shade: 'dark',
+              type: 'horizontal',
+              shadeIntensity: 0.5,
+              gradientToColors: ['#ABE5A1'],
+              inverseColors: true,
+              opacityFrom: 1,
+              opacityTo: 1,
+              stops: [0, 100]
+            }
+          },
+          stroke: {
+            lineCap: 'round'
+          },
+          labels: ['Percent'],
         }
       },
-      fill: {
-        type: 'gradient',
-        gradient: {
-          shade: 'dark',
-          type: 'horizontal',
-          shadeIntensity: 0.5,
-          gradientToColors: ['#ABE5A1'],
-          inverseColors: true,
-          opacityFrom: 1,
-          opacityTo: 1,
-          stops: [0, 100]
-        }
-      },
-      series: [75],
-      stroke: {
-        lineCap: 'round'
-      },
-      labels: ['Percent'],
 
-    }
-
-    var chart = new ApexCharts(
-      document.querySelector("#chart"),
-      options
-    );
-
-    chart.render();
+    })
   </script>
+
 </body>
 
 </html>

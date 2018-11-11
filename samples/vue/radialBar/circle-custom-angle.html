@@ -2,16 +2,16 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Circle Custom Angle</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Circle Custom Angle</title>
 
-    
-    <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
             max-width: 650px;
             margin: 35px auto;
         }
@@ -23,85 +23,85 @@
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    
-    <script src="../../../dist/apexcharts.js"></script>
+  <script>
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [76, 67, 61, 90],
+        chartOptions: {
+          plotOptions: {
+            radialBar: {
+              offsetY: -30,
+              startAngle: 0,
+              endAngle: 270,
+              hollow: {
+                margin: 5,
+                size: '30%',
+                background: 'transparent',
+                image: undefined,
+              },
+              dataLabels: {
+                name: {
+                  show: false,
 
-    <script>
-        var options = {
-            chart: {
-                height: 350,
-                type: 'radialBar',
-            },
-            plotOptions: {
-                radialBar: {
-                    offsetY: -30,
-                    startAngle: 0,
-                    endAngle: 270,
-                    hollow: {
-                        margin: 5,
-                        size: '30%',
-                        background: 'transparent',
-                        image: undefined,
-                    },
-                    dataLabels: {
-                        name: {
-                            show: false,
-                            
-                        },
-                        value: {
-                            show: false,
-                        }
-                    }
+                },
+                value: {
+                  show: false,
                 }
+              }
+            }
+          },
+          colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
+          labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
+          legend: {
+            show: true,
+            floating: true,
+            fontSize: '16px',
+            position: 'left',
+            verticalAlign: 'top',
+            textAnchor: 'end',
+            labels: {
+              useSeriesColors: true,
             },
-            colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
-            series: [76,67,61,90],
-            labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
-            legend: {
-                show: true,
-                floating: true,
-                fontSize: '16px',
-                position: 'left',
-                verticalAlign: 'top',
-                textAnchor: 'end',
-                labels: {
-                    useSeriesColors: true,
-                },
-                markers: {
-                    size: 0
-                },
-                formatter: function(seriesName, opts) {
-                    return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
-                },
-                itemMargin: {
-                    vertical: 4,
-                },
-                containerMargin: {
-                    left: 310,
-                    top: 8
-                }
+            markers: {
+              size: 0
             },
-            responsive: [{
-                breakpoint: 767,
-                options: {
-                    legend: {
-                        show: false
-                    }
-                }
-            }]
+            formatter: function (seriesName, opts) {
+              return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
+            },
+            itemMargin: {
+              vertical: 4,
+            },
+            containerMargin: {
+              left: 310,
+              top: 8
+            }
+          },
+          responsive: [{
+            breakpoint: 767,
+            options: {
+              legend: {
+                show: false
+              }
+            }
+          }]
         }
+      },
 
-       var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-        
-        chart.render();
-    </script>
+    })
+  </script>
+
 </body>
 
 </html>

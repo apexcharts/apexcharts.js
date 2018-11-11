@@ -2,16 +2,16 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Simple Pie</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Simple Pie</title>
 
-    
-    <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
             
             max-width: 380px;
             margin: 35px auto;
@@ -20,41 +20,41 @@
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=pie width=380 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
-    
-    <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    <script>
-        var options = {
-            chart: {
-                width: 380,
-                type: 'pie',
-            },
-            labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
-            series: [44, 55, 13, 43, 22],
-            responsive: [{
-                breakpoint: 767,
-                options: {
-                    chart: {
-                        width: 200
-                    },
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }]
+  <script>
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [44, 55, 13, 43, 22],
+        chartOptions: {
+          labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+          responsive: [{
+            breakpoint: 767,
+            options: {
+              chart: {
+                width: 200
+              },
+              legend: {
+                position: 'bottom'
+              }
+            }
+          }]
         }
+      },
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
+    })
+  </script>
 
-        chart.render();
-
-    </script>
 </body>
 
 </html>

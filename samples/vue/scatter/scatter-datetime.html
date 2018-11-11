@@ -20,93 +20,14 @@
 
 <body>
   <div id="chart">
-
+    <apexchart type=scatter height=350 :options="chartOptions" :series="series" />
   </div>
 
-
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    var options = {
-      chart: {
-        height: 350,
-        type: 'scatter',
-        zoom: {
-          type: 'xy'
-        }
-      },
-      series: [{
-          name: 'TEAM 1',
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
-            min: 10,
-            max: 60
-          })
-        },
-        {
-          name: 'TEAM 2',
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
-            min: 10,
-            max: 60
-          })
-        },
-        {
-          name: 'TEAM 3',
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
-            min: 10,
-            max: 60
-          })
-        },
-        {
-          name: 'TEAM 4',
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-            min: 10,
-            max: 60
-          })
-        },
-        {
-          name: 'TEAM 5',
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
-            min: 10,
-            max: 60
-          })
-        },
-      ],
-      dataLabels: {
-        enabled: false
-      },
-      grid: {
-        xaxis: {
-          showLines: true
-        },
-        yaxis: {
-          showLines: true
-        },
-      },
-      xaxis: {
-        type: 'datetime',
-
-      },
-      yaxis: {
-        max: 70
-      }
-    }
-
-    var chart = new ApexCharts(
-      document.querySelector("#chart"),
-      options
-    );
-
-    chart.render();
-
-    /*
-    // this function will generate output in this format
-    // data = [
-        [timestamp, 23],
-        [timestamp, 33],
-        [timestamp, 12]
-        ...
-    ]
-    */
     function generateDayWiseTimeSeries(baseval, count, yrange) {
       var i = 0;
       var series = [];
@@ -119,7 +40,81 @@
       }
       return series;
     }
+
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+            name: 'TEAM 1',
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          },
+          {
+            name: 'TEAM 2',
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          },
+          {
+            name: 'TEAM 3',
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
+              min: 10,
+              max: 60
+            })
+          },
+          {
+            name: 'TEAM 4',
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+              min: 10,
+              max: 60
+            })
+          },
+          {
+            name: 'TEAM 5',
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
+              min: 10,
+              max: 60
+            })
+          },
+        ],
+        chartOptions: {
+          chart: {
+
+            zoom: {
+              type: 'xy'
+            }
+          },
+
+          dataLabels: {
+            enabled: false
+          },
+          grid: {
+            xaxis: {
+              showLines: true
+            },
+            yaxis: {
+              showLines: true
+            },
+          },
+          xaxis: {
+            type: 'datetime',
+
+          },
+          yaxis: {
+            max: 70
+          }
+        }
+      },
+
+    })
   </script>
+
 </body>
 
 </html>
