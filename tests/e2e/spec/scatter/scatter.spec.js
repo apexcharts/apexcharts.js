@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/scatter/scatter-basic.html';
+const APP = root + '/samples/vanilla-js/scatter/scatter-basic.html';
 const screenshotPath = root + '/tests/e2e/snapshots/scatter-basic.png'
 
 describe("Rendering Scatter Charts", () => {

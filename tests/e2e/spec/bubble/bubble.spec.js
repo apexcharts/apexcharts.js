@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/bubble/simple-bubble.html';
+const APP = root + '/samples/vanilla-js/bubble/simple-bubble.html';
 const screenshotPath = root + '/tests/e2e/snapshots/simple-bubble.png'
 
 describe("Rendering Bubble Charts", () => {

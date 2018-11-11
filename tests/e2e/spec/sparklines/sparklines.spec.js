@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/sparklines/sparklines.html';
+const APP = root + '/samples/vanilla-js/sparklines/sparklines.html';
 const screenshotPath = root + '/tests/e2e/snapshots/sparklines.png'
 
 describe("Rendering Sparklines Charts", () => {

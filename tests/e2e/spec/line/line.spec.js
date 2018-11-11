@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/line/basic-line.html';
+const APP = root + '/samples/vanilla-js/line/basic-line.html';
 const screenshotPath = root + '/tests/e2e/snapshots/basic-line.png'
 
 describe("Rendering Line Charts", () => {

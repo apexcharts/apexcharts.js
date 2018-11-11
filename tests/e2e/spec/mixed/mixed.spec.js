@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/mixed/line-column-area.html';
+const APP = root + '/samples/vanilla-js/mixed/line-column-area.html';
 const screenshotPath = root + '/tests/e2e/snapshots/line-column-area.png'
 
 describe("Rendering Mixed Charts", () => {

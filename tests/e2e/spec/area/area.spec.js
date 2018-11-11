@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/area/basic-area.html';
+const APP = root + '/samples/vanilla-js/area/basic-area.html';
 const screenshotPath = root + '/tests/e2e/snapshots/basic-area.png'
 
 describe("Rendering Area Charts", () => {

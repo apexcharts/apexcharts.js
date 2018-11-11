@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/area/area-with-missing-data.html';
+const APP = root + '/samples/vanilla-js/area/area-with-missing-data.html';
 const screenshotPath = root + '/tests/e2e/snapshots/area-with-missing-data.png'
 
 describe("Rendering Charts containing null data", () => {

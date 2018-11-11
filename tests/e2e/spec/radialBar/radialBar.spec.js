@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/radialBar/circle-chart.html';
+const APP = root + '/samples/vanilla-js/radialBar/circle-chart.html';
 const screenshotPath = root + '/tests/e2e/snapshots/circle-chart.png'
 
 describe("Rendering radialBar Charts", () => {

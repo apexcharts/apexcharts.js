@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/pie/simple-pie.html';
+const APP = root + '/samples/vanilla-js/pie/simple-pie.html';
 const screenshotPath = root + '/tests/e2e/snapshots/simple-pie.png'
 
 describe("Rendering Pie Charts", () => {

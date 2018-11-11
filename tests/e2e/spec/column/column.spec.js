@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/column/basic-column.html';
+const APP = root + '/samples/vanilla-js/column/basic-column.html';
 const screenshotPath = root + '/tests/e2e/snapshots/basic-column.png'
 
 describe("Rendering Column Charts", () => {

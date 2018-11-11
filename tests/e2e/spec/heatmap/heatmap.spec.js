@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/heatmap/basic.html';
+const APP = root + '/samples/vanilla-js/heatmap/basic.html';
 const screenshotPath = root + '/tests/e2e/snapshots/basic-heatmap.png'
 
 describe("Rendering Heatmap Charts", () => {

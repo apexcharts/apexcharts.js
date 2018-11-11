@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { root } from '../../../../config.js';
 
-const APP = root + '/samples/bar/basic-bar.html';
+const APP = root + '/samples/vanilla-js/bar/basic-bar.html';
 const screenshotPath = root + '/tests/e2e/snapshots/basic-bar.png'
 
 describe("Rendering Bar Charts", () => {
