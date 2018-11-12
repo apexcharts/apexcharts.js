@@ -305,6 +305,7 @@ class Defaults {
   heatmap () {
     return {
       chart: {
+        stacked: false,
         zoom: {
           enabled: false
         }
