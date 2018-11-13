@@ -366,6 +366,7 @@ export default class Options {
             }
           },
           dataLabels: {
+            show: true,
             name: {
               show: true,
               fontSize: '16px',
@@ -397,11 +398,19 @@ export default class Options {
         },
         pie: {
           size: undefined,
+          customScale: 0,
+          offsetX: 0,
+          offsetY: 0,
+          dataLabels: {
+            // These are the percentage values which are displayed on slice
+            offset: 0 // offset by which labels will move outside
+          },
           donut: {
             size: '65%',
             background: 'transparent',
             labels: {
-              show: true,
+              // These are the inner labels appearing inside donut
+              show: false,
               name: {
                 show: true,
                 fontSize: '16px',
@@ -420,7 +429,7 @@ export default class Options {
                 }
               },
               total: {
-                show: true,
+                show: false,
                 label: 'Total',
                 color: '#373d3f',
                 formatter: function (w) {
@@ -430,12 +439,6 @@ export default class Options {
                 }
               }
             }
-          },
-          customScale: 0,
-          offsetX: 0,
-          offsetY: 0,
-          dataLabels: {
-            offset: 0 // offset by which labels will move outside
           }
         }
       },

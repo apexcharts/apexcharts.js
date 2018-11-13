@@ -18,14 +18,18 @@
 
     .wrap {
       margin: 45px auto;
-      max-width: 900px;
+      max-width: 800px;
       position: relative;
+    }
+
+    .chart-box {
+      padding-left: 0;
     }
 
     #chart-year,
     #chart-quarter {
       width: 96%;
-      max-width: 430px;
+      max-width: 48%;
       box-shadow: none;
     }
 
@@ -54,7 +58,7 @@
       z-index: 1;
     }
 
-    @media screen and (min-width: 767px) {
+    @media screen and (min-width: 480px) {
       #chart-year {
         transform: translateX(50%);
       }

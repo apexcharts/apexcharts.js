@@ -99,22 +99,24 @@ class Pie {
     this.donutSize =
       this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100
 
-    if (this.donutDataLabels.show) {
-      let dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
-        hollowSize: this.donutSize,
-        centerX: this.centerX,
-        centerY: this.centerY,
-        opacity: this.donutDataLabels.show
-      })
-
-      ret.add(dataLabels)
-    }
-
     let scaleSize = 1 + w.config.plotOptions.pie.customScale
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
     let translateX = halfW - w.globals.gridWidth / 2 * scaleSize
     let translateY = halfH - w.globals.gridHeight / 2 * scaleSize
+
+    if (this.donutDataLabels.show) {
+      let dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
+        hollowSize: this.donutSize,
+        centerX: this.centerX,
+        centerY: this.centerY,
+        opacity: this.donutDataLabels.show,
+        translateX: translateX,
+        translateY: translateY - 25
+      })
+
+      ret.add(dataLabels)
+    }
 
     if (w.config.chart.type === 'donut') {
       // draw the inner circle and add some text to it
@@ -211,7 +213,7 @@ class Pie {
         filters.dropShadow(elPath, shadow)
       }
 
-      this.addListeners(elPath)
+      this.addListeners(elPath, this.donutDataLabels)
 
       Graphics.setAttrs(elPath.node, {
         'data:angle': angle,
@@ -325,7 +327,7 @@ class Pie {
     return g
   }
 
-  addListeners (elPath) {
+  addListeners (elPath, dataLabels) {
     const graphics = new Graphics(this.ctx)
     // append filters on mouseenter and mouseleave
     elPath.node.addEventListener(
@@ -334,7 +336,7 @@ class Pie {
     )
     elPath.node.addEventListener(
       'mouseenter',
-      this.dataLabelsMouseIn.bind(this, elPath.node, this.donutDataLabels)
+      this.dataLabelsMouseIn.bind(this, elPath.node, dataLabels)
     )
     elPath.node.addEventListener(
       'mouseleave',
@@ -342,7 +344,7 @@ class Pie {
     )
     elPath.node.addEventListener(
       'mouseleave',
-      this.dataLabelsMouseout.bind(this, elPath.node, this.donutDataLabels)
+      this.dataLabelsMouseout.bind(this, elPath.node, dataLabels)
     )
     elPath.node.addEventListener(
       'mousedown',
@@ -572,10 +574,11 @@ class Pie {
     const graphics = new Graphics(this.ctx)
 
     let g = graphics.group({
-      class: 'apexcharts-datalabels-group'
+      class: 'apexcharts-datalabels-group',
+      transform: `translate(${opts.translateX ? opts.translateX : 0}, ${opts.translateY ? opts.translateY : 0})`
     })
 
-    const showTotal = w.globals.series.length > 1 && dataLabelsConfig.total.show
+    const showTotal = dataLabelsConfig.total.show
 
     g.node.style.opacity = opts.opacity
 
@@ -590,25 +593,32 @@ class Pie {
       labelColor = dataLabelsConfig.name.color
     }
 
-    let lbFormatter = dataLabelsConfig.value.formatter
-    let val = lbFormatter(w.globals.series[0], w)
-
-    if (showTotal) {
-      labelColor = dataLabelsConfig.total.color
-      val = dataLabelsConfig.total.formatter(w)
-    }
-
     if (dataLabelsConfig.value.color === undefined) {
       valueColor = w.config.chart.foreColor
     } else {
       valueColor = dataLabelsConfig.value.color
     }
 
+    let lbFormatter = dataLabelsConfig.value.formatter
+    let val = ''
+    let name = ''
+
+    if (showTotal) {
+      labelColor = dataLabelsConfig.total.color
+      name = dataLabelsConfig.total.label
+      val = dataLabelsConfig.total.formatter(w)
+    } else {
+      if (w.globals.series.length === 1) {
+        val = lbFormatter(w.globals.series[0], w)
+        name = w.globals.seriesNames[0]
+      }
+    }
+
     if (dataLabelsConfig.name.show) {
       let elLabel = graphics.drawText({
         x: x,
-        y: y + parseInt(dataLabelsConfig.name.offsetY) - w.globals.translateY + 5,
-        text: showTotal ? dataLabelsConfig.total.label : w.globals.seriesNames[0],
+        y: y + parseInt(dataLabelsConfig.name.offsetY),
+        text: name,
         textAnchor: 'middle',
         foreColor: labelColor,
         fontSize: dataLabelsConfig.name.fontSize,
@@ -623,7 +633,7 @@ class Pie {
 
       let elValue = graphics.drawText({
         x: x,
-        y: y + valOffset - w.globals.translateY + 5,
+        y: y + valOffset,
         text: val,
         textAnchor: 'middle',
         foreColor: valueColor,
@@ -696,7 +706,7 @@ class Pie {
     let val = el.getAttribute('data:value')
     let name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1]
 
-    if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
+    if (w.globals.series.length > 1) {
       this.printInnerLabels(dataLabelsConfig, name, val, el)
     }
 
@@ -713,6 +723,7 @@ class Pie {
     let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
       '.apexcharts-datalabels-group'
     )
+
     if (
       dataLabelsConfig.total.show && w.globals.series.length > 1
     ) {

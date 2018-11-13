@@ -84,7 +84,9 @@ class Radial extends Pie {
 
     if (w.config.plotOptions.radialBar.hollow.position === 'front') {
       elG.g.add(elG.elHollow)
-      elG.g.add(elG.dataLabels)
+      if (elG.dataLabels) {
+        elG.g.add(elG.dataLabels)
+      }
     }
 
     ret.add(elSeries)
@@ -215,17 +217,22 @@ class Radial extends Pie {
     }
 
     let pie = new Pie(this.ctx)
+    let dataLabels = null
 
-    let dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
-      hollowSize,
-      centerX: opts.centerX,
-      centerY: opts.centerY,
-      opacity: shown
-    })
+    if (this.radialDataLabels.show) {
+      dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
+        hollowSize,
+        centerX: opts.centerX,
+        centerY: opts.centerY,
+        opacity: shown
+      })
+    }
 
     if (w.config.plotOptions.radialBar.hollow.position === 'back') {
       g.add(elHollow)
-      g.add(dataLabels)
+      if (dataLabels) {
+        g.add(dataLabels)
+      }
     }
 
     let reverseLoop = false
@@ -299,7 +306,7 @@ class Radial extends Pie {
         filters.dropShadow(elPath, shadow)
       }
 
-      this.addListeners(elPath)
+      this.addListeners(elPath, this.radialDataLabels)
 
       let pie = new Pie(this.ctx)
 

@@ -231,10 +231,10 @@ class Tooltip {
       }
     }
 
-    if (
-      (w.globals.xyCharts && !this.showOnIntersect) ||
-      (w.globals.comboCharts && !this.showOnIntersect) ||
-      ((barOrCandlestick) && (!this.isBarHorizontal && this.hasBars()) && w.config.tooltip.shared)) {
+    const validSharedChartTypes = w.globals.xyCharts ||
+    w.globals.comboCharts || (barOrCandlestick && this.hasBars())
+
+    if (validSharedChartTypes && w.config.tooltip.shared) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if ((barOrCandlestick) && !w.globals.comboCharts) {
       this.addBarsEventListeners(seriesHoverParams)
