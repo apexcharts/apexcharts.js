@@ -351,6 +351,8 @@ class Tooltip {
    */
   seriesHover (opt, e) {
     let chartGroups = []
+
+    // if user has more than one charts in group, we need to sync
     if (this.w.config.chart.group) {
       chartGroups = this.ctx.getGroupedCharts()
     }

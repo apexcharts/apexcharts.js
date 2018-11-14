@@ -106,9 +106,11 @@ class Scatter {
             let speed = w.config.chart.animations.dynamicAnimation.speed
             let prevX, prevY, prevR
 
-            let prevPathJ = w.globals.previousPaths[realIndex][j]
+            let prevPathJ = null
 
-            if (typeof prevPathJ !== 'undefined') {
+            prevPathJ = w.globals.previousPaths[realIndex] && w.globals.previousPaths[realIndex][j]
+
+            if (typeof prevPathJ !== 'undefined' && prevPathJ !== null) {
             // series containing less elements will ignore these values and revert to 0
               prevX = prevPathJ.x
               prevY = prevPathJ.y
