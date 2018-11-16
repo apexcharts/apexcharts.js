@@ -7057,6 +7057,7 @@ var Options = function () {
               }
             },
             dataLabels: {
+              show: true,
               name: {
                 show: true,
                 fontSize: '16px',
@@ -7088,11 +7089,19 @@ var Options = function () {
           },
           pie: {
             size: undefined,
+            customScale: 0,
+            offsetX: 0,
+            offsetY: 0,
+            dataLabels: {
+              // These are the percentage values which are displayed on slice
+              offset: 0 // offset by which labels will move outside
+            },
             donut: {
               size: '65%',
               background: 'transparent',
               labels: {
-                show: true,
+                // These are the inner labels appearing inside donut
+                show: false,
                 name: {
                   show: true,
                   fontSize: '16px',
@@ -7111,7 +7120,7 @@ var Options = function () {
                   }
                 },
                 total: {
-                  show: true,
+                  show: false,
                   label: 'Total',
                   color: '#373d3f',
                   formatter: function formatter(w) {
@@ -7121,12 +7130,6 @@ var Options = function () {
                   }
                 }
               }
-            },
-            customScale: 0,
-            offsetX: 0,
-            offsetY: 0,
-            dataLabels: {
-              offset: 0 // offset by which labels will move outside
             }
           }
         },
@@ -8411,6 +8414,11 @@ var Pie = function () {
       // el to which series will be drawn
       var elSeries = graphics.group();
 
+      // prevent division by zero error if there is no data
+      if (total === 0) {
+        total = 0.00001;
+      }
+
       for (var i = 0; i < series.length; i++) {
         // CALCULATE THE ANGLES
         var angle = this.fullAngle * _Utils2.default.negToZero(series[i]) / total;
@@ -8441,22 +8449,24 @@ var Pie = function () {
 
       this.donutSize = this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100;
 
-      if (this.donutDataLabels.show) {
-        var dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
-          hollowSize: this.donutSize,
-          centerX: this.centerX,
-          centerY: this.centerY,
-          opacity: this.donutDataLabels.show
-        });
-
-        ret.add(dataLabels);
-      }
-
       var scaleSize = 1 + w.config.plotOptions.pie.customScale;
       var halfW = w.globals.gridWidth / 2;
       var halfH = w.globals.gridHeight / 2;
       var translateX = halfW - w.globals.gridWidth / 2 * scaleSize;
       var translateY = halfH - w.globals.gridHeight / 2 * scaleSize;
+
+      if (this.donutDataLabels.show) {
+        var dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
+          hollowSize: this.donutSize,
+          centerX: this.centerX,
+          centerY: this.centerY,
+          opacity: this.donutDataLabels.show,
+          translateX: translateX,
+          translateY: translateY - 25
+        });
+
+        ret.add(dataLabels);
+      }
 
       if (w.config.chart.type === 'donut') {
         // draw the inner circle and add some text to it
@@ -8554,7 +8564,7 @@ var Pie = function () {
           filters.dropShadow(elPath, shadow);
         }
 
-        this.addListeners(elPath);
+        this.addListeners(elPath, this.donutDataLabels);
 
         _Graphics2.default.setAttrs(elPath.node, {
           'data:angle': angle,
@@ -8654,13 +8664,13 @@ var Pie = function () {
     }
   }, {
     key: 'addListeners',
-    value: function addListeners(elPath) {
+    value: function addListeners(elPath, dataLabels) {
       var graphics = new _Graphics2.default(this.ctx);
       // append filters on mouseenter and mouseleave
       elPath.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this, elPath));
-      elPath.node.addEventListener('mouseenter', this.dataLabelsMouseIn.bind(this, elPath.node, this.donutDataLabels));
+      elPath.node.addEventListener('mouseenter', this.dataLabelsMouseIn.bind(this, elPath.node, dataLabels));
       elPath.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, elPath));
-      elPath.node.addEventListener('mouseleave', this.dataLabelsMouseout.bind(this, elPath.node, this.donutDataLabels));
+      elPath.node.addEventListener('mouseleave', this.dataLabelsMouseout.bind(this, elPath.node, dataLabels));
       elPath.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, elPath));
     }
 
@@ -8880,10 +8890,11 @@ var Pie = function () {
       var graphics = new _Graphics2.default(this.ctx);
 
       var g = graphics.group({
-        class: 'apexcharts-datalabels-group'
+        class: 'apexcharts-datalabels-group',
+        transform: 'translate(' + (opts.translateX ? opts.translateX : 0) + ', ' + (opts.translateY ? opts.translateY : 0) + ')'
       });
 
-      var showTotal = w.globals.series.length > 1 && dataLabelsConfig.total.show;
+      var showTotal = dataLabelsConfig.total.show;
 
       g.node.style.opacity = opts.opacity;
 
@@ -8899,25 +8910,32 @@ var Pie = function () {
         labelColor = dataLabelsConfig.name.color;
       }
 
-      var lbFormatter = dataLabelsConfig.value.formatter;
-      var val = lbFormatter(w.globals.series[0], w);
-
-      if (showTotal) {
-        labelColor = dataLabelsConfig.total.color;
-        val = dataLabelsConfig.total.formatter(w);
-      }
-
       if (dataLabelsConfig.value.color === undefined) {
         valueColor = w.config.chart.foreColor;
       } else {
         valueColor = dataLabelsConfig.value.color;
       }
 
+      var lbFormatter = dataLabelsConfig.value.formatter;
+      var val = '';
+      var name = '';
+
+      if (showTotal) {
+        labelColor = dataLabelsConfig.total.color;
+        name = dataLabelsConfig.total.label;
+        val = dataLabelsConfig.total.formatter(w);
+      } else {
+        if (w.globals.series.length === 1) {
+          val = lbFormatter(w.globals.series[0], w);
+          name = w.globals.seriesNames[0];
+        }
+      }
+
       if (dataLabelsConfig.name.show) {
         var elLabel = graphics.drawText({
           x: x,
-          y: y + parseInt(dataLabelsConfig.name.offsetY) - w.globals.translateY + 5,
-          text: showTotal ? dataLabelsConfig.total.label : w.globals.seriesNames[0],
+          y: y + parseInt(dataLabelsConfig.name.offsetY),
+          text: name,
           textAnchor: 'middle',
           foreColor: labelColor,
           fontSize: dataLabelsConfig.name.fontSize,
@@ -8932,7 +8950,7 @@ var Pie = function () {
 
         var elValue = graphics.drawText({
           x: x,
-          y: y + valOffset - w.globals.translateY + 5,
+          y: y + valOffset,
           text: val,
           textAnchor: 'middle',
           foreColor: valueColor,
@@ -9004,7 +9022,7 @@ var Pie = function () {
       var val = el.getAttribute('data:value');
       var name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1];
 
-      if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
+      if (w.globals.series.length > 1) {
         this.printInnerLabels(dataLabelsConfig, name, val, el);
       }
 
@@ -9018,6 +9036,7 @@ var Pie = function () {
     value: function dataLabelsMouseout(el, dataLabelsConfig) {
       var w = this.w;
       var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
+
       if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
         var pie = new Pie(this.ctx);
         pie.printInnerLabels(dataLabelsConfig, dataLabelsConfig.total.label, dataLabelsConfig.total.formatter(w));
@@ -9175,9 +9194,11 @@ var Scatter = function () {
                   prevY = void 0,
                   prevR = void 0;
 
-              var prevPathJ = w.globals.previousPaths[realIndex][j];
+              var prevPathJ = null;
 
-              if (typeof prevPathJ !== 'undefined') {
+              prevPathJ = w.globals.previousPaths[realIndex] && w.globals.previousPaths[realIndex][j];
+
+              if (typeof prevPathJ !== 'undefined' && prevPathJ !== null) {
                 // series containing less elements will ignore these values and revert to 0
                 prevX = prevPathJ.x;
                 prevY = prevPathJ.y;
@@ -16294,7 +16315,9 @@ var Radial = function (_Pie) {
 
       if (w.config.plotOptions.radialBar.hollow.position === 'front') {
         elG.g.add(elG.elHollow);
-        elG.g.add(elG.dataLabels);
+        if (elG.dataLabels) {
+          elG.g.add(elG.dataLabels);
+        }
       }
 
       ret.add(elSeries);
@@ -16418,17 +16441,22 @@ var Radial = function (_Pie) {
       }
 
       var pie = new _Pie3.default(this.ctx);
+      var dataLabels = null;
 
-      var dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
-        hollowSize: hollowSize,
-        centerX: opts.centerX,
-        centerY: opts.centerY,
-        opacity: shown
-      });
+      if (this.radialDataLabels.show) {
+        dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
+          hollowSize: hollowSize,
+          centerX: opts.centerX,
+          centerY: opts.centerY,
+          opacity: shown
+        });
+      }
 
       if (w.config.plotOptions.radialBar.hollow.position === 'back') {
         g.add(elHollow);
-        g.add(dataLabels);
+        if (dataLabels) {
+          g.add(dataLabels);
+        }
       }
 
       var reverseLoop = false;
@@ -16502,7 +16530,7 @@ var Radial = function (_Pie) {
           filters.dropShadow(elPath, _shadow);
         }
 
-        this.addListeners(elPath);
+        this.addListeners(elPath, this.radialDataLabels);
 
         var _pie = new _Pie3.default(this.ctx);
 
@@ -20833,6 +20861,7 @@ var Defaults = function () {
     value: function heatmap() {
       return {
         chart: {
+          stacked: false,
           zoom: {
             enabled: false
           }
@@ -22558,7 +22587,9 @@ var Tooltip = function () {
         }
       }
 
-      if (w.globals.xyCharts && !this.showOnIntersect || w.globals.comboCharts && !this.showOnIntersect || barOrCandlestick && !this.isBarHorizontal && this.hasBars() && w.config.tooltip.shared) {
+      var validSharedChartTypes = w.globals.xyCharts || w.globals.comboCharts || barOrCandlestick && this.hasBars();
+
+      if (validSharedChartTypes && w.config.tooltip.shared) {
         this.addPathsEventListeners([hoverArea], seriesHoverParams);
       } else if (barOrCandlestick && !w.globals.comboCharts) {
         this.addBarsEventListeners(seriesHoverParams);
@@ -22677,6 +22708,8 @@ var Tooltip = function () {
       var _this2 = this;
 
       var chartGroups = [];
+
+      // if user has more than one charts in group, we need to sync
       if (this.w.config.chart.group) {
         chartGroups = this.ctx.getGroupedCharts();
       }
