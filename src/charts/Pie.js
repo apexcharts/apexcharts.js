@@ -63,6 +63,11 @@ class Pie {
     // el to which series will be drawn
     let elSeries = graphics.group()
 
+    // prevent division by zero error if there is no data
+    if (total === 0) {
+      total = 0.00001
+    }
+
     for (let i = 0; i < series.length; i++) {
       // CALCULATE THE ANGLES
       let angle = (this.fullAngle * Utils.negToZero(series[i]) / total)
