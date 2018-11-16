@@ -22,7 +22,13 @@
   <div id="chart">
     <apexchart type=bar height=440 :options="chartOptions" :series="series" />
   </div>
-
+  
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;apexchart type=bar height=350 :options="chartOptions" :series="series" />
+    &lt;/div>
+  </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>

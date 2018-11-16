@@ -38,6 +38,23 @@
     </div>
   </div>
 
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="wrapper">
+      &lt;div id="chart-line">
+        &lt;apexchart type=line height=160 :options="chartOptionsLine1" :series="series1" />
+      &lt;/div>
+
+      &lt;div id="chart-line2">
+        &lt;apexchart type=line height=160 :options="chartOptionsLine2" :series="series2" />
+      &lt;/div>
+
+      &lt;div id="chart-area">
+        &lt;apexchart type=area height=160 :options="chartOptionsArea" :series="series3" />
+      &lt;/div>
+    &lt;/div>
+  </div>
+  
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>

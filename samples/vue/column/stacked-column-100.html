@@ -23,13 +23,18 @@
     <apexchart type=bar height=350 :options="chartOptions" :series="series" />
   </div>
 
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;apexchart type=bar height=350 :options="chartOptions" :series="series" />
+    &lt;/div>
+  </div>
+
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    
-
     new Vue({
       el: '#chart',
       components: {
@@ -61,7 +66,6 @@
               }
             }
           }],
-
           xaxis: {
             categories: ['2011 Q1', '2011 Q2', '2011 Q3', '2011 Q4', '2012 Q1', '2012 Q2',
               '2012 Q3', '2012 Q4'

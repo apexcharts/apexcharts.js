@@ -52,3 +52,7 @@ select.flat-select {
 .apexcharts-canvas {
     margin: 0 auto;
 }
+
+#html {
+    display: none;
+}

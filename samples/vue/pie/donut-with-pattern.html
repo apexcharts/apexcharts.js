@@ -25,6 +25,13 @@
       <apexchart type=donut width=380 :options="chartOptions" :series="series" />
   </div>
 
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;apexchart type=donut height=380 :options="chartOptions" :series="series" />
+    &lt;/div>
+  </div>
+
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>

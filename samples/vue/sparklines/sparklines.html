@@ -161,8 +161,99 @@
           </tr>
         </tbody>
       </table>
-
     </div>
+  </div>
+
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="app">
+      &lt;div class="row">
+        &lt;div class="col-md-4">
+          &lt;div id="spark1">
+            &lt;apexchart type=area height=160 :options="chartOptionsTopSpark1" :series="seriesTopSpark1" />
+          &lt;/div>
+        &lt;/div>
+        &lt;div class="col-md-4">
+          &lt;div id="spark2">
+            &lt;apexchart type=area height=160 :options="chartOptionsTopSpark2" :series="seriesTopSpark2" />
+          &lt;/div>
+        &lt;/div>
+        &lt;div class="col-md-4">
+          &lt;div id="spark3">
+            &lt;apexchart type=area height=160 :options="chartOptionsTopSpark3" :series="seriesTopSpark3" />
+          &lt;/div>
+        &lt;/div>
+      &lt;/div>
+
+      &lt;div class="row">
+        &lt;table>
+          &lt;thead>
+            &lt;th>Total Value&lt;/th>
+            &lt;th>Percentage of Portfolio&lt;/th>
+            &lt;th>Last 10 days&lt;/th>
+            &lt;th>Volume&lt;/th>
+          &lt;/thead>
+          &lt;tbody>
+            &lt;tr>
+              &lt;td>$32,554&lt;/td>
+              &lt;td>15%&lt;/td>
+              &lt;td>
+                &lt;div id="chart1">
+                  &lt;apexchart type=line height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark1" />
+                &lt;/div>
+              &lt;/td>
+              &lt;td>
+                &lt;div id="chart5">
+                  &lt;apexchart type=bar height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark1" />
+                &lt;/div>
+              &lt;/td>
+            &lt;/tr>
+            &lt;tr>
+              &lt;td>$23,533&lt;/td>
+              &lt;td>7%&lt;/td>
+              &lt;td>
+                &lt;div id="chart2">
+                  &lt;apexchart type=line height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark2" />
+                &lt;/div>
+              &lt;/td>
+              &lt;td>
+                &lt;div id="chart6">
+                  &lt;apexchart type=bar height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark2" />
+                &lt;/div>
+              &lt;/td>
+            &lt;/tr>
+            &lt;tr>
+              &lt;td>$54,276&lt;/td>
+              &lt;td>9%&lt;/td>
+              &lt;td>
+                &lt;div id="chart3">
+                  &lt;apexchart type=line height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark3" />
+                &lt;/div>
+              &lt;/td>
+              &lt;td>
+                &lt;div id="chart7">
+                  &lt;apexchart type=bar height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark3" />
+                &lt;/div>
+              &lt;/td>
+            &lt;/tr>
+            &lt;tr>
+              &lt;td>$11,533&lt;/td>
+              &lt;td>2%&lt;/td>
+              &lt;td>
+                &lt;div id="chart4">
+                  &lt;apexchart type=line height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark4" />
+                &lt;/div>
+              &lt;/td>
+              &lt;td>
+                &lt;div id="chart8">
+                  &lt;apexchart type=bar height=35 width="100" :options="chartOptionsSparkLine" :series="seriesSpark4" />
+                &lt;/div>
+              &lt;/td>
+            &lt;/tr>
+          &lt;/tbody>
+        &lt;/table>
+      &lt;/div>
+    &lt;/div>
   </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
@@ -390,7 +481,6 @@
           }
         }
       },
-
     })
   </script>
 

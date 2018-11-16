@@ -75,6 +75,28 @@
     </div>
   </div>
 
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="wrapper">
+      &lt;div id="chart-area">
+          &lt;apexchart type=area height=160 :options="chartOptionsYears" :series="series" />
+      &lt;/div>
+      &lt;h5 class="github-style">
+        &lt;img class="userimg" src="https://picsum.photos/200/200/?image=1031" data-hovercard-user-id="634573" class="avatar float-left mr-2"
+          alt="" width="38" height="38" />
+        &lt;div class="userdetails">
+          &lt;a class="username">coder&lt;/a>
+          &lt;span class="cmeta">
+            &lt;span class="commits">&lt;/span> commits
+          &lt;/span>
+        &lt;/div>
+      &lt;/h5>
+
+      &lt;div id="chart-area2">
+          &lt;apexchart type=area height=200 :options="chartOptionsMonths" :series="series" />
+      &lt;/div>
+    &lt;/div>
+  </div>
 
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
@@ -83,8 +105,6 @@
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-  
-
     new Vue({
       el: '#wrapper',
       components: {

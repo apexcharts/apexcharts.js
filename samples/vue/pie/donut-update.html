@@ -12,33 +12,33 @@
 
   <style>
     #chart {
-            max-width: 480px;
-            margin: 35px auto;
-        }
+        max-width: 480px;
+        margin: 35px auto;
+    }
+    .actions {
+        margin-top: -80px;
+        text-align: center;
+        position: relative;
+        z-index: 10;
+        left: -60px;
+    }
+    button {
+        color: #fff;
+        background: #6CBCFF;
+        border: 1px solid #ccc;
+        padding: 5px 10px;
+        margin: 5px;
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    @media only screen and (max-width: 480px) {
         .actions {
-            margin-top: -80px;
-            text-align: center;
-            position: relative;
-            z-index: 10;
-            left: -60px;
-        }
-        button {
-            color: #fff;
-            background: #6CBCFF;
-            border: 1px solid #ccc;
-            padding: 5px 10px;
-            margin: 5px;
-            font-weight: bold;
-            font-size: 13px;
+            margin-top: 0;
+            left: 0
         }
 
-        @media only screen and (max-width: 480px) {
-            .actions {
-                margin-top: 0;
-                left: 0
-            }
-
-        }
+    }
     </style>
 </head>
 
@@ -57,7 +57,25 @@
       <button @click="reset">RESET</button>
     </div>
   </div>
-  
+
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="app">
+      &lt;div class="chart-wrap">
+        &lt;div id="chart">
+          &lt;apexchart type=donut width=380 :options="chartOptions" :series="series" />
+        &lt;/div>
+      &lt;/div>
+
+      &lt;div class="actions">
+        &lt;button @click="randomize">RANDOMIZE&lt;/button>
+        &lt;button @click="appendData">ADD&lt;/button>
+        &lt;button @click="removeData">REMOVE&lt;/button>
+        &lt;button @click="reset">RESET&lt;/button>
+      &lt;/div>
+    &lt;/div>
+  </div>
+
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>

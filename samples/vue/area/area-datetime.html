@@ -55,6 +55,19 @@
     <apexchart type=area height=350 :options="chartOptions" :series="series" />
   </div>
 
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;div class="toolbar">
+        &lt;button @click="updateData('one_month')" id="one_month" :class="{active: selection==='one_month'}">1M&lt;/button>
+        &lt;button @click="updateData('six_months')" id="six_months" :class="{active: selection==='six_months'}">6M&lt;/button>
+        &lt;button @click="updateData('one_year')" id="one_year" :class="{active: selection==='one_year'}">1Y&lt;/button>
+        &lt;button @click="updateData('ytd')" id="ytd" :class="{active: selection==='ytd'}">YTD&lt;/button>
+        &lt;button @click="updateData('all')" id="all" :class="{active: selection==='all'}">ALL&lt;/button>
+      &lt;/div>
+      &lt;apexchart type=area height=350 :options="chartOptions" :series="series" />
+    &lt;/div>
+  </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
@@ -62,8 +75,6 @@
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    
-
     new Vue({
       el: '#chart',
       components: {

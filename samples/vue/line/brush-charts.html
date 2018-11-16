@@ -7,6 +7,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Basic Line - Vue</title>
 
+  <link href="../../assets/styles.css" rel="stylesheet" />
 
   <style>
     #chart1, #chart2 {
@@ -17,29 +18,49 @@
      #chart2 {
       position: relative;
       margin-top: -70px;
+      margin-bottom: 0px;
     }
+
+    #app {
+      padding-top: 20px;
+      padding-left: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+      max-width: 650px;
+      margin: 35px auto;
+    }
+
   </style>
 </head>
 
 <body>
   <div id="app">
-      <div id="chart1">
-          <apexchart type=line height=230 :options="chartOptionsArea" :series="series" />
-        </div>
-        <div id="chart2">
-          <apexchart type=area height=130 :options="chartOptionsBrush" :series="series" />
-        </div>
+    <div id="chart1">
+      <apexchart type=line height=230 :options="chartOptionsArea" :series="series" />
+    </div>
+    <div id="chart2">
+      <apexchart type=area height=130 :options="chartOptionsBrush" :series="series" />
+    </div>
   </div>
   
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="app">
+      &lt;div id="chart1">
+        &lt;apexchart type=line height=230 :options="chartOptionsArea" :series="series" />
+      &lt;/div>
+      &lt;div id="chart2">
+        &lt;apexchart type=area height=130 :options="chartOptionsBrush" :series="series" />
+      &lt;/div>
+    &lt;/div>
+  </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    
-
-
     new Vue({
       el: '#app',
       components: {

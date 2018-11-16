@@ -12,16 +12,23 @@
 
   <style>
     #chart {
-            
-            max-width: 380px;
-            margin: 35px auto;
-        }
+        
+        max-width: 380px;
+        margin: 35px auto;
+    }
     </style>
 </head>
 
 <body>
   <div id="chart">
     <apexchart type=pie width=380 :options="chartOptions" :series="series" />
+  </div>
+
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;apexchart type=pie width=380 :options="chartOptions" :series="series" />
+    &lt;/div>
   </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>

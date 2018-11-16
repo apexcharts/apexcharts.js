@@ -11,8 +11,6 @@
   <link href="../../assets/styles.css" rel="stylesheet" />
 
   <style>
-
-    
     body {
       background: #fff;
     }
@@ -83,8 +81,6 @@
 
 
 <body>
-
-
   <div class="wrap">
     <select id="model" @change="changeData" class="flat-select">
       <option value="iphone5">iPhone 5</option>
@@ -99,14 +95,29 @@
     </div>
   </div>
 
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div class="wrap">
+      &lt;select id="model" @change="changeData" class="flat-select">
+        &lt;option value="iphone5">iPhone 5&lt;/option>
+        &lt;option value="iphone6">iPhone 6&lt;/option>
+        &lt;option value="iphone7">iPhone 7&lt;/option>
+      &lt;/select>
+      &lt;div id="chart-year" class="chart-box">
+        &lt;apexchart ref="chartYear" type=bar height=350 :options="chartOptionsYear" :series="seriesYear" />
+      &lt;/div>
+      &lt;div id="chart-quarter" class="chart-box">
+        &lt;apexchart ref="chartQuarter" type=bar height=350 :options="chartOptionsQuarter" :series="seriesQuarter" />
+      &lt;/div>
+    &lt;/div>
+  </div>
+
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="data.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    
-
     Apex = {
       chart: {
         toolbar: {

@@ -32,12 +32,22 @@
   <div id="chart-box">
     <div id="chart-candlestick">
       <apexchart type=candlestick height=290 :options="chartOptionsCandlestick" :series="seriesCandle" />
-
     </div>
     <div id="chart-bar">
-
       <apexchart type=bar height=160 :options="chartOptionsBar" :series="seriesBar" />
     </div>
+  </div>
+
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart-box">
+      &lt;div id="chart-candlestick">
+        &lt;apexchart type=candlestick height=290 :options="chartOptionsCandlestick" :series="seriesCandle" />
+      &lt;/div>
+      &lt;div id="chart-bar">
+        &lt;apexchart type=bar height=160 :options="chartOptionsBar" :series="seriesBar" />
+      &lt;/div>
+    &lt;/div>
   </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
@@ -46,8 +56,6 @@
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
-    
-
     new Vue({
       el: '#chart-box',
       components: {
