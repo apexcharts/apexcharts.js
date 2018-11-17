@@ -358,7 +358,7 @@ class YAxis {
 
     w.config.yaxis.map((yaxe, index) => {
       let yAxisWidth = (yaxisLabelCoords[index].width + yTitleCoords[index].width)
-      let multipleYPadd = this.multipleYs && yTitleCoords[index].width > 0 ? 20 : 7
+      let multipleYPadd = this.multipleYs && yTitleCoords[index].width > 0 ? 20 : 8
 
       let paddingForYAxisTitle = this.xPaddingForYAxisTitle(index, {
         width: yaxisLabelCoords[index].width
@@ -386,7 +386,7 @@ class YAxis {
         }
 
         if (this.multipleYs) {
-          xLeft = w.globals.translateX - yAxisWidth - leftDrawnYs + multipleYPadd + (parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2) + yaxe.labels.offsetX
+          xLeft = w.globals.translateX - yAxisWidth - leftDrawnYs + multipleYPadd + (parseInt(w.config.yaxis[index].labels.style.fontSize)) + yaxe.labels.offsetX
         } else {
           xLeft = w.globals.translateX - yAxisWidth + yaxisLabelCoords[index].width + yaxe.labels.offsetX
         }

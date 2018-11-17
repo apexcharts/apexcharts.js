@@ -61,7 +61,9 @@ class Markers {
           PointClasses += ' no-pointer-events'
         }
 
-        if (w.globals.markers.size[seriesIndex] > 0) {
+        const shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0
+
+        if (shouldMarkerDraw) {
           if (Utils.isNumber(p.y[q])) {
             PointClasses += ` w${(Math.random() + 1).toString(36).substring(4)}`
           } else {
