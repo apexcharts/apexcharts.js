@@ -231,10 +231,12 @@ class Tooltip {
       }
     }
 
-    const validSharedChartTypes = w.globals.xyCharts ||
-    w.globals.comboCharts || (barOrCandlestick && this.hasBars())
+    const validSharedChartTypes =
+      (w.globals.xyCharts && !this.showOnIntersect) ||
+      (w.globals.comboCharts && !this.showOnIntersect) ||
+      ((barOrCandlestick && this.hasBars()) && w.config.tooltip.shared)
 
-    if (validSharedChartTypes && w.config.tooltip.shared) {
+    if (validSharedChartTypes) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if ((barOrCandlestick) && !w.globals.comboCharts) {
       this.addBarsEventListeners(seriesHoverParams)
