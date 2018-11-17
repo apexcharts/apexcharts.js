@@ -119,8 +119,10 @@ class Graphics {
     let line = null
     if (hORv === null) {
       line = ['L', x, y].join(' ')
-    } else {
-      line = [hORv, x].join(' ')
+    } else if (hORv === 'H') {
+      line = ['H', x].join(' ')
+    } else if (hORv === 'V') {
+      line = ['V', y].join(' ')
     }
     return line
   }

@@ -176,8 +176,13 @@ class Core {
         )
       }
       if (columnSeries.series.length > 0) {
-        let bar = new Bar(this.ctx, xyRatios)
-        elGraph.push(bar.draw(columnSeries.series, columnSeries.i))
+        if (w.config.chart.stacked) {
+          let barStacked = new BarStacked(this.ctx, xyRatios)
+          elGraph.push(barStacked.draw(columnSeries.series, columnSeries.i))
+        } else {
+          let bar = new Bar(this.ctx, xyRatios)
+          elGraph.push(bar.draw(columnSeries.series, columnSeries.i))
+        }
       }
       if (lineSeries.series.length > 0) {
         elGraph.push(

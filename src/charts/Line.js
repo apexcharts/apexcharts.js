@@ -425,8 +425,14 @@ class Line {
         linePath = linePath + graphics.move(x, y)
         areaPath = areaPath + graphics.move(x, areaBottomY)
       }
-      linePath = linePath + graphics.line(x, y)
-      areaPath = areaPath + graphics.line(x, y)
+
+      if (curve === 'stepline') {
+        linePath = linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
+        areaPath = areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
+      } else if (curve === 'straight') {
+        linePath = linePath + graphics.line(x, y)
+        areaPath = areaPath + graphics.line(x, y)
+      }
 
       if (j === series[i].length - 2) {
         // last loop, close path

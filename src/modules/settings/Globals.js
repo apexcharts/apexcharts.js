@@ -121,6 +121,7 @@ export default class Globals {
       seriesCandleH: [], // candle stick high values
       seriesCandleL: [], // candle stick low values
       seriesCandleC: [], // candle stick close values
+      allSeriesHasEqualX: true,
       dataPoints: 0, // the longest series length
       pointsArray: [], // store the points positions here to draw later on hover
       // format is - [[x,y],[x,y]... [x,y]]

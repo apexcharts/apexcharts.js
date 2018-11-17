@@ -364,4 +364,36 @@ export default class Series {
     }
     return series
   }
+
+  hasAllSeriesEqualX () {
+    let equalLen = true
+    const w = this.w
+
+    const filteredSerX = this.filteredSeriesX()
+
+    for (let i = 0; i < filteredSerX.length - 1; i++) {
+      if (filteredSerX[i][0] !== filteredSerX[i + 1][0]) {
+        equalLen = false
+        break
+      }
+    }
+
+    w.globals.allSeriesHasEqualX = equalLen
+
+    return equalLen
+  }
+
+  filteredSeriesX () {
+    const w = this.w
+
+    const filteredSeriesX = w.globals.seriesX.map((ser, index) => {
+      if (ser.length > 0) {
+        return ser
+      } else {
+        return []
+      }
+    })
+
+    return filteredSeriesX
+  }
 }

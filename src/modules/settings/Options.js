@@ -649,7 +649,7 @@ export default class Options {
       },
       stroke: {
         show: true,
-        curve: 'smooth', // "smooth" or "straight"
+        curve: 'smooth', // "smooth" / "straight" / "stepline"
         lineCap: 'butt', // round, butt , square
         width: 2,
         colors: undefined, // array of colors

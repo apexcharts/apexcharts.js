@@ -12,7 +12,7 @@ import Graphics from '../modules/Graphics'
  **/
 
 class BarStacked extends Bar {
-  draw (series) {
+  draw (series, seriesIndex) {
     let w = this.w
     this.graphics = new Graphics(this.ctx)
     this.fill = new Fill(this.ctx)
@@ -76,7 +76,7 @@ class BarStacked extends Bar {
       let xArrValues = []
       let yArrValues = []
 
-      let realIndex = i
+      let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
       if (this.yRatio.length > 1) {
         this.yaxisIndex = realIndex
@@ -87,7 +87,7 @@ class BarStacked extends Bar {
         class: `apexcharts-series ${w.globals.seriesNames[realIndex].toString().replace(/ /g, '-')
         }`,
         'rel': i + 1,
-        'data:realIndex': i
+        'data:realIndex': realIndex
       })
 
       // eldatalabels
@@ -123,7 +123,7 @@ class BarStacked extends Bar {
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
         if (w.config.stroke.show) {
-          if (series[i][j] === null || series[i][j] === 0) {
+          if (this.isNullValue) {
             strokeWidth = 0
           } else {
             strokeWidth = Array.isArray(this.strokeWidth) ? this.strokeWidth[realIndex] : this.strokeWidth
@@ -169,7 +169,7 @@ class BarStacked extends Bar {
 
         let seriesNumber = w.config.plotOptions.bar.distributed ? j : i
 
-        let fillColor = null
+        let fillColor = w.globals.colors[realIndex]
 
         if (this.barOptions.colors.ranges.length > 0) {
           const colorRange = this.barOptions.colors.ranges

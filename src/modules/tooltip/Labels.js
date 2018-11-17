@@ -267,7 +267,7 @@ class Labels {
     j
   }) {
     const w = this.w
-    const filteredSeriesX = this.tooltipUtil.filteredSeriesX()
+    const filteredSeriesX = this.ctx.series.filteredSeriesX()
 
     let xVal = ''
     let xAxisTTVal = ''

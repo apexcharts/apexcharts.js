@@ -208,6 +208,9 @@ class ApexCharts {
     // legend is calculated here before coreCalculations because it affects the plottable area
     this.legend.init()
 
+    // check whether in multiple series, all series share the same X
+    this.series.hasAllSeriesEqualX()
+
     // coreCalculations will give the min/max range and yaxis/axis values. It should be called here to set series variable from config to globals
     if (gl.axisCharts) {
       this.core.coreCalculations()
