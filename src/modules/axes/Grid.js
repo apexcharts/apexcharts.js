@@ -94,6 +94,16 @@ class Grid {
     let gl = w.globals
     const graphics = new Graphics(this.ctx)
 
+    let strokeSize = Array.isArray(w.config.stroke.width) ? 0 : w.config.stroke.width
+
+    if (Array.isArray(w.config.stroke.width)) {
+      let strokeMaxSize = 0
+      w.config.stroke.width.size.forEach(function (m) {
+        strokeMaxSize = Math.max(size, m)
+      })
+      strokeSize = strokeMaxSize
+    }
+
     gl.dom.elGridRectMask = document.createElementNS(
       gl.svgNS,
       'clipPath'
@@ -106,7 +116,7 @@ class Grid {
     )
     gl.dom.elGridRectMarkerMask.setAttribute('id', `gridRectMarkerMask${gl.cuid}`)
 
-    gl.dom.elGridRect = graphics.drawRect(0, 0, gl.gridWidth, gl.gridHeight, 0, '#fff')
+    gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2, -strokeSize / 2, gl.gridWidth + strokeSize, gl.gridHeight + strokeSize, 0, '#fff')
 
     const coreUtils = new CoreUtils(this)
     coreUtils.getLargestMarkerSize()
