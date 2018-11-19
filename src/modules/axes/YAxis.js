@@ -101,7 +101,7 @@ class YAxis {
         y: (w.globals.gridHeight / 2) + w.globals.translateY,
         text: w.config.yaxis[realIndex].title.text,
         textAnchor: 'end',
-        foreColor: w.config.yaxis[realIndex].labels.style.color,
+        foreColor: w.config.yaxis[realIndex].title.style.color,
         fontSize: w.config.yaxis[realIndex].title.style.fontSize,
         fontFamily: w.config.yaxis[realIndex].title.style.fontFamily,
         cssClass: 'apexcharts-yaxis-title-text ' + w.config.yaxis[realIndex].title.style.cssClass

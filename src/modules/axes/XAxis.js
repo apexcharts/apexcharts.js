@@ -243,21 +243,23 @@ class XAxis {
 
     let lbFormatter = w.globals.yLabelFormatters[0]
 
-    if (w.config.yaxis[0].labels.show) {
+    const ylabels = w.config.yaxis[0].labels
+
+    if (ylabels.show) {
       for (let i = 0; i <= labels.length - 1; i++) {
         let label = typeof labels[i] === 'undefined' ? '' : labels[i]
 
         label = lbFormatter(label)
 
         let elTick = graphics.drawText({
-          x: w.config.yaxis[0].labels.offsetX - 15,
-          y: yPos + colHeight + w.config.yaxis[0].labels.offsetY,
+          x: ylabels.offsetX - 15,
+          y: yPos + colHeight + ylabels.offsetY,
           text: label,
           textAnchor: 'end',
-          foreColor: w.config.yaxis[0].labels.style.colors[i],
-          fontSize: w.config.yaxis[0].labels.style.fontSize,
-          fontFamily: w.config.yaxis[0].labels.style.fontFamily,
-          cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[0].labels.style.cssClass
+          foreColor: ylabels.style.color ? ylabels.style.color : ylabels.style.colors[i],
+          fontSize: ylabels.style.fontSize,
+          fontFamily: ylabels.style.fontFamily,
+          cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
         })
 
         elYaxisTexts.add(elTick)
