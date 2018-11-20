@@ -455,6 +455,56 @@ class Legend {
     }
   }
 
+  resetToggleDataSeries () {
+    const w = this.w
+
+    let seriesEls = null
+
+    let realIndexes = []
+
+    if (w.globals.axisCharts) {
+      seriesEls = w.globals.dom.baseEl.querySelectorAll(
+        `.apexcharts-series[data\\:realIndex]`
+      )
+
+      seriesEls.forEach(v => {
+        realIndexes.push(parseInt(v.getAttribute('data:realIndex')))
+      })
+    } else {
+      seriesEls = w.globals.dom.baseEl.querySelectorAll(
+        `.apexcharts-series[rel]`
+      )
+      seriesEls.forEach(v => {
+        realIndexes.push(parseInt(v.getAttribute('rel')) - 1)
+      })
+    }
+
+    realIndexes.sort()
+
+    if (w.globals.collapsedSeries.length > 0) {
+      let risingSeries = w.globals.risingSeries.slice()
+      let series = w.config.series.slice()
+
+      for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
+        let index = realIndexes.indexOf(w.globals.collapsedSeries[c].index)
+
+        if (index !== -1) {
+          if (w.globals.axisCharts) {
+            series[index].data = w.globals.collapsedSeries.slice()[c].data.slice()
+          } else {
+            series[index] = w.globals.collapsedSeries.slice()[c].data
+          }
+          risingSeries.push(index)
+        }
+      }
+      w.globals.collapsedSeries = []
+      w.globals.collapsedSeriesIndices = []
+      w.globals.risingSeries = risingSeries
+      w.config.series = series
+      this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
+    }
+  }
+
   toggleDataSeries (seriesCnt, isHidden) {
     const w = this.w
     if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {

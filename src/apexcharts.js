@@ -750,6 +750,10 @@ class ApexCharts {
     this.legend.toggleDataSeries(seriesCnt, isHidden)
   }
 
+  resetToggleSeries () {
+    this.legend.resetToggleDataSeries()
+  }
+
   setupEventHandlers () {
     const w = this.w
     const me = this
