@@ -250,31 +250,71 @@ export default class Range {
     const cnf = this.w.config
 
     // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
-    const similarIndices = []
+    let similarIndices = []
     scalesIndices.forEach((scale) => {
       if (scale.alreadyExists) {
-        similarIndices.push(scale.index)
-        similarIndices.push(scale.similarIndex)
+        if (typeof similarIndices[scale.index] === 'undefined') {
+          similarIndices[scale.index] = []
+        }
+        similarIndices[scale.index].push(scale.index)
+        similarIndices[scale.index].push(scale.similarIndex)
       }
     })
 
+    function intersect (a, b) {
+      return a.filter(value => b.indexOf(value) !== -1)
+    }
+
+    similarIndices.forEach((si, i) => {
+      similarIndices.forEach((sj, j) => {
+        if (i !== j) {
+          if (intersect(si, sj).length > 0) {
+            similarIndices[i] = similarIndices[i].concat(similarIndices[j])
+          }
+        }
+      })
+    })
+
     // then, we remove duplicates from the similarScale array
-    let uniqueSimilarIndices = similarIndices.filter(function (item, pos) {
-      return similarIndices.indexOf(item) === pos
+    let uniqueSimilarIndices = similarIndices.map(function (item) {
+      return item.filter((i, pos) => {
+        return item.indexOf(i) === pos
+      })
+    })
+
+    // sort further to remove whole duplicate arrays later
+    let sortedIndices = uniqueSimilarIndices.map((s) => {
+      return s.sort()
+    })
+
+    // remove undefined items
+    similarIndices = similarIndices.filter((s) => {
+      return !!s
+    })
+
+    let indices = sortedIndices.slice()
+    let stringIndices = indices.map((ind) => {
+      return JSON.stringify(ind)
+    })
+    indices = indices.filter((ind, p) => {
+      return stringIndices.indexOf(JSON.stringify(ind)) === p
     })
 
     let sameScaleMinYArr = []
     let sameScaleMaxYArr = []
     minYArr.forEach((minYValue, yi) => {
-      // let sameScaleMin = null
-      uniqueSimilarIndices.forEach((scale) => {
-        // we compare only the yIndex which exists in the uniqueSimilarIndices array
-        if (yi === scale) {
-          sameScaleMinYArr.push({
+      indices.forEach((scale, i) => {
+        // we compare only the yIndex which exists in the indices array
+        if (scale.includes(yi)) {
+          if (typeof sameScaleMinYArr[i] === 'undefined') {
+            sameScaleMinYArr[i] = []
+            sameScaleMaxYArr[i] = []
+          }
+          sameScaleMinYArr[i].push({
             key: yi,
             value: minYValue
           })
-          sameScaleMaxYArr.push({
+          sameScaleMaxYArr[i].push({
             key: yi,
             value: maxYArr[yi]
           })
@@ -282,30 +322,38 @@ export default class Range {
       })
     })
 
-    let sameScaleMin = Number.MAX_SAFE_INTEGER
-    let sameScaleMax = Number.MIN_SAFE_INTEGER
+    let sameScaleMin = Array(indices.length).fill().map((e, i) => Number.MAX_SAFE_INTEGER)
+    let sameScaleMax = Array(indices.length).fill().map((e, i) => Number.MIN_SAFE_INTEGER)
 
-    sameScaleMinYArr.forEach((s) => {
-      sameScaleMin = Math.min(s.value, sameScaleMin)
+    sameScaleMinYArr.forEach((s, i) => {
+      s.forEach((sc, j) => {
+        sameScaleMin[i] = Math.min(sc.value, sameScaleMin[i])
+      })
     })
-    sameScaleMaxYArr.forEach((s) => {
-      sameScaleMax = Math.max(s.value, sameScaleMax)
+
+    sameScaleMaxYArr.forEach((s, i) => {
+      s.forEach((sc, j) => {
+        sameScaleMax[i] = Math.max(sc.value, sameScaleMax[i])
+      })
     })
 
     minYArr.forEach((min, i) => {
-      sameScaleMinYArr.forEach((s, si) => {
-        let minY = sameScaleMin
-        let maxY = sameScaleMax
-        if (s.key === i) {
-          if (cnf.yaxis[i].min !== undefined) {
-            minY = cnf.yaxis[i].min
-          }
-          if (cnf.yaxis[i].max !== undefined) {
-            maxY = cnf.yaxis[i].max
-          }
+      sameScaleMaxYArr.forEach((s, si) => {
+        let minY = sameScaleMin[si]
+        let maxY = sameScaleMax[si]
 
-          this.setYScaleForIndex(i, minY, maxY)
-        }
+        s.forEach((ind, k) => {
+          if (s[k].key === i) {
+            if (cnf.yaxis[i].min !== undefined) {
+              minY = cnf.yaxis[i].min
+            }
+            if (cnf.yaxis[i].max !== undefined) {
+              maxY = cnf.yaxis[i].max
+            }
+
+            this.setYScaleForIndex(i, minY, maxY)
+          }
+        })
       })
     })
   }

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Basic Line - Vue</title>
+  <title>Brush Chart - Vue</title>
 
   <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -61,11 +61,10 @@
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
   <script>
+    Vue.component('apexchart', VueApexCharts)
+
     new Vue({
       el: '#app',
-      components: {
-        apexchart: VueApexCharts,
-      },
       data: function () {
         return {
           series: [{
