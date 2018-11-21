@@ -600,7 +600,9 @@ class ApexCharts {
   }
 
   clear () {
-    this.zoomPanSelection.destroy()
+    if (this.zoomPanSelection) {
+      this.zoomPanSelection.destroy()
+    }
     if (this.toolbar) {
       this.toolbar.destroy()
     }
