@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Line Chart with missing data</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class LineChart extends React.Component {
+    
+    constructor(props) {
+      super(props);
+
+      this.state = {
+        options: {
+          chart: {
+            zoom: {
+              enabled: false
+            },
+            animations: {
+              enabled: false
+            }
+          },
+          stroke: {
+            width: [5, 5, 4],
+            curve: 'straight'
+          },
+          title: {
+            text: 'Missing data (null values)'
+          }
+        },
+        series: [{
+          name: 'Peter',
+          data: [5, 5, 10, 8, 7, 5, 4, null, null, null, 10, 10, 7, 8, 6, 9]
+        }, {
+          name: 'Johnny',
+          data: [10, 15, null, 12, null, 10, 12, 15, null, null, 12, null, 14, null, null, null]
+        }, {
+          name: 'David',
+          data: [null, null, null, null, 3, 4, 1, 3, 4, 6, 7, 9, 5, null, null, null]
+        }],
+      }
+    }
+
+    render() {
+
+      return (
+        <div id="chart">
+          <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
+        </div>
+      );
+    }
+  }
+
+  const domContainer = document.querySelector('#app');
+  ReactDOM.render(React.createElement(LineChart), domContainer);
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Chart with Logarithmic Scale</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    var data = [{
+        x: 1994,
+        y: 2543763
+      },
+      {
+        x: 1995,
+        y: 4486659
+      },
+      {
+        x: 1996,
+        y: 7758386
+      },
+      {
+        x: 1997,
+        y: 12099221
+      },
+      {
+        x: 1998,
+        y: 18850762
+      },
+      {
+        x: 1999,
+        y: 28153765
+      },
+      {
+        x: 2000,
+        y: 41479495
+      },
+      {
+        x: 2001,
+        y: 50229224
+      },
+      {
+        x: 2002,
+        y: 66506501
+      },
+      {
+        x: 2003,
+        y: 78143598
+      },
+      {
+        x: 2004,
+        y: 91332777
+      },
+      {
+        x: 2005,
+        y: 103010128
+      },
+      {
+        x: 2006,
+        y: 116291681
+      },
+      {
+        x: 2007,
+        y: 137322698
+      },
+      {
+        x: 2008,
+        y: 157506752
+      },
+      {
+        x: 2009,
+        y: 176640381
+      },
+      {
+        x: 2010,
+        y: 202320297
+      },
+      {
+        x: 2011,
+        y: 223195735
+      },
+      {
+        x: 2012,
+        y: 249473624
+      },
+      {
+        x: 2013,
+        y: 272842810
+      },
+      {
+        x: 2014,
+        y: 295638556
+      },
+      {
+        x: 2015,
+        y: 318599615
+      },
+      {
+        x: 2016,
+        y: 342497123
+      }
+    ]
+
+    var labelFormatter = function (value) {
+      var val = Math.abs(value)
+      if (val >= 1000000) {
+        val = (val / 1000000).toFixed(1) + ' M';
+      }
+      return val;
+    }
+
+  class LineChart extends React.Component {
+  
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      options: {
+        chart: {
+            zoom: {
+              enabled: false
+            }
+          },
+          dataLabels: {
+            enabled: false
+          },
+          stroke: {
+            curve: 'straight'
+          },
+          title: {
+            text: 'Logarithmic Scale',
+            align: 'left'
+          },
+          yaxis: [{
+              min: 1000000,
+              max: 500000000,
+              tickAmount: 4,
+              logarithmic: true,
+              seriesName: 'Logarithmic',
+              labels: {
+                formatter: labelFormatter
+              }
+            },
+            {
+              min: 1000000,
+              max: 500000000,
+              opposite: true,
+              tickAmount: 4,
+              seriesName: 'Linear',
+              labels: {
+                formatter: labelFormatter
+              }
+            }
+          ]
+      },
+      series: [{
+        name: "Logarithmic",
+        data: data
+      }, {
+        name: "Linear",
+        data: data
+      }],
+    }
+  }
+
+  render() {
+
+    return (
+      <div id="chart">
+        <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
+      </div>
+    );
+  }
+}
+
+const domContainer = document.querySelector('#app');
+ReactDOM.render(React.createElement(LineChart), domContainer);
+
+</script>
+
+</body>
+
+</html>

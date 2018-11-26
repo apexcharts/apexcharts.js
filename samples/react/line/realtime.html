@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Dynamic Updating Line Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+<style>
+  #chart {
+    max-width: 650px;
+    margin: 35px auto;
+  }
+</style>
+</head>
+
+<body>
+<div id="app"></div>
+
+<script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+<script src="../../../dist/apexcharts.js"></script>
+<script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+<script type="text/babel">
+
+  var lastDate = 0;
+    var data = []
+
+    function getDayWiseTimeSeries(baseval, count, yrange) {
+      var i = 0;
+      while (i < count) {
+        var x = baseval;
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        data.push({
+          x,
+          y
+        });
+        lastDate = baseval
+        baseval += 86400000;
+        i++;
+      }
+    }
+
+    getDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+      min: 10,
+      max: 90
+    })
+
+    function getNewSeries(baseval, yrange) {
+      var newDate = baseval + 86400000;
+      lastDate = newDate
+      data.push({
+        x: newDate,
+        y: Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+      })
+    }
+
+    function resetData() {
+      data = data.slice(data.length - 10, data.length);
+    }
+
+  class LineChart extends React.Component {
+  
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      options: {
+        chart: {
+            id: 'realtime',
+            animations: {
+              enabled: true,
+              easing: 'linear',
+              dynamicAnimation: {
+                speed: 2000
+              }
+            },
+            toolbar: {
+              show: false
+            },
+            zoom: {
+              enabled: false
+            }
+          },
+          dataLabels: {
+            enabled: false
+          },
+          stroke: {
+            curve: 'smooth'
+          },
+
+          title: {
+            text: 'Dynamic Updating Chart',
+            align: 'left'
+          },
+          markers: {
+            size: 0
+          },
+          xaxis: {
+            type: 'datetime',
+            range: 777600000,
+          },
+          yaxis: {
+            max: 100
+          },
+          legend: {
+            show: false
+          }
+      },
+      series: [{
+        data: data.slice()
+      }],
+    }
+  }
+  
+  componentDidMount() {
+    this.intervals()
+  }
+
+  render() {
+
+    return (
+      <div id="chart">
+        <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
+      </div>
+    );
+  }
+
+  intervals () {
+
+    window.setInterval(() => {
+      getNewSeries(lastDate, {
+        min: 10,
+        max: 90
+      })
+      
+      ApexCharts.exec('realtime', 'updateSeries', [{
+        data: data
+      }])
+    }, 2000)
+
+    // every 60 seconds, we reset the data 
+    window.setInterval(() => {
+      resetData()
+
+      ApexCharts.exec('realtime', 'updateSeries', [{
+        data: data
+      }], false, true)
+    }, 60000)
+  }
+}
+
+const domContainer = document.querySelector('#app');
+ReactDOM.render(React.createElement(LineChart), domContainer);
+
+</script>
+
+</body>
+
+</html>

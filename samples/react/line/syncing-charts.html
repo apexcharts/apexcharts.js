@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Syncing charts</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+<style>
+  #wrapper {
+    padding-top: 20px;
+    padding-left: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+    max-width: 650px;
+    margin: 35px auto;
+  }
+</style>
+</head>
+
+<body>
+<div id="app"></div>
+
+<script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+<script src="../../../dist/apexcharts.js"></script>
+<script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+<script type="text/babel">
+
+  function generateDayWiseTimeSeries(baseval, count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = baseval;
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        series.push([x, y]);
+        baseval += 86400000;
+        i++;
+      }
+      return series;
+    }
+
+    // The global window.Apex variable below can be used to set common options for all charts on the page
+    Apex = {
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'straight'
+      },
+      toolbar: {
+        tools: {
+          selection: false
+        }
+      },
+      markers: {
+        size: 6,
+        hover: {
+          size: 10
+        }
+      },
+      tooltip: {
+        followCursor: false,
+        theme: 'dark',
+        x: {
+          show: false
+        },
+        marker: {
+          show: false
+        },
+        y: {
+          title: {
+            formatter: function () {
+              return ''
+            }
+          }
+        }
+      },
+      grid: {
+        clipMarkers: false
+      },
+      yaxis: {
+        tickAmount: 2
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+    }
+
+  class LineChart extends React.Component {
+    
+    constructor(props) {
+      super(props);
+
+      this.state = {
+        series1: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 60
+          })
+        }],
+        series2: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 30
+          })
+        }],
+        series3: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 90
+          })
+        }],
+        chartOptionsLine1: {
+          chart: {
+            id: 'fb',
+            group: 'social',
+          },
+          colors: ['#008FFB'],
+        },
+        chartOptionsLine2: {
+          chart: {
+            id: 'tw',
+            group: 'social',
+          },
+          colors: ['#546E7A'],
+
+        },
+        chartOptionsArea: {
+          chart: {
+            id: 'yt',
+            group: 'social',
+          },
+          colors: ['#00E396'],
+
+        }
+      }
+    }
+
+    render() {
+
+      return (
+        <div id="wrapper">
+          <div id="chart-line">
+            <ReactApexChart type="line" height="160"  options={this.state.chartOptionsLine1} series={this.state.series1}/>
+          </div>
+
+          <div id="chart-line2">
+            <ReactApexChart type="line" height="160"  options={this.state.chartOptionsLine2} series={this.state.series2}/>
+          </div>
+
+          <div id="chart-area">
+            <ReactApexChart type="area" height="160"  options={this.state.chartOptionsArea} series={this.state.series3}/>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  const domContainer = document.querySelector('#app');
+  ReactDOM.render(React.createElement(LineChart), domContainer);
+
+</script>
+
+</body>
+</html>

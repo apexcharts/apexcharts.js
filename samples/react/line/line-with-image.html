@@ -12,44 +12,33 @@
 
   <style>
     #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
 </head>
 
 <body>
-  <div id="chart">
-    <apexchart type=line height=350 :options="chartOptions" :series="series" />
-  </div>
+  <div id="app"></div>
 
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=line height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
-  
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
   <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
 
-  <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [
+  <script type="text/babel">
 
-          {
-            name: 'Dataset 2',
-            data: [10, 5, 20, 13, 15, 12, 13, 24, 24, 34, 7, 15, 10, 9, 26]
-          }
-        ],
-        chartOptions: {
+    class LineChart extends React.Component {
+    
+    constructor(props) {
+      super(props);
 
+      this.state = {
+        options: {
           stroke: {
             width: 5,
             curve: 'smooth'
@@ -106,11 +95,31 @@
             offsetY: -25,
             offsetX: -5
           }
-        }
       },
+      series: [
+        {
+          name: 'Dataset 2',
+          data: [10, 5, 20, 13, 15, 12, 13, 24, 24, 34, 7, 15, 10, 9, 26]
+        }
+      ],
+    }
 
-    })
-  </script>
+  }
+
+  render() {
+
+    return (
+      <div id="chart">
+        <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
+      </div>
+    );
+  }
+}
+
+const domContainer = document.querySelector('#app');
+ReactDOM.render(React.createElement(LineChart), domContainer);
+
+</script>
 
 </body>
 

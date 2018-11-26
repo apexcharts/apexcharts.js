@@ -2,163 +2,163 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Simple HeatMap</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Simple HeatMap</title>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
 
-    </div>
-
-
-    <script src="../../../dist/apexcharts.js"></script>
-
-    <script>
-        function generateData(count, yrange) {
-            var i = 0;
-            var series = [];
-            while (i < count) {
-                var x = (i + 1).toString();
-                var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-
-                series.push({
-                    x: x,
-                    y: y
-                });
-                i++;
-            }
-            return series;
-        }
+  </div>
 
 
-        var options = {
-            chart: {
-                height: 350,
-                type: 'heatmap',
-            },
-            stroke: {
-                width: 0
-            },
-            plotOptions: {
-                heatmap: {
-                    radius: 30,
-                    enableShades: false,
-                    colorScale: {
-                        ranges: [{
-                                from: 0,
-                                to: 50,
-                                color: '#008FFB'
-                            },
-                            {
-                                from: 51,
-                                to: 100,
-                                color: '#00E396'
-                            },
-                        ],
-                    },
+  <script src="../../../dist/apexcharts.js"></script>
 
-                }
-            },
-            dataLabels: {
-                enabled: true,
-                style: {
-                    colors: ['#fff']
-                }
-            },
-            series: [{
-                    name: 'Metric1',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric2',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric3',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric4',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric5',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric6',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric7',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric8',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                },
-                {
-                    name: 'Metric8',
-                    data: generateData(20, {
-                        min: 0,
-                        max: 90
-                    })
-                }
+  <script>
+    function generateData(count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = (i + 1).toString();
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        series.push({
+          x: x,
+          y: y
+        });
+        i++;
+      }
+      return series;
+    }
+
+
+    var options = {
+      chart: {
+        height: 350,
+        type: 'heatmap',
+      },
+      stroke: {
+        width: 0
+      },
+      plotOptions: {
+        heatmap: {
+          radius: 30,
+          enableShades: false,
+          colorScale: {
+            ranges: [{
+                from: 0,
+                to: 50,
+                color: '#008FFB'
+              },
+              {
+                from: 51,
+                to: 100,
+                color: '#00E396'
+              },
             ],
-
-            xaxis: {
-                type: 'category',
-            },
-            title: {
-                text: 'Rounded (Range without Shades)'
-            },
+          },
 
         }
+      },
+      dataLabels: {
+        enabled: true,
+        style: {
+          colors: ['#fff']
+        }
+      },
+      series: [{
+          name: 'Metric1',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric2',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric3',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric4',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric5',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric6',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric7',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric8',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        },
+        {
+          name: 'Metric8',
+          data: generateData(20, {
+            min: 0,
+            max: 90
+          })
+        }
+      ],
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
+      xaxis: {
+        type: 'category',
+      },
+      title: {
+        text: 'Rounded (Range without Shades)'
+      },
 
-        chart.render();
-    </script>
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#chart"),
+      options
+    );
+
+    chart.render();
+  </script>
 </body>
 
 </html>
