@@ -5,7 +5,7 @@ module.exports = {
     output: {
         library: 'ApexCharts',
         libraryTarget: 'umd',
-        umdNamedDefine: true,
+        umdNamedDefine: false,
       	path: path.resolve(__dirname, 'dist/'),
         filename: 'apexcharts.js' ,
   },
