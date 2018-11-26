@@ -429,7 +429,6 @@ class Defaults {
         }
       },
       tooltip: {
-        enabled: false,
         theme: 'dark',
         fillSeriesColor: true
       },
