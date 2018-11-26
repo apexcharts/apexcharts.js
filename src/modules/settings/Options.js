@@ -320,7 +320,9 @@ export default class Options {
           distributed: false,
           colorScale: {
             inverse: false,
-            ranges: []
+            ranges: [],
+            min: undefined,
+            max: undefined
           }
         },
         radialBar: {

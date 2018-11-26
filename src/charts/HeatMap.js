@@ -156,22 +156,29 @@ class HeatMap {
     const w = this.w
 
     const val = w.globals.series[i][j]
+    let heatmap = w.config.plotOptions.heatmap
 
-    let seriesNumber = w.config.plotOptions.heatmap.colorScale.inverse ? j : i
+    let seriesNumber = heatmap.colorScale.inverse ? j : i
 
     let color = w.globals.colors[seriesNumber]
     let min = Math.min(...w.globals.series[i])
     let max = Math.max(...w.globals.series[i])
 
-    if (!w.config.plotOptions.heatmap.distributed) {
+    if (!heatmap.distributed) {
       min = w.globals.minY
       max = w.globals.maxY
     }
+
+    if (typeof heatmap.colorScale.min !== 'undefined') {
+      min = heatmap.colorScale.min < w.globals.minY ? heatmap.colorScale.min : w.globals.minY
+      max = heatmap.colorScale.max > w.globals.maxY ? heatmap.colorScale.max : w.globals.maxY
+    }
+
     let total = Math.abs(max) + Math.abs(min)
     let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
 
-    if (w.config.plotOptions.heatmap.colorScale.ranges.length > 0) {
-      const colorRange = w.config.plotOptions.heatmap.colorScale.ranges
+    if (heatmap.colorScale.ranges.length > 0) {
+      const colorRange = heatmap.colorScale.ranges
       colorRange.map((range, index) => {
         if (val >= range.from && val <= range.to) {
           color = range.color
