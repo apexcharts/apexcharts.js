@@ -11,6 +11,7 @@ export default class Options {
       show: true,
       opposite: false,
       logarithmic: false,
+      logBase: 10,
       tickAmount: undefined,
       max: undefined,
       min: undefined,

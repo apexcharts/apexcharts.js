@@ -128,8 +128,15 @@ export default class Range {
     }
   }
 
-  logarithmicScale (yMin, yMax, ticks) {
-    if (yMin < 0) yMin = 1
+  logarithmicScale (index, yMin, yMax, ticks) {
+    const w = this.w
+
+    if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01
+
+    const base = w.config.yaxis[index].logBase
+
+    let min = Math.log(yMin) / Math.log(base)
+    let max = Math.log(yMax) / Math.log(base)
 
     let range = Math.abs(yMax - yMin)
 
@@ -146,17 +153,14 @@ export default class Range {
 
     const logs = result.map((niceNumber, i) => {
       if (niceNumber <= 0) {
-        niceNumber = 1
+        niceNumber = 0.01
       }
 
-      var minv = Math.log(yMin)
-      var maxv = Math.log(yMax)
-
       // calculate adjustment factor
-      var scale = (maxv - minv) / (yMax - yMin)
+      var scale = (max - min) / (yMax - yMin)
 
-      const logVal = Math.exp(minv + scale * (niceNumber - yMin))
-      return Math.round(logVal / Utils.roundToBase10(logVal)) * Utils.roundToBase10(logVal)
+      const logVal = Math.pow(base, min + scale * (niceNumber - min))
+      return Math.round(logVal / Utils.roundToBase(logVal, base)) * Utils.roundToBase(logVal, base)
     })
 
     // Math.floor may have rounded the value to 0, revert back to 1
@@ -182,6 +186,7 @@ export default class Range {
     if (cnf.yaxis[index].logarithmic) {
       gl.allSeriesCollapsed = false
       gl.yAxisScale[index] = this.logarithmicScale(
+        index,
         minY,
         maxY,
         y.tickAmount ? y.tickAmount : Math.floor(Math.log10(maxY))
