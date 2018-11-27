@@ -1,5 +1,6 @@
 import Config from './settings/Config'
 import Utils from '../utils/Utils'
+import CoreUtils from './CoreUtils'
 
 /**
  * ApexCharts Responsive Class to override options for different screen sizes.
@@ -23,21 +24,26 @@ class Responsive {
     if (cnf.responsive === undefined) return
 
     let newOptions = {}
+    let config = new Config(newOptions)
     for (let i = 0; i < cnf.responsive.length; i++) {
       const width = (window.innerWidth > 0) ? window.innerWidth : screen.width
 
       if (width < cnf.responsive[i].breakpoint) {
-        newOptions = Utils.extend(w.config, cnf.responsive[i].options)
+        newOptions = CoreUtils.extendArrayProps(config, cnf.responsive[i].options)
+        newOptions = Utils.extend(w.config, newOptions)
+
         this.overrideResponsiveOptions(newOptions)
         break
       } else {
-        newOptions = Utils.extend(w.config, w.globals.initialConfig)
+        let options = CoreUtils.extendArrayProps(config, w.globals.initialConfig)
+        newOptions = Utils.extend(w.config, options)
         this.overrideResponsiveOptions(newOptions)
       }
     }
 
     if (opts !== null) {
-      let options = Utils.extend(w.config, opts)
+      let options = CoreUtils.extendArrayProps(config, opts)
+      options = Utils.extend(w.config, options)
       this.overrideResponsiveOptions(options)
     }
   }
