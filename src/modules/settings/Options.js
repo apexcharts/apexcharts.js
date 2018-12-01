@@ -5,7 +5,6 @@ const en = require('./../../locales/en.json')
 
 export default class Options {
   constructor () {
-    this.defaultFont = 'Helvetica, Arial, sans-serif'
 
     this.yAxis = {
       show: true,
@@ -220,7 +219,7 @@ export default class Options {
           scrolled: undefined
         },
         foreColor: '#373d3f',
-        fontFamily: this.defaultFont,
+        fontFamily: 'Helvetica, Arial, sans-serif',
         height: 'auto',
         id: undefined,
         offsetX: 0,
