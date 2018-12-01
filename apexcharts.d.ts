@@ -215,7 +215,7 @@ type YAxisAnnotations = {
   offsetX: number;
   offsetY: number;
   yAxisIndex: number;
-  label: Label;
+  label: AnnotationLabel;
 };
 
 
@@ -232,7 +232,7 @@ type PointAnnotations = {
     shape: string;
     radius: number;
   };
-  label: Label;
+  label: AnnotationLabel;
 };
 
 /**
