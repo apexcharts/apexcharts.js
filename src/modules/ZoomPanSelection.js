@@ -286,8 +286,8 @@ class ZoomPanSelection extends Toolbar {
         selectionRect.attr({
           x,
           y,
-          width,
-          height,
+          width: width > 0 ? width : 0,
+          height: height > 0 ? height : 0,
           fill: w.config.chart.selection.fill.color,
           'fill-opacity': w.config.chart.selection.fill.opacity,
           stroke: w.config.chart.selection.stroke.color,

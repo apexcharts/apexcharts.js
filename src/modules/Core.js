@@ -252,8 +252,10 @@ class Core {
     let widthUnit = cnf.chart.width.toString().split(/[0-9]+/g).pop()
 
     if (widthUnit === '%') {
-      gl.svgWidth =
+      if (Utils.isNumber(elDim[0])) {
+        gl.svgWidth =
         (elDim[0] * parseInt(cnf.chart.width) / 100)
+      }
     } else if (widthUnit === 'px' || widthUnit === '') {
       gl.svgWidth = parseInt(cnf.chart.width)
     }
