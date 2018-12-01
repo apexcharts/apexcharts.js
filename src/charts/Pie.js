@@ -39,6 +39,8 @@ class Pie {
     this.size = 0
     this.donutSize = 0
 
+    this.sliceLabels = []
+
     this.prevSectorAngleArr = [] // for dynamic animations
   }
 
@@ -137,6 +139,11 @@ class Pie {
     }
 
     let elG = self.drawArcs(sectorAngleArr, series)
+
+    // add slice dataLabels at the end
+    this.sliceLabels.forEach((s) => {
+      elG.add(s)
+    })
 
     elSeries.attr({
       'transform': `translate(${translateX}, ${translateY - 25}) scale(${scaleSize})`
@@ -323,7 +330,7 @@ class Pie {
               w.config.chart.animations.speed / 940 + 's'
           }
 
-          elPieArc.add(elPieLabel)
+          this.sliceLabels.push(elPieLabel)
         }
       }
       // }
