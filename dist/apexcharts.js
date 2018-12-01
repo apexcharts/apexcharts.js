@@ -2,7 +2,7 @@
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
 	else if(typeof define === 'function' && define.amd)
-		define("ApexCharts", [], factory);
+		define([], factory);
 	else if(typeof exports === 'object')
 		exports["ApexCharts"] = factory();
 	else
@@ -1079,6 +1079,11 @@ var Utils = function () {
       return Math.pow(10, Math.floor(Math.log10(x)));
     }
   }, {
+    key: 'roundToBase',
+    value: function roundToBase(x, base) {
+      return Math.pow(base, Math.floor(Math.log(x) / Math.log(base)));
+    }
+  }, {
     key: 'getDimensions',
     value: function getDimensions(el) {
       var computedStyle = getComputedStyle(el);
@@ -1299,7 +1304,7 @@ if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 
 var global = __webpack_require__(3);
 var core = __webpack_require__(4);
-var hide = __webpack_require__(12);
+var hide = __webpack_require__(13);
 var redefine = __webpack_require__(16);
 var ctx = __webpack_require__(15);
 var PROTOTYPE = 'prototype';
@@ -1645,7 +1650,7 @@ var IE8_DOM_DEFINE = __webpack_require__(56);
 var toPrimitive = __webpack_require__(44);
 var dP = Object.defineProperty;
 
-exports.f = __webpack_require__(10) ? Object.defineProperty : function defineProperty(O, P, Attributes) {
+exports.f = __webpack_require__(11) ? Object.defineProperty : function defineProperty(O, P, Attributes) {
   anObject(O);
   P = toPrimitive(P, true);
   anObject(Attributes);
@@ -1659,48 +1664,6 @@ exports.f = __webpack_require__(10) ? Object.defineProperty : function definePro
 
 /***/ }),
 /* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// Thank's IE8 for his funny defineProperty
-module.exports = !__webpack_require__(20)(function () {
-  return Object.defineProperty({}, 'a', { get: function get() {
-      return 7;
-    } }).a != 7;
-});
-
-/***/ }),
-/* 11 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var hasOwnProperty = {}.hasOwnProperty;
-module.exports = function (it, key) {
-  return hasOwnProperty.call(it, key);
-};
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var dP = __webpack_require__(9);
-var createDesc = __webpack_require__(23);
-module.exports = __webpack_require__(10) ? function (object, key, value) {
-  return dP.f(object, key, createDesc(1, value));
-} : function (object, key, value) {
-  object[key] = value;
-  return object;
-};
-
-/***/ }),
-/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2046,6 +2009,48 @@ var CoreUtils = function () {
 exports.default = CoreUtils;
 
 /***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// Thank's IE8 for his funny defineProperty
+module.exports = !__webpack_require__(20)(function () {
+  return Object.defineProperty({}, 'a', { get: function get() {
+      return 7;
+    } }).a != 7;
+});
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var hasOwnProperty = {}.hasOwnProperty;
+module.exports = function (it, key) {
+  return hasOwnProperty.call(it, key);
+};
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var dP = __webpack_require__(9);
+var createDesc = __webpack_require__(23);
+module.exports = __webpack_require__(11) ? function (object, key, value) {
+  return dP.f(object, key, createDesc(1, value));
+} : function (object, key, value) {
+  object[key] = value;
+  return object;
+};
+
+/***/ }),
 /* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2373,8 +2378,8 @@ module.exports = function (fn, that, length) {
 
 
 var global = __webpack_require__(3);
-var hide = __webpack_require__(12);
-var has = __webpack_require__(11);
+var hide = __webpack_require__(13);
+var has = __webpack_require__(12);
 var SRC = __webpack_require__(25)('src');
 var TO_STRING = 'toString';
 var $toString = Function[TO_STRING];
@@ -3192,7 +3197,7 @@ module.exports = Object.keys || function keys(O) {
 
 
 var def = __webpack_require__(9).f;
-var has = __webpack_require__(11);
+var has = __webpack_require__(12);
 var TAG = __webpack_require__(2)('toStringTag');
 
 module.exports = function (it, tag, stat) {
@@ -3596,7 +3601,7 @@ module.exports = Markers;
 // 22.1.3.31 Array.prototype[@@unscopables]
 var UNSCOPABLES = __webpack_require__(2)('unscopables');
 var ArrayProto = Array.prototype;
-if (ArrayProto[UNSCOPABLES] == undefined) __webpack_require__(12)(ArrayProto, UNSCOPABLES, {});
+if (ArrayProto[UNSCOPABLES] == undefined) __webpack_require__(13)(ArrayProto, UNSCOPABLES, {});
 module.exports = function (key) {
   ArrayProto[UNSCOPABLES][key] = true;
 };
@@ -3817,7 +3822,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(13);
+var _CoreUtils = __webpack_require__(10);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -6734,12 +6739,11 @@ var Options = function () {
   function Options() {
     _classCallCheck(this, Options);
 
-    this.defaultFont = 'Helvetica, Arial, sans-serif';
-
     this.yAxis = {
       show: true,
       opposite: false,
       logarithmic: false,
+      logBase: 10,
       tickAmount: undefined,
       max: undefined,
       min: undefined,
@@ -6950,7 +6954,7 @@ var Options = function () {
             scrolled: undefined
           },
           foreColor: '#373d3f',
-          fontFamily: this.defaultFont,
+          fontFamily: 'Helvetica, Arial, sans-serif',
           height: 'auto',
           id: undefined,
           offsetX: 0,
@@ -7051,7 +7055,9 @@ var Options = function () {
             distributed: false,
             colorScale: {
               inverse: false,
-              ranges: []
+              ranges: [],
+              min: undefined,
+              max: undefined
             }
           },
           radialBar: {
@@ -7868,7 +7874,7 @@ module.exports = document && document.documentElement;
 "use strict";
 
 
-module.exports = !__webpack_require__(10) && !__webpack_require__(20)(function () {
+module.exports = !__webpack_require__(11) && !__webpack_require__(20)(function () {
   return Object.defineProperty(__webpack_require__(36)('div'), 'a', { get: function get() {
       return 7;
     } }).a != 7;
@@ -7933,7 +7939,7 @@ module.exports = function (iterator, fn, value, entries) {
 var LIBRARY = __webpack_require__(22);
 var $export = __webpack_require__(5);
 var redefine = __webpack_require__(16);
-var hide = __webpack_require__(12);
+var hide = __webpack_require__(13);
 var Iterators = __webpack_require__(21);
 var $iterCreate = __webpack_require__(99);
 var setToStringTag = __webpack_require__(29);
@@ -8130,7 +8136,7 @@ exports.f = Object.getOwnPropertySymbols;
 "use strict";
 
 
-var has = __webpack_require__(11);
+var has = __webpack_require__(12);
 var toIObject = __webpack_require__(17);
 var arrayIndexOf = __webpack_require__(54)(false);
 var IE_PROTO = __webpack_require__(41)('IE_PROTO');
@@ -11853,7 +11859,7 @@ var _Core = __webpack_require__(133);
 
 var _Core2 = _interopRequireDefault(_Core);
 
-var _CoreUtils = __webpack_require__(13);
+var _CoreUtils = __webpack_require__(10);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -13231,7 +13237,7 @@ var setToStringTag = __webpack_require__(29);
 var IteratorPrototype = {};
 
 // 25.1.2.1.1 %IteratorPrototype%[@@iterator]()
-__webpack_require__(12)(IteratorPrototype, __webpack_require__(2)('iterator'), function () {
+__webpack_require__(13)(IteratorPrototype, __webpack_require__(2)('iterator'), function () {
   return this;
 });
 
@@ -13262,7 +13268,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var META = __webpack_require__(25)('meta');
 var isObject = __webpack_require__(8);
-var has = __webpack_require__(11);
+var has = __webpack_require__(12);
 var setDesc = __webpack_require__(9).f;
 var id = 0;
 var isExtensible = Object.isExtensible || function () {
@@ -13401,7 +13407,7 @@ var dP = __webpack_require__(9);
 var anObject = __webpack_require__(7);
 var getKeys = __webpack_require__(28);
 
-module.exports = __webpack_require__(10) ? Object.defineProperties : function defineProperties(O, Properties) {
+module.exports = __webpack_require__(11) ? Object.defineProperties : function defineProperties(O, Properties) {
   anObject(O);
   var keys = getKeys(Properties);
   var length = keys.length;
@@ -13423,11 +13429,11 @@ var pIE = __webpack_require__(40);
 var createDesc = __webpack_require__(23);
 var toIObject = __webpack_require__(17);
 var toPrimitive = __webpack_require__(44);
-var has = __webpack_require__(11);
+var has = __webpack_require__(12);
 var IE8_DOM_DEFINE = __webpack_require__(56);
 var gOPD = Object.getOwnPropertyDescriptor;
 
-exports.f = __webpack_require__(10) ? gOPD : function getOwnPropertyDescriptor(O, P) {
+exports.f = __webpack_require__(11) ? gOPD : function getOwnPropertyDescriptor(O, P) {
   O = toIObject(O);
   P = toPrimitive(P, true);
   if (IE8_DOM_DEFINE) try {
@@ -13472,7 +13478,7 @@ module.exports.f = function getOwnPropertyNames(it) {
 
 
 // 19.1.2.9 / 15.2.3.2 Object.getPrototypeOf(O)
-var has = __webpack_require__(11);
+var has = __webpack_require__(12);
 var toObject = __webpack_require__(30);
 var IE_PROTO = __webpack_require__(41)('IE_PROTO');
 var ObjectProto = Object.prototype;
@@ -13508,7 +13514,7 @@ module.exports = function (target, src, safe) {
 
 var global = __webpack_require__(3);
 var dP = __webpack_require__(9);
-var DESCRIPTORS = __webpack_require__(10);
+var DESCRIPTORS = __webpack_require__(11);
 var SPECIES = __webpack_require__(2)('species');
 
 module.exports = function (KEY) {
@@ -14015,8 +14021,8 @@ $export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(61)(function
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var global = __webpack_require__(3);
-var has = __webpack_require__(11);
-var DESCRIPTORS = __webpack_require__(10);
+var has = __webpack_require__(12);
+var DESCRIPTORS = __webpack_require__(11);
 var $export = __webpack_require__(5);
 var redefine = __webpack_require__(16);
 var META = __webpack_require__(101).KEY;
@@ -14246,7 +14252,7 @@ $JSON && $export($export.S + $export.F * (!USE_NATIVE || $fails(function () {
 });
 
 // 19.4.3.4 Symbol.prototype[@@toPrimitive](hint)
-$Symbol[PROTOTYPE][TO_PRIMITIVE] || __webpack_require__(12)($Symbol[PROTOTYPE], TO_PRIMITIVE, $Symbol[PROTOTYPE].valueOf);
+$Symbol[PROTOTYPE][TO_PRIMITIVE] || __webpack_require__(13)($Symbol[PROTOTYPE], TO_PRIMITIVE, $Symbol[PROTOTYPE].valueOf);
 // 19.4.3.5 Symbol.prototype[@@toStringTag]
 setToStringTag($Symbol, 'Symbol');
 // 20.2.1.9 Math[@@toStringTag]
@@ -14349,7 +14355,7 @@ var $iterators = __webpack_require__(115);
 var getKeys = __webpack_require__(28);
 var redefine = __webpack_require__(16);
 var global = __webpack_require__(3);
-var hide = __webpack_require__(12);
+var hide = __webpack_require__(13);
 var Iterators = __webpack_require__(21);
 var wks = __webpack_require__(2);
 var ITERATOR = wks('iterator');
@@ -14501,7 +14507,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(13);
+var _CoreUtils = __webpack_require__(10);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -15053,7 +15059,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(13);
+var _CoreUtils = __webpack_require__(10);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -15506,22 +15512,29 @@ var HeatMap = function () {
       var w = this.w;
 
       var val = w.globals.series[i][j];
+      var heatmap = w.config.plotOptions.heatmap;
 
-      var seriesNumber = w.config.plotOptions.heatmap.colorScale.inverse ? j : i;
+      var seriesNumber = heatmap.colorScale.inverse ? j : i;
 
       var color = w.globals.colors[seriesNumber];
       var min = Math.min.apply(Math, _toConsumableArray(w.globals.series[i]));
       var max = Math.max.apply(Math, _toConsumableArray(w.globals.series[i]));
 
-      if (!w.config.plotOptions.heatmap.distributed) {
+      if (!heatmap.distributed) {
         min = w.globals.minY;
         max = w.globals.maxY;
       }
+
+      if (typeof heatmap.colorScale.min !== 'undefined') {
+        min = heatmap.colorScale.min < w.globals.minY ? heatmap.colorScale.min : w.globals.minY;
+        max = heatmap.colorScale.max > w.globals.maxY ? heatmap.colorScale.max : w.globals.maxY;
+      }
+
       var total = Math.abs(max) + Math.abs(min);
       var percent = 100 * val / (total === 0 ? total - 0.000001 : total);
 
-      if (w.config.plotOptions.heatmap.colorScale.ranges.length > 0) {
-        var colorRange = w.config.plotOptions.heatmap.colorScale.ranges;
+      if (heatmap.colorScale.ranges.length > 0) {
+        var colorRange = heatmap.colorScale.ranges;
         colorRange.map(function (range, index) {
           if (val >= range.from && val <= range.to) {
             color = range.color;
@@ -15614,7 +15627,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(13);
+var _CoreUtils = __webpack_require__(10);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -17243,7 +17256,7 @@ var _CandleStick = __webpack_require__(127);
 
 var _CandleStick2 = _interopRequireDefault(_CandleStick);
 
-var _CoreUtils = __webpack_require__(13);
+var _CoreUtils = __webpack_require__(10);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -17522,7 +17535,9 @@ var Core = function () {
       var widthUnit = cnf.chart.width.toString().split(/[0-9]+/g).pop();
 
       if (widthUnit === '%') {
-        gl.svgWidth = elDim[0] * parseInt(cnf.chart.width) / 100;
+        if (_Utils2.default.isNumber(elDim[0])) {
+          gl.svgWidth = elDim[0] * parseInt(cnf.chart.width) / 100;
+        }
       } else if (widthUnit === 'px' || widthUnit === '') {
         gl.svgWidth = parseInt(cnf.chart.width);
       }
@@ -18868,6 +18883,10 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
+var _CoreUtils = __webpack_require__(10);
+
+var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -18900,22 +18919,27 @@ var Responsive = function () {
       if (cnf.responsive === undefined) return;
 
       var newOptions = {};
+      var config = new _Config2.default(newOptions);
       for (var i = 0; i < cnf.responsive.length; i++) {
         var width = window.innerWidth > 0 ? window.innerWidth : screen.width;
 
         if (width < cnf.responsive[i].breakpoint) {
-          newOptions = _Utils2.default.extend(w.config, cnf.responsive[i].options);
+          newOptions = _CoreUtils2.default.extendArrayProps(config, cnf.responsive[i].options);
+          newOptions = _Utils2.default.extend(w.config, newOptions);
+
           this.overrideResponsiveOptions(newOptions);
           break;
         } else {
-          newOptions = _Utils2.default.extend(w.config, w.globals.initialConfig);
+          var options = _CoreUtils2.default.extendArrayProps(config, w.globals.initialConfig);
+          newOptions = _Utils2.default.extend(w.config, options);
           this.overrideResponsiveOptions(newOptions);
         }
       }
 
       if (opts !== null) {
-        var options = _Utils2.default.extend(w.config, opts);
-        this.overrideResponsiveOptions(options);
+        var _options = _CoreUtils2.default.extendArrayProps(config, opts);
+        _options = _Utils2.default.extend(w.config, _options);
+        this.overrideResponsiveOptions(_options);
       }
     }
   }, {
@@ -19089,8 +19113,15 @@ var Range = function () {
     }
   }, {
     key: 'logarithmicScale',
-    value: function logarithmicScale(yMin, yMax, ticks) {
-      if (yMin < 0) yMin = 1;
+    value: function logarithmicScale(index, yMin, yMax, ticks) {
+      var w = this.w;
+
+      if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01;
+
+      var base = w.config.yaxis[index].logBase;
+
+      var min = Math.log(yMin) / Math.log(base);
+      var max = Math.log(yMax) / Math.log(base);
 
       var range = Math.abs(yMax - yMin);
 
@@ -19107,17 +19138,14 @@ var Range = function () {
 
       var logs = result.map(function (niceNumber, i) {
         if (niceNumber <= 0) {
-          niceNumber = 1;
+          niceNumber = 0.01;
         }
 
-        var minv = Math.log(yMin);
-        var maxv = Math.log(yMax);
-
         // calculate adjustment factor
-        var scale = (maxv - minv) / (yMax - yMin);
+        var scale = (max - min) / (yMax - yMin);
 
-        var logVal = Math.exp(minv + scale * (niceNumber - yMin));
-        return Math.round(logVal / _Utils2.default.roundToBase10(logVal)) * _Utils2.default.roundToBase10(logVal);
+        var logVal = Math.pow(base, min + scale * (niceNumber - min));
+        return Math.round(logVal / _Utils2.default.roundToBase(logVal, base)) * _Utils2.default.roundToBase(logVal, base);
       });
 
       // Math.floor may have rounded the value to 0, revert back to 1
@@ -19143,7 +19171,7 @@ var Range = function () {
 
       if (cnf.yaxis[index].logarithmic) {
         gl.allSeriesCollapsed = false;
-        gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.tickAmount ? y.tickAmount : Math.floor(Math.log10(maxY)));
+        gl.yAxisScale[index] = this.logarithmicScale(index, minY, maxY, y.tickAmount ? y.tickAmount : Math.floor(Math.log10(maxY)));
       } else {
         if (maxY === -Number.MAX_VALUE || !_Utils2.default.isNumber(maxY)) {
           // no data in the chart. Either all series collapsed or user passed a blank array
@@ -19953,8 +19981,8 @@ var ZoomPanSelection = function (_Toolbar) {
           selectionRect.attr({
             x: x,
             y: y,
-            width: width,
-            height: height,
+            width: width > 0 ? width : 0,
+            height: height > 0 ? height : 0,
             fill: w.config.chart.selection.fill.color,
             'fill-opacity': w.config.chart.selection.fill.opacity,
             stroke: w.config.chart.selection.stroke.color,
@@ -20301,7 +20329,7 @@ var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
-var _CoreUtils = __webpack_require__(13);
+var _CoreUtils = __webpack_require__(10);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -21128,7 +21156,6 @@ var Defaults = function () {
           }
         },
         tooltip: {
-          enabled: false,
           theme: 'dark',
           fillSeriesColor: true
         },

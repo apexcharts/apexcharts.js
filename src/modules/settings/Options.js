@@ -5,7 +5,6 @@ const en = require('./../../locales/en.json')
 
 export default class Options {
   constructor () {
-
     this.yAxis = {
       show: true,
       opposite: false,
