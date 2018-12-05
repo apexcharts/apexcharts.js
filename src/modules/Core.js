@@ -41,7 +41,7 @@ class Core {
     let gl = this.w.globals
     let cnf = this.w.config
 
-    const graphics = new Graphics(this.ctx)
+    // const graphics = new Graphics(this.ctx)
 
     let ct = cnf.chart.type
     let axisChartsArrTypes = [
@@ -97,10 +97,14 @@ class Core {
 
     // this element is required for hovering over virtual rect to determine x/y position in line and area charts. let's call this element hovering rect
 
-    gl.dom.elLegendWrap = graphics.group({
-      class: 'apexcharts-legend'
-    })
-    gl.dom.Paper.add(gl.dom.elLegendWrap)
+    // gl.dom.elLegendWrap = graphics.group({
+    //   class: 'apexcharts-legend'
+    // })
+    gl.dom.elLegendWrap = document.createElement('div')
+    gl.dom.elLegendWrap.classList.add('apexcharts-legend')
+    gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)
+
+    // gl.dom.Paper.add(gl.dom.elLegendWrap)
     gl.dom.Paper.add(gl.dom.elGraphical)
     gl.dom.elGraphical.add(gl.dom.elDefs)
   }

@@ -9,7 +9,20 @@
   position: relative;
 }
 
+.apexcharts-legend {
+  display: flex;
+  align-items: center;
+}
+
 .apexcharts-legend-series {
+  cursor: pointer;
+  display: flex;
+}
+
+.apexcharts-legend-marker {
+  width: 30px;
+  height: 15px;
+  display: inline-block;
   cursor: pointer;
 }
 
