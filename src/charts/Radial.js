@@ -124,7 +124,7 @@ class Radial extends Pie {
       let pathFill = fill.fillPath(elRadialBarTrack, {
         seriesNumber: 0,
         size: opts.size,
-        fillColors: trackConfig.background,
+        fillColors: Array.isArray(trackConfig.background) ? trackConfig.background[i] : trackConfig.background,
         solid: true
       })
 
