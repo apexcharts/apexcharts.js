@@ -730,7 +730,13 @@ class Tooltip {
         j
       })
 
-      self.tooltipPosition.moveMarkers(capturedSeries, j)
+      if (this.hasBars()) {
+        self.tooltipPosition.moveStickyTooltipOverBars(j)
+      }
+
+      if (hasMarkers) {
+        self.tooltipPosition.moveMarkers(capturedSeries, j)
+      }
     }
   }
 }
