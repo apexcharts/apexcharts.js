@@ -143,6 +143,8 @@ export default class Options {
         strokeWidth: 2,
         strokeColor: '#333',
         shape: 'circle',
+        offsetX: 0,
+        offsetY: 0,
         radius: 2
       },
       label: {

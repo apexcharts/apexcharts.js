@@ -217,7 +217,7 @@ class Annotations {
       shape: anno.marker.shape,
       radius: anno.marker.radius
     }
-    let point = this.graphics.drawMarker(x, pointY, optsPoints)
+    let point = this.graphics.drawMarker(x + anno.marker.offsetX, pointY + anno.marker.offsetY, optsPoints)
     parent.appendChild(point.node)
 
     const text = anno.label.text ? anno.label.text : ''
