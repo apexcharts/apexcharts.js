@@ -529,41 +529,42 @@ export default class Options {
       legend: {
         show: true,
         showForSingleSeries: false,
+        showNullSeries: true,
+        showZeroSeries: true,
         floating: false,
-        position: 'bottom', // whether to position legends in 1 of 4
+        position: 'top', // whether to position legends in 1 of 4
         // direction - top, bottom, left, right
         horizontalAlign: 'center', // when position top/bottom, you can
         // specify whether to align legends
         // left, right or center
-        verticalAlign: 'middle',
         fontSize: '12px',
         fontFamily: undefined,
-        textAnchor: 'start',
         offsetY: 0,
-        offsetX: 0,
+        offsetX: -20,
+        maxWidth: undefined,
+        maxHeight: undefined,
         formatter: undefined,
         labels: {
           colors: undefined,
           useSeriesColors: false
         },
         markers: {
-          size: 6,
+          width: 12,
+          height: 12,
           strokeWidth: 0,
           strokeColor: '#fff',
+          radius: 12,
+          customHTML: undefined,
           offsetX: 0,
-          offsetY: 0,
-          shape: 'circle',
-          radius: 2
+          offsetY: 0
         },
         itemMargin: {
-          horizontal: 20,
+          horizontal: 0,
           vertical: 5
         },
         containerMargin: {
-          left: 10,
-          top: 4,
-          right: 10,
-          bottom: 0
+          left: 0,
+          top: 0
         },
         onItemClick: {
           toggleDataSeries: true

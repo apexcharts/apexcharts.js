@@ -12,7 +12,6 @@
 
     <style>
         #chart {
-            
             max-width: 380px;
             margin: 35px auto;
         }
@@ -49,11 +48,10 @@
             series: [44, 55, 41, 17, 15],
             fill: {
                 type: 'gradient',
-               
             },
             legend: {
                 formatter: function(val, opts) {
-                    return [val, " - ", opts.w.globals.series[opts.seriesIndex]]
+                    return val + " - " + opts.w.globals.series[opts.seriesIndex]
                 }
             },
             responsive: [{

@@ -334,16 +334,8 @@ var optionsCircle = {
     position: 'left',
     offsetX: -40,
     offsetY: -10,
-    containerMargin: {
-      right: -40,
-      left: 0
-    },
-    itemMargin: {
-      horizontal: 20,
-      vertical: 20
-    },
     formatter: function (val, opts) {
-      return [val, " - ", opts.w.globals.series[opts.seriesIndex] + '%']
+      return val + " - " + opts.w.globals.series[opts.seriesIndex] + '%'
     }
   },
   fill: {

@@ -335,11 +335,9 @@ var optionsCircle4 = {
   legend: {
     show: true,
     floating: true,
-    position: 'left',
-    containerMargin: {
-      left: 240,
-      top: 141
-    }
+    position: 'right',
+    offsetX: 70,
+    offsetY: 240
   },
 }
 

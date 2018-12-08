@@ -1,21 +1,68 @@
 .apexcharts-canvas {
   position: relative;
   user-select: none;
-  /* cannot give overflow: hidden as it will crop tooltips which overflow outside chart are */
-  /* overflow: hidden; */
+  /* cannot give overflow: hidden as it will crop tooltips which overflow outside chart area */
 }
 
 .apexcharts-inner {
   position: relative;
 }
 
+.apexcharts-legend {
+  display: flex;
+  overflow: auto;
+  padding: 0 10px;
+}
+
+.apexcharts-legend.position-bottom, .apexcharts-legend.position-top {
+  flex-wrap: wrap
+}
+.apexcharts-legend.position-right, .apexcharts-legend.position-left {
+  flex-direction: column;
+  bottom: 0;
+}
+
+.apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {
+  justify-content: flex-start;
+}
+
+.apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {
+  justify-content: center;  
+}
+
+.apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {
+  justify-content: flex-end;
+}
+
 .apexcharts-legend-series {
   cursor: pointer;
+}
+
+.apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{
+  display: flex;
+  align-items: center;
+}
+
+.apexcharts-legend-text {
+  position: relative;
+  font-size: 14px;
+}
+
+.apexcharts-legend-marker {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 3px;
+}
+ 
+.apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{
+  display: inline-block;
 }
 
 .apexcharts-legend-series.no-click {
   cursor: auto;
 }
+
 
 .inactive-legend {
   opacity: 0.45;

@@ -12,15 +12,6 @@ class Legend {
   constructor (ctx, opts) {
     this.ctx = ctx
     this.w = ctx.w
-    this.existingWidth = 0
-    this.existingHeight = 0
-    this.rowHeight = 20
-    this.maxTextWidth = 0
-    this.padding = 0
-    this.noOfLegendColumns = 1
-    this.textMaxWidthArr = []
-
-    this.legendsArray = []
 
     this.onLegendClick = this.onLegendClick.bind(this)
     this.onLegendHovered = this.onLegendHovered.bind(this)
@@ -39,10 +30,10 @@ class Legend {
         gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild)
       }
 
-      this.drawLegends(cnf.chart.type, gl.series.length)
+      this.drawLegends()
 
       if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
-        this.legendAlignCenterHorz()
+        this.legendAlignHorizontal()
       } else if (
         cnf.legend.position === 'right' ||
         cnf.legend.position === 'left'
@@ -52,50 +43,27 @@ class Legend {
     }
   }
 
-  drawLegends (type, seriesLength) {
+  drawLegends () {
     let self = this
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
-    let pSize = w.config.legend.markers.size
-    let fontSize = w.config.legend.fontSize
     let fontFamily = w.config.legend.fontFamily
 
-    let marginHorz = w.config.legend.itemMargin.horizontal
-    let marginVert = w.config.legend.itemMargin.vertical
-
-    this.padding = pSize + w.config.legend.markers.strokeWidth
-    let padding = this.padding
-
-    // To get text's actual rect before it is rendered.
-    // We append this text to some place and then we will delete this text after we are done
-    let totalWidth = 0
-    let currentRow = 1
-    let currentCol = 0
     let legendNames = w.globals.seriesNames
     let fillcolor = w.globals.colors.slice()
 
     if (w.config.chart.type === 'heatmap') {
       const ranges = w.config.plotOptions.heatmap.colorScale.ranges
-      legendNames = ranges.map((colorScale, index) => {
+      legendNames = ranges.map((colorScale) => {
         return colorScale.name ? colorScale.name : colorScale.from + ' - ' + colorScale.to
       })
-      fillcolor = ranges.map((color, index) => {
+      fillcolor = ranges.map((color) => {
         return color.color
       })
     }
     let legendFormatter = w.globals.legendFormatter
 
     for (let i = 0; i <= legendNames.length - 1; i++) {
-      let horizontal =
-        !!(w.config.legend.position === 'top' ||
-        w.config.legend.position === 'bottom')
-
-      let y = 0
-      let x = 0
-
-      let width
-
       let text = legendFormatter(legendNames[i], { seriesIndex: i, w })
 
       let collapsedSeries = false
@@ -107,109 +75,82 @@ class Legend {
         }
       }
 
-      if (horizontal) {
-        let rect = graphics.getTextRects(text, fontSize)
-        width = rect.width
+      let elMarker = document.createElement('span')
+      elMarker.classList.add('apexcharts-legend-marker')
 
-        this.rowHeight = rect.height + marginVert
+      let mOffsetX = w.config.legend.markers.offsetX
+      let mOffsetY = w.config.legend.markers.offsetY
+      let mHeight = w.config.legend.markers.height
+      let mWidth = w.config.legend.markers.width
+      let mBorderWidth = w.config.legend.markers.strokeWidth
+      let mBorderColor = w.config.legend.markers.strokeColor
+      let mBorderRadius = w.config.legend.markers.radius
 
-        x = this.existingWidth + padding + marginHorz
+      let mStyle = elMarker.style
 
-        if (
-          this.existingWidth + width + padding + marginHorz >
-          w.globals.svgWidth
-        ) {
-          currentRow = currentRow + 1
+      mStyle.background = fillcolor[i]
+      mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px'
+      mStyle.width = Array.isArray(mWidth) ? parseFloat(mWidth[i]) + 'px' : parseFloat(mWidth) + 'px'
+      mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX
+      mStyle.top = Array.isArray(mOffsetY) ? mOffsetY[i] : mOffsetY
+      mStyle.borderWidth = Array.isArray(mBorderWidth) ? mBorderWidth[i] : mBorderWidth
+      mStyle.borderColor = Array.isArray(mBorderColor) ? mBorderColor[i] : mBorderColor
+      mStyle.borderRadius = Array.isArray(mBorderRadius) ? parseFloat(mBorderRadius[i]) + 'px' : parseFloat(mBorderRadius) + 'px'
 
-          this.existingWidth = 0
-          x = this.existingWidth + padding + marginHorz
-        }
-
-        if (w.config.legend.position === 'bottom') {
-          y = w.globals.svgHeight - this.rowHeight
-        }
-
-        y = y + this.rowHeight * currentRow
-      } else {
-        let rect = graphics.getTextRects(text, fontSize)
-
-        let height = rect.height
-        this.rowHeight = height + marginVert
-
-        this.textMaxWidthArr.push(rect.width)
-
-        let width = this.getTextMaxWidth() + marginHorz
-
-        currentRow = i + 1
-
-        if (this.existingHeight + height + padding > w.globals.svgHeight) {
-          currentCol = currentCol + 1
-
-          this.existingHeight = 0
-        }
-
-        x = padding + currentCol * width
-        y = this.existingHeight + height
+      if (w.config.legend.markers.customHTML) {
+        elMarker.innerHTML = w.config.legend.markers.customHTML
       }
 
-      let elPointOptions = {
-        pSize: pSize,
-        pRadius: w.config.legend.markers.radius,
-        pWidth: w.config.legend.markers.strokeWidth,
-        shape: w.config.legend.markers.shape,
-        pointStrokeColor: w.config.legend.markers.strokeColor,
-        pointFillColor: fillcolor[i],
-        pointStrokeOpacity: 1,
-        pointFillOpacity: 1,
-        class: 'apexcharts-legend-point'
-      }
-
-      let offsetYPt = (pSize / 2) - 1 + w.config.legend.markers.strokeWidth
-
-      let elColor = graphics.drawMarker(
-        x - padding + w.config.legend.markers.offsetX - 4,
-        y - padding + offsetYPt + w.config.legend.markers.offsetY - 1,
-        elPointOptions
-      ).attr({
+      Graphics.setAttrs(elMarker, {
         'rel': i + 1,
         'data:collapsed': collapsedSeries
       })
 
       if (collapsedSeries) {
-        elColor.node.classList.add('inactive-legend')
+        elMarker.classList.add('inactive-legend')
       }
 
-      let elTextOpts = {
-        x: x,
-        y: y,
-        foreColor: w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.color,
-        text,
-        textAnchor: w.config.legend.textAnchor,
-        fontSize: fontSize,
-        fontFamily: fontFamily,
-        cssClass: 'apexcharts-legend-text'
-      }
+      let elLegend = document.createElement('div')
 
-      this.existingWidth = this.existingWidth + width + marginHorz + padding + 5
-      this.existingHeight = this.existingHeight + this.rowHeight + padding / 4
-      totalWidth = totalWidth + width + padding + marginHorz
+      let elLegendText = document.createElement('span')
+      elLegendText.classList.add('apexcharts-legend-text')
+      elLegendText.innerHTML = text
 
-      let elLegend = graphics.drawText(elTextOpts)
+      elLegendText.style.color = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.color
 
-      w.globals.dom.elLegendWrap.add(elLegend)
-      w.globals.dom.elLegendWrap.add(elColor)
-      elLegend.node.classList.add('apexcharts-legend-series')
-      elLegend.attr({
+      elLegendText.style.fontSize = parseFloat(w.config.legend.labels.fontSize) + 'px'
+      elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily
+      elLegendText.style.color = w.config.chart.foreColor
+
+      Graphics.setAttrs(elLegendText, {
+        'rel': i + 1,
+        'data:collapsed': collapsedSeries
+      })
+
+      elLegend.appendChild(elMarker)
+      elLegend.appendChild(elLegendText)
+
+      w.globals.dom.elLegendWrap.appendChild(elLegend)
+      w.globals.dom.elLegendWrap.classList.add(w.config.legend.horizontalAlign)
+      // w.globals.dom.elLegendWrap.classList.add(w.config.legend.verticalAlign)
+      w.globals.dom.elLegendWrap.classList.add('position-' + w.config.legend.position)
+
+      elLegend.classList.add('apexcharts-legend-series')
+      elLegend.style.margin = `${w.config.legend.itemMargin.horizontal}px ${w.config.legend.itemMargin.vertical}px`
+      w.globals.dom.elLegendWrap.style.maxWidth = w.config.legend.maxWidth ? w.config.legend.maxWidth + 'px' : ''
+      w.globals.dom.elLegendWrap.style.maxHeight = w.config.legend.maxHeight ? w.config.legend.maxHeight + 'px' : ''
+
+      Graphics.setAttrs(elLegend, {
         'rel': i + 1,
         'data:collapsed': collapsedSeries
       })
 
       if (collapsedSeries) {
-        elLegend.node.classList.add('inactive-legend')
+        elLegend.classList.add('inactiv`e-legend')
       }
 
       if (!w.config.legend.onItemClick.toggleDataSeries) {
-        elLegend.node.classList.add('no-click')
+        elLegend.classList.add('no-click')
       }
     }
 
@@ -238,20 +179,11 @@ class Legend {
     }
   }
 
-  getTextMaxWidth () {
-    let largestWidth = 0
-    for (let i = 0; i < this.textMaxWidthArr.length; i++) {
-      largestWidth = Math.max(largestWidth, this.textMaxWidthArr[i])
-    }
-    this.maxTextWidth = largestWidth
-    return largestWidth
-  }
-
   getLegendBBox () {
     const w = this.w
+    let currLegendsWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
+    let currLegendsWrapRect = currLegendsWrap.getBoundingClientRect()
 
-    let currLegendsWrapRect = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
-      .getBBox()
     let currLegendsWrapWidth = currLegendsWrapRect.width
     let currLegendsWrapHeight = currLegendsWrapRect.height
 
@@ -261,70 +193,21 @@ class Legend {
     }
   }
 
-  translateLegendPoints (offsetX, offsetY = null) {
-    const w = this.w
-
-    let points = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-legend-point'
-    )
-
-    for (let lp = 0; lp < points.length; lp++) {
-      if (offsetY === null) {
-        let y = points[lp].getAttribute('transform')
-        if (y.indexOf(',') > -1) {
-          offsetY = parseFloat(y.split(',')[1])
-        } else if (y.indexOf(' ') > -1) {
-          offsetY = parseFloat(y.split(' ')[1])
-        }
-        if (!offsetY) { offsetY = 0 }
-      }
-      points[lp].setAttribute(
-        'transform',
-        'translate(' + offsetX + ',' + offsetY + ')'
-      )
-    }
-  }
-
-  setLegendXY (offsetX, offsetY) {
-    let w = this.w
-
-    let legends = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-legend-series'
-    )
-
-    for (let l = 0; l < legends.length; l++) {
-      let currX = parseInt(legends[l].getAttribute('x'))
-      let currY = parseInt(legends[l].getAttribute('y'))
-
-      Graphics.setAttrs(legends[l], {
-        x: currX + offsetX,
-        y: currY + offsetY
-      })
-    }
-
-    this.setLegendWrapXY()
-  }
-
-  setLegendWrapXY () {
+  setLegendWrapXY (offsetX, offsetY) {
     let w = this.w
 
     let elLegendWrap = w.globals.dom.baseEl.querySelector(
       '.apexcharts-legend'
     )
 
-    const legendRect = elLegendWrap.getBBox()
-    const legendTopPlusHeight = legendRect.y + legendRect.height
+    const legendRect = elLegendWrap.getBoundingClientRect()
 
-    let x = w.config.legend.containerMargin.left - w.config.legend.containerMargin.right
-    let y = w.config.legend.containerMargin.top - w.config.legend.markers.size - 3
+    let x = w.config.legend.containerMargin.left
+    let y = w.config.legend.containerMargin.top
 
     if (w.config.legend.position === 'bottom') {
-      if (legendTopPlusHeight - 10 > w.globals.svgHeight) {
-        y = y - (w.globals.svgHeight - legendRect.y + legendRect.height) / 8
-      }
-    }
-
-    if (w.config.legend.position === 'top') {
+      y = y + (w.globals.svgHeight - legendRect.height / 2)
+    } else if (w.config.legend.position === 'top') {
       const dim = new Dimensions(this.ctx)
       const titleH = dim.getTitleSubtitleCoords('title').height
       const subtitleH = dim.getTitleSubtitleCoords('subtitle').height
@@ -332,15 +215,39 @@ class Legend {
       y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0)
     }
 
-    if (w.config.legend.position === 'right' || w.config.legend.position === 'left') {
-      if (y < w.config.legend.markers.size) y = w.config.legend.markers.size
+    x = x + offsetX + w.config.legend.offsetX
+    y = y + offsetY + w.config.legend.offsetY
+
+    elLegendWrap.style.position = 'absolute'
+
+    elLegendWrap.style.top = y + 'px'
+    elLegendWrap.style.left = x + 'px'
+
+    if (w.config.legend.position === 'bottom') {
+      elLegendWrap.style.top = 'auto'
+      elLegendWrap.style.bottom = -w.config.legend.offsetY + 'px'
+    } else if (w.config.legend.position === 'right') {
+      elLegendWrap.style.left = 'auto'
+      elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px'
     }
 
-    elLegendWrap.setAttribute('transform', `translate(${x}, ${y})`)
+    if (elLegendWrap.style.maxWidth) {
+      elLegendWrap.style.maxWidth = w.config.legend.maxWidth
+    }
+
+    if (elLegendWrap.style.maxHeight) {
+      elLegendWrap.style.maxHeight = w.config.legend.maxHeight
+    }
   }
 
-  legendAlignCenterHorz () {
+  legendAlignHorizontal () {
     let w = this.w
+
+    let elLegendWrap = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-legend'
+    )
+
+    elLegendWrap.style.right = 0
 
     let lRect = this.getLegendBBox()
 
@@ -351,12 +258,6 @@ class Legend {
     let offsetX = 20
     let offsetY = 0
 
-    if (w.config.legend.horizontalAlign === 'right') {
-      offsetX = w.globals.svgWidth - lRect.clww - offsetX
-    } else if (w.config.legend.horizontalAlign === 'center') {
-      offsetX = (w.globals.svgWidth - lRect.clww) / 2
-    }
-
     // the whole legend box is set to bottom
     if (w.config.legend.position === 'bottom') {
       offsetY = -lRect.clwh / 1.8
@@ -364,11 +265,7 @@ class Legend {
       offsetY = titleRect.height + subtitleRect.height + w.config.title.margin + w.config.subtitle.margin - 15
     }
 
-    offsetX = offsetX + w.config.legend.offsetX
-    offsetY = offsetY + w.config.legend.offsetY
-
-    this.setLegendXY(offsetX, offsetY)
-    this.translateLegendPoints(offsetX, offsetY)
+    this.setLegendWrapXY(offsetX, offsetY)
   }
 
   legendAlignVertical () {
@@ -376,49 +273,27 @@ class Legend {
 
     let lRect = this.getLegendBBox()
 
-    let offsetCorrection = lRect.clwh + this.rowHeight * 1.2 <
-      w.globals.svgHeight
-      ? this.rowHeight
-      : this.rowHeight / 2
     let offsetY = 20
     let offsetX = 0
 
     if (w.config.legend.position === 'left') {
-      offsetX = w.config.legend.markers.size + 10
+      offsetX = 20
     }
-
-    if (w.config.legend.verticalAlign === 'bottom') {
-      offsetY = w.globals.svgHeight - lRect.clwh - offsetY
-    } else if (w.config.legend.verticalAlign === 'middle') {
-      offsetY = (w.globals.svgHeight - lRect.clwh) / 2 - offsetCorrection
-    }
-
-    offsetX = offsetX + w.config.legend.offsetX
-    offsetY = offsetY + w.config.legend.offsetY
-
-    this.setLegendXY(offsetX, offsetY)
-    this.translateLegendPoints(offsetX, offsetY)
 
     if (w.config.legend.position === 'right') {
-      this.moveLegendsToRight()
+      offsetX = w.globals.svgWidth - lRect.clww - 10
     }
-  }
 
-  moveLegendsToRight () {
-    let w = this.w
-    let lRect = this.getLegendBBox()
+    console.log(lRect)
 
-    let offsetX = w.globals.svgWidth - lRect.clww - this.padding / 2
-
-    this.setLegendXY(offsetX, 0)
-    this.translateLegendPoints(offsetX + w.config.legend.offsetX, null)
+    this.setLegendWrapXY(offsetX, offsetY)
   }
 
   onLegendHovered (e) {
     const w = this.w
 
     const hoverOverLegend = (e.target.classList.contains('apexcharts-legend-text') ||
-      e.target.classList.contains('apexcharts-legend-point'))
+      e.target.classList.contains('apexcharts-legend-marker'))
 
     if (w.config.chart.type !== 'heatmap') {
       if (
@@ -439,7 +314,7 @@ class Legend {
   onLegendClick (e) {
     if (
       e.target.classList.contains('apexcharts-legend-text') ||
-      e.target.classList.contains('apexcharts-legend-point')
+      e.target.classList.contains('apexcharts-legend-marker')
     ) {
       let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
       let isHidden = e.target.getAttribute('data:collapsed') === 'true'

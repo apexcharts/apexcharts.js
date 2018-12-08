@@ -390,7 +390,8 @@ class Defaults {
         fillSeriesColor: true
       },
       legend: {
-        position: 'right'
+        position: 'right',
+        offsetY: 30
       }
     }
   }
@@ -433,7 +434,8 @@ class Defaults {
         fillSeriesColor: true
       },
       legend: {
-        position: 'right'
+        position: 'right',
+        offsetY: 30
       }
     }
   }
@@ -463,7 +465,8 @@ class Defaults {
         }
       },
       legend: {
-        show: false
+        show: false,
+        offsetY: 30
       },
       tooltip: {
         enabled: false,
