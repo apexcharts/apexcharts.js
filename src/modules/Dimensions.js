@@ -167,7 +167,7 @@ class Dimensions {
         gl.translateY = translateY
         gl.translateX = yAxisWidth
         gl.gridHeight = gl.svgHeight - xAxisHeight - 12
-        gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth
+        gl.gridWidth = gl.svgWidth - lgRect.width - yAxisWidth - 5
         break
       default:
         throw new Error('Legend position not supported')
@@ -197,7 +197,7 @@ class Dimensions {
     let xPad = 0
 
     if (w.config.legend.show && !w.config.legend.floating) {
-      xPad = w.config.legend.markers.size * 4 + w.config.legend.itemMargin.horizontal
+      xPad = 20
     }
 
     let offY = 10
@@ -241,10 +241,10 @@ class Dimensions {
 
         break
       case 'right':
-        gl.gridWidth = gl.svgWidth - lgRect.width - xPad
+        gl.gridWidth = gl.svgWidth - lgRect.width - xPad - 5
         gl.gridHeight = gl.gridWidth
         gl.translateY = offY
-        gl.translateX = 5
+        gl.translateX = 10
 
         break
       default:
@@ -577,9 +577,6 @@ class Dimensions {
       '.apexcharts-legend'
     )
     let lgRect = Object.assign({}, Utils.getBoundingClientRect(elLegendWrap))
-
-    lgRect.height = lgRect.height + w.config.legend.containerMargin.top + w.config.legend.containerMargin.bottom
-    lgRect.width = lgRect.width + w.config.legend.containerMargin.left + w.config.legend.containerMargin.right
 
     if (elLegendWrap !== null && !w.config.legend.floating && w.config.legend.show) {
       this.lgRect = lgRect
