@@ -18373,18 +18373,18 @@ var Legend = function () {
     value: function appendToForeignObject() {
       var gl = this.w.globals;
 
-      var foreign = document.createElementNS(gl.svgNS, 'foreignObject');
+      var elForeign = document.createElementNS(gl.svgNS, 'foreignObject');
 
-      foreign.setAttribute('x', 0);
-      foreign.setAttribute('y', 0);
-      foreign.setAttribute('width', gl.svgWidth);
-      foreign.setAttribute('height', gl.svgHeight);
+      elForeign.setAttribute('x', 0);
+      elForeign.setAttribute('y', 0);
+      elForeign.setAttribute('width', gl.svgWidth);
+      elForeign.setAttribute('height', gl.svgHeight);
       gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
 
-      foreign.appendChild(gl.dom.elLegendWrap);
-      foreign.appendChild(this.getLegendStyles());
+      elForeign.appendChild(gl.dom.elLegendWrap);
+      elForeign.appendChild(this.getLegendStyles());
 
-      gl.dom.Paper.node.appendChild(foreign);
+      gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node);
     }
   }, {
     key: 'drawLegends',
