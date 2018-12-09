@@ -28,13 +28,16 @@ class Exports {
     }
   }
 
-  exportToSVG () {
+  svgUrl () {
     this.cleanup()
 
     const svgData = this.getSvgString()
     const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'})
-    const svgUrl = URL.createObjectURL(svgBlob)
-    this.triggerDownload(svgUrl, '.svg')
+    return URL.createObjectURL(svgBlob)
+  }
+
+  exportToSVG () {
+    this.triggerDownload(this.svgURL(), '.svg')
   }
 
   exportToPng () {

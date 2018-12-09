@@ -7,6 +7,7 @@ import CoreUtils from './modules/CoreUtils'
 import Crosshairs from './modules/Crosshairs'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
+import Exports from './modules/Exports'
 import Grid from './modules/axes/Grid'
 import Legend from './modules/Legend'
 import Markers from './modules/Markers'
@@ -888,6 +889,11 @@ class ApexCharts {
     } else {
       throw new Error('Wrong locale name provided. Please make sure you set the correct locale name in options')
     }
+  }
+
+  svgUrl () {
+    const exp = new Exports(this.ctx)
+    return exp.svgUrl()
   }
 
   paper () {
