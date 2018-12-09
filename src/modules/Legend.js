@@ -31,7 +31,12 @@ class Legend {
       }
 
       this.drawLegends()
-      this.appendToForeignObject()
+      if (!Utils.isIE11()) {
+        this.appendToForeignObject()        
+      } else {
+        // IE11 doesn't supports foreignObject, hence append it to <head>
+        document.getElementsByTagName('head')[0].appendChild(this.getLegendStyles())
+      }
 
       if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
         this.legendAlignHorizontal()
