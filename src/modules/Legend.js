@@ -56,7 +56,7 @@ class Legend {
     gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml')
 
     foreign.appendChild(gl.dom.elLegendWrap)
-    foreign.append(this.getLegendStyles())
+    foreign.appendChild(this.getLegendStyles())
 
     gl.dom.Paper.node.appendChild(foreign)
   }
