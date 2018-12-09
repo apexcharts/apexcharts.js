@@ -23,16 +23,6 @@ gulp.task('minify', function () {
     .pipe(gulp.dest('dist/'));
 });
 
-gulp.task('minifyCJS', function () {
-  return gulp.src('dist/apexcharts.cjs.js')
-    .pipe(removeLogs({
-      methods: ['log'],
-      verbose: true
-    }))
-    .pipe(uglify())
-    .pipe(rename('apexcharts.cjs.min.js'))
-    .pipe(gulp.dest('dist/'));
-});
 
-gulp.task('build', ['locales', 'minify', 'minifyCJS']);
+gulp.task('build', ['locales', 'minify']);
 gulp.task('default', ['minify']);
