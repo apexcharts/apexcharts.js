@@ -1,12 +1,40 @@
 # Change Log
 
-## [Unreleased](https://github.com/apexcharts/apexcharts.js/tree/HEAD)
+## [v2.4.0](https://github.com/apexcharts/apexcharts.js/tree/v2.4.0) (2018-12-09)
+[Full Changelog](https://github.com/apexcharts/apexcharts.js/compare/v2.3.1-1...v2.4.0)
 
-[Full Changelog](https://github.com/apexcharts/apexcharts.js/compare/v2.2.4...HEAD)
+## [v2.3.1-1](https://github.com/apexcharts/apexcharts.js/tree/v2.3.1-1) (2018-12-09)
+[Full Changelog](https://github.com/apexcharts/apexcharts.js/compare/v2.3.1-0...v2.3.1-1)
+
+## [v2.3.1-0](https://github.com/apexcharts/apexcharts.js/tree/v2.3.1-0) (2018-12-09)
+[Full Changelog](https://github.com/apexcharts/apexcharts.js/compare/v2.3.0-0...v2.3.1-0)
+
+**Implemented enhancements:**
+
+- Bundle and expose as ES module [\#221](https://github.com/apexcharts/apexcharts.js/issues/221)
+
+## [v2.3.0-0](https://github.com/apexcharts/apexcharts.js/tree/v2.3.0-0) (2018-12-09)
+[Full Changelog](https://github.com/apexcharts/apexcharts.js/compare/v2.2.5-0...v2.3.0-0)
+
+## [v2.2.5-0](https://github.com/apexcharts/apexcharts.js/tree/v2.2.5-0) (2018-12-09)
+[Full Changelog](https://github.com/apexcharts/apexcharts.js/compare/v2.2.4...v2.2.5-0)
+
+**Implemented enhancements:**
+
+- Add support for specifying Font-weight [\#227](https://github.com/apexcharts/apexcharts.js/issues/227)
+- Point annotation marker offsetX/Y [\#226](https://github.com/apexcharts/apexcharts.js/issues/226)
+- Multiple track Colors in Radialbar Chart Multiple [\#224](https://github.com/apexcharts/apexcharts.js/issues/224)
+- Expose svgUrl and imgURI as outputfunction for reuse in jPDF [\#222](https://github.com/apexcharts/apexcharts.js/issues/222)
 
 **Closed issues:**
 
+- Update the changelog please [\#223](https://github.com/apexcharts/apexcharts.js/issues/223)
 - RadialBar isn't rendering when series are over 100 [\#219](https://github.com/apexcharts/apexcharts.js/issues/219)
+
+**Merged pull requests:**
+
+- expose svgUrl method - fixes \#222 [\#229](https://github.com/apexcharts/apexcharts.js/pull/229) ([junedchhipa](https://github.com/junedchhipa))
+- Feature/legend html [\#228](https://github.com/apexcharts/apexcharts.js/pull/228) ([junedchhipa](https://github.com/junedchhipa))
 
 ## [v2.2.4](https://github.com/apexcharts/apexcharts.js/tree/v2.2.4) (2018-12-01)
 [Full Changelog](https://github.com/apexcharts/apexcharts.js/compare/v2.2.3...v2.2.4)
