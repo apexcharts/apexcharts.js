@@ -1,8 +1,7 @@
 var path = require('path');
 
 module.exports = {
-  entry: [path.resolve(__dirname, 'src/apexcharts.js')],
-  output: {
+    entry: ['core-js/fn/promise','core-js/fn/array/includes', 'core-js/fn/array/reduce', 'core-js/fn/array/from','core-js/fn/array/find', 'core-js/fn/symbol', path.resolve(__dirname, 'src/apexcharts.js')],   output: {
     library: 'ApexCharts',
     libraryTarget: 'umd',
     umdNamedDefine: false,

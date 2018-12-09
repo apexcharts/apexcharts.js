@@ -30,7 +30,7 @@ require('svg.select.js')
 require('svg.resize.js')
 
 require('./assets/apexcharts.css')
-// require('./utils/ClassListPolyfill')
+require('./utils/ClassListPolyfill')
 
 const en = require('./locales/en.json')
 
