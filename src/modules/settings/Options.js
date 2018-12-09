@@ -532,7 +532,7 @@ export default class Options {
         showNullSeries: true,
         showZeroSeries: true,
         floating: false,
-        position: 'top', // whether to position legends in 1 of 4
+        position: 'bottom', // whether to position legends in 1 of 4
         // direction - top, bottom, left, right
         horizontalAlign: 'center', // when position top/bottom, you can
         // specify whether to align legends

@@ -95,11 +95,6 @@ class Core {
 
     gl.dom.elDefs = gl.dom.Paper.defs()
 
-    // this element is required for hovering over virtual rect to determine x/y position in line and area charts. let's call this element hovering rect
-
-    // gl.dom.elLegendWrap = graphics.group({
-    //   class: 'apexcharts-legend'
-    // })
     gl.dom.elLegendWrap = document.createElement('div')
     gl.dom.elLegendWrap.classList.add('apexcharts-legend')
     gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)

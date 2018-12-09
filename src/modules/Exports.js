@@ -37,7 +37,7 @@ class Exports {
   }
 
   exportToSVG () {
-    this.triggerDownload(this.svgURL(), '.svg')
+    this.triggerDownload(this.svgUrl(), '.svg')
   }
 
   exportToPng () {
