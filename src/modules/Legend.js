@@ -161,8 +161,8 @@ class Legend {
 
       elLegend.classList.add('apexcharts-legend-series')
       elLegend.style.margin = `${w.config.legend.itemMargin.horizontal}px ${w.config.legend.itemMargin.vertical}px`
-      w.globals.dom.elLegendWrap.style.maxWidth = w.config.legend.maxWidth ? w.config.legend.maxWidth + 'px' : ''
-      w.globals.dom.elLegendWrap.style.maxHeight = w.config.legend.maxHeight ? w.config.legend.maxHeight + 'px' : ''
+      w.globals.dom.elLegendWrap.style.width = w.config.legend.width ? w.config.legend.width + 'px' : ''
+      w.globals.dom.elLegendWrap.style.height = w.config.legend.height ? w.config.legend.height + 'px' : ''
 
       Graphics.setAttrs(elLegend, {
         'rel': i + 1,
@@ -226,8 +226,8 @@ class Legend {
 
     const legendRect = elLegendWrap.getBoundingClientRect()
 
-    let x = w.config.legend.containerMargin.left
-    let y = w.config.legend.containerMargin.top
+    let x = 0
+    let y = 0
 
     if (w.config.legend.position === 'bottom') {
       y = y + (w.globals.svgHeight - legendRect.height / 2)
@@ -244,8 +244,8 @@ class Legend {
 
     elLegendWrap.style.position = 'absolute'
 
-    elLegendWrap.style.top = y + 'px'
     elLegendWrap.style.left = x + 'px'
+    elLegendWrap.style.top = y + 'px'
 
     if (w.config.legend.position === 'bottom') {
       elLegendWrap.style.top = 'auto'
@@ -255,12 +255,12 @@ class Legend {
       elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px'
     }
 
-    if (elLegendWrap.style.maxWidth) {
-      elLegendWrap.style.maxWidth = w.config.legend.maxWidth
+    if (elLegendWrap.style.width) {
+      elLegendWrap.style.width = parseInt(w.config.legend.width) + 'px'
     }
 
-    if (elLegendWrap.style.maxHeight) {
-      elLegendWrap.style.maxHeight = w.config.legend.maxHeight
+    if (elLegendWrap.style.height) {
+      elLegendWrap.style.height = parseInt(w.config.legend.height) + 'px'
     }
   }
 

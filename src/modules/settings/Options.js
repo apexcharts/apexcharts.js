@@ -404,6 +404,7 @@ export default class Options {
           customScale: 0,
           offsetX: 0,
           offsetY: 0,
+          expandOnClick: true,
           dataLabels: {
             // These are the percentage values which are displayed on slice
             offset: 0 // offset by which labels will move outside
@@ -529,21 +530,19 @@ export default class Options {
       legend: {
         show: true,
         showForSingleSeries: false,
-        showNullSeries: true,
-        showZeroSeries: true,
+        showForNullSeries: true,
+        showForZeroSeries: true,
         floating: false,
         position: 'bottom', // whether to position legends in 1 of 4
         // direction - top, bottom, left, right
-        horizontalAlign: 'center', // when position top/bottom, you can
-        // specify whether to align legends
-        // left, right or center
+        horizontalAlign: 'center', // when position top/bottom, you can specify whether to align legends left, right or center
         fontSize: '12px',
         fontFamily: undefined,
-        offsetY: 0,
-        offsetX: -20,
-        maxWidth: undefined,
-        maxHeight: undefined,
+        width: undefined,
+        height: undefined,
         formatter: undefined,
+        offsetX: -20,
+        offsetY: 0,
         labels: {
           colors: undefined,
           useSeriesColors: false
@@ -561,10 +560,6 @@ export default class Options {
         itemMargin: {
           horizontal: 0,
           vertical: 5
-        },
-        containerMargin: {
-          left: 0,
-          top: 0
         },
         onItemClick: {
           toggleDataSeries: true

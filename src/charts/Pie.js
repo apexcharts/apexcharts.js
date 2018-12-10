@@ -291,8 +291,9 @@ class Pie {
       }
 
       // animation code ends
-
-      elPath.click(this.pieClicked.bind(this, i))
+      if (w.config.plotOptions.pie.expandOnClick) {
+        elPath.click(this.pieClicked.bind(this, i))
+      }
 
       if (w.config.dataLabels.enabled) {
         let xPos = labelPosition.x
