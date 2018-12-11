@@ -410,7 +410,7 @@ class Line {
 
       if (j === series[i].length - 2) {
         // last loop, close path
-        areaPath = areaPath + graphics.curve(pX + length, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z'
+        areaPath = areaPath + graphics.curve(pX, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z'
         if (!w.globals.hasNullValues) {
           linePaths.push(linePath)
           areaPaths.push(areaPath)
