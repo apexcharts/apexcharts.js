@@ -308,8 +308,6 @@ class Legend {
       offsetX = w.globals.svgWidth - lRect.clww - 10
     }
 
-    console.log(lRect)
-
     this.setLegendWrapXY(offsetX, offsetY)
   }
 

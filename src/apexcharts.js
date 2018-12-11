@@ -669,6 +669,16 @@ class ApexCharts {
    */
   destroy () {
     this.clear()
+
+    // remove the chart's instance from the global Apex._chartInstances
+    const chartID = this.w.config.chart.id
+    if (chartID) {
+      Apex._chartInstances.forEach((c, i) => {
+        if (c.id === chartID) {
+          Apex._chartInstances.splice(i, 1)
+        }
+      })
+    }
     window.removeEventListener('resize', this.windowResizeHandler)
   }
 

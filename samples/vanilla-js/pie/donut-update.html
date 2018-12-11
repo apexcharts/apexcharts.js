@@ -10,17 +10,19 @@
     
     <link href="../../assets/styles.css" rel="stylesheet" />
 
+
     <style>
         #chart {
             max-width: 480px;
             margin: 35px auto;
+            
         }
         .actions {
-            margin-top: -130px;
-            text-align: center;
+            top: -110px;
             position: relative;
             z-index: 10;
-            left: -60px;
+            max-width: 400px;
+            margin: 0 auto;
         }
         button {
             color: #fff;
@@ -31,7 +33,10 @@
             font-size: 13px;
             border-radius: 5px;
         }
-
+        
+        p {
+            margin: 10px 0;
+        }
         @media only screen and (max-width: 480px) {
             .actions {
                 margin-top: 0;
@@ -50,9 +55,9 @@
     </div>
 
     <div class="actions">
+        <button id="add">+ ADD</button>
+        <button id="remove"> &dash; REMOVE</button>
         <button id="randomize">RANDOMIZE</button>
-        <button id="add">ADD</button>
-        <button id="remove">REMOVE</button>
         <button id="reset">RESET</button>
     </div>
     
@@ -80,7 +85,9 @@
                 }
             }],
             legend: {
-                offsetY: 0
+                position: 'right',
+                offsetY: 0,
+                height: 230,
             }
         }
 
@@ -89,7 +96,7 @@
             options
         );
 
-        chart.render();
+        chart.render()
 
         function appendData() {
             var arr = chart.w.globals.series.map(() => {
