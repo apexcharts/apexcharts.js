@@ -1,3 +1,4 @@
+import CoreUtils from './CoreUtils'
 import Dimensions from './Dimensions'
 import Graphics from './Graphics'
 import Series from './Series'
@@ -153,6 +154,15 @@ class Legend {
 
       elLegend.appendChild(elMarker)
       elLegend.appendChild(elLegendText)
+
+      if (!w.config.legend.showForZeroSeries) {
+        const coreUtils = new CoreUtils(this.ctx)
+        const total = coreUtils.getSeriesTotalByIndex(i)
+
+        if (total === 0 && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+          elLegend.classList.add('apexcharts-hidden-zero-series')
+        }
+      }
 
       w.globals.dom.elLegendWrap.appendChild(elLegend)
       w.globals.dom.elLegendWrap.classList.add(w.config.legend.horizontalAlign)
@@ -411,6 +421,10 @@ class Legend {
 
       .apexcharts-legend-series.no-click {
         cursor: auto;
+      }
+
+      .apexcharts-legend .apexcharts-hidden-zero-series {
+        display: none !important;
       }
 
       .inactive-legend {

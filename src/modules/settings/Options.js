@@ -530,7 +530,6 @@ export default class Options {
       legend: {
         show: true,
         showForSingleSeries: false,
-        showForNullSeries: true,
         showForZeroSeries: true,
         floating: false,
         position: 'bottom', // whether to position legends in 1 of 4
