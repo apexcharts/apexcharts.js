@@ -347,6 +347,7 @@ class Legend {
     } else {
       // for heatmap handling
       if (hoverOverLegend) {
+        let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
         this.ctx.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
 
         let series = new Series(this.ctx)
