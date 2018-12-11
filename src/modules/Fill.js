@@ -120,7 +120,7 @@ class Fill {
     }
 
     if (cnf.fill.type === 'gradient') {
-      gradientFill = this.handleGradientFill(gradientFill, fillColor, fillOpacity)
+      gradientFill = this.handleGradientFill(gradientFill, fillColor, fillOpacity, this.seriesIndex)
     }
 
     if (cnf.fill.image.src.length > 0 && cnf.fill.type === 'image') {
@@ -238,7 +238,7 @@ class Fill {
     return patternFill
   }
 
-  handleGradientFill (gradientFill, fillColor, fillOpacity) {
+  handleGradientFill (gradientFill, fillColor, fillOpacity, i) {
     const cnf = this.w.config
     const opts = this.opts
     let graphics = new Graphics(this.ctx)
@@ -248,10 +248,10 @@ class Fill {
     let gradientFrom, gradientTo
     let opacityFrom = cnf.fill.gradient.opacityFrom === undefined
       ? fillOpacity
-      : cnf.fill.gradient.opacityFrom
+      : Array.isArray(cnf.fill.gradient.opacityFrom) ? cnf.fill.gradient.opacityFrom[i] : cnf.fill.gradient.opacityFrom
     let opacityTo = cnf.fill.gradient.opacityTo === undefined
       ? fillOpacity
-      : cnf.fill.gradient.opacityTo
+      : Array.isArray(cnf.fill.gradient.opacityTo) ? cnf.fill.gradient.opacityTo[i] : cnf.fill.gradient.opacityTo
 
     gradientFrom = fillColor
     if (
