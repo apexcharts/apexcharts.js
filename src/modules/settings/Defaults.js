@@ -391,7 +391,7 @@ class Defaults {
       },
       legend: {
         position: 'right',
-        offsetY: 30
+        offsetY: 40
       }
     }
   }
@@ -435,7 +435,7 @@ class Defaults {
       },
       legend: {
         position: 'right',
-        offsetY: 30
+        offsetY: 40
       }
     }
   }
@@ -466,7 +466,7 @@ class Defaults {
       },
       legend: {
         show: false,
-        offsetY: 30
+        offsetY: 40
       },
       tooltip: {
         enabled: false,

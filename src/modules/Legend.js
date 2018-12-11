@@ -269,7 +269,7 @@ class Legend {
 
     if (w.config.legend.position === 'bottom') {
       elLegendWrap.style.top = 'auto'
-      elLegendWrap.style.bottom = -w.config.legend.offsetY + 'px'
+      elLegendWrap.style.bottom = 10 - w.config.legend.offsetY + 'px'
     } else if (w.config.legend.position === 'right') {
       elLegendWrap.style.left = 'auto'
       elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px'

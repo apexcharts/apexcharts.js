@@ -146,7 +146,7 @@ class Pie {
     })
 
     elSeries.attr({
-      'transform': `translate(${translateX}, ${translateY - 25}) scale(${scaleSize})`
+      'transform': `translate(${translateX}, ${translateY - 5}) scale(${scaleSize})`
     })
 
     ret.attr({
