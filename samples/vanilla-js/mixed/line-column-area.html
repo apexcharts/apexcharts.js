@@ -9,11 +9,24 @@
 
   
   <link href="../../assets/styles.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/brands.css" integrity="sha384-QT2Z8ljl3UupqMtQNmPyhSPO/d5qbrzWmFxJqmY7tqoTuT2YrQLEqzvVOP2cT5XW" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/fontawesome.css" integrity="sha384-u5J7JghGz0qUrmEsWzBQkfvc8nK3fUT7DCaQzNQ+q4oEXhGSx+P2OqjWsfIRB8QT" crossorigin="anonymous">
+
 
   <style>
     #chart {
       max-width: 650px;
       margin: 35px auto;
+    }
+    .apexcharts-legend {
+      overflow: hidden !important;
+    }
+    .apexcharts-legend-marker {
+      background: none !important;
+      margin-right: 7px !important;
+    }
+    .apexcharts-legend-series {
+      align-items: flex-start !important;
     }
   </style>
 </head>
@@ -42,16 +55,17 @@
           columnWidth: '50%'
         }
       },
+      colors: ['#3A5794', '#A5C351', '#E14A84'],
       series: [{
-        name: 'TEAM A',
+        name: 'Facebook',
         type: 'column',
         data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
       }, {
-        name: 'TEAM B',
+        name: 'Vine',
         type: 'area',
         data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
       }, {
-        name: 'TEAM C',
+        name: 'Dribbble',
         type: 'line',
         data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
       }],
@@ -74,9 +88,6 @@
         type:'datetime'
       },
       yaxis: {
-        title: {
-          text: 'Points',
-        },
         min: 0
       },
       tooltip: {
@@ -85,14 +96,29 @@
         y: {
           formatter: function (y) {
             if(typeof y !== "undefined") {
-              return  y.toFixed(0) + " points";
+              return  y.toFixed(0) + " views";
             }
             return y;
             
           }
         }
+      },
+      legend: {
+        labels: {
+          useSeriesColors: true
+        },
+        markers: {
+          customHTML: [
+            function() {
+              return '<span><i class="fab fa-facebook"></i></span>'
+            }, function() {
+              return '<span><i class="fab fa-vine"></i></span>'
+            }, function() {
+              return '<span><i class="fab fa-dribbble"></i></span>'
+            }
+          ]
+        }
       }
-
     }
 
     var chart = new ApexCharts(

@@ -114,6 +114,7 @@ class Legend {
       let mStyle = elMarker.style
 
       mStyle.background = fillcolor[i]
+      mStyle.color = fillcolor[i]
       mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px'
       mStyle.width = Array.isArray(mWidth) ? parseFloat(mWidth[i]) + 'px' : parseFloat(mWidth) + 'px'
       mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX
@@ -123,7 +124,11 @@ class Legend {
       mStyle.borderRadius = Array.isArray(mBorderRadius) ? parseFloat(mBorderRadius[i]) + 'px' : parseFloat(mBorderRadius) + 'px'
 
       if (w.config.legend.markers.customHTML) {
-        elMarker.innerHTML = w.config.legend.markers.customHTML
+        if (Array.isArray(w.config.legend.markers.customHTML)) {
+          elMarker.innerHTML = w.config.legend.markers.customHTML[i]()
+        } else {
+          elMarker.innerHTML = w.config.legend.markers.customHTML()
+        }
       }
 
       Graphics.setAttrs(elMarker, {
@@ -141,11 +146,16 @@ class Legend {
       elLegendText.classList.add('apexcharts-legend-text')
       elLegendText.innerHTML = text
 
-      elLegendText.style.color = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.color
+      let textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors
+
+      if (!textColor) {
+        textColor = w.config.chart.foreColor
+      }
+
+      elLegendText.style.color = textColor
 
       elLegendText.style.fontSize = parseFloat(w.config.legend.labels.fontSize) + 'px'
       elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily
-      elLegendText.style.color = w.config.chart.foreColor
 
       Graphics.setAttrs(elLegendText, {
         'rel': i + 1,
@@ -337,6 +347,8 @@ class Legend {
     } else {
       // for heatmap handling
       if (hoverOverLegend) {
+        this.ctx.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
+
         let series = new Series(this.ctx)
         series.highlightRangeInSeries(e, e.target)
       }
