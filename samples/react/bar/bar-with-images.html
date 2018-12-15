@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Bar Chart with Images</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+
+    #apexcharts-canvas {
+      margin: 0 auto;
+    }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class BarChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            chart: {
+              animations: {
+                enabled: false
+              }
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                barHeight: '100%',
+
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              colors: ["#fff"],
+              width: 0.2
+            },
+            labels: Array.apply(null, {length: 39}).map(function(el, index){
+              return index + 1;
+            }),
+            yaxis: {
+              axisBorder: {
+                show: false
+              },
+              axisTicks: {
+                show: false
+              },
+              labels: {
+                show: false
+              },
+              title: {
+                text: 'Weight',
+              },
+            },
+            grid: {
+              position: 'back'
+            },
+            title: {
+              text: 'Paths filled by clipped image',
+              align: 'right',
+              offsetY: 30
+            },
+            fill: {
+              type: 'image',
+              opacity: 0.87,
+              image: {
+                src: ['../../assets/images/4274635880_809a4b9d0d_z.jpg'],
+                width: 466,
+                height: 406
+              }
+            }
+          },
+          series: [{
+            name: 'coins',
+            data: [2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9, 12, 12,
+              11, 12, 13, 14, 16, 14, 15, 17, 19, 21
+            ]
+          }],
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height="410" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(BarChart), domContainer);
+
+  </script>
+</body>
+
+</html>

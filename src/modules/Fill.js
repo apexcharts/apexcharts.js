@@ -142,11 +142,12 @@ class Fill {
       pathFill = defaultColor
     }
 
+    // override pattern/gradient if opts.solid is true
     if (opts.solid) {
       pathFill = defaultColor
     }
 
-    if (opts.color) {
+    if (!pathFill && opts.color) {
       pathFill = opts.color
     }
 

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>TimeSeries With Irregular Data</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+        max-width: 650px;
+        margin: 35px auto;
+    }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/irregular-data-series.js"></script>
+
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    var ts1 = 1388534400000;
+    var ts2 = 1388620800000;
+    var ts3 = 1389052800000;
+
+    var dataSet = [[], [], []]
+
+    for (var i = 0; i < 12; i++) {
+      ts1 = ts1 + 86400000;
+      var innerArr = [ts1, dataSeries[2][i].value];
+      dataSet[0].push(innerArr)
+    }
+    for (var i = 0; i < 18; i++) {
+      ts2 = ts2 + 86400000;
+      var innerArr = [ts2, dataSeries[1][i].value];
+      dataSet[1].push(innerArr)
+    }
+    for (var i = 0; i < 12; i++) {
+      ts3 = ts3 + 86400000;
+      var innerArr = [ts3, dataSeries[0][i].value];
+      dataSet[2].push(innerArr)
+    }
+
+    class AreaChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            chart: {
+              stacked: false,
+              zoom: {
+                enabled: false
+              },
+            },
+            plotOptions: {
+              line: {
+                curve: 'smooth',
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+
+            markers: {
+              size: 0,
+              style: 'full',
+            },
+            fill: {
+              gradient: {
+                enabled: true,
+                shadeIntensity: 1,
+                inverseColors: false,
+                opacityFrom: 0.45,
+                opacityTo: 0.05,
+                stops: [20, 100, 100, 100]
+              },
+            },
+            yaxis: {
+              labels: {
+                style: {
+                  color: '#8e8da4',
+                },
+                offsetX: 0,
+                formatter: function (val) {
+                  return (val / 1000000).toFixed(2);
+                },
+              },
+              axisBorder: {
+                show: false,
+              },
+              axisTicks: {
+                show: false
+              }
+            },
+            xaxis: {
+              type: 'datetime',
+              tickAmount: 8,
+              min: new Date("01/01/2014").getTime(),
+              max: new Date("01/20/2014").getTime(),
+              labels: {
+                rotate: -15,
+                rotateAlways: true,
+                formatter: function (val, timestamp) {
+                  return moment(new Date(timestamp)).format("DD MMM YYYY")
+                }
+              }
+            },
+            title: {
+              text: 'Irregular Data in Time Series',
+              align: 'left',
+              offsetX: 14
+            },
+            tooltip: {
+              shared: true
+            },
+            legend: {
+              position: 'top',
+              horizontalAlign: 'right',
+              offsetX: -10
+            }
+          },
+          series: [{
+            name: 'PRODUCT A',
+            data: dataSet[0]
+          }, {
+            name: 'PRODUCT B',
+            data: dataSet[1]
+          }, {
+            name: 'PRODUCT C',
+            data: dataSet[2]
+          }],
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="area" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(AreaChart), domContainer);
+
+  </script>
+</body>
+</html>
