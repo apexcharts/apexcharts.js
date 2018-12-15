@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Semi Circle Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+        max-width: 450px;
+        margin: 35px auto;
+    }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class RadialChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            plotOptions: {
+              radialBar: {
+                startAngle: -90,
+                endAngle: 90,
+                track: {
+                  background: "#e7e7e7",
+                  strokeWidth: '97%',
+                  margin: 5, // margin is in pixels
+                  shadow: {
+                    enabled: true,
+                    top: 2,
+                    left: 0,
+                    color: '#999',
+                    opacity: 1,
+                    blur: 2
+                  }
+                },
+                dataLabels: {
+                  name: {
+                    show: false
+                  },
+                  value: {
+                    offsetY: 15,
+                    fontSize: '22px'
+                  }
+                }
+              }
+            },
+            fill: {
+              gradient: {
+                enabled: true,
+                shade: 'light',
+                shadeIntensity: 0.4,
+                inverseColors: false,
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [0, 50, 53, 91]
+              },
+            },
+            labels: ['Average Results'],
+          },
+          series: [76],
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(RadialChart), domContainer);
+
+  </script>
+</body>
+</html>

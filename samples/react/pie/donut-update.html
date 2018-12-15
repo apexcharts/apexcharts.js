@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Simple Pie</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+        max-width: 480px;
+        margin: 35px auto;
+    }
+    .actions {
+        margin-top: -80px;
+        text-align: center;
+        position: relative;
+        z-index: 10;
+        left: -60px;
+    }
+    button {
+        color: #fff;
+        background: #20b2aa;
+        padding: 5px 10px;
+        margin: 5px;
+        font-weight: bold;
+        font-size: 13px;
+        border-radius: 5px;
+    }
+
+    @media only screen and (max-width: 480px) {
+        .actions {
+            margin-top: 0;
+            left: 0
+        }
+
+    }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class DonutChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            dataLabels: {
+              enabled: false
+            },
+
+            responsive: [{
+              breakpoint: 480,
+              options: {
+                chart: {
+                  width: 200
+                },
+                legend: {
+                  show: false
+                }
+              }
+            }],
+            legend: {
+                position: 'right',
+                offsetY: 0,
+                height: 230,
+            }
+          },
+          series: [44, 55, 13, 33],
+        }
+      }
+
+      appendData () {
+        var arr = this.state.series.map(() => {
+          return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+        })
+        arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
+
+        this.setState({
+          series: arr
+        })
+      }
+
+      removeData() {
+        if(this.state.series.length === 1) return
+        
+        var arr = this.state.series.map(() => {
+          return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+        })
+        arr.pop()
+
+        this.setState({
+          series: arr
+        })
+      }
+
+      randomize() {
+        this.setState({
+          series: this.state.series.map(() => {
+            return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+          })
+        })
+      }
+
+      reset() {
+        this.setState({
+          series: [44, 55, 13, 33]
+        })
+      }
+
+      render() {
+        return (
+          <div id="donut">
+           
+            <div className="chart-wrap">
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="donut" width="380" />
+              </div>
+            </div>
+          
+            <div className="actions">
+              <button onClick={() => this.randomize()}>RANDOMIZE</button>
+              <button onClick={() => this.appendData()}>ADD</button>
+              <button onClick={() => this.removeData()}>REMOVE</button>
+              <button onClick={() => this.reset()}>RESET</button>
+            </div>
+
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(DonutChart), domContainer);
+
+  </script>
+</body>
+
+</html>

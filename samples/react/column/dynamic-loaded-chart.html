@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Dynamic Loaded Column Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background: #fff;
+    }
+
+    .wrap {
+      margin: 45px auto;
+      max-width: 800px;
+      position: relative;
+    }
+
+    .chart-box {
+      padding-left: 0;
+    }
+
+    #chart-year,
+    #chart-quarter {
+      width: 96%;
+      max-width: 48%;
+      box-shadow: none;
+    }
+
+    #chart-year {
+      float: left;
+      position: relative;
+      transition: 1s ease transform;
+      z-index: 3;
+    }
+
+    #chart-year.chart-quarter-activated {
+      transform: translateX(0);
+      transition: 1s ease transform;
+    }
+
+    #chart-quarter {
+      float: left;
+      position: relative;
+      z-index: -2;
+      transition: 1s ease transform;
+    }
+    
+    #chart-quarter.active {
+      transition: 1.1s ease-in-out transform;
+      transform: translateX(0);
+      z-index: 1;
+    }
+
+    @media screen and (min-width: 480px) {
+      #chart-year {
+        transform: translateX(50%);
+      }
+      #chart-quarter {
+        transform: translateX(-50%);
+      }
+    }
+
+    select#model {
+      display: none;
+      position: absolute;
+      top: -40px;
+      left: 0;
+      z-index: 2;
+      cursor: pointer;
+      transform: scale(0.8);
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="data.js"></script>
+
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    Apex = {
+      chart: {
+        toolbar: {
+          show: false
+        }
+      },
+      tooltip: {
+        shared: false
+      },
+    }
+
+    var colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#00D9E9', '#FF66C3'];
+
+    function updateQuarterChart(sourceChart, destChartIDToUpdate) {
+      var series = [];
+      var seriesIndex = 0;
+      var colors = []
+
+      if (sourceChart.w.globals.selectedDataPoints[0]) {
+        var selectedPoints = sourceChart.w.globals.selectedDataPoints;
+        for (var i = 0; i < selectedPoints[seriesIndex].length; i++) {
+          var selectedIndex = selectedPoints[seriesIndex][i];
+          var yearSeries = sourceChart.w.config.series[seriesIndex];
+          series.push({
+            name: yearSeries.data[selectedIndex].x,
+            data: yearSeries.data[selectedIndex].quarters
+          })
+          colors.push(yearSeries.data[selectedIndex].color)
+        }
+
+        if (series.length === 0) series = [{
+          data: []
+        }]
+
+        return ApexCharts.exec(destChartIDToUpdate, 'updateOptions', {
+          series: series,
+          colors: colors,
+          fill: {
+            colors: colors
+          }
+        })
+
+      }
+
+    }
+
+    class BarChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          seriesQuarter: [{
+            data: []
+          }],
+          seriesYear: [{
+            data: makeData()
+          }],
+          chartOptionsYear: {
+            chart: {
+              id: 'barYear',
+              height: 400,
+              width: '100%',
+              type: 'bar',
+              events: {
+                dataPointSelection: function (e, chart, opts) {
+                  var quarterChartEl = document.querySelector("#chart-quarter");
+                  var yearChartEl = document.querySelector("#chart-year");
+
+                  if (opts.selectedDataPoints[0].length === 1) {
+                    if (quarterChartEl.classList.contains("active")) {
+                      updateQuarterChart(chart, 'barQuarter')
+                    } else {
+                      yearChartEl.classList.add("chart-quarter-activated")
+                      quarterChartEl.classList.add("active");
+                      updateQuarterChart(chart, 'barQuarter')
+                    }
+                  } else {
+                    updateQuarterChart(chart, 'barQuarter')
+                  }
+
+                  if (opts.selectedDataPoints[0].length === 0) {
+                    yearChartEl.classList.remove("chart-quarter-activated")
+                    quarterChartEl.classList.remove("active");
+                  }
+
+                },
+                updated:  function (chart) {
+                  updateQuarterChart(chart, 'barQuarter')
+                }
+              }
+            },
+            plotOptions: {
+              bar: {
+                distributed: true,
+                horizontal: true,
+                endingShape: 'arrow',
+                barHeight: '75%',
+                dataLabels: {
+                  position: 'bottom'
+                }
+              }
+            },
+            dataLabels: {
+              enabled: true,
+              textAnchor: 'start',
+              style: {
+                colors: ['#fff']
+              },
+              formatter: function (val, opt) {
+                return opt.w.globals.labels[opt.dataPointIndex]
+              },
+              offsetX: 0,
+              dropShadow: {
+                enabled: true
+              }
+            },
+
+            colors: colors,
+          
+            states: {
+              normal: {
+                filter: {
+                  type: 'desaturate'
+                }
+              },
+              active: {
+                allowMultipleDataPointsSelection: true,
+                filter: {
+                  type: 'darken',
+                  value: 1
+                }
+              }
+            },
+            tooltip: {
+              x: {
+                show: false
+              },
+              y: {
+                title: {
+                  formatter: function (val, opts) {
+                    return opts.w.globals.labels[opts.dataPointIndex]
+                  }
+                }
+              }
+            },
+            title: {
+              text: 'Yearly Results',
+              offsetX: 15
+            },
+            subtitle: {
+              text: '(Click on bar to see details)',
+              offsetX: 15
+            },
+            yaxis: {
+              labels: {
+                show: false
+              }
+            }
+          },
+          chartOptionsQuarter: {
+            chart: {
+              id: 'barQuarter',
+              height: 400,
+              width: '100%',
+              type: 'bar',
+              stacked: true
+            },
+            plotOptions: {
+              bar: {
+                columnWidth: '50%',
+                horizontal: false
+              }
+            },
+
+            legend: {
+              show: false
+            },
+            grid: {
+              yaxis: {
+                lines: {
+                  show: false,
+                }
+              },
+              xaxis: {
+                lines: {
+                  show: true,
+                }
+              }
+            },
+            yaxis: {
+              labels: {
+                show: false
+              }
+            },
+            title: {
+              text: 'Quarterly Results',
+              offsetX: 10
+            },
+            tooltip: {
+              x: {
+                formatter: function (val, opts) {
+                  return opts.w.globals.seriesNames[opts.seriesIndex]
+                }
+              },
+              y: {
+                title: {
+                  formatter: function (val, opts) {
+                    return opts.w.globals.labels[opts.dataPointIndex]
+                  }
+                }
+              }
+            }
+          },
+          options: {
+            chart: {
+              events: {
+                click: function (chart, w, e) {
+                  console.log(chart, w, e)
+                }
+              },
+            },
+            colors: ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8'],
+            plotOptions: {
+              bar: {
+                columnWidth: '45%',
+                distributed: true
+              }
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            xaxis: {
+              categories: ['John', 'Joe', 'Jake', 'Amber', 'Peter', 'Mary', 'David', 'Lily'],
+              labels: {
+                style: {
+                  colors: colors,
+                  fontSize: '14px'
+                }
+              }
+            }
+          },
+          series: [{
+            data: [21, 22, 10, 28, 16, 21, 13, 30]
+          }],
+        }
+      }
+
+      changeData() {        
+        Apex.exec('barYear', 'updateSeries', [{
+          data: makeData()
+        }])
+      }
+
+      render() {
+        return (
+          <div class="wrap">
+            <select id="model" onChange={() => this.changeData()} class="flat-select">
+              <option value="iphone5">iPhone 5</option>
+              <option value="iphone6">iPhone 6</option>
+              <option value="iphone7">iPhone 7</option>
+            </select>
+            <div id="chart-year" class="chart-box">
+              <ReactApexChart options={this.state.chartOptionsYear} series={this.state.seriesYear} type="bar" height="350" />
+            </div>
+            <div id="chart-quarter" class="chart-box">
+              <ReactApexChart options={this.state.chartOptionsQuarter} series={this.state.seriesQuarter} type="bar" height="350" />
+            </div>
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(BarChart), domContainer);
+
+  </script>
+</body>
+</html>

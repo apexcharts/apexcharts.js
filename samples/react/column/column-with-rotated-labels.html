@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Column with Rotates Labels</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class BarChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            annotations: {
+              points: [{
+                x: 'Bananas',
+                seriesIndex: 0,
+                label: {
+                  borderColor: '#775DD0',
+                  offsetY: 0,
+                  style: {
+                    color: '#fff',
+                    background: '#775DD0',
+                  },
+                  text: 'Bananas are good',
+                }
+              }]
+            },
+            chart: {
+              height: 350,
+              type: 'bar',
+            },
+            plotOptions: {
+              bar: {
+                columnWidth: '50%',
+                endingShape: 'rounded'
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              width: 2
+            },
+
+            grid: {
+              row: {
+                colors: ['#fff', '#f2f2f2']
+              }
+            },
+            xaxis: {
+              labels: {
+                rotate: -45
+              },
+              categories: ['Apples', 'Oranges', 'Strawberries', 'Pineapples', 'Mangoes', 'Bananas',
+                'Blackberries', 'Pears', 'Watermelons', 'Cherries', 'Pomegranates', 'Tangerines', 'Papayas'
+              ],
+            },
+            yaxis: {
+              title: {
+                text: 'Servings',
+              },
+            },
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shade: 'light',
+                type: "horizontal",
+                shadeIntensity: 0.25,
+                gradientToColors: undefined,
+                inverseColors: true,
+                opacityFrom: 0.85,
+                opacityTo: 0.85,
+                stops: [50, 0, 100]
+              },
+            }
+          },
+          series: [{
+            name: 'Servings',
+            data: [44, 55, 41, 67, 22, 43, 21, 33, 45, 31, 87, 65, 35]
+          }],
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(BarChart), domContainer);
+
+  </script>
+</body>
+
+</html>

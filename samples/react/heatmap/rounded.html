@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Simple HeatMap</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+        max-width: 650px;
+        margin: 35px auto;
+    }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    function generateData(count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = (i + 1).toString();
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        series.push({
+          x: x,
+          y: y
+        });
+        i++;
+      }
+      return series;
+    }
+
+    class HeatmapChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            stroke: {
+              width: 0
+            },
+            plotOptions: {
+              heatmap: {
+                radius: 30,
+                enableShades: false,
+                colorScale: {
+                  ranges: [{
+                      from: 0,
+                      to: 50,
+                      color: '#008FFB'
+                    },
+                    {
+                      from: 51,
+                      to: 100,
+                      color: '#00E396'
+                    },
+                  ],
+                },
+
+              }
+            },
+            dataLabels: {
+              enabled: true,
+              style: {
+                colors: ['#fff']
+              }
+            },
+            xaxis: {
+              type: 'category',
+            },
+            title: {
+              text: 'Rounded (Range without Shades)'
+            }
+          },
+          series: [
+            {
+              name: 'Metric1',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric2',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric3',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric4',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric5',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric6',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric7',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric8',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            },
+            {
+              name: 'Metric8',
+              data: generateData(20, {
+                min: 0,
+                max: 90
+              })
+            }
+          ],
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="heatmap" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(HeatmapChart), domContainer);
+
+  </script>
+  
+</body>
+</html>

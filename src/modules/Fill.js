@@ -104,6 +104,10 @@ class Fill {
 
     let defaultColor = fillColor
 
+    if (opts.color) {
+      fillColor = opts.color
+    }
+
     if (fillColor.indexOf('rgb') === -1) {
       defaultColor = Utils.hexToRgba(
         fillColor,
@@ -145,10 +149,6 @@ class Fill {
     // override pattern/gradient if opts.solid is true
     if (opts.solid) {
       pathFill = defaultColor
-    }
-
-    if (!pathFill && opts.color) {
-      pathFill = opts.color
     }
 
     return pathFill
