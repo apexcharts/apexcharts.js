@@ -584,6 +584,7 @@
     },
     // Get bounding box of points
     bbox: function () {
+      if (!SVG.parser.draw) { SVG.prepare() }
       SVG.parser.poly.setAttribute('points', this.toString())
 
       return SVG.parser.poly.getBBox()
@@ -867,6 +868,7 @@
     },
     // Get bounding box of path
     bbox: function () {
+      if (!SVG.parser.draw) { SVG.prepare() }
       SVG.parser.path.setAttribute('d', this.toString())
 
       return SVG.parser.path.getBBox()
