@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Line &amp; scatter</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class MixedChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            fill: {
+              type: 'solid',
+            },
+            markers: {
+              size: [6, 0]
+            },
+            tooltip: {
+              shared: false,
+              intersect: true,
+            },
+            legend: {
+              show: false
+            },
+            xaxis: {
+              type: 'numeric',
+              min: 0,
+              max: 12,
+              tickAmount: 12
+            }
+          },
+          series: [{
+          name: 'Points',
+          type: 'scatter',
+          data: [
+            {
+              x: 1,
+              y: 2.14
+            }, {
+              x: 1.2,
+              y: 2.19
+            }, {
+              x: 1.8,
+              y: 2.43
+            }, {
+              x: 2.3,
+              y: 3.8
+            }, {
+              x: 2.6,
+              y: 4.14
+            }, {
+              x: 2.9,
+              y: 5.4
+            }, {
+              x: 3.2,
+              y: 5.8
+            }, {
+              x: 3.8,
+              y: 6.04
+            }, {
+              x: 4.55,
+              y: 6.77
+            }, {
+              x: 4.9,
+              y: 8.1
+            }, {
+              x: 5.1,
+              y: 9.4
+            }, {
+              x: 7.1,
+              y: 7.14
+            }, {
+              x: 9.18,
+              y: 8.4
+            }]
+          }, {
+            name: 'Line',
+            type: 'line',
+            data: [{
+              x: 1,
+              y: 2
+            }, {
+              x: 2,
+              y: 3
+            }, {
+              x: 3,
+              y: 4
+            }, {
+              x: 4,
+              y: 5
+            }, {
+              x: 5,
+              y: 6
+            }, {
+              x: 6,
+              y: 7
+            }, {
+              x: 7,
+              y: 8
+            }, {
+              x: 8,
+              y: 9
+            }, {
+              x: 9,
+              y: 10
+            }, {
+              x: 10,
+              y: 11
+            }]
+          }]
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(MixedChart), domContainer);
+
+  </script>
+</body>
+</html>

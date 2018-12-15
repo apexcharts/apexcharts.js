@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Simple Bubble</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    function generateData(baseval, count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1;;
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+        var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15;
+
+        series.push([x, y, z]);
+        baseval += 86400000;
+        i++;
+      }
+      return series;
+    }
+
+    class BubbleChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            dataLabels: {
+              enabled: false
+            },
+
+            fill: {
+              opacity: 0.8,
+              gradient: {
+                enabled: false
+              }
+            },
+            title: {
+              text: 'Simple Bubble Chart'
+            },
+            xaxis: {
+              tickAmount: 12,
+              type: 'category',
+            },
+            yaxis: {
+              max: 70
+            }
+          },
+          series: [
+            {
+              name: 'Bubble1',
+              data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            },
+            {
+              name: 'Bubble2',
+              data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            },
+            {
+              name: 'Bubble3',
+              data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            },
+            {
+              name: 'Bubble4',
+              data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            }
+          ]
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="bubble" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(BubbleChart), domContainer);
+
+  </script>
+</body>
+</html>

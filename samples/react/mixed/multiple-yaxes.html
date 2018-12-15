@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Multiple Y Axis Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    .apexcharts-tooltip-title {
+      display: none;
+    }
+    #chart .apexcharts-tooltip {
+      display: flex;
+      border: 0;
+      box-shadow: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class MixedChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            dataLabels: {
+              enabled: false
+            },
+
+            stroke: {
+              width: [1, 1, 4]
+            },
+            title: {
+              text: 'XYZ - Stock Analysis (2009 - 2016)',
+              align: 'left',
+              offsetX: 110
+            },
+            xaxis: {
+              categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016],
+            },
+            yaxis: [
+              {
+                axisTicks: {
+                  show: true,
+                },
+                axisBorder: {
+                  show: true,
+                  color: '#008FFB'
+                },
+                labels: {
+                  style: {
+                    color: '#008FFB',
+                  }
+                },
+                title: {
+                  text: "Income (thousand crores)",
+                  style: {
+                    color: '#008FFB',
+                  }
+                },
+                tooltip: {
+                  enabled: true
+                }
+              },
+
+              {
+                seriesName: 'Income',
+                opposite: true,
+                axisTicks: {
+                  show: true,
+                },
+                axisBorder: {
+                  show: true,
+                  color: '#00E396'
+                },
+                labels: {
+                  style: {
+                    color: '#00E396',
+                  }
+                },
+                title: {
+                  text: "Operating Cashflow (thousand crores)",
+                  style: {
+                    color: '#00E396',
+                  }
+                },
+              },
+              {
+                seriesName: 'Revenue',
+                opposite: true,
+                axisTicks: {
+                  show: true,
+                },
+                axisBorder: {
+                  show: true,
+                  color: '#FEB019'
+                },
+                labels: {
+                  style: {
+                    color: '#FEB019',
+                  },
+                },
+                title: {
+                  text: "Revenue (thousand crores)",
+                  style: {
+                    color: '#FEB019',
+                  }
+                }
+              },
+            ],
+            tooltip: {
+              fixed: {
+                enabled: true,
+                position: 'topLeft', // topRight, topLeft, bottomRight, bottomLeft
+                offsetY: 30,
+                offsetX: 60
+              },
+            },
+            legend: {
+              horizontalAlign: 'left',
+              offsetX: 40
+            }
+          },
+          series: [{
+            name: 'Income',
+            type: 'column',
+            data: [1.4, 2, 2.5, 1.5, 2.5, 2.8, 3.8, 4.6]
+          }, {
+            name: 'Cashflow',
+            type: 'column',
+            data: [1.1, 3, 3.1, 4, 4.1, 4.9, 6.5, 8.5]
+          }, {
+            name: 'Revenue',
+            type: 'line',
+            data: [20, 29, 37, 36, 44, 45, 50, 58]
+          }],
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(MixedChart), domContainer);
+
+  </script>
+</body>
+</html>

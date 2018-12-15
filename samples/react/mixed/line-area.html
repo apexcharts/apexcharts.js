@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Basic Line - React</title>
+  <title>Line, Column &amp; Area</title>
+
 
   <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -31,47 +32,65 @@
 
   <script type="text/babel">
 
-    class LineChart extends React.Component {
+    class MixedChart extends React.Component {
       
       constructor(props) {
         super(props);
 
         this.state = {
           options: {
-            chart: {
-                  zoom: {
-                      enabled: false
+            stroke: {
+              curve: 'smooth'
+            },
+            fill: {
+              type: 'solid',
+              opacity: [0.35, 1],
+            },
+            labels: ['Dec 01', 'Dec 02', 'Dec 03', 'Dec 04', 'Dec 05', 'Dec 06', 'Dec 07', 'Dec 08', 'Dec 09 ',
+              'Dec 10', 'Dec 11'
+            ],
+            markers: {
+              size: 0
+            },
+            yaxis: [{
+                title: {
+                  text: 'Series A',
+                },
+              },
+              {
+                opposite: true,
+                title: {
+                  text: 'Series B',
+                },
+              },
+            ],
+            tooltip: {
+              shared: true,
+              intersect: false,
+              y: {
+                formatter: function (y) {
+                  if (typeof y !== "undefined") {
+                    return y.toFixed(0) + " points";
                   }
-              },
-              dataLabels: {
-                  enabled: false
-              },
-              stroke: {
-                  curve: 'straight'
-              },
-              title: {
-                  text: 'Product Trends by Month',
-                  align: 'left'
-              },
-              grid: {
-                  row: {
-                      colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
-                      opacity: 0.5
-                  },
-              },
-              xaxis: {
-                  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                  return y;
+
+                }
               }
+            }
           },
           series: [{
-              name: "Desktops",
-              data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
+            name: 'TEAM A',
+            type: 'area',
+            data: [44, 55, 31, 47, 31, 43, 26, 41, 31, 47, 33]
+          }, {
+            name: 'TEAM B',
+            type: 'line',
+            data: [55, 69, 45, 61, 43, 54, 37, 52, 44, 61, 43]
           }],
         }
       }
 
       render() {
-
         return (
           <div id="chart">
             <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
@@ -81,10 +100,9 @@
     }
 
     const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(LineChart), domContainer);
+    ReactDOM.render(React.createElement(MixedChart), domContainer);
 
   </script>
-
 </body>
 
 </html>

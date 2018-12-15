@@ -5,19 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Distributed Bar</title>
+  <title>Line, Column &amp; Area</title>
 
   <link href="../../assets/styles.css" rel="stylesheet" />
 
   <style>
     #chart {
-        max-width: 650px;
-        margin: 35px auto;
+      max-width: 650px;
+      margin: 35px auto;
     }
-    #chart .apexcharts-xaxis-label {
-        font-weight: bold;
-    }
-    </style>
+  </style>
 </head>
 
 <body>
@@ -34,44 +31,44 @@
 
   <script type="text/babel">
 
-    var colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8'];
-    
-    class BarChart extends React.Component {
+    class MixedChart extends React.Component {
       
       constructor(props) {
         super(props);
 
         this.state = {
           options: {
-            chart: {
-              events: {
-                click: function (chart, w, e) {
-                  console.log(chart, w, e)
-                }
-              },
+            stroke: {
+              width: [0, 4]
             },
-            colors: colors,
-            plotOptions: {
-              bar: {
-                columnWidth: '45%',
-                distributed: true
-              }
+            title: {
+              text: 'Traffic Sources'
             },
-            dataLabels: {
-              enabled: false,
-            },
+            labels: ['01 Jan 2001', '02 Jan 2001', '03 Jan 2001', '04 Jan 2001', '05 Jan 2001', '06 Jan 2001', '07 Jan 2001', '08 Jan 2001', '09 Jan 2001', '10 Jan 2001', '11 Jan 2001', '12 Jan 2001'
+            ],
             xaxis: {
-              categories: ['John', 'Joe', 'Jake', 'Amber', 'Peter', 'Mary', 'David', 'Lily'],
-              labels: {
-                style: {
-                  colors: colors,
-                  fontSize: '14px'
-                }
+              type: 'datetime'
+            },
+            yaxis: [{
+              title: {
+                text: 'Website Blog',
+              },
+
+            }, {
+              opposite: true,
+              title: {
+                text: 'Social Media'
               }
-            }
+            }]
           },
           series: [{
-            data: [21, 22, 10, 28, 16, 21, 13, 30]
+            name: 'Website Blog',
+            type: 'column',
+            data: [440, 505, 414, 671, 227, 413, 201, 352, 752, 320, 257, 160]
+          }, {
+            name: 'Social Media',
+            type: 'line',
+            data: [23, 42, 35, 27, 43, 22, 17, 31, 22, 22, 12, 16]
           }],
         }
       }
@@ -79,14 +76,14 @@
       render() {
         return (
           <div id="chart">
-            <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height="350" />
+            <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
           </div>
         );
       }
     }
 
     const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(BarChart), domContainer);
+    ReactDOM.render(React.createElement(MixedChart), domContainer);
 
   </script>
 </body>

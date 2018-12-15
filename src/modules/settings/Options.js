@@ -470,7 +470,7 @@ export default class Options {
       },
       fill: {
         type: 'solid',
-        colors: undefined, // array of colors,
+        colors: undefined, // array of colors
         opacity: 0.85,
         gradient: {
           shade: 'dark',
@@ -488,7 +488,7 @@ export default class Options {
           height: undefined // optional
         },
         pattern: {
-          style: 'sqaures', // string or array of strings
+          style: 'sqaures', // String | Array of Strings
           width: 6,
           height: 6,
           strokeWidth: 2

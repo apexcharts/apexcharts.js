@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Timeline Scatter Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    function generateDayWiseTimeSeries(baseval, count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        series.push([baseval, y]);
+        baseval += 86400000;
+        i++;
+      }
+      return series;
+    }
+
+    class ScatterChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            chart: {
+              zoom: {
+                type: 'xy'
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            grid: {
+              xaxis: {
+                showLines: true
+              },
+              yaxis: {
+                showLines: true
+              },
+            },
+            xaxis: {
+              type: 'datetime',
+            },
+            yaxis: {
+              max: 70
+            }
+          },
+          series: [
+            {
+              name: 'TEAM 1',
+              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            },
+            {
+              name: 'TEAM 2',
+              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            },
+            {
+              name: 'TEAM 3',
+              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
+                min: 10,
+                max: 60
+              })
+            },
+            {
+              name: 'TEAM 4',
+              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+                min: 10,
+                max: 60
+              })
+            },
+            {
+              name: 'TEAM 5',
+              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
+                min: 10,
+                max: 60
+              })
+            },
+          ],
+        }
+      }
+
+      render() {
+        return (
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="scatter" height="350" />
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(ScatterChart), domContainer);
+
+  </script>
+</body>
+</html>
