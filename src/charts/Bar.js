@@ -30,6 +30,7 @@ class Bar {
       this.baseLineY = xyRatios.baseLineY
       this.baseLineInvertedY = xyRatios.baseLineInvertedY
     }
+    this.minXDiff = Number.MAX_SAFE_INTEGER
     this.yaxisIndex = 0
 
     this.seriesLen = 0
@@ -261,6 +262,17 @@ class Bar {
         this.totalItems += series[sl].length
       }
       if (w.globals.isXNumeric) {
+        // get the least x diff if numeric x axis is present
+        w.globals.seriesX.forEach((sX, i) => {
+          sX.forEach((s, j) => {
+            if (j > 0) {
+              let xDiff = s - w.globals.seriesX[i][j - 1]
+              this.minXDiff = Math.min(xDiff, this.minXDiff)
+            }
+          })
+        })
+
+        // get max visible items
         for (let j = 0; j < series[sl].length; j++) {
           if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
             this.visibleItems++
@@ -299,8 +311,13 @@ class Bar {
     } else {
       // width divided into equal parts
       xDivision = w.globals.gridWidth / this.visibleItems
-      barWidth =
-        xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
+      barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
+
+      if (w.globals.isXNumeric) {
+        // max barwidth should be equal to minXDiff to avoid overlap
+        xDivision = this.minXDiff / this.xRatio
+        barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
+      }
 
       zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
 
@@ -733,7 +750,7 @@ class Bar {
       })
 
       let text = ''
-      if (typeof val !== 'undefined') {
+      if (typeof val !== 'undefined' && val !== null) {
         text = formatter(val, { seriesIndex: i, dataPointIndex: j, w })
       }
       dataLabels.plotDataLabelsText(x, y, text, i, j, elDataLabelsWrap, dataLabelsConfig, true)

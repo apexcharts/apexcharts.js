@@ -579,7 +579,12 @@ class Dimensions {
     let lgRect = Object.assign({}, Utils.getBoundingClientRect(elLegendWrap))
 
     if (elLegendWrap !== null && !w.config.legend.floating && w.config.legend.show) {
-      this.lgRect = lgRect
+      this.lgRect = {
+        x: lgRect.x,
+        y: lgRect.y,
+        height: lgRect.height,
+        width: lgRect.height === 0 ? 0 : lgRect.width
+      }
     } else {
       this.lgRect = {
         x: 0,

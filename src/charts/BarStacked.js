@@ -25,6 +25,8 @@ class BarStacked extends Bar {
 
     this.series = series
 
+    this.initVariables(series)
+
     if (w.config.chart.stackType === '100%') {
       this.series = w.globals.seriesPercent.slice()
       series = this.series
@@ -228,8 +230,9 @@ class BarStacked extends Bar {
       barWidth = xDivision
 
       if (w.globals.isXNumeric) {
-        xDivision = w.globals.gridWidth / (this.totalItems / w.globals.series.length)
-        barWidth = xDivision / 1.8
+        // max barwidth should be equal to minXDiff to avoid overlap
+        xDivision = this.minXDiff / this.xRatio
+        barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
       } else {
         barWidth = (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
       }
@@ -412,7 +415,7 @@ class BarStacked extends Bar {
       prevBarH = prevBarH + this.prevYF[k][j]
     }
 
-    if (i > 0) {
+    if ((i > 0 && !w.globals.isXNumeric) || (i > 0 && w.globals.isXNumeric && w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])) {
       let bYP
       let prevYValue = this.prevY[i - 1][j]
 
@@ -432,7 +435,7 @@ class BarStacked extends Bar {
 
       barYPosition = bYP
     } else {
-      // the first series will not have prevY values
+      // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
       barYPosition = w.globals.gridHeight - zeroH
     }
 

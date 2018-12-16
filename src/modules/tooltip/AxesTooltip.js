@@ -126,7 +126,7 @@ class AxesTooltip {
     ) {
       ttCtx.xcrosshairsWidth = 0
     }
-    if (xcrosshairs !== null) {
+    if (xcrosshairs !== null && ttCtx.xcrosshairsWidth > 0) {
       xcrosshairs.setAttribute('width', ttCtx.xcrosshairsWidth)
     }
   }
