@@ -18,6 +18,8 @@
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
+## Website under Maintenance
+We just moved our website to a different host and hence are in the maintenance phase. Please bear with us.
 
 ## Browsers support
 
