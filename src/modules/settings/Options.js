@@ -271,6 +271,7 @@ export default class Options {
           autoSelected: 'zoom' // accepts -> zoom, pan, selection
         },
         type: 'line',
+        updateOnElementResize: false,
         width: '100%',
         zoom: {
           enabled: true,

@@ -252,8 +252,11 @@ class Core {
 
     if (widthUnit === '%') {
       if (Utils.isNumber(elDim[0])) {
+        if (elDim[0].width === 0) {
+          elDim = Utils.getDimensions(this.el.parentNode)
+        }
         gl.svgWidth =
-        (elDim[0] * parseInt(cnf.chart.width) / 100)
+          (elDim[0] * parseInt(cnf.chart.width) / 100)
       }
     } else if (widthUnit === 'px' || widthUnit === '') {
       gl.svgWidth = parseInt(cnf.chart.width)

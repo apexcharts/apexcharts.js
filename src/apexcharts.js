@@ -31,6 +31,7 @@ require('svg.resize.js')
 
 require('./assets/apexcharts.css')
 require('./utils/ClassListPolyfill')
+require('./utils/DetectElementResize')
 
 const en = require('./locales/en.json')
 
@@ -89,6 +90,7 @@ class ApexCharts {
 
         this.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
+        window.addResizeListener(this.el.parentNode, this.parentResizeCallback.bind(this))
 
         let graphData = this.create(this.w.config.series)
         if (!graphData) return resolve(this)
@@ -544,21 +546,20 @@ class ApexCharts {
   }
 
   update (options) {
-    const me = this
-
     return new Promise((resolve, reject) => {
-      me.clear()
-      const graphData = me.create(me.w.config.series, options)
-      if (!graphData) return resolve(me)
-      me.mount(graphData).then(() => {
-        if (typeof me.w.config.chart.events.updated === 'function') {
-          me.w.config.chart.events.updated(me, me.w)
+      this.clear()
+
+      const graphData = this.create(this.w.config.series, options)
+      if (!graphData) return resolve(this)
+      this.mount(graphData).then(() => {
+        if (typeof this.w.config.chart.events.updated === 'function') {
+          this.w.config.chart.events.updated(this, this.w)
         }
-        me.fireEvent('updated', [this, this.w])
+        this.fireEvent('updated', [this, this.w])
 
-        me.w.globals.isDirty = true
+        this.w.globals.isDirty = true
 
-        resolve(me)
+        resolve(this)
       }).catch((e) => {
         reject(e)
       })
@@ -624,7 +625,6 @@ class ApexCharts {
     this.zoomPanSelection = null
     this.toolbar = null
     this.w.globals.tooltip = null
-
     this.clearDomElements()
   }
 
@@ -680,6 +680,7 @@ class ApexCharts {
       })
     }
     window.removeEventListener('resize', this.windowResizeHandler)
+    window.removeResizeListener(this.el.parentNode, this.parentResizeCallback.bind(this))
   }
 
   /**
@@ -915,6 +916,12 @@ class ApexCharts {
       return ch.id === chartID
     })
     return c.chart
+  }
+
+  parentResizeCallback () {
+    if (this.w.config.chart.updateOnElementResize) {
+      this.windowResize()
+    }
   }
 
   /**
