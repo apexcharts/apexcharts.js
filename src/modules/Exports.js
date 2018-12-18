@@ -57,10 +57,10 @@ class Exports {
     var DOMURL = window.URL || window.webkitURL || window
 
     var img = new Image()
+    img.crossOrigin = 'anonymous'
 
     const svgData = this.getSvgString()
-    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'})
-    const svgUrl = DOMURL.createObjectURL(svgBlob)
+    const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
 
     img.onload = () => {
       ctx.drawImage(img, 0, 0)
