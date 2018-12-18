@@ -106,7 +106,7 @@ class Pie {
     this.donutSize =
       this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100
 
-    let scaleSize = 1 + w.config.plotOptions.pie.customScale
+    let scaleSize = w.config.plotOptions.pie.customScale
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
     let translateX = halfW - w.globals.gridWidth / 2 * scaleSize

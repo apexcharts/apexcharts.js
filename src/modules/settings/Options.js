@@ -402,7 +402,7 @@ export default class Options {
         },
         pie: {
           size: undefined,
-          customScale: 0,
+          customScale: 1,
           offsetX: 0,
           offsetY: 0,
           expandOnClick: true,

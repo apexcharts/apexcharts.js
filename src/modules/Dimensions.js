@@ -41,6 +41,14 @@ class Dimensions {
     }
 
     this.titleSubtitleOffset()
+
+    // after calculating everything, apply padding set by user
+    gl.gridHeight = gl.gridHeight - w.config.grid.padding.top - w.config.grid.padding.bottom
+
+    gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right
+
+    gl.translateX = gl.translateX + w.config.grid.padding.left
+    gl.translateY = gl.translateY + w.config.grid.padding.top
   }
 
   conditionalChecksForAxisCoords (xaxisLabelCoords, xtitleCoords) {
@@ -173,15 +181,6 @@ class Dimensions {
         throw new Error('Legend position not supported')
     }
 
-    gl.gridHeight = gl.gridHeight -
-      w.config.grid.padding.top -
-      w.config.grid.padding.bottom
-
-    gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right
-
-    gl.translateX = gl.translateX + w.config.grid.padding.left
-    gl.translateY = gl.translateY + w.config.grid.padding.top
-
     if (!this.isBarHorizontal) {
       this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
     }
@@ -201,11 +200,14 @@ class Dimensions {
     }
 
     let offY = 10
+    let offX = 0
 
     if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
       offY = offY + w.config.plotOptions.pie.offsetY
+      offX = offX + w.config.plotOptions.pie.offsetX
     } else if (w.config.chart.type === 'radialBar') {
       offY = offY + w.config.plotOptions.radialBar.offsetY
+      offX = offX + w.config.plotOptions.radialBar.offsetX
     }
 
     if (!w.config.legend.show) {
@@ -224,27 +226,27 @@ class Dimensions {
         gl.gridWidth = gl.gridHeight
 
         gl.translateY = offY - 20
-        gl.translateX = (gl.svgWidth - gl.gridWidth) / 2
+        gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':
         gl.gridHeight = gl.svgHeight - lgRect.height - 35
         gl.gridWidth = gl.gridHeight
 
         gl.translateY = lgRect.height + offY
-        gl.translateX = (gl.svgWidth - gl.gridWidth) / 2
+        gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'left':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad
         gl.gridHeight = gl.gridWidth
         gl.translateY = offY
-        gl.translateX = lgRect.width + xPad
+        gl.translateX = offX + lgRect.width + xPad
 
         break
       case 'right':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad - 5
         gl.gridHeight = gl.gridWidth
         gl.translateY = offY
-        gl.translateX = 10
+        gl.translateX = offX + 10
 
         break
       default:
