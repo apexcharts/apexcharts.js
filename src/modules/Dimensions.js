@@ -215,7 +215,7 @@ class Dimensions {
       gl.gridWidth = gl.gridHeight
 
       gl.translateY = offY - 10
-      gl.translateX = (gl.svgWidth - gl.gridWidth) / 2
+      gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
 
       return
     }

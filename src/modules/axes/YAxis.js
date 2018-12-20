@@ -165,7 +165,7 @@ class YAxis {
     if (w.config.xaxis.labels.show) {
       for (let i = tickAmount; i >= 0; i--) {
         let val = w.globals.yAxisScale[realIndex].result[i]
-        val = lbFormatter(val)
+        val = lbFormatter(val, i)
 
         let elTick = graphics.drawText({
           x: w.globals.gridWidth +
