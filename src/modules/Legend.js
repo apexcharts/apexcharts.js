@@ -169,7 +169,7 @@ class Legend {
         const coreUtils = new CoreUtils(this.ctx)
         const total = coreUtils.getSeriesTotalByIndex(i)
 
-        if (total === 0 && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+        if (total === 0 && coreUtils.seriesHaveSameValues(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
           elLegend.classList.add('apexcharts-hidden-zero-series')
         }
       }

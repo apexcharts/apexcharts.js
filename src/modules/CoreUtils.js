@@ -57,6 +57,12 @@ class CoreUtils {
     }
   }
 
+  seriesHaveSameValues (index) {
+    return this.w.globals.series[index].every((val, i, arr) => {
+      return val === arr[0]
+    })
+  }
+
   // maxValsInArrayIndex is the index of series[] which has the largest number of items
   getLargestSeries () {
     const w = this.w
