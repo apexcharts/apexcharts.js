@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 167);
+/******/ 	return __webpack_require__(__webpack_require__.s = 168);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -3875,6 +3875,7 @@ var Bar = function () {
       this.baseLineY = xyRatios.baseLineY;
       this.baseLineInvertedY = xyRatios.baseLineInvertedY;
     }
+    this.minXDiff = Number.MAX_SAFE_INTEGER;
     this.yaxisIndex = 0;
 
     this.seriesLen = 0;
@@ -4126,6 +4127,8 @@ var Bar = function () {
   }, {
     key: 'initVariables',
     value: function initVariables(series) {
+      var _this2 = this;
+
       var w = this.w;
       this.series = series;
       this.totalItems = 0;
@@ -4139,6 +4142,17 @@ var Bar = function () {
           this.totalItems += series[sl].length;
         }
         if (w.globals.isXNumeric) {
+          // get the least x diff if numeric x axis is present
+          w.globals.seriesX.forEach(function (sX, i) {
+            sX.forEach(function (s, j) {
+              if (j > 0) {
+                var xDiff = s - w.globals.seriesX[i][j - 1];
+                _this2.minXDiff = Math.min(xDiff, _this2.minXDiff);
+              }
+            });
+          });
+
+          // get max visible items
           for (var j = 0; j < series[sl].length; j++) {
             if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
               this.visibleItems++;
@@ -4185,6 +4199,12 @@ var Bar = function () {
         // width divided into equal parts
         xDivision = w.globals.gridWidth / this.visibleItems;
         barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
+
+        if (w.globals.isXNumeric) {
+          // max barwidth should be equal to minXDiff to avoid overlap
+          xDivision = this.minXDiff / this.xRatio;
+          barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
+        }
 
         zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex];
 
@@ -4616,7 +4636,7 @@ var Bar = function () {
         });
 
         var text = '';
-        if (typeof val !== 'undefined') {
+        if (typeof val !== 'undefined' && val !== null) {
           text = formatter(val, { seriesIndex: i, dataPointIndex: j, w: w });
         }
         dataLabels.plotDataLabelsText(x, y, text, i, j, elDataLabelsWrap, dataLabelsConfig, true);
@@ -5023,6 +5043,14 @@ var Dimensions = function () {
       }
 
       this.titleSubtitleOffset();
+
+      // after calculating everything, apply padding set by user
+      gl.gridHeight = gl.gridHeight - w.config.grid.padding.top - w.config.grid.padding.bottom;
+
+      gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right;
+
+      gl.translateX = gl.translateX + w.config.grid.padding.left;
+      gl.translateY = gl.translateY + w.config.grid.padding.top;
     }
   }, {
     key: 'conditionalChecksForAxisCoords',
@@ -5148,13 +5176,6 @@ var Dimensions = function () {
           throw new Error('Legend position not supported');
       }
 
-      gl.gridHeight = gl.gridHeight - w.config.grid.padding.top - w.config.grid.padding.bottom;
-
-      gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right;
-
-      gl.translateX = gl.translateX + w.config.grid.padding.left;
-      gl.translateY = gl.translateY + w.config.grid.padding.top;
-
       if (!this.isBarHorizontal) {
         this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords);
       }
@@ -5175,11 +5196,14 @@ var Dimensions = function () {
       }
 
       var offY = 10;
+      var offX = 0;
 
       if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
         offY = offY + w.config.plotOptions.pie.offsetY;
+        offX = offX + w.config.plotOptions.pie.offsetX;
       } else if (w.config.chart.type === 'radialBar') {
         offY = offY + w.config.plotOptions.radialBar.offsetY;
+        offX = offX + w.config.plotOptions.radialBar.offsetX;
       }
 
       if (!w.config.legend.show) {
@@ -5187,7 +5211,7 @@ var Dimensions = function () {
         gl.gridWidth = gl.gridHeight;
 
         gl.translateY = offY - 10;
-        gl.translateX = (gl.svgWidth - gl.gridWidth) / 2;
+        gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
 
         return;
       }
@@ -5198,27 +5222,27 @@ var Dimensions = function () {
           gl.gridWidth = gl.gridHeight;
 
           gl.translateY = offY - 20;
-          gl.translateX = (gl.svgWidth - gl.gridWidth) / 2;
+          gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
           break;
         case 'top':
           gl.gridHeight = gl.svgHeight - lgRect.height - 35;
           gl.gridWidth = gl.gridHeight;
 
           gl.translateY = lgRect.height + offY;
-          gl.translateX = (gl.svgWidth - gl.gridWidth) / 2;
+          gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
           break;
         case 'left':
           gl.gridWidth = gl.svgWidth - lgRect.width - xPad;
           gl.gridHeight = gl.gridWidth;
           gl.translateY = offY;
-          gl.translateX = lgRect.width + xPad;
+          gl.translateX = offX + lgRect.width + xPad;
 
           break;
         case 'right':
           gl.gridWidth = gl.svgWidth - lgRect.width - xPad - 5;
           gl.gridHeight = gl.gridWidth;
           gl.translateY = offY;
-          gl.translateX = 10;
+          gl.translateX = offX + 10;
 
           break;
         default:
@@ -5567,7 +5591,12 @@ var Dimensions = function () {
       var lgRect = Object.assign({}, _Utils2.default.getBoundingClientRect(elLegendWrap));
 
       if (elLegendWrap !== null && !w.config.legend.floating && w.config.legend.show) {
-        this.lgRect = lgRect;
+        this.lgRect = {
+          x: lgRect.x,
+          y: lgRect.y,
+          height: lgRect.height,
+          width: lgRect.height === 0 ? 0 : lgRect.width
+        };
       } else {
         this.lgRect = {
           x: 0,
@@ -6217,7 +6246,7 @@ var YAxis = function () {
       if (w.config.xaxis.labels.show) {
         for (var i = tickAmount; i >= 0; i--) {
           var val = w.globals.yAxisScale[realIndex].result[i];
-          val = lbFormatter(val);
+          val = lbFormatter(val, i);
 
           var elTick = graphics.drawText({
             x: w.globals.gridWidth + w.globals.padHorizontal - (l - labelsDivider + w.config.xaxis.labels.offsetX),
@@ -7005,6 +7034,7 @@ var Options = function () {
             autoSelected: 'zoom' // accepts -> zoom, pan, selection
           },
           type: 'line',
+          updateOnElementResize: false,
           width: '100%',
           zoom: {
             enabled: true,
@@ -7135,7 +7165,7 @@ var Options = function () {
           },
           pie: {
             size: undefined,
-            customScale: 0,
+            customScale: 1,
             offsetX: 0,
             offsetY: 0,
             expandOnClick: true,
@@ -8492,7 +8522,7 @@ var Pie = function () {
 
       this.donutSize = this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100;
 
-      var scaleSize = 1 + w.config.plotOptions.pie.customScale;
+      var scaleSize = w.config.plotOptions.pie.customScale;
       var halfW = w.globals.gridWidth / 2;
       var halfH = w.globals.gridHeight / 2;
       var translateX = halfW - w.globals.gridWidth / 2 * scaleSize;
@@ -9515,10 +9545,10 @@ var Exports = function () {
       var DOMURL = window.URL || window.webkitURL || window;
 
       var img = new Image();
+      img.crossOrigin = 'anonymous';
 
       var svgData = this.getSvgString();
-      var svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      var svgUrl = DOMURL.createObjectURL(svgBlob);
+      var svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData);
 
       img.onload = function () {
         ctx.drawImage(img, 0, 0);
@@ -10709,31 +10739,31 @@ var _Exports = __webpack_require__(77);
 
 var _Exports2 = _interopRequireDefault(_Exports);
 
-var _icoPanHand = __webpack_require__(163);
+var _icoPanHand = __webpack_require__(164);
 
 var _icoPanHand2 = _interopRequireDefault(_icoPanHand);
 
-var _icoZoomIn = __webpack_require__(166);
+var _icoZoomIn = __webpack_require__(167);
 
 var _icoZoomIn2 = _interopRequireDefault(_icoZoomIn);
 
-var _icoHome = __webpack_require__(160);
+var _icoHome = __webpack_require__(161);
 
 var _icoHome2 = _interopRequireDefault(_icoHome);
 
-var _icoPlus = __webpack_require__(164);
+var _icoPlus = __webpack_require__(165);
 
 var _icoPlus2 = _interopRequireDefault(_icoPlus);
 
-var _icoMinus = __webpack_require__(162);
+var _icoMinus = __webpack_require__(163);
 
 var _icoMinus2 = _interopRequireDefault(_icoMinus);
 
-var _icoSelect = __webpack_require__(165);
+var _icoSelect = __webpack_require__(166);
 
 var _icoSelect2 = _interopRequireDefault(_icoSelect);
 
-var _icoMenu = __webpack_require__(161);
+var _icoMenu = __webpack_require__(162);
 
 var _icoMenu2 = _interopRequireDefault(_icoMenu);
 
@@ -12057,8 +12087,9 @@ __webpack_require__(150);
 __webpack_require__(154);
 __webpack_require__(153);
 
-__webpack_require__(158);
+__webpack_require__(159);
 __webpack_require__(156);
+__webpack_require__(157);
 
 var en = __webpack_require__(83);
 
@@ -12125,6 +12156,7 @@ var ApexCharts = function () {
 
           _this.fireEvent('beforeMount', [_this, _this.w]);
           window.addEventListener('resize', _this.windowResizeHandler);
+          window.addResizeListener(_this.el.parentNode, _this.parentResizeCallback.bind(_this));
 
           var graphData = _this.create(_this.w.config.series);
           if (!graphData) return resolve(_this);
@@ -12649,21 +12681,20 @@ var ApexCharts = function () {
     value: function update(options) {
       var _this3 = this;
 
-      var me = this;
-
       return new Promise(function (resolve, reject) {
-        me.clear();
-        var graphData = me.create(me.w.config.series, options);
-        if (!graphData) return resolve(me);
-        me.mount(graphData).then(function () {
-          if (typeof me.w.config.chart.events.updated === 'function') {
-            me.w.config.chart.events.updated(me, me.w);
+        _this3.clear();
+
+        var graphData = _this3.create(_this3.w.config.series, options);
+        if (!graphData) return resolve(_this3);
+        _this3.mount(graphData).then(function () {
+          if (typeof _this3.w.config.chart.events.updated === 'function') {
+            _this3.w.config.chart.events.updated(_this3, _this3.w);
           }
-          me.fireEvent('updated', [_this3, _this3.w]);
+          _this3.fireEvent('updated', [_this3, _this3.w]);
 
-          me.w.globals.isDirty = true;
+          _this3.w.globals.isDirty = true;
 
-          resolve(me);
+          resolve(_this3);
         }).catch(function (e) {
           reject(e);
         });
@@ -12734,7 +12765,6 @@ var ApexCharts = function () {
       this.zoomPanSelection = null;
       this.toolbar = null;
       this.w.globals.tooltip = null;
-
       this.clearDomElements();
     }
   }, {
@@ -12795,6 +12825,7 @@ var ApexCharts = function () {
         });
       }
       window.removeEventListener('resize', this.windowResizeHandler);
+      window.removeResizeListener(this.el.parentNode, this.parentResizeCallback.bind(this));
     }
 
     /**
@@ -13003,12 +13034,19 @@ var ApexCharts = function () {
       return this.w.globals.dom.Paper;
     }
   }, {
-    key: 'windowResize',
-
+    key: 'parentResizeCallback',
+    value: function parentResizeCallback() {
+      if (this.w.config.chart.updateOnElementResize) {
+        this.windowResize();
+      }
+    }
 
     /**
      * Handle window resize and re-draw the whole chart.
      */
+
+  }, {
+    key: 'windowResize',
     value: function windowResize() {
       var _this4 = this;
 
@@ -14700,6 +14738,8 @@ var BarStacked = function (_Bar) {
 
       this.series = series;
 
+      this.initVariables(series);
+
       if (w.config.chart.stackType === '100%') {
         this.series = w.globals.seriesPercent.slice();
         series = this.series;
@@ -14913,8 +14953,9 @@ var BarStacked = function (_Bar) {
         barWidth = xDivision;
 
         if (w.globals.isXNumeric) {
-          xDivision = w.globals.gridWidth / (this.totalItems / w.globals.series.length);
-          barWidth = xDivision / 1.8;
+          // max barwidth should be equal to minXDiff to avoid overlap
+          xDivision = this.minXDiff / this.xRatio;
+          barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
         } else {
           barWidth = barWidth * parseInt(w.config.plotOptions.bar.columnWidth) / 100;
         }
@@ -15066,7 +15107,7 @@ var BarStacked = function (_Bar) {
         prevBarH = prevBarH + this.prevYF[k][j];
       }
 
-      if (i > 0) {
+      if (i > 0 && !w.globals.isXNumeric || i > 0 && w.globals.isXNumeric && w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j]) {
         var bYP = void 0;
         var prevYValue = this.prevY[i - 1][j];
 
@@ -15086,7 +15127,7 @@ var BarStacked = function (_Bar) {
 
         barYPosition = bYP;
       } else {
-        // the first series will not have prevY values
+        // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
         barYPosition = w.globals.gridHeight - zeroH;
       }
 
@@ -17670,6 +17711,9 @@ var Core = function () {
 
       if (widthUnit === '%') {
         if (_Utils2.default.isNumber(elDim[0])) {
+          if (elDim[0].width === 0) {
+            elDim = _Utils2.default.getDimensions(this.el.parentNode);
+          }
           gl.svgWidth = elDim[0] * parseInt(cnf.chart.width) / 100;
         }
       } else if (widthUnit === 'px' || widthUnit === '') {
@@ -21088,6 +21132,10 @@ var Defaults = function () {
             stops: [0, 100, 100]
           }
         },
+        padding: {
+          right: 0,
+          left: 0
+        },
         tooltip: {
           theme: 'dark',
           fillSeriesColor: true
@@ -21133,6 +21181,10 @@ var Defaults = function () {
             stops: [70, 98, 100]
           }
         },
+        padding: {
+          right: 0,
+          left: 0
+        },
         tooltip: {
           theme: 'dark',
           fillSeriesColor: true
@@ -21168,6 +21220,10 @@ var Defaults = function () {
             opacityTo: 1,
             stops: [70, 98, 100]
           }
+        },
+        padding: {
+          right: 0,
+          left: 0
         },
         legend: {
           show: false,
@@ -21540,7 +21596,7 @@ var AxesTooltip = function () {
       if (w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal) {
         ttCtx.xcrosshairsWidth = 0;
       }
-      if (xcrosshairs !== null) {
+      if (xcrosshairs !== null && ttCtx.xcrosshairsWidth > 0) {
         xcrosshairs.setAttribute('width', ttCtx.xcrosshairsWidth);
       }
     }
@@ -31240,6 +31296,152 @@ if ("document" in self) {
 /* 157 */
 /***/ (function(module, exports, __webpack_require__) {
 
+"use strict";
+
+
+/**
+* Detect Element Resize
+*
+* https://github.com/sdecima/javascript-detect-element-resize
+* Sebastian Decima
+*
+* version: 0.5.3
+**/
+
+(function () {
+  var stylesCreated = false;
+
+  function resetTriggers(element) {
+    var triggers = element.__resizeTriggers__,
+        expand = triggers.firstElementChild,
+        contract = triggers.lastElementChild,
+        expandChild = expand.firstElementChild;
+    contract.scrollLeft = contract.scrollWidth;
+    contract.scrollTop = contract.scrollHeight;
+    expandChild.style.width = expand.offsetWidth + 1 + 'px';
+    expandChild.style.height = expand.offsetHeight + 1 + 'px';
+    expand.scrollLeft = expand.scrollWidth;
+    expand.scrollTop = expand.scrollHeight;
+  }
+
+  function checkTriggers(element) {
+    return element.offsetWidth != element.__resizeLast__.width || element.offsetHeight != element.__resizeLast__.height;
+  }
+
+  function scrollListener(e) {
+    var element = this;
+    resetTriggers(this);
+    if (this.__resizeRAF__) cancelFrame(this.__resizeRAF__);
+    this.__resizeRAF__ = requestFrame(function () {
+      if (checkTriggers(element)) {
+        element.__resizeLast__.width = element.offsetWidth;
+        element.__resizeLast__.height = element.offsetHeight;
+        element.__resizeListeners__.forEach(function (fn) {
+          fn.call(e);
+        });
+      }
+    });
+  }
+
+  function createStyles() {
+    if (!stylesCreated) {
+      // opacity:0 works around a chrome bug https://code.google.com/p/chromium/issues/detail?id=286360
+      var css = (animationKeyframes || '') + '.resize-triggers { ' + (animationStyle || '') + 'visibility: hidden; opacity: 0; } ' + '.resize-triggers, .resize-triggers > div, .contract-trigger:before { content: \" \"; display: block; position: absolute; top: 0; left: 0; height: 100%; width: 100%; overflow: hidden; } .resize-triggers > div { background: #eee; overflow: auto; } .contract-trigger:before { width: 200%; height: 200%; }',
+          head = document.head || document.getElementsByTagName('head')[0],
+          style = document.createElement('style');
+
+      style.type = 'text/css';
+      if (style.styleSheet) {
+        style.styleSheet.cssText = css;
+      } else {
+        style.appendChild(document.createTextNode(css));
+      }
+
+      head.appendChild(style);
+      stylesCreated = true;
+    }
+  }
+
+  var requestFrame = function () {
+    var raf = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || function (fn) {
+      return window.setTimeout(fn, 20);
+    };
+    return function (fn) {
+      return raf(fn);
+    };
+  }();
+
+  var cancelFrame = function () {
+    var cancel = window.cancelAnimationFrame || window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.clearTimeout;
+    return function (id) {
+      return cancel(id);
+    };
+  }();
+
+  /* Detect CSS Animations support to detect element display/re-attach */
+  var animation = false,
+      keyframeprefix = '',
+      animationstartevent = 'animationstart',
+      domPrefixes = 'Webkit Moz O ms'.split(' '),
+      startEvents = 'webkitAnimationStart animationstart oAnimationStart MSAnimationStart'.split(' '),
+      pfx = '';
+  {
+    var elm = document.createElement('fakeelement');
+    if (elm.style.animationName !== undefined) {
+      animation = true;
+    }
+
+    if (animation === false) {
+      for (var i = 0; i < domPrefixes.length; i++) {
+        if (elm.style[domPrefixes[i] + 'AnimationName'] !== undefined) {
+          pfx = domPrefixes[i];
+          keyframeprefix = '-' + pfx.toLowerCase() + '-';
+          animationstartevent = startEvents[i];
+          break;
+        }
+      }
+    }
+  }
+
+  var animationName = 'resizeanim';
+  var animationKeyframes = '@' + keyframeprefix + 'keyframes ' + animationName + ' { from { opacity: 0; } to { opacity: 0; } } ';
+  var animationStyle = keyframeprefix + 'animation: 1ms ' + animationName + '; ';
+
+  window.addResizeListener = function (element, fn) {
+    if (!element.__resizeTriggers__) {
+      if (getComputedStyle(element).position == 'static') element.style.position = 'relative';
+      createStyles();
+      element.__resizeLast__ = {};
+      element.__resizeListeners__ = [];
+      (element.__resizeTriggers__ = document.createElement('div')).className = 'resize-triggers';
+      element.__resizeTriggers__.innerHTML = '<div class="expand-trigger"><div></div></div>' + '<div class="contract-trigger"></div>';
+      element.appendChild(element.__resizeTriggers__);
+      resetTriggers(element);
+      element.addEventListener('scroll', scrollListener, true);
+
+      /* Listen for a css animation to detect element display/re-attach */
+      animationstartevent && element.__resizeTriggers__.addEventListener(animationstartevent, function (e) {
+        if (e.animationName == animationName) {
+          resetTriggers(element);
+        }
+      });
+    }
+    element.__resizeListeners__.push(fn);
+  };
+
+  window.removeResizeListener = function (element, fn) {
+    element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1);
+    if (!element.__resizeListeners__.length) {
+      element.removeEventListener('scroll', scrollListener);
+      element.__resizeTriggers__ = !element.removeChild(element.__resizeTriggers__);
+    }
+  };
+})();
+
+/***/ }),
+/* 158 */
+/***/ (function(module, exports, __webpack_require__) {
+
 exports = module.exports = __webpack_require__(126)(false);
 // imports
 
@@ -31251,11 +31453,11 @@ exports.push([module.i, ".apexcharts-canvas {\n  position: relative;\n  user-sel
 
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(157);
+var content = __webpack_require__(158);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -31269,7 +31471,7 @@ var options = {"hmr":true}
 options.transform = transform
 options.insertInto = undefined;
 
-var update = __webpack_require__(159)(content, options);
+var update = __webpack_require__(160)(content, options);
 
 if(content.locals) module.exports = content.locals;
 
@@ -31301,7 +31503,7 @@ if(false) {
 }
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -31683,49 +31885,49 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"none\" d=\"M0 0h24v24H0V0z\"></path><path d=\"M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z\"></path></svg>"
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" viewBox=\"0 0 24 24\"><defs><path d=\"M0 0h24v24H0z\" id=\"a\"></path></defs><clipPath id=\"b\"><use overflow=\"visible\" xlink:href=\"#a\"></use></clipPath><path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"></path></svg>"
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#6E8192\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"></path></svg>"
 
 /***/ }),
-/* 166 */
+/* 167 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" viewBox=\"0 0 24 24\"><path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path><path d=\"M0 0h24v24H0V0z\" fill=\"none\"></path><path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"></path></svg>"
 
 /***/ }),
-/* 167 */
+/* 168 */
 /***/ (function(module, exports, __webpack_require__) {
 
 __webpack_require__(88);
