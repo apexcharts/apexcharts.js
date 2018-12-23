@@ -81,6 +81,10 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div class=&quot;wrap&quot;&gt;&#10;            &lt;select id=&quot;model&quot; onChange={() =&gt; this.changeData()} class=&quot;flat-select&quot;&gt;&#10;              &lt;option value=&quot;iphone5&quot;&gt;iPhone 5&lt;/option&gt;&#10;              &lt;option value=&quot;iphone6&quot;&gt;iPhone 6&lt;/option&gt;&#10;              &lt;option value=&quot;iphone7&quot;&gt;iPhone 7&lt;/option&gt;&#10;            &lt;/select&gt;&#10;            &lt;div id=&quot;chart-year&quot; class=&quot;chart-box&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsYear} series={this.state.seriesYear} type=&quot;bar&quot; height=&quot;350&quot; /&gt;&#10;            &lt;/div&gt;&#10;            &lt;div id=&quot;chart-quarter&quot; class=&quot;chart-box&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsQuarter} series={this.state.seriesQuarter} type=&quot;bar&quot; height=&quot;350&quot; /&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -351,17 +355,21 @@
 
       render() {
         return (
-          <div class="wrap">
-            <select id="model" onChange={() => this.changeData()} class="flat-select">
-              <option value="iphone5">iPhone 5</option>
-              <option value="iphone6">iPhone 6</option>
-              <option value="iphone7">iPhone 7</option>
-            </select>
-            <div id="chart-year" class="chart-box">
-              <ReactApexChart options={this.state.chartOptionsYear} series={this.state.seriesYear} type="bar" height="350" />
+          <div>
+            <div class="wrap">
+              <select id="model" onChange={() => this.changeData()} class="flat-select">
+                <option value="iphone5">iPhone 5</option>
+                <option value="iphone6">iPhone 6</option>
+                <option value="iphone7">iPhone 7</option>
+              </select>
+              <div id="chart-year" class="chart-box">
+                <ReactApexChart options={this.state.chartOptionsYear} series={this.state.seriesYear} type="bar" height="350" />
+              </div>
+              <div id="chart-quarter" class="chart-box">
+                <ReactApexChart options={this.state.chartOptionsQuarter} series={this.state.seriesQuarter} type="bar" height="350" />
+              </div>
             </div>
-            <div id="chart-quarter" class="chart-box">
-              <ReactApexChart options={this.state.chartOptionsQuarter} series={this.state.seriesQuarter} type="bar" height="350" />
+            <div id="html-dist">
             </div>
           </div>
         );

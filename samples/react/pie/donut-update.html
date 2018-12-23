@@ -44,6 +44,10 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;donut&quot;&gt;&#10;            &lt;div className=&quot;chart-wrap&quot;&gt;&#10;              &lt;div id=&quot;chart&quot;&gt;&#10;                &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;donut&quot; width=&quot;380&quot; /&gt;&#10;              &lt;/div&gt;&#10;            &lt;/div&gt;&#10;            &lt;div className=&quot;actions&quot;&gt;&#10;              &lt;button onClick={() =&gt; this.randomize()}&gt;RANDOMIZE&lt;/button&gt;&#10;              &lt;button onClick={() =&gt; this.appendData()}&gt;ADD&lt;/button&gt;&#10;              &lt;button onClick={() =&gt; this.removeData()}&gt;REMOVE&lt;/button&gt;&#10;              &lt;button onClick={() =&gt; this.reset()}&gt;RESET&lt;/button&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -128,21 +132,22 @@
 
       render() {
         return (
-          <div id="donut">
-           
-            <div className="chart-wrap">
-              <div id="chart">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="donut" width="380" />
+          <div>
+            <div id="donut">
+              <div className="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart options={this.state.options} series={this.state.series} type="donut" width="380" />
+                </div>
+              </div>
+              <div className="actions">
+                <button onClick={() => this.randomize()}>RANDOMIZE</button>
+                <button onClick={() => this.appendData()}>ADD</button>
+                <button onClick={() => this.removeData()}>REMOVE</button>
+                <button onClick={() => this.reset()}>RESET</button>
               </div>
             </div>
-          
-            <div className="actions">
-              <button onClick={() => this.randomize()}>RANDOMIZE</button>
-              <button onClick={() => this.appendData()}>ADD</button>
-              <button onClick={() => this.removeData()}>REMOVE</button>
-              <button onClick={() => this.reset()}>RESET</button>
+            <div id="html-dist">
             </div>
-
           </div>
         );
       }

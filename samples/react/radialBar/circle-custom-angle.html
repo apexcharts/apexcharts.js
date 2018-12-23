@@ -24,6 +24,10 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;radialBar&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -72,29 +76,28 @@
               floating: true,
               fontSize: '16px',
               position: 'left',
-              textAnchor: 'end',
-              labels: {
-                useSeriesColors: true,
-              },
-              markers: {
-                size: 0
-              },
-              formatter: function (seriesName, opts) {
-                return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
-              },
-              itemMargin: {
-                vertical: 4,
-              },
               offsetX: 170,
               offsetY: 10,
+              labels: {
+                  useSeriesColors: true,
+              },
+              markers: {
+                  size: 0
+              },
+              formatter: function(seriesName, opts) {
+                  return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
+              },
+              itemMargin: {
+                  horizontal: 1,
+              }
             },
             responsive: [{
-              breakpoint: 480,
-              options: {
-                legend: {
-                  show: false
+                breakpoint: 480,
+                options: {
+                    legend: {
+                        show: false
+                    }
                 }
-              }
             }]
           },
           series: [76, 67, 61, 90],
@@ -103,8 +106,12 @@
 
       render() {
         return (
-          <div id="chart">
-            <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height="350" />
+          <div>
+            <div id="chart">
+              <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height="350" />
+            </div>
+            <div id="html-dist">
+            </div>
           </div>
         );
       }

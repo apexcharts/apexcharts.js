@@ -76,6 +76,10 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;sparklines&quot;&gt;&#10;            &lt;div className=&quot;row&quot;&gt;&#10;              &lt;div className=&quot;col-md-4&quot;&gt;&#10;                &lt;div id=&quot;spark1&quot;&gt;&#10;                  &lt;ReactApexChart options={this.state.chartOptionsTopSpark1} series={this.state.seriesTopSpark1} type=&quot;area&quot; height=&quot;160&quot; /&gt;&#10;                &lt;/div&gt;&#10;              &lt;/div&gt;&#10;              &lt;div className=&quot;col-md-4&quot;&gt;&#10;                &lt;div id=&quot;spark2&quot;&gt;&#10;                  &lt;ReactApexChart options={this.state.chartOptionsTopSpark2} series={this.state.seriesTopSpark2} type=&quot;area&quot; height=&quot;160&quot; /&gt;&#10;                &lt;/div&gt;&#10;              &lt;/div&gt;&#10;              &lt;div className=&quot;col-md-4&quot;&gt;&#10;                &lt;div id=&quot;spark3&quot;&gt;&#10;                  &lt;ReactApexChart options={this.state.chartOptionsTopSpark3} series={this.state.seriesTopSpark3} type=&quot;area&quot; height=&quot;160&quot; /&gt;&#10;                &lt;/div&gt;&#10;              &lt;/div&gt;&#10;            &lt;/div&gt;&#10;&#10;            &lt;div className=&quot;row&quot;&gt;&#10;              &lt;table&gt;&#10;                &lt;thead&gt;&#10;                  &lt;th&gt;Total Value&lt;/th&gt;&#10;                  &lt;th&gt;Percentage of Portfolio&lt;/th&gt;&#10;                  &lt;th&gt;Last 10 days&lt;/th&gt;&#10;                  &lt;th&gt;Volume&lt;/th&gt;&#10;                &lt;/thead&gt;&#10;                &lt;tbody&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$32,554&lt;/td&gt;&#10;                    &lt;td&gt;15%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart1&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart5&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$23,533&lt;/td&gt;&#10;                    &lt;td&gt;7%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart2&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart6&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$54,276&lt;/td&gt;&#10;                    &lt;td&gt;9%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart3&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart7&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$11,533&lt;/td&gt;&#10;                    &lt;td&gt;2%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart4&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark4} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart8&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                &lt;/tbody&gt;&#10;              &lt;/table&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -312,92 +316,96 @@
 
       render() {
         return (
-          <div id="app">
-            <div className="row">
-              <div className="col-md-4">
-                <div id="spark1">
-                  <ReactApexChart options={this.state.chartOptionsTopSpark1} series={this.state.seriesTopSpark1} type="area" height="160" />
+          <div>
+            <div id="sparklines">
+              <div className="row">
+                <div className="col-md-4">
+                  <div id="spark1">
+                    <ReactApexChart options={this.state.chartOptionsTopSpark1} series={this.state.seriesTopSpark1} type="area" height="160" />
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div id="spark2">
+                    <ReactApexChart options={this.state.chartOptionsTopSpark2} series={this.state.seriesTopSpark2} type="area" height="160" />
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div id="spark3">
+                    <ReactApexChart options={this.state.chartOptionsTopSpark3} series={this.state.seriesTopSpark3} type="area" height="160" />
+                  </div>
                 </div>
               </div>
-              <div className="col-md-4">
-                <div id="spark2">
-                  <ReactApexChart options={this.state.chartOptionsTopSpark2} series={this.state.seriesTopSpark2} type="area" height="160" />
-                </div>
-              </div>
-              <div className="col-md-4">
-                <div id="spark3">
-                  <ReactApexChart options={this.state.chartOptionsTopSpark3} series={this.state.seriesTopSpark3} type="area" height="160" />
-                </div>
+
+              <div className="row">
+                <table>
+                  <thead>
+                    <th>Total Value</th>
+                    <th>Percentage of Portfolio</th>
+                    <th>Last 10 days</th>
+                    <th>Volume</th>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>$32,554</td>
+                      <td>15%</td>
+                      <td>
+                        <div id="chart1">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type="line" height="35" width="100" />
+                        </div>
+                      </td>
+                      <td>
+                        <div id="chart5">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type="bar" height="35" width="100" />
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>$23,533</td>
+                      <td>7%</td>
+                      <td>
+                        <div id="chart2">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type="line" height="35" width="100" />
+                        </div>
+                      </td>
+                      <td>
+                        <div id="chart6">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type="bar" height="35" width="100" />
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>$54,276</td>
+                      <td>9%</td>
+                      <td>
+                        <div id="chart3">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="line" height="35" width="100" />
+                        </div>
+                      </td>
+                      <td>
+                        <div id="chart7">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="bar" height="35" width="100" />
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>$11,533</td>
+                      <td>2%</td>
+                      <td>
+                        <div id="chart4">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark4} type="line" height="35" width="100" />
+                        </div>
+                      </td>
+                      <td>
+                        <div id="chart8">
+                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="bar" height="35" width="100" />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
-
-            <div className="row">
-              <table>
-                <thead>
-                  <th>Total Value</th>
-                  <th>Percentage of Portfolio</th>
-                  <th>Last 10 days</th>
-                  <th>Volume</th>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>$32,554</td>
-                    <td>15%</td>
-                    <td>
-                      <div id="chart1">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type="line" height="35" width="100" />
-                      </div>
-                    </td>
-                    <td>
-                      <div id="chart5">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type="bar" height="35" width="100" />
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>$23,533</td>
-                    <td>7%</td>
-                    <td>
-                      <div id="chart2">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type="line" height="35" width="100" />
-                      </div>
-                    </td>
-                    <td>
-                      <div id="chart6">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type="bar" height="35" width="100" />
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>$54,276</td>
-                    <td>9%</td>
-                    <td>
-                      <div id="chart3">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="line" height="35" width="100" />
-                      </div>
-                    </td>
-                    <td>
-                      <div id="chart7">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="bar" height="35" width="100" />
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>$11,533</td>
-                    <td>2%</td>
-                    <td>
-                      <div id="chart4">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark4} type="line" height="35" width="100" />
-                      </div>
-                    </td>
-                    <td>
-                      <div id="chart8">
-                        <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="bar" height="35" width="100" />
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div id="html-dist">
             </div>
           </div>
         );

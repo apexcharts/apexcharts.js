@@ -26,45 +26,12 @@
     </style>
 </head>
 
-<!---
-<body>
-
-  
-
-  <div id="html">
-    &lt;div id="chart-box">
-      &lt;div id="chart-candlestick">
-        &lt;apexchart type=candlestick height=290 :options="chartOptionsCandlestick" :series="seriesCandle" />
-      &lt;/div>
-      &lt;div id="chart-bar">
-        &lt;apexchart type=bar height=160 :options="chartOptionsBar" :series="seriesBar" />
-      &lt;/div>
-    &lt;/div>
-  </div>
-
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="../../assets/ohlc.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
-
-  <script>
-    new Vue({
-      el: '#chart-box',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        
-      }
-
-    })
-  </script>
-
-</body>
--->
-
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;chart-box&quot;&gt;&#10;            &lt;div id=&quot;chart-candlestick&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsCandlestick} series={this.state.seriesCandle} type=&quot;candlestick&quot; height=&quot;290&quot; /&gt;&#10;            &lt;/div&gt;&#10;            &lt;div id=&quot;chart-bar&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsBar} series={this.state.seriesBar} type=&quot;bar&quot; height=&quot;160&quot; /&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -179,12 +146,16 @@
 
       render() {
         return (
-          <div id="chart-box">
-            <div id="chart-candlestick">
-              <ReactApexChart options={this.state.chartOptionsCandlestick} series={this.state.seriesCandle} type="candlestick" height="290" />
+          <div>
+            <div id="chart-box">
+              <div id="chart-candlestick">
+                <ReactApexChart options={this.state.chartOptionsCandlestick} series={this.state.seriesCandle} type="candlestick" height="290" />
+              </div>
+              <div id="chart-bar">
+                <ReactApexChart options={this.state.chartOptionsBar} series={this.state.seriesBar} type="bar" height="160" />
+              </div>
             </div>
-            <div id="chart-bar">
-              <ReactApexChart options={this.state.chartOptionsBar} series={this.state.seriesBar} type="bar" height="160" />
+            <div id="html-dist">
             </div>
           </div>
         );

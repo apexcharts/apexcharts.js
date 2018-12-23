@@ -35,6 +35,10 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;charts&quot;&gt;&#10;            &lt;div id=&quot;chart1&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsArea} series={this.state.series} type=&quot;line&quot; height=&quot;230&quot; /&gt;&#10;            &lt;/div&gt;&#10;            &lt;div id=&quot;chart2&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsBrush} series={this.state.series} type=&quot;area&quot; height=&quot;130&quot; /&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -139,12 +143,16 @@
     render() {
 
       return (
-        <div id="charts">
-          <div id="chart1">
-            <ReactApexChart options={this.state.chartOptionsArea} series={this.state.series} type="line" height="230" />
+        <div>
+          <div id="charts">
+            <div id="chart1">
+              <ReactApexChart options={this.state.chartOptionsArea} series={this.state.series} type="line" height="230" />
+            </div>
+            <div id="chart2">
+              <ReactApexChart options={this.state.chartOptionsBrush} series={this.state.series} type="area" height="130" />
+            </div>
           </div>
-          <div id="chart2">
-            <ReactApexChart options={this.state.chartOptionsBrush} series={this.state.series} type="area" height="130" />
+          <div id="html-dist">
           </div>
         </div>
       );

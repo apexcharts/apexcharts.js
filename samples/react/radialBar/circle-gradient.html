@@ -43,6 +43,10 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;card&quot;&gt;&#10;            &lt;div id=&quot;chart&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;radialBar&quot; height=&quot;350&quot; /&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -139,9 +143,13 @@
 
       render() {
         return (
-          <div id="card">
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height="350" />
+          <div>
+            <div id="card">
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height="350" />
+              </div>
+            </div>
+            <div id="html-dist">
             </div>
           </div>
         );

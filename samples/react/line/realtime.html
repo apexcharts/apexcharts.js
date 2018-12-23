@@ -21,6 +21,10 @@
 <body>
 <div id="app"></div>
 
+<div id="html">
+        &lt;div id=&quot;chart&quot;&gt;&#10;          &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;line&quot; height=&quot;350&quot; /&gt;&#10;        &lt;/div&gt;
+</div>
+
 <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
@@ -127,17 +131,7 @@
     this.intervals()
   }
 
-  render() {
-
-    return (
-      <div id="chart">
-        <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
-      </div>
-    );
-  }
-
   intervals () {
-
     window.setInterval(() => {
       getNewSeries(lastDate, {
         min: 10,
@@ -158,6 +152,20 @@
       }], false, true)
     }, 60000)
   }
+
+  render() {
+
+    return (
+      <div>
+        <div id="chart">
+          <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
+        </div>
+        <div id="html-dist">
+        </div>
+      </div>
+    );
+  }
+
 }
 
 const domContainer = document.querySelector('#app');

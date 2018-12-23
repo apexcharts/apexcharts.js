@@ -44,6 +44,11 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;div className=&quot;toolbar&quot;&gt;&#10;              &lt;button onClick={()=&gt;this.updateData(&apos;one_month&apos;)} id=&quot;one_month&quot; className={ (this.state.selection===&apos;one_month&apos; ? &apos;active&apos; : &apos;&apos;)}&gt;1M&lt;/button&gt;&#10;              &lt;button onClick={()=&gt;this.updateData(&apos;six_months&apos;)} id=&quot;six_months&quot; className={ (this.state.selection===&apos;six_months&apos; ? &apos;active&apos; : &apos;&apos;)}&gt;6M&lt;/button&gt;&#10;              &lt;button onClick={()=&gt;this.updateData(&apos;one_year&apos;)} id=&quot;one_year&quot; className={ (this.state.selection===&apos;one_year&apos; ? &apos;active&apos; : &apos;&apos;)}&gt;1Y&lt;/button&gt;&#10;              &lt;button onClick={()=&gt;this.updateData(&apos;ytd&apos;)} id=&quot;ytd&quot; className={ (this.state.selection===&apos;ytd&apos; ? &apos;active&apos; : &apos;&apos;)}&gt;YTD&lt;/button&gt;&#10;              &lt;button onClick={()=&gt;this.updateData(&apos;all&apos;)} id=&quot;all&quot; className={ (this.state.selection===&apos;all&apos; ? &apos;active&apos; : &apos;&apos;)}&gt;ALL&lt;/button&gt;&#10;            &lt;/div&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
+  </div>
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -189,18 +194,21 @@
 
       render() {
 
-        
-
         return (
-          <div id="chart">
-            <div className="toolbar">
-              <button onClick={()=>this.updateData('one_month')} id="one_month" className={ (this.state.selection==='one_month' ? 'active' : '')}>1M</button>
-              <button onClick={()=>this.updateData('six_months')} id="six_months" className={ (this.state.selection==='six_months' ? 'active' : '')}>6M</button>
-              <button onClick={()=>this.updateData('one_year')} id="one_year" className={ (this.state.selection==='one_year' ? 'active' : '')}>1Y</button>
-              <button onClick={()=>this.updateData('ytd')} id="ytd" className={ (this.state.selection==='ytd' ? 'active' : '')}>YTD</button>
-              <button onClick={()=>this.updateData('all')} id="all" className={ (this.state.selection==='all' ? 'active' : '')}>ALL</button>
+          <div>
+            <div id="chart">
+              <div className="toolbar">
+                <button onClick={()=>this.updateData('one_month')} id="one_month" className={ (this.state.selection==='one_month' ? 'active' : '')}>1M</button>
+                <button onClick={()=>this.updateData('six_months')} id="six_months" className={ (this.state.selection==='six_months' ? 'active' : '')}>6M</button>
+                <button onClick={()=>this.updateData('one_year')} id="one_year" className={ (this.state.selection==='one_year' ? 'active' : '')}>1Y</button>
+                <button onClick={()=>this.updateData('ytd')} id="ytd" className={ (this.state.selection==='ytd' ? 'active' : '')}>YTD</button>
+                <button onClick={()=>this.updateData('all')} id="all" className={ (this.state.selection==='all' ? 'active' : '')}>ALL</button>
+              </div>
+              <ReactApexChart options={this.state.options} series={this.state.series} type="area" height="350" />
             </div>
-            <ReactApexChart options={this.state.options} series={this.state.series} type="area" height="350" />
+            <div id="html-dist"> 
+
+            </div>
           </div>
         );
       }

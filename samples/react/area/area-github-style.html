@@ -56,6 +56,10 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;wrapper&quot;&gt;&#10;            &lt;div id=&quot;chart-area&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsYears} series={this.state.series} type=&quot;area&quot; height=&quot;160&quot; /&gt;&#10;            &lt;/div&gt;&#10;            &lt;h5 className=&quot;github-style&quot;&gt;&#10;              &lt;img className=&quot;userimg&quot; src=&quot;https://picsum.photos/200/200/?image=1031&quot; data-hovercard-user-id=&quot;634573&quot; className=&quot;avatar float-left mr-2&quot;&#10;                alt=&quot;&quot; width=&quot;38&quot; height=&quot;38&quot; /&gt;&#10;              &lt;div className=&quot;userdetails&quot;&gt;&#10;                &lt;a className=&quot;username&quot;&gt;coder&lt;/a&gt;&#10;                &lt;span className=&quot;cmeta&quot;&gt;&#10;                  &lt;span className=&quot;commits&quot;&gt;&lt;/span&gt; commits&#10;                &lt;/span&gt;&#10;              &lt;/div&gt;&#10;            &lt;/h5&gt;&#10;&#10;            &lt;div id=&quot;chart-area2&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsMonths} series={this.state.series} type=&quot;area&quot; height=&quot;200&quot; /&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -176,23 +180,27 @@
 
       render() {
         return (
-          <div id="wrapper">
-            <div id="chart-area">
-              <ReactApexChart options={this.state.chartOptionsYears} series={this.state.series} type="area" height="160" />
-            </div>
-            <h5 className="github-style">
-              <img className="userimg" src="https://picsum.photos/200/200/?image=1031" data-hovercard-user-id="634573" className="avatar float-left mr-2"
-                alt="" width="38" height="38" />
-              <div className="userdetails">
-                <a className="username">coder</a>
-                <span className="cmeta">
-                  <span className="commits"></span> commits
-                </span>
+          <div>
+            <div id="wrapper">
+              <div id="chart-area">
+                <ReactApexChart options={this.state.chartOptionsYears} series={this.state.series} type="area" height="160" />
               </div>
-            </h5>
+              <h5 className="github-style">
+                <img src="https://picsum.photos/200/200/?image=1031" data-hovercard-user-id="634573" className="userimg avatar float-left mr-2"
+                  alt="" width="38" height="38" />
+                <div className="userdetails">
+                  <a className="username">coder</a>
+                  <span className="cmeta">
+                    <span className="commits"></span> commits
+                  </span>
+                </div>
+              </h5>
 
-            <div id="chart-area2">
-              <ReactApexChart options={this.state.chartOptionsMonths} series={this.state.series} type="area" height="200" />
+              <div id="chart-area2">
+                <ReactApexChart options={this.state.chartOptionsMonths} series={this.state.series} type="area" height="200" />
+              </div>
+            </div>
+            <div id="html-dist">
             </div>
           </div>
         );

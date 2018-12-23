@@ -20,6 +20,12 @@
 
 <body>
   <div id="app"></div>
+  
+  <div id="html">
+    <div id="chart">
+      <ReactApexChart options={this.state.options} series={this.state.series} type="area" height="350" />
+    </div>
+  </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
@@ -84,8 +90,12 @@
 
       render() {
         return (
-          <div id="chart">
-            <ReactApexChart options={this.state.options} series={this.state.series} type="area" height="350" />
+          <div>
+            <div id="chart">
+              <ReactApexChart options={this.state.options} series={this.state.series} type="area" height="350" />
+            </div>
+            <div id="html-dist">
+            </div>
           </div>
         );
       }

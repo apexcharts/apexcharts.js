@@ -26,6 +26,10 @@
 <body>
 <div id="app"></div>
 
+<div id="html">
+        &lt;div id=&quot;wrapper&quot;&gt;&#10;          &lt;div id=&quot;chart-line&quot;&gt;&#10;            &lt;ReactApexChart type=&quot;line&quot; height=&quot;160&quot;  options={this.state.chartOptionsLine1} series={this.state.series1}/&gt;&#10;          &lt;/div&gt;&#10;&#10;          &lt;div id=&quot;chart-line2&quot;&gt;&#10;            &lt;ReactApexChart type=&quot;line&quot; height=&quot;160&quot;  options={this.state.chartOptionsLine2} series={this.state.series2}/&gt;&#10;          &lt;/div&gt;&#10;&#10;          &lt;div id=&quot;chart-area&quot;&gt;&#10;            &lt;ReactApexChart type=&quot;area&quot; height=&quot;160&quot;  options={this.state.chartOptionsArea} series={this.state.series3}/&gt;&#10;          &lt;/div&gt;&#10;        &lt;/div&gt;
+</div>
+
 <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
@@ -151,17 +155,21 @@
     render() {
 
       return (
-        <div id="wrapper">
-          <div id="chart-line">
-            <ReactApexChart type="line" height="160"  options={this.state.chartOptionsLine1} series={this.state.series1}/>
-          </div>
+        <div>
+          <div id="wrapper">
+            <div id="chart-line">
+              <ReactApexChart type="line" height="160"  options={this.state.chartOptionsLine1} series={this.state.series1}/>
+            </div>
 
-          <div id="chart-line2">
-            <ReactApexChart type="line" height="160"  options={this.state.chartOptionsLine2} series={this.state.series2}/>
-          </div>
+            <div id="chart-line2">
+              <ReactApexChart type="line" height="160"  options={this.state.chartOptionsLine2} series={this.state.series2}/>
+            </div>
 
-          <div id="chart-area">
-            <ReactApexChart type="area" height="160"  options={this.state.chartOptionsArea} series={this.state.series3}/>
+            <div id="chart-area">
+              <ReactApexChart type="area" height="160"  options={this.state.chartOptionsArea} series={this.state.series3}/>
+            </div>
+          </div>
+          <div id="html-dist">
           </div>
         </div>
       );
