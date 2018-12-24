@@ -180,14 +180,22 @@ class ApexCharts {
     let gl = this.w.globals
 
     gl.noData = false
+    gl.animationEnded = false
 
     this.responsive.checkResponsiveConfig(opts)
 
     if (this.el === null) {
+      gl.animationEnded = true
       return null
     }
 
     this.core.setupElements()
+
+    if (gl.svgWidth === 0) {
+      // if the element is hidden, skip drawing
+      gl.animationEnded = true
+      return null
+    }
 
     this.coreUtils.checkComboSeries()
 
@@ -919,7 +927,7 @@ class ApexCharts {
   }
 
   parentResizeCallback () {
-    if (this.w.config.chart.updateOnElementResize) {
+    if (this.w.globals.animationEnded) {
       this.windowResize()
     }
   }

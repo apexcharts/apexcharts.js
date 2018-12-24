@@ -255,6 +255,7 @@ class Core {
         if (elDim[0].width === 0) {
           elDim = Utils.getDimensions(this.el.parentNode)
         }
+
         gl.svgWidth =
           (elDim[0] * parseInt(cnf.chart.width) / 100)
       }

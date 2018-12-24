@@ -193,12 +193,13 @@ class Animations {
     el.plot(pathFrom).animate(1, w.globals.easing, delay).plot(pathFrom).animate(speed, w.globals.easing, delay).plot(pathTo).afterAll(() => {
       // a flag to indicate that the original mount function can return true now as animation finished here
 
-      if (typeof w.config.chart.events.animationEnd === 'function') {
-        if (Utils.isNumber(j)) {
-          if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
-            w.config.chart.events.animationEnd(this.ctx, w)
-          }
-        } else if (w.globals.shouldAnimate) {
+      if (Utils.isNumber(j)) {
+        if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
+          w.globals.animationEnded = true
+        }
+      } else if (w.globals.shouldAnimate) {
+        w.globals.animationEnded = true
+        if (typeof w.config.chart.events.animationEnd === 'function') {
           w.config.chart.events.animationEnd(this.ctx, w)
         }
       }
