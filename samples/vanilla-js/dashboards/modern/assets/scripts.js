@@ -470,7 +470,8 @@ var optionDonut = {
   series: [21, 23, 19, 14, 6],
   labels: ['Clothing', 'Food Products', 'Electronics', 'Kitchen Utility', 'Gardening'],
   legend: {
-    position: 'left'
+    position: 'left',
+    offsetY: 80
   }
 }
 
