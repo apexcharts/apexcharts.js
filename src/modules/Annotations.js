@@ -57,6 +57,8 @@ class Annotations {
 
     let x1 = (anno.x - min) / (range / w.globals.gridWidth)
 
+    if (x1 < 0 || x1 > w.globals.gridWidth) return
+
     let line = this.graphics.drawLine(
       x1 + anno.offsetX,
       0 + anno.offsetY,
@@ -209,6 +211,8 @@ class Annotations {
       pointY = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
     }
 
+    if (x < 0 || x > w.globals.gridWidth) return
+
     let optsPoints = {
       pSize: anno.marker.size,
       pWidth: anno.marker.strokeWidth,
@@ -328,10 +332,12 @@ class Annotations {
     const add = (anno, i, type) => {
       let annoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`)
 
-      const parent = annoLabel.parentNode
-      const elRect = this.addBackgroundToAnno(annoLabel, anno)
+      if (annoLabel) {
+        const parent = annoLabel.parentNode
+        const elRect = this.addBackgroundToAnno(annoLabel, anno)
 
-      parent.insertBefore(elRect.node, annoLabel)
+        parent.insertBefore(elRect.node, annoLabel)
+      }
     }
 
     w.config.annotations.xaxis.map((anno, i) => {
