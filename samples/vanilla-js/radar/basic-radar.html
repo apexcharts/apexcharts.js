@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Basic Column - Grouped</title>
+
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+
+    <script src="../../../dist/apexcharts.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                height: 350,
+                type: 'radar',
+            },
+            series: [{
+                name: 'Net Profit',
+                data: [44, 55, 57, 56, 61]
+            }, {
+                name: 'Revenue',
+                data: [76, 85, 101, 98, 87]
+            }],
+            labels: ['Feb', 'Mar', 'Apr', 'May', 'Jun']
+        }
+
+        var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+
+        chart.render();
+       
+
+    </script>
+</body>
+
+</html>
