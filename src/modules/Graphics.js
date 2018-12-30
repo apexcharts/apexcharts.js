@@ -178,7 +178,8 @@ class Graphics {
     dataChangeSpeed,
     hideStrokesInChange = false,
     className,
-    id
+    id,
+    shouldClipToGrid = true
   }) {
     let w = this.w
     const filters = new Filters(this.ctx)
@@ -218,9 +219,12 @@ class Graphics {
 
     el.attr('id', `${id}-${i}`)
     el.attr('index', realIndex)
-    el.attr({
-      'clip-path': `url(#gridRectMask${w.globals.cuid})`
-    })
+
+    if (shouldClipToGrid) {
+      el.attr({
+        'clip-path': `url(#gridRectMask${w.globals.cuid})`
+      })
+    }
 
     // const defaultFilter = el.filterer
 

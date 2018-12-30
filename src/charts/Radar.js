@@ -1,4 +1,5 @@
 import Graphics from '../modules/Graphics'
+import Markers from '../modules/Markers'
 
 /**
  * ApexCharts Radar Class for Spider/Radar Charts.
@@ -28,7 +29,8 @@ class Radar {
     this.centerY = this.defaultSize / 2
     this.centerX = w.globals.gridWidth / 2
 
-    this.maxValue = 100
+    this.maxValue = this.w.globals.maxY
+
     this.size =
       this.defaultSize / 2.05 -
       w.config.stroke.width -
@@ -47,41 +49,20 @@ class Radar {
 
   draw (series) {
     let w = this.w
+    const graphics = new Graphics(this.ctx)
 
     this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
     this.disAngle = Math.PI * 2 / this.dataPointsLen
 
-    series.forEach((s, i) => {
-      this.dataRadiusOfPercent[i] = []
-      this.dataRadius[i] = []
-      this.angleArr[i] = []
-      s.forEach((dv, j) => {
-        this.dataRadiusOfPercent[i][j] = dv / this.maxValue
-        this.dataRadius[i][j] = this.dataRadiusOfPercent[i][j] * this.size
-        this.angleArr[i][j] = j * this.disAngle
-      })
-
-      const dataPointsPos = this.getDataPointsPos(this.dataRadius[i], this.angleArr[i])
-      this.createPaths(dataPointsPos)
-    })
-
-    const graphics = new Graphics(this.ctx)
-
-    let ret = graphics.group({
-      class: 'apexcharts-pie'
-    })
-
-    // el to which series will be drawn
-    let elSeries = graphics.group()
-
     let scaleSize = w.config.plotOptions.radar.customScale
+
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
     let translateX = halfW - w.globals.gridWidth / 2 * scaleSize
     let translateY = halfH - w.globals.gridHeight / 2 * scaleSize
 
-    elSeries.attr({
-      'transform': `translate(${translateX}, ${translateY - 5}) scale(${scaleSize})`
+    let ret = graphics.group({
+      class: 'apexcharts-radar'
     })
 
     ret.attr({
@@ -89,108 +70,104 @@ class Radar {
       'data:innerTranslateY': translateY - 25
     })
 
-    ret.add(elSeries)
+    let dataPointsPos = []
+    let elPointsMain = null
+
+    series.forEach((s, i) => {
+      // el to which series will be drawn
+      let elSeries = graphics.group()
+
+      elSeries.attr({
+        'transform': `translate(${translateX}, ${translateY - 5}) scale(${scaleSize})`,
+        'rel': i + 1,
+        'data:realIndex': i
+      })
+
+      this.dataRadiusOfPercent[i] = []
+      this.dataRadius[i] = []
+      this.angleArr[i] = []
+
+      s.forEach((dv, j) => {
+        this.dataRadiusOfPercent[i][j] = dv / this.maxValue
+        this.dataRadius[i][j] = this.dataRadiusOfPercent[i][j] * this.size
+        this.angleArr[i][j] = j * this.disAngle
+      })
+
+      dataPointsPos = this.getDataPointsPos(this.dataRadius[i], this.angleArr[i])
+      const paths = this.createPaths(dataPointsPos)
+
+      for (let p = 0; p < paths.linePaths.length; p++) {
+        let renderedPath = graphics.renderPaths({
+          i,
+          realIndex: i,
+          animationDelay: i,
+          initialSpeed: w.config.chart.animations.speed,
+          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+          className: `apexcharts-radar`,
+          id: `apexcharts-radar`,
+          pathFrom: paths.linePaths[p],
+          pathTo: paths.linePaths[p],
+          stroke: w.globals.stroke.colors[i],
+          strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width,
+          strokeLineCap: w.config.stroke.lineCap,
+          fill: 'none',
+          shouldClipToGrid: false
+        })
+
+        elSeries.add(renderedPath)
+      }
+
+      // points
+      elPointsMain = graphics.group({
+        class: 'apexcharts-series-markers-wrap'
+      })
+
+      s.forEach((sj, j) => {
+        let markers = new Markers(this.ctx)
+
+        let elPointsWrap = markers.plotChartMarkers(dataPointsPos[i], i, j)
+
+        if (elPointsWrap !== null) {
+          elPointsMain.add(elPointsWrap)
+        }
+
+        elSeries.add(elPointsMain)
+      })
+
+      ret.add(elSeries)
+    })
 
     return ret
   }
 
-  // drawRadarBackground (options) {
-  //   var layer = options.layer ? options.layer : 5,
-  //     n = options.n ? options.n : 5,
-  //     r = options.r ? options.r : 50,
-  //     origin = options.origin ? options.origin : [0, 0],
-  //     evenStrokeStyle = options.evenStrokeStyle ? options.evenStrokeStyle : '#ccc',
-  //     oddStrokeStyle = options.oddStrokeStyle ? options.oddStrokeStyle : '#ccc',
-  //     evenFillStyle = options.evenFillStyle ? options.evenFillStyle : '#eee',
-  //     oddFillStyle = options.oddFillStyle ? options.oddFillStyle : 'transparent'
-  //   var layerRadiusArray = []
-  //   var layerDis = r / layer
-  //   for (var i = 0; i < layer; i++) {
-  //     layerRadiusArray[i] = layerDis * (i + 1)
-  //   }
-  //   layerRadiusArray = layerRadiusArray.reverse()
-
-  //   for (let i = 0; i < layer; i++) {
-  //     if (i % 2 != 0) {
-  //       drawPolygon({
-  //         n: n,
-  //         r: layerRadiusArray[i],
-  //         origin: origin,
-  //         fillStyle: evenFillStyle,
-  //         strokeStyle: evenStrokeStyle,
-  //         lineWidth: 1
-  //       })
-  //     } else {
-  //       drawPolygon({
-  //         n: n,
-  //         r: layerRadiusArray[i],
-  //         origin: origin,
-  //         fillStyle: oddFillStyle,
-  //         strokeStyle: oddStrokeStyle,
-  //         lineWidth: 1
-  //       })
-  //     }
-  //   }
-
-  //   // 绘制放射性连线
-  //   context.save()
-  //   context.beginPath()
-  //   var polygonOuterPointsPosArr = getPolygonPos(n, r, origin)
-  //   for (let i = 0; i < n; i++) {
-  //     context.moveTo(origin[0], origin[1])
-  //     context.lineTo(polygonOuterPointsPosArr[i].x, polygonOuterPointsPosArr[i].y)
-  //   }
-  //   context.strokeStyle = evenStrokeStyle
-  //   context.lineWidth = 1
-  //   context.stroke()
-  //   context.restore()
-  // }
-
   createPaths (pos) {
-    // let w = this.w
     let graphics = new Graphics(this.ctx)
+
+    let linePaths = []
+    let areaPaths = []
 
     if (pos.length) {
       let linePath = graphics.move(pos[0].x, pos[0].y)
+      let areaPath = graphics.move(pos[0].x, pos[0].y)
 
-      pos.forEach((p) => {
+      pos.forEach((p, i) => {
         linePath += graphics.line(p.x, p.y)
+        areaPath += graphics.line(p.x, p.y)
+        if (i === pos.length - 1) {
+          linePath += 'Z'
+          areaPath += 'Z'
+        }
+
+        linePaths.push(linePath)
+        areaPaths.push(areaPath)
       })
-      console.log(linePath)
+
+      return {
+        linePaths,
+        areaPaths
+      }
     }
   }
-
-  // drawPolygon (options) {
-  //   var n = options.n ? options.n : 5,
-  //     r = options.r ? options.r : 30,
-  //     origin = options.origin ? options.origin : [0, 0],
-  //     fillStyle = options.fillStyle ? options.fillStyle : 'transparent',
-  //     strokeStyle = options.strokeStyle ? options.strokeStyle : '#000',
-  //     lineWidth = options.lineWidth ? options.lineWidth * ratio : 1 * ratio,
-  //     lineCap = options.lineCap ? options.lineCap : 'butt'
-  //   context.save()
-  //   context.beginPath()
-  //   var angle = Math.PI * 2 / n
-  //   context.translate(origin[0], origin[1])
-  //   context.moveTo(0, -r)
-  //   for (let i = 0; i < n; i++) {
-  //     context.rotate(angle)
-  //     context.lineTo(0, -r)
-  //   }
-  //   context.closePath()
-
-  //   if (options.strokeStyle) {
-  //     context.strokeStyle = strokeStyle
-  //     context.lineWidth = lineWidth
-  //     context.lineCap = lineCap
-  //     context.stroke()
-  //   }
-  //   if (options.fillStyle) {
-  //     context.fillStyle = fillStyle
-  //     context.fill()
-  //   }
-  //   context.restore()
-  // }
 
   getDataPointsPos (dataRadiusArr, angleArr) {
     const w = this.w
@@ -214,7 +191,6 @@ class Radar {
       curPos.x = this.size * Math.sin(i * angle) + origin[0]
       curPos.y = -this.size * Math.cos(i * angle) + origin[1]
       dotsArray.push(curPos)
-      // console.log(curPos.x + "; " + curPos.y);
     }
     return dotsArray
   }
