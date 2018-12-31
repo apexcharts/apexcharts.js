@@ -106,26 +106,34 @@ class DataLabels {
           }
         }
 
-        this.plotDataLabelsText(x, y, text, i, dataPointIndex, elDataLabelsWrap, w.config.dataLabels)
+        this.plotDataLabelsText({ x, y, text, i, j: dataPointIndex, parent: elDataLabelsWrap, correctLabels: true, dataLabelsConfig: w.config.dataLabels })
       }
     }
 
     return elDataLabelsWrap
   }
 
-  plotDataLabelsText (x, y, text, i, j, elToAppendTo, dataLabelsConfig, alwaysDrawDataLabel = false) {
+  plotDataLabelsText (opts) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
+    let { x, y, i, j, text, parent, dataLabelsConfig, alwaysDrawDataLabel, correctLabels } = opts
 
-    let correctedLabels = this.dataLabelsCorrection(
-      x,
-      y,
-      text,
-      i,
-      j,
-      alwaysDrawDataLabel,
-      parseInt(dataLabelsConfig.style.fontSize)
-    )
+    let correctedLabels = {
+      x: x,
+      y: y
+    }
+
+    if (correctLabels) {
+      correctedLabels = this.dataLabelsCorrection(
+        x,
+        y,
+        text,
+        i,
+        j,
+        alwaysDrawDataLabel,
+        parseInt(dataLabelsConfig.style.fontSize)
+      )
+    }
 
     // when zoomed, we don't need to correct labels offsets,
     // but if normally, labels get cropped, correct them
@@ -160,7 +168,7 @@ class DataLabels {
         filters.dropShadow(dataLabelText, textShadow)
       }
 
-      elToAppendTo.add(dataLabelText)
+      parent.add(dataLabelText)
 
       if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
         w.globals.lastDrawnDataLabelsIndexes[i] = []

@@ -58,16 +58,14 @@ class Radar {
 
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
-    let translateX = halfW - w.globals.gridWidth / 2 * scaleSize
-    let translateY = halfH - w.globals.gridHeight / 2 * scaleSize
+    let translateX = halfW * scaleSize
+    let translateY = halfH * scaleSize
 
     let ret = graphics.group({
-      class: 'apexcharts-radar'
-    })
-
-    ret.attr({
+      class: 'apexcharts-radar',
       'data:innerTranslateX': translateX,
-      'data:innerTranslateY': translateY - 25
+      'data:innerTranslateY': translateY - 25,
+      transform: `translate(${translateX || 0}, ${translateY || 0})`
     })
 
     let dataPointsPos = []
@@ -75,10 +73,8 @@ class Radar {
 
     series.forEach((s, i) => {
       // el to which series will be drawn
-      let elSeries = graphics.group()
-
-      elSeries.attr({
-        'transform': `translate(${translateX}, ${translateY - 5}) scale(${scaleSize})`,
+      let elSeries = graphics.group().attr({
+        class: `apexcharts-series apexcharts-radar-series ${w.globals.seriesNames[i].toString().replace(/ /g, '-')}`,
         'rel': i + 1,
         'data:realIndex': i
       })
@@ -111,7 +107,8 @@ class Radar {
           strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width,
           strokeLineCap: w.config.stroke.lineCap,
           fill: 'none',
-          shouldClipToGrid: false
+          shouldClipToGrid: false,
+          bindEventsOnPaths: false
         })
 
         elSeries.add(renderedPath)
@@ -125,11 +122,22 @@ class Radar {
       s.forEach((sj, j) => {
         let markers = new Markers(this.ctx)
 
-        let elPointsWrap = markers.plotChartMarkers(dataPointsPos[i], i, j)
+        let opts = markers.getMarkerConfig('apexcharts-marker', i)
+        let point = graphics.drawMarker(
+          dataPointsPos[j].x,
+          dataPointsPos[j].y,
+          opts
+        )
 
-        if (elPointsWrap !== null) {
-          elPointsMain.add(elPointsWrap)
+        let elPointsWrap = graphics.group({
+          class: 'apexcharts-series-markers'
+        })
+
+        if (elPointsWrap) {
+          elPointsWrap.add(point)
         }
+
+        elPointsMain.add(elPointsWrap)
 
         elSeries.add(elPointsMain)
       })
@@ -138,6 +146,34 @@ class Radar {
     })
 
     return ret
+  }
+
+  drawText (parent) {
+    const w = this.w
+
+    const dataLabelsConfig = w.config.dataLabels
+    const graphics = new Graphics(this.ctx)
+
+    let polygonPos = []
+
+    w.globals.labels.forEach((label, i) => {
+      // let text = dataLabelsConfig.formatter(label)
+
+      // let elText = graphics.drawText({
+      //   x: x + dataLabelsConfig.offsetX,
+      //   y: y + dataLabelsConfig.offsetY,
+      //   text: text,
+      //   textAnchor: textAnchor,
+      //   fontSize: dataLabelsConfig.style.fontSize,
+      //   fontFamily: dataLabelsConfig.style.fontFamily,
+      //   foreColor: w.globals.dataLabels.style.colors[i],
+      //   cssClass: 'apexcharts-datalabel'
+      // })
+
+      let text = formatter(label, { seriesIndex: -1, dataPointIndex: i, w })
+
+      dataLabels.plotDataLabelsText({x: dataLabelsX, y: dataLabelsY, text, i: i, j: i, parent: elDataLabelsWrap, dataLabelsConfig, correctLabels: false})
+    })
   }
 
   createPaths (pos) {
@@ -183,13 +219,13 @@ class Radar {
     return dataPointsPosArray
   }
 
-  getPolygonPos (origin) {
+  getPolygonPos () {
     var dotsArray = []
     var angle = Math.PI * 2 / this.dataPointsLen
     for (let i = 0; i < this.dataPointsLen; i++) {
       var curPos = {}
-      curPos.x = this.size * Math.sin(i * angle) + origin[0]
-      curPos.y = -this.size * Math.cos(i * angle) + origin[1]
+      curPos.x = this.size * Math.sin(i * angle)
+      curPos.y = -this.size * Math.cos(i * angle)
       dotsArray.push(curPos)
     }
     return dotsArray

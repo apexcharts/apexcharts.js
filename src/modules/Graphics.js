@@ -159,7 +159,6 @@ class Graphics {
    *  fill = it can be gradient, single color, pattern or image
    *  animationDelay = how much to delay when starting animation (in milliseconds)
    *  dataChangeSpeed = for dynamic animations, when data changes
-   *  hideStrokesInChange = for certain charts, we hide strokes during anim
    *  className = class attribute to add
    * @return {object} svg.js path object
    **/
@@ -176,10 +175,10 @@ class Graphics {
     animationDelay,
     initialSpeed,
     dataChangeSpeed,
-    hideStrokesInChange = false,
     className,
     id,
-    shouldClipToGrid = true
+    shouldClipToGrid = true,
+    bindEventsOnPaths = true
   }) {
     let w = this.w
     const filters = new Filters(this.ctx)
@@ -239,9 +238,11 @@ class Graphics {
       }
     }
 
-    el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el))
-    el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el))
-    el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el))
+    if (bindEventsOnPaths) {
+      el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el))
+      el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el))
+      el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el))
+    }
 
     el.attr({
       pathTo,
