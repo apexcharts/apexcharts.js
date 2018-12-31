@@ -174,7 +174,7 @@ class ApexCharts {
     }
   }
 
-  create (ser, opts = {}) {
+  create (ser, opts) {
     let w = this.w
     this.initModules()
     let gl = this.w.globals
