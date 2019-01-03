@@ -446,6 +446,24 @@ class Defaults {
     }
   }
 
+  radar () {
+    return {
+      dataLabels: {
+        enabled: true
+      },
+      stroke: {
+        width: 3
+      },
+      markers: {
+        size: 5
+      },
+      tooltip: {
+        shared: false,
+        intersect: true
+      }
+    }
+  }
+
   radialBar () {
     return {
       chart: {

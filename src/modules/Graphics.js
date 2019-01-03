@@ -159,7 +159,6 @@ class Graphics {
    *  fill = it can be gradient, single color, pattern or image
    *  animationDelay = how much to delay when starting animation (in milliseconds)
    *  dataChangeSpeed = for dynamic animations, when data changes
-   *  hideStrokesInChange = for certain charts, we hide strokes during anim
    *  className = class attribute to add
    * @return {object} svg.js path object
    **/
@@ -176,9 +175,10 @@ class Graphics {
     animationDelay,
     initialSpeed,
     dataChangeSpeed,
-    hideStrokesInChange = false,
     className,
-    id
+    id,
+    shouldClipToGrid = true,
+    bindEventsOnPaths = true
   }) {
     let w = this.w
     const filters = new Filters(this.ctx)
@@ -218,9 +218,12 @@ class Graphics {
 
     el.attr('id', `${id}-${i}`)
     el.attr('index', realIndex)
-    el.attr({
-      'clip-path': `url(#gridRectMask${w.globals.cuid})`
-    })
+
+    if (shouldClipToGrid) {
+      el.attr({
+        'clip-path': `url(#gridRectMask${w.globals.cuid})`
+      })
+    }
 
     // const defaultFilter = el.filterer
 
@@ -235,9 +238,11 @@ class Graphics {
       }
     }
 
-    el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el))
-    el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el))
-    el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el))
+    if (bindEventsOnPaths) {
+      el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el))
+      el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el))
+      el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el))
+    }
 
     el.attr({
       pathTo,
@@ -549,7 +554,7 @@ class Graphics {
       if (!w.config.states.active.allowMultipleDataPointsSelection && w.globals.selectedDataPoints.length > 0) {
         w.globals.selectedDataPoints = []
         const elPaths = w.globals.dom.Paper.select('.apexcharts-series path').members
-        const elCircles = w.globals.dom.Paper.select('.apexcharts-series circle').members
+        const elCircles = w.globals.dom.Paper.select('.apexcharts-series circle, .apexcharts-series rect').members
 
         for (const elPath of elPaths) {
           elPath.node.setAttribute('selected', 'false')

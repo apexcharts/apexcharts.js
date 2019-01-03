@@ -70,7 +70,7 @@ class Grid {
 
     let elgrid = null
 
-    if (gl.axisCharts) {
+    if (gl.axisCharts && w.config.chart.type !== 'radar') {
       if (w.config.grid.show) {
         // grid is drawn after xaxis and yaxis are drawn
         elgrid = this.renderGrid()

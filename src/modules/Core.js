@@ -6,6 +6,7 @@ import Crosshairs from './Crosshairs'
 import DateTime from './../utils/DateTime'
 import HeatMap from '../charts/HeatMap'
 import Pie from '../charts/Pie'
+import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
 import Line from '../charts/Line'
 import Graphics from './Graphics'
@@ -49,6 +50,7 @@ class Core {
       'area',
       'bar',
       'candlestick',
+      'radar',
       'scatter',
       'bubble',
       'heatmap'
@@ -166,6 +168,7 @@ class Core {
     let candlestick = new CandleStick(this.ctx, xyRatios)
     let pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
+    let radar = new Radar(this.ctx)
     let elGraph = []
 
     if (gl.comboCharts) {
@@ -230,6 +233,9 @@ class Core {
           break
         case 'radialBar':
           elGraph = radialBar.draw(gl.series)
+          break
+        case 'radar':
+          elGraph = radar.draw(gl.series)
           break
         default:
           elGraph = line.draw(gl.series)
@@ -771,7 +777,7 @@ class Core {
     let xAxis = new XAxis(this.ctx)
     let yAxis = new YAxis(this.ctx)
 
-    if (gl.axisCharts) {
+    if (gl.axisCharts && type !== 'radar') {
       let elXaxis, elYaxis
 
       if (type === 'bar' && cnf.plotOptions.bar.horizontal) {

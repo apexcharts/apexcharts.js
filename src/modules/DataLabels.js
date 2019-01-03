@@ -106,26 +106,35 @@ class DataLabels {
           }
         }
 
-        this.plotDataLabelsText(x, y, text, i, dataPointIndex, elDataLabelsWrap, w.config.dataLabels)
+        this.plotDataLabelsText({ x, y, text, i, j: dataPointIndex, parent: elDataLabelsWrap, offsetCorrection: true, dataLabelsConfig: w.config.dataLabels })
       }
     }
 
     return elDataLabelsWrap
   }
 
-  plotDataLabelsText (x, y, text, i, j, elToAppendTo, dataLabelsConfig, alwaysDrawDataLabel = false) {
+  plotDataLabelsText (opts) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
+    let { x, y, i, j, text, textAnchor, parent, dataLabelsConfig, alwaysDrawDataLabel, offsetCorrection } = opts
 
-    let correctedLabels = this.dataLabelsCorrection(
-      x,
-      y,
-      text,
-      i,
-      j,
-      alwaysDrawDataLabel,
-      parseInt(dataLabelsConfig.style.fontSize)
-    )
+    let correctedLabels = {
+      x: x,
+      y: y,
+      drawnextLabel: true
+    }
+
+    if (offsetCorrection) {
+      correctedLabels = this.dataLabelsCorrection(
+        x,
+        y,
+        text,
+        i,
+        j,
+        alwaysDrawDataLabel,
+        parseInt(dataLabelsConfig.style.fontSize)
+      )
+    }
 
     // when zoomed, we don't need to correct labels offsets,
     // but if normally, labels get cropped, correct them
@@ -141,7 +150,7 @@ class DataLabels {
         x: x,
         y: y,
         foreColor: w.globals.dataLabels.style.colors[i],
-        textAnchor: dataLabelsConfig.textAnchor,
+        textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text: text,
         fontSize: dataLabelsConfig.style.fontSize,
         fontFamily: dataLabelsConfig.style.fontFamily
@@ -150,9 +159,14 @@ class DataLabels {
       dataLabelText.attr({
         class: 'apexcharts-datalabel',
         cx: x,
-        cy: y,
-        'clip-path': `url(#gridRectMask${w.globals.cuid})`
+        cy: y
       })
+
+      if (offsetCorrection) {
+        dataLabelText.attr({
+          'clip-path': `url(#gridRectMask${w.globals.cuid})`
+        })
+      }
 
       if (dataLabelsConfig.dropShadow.enabled) {
         const textShadow = dataLabelsConfig.dropShadow
@@ -160,7 +174,7 @@ class DataLabels {
         filters.dropShadow(dataLabelText, textShadow)
       }
 
-      elToAppendTo.add(dataLabelText)
+      parent.add(dataLabelText)
 
       if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
         w.globals.lastDrawnDataLabelsIndexes[i] = []
