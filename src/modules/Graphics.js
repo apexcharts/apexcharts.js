@@ -554,7 +554,7 @@ class Graphics {
       if (!w.config.states.active.allowMultipleDataPointsSelection && w.globals.selectedDataPoints.length > 0) {
         w.globals.selectedDataPoints = []
         const elPaths = w.globals.dom.Paper.select('.apexcharts-series path').members
-        const elCircles = w.globals.dom.Paper.select('.apexcharts-series circle').members
+        const elCircles = w.globals.dom.Paper.select('.apexcharts-series circle, .apexcharts-series rect').members
 
         for (const elPath of elPaths) {
           elPath.node.setAttribute('selected', 'false')

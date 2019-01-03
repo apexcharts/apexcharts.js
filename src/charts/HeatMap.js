@@ -95,12 +95,17 @@ class HeatMap {
         rect.attr({
           fill: color,
           i,
+          'index': i,
           j,
           val: series[i][j],
           'stroke-width': this.strokeWidth,
           stroke: w.globals.stroke.colors[0],
           color: color
         })
+
+        rect.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this, rect))
+        rect.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, rect))
+        rect.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, rect))
 
         if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
           let speed = 1
@@ -227,8 +232,20 @@ class HeatMap {
       let dataLabelsX = x + rectWidth / 2 + offX
       let dataLabelsY = y + rectHeight / 2 + parseInt(dataLabelsConfig.style.fontSize) / 3 + offY
 
-      let text = formatter(w.globals.series[i][j], { seriesIndex: i, dataPointIndex: j, w })
-      dataLabels.plotDataLabelsText({ x: dataLabelsX, y: dataLabelsY, text, i, j, parent: elDataLabelsWrap, dataLabelsConfig })
+      let text = formatter(w.globals.series[i][j], {
+        seriesIndex: i,
+        dataPointIndex: j,
+        w
+      })
+      dataLabels.plotDataLabelsText({
+        x: dataLabelsX,
+        y: dataLabelsY,
+        text,
+        i,
+        j,
+        parent: elDataLabelsWrap,
+        dataLabelsConfig
+      })
     }
 
     return elDataLabelsWrap

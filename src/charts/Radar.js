@@ -1,5 +1,7 @@
+import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Markers from '../modules/Markers'
+import DataLabels from '../modules/DataLabels'
 
 /**
  * ApexCharts Radar Class for Spider/Radar Charts.
@@ -29,10 +31,10 @@ class Radar {
     this.centerY = this.defaultSize / 2
     this.centerX = w.globals.gridWidth / 2
 
-    this.maxValue = this.w.globals.maxY
+    this.maxValue = this.w.globals.maxY * 1.25
 
     this.size =
-      this.defaultSize / 2.05 -
+      this.defaultSize / 2.5 -
       w.config.stroke.width -
       w.config.chart.dropShadow.blur
 
@@ -50,16 +52,15 @@ class Radar {
   draw (series) {
     let w = this.w
     const graphics = new Graphics(this.ctx)
+    const fill = new Fill(this.ctx)
 
     this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
     this.disAngle = Math.PI * 2 / this.dataPointsLen
 
-    let scaleSize = w.config.plotOptions.radar.customScale
-
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
-    let translateX = halfW * scaleSize
-    let translateY = halfH * scaleSize
+    let translateX = halfW
+    let translateY = halfH
 
     let ret = graphics.group({
       class: 'apexcharts-radar',
@@ -70,6 +71,11 @@ class Radar {
 
     let dataPointsPos = []
     let elPointsMain = null
+
+    let dataRadiusOfPercentOrigin = 1 / this.maxValue
+    let dataRadiusOrigin = dataRadiusOfPercentOrigin * this.size
+    let angleArrOrigin = this.disAngle
+    let centerPos = this.getDataPointsPos([dataRadiusOrigin], [angleArrOrigin])[0]
 
     series.forEach((s, i) => {
       // el to which series will be drawn
@@ -90,34 +96,54 @@ class Radar {
       })
 
       dataPointsPos = this.getDataPointsPos(this.dataRadius[i], this.angleArr[i])
-      const paths = this.createPaths(dataPointsPos)
+      const paths = this.createPaths(dataPointsPos, centerPos)
 
-      for (let p = 0; p < paths.linePaths.length; p++) {
-        let renderedPath = graphics.renderPaths({
-          i,
-          realIndex: i,
-          animationDelay: i,
-          initialSpeed: w.config.chart.animations.speed,
-          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-          className: `apexcharts-radar`,
-          id: `apexcharts-radar`,
-          pathFrom: paths.linePaths[p],
-          pathTo: paths.linePaths[p],
-          stroke: w.globals.stroke.colors[i],
+      const defaultRenderedPathOptions = {
+        i,
+        realIndex: i,
+        animationDelay: i,
+        initialSpeed: w.config.chart.animations.speed,
+        dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+        className: `apexcharts-radar`,
+        id: `apexcharts-radar`,
+        shouldClipToGrid: false,
+        bindEventsOnPaths: false,
+        stroke: w.globals.stroke.colors[i],
+        strokeLineCap: w.config.stroke.lineCap
+      }
+
+      for (let p = 0; p < paths.linePathsTo.length; p++) {
+        let renderedLinePath = graphics.renderPaths({
+          ...defaultRenderedPathOptions,
+          pathFrom: paths.linePathsFrom[p],
+          pathTo: paths.linePathsTo[p],
           strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width,
-          strokeLineCap: w.config.stroke.lineCap,
-          fill: 'none',
-          shouldClipToGrid: false,
-          bindEventsOnPaths: false
+          fill: 'none'
         })
 
-        elSeries.add(renderedPath)
+        elSeries.add(renderedLinePath)
+
+        let pathFill = fill.fillPath(elSeries, {
+          seriesNumber: i
+        })
+
+        let renderedAreaPath = graphics.renderPaths({
+          ...defaultRenderedPathOptions,
+          pathFrom: paths.areaPathsFrom[p],
+          pathTo: paths.areaPathsTo[p],
+          strokeWidth: 0,
+          fill: pathFill
+        })
+
+        elSeries.add(renderedAreaPath)
       }
 
       // points
       elPointsMain = graphics.group({
-        class: 'apexcharts-series-markers-wrap'
+        class: 'apexcharts-series-markers-wrap hidden'
       })
+
+      w.globals.delayedElements.push({el: elPointsMain.node, index: i})
 
       s.forEach((sj, j) => {
         let markers = new Markers(this.ctx)
@@ -145,63 +171,107 @@ class Radar {
       ret.add(elSeries)
     })
 
+    const dataLabels = this.drawLabels()
+    ret.add(dataLabels)
+
     return ret
   }
 
-  drawText (parent) {
+  drawLabels () {
     const w = this.w
-
-    const dataLabelsConfig = w.config.dataLabels
     const graphics = new Graphics(this.ctx)
 
-    let polygonPos = []
+    let limit = 10
+
+    let offsetX = 0
+    let offsetY = 0
+
+    let textAnchor = 'start'
+
+    const dataLabelsConfig = w.config.dataLabels
+    let elDataLabelsWrap = graphics.group({
+      class: 'apexcharts-datalabels'
+    })
+
+    let polygonPos = this.getPolygonPos()
 
     w.globals.labels.forEach((label, i) => {
-      // let text = dataLabelsConfig.formatter(label)
+      let formatter = dataLabelsConfig.formatter
+      let dataLabels = new DataLabels(this.ctx)
 
-      // let elText = graphics.drawText({
-      //   x: x + dataLabelsConfig.offsetX,
-      //   y: y + dataLabelsConfig.offsetY,
-      //   text: text,
-      //   textAnchor: textAnchor,
-      //   fontSize: dataLabelsConfig.style.fontSize,
-      //   fontFamily: dataLabelsConfig.style.fontFamily,
-      //   foreColor: w.globals.dataLabels.style.colors[i],
-      //   cssClass: 'apexcharts-datalabel'
-      // })
-
-      let text = formatter(label, { seriesIndex: -1, dataPointIndex: i, w })
-
-      dataLabels.plotDataLabelsText({x: dataLabelsX, y: dataLabelsY, text, i: i, j: i, parent: elDataLabelsWrap, dataLabelsConfig, correctLabels: false})
-    })
-  }
-
-  createPaths (pos) {
-    let graphics = new Graphics(this.ctx)
-
-    let linePaths = []
-    let areaPaths = []
-
-    if (pos.length) {
-      let linePath = graphics.move(pos[0].x, pos[0].y)
-      let areaPath = graphics.move(pos[0].x, pos[0].y)
-
-      pos.forEach((p, i) => {
-        linePath += graphics.line(p.x, p.y)
-        areaPath += graphics.line(p.x, p.y)
-        if (i === pos.length - 1) {
-          linePath += 'Z'
-          areaPath += 'Z'
+      if (polygonPos[i]) {
+        if (Math.abs(polygonPos[i].x) >= limit) {
+          if (polygonPos[i].x > 0) {
+            textAnchor = 'start'
+            offsetX += 10
+          } else if (polygonPos[i].x < 0) {
+            textAnchor = 'end'
+            offsetX -= 10
+          }
+        } else {
+          textAnchor = 'middle'
+        }
+        if (Math.abs(polygonPos[i].y) >= this.size - limit) {
+          if (polygonPos[i].y < 0) {
+            offsetY -= 10
+          } else if (polygonPos[i].y > 0) {
+            offsetY += 20
+          }
         }
 
-        linePaths.push(linePath)
-        areaPaths.push(areaPath)
+        let text = formatter(label, {
+          seriesIndex: -1,
+          dataPointIndex: i,
+          w
+        })
+
+        dataLabels.plotDataLabelsText({
+          x: polygonPos[i].x + offsetX,
+          y: polygonPos[i].y + offsetY,
+          text,
+          textAnchor,
+          i: i,
+          j: i,
+          parent: elDataLabelsWrap,
+          dataLabelsConfig,
+          offsetCorrection: false
+        })
+      }
+    })
+
+    return elDataLabelsWrap
+  }
+
+  createPaths (pos, origin) {
+    let graphics = new Graphics(this.ctx)
+
+    let linePathsTo = []
+    let linePathsFrom = [graphics.move(origin.x, origin.y)]
+    let areaPathsTo = []
+    let areaPathsFrom = [graphics.move(origin.x, origin.y)]
+
+    if (pos.length) {
+      let linePathTo = graphics.move(pos[0].x, pos[0].y)
+      let areaPathTo = graphics.move(pos[0].x, pos[0].y)
+
+      pos.forEach((p, i) => {
+        linePathTo += graphics.line(p.x, p.y)
+        areaPathTo += graphics.line(p.x, p.y)
+        if (i === pos.length - 1) {
+          linePathTo += 'Z'
+          areaPathTo += 'Z'
+        }
       })
 
-      return {
-        linePaths,
-        areaPaths
-      }
+      linePathsTo.push(linePathTo)
+      areaPathsTo.push(areaPathTo)
+    }
+
+    return {
+      linePathsFrom,
+      linePathsTo,
+      areaPathsFrom,
+      areaPathsTo
     }
   }
 

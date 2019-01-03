@@ -71,6 +71,9 @@ class Config {
         case 'donut':
           chartDefaults = defaults.donut()
           break
+        case 'radar':
+          chartDefaults = defaults.radar()
+          break
         case 'radialBar':
           chartDefaults = defaults.radialBar()
           break

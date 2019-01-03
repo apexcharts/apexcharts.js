@@ -106,7 +106,7 @@ class DataLabels {
           }
         }
 
-        this.plotDataLabelsText({ x, y, text, i, j: dataPointIndex, parent: elDataLabelsWrap, correctLabels: true, dataLabelsConfig: w.config.dataLabels })
+        this.plotDataLabelsText({ x, y, text, i, j: dataPointIndex, parent: elDataLabelsWrap, offsetCorrection: true, dataLabelsConfig: w.config.dataLabels })
       }
     }
 
@@ -116,14 +116,15 @@ class DataLabels {
   plotDataLabelsText (opts) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
-    let { x, y, i, j, text, parent, dataLabelsConfig, alwaysDrawDataLabel, correctLabels } = opts
+    let { x, y, i, j, text, textAnchor, parent, dataLabelsConfig, alwaysDrawDataLabel, offsetCorrection } = opts
 
     let correctedLabels = {
       x: x,
-      y: y
+      y: y,
+      drawnextLabel: true
     }
 
-    if (correctLabels) {
+    if (offsetCorrection) {
       correctedLabels = this.dataLabelsCorrection(
         x,
         y,
@@ -149,7 +150,7 @@ class DataLabels {
         x: x,
         y: y,
         foreColor: w.globals.dataLabels.style.colors[i],
-        textAnchor: dataLabelsConfig.textAnchor,
+        textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text: text,
         fontSize: dataLabelsConfig.style.fontSize,
         fontFamily: dataLabelsConfig.style.fontFamily
@@ -158,9 +159,14 @@ class DataLabels {
       dataLabelText.attr({
         class: 'apexcharts-datalabel',
         cx: x,
-        cy: y,
-        'clip-path': `url(#gridRectMask${w.globals.cuid})`
+        cy: y
       })
+
+      if (offsetCorrection) {
+        dataLabelText.attr({
+          'clip-path': `url(#gridRectMask${w.globals.cuid})`
+        })
+      }
 
       if (dataLabelsConfig.dropShadow.enabled) {
         const textShadow = dataLabelsConfig.dropShadow

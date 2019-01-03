@@ -753,7 +753,17 @@ class Bar {
       if (typeof val !== 'undefined' && val !== null) {
         text = formatter(val, { seriesIndex: i, dataPointIndex: j, w })
       }
-      dataLabels.plotDataLabelsText({ x, y, text, i, j, parent: elDataLabelsWrap, dataLabelsConfig, alwaysDrawDataLabel: true, correctLabels: true})
+      dataLabels.plotDataLabelsText({
+        x,
+        y,
+        text,
+        i,
+        j,
+        parent: elDataLabelsWrap,
+        dataLabelsConfig,
+        alwaysDrawDataLabel: true,
+        offsetCorrection: true
+      })
     }
 
     return elDataLabelsWrap

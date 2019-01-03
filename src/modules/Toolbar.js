@@ -48,7 +48,7 @@ class Toolbar {
         el: this.elSelection,
         icon: icoSelect,
         title: this.localeValues.selection,
-        class: 'apexcharts-selection-icon'
+        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-selection-icon'
       })
     }
 
@@ -75,7 +75,7 @@ class Toolbar {
         el: this.elZoom,
         icon: icoZoom,
         title: this.localeValues.selectionZoom,
-        class: 'apexcharts-zoom-icon'
+        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-zoom-icon'
       })
     }
 
@@ -84,7 +84,7 @@ class Toolbar {
         el: this.elPan,
         icon: icoPan,
         title: this.localeValues.pan,
-        class: 'apexcharts-pan-icon'
+        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-pan-icon'
       })
     }
 
