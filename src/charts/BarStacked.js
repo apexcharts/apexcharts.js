@@ -171,7 +171,7 @@ class BarStacked extends Bar {
 
         let seriesNumber = w.config.plotOptions.bar.distributed ? j : i
 
-        let fillColor = w.globals.colors[realIndex]
+        let fillColor = null
 
         if (this.barOptions.colors.ranges.length > 0) {
           const colorRange = this.barOptions.colors.ranges
@@ -183,7 +183,9 @@ class BarStacked extends Bar {
         }
 
         let pathFill = this.fill.fillPath(elSeries, {
-          seriesNumber: seriesNumber,
+          seriesNumber: this.barOptions.distributed
+            ? seriesNumber
+            : realIndex,
           color: fillColor
         })
 
