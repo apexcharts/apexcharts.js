@@ -21,30 +21,39 @@ class Responsive {
     const cnf = w.config
 
     // check if responsive config exists
-    if (cnf.responsive === undefined) return
+    if (cnf.responsive.length === 0) return
 
     let newOptions = {}
     let config = new Config(newOptions)
-    for (let i = 0; i < cnf.responsive.length; i++) {
-      const width = (window.innerWidth > 0) ? window.innerWidth : screen.width
 
-      if (width < cnf.responsive[i].breakpoint) {
-        newOptions = CoreUtils.extendArrayProps(config, cnf.responsive[i].options)
-        newOptions = Utils.extend(w.config, newOptions)
+    const iterateResponsiveOptions = (o = {}) => {
+      for (let i = 0; i < cnf.responsive.length; i++) {
+        const width = (window.innerWidth > 0) ? window.innerWidth : screen.width
 
-        this.overrideResponsiveOptions(newOptions)
-        break
-      } else {
-        let options = CoreUtils.extendArrayProps(config, w.globals.initialConfig)
-        newOptions = Utils.extend(w.config, options)
-        this.overrideResponsiveOptions(newOptions)
+        if (width < cnf.responsive[i].breakpoint) {
+          newOptions = Utils.extend(config, o)
+          newOptions = CoreUtils.extendArrayProps(newOptions, cnf.responsive[i].options)
+          newOptions = Utils.extend(w.config, newOptions)
+          this.overrideResponsiveOptions(newOptions)
+          break
+        } else {
+          let options = CoreUtils.extendArrayProps(config, w.globals.initialConfig)
+          newOptions = Utils.extend(w.config, options)
+          this.overrideResponsiveOptions(newOptions)
+        }
       }
+
+      return newOptions
     }
 
-    if (opts !== null) {
+    if (opts) {
       let options = CoreUtils.extendArrayProps(config, opts)
       options = Utils.extend(w.config, options)
+      options = Utils.extend(options, opts)
+      options = iterateResponsiveOptions(options)
       this.overrideResponsiveOptions(options)
+    } else {
+      iterateResponsiveOptions({})
     }
   }
 

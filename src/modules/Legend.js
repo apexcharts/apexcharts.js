@@ -259,17 +259,17 @@ class Legend {
       y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0)
     }
 
+    elLegendWrap.style.position = 'absolute'
+
     x = x + offsetX + w.config.legend.offsetX
     y = y + offsetY + w.config.legend.offsetY
-
-    elLegendWrap.style.position = 'absolute'
 
     elLegendWrap.style.left = x + 'px'
     elLegendWrap.style.top = y + 'px'
 
     if (w.config.legend.position === 'bottom') {
       elLegendWrap.style.top = 'auto'
-      elLegendWrap.style.bottom = 10 - w.config.legend.offsetY + 'px'
+      elLegendWrap.style.bottom = 10 + w.config.legend.offsetY + 'px'
     } else if (w.config.legend.position === 'right') {
       elLegendWrap.style.left = 'auto'
       elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px'

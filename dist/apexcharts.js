@@ -1431,6 +1431,13 @@ var CoreUtils = function () {
         }, 0);
       }
     }
+  }, {
+    key: 'seriesHaveSameValues',
+    value: function seriesHaveSameValues(index) {
+      return this.w.globals.series[index].every(function (val, i, arr) {
+        return val === arr[0];
+      });
+    }
 
     // maxValsInArrayIndex is the index of series[] which has the largest number of items
 
@@ -2743,12 +2750,13 @@ var Animations = function () {
       el.plot(pathFrom).animate(1, w.globals.easing, delay).plot(pathFrom).animate(speed, w.globals.easing, delay).plot(pathTo).afterAll(function () {
         // a flag to indicate that the original mount function can return true now as animation finished here
 
-        if (typeof w.config.chart.events.animationEnd === 'function') {
-          if (_Utils2.default.isNumber(j)) {
-            if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
-              w.config.chart.events.animationEnd(_this.ctx, w);
-            }
-          } else if (w.globals.shouldAnimate) {
+        if (_Utils2.default.isNumber(j)) {
+          if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
+            w.globals.animationEnded = true;
+          }
+        } else if (w.globals.shouldAnimate) {
+          w.globals.animationEnded = true;
+          if (typeof w.config.chart.events.animationEnd === 'function') {
             w.config.chart.events.animationEnd(_this.ctx, w);
           }
         }
@@ -12245,22 +12253,28 @@ var ApexCharts = function () {
     }
   }, {
     key: 'create',
-    value: function create(ser) {
-      var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
+    value: function create(ser, opts) {
       var w = this.w;
       this.initModules();
       var gl = this.w.globals;
 
       gl.noData = false;
+      gl.animationEnded = false;
 
       this.responsive.checkResponsiveConfig(opts);
 
       if (this.el === null) {
+        gl.animationEnded = true;
         return null;
       }
 
       this.core.setupElements();
+
+      if (gl.svgWidth === 0) {
+        // if the element is hidden, skip drawing
+        gl.animationEnded = true;
+        return null;
+      }
 
       this.coreUtils.checkComboSeries();
 
@@ -13036,7 +13050,7 @@ var ApexCharts = function () {
   }, {
     key: 'parentResizeCallback',
     value: function parentResizeCallback() {
-      if (this.w.config.chart.updateOnElementResize) {
+      if (this.w.globals.animationEnded) {
         this.windowResize();
       }
     }
@@ -16941,6 +16955,8 @@ var Annotations = function () {
 
       var x1 = (anno.x - min) / (range / w.globals.gridWidth);
 
+      if (x1 < 0 || x1 > w.globals.gridWidth) return;
+
       var line = this.graphics.drawLine(x1 + anno.offsetX, 0 + anno.offsetY, x1 + anno.offsetX, w.globals.gridHeight + anno.offsetY, anno.borderColor, strokeDashArray);
       parent.appendChild(line.node);
 
@@ -17088,6 +17104,8 @@ var Annotations = function () {
         pointY = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
       }
 
+      if (x < 0 || x > w.globals.gridWidth) return;
+
       var optsPoints = {
         pSize: anno.marker.size,
         pWidth: anno.marker.strokeWidth,
@@ -17205,10 +17223,12 @@ var Annotations = function () {
       var add = function add(anno, i, type) {
         var annoLabel = w.globals.dom.baseEl.querySelector('.apexcharts-' + type + '-annotations .apexcharts-' + type + '-annotation-label[rel=\'' + i + '\']');
 
-        var parent = annoLabel.parentNode;
-        var elRect = _this5.addBackgroundToAnno(annoLabel, anno);
+        if (annoLabel) {
+          var parent = annoLabel.parentNode;
+          var elRect = _this5.addBackgroundToAnno(annoLabel, anno);
 
-        parent.insertBefore(elRect.node, annoLabel);
+          parent.insertBefore(elRect.node, annoLabel);
+        }
       };
 
       w.config.annotations.xaxis.map(function (anno, i) {
@@ -17714,6 +17734,7 @@ var Core = function () {
           if (elDim[0].width === 0) {
             elDim = _Utils2.default.getDimensions(this.el.parentNode);
           }
+
           gl.svgWidth = elDim[0] * parseInt(cnf.chart.width) / 100;
         }
       } else if (widthUnit === 'px' || widthUnit === '') {
@@ -18543,7 +18564,7 @@ var Legend = function () {
           var coreUtils = new _CoreUtils2.default(this.ctx);
           var total = coreUtils.getSeriesTotalByIndex(i);
 
-          if (total === 0 && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+          if (total === 0 && coreUtils.seriesHaveSameValues(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
             elLegend.classList.add('apexcharts-hidden-zero-series');
           }
         }
@@ -18621,17 +18642,17 @@ var Legend = function () {
         y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0);
       }
 
+      elLegendWrap.style.position = 'absolute';
+
       x = x + offsetX + w.config.legend.offsetX;
       y = y + offsetY + w.config.legend.offsetY;
-
-      elLegendWrap.style.position = 'absolute';
 
       elLegendWrap.style.left = x + 'px';
       elLegendWrap.style.top = y + 'px';
 
       if (w.config.legend.position === 'bottom') {
         elLegendWrap.style.top = 'auto';
-        elLegendWrap.style.bottom = 10 - w.config.legend.offsetY + 'px';
+        elLegendWrap.style.bottom = 10 + w.config.legend.offsetY + 'px';
       } else if (w.config.legend.position === 'right') {
         elLegendWrap.style.left = 'auto';
         elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px';
@@ -18933,34 +18954,47 @@ var Responsive = function () {
   _createClass(Responsive, [{
     key: 'checkResponsiveConfig',
     value: function checkResponsiveConfig(opts) {
+      var _this = this;
+
       var w = this.w;
       var cnf = w.config;
 
       // check if responsive config exists
-      if (cnf.responsive === undefined) return;
+      if (cnf.responsive.length === 0) return;
 
       var newOptions = {};
       var config = new _Config2.default(newOptions);
-      for (var i = 0; i < cnf.responsive.length; i++) {
-        var width = window.innerWidth > 0 ? window.innerWidth : screen.width;
 
-        if (width < cnf.responsive[i].breakpoint) {
-          newOptions = _CoreUtils2.default.extendArrayProps(config, cnf.responsive[i].options);
-          newOptions = _Utils2.default.extend(w.config, newOptions);
+      var iterateResponsiveOptions = function iterateResponsiveOptions() {
+        var o = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-          this.overrideResponsiveOptions(newOptions);
-          break;
-        } else {
-          var options = _CoreUtils2.default.extendArrayProps(config, w.globals.initialConfig);
-          newOptions = _Utils2.default.extend(w.config, options);
-          this.overrideResponsiveOptions(newOptions);
+        for (var i = 0; i < cnf.responsive.length; i++) {
+          var width = window.innerWidth > 0 ? window.innerWidth : screen.width;
+
+          if (width < cnf.responsive[i].breakpoint) {
+            newOptions = _Utils2.default.extend(config, o);
+            newOptions = _CoreUtils2.default.extendArrayProps(newOptions, cnf.responsive[i].options);
+            newOptions = _Utils2.default.extend(w.config, newOptions);
+            _this.overrideResponsiveOptions(newOptions);
+            break;
+          } else {
+            var options = _CoreUtils2.default.extendArrayProps(config, w.globals.initialConfig);
+            newOptions = _Utils2.default.extend(w.config, options);
+            _this.overrideResponsiveOptions(newOptions);
+          }
         }
-      }
 
-      if (opts !== null) {
-        var _options = _CoreUtils2.default.extendArrayProps(config, opts);
-        _options = _Utils2.default.extend(w.config, _options);
-        this.overrideResponsiveOptions(_options);
+        return newOptions;
+      };
+
+      if (opts) {
+        var options = _CoreUtils2.default.extendArrayProps(config, opts);
+        options = _Utils2.default.extend(w.config, options);
+        options = _Utils2.default.extend(options, opts);
+        options = iterateResponsiveOptions(options);
+        this.overrideResponsiveOptions(options);
+      } else {
+        iterateResponsiveOptions({});
       }
     }
   }, {
@@ -21141,8 +21175,7 @@ var Defaults = function () {
           fillSeriesColor: true
         },
         legend: {
-          position: 'right',
-          offsetY: 40
+          position: 'right'
         }
       };
     }
@@ -21190,8 +21223,7 @@ var Defaults = function () {
           fillSeriesColor: true
         },
         legend: {
-          position: 'right',
-          offsetY: 40
+          position: 'right'
         }
       };
     }
@@ -21227,7 +21259,7 @@ var Defaults = function () {
         },
         legend: {
           show: false,
-          offsetY: 40
+          position: 'right'
         },
         tooltip: {
           enabled: false,
@@ -21302,6 +21334,7 @@ var Globals = function () {
           size: config.markers.size,
           largestSize: 0
         },
+        animationEnded: false,
         isTouchDevice: 'ontouchstart' in window || navigator.msMaxTouchPoints,
         isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
         initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
