@@ -221,6 +221,10 @@ class Tooltip {
         points = w.globals.dom.baseEl.querySelectorAll(
           '.apexcharts-series .apexcharts-heatmap'
         )
+      } else if (type === 'radar') {
+        points = w.globals.dom.baseEl.querySelectorAll(
+          '.apexcharts-series .apexcharts-marker'
+        )
       }
 
       if (points && points.length) {
@@ -240,7 +244,7 @@ class Tooltip {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if ((barOrCandlestick) && !w.globals.comboCharts) {
       this.addBarsEventListeners(seriesHoverParams)
-    } else if ((type === 'bubble' || type === 'scatter') ||
+    } else if ((type === 'bubble' || type === 'scatter' || type === 'radar') ||
       (this.showOnIntersect && (type === 'area' || type === 'line'))) {
       this.addPointsEventsListeners(seriesHoverParams)
     } else if (!w.globals.axisCharts || type === 'heatmap') {

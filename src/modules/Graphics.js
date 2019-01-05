@@ -58,9 +58,9 @@ class Graphics {
     return rect
   }
 
-  drawPolygon (polyString, stroke = '#a8a8a8', fill = 'none') {
+  drawPolygon (polygonString, stroke = '#e1e1e1', fill = 'none') {
     const w = this.w
-    const polygon = w.globals.dom.Paper.polygon(polyString).attr({
+    const polygon = w.globals.dom.Paper.polygon(polygonString).attr({
       fill: fill,
       stroke: stroke
     })

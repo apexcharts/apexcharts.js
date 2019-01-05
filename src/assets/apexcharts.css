@@ -103,7 +103,7 @@
   width: 12px;
   height: 12px;
   position: relative;
-  top: 1px;
+  top: 0px;
   margin-right: 10px;
   border-radius: 50%;
 }
@@ -385,7 +385,7 @@
   max-width: 176px;
   text-align: right;
   border-radius: 3px;
-  padding: 5px 6px 2px 6px;
+  padding: 0px 6px 2px 6px;
   display: flex;
   justify-content: space-between;
   align-items: center; 
@@ -461,7 +461,7 @@
 }
 
 .apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,
-.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events, .apexcharts-radar-series path {
+.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events, .apexcharts-radar-series path, .apexcharts-radar-series polygon {
   pointer-events: none;
 }
 

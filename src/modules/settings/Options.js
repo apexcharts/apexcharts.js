@@ -450,7 +450,13 @@ export default class Options {
           size: undefined,
           customScale: 1,
           offsetX: 0,
-          offsetY: 0
+          offsetY: 0,
+          polygons: {
+            strokeColor: '#e8e8e8',
+            fill: {
+              colors: undefined
+            }
+          }
         }
       },
       colors: undefined,
