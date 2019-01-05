@@ -45,14 +45,14 @@ class Radar {
     this.dataRadiusOfPercent = []
     this.dataRadius = []
     this.angleArr = []
-
-    this.prevSectorAngleArr = [] // for dynamic animations
   }
 
   draw (series) {
     let w = this.w
     const graphics = new Graphics(this.ctx)
     const fill = new Fill(this.ctx)
+
+    const allSeries = []
 
     this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
     this.disAngle = Math.PI * 2 / this.dataPointsLen
@@ -63,7 +63,7 @@ class Radar {
     let translateY = halfH
 
     let ret = graphics.group({
-      class: 'apexcharts-radar',
+      class: 'apexcharts-radar-series',
       'data:innerTranslateX': translateX,
       'data:innerTranslateY': translateY - 25,
       transform: `translate(${translateX || 0}, ${translateY || 0})`
@@ -72,15 +72,10 @@ class Radar {
     let dataPointsPos = []
     let elPointsMain = null
 
-    let dataRadiusOfPercentOrigin = 1 / this.maxValue
-    let dataRadiusOrigin = dataRadiusOfPercentOrigin * this.size
-    let angleArrOrigin = this.disAngle
-    let centerPos = this.getDataPointsPos([dataRadiusOrigin], [angleArrOrigin])[0]
-
     series.forEach((s, i) => {
       // el to which series will be drawn
       let elSeries = graphics.group().attr({
-        class: `apexcharts-series apexcharts-radar-series ${w.globals.seriesNames[i].toString().replace(/ /g, '-')}`,
+        class: `apexcharts-series ${w.globals.seriesNames[i].toString().replace(/ /g, '-')}`,
         'rel': i + 1,
         'data:realIndex': i
       })
@@ -96,7 +91,7 @@ class Radar {
       })
 
       dataPointsPos = this.getDataPointsPos(this.dataRadius[i], this.angleArr[i])
-      const paths = this.createPaths(dataPointsPos, centerPos)
+      const paths = this.createPaths(dataPointsPos, {x: 0, y: 0})
 
       const defaultRenderedPathOptions = {
         i,
@@ -112,10 +107,16 @@ class Radar {
         strokeLineCap: w.config.stroke.lineCap
       }
 
+      let pathFrom = null
+
+      if (w.globals.previousPaths.length > 0) {
+        pathFrom = this.getPathFrom(i)
+      }
+
       for (let p = 0; p < paths.linePathsTo.length; p++) {
         let renderedLinePath = graphics.renderPaths({
           ...defaultRenderedPathOptions,
-          pathFrom: paths.linePathsFrom[p],
+          pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
           pathTo: paths.linePathsTo[p],
           strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width,
           fill: 'none'
@@ -129,7 +130,7 @@ class Radar {
 
         let renderedAreaPath = graphics.renderPaths({
           ...defaultRenderedPathOptions,
-          pathFrom: paths.areaPathsFrom[p],
+          pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
           pathTo: paths.areaPathsTo[p],
           strokeWidth: 0,
           fill: pathFill
@@ -168,13 +169,56 @@ class Radar {
         elSeries.add(elPointsMain)
       })
 
-      ret.add(elSeries)
+      allSeries.push(elSeries)
     })
+
+    this.drawPolygons({ parent: ret })
 
     const dataLabels = this.drawLabels()
     ret.add(dataLabels)
 
+    allSeries.forEach((elS) => {
+      ret.add(elS)
+    })
+
     return ret
+  }
+
+  drawPolygons (opts) {
+    const w = this.w
+    const { parent } = opts
+    let graphics = new Graphics(this.ctx)
+
+    const layers = w.globals.yAxisScale[0].result.length
+
+    let radiusSizes = []
+    let layerDis = this.size / layers
+    for (var i = 0; i < layers; i++) {
+      radiusSizes[i] = layerDis * (i + 1)
+    }
+    radiusSizes.reverse()
+
+    let polygonStrings = []
+
+    radiusSizes.forEach((radiusSize) => {
+      const polygon = this.getPolygonPos(radiusSize)
+      let string = ''
+
+      polygon.forEach((p) => {
+        string += p.x + ',' + p.y + ' '
+      })
+
+      polygonStrings.push(string)
+    })
+
+    polygonStrings.forEach((p) => {
+      const polygon = graphics.drawPolygon(p)
+      parent.add(polygon)
+    })
+  }
+
+  drawYAxis () {
+
   }
 
   drawLabels () {
@@ -193,7 +237,7 @@ class Radar {
       class: 'apexcharts-datalabels'
     })
 
-    let polygonPos = this.getPolygonPos()
+    let polygonPos = this.getPolygonPos(this.size)
 
     w.globals.labels.forEach((label, i) => {
       let formatter = dataLabelsConfig.formatter
@@ -246,11 +290,14 @@ class Radar {
     let graphics = new Graphics(this.ctx)
 
     let linePathsTo = []
-    let linePathsFrom = [graphics.move(origin.x, origin.y)]
+    let linePathsFrom = []
     let areaPathsTo = []
-    let areaPathsFrom = [graphics.move(origin.x, origin.y)]
+    let areaPathsFrom = []
 
     if (pos.length) {
+      linePathsFrom = [graphics.move(origin.x, origin.y)]
+      areaPathsFrom = [graphics.move(origin.x, origin.y)]
+
       let linePathTo = graphics.move(pos[0].x, pos[0].y)
       let areaPathTo = graphics.move(pos[0].x, pos[0].y)
 
@@ -275,12 +322,29 @@ class Radar {
     }
   }
 
-  getDataPointsPos (dataRadiusArr, angleArr) {
-    const w = this.w
+  getPathFrom (realIndex) {
+    let w = this.w
+    let pathFrom = null
+    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
+      let gpp = w.globals.previousPaths[pp]
+
+      if (
+        gpp.paths.length > 0 &&
+        parseInt(gpp.realIndex) === parseInt(realIndex)
+      ) {
+        if (typeof w.globals.previousPaths[pp].paths[0] !== 'undefined') {
+          pathFrom = w.globals.previousPaths[pp].paths[0].d
+        }
+      }
+    }
+    return pathFrom
+  }
+
+  getDataPointsPos (dataRadiusArr, angleArr, dataPointsLen = this.dataPointsLen) {
     dataRadiusArr = dataRadiusArr || []
     angleArr = angleArr || []
     var dataPointsPosArray = []
-    for (var j = 0; j < w.globals.dataPoints; j++) {
+    for (var j = 0; j < dataPointsLen; j++) {
       var curPointPos = {}
       curPointPos.x = dataRadiusArr[j] * Math.sin(angleArr[j])
       curPointPos.y = -dataRadiusArr[j] * Math.cos(angleArr[j])
@@ -289,13 +353,13 @@ class Radar {
     return dataPointsPosArray
   }
 
-  getPolygonPos () {
+  getPolygonPos (size) {
     var dotsArray = []
     var angle = Math.PI * 2 / this.dataPointsLen
     for (let i = 0; i < this.dataPointsLen; i++) {
       var curPos = {}
-      curPos.x = this.size * Math.sin(i * angle)
-      curPos.y = -this.size * Math.cos(i * angle)
+      curPos.x = size * Math.sin(i * angle)
+      curPos.y = -size * Math.cos(i * angle)
       dotsArray.push(curPos)
     }
     return dotsArray

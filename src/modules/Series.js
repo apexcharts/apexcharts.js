@@ -181,17 +181,9 @@ export default class Series {
       for (let j = 0; j < paths.length; j++) {
         if (paths[j].hasAttribute('pathTo')) {
           let d = paths[j].getAttribute('pathTo')
-          if (type === 'area') {
-            if (paths[j].classList.contains('apexcharts-line') || paths[j].classList.contains('apexcharts-area')) {
-              dArr.paths.push({
-                d
-              })
-            }
-          } else {
-            dArr.paths.push({
-              d
-            })
-          }
+          dArr.paths.push({
+            d
+          })
         }
       }
 
@@ -232,6 +224,15 @@ export default class Series {
     if (candlestickPaths.length > 0) {
       for (let p = 0; p < candlestickPaths.length; p++) {
         pushPaths(candlestickPaths, p, 'candlestick')
+      }
+    }
+
+    let radarPaths = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-radar-series .apexcharts-series'
+    )
+    if (radarPaths.length > 0) {
+      for (let p = 0; p < radarPaths.length; p++) {
+        pushPaths(radarPaths, p, 'radar')
       }
     }
 
