@@ -195,9 +195,12 @@ class Radar {
 
     this.drawPolygons({ parent: ret })
 
-    const dataLabels = this.drawLabels()
+    if (w.config.dataLabels.enabled) {
+      const dataLabels = this.drawLabels()
+      ret.add(dataLabels)
+    }
+
     ret.add(this.yaxisLabels)
-    ret.add(dataLabels)
 
     allSeries.forEach((elS) => {
       ret.add(elS)
@@ -256,10 +259,12 @@ class Radar {
       parent.add(l)
     })
 
-    this.yaxisLabelsTextsPos.forEach((p, i) => {
-      const yText = this.drawYAxisText(p.x, p.y, i, yaxisTexts[i])
-      this.yaxisLabels.add(yText)
-    })
+    if (w.config.yaxis[0].show) {
+      this.yaxisLabelsTextsPos.forEach((p, i) => {
+        const yText = this.drawYAxisText(p.x, p.y, i, yaxisTexts[i])
+        this.yaxisLabels.add(yText)
+      })
+    }
   }
 
   drawYAxisText (x, y, i, text) {
