@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 168);
+/******/ 	return __webpack_require__(__webpack_require__.s = 169);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -95,7 +95,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -175,6 +175,20 @@ var Graphics = function () {
       return rect;
     }
   }, {
+    key: 'drawPolygon',
+    value: function drawPolygon(polygonString) {
+      var stroke = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '#e1e1e1';
+      var fill = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'none';
+
+      var w = this.w;
+      var polygon = w.globals.dom.Paper.polygon(polygonString).attr({
+        fill: fill,
+        stroke: stroke
+      });
+
+      return polygon;
+    }
+  }, {
     key: 'drawCircle',
     value: function drawCircle(radius) {
       var attrs = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
@@ -194,7 +208,8 @@ var Graphics = function () {
           d = _ref$d === undefined ? '' : _ref$d,
           _ref$stroke = _ref.stroke,
           stroke = _ref$stroke === undefined ? '#a8a8a8' : _ref$stroke,
-          strokeWidth = _ref.strokeWidth,
+          _ref$strokeWidth = _ref.strokeWidth,
+          strokeWidth = _ref$strokeWidth === undefined ? 1 : _ref$strokeWidth,
           fill = _ref.fill,
           _ref$fillOpacity = _ref.fillOpacity,
           fillOpacity = _ref$fillOpacity === undefined ? 1 : _ref$fillOpacity,
@@ -298,7 +313,6 @@ var Graphics = function () {
      *  fill = it can be gradient, single color, pattern or image
      *  animationDelay = how much to delay when starting animation (in milliseconds)
      *  dataChangeSpeed = for dynamic animations, when data changes
-     *  hideStrokesInChange = for certain charts, we hide strokes during anim
      *  className = class attribute to add
      * @return {object} svg.js path object
      **/
@@ -318,10 +332,12 @@ var Graphics = function () {
           animationDelay = _ref2.animationDelay,
           initialSpeed = _ref2.initialSpeed,
           dataChangeSpeed = _ref2.dataChangeSpeed,
-          _ref2$hideStrokesInCh = _ref2.hideStrokesInChange,
-          hideStrokesInChange = _ref2$hideStrokesInCh === undefined ? false : _ref2$hideStrokesInCh,
           className = _ref2.className,
-          id = _ref2.id;
+          id = _ref2.id,
+          _ref2$shouldClipToGri = _ref2.shouldClipToGrid,
+          shouldClipToGrid = _ref2$shouldClipToGri === undefined ? true : _ref2$shouldClipToGri,
+          _ref2$bindEventsOnPat = _ref2.bindEventsOnPaths,
+          bindEventsOnPaths = _ref2$bindEventsOnPat === undefined ? true : _ref2$bindEventsOnPat;
 
       var w = this.w;
       var filters = new _Filters2.default(this.ctx);
@@ -360,9 +376,12 @@ var Graphics = function () {
 
       el.attr('id', id + '-' + i);
       el.attr('index', realIndex);
-      el.attr({
-        'clip-path': 'url(#gridRectMask' + w.globals.cuid + ')'
-      });
+
+      if (shouldClipToGrid) {
+        el.attr({
+          'clip-path': 'url(#gridRectMask' + w.globals.cuid + ')'
+        });
+      }
 
       // const defaultFilter = el.filterer
 
@@ -377,9 +396,11 @@ var Graphics = function () {
         }
       }
 
-      el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el));
-      el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el));
-      el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el));
+      if (bindEventsOnPaths) {
+        el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el));
+        el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el));
+        el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el));
+      }
 
       el.attr({
         pathTo: pathTo,
@@ -695,7 +716,7 @@ var Graphics = function () {
         if (!w.config.states.active.allowMultipleDataPointsSelection && w.globals.selectedDataPoints.length > 0) {
           w.globals.selectedDataPoints = [];
           var elPaths = w.globals.dom.Paper.select('.apexcharts-series path').members;
-          var elCircles = w.globals.dom.Paper.select('.apexcharts-series circle').members;
+          var elCircles = w.globals.dom.Paper.select('.apexcharts-series circle, .apexcharts-series rect').members;
 
           var _iteratorNormalCompletion = true;
           var _didIteratorError = false;
@@ -1261,7 +1282,7 @@ exports.default = Utils;
 "use strict";
 
 
-var store = __webpack_require__(42)('wks');
+var store = __webpack_require__(43)('wks');
 var uid = __webpack_require__(25);
 var _Symbol = __webpack_require__(3).Symbol;
 var USE_SYMBOL = typeof _Symbol == 'function';
@@ -1302,9 +1323,278 @@ if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 "use strict";
 
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Filters Class for setting hover/active states on the paths.
+ *
+ * @module Formatters
+ **/
+var Filters = function () {
+  function Filters(ctx) {
+    _classCallCheck(this, Filters);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  // create a re-usable filter which can be appended other filter effects and applied to multiple elements
+
+
+  _createClass(Filters, [{
+    key: 'getDefaultFilter',
+    value: function getDefaultFilter(el) {
+      var w = this.w;
+      el.unfilter(true);
+
+      var filter = new window.SVG.Filter();
+      filter.size('120%', '180%', '-5%', '-40%');
+
+      if (w.config.states.normal.filter !== 'none') {
+        this.applyFilter(el, w.config.states.normal.filter.type, w.config.states.normal.filter.value);
+      } else {
+        if (w.config.chart.dropShadow.enabled) {
+          this.dropShadow(el, w.config.chart.dropShadow);
+        }
+      }
+    }
+  }, {
+    key: 'addNormalFilter',
+    value: function addNormalFilter(el) {
+      var w = this.w;
+      if (w.config.chart.dropShadow.enabled) {
+        this.dropShadow(el, w.config.chart.dropShadow);
+      }
+    }
+  }, {
+    key: 'addDesaturateFilter',
+    value: function addDesaturateFilter(el) {
+      var _this = this;
+
+      var w = this.w;
+
+      el.unfilter(true);
+
+      var filter = new window.SVG.Filter();
+      filter.size('120%', '180%', '-5%', '-40%');
+
+      el.filter(function (add) {
+        var shadowAttr = w.config.chart.dropShadow;
+        if (shadowAttr.enabled) {
+          filter = _this.addShadow(add, shadowAttr);
+        } else {
+          filter = add;
+        }
+        filter.colorMatrix('matrix', [0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 1.0, 0]).colorMatrix('saturate', 0);
+      });
+      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
+    }
+
+    // appends dropShadow to the filter object which can be chained with other filter effects
+
+  }, {
+    key: 'addLightenFilter',
+    value: function addLightenFilter(el, attrs) {
+      var _this2 = this;
+
+      var w = this.w;
+      var intensity = attrs.intensity;
+
+
+      if (_Utils2.default.isFirefox()) {
+        return;
+      }
+
+      el.unfilter(true);
+
+      var filter = new window.SVG.Filter();
+      filter.size('120%', '180%', '-5%', '-40%');
+
+      el.filter(function (add) {
+        var shadowAttr = w.config.chart.dropShadow;
+        if (shadowAttr.enabled) {
+          filter = _this2.addShadow(add, shadowAttr);
+        } else {
+          filter = add;
+        }
+        filter.componentTransfer({
+          rgb: { type: 'linear', slope: 1.5, intercept: intensity }
+        });
+      });
+      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
+    }
+
+    // appends dropShadow to the filter object which can be chained with other filter effects
+
+  }, {
+    key: 'addDarkenFilter',
+    value: function addDarkenFilter(el, attrs) {
+      var _this3 = this;
+
+      var w = this.w;
+      var intensity = attrs.intensity;
+
+
+      if (_Utils2.default.isFirefox()) {
+        return;
+      }
+
+      el.unfilter(true);
+
+      var filter = new window.SVG.Filter();
+      filter.size('120%', '180%', '-5%', '-40%');
+
+      el.filter(function (add) {
+        var shadowAttr = w.config.chart.dropShadow;
+        if (shadowAttr.enabled) {
+          filter = _this3.addShadow(add, shadowAttr);
+        } else {
+          filter = add;
+        }
+        filter.componentTransfer({
+          rgb: { type: 'linear', slope: intensity }
+        });
+      });
+      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
+    }
+  }, {
+    key: 'applyFilter',
+    value: function applyFilter(el, filter) {
+      var intensity = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.5;
+
+      switch (filter) {
+        case 'none':
+          {
+            this.addNormalFilter(el);
+            break;
+          }
+        case 'lighten':
+          {
+            this.addLightenFilter(el, {
+              intensity: intensity
+            });
+            break;
+          }
+        case 'darken':
+          {
+            this.addDarkenFilter(el, {
+              intensity: intensity
+            });
+            break;
+          }
+        case 'desaturate':
+          {
+            this.addDesaturateFilter(el);
+            break;
+          }
+        default:
+          // do nothing
+          break;
+      }
+    }
+
+    // appends dropShadow to the filter object which can be chained with other filter effects
+
+  }, {
+    key: 'addShadow',
+    value: function addShadow(add, attrs) {
+      var blur = attrs.blur,
+          top = attrs.top,
+          left = attrs.left,
+          opacity = attrs.opacity;
+
+
+      var shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
+      return add.blend(add.source, shadowBlur);
+    }
+
+    // directly adds dropShadow to the element and returns the same element.
+    // the only way it is different from the addShadow() function is that addShadow is chainable to other filters, while this function discards all filters and add dropShadow
+
+  }, {
+    key: 'dropShadow',
+    value: function dropShadow(el, attrs) {
+      var top = attrs.top,
+          left = attrs.left,
+          blur = attrs.blur,
+          opacity = attrs.opacity,
+          noUserSpaceOnUse = attrs.noUserSpaceOnUse;
+
+
+      el.unfilter(true);
+
+      var filter = new window.SVG.Filter();
+      filter.size('120%', '180%', '-5%', '-40%');
+
+      el.filter(function (add) {
+        var shadowBlur = null;
+        if (_Utils2.default.isSafari() || _Utils2.default.isFirefox() || _Utils2.default.isIE()) {
+          // safari/firefox has some alternative way to use this filter
+          shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur);
+        } else {
+          shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
+        }
+
+        add.blend(add.source, shadowBlur);
+      });
+
+      if (!noUserSpaceOnUse) {
+        el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
+      }
+
+      return el;
+    }
+
+    // directly adds darken filter to the element and returns the same element.
+    // darken (el, intensity = 0.2) {
+    //   let darkenFilter = null
+    //   el.filter(function (add) {
+    //     darkenFilter = add.componentTransfer({
+    //       rgb: { type: 'linear', slope: intensity }
+    //     })
+    //   })
+    //   return darkenFilter
+    // }
+
+    // directly adds lighten to the element and returns the same element.
+    // lighten (el, intensity = 0.2) {
+    //   el.filter(function (add) {
+    //     add.componentTransfer({
+    //       rgb: { type: 'linear', slope: 1.5, intercept: 0.2 }
+    //     })
+    //   })
+    //   return el
+    // }
+
+  }]);
+
+  return Filters;
+}();
+
+exports.default = Filters;
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 var global = __webpack_require__(3);
 var core = __webpack_require__(4);
-var hide = __webpack_require__(13);
+var hide = __webpack_require__(14);
 var redefine = __webpack_require__(16);
 var ctx = __webpack_require__(15);
 var PROTOTYPE = 'prototype';
@@ -1347,7 +1637,7 @@ $export.R = 128; // real proto method for `library`
 module.exports = $export;
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1700,272 +1990,6 @@ var CoreUtils = function () {
 exports.default = CoreUtils;
 
 /***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Utils = __webpack_require__(1);
-
-var _Utils2 = _interopRequireDefault(_Utils);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Filters Class for setting hover/active states on the paths.
- *
- * @module Formatters
- **/
-var Filters = function () {
-  function Filters(ctx) {
-    _classCallCheck(this, Filters);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  // create a re-usable filter which can be appended other filter effects and applied to multiple elements
-
-
-  _createClass(Filters, [{
-    key: 'getDefaultFilter',
-    value: function getDefaultFilter(el) {
-      var w = this.w;
-      el.unfilter(true);
-
-      var filter = new window.SVG.Filter();
-      filter.size('120%', '180%', '-5%', '-40%');
-
-      if (w.config.states.normal.filter !== 'none') {
-        this.applyFilter(el, w.config.states.normal.filter.type, w.config.states.normal.filter.value);
-      } else {
-        if (w.config.chart.dropShadow.enabled) {
-          this.dropShadow(el, w.config.chart.dropShadow);
-        }
-      }
-    }
-  }, {
-    key: 'addNormalFilter',
-    value: function addNormalFilter(el) {
-      var w = this.w;
-      if (w.config.chart.dropShadow.enabled) {
-        this.dropShadow(el, w.config.chart.dropShadow);
-      }
-    }
-  }, {
-    key: 'addDesaturateFilter',
-    value: function addDesaturateFilter(el) {
-      var _this = this;
-
-      var w = this.w;
-
-      el.unfilter(true);
-
-      var filter = new window.SVG.Filter();
-      filter.size('120%', '180%', '-5%', '-40%');
-
-      el.filter(function (add) {
-        var shadowAttr = w.config.chart.dropShadow;
-        if (shadowAttr.enabled) {
-          filter = _this.addShadow(add, shadowAttr);
-        } else {
-          filter = add;
-        }
-        filter.colorMatrix('matrix', [0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 1.0, 0]).colorMatrix('saturate', 0);
-      });
-      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
-    }
-
-    // appends dropShadow to the filter object which can be chained with other filter effects
-
-  }, {
-    key: 'addLightenFilter',
-    value: function addLightenFilter(el, attrs) {
-      var _this2 = this;
-
-      var w = this.w;
-      var intensity = attrs.intensity;
-
-
-      if (_Utils2.default.isFirefox()) {
-        return;
-      }
-
-      el.unfilter(true);
-
-      var filter = new window.SVG.Filter();
-      filter.size('120%', '180%', '-5%', '-40%');
-
-      el.filter(function (add) {
-        var shadowAttr = w.config.chart.dropShadow;
-        if (shadowAttr.enabled) {
-          filter = _this2.addShadow(add, shadowAttr);
-        } else {
-          filter = add;
-        }
-        filter.componentTransfer({
-          rgb: { type: 'linear', slope: 1.5, intercept: intensity }
-        });
-      });
-      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
-    }
-
-    // appends dropShadow to the filter object which can be chained with other filter effects
-
-  }, {
-    key: 'addDarkenFilter',
-    value: function addDarkenFilter(el, attrs) {
-      var _this3 = this;
-
-      var w = this.w;
-      var intensity = attrs.intensity;
-
-
-      if (_Utils2.default.isFirefox()) {
-        return;
-      }
-
-      el.unfilter(true);
-
-      var filter = new window.SVG.Filter();
-      filter.size('120%', '180%', '-5%', '-40%');
-
-      el.filter(function (add) {
-        var shadowAttr = w.config.chart.dropShadow;
-        if (shadowAttr.enabled) {
-          filter = _this3.addShadow(add, shadowAttr);
-        } else {
-          filter = add;
-        }
-        filter.componentTransfer({
-          rgb: { type: 'linear', slope: intensity }
-        });
-      });
-      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
-    }
-  }, {
-    key: 'applyFilter',
-    value: function applyFilter(el, filter) {
-      var intensity = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.5;
-
-      switch (filter) {
-        case 'none':
-          {
-            this.addNormalFilter(el);
-            break;
-          }
-        case 'lighten':
-          {
-            this.addLightenFilter(el, {
-              intensity: intensity
-            });
-            break;
-          }
-        case 'darken':
-          {
-            this.addDarkenFilter(el, {
-              intensity: intensity
-            });
-            break;
-          }
-        case 'desaturate':
-          {
-            this.addDesaturateFilter(el);
-            break;
-          }
-        default:
-          // do nothing
-          break;
-      }
-    }
-
-    // appends dropShadow to the filter object which can be chained with other filter effects
-
-  }, {
-    key: 'addShadow',
-    value: function addShadow(add, attrs) {
-      var blur = attrs.blur,
-          top = attrs.top,
-          left = attrs.left,
-          opacity = attrs.opacity;
-
-
-      var shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
-      return add.blend(add.source, shadowBlur);
-    }
-
-    // directly adds dropShadow to the element and returns the same element.
-    // the only way it is different from the addShadow() function is that addShadow is chainable to other filters, while this function discards all filters and add dropShadow
-
-  }, {
-    key: 'dropShadow',
-    value: function dropShadow(el, attrs) {
-      var top = attrs.top,
-          left = attrs.left,
-          blur = attrs.blur,
-          opacity = attrs.opacity;
-
-
-      el.unfilter(true);
-
-      var filter = new window.SVG.Filter();
-      filter.size('120%', '180%', '-5%', '-40%');
-
-      el.filter(function (add) {
-        var shadowBlur = null;
-        if (_Utils2.default.isSafari() || _Utils2.default.isFirefox() || _Utils2.default.isIE()) {
-          // safari/firefox has some alternative way to use this filter
-          shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur);
-        } else {
-          shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
-        }
-
-        add.blend(add.source, shadowBlur);
-      });
-
-      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
-
-      return el;
-    }
-
-    // directly adds darken filter to the element and returns the same element.
-    // darken (el, intensity = 0.2) {
-    //   let darkenFilter = null
-    //   el.filter(function (add) {
-    //     darkenFilter = add.componentTransfer({
-    //       rgb: { type: 'linear', slope: intensity }
-    //     })
-    //   })
-    //   return darkenFilter
-    // }
-
-    // directly adds lighten to the element and returns the same element.
-    // lighten (el, intensity = 0.2) {
-    //   el.filter(function (add) {
-    //     add.componentTransfer({
-    //       rgb: { type: 'linear', slope: 1.5, intercept: 0.2 }
-    //     })
-    //   })
-    //   return el
-    // }
-
-  }]);
-
-  return Filters;
-}();
-
-exports.default = Filters;
-
-/***/ }),
 /* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2000,10 +2024,10 @@ module.exports = function (it) {
 
 var anObject = __webpack_require__(8);
 var IE8_DOM_DEFINE = __webpack_require__(56);
-var toPrimitive = __webpack_require__(44);
+var toPrimitive = __webpack_require__(45);
 var dP = Object.defineProperty;
 
-exports.f = __webpack_require__(11) ? Object.defineProperty : function defineProperty(O, P, Attributes) {
+exports.f = __webpack_require__(12) ? Object.defineProperty : function defineProperty(O, P, Attributes) {
   anObject(O);
   P = toPrimitive(P, true);
   anObject(Attributes);
@@ -2017,48 +2041,6 @@ exports.f = __webpack_require__(11) ? Object.defineProperty : function definePro
 
 /***/ }),
 /* 11 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// Thank's IE8 for his funny defineProperty
-module.exports = !__webpack_require__(20)(function () {
-  return Object.defineProperty({}, 'a', { get: function get() {
-      return 7;
-    } }).a != 7;
-});
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var hasOwnProperty = {}.hasOwnProperty;
-module.exports = function (it, key) {
-  return hasOwnProperty.call(it, key);
-};
-
-/***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var dP = __webpack_require__(10);
-var createDesc = __webpack_require__(23);
-module.exports = __webpack_require__(11) ? function (object, key, value) {
-  return dP.f(object, key, createDesc(1, value));
-} : function (object, key, value) {
-  object[key] = value;
-  return object;
-};
-
-/***/ }),
-/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2348,6 +2330,48 @@ var Fill = function () {
 exports.default = Fill;
 
 /***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// Thank's IE8 for his funny defineProperty
+module.exports = !__webpack_require__(20)(function () {
+  return Object.defineProperty({}, 'a', { get: function get() {
+      return 7;
+    } }).a != 7;
+});
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var hasOwnProperty = {}.hasOwnProperty;
+module.exports = function (it, key) {
+  return hasOwnProperty.call(it, key);
+};
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var dP = __webpack_require__(10);
+var createDesc = __webpack_require__(23);
+module.exports = __webpack_require__(12) ? function (object, key, value) {
+  return dP.f(object, key, createDesc(1, value));
+} : function (object, key, value) {
+  object[key] = value;
+  return object;
+};
+
+/***/ }),
 /* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2386,8 +2410,8 @@ module.exports = function (fn, that, length) {
 
 
 var global = __webpack_require__(3);
-var hide = __webpack_require__(13);
-var has = __webpack_require__(12);
+var hide = __webpack_require__(14);
+var has = __webpack_require__(13);
 var SRC = __webpack_require__(25)('src');
 var TO_STRING = 'toString';
 var $toString = Function[TO_STRING];
@@ -2425,8 +2449,8 @@ __webpack_require__(4).inspectSource = function (it) {
 
 
 // to indexed object, toObject with fallback for non-array-like ES3 strings
-var IObject = __webpack_require__(38);
-var defined = __webpack_require__(35);
+var IObject = __webpack_require__(39);
+var defined = __webpack_require__(36);
 module.exports = function (it) {
   return IObject(defined(it));
 };
@@ -2513,7 +2537,7 @@ module.exports = function (bitmap, value) {
 
 
 // 7.1.15 ToLength
-var toInteger = __webpack_require__(43);
+var toInteger = __webpack_require__(44);
 var min = Math.min;
 module.exports = function (it) {
   return it > 0 ? min(toInteger(it), 0x1fffffffffffff) : 0; // pow(2, 53) - 1 == 9007199254740991
@@ -2778,627 +2802,9 @@ module.exports = Animations;
 "use strict";
 
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = undefined;
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Graphics = __webpack_require__(0);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Series Class for interation with the Series of the chart.
- *
- * @module Series
- **/
-
-var Series = function () {
-  function Series(ctx) {
-    _classCallCheck(this, Series);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  _createClass(Series, [{
-    key: 'getAllSeriesEls',
-    value: function getAllSeriesEls() {
-      return this.w.globals.dom.baseEl.querySelectorAll('.apexcharts-series');
-    }
-  }, {
-    key: 'getSeriesByName',
-    value: function getSeriesByName(seriesName) {
-      return this.w.globals.dom.baseEl.querySelector('.apexcharts-series.' + seriesName.toString().replace(/ /g, '-'));
-    }
-  }, {
-    key: 'addCollapsedClassToSeries',
-    value: function addCollapsedClassToSeries(elSeries, index) {
-      var w = this.w;
-      for (var cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
-        if (w.globals.collapsedSeries[cs].index === index) {
-          elSeries.node.classList.add('apexcharts-series-collapsed');
-        }
-      }
-    }
-  }, {
-    key: 'toggleSeriesOnHover',
-    value: function toggleSeriesOnHover(e, targetElement) {
-      var w = this.w;
-
-      var allSeriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series');
-
-      if (e.type === 'mousemove') {
-        var seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1;
-
-        var seriesEl = null;
-        if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
-          if (w.globals.axisCharts) {
-            seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[data\\:realIndex=\'' + seriesCnt + '\']');
-          } else {
-            seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[rel=\'' + (seriesCnt + 1) + '\']');
-          }
-        } else {
-          seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[rel=\'' + (seriesCnt + 1) + '\'] path');
-        }
-
-        for (var se = 0; se < allSeriesEls.length; se++) {
-          allSeriesEls[se].classList.add('legend-mouseover-inactive');
-        }
-
-        if (seriesEl !== null) {
-          if (!w.globals.axisCharts) {
-            seriesEl.parentNode.classList.remove('legend-mouseover-inactive');
-          }
-
-          seriesEl.classList.remove('legend-mouseover-inactive');
-        }
-      } else if (e.type === 'mouseout') {
-        for (var _se = 0; _se < allSeriesEls.length; _se++) {
-          allSeriesEls[_se].classList.remove('legend-mouseover-inactive');
-        }
-      }
-    }
-  }, {
-    key: 'highlightRangeInSeries',
-    value: function highlightRangeInSeries(e, targetElement) {
-      var w = this.w;
-      var allHeatMapElements = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap-rect');
-
-      var allActive = function allActive() {
-        for (var i = 0; i < allHeatMapElements.length; i++) {
-          allHeatMapElements[i].classList.remove('legend-mouseover-inactive');
-        }
-      };
-      var allInactive = function allInactive() {
-        for (var i = 0; i < allHeatMapElements.length; i++) {
-          allHeatMapElements[i].classList.add('legend-mouseover-inactive');
-        }
-      };
-
-      var selectedActive = function selectedActive(range) {
-        for (var i = 0; i < allHeatMapElements.length; i++) {
-          var val = parseInt(allHeatMapElements[i].getAttribute('val'));
-          if (val >= range.from && val <= range.to) {
-            allHeatMapElements[i].classList.remove('legend-mouseover-inactive');
-          }
-        }
-      };
-
-      if (e.type === 'mousemove') {
-        var seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1;
-        allActive();
-        allInactive();
-
-        var range = w.config.plotOptions.heatmap.colorScale.ranges[seriesCnt];
-
-        selectedActive(range);
-      } else if (e.type === 'mouseout') {
-        allActive();
-      }
-    }
-  }, {
-    key: 'getActiveSeriesIndex',
-    value: function getActiveSeriesIndex() {
-      var w = this.w;
-      var activeIndex = 0;
-
-      if (w.globals.series.length > 1) {
-        // active series flag is required to know if user has not deactivated via legend click
-        var firstActiveSeriesIndex = w.globals.series.map(function (series, index) {
-          if (series.length > 0 && w.config.series[index].type !== 'bar' && w.config.series[index].type !== 'column') {
-            return index;
-          } else {
-            return -1;
-          }
-        });
-
-        for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
-          if (firstActiveSeriesIndex[a] !== -1) {
-            activeIndex = firstActiveSeriesIndex[a];
-            break;
-          }
-        }
-      }
-
-      return activeIndex;
-    }
-  }, {
-    key: 'getActiveConfigSeriesIndex',
-    value: function getActiveConfigSeriesIndex() {
-      var w = this.w;
-      var activeIndex = 0;
-
-      if (w.config.series.length > 1) {
-        // active series flag is required to know if user has not deactivated via legend click
-        var firstActiveSeriesIndex = w.config.series.map(function (series, index) {
-          if (series.data && series.data.length > 0) {
-            return index;
-          } else {
-            return -1;
-          }
-        });
-
-        for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
-          if (firstActiveSeriesIndex[a] !== -1) {
-            activeIndex = firstActiveSeriesIndex[a];
-            break;
-          }
-        }
-      }
-
-      return activeIndex;
-    }
-  }, {
-    key: 'getPreviousPaths',
-    value: function getPreviousPaths() {
-      var w = this.w;
-
-      w.globals.previousPaths = [];
-
-      function pushPaths(seriesEls, i, type) {
-        var paths = seriesEls[i].childNodes;
-        var dArr = {
-          type: type,
-          paths: [],
-          realIndex: seriesEls[i].getAttribute('data:realIndex')
-        };
-
-        for (var j = 0; j < paths.length; j++) {
-          if (paths[j].hasAttribute('pathTo')) {
-            var d = paths[j].getAttribute('pathTo');
-            if (type === 'area') {
-              if (paths[j].classList.contains('apexcharts-line') || paths[j].classList.contains('apexcharts-area')) {
-                dArr.paths.push({
-                  d: d
-                });
-              }
-            } else {
-              dArr.paths.push({
-                d: d
-              });
-            }
-          }
-        }
-
-        w.globals.previousPaths.push(dArr);
-      }
-
-      var linePaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-line-series .apexcharts-series');
-      if (linePaths.length > 0) {
-        for (var p = linePaths.length - 1; p >= 0; p--) {
-          pushPaths(linePaths, p, 'line');
-        }
-      }
-
-      var areapaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-area-series .apexcharts-series');
-
-      if (areapaths.length > 0) {
-        for (var i = areapaths.length - 1; i >= 0; i--) {
-          pushPaths(areapaths, i, 'area');
-        }
-      }
-
-      var barPaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bar-series .apexcharts-series');
-      if (barPaths.length > 0) {
-        for (var _p = 0; _p < barPaths.length; _p++) {
-          pushPaths(barPaths, _p, 'bar');
-        }
-      }
-
-      var candlestickPaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-candlestick-series .apexcharts-series');
-      if (candlestickPaths.length > 0) {
-        for (var _p2 = 0; _p2 < candlestickPaths.length; _p2++) {
-          pushPaths(candlestickPaths, _p2, 'candlestick');
-        }
-      }
-
-      var bubblepaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bubble-series .apexcharts-series');
-      if (bubblepaths.length > 0) {
-        for (var s = 0; s < bubblepaths.length; s++) {
-          var seriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bubble-series .apexcharts-series[data\\:realIndex=\'' + s + '\'] circle');
-          var dArr = [];
-
-          for (var _i = 0; _i < seriesEls.length; _i++) {
-            dArr.push({
-              x: seriesEls[_i].getAttribute('cx'),
-              y: seriesEls[_i].getAttribute('cy'),
-              r: seriesEls[_i].getAttribute('r')
-            });
-          }
-          w.globals.previousPaths.push(dArr);
-        }
-      }
-
-      var scatterpaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-scatter-series .apexcharts-series');
-      if (scatterpaths.length > 0) {
-        for (var _s = 0; _s < scatterpaths.length; _s++) {
-          var _seriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-scatter-series .apexcharts-series[data\\:realIndex=\'' + _s + '\'] circle');
-          var _dArr = [];
-
-          for (var _i2 = 0; _i2 < _seriesEls.length; _i2++) {
-            _dArr.push({
-              x: _seriesEls[_i2].getAttribute('cx'),
-              y: _seriesEls[_i2].getAttribute('cy'),
-              r: _seriesEls[_i2].getAttribute('r')
-            });
-          }
-          w.globals.previousPaths.push(_dArr);
-        }
-      }
-
-      var heatmapColors = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap .apexcharts-series');
-
-      if (heatmapColors.length > 0) {
-        for (var h = 0; h < heatmapColors.length; h++) {
-          var _seriesEls2 = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap .apexcharts-series[data\\:realIndex=\'' + h + '\'] rect');
-
-          var _dArr2 = [];
-
-          for (var _i3 = 0; _i3 < _seriesEls2.length; _i3++) {
-            _dArr2.push({
-              color: _seriesEls2[_i3].getAttribute('color')
-            });
-          }
-          w.globals.previousPaths.push(_dArr2);
-        }
-      }
-
-      if (!w.globals.axisCharts) {
-        // for non-axis charts (i.e., circular charts, pathFrom is not usable. We need whole series)
-        w.globals.previousPaths = w.globals.series;
-      }
-    }
-  }, {
-    key: 'handleNoData',
-    value: function handleNoData() {
-      var w = this.w;
-      var me = this;
-
-      var noDataOpts = w.config.noData;
-      var graphics = new _Graphics2.default(me.ctx);
-
-      var x = w.globals.svgWidth / 2;
-      var y = w.globals.svgHeight / 2;
-      var textAnchor = 'middle';
-
-      w.globals.noData = true;
-
-      if (noDataOpts.align === 'left') {
-        x = 10;
-        textAnchor = 'start';
-      } else if (noDataOpts.align === 'right') {
-        x = w.globals.svgWidth - 10;
-        textAnchor = 'end';
-      }
-
-      if (noDataOpts.verticalAlign === 'top') {
-        y = 50;
-      } else if (noDataOpts.verticalAlign === 'bottom') {
-        y = w.globals.svgHeight - 50;
-      }
-
-      x = x + noDataOpts.offsetX;
-      y = y + parseInt(noDataOpts.style.fontSize) + 2;
-
-      if (noDataOpts.text !== undefined && noDataOpts.text !== '') {
-        var titleText = graphics.drawText({
-          x: x,
-          y: y,
-          text: noDataOpts.text,
-          textAnchor: textAnchor,
-          fontSize: noDataOpts.style.fontSize,
-          fontFamily: noDataOpts.style.fontFamily,
-          foreColor: noDataOpts.style.color,
-          opacity: 1,
-          class: 'apexcharts-text-nodata'
-        });
-
-        titleText.node.setAttribute('class', 'apexcharts-title-text');
-
-        w.globals.dom.Paper.add(titleText);
-      }
-    }
-
-    // When user clicks on legends, the collapsed series is filled with [0,0,0,...,0]
-    // This is because we don't want to alter the series' length as it is used at many places
-
-  }, {
-    key: 'setNullSeriesToZeroValues',
-    value: function setNullSeriesToZeroValues(series) {
-      var w = this.w;
-      for (var sl = 0; sl < series.length; sl++) {
-        if (series[sl].length === 0) {
-          for (var j = 0; j < series[w.globals.maxValsInArrayIndex].length; j++) {
-            series[sl].push(0);
-          }
-        }
-      }
-      return series;
-    }
-  }, {
-    key: 'hasAllSeriesEqualX',
-    value: function hasAllSeriesEqualX() {
-      var equalLen = true;
-      var w = this.w;
-
-      var filteredSerX = this.filteredSeriesX();
-
-      for (var i = 0; i < filteredSerX.length - 1; i++) {
-        if (filteredSerX[i][0] !== filteredSerX[i + 1][0]) {
-          equalLen = false;
-          break;
-        }
-      }
-
-      w.globals.allSeriesHasEqualX = equalLen;
-
-      return equalLen;
-    }
-  }, {
-    key: 'filteredSeriesX',
-    value: function filteredSeriesX() {
-      var w = this.w;
-
-      var filteredSeriesX = w.globals.seriesX.map(function (ser, index) {
-        if (ser.length > 0) {
-          return ser;
-        } else {
-          return [];
-        }
-      });
-
-      return filteredSeriesX;
-    }
-  }]);
-
-  return Series;
-}();
-
-exports.default = Series;
-
-/***/ }),
-/* 28 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// 19.1.2.14 / 15.2.3.14 Object.keys(O)
-var $keys = __webpack_require__(65);
-var enumBugKeys = __webpack_require__(37);
-
-module.exports = Object.keys || function keys(O) {
-  return $keys(O, enumBugKeys);
-};
-
-/***/ }),
-/* 29 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var def = __webpack_require__(10).f;
-var has = __webpack_require__(12);
-var TAG = __webpack_require__(2)('toStringTag');
-
-module.exports = function (it, tag, stat) {
-  if (it && !has(it = stat ? it : it.prototype, TAG)) def(it, TAG, { configurable: true, value: tag });
-};
-
-/***/ }),
-/* 30 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// 7.1.13 ToObject(argument)
-var defined = __webpack_require__(35);
-module.exports = function (it) {
-  return Object(defined(it));
-};
-
-/***/ }),
-/* 31 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _DateTime = __webpack_require__(53);
-
-var _DateTime2 = _interopRequireDefault(_DateTime);
-
-var _Utils = __webpack_require__(1);
-
-var _Utils2 = _interopRequireDefault(_Utils);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Formatter Class for setting value formatters for axes as well as tooltips.
- *
- * @module Formatters
- **/
-
-var Formatters = function () {
-  function Formatters(ctx) {
-    _classCallCheck(this, Formatters);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-    this.tooltipKeyFormat = 'dd MMM';
-  }
-
-  _createClass(Formatters, [{
-    key: 'xLabelFormat',
-    value: function xLabelFormat(fn, val) {
-      var w = this.w;
-
-      if (w.config.xaxis.type === 'datetime') {
-        // if user has not specified a custom formatter, use the default tooltip.x.format
-        if (w.config.tooltip.x.formatter === undefined) {
-          var datetimeObj = new _DateTime2.default(this.ctx);
-          return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format, true, true);
-        }
-      }
-
-      return fn(val);
-    }
-  }, {
-    key: 'setLabelFormatters',
-    value: function setLabelFormatters() {
-      var w = this.w;
-
-      w.globals.xLabelFormatter = function (val) {
-        return val;
-      };
-
-      w.globals.xaxisTooltipFormatter = function (val) {
-        return val;
-      };
-
-      w.globals.ttKeyFormatter = function (val) {
-        return val;
-      };
-
-      w.globals.ttZFormatter = function (val) {
-        return val;
-      };
-
-      w.globals.legendFormatter = function (val) {
-        return val;
-      };
-
-      if (typeof w.config.tooltip.x.formatter === 'function') {
-        w.globals.ttKeyFormatter = w.config.tooltip.x.formatter;
-      }
-
-      if (typeof w.config.xaxis.tooltip.formatter === 'function') {
-        w.globals.xaxisTooltipFormatter = w.config.xaxis.tooltip.formatter;
-      }
-
-      if (Array.isArray(w.config.tooltip.y)) {
-        w.globals.ttVal = w.config.tooltip.y;
-      } else {
-        if (w.config.tooltip.y.formatter !== undefined) {
-          w.globals.ttVal = w.config.tooltip.y;
-        }
-      }
-
-      if (w.config.tooltip.z.formatter !== undefined) {
-        w.globals.ttZFormatter = w.config.tooltip.z.formatter;
-      }
-
-      // legend formatter - if user wants to append any global values of series to legend text
-      if (w.config.legend.formatter !== undefined) {
-        w.globals.legendFormatter = w.config.legend.formatter;
-      }
-
-      // formatter function will always overwrite format property
-      if (w.config.xaxis.labels.formatter !== undefined) {
-        w.globals.xLabelFormatter = w.config.xaxis.labels.formatter;
-      } else {
-        w.globals.xLabelFormatter = function (val) {
-          if (_Utils2.default.isNumber(val)) {
-            // numeric xaxis may have smaller range, so defaulting to 1 decimal
-            if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
-              return val.toFixed(1);
-            }
-            return val.toFixed(0);
-          }
-          return val;
-        };
-      }
-
-      // formatter function will always overwrite format property
-      w.config.yaxis.forEach(function (yaxe, i) {
-        if (yaxe.labels.formatter !== undefined) {
-          w.globals.yLabelFormatters[i] = yaxe.labels.formatter;
-        } else {
-          w.globals.yLabelFormatters[i] = function (val) {
-            if (_Utils2.default.isNumber(val)) {
-              if (w.globals.yValueDecimal !== 0) {
-                return val.toFixed(yaxe.decimalsInFloat);
-              } else {
-                return val.toFixed(0);
-              }
-            }
-            return val;
-          };
-        }
-      });
-
-      return w.globals;
-    }
-  }, {
-    key: 'heatmapLabelFormatters',
-    value: function heatmapLabelFormatters() {
-      var w = this.w;
-      if (w.config.chart.type === 'heatmap') {
-        w.globals.yAxisScale[0].result = w.globals.seriesNames.slice();
-
-        //  get the longest string from the labels array and also apply label formatter to it
-        var longest = w.globals.seriesNames.reduce(function (a, b) {
-          return a.length > b.length ? a : b;
-        }, 0);
-        w.globals.yAxisScale[0].niceMax = longest;
-        w.globals.yAxisScale[0].niceMin = longest;
-      }
-    }
-  }]);
-
-  return Formatters;
-}();
-
-exports.default = Formatters;
-
-/***/ }),
-/* 32 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -3601,7 +3007,851 @@ var Markers = function () {
 module.exports = Markers;
 
 /***/ }),
+/* 28 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Series Class for interation with the Series of the chart.
+ *
+ * @module Series
+ **/
+
+var Series = function () {
+  function Series(ctx) {
+    _classCallCheck(this, Series);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  _createClass(Series, [{
+    key: 'getAllSeriesEls',
+    value: function getAllSeriesEls() {
+      return this.w.globals.dom.baseEl.querySelectorAll('.apexcharts-series');
+    }
+  }, {
+    key: 'getSeriesByName',
+    value: function getSeriesByName(seriesName) {
+      return this.w.globals.dom.baseEl.querySelector('.apexcharts-series.' + seriesName.toString().replace(/ /g, '-'));
+    }
+  }, {
+    key: 'addCollapsedClassToSeries',
+    value: function addCollapsedClassToSeries(elSeries, index) {
+      var w = this.w;
+      for (var cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
+        if (w.globals.collapsedSeries[cs].index === index) {
+          elSeries.node.classList.add('apexcharts-series-collapsed');
+        }
+      }
+    }
+  }, {
+    key: 'toggleSeriesOnHover',
+    value: function toggleSeriesOnHover(e, targetElement) {
+      var w = this.w;
+
+      var allSeriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series');
+
+      if (e.type === 'mousemove') {
+        var seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1;
+
+        var seriesEl = null;
+        if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
+          if (w.globals.axisCharts) {
+            seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[data\\:realIndex=\'' + seriesCnt + '\']');
+          } else {
+            seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[rel=\'' + (seriesCnt + 1) + '\']');
+          }
+        } else {
+          seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[rel=\'' + (seriesCnt + 1) + '\'] path');
+        }
+
+        for (var se = 0; se < allSeriesEls.length; se++) {
+          allSeriesEls[se].classList.add('legend-mouseover-inactive');
+        }
+
+        if (seriesEl !== null) {
+          if (!w.globals.axisCharts) {
+            seriesEl.parentNode.classList.remove('legend-mouseover-inactive');
+          }
+
+          seriesEl.classList.remove('legend-mouseover-inactive');
+        }
+      } else if (e.type === 'mouseout') {
+        for (var _se = 0; _se < allSeriesEls.length; _se++) {
+          allSeriesEls[_se].classList.remove('legend-mouseover-inactive');
+        }
+      }
+    }
+  }, {
+    key: 'highlightRangeInSeries',
+    value: function highlightRangeInSeries(e, targetElement) {
+      var w = this.w;
+      var allHeatMapElements = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap-rect');
+
+      var allActive = function allActive() {
+        for (var i = 0; i < allHeatMapElements.length; i++) {
+          allHeatMapElements[i].classList.remove('legend-mouseover-inactive');
+        }
+      };
+      var allInactive = function allInactive() {
+        for (var i = 0; i < allHeatMapElements.length; i++) {
+          allHeatMapElements[i].classList.add('legend-mouseover-inactive');
+        }
+      };
+
+      var selectedActive = function selectedActive(range) {
+        for (var i = 0; i < allHeatMapElements.length; i++) {
+          var val = parseInt(allHeatMapElements[i].getAttribute('val'));
+          if (val >= range.from && val <= range.to) {
+            allHeatMapElements[i].classList.remove('legend-mouseover-inactive');
+          }
+        }
+      };
+
+      if (e.type === 'mousemove') {
+        var seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1;
+        allActive();
+        allInactive();
+
+        var range = w.config.plotOptions.heatmap.colorScale.ranges[seriesCnt];
+
+        selectedActive(range);
+      } else if (e.type === 'mouseout') {
+        allActive();
+      }
+    }
+  }, {
+    key: 'getActiveSeriesIndex',
+    value: function getActiveSeriesIndex() {
+      var w = this.w;
+      var activeIndex = 0;
+
+      if (w.globals.series.length > 1) {
+        // active series flag is required to know if user has not deactivated via legend click
+        var firstActiveSeriesIndex = w.globals.series.map(function (series, index) {
+          if (series.length > 0 && w.config.series[index].type !== 'bar' && w.config.series[index].type !== 'column') {
+            return index;
+          } else {
+            return -1;
+          }
+        });
+
+        for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
+          if (firstActiveSeriesIndex[a] !== -1) {
+            activeIndex = firstActiveSeriesIndex[a];
+            break;
+          }
+        }
+      }
+
+      return activeIndex;
+    }
+  }, {
+    key: 'getActiveConfigSeriesIndex',
+    value: function getActiveConfigSeriesIndex() {
+      var w = this.w;
+      var activeIndex = 0;
+
+      if (w.config.series.length > 1) {
+        // active series flag is required to know if user has not deactivated via legend click
+        var firstActiveSeriesIndex = w.config.series.map(function (series, index) {
+          if (series.data && series.data.length > 0) {
+            return index;
+          } else {
+            return -1;
+          }
+        });
+
+        for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
+          if (firstActiveSeriesIndex[a] !== -1) {
+            activeIndex = firstActiveSeriesIndex[a];
+            break;
+          }
+        }
+      }
+
+      return activeIndex;
+    }
+  }, {
+    key: 'getPreviousPaths',
+    value: function getPreviousPaths() {
+      var w = this.w;
+
+      w.globals.previousPaths = [];
+
+      function pushPaths(seriesEls, i, type) {
+        var paths = seriesEls[i].childNodes;
+        var dArr = {
+          type: type,
+          paths: [],
+          realIndex: seriesEls[i].getAttribute('data:realIndex')
+        };
+
+        for (var j = 0; j < paths.length; j++) {
+          if (paths[j].hasAttribute('pathTo')) {
+            var d = paths[j].getAttribute('pathTo');
+            dArr.paths.push({
+              d: d
+            });
+          }
+        }
+
+        w.globals.previousPaths.push(dArr);
+      }
+
+      var linePaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-line-series .apexcharts-series');
+      if (linePaths.length > 0) {
+        for (var p = linePaths.length - 1; p >= 0; p--) {
+          pushPaths(linePaths, p, 'line');
+        }
+      }
+
+      var areapaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-area-series .apexcharts-series');
+
+      if (areapaths.length > 0) {
+        for (var i = areapaths.length - 1; i >= 0; i--) {
+          pushPaths(areapaths, i, 'area');
+        }
+      }
+
+      var barPaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bar-series .apexcharts-series');
+      if (barPaths.length > 0) {
+        for (var _p = 0; _p < barPaths.length; _p++) {
+          pushPaths(barPaths, _p, 'bar');
+        }
+      }
+
+      var candlestickPaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-candlestick-series .apexcharts-series');
+      if (candlestickPaths.length > 0) {
+        for (var _p2 = 0; _p2 < candlestickPaths.length; _p2++) {
+          pushPaths(candlestickPaths, _p2, 'candlestick');
+        }
+      }
+
+      var radarPaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-radar-series .apexcharts-series');
+      if (radarPaths.length > 0) {
+        for (var _p3 = 0; _p3 < radarPaths.length; _p3++) {
+          pushPaths(radarPaths, _p3, 'radar');
+        }
+      }
+
+      var bubblepaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bubble-series .apexcharts-series');
+      if (bubblepaths.length > 0) {
+        for (var s = 0; s < bubblepaths.length; s++) {
+          var seriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-bubble-series .apexcharts-series[data\\:realIndex=\'' + s + '\'] circle');
+          var dArr = [];
+
+          for (var _i = 0; _i < seriesEls.length; _i++) {
+            dArr.push({
+              x: seriesEls[_i].getAttribute('cx'),
+              y: seriesEls[_i].getAttribute('cy'),
+              r: seriesEls[_i].getAttribute('r')
+            });
+          }
+          w.globals.previousPaths.push(dArr);
+        }
+      }
+
+      var scatterpaths = w.globals.dom.baseEl.querySelectorAll('.apexcharts-scatter-series .apexcharts-series');
+      if (scatterpaths.length > 0) {
+        for (var _s = 0; _s < scatterpaths.length; _s++) {
+          var _seriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-scatter-series .apexcharts-series[data\\:realIndex=\'' + _s + '\'] circle');
+          var _dArr = [];
+
+          for (var _i2 = 0; _i2 < _seriesEls.length; _i2++) {
+            _dArr.push({
+              x: _seriesEls[_i2].getAttribute('cx'),
+              y: _seriesEls[_i2].getAttribute('cy'),
+              r: _seriesEls[_i2].getAttribute('r')
+            });
+          }
+          w.globals.previousPaths.push(_dArr);
+        }
+      }
+
+      var heatmapColors = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap .apexcharts-series');
+
+      if (heatmapColors.length > 0) {
+        for (var h = 0; h < heatmapColors.length; h++) {
+          var _seriesEls2 = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap .apexcharts-series[data\\:realIndex=\'' + h + '\'] rect');
+
+          var _dArr2 = [];
+
+          for (var _i3 = 0; _i3 < _seriesEls2.length; _i3++) {
+            _dArr2.push({
+              color: _seriesEls2[_i3].getAttribute('color')
+            });
+          }
+          w.globals.previousPaths.push(_dArr2);
+        }
+      }
+
+      if (!w.globals.axisCharts) {
+        // for non-axis charts (i.e., circular charts, pathFrom is not usable. We need whole series)
+        w.globals.previousPaths = w.globals.series;
+      }
+    }
+  }, {
+    key: 'handleNoData',
+    value: function handleNoData() {
+      var w = this.w;
+      var me = this;
+
+      var noDataOpts = w.config.noData;
+      var graphics = new _Graphics2.default(me.ctx);
+
+      var x = w.globals.svgWidth / 2;
+      var y = w.globals.svgHeight / 2;
+      var textAnchor = 'middle';
+
+      w.globals.noData = true;
+
+      if (noDataOpts.align === 'left') {
+        x = 10;
+        textAnchor = 'start';
+      } else if (noDataOpts.align === 'right') {
+        x = w.globals.svgWidth - 10;
+        textAnchor = 'end';
+      }
+
+      if (noDataOpts.verticalAlign === 'top') {
+        y = 50;
+      } else if (noDataOpts.verticalAlign === 'bottom') {
+        y = w.globals.svgHeight - 50;
+      }
+
+      x = x + noDataOpts.offsetX;
+      y = y + parseInt(noDataOpts.style.fontSize) + 2;
+
+      if (noDataOpts.text !== undefined && noDataOpts.text !== '') {
+        var titleText = graphics.drawText({
+          x: x,
+          y: y,
+          text: noDataOpts.text,
+          textAnchor: textAnchor,
+          fontSize: noDataOpts.style.fontSize,
+          fontFamily: noDataOpts.style.fontFamily,
+          foreColor: noDataOpts.style.color,
+          opacity: 1,
+          class: 'apexcharts-text-nodata'
+        });
+
+        titleText.node.setAttribute('class', 'apexcharts-title-text');
+
+        w.globals.dom.Paper.add(titleText);
+      }
+    }
+
+    // When user clicks on legends, the collapsed series is filled with [0,0,0,...,0]
+    // This is because we don't want to alter the series' length as it is used at many places
+
+  }, {
+    key: 'setNullSeriesToZeroValues',
+    value: function setNullSeriesToZeroValues(series) {
+      var w = this.w;
+      for (var sl = 0; sl < series.length; sl++) {
+        if (series[sl].length === 0) {
+          for (var j = 0; j < series[w.globals.maxValsInArrayIndex].length; j++) {
+            series[sl].push(0);
+          }
+        }
+      }
+      return series;
+    }
+  }, {
+    key: 'hasAllSeriesEqualX',
+    value: function hasAllSeriesEqualX() {
+      var equalLen = true;
+      var w = this.w;
+
+      var filteredSerX = this.filteredSeriesX();
+
+      for (var i = 0; i < filteredSerX.length - 1; i++) {
+        if (filteredSerX[i][0] !== filteredSerX[i + 1][0]) {
+          equalLen = false;
+          break;
+        }
+      }
+
+      w.globals.allSeriesHasEqualX = equalLen;
+
+      return equalLen;
+    }
+  }, {
+    key: 'filteredSeriesX',
+    value: function filteredSeriesX() {
+      var w = this.w;
+
+      var filteredSeriesX = w.globals.seriesX.map(function (ser, index) {
+        if (ser.length > 0) {
+          return ser;
+        } else {
+          return [];
+        }
+      });
+
+      return filteredSeriesX;
+    }
+  }]);
+
+  return Series;
+}();
+
+exports.default = Series;
+
+/***/ }),
+/* 29 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// 19.1.2.14 / 15.2.3.14 Object.keys(O)
+var $keys = __webpack_require__(65);
+var enumBugKeys = __webpack_require__(38);
+
+module.exports = Object.keys || function keys(O) {
+  return $keys(O, enumBugKeys);
+};
+
+/***/ }),
+/* 30 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var def = __webpack_require__(10).f;
+var has = __webpack_require__(13);
+var TAG = __webpack_require__(2)('toStringTag');
+
+module.exports = function (it, tag, stat) {
+  if (it && !has(it = stat ? it : it.prototype, TAG)) def(it, TAG, { configurable: true, value: tag });
+};
+
+/***/ }),
+/* 31 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// 7.1.13 ToObject(argument)
+var defined = __webpack_require__(36);
+module.exports = function (it) {
+  return Object(defined(it));
+};
+
+/***/ }),
+/* 32 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Scatter = __webpack_require__(75);
+
+var _Scatter2 = _interopRequireDefault(_Scatter);
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+var _Filters = __webpack_require__(5);
+
+var _Filters2 = _interopRequireDefault(_Filters);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
+ *
+ * @module DataLabels
+ **/
+
+var DataLabels = function () {
+  function DataLabels(ctx) {
+    _classCallCheck(this, DataLabels);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+  }
+
+  // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
+  // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
+
+
+  _createClass(DataLabels, [{
+    key: 'dataLabelsCorrection',
+    value: function dataLabelsCorrection(x, y, val, i, dataPointIndex, alwaysDrawDataLabel, fontSize) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+      var drawnextLabel = false; //
+
+      var textRects = graphics.getTextRects(val, fontSize);
+      var width = textRects.width;
+      var height = textRects.height;
+
+      // first value in series, so push an empty array
+      if (typeof w.globals.dataLabelsRects[i] === 'undefined') w.globals.dataLabelsRects[i] = [];
+
+      // then start pushing actual rects in that sub-array
+      w.globals.dataLabelsRects[i].push({ x: x, y: y, width: width, height: height });
+
+      var len = w.globals.dataLabelsRects[i].length - 2;
+      var lastDrawnIndex = typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined' ? w.globals.lastDrawnDataLabelsIndexes[i][w.globals.lastDrawnDataLabelsIndexes[i].length - 1] : 0;
+
+      if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
+        var lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex];
+        if (
+        // next label forward and x not intersecting
+        x > lastDataLabelRect.x + lastDataLabelRect.width + 2 || y > lastDataLabelRect.y + lastDataLabelRect.height + 2 || x + width < lastDataLabelRect.x // next label is going to be drawn backwards
+        ) {
+            // the 2 indexes don't override, so OK to draw next label
+            drawnextLabel = true;
+          }
+      }
+
+      if (dataPointIndex === 0 || alwaysDrawDataLabel) {
+        drawnextLabel = true;
+      }
+
+      return {
+        x: x,
+        y: y,
+        drawnextLabel: drawnextLabel
+      };
+    }
+  }, {
+    key: 'drawDataLabel',
+    value: function drawDataLabel(pos, i, j) {
+      var z = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
+      // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
+      // all other charts like bars / heatmaps will define their own drawDataLabel routine
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+
+      var dataLabelsConfig = w.config.dataLabels;
+
+      var x = 0;
+      var y = 0;
+
+      var dataPointIndex = j;
+
+      var elDataLabelsWrap = null;
+
+      if (!dataLabelsConfig.enabled || pos.x instanceof Array !== true) {
+        return elDataLabelsWrap;
+      }
+
+      elDataLabelsWrap = graphics.group({
+        class: 'apexcharts-data-labels'
+      });
+
+      for (var q = 0; q < pos.x.length; q++) {
+        x = pos.x[q] + dataLabelsConfig.offsetX;
+        y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5;
+
+        if (!isNaN(x)) {
+          // a small hack as we have 2 points for the first val to connect it
+          if (j === 1 && q === 0) dataPointIndex = 0;
+          if (j === 1 && q === 1) dataPointIndex = 1;
+
+          var val = w.globals.series[i][dataPointIndex];
+
+          var text = '';
+
+          if (w.config.chart.type === 'bubble') {
+            text = w.globals.seriesZ[i][dataPointIndex];
+            y = pos.y[q] + w.config.dataLabels.offsetY;
+            var scatter = new _Scatter2.default(this.ctx);
+            var centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, dataPointIndex);
+            y = centerTextInBubbleCoords.y;
+          } else {
+            if (typeof val !== 'undefined') {
+              text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: dataPointIndex, w: w });
+            }
+          }
+
+          this.plotDataLabelsText({ x: x, y: y, text: text, i: i, j: dataPointIndex, parent: elDataLabelsWrap, offsetCorrection: true, dataLabelsConfig: w.config.dataLabels });
+        }
+      }
+
+      return elDataLabelsWrap;
+    }
+  }, {
+    key: 'plotDataLabelsText',
+    value: function plotDataLabelsText(opts) {
+      var w = this.w;
+      var graphics = new _Graphics2.default(this.ctx);
+      var x = opts.x,
+          y = opts.y,
+          i = opts.i,
+          j = opts.j,
+          text = opts.text,
+          textAnchor = opts.textAnchor,
+          parent = opts.parent,
+          dataLabelsConfig = opts.dataLabelsConfig,
+          alwaysDrawDataLabel = opts.alwaysDrawDataLabel,
+          offsetCorrection = opts.offsetCorrection;
+
+
+      var correctedLabels = {
+        x: x,
+        y: y,
+        drawnextLabel: true
+      };
+
+      if (offsetCorrection) {
+        correctedLabels = this.dataLabelsCorrection(x, y, text, i, j, alwaysDrawDataLabel, parseInt(dataLabelsConfig.style.fontSize));
+      }
+
+      // when zoomed, we don't need to correct labels offsets,
+      // but if normally, labels get cropped, correct them
+      if (!w.globals.zoomed) {
+        x = correctedLabels.x;
+        y = correctedLabels.y;
+      }
+
+      if (correctedLabels.drawnextLabel) {
+        var dataLabelText = graphics.drawText({
+          width: 100,
+          height: parseInt(dataLabelsConfig.style.fontSize),
+          x: x,
+          y: y,
+          foreColor: w.globals.dataLabels.style.colors[i],
+          textAnchor: textAnchor || dataLabelsConfig.textAnchor,
+          text: text,
+          fontSize: dataLabelsConfig.style.fontSize,
+          fontFamily: dataLabelsConfig.style.fontFamily
+        });
+
+        dataLabelText.attr({
+          class: 'apexcharts-datalabel',
+          cx: x,
+          cy: y
+        });
+
+        if (offsetCorrection) {
+          dataLabelText.attr({
+            'clip-path': 'url(#gridRectMask' + w.globals.cuid + ')'
+          });
+        }
+
+        if (dataLabelsConfig.dropShadow.enabled) {
+          var textShadow = dataLabelsConfig.dropShadow;
+          var filters = new _Filters2.default(this.ctx);
+          filters.dropShadow(dataLabelText, textShadow);
+        }
+
+        parent.add(dataLabelText);
+
+        if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
+          w.globals.lastDrawnDataLabelsIndexes[i] = [];
+        }
+
+        w.globals.lastDrawnDataLabelsIndexes[i].push(j);
+      }
+    }
+  }]);
+
+  return DataLabels;
+}();
+
+exports.default = DataLabels;
+
+/***/ }),
 /* 33 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _DateTime = __webpack_require__(53);
+
+var _DateTime2 = _interopRequireDefault(_DateTime);
+
+var _Utils = __webpack_require__(1);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Formatter Class for setting value formatters for axes as well as tooltips.
+ *
+ * @module Formatters
+ **/
+
+var Formatters = function () {
+  function Formatters(ctx) {
+    _classCallCheck(this, Formatters);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+    this.tooltipKeyFormat = 'dd MMM';
+  }
+
+  _createClass(Formatters, [{
+    key: 'xLabelFormat',
+    value: function xLabelFormat(fn, val) {
+      var w = this.w;
+
+      if (w.config.xaxis.type === 'datetime') {
+        // if user has not specified a custom formatter, use the default tooltip.x.format
+        if (w.config.tooltip.x.formatter === undefined) {
+          var datetimeObj = new _DateTime2.default(this.ctx);
+          return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format, true, true);
+        }
+      }
+
+      return fn(val);
+    }
+  }, {
+    key: 'setLabelFormatters',
+    value: function setLabelFormatters() {
+      var w = this.w;
+
+      w.globals.xLabelFormatter = function (val) {
+        return val;
+      };
+
+      w.globals.xaxisTooltipFormatter = function (val) {
+        return val;
+      };
+
+      w.globals.ttKeyFormatter = function (val) {
+        return val;
+      };
+
+      w.globals.ttZFormatter = function (val) {
+        return val;
+      };
+
+      w.globals.legendFormatter = function (val) {
+        return val;
+      };
+
+      if (typeof w.config.tooltip.x.formatter === 'function') {
+        w.globals.ttKeyFormatter = w.config.tooltip.x.formatter;
+      }
+
+      if (typeof w.config.xaxis.tooltip.formatter === 'function') {
+        w.globals.xaxisTooltipFormatter = w.config.xaxis.tooltip.formatter;
+      }
+
+      if (Array.isArray(w.config.tooltip.y)) {
+        w.globals.ttVal = w.config.tooltip.y;
+      } else {
+        if (w.config.tooltip.y.formatter !== undefined) {
+          w.globals.ttVal = w.config.tooltip.y;
+        }
+      }
+
+      if (w.config.tooltip.z.formatter !== undefined) {
+        w.globals.ttZFormatter = w.config.tooltip.z.formatter;
+      }
+
+      // legend formatter - if user wants to append any global values of series to legend text
+      if (w.config.legend.formatter !== undefined) {
+        w.globals.legendFormatter = w.config.legend.formatter;
+      }
+
+      // formatter function will always overwrite format property
+      if (w.config.xaxis.labels.formatter !== undefined) {
+        w.globals.xLabelFormatter = w.config.xaxis.labels.formatter;
+      } else {
+        w.globals.xLabelFormatter = function (val) {
+          if (_Utils2.default.isNumber(val)) {
+            // numeric xaxis may have smaller range, so defaulting to 1 decimal
+            if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
+              return val.toFixed(1);
+            }
+            return val.toFixed(0);
+          }
+          return val;
+        };
+      }
+
+      // formatter function will always overwrite format property
+      w.config.yaxis.forEach(function (yaxe, i) {
+        if (yaxe.labels.formatter !== undefined) {
+          w.globals.yLabelFormatters[i] = yaxe.labels.formatter;
+        } else {
+          w.globals.yLabelFormatters[i] = function (val) {
+            if (_Utils2.default.isNumber(val)) {
+              if (w.globals.yValueDecimal !== 0) {
+                return val.toFixed(yaxe.decimalsInFloat);
+              } else {
+                return val.toFixed(0);
+              }
+            }
+            return val;
+          };
+        }
+      });
+
+      return w.globals;
+    }
+  }, {
+    key: 'heatmapLabelFormatters',
+    value: function heatmapLabelFormatters() {
+      var w = this.w;
+      if (w.config.chart.type === 'heatmap') {
+        w.globals.yAxisScale[0].result = w.globals.seriesNames.slice();
+
+        //  get the longest string from the labels array and also apply label formatter to it
+        var longest = w.globals.seriesNames.reduce(function (a, b) {
+          return a.length > b.length ? a : b;
+        }, 0);
+        w.globals.yAxisScale[0].niceMax = longest;
+        w.globals.yAxisScale[0].niceMin = longest;
+      }
+    }
+  }]);
+
+  return Formatters;
+}();
+
+exports.default = Formatters;
+
+/***/ }),
+/* 34 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3610,13 +3860,13 @@ module.exports = Markers;
 // 22.1.3.31 Array.prototype[@@unscopables]
 var UNSCOPABLES = __webpack_require__(2)('unscopables');
 var ArrayProto = Array.prototype;
-if (ArrayProto[UNSCOPABLES] == undefined) __webpack_require__(13)(ArrayProto, UNSCOPABLES, {});
+if (ArrayProto[UNSCOPABLES] == undefined) __webpack_require__(14)(ArrayProto, UNSCOPABLES, {});
 module.exports = function (key) {
   ArrayProto[UNSCOPABLES][key] = true;
 };
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3649,7 +3899,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3662,7 +3912,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3677,7 +3927,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 37 */
+/* 38 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3687,7 +3937,7 @@ module.exports = function (it) {
 module.exports = 'constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,toLocaleString,toString,valueOf'.split(',');
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3701,7 +3951,7 @@ module.exports = Object('z').propertyIsEnumerable(0) ? Object : function (it) {
 };
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3726,7 +3976,7 @@ module.exports.f = function (C) {
 };
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3735,20 +3985,20 @@ module.exports.f = function (C) {
 exports.f = {}.propertyIsEnumerable;
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var shared = __webpack_require__(42)('keys');
+var shared = __webpack_require__(43)('keys');
 var uid = __webpack_require__(25);
 module.exports = function (key) {
   return shared[key] || (shared[key] = uid(key));
 };
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3768,7 +4018,7 @@ var store = global[SHARED] || (global[SHARED] = {});
 });
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3782,7 +4032,7 @@ module.exports = function (it) {
 };
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3802,7 +4052,7 @@ module.exports = function (it, S) {
 };
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3819,7 +4069,7 @@ module.exports = function (name) {
 };
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3831,15 +4081,15 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
-var _Fill = __webpack_require__(14);
+var _Fill = __webpack_require__(11);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -3847,7 +4097,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _DataLabels = __webpack_require__(47);
+var _DataLabels = __webpack_require__(32);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
@@ -4647,7 +4897,17 @@ var Bar = function () {
         if (typeof val !== 'undefined' && val !== null) {
           text = formatter(val, { seriesIndex: i, dataPointIndex: j, w: w });
         }
-        dataLabels.plotDataLabelsText(x, y, text, i, j, elDataLabelsWrap, dataLabelsConfig, true);
+        dataLabels.plotDataLabelsText({
+          x: x,
+          y: y,
+          text: text,
+          i: i,
+          j: j,
+          parent: elDataLabelsWrap,
+          dataLabelsConfig: dataLabelsConfig,
+          alwaysDrawDataLabel: true,
+          offsetCorrection: true
+        });
       }
 
       return elDataLabelsWrap;
@@ -4775,211 +5035,6 @@ var Bar = function () {
 exports.default = Bar;
 
 /***/ }),
-/* 47 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Scatter = __webpack_require__(75);
-
-var _Scatter2 = _interopRequireDefault(_Scatter);
-
-var _Graphics = __webpack_require__(0);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-var _Filters = __webpack_require__(7);
-
-var _Filters2 = _interopRequireDefault(_Filters);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
- *
- * @module DataLabels
- **/
-
-var DataLabels = function () {
-  function DataLabels(ctx) {
-    _classCallCheck(this, DataLabels);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-  }
-
-  // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
-  // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
-
-
-  _createClass(DataLabels, [{
-    key: 'dataLabelsCorrection',
-    value: function dataLabelsCorrection(x, y, val, i, dataPointIndex, alwaysDrawDataLabel, fontSize) {
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-      var drawnextLabel = false; //
-
-      var textRects = graphics.getTextRects(val, fontSize);
-      var width = textRects.width;
-      var height = textRects.height;
-
-      // first value in series, so push an empty array
-      if (typeof w.globals.dataLabelsRects[i] === 'undefined') w.globals.dataLabelsRects[i] = [];
-
-      // then start pushing actual rects in that sub-array
-      w.globals.dataLabelsRects[i].push({ x: x, y: y, width: width, height: height });
-
-      var len = w.globals.dataLabelsRects[i].length - 2;
-      var lastDrawnIndex = typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined' ? w.globals.lastDrawnDataLabelsIndexes[i][w.globals.lastDrawnDataLabelsIndexes[i].length - 1] : 0;
-
-      if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
-        var lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex];
-        if (
-        // next label forward and x not intersecting
-        x > lastDataLabelRect.x + lastDataLabelRect.width + 2 || y > lastDataLabelRect.y + lastDataLabelRect.height + 2 || x + width < lastDataLabelRect.x // next label is going to be drawn backwards
-        ) {
-            // the 2 indexes don't override, so OK to draw next label
-            drawnextLabel = true;
-          }
-      }
-
-      if (dataPointIndex === 0 || alwaysDrawDataLabel) {
-        drawnextLabel = true;
-      }
-
-      return {
-        x: x,
-        y: y,
-        drawnextLabel: drawnextLabel
-      };
-    }
-  }, {
-    key: 'drawDataLabel',
-    value: function drawDataLabel(pos, i, j) {
-      var z = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
-
-      // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
-      // all other charts like bars / heatmaps will define their own drawDataLabel routine
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var dataLabelsConfig = w.config.dataLabels;
-
-      var x = 0;
-      var y = 0;
-
-      var dataPointIndex = j;
-
-      var elDataLabelsWrap = null;
-
-      if (!dataLabelsConfig.enabled || pos.x instanceof Array !== true) {
-        return elDataLabelsWrap;
-      }
-
-      elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-data-labels'
-      });
-
-      for (var q = 0; q < pos.x.length; q++) {
-        x = pos.x[q] + dataLabelsConfig.offsetX;
-        y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5;
-
-        if (!isNaN(x)) {
-          // a small hack as we have 2 points for the first val to connect it
-          if (j === 1 && q === 0) dataPointIndex = 0;
-          if (j === 1 && q === 1) dataPointIndex = 1;
-
-          var val = w.globals.series[i][dataPointIndex];
-
-          var text = '';
-
-          if (w.config.chart.type === 'bubble') {
-            text = w.globals.seriesZ[i][dataPointIndex];
-            y = pos.y[q] + w.config.dataLabels.offsetY;
-            var scatter = new _Scatter2.default(this.ctx);
-            var centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, dataPointIndex);
-            y = centerTextInBubbleCoords.y;
-          } else {
-            if (typeof val !== 'undefined') {
-              text = w.config.dataLabels.formatter(val, { seriesIndex: i, dataPointIndex: dataPointIndex, w: w });
-            }
-          }
-
-          this.plotDataLabelsText(x, y, text, i, dataPointIndex, elDataLabelsWrap, w.config.dataLabels);
-        }
-      }
-
-      return elDataLabelsWrap;
-    }
-  }, {
-    key: 'plotDataLabelsText',
-    value: function plotDataLabelsText(x, y, text, i, j, elToAppendTo, dataLabelsConfig) {
-      var alwaysDrawDataLabel = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : false;
-
-      var w = this.w;
-      var graphics = new _Graphics2.default(this.ctx);
-
-      var correctedLabels = this.dataLabelsCorrection(x, y, text, i, j, alwaysDrawDataLabel, parseInt(dataLabelsConfig.style.fontSize));
-
-      // when zoomed, we don't need to correct labels offsets,
-      // but if normally, labels get cropped, correct them
-      if (!w.globals.zoomed) {
-        x = correctedLabels.x;
-        y = correctedLabels.y;
-      }
-
-      if (correctedLabels.drawnextLabel) {
-        var dataLabelText = graphics.drawText({
-          width: 100,
-          height: parseInt(dataLabelsConfig.style.fontSize),
-          x: x,
-          y: y,
-          foreColor: w.globals.dataLabels.style.colors[i],
-          textAnchor: dataLabelsConfig.textAnchor,
-          text: text,
-          fontSize: dataLabelsConfig.style.fontSize,
-          fontFamily: dataLabelsConfig.style.fontFamily
-        });
-
-        dataLabelText.attr({
-          class: 'apexcharts-datalabel',
-          cx: x,
-          cy: y,
-          'clip-path': 'url(#gridRectMask' + w.globals.cuid + ')'
-        });
-
-        if (dataLabelsConfig.dropShadow.enabled) {
-          var textShadow = dataLabelsConfig.dropShadow;
-          var filters = new _Filters2.default(this.ctx);
-          filters.dropShadow(dataLabelText, textShadow);
-        }
-
-        elToAppendTo.add(dataLabelText);
-
-        if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
-          w.globals.lastDrawnDataLabelsIndexes[i] = [];
-        }
-
-        w.globals.lastDrawnDataLabelsIndexes[i].push(j);
-      }
-    }
-  }]);
-
-  return DataLabels;
-}();
-
-exports.default = DataLabels;
-
-/***/ }),
 /* 48 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -4992,7 +5047,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Formatters = __webpack_require__(31);
+var _Formatters = __webpack_require__(33);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
@@ -5140,7 +5195,7 @@ var Dimensions = function () {
       gl.xAxisHeight = this.xAxisHeight;
       var translateY = 10;
 
-      if (!w.config.grid.show) {
+      if (!w.config.grid.show || w.config.chart.type === 'radar') {
         yAxisWidth = 0;
         xAxisHeight = 35;
       }
@@ -5640,7 +5695,7 @@ var _YAxis = __webpack_require__(50);
 
 var _YAxis2 = _interopRequireDefault(_YAxis);
 
-var _Formatters = __webpack_require__(31);
+var _Formatters = __webpack_require__(33);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
@@ -6492,7 +6547,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Defaults = __webpack_require__(142);
+var _Defaults = __webpack_require__(143);
 
 var _Defaults2 = _interopRequireDefault(_Defaults);
 
@@ -6580,6 +6635,9 @@ var Config = function () {
             break;
           case 'donut':
             chartDefaults = defaults.donut();
+            break;
+          case 'radar':
+            chartDefaults = defaults.radar();
             break;
           case 'radialBar':
             chartDefaults = defaults.radialBar();
@@ -7024,6 +7082,7 @@ var Options = function () {
           },
           brush: {
             enabled: false,
+            autoScaleYaxis: false,
             target: undefined
           },
           stacked: false,
@@ -7214,6 +7273,18 @@ var Options = function () {
                     }, 0);
                   }
                 }
+              }
+            }
+          },
+          radar: {
+            size: undefined,
+            customScale: 1,
+            offsetX: 0,
+            offsetY: 0,
+            polygons: {
+              strokeColor: '#e8e8e8',
+              fill: {
+                colors: undefined
               }
             }
           }
@@ -7907,8 +7978,8 @@ module.exports = document && document.documentElement;
 "use strict";
 
 
-module.exports = !__webpack_require__(11) && !__webpack_require__(20)(function () {
-  return Object.defineProperty(__webpack_require__(36)('div'), 'a', { get: function get() {
+module.exports = !__webpack_require__(12) && !__webpack_require__(20)(function () {
+  return Object.defineProperty(__webpack_require__(37)('div'), 'a', { get: function get() {
       return 7;
     } }).a != 7;
 });
@@ -7970,12 +8041,12 @@ module.exports = function (iterator, fn, value, entries) {
 
 
 var LIBRARY = __webpack_require__(22);
-var $export = __webpack_require__(5);
+var $export = __webpack_require__(6);
 var redefine = __webpack_require__(16);
-var hide = __webpack_require__(13);
+var hide = __webpack_require__(14);
 var Iterators = __webpack_require__(21);
 var $iterCreate = __webpack_require__(100);
-var setToStringTag = __webpack_require__(29);
+var setToStringTag = __webpack_require__(30);
 var getPrototypeOf = __webpack_require__(107);
 var ITERATOR = __webpack_require__(2)('iterator');
 var BUGGY = !([].keys && 'next' in [].keys()); // Safari has buggy iterators w/o `next`
@@ -8098,15 +8169,15 @@ module.exports = function (exec, skipClosing) {
 // 19.1.2.2 / 15.2.3.5 Object.create(O [, Properties])
 var anObject = __webpack_require__(8);
 var dPs = __webpack_require__(104);
-var enumBugKeys = __webpack_require__(37);
-var IE_PROTO = __webpack_require__(41)('IE_PROTO');
+var enumBugKeys = __webpack_require__(38);
+var IE_PROTO = __webpack_require__(42)('IE_PROTO');
 var Empty = function Empty() {/* empty */};
 var PROTOTYPE = 'prototype';
 
 // Create object with fake `null` prototype: use iframe Object with cleared prototype
 var _createDict = function createDict() {
   // Thrash, waste and sodomy: IE GC bug
-  var iframe = __webpack_require__(36)('iframe');
+  var iframe = __webpack_require__(37)('iframe');
   var i = enumBugKeys.length;
   var lt = '<';
   var gt = '>';
@@ -8147,7 +8218,7 @@ module.exports = Object.create || function create(O, Properties) {
 
 // 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
 var $keys = __webpack_require__(65);
-var hiddenKeys = __webpack_require__(37).concat('length', 'prototype');
+var hiddenKeys = __webpack_require__(38).concat('length', 'prototype');
 
 exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
   return $keys(O, hiddenKeys);
@@ -8169,10 +8240,10 @@ exports.f = Object.getOwnPropertySymbols;
 "use strict";
 
 
-var has = __webpack_require__(12);
+var has = __webpack_require__(13);
 var toIObject = __webpack_require__(17);
 var arrayIndexOf = __webpack_require__(54)(false);
-var IE_PROTO = __webpack_require__(41)('IE_PROTO');
+var IE_PROTO = __webpack_require__(42)('IE_PROTO');
 
 module.exports = function (object, names) {
   var O = toIObject(object);
@@ -8213,7 +8284,7 @@ module.exports = function (exec) {
 
 var anObject = __webpack_require__(8);
 var isObject = __webpack_require__(9);
-var newPromiseCapability = __webpack_require__(39);
+var newPromiseCapability = __webpack_require__(40);
 
 module.exports = function (C, x) {
   anObject(C);
@@ -8251,7 +8322,7 @@ module.exports = function (O, D) {
 var ctx = __webpack_require__(15);
 var invoke = __webpack_require__(99);
 var html = __webpack_require__(55);
-var cel = __webpack_require__(36);
+var cel = __webpack_require__(37);
 var global = __webpack_require__(3);
 var process = global.process;
 var setTask = global.setImmediate;
@@ -8350,7 +8421,7 @@ exports.f = __webpack_require__(2);
 "use strict";
 
 
-var classof = __webpack_require__(34);
+var classof = __webpack_require__(35);
 var ITERATOR = __webpack_require__(2)('iterator');
 var Iterators = __webpack_require__(21);
 module.exports = __webpack_require__(4).getIteratorMethod = function (it) {
@@ -8365,7 +8436,7 @@ module.exports = __webpack_require__(4).getIteratorMethod = function (it) {
 
 // 19.1.3.6 Object.prototype.toString()
 
-var classof = __webpack_require__(34);
+var classof = __webpack_require__(35);
 var test = {};
 test[__webpack_require__(2)('toStringTag')] = 'z';
 if (test + '' != '[object z]') {
@@ -8411,7 +8482,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Fill = __webpack_require__(14);
+var _Fill = __webpack_require__(11);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -8423,7 +8494,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -9153,11 +9224,11 @@ var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
-var _Fill = __webpack_require__(14);
+var _Fill = __webpack_require__(11);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -9165,7 +9236,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Markers = __webpack_require__(32);
+var _Markers = __webpack_require__(27);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -9366,7 +9437,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -9603,7 +9674,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Scales = __webpack_require__(137);
+var _Scales = __webpack_require__(138);
 
 var _Scales2 = _interopRequireDefault(_Scales);
 
@@ -10747,31 +10818,31 @@ var _Exports = __webpack_require__(77);
 
 var _Exports2 = _interopRequireDefault(_Exports);
 
-var _icoPanHand = __webpack_require__(164);
+var _icoPanHand = __webpack_require__(165);
 
 var _icoPanHand2 = _interopRequireDefault(_icoPanHand);
 
-var _icoZoomIn = __webpack_require__(167);
+var _icoZoomIn = __webpack_require__(168);
 
 var _icoZoomIn2 = _interopRequireDefault(_icoZoomIn);
 
-var _icoHome = __webpack_require__(161);
+var _icoHome = __webpack_require__(162);
 
 var _icoHome2 = _interopRequireDefault(_icoHome);
 
-var _icoPlus = __webpack_require__(165);
+var _icoPlus = __webpack_require__(166);
 
 var _icoPlus2 = _interopRequireDefault(_icoPlus);
 
-var _icoMinus = __webpack_require__(163);
+var _icoMinus = __webpack_require__(164);
 
 var _icoMinus2 = _interopRequireDefault(_icoMinus);
 
-var _icoSelect = __webpack_require__(166);
+var _icoSelect = __webpack_require__(167);
 
 var _icoSelect2 = _interopRequireDefault(_icoSelect);
 
-var _icoMenu = __webpack_require__(162);
+var _icoMenu = __webpack_require__(163);
 
 var _icoMenu2 = _interopRequireDefault(_icoMenu);
 
@@ -10823,7 +10894,7 @@ var Toolbar = function () {
           el: this.elSelection,
           icon: _icoSelect2.default,
           title: this.localeValues.selection,
-          class: 'apexcharts-selection-icon'
+          class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-selection-icon'
         });
       }
 
@@ -10850,7 +10921,7 @@ var Toolbar = function () {
           el: this.elZoom,
           icon: _icoZoomIn2.default,
           title: this.localeValues.selectionZoom,
-          class: 'apexcharts-zoom-icon'
+          class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-zoom-icon'
         });
       }
 
@@ -10859,7 +10930,7 @@ var Toolbar = function () {
           el: this.elPan,
           icon: _icoPanHand2.default,
           title: this.localeValues.pan,
-          class: 'apexcharts-pan-icon'
+          class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-pan-icon'
         });
       }
 
@@ -11193,7 +11264,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Series = __webpack_require__(27);
+var _Series = __webpack_require__(28);
 
 var _Series2 = _interopRequireDefault(_Series);
 
@@ -11992,7 +12063,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Annotations = __webpack_require__(132);
+var _Annotations = __webpack_require__(133);
 
 var _Annotations2 = _interopRequireDefault(_Annotations);
 
@@ -12000,7 +12071,7 @@ var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
-var _Base = __webpack_require__(133);
+var _Base = __webpack_require__(134);
 
 var _Base2 = _interopRequireDefault(_Base);
 
@@ -12008,11 +12079,11 @@ var _Config = __webpack_require__(51);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Core = __webpack_require__(134);
+var _Core = __webpack_require__(135);
 
 var _Core2 = _interopRequireDefault(_Core);
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -12024,7 +12095,7 @@ var _Dimensions = __webpack_require__(48);
 
 var _Dimensions2 = _interopRequireDefault(_Dimensions);
 
-var _Formatters = __webpack_require__(31);
+var _Formatters = __webpack_require__(33);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
@@ -12032,15 +12103,15 @@ var _Exports = __webpack_require__(77);
 
 var _Exports2 = _interopRequireDefault(_Exports);
 
-var _Grid = __webpack_require__(141);
+var _Grid = __webpack_require__(142);
 
 var _Grid2 = _interopRequireDefault(_Grid);
 
-var _Legend = __webpack_require__(135);
+var _Legend = __webpack_require__(136);
 
 var _Legend2 = _interopRequireDefault(_Legend);
 
-var _Markers = __webpack_require__(32);
+var _Markers = __webpack_require__(27);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -12048,19 +12119,19 @@ var _Range = __webpack_require__(78);
 
 var _Range2 = _interopRequireDefault(_Range);
 
-var _Responsive = __webpack_require__(136);
+var _Responsive = __webpack_require__(137);
 
 var _Responsive2 = _interopRequireDefault(_Responsive);
 
-var _Series = __webpack_require__(27);
+var _Series = __webpack_require__(28);
 
 var _Series2 = _interopRequireDefault(_Series);
 
-var _Theme = __webpack_require__(138);
+var _Theme = __webpack_require__(139);
 
 var _Theme2 = _interopRequireDefault(_Theme);
 
-var _Tooltip = __webpack_require__(148);
+var _Tooltip = __webpack_require__(149);
 
 var _Tooltip2 = _interopRequireDefault(_Tooltip);
 
@@ -12068,11 +12139,11 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _ZoomPanSelection = __webpack_require__(140);
+var _ZoomPanSelection = __webpack_require__(141);
 
 var _ZoomPanSelection2 = _interopRequireDefault(_ZoomPanSelection);
 
-var _TitleSubtitle = __webpack_require__(139);
+var _TitleSubtitle = __webpack_require__(140);
 
 var _TitleSubtitle2 = _interopRequireDefault(_TitleSubtitle);
 
@@ -12088,16 +12159,16 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-__webpack_require__(155);
-__webpack_require__(151);
-__webpack_require__(152);
-__webpack_require__(150);
-__webpack_require__(154);
-__webpack_require__(153);
-
-__webpack_require__(159);
 __webpack_require__(156);
+__webpack_require__(152);
+__webpack_require__(153);
+__webpack_require__(151);
+__webpack_require__(155);
+__webpack_require__(154);
+
+__webpack_require__(160);
 __webpack_require__(157);
+__webpack_require__(158);
 
 var en = __webpack_require__(83);
 
@@ -13196,8 +13267,8 @@ module.exports = function (it, Constructor, name, forbiddenField) {
 // 5 -> Array#find
 // 6 -> Array#findIndex
 var ctx = __webpack_require__(15);
-var IObject = __webpack_require__(38);
-var toObject = __webpack_require__(30);
+var IObject = __webpack_require__(39);
+var toObject = __webpack_require__(31);
 var toLength = __webpack_require__(24);
 var asc = __webpack_require__(95);
 module.exports = function (TYPE, $create) {
@@ -13246,8 +13317,8 @@ module.exports = function (TYPE, $create) {
 
 
 var aFunction = __webpack_require__(18);
-var toObject = __webpack_require__(30);
-var IObject = __webpack_require__(38);
+var toObject = __webpack_require__(31);
+var IObject = __webpack_require__(39);
 var toLength = __webpack_require__(24);
 
 module.exports = function (that, callbackfn, aLen, memo, isRight) {
@@ -13335,9 +13406,9 @@ module.exports = function (object, index, value) {
 
 
 // all enumerable object keys, includes symbols
-var getKeys = __webpack_require__(28);
+var getKeys = __webpack_require__(29);
 var gOPS = __webpack_require__(64);
-var pIE = __webpack_require__(40);
+var pIE = __webpack_require__(41);
 module.exports = function (it) {
   var result = getKeys(it);
   var getSymbols = gOPS.f;
@@ -13420,11 +13491,11 @@ module.exports = function (fn, args, that) {
 
 var create = __webpack_require__(62);
 var descriptor = __webpack_require__(23);
-var setToStringTag = __webpack_require__(29);
+var setToStringTag = __webpack_require__(30);
 var IteratorPrototype = {};
 
 // 25.1.2.1.1 %IteratorPrototype%[@@iterator]()
-__webpack_require__(13)(IteratorPrototype, __webpack_require__(2)('iterator'), function () {
+__webpack_require__(14)(IteratorPrototype, __webpack_require__(2)('iterator'), function () {
   return this;
 });
 
@@ -13455,7 +13526,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var META = __webpack_require__(25)('meta');
 var isObject = __webpack_require__(9);
-var has = __webpack_require__(12);
+var has = __webpack_require__(13);
 var setDesc = __webpack_require__(10).f;
 var id = 0;
 var isExtensible = Object.isExtensible || function () {
@@ -13592,9 +13663,9 @@ module.exports = function () {
 
 var dP = __webpack_require__(10);
 var anObject = __webpack_require__(8);
-var getKeys = __webpack_require__(28);
+var getKeys = __webpack_require__(29);
 
-module.exports = __webpack_require__(11) ? Object.defineProperties : function defineProperties(O, Properties) {
+module.exports = __webpack_require__(12) ? Object.defineProperties : function defineProperties(O, Properties) {
   anObject(O);
   var keys = getKeys(Properties);
   var length = keys.length;
@@ -13612,15 +13683,15 @@ module.exports = __webpack_require__(11) ? Object.defineProperties : function de
 "use strict";
 
 
-var pIE = __webpack_require__(40);
+var pIE = __webpack_require__(41);
 var createDesc = __webpack_require__(23);
 var toIObject = __webpack_require__(17);
-var toPrimitive = __webpack_require__(44);
-var has = __webpack_require__(12);
+var toPrimitive = __webpack_require__(45);
+var has = __webpack_require__(13);
 var IE8_DOM_DEFINE = __webpack_require__(56);
 var gOPD = Object.getOwnPropertyDescriptor;
 
-exports.f = __webpack_require__(11) ? gOPD : function getOwnPropertyDescriptor(O, P) {
+exports.f = __webpack_require__(12) ? gOPD : function getOwnPropertyDescriptor(O, P) {
   O = toIObject(O);
   P = toPrimitive(P, true);
   if (IE8_DOM_DEFINE) try {
@@ -13665,9 +13736,9 @@ module.exports.f = function getOwnPropertyNames(it) {
 
 
 // 19.1.2.9 / 15.2.3.2 Object.getPrototypeOf(O)
-var has = __webpack_require__(12);
-var toObject = __webpack_require__(30);
-var IE_PROTO = __webpack_require__(41)('IE_PROTO');
+var has = __webpack_require__(13);
+var toObject = __webpack_require__(31);
+var IE_PROTO = __webpack_require__(42)('IE_PROTO');
 var ObjectProto = Object.prototype;
 
 module.exports = Object.getPrototypeOf || function (O) {
@@ -13701,7 +13772,7 @@ module.exports = function (target, src, safe) {
 
 var global = __webpack_require__(3);
 var dP = __webpack_require__(10);
-var DESCRIPTORS = __webpack_require__(11);
+var DESCRIPTORS = __webpack_require__(12);
 var SPECIES = __webpack_require__(2)('species');
 
 module.exports = function (KEY) {
@@ -13737,8 +13808,8 @@ module.exports = function (method, arg) {
 "use strict";
 
 
-var toInteger = __webpack_require__(43);
-var defined = __webpack_require__(35);
+var toInteger = __webpack_require__(44);
+var defined = __webpack_require__(36);
 // true  -> String#at
 // false -> String#codePointAt
 module.exports = function (TO_STRING) {
@@ -13760,7 +13831,7 @@ module.exports = function (TO_STRING) {
 "use strict";
 
 
-var toInteger = __webpack_require__(43);
+var toInteger = __webpack_require__(44);
 var max = Math.max;
 var min = Math.min;
 module.exports = function (index, length) {
@@ -13788,7 +13859,7 @@ module.exports = navigator && navigator.userAgent || '';
 
 // 22.1.3.8 Array.prototype.find(predicate, thisArg = undefined)
 
-var $export = __webpack_require__(5);
+var $export = __webpack_require__(6);
 var $find = __webpack_require__(92)(5);
 var KEY = 'find';
 var forced = true;
@@ -13801,7 +13872,7 @@ $export($export.P + $export.F * forced, 'Array', {
     return $find(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
   }
 });
-__webpack_require__(33)(KEY);
+__webpack_require__(34)(KEY);
 
 /***/ }),
 /* 115 */
@@ -13811,8 +13882,8 @@ __webpack_require__(33)(KEY);
 
 
 var ctx = __webpack_require__(15);
-var $export = __webpack_require__(5);
-var toObject = __webpack_require__(30);
+var $export = __webpack_require__(6);
+var toObject = __webpack_require__(31);
 var call = __webpack_require__(59);
 var isArrayIter = __webpack_require__(57);
 var toLength = __webpack_require__(24);
@@ -13856,7 +13927,7 @@ $export($export.S + $export.F * !__webpack_require__(61)(function (iter) {
 "use strict";
 
 
-var addToUnscopables = __webpack_require__(33);
+var addToUnscopables = __webpack_require__(34);
 var step = __webpack_require__(101);
 var Iterators = __webpack_require__(21);
 var toIObject = __webpack_require__(17);
@@ -13897,7 +13968,7 @@ addToUnscopables('entries');
 "use strict";
 
 
-var $export = __webpack_require__(5);
+var $export = __webpack_require__(6);
 var $reduce = __webpack_require__(93);
 
 $export($export.P + $export.F * !__webpack_require__(110)([].reduce, true), 'Array', {
@@ -13917,8 +13988,8 @@ $export($export.P + $export.F * !__webpack_require__(110)([].reduce, true), 'Arr
 var LIBRARY = __webpack_require__(22);
 var global = __webpack_require__(3);
 var ctx = __webpack_require__(15);
-var classof = __webpack_require__(34);
-var $export = __webpack_require__(5);
+var classof = __webpack_require__(35);
+var $export = __webpack_require__(6);
 var isObject = __webpack_require__(9);
 var aFunction = __webpack_require__(18);
 var anInstance = __webpack_require__(91);
@@ -13926,7 +13997,7 @@ var forOf = __webpack_require__(98);
 var speciesConstructor = __webpack_require__(68);
 var task = __webpack_require__(69).set;
 var microtask = __webpack_require__(103)();
-var newPromiseCapabilityModule = __webpack_require__(39);
+var newPromiseCapabilityModule = __webpack_require__(40);
 var perform = __webpack_require__(66);
 var userAgent = __webpack_require__(113);
 var promiseResolve = __webpack_require__(67);
@@ -14132,7 +14203,7 @@ if (!USE_NATIVE) {
 }
 
 $export($export.G + $export.W + $export.F * !USE_NATIVE, { Promise: $Promise });
-__webpack_require__(29)($Promise, PROMISE);
+__webpack_require__(30)($Promise, PROMISE);
 __webpack_require__(109)(PROMISE);
 Wrapper = __webpack_require__(4)[PROMISE];
 
@@ -14208,30 +14279,30 @@ $export($export.S + $export.F * !(USE_NATIVE && __webpack_require__(61)(function
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var global = __webpack_require__(3);
-var has = __webpack_require__(12);
-var DESCRIPTORS = __webpack_require__(11);
-var $export = __webpack_require__(5);
+var has = __webpack_require__(13);
+var DESCRIPTORS = __webpack_require__(12);
+var $export = __webpack_require__(6);
 var redefine = __webpack_require__(16);
 var META = __webpack_require__(102).KEY;
 var $fails = __webpack_require__(20);
-var shared = __webpack_require__(42);
-var setToStringTag = __webpack_require__(29);
+var shared = __webpack_require__(43);
+var setToStringTag = __webpack_require__(30);
 var uid = __webpack_require__(25);
 var wks = __webpack_require__(2);
 var wksExt = __webpack_require__(70);
-var wksDefine = __webpack_require__(45);
+var wksDefine = __webpack_require__(46);
 var enumKeys = __webpack_require__(97);
 var isArray = __webpack_require__(58);
 var anObject = __webpack_require__(8);
 var isObject = __webpack_require__(9);
 var toIObject = __webpack_require__(17);
-var toPrimitive = __webpack_require__(44);
+var toPrimitive = __webpack_require__(45);
 var createDesc = __webpack_require__(23);
 var _create = __webpack_require__(62);
 var gOPNExt = __webpack_require__(106);
 var $GOPD = __webpack_require__(105);
 var $DP = __webpack_require__(10);
-var $keys = __webpack_require__(28);
+var $keys = __webpack_require__(29);
 var gOPD = $GOPD.f;
 var dP = $DP.f;
 var gOPN = gOPNExt.f;
@@ -14358,7 +14429,7 @@ if (!USE_NATIVE) {
   $GOPD.f = $getOwnPropertyDescriptor;
   $DP.f = $defineProperty;
   __webpack_require__(63).f = gOPNExt.f = $getOwnPropertyNames;
-  __webpack_require__(40).f = $propertyIsEnumerable;
+  __webpack_require__(41).f = $propertyIsEnumerable;
   __webpack_require__(64).f = $getOwnPropertySymbols;
 
   if (DESCRIPTORS && !__webpack_require__(22)) {
@@ -14439,7 +14510,7 @@ $JSON && $export($export.S + $export.F * (!USE_NATIVE || $fails(function () {
 });
 
 // 19.4.3.4 Symbol.prototype[@@toPrimitive](hint)
-$Symbol[PROTOTYPE][TO_PRIMITIVE] || __webpack_require__(13)($Symbol[PROTOTYPE], TO_PRIMITIVE, $Symbol[PROTOTYPE].valueOf);
+$Symbol[PROTOTYPE][TO_PRIMITIVE] || __webpack_require__(14)($Symbol[PROTOTYPE], TO_PRIMITIVE, $Symbol[PROTOTYPE].valueOf);
 // 19.4.3.5 Symbol.prototype[@@toStringTag]
 setToStringTag($Symbol, 'Symbol');
 // 20.2.1.9 Math[@@toStringTag]
@@ -14455,7 +14526,7 @@ setToStringTag(global.JSON, 'JSON', true);
 
 // https://github.com/tc39/Array.prototype.includes
 
-var $export = __webpack_require__(5);
+var $export = __webpack_require__(6);
 var $includes = __webpack_require__(54)(true);
 
 $export($export.P, 'Array', {
@@ -14464,7 +14535,7 @@ $export($export.P, 'Array', {
   }
 });
 
-__webpack_require__(33)('includes');
+__webpack_require__(34)('includes');
 
 /***/ }),
 /* 121 */
@@ -14474,7 +14545,7 @@ __webpack_require__(33)('includes');
 // https://github.com/tc39/proposal-promise-finally
 
 
-var $export = __webpack_require__(5);
+var $export = __webpack_require__(6);
 var core = __webpack_require__(4);
 var global = __webpack_require__(3);
 var speciesConstructor = __webpack_require__(68);
@@ -14502,8 +14573,8 @@ $export($export.P + $export.R, 'Promise', { 'finally': function _finally(onFinal
 
 // https://github.com/tc39/proposal-promise-try
 
-var $export = __webpack_require__(5);
-var newPromiseCapability = __webpack_require__(39);
+var $export = __webpack_require__(6);
+var newPromiseCapability = __webpack_require__(40);
 var perform = __webpack_require__(66);
 
 $export($export.S, 'Promise', { 'try': function _try(callbackfn) {
@@ -14520,7 +14591,7 @@ $export($export.S, 'Promise', { 'try': function _try(callbackfn) {
 "use strict";
 
 
-__webpack_require__(45)('asyncIterator');
+__webpack_require__(46)('asyncIterator');
 
 /***/ }),
 /* 124 */
@@ -14529,7 +14600,7 @@ __webpack_require__(45)('asyncIterator');
 "use strict";
 
 
-__webpack_require__(45)('observable');
+__webpack_require__(46)('observable');
 
 /***/ }),
 /* 125 */
@@ -14539,10 +14610,10 @@ __webpack_require__(45)('observable');
 
 
 var $iterators = __webpack_require__(116);
-var getKeys = __webpack_require__(28);
+var getKeys = __webpack_require__(29);
 var redefine = __webpack_require__(16);
 var global = __webpack_require__(3);
-var hide = __webpack_require__(13);
+var hide = __webpack_require__(14);
 var Iterators = __webpack_require__(21);
 var wks = __webpack_require__(2);
 var ITERATOR = wks('iterator');
@@ -14694,15 +14765,15 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
-var _Bar2 = __webpack_require__(46);
+var _Bar2 = __webpack_require__(47);
 
 var _Bar3 = _interopRequireDefault(_Bar2);
 
-var _Fill = __webpack_require__(14);
+var _Fill = __webpack_require__(11);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -14898,7 +14969,7 @@ var BarStacked = function (_Bar) {
 
           var seriesNumber = w.config.plotOptions.bar.distributed ? j : i;
 
-          var fillColor = w.globals.colors[realIndex];
+          var fillColor = null;
 
           if (_this2.barOptions.colors.ranges.length > 0) {
             var colorRange = _this2.barOptions.colors.ranges;
@@ -14910,7 +14981,7 @@ var BarStacked = function (_Bar) {
           }
 
           var pathFill = _this2.fill.fillPath(elSeries, {
-            seriesNumber: seriesNumber,
+            seriesNumber: _this2.barOptions.distributed ? seriesNumber : realIndex,
             color: fillColor
           });
 
@@ -15249,15 +15320,15 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
-var _Bar2 = __webpack_require__(46);
+var _Bar2 = __webpack_require__(47);
 
 var _Bar3 = _interopRequireDefault(_Bar2);
 
-var _Fill = __webpack_require__(14);
+var _Fill = __webpack_require__(11);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -15522,7 +15593,7 @@ exports.default = CandleStick;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _DataLabels = __webpack_require__(47);
+var _DataLabels = __webpack_require__(32);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
@@ -15538,7 +15609,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -15640,12 +15711,17 @@ var HeatMap = function () {
           rect.attr({
             fill: color,
             i: i,
+            'index': i,
             j: j,
             val: series[i][j],
             'stroke-width': this.strokeWidth,
             stroke: w.globals.stroke.colors[0],
             color: color
           });
+
+          rect.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this, rect));
+          rect.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, rect));
+          rect.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, rect));
 
           if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
             var speed = 1;
@@ -15774,8 +15850,20 @@ var HeatMap = function () {
         var dataLabelsX = x + rectWidth / 2 + offX;
         var dataLabelsY = y + rectHeight / 2 + parseInt(dataLabelsConfig.style.fontSize) / 3 + offY;
 
-        var text = formatter(w.globals.series[i][j], { seriesIndex: i, dataPointIndex: j, w: w });
-        dataLabels.plotDataLabelsText(dataLabelsX, dataLabelsY, text, i, j, elDataLabelsWrap, dataLabelsConfig);
+        var text = formatter(w.globals.series[i][j], {
+          seriesIndex: i,
+          dataPointIndex: j,
+          w: w
+        });
+        dataLabels.plotDataLabelsText({
+          x: dataLabelsX,
+          y: dataLabelsY,
+          text: text,
+          i: i,
+          j: j,
+          parent: elDataLabelsWrap,
+          dataLabelsConfig: dataLabelsConfig
+        });
       }
 
       return elDataLabelsWrap;
@@ -15817,7 +15905,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -15825,15 +15913,15 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Fill = __webpack_require__(14);
+var _Fill = __webpack_require__(11);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
-var _DataLabels = __webpack_require__(47);
+var _DataLabels = __webpack_require__(32);
 
 var _DataLabels2 = _interopRequireDefault(_DataLabels);
 
-var _Markers = __webpack_require__(32);
+var _Markers = __webpack_require__(27);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -16429,6 +16517,482 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Fill = __webpack_require__(11);
+
+var _Fill2 = _interopRequireDefault(_Fill);
+
+var _Graphics = __webpack_require__(0);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+var _Markers = __webpack_require__(27);
+
+var _Markers2 = _interopRequireDefault(_Markers);
+
+var _DataLabels = __webpack_require__(32);
+
+var _DataLabels2 = _interopRequireDefault(_DataLabels);
+
+var _Filters = __webpack_require__(5);
+
+var _Filters2 = _interopRequireDefault(_Filters);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Radar Class for Spider/Radar Charts.
+ * @module Radar
+ **/
+
+var Radar = function () {
+  function Radar(ctx) {
+    _classCallCheck(this, Radar);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+
+    this.chartType = this.w.config.chart.type;
+
+    this.initialAnim = this.w.config.chart.animations.enabled;
+    this.dynamicAnim = this.initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
+
+    this.animDur = 0;
+
+    var w = this.w;
+    this.graphics = new _Graphics2.default(this.ctx);
+
+    this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
+
+    this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.svgHeight - 35 : w.globals.gridWidth;
+
+    this.maxValue = this.w.globals.maxY;
+
+    this.maxLabelWidth = 20;
+
+    var longestLabel = w.globals.labels.slice().sort(function (a, b) {
+      return b.length - a.length;
+    })[0];
+    var labelWidth = this.graphics.getTextRects(longestLabel, w.config.dataLabels.style.fontSize);
+
+    this.size = this.defaultSize / 2.1 - w.config.stroke.width - w.config.chart.dropShadow.blur - labelWidth.width / 1.75;
+
+    if (w.config.plotOptions.radar.size !== undefined) {
+      this.size = w.config.plotOptions.radar.size;
+    }
+
+    this.dataRadiusOfPercent = [];
+    this.dataRadius = [];
+    this.angleArr = [];
+
+    this.yaxisLabelsTextsPos = [];
+  }
+
+  _createClass(Radar, [{
+    key: 'draw',
+    value: function draw(series) {
+      var _this = this;
+
+      var w = this.w;
+      var fill = new _Fill2.default(this.ctx);
+
+      var allSeries = [];
+
+      this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length;
+      this.disAngle = Math.PI * 2 / this.dataPointsLen;
+
+      var halfW = w.globals.gridWidth / 2;
+      var halfH = w.globals.gridHeight / 2;
+      var translateX = halfW;
+      var translateY = halfH;
+
+      var ret = this.graphics.group({
+        class: 'apexcharts-radar-series',
+        'data:innerTranslateX': translateX,
+        'data:innerTranslateY': translateY - 25,
+        transform: 'translate(' + (translateX || 0) + ', ' + (translateY || 0) + ')'
+      });
+
+      var dataPointsPos = [];
+      var elPointsMain = null;
+
+      this.yaxisLabels = this.graphics.group({
+        class: 'apexcharts-yaxis'
+      });
+
+      series.forEach(function (s, i) {
+        // el to which series will be drawn
+        var elSeries = _this.graphics.group().attr({
+          class: 'apexcharts-series ' + w.globals.seriesNames[i].toString().replace(/ /g, '-'),
+          'rel': i + 1,
+          'data:realIndex': i
+        });
+
+        _this.dataRadiusOfPercent[i] = [];
+        _this.dataRadius[i] = [];
+        _this.angleArr[i] = [];
+
+        s.forEach(function (dv, j) {
+          _this.dataRadiusOfPercent[i][j] = dv / _this.maxValue;
+          _this.dataRadius[i][j] = _this.dataRadiusOfPercent[i][j] * _this.size;
+          _this.angleArr[i][j] = j * _this.disAngle;
+        });
+
+        dataPointsPos = _this.getDataPointsPos(_this.dataRadius[i], _this.angleArr[i]);
+        var paths = _this.createPaths(dataPointsPos, { x: 0, y: 0 });
+
+        // points
+        elPointsMain = _this.graphics.group({
+          class: 'apexcharts-series-markers-wrap hidden'
+        });
+
+        w.globals.delayedElements.push({ el: elPointsMain.node, index: i });
+
+        var defaultRenderedPathOptions = {
+          i: i,
+          realIndex: i,
+          animationDelay: i,
+          initialSpeed: w.config.chart.animations.speed,
+          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+          className: 'apexcharts-radar',
+          id: 'apexcharts-radar',
+          shouldClipToGrid: false,
+          bindEventsOnPaths: false,
+          stroke: w.globals.stroke.colors[i],
+          strokeLineCap: w.config.stroke.lineCap
+        };
+
+        var pathFrom = null;
+
+        if (w.globals.previousPaths.length > 0) {
+          pathFrom = _this.getPathFrom(i);
+        }
+
+        for (var p = 0; p < paths.linePathsTo.length; p++) {
+          var renderedLinePath = _this.graphics.renderPaths(_extends({}, defaultRenderedPathOptions, {
+            pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
+            pathTo: paths.linePathsTo[p],
+            strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width,
+            fill: 'none'
+          }));
+
+          elSeries.add(renderedLinePath);
+
+          var pathFill = fill.fillPath(elSeries, {
+            seriesNumber: i
+          });
+
+          var renderedAreaPath = _this.graphics.renderPaths(_extends({}, defaultRenderedPathOptions, {
+            pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
+            pathTo: paths.areaPathsTo[p],
+            strokeWidth: 0,
+            fill: pathFill
+          }));
+
+          if (w.config.chart.dropShadow.enabled) {
+            var filters = new _Filters2.default(_this.ctx);
+
+            var shadow = w.config.chart.dropShadow;
+            filters.dropShadow(renderedAreaPath, _extends({}, shadow, { noUserSpaceOnUse: true }));
+          }
+
+          elSeries.add(renderedAreaPath);
+        }
+
+        s.forEach(function (sj, j) {
+          var markers = new _Markers2.default(_this.ctx);
+
+          var opts = markers.getMarkerConfig('apexcharts-marker', i);
+          var point = _this.graphics.drawMarker(dataPointsPos[j].x, dataPointsPos[j].y, opts);
+
+          point.attr('rel', j);
+          point.attr('j', j);
+          point.attr('index', i);
+          point.node.setAttribute('default-marker-size', opts.pSize);
+
+          var elPointsWrap = _this.graphics.group({
+            class: 'apexcharts-series-markers'
+          });
+
+          if (elPointsWrap) {
+            elPointsWrap.add(point);
+          }
+
+          elPointsMain.add(elPointsWrap);
+
+          elSeries.add(elPointsMain);
+        });
+
+        allSeries.push(elSeries);
+      });
+
+      this.drawPolygons({ parent: ret });
+
+      var dataLabels = this.drawLabels();
+      ret.add(this.yaxisLabels);
+      ret.add(dataLabels);
+
+      allSeries.forEach(function (elS) {
+        ret.add(elS);
+      });
+
+      return ret;
+    }
+  }, {
+    key: 'drawPolygons',
+    value: function drawPolygons(opts) {
+      var _this2 = this;
+
+      var w = this.w;
+      var parent = opts.parent;
+
+
+      var yaxisTexts = w.globals.yAxisScale[0].result.reverse();
+      var layers = yaxisTexts.length;
+
+      var radiusSizes = [];
+      var layerDis = this.size / (layers - 1);
+      for (var i = 0; i < layers; i++) {
+        radiusSizes[i] = layerDis * i;
+      }
+      radiusSizes.reverse();
+
+      var polygonStrings = [];
+      var lines = [];
+
+      radiusSizes.forEach(function (radiusSize, r) {
+        var polygon = _this2.getPolygonPos(radiusSize);
+        var string = '';
+
+        polygon.forEach(function (p, i) {
+          if (r === 0) {
+            var line = _this2.graphics.drawLine(p.x, p.y, 0, 0, w.config.plotOptions.radar.polygons.strokeColor);
+
+            lines.push(line);
+          }
+
+          if (i === 0) {
+            _this2.yaxisLabelsTextsPos.push({
+              x: p.x,
+              y: p.y
+            });
+          }
+
+          string += p.x + ',' + p.y + ' ';
+        });
+
+        polygonStrings.push(string);
+      });
+
+      polygonStrings.forEach(function (p, i) {
+        var polygon = _this2.graphics.drawPolygon(p, w.config.plotOptions.radar.polygons.strokeColor, w.globals.radarPolygons.fill.colors[i]);
+        parent.add(polygon);
+      });
+
+      lines.forEach(function (l) {
+        parent.add(l);
+      });
+
+      this.yaxisLabelsTextsPos.forEach(function (p, i) {
+        var yText = _this2.drawYAxisText(p.x, p.y, i, yaxisTexts[i]);
+        _this2.yaxisLabels.add(yText);
+      });
+    }
+  }, {
+    key: 'drawYAxisText',
+    value: function drawYAxisText(x, y, i, text) {
+      var w = this.w;
+
+      var yaxisConfig = w.config.yaxis[0];
+      var formatter = w.globals.yLabelFormatters[0];
+
+      var yaxisLabel = this.graphics.drawText({
+        x: x + yaxisConfig.labels.offsetX,
+        y: y + yaxisConfig.labels.offsetY,
+        text: formatter(text, i),
+        textAnchor: 'middle',
+        fontSize: yaxisConfig.labels.style.fontSize,
+        fontFamily: yaxisConfig.labels.style.fontFamily,
+        foreColor: yaxisConfig.labels.style.color
+      });
+
+      return yaxisLabel;
+    }
+  }, {
+    key: 'drawLabels',
+    value: function drawLabels() {
+      var _this3 = this;
+
+      var w = this.w;
+
+      var limit = 10;
+
+      var textAnchor = 'middle';
+
+      var dataLabelsConfig = w.config.dataLabels;
+      var elDataLabelsWrap = this.graphics.group({
+        class: 'apexcharts-datalabels'
+      });
+
+      var polygonPos = this.getPolygonPos(this.size);
+
+      var currPosX = 0;
+      var currPosY = 0;
+
+      w.globals.labels.forEach(function (label, i) {
+        var formatter = dataLabelsConfig.formatter;
+        var dataLabels = new _DataLabels2.default(_this3.ctx);
+
+        if (polygonPos[i]) {
+          currPosX = polygonPos[i].x;
+          currPosY = polygonPos[i].y;
+
+          if (Math.abs(polygonPos[i].x) >= limit) {
+            if (polygonPos[i].x > 0) {
+              textAnchor = 'start';
+              currPosX += 10;
+            } else if (polygonPos[i].x < 0) {
+              textAnchor = 'end';
+              currPosX -= 10;
+            }
+          } else {
+            textAnchor = 'middle';
+          }
+          if (Math.abs(polygonPos[i].y) >= _this3.size - limit) {
+            if (polygonPos[i].y < 0) {
+              currPosY -= 10;
+            } else if (polygonPos[i].y > 0) {
+              currPosY += 10;
+            }
+          }
+
+          var text = formatter(label, {
+            seriesIndex: -1,
+            dataPointIndex: i,
+            w: w
+          });
+
+          dataLabels.plotDataLabelsText({
+            x: currPosX,
+            y: currPosY,
+            text: text,
+            textAnchor: textAnchor,
+            i: i,
+            j: i,
+            parent: elDataLabelsWrap,
+            dataLabelsConfig: dataLabelsConfig,
+            offsetCorrection: false
+          });
+        }
+      });
+
+      return elDataLabelsWrap;
+    }
+  }, {
+    key: 'createPaths',
+    value: function createPaths(pos, origin) {
+      var _this4 = this;
+
+      var linePathsTo = [];
+      var linePathsFrom = [];
+      var areaPathsTo = [];
+      var areaPathsFrom = [];
+
+      if (pos.length) {
+        linePathsFrom = [this.graphics.move(origin.x, origin.y)];
+        areaPathsFrom = [this.graphics.move(origin.x, origin.y)];
+
+        var linePathTo = this.graphics.move(pos[0].x, pos[0].y);
+        var areaPathTo = this.graphics.move(pos[0].x, pos[0].y);
+
+        pos.forEach(function (p, i) {
+          linePathTo += _this4.graphics.line(p.x, p.y);
+          areaPathTo += _this4.graphics.line(p.x, p.y);
+          if (i === pos.length - 1) {
+            linePathTo += 'Z';
+            areaPathTo += 'Z';
+          }
+        });
+
+        linePathsTo.push(linePathTo);
+        areaPathsTo.push(areaPathTo);
+      }
+
+      return {
+        linePathsFrom: linePathsFrom,
+        linePathsTo: linePathsTo,
+        areaPathsFrom: areaPathsFrom,
+        areaPathsTo: areaPathsTo
+      };
+    }
+  }, {
+    key: 'getPathFrom',
+    value: function getPathFrom(realIndex) {
+      var w = this.w;
+      var pathFrom = null;
+      for (var pp = 0; pp < w.globals.previousPaths.length; pp++) {
+        var gpp = w.globals.previousPaths[pp];
+
+        if (gpp.paths.length > 0 && parseInt(gpp.realIndex) === parseInt(realIndex)) {
+          if (typeof w.globals.previousPaths[pp].paths[0] !== 'undefined') {
+            pathFrom = w.globals.previousPaths[pp].paths[0].d;
+          }
+        }
+      }
+      return pathFrom;
+    }
+  }, {
+    key: 'getDataPointsPos',
+    value: function getDataPointsPos(dataRadiusArr, angleArr) {
+      var dataPointsLen = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.dataPointsLen;
+
+      dataRadiusArr = dataRadiusArr || [];
+      angleArr = angleArr || [];
+      var dataPointsPosArray = [];
+      for (var j = 0; j < dataPointsLen; j++) {
+        var curPointPos = {};
+        curPointPos.x = dataRadiusArr[j] * Math.sin(angleArr[j]);
+        curPointPos.y = -dataRadiusArr[j] * Math.cos(angleArr[j]);
+        dataPointsPosArray.push(curPointPos);
+      }
+      return dataPointsPosArray;
+    }
+  }, {
+    key: 'getPolygonPos',
+    value: function getPolygonPos(size) {
+      var dotsArray = [];
+      var angle = Math.PI * 2 / this.dataPointsLen;
+      for (var i = 0; i < this.dataPointsLen; i++) {
+        var curPos = {};
+        curPos.x = size * Math.sin(i * angle);
+        curPos.y = -size * Math.cos(i * angle);
+        dotsArray.push(curPos);
+      }
+      return dotsArray;
+    }
+  }]);
+
+  return Radar;
+}();
+
+exports.default = Radar;
+
+/***/ }),
+/* 132 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _Pie2 = __webpack_require__(74);
@@ -16439,7 +17003,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Fill = __webpack_require__(14);
+var _Fill = __webpack_require__(11);
 
 var _Fill2 = _interopRequireDefault(_Fill);
 
@@ -16447,7 +17011,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Filters = __webpack_require__(7);
+var _Filters = __webpack_require__(5);
 
 var _Filters2 = _interopRequireDefault(_Filters);
 
@@ -16871,7 +17435,7 @@ var Radial = function (_Pie) {
 exports.default = Radial;
 
 /***/ }),
-/* 132 */
+/* 133 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17379,7 +17943,7 @@ var Annotations = function () {
 module.exports = Annotations;
 
 /***/ }),
-/* 133 */
+/* 134 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17391,7 +17955,7 @@ var _Config = __webpack_require__(51);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Globals = __webpack_require__(143);
+var _Globals = __webpack_require__(144);
 
 var _Globals2 = _interopRequireDefault(_Globals);
 
@@ -17432,7 +17996,7 @@ var Base = function () {
 module.exports = Base;
 
 /***/ }),
-/* 134 */
+/* 135 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17440,7 +18004,7 @@ module.exports = Base;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Bar = __webpack_require__(46);
+var _Bar = __webpack_require__(47);
 
 var _Bar2 = _interopRequireDefault(_Bar);
 
@@ -17452,7 +18016,7 @@ var _CandleStick = __webpack_require__(128);
 
 var _CandleStick2 = _interopRequireDefault(_CandleStick);
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -17472,7 +18036,11 @@ var _Pie = __webpack_require__(74);
 
 var _Pie2 = _interopRequireDefault(_Pie);
 
-var _Radial = __webpack_require__(131);
+var _Radar = __webpack_require__(131);
+
+var _Radar2 = _interopRequireDefault(_Radar);
+
+var _Radial = __webpack_require__(132);
 
 var _Radial2 = _interopRequireDefault(_Radial);
 
@@ -17500,7 +18068,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Series = __webpack_require__(27);
+var _Series = __webpack_require__(28);
 
 var _Series2 = _interopRequireDefault(_Series);
 
@@ -17544,7 +18112,7 @@ var Core = function () {
       // const graphics = new Graphics(this.ctx)
 
       var ct = cnf.chart.type;
-      var axisChartsArrTypes = ['line', 'area', 'bar', 'candlestick', 'scatter', 'bubble', 'heatmap'];
+      var axisChartsArrTypes = ['line', 'area', 'bar', 'candlestick', 'radar', 'scatter', 'bubble', 'heatmap'];
 
       var xyChartsArrTypes = ['line', 'area', 'bar', 'candlestick', 'scatter', 'bubble'];
 
@@ -17652,6 +18220,7 @@ var Core = function () {
       var candlestick = new _CandleStick2.default(this.ctx, xyRatios);
       var pie = new _Pie2.default(this.ctx);
       var radialBar = new _Radial2.default(this.ctx);
+      var radar = new _Radar2.default(this.ctx);
       var elGraph = [];
 
       if (gl.comboCharts) {
@@ -17708,6 +18277,9 @@ var Core = function () {
             break;
           case 'radialBar':
             elGraph = radialBar.draw(gl.series);
+            break;
+          case 'radar':
+            elGraph = radar.draw(gl.series);
             break;
           default:
             elGraph = line.draw(gl.series);
@@ -18272,7 +18844,7 @@ var Core = function () {
       var xAxis = new _XAxis2.default(this.ctx);
       var yAxis = new _YAxis2.default(this.ctx);
 
-      if (gl.axisCharts) {
+      if (gl.axisCharts && type !== 'radar') {
         var elXaxis = void 0,
             elYaxis = void 0;
 
@@ -18343,10 +18915,26 @@ var Core = function () {
         }
 
         w.config.chart.events.selection = function (chart, e) {
+          var min = void 0,
+              max = void 0;
+          if (w.config.chart.brush.autoScaleYaxis) {
+            min = max = 0;
+            targetChart.w.config.series.forEach(function (serie) {
+              if (serie[1] > max) max = serie[1];
+              if (serie[1] < min) min = serie[1];
+            });
+            min *= 0.95;
+            max *= 1.05;
+          }
+          var yaxis = { min: min, max: max };
           targetChart._updateOptions({
             xaxis: {
               min: e.xaxis.min,
               max: e.xaxis.max
+            },
+            yaxis: {
+              min: yaxis.min,
+              max: yaxis.max
             }
           }, false, false);
         };
@@ -18360,7 +18948,7 @@ var Core = function () {
 module.exports = Core;
 
 /***/ }),
-/* 135 */
+/* 136 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18372,7 +18960,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -18384,7 +18972,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Series = __webpack_require__(27);
+var _Series = __webpack_require__(28);
 
 var _Series2 = _interopRequireDefault(_Series);
 
@@ -18909,7 +19497,7 @@ var Legend = function () {
 exports.default = Legend;
 
 /***/ }),
-/* 136 */
+/* 137 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18925,7 +19513,7 @@ var _Utils = __webpack_require__(1);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -19011,7 +19599,7 @@ var Responsive = function () {
 module.exports = Responsive;
 
 /***/ }),
-/* 137 */
+/* 138 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19410,7 +19998,7 @@ var Range = function () {
 exports.default = Range;
 
 /***/ }),
-/* 138 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19513,6 +20101,13 @@ var Theme = function () {
       }
       this.pushExtraColors(w.globals.dataLabels.style.colors);
 
+      if (w.config.plotOptions.radar.polygons.fill.colors === undefined) {
+        w.globals.radarPolygons.fill.colors = ['#fff'];
+      } else {
+        w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors;
+      }
+      this.pushExtraColors(w.globals.radarPolygons.fill.colors, 20);
+
       // The point colors
       if (w.config.markers.colors === undefined) {
         w.globals.markers.colors = defaultColors;
@@ -19529,12 +20124,12 @@ var Theme = function () {
 
   }, {
     key: 'pushExtraColors',
-    value: function pushExtraColors(colorSeries) {
-      var distributed = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    value: function pushExtraColors(colorSeries, length) {
+      var distributed = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
 
       var w = this.w;
 
-      var len = w.globals.series.length;
+      var len = length || w.globals.series.length;
 
       if (distributed === null) {
         distributed = w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed || w.config.chart.type === 'heatmap' && w.config.plotOptions.heatmap.colorScale.inverse;
@@ -19603,7 +20198,7 @@ var Theme = function () {
 module.exports = Theme;
 
 /***/ }),
-/* 139 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19685,7 +20280,7 @@ var TitleSubtitle = function () {
 exports.default = TitleSubtitle;
 
 /***/ }),
-/* 140 */
+/* 141 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20368,7 +20963,7 @@ var ZoomPanSelection = function (_Toolbar) {
 module.exports = ZoomPanSelection;
 
 /***/ }),
-/* 141 */
+/* 142 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20384,7 +20979,7 @@ var _Animations = __webpack_require__(26);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
-var _CoreUtils = __webpack_require__(6);
+var _CoreUtils = __webpack_require__(7);
 
 var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
 
@@ -20750,7 +21345,7 @@ var Grid = function () {
 exports.default = Grid;
 
 /***/ }),
-/* 142 */
+/* 143 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21228,6 +21823,49 @@ var Defaults = function () {
       };
     }
   }, {
+    key: 'radar',
+    value: function radar() {
+      this.opts.yaxis[0].labels.style.fontSize = '13px';
+      this.opts.yaxis[0].labels.offsetY = 6;
+
+      return {
+        dataLabels: {
+          enabled: true,
+          style: {
+            colors: '#a8a8a8',
+            fontSize: '11px'
+          }
+        },
+        stroke: {
+          width: 2
+        },
+        markers: {
+          size: 3,
+          strokeWidth: 1,
+          strokeOpacity: 1
+        },
+        fill: {
+          opacity: 0.2
+        },
+        tooltip: {
+          shared: false,
+          intersect: true,
+          followCursor: true
+        },
+        grid: {
+          show: false
+        },
+        xaxis: {
+          tooltip: {
+            enabled: false
+          },
+          crosshairs: {
+            show: false
+          }
+        }
+      };
+    }
+  }, {
     key: 'radialBar',
     value: function radialBar() {
       return {
@@ -21275,7 +21913,7 @@ var Defaults = function () {
 module.exports = Defaults;
 
 /***/ }),
-/* 143 */
+/* 144 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21326,6 +21964,11 @@ var Globals = function () {
         },
         dataLabels: {
           style: {
+            colors: []
+          }
+        },
+        radarPolygons: {
+          fill: {
             colors: []
           }
         },
@@ -21483,7 +22126,7 @@ var Globals = function () {
 exports.default = Globals;
 
 /***/ }),
-/* 144 */
+/* 145 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21674,7 +22317,7 @@ var AxesTooltip = function () {
 exports.default = AxesTooltip;
 
 /***/ }),
-/* 145 */
+/* 146 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21795,8 +22438,6 @@ var Intersect = function () {
         });
 
         ttCtx.marker.enlargeCurrentPoint(j, opt.paths);
-
-        // let dataPointsDividedWidth = w.globals.gridWidth/(w.globals.dataPoints + 1);
 
         x = cx;
         y = cy - ttCtx.tooltipRect.ttHeight * 1.4;
@@ -21995,7 +22636,7 @@ var Intersect = function () {
 exports.default = Intersect;
 
 /***/ }),
-/* 146 */
+/* 147 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22003,7 +22644,7 @@ exports.default = Intersect;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Formatters = __webpack_require__(31);
+var _Formatters = __webpack_require__(33);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
@@ -22380,7 +23021,7 @@ var Labels = function () {
 module.exports = Labels;
 
 /***/ }),
-/* 147 */
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22396,7 +23037,7 @@ var _Position = __webpack_require__(81);
 
 var _Position2 = _interopRequireDefault(_Position);
 
-var _Markers = __webpack_require__(32);
+var _Markers = __webpack_require__(27);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
@@ -22477,6 +23118,13 @@ var Marker = function () {
       this.tooltipPosition.moveXCrosshairs(cx);
 
       if (!this.fixedTooltip) {
+        if (w.config.chart.type === 'radar') {
+          var elGrid = this.ttCtx.getElGrid();
+          var seriesBound = elGrid.getBoundingClientRect();
+
+          cx = this.ttCtx.e.clientX - seriesBound.left;
+        }
+
         this.tooltipPosition.moveTooltip(cx, cy, w.config.markers.hover.size);
       }
     }
@@ -22568,7 +23216,7 @@ var Marker = function () {
 module.exports = Marker;
 
 /***/ }),
-/* 148 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22576,7 +23224,7 @@ module.exports = Marker;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Labels = __webpack_require__(146);
+var _Labels = __webpack_require__(147);
 
 var _Labels2 = _interopRequireDefault(_Labels);
 
@@ -22584,15 +23232,15 @@ var _Position = __webpack_require__(81);
 
 var _Position2 = _interopRequireDefault(_Position);
 
-var _Marker = __webpack_require__(147);
+var _Marker = __webpack_require__(148);
 
 var _Marker2 = _interopRequireDefault(_Marker);
 
-var _Intersect = __webpack_require__(145);
+var _Intersect = __webpack_require__(146);
 
 var _Intersect2 = _interopRequireDefault(_Intersect);
 
-var _AxesTooltip = __webpack_require__(144);
+var _AxesTooltip = __webpack_require__(145);
 
 var _AxesTooltip2 = _interopRequireDefault(_AxesTooltip);
 
@@ -22600,7 +23248,7 @@ var _Graphics = __webpack_require__(0);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Series = __webpack_require__(27);
+var _Series = __webpack_require__(28);
 
 var _Series2 = _interopRequireDefault(_Series);
 
@@ -22815,6 +23463,8 @@ var Tooltip = function () {
           points = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series .apexcharts-bar-area', '.apexcharts-series .apexcharts-candlestick-area');
         } else if (type === 'heatmap') {
           points = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series .apexcharts-heatmap');
+        } else if (type === 'radar') {
+          points = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series .apexcharts-marker');
         }
 
         if (points && points.length) {
@@ -22831,7 +23481,7 @@ var Tooltip = function () {
         this.addPathsEventListeners([hoverArea], seriesHoverParams);
       } else if (barOrCandlestick && !w.globals.comboCharts) {
         this.addBarsEventListeners(seriesHoverParams);
-      } else if (type === 'bubble' || type === 'scatter' || this.showOnIntersect && (type === 'area' || type === 'line')) {
+      } else if (type === 'bubble' || type === 'scatter' || type === 'radar' || this.showOnIntersect && (type === 'area' || type === 'line')) {
         this.addPointsEventsListeners(seriesHoverParams);
       } else if (!w.globals.axisCharts || type === 'heatmap') {
         var seriesAll = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series');
@@ -23349,7 +23999,7 @@ var Tooltip = function () {
 module.exports = Tooltip;
 
 /***/ }),
-/* 149 */
+/* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -23444,7 +24094,7 @@ module.exports = function (css) {
 };
 
 /***/ }),
-/* 150 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -23679,7 +24329,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 151 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -24283,7 +24933,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 }).call(undefined);
 
 /***/ }),
-/* 152 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -24708,7 +25358,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 153 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -25210,7 +25860,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 154 */
+/* 155 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -25522,7 +26172,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 })();
 
 /***/ }),
-/* 155 */
+/* 156 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31085,7 +31735,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 });
 
 /***/ }),
-/* 156 */
+/* 157 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31326,7 +31976,7 @@ if ("document" in self) {
 }
 
 /***/ }),
-/* 157 */
+/* 158 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31472,7 +32122,7 @@ if ("document" in self) {
 })();
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(126)(false);
@@ -31480,17 +32130,17 @@ exports = module.exports = __webpack_require__(126)(false);
 
 
 // module
-exports.push([module.i, ".apexcharts-canvas {\n  position: relative;\n  user-select: none;\n  /* cannot give overflow: hidden as it will crop tooltips which overflow outside chart area */\n}\n\n/* scrollbar is not visible by default for legend, hence forcing the visibility */\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px;\n}\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);\n}\n\n.apexcharts-inner {\n  position: relative;\n}\n\n.legend-mouseover-inactive {\n  transition: 0.15s ease all;\n  opacity: 0.20;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0;\n}\n\n.apexcharts-gridline, .apexcharts-text {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: 0.15s ease all;\n}\n.apexcharts-tooltip.light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255, 255, 255, 0.96);\n}\n.apexcharts-tooltip.dark {\n  color: #fff;\n  background: rgba(30,30,30, 0.8);\n}\n\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-line {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px;\n}\n.apexcharts-tooltip.light .apexcharts-tooltip-title {\n  background: #ECEFF1;\n  border-bottom: 1px solid #ddd;\n}\n.apexcharts-tooltip.dark .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.7);\n  border-bottom: 1px solid #222;\n}\n\n.apexcharts-tooltip-text-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  font-weight: 600;\n  margin-left: 5px;\n}\n\n.apexcharts-tooltip-text-z-label:empty,\n.apexcharts-tooltip-text-z-value:empty {\n  display: none;\n}\n\n.apexcharts-tooltip-text-value, \n.apexcharts-tooltip-text-z-value {\n  font-weight: 600;\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 1px;\n  margin-right: 10px;\n  border-radius: 50%;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center;\n}\n\n.apexcharts-tooltip-series-group.active .apexcharts-tooltip-marker {\n  opacity: 1;\n}\n.apexcharts-tooltip-series-group.active, .apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px;\n}\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px;\n}\n.apexcharts-tooltip-candlestick {\n  padding: 4px 8px;\n}\n.apexcharts-tooltip-candlestick > div {\n  margin: 4px 0;\n}\n.apexcharts-tooltip-candlestick span.value {\n  font-weight: bold;\n}\n\n.apexcharts-xaxistooltip {\n  opacity: 0;\n  padding: 9px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n\tbackground: #ECEFF1;\n  border: 1px solid #90A4AE;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xaxistooltip:after, .apexcharts-xaxistooltip:before {\n\tleft: 50%;\n\tborder: solid transparent;\n\tcontent: \" \";\n\theight: 0;\n\twidth: 0;\n\tposition: absolute;\n\tpointer-events: none;\n}\n\n.apexcharts-xaxistooltip:after {\n\tborder-color: rgba(236, 239, 241, 0);\n\tborder-width: 6px;\n\tmargin-left: -6px;\n}\n.apexcharts-xaxistooltip:before {\n\tborder-color: rgba(144, 164, 174, 0);\n\tborder-width: 7px;\n\tmargin-left: -7px;\n}\n\n.apexcharts-xaxistooltip-bottom:after, .apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%;\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #ECEFF1;\n}\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90A4AE;\n}\n\n.apexcharts-xaxistooltip-top:after, .apexcharts-xaxistooltip-top:before {\n  top: 100%;\n}\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #ECEFF1;\n}\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90A4AE;\n}\n\n.apexcharts-xaxistooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-yaxistooltip {\n  opacity: 0;\n  padding: 4px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n\tbackground: #ECEFF1;\n  border: 1px solid #90A4AE;\n}\n\n.apexcharts-yaxistooltip:after, .apexcharts-yaxistooltip:before {\n\ttop: 50%;\n\tborder: solid transparent;\n\tcontent: \" \";\n\theight: 0;\n\twidth: 0;\n\tposition: absolute;\n\tpointer-events: none;\n}\n.apexcharts-yaxistooltip:after {\n\tborder-color: rgba(236, 239, 241, 0);\n\tborder-width: 6px;\n\tmargin-top: -6px;\n}\n.apexcharts-yaxistooltip:before {\n\tborder-color: rgba(144, 164, 174, 0);\n\tborder-width: 7px;\n\tmargin-top: -7px;\n}\n\n.apexcharts-yaxistooltip-left:after, .apexcharts-yaxistooltip-left:before {\n  left: 100%;\n}\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90A4AE;\n}\n\n.apexcharts-yaxistooltip-right:after, .apexcharts-yaxistooltip-right:before {\n  right: 100%;\n}\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90A4AE;\n}\n\n.apexcharts-yaxistooltip.active {\n  opacity: 1;\n}\n\n.apexcharts-xcrosshairs, .apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xcrosshairs.active, .apexcharts-ycrosshairs.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0;\n}\n\n.apexcharts-zoom-rect {\n  pointer-events: none;\n}\n.apexcharts-selection-rect {\n  cursor: move;\n}\n\n.svg_select_points, .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden;\n}\n.svg_select_points_l, .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible;\n  fill: #888;\n}\n.apexcharts-canvas.zoomable .hovering-zoom {\n  cursor: crosshair\n}\n.apexcharts-canvas.zoomable .hovering-pan {\n  cursor: move\n}\n\n.apexcharts-xaxis,\n.apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.apexcharts-zoom-icon, \n.apexcharts-zoom-in-icon,\n.apexcharts-zoom-out-icon,\n.apexcharts-reset-zoom-icon, \n.apexcharts-pan-icon, \n.apexcharts-selection-icon,\n.apexcharts-menu-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  text-align: center;\n}\n\n\n.apexcharts-zoom-icon svg, \n.apexcharts-zoom-in-icon svg,\n.apexcharts-zoom-out-icon svg,\n.apexcharts-reset-zoom-icon svg,\n.apexcharts-menu-icon svg {\n  fill: #6E8192;\n}\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(0.86)\n}\n.apexcharts-zoom-icon.selected svg, \n.apexcharts-selection-icon.selected svg, \n.apexcharts-reset-zoom-icon.selected svg {\n  fill: #008FFB;\n}\n.apexcharts-selection-icon:not(.selected):hover svg,\n.apexcharts-zoom-icon:not(.selected):hover svg, \n.apexcharts-zoom-in-icon:hover svg, \n.apexcharts-zoom-out-icon:hover svg, \n.apexcharts-reset-zoom-icon:hover svg, \n.apexcharts-menu-icon:hover svg {\n  fill: #333;\n}\n\n.apexcharts-selection-icon, .apexcharts-menu-icon {\n  margin-right: 3px;\n  margin-left: 5px;\n  position: relative;\n  top: 1px;\n}\n.apexcharts-reset-zoom-icon {\n  margin-left: 7px;\n}\n.apexcharts-zoom-icon {\n  transform: scale(1);\n}\n\n.apexcharts-zoom-in-icon, .apexcharts-zoom-out-icon {\n  transform: scale(0.8)\n}\n\n.apexcharts-zoom-out-icon {\n  margin-right: 3px;\n}\n\n.apexcharts-pan-icon {\n  transform: scale(0.72);\n  position: relative;\n  left: 1px;\n  top: 0px;\n}\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6E8192;\n  stroke-width: 2;\n}\n.apexcharts-pan-icon.selected svg {\n  stroke: #008FFB;\n}\n.apexcharts-pan-icon:not(.selected):hover svg {\n  stroke: #333;\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  top: 0px;\n  right: 3px;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 5px 6px 2px 6px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center; \n}\n\n.apexcharts-toolbar svg {\n  pointer-events: none;\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: 0.15s ease all;\n  pointer-events: none;\n}\n\n.apexcharts-menu.open {\n  opacity: 1;\n  pointer-events: all;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer;\n}\n.apexcharts-menu-item:hover {\n  background: #eee;\n}\n\n@media screen and (min-width: 768px) {\n  .apexcharts-toolbar {\n    /*opacity: 0;*/\n  }\n\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1;\n  } \n}\n\n.apexcharts-datalabel.hidden {\n  opacity: 0;\n}\n\n.apexcharts-pie-label,\n.apexcharts-datalabel, .apexcharts-datalabel-label, .apexcharts-datalabel-value {\n  cursor: default;\n  pointer-events: none;\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: 0.3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease;\n}\n\n.apexcharts-canvas .hidden {\n  opacity: 0;\n}\n\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,\n.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events {\n  pointer-events: none;\n}\n\n\n/* markers */\n\n.apexcharts-marker {\n  transition: 0.15s ease all;\n}\n\n@keyframes opaque {\n  0% {\n    opacity: 0;\n  }\n  100% {\n    opacity: 1;\n  }\n}", ""]);
+exports.push([module.i, ".apexcharts-canvas {\n  position: relative;\n  user-select: none;\n  /* cannot give overflow: hidden as it will crop tooltips which overflow outside chart area */\n}\n\n/* scrollbar is not visible by default for legend, hence forcing the visibility */\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px;\n}\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);\n}\n\n.apexcharts-inner {\n  position: relative;\n}\n\n.legend-mouseover-inactive {\n  transition: 0.15s ease all;\n  opacity: 0.20;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0;\n}\n\n.apexcharts-gridline, .apexcharts-text {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: 0.15s ease all;\n}\n.apexcharts-tooltip.light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255, 255, 255, 0.96);\n}\n.apexcharts-tooltip.dark {\n  color: #fff;\n  background: rgba(30,30,30, 0.8);\n}\n\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-line {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px;\n}\n.apexcharts-tooltip.light .apexcharts-tooltip-title {\n  background: #ECEFF1;\n  border-bottom: 1px solid #ddd;\n}\n.apexcharts-tooltip.dark .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.7);\n  border-bottom: 1px solid #222;\n}\n\n.apexcharts-tooltip-text-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  font-weight: 600;\n  margin-left: 5px;\n}\n\n.apexcharts-tooltip-text-z-label:empty,\n.apexcharts-tooltip-text-z-value:empty {\n  display: none;\n}\n\n.apexcharts-tooltip-text-value, \n.apexcharts-tooltip-text-z-value {\n  font-weight: 600;\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 0px;\n  margin-right: 10px;\n  border-radius: 50%;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center;\n}\n\n.apexcharts-tooltip-series-group.active .apexcharts-tooltip-marker {\n  opacity: 1;\n}\n.apexcharts-tooltip-series-group.active, .apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px;\n}\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px;\n}\n.apexcharts-tooltip-candlestick {\n  padding: 4px 8px;\n}\n.apexcharts-tooltip-candlestick > div {\n  margin: 4px 0;\n}\n.apexcharts-tooltip-candlestick span.value {\n  font-weight: bold;\n}\n\n.apexcharts-xaxistooltip {\n  opacity: 0;\n  padding: 9px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n\tbackground: #ECEFF1;\n  border: 1px solid #90A4AE;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xaxistooltip:after, .apexcharts-xaxistooltip:before {\n\tleft: 50%;\n\tborder: solid transparent;\n\tcontent: \" \";\n\theight: 0;\n\twidth: 0;\n\tposition: absolute;\n\tpointer-events: none;\n}\n\n.apexcharts-xaxistooltip:after {\n\tborder-color: rgba(236, 239, 241, 0);\n\tborder-width: 6px;\n\tmargin-left: -6px;\n}\n.apexcharts-xaxistooltip:before {\n\tborder-color: rgba(144, 164, 174, 0);\n\tborder-width: 7px;\n\tmargin-left: -7px;\n}\n\n.apexcharts-xaxistooltip-bottom:after, .apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%;\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #ECEFF1;\n}\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90A4AE;\n}\n\n.apexcharts-xaxistooltip-top:after, .apexcharts-xaxistooltip-top:before {\n  top: 100%;\n}\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #ECEFF1;\n}\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90A4AE;\n}\n\n.apexcharts-xaxistooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-yaxistooltip {\n  opacity: 0;\n  padding: 4px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n\tbackground: #ECEFF1;\n  border: 1px solid #90A4AE;\n}\n\n.apexcharts-yaxistooltip:after, .apexcharts-yaxistooltip:before {\n\ttop: 50%;\n\tborder: solid transparent;\n\tcontent: \" \";\n\theight: 0;\n\twidth: 0;\n\tposition: absolute;\n\tpointer-events: none;\n}\n.apexcharts-yaxistooltip:after {\n\tborder-color: rgba(236, 239, 241, 0);\n\tborder-width: 6px;\n\tmargin-top: -6px;\n}\n.apexcharts-yaxistooltip:before {\n\tborder-color: rgba(144, 164, 174, 0);\n\tborder-width: 7px;\n\tmargin-top: -7px;\n}\n\n.apexcharts-yaxistooltip-left:after, .apexcharts-yaxistooltip-left:before {\n  left: 100%;\n}\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90A4AE;\n}\n\n.apexcharts-yaxistooltip-right:after, .apexcharts-yaxistooltip-right:before {\n  right: 100%;\n}\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90A4AE;\n}\n\n.apexcharts-yaxistooltip.active {\n  opacity: 1;\n}\n\n.apexcharts-xcrosshairs, .apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xcrosshairs.active, .apexcharts-ycrosshairs.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0;\n}\n\n.apexcharts-zoom-rect {\n  pointer-events: none;\n}\n.apexcharts-selection-rect {\n  cursor: move;\n}\n\n.svg_select_points, .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden;\n}\n.svg_select_points_l, .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible;\n  fill: #888;\n}\n.apexcharts-canvas.zoomable .hovering-zoom {\n  cursor: crosshair\n}\n.apexcharts-canvas.zoomable .hovering-pan {\n  cursor: move\n}\n\n.apexcharts-xaxis,\n.apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.apexcharts-zoom-icon, \n.apexcharts-zoom-in-icon,\n.apexcharts-zoom-out-icon,\n.apexcharts-reset-zoom-icon, \n.apexcharts-pan-icon, \n.apexcharts-selection-icon,\n.apexcharts-menu-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  text-align: center;\n}\n\n\n.apexcharts-zoom-icon svg, \n.apexcharts-zoom-in-icon svg,\n.apexcharts-zoom-out-icon svg,\n.apexcharts-reset-zoom-icon svg,\n.apexcharts-menu-icon svg {\n  fill: #6E8192;\n}\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(0.86)\n}\n.apexcharts-zoom-icon.selected svg, \n.apexcharts-selection-icon.selected svg, \n.apexcharts-reset-zoom-icon.selected svg {\n  fill: #008FFB;\n}\n.apexcharts-selection-icon:not(.selected):hover svg,\n.apexcharts-zoom-icon:not(.selected):hover svg, \n.apexcharts-zoom-in-icon:hover svg, \n.apexcharts-zoom-out-icon:hover svg, \n.apexcharts-reset-zoom-icon:hover svg, \n.apexcharts-menu-icon:hover svg {\n  fill: #333;\n}\n\n.apexcharts-selection-icon, .apexcharts-menu-icon {\n  margin-right: 3px;\n  margin-left: 5px;\n  position: relative;\n  top: 1px;\n}\n.apexcharts-reset-zoom-icon {\n  margin-left: 7px;\n}\n.apexcharts-zoom-icon {\n  transform: scale(1);\n}\n\n.apexcharts-zoom-in-icon, .apexcharts-zoom-out-icon {\n  transform: scale(0.8)\n}\n\n.apexcharts-zoom-out-icon {\n  margin-right: 3px;\n}\n\n.apexcharts-pan-icon {\n  transform: scale(0.72);\n  position: relative;\n  left: 1px;\n  top: 0px;\n}\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6E8192;\n  stroke-width: 2;\n}\n.apexcharts-pan-icon.selected svg {\n  stroke: #008FFB;\n}\n.apexcharts-pan-icon:not(.selected):hover svg {\n  stroke: #333;\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  top: 0px;\n  right: 3px;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0px 6px 2px 6px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center; \n}\n\n.apexcharts-toolbar svg {\n  pointer-events: none;\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: 0.15s ease all;\n  pointer-events: none;\n}\n\n.apexcharts-menu.open {\n  opacity: 1;\n  pointer-events: all;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer;\n}\n.apexcharts-menu-item:hover {\n  background: #eee;\n}\n\n@media screen and (min-width: 768px) {\n  .apexcharts-toolbar {\n    /*opacity: 0;*/\n  }\n\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1;\n  } \n}\n\n.apexcharts-datalabel.hidden {\n  opacity: 0;\n}\n\n.apexcharts-pie-label,\n.apexcharts-datalabel, .apexcharts-datalabel-label, .apexcharts-datalabel-value {\n  cursor: default;\n  pointer-events: none;\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: 0.3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease;\n}\n\n.apexcharts-canvas .hidden {\n  opacity: 0;\n}\n\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,\n.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events, .apexcharts-radar-series path, .apexcharts-radar-series polygon {\n  pointer-events: none;\n}\n\n/* markers */\n\n.apexcharts-marker {\n  transition: 0.15s ease all;\n}\n\n@keyframes opaque {\n  0% {\n    opacity: 0;\n  }\n  100% {\n    opacity: 1;\n  }\n}", ""]);
 
 // exports
 
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
-var content = __webpack_require__(158);
+var content = __webpack_require__(159);
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -31504,7 +32154,7 @@ var options = {"hmr":true}
 options.transform = transform
 options.insertInto = undefined;
 
-var update = __webpack_require__(160)(content, options);
+var update = __webpack_require__(161)(content, options);
 
 if(content.locals) module.exports = content.locals;
 
@@ -31536,7 +32186,7 @@ if(false) {
 }
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -31602,7 +32252,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(149);
+var	fixUrls = __webpack_require__(150);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -31918,49 +32568,49 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#000000\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"></path><path d=\"M0 0h24v24H0z\" fill=\"none\"></path></svg>"
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"none\" d=\"M0 0h24v24H0V0z\"></path><path d=\"M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z\"></path></svg>"
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" viewBox=\"0 0 24 24\"><defs><path d=\"M0 0h24v24H0z\" id=\"a\"></path></defs><clipPath id=\"b\"><use overflow=\"visible\" xlink:href=\"#a\"></use></clipPath><path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"></path></svg>"
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"></path></svg>"
 
 /***/ }),
-/* 166 */
+/* 167 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg fill=\"#6E8192\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"></path></svg>"
 
 /***/ }),
-/* 167 */
+/* 168 */
 /***/ (function(module, exports) {
 
 module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" viewBox=\"0 0 24 24\"><path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path><path d=\"M0 0h24v24H0V0z\" fill=\"none\"></path><path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"></path></svg>"
 
 /***/ }),
-/* 168 */
+/* 169 */
 /***/ (function(module, exports, __webpack_require__) {
 
 __webpack_require__(88);
