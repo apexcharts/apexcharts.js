@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Basic Radar</title>
+
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+          max-width: 450px;
+          margin: 35px auto;
+      }
+    </style>
+</head>
+
+<body>
+  <div id="chart">
+    <apexchart type=radar height=350 :options="chartOptions" :series="series" />
+  </div>
+
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;apexchart type=radar height=350 :options="chartOptions" :series="series" />
+    &lt;/div>
+  </div>
+
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+  <script>
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+            name: 'Series 1',
+            data: [80, 50, 30, 40, 100, 20],
+        }],
+        chartOptions: {
+          labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+          title: {
+              text: 'Basic Radar Chart'
+          }
+        }
+      },
+
+    })
+  </script>
+
+</body>
+</html>

@@ -89,7 +89,12 @@ class Labels {
           val = undefined
         }
       } else {
-        val = f.yLbFormatter(w.globals.series[i][j], w)
+        val = f.yLbFormatter(w.globals.series[i][j], {
+          series: w.globals.series,
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        })
       }
 
       // for pie / donuts

@@ -19,23 +19,34 @@
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
+    <apexchart type=radar height=350 :options="chartOptions" :series="series" />
+  </div>
 
-    </div>
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;apexchart type=radar height=350 :options="chartOptions" :series="series" />
+    &lt;/div>
+  </div>
 
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-    <script src="../../../dist/apexcharts.js"></script>
-
-    <script>
-        var options = {
-            chart: {
-                height: 350,
-                type: 'radar',
-            },
-            series: [{
-                name: 'Series 1',
-                data: [20, 100, 40, 30, 50, 80, 33],
-            }],
+  <script>
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+            name: 'Series 1',
+            data: [20, 100, 40, 30, 50, 80, 33],
+        }],
+        
+        chartOptions: {
             labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
             plotOptions: {
                 radar: {
@@ -78,16 +89,11 @@
                 }
             }
         }
+      },
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
+    })
+  </script>
 
-        chart.render();
-       
-
-    </script>
 </body>
 
 </html>

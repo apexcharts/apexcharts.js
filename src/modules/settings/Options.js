@@ -449,7 +449,6 @@ export default class Options {
         },
         radar: {
           size: undefined,
-          customScale: 1,
           offsetX: 0,
           offsetY: 0,
           polygons: {
