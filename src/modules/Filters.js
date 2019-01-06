@@ -153,7 +153,7 @@ class Filters {
   // directly adds dropShadow to the element and returns the same element.
   // the only way it is different from the addShadow() function is that addShadow is chainable to other filters, while this function discards all filters and add dropShadow
   dropShadow (el, attrs) {
-    let { top, left, blur, opacity } = attrs
+    let { top, left, blur, opacity, noUserSpaceOnUse } = attrs
 
     el.unfilter(true)
 
@@ -172,7 +172,9 @@ class Filters {
       add.blend(add.source, shadowBlur)
     })
 
-    el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
+    if (!noUserSpaceOnUse) {
+      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
+    }
 
     return el
   }

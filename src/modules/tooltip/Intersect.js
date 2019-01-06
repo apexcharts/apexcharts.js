@@ -91,8 +91,6 @@ class Intersect {
 
       ttCtx.marker.enlargeCurrentPoint(j, opt.paths)
 
-      // let dataPointsDividedWidth = w.globals.gridWidth/(w.globals.dataPoints + 1);
-
       x = cx
       y = cy - ttCtx.tooltipRect.ttHeight * 1.4
 

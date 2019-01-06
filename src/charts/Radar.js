@@ -2,6 +2,7 @@ import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Markers from '../modules/Markers'
 import DataLabels from '../modules/DataLabels'
+import Filters from '../modules/Filters'
 
 /**
  * ApexCharts Radar Class for Spider/Radar Charts.
@@ -150,6 +151,13 @@ class Radar {
           strokeWidth: 0,
           fill: pathFill
         })
+
+        if (w.config.chart.dropShadow.enabled) {
+          const filters = new Filters(this.ctx)
+
+          const shadow = w.config.chart.dropShadow
+          filters.dropShadow(renderedAreaPath, {...shadow, noUserSpaceOnUse: true})
+        }
 
         elSeries.add(renderedAreaPath)
       }

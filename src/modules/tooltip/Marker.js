@@ -71,6 +71,13 @@ class Marker {
     this.tooltipPosition.moveXCrosshairs(cx)
 
     if (!this.fixedTooltip) {
+      if (w.config.chart.type === 'radar') {
+        const elGrid = this.ttCtx.getElGrid()
+        const seriesBound = elGrid.getBoundingClientRect()
+
+        cx = this.ttCtx.e.clientX - seriesBound.left
+      }
+
       this.tooltipPosition.moveTooltip(
         cx,
         cy,

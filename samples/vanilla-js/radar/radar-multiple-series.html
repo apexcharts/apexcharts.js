@@ -11,17 +11,28 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-        #chart {
+        #chart, #app {
             max-width: 450px;
             margin: 35px auto;
+        }
+        button {
+            position: relative;
+            top: -70px;
+            left: 20px;
         }
     </style>
 </head>
 
 <body>
-    <div id="chart">
 
+    <div id="app">
+        <div id="chart">
+
+        </div>
+    
+        <button onclick="update()">update</button>
     </div>
+    
 
 
     <script src="../../../dist/apexcharts.js"></script>
@@ -31,6 +42,12 @@
             chart: {
                 height: 350,
                 type: 'radar',
+                dropShadow: {
+                    enabled: true,
+                    blur: 1,
+                    left: 1,
+                    top: 1
+                }
             },
             series: [{
                 name: 'Series 1',
@@ -63,6 +80,30 @@
         );
 
         chart.render();
+
+        function update() {
+
+            function randomSeries() {
+                var arr = []
+                for(var i = 0; i < 6; i++) {
+                    arr.push(Math.floor(Math.random() * 100)) 
+                }
+
+                return arr
+            }
+            
+
+            chart.updateSeries([{
+                name: 'Series 1',
+                data: randomSeries(),
+            }, {
+                name: 'Series 2',
+                data: randomSeries(),
+            }, {
+                name: 'Series 3',
+                data: randomSeries(),
+            }])
+        }
        
 
     </script>

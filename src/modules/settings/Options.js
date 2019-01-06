@@ -253,6 +253,7 @@ export default class Options {
         },
         brush: {
           enabled: false,
+          autoScaleYaxis: false,
           target: undefined
         },
         stacked: false,
