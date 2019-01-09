@@ -251,7 +251,7 @@ class XAxis {
 
         label = lbFormatter(label)
 
-        let elTick = graphics.drawText({
+        let elLabel = graphics.drawText({
           x: ylabels.offsetX - 15,
           y: yPos + colHeight + ylabels.offsetY,
           text: label,
@@ -262,7 +262,15 @@ class XAxis {
           cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
         })
 
-        elYaxisTexts.add(elTick)
+        // let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
+        // if (ylabels.rotate !== 0) {
+        //   elLabel.node.setAttribute(
+        //     'transform',
+        //     `rotate(${ylabels.rotate} ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
+        //   )
+        // }
+
+        elYaxisTexts.add(elLabel)
         yPos = yPos + colHeight
       }
     }

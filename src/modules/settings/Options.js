@@ -22,6 +22,7 @@ export default class Options {
         maxWidth: 160,
         offsetX: 0,
         offsetY: 0,
+        rotate: 0,
         style: {
           colors: [],
           fontSize: '11px',
