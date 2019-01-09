@@ -844,12 +844,18 @@ class Core {
       }
 
       w.config.chart.events.selection = (chart, e) => {
-        let min, max;
-        if (w.config.chart.brush.autoZoomY) {
-          min = max = 0;
+        let min, max
+        if (w.config.chart.brush.autoScaleYaxis) {
+          let first = targetChart.w.config.series[0].data.find(x => x[0] >= e.xaxis.min)
+          let firstValue = first[1]
+          max = min = firstValue
           targetChart.w.config.series.forEach(serie => {
-            if (serie[1] > max) max = serie[1];
-            if (serie[1] < min) min = serie[1];
+            serie.data.forEach(data => {
+              if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
+                if (data[1] > max && data[1] !== null) max = data[1]
+                if (data[1] < min && data[1] !== null) min = data[1]
+              }
+            })
           })
           min *= 0.95
           max *= 1.05
