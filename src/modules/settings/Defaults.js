@@ -447,19 +447,43 @@ class Defaults {
   }
 
   radar () {
+    this.opts.yaxis[0].labels.style.fontSize = '13px'
+    this.opts.yaxis[0].labels.offsetY = 6
+
     return {
       dataLabels: {
-        enabled: true
+        enabled: true,
+        style: {
+          colors: '#a8a8a8',
+          fontSize: '11px'
+        }
       },
       stroke: {
-        width: 3
+        width: 2
       },
       markers: {
-        size: 5
+        size: 3,
+        strokeWidth: 1,
+        strokeOpacity: 1
+      },
+      fill: {
+        opacity: 0.2
       },
       tooltip: {
         shared: false,
-        intersect: true
+        intersect: true,
+        followCursor: true
+      },
+      grid: {
+        show: false
+      },
+      xaxis: {
+        tooltip: {
+          enabled: false
+        },
+        crosshairs: {
+          show: false
+        }
       }
     }
   }

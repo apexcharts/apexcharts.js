@@ -58,6 +58,16 @@ class Graphics {
     return rect
   }
 
+  drawPolygon (polygonString, stroke = '#e1e1e1', fill = 'none') {
+    const w = this.w
+    const polygon = w.globals.dom.Paper.polygon(polygonString).attr({
+      fill: fill,
+      stroke: stroke
+    })
+
+    return polygon
+  }
+
   drawCircle (radius, attrs = null) {
     const w = this.w
 
@@ -71,7 +81,7 @@ class Graphics {
   drawPath ({
     d = '',
     stroke = '#a8a8a8',
-    strokeWidth,
+    strokeWidth = 1,
     fill,
     fillOpacity = 1,
     strokeOpacity = 1,

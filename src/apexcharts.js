@@ -520,7 +520,7 @@ class ApexCharts {
         return true
       }
     }).map((ch) => {
-      return this.w.config.chart.group === ch.group ? ch.chart : null
+      return this.w.config.chart.group === ch.group ? ch.chart : this
     })
   }
 

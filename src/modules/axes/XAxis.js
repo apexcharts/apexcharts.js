@@ -74,41 +74,12 @@ class XAxis {
       labels.push(this.xaxisLabels[i])
     }
 
-    if (
-      w.config.chart.type === 'line' ||
-      w.config.chart.type === 'area'
-    ) {
-      if (w.globals.isXNumeric) {
-        colWidth = w.globals.gridWidth / (labels.length - 1)
-        xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
-      } else {
-        // no isXNumeric, only y values values and labels not provided
-        if (w.globals.noLabelsProvided) {
-          colWidth = w.globals.gridWidth / this.xaxisLabels.length
-        } else {
-          // labels provided
-          colWidth = w.globals.gridWidth / labels.length
-        }
-        xPos = xPos + colWidth + w.config.xaxis.labels.offsetX
-      }
+    if (w.globals.isXNumeric) {
+      colWidth = w.globals.gridWidth / (labels.length - 1)
+      xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
     } else {
-      if (w.globals.isXNumeric) {
-        if (w.config.chart.type !== 'bar') {
-          colWidth = w.globals.gridWidth / (this.xaxisLabels.length - 1)
-          xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
-        } else {
-          colWidth = w.globals.gridWidth / w.globals.labels.length
-          xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
-        }
-      } else {
-        if (w.globals.noLabelsProvided && w.config.chart.type !== 'bar') {
-          colWidth = w.globals.gridWidth / this.xaxisLabels.length
-          xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
-        } else {
-          colWidth = w.globals.gridWidth / labels.length
-          xPos = xPos + colWidth + w.config.xaxis.labels.offsetX
-        }
-      }
+      colWidth = w.globals.gridWidth / labels.length
+      xPos = xPos + colWidth + w.config.xaxis.labels.offsetX
     }
 
     let xlbFormatter = w.globals.xLabelFormatter
@@ -251,7 +222,7 @@ class XAxis {
 
         label = lbFormatter(label)
 
-        let elTick = graphics.drawText({
+        let elLabel = graphics.drawText({
           x: ylabels.offsetX - 15,
           y: yPos + colHeight + ylabels.offsetY,
           text: label,
@@ -262,7 +233,15 @@ class XAxis {
           cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
         })
 
-        elYaxisTexts.add(elTick)
+        // let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
+        // if (ylabels.rotate !== 0) {
+        //   elLabel.node.setAttribute(
+        //     'transform',
+        //     `rotate(${ylabels.rotate} ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
+        //   )
+        // }
+
+        elYaxisTexts.add(elLabel)
         yPos = yPos + colHeight
       }
     }

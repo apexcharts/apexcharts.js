@@ -51,10 +51,27 @@ class CoreUtils {
       }, 0)
     } else {
       // axis charts - supporting multiple series
-      return this.w.config.series[index].data.reduce((acc, cur) => {
+      return this.w.globals.series[index].reduce((acc, cur) => {
         return acc + cur
       }, 0)
     }
+  }
+
+  isSeriesNull (index = null) {
+    let r = []
+    if (index === null) {
+      // non-plot chart types - pie / donut / circle
+      r = this.w.config.series.filter((d) => {
+        return d !== null
+      })
+    } else {
+      // axis charts - supporting multiple series
+      r = this.w.globals.series[index].filter((d) => {
+        return d !== null
+      })
+    }
+
+    return r.length === 0
   }
 
   seriesHaveSameValues (index) {

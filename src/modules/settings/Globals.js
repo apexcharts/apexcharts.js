@@ -27,6 +27,11 @@ export default class Globals {
           colors: []
         }
       },
+      radarPolygons: {
+        fill: {
+          colors: []
+        }
+      },
       markers: {
         colors: [],
         size: config.markers.size,

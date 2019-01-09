@@ -523,7 +523,7 @@ type ApexXAxis = {
     minHeight?: number;
     maxHeight?: number;
     style?: {
-      colors?: [];
+      colors?: string[];
       fontSize?: string;
       fontFamily?: string;
       cssClass?: string;

@@ -83,6 +83,14 @@ class YAxis {
           cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[realIndex].labels.style.cssClass
         })
         elYaxisTexts.add(label)
+
+        let labelRotatingCenter = graphics.rotateAroundCenter(label.node)
+        if (w.config.yaxis[realIndex].labels.rotate !== 0) {
+          label.node.setAttribute(
+            'transform',
+            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
+          )
+        }
         l = l + labelsDivider
       }
     }

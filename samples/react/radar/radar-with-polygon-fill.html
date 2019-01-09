@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Radar with Polygon Fill</title>
+
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 450px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <div id="html">
+          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;radar&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
+  </div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class RadarChart extends React.Component {
+    
+    constructor(props) {
+        super(props);
+
+        this.state = {
+        options: {
+          labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+          plotOptions: {
+              radar: {
+                  size: 140,
+                  strokeColor: '#e9e9e9',
+                  polygons: {
+                      fill: {
+                          colors: ['#f8f8f8', '#fff']
+                      }
+                  }
+              }
+          },
+          title: {
+              text: 'Radar with Polygon Fill'
+          },
+          colors: ['#FF4560'],
+          markers: {
+              size: 4,
+              colors: ['#fff'],
+              strokeColor: '#FF4560',
+              strokeWidth: 2,
+          },
+          tooltip: {
+              y: {
+                  formatter: function(val) {
+                      return val
+                  }   
+              }
+          },
+          yaxis: {
+              tickAmount: 7,
+              labels: {
+                  formatter: function(val, i) {
+                      if(i % 2 === 0) {
+                          return val
+                      } else {
+                          return ''
+                      }
+                  }
+              }
+          }
+        },
+        series: [{
+            name: 'Series 1',
+            data: [20, 100, 40, 30, 50, 80, 33],
+        }]
+      }
+    }
+
+    render() {
+      return (
+        <div>
+          <div id="chart">
+            <ReactApexChart options={this.state.options} series={this.state.series} type="radar" height="350" />
+          </div>
+          <div id="html-dist">
+          </div>
+        </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(RadarChart), domContainer);
+
+  </script>
+</body>
+</html>

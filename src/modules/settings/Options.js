@@ -22,6 +22,7 @@ export default class Options {
         maxWidth: 160,
         offsetX: 0,
         offsetY: 0,
+        rotate: 0,
         style: {
           colors: [],
           fontSize: '11px',
@@ -253,6 +254,7 @@ export default class Options {
         },
         brush: {
           enabled: false,
+          autoScaleYaxis: false,
           target: undefined
         },
         stacked: false,
@@ -448,9 +450,14 @@ export default class Options {
         },
         radar: {
           size: undefined,
-          customScale: 1,
           offsetX: 0,
-          offsetY: 0
+          offsetY: 0,
+          polygons: {
+            strokeColor: '#e8e8e8',
+            fill: {
+              colors: undefined
+            }
+          }
         }
       },
       colors: undefined,
@@ -537,6 +544,7 @@ export default class Options {
       legend: {
         show: true,
         showForSingleSeries: false,
+        showForNullSeries: true,
         showForZeroSeries: true,
         floating: false,
         position: 'bottom', // whether to position legends in 1 of 4

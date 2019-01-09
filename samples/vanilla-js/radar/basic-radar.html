@@ -12,7 +12,7 @@
 
     <style>
         #chart {
-            max-width: 350px;
+            max-width: 450px;
             margin: 35px auto;
         }
     </style>
@@ -33,13 +33,13 @@
                 type: 'radar',
             },
             series: [{
-                name: 'Net Profit',
-                data: [170, 171, 107, 175, 76]
-            }, {
-                name: 'Revenue',
-                data: [46, 15, 171, 65, 112]
+                name: 'Series 1',
+                data: [80, 50, 30, 40, 100, 20],
             }],
-            labels: ['Janyuary', 'February', 'March', 'Apriluary', 'Mayurry', 'June']
+            title: {
+                text: 'Basic Radar Chart'
+            },
+            labels: ['January', 'February', 'March', 'April', 'May', 'June']
         }
 
         var chart = new ApexCharts(

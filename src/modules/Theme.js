@@ -82,6 +82,13 @@ class Theme {
     }
     this.pushExtraColors(w.globals.dataLabels.style.colors)
 
+    if (w.config.plotOptions.radar.polygons.fill.colors === undefined) {
+      w.globals.radarPolygons.fill.colors = ['#fff']
+    } else {
+      w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors
+    }
+    this.pushExtraColors(w.globals.radarPolygons.fill.colors, 20)
+
     // The point colors
     if (w.config.markers.colors === undefined) {
       w.globals.markers.colors = defaultColors
@@ -95,10 +102,10 @@ class Theme {
   // will push same colors to the list
   // params:
   // distributed is only valid for distributed column/bar charts
-  pushExtraColors (colorSeries, distributed = null) {
+  pushExtraColors (colorSeries, length, distributed = null) {
     let w = this.w
 
-    let len = w.globals.series.length
+    let len = length || w.globals.series.length
 
     if (distributed === null) {
       distributed = (w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) || (w.config.chart.type === 'heatmap' && w.config.plotOptions.heatmap.colorScale.inverse)
