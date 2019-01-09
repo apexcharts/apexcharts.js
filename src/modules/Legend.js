@@ -165,12 +165,18 @@ class Legend {
       elLegend.appendChild(elMarker)
       elLegend.appendChild(elLegendText)
 
+      const coreUtils = new CoreUtils(this.ctx)
       if (!w.config.legend.showForZeroSeries) {
-        const coreUtils = new CoreUtils(this.ctx)
         const total = coreUtils.getSeriesTotalByIndex(i)
 
-        if (total === 0 && coreUtils.seriesHaveSameValues(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+        if ((total === 0 && coreUtils.seriesHaveSameValues(i) && !coreUtils.isSeriesNull(i)) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
           elLegend.classList.add('apexcharts-hidden-zero-series')
+        }
+      }
+
+      if (!w.config.legend.showForNullSeries) {
+        if (coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+          elLegend.classList.add('apexcharts-hidden-null-series')
         }
       }
 
@@ -436,7 +442,7 @@ class Legend {
         cursor: auto;
       }
 
-      .apexcharts-legend .apexcharts-hidden-zero-series {
+      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {
         display: none !important;
       }
 
