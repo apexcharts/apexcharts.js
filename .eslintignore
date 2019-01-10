@@ -1,0 +1,7 @@
+dist/
+samples/
+src/svgjs/
+src/utils/ClassListPolyfill.js
+src/utils/DetectElementResize.js
+node_modules/
+tests/coverage/
