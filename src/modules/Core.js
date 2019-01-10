@@ -857,6 +857,7 @@ class Core {
               }
             })
           })
+
           min *= 0.95
           max *= 1.05
         }
@@ -870,7 +871,7 @@ class Core {
             min: yaxis.min,
             max: yaxis.max
           }
-        }, false, false)
+        }, false, false, false, false)
       }
     }
   }
