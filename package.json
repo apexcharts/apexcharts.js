@@ -1,24 +1,26 @@
 {
   "name": "apexcharts",
+  "version": "2.6.0",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
     "url": "https://github.com/apexcharts/apexcharts.js.git"
   },
-  "version": "2.6.0",
-  "main": "dist/apexcharts.min.js",
+  "main": "dist/apexcharts.common.js",
+  "module": "dist/apexcharts.esm.js",
+  "unpkg": "dist/apexcharts.js",
+  "jsdelivr": "dist/apexcharts.js",
   "typings": "./apexcharts.d.ts",
-  "directories": {
-    "test": "tests"
-  },
+  "files": [
+    "src",
+    "dist/*.js",
+    "types/*.d.ts"
+  ],
   "scripts": {
-    "start": "webpack --watch",
-    "bundle": "webpack",
-    "rollup": "rollup -c ./rollup.config.js",
-    "minify": "gulp build",
-    "build": "npm run bundle && npm run rollup && npm run minify",
+    "dev": "rollup -w -c scripts/config.js --environment TARGET:web-full-dev",
+    "build": "rollup -c ./rollup.config.js",
     "lint": "eslint src/**/*.js tests/**/*.js --no-fix",
-    "test": "jest"
+    "test": "jest --config tests/jest.config.js"
   },
   "dependencies": {
     "babel-polyfill": "^6.26.0",
@@ -45,6 +47,8 @@
     "puppeteer": "^1.11.0",
     "puppeteer-core": "^1.11.0",
     "rollup": "^1.1.0",
+    "tslint": "^5.12.0",
+    "typescript": "^3.2.2",
     "webpack": "^4.28.3"
   },
   "author": {
