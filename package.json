@@ -10,22 +10,19 @@
   "module": "dist/apexcharts.esm.js",
   "unpkg": "dist/apexcharts.js",
   "jsdelivr": "dist/apexcharts.js",
-  "typings": "./apexcharts.d.ts",
+  "typings": "types/apexcharts.d.ts",
   "files": [
     "src",
     "dist/*.js",
     "types/*.d.ts"
   ],
   "scripts": {
-    "dev": "rollup -w -c scripts/config.js --environment TARGET:web-full-dev",
-    "build": "rollup -c ./rollup.config.js",
+    "dev": "rollup -w -c scripts/config.js --environment TARGET:web-dev",
+    "build": "node build/build.js",
     "lint": "eslint src/**/*.js tests/**/*.js --no-fix",
     "test": "jest --config tests/jest.config.js"
   },
   "dependencies": {
-    "babel-polyfill": "^6.26.0",
-    "core-js": "^2.5.7",
-    "es6-promise-promise": "^1.0.0",
     "svg.draggable.js": "^2.2.1",
     "svg.easing.js": "^2.0.0",
     "svg.filter.js": "^2.0.2",
@@ -35,6 +32,12 @@
     "svg.select.js": "^2.1.2"
   },
   "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/plugin-proposal-class-properties": "^7.2.3",
+    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "@babel/preset-env": "^7.2.3",
+    "babel-eslint": "^10.0.1",
+    "chalk": "^2.4.2",
     "eslint": "5.12.0",
     "eslint-config-prettier": "3.3.0",
     "eslint-loader": "2.1.1",
@@ -47,6 +50,7 @@
     "puppeteer": "1.11.0",
     "puppeteer-core": "1.11.0",
     "rollup": "1.1.0",
+    "terser": "^3.14.1",
     "tslint": "5.12.0",
     "typescript": "3.2.2",
     "webpack": "4.28.3"
