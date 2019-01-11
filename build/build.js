@@ -37,14 +37,16 @@ async function executeBuildEntry(buildConfig) {
   const generated = await buildBundle.generate(outputLocation)
   let code = generated.output[0].code
   if (isProd) {
-    const minified = (banner ? banner + '\n' : '') + terser.minify(code, {
-      output: {
-        ascii_only: true
-      },
-      compress: {
-        pure_funcs: ['makeMap']
-      }
-    }).code
+    const minified =
+      (banner ? banner + '\n' : '') +
+      terser.minify(code, {
+        output: {
+          ascii_only: true
+        },
+        compress: {
+          pure_funcs: ['makeMap']
+        }
+      }).code
     return outputFile(file, minified, true)
   }
   return outputFile(file, code)
@@ -55,16 +57,18 @@ async function outputFile(dest, content, testZip) {
   if (testZip) {
     const zipResult = zlib.gzipSync(content)
     console.log(
+      'Build output: ',
       chalk.blue(path.relative(process.cwd(), dest)),
       ' ',
-      getSize(content),
-      `(gzipped: ${getSize(zipResult)})`
+      chalk.green.bold(getSize(content)),
+      `| ${chalk.green.bold(getSize(zipResult))} gzipped`
     )
   } else {
     console.log(
+      'Build output: ',
       chalk.blue(path.relative(process.cwd(), dest)),
       ' ',
-      getSize(content)
+      chalk.green.bold(getSize(content))
     )
   }
 }
