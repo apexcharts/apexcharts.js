@@ -8,7 +8,7 @@ import Formatters from '../Formatters'
  * @module XAxis
  **/
 
-class XAxis {
+export default class XAxis {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -441,5 +441,3 @@ class XAxis {
   //   w.globals.dom.elGraphical.add(plotBand)
   // }
 }
-
-module.exports = XAxis

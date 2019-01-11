@@ -8,7 +8,7 @@ import Toolbar from './Toolbar'
  * @module ZoomPanSelection
  **/
 
-class ZoomPanSelection extends Toolbar {
+export default class ZoomPanSelection extends Toolbar {
   constructor (ctx) {
     super(ctx)
 
@@ -625,5 +625,3 @@ class ZoomPanSelection extends Toolbar {
     }
   }
 }
-
-module.exports = ZoomPanSelection

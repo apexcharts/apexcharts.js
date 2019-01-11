@@ -6,7 +6,7 @@ import Utils from '../../utils/Utils'
  * @module Defaults
  **/
 
-class Defaults {
+export default class Defaults {
   constructor (opts) {
     this.opts = opts
   }
@@ -527,5 +527,3 @@ class Defaults {
     }
   }
 }
-
-module.exports = Defaults

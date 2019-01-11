@@ -8,7 +8,7 @@ import CoreUtils from './CoreUtils'
  * @module Responsive
  **/
 
-class Responsive {
+export default class Responsive {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -62,5 +62,3 @@ class Responsive {
     this.w.config = newConfig
   }
 }
-
-module.exports = Responsive

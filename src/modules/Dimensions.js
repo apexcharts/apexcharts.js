@@ -9,7 +9,7 @@ import YAxis from './axes/YAxis'
  * @module Dimensions
  **/
 
-class Dimensions {
+export default class Dimensions {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -599,5 +599,3 @@ class Dimensions {
     return this.lgRect
   }
 }
-
-module.exports = Dimensions

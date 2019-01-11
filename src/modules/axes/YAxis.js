@@ -6,7 +6,7 @@ import Graphics from '../Graphics'
  * @module YAxis
  **/
 
-class YAxis {
+export default class YAxis {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -418,5 +418,3 @@ class YAxis {
     })
   }
 }
-
-module.exports = YAxis

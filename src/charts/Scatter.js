@@ -9,7 +9,7 @@ import Markers from '../modules/Markers'
  * This Class also handles bubbles chart as currently there is no major difference in drawing them,
  * @module Scatter
  **/
-class Scatter {
+export default class Scatter {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -169,5 +169,3 @@ class Scatter {
     }
   }
 }
-
-module.exports = Scatter

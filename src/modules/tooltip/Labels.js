@@ -7,7 +7,7 @@ import Utils from './Utils'
  * @module Tooltip.Labels
  **/
 
-class Labels {
+export default class Labels {
   constructor (tooltipContext) {
     this.w = tooltipContext.w
     this.ctx = tooltipContext.ctx
@@ -353,4 +353,3 @@ class Labels {
     })
   }
 }
-module.exports = Labels

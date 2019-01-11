@@ -31,7 +31,7 @@ async function executeBuildEntry(buildConfig) {
   const { file, banner } = outputLocation
   const buildBundle = await rollup.rollup(buildConfig)
   const generated = await buildBundle.generate(outputLocation)
-  return outputFile(file, generated.code)
+  return outputFile(file, generated.output[0].code)
 }
 
 async function outputFile(dest, content, shouldZip) {

@@ -43,7 +43,7 @@ window.Apex = {}
  * @module ApexCharts
  **/
 
-class ApexCharts {
+export default class ApexCharts {
   constructor (el, opts) {
     this.opts = opts
     this.ctx = this
@@ -946,5 +946,3 @@ class ApexCharts {
     }, 150)
   }
 }
-
-module.exports = ApexCharts

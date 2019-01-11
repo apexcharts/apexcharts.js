@@ -6,7 +6,7 @@ import Utils from '../utils/Utils'
  * @module Animations
  **/
 
-class Animations {
+export default class Animations {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -209,4 +209,3 @@ class Animations {
   }
 }
 
-module.exports = Animations

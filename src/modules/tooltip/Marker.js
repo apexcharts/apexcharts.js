@@ -9,7 +9,7 @@ import Utils from '../../utils/Utils'
  * @module Tooltip.Marker
  **/
 
-class Marker {
+export default class Marker {
   constructor (tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
@@ -166,4 +166,3 @@ class Marker {
     }
   }
 }
-module.exports = Marker

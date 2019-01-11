@@ -9,7 +9,7 @@ import Filters from '../modules/Filters'
  * @module HeatMap
  **/
 
-class HeatMap {
+export default class HeatMap {
   constructor (ctx, xyRatios) {
     this.ctx = ctx
     this.w = ctx.w
@@ -264,5 +264,3 @@ class HeatMap {
     el.attr({ fill: colorFrom }).animate(speed).attr({ fill: colorTo })
   }
 }
-
-module.exports = HeatMap
