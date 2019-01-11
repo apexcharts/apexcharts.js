@@ -427,6 +427,10 @@ class Legend {
         font-size: 14px;
       }
 
+      .apexcharts-legend-text *, .apexcharts-legend-marker * {
+        pointer-events: none;
+      }
+
       .apexcharts-legend-marker {
         position: relative;
         display: inline-block;
