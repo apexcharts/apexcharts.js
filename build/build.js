@@ -11,6 +11,8 @@ if (!fs.existsSync('dist')) {
 
 const builds = require('./config').getAllBuilds()
 
+
+// Execute build directly
 build(builds)
   .then((r) => {
     console.log(chalk.green('Build Completed'))
@@ -20,6 +22,9 @@ build(builds)
     throw e
   })
 
+/**
+ //Run all builds from configurations received
+ */
 async function build(builds) {
   for (const key in builds) {
     if (builds.hasOwnProperty(key)) {
@@ -29,6 +34,10 @@ async function build(builds) {
   }
 }
 
+/**
+ * Build and compress code with Rollup and Terser from build configuration
+ * @param {*} buildConfig Represent the Rollup configuration of the build
+ */
 async function executeBuildEntry(buildConfig) {
   const outputLocation = buildConfig.output
   const { file, banner } = outputLocation
@@ -52,6 +61,12 @@ async function executeBuildEntry(buildConfig) {
   return outputFile(file, code)
 }
 
+/**
+ * Write build output to disk, and log its size
+ * @param {string} dest Output file path
+ * @param {string} content Content of the file
+ * @param {boolean} testZip Should it check gzip size
+ */
 async function outputFile(dest, content, testZip) {
   await fs.promises.writeFile(dest, content)
   if (testZip) {
@@ -73,6 +88,10 @@ async function outputFile(dest, content, testZip) {
   }
 }
 
+/**
+ * Get content size in KB
+ * @param {string} content Content to check size
+ */
 function getSize(content) {
   return (content.length / 1024).toFixed(2) + 'kb'
 }

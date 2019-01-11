@@ -46,6 +46,10 @@ const builds = {
   }
 }
 
+/**
+ * Generate proper Rollup configuration from build definition object
+ * @param {string} name Build config key
+ */
 function generateConfig(name) {
   const opts = builds[name]
   const config = {
