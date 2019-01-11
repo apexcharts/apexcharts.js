@@ -918,6 +918,11 @@ class ApexCharts {
     return exp.svgUrl()
   }
 
+  dataURI () {
+    const exp = new Exports(this.ctx)
+    return exp.dataURI()
+  }
+
   paper () {
     return this.w.globals.dom.Paper
   }

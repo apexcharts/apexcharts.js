@@ -1,3 +1,4 @@
+import { rejects } from 'assert'
 
 class Exports {
   constructor (ctx) {
@@ -36,44 +37,51 @@ class Exports {
     return URL.createObjectURL(svgBlob)
   }
 
+  dataURI () {
+    return new Promise((resolve) => {
+      const w = this.w
+
+      this.cleanup()
+      const canvas = document.createElement('canvas')
+      canvas.width = w.globals.svgWidth
+      canvas.height = w.globals.svgHeight
+
+      const canvasBg = w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background
+
+      var ctx = canvas.getContext('2d')
+      ctx.fillStyle = canvasBg
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      var DOMURL = window.URL || window.webkitURL || window
+
+      var img = new Image()
+      img.crossOrigin = 'anonymous'
+
+      const svgData = this.getSvgString()
+      const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
+
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0)
+        DOMURL.revokeObjectURL(svgUrl)
+
+        var imgURI = canvas
+          .toDataURL('image/png')
+
+        resolve(imgURI)
+      }
+
+      img.src = svgUrl
+    })
+  }
+
   exportToSVG () {
     this.triggerDownload(this.svgUrl(), '.svg')
   }
 
   exportToPng () {
-    const w = this.w
-
-    this.cleanup()
-    const canvas = document.createElement('canvas')
-    canvas.width = w.globals.svgWidth
-    canvas.height = w.globals.svgHeight
-
-    const canvasBg = w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background
-
-    var ctx = canvas.getContext('2d')
-    ctx.fillStyle = canvasBg
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-    var DOMURL = window.URL || window.webkitURL || window
-
-    var img = new Image()
-    img.crossOrigin = 'anonymous'
-
-    const svgData = this.getSvgString()
-    const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
-
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0)
-      DOMURL.revokeObjectURL(svgUrl)
-
-      var imgURI = canvas
-        .toDataURL('image/png')
-        .replace('image/png', 'image/octet-stream')
-
+    this.dataURI().then((imgURI) => {
       this.triggerDownload(imgURI, '.png')
-    }
-
-    img.src = svgUrl
+    })
   }
 
   triggerDownload (href, ext) {
