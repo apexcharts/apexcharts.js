@@ -7,9 +7,15 @@ var sourceLocalesToCopy = 'src/locales/**/*';
 var destLocalesToCopy = 'dist/locales';
 
 gulp.task('locales', function () {
-    return gulp
-        .src(sourceLocalesToCopy)
-        .pipe(gulp.dest(destLocalesToCopy));
+  return gulp
+      .src(sourceLocalesToCopy)
+      .pipe(gulp.dest(destLocalesToCopy));
+});
+
+gulp.task('css', function () {
+  return gulp
+      .src('src/assets/apexcharts.css')
+      .pipe(gulp.dest('dist/apexcharts.css'));
 });
 
 gulp.task('minify', function () {
@@ -24,5 +30,5 @@ gulp.task('minify', function () {
 });
 
 
-gulp.task('build', ['locales', 'minify']);
+gulp.task('build', ['locales', 'minify', 'css']);
 gulp.task('default', ['minify']);

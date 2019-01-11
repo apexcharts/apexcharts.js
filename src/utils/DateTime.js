@@ -198,7 +198,7 @@ class DateTime {
     month = ts.monthMod(month)
 
     switch (true) {
-      case this.months30.includes(month):
+      case this.months30.indexOf(month) > -1:
         if (month === 2) {
           if (this.isLeapYear(year)) {
             days = 29
@@ -209,7 +209,7 @@ class DateTime {
 
         break
 
-      case this.months31.includes(month):
+      case this.months31.indexOf(month) > -1:
         days = 31
         break
 

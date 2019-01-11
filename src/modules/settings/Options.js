@@ -678,6 +678,10 @@ export default class Options {
         custom: undefined,
         fillSeriesColor: false,
         theme: 'light',
+        style: {
+          fontSize: '12px',
+          fontFamily: undefined
+        },
         onDatasetHover: {
           highlightDataSeries: false
         },
@@ -807,7 +811,11 @@ export default class Options {
         tooltip: {
           enabled: true,
           offsetY: 0,
-          formatter: undefined
+          formatter: undefined,
+          style: {
+            fontSize: '12px',
+            fontFamily: undefined
+          }
         }
       },
       yaxis: this.yAxis,

@@ -846,7 +846,7 @@ class Core {
       w.config.chart.events.selection = (chart, e) => {
         let min, max
         if (w.config.chart.brush.autoScaleYaxis) {
-          let first = targetChart.w.config.series[0].data.find(x => x[0] >= e.xaxis.min)
+          let first = targetChart.w.config.series[0].data.filter(x => x[0] >= e.xaxis.min)[0]
           let firstValue = first[1]
           max = min = firstValue
           targetChart.w.config.series.forEach(serie => {
