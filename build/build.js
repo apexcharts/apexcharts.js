@@ -5,15 +5,15 @@ const rollup = require('rollup')
 const terser = require('terser')
 const chalk = require('chalk')
 
-if (!fs.existsSync('dist2')) {
-  fs.mkdirSync('dist2')
+if (!fs.existsSync('dist')) {
+  fs.mkdirSync('dist')
 }
 
 const builds = require('./config').getAllBuilds()
 
 build(builds)
   .then((r) => {
-    console.log(chalk.blue('Build Completed'))
+    console.log(chalk.green('Build Completed'))
   })
   .catch((e) => {
     console.log(chalk.red(e))
@@ -37,15 +37,15 @@ async function executeBuildEntry(buildConfig) {
   const generated = await buildBundle.generate(outputLocation)
   let code = generated.output[0].code
   if (isProd) {
-    const minified = terser.minify(code, {
+    const minified = (banner ? banner + '\n' : '') + terser.minify(code, {
       output: {
         ascii_only: true
       },
       compress: {
         pure_funcs: ['makeMap']
       }
-    })
-    return outputFile(file, minified.code, true)
+    }).code
+    return outputFile(file, minified, true)
   }
   return outputFile(file, code)
 }

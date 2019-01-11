@@ -4,6 +4,7 @@ const svg = require('rollup-plugin-svg')
 const replace = require('rollup-plugin-replace')
 const postcss = require('rollup-plugin-postcss')
 const json = require('rollup-plugin-json')
+const resolve = require('rollup-plugin-node-resolve')
 
 const version = process.env.VERSION || require('../package.json').version
 
@@ -19,26 +20,26 @@ const banner =
 const builds = {
   'web-cjs': {
     entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist2/apexchart.common.js'),
+    dest: resolvePath('dist/apexcharts.common.js'),
     format: 'cjs',
     banner
   },
   'web-esm': {
     entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist2/apexchart.esm.js'),
+    dest: resolvePath('dist/apexcharts.esm.js'),
     format: 'es',
     banner
   },
   'web-umd-dev': {
     entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist2/apexchart.js'),
+    dest: resolvePath('dist/apexcharts.js'),
     format: 'umd',
     env: 'development',
     banner
   },
   'web-umd-prod': {
     entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist2/apexchart.min.js'),
+    dest: resolvePath('dist/apexcharts.min.js'),
     format: 'umd',
     env: 'development',
     banner
@@ -50,6 +51,7 @@ function generateConfig(name) {
   const config = {
     input: opts.entry,
     plugins: [
+      resolve(),
       json({
         preferConst: true
       }),
