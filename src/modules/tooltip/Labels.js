@@ -41,6 +41,12 @@ class Labels {
       ttItems,
       shared
     })
+
+    // Re-calculate tooltip dimensions now that we have drawn the text
+    const tooltipEl = this.ttCtx.getElTooltip()
+
+    this.ttCtx.tooltipRect.ttWidth = tooltipEl.getBoundingClientRect().width
+    this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height
   }
 
   printLabels ({
