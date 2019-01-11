@@ -1,5 +1,3 @@
-import { rejects } from 'assert'
-
 class Exports {
   constructor (ctx) {
     this.ctx = ctx
