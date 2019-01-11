@@ -1,10 +1,10 @@
 const path = require('path')
 const babel = require('rollup-plugin-babel')
-const svg = require('rollup-plugin-svg')
 const replace = require('rollup-plugin-replace')
 const postcss = require('rollup-plugin-postcss')
 const json = require('rollup-plugin-json')
 const resolve = require('rollup-plugin-node-resolve')
+const svgo = require('rollup-plugin-svgo')
 
 const version = process.env.VERSION || require('../package.json').version
 
@@ -56,7 +56,9 @@ function generateConfig(name) {
         preferConst: true
       }),
       postcss(),
-      svg(),
+      svgo({
+        raw: true
+      }),
       babel({
         exclude: 'node_modules/**'
       })
