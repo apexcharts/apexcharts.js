@@ -17,32 +17,32 @@ const banner =
   ' */'
 
 const builds = {
-  // 'web-cjs': {
-  //   entry: resolvePath('src/apexcharts.js'),
-  //   dest: resolvePath('dist2/apexchart.common.js'),
-  //   format: 'cjs',
-  //   banner
-  // },
+  'web-cjs': {
+    entry: resolvePath('src/apexcharts.js'),
+    dest: resolvePath('dist2/apexchart.common.js'),
+    format: 'cjs',
+    banner
+  },
   'web-esm': {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist2/apexchart.esm.js'),
     format: 'es',
     banner
+  },
+  'web-umd-dev': {
+    entry: resolvePath('src/apexcharts.js'),
+    dest: resolvePath('dist2/apexchart.js'),
+    format: 'umd',
+    env: 'development',
+    banner
+  },
+  'web-umd-prod': {
+    entry: resolvePath('src/apexcharts.js'),
+    dest: resolvePath('dist2/apexchart.min.js'),
+    format: 'umd',
+    env: 'development',
+    banner
   }
-  // 'web-umd-dev': {
-  //   entry: resolvePath('src/apexcharts.js'),
-  //   dest: resolvePath('dist2/apexchart.js'),
-  //   format: 'umd',
-  //   env: 'development',
-  //   banner
-  // },
-  // 'web-umd-prod': {
-  //   entry: resolvePath('src/apexcharts.js'),
-  //   dest: resolvePath('dist2/apexchart.js.min'),
-  //   format: 'umd',
-  //   env: 'development',
-  //   banner
-  // }
 }
 
 function generateConfig(name) {
