@@ -37,6 +37,9 @@ class AxesTooltip {
         ttCtx.xaxisTooltipText = document.createElement('div')
         ttCtx.xaxisTooltipText.classList.add('apexcharts-xaxistooltip-text')
 
+        ttCtx.xaxisTooltipText.style.fontFamily = w.config.xaxis.tooltip.style.fontFamily || w.config.chart.fontFamily
+        ttCtx.xaxisTooltipText.style.fontSize = w.config.xaxis.tooltip.style.fontSize
+
         ttCtx.xaxisTooltip.appendChild(ttCtx.xaxisTooltipText)
       }
     }

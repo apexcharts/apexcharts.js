@@ -310,7 +310,7 @@ export default class Range {
     minYArr.forEach((minYValue, yi) => {
       indices.forEach((scale, i) => {
         // we compare only the yIndex which exists in the indices array
-        if (scale.includes(yi)) {
+        if (scale.indexOf(yi) > -1) {
           if (typeof sameScaleMinYArr[i] === 'undefined') {
             sameScaleMinYArr[i] = []
             sameScaleMaxYArr[i] = []

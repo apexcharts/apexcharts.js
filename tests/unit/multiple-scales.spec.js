@@ -38,9 +38,6 @@ describe("Multiple Y-axis Scales", () => {
       ]
     })
 
-    const range = new Range(chart);
-    range.setYRange()
-
     const minYArr = chart.w.globals.minYArr
     const maxYArr = chart.w.globals.maxYArr
     const yAxisScale = chart.w.globals.yAxisScale

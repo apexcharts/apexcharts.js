@@ -101,6 +101,8 @@ export default class Tooltip {
     if (this.showTooltipTitle) {
       this.tooltipTitle = document.createElement('div')
       this.tooltipTitle.classList.add('apexcharts-tooltip-title')
+      this.tooltipTitle.style.fontFamily = w.config.tooltip.style.fontFamily || w.config.chart.fontFamily
+      this.tooltipTitle.style.fontSize = w.config.tooltip.style.fontSize
       tooltipEl.appendChild(this.tooltipTitle)
     }
 
@@ -136,6 +138,9 @@ export default class Tooltip {
 
       const gYZ = document.createElement('div')
       gYZ.classList.add('apexcharts-tooltip-text')
+
+      gYZ.style.fontFamily = w.config.tooltip.style.fontFamily || w.config.chart.fontFamily
+      gYZ.style.fontSize = w.config.tooltip.style.fontSize
 
       // y values group
       const gYValText = document.createElement('div')

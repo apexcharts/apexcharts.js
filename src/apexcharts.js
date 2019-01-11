@@ -401,7 +401,7 @@ export default class ApexCharts {
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
    */
   _updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = false) {
-    const charts = this.getSyncedCharts()
+    let charts = this.getSyncedCharts()
 
     charts.forEach((ch) => {
       let w = ch.w
@@ -895,9 +895,9 @@ export default class ApexCharts {
     }
 
     // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)
-    const selectedLocale = locales.find((c) => {
+    const selectedLocale = locales.filter((c) => {
       return c.name === localeName
-    })
+    })[0]
 
     if (selectedLocale) {
       // create a complete locale object by extending defaults so you don't get undefined errors.
@@ -915,14 +915,19 @@ export default class ApexCharts {
     return exp.svgUrl()
   }
 
+  dataURI () {
+    const exp = new Exports(this.ctx)
+    return exp.dataURI()
+  }
+
   paper () {
     return this.w.globals.dom.Paper
   }
 
   static getChartByID (chartID) {
-    const c = Apex._chartInstances.find((ch) => {
+    const c = Apex._chartInstances.filter((ch) => {
       return ch.id === chartID
-    })
+    })[0]
     return c.chart
   }
 

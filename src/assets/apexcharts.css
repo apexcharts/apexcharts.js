@@ -56,6 +56,9 @@
   color: #fff;
   background: rgba(30,30,30, 0.8);
 }
+.apexcharts-tooltip * {
+  font-family: inherit;
+}
 
 .apexcharts-tooltip .apexcharts-marker,
 .apexcharts-area-series .apexcharts-area,

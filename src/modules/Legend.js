@@ -377,6 +377,12 @@ class Legend {
 
       this.ctx.fireEvent('legendClick', [this.ctx, seriesCnt, this.w])
 
+      const markerClick = this.w.config.legend.markers.onClick
+      if (typeof markerClick === 'function' && e.target.classList.contains('apexcharts-legend-marker')) {
+        markerClick(this.ctx, seriesCnt, this.w)
+        this.ctx.fireEvent('legendMarkerClick', [this.ctx, seriesCnt, this.w])
+      }
+
       this.toggleDataSeries(seriesCnt, isHidden)
     }
   }
@@ -425,6 +431,10 @@ class Legend {
       .apexcharts-legend-text {
         position: relative;
         font-size: 14px;
+      }
+
+      .apexcharts-legend-text *, .apexcharts-legend-marker * {
+        pointer-events: none;
       }
 
       .apexcharts-legend-marker {
