@@ -23,7 +23,7 @@
     "build": "node build/build.js",
     "build:umd": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "lint": "eslint src/**/*.js tests/**/*.js --no-fix",
-    "test": "jest --config tests/jest.config.js"
+    "test": "jest"
   },
   "dependencies": {
     "svg.draggable.js": "^2.2.1",
