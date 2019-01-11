@@ -871,7 +871,7 @@ class Core {
             min: yaxis.min,
             max: yaxis.max
           }
-        }, false, false, false, false)
+        }, false, false, false)
       }
     }
   }

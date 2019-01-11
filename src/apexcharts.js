@@ -400,11 +400,8 @@ class ApexCharts {
    * @param {boolean} animate - should animate or not on updating Options
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
    */
-  _updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = false, updateSyncedCharts = true) {
-    let charts = [this]
-    if (updateSyncedCharts) {
-      charts = this.getSyncedCharts()
-    }
+  _updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = false) {
+    let charts = this.getSyncedCharts()
 
     charts.forEach((ch) => {
       let w = ch.w
