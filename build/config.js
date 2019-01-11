@@ -83,6 +83,7 @@ function generateConfig(name) {
   return config
 }
 
+// If target specified, only generate this one, otherwise return all build configurations
 if (process.env.TARGET) {
   module.exports = generateConfig(process.env.TARGET)
 } else {
