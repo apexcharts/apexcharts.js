@@ -1,5 +1,5 @@
 const path = require('path')
-const buble = require('rollup-plugin-buble')
+const babel = require('rollup-plugin-babel')
 const replace = require('rollup-plugin-replace')
 
 const version = process.env.VERSION || require('../package.json').version
@@ -14,39 +14,43 @@ const banner =
   ' */'
 
 const builds = {
-  'web-cjs': {
-    entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist2/apexchart.common.js'),
-    format: 'cjs',
-    banner
-  },
+  // 'web-cjs': {
+  //   entry: resolvePath('src/apexcharts.js'),
+  //   dest: resolvePath('dist2/apexchart.common.js'),
+  //   format: 'cjs',
+  //   banner
+  // },
   'web-esm': {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist2/apexchart.esm.js'),
     format: 'es',
     banner
-  },
-  'web-umd-dev': {
-    entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist2/apexchart.js'),
-    format: 'umd',
-    env: 'development',
-    banner
-  },
-  'web-umd-prod': {
-    entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist2/apexchart.js.min'),
-    format: 'umd',
-    env: 'development',
-    banner
   }
+  // 'web-umd-dev': {
+  //   entry: resolvePath('src/apexcharts.js'),
+  //   dest: resolvePath('dist2/apexchart.js'),
+  //   format: 'umd',
+  //   env: 'development',
+  //   banner
+  // },
+  // 'web-umd-prod': {
+  //   entry: resolvePath('src/apexcharts.js'),
+  //   dest: resolvePath('dist2/apexchart.js.min'),
+  //   format: 'umd',
+  //   env: 'development',
+  //   banner
+  // }
 }
 
 function generateConfig(name) {
   const opts = builds[name]
   const config = {
     input: opts.entry,
-    plugins: [buble()],
+    plugins: [
+      babel({
+        exclude: 'node_modules/**'
+      })
+    ],
     output: {
       file: opts.dest,
       format: opts.format,

@@ -1,10 +1,12 @@
 module.exports = {
   presets: [
-    require('@babel/preset-env'),
+    ['@babel/preset-env', {
+      targets: {
+        chrome: 70
+      }
+    }],
   ],
-  plugins: [
-    require('@babel/plugin-syntax-dynamic-import')
-  ],
+  plugins: ["@babel/plugin-proposal-class-properties"],
   ignore: [
     'build/*.js',
     'dist/*.js',
