@@ -1,5 +1,6 @@
 const path = require('path')
 const babel = require('rollup-plugin-babel')
+const svg = require('rollup-plugin-svg')
 const replace = require('rollup-plugin-replace')
 
 const version = process.env.VERSION || require('../package.json').version
@@ -47,6 +48,7 @@ function generateConfig(name) {
   const config = {
     input: opts.entry,
     plugins: [
+      svg(),
       babel({
         exclude: 'node_modules/**'
       })
