@@ -68,7 +68,7 @@ async function executeBuildEntry(buildConfig) {
  * @param {boolean} testZip Should it check gzip size
  */
 async function outputFile(dest, content, testZip) {
-  await fs.writeFile(dest, content)
+  await fs.promises.writeFile(dest, content)
   if (testZip) {
     const zipResult = zlib.gzipSync(content)
     console.log(
