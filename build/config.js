@@ -2,6 +2,7 @@ const path = require('path')
 const babel = require('rollup-plugin-babel')
 const replace = require('rollup-plugin-replace')
 const postcss = require('rollup-plugin-postcss')
+const copy = require('rollup-plugin-copy-glob')
 const json = require('rollup-plugin-json')
 const resolve = require('rollup-plugin-node-resolve')
 const svgo = require('rollup-plugin-svgo')
@@ -78,6 +79,21 @@ function generateConfig(name) {
     config.plugins.push(
       replace({ 'process.env.NODE_ENV': JSON.stringify(opts.env) })
     )
+  }
+
+  if (name === 'web-umd-prod') {
+    config.plugins.push(copy([{
+        files: 'src/assets/apexcharts.css',
+        dest: 'dist'
+      },
+      {
+        files: 'src/locales/*.*',
+        dest: 'dist/locales'
+      },
+    ], {
+      verbose: true,
+      watch: false
+    }))
   }
 
   return config

@@ -55,6 +55,7 @@
     "puppeteer-core": "1.11.0",
     "rollup": "1.1.0",
     "rollup-plugin-babel": "4.3.0",
+    "rollup-plugin-copy-glob": "0.3.0",
     "rollup-plugin-json": "3.1.0",
     "rollup-plugin-node-resolve": "4.0.0",
     "rollup-plugin-postcss": "1.6.3",
