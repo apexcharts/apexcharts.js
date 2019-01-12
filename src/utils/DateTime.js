@@ -1,4 +1,4 @@
-import TimeScale from '../modules/TimeScale'
+import Utils from './Utils'
 
 /**
  * DateTime Class to manipulate datetime values.
@@ -194,8 +194,7 @@ class DateTime {
   determineDaysOfMonths (month, year) {
     let days = 30
 
-    let ts = new TimeScale(this.ctx)
-    month = ts.monthMod(month)
+    month = Utils.monthMod(month)
 
     switch (true) {
       case this.months30.indexOf(month) > -1:

@@ -71,6 +71,12 @@ class Utils {
     return arrToExtend
   }
 
+
+  // If month counter exceeds 12, it starts again from 1
+  static monthMod (month) {
+    return month % 12
+  }
+
   static addProps (obj, arr, val) {
     if (typeof arr === 'string') { arr = arr.split('.') }
 

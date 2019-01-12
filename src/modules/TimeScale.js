@@ -1,7 +1,7 @@
 import DateTime from '../utils/DateTime'
 import Dimensions from './Dimensions'
 import Graphics from './Graphics'
-
+import Utils from '../utils/Utils'
 /**
  * ApexCharts TimeScale Class for generating time ticks for x-axis.
  *
@@ -310,7 +310,7 @@ class TimeScale {
         value: firstTickValue,
         unit,
         year: firstTickValue,
-        month: this.monthMod(currentMonth + 1)
+        month: Utils.monthMod(currentMonth + 1)
       })
     } else if (firstVal.minDate === 1 && firstVal.minMonth === 0) {
       // push the first tick in the array
@@ -319,7 +319,7 @@ class TimeScale {
         value: firstTickValue,
         unit,
         year: currentYear,
-        month: this.monthMod(currentMonth + 1)
+        month: Utils.monthMod(currentMonth + 1)
       })
     }
 
@@ -362,10 +362,10 @@ class TimeScale {
 
       // calculate the first tick position
       firstTickPosition = remainingDaysOfFirstMonth * daysWidthOnXAxis
-      firstTickValue = this.monthMod(currentMonth + 1)
+      firstTickValue = Utils.monthMod(currentMonth + 1)
 
       let year = currentYear + yrCounter
-      let month = this.monthMod(firstTickValue)
+      let month = Utils.monthMod(firstTickValue)
       let value = firstTickValue
       // it's Jan, so update the year
       if (firstTickValue === 0) {
@@ -391,7 +391,7 @@ class TimeScale {
         value: firstTickValue,
         unit,
         year: currentYear,
-        month: this.monthMod(currentMonth)
+        month: Utils.monthMod(currentMonth)
       })
     }
 
@@ -400,7 +400,7 @@ class TimeScale {
 
     // keep drawing rest of the ticks
     for (let i = 0, j = 1; i < numberOfMonths; i++, j++) {
-      month = this.monthMod(month)
+      month = Utils.monthMod(month)
 
       if (month === 0) {
         unit = 'year'
@@ -468,7 +468,7 @@ class TimeScale {
       value: val,
       unit,
       year: currentYear,
-      month: this.monthMod(month),
+      month: Utils.monthMod(month),
       day: date
     })
 
@@ -482,13 +482,13 @@ class TimeScale {
       let year = currentYear + Math.floor(month / 12) + yrCounter
 
       pos = (24 * hoursWidthOnXAxis) + pos
-      let val = (date === 1) ? this.monthMod(month) : date
+      let val = (date === 1) ? Utils.monthMod(month) : date
       this.timeScaleArray.push({
         position: pos,
         value: val,
         unit,
         year,
-        month: this.monthMod(month),
+        month: Utils.monthMod(month),
         day: val
       })
     }
@@ -555,7 +555,7 @@ class TimeScale {
       day: date,
       hour,
       year: currentYear,
-      month: this.monthMod(month)
+      month: Utils.monthMod(month)
     })
 
     let pos = firstTickPosition
@@ -584,7 +584,7 @@ class TimeScale {
         hour,
         day: date,
         year,
-        month: this.monthMod(month)
+        month: Utils.monthMod(month)
       })
 
       hour++
@@ -626,7 +626,7 @@ class TimeScale {
       hour,
       minute,
       year,
-      month: this.monthMod(month)
+      month: Utils.monthMod(month)
     })
 
     let pos = firstTickPosition
@@ -651,7 +651,7 @@ class TimeScale {
         minute,
         day: date,
         year,
-        month: this.monthMod(month)
+        month: Utils.monthMod(month)
       })
 
       minute++
@@ -751,10 +751,6 @@ class TimeScale {
     return filteredArray
   }
 
-  // If month counter exceeds 12, it starts again from 1
-  monthMod (month) {
-    return month % 12
-  }
 }
 
 export default TimeScale
