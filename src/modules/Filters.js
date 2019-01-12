@@ -14,7 +14,7 @@ class Filters {
   // create a re-usable filter which can be appended other filter effects and applied to multiple elements
   getDefaultFilter (el) {
     const w = this.w
-    // el.unfilter(true)
+    el.unfilter(true)
 
     let filter = new window.SVG.Filter()
     filter.size('120%', '180%', '-5%', '-40%')
@@ -38,7 +38,7 @@ class Filters {
   addDesaturateFilter (el) {
     const w = this.w
 
-    // el.unfilter(true)
+    el.unfilter(true)
 
     let filter = new window.SVG.Filter()
     filter.size('120%', '180%', '-5%', '-40%')
@@ -67,7 +67,7 @@ class Filters {
       return
     }
 
-    // el.unfilter(true)
+    el.unfilter(true)
 
     let filter = new window.SVG.Filter()
     filter.size('120%', '180%', '-5%', '-40%')
@@ -95,7 +95,7 @@ class Filters {
       return
     }
 
-    // el.unfilter(true)
+    el.unfilter(true)
 
     let filter = new window.SVG.Filter()
     filter.size('120%', '180%', '-5%', '-40%')
@@ -155,7 +155,7 @@ class Filters {
   dropShadow (el, attrs) {
     let { top, left, blur, opacity, noUserSpaceOnUse } = attrs
 
-    // el.unfilter(true)
+    el.unfilter(true)
 
     let filter = new window.SVG.Filter()
     filter.size('120%', '180%', '-5%', '-40%')
