@@ -43,14 +43,6 @@ export default class Toolbar {
 
     let toolbarControls = []
 
-    if (w.config.chart.toolbar.tools.selection && w.config.chart.selection.enabled) {
-      toolbarControls.push({
-        el: this.elSelection,
-        icon: icoSelect,
-        title: this.localeValues.selection,
-        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-selection-icon'
-      })
-    }
 
     if (w.config.chart.toolbar.tools.zoomin && w.config.chart.zoom.enabled) {
       toolbarControls.push({
@@ -76,6 +68,16 @@ export default class Toolbar {
         icon: icoZoom,
         title: this.localeValues.selectionZoom,
         class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-zoom-icon'
+      })
+    }
+
+
+    if (w.config.chart.toolbar.tools.selection && w.config.chart.selection.enabled) {
+      toolbarControls.push({
+        el: this.elSelection,
+        icon: icoSelect,
+        title: this.localeValues.selection,
+        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-selection-icon'
       })
     }
 
