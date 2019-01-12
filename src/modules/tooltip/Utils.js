@@ -5,7 +5,7 @@
  * @module Tooltip.Utils
  **/
 
-class Utils {
+export default class Utils {
   constructor (tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
@@ -272,5 +272,3 @@ class Utils {
     }
   }
 }
-
-module.exports = Utils

@@ -6,7 +6,7 @@ import Utils from '../utils/Utils'
  * @module Theme
  **/
 
-class Theme {
+export default class Theme {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -166,5 +166,3 @@ class Theme {
     return this.colors
   }
 }
-
-module.exports = Theme

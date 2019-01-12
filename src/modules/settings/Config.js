@@ -7,7 +7,7 @@ import Options from './Options'
  *
  * @module Config
  **/
-class Config {
+export default class Config {
   constructor (opts) {
     this.opts = opts
   }
@@ -227,5 +227,3 @@ class Config {
     return config
   }
 }
-
-module.exports = Config

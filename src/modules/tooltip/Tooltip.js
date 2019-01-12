@@ -14,7 +14,7 @@ import Utils from './Utils'
  * @module Tooltip
  **/
 
-class Tooltip {
+export default class Tooltip {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -749,5 +749,3 @@ class Tooltip {
     }
   }
 }
-
-module.exports = Tooltip

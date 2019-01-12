@@ -1,5 +1,3 @@
-const path = require("path");
+import path from 'path'
 
-module.exports = {
-  root: path.resolve(__dirname)
-}
+export const root = path.resolve(__dirname)

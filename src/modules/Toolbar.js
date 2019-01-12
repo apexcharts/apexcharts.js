@@ -14,7 +14,7 @@ import icoMenu from './../assets/ico-menu.svg'
  * @module Toolbar
  **/
 
-class Toolbar {
+export default class Toolbar {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -380,5 +380,3 @@ class Toolbar {
     this.elMenuIcon = null
   }
 }
-
-module.exports = Toolbar

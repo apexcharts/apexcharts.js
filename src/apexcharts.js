@@ -22,18 +22,18 @@ import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
 
-require('./svgjs/svg.js')
-require('svg.filter.js')
-require('svg.pathmorphing.js')
-require('svg.draggable.js')
-require('svg.select.js')
-require('svg.resize.js')
+import './svgjs/svg.js'
+import 'svg.filter.js'
+import 'svg.pathmorphing.js'
+import 'svg.draggable.js'
+import 'svg.select.js'
+import 'svg.resize.js'
 
-require('./assets/apexcharts.css')
-require('./utils/ClassListPolyfill')
-require('./utils/DetectElementResize')
+import './assets/apexcharts.css'
+import './utils/ClassListPolyfill'
+import './utils/DetectElementResize'
 
-const en = require('./locales/en.json')
+import en from './locales/en.json'
 
 // global Apex object which user can use to override chart's defaults globally
 window.Apex = {}
@@ -43,7 +43,7 @@ window.Apex = {}
  * @module ApexCharts
  **/
 
-class ApexCharts {
+export default class ApexCharts {
   constructor (el, opts) {
     this.opts = opts
     this.ctx = this
@@ -951,5 +951,3 @@ class ApexCharts {
     }, 150)
   }
 }
-
-module.exports = ApexCharts

@@ -6,7 +6,7 @@ import Globals from './settings/Globals'
  *
  * @module Base
  **/
-class Base {
+export default class Base {
   constructor (opts) {
     this.opts = opts
   }
@@ -23,5 +23,3 @@ class Base {
     return w
   }
 }
-
-module.exports = Base

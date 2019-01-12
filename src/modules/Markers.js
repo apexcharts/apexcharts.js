@@ -8,7 +8,7 @@ import Utils from '../utils/Utils'
  * @module Markers
  **/
 
-class Markers {
+export default class Markers {
   constructor (ctx, opts) {
     this.ctx = ctx
     this.w = ctx.w
@@ -183,5 +183,3 @@ class Markers {
     }
   }
 }
-
-module.exports = Markers

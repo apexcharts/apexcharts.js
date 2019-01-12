@@ -7,7 +7,7 @@ import Utils from '../utils/Utils'
  *
  * @module Annotations
  **/
-class Annotations {
+export default class Annotations {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -445,5 +445,3 @@ class Annotations {
     return context
   }
 }
-
-module.exports = Annotations

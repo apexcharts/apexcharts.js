@@ -23,7 +23,7 @@ import TimeScale from './TimeScale'
  * @module Core
  **/
 
-class Core {
+export default class Core {
   constructor (el, ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -876,5 +876,3 @@ class Core {
     }
   }
 }
-
-module.exports = Core

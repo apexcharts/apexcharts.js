@@ -7,7 +7,7 @@ import Series from '../Series'
  * @module Tooltip.Position
  **/
 
-class Position {
+export default class Position {
   constructor (tooltipContext) {
     this.ttCtx = tooltipContext
     this.ctx = tooltipContext.ctx
@@ -370,4 +370,3 @@ class Position {
     }
   }
 }
-module.exports = Position
