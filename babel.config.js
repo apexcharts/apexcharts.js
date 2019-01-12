@@ -6,11 +6,9 @@ module.exports = {
         modules: false,
         targets: {
           chrome: 60,
-          firefox: 36,
-          safari: 11,
-          ios: 11,
-          edge: 12,
-          //ie: 11
+          firefox: 48,
+          safari: 7,
+          edge: 12
         }
       }
     ]
