@@ -19,6 +19,7 @@ declare class ApexCharts {
   addYaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addText(options: any, pushToMemory?: boolean, context?: any): void;
+  dataURI(): void;
   static exec(chartID: string, fn: () => void, options: any): any;
   static initOnLoad(): void;
 }
@@ -33,12 +34,17 @@ declare module ApexCharts {
     stroke?: ApexStroke;
     labels?: string[];
     legend?: ApexLegend;
+    fill?: ApexFill;
     tooltip?: ApexTooltip;
     plotOptions?: ApexPlotOptions;
+    responsive?: ApexResponsive[];
     xaxis?: ApexXAxis;
     yaxis?: ApexYAxis | ApexYAxis[];
     grid?: ApexGrid;
-    title?: ApexTitle;
+    states?: ApexStates;
+    title?: ApexTitleSubtitle;
+    subtitle?: ApexTitleSubtitle;
+    theme?: ApexTheme;
   }
 }
 
@@ -50,10 +56,12 @@ type ApexChart = {
   width?: string | number;
   height?: string | number;
   type: "line" | "area" | "bar" | "histogram" | "pie" | "donut" |
-  "radialBar" | "scatter" | "bubble" | "heatmap";
+  "radialBar" | "scatter" | "bubble" | "heatmap" | "candlestick" | "radar";
   foreColor?: string;
   fontFamily: string;
   background?: string;
+  offsetX?: number;
+  offsetY?: number;
   dropShadow?: {
     enabled?: boolean;
     top?: number;
@@ -61,10 +69,27 @@ type ApexChart = {
     blur?: number;
     opacity?: number;
   };
+  events?: {
+    animationEnd?(chart: any, options: any): void;
+    beforeMount?(chart: any, options: any): void;
+    mounted?(chart: any, options: any): void;
+    updated?(chart: any, options: any): void;
+    click?(e: any, chart: any, options: any): void;
+    legendClick?(chart: any, seriesIndex: number, options: any): void;
+    selection?(chart: any, options: any): void;
+    dataPointSelection?(e: any, chart: any, options: any): void;
+    dataPointMouseEnter?(e: any, chart: any, options: any): void;
+    dataPointMouseLeave?(e: any, chart: any, options: any): void;
+    beforeZoom?(chart: any, options: any): void;
+    zoomed?(chart: any, options: any): void;
+    scrolled?(chart: any, options: any): void;
+  };
   brush?: {
     enabled?: boolean;
+    autoScaleYaxis: boolean,
     target?: string;
   };
+  id?: string;
   locales?: ApexLocale[];
   defaultLocale?: string;
   sparkline?: {
@@ -100,6 +125,28 @@ type ApexChart = {
       }
     }
   };
+  selection?: {
+    enabled?: boolean;
+    type?: string;
+    fill?: {
+      color?: string;
+      opacity?: number;
+    };
+    stroke?: {
+      width?: number;
+      color?: string;
+      opacity?: number;
+      dashArray?: number
+    };
+    xaxis?: {
+      min?: number;
+      max?: number;
+    };
+    yaxis?: {
+      min?: number;
+      max?: number
+    };
+  };
   animations?: {
     enabled?: boolean;
     easing?: "linear" | "easein" | "easeout" | "easeinout";
@@ -115,12 +162,34 @@ type ApexChart = {
   };
 };
 
+type ApexStates = {
+  normal?: {
+    filter?: {
+      type?: string,
+      value?: number
+    }
+  },
+  hover?: {
+    filter?: {
+      type?: string,
+      value?: number
+    }
+  },
+  active?: {
+    allowMultipleDataPointsSelection?: boolean,
+    filter?: {
+      type?: string,
+      value?: number
+    }
+  }
+};
+
 /**
 * Chart Title options
 * See https://apexcharts.com/docs/options/title/
 */
-type ApexTitle = {
-  text: string;
+type ApexTitleSubtitle = {
+  text?: string;
   align?: "left" | "center" | "right";
   margin?: number;
   offsetX?: number;
@@ -158,22 +227,23 @@ type ApexStroke = {
 };
 
 type ApexAnnotations = {
-  position: string;
-  yaxis: YAxisAnnotations[];
-  xaxis: XAxisAnnotations[];
-  points: PointAnnotations[];
+  position?: string;
+  yaxis?: YAxisAnnotations[];
+  xaxis?: XAxisAnnotations[];
+  points?: PointAnnotations[];
 };
 
 
 type AnnotationLabel = {
-  borderColor: string;
-  borderWidth: number;
-  text: string;
-  textAnchor: string;
-  offsetX: number;
-  offsetY: number;
-  style: AnnotationStyle;
+  borderColor?: string;
+  borderWidth?: number;
+  text?: string;
+  textAnchor?: string;
+  offsetX?: number;
+  offsetY?: number;
+  style?: AnnotationStyle;
   position?: string;
+  orientation?: string;
 };
 
 type AnnotationStyle = {
@@ -190,49 +260,49 @@ type AnnotationStyle = {
 };
 
 type XAxisAnnotations = {
-  x: number;
-  strokeDashArray: number;
-  borderColor: string;
-  offsetX: number;
-  offsetY: number;
-  label: {
-    borderColor: string;
-    borderWidth: number;
-    text: string;
-    textAnchor: string;
-    position: string;
-    orientation: string;
-    offsetX: number;
-    offsetY: number;
-    style: AnnotationStyle;
+  x?: number;
+  strokeDashArray?: number;
+  borderColor?: string;
+  offsetX?: number;
+  offsetY?: number;
+  label?: {
+    borderColor?: string;
+    borderWidth?: number;
+    text?: string;
+    textAnchor?: string;
+    position?: string;
+    orientation?: string;
+    offsetX?: number;
+    offsetY?: number;
+    style?: AnnotationStyle;
   };
 };
 
 type YAxisAnnotations = {
-  y: number;
-  strokeDashArray: number;
-  borderColor: string;
-  offsetX: number;
-  offsetY: number;
-  yAxisIndex: number;
-  label: AnnotationLabel;
+  y?: number;
+  strokeDashArray?: number;
+  borderColor?: string;
+  offsetX?: number;
+  offsetY?: number;
+  yAxisIndex?: number;
+  label?: AnnotationLabel;
 };
 
 
 type PointAnnotations = {
-  x: number;
-  y: null;
-  yAxisIndex: number;
-  seriesIndex: number;
-  marker: {
-    size: number;
-    fillColor: string;
-    strokeColor: string;
-    strokeWidth: number;
-    shape: string;
-    radius: number;
+  x?: number;
+  y?: null;
+  yAxisIndex?: number;
+  seriesIndex?: number;
+  marker?: {
+    size?: number;
+    fillColor?: string;
+    strokeColor?: string;
+    strokeWidth?: number;
+    shape?: string;
+    radius?: number;
   };
-  label: AnnotationLabel;
+  label?: AnnotationLabel;
 };
 
 /**
@@ -270,7 +340,11 @@ type ApexPlotOptions = {
     barHeight?: string;
     distributed?: boolean;
     colors?: {
-      ranges?: [number, number, string];
+      ranges?: {
+        from?: number;
+        to?: number;
+        color?: string;
+      }[];
       backgroundBarColors?: string[];
       backgroundBarOpacity?: number;
     };
@@ -291,9 +365,16 @@ type ApexPlotOptions = {
     radius?: number;
     enableShades?: boolean;
     shadeIntensity?: number;
+    distributed?: boolean;
     colorScale?: {
-      ranges?: [number, number, string];
       inverse?: boolean;
+      ranges?: {
+        from?: number;
+        to?: number;
+        color?: string;
+      }[];
+      min?: number;
+      max?: number;
     }
   };
   pie?: {
@@ -307,22 +388,22 @@ type ApexPlotOptions = {
           show?: boolean;
           fontSize?: string;
           fontFamily?: string;
-          color?: string,
+          color?: string;
           offsetY?: number
-        },
+        };
         value?: {
           show?: boolean;
           fontSize?: string;
           fontFamily?: string;
-          color?: string,
-          offsetY?: number,
+          color?: string;
+          offsetY?: number;
           formatter?(val: string): string;
-        },
+        };
         total?: {
           show?: boolean;
           label?: string;
           color?: string;
-          formatter?(w: object): string;
+          formatter?(w: any): string;
         }
       }
     };
@@ -331,6 +412,17 @@ type ApexPlotOptions = {
     offsetY?: number;
     dataLabels?: {
       offset?: number;
+    }
+  };
+  radar: {
+    size?: number;
+    offsetX?: number;
+    offsetY?: number;
+    polygons?: {
+      strokeColor?: string;
+      fill?: {
+        colors?: string[]
+      }
     }
   };
   radialBar?: {
@@ -387,10 +479,37 @@ type ApexPlotOptions = {
         show?: boolean;
         label?: string;
         color?: string;
-        formatter?(opts: object): string;
+        formatter?(opts: any): string;
       };
     }
   }
+};
+
+type ApexFill = {
+  colors?: string[];
+  opacity?: number;
+  type?: string;
+  gradient?: {
+      shade?: string;
+      type?: string;
+      shadeIntensity?: number;
+      gradientToColors?: string[];
+      inverseColors?: boolean;
+      opacityFrom?: number;
+      opacityTo?: number;
+      stops?: number[]
+  };
+  image?: {
+      src?: string[];
+      width?: number;
+      height?: number
+  };
+  pattern?: {
+    style?: string;
+    width?: number;
+    height?: number;
+    strokeWidth?: number;
+  };
 };
 
 /**
@@ -399,27 +518,35 @@ type ApexPlotOptions = {
 */
 type ApexLegend = {
   show?: boolean;
+  showForSingleSeries?: boolean;
+  showForNullSeries?: boolean;
+  showForZeroSeries?: boolean;
+  floating?: boolean;
   position?: "top" | "right" | "bottom" | "left";
   horizontalAlign?: "left" | "center" | "right";
-  verticalAlign?: "top" | "middle" | "bottom";
-  floating?: boolean;
   fontSize?: string;
+  fontFamily?: string;
+  width?: number;
+  height?: number;
   offsetX?: number;
   offsetY?: number;
-  formatter?(val: string): string;
+  formatter?(val: string, opts: any): string;
   textAnchor?: string;
   labels?: {
     color?: string
     useSeriesColors?: boolean;
   };
   markers?: {
-    size?: number;
+    width?: number;
+    height?: number;
     strokeColor?: string
     strokeWidth?: number;
     offsetX?: number;
     offsetY?: number;
     radius?: number;
     shape?: "circle" | "square";
+    customHTML?(): string;
+    onClick?(): void;
   };
   itemMargin?: {
     horizontal?: number;
@@ -443,12 +570,13 @@ type ApexLegend = {
 */
 type ApexDataLabels = {
   enabled?: boolean;
-  formatter?(val: number): string;
+  formatter?(val: number, opts: any): string;
   textAnchor?: "start" | "middle" | "end";
   offsetX?: number;
   offsetY?: number;
   style?: {
     fontSize?: string;
+    fontFamily?: string;
     colors?: string[];
   };
   dropShadow?: {
@@ -458,6 +586,11 @@ type ApexDataLabels = {
     blur?: number;
     opacity?: number;
   }
+};
+
+type ApexResponsive = {
+  breakpoint?: number;
+  options?: any;
 };
 
 /**
@@ -708,6 +841,16 @@ type ApexGrid = {
     left?: number;
   };
 };
+
+type ApexTheme = {
+  palette?: string;
+  monochrome?: {
+    enabled?: boolean,
+    color?: string;
+    shadeTo?: "light" | "dark";
+    shadeIntensity?: number
+  }
+}
 
 declare module "apexcharts" {
   export = ApexCharts;
