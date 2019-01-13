@@ -23,35 +23,39 @@ export default class Responsive {
     // check if responsive config exists
     if (cnf.responsive.length === 0) return
 
-    let newOptions = {}
-    let config = new Config(newOptions)
+    let res = cnf.responsive.slice()
+    res.sort((a,b) => (a.breakpoint > b.breakpoint) ? 1 : ((b.breakpoint > a.breakpoint) ? -1 : 0)).reverse(); 
 
-    const iterateResponsiveOptions = (o = {}) => {
-      for (let i = 0; i < cnf.responsive.length; i++) {
-        const width = (window.innerWidth > 0) ? window.innerWidth : screen.width
+    let config = new Config({})
 
-        if (width < cnf.responsive[i].breakpoint) {
-          newOptions = Utils.extend(config, o)
-          newOptions = CoreUtils.extendArrayProps(newOptions, cnf.responsive[i].options)
-          newOptions = Utils.extend(w.config, newOptions)
-          this.overrideResponsiveOptions(newOptions)
-          break
-        } else {
-          let options = CoreUtils.extendArrayProps(config, w.globals.initialConfig)
-          newOptions = Utils.extend(w.config, options)
-          this.overrideResponsiveOptions(newOptions)
+    const iterateResponsiveOptions = (newOptions = {}) => {
+
+      let largestBreakpoint = res[0].breakpoint
+      const width = (window.innerWidth > 0) ? window.innerWidth : screen.width
+
+      if (width > largestBreakpoint) {
+        let options = CoreUtils.extendArrayProps(config, w.globals.initialConfig)
+        newOptions = Utils.extend(w.config, options)
+        this.overrideResponsiveOptions(newOptions)
+      }
+      else {
+        for (let i = 0; i < res.length; i++) {
+
+          if (width < res[i].breakpoint) {
+            newOptions = Utils.extend(config, newOptions)
+            newOptions = CoreUtils.extendArrayProps(newOptions, res[i].options)
+            newOptions = Utils.extend(w.config, newOptions)
+            this.overrideResponsiveOptions(newOptions)
+          }
         }
       }
-
-      return newOptions
     }
 
     if (opts) {
       let options = CoreUtils.extendArrayProps(config, opts)
       options = Utils.extend(w.config, options)
       options = Utils.extend(options, opts)
-      options = iterateResponsiveOptions(options)
-      this.overrideResponsiveOptions(options)
+      iterateResponsiveOptions(options)
     } else {
       iterateResponsiveOptions({})
     }
