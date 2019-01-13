@@ -325,7 +325,7 @@
 }
 .apexcharts-selection-icon svg {
   fill: #444;
-  transform: scale(0.86)
+  transform: scale(0.76)
 }
 .apexcharts-zoom-icon.selected svg, 
 .apexcharts-selection-icon.selected svg, 
@@ -342,20 +342,17 @@
 }
 
 .apexcharts-selection-icon, .apexcharts-menu-icon {
-  margin-right: 3px;
-  margin-left: 5px;
   position: relative;
-  top: 1px;
 }
 .apexcharts-reset-zoom-icon {
-  margin-left: 7px;
+  margin-left: 5px;
 }
-.apexcharts-zoom-icon {
-  transform: scale(1);
+.apexcharts-zoom-icon, .apexcharts-reset-zoom-icon, .apexcharts-menu-icon {
+  transform: scale(0.85);
 }
 
 .apexcharts-zoom-in-icon, .apexcharts-zoom-out-icon {
-  transform: scale(0.8)
+  transform: scale(0.7)
 }
 
 .apexcharts-zoom-out-icon {
@@ -363,7 +360,7 @@
 }
 
 .apexcharts-pan-icon {
-  transform: scale(0.72);
+  transform: scale(0.62);
   position: relative;
   left: 1px;
   top: 0px;
