@@ -154,7 +154,7 @@ class Legend {
 
       elLegendText.style.color = textColor
 
-      elLegendText.style.fontSize = parseFloat(w.config.legend.labels.fontSize) + 'px'
+      elLegendText.style.fontSize = parseFloat(w.config.legend.fontSize) + 'px'
       elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily
 
       Graphics.setAttrs(elLegendText, {
