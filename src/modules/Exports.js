@@ -1,3 +1,5 @@
+import Promise from 'promise-polyfill';
+
 class Exports {
   constructor (ctx) {
     this.ctx = ctx

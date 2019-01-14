@@ -74,19 +74,19 @@ export default class ZoomPanSelection extends Toolbar {
     this.hoverArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
     this.hoverArea.classList.add('zoomable')
 
-    for (let event of this.eventList) {
+    this.eventList.forEach((event) => {
       this.hoverArea.addEventListener(
         event,
         me.svgMouseEvents.bind(me, xyRatios),
         {capture: false, passive: true}
       )
-    }
+    })
   }
 
   // remove the event listeners which were previously added on hover area
   destroy () {
     const me = this
-    for (let event of this.eventList) {
+    this.eventList.forEach((event) => {
       if (this.hoverArea) {
         this.hoverArea.removeEventListener(
           event,
@@ -94,7 +94,8 @@ export default class ZoomPanSelection extends Toolbar {
           {capture: false, passive: true}
         )
       }
-    }
+    })
+
     if (this.slDraggableRect) {
       this.slDraggableRect.draggable(false)
       this.slDraggableRect.off()

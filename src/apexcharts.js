@@ -21,6 +21,7 @@ import ZoomPanSelection from './modules/ZoomPanSelection'
 import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
+import Promise from 'promise-polyfill';
 
 import './svgjs/svg.js'
 import 'svg.filter.js'
@@ -342,9 +343,9 @@ export default class ApexCharts {
       }
 
       if (w.globals.memory.methodsToExec.length > 0) {
-        for (let fn of w.globals.memory.methodsToExec) {
+        w.globals.memory.methodsToExec.forEach((fn) => {
           fn.method(fn.params, false, fn.context)
-        }
+        })
       }
       resolve(me)
     })
@@ -790,7 +791,7 @@ export default class ApexCharts {
       'mouseup',
       'touchend'
     ]
-    for (let event of eventList) {
+    eventList.forEach((event) => {
       clickableArea.addEventListener(
         event,
         function (e) {
@@ -805,7 +806,7 @@ export default class ApexCharts {
         },
         { capture: false, passive: true }
       )
-    }
+    })
 
     this.core.setupBrushHandler()
   }
