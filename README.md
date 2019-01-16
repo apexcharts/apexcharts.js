@@ -5,6 +5,9 @@
   <a href="https://qalint.com/open-source" ><img src="https://img.shields.io/badge/QA%20Lint-Open%20Source-brightgreen.svg?longCache=true&style=popout-square" alt="QA Lint" /></a>
   <a href="https://travis-ci.com/apexcharts/apexcharts.js"><img src="https://api.travis-ci.com/apexcharts/apexcharts.js.svg?branch=master" alt="build" /></a>
   <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="ver"></a>
+  <img alt="downloads" src="https://img.shields.io/npm/dm/apexcharts.svg">
+  <img alt="gzip" src="https://img.shields.io/bundlephobia/minzip/apexcharts.svg?label=gzip">
+  <a href="https://patreon.com/junedchhipa"><img src="https://img.shields.io/badge/patrons-2-blue.svg?style=flat&logo=patreon" alt="patrons" /></a>
 </p>
 
 
