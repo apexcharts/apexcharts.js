@@ -22,7 +22,7 @@
 
 | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_48x48.png" alt="Firefox" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Firefox | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_48x48.png" alt="Chrome" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Chrome | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_48x48.png" alt="Safari" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Safari | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_48x48.png" alt="Edge" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> Edge | [<img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Internet_Explorer_9_icon.svg" alt="IE" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> IE11 |
 | --------- | --------- | --------- | --------- | --------- | 
-| 31+ ✔ | 35+ ✔ | 6+ ✔ | Edge ✔ | IE11 [requires polyfill](#how-do-i-make-it-work-in-ie11)|
+| 31+ ✔ | 35+ ✔ | 6+ ✔ | Edge ✔ | IE11 ✔ |
 
 ## Download and Installation
 
@@ -140,18 +140,6 @@ This will start the webpack watch and any changes you make to `src` folder will 
 #### Minifying the src
 ```bash
 npm run build
-```
-
-## FAQ
-### How do I make it work in IE11?
-IE11 support has been abandoned since v3.0. Hence, you will need to include polyfill to enable ApexCharts run seemlessly in Internet Explorer 11.
-You should include `babel-polyfill` before including ApexCharts
-```javascript
-import 'babel-polyfill';
-```
-or directly include it in your html
-```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.6.15/browser-polyfill.min.js"></script>
 ```
 
 
