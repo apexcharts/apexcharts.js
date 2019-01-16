@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v2.7.0-0
+ * ApexCharts v3.1.0
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1569,55 +1569,14 @@ function () {
           w.globals.selectedDataPoints = [];
           var elPaths = w.globals.dom.Paper.select('.apexcharts-series path').members;
           var elCircles = w.globals.dom.Paper.select('.apexcharts-series circle, .apexcharts-series rect').members;
-          var _iteratorNormalCompletion = true;
-          var _didIteratorError = false;
-          var _iteratorError = undefined;
-
-          try {
-            for (var _iterator = elPaths[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-              var elPath = _step.value;
-              elPath.node.setAttribute('selected', 'false');
-              filters.getDefaultFilter(elPath);
-            }
-          } catch (err) {
-            _didIteratorError = true;
-            _iteratorError = err;
-          } finally {
-            try {
-              if (!_iteratorNormalCompletion && _iterator.return != null) {
-                _iterator.return();
-              }
-            } finally {
-              if (_didIteratorError) {
-                throw _iteratorError;
-              }
-            }
-          }
-
-          var _iteratorNormalCompletion2 = true;
-          var _didIteratorError2 = false;
-          var _iteratorError2 = undefined;
-
-          try {
-            for (var _iterator2 = elCircles[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-              var circle = _step2.value;
-              circle.node.setAttribute('selected', 'false');
-              filters.getDefaultFilter(circle);
-            }
-          } catch (err) {
-            _didIteratorError2 = true;
-            _iteratorError2 = err;
-          } finally {
-            try {
-              if (!_iteratorNormalCompletion2 && _iterator2.return != null) {
-                _iterator2.return();
-              }
-            } finally {
-              if (_didIteratorError2) {
-                throw _iteratorError2;
-              }
-            }
-          }
+          elPaths.forEach(function (elPath) {
+            elPath.node.setAttribute('selected', 'false');
+            filters.getDefaultFilter(elPath);
+          });
+          elCircles.forEach(function (circle) {
+            circle.node.setAttribute('selected', 'false');
+            filters.getDefaultFilter(circle);
+          });
         }
 
         path.node.setAttribute('selected', 'true');
@@ -7810,7 +7769,7 @@ function () {
           centerY: this.centerY,
           opacity: this.donutDataLabels.show,
           translateX: translateX,
-          translateY: translateY - 25
+          translateY: translateY
         });
         ret.add(dataLabels);
       }
@@ -13806,6 +13765,262 @@ function () {
   return Core;
 }();
 
+/**
+ * @this {Promise}
+ */
+function finallyConstructor(callback) {
+  var constructor = this.constructor;
+  return this.then(
+    function(value) {
+      return constructor.resolve(callback()).then(function() {
+        return value;
+      });
+    },
+    function(reason) {
+      return constructor.resolve(callback()).then(function() {
+        return constructor.reject(reason);
+      });
+    }
+  );
+}
+
+// Store setTimeout reference so promise-polyfill will be unaffected by
+// other code modifying setTimeout (like sinon.useFakeTimers())
+var setTimeoutFunc = setTimeout;
+
+function noop() {}
+
+// Polyfill for Function.prototype.bind
+function bind(fn, thisArg) {
+  return function() {
+    fn.apply(thisArg, arguments);
+  };
+}
+
+/**
+ * @constructor
+ * @param {Function} fn
+ */
+function Promise$1(fn) {
+  if (!(this instanceof Promise$1))
+    throw new TypeError('Promises must be constructed via new');
+  if (typeof fn !== 'function') throw new TypeError('not a function');
+  /** @type {!number} */
+  this._state = 0;
+  /** @type {!boolean} */
+  this._handled = false;
+  /** @type {Promise|undefined} */
+  this._value = undefined;
+  /** @type {!Array<!Function>} */
+  this._deferreds = [];
+
+  doResolve(fn, this);
+}
+
+function handle(self, deferred) {
+  while (self._state === 3) {
+    self = self._value;
+  }
+  if (self._state === 0) {
+    self._deferreds.push(deferred);
+    return;
+  }
+  self._handled = true;
+  Promise$1._immediateFn(function() {
+    var cb = self._state === 1 ? deferred.onFulfilled : deferred.onRejected;
+    if (cb === null) {
+      (self._state === 1 ? resolve : reject)(deferred.promise, self._value);
+      return;
+    }
+    var ret;
+    try {
+      ret = cb(self._value);
+    } catch (e) {
+      reject(deferred.promise, e);
+      return;
+    }
+    resolve(deferred.promise, ret);
+  });
+}
+
+function resolve(self, newValue) {
+  try {
+    // Promise Resolution Procedure: https://github.com/promises-aplus/promises-spec#the-promise-resolution-procedure
+    if (newValue === self)
+      throw new TypeError('A promise cannot be resolved with itself.');
+    if (
+      newValue &&
+      (typeof newValue === 'object' || typeof newValue === 'function')
+    ) {
+      var then = newValue.then;
+      if (newValue instanceof Promise$1) {
+        self._state = 3;
+        self._value = newValue;
+        finale(self);
+        return;
+      } else if (typeof then === 'function') {
+        doResolve(bind(then, newValue), self);
+        return;
+      }
+    }
+    self._state = 1;
+    self._value = newValue;
+    finale(self);
+  } catch (e) {
+    reject(self, e);
+  }
+}
+
+function reject(self, newValue) {
+  self._state = 2;
+  self._value = newValue;
+  finale(self);
+}
+
+function finale(self) {
+  if (self._state === 2 && self._deferreds.length === 0) {
+    Promise$1._immediateFn(function() {
+      if (!self._handled) {
+        Promise$1._unhandledRejectionFn(self._value);
+      }
+    });
+  }
+
+  for (var i = 0, len = self._deferreds.length; i < len; i++) {
+    handle(self, self._deferreds[i]);
+  }
+  self._deferreds = null;
+}
+
+/**
+ * @constructor
+ */
+function Handler(onFulfilled, onRejected, promise) {
+  this.onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : null;
+  this.onRejected = typeof onRejected === 'function' ? onRejected : null;
+  this.promise = promise;
+}
+
+/**
+ * Take a potentially misbehaving resolver function and make sure
+ * onFulfilled and onRejected are only called once.
+ *
+ * Makes no guarantees about asynchrony.
+ */
+function doResolve(fn, self) {
+  var done = false;
+  try {
+    fn(
+      function(value) {
+        if (done) return;
+        done = true;
+        resolve(self, value);
+      },
+      function(reason) {
+        if (done) return;
+        done = true;
+        reject(self, reason);
+      }
+    );
+  } catch (ex) {
+    if (done) return;
+    done = true;
+    reject(self, ex);
+  }
+}
+
+Promise$1.prototype['catch'] = function(onRejected) {
+  return this.then(null, onRejected);
+};
+
+Promise$1.prototype.then = function(onFulfilled, onRejected) {
+  // @ts-ignore
+  var prom = new this.constructor(noop);
+
+  handle(this, new Handler(onFulfilled, onRejected, prom));
+  return prom;
+};
+
+Promise$1.prototype['finally'] = finallyConstructor;
+
+Promise$1.all = function(arr) {
+  return new Promise$1(function(resolve, reject) {
+    if (!arr || typeof arr.length === 'undefined')
+      throw new TypeError('Promise.all accepts an array');
+    var args = Array.prototype.slice.call(arr);
+    if (args.length === 0) return resolve([]);
+    var remaining = args.length;
+
+    function res(i, val) {
+      try {
+        if (val && (typeof val === 'object' || typeof val === 'function')) {
+          var then = val.then;
+          if (typeof then === 'function') {
+            then.call(
+              val,
+              function(val) {
+                res(i, val);
+              },
+              reject
+            );
+            return;
+          }
+        }
+        args[i] = val;
+        if (--remaining === 0) {
+          resolve(args);
+        }
+      } catch (ex) {
+        reject(ex);
+      }
+    }
+
+    for (var i = 0; i < args.length; i++) {
+      res(i, args[i]);
+    }
+  });
+};
+
+Promise$1.resolve = function(value) {
+  if (value && typeof value === 'object' && value.constructor === Promise$1) {
+    return value;
+  }
+
+  return new Promise$1(function(resolve) {
+    resolve(value);
+  });
+};
+
+Promise$1.reject = function(value) {
+  return new Promise$1(function(resolve, reject) {
+    reject(value);
+  });
+};
+
+Promise$1.race = function(values) {
+  return new Promise$1(function(resolve, reject) {
+    for (var i = 0, len = values.length; i < len; i++) {
+      values[i].then(resolve, reject);
+    }
+  });
+};
+
+// Use polyfill for setImmediate for performance gains
+Promise$1._immediateFn =
+  (typeof setImmediate === 'function' &&
+    function(fn) {
+      setImmediate(fn);
+    }) ||
+  function(fn) {
+    setTimeoutFunc(fn, 0);
+  };
+
+Promise$1._unhandledRejectionFn = function _unhandledRejectionFn(err) {
+  if (typeof console !== 'undefined' && console) {
+    console.warn('Possible Unhandled Promise Rejection:', err); // eslint-disable-line no-console
+  }
+};
+
 var Exports =
 /*#__PURE__*/
 function () {
@@ -13853,7 +14068,7 @@ function () {
     value: function dataURI() {
       var _this = this;
 
-      return new Promise(function (resolve) {
+      return new Promise$1(function (resolve) {
         var w = _this.w;
 
         _this.cleanup();
@@ -14427,7 +14642,7 @@ function () {
         }
 
         elLegendText.style.color = textColor;
-        elLegendText.style.fontSize = parseFloat(w.config.legend.labels.fontSize) + 'px';
+        elLegendText.style.fontSize = parseFloat(w.config.legend.fontSize) + 'px';
         elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily;
         Graphics.setAttrs(elLegendText, {
           'rel': i + 1,
@@ -17816,6 +18031,8 @@ function (_Toolbar) {
   _createClass(ZoomPanSelection, [{
     key: "init",
     value: function init(_ref) {
+      var _this2 = this;
+
       var xyRatios = _ref.xyRatios;
       var w = this.w;
       var me = this;
@@ -17847,67 +18064,28 @@ function (_Toolbar) {
       this.preselectedSelection();
       this.hoverArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass);
       this.hoverArea.classList.add('zoomable');
-      var _iteratorNormalCompletion = true;
-      var _didIteratorError = false;
-      var _iteratorError = undefined;
-
-      try {
-        for (var _iterator = this.eventList[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var event = _step.value;
-          this.hoverArea.addEventListener(event, me.svgMouseEvents.bind(me, xyRatios), {
-            capture: false,
-            passive: true
-          });
-        }
-      } catch (err) {
-        _didIteratorError = true;
-        _iteratorError = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion && _iterator.return != null) {
-            _iterator.return();
-          }
-        } finally {
-          if (_didIteratorError) {
-            throw _iteratorError;
-          }
-        }
-      }
+      this.eventList.forEach(function (event) {
+        _this2.hoverArea.addEventListener(event, me.svgMouseEvents.bind(me, xyRatios), {
+          capture: false,
+          passive: true
+        });
+      });
     } // remove the event listeners which were previously added on hover area
 
   }, {
     key: "destroy",
     value: function destroy() {
+      var _this3 = this;
+
       var me = this;
-      var _iteratorNormalCompletion2 = true;
-      var _didIteratorError2 = false;
-      var _iteratorError2 = undefined;
-
-      try {
-        for (var _iterator2 = this.eventList[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-          var event = _step2.value;
-
-          if (this.hoverArea) {
-            this.hoverArea.removeEventListener(event, me.svgMouseEvents.bind(me, me.xyRatios), {
-              capture: false,
-              passive: true
-            });
-          }
+      this.eventList.forEach(function (event) {
+        if (_this3.hoverArea) {
+          _this3.hoverArea.removeEventListener(event, me.svgMouseEvents.bind(me, me.xyRatios), {
+            capture: false,
+            passive: true
+          });
         }
-      } catch (err) {
-        _didIteratorError2 = true;
-        _iteratorError2 = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion2 && _iterator2.return != null) {
-            _iterator2.return();
-          }
-        } finally {
-          if (_didIteratorError2) {
-            throw _iteratorError2;
-          }
-        }
-      }
+      });
 
       if (this.slDraggableRect) {
         this.slDraggableRect.draggable(false);
@@ -18194,7 +18372,7 @@ function (_Toolbar) {
   }, {
     key: "selectionDragging",
     value: function selectionDragging(type, e) {
-      var _this2 = this;
+      var _this4 = this;
 
       var w = this.w;
       var xyRatios = this.xyRatios;
@@ -18209,14 +18387,14 @@ function (_Toolbar) {
         // a small debouncer is required when resizing to avoid freezing the chart
         clearTimeout(this.w.globals.selectionResizeTimer);
         this.w.globals.selectionResizeTimer = window.setTimeout(function () {
-          var gridRectDim = _this2.gridRect.getBoundingClientRect();
+          var gridRectDim = _this4.gridRect.getBoundingClientRect();
 
           var selectionRect = selRect.node.getBoundingClientRect();
           var minX = w.globals.xAxisScale.niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.xRatio;
           var maxX = w.globals.xAxisScale.niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.xRatio;
           var minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
           var maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
-          w.config.chart.events.selection(_this2.ctx, {
+          w.config.chart.events.selection(_this4.ctx, {
             xaxis: {
               min: minX,
               max: maxX
@@ -26025,7 +26203,7 @@ function () {
       var _this = this;
 
       // main method
-      return new Promise(function (resolve, reject) {
+      return new Promise$1(function (resolve, reject) {
         // only draw chart, if element found
         if (_this.el !== null) {
           if (typeof Apex._chartInstances === 'undefined') {
@@ -26226,7 +26404,7 @@ function () {
       var graphData = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
       var me = this;
       var w = me.w;
-      return new Promise(function (resolve, reject) {
+      return new Promise$1(function (resolve, reject) {
         // no data to display
         if (me.el === null) {
           return reject(new Error('Not enough data to display or target element not found'));
@@ -26297,29 +26475,9 @@ function () {
         }
 
         if (w.globals.memory.methodsToExec.length > 0) {
-          var _iteratorNormalCompletion = true;
-          var _didIteratorError = false;
-          var _iteratorError = undefined;
-
-          try {
-            for (var _iterator = w.globals.memory.methodsToExec[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-              var fn = _step.value;
-              fn.method(fn.params, false, fn.context);
-            }
-          } catch (err) {
-            _didIteratorError = true;
-            _iteratorError = err;
-          } finally {
-            try {
-              if (!_iteratorNormalCompletion && _iterator.return != null) {
-                _iterator.return();
-              }
-            } finally {
-              if (_didIteratorError) {
-                throw _iteratorError;
-              }
-            }
-          }
+          w.globals.memory.methodsToExec.forEach(function (fn) {
+            fn.method(fn.params, false, fn.context);
+          });
         }
 
         resolve(me);
@@ -26554,7 +26712,7 @@ function () {
     value: function update(options$$1) {
       var _this3 = this;
 
-      return new Promise(function (resolve, reject) {
+      return new Promise$1(function (resolve, reject) {
         _this3.clear();
 
         var graphData = _this3.create(_this3.w.config.series, options$$1);
@@ -26645,7 +26803,7 @@ function () {
   }, {
     key: "killSVG",
     value: function killSVG(draw) {
-      return new Promise(function (resolve, reject) {
+      return new Promise$1(function (resolve, reject) {
         draw.each(function (i, children) {
           this.removeClass('*');
           this.off();
@@ -26725,9 +26883,7 @@ function () {
       var me = this;
       var clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass);
       var eventList = ['mousedown', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
-
-      for (var _i = 0; _i < eventList.length; _i++) {
-        var event = eventList[_i];
+      eventList.forEach(function (event) {
         clickableArea.addEventListener(event, function (e) {
           if (e.type === 'mousedown' && e.which === 1) ; else if (e.type === 'mouseup' && e.which === 1 || e.type === 'touchend') {
             if (typeof w.config.chart.events.click === 'function') {
@@ -26740,8 +26896,7 @@ function () {
           capture: false,
           passive: true
         });
-      }
-
+      });
       this.core.setupBrushHandler();
     }
   }, {
