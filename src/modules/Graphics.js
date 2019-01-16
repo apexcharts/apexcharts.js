@@ -566,15 +566,15 @@ class Graphics {
         const elPaths = w.globals.dom.Paper.select('.apexcharts-series path').members
         const elCircles = w.globals.dom.Paper.select('.apexcharts-series circle, .apexcharts-series rect').members
 
-        for (const elPath of elPaths) {
+        elPaths.forEach((elPath) => {
           elPath.node.setAttribute('selected', 'false')
           filters.getDefaultFilter(elPath)
-        }
-
-        for (const circle of elCircles) {
+        })
+ 
+        elCircles.forEach((circle) => {
           circle.node.setAttribute('selected', 'false')
           filters.getDefaultFilter(circle)
-        }
+        })
       }
 
       path.node.setAttribute('selected', 'true')

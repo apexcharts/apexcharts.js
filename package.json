@@ -26,6 +26,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "promise-polyfill": "8.1.0",
     "svg.draggable.js": "^2.2.1",
     "svg.easing.js": "^2.0.0",
     "svg.filter.js": "^2.0.2",
