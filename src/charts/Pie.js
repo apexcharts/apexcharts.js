@@ -119,7 +119,7 @@ class Pie {
         centerY: this.centerY,
         opacity: this.donutDataLabels.show,
         translateX: translateX,
-        translateY: translateY - 25
+        translateY: translateY
       })
 
       ret.add(dataLabels)

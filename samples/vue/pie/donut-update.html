@@ -114,18 +114,14 @@
       },
       methods: {
         appendData: function () {
-          var arr = this.series.map(() => {
-            return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-          })
+          var arr = this.series.slice()
           arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
           this.series = arr
         },
 
         removeData: function () {
           if(this.series.length === 1) return
-          var arr = this.series.map(() => {
-            return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-          })
+          var arr = this.series.slice()
           arr.pop()
           this.series = arr
         },

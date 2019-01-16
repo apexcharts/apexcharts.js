@@ -99,17 +99,13 @@
         chart.render()
 
         function appendData() {
-            var arr = chart.w.globals.series.map(() => {
-                return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-            })
+            var arr = chart.w.globals.series.slice()
             arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
             return arr;
         }
 
         function removeData() {
-            var arr = chart.w.globals.series.map(() => {
-                return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-            })
+            var arr = chart.w.globals.series.slice()
             arr.pop()
             return arr;
         }

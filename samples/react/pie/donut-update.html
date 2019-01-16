@@ -93,9 +93,7 @@
       }
 
       appendData () {
-        var arr = this.state.series.map(() => {
-          return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-        })
+        var arr = this.state.series.slice()
         arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
 
         this.setState({
@@ -106,9 +104,7 @@
       removeData() {
         if(this.state.series.length === 1) return
         
-        var arr = this.state.series.map(() => {
-          return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-        })
+        var arr = this.state.series.slice()
         arr.pop()
 
         this.setState({
