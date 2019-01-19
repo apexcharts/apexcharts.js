@@ -315,6 +315,19 @@ class Bar {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
+        if (this.minXDiff === Number.MAX_SAFE_INTEGER) {
+          // possibly a single dataPoint (fixes react-apexcharts/issue#34)
+          let len = w.globals.labels.length
+          if (w.globals.timelineLabels.length > 0) {
+            len = w.globals.timelineLabels.length
+          }
+
+          if (len < 3) {
+            len = 3
+          }
+          this.minXDiff = (w.globals.maxX - w.globals.minX) / len
+        }
+
         xDivision = this.minXDiff / this.xRatio
         barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
       }

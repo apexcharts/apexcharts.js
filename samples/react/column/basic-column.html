@@ -5,16 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Basic Column - Grouped</title>
+  <title>Column with Data Labels</title>
 
 
   <link href="../../assets/styles.css" rel="stylesheet" />
 
   <style>
     #chart {
-        max-width: 650px;
-        margin: 35px auto;
-    }
+            max-width: 650px;
+            margin: 35px auto;
+        }
     </style>
 </head>
 
@@ -43,49 +43,62 @@
 
         this.state = {
           options: {
-            plotOptions: {
-              bar: {
-                horizontal: false,
-                endingShape: 'rounded',
-                columnWidth: '55%',
+            chart: {
+              fontFamily: 'Quicksand, Times New Roman, Times, serif, sans-serif',
+              toolbar: {
+                show: false
               },
+              zoom: {
+                enabled: false
+              },
+            },
+            markers: {
+              size: [5, 5]
+            },
+            stroke: {
+              width: 2
             },
             dataLabels: {
               enabled: false
             },
-            stroke: {
-              show: true,
-              width: 2,
-              colors: ['transparent']
-            },
-            xaxis: {
-              categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
-            },
-            yaxis: {
-              title: {
-                text: '$ (thousands)'
-              }
-            },
-            fill: {
-              opacity: 1
+            selection: {
+              enabled: false
             },
             tooltip: {
-              y: {
-                formatter: function (val) {
-                  return "$ " + val + " thousands"
-                }
+              enabled: true,
+              shared: true,
+              followCursor: false,
+              fixed: {
+                enabled: false,
+                position: 'top'
               }
+            },
+            plotOptions: {
+              bar: {
+                horizontal: false,
+                endingShape: 'flat',
+                columnWidth: '70%',
+                barHeight: '70%',
+                distributed: true
+              }
+            },
+            xaxis: {
+              type: 'datetime',
+              tooltip: {
+                enabled: false
+              },
+              // min: new Date("14-Jan-19 UTC").getTime(),
+              // max: new Date().getTime(),
             }
           },
           series: [{
-            name: 'Net Profit',
-            data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
+            type: 'line',
+            name: 'line',
+            data: [],
           }, {
-            name: 'Revenue',
-            data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
-          }, {
-            name: 'Free Cash Flow',
-            data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
+            name: 'bar',
+            type: 'bar',
+            data: [],
           }],
         }
       }
@@ -94,7 +107,7 @@
         return (
           <div>
             <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height="350" />
+              <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
             </div>
             <div id="html-dist">
             </div>

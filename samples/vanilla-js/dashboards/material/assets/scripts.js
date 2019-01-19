@@ -359,8 +359,8 @@ var optionsArea = {
     }
   ],
   fill: {
+    type: 'gradient',
     gradient: {
-      enabled: true,
       inverseColors: false,
       shade: 'light',
       type: "vertical",

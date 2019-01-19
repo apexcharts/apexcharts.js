@@ -362,10 +362,16 @@ export default class Tooltip {
    */
   seriesHover (opt, e) {
     let chartGroups = []
+    const w = this.w
 
     // if user has more than one charts in group, we need to sync
-    if (this.w.config.chart.group) {
+    if (w.config.chart.group) {
       chartGroups = this.ctx.getGroupedCharts()
+    }
+
+
+    if ((w.globals.minX === -Infinity && w.globals.maxX === Infinity) || w.globals.dataPoints === 0) {
+      return;
     }
 
     if (chartGroups.length) {

@@ -93,7 +93,7 @@ export default class ApexCharts {
         window.addEventListener('resize', this.windowResizeHandler)
         window.addResizeListener(this.el.parentNode, this.parentResizeCallback.bind(this))
 
-        let graphData = this.create(this.w.config.series)
+        let graphData = this.create(this.w.config.series, {}, false)
         if (!graphData) return resolve(this)
         this.mount(graphData).then(() => {
           resolve(graphData)
@@ -175,7 +175,7 @@ export default class ApexCharts {
     }
   }
 
-  create (ser, opts) {
+  create (ser, opts, skipResponsiveCheck) {
     let w = this.w
     this.initModules()
     let gl = this.w.globals
@@ -183,7 +183,9 @@ export default class ApexCharts {
     gl.noData = false
     gl.animationEnded = false
 
-    this.responsive.checkResponsiveConfig(opts)
+    if (!skipResponsiveCheck) {
+      this.responsive.checkResponsiveConfig(opts)      
+    }
 
     if (this.el === null) {
       gl.animationEnded = true
@@ -558,7 +560,7 @@ export default class ApexCharts {
     return new Promise((resolve, reject) => {
       this.clear()
 
-      const graphData = this.create(this.w.config.series, options)
+      const graphData = this.create(this.w.config.series, options, true)
       if (!graphData) return resolve(this)
       this.mount(graphData).then(() => {
         if (typeof this.w.config.chart.events.updated === 'function') {

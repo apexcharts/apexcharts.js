@@ -326,9 +326,6 @@ var optionsArea = {
   ],
   fill: {
     opacity: 1,
-    gradient: {
-      enabled: false,
-    }
   },
   title: {
     text: 'Daily Visits Insights',

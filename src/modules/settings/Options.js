@@ -727,7 +727,7 @@ export default class Options {
           trim: true,
           minHeight: undefined,
           maxHeight: 120,
-          showDuplicates: false,
+          showDuplicates: true,
           style: {
             colors: [],
             fontSize: '12px',

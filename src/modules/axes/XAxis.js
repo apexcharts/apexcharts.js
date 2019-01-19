@@ -103,7 +103,12 @@ export default class XAxis {
         if (w.globals.timelineLabels.length > 0) {
           x = w.globals.timelineLabels[i].position
           label = w.globals.timelineLabels[i].value
+        } else {
+          if (w.config.xaxis.type === 'datetime') {
+            label = ''
+          }
         }
+
 
         label = label.toString()
         if (label.indexOf('NaN') === 0 || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || (this.drawnLabels.indexOf(label) >= 0 && !w.config.xaxis.labels.showDuplicates)) {

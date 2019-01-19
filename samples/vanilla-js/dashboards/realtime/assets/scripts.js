@@ -464,6 +464,7 @@ var optionsProgress2 = {
     max: 100
   },
   fill: {
+    type: 'gradient',
     gradient: {
       inverseColors: false,
       gradientToColors: ['#6078ea']
@@ -502,6 +503,7 @@ var optionsProgress3 = {
     data: [74]
   }],
   fill: {
+    type: 'gradient',
     gradient: {
       gradientToColors: ['#6094ea']
     }

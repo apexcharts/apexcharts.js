@@ -193,6 +193,8 @@ class Range {
     let gl = this.w.globals
     let cnf = this.w.config
 
+    const isXNumeric = cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'datetime' || (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)
+
     // minX maxX starts here
     if (gl.isXNumeric) {
       for (let i = 0; i < gl.series.length; i++) {
@@ -284,8 +286,24 @@ class Range {
         }
       }
       // we will still store these labels as the count for this will be different (to draw grid and labels placement)
-      if (cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'datetime' || (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)) {
+      if (isXNumeric) {
         gl.labels = gl.xAxisScale.result.slice()
+      }
+    }
+
+    if (gl.minX === gl.maxX) {
+      // single dataPoint
+      if (cnf.xaxis.type === 'datetime') {
+        const newMinX = new Date(gl.minX)
+        newMinX.setDate(newMinX.getDate()-2);
+        gl.minX = new Date(newMinX).getTime()
+
+        const newMaxX = new Date(gl.maxX)
+        newMaxX.setDate(newMaxX.getDate() + 2);
+        gl.maxX = new Date(newMaxX).getTime()
+      } else if (cnf.xaxis.type === 'numeric' || (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)) {
+        gl.minX = gl.minX - 2
+        gl.maxX = gl.maxX + 2
       }
     }
   }
