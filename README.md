@@ -136,7 +136,7 @@ apexcharts/
 
 ```bash
 npm install
-npm run start
+npm run dev
 ```
 This will start the webpack watch and any changes you make to `src` folder will auto-compile and output will be produced in the `dist` folder.
 
