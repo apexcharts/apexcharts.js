@@ -221,12 +221,12 @@ class Range {
     }
 
     // for numeric xaxis, we need to adjust some padding left and right for bar charts
-    if (gl.comboChartsHasBars || (cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category')) {
+    if (gl.comboChartsHasBars || cnf.chart.type === 'candlestick' || (cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category')) {
       if (cnf.xaxis.type !== 'category') {
-        const minX = gl.minX - (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3
+        const minX = gl.minX - (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2
         gl.minX = minX
         gl.initialminX = minX
-        const maxX = gl.maxX + (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3
+        const maxX = gl.maxX + (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2
         gl.maxX = maxX
         gl.initialmaxX = maxX
       }
