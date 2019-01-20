@@ -176,6 +176,7 @@ class Range {
     // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
       this.scales.setMultipleYScales()
+      gl.minY = lowestYInAllSeries
       gl.yAxisScale.forEach((scale, i) => {
         gl.minYArr[i] = scale.niceMin
         gl.maxYArr[i] = scale.niceMax

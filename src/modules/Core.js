@@ -439,9 +439,9 @@ export default class Core {
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j][1] !== 'undefined') {
         if (Array.isArray(ser[i].data[j][1]) && ser[i].data[j][1].length === 4) {
-          this.twoDSeries.push(ser[i].data[j][1][3])
+          this.twoDSeries.push(parseFloat(ser[i].data[j][1][3]))
         } else {
-          this.twoDSeries.push(ser[i].data[j][1])
+          this.twoDSeries.push(parseFloat(ser[i].data[j][1]))
         }
       }
       if (cnf.xaxis.type === 'datetime') {
@@ -473,9 +473,9 @@ export default class Core {
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j].y !== 'undefined') {
         if (Array.isArray(ser[i].data[j].y) && ser[i].data[j].y.length === 4) {
-          this.twoDSeries.push(ser[i].data[j].y[3])
+          this.twoDSeries.push(parseFloat(ser[i].data[j].y[3]))
         } else {
-          this.twoDSeries.push(ser[i].data[j].y)
+          this.twoDSeries.push(parseFloat(ser[i].data[j].y))
         }
       }
 
