@@ -310,18 +310,14 @@ class Radial extends Pie {
 
       let pie = new Pie(this.ctx)
 
-      elPath.node.addEventListener(
-        'mouseenter',
-        pie.dataLabelsMouseIn.bind(this, elPath.node, this.radialDataLabels)
-      )
-      elPath.node.addEventListener(
-        'mouseleave',
-        pie.dataLabelsMouseout.bind(this, elPath.node, this.radialDataLabels)
-      )
-
       elRadialBarArc.add(elPath)
 
-      elPath.attr('id', 'apexcharts-radialArc-' + i)
+      elPath.attr({
+        id: 'apexcharts-radialArc-' + i,
+        index: 0,
+        j: i
+      })
+      
 
       let dur = 0
       if (pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
