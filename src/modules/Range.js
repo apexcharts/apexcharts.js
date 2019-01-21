@@ -11,7 +11,9 @@ class Range {
   constructor (ctx) {
     this.ctx = ctx
     this.w = ctx.w
-
+    this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.horizontal)
+    
     this.scales = new Scales(ctx)
   }
 
@@ -172,6 +174,17 @@ class Range {
         gl.minY = yaxis[0].min
       }
     })
+
+    // for horizontal bar charts, we need to check xaxis min/max as user may have specified there
+    if (this.isBarHorizontal) {
+      if (cnf.xaxis.min !== undefined && typeof cnf.xaxis.min === 'number') {
+        gl.minY = cnf.xaxis.min
+      }
+
+      if (cnf.xaxis.max !== undefined && typeof cnf.xaxis.max === 'number') {
+        gl.maxY = cnf.xaxis.max
+      }
+    }
 
     // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
