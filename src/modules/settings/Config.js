@@ -88,6 +88,18 @@ export default class Config {
       if (opts.chart.stacked && opts.chart.stackType === '100%') {
         defaults.stacked100()
       }
+
+      if (opts.chart.type !== 'bar' &&
+        (opts.xaxis && opts.xaxis.type !== 'datetime') &&
+        (
+          (opts.xaxis.type === 'category' ||
+          (opts.xaxis.categories && opts.xaxis.categories.length) ||
+          (opts.labels && opts.labels.length)
+        ) &&
+        opts.xaxis.tickPlacement !== 'between')
+      ) {
+        defaults.convertCatToNumeric()
+      }
       if ((opts.chart.sparkline && opts.chart.sparkline.enabled) || (window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled)) {
         chartDefaults = defaults.sparkline(chartDefaults)
       }

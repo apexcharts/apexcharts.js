@@ -90,7 +90,7 @@ export default class Toolbar {
       })
     }
 
-    if (w.config.chart.toolbar.tools.reset) {
+    if (w.config.chart.toolbar.tools.reset && w.config.chart.zoom.enabled) {
       toolbarControls.push({
         el: this.elZoomReset,
         icon: icoReset,

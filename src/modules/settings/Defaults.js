@@ -254,6 +254,26 @@ export default class Defaults {
     }
   }
 
+  convertCatToNumeric () {
+    const opts = this.opts
+    opts.xaxis.type = 'numeric'
+    opts.xaxis.labels = opts.xaxis.labels || {}
+    opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function(val) { return val }
+    opts.chart.zoom = opts.chart.zoom || {}
+    const defaultFormatter = opts.xaxis.labels.formatter
+    const labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels
+
+    if (labels.length) {
+      opts.xaxis.labels.formatter = function (val) {
+        return defaultFormatter(labels[val - 1])
+      }
+    }
+
+    opts.xaxis.categories = []
+    opts.labels = []
+    opts.chart.zoom.enabled = false    
+  }
+
   bubble () {
     return {
       dataLabels: {
