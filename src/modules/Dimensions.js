@@ -390,7 +390,7 @@ export default class Dimensions {
       }, 0)
 
       // the labels gets changed for bar charts
-      if (w.config.chart.type === 'bar') {
+      if (this.isBarHorizontal) {
         val = w.globals.yAxisScale[0].result.reduce(function (a, b) {
           return a.length > b.length ? a : b
         }, 0)
