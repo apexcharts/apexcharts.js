@@ -104,7 +104,7 @@ export default class XAxis {
           x = w.globals.timelineLabels[i].position
           label = w.globals.timelineLabels[i].value
         } else {
-          if (w.config.xaxis.type === 'datetime') {
+          if (w.config.xaxis.type === 'datetime' && customFormatter === undefined) {
             label = ''
           }
         }
