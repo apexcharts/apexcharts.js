@@ -373,10 +373,7 @@ export default class Dimensions {
     let w = this.w
 
     let xaxisLabels = w.globals.labels.slice()
-    let rect = {
-      width: 0,
-      height: 0
-    }
+    let rect
 
     if (w.globals.timelineLabels.length > 0) {
       const coords = this.getxAxisTimeScaleLabelsCoords()
@@ -391,6 +388,13 @@ export default class Dimensions {
       let val = xaxisLabels.reduce(function (a, b) {
         return a.length > b.length ? a : b
       }, 0)
+
+      // the labels gets changed for bar charts
+      if (w.config.chart.type === 'bar') {
+        val = w.globals.yAxisScale[0].result.reduce(function (a, b) {
+          return a.length > b.length ? a : b
+        }, 0)
+      }
 
       let xlbFormatter = w.globals.xLabelFormatter
 
