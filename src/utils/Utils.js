@@ -124,6 +124,10 @@ class Utils {
     return Math.pow(base, Math.floor(Math.log(x) / Math.log(base)))
   }
 
+  static parseNumber (val) {
+    return parseFloat(val) || null
+  }
+
   static getDimensions (el) {
     let computedStyle = getComputedStyle(el)
     let ret = []
