@@ -452,7 +452,9 @@ export default class Options {
           offsetX: 0,
           offsetY: 0,
           polygons: {
-            strokeColor: '#e8e8e8',
+            strokeColor: '#e8e8e8', // should be deprecated
+            strokeColors: ['#e8e8e8'],
+            connectorColors: ['#e8e8e8'],
             fill: {
               colors: undefined
             }

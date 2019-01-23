@@ -284,11 +284,10 @@ var optionsLine = {
     }
   },
   grid: {
-    show: true,
+    show: true
   },
   labels: ['01/15/2002', '01/16/2002', '01/17/2002', '01/18/2002', '01/19/2002', '01/20/2002'],
   xaxis: {
-    type: 'datetime',
     tooltip: {
       enabled: false
     }

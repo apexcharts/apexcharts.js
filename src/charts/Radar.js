@@ -32,6 +32,8 @@ class Radar {
 
     this.maxValue = this.w.globals.maxY
 
+    this.polygons = w.config.plotOptions.radar.polygons
+
     this.maxLabelWidth = 20
 
     const longestLabel = w.globals.labels.slice().sort(function (a, b) { return b.length - a.length })[0]
@@ -232,7 +234,7 @@ class Radar {
 
       polygon.forEach((p, i) => {
         if (r === 0) {
-          const line = this.graphics.drawLine(p.x, p.y, 0, 0, w.config.plotOptions.radar.polygons.strokeColor)
+          const line = this.graphics.drawLine(p.x, p.y, 0, 0, Array.isArray(this.polygons.connectorColors) ? this.polygons.connectorColors[i] : this.polygons.connectorColors )
 
           lines.push(line)
         }
@@ -251,7 +253,7 @@ class Radar {
     })
 
     polygonStrings.forEach((p, i) => {
-      const polygon = this.graphics.drawPolygon(p, w.config.plotOptions.radar.polygons.strokeColor, w.globals.radarPolygons.fill.colors[i])
+      const polygon = this.graphics.drawPolygon(p, Array.isArray(this.polygons.strokeColors) ? this.polygons.strokeColors[i] : this.polygons.strokeColors, w.globals.radarPolygons.fill.colors[i])
       parent.add(polygon)
     })
 
