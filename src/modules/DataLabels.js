@@ -81,6 +81,8 @@ class DataLabels {
       class: 'apexcharts-data-labels'
     })
 
+    elDataLabelsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
+
     for (let q = 0; q < pos.x.length; q++) {
       x = pos.x[q] + dataLabelsConfig.offsetX
       y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5
@@ -161,12 +163,6 @@ class DataLabels {
         cx: x,
         cy: y
       })
-
-      if (offsetCorrection) {
-        dataLabelText.attr({
-          'clip-path': `url(#gridRectMask${w.globals.cuid})`
-        })
-      }
 
       if (dataLabelsConfig.dropShadow.enabled) {
         const textShadow = dataLabelsConfig.dropShadow

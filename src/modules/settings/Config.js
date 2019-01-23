@@ -89,7 +89,9 @@ export default class Config {
         defaults.stacked100()
       }
 
-      if ((opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') &&
+      if (
+        (opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') &&
+        typeof opts.series[0].type === 'undefined' &&
         (opts.xaxis && opts.xaxis.type !== 'datetime') &&
         (
           (opts.xaxis.type === 'category' ||
