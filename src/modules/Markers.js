@@ -56,6 +56,10 @@ export default class Markers {
       for (let q = 0; q < p.x.length; q++) {
         let dataPointIndex = j
 
+        // a small hack as we have 2 points for the first val to connect it
+        if (j === 1 && q === 0) dataPointIndex = 0
+        if (j === 1 && q === 1) dataPointIndex = 1
+        
         let PointClasses = 'apexcharts-marker'
         if (((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts) && !w.config.tooltip.intersect) {
           PointClasses += ' no-pointer-events'
@@ -87,9 +91,6 @@ export default class Markers {
             opts
           )
 
-          // a small hack as we have 2 points for the first val to connect it
-          if (j === 1 && q === 0) dataPointIndex = 0
-          if (j === 1 && q === 1) dataPointIndex = 1
 
           point.attr('rel', dataPointIndex)
           point.attr('j', dataPointIndex)
