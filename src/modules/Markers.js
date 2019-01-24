@@ -175,8 +175,9 @@ export default class Markers {
     let w = this.w
 
     let colors = w.globals.markers.colors
+    let strokeColors = w.config.markers.strokeColor || w.config.markers.strokeColors
 
-    let pointStrokeColor = w.config.markers.strokeColor
+    let pointStrokeColor = (strokeColors instanceof Array ? strokeColors[seriesIndex] : strokeColors) 
     let pointFillColor = (colors instanceof Array ? colors[seriesIndex] : colors)
 
     return {

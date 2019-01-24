@@ -253,7 +253,8 @@ class Radar {
     })
 
     polygonStrings.forEach((p, i) => {
-      const polygon = this.graphics.drawPolygon(p, Array.isArray(this.polygons.strokeColors) ? this.polygons.strokeColors[i] : this.polygons.strokeColors, w.globals.radarPolygons.fill.colors[i])
+      const strokeColors = this.polygons.strokeColors
+      const polygon = this.graphics.drawPolygon(p, Array.isArray(strokeColors) ? strokeColors[i] : strokeColors, w.globals.radarPolygons.fill.colors[i])
       parent.add(polygon)
     })
 

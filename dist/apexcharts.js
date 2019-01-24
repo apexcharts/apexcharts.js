@@ -337,6 +337,11 @@
         return Math.pow(base, Math.floor(Math.log(x) / Math.log(base)));
       }
     }, {
+      key: "parseNumber",
+      value: function parseNumber(val) {
+        return parseFloat(val) || null;
+      }
+    }, {
       key: "getDimensions",
       value: function getDimensions(el) {
         var computedStyle = getComputedStyle(el);
@@ -2232,7 +2237,9 @@
               offsetX: 0,
               offsetY: 0,
               polygons: {
-                strokeColor: '#e8e8e8',
+                // strokeColor: '#e8e8e8', // should be deprecated in the minor version
+                strokeColors: '#e8e8e8',
+                connectorColors: '#e8e8e8',
                 fill: {
                   colors: undefined
                 }
@@ -2374,7 +2381,8 @@
             discrete: [],
             size: 0,
             colors: undefined,
-            strokeColor: '#fff',
+            //strokeColor: '#fff', // TODO: deprecate in major version
+            strokeColors: '#fff',
             strokeWidth: 2,
             strokeOpacity: 0.9,
             fillOpacity: 1,
@@ -2526,7 +2534,7 @@
               trim: true,
               minHeight: undefined,
               maxHeight: 120,
-              showDuplicates: false,
+              showDuplicates: true,
               style: {
                 colors: [],
                 fontSize: '12px',
@@ -2562,6 +2570,7 @@
               offsetY: 0
             },
             tickAmount: undefined,
+            tickPlacement: 'on',
             min: undefined,
             max: undefined,
             range: undefined,
@@ -3369,6 +3378,31 @@
         }
       }
     }, {
+      key: "convertCatToNumeric",
+      value: function convertCatToNumeric() {
+        var opts = this.opts;
+        opts.xaxis.type = 'numeric';
+        opts.xaxis.labels = opts.xaxis.labels || {};
+
+        opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function (val) {
+          return val;
+        };
+
+        opts.chart.zoom = opts.chart.zoom || {};
+        var defaultFormatter = opts.xaxis.labels.formatter;
+        var labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels;
+
+        if (labels.length) {
+          opts.xaxis.labels.formatter = function (val) {
+            return defaultFormatter(labels[val - 1]);
+          };
+        }
+
+        opts.xaxis.categories = [];
+        opts.labels = [];
+        opts.chart.zoom.enabled = false;
+      }
+    }, {
       key: "bubble",
       value: function bubble() {
         return {
@@ -3755,6 +3789,10 @@
 
           if (opts.chart.stacked && opts.chart.stackType === '100%') {
             defaults.stacked100();
+          }
+
+          if ((opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') && typeof opts.series[0].type === 'undefined' && opts.xaxis && opts.xaxis.type !== 'datetime' && (opts.xaxis.type === 'category' || opts.xaxis.categories && opts.xaxis.categories.length || opts.labels && opts.labels.length) && opts.xaxis.tickPlacement !== 'between') {
+            defaults.convertCatToNumeric();
           }
 
           if (opts.chart.sparkline && opts.chart.sparkline.enabled || window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled) {
@@ -4830,7 +4868,10 @@
 
         if (p.x instanceof Array) {
           var _loop = function _loop(q) {
-            var dataPointIndex = j;
+            var dataPointIndex = j; // a small hack as we have 2 points for the first val to connect it
+
+            if (j === 1 && q === 0) dataPointIndex = 0;
+            if (j === 1 && q === 1) dataPointIndex = 1;
             var PointClasses = 'apexcharts-marker';
 
             if ((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts && !w.config.tooltip.intersect) {
@@ -4856,10 +4897,7 @@
                   opts.pSize = marker.size;
                 }
               });
-              point = graphics.drawMarker(p.x[q], p.y[q], opts); // a small hack as we have 2 points for the first val to connect it
-
-              if (j === 1 && q === 0) dataPointIndex = 0;
-              if (j === 1 && q === 1) dataPointIndex = 1;
+              point = graphics.drawMarker(p.x[q], p.y[q], opts);
               point.attr('rel', dataPointIndex);
               point.attr('j', dataPointIndex);
               point.attr('index', seriesIndex);
@@ -4938,7 +4976,8 @@
       value: function getMarkerStyle(seriesIndex) {
         var w = this.w;
         var colors = w.globals.markers.colors;
-        var pointStrokeColor = w.config.markers.strokeColor;
+        var strokeColors = w.config.markers.strokeColor || w.config.markers.strokeColors;
+        var pointStrokeColor = strokeColors instanceof Array ? strokeColors[seriesIndex] : strokeColors;
         var pointFillColor = colors instanceof Array ? colors[seriesIndex] : colors;
         return {
           pointStrokeColor: pointStrokeColor,
@@ -5195,6 +5234,7 @@
         elDataLabelsWrap = graphics.group({
           class: 'apexcharts-data-labels'
         });
+        elDataLabelsWrap.attr('clip-path', "url(#gridRectMarkerMask".concat(w.globals.cuid, ")"));
 
         for (var q = 0; q < pos.x.length; q++) {
           x = pos.x[q] + dataLabelsConfig.offsetX;
@@ -5287,12 +5327,6 @@
             cx: x,
             cy: y
           });
-
-          if (offsetCorrection) {
-            dataLabelText.attr({
-              'clip-path': "url(#gridRectMask".concat(w.globals.cuid, ")")
-            });
-          }
 
           if (dataLabelsConfig.dropShadow.enabled) {
             var textShadow = dataLabelsConfig.dropShadow;
@@ -5690,6 +5724,21 @@
 
           if (w.globals.isXNumeric) {
             // max barwidth should be equal to minXDiff to avoid overlap
+            if (this.minXDiff === Number.MAX_SAFE_INTEGER) {
+              // possibly a single dataPoint (fixes react-apexcharts/issue#34)
+              var len = w.globals.labels.length;
+
+              if (w.globals.timelineLabels.length > 0) {
+                len = w.globals.timelineLabels.length;
+              }
+
+              if (len < 3) {
+                len = 3;
+              }
+
+              this.minXDiff = (w.globals.maxX - w.globals.minX) / len;
+            }
+
             xDivision = this.minXDiff / this.xRatio;
             barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
           }
@@ -8346,6 +8395,7 @@
       this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
       this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.svgHeight - 35 : w.globals.gridWidth;
       this.maxValue = this.w.globals.maxY;
+      this.polygons = w.config.plotOptions.radar.polygons;
       this.maxLabelWidth = 20;
       var longestLabel = w.globals.labels.slice().sort(function (a, b) {
         return b.length - a.length;
@@ -8533,7 +8583,7 @@
           var string = '';
           polygon.forEach(function (p, i) {
             if (r === 0) {
-              var line = _this2.graphics.drawLine(p.x, p.y, 0, 0, w.config.plotOptions.radar.polygons.strokeColor);
+              var line = _this2.graphics.drawLine(p.x, p.y, 0, 0, Array.isArray(_this2.polygons.connectorColors) ? _this2.polygons.connectorColors[i] : _this2.polygons.connectorColors);
 
               lines.push(line);
             }
@@ -8550,7 +8600,9 @@
           polygonStrings.push(string);
         });
         polygonStrings.forEach(function (p, i) {
-          var polygon = _this2.graphics.drawPolygon(p, w.config.plotOptions.radar.polygons.strokeColor, w.globals.radarPolygons.fill.colors[i]);
+          var strokeColors = _this2.polygons.strokeColors;
+
+          var polygon = _this2.graphics.drawPolygon(p, Array.isArray(strokeColors) ? strokeColors[i] : strokeColors, w.globals.radarPolygons.fill.colors[i]);
 
           parent.add(polygon);
         });
@@ -9010,10 +9062,12 @@
 
           var _pie = new Pie(this.ctx);
 
-          elPath.node.addEventListener('mouseenter', _pie.dataLabelsMouseIn.bind(this, elPath.node, this.radialDataLabels));
-          elPath.node.addEventListener('mouseleave', _pie.dataLabelsMouseout.bind(this, elPath.node, this.radialDataLabels));
           elRadialBarArc.add(elPath);
-          elPath.attr('id', 'apexcharts-radialArc-' + i);
+          elPath.attr({
+            id: 'apexcharts-radialArc-' + i,
+            index: 0,
+            j: i
+          });
           var dur = 0;
 
           if (_pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -10266,6 +10320,10 @@
             if (w.globals.timelineLabels.length > 0) {
               x = w.globals.timelineLabels[_i].position;
               label = w.globals.timelineLabels[_i].value;
+            } else {
+              if (w.config.xaxis.type === 'datetime' && customFormatter === undefined) {
+                label = '';
+              }
             }
 
             label = label.toString();
@@ -10539,6 +10597,7 @@
 
       this.ctx = ctx;
       this.w = ctx.w;
+      this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal);
     } // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
     // This routine creates the Y axis values for a graph.
 
@@ -10707,13 +10766,13 @@
       value: function setYScaleForIndex(index, minY, maxY) {
         var gl = this.w.globals;
         var cnf = this.w.config;
-        var y = cnf.yaxis[index];
+        var y = this.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index];
 
         if (typeof gl.yAxisScale[index] === 'undefined') {
           gl.yAxisScale[index] = [];
         }
 
-        if (cnf.yaxis[index].logarithmic) {
+        if (y.logarithmic) {
           gl.allSeriesCollapsed = false;
           gl.yAxisScale[index] = this.logarithmicScale(index, minY, maxY, y.tickAmount ? y.tickAmount : Math.floor(Math.log10(maxY)));
         } else {
@@ -10897,6 +10956,7 @@
 
       this.ctx = ctx;
       this.w = ctx.w;
+      this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal);
       this.scales = new Range(ctx);
     }
 
@@ -11059,10 +11119,22 @@
 
             gl.minY = yaxis[0].min;
           }
-        }); // for multi y-axis we need different scales for each
+        }); // for horizontal bar charts, we need to check xaxis min/max as user may have specified there
+
+        if (this.isBarHorizontal) {
+          if (cnf.xaxis.min !== undefined && typeof cnf.xaxis.min === 'number') {
+            gl.minY = cnf.xaxis.min;
+          }
+
+          if (cnf.xaxis.max !== undefined && typeof cnf.xaxis.max === 'number') {
+            gl.maxY = cnf.xaxis.max;
+          }
+        } // for multi y-axis we need different scales for each
+
 
         if (gl.isMultipleYAxis) {
           this.scales.setMultipleYScales();
+          gl.minY = lowestYInAllSeries;
           gl.yAxisScale.forEach(function (scale, i) {
             gl.minYArr[i] = scale.niceMin;
             gl.maxYArr[i] = scale.niceMax;
@@ -11079,7 +11151,8 @@
       key: "setXRange",
       value: function setXRange() {
         var gl = this.w.globals;
-        var cnf = this.w.config; // minX maxX starts here
+        var cnf = this.w.config;
+        var isXNumeric = cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'datetime' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided; // minX maxX starts here
 
         if (gl.isXNumeric) {
           for (var i = 0; i < gl.series.length; i++) {
@@ -11106,12 +11179,12 @@
         } // for numeric xaxis, we need to adjust some padding left and right for bar charts
 
 
-        if (gl.comboChartsHasBars || cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category') {
+        if (gl.comboChartsHasBars || cnf.chart.type === 'candlestick' || cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category') {
           if (cnf.xaxis.type !== 'category') {
-            var minX = gl.minX - gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3;
+            var minX = gl.minX - gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2;
             gl.minX = minX;
             gl.initialminX = minX;
-            var maxX = gl.maxX + gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 3;
+            var maxX = gl.maxX + gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2;
             gl.maxX = maxX;
             gl.initialmaxX = maxX;
           }
@@ -11163,8 +11236,23 @@
           } // we will still store these labels as the count for this will be different (to draw grid and labels placement)
 
 
-          if (cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'datetime' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided) {
+          if (isXNumeric) {
             gl.labels = gl.xAxisScale.result.slice();
+          }
+        }
+
+        if (gl.minX === gl.maxX) {
+          // single dataPoint
+          if (cnf.xaxis.type === 'datetime') {
+            var newMinX = new Date(gl.minX);
+            newMinX.setDate(newMinX.getDate() - 2);
+            gl.minX = new Date(newMinX).getTime();
+            var newMaxX = new Date(gl.maxX);
+            newMaxX.setDate(newMaxX.getDate() + 2);
+            gl.maxX = new Date(newMaxX).getTime();
+          } else if (cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided) {
+            gl.minX = gl.minX - 2;
+            gl.maxX = gl.maxX + 2;
           }
         }
       }
@@ -11941,10 +12029,7 @@
       value: function getxAxisLabelsCoords() {
         var w = this.w;
         var xaxisLabels = w.globals.labels.slice();
-        var rect = {
-          width: 0,
-          height: 0
-        };
+        var rect;
 
         if (w.globals.timelineLabels.length > 0) {
           var coords = this.getxAxisTimeScaleLabelsCoords();
@@ -11957,7 +12042,14 @@
 
           var val = xaxisLabels.reduce(function (a, b) {
             return a.length > b.length ? a : b;
-          }, 0);
+          }, 0); // the labels gets changed for bar charts
+
+          if (this.isBarHorizontal) {
+            val = w.globals.yAxisScale[0].result.reduce(function (a, b) {
+              return a.length > b.length ? a : b;
+            }, 0);
+          }
+
           var xlbFormatter = w.globals.xLabelFormatter;
           var xFormat = new Formatters(this.ctx);
           val = xFormat.xLabelFormat(xlbFormatter, val);
@@ -13309,9 +13401,9 @@
         for (var j = 0; j < ser[i].data.length; j++) {
           if (typeof ser[i].data[j][1] !== 'undefined') {
             if (Array.isArray(ser[i].data[j][1]) && ser[i].data[j][1].length === 4) {
-              this.twoDSeries.push(ser[i].data[j][1][3]);
+              this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1][3]));
             } else {
-              this.twoDSeries.push(ser[i].data[j][1]);
+              this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1]));
             }
           }
 
@@ -13343,9 +13435,9 @@
         for (var j = 0; j < ser[i].data.length; j++) {
           if (typeof ser[i].data[j].y !== 'undefined') {
             if (Array.isArray(ser[i].data[j].y) && ser[i].data[j].y.length === 4) {
-              this.twoDSeries.push(ser[i].data[j].y[3]);
+              this.twoDSeries.push(Utils.parseNumber(ser[i].data[j].y[3]));
             } else {
-              this.twoDSeries.push(ser[i].data[j].y);
+              this.twoDSeries.push(Utils.parseNumber(ser[i].data[j].y));
             }
           }
 
@@ -17188,10 +17280,15 @@
       value: function seriesHover(opt, e) {
         var _this2 = this;
 
-        var chartGroups = []; // if user has more than one charts in group, we need to sync
+        var chartGroups = [];
+        var w = this.w; // if user has more than one charts in group, we need to sync
 
-        if (this.w.config.chart.group) {
+        if (w.config.chart.group) {
           chartGroups = this.ctx.getGroupedCharts();
+        }
+
+        if (w.globals.minX === -Infinity && w.globals.maxX === Infinity || w.globals.dataPoints === 0) {
+          return;
         }
 
         if (chartGroups.length) {
@@ -17669,7 +17766,7 @@
           });
         }
 
-        if (w.config.chart.toolbar.tools.reset) {
+        if (w.config.chart.toolbar.tools.reset && w.config.chart.zoom.enabled) {
           toolbarControls.push({
             el: this.elZoomReset,
             icon: icoReset,
@@ -26238,7 +26335,7 @@
             window.addEventListener('resize', _this.windowResizeHandler);
             window.addResizeListener(_this.el.parentNode, _this.parentResizeCallback.bind(_this));
 
-            var graphData = _this.create(_this.w.config.series);
+            var graphData = _this.create(_this.w.config.series, {}, false);
 
             if (!graphData) return resolve(_this);
 
@@ -26328,13 +26425,16 @@
       }
     }, {
       key: "create",
-      value: function create(ser, opts) {
+      value: function create(ser, opts, skipResponsiveCheck) {
         var w = this.w;
         this.initModules();
         var gl = this.w.globals;
         gl.noData = false;
         gl.animationEnded = false;
-        this.responsive.checkResponsiveConfig(opts);
+
+        if (!skipResponsiveCheck) {
+          this.responsive.checkResponsiveConfig(opts);
+        }
 
         if (this.el === null) {
           gl.animationEnded = true;
@@ -26721,7 +26821,7 @@
         return new Promise$1(function (resolve, reject) {
           _this3.clear();
 
-          var graphData = _this3.create(_this3.w.config.series, options$$1);
+          var graphData = _this3.create(_this3.w.config.series, options$$1, true);
 
           if (!graphData) return resolve(_this3);
 
