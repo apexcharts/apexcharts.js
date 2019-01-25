@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.2.0
+ * ApexCharts v3.2.1
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -17294,7 +17294,7 @@ function () {
         chartGroups = this.ctx.getGroupedCharts();
       }
 
-      if (w.globals.minX === -Infinity && w.globals.maxX === Infinity || w.globals.dataPoints === 0) {
+      if (w.globals.axisCharts && (w.globals.minX === -Infinity && w.globals.maxX === Infinity || w.globals.dataPoints === 0)) {
         return;
       }
 
