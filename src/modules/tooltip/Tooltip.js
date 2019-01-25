@@ -370,7 +370,7 @@ export default class Tooltip {
     }
 
 
-    if ((w.globals.minX === -Infinity && w.globals.maxX === Infinity) || w.globals.dataPoints === 0) {
+    if (w.globals.axisCharts && ((w.globals.minX === -Infinity && w.globals.maxX === Infinity) || w.globals.dataPoints === 0)) {
       return;
     }
 
