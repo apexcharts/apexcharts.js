@@ -259,11 +259,11 @@ export default class Defaults {
     opts.xaxis.type = 'numeric'
     opts.xaxis.labels = opts.xaxis.labels || {}
     opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function(val) { return val }
-    opts.chart.zoom = opts.chart.zoom || {}
+    opts.chart.zoom = opts.chart.zoom || (window.Apex.chart && window.Apex.chart.zoom) || {}
     const defaultFormatter = opts.xaxis.labels.formatter
     const labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels
 
-    if (labels.length) {
+    if (labels && labels.length) {
       opts.xaxis.labels.formatter = function (val) {
         return defaultFormatter(labels[val - 1])
       }

@@ -89,16 +89,17 @@ export default class Config {
         defaults.stacked100()
       }
 
+      opts.xaxis = opts.xaxis || window.Apex.xaxis || {}
+
       if (
         (opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') &&
-        typeof opts.series[0].type === 'undefined' &&
-        (opts.xaxis && opts.xaxis.type !== 'datetime') &&
-        (
-          (opts.xaxis.type === 'category' ||
-          (opts.xaxis.categories && opts.xaxis.categories.length) ||
-          (opts.labels && opts.labels.length)
-        ) &&
-        opts.xaxis.tickPlacement !== 'between')
+        (typeof opts.series[0].type === 'undefined') &&
+        (opts.xaxis.type !== 'datetime') &&
+        
+        //   (opts.xaxis.type === 'category' || (opts.xaxis.categories && opts.xaxis.categories.length) ||
+        //   (opts.labels && opts.labels.length))
+        //  &&
+        (opts.xaxis.tickPlacement !== 'between')
       ) {
         defaults.convertCatToNumeric()
       }

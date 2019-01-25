@@ -452,7 +452,7 @@ export default class Options {
           offsetX: 0,
           offsetY: 0,
           polygons: {
-            // strokeColor: '#e8e8e8', // should be deprecated in the minor version
+            // strokeColor: '#e8e8e8', // should be deprecated in the minor version i.e 3.2
             strokeColors: '#e8e8e8',
             connectorColors: '#e8e8e8',
             fill: {
@@ -588,7 +588,7 @@ export default class Options {
         discrete: [],
         size: 0,
         colors: undefined,
-        //strokeColor: '#fff', // TODO: deprecate in major version
+        //strokeColor: '#fff', // TODO: deprecate in major version 4.0
         strokeColors: '#fff',
         strokeWidth: 2,
         strokeOpacity: 0.9,
