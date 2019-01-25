@@ -254,6 +254,7 @@ export default class Defaults {
     }
   }
 
+  // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
   convertCatToNumeric () {
     const opts = this.opts
     opts.xaxis.type = 'numeric'

@@ -8,16 +8,22 @@ class CoreUtils {
     this.w = ctx.w
   }
 
-  checkComboSeries () {
-    const w = this.w
+  static checkComboSeries (series) {
+    let comboCharts = false
+    let comboChartsHasBars = false
     // if user specified a type in series too, turn on comboCharts flag
-    if (w.config.series.length && typeof w.config.series[0].type !== 'undefined') {
-      w.globals.comboCharts = true
-      w.config.series.forEach((s) => {
+    if (series.length && typeof series[0].type !== 'undefined') {
+      comboCharts = true
+      series.forEach((s) => {
         if (s.type === 'bar' || s.type === 'column') {
-          w.globals.comboChartsHasBars = true
+          comboChartsHasBars = true
         }
       })
+    }
+
+    return {
+      comboCharts,
+      comboChartsHasBars
     }
   }
 

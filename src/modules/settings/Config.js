@@ -1,5 +1,6 @@
 import Defaults from './Defaults'
 import Utils from './../../utils/Utils'
+import CoreUtils from '../CoreUtils'
 import Options from './Options'
 
 /**
@@ -91,14 +92,11 @@ export default class Config {
 
       opts.xaxis = opts.xaxis || window.Apex.xaxis || {}
 
+      const combo = CoreUtils.checkComboSeries(opts.series)
       if (
         (opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') &&
-        (typeof opts.series[0].type === 'undefined') &&
+        (!combo.comboChartsHasBars) &&
         (opts.xaxis.type !== 'datetime') &&
-        
-        //   (opts.xaxis.type === 'category' || (opts.xaxis.categories && opts.xaxis.categories.length) ||
-        //   (opts.labels && opts.labels.length))
-        //  &&
         (opts.xaxis.tickPlacement !== 'between')
       ) {
         defaults.convertCatToNumeric()

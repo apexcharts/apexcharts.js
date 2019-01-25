@@ -200,7 +200,9 @@ export default class ApexCharts {
       return null
     }
 
-    this.coreUtils.checkComboSeries()
+    const combo = CoreUtils.checkComboSeries(ser)
+    gl.comboCharts = combo.comboCharts
+    gl.comboChartsHasBars = combo.comboChartsHasBars
 
     if (ser.length === 0 || (ser.length === 1 && ser[0].data && ser[0].data.length === 0)) {
       this.series.handleNoData()
