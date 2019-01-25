@@ -124,8 +124,9 @@ class Utils {
     return Math.pow(base, Math.floor(Math.log(x) / Math.log(base)))
   }
 
-  static parseNumber (val) {
-    return parseFloat(val) || null
+  static parseNumber(val) {
+    if(val === null) return val
+    return parseFloat(val)
   }
 
   static getDimensions (el) {
