@@ -116,7 +116,7 @@ export default class Annotations {
       let catIndex = w.globals.labels.indexOf(anno.y)
       const xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')')
 
-      y1 = parseInt(xLabel.getAttribute('y'))
+      y1 = parseFloat(xLabel.getAttribute('y'))
     } else {
       y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
     }
@@ -193,7 +193,7 @@ export default class Annotations {
       let catIndex = w.globals.labels.indexOf(anno.x)
       const xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')')
 
-      const xPos = parseInt(xLabel.getAttribute('x'))
+      const xPos = parseFloat(xLabel.getAttribute('x'))
 
       x = xPos
 
@@ -206,7 +206,7 @@ export default class Annotations {
       pointY = w.globals.gridHeight - (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
     } else {
       x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
-      y = w.globals.gridHeight - (parseInt(anno.y) - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size
+      y = w.globals.gridHeight - (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size
 
       pointY = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
     }
@@ -268,12 +268,12 @@ export default class Annotations {
 
         if (xAnno !== null) {
           const xAnnoCoord = xAnno.getBoundingClientRect()
-          xAnno.setAttribute('x', parseInt(xAnno.getAttribute('x')) - xAnnoCoord.height + 4)
+          xAnno.setAttribute('x', parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4)
 
           if (anno.label.position === 'top') {
-            xAnno.setAttribute('y', parseInt(xAnno.getAttribute('y')) + xAnnoCoord.width)
+            xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) + xAnnoCoord.width)
           } else {
-            xAnno.setAttribute('y', parseInt(xAnno.getAttribute('y')) - xAnnoCoord.width)
+            xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) - xAnnoCoord.width)
           }
 
           let annoRotatingCenter = this.graphics.rotateAroundCenter(xAnno)
