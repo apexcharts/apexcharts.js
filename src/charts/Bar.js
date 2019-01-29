@@ -236,7 +236,9 @@ class Bar {
       className: `apexcharts-${type}-area`,
       id: `apexcharts-${type}-area`
     })
-    this.setSelectedBarFilter(renderedPath, realIndex, j)
+
+    const filters = new Filters(this.ctx)
+    filters.setSelectionFilter(renderedPath, realIndex, j)
     elSeries.add(renderedPath)
 
     let dataLabels = this.calculateDataLabelsPos({ x, y, i, j, series, realIndex, barHeight, barWidth, renderedPath, visibleSeries })
@@ -374,7 +376,7 @@ class Bar {
 
     pathFrom = graphics.move(zeroW, barYPosition)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
+      pathFrom = this.getPathFrom(realIndex, j)
     }
 
     if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
@@ -472,7 +474,7 @@ class Bar {
 
     pathFrom = graphics.move(barXPosition, zeroH)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
+      pathFrom = this.getPathFrom(realIndex, j)
     }
 
     if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
@@ -542,10 +544,9 @@ class Bar {
    * @memberof Bar
    * @param {int} realIndex - current iterating i
    * @param {int} j - current iterating series's j index
-   * @param {bool} typeGroup - Bars/columns are not stacked, but grouped
    * @return {string} pathFrom is the string which will be appended in animations
    **/
-  getPathFrom (realIndex, j, typeGroup = false) {
+  getPathFrom (realIndex, j) {
     let w = this.w
     let pathFrom
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
@@ -911,19 +912,6 @@ class Bar {
     }
   }
 
-  setSelectedBarFilter (el, realIndex, j) {
-    const w = this.w
-    if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-      if (w.globals.selectedDataPoints[realIndex].indexOf(j) > -1) {
-        el.node.setAttribute('selected', true)
-        let activeFilter = w.config.states.active.filter
-        if (activeFilter !== 'none') {
-          const filters = new Filters(this.ctx)
-          filters.applyFilter(el, activeFilter.type, activeFilter.value)
-        }
-      }
-    }
-  }
 }
 
 export default Bar

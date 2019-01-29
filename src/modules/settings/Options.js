@@ -293,7 +293,7 @@ export default class Options {
       plotOptions: {
         bar: {
           horizontal: false,
-          endingShape: 'flat',
+          endingShape: 'flat', // TODO: deprecate in 4.0
           columnWidth: '70%', // should be in percent 0 - 100
           barHeight: '70%', // should be in percent 0 - 100
           distributed: false,

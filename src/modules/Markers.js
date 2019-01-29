@@ -97,7 +97,8 @@ export default class Markers {
           point.attr('index', seriesIndex)
           point.node.setAttribute('default-marker-size', opts.pSize)
 
-          this.setSelectedPointFilter(point, seriesIndex, dataPointIndex)
+          const filters = new Filters(this.ctx)
+          filters.setSelectionFilter(point, seriesIndex, dataPointIndex)
           this.addEvents(point)
 
           if (elPointsWrap) {
@@ -155,20 +156,6 @@ export default class Markers {
       'touchstart',
       graphics.pathMouseDown.bind(this.ctx, circle), {passive: true}
     )
-  }
-
-  setSelectedPointFilter (circle, realIndex, dataPointIndex) {
-    const w = this.w
-    if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-      if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
-        circle.node.setAttribute('selected', true)
-        let activeFilter = w.config.states.active.filter
-        if (activeFilter !== 'none') {
-          const filters = new Filters(this.ctx)
-          filters.applyFilter(circle, activeFilter.type, activeFilter.value)
-        }
-      }
-    }
   }
 
   getMarkerStyle (seriesIndex) {

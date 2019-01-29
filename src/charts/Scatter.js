@@ -148,7 +148,7 @@ export default class Scatter {
         })
 
         const markers = new Markers(this.ctx)
-        markers.setSelectedPointFilter(circle, realIndex, dataPointIndex)
+        filters.setSelectionFilter(circle, realIndex, dataPointIndex)
         markers.addEvents(circle)
 
         circle.node.classList.add('apexcharts-marker')

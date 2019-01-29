@@ -179,26 +179,20 @@ class Filters {
     return el
   }
 
-  // directly adds darken filter to the element and returns the same element.
-  // darken (el, intensity = 0.2) {
-  //   let darkenFilter = null
-  //   el.filter(function (add) {
-  //     darkenFilter = add.componentTransfer({
-  //       rgb: { type: 'linear', slope: intensity }
-  //     })
-  //   })
-  //   return darkenFilter
-  // }
 
-  // directly adds lighten to the element and returns the same element.
-  // lighten (el, intensity = 0.2) {
-  //   el.filter(function (add) {
-  //     add.componentTransfer({
-  //       rgb: { type: 'linear', slope: 1.5, intercept: 0.2 }
-  //     })
-  //   })
-  //   return el
-  // }
+  setSelectionFilter (el, realIndex, dataPointIndex) {
+    const w = this.w
+    if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
+      if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
+        el.node.setAttribute('selected', true)
+        let activeFilter = w.config.states.active.filter
+        if (activeFilter !== 'none') {
+          this.applyFilter(el, activeFilter.type, activeFilter.value)
+        }
+      }
+    }
+  }
+
 }
 
 export default Filters
