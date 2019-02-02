@@ -53,6 +53,9 @@ export default class Position {
 
     if (xcrosshairs !== null) {
       xcrosshairs.setAttribute('x', x)
+      xcrosshairs.setAttribute('x1', x)
+      xcrosshairs.setAttribute('x2', x)
+      xcrosshairs.setAttribute('y2', w.globals.gridHeight)
       xcrosshairs.classList.add('active')
     }
 

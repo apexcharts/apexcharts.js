@@ -129,6 +129,9 @@ export default class Defaults {
           },
           dropShadow: {
             enabled: false
+          },
+          stroke: {
+            width: 0,
           }
         }
       }

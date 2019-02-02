@@ -789,8 +789,8 @@ export default class Options {
           opacity: 0.9,
           stroke: {
             color: '#b6b6b6',
-            width: 0,
-            dashArray: 0
+            width: 1,
+            dashArray: 3
           },
           fill: {
             type: 'solid', // solid, gradient

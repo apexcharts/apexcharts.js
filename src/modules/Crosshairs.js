@@ -46,11 +46,16 @@ class Crosshairs {
       }
 
       let xcrosshairs = graphics.drawRect()
+      if (w.config.xaxis.crosshairs.width === 1) {
+        // to prevent drawing 2 lines, convert rect to line
+        xcrosshairs = graphics.drawLine()
+      }
       xcrosshairs.attr({
         class: 'apexcharts-xcrosshairs',
         x: 0,
         y: 0,
-        width: 0,
+        y2: w.globals.gridHeight,
+        width: w.config.xaxis.crosshairs.width,
         height: w.globals.gridHeight,
         fill: xcrosshairsFill,
         filter: shadow,
