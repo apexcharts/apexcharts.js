@@ -144,16 +144,16 @@ class Filters {
 
   // appends dropShadow to the filter object which can be chained with other filter effects
   addShadow (add, attrs) {
-    const { blur, top, left, opacity } = attrs
+    const { blur, top, left, color, opacity } = attrs
 
-    let shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source)
+    let shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source)
     return add.blend(add.source, shadowBlur)
   }
 
   // directly adds dropShadow to the element and returns the same element.
   // the only way it is different from the addShadow() function is that addShadow is chainable to other filters, while this function discards all filters and add dropShadow
   dropShadow (el, attrs) {
-    let { top, left, blur, opacity, noUserSpaceOnUse } = attrs
+    let { top, left, blur, color, opacity, noUserSpaceOnUse } = attrs
 
     el.unfilter(true)
 
@@ -164,9 +164,9 @@ class Filters {
       let shadowBlur = null
       if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
         // safari/firefox has some alternative way to use this filter
-        shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur)
+        shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur)
       } else {
-        shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source)
+        shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source)
       }
 
       add.blend(add.source, shadowBlur)

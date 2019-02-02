@@ -29,6 +29,7 @@ class Crosshairs {
     let shadowLeft = crosshairShadow.left
     let shadowTop = crosshairShadow.top
     let shadowBlur = crosshairShadow.blur
+    let shadowColor = crosshairShadow.color
     let shadowOpacity = crosshairShadow.opacity
 
     let xcrosshairsFill = w.config.xaxis.crosshairs.fill.color
@@ -72,6 +73,7 @@ class Crosshairs {
           left: shadowLeft,
           top: shadowTop,
           blur: shadowBlur,
+          color: shadowColor,
           opacity: shadowOpacity
         })
       }

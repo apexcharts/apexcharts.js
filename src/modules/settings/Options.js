@@ -203,6 +203,7 @@ export default class Options {
           top: 2,
           left: 2,
           blur: 4,
+          color: '#000',
           opacity: 0.35
         },
         events: {
@@ -351,6 +352,7 @@ export default class Options {
               top: 0,
               left: 0,
               blur: 3,
+              color: '#000',
               opacity: 0.5
             }
           },
@@ -367,6 +369,7 @@ export default class Options {
               top: 0,
               left: 0,
               blur: 3,
+              color: '#000',
               opacity: 0.5
             }
           },
@@ -480,6 +483,7 @@ export default class Options {
           top: 1,
           left: 1,
           blur: 1,
+          color: '#000',
           opacity: 0.45
         }
       },

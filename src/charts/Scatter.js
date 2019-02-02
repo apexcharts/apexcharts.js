@@ -89,7 +89,9 @@ export default class Scatter {
           filters.dropShadow(circle, {
             top: w.config.chart.dropShadow.top,
             left: w.config.chart.dropShadow.left,
-            blur: w.config.chart.dropShadow.blur
+            blur: w.config.chart.dropShadow.blur,
+            color: w.config.chart.dropShadow.color,
+            opacity: w.config.chart.dropShadow.opacity
           })
         }
 
