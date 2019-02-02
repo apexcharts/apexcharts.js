@@ -141,15 +141,7 @@ class Range {
         }
 
         gl.minY = (lowestYInAllSeries - (diff * 5) / 100)
-
-        // no negatives present and values are small.
-        if ((lowestYInAllSeries > 0 && gl.maxY < 50) || (lowestYInAllSeries > 0 && gl.minY < 0)) {
-          gl.minY = 0
-        }
-
-        if (gl.maxY > 10) {
-          gl.maxY = (gl.maxY + (diff * 5) / 100) + 0.6
-        }
+        gl.maxY = (gl.maxY + (diff * 5) / 100) + 0.01
       }
     }
 

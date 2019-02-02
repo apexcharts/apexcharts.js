@@ -1,5 +1,6 @@
 import Graphics from './Graphics'
 import Filters from './Filters'
+import Utils from '../utils/Utils';
 
 class Crosshairs {
   constructor (ctx) {
@@ -50,12 +51,13 @@ class Crosshairs {
         // to prevent drawing 2 lines, convert rect to line
         xcrosshairs = graphics.drawLine()
       }
+
       xcrosshairs.attr({
         class: 'apexcharts-xcrosshairs',
         x: 0,
         y: 0,
         y2: w.globals.gridHeight,
-        width: w.config.xaxis.crosshairs.width,
+        width: Utils.isNumber(w.config.xaxis.crosshairs.width) ? w.config.xaxis.crosshairs.width : 0,
         height: w.globals.gridHeight,
         fill: xcrosshairsFill,
         filter: shadow,
