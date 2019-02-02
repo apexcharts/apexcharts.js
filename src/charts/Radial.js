@@ -264,7 +264,11 @@ class Radial extends Pie {
       let prevStartAngle
 
       const totalAngle = Math.abs(w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle)
-      let endAngle = Math.round(totalAngle * Utils.negToZero(opts.series[i]) / 100) + this.startAngle
+
+      // if data exceeds 100, make it 100
+      const dataValue = Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100
+
+      let endAngle = Math.round(totalAngle * dataValue) + this.startAngle
 
       let prevEndAngle
       if (w.globals.dataChanged) {
