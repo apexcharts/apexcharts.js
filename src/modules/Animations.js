@@ -178,7 +178,8 @@ export default class Animations {
       pathTo = el.attr('pathTo')
     }
 
-    if (pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
+
+    if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
       pathFrom = `M 0 ${w.globals.gridHeight}`
       speed = 1
     }
