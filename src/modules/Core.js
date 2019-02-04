@@ -14,6 +14,7 @@ import XAxis from './axes/XAxis'
 import YAxis from './axes/YAxis'
 import Range from './Range'
 import Utils from '../utils/Utils'
+import Scales from './Scales'
 import Series from './Series'
 import TimeScale from './TimeScale'
 
@@ -817,62 +818,50 @@ export default class Core {
     // if user has not defined a custom function for selection - we handle the brush chart
     // otherwise we leave it to the user to define the functionality for selection
     if (typeof w.config.chart.events.selection !== 'function') {
-      const targetChart = ApexCharts.getChartByID(w.config.chart.brush.target)
-      targetChart.w.globals.brushSource = this.ctx
+      let targets = w.config.chart.brush.targets || [w.config.chart.brush.target]
+      // retro compatibility with single target option
+      targets.forEach(target => {
+          let targetChart = ApexCharts.getChartByID(target)
+          targetChart.w.globals.brushSource = this.ctx
 
-      const updateSourceChart = () => {
-        this.ctx._updateOptions({
-          chart: {
-            selection: {
-              xaxis: {
-                min: targetChart.w.globals.minX,
-                max: targetChart.w.globals.maxX
+          let updateSourceChart = () => {
+            this.ctx._updateOptions({
+              chart: {
+                selection: {
+                  xaxis: {
+                    min: targetChart.w.globals.minX,
+                    max: targetChart.w.globals.maxX
+                  }
+                }
               }
+            }, false, false)
+          }
+          if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
+            targetChart.w.config.chart.events.zoomed = () => {
+              updateSourceChart()
             }
           }
-        }, false, false)
-      }
-      if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
-        targetChart.w.config.chart.events.zoomed = () => {
-          updateSourceChart()
-        }
-      }
-      if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
-        targetChart.w.config.chart.events.scrolled = () => {
-          updateSourceChart()
-        }
-      }
-
-      w.config.chart.events.selection = (chart, e) => {
-        let min, max
-        if (w.config.chart.brush.autoScaleYaxis) {
-          let first = targetChart.w.config.series[0].data.filter(x => x[0] >= e.xaxis.min)[0]
-          let firstValue = first[1]
-          max = min = firstValue
-          targetChart.w.config.series.forEach(serie => {
-            serie.data.forEach(data => {
-              if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
-                if (data[1] > max && data[1] !== null) max = data[1]
-                if (data[1] < min && data[1] !== null) min = data[1]
-              }
-            })
-          })
-
-          min *= 0.95
-          max *= 1.05
-        }
-        let yaxis = {min, max}
-        targetChart._updateOptions({
-          xaxis: {
-            min: e.xaxis.min,
-            max: e.xaxis.max
-          },
-          yaxis: {
-            min: yaxis.min,
-            max: yaxis.max
+          if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
+            targetChart.w.config.chart.events.scrolled = () => {
+              updateSourceChart()
+            }
           }
-        }, false, false, false)
-      }
+
+          w.config.chart.events.selection = (chart, e) => {
+            let yaxis = Utils.clone(w.config.yaxis)
+            if (w.config.chart.brush.autoScaleYaxis) {
+              const scale = new Scales(targetChart)
+              yaxis = scale.autoScaleY(targetChart, e)
+            }
+            targetChart._updateOptions({
+              xaxis: {
+                min: e.xaxis.min,
+                max: e.xaxis.max
+              },
+              yaxis
+            }, false, false, false)
+          }
+      })
     }
   }
 }

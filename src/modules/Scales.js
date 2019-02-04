@@ -366,4 +366,36 @@ export default class Range {
       })
     })
   }
+  
+  autoScaleY(ctx, e) {
+    if (!ctx) {
+      ctx = this
+    }
+
+    let ret = []
+
+    ctx.w.config.series.forEach((serie) => {
+      let min, max
+      let first = serie.data.find(x => x[0] >= e.xaxis.min)
+      let firstValue = first[1]
+      max = min = firstValue
+      serie.data.forEach(data => {
+        if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
+          if (data[1] > max && data[1] !== null) max = data[1]
+          if (data[1] < min && data[1] !== null) min = data[1]
+        }
+      })
+
+      min *= 0.95
+      max *= 1.05
+
+      ret.push({
+        min, max
+      })
+    })
+
+    
+
+    return ret
+  }
 }

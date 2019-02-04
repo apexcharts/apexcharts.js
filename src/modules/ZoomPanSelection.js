@@ -1,6 +1,7 @@
 import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
+import Scales from './Scales'
 
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
@@ -488,6 +489,11 @@ export default class ZoomPanSelection extends Toolbar {
           })
         }
 
+        if (w.config.chart.zoom.autoScaleYaxis) {
+          const scale = new Scales(me.ctx)
+          yaxis = scale.autoScaleY(me.ctx, { xaxis })
+        }
+
         if (toolbar) {
           let beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis)
           if (beforeZoomRange) {
@@ -496,29 +502,13 @@ export default class ZoomPanSelection extends Toolbar {
           }
         }
 
-        if (zoomtype === 'x') {
-          me.ctx._updateOptions({
-            xaxis
-          },
-          false,
-          me.w.config.chart.animations.dynamicAnimation.enabled
-          )
-        } else if (zoomtype === 'y') {
-          me.ctx._updateOptions({
-            yaxis
-          },
-          false,
-          me.w.config.chart.animations.dynamicAnimation.enabled
-          )
-        } else {
-          me.ctx._updateOptions({
-            xaxis,
-            yaxis
-          },
-          false,
-          me.w.config.chart.animations.dynamicAnimation.enabled
-          )
-        }
+        me.ctx._updateOptions({
+          xaxis,
+          yaxis
+        },
+        false,
+        me.w.config.chart.animations.dynamicAnimation.enabled
+        )
 
         if (typeof w.config.chart.events.zoomed === 'function') {
           toolbar.zoomCallback(xaxis, yaxis)
@@ -592,7 +582,8 @@ export default class ZoomPanSelection extends Toolbar {
   panScrolled (moveDirection, xLowestValue, xHighestValue) {
     const w = this.w
     const xyRatios = this.xyRatios
-
+    let yaxis = Utils.clone(w.config.yaxis)
+    
     if (moveDirection === 'left') {
       xLowestValue = w.globals.minX + ((w.globals.gridWidth / 15) * xyRatios.xRatio)
       xHighestValue = w.globals.maxX + ((w.globals.gridWidth / 15) * xyRatios.xRatio)
@@ -606,11 +597,21 @@ export default class ZoomPanSelection extends Toolbar {
       xHighestValue = w.globals.maxX
     }
 
+    let xaxis = {
+      min: xLowestValue,
+      max: xHighestValue
+    }
+
+    if (w.config.chart.zoom.autoScaleYaxis) {
+      const scale = new Scales(me.ctx)
+      yaxis = scale.autoScaleY(me.ctx, { xaxis })
+    }
     this.ctx._updateOptions({
       xaxis: {
         min: xLowestValue,
         max: xHighestValue
-      }
+      },
+      yaxis
     },
     false,
     false

@@ -515,9 +515,12 @@ class Line {
           pathFromLine = w.globals.previousPaths[pp].paths[0].d
         } else if (gpp.type === 'area') {
           this.appendPathFrom = false
-          pathFromArea = w.globals.previousPaths[pp].paths[0].d
-          if (w.globals.previousPaths[pp].paths.length > 1) {
-            pathFromLine = w.globals.previousPaths[pp].paths[1].d
+          if (w.config.stroke.show) {
+            pathFromLine = w.globals.previousPaths[pp].paths[0].d
+            pathFromArea = w.globals.previousPaths[pp].paths[1].d
+          }
+          else {
+            pathFromArea = w.globals.previousPaths[pp].paths[0].d
           }
         }
       }

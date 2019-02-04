@@ -278,6 +278,7 @@ export default class Options {
         zoom: {
           enabled: true,
           type: 'x',
+          // autoScaleYaxis: false, // TODO: rewrite the autoScaleY function
           zoomedArea: {
             fill: {
               color: '#90CAF9',
