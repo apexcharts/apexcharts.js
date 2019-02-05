@@ -543,8 +543,9 @@ class Pie {
     let startRadians = Math.PI * (startDeg - 90) / 180
 
     let endDeg = angle + startAngle
-    if (endDeg > 360) endDeg = 360
+    if (Math.ceil(endDeg) >= 360) endDeg = 359.99
 
+    
     let endRadians = Math.PI * (endDeg - 90) / 180
 
     let x1 = me.centerX + size * Math.cos(startRadians)
