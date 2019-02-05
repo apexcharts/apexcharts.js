@@ -63,13 +63,9 @@ export default class YAxis {
 
         val = lbFormatter(val, i)
 
-        let xPad = 20
-        if (w.config.yaxis[realIndex].opposite) {
+        let xPad = w.config.yaxis[realIndex].labels.padding
+        if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0) {
           xPad = xPad * -1
-        }
-
-        if (w.config.yaxis.length === 0) {
-          xPad = 20
         }
 
         let label = graphics.drawText({
@@ -310,12 +306,12 @@ export default class YAxis {
       if (!yAxisOpposite) {
         yAxisTitle.setAttribute(
           'transform',
-          `rotate(-90 ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
+          `rotate(-${w.config.yaxis[realIndex].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
         )
       } else {
         yAxisTitle.setAttribute(
           'transform',
-          `rotate(90 ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
+          `rotate(${w.config.yaxis[realIndex].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
         )
       }
     }
@@ -366,14 +362,14 @@ export default class YAxis {
 
     w.config.yaxis.map((yaxe, index) => {
       let yAxisWidth = (yaxisLabelCoords[index].width + yTitleCoords[index].width)
-      let multipleYPadd = this.multipleYs && yTitleCoords[index].width > 0 ? 20 : 8
+      let multipleYPadd = this.multipleYs && yTitleCoords[index].width > 0 ? yTitleCoords[index].width * 2 : 15
 
       let paddingForYAxisTitle = this.xPaddingForYAxisTitle(index, {
         width: yaxisLabelCoords[index].width
       }, {
         width: yTitleCoords[index].width
-      }, yaxe.opposite)
-
+        }, yaxe.opposite)
+      
       if (w.config.yaxis.length > 1) {
         // multiple yaxis
         yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)

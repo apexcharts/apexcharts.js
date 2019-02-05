@@ -11,6 +11,7 @@ export default class Options {
       logarithmic: false,
       logBase: 10,
       tickAmount: undefined,
+      forceNiceScale: false,
       max: undefined,
       min: undefined,
       decimalsInFloat: 2,
@@ -23,6 +24,7 @@ export default class Options {
         offsetX: 0,
         offsetY: 0,
         rotate: 0,
+        padding: 20,
         style: {
           colors: [],
           fontSize: '11px',
@@ -46,7 +48,7 @@ export default class Options {
       },
       title: {
         text: undefined,
-        rotate: -90,
+        rotate: 90,
         offsetY: 0,
         offsetX: 0,
         style: {

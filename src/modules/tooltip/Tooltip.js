@@ -450,14 +450,22 @@ export default class Tooltip {
     let self = this
     let capj = null
 
-    const tooltipEl = this.getElTooltip()
-    const xcrosshairs = this.getElXCrosshairs()
+    let seriesBound = opt.elGrid.getBoundingClientRect()
 
     const clientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX
     const clientY = (e.type === 'touchmove') ? e.touches[0].clientY : e.clientY
 
     this.clientY = clientY
     this.clientX = clientX
+
+    if (clientY < seriesBound.top || clientY > seriesBound.top + seriesBound.height) {
+      self.handleMouseOut(opt)
+      return;
+    }
+
+
+    const tooltipEl = this.getElTooltip()
+    const xcrosshairs = this.getElXCrosshairs()
 
     let isStickyTooltip =
       w.globals.xyCharts ||
@@ -491,8 +499,6 @@ export default class Tooltip {
         let capturedSeries = capj.capturedSeries
 
         if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth) {
-        // capj.hoverY causing issues in grouped charts, so commented out that condition for now
-        // if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth || capj.hoverY < 0 || capj.hoverY > w.globals.gridHeight) {
           self.handleMouseOut(opt)
           return
         }
