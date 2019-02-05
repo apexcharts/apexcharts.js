@@ -12,7 +12,7 @@ export default class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale (yMin, yMax, ticks = 10) {
+  niceScale(yMin, yMax, index = 0, ticks = 10) {
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
       (!Utils.isNumber(yMin) && !Utils.isNumber(yMax))
@@ -82,14 +82,15 @@ export default class Range {
     }
 
     // TODO: need to remove this condition below which makes this function tightly coupled with w.
-    if (this.w.config.yaxis[0].max === undefined &&
-      this.w.config.yaxis[0].min === undefined) {
+    if ((this.w.config.yaxis[index].max === undefined &&
+      this.w.config.yaxis[index].min === undefined) || this.w.config.yaxis[index].forceNiceScale) {
       return {
         result,
         niceMin: result[0],
         niceMax: result[result.length - 1]
       }
-    } else {
+    }
+    else {
       result = []
       let v = yMin
       result.push(v)
@@ -210,6 +211,7 @@ export default class Range {
         gl.yAxisScale[index] = this.niceScale(
           minY,
           maxY,
+          index,
           y.tickAmount ? y.tickAmount : 6
         )
       }
