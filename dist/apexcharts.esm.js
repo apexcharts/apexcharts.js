@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.2.1
+ * ApexCharts v3.2.2
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -680,8 +680,9 @@ function () {
       var blur = attrs.blur,
           top = attrs.top,
           left = attrs.left,
+          color = attrs.color,
           opacity = attrs.opacity;
-      var shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
+      var shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
       return add.blend(add.source, shadowBlur);
     } // directly adds dropShadow to the element and returns the same element.
     // the only way it is different from the addShadow() function is that addShadow is chainable to other filters, while this function discards all filters and add dropShadow
@@ -692,6 +693,7 @@ function () {
       var top = attrs.top,
           left = attrs.left,
           blur = attrs.blur,
+          color = attrs.color,
           opacity = attrs.opacity,
           noUserSpaceOnUse = attrs.noUserSpaceOnUse;
       el.unfilter(true);
@@ -702,9 +704,9 @@ function () {
 
         if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
           // safari/firefox has some alternative way to use this filter
-          shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur);
+          shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur);
         } else {
-          shadowBlur = add.flood('black', opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
+          shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
         }
 
         add.blend(add.source, shadowBlur);
@@ -715,26 +717,23 @@ function () {
       }
 
       return el;
-    } // directly adds darken filter to the element and returns the same element.
-    // darken (el, intensity = 0.2) {
-    //   let darkenFilter = null
-    //   el.filter(function (add) {
-    //     darkenFilter = add.componentTransfer({
-    //       rgb: { type: 'linear', slope: intensity }
-    //     })
-    //   })
-    //   return darkenFilter
-    // }
-    // directly adds lighten to the element and returns the same element.
-    // lighten (el, intensity = 0.2) {
-    //   el.filter(function (add) {
-    //     add.componentTransfer({
-    //       rgb: { type: 'linear', slope: 1.5, intercept: 0.2 }
-    //     })
-    //   })
-    //   return el
-    // }
+    }
+  }, {
+    key: "setSelectionFilter",
+    value: function setSelectionFilter(el, realIndex, dataPointIndex) {
+      var w = this.w;
 
+      if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
+        if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
+          el.node.setAttribute('selected', true);
+          var activeFilter = w.config.states.active.filter;
+
+          if (activeFilter !== 'none') {
+            this.applyFilter(el, activeFilter.type, activeFilter.value);
+          }
+        }
+      }
+    }
   }]);
 
   return Filters;
@@ -926,7 +925,7 @@ function () {
         pathTo = el.attr('pathTo');
       }
 
-      if (pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
+      if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
         pathFrom = "M 0 ".concat(w.globals.gridHeight);
         speed = 1;
       }
@@ -1785,6 +1784,7 @@ function () {
       logarithmic: false,
       logBase: 10,
       tickAmount: undefined,
+      forceNiceScale: false,
       max: undefined,
       min: undefined,
       decimalsInFloat: 2,
@@ -1797,6 +1797,7 @@ function () {
         offsetX: 0,
         offsetY: 0,
         rotate: 0,
+        padding: 20,
         style: {
           colors: [],
           fontSize: '11px',
@@ -1820,7 +1821,7 @@ function () {
       },
       title: {
         text: undefined,
-        rotate: -90,
+        rotate: 90,
         offsetY: 0,
         offsetX: 0,
         style: {
@@ -1977,6 +1978,7 @@ function () {
             top: 2,
             left: 2,
             blur: 4,
+            color: '#000',
             opacity: 0.35
           },
           events: {
@@ -2052,6 +2054,7 @@ function () {
           zoom: {
             enabled: true,
             type: 'x',
+            // autoScaleYaxis: false, // TODO: rewrite the autoScaleY function
             zoomedArea: {
               fill: {
                 color: '#90CAF9',
@@ -2069,6 +2072,7 @@ function () {
           bar: {
             horizontal: false,
             endingShape: 'flat',
+            // TODO: deprecate in 4.0
             columnWidth: '70%',
             // should be in percent 0 - 100
             barHeight: '70%',
@@ -2129,6 +2133,7 @@ function () {
                 top: 0,
                 left: 0,
                 blur: 3,
+                color: '#000',
                 opacity: 0.5
               }
             },
@@ -2146,6 +2151,7 @@ function () {
                 top: 0,
                 left: 0,
                 blur: 3,
+                color: '#000',
                 opacity: 0.5
               }
             },
@@ -2260,6 +2266,7 @@ function () {
             top: 1,
             left: 1,
             blur: 1,
+            color: '#000',
             opacity: 0.45
           }
         },
@@ -2590,8 +2597,8 @@ function () {
             opacity: 0.9,
             stroke: {
               color: '#b6b6b6',
-              width: 0,
-              dashArray: 0
+              width: 1,
+              dashArray: 3
             },
             fill: {
               type: 'solid',
@@ -2749,7 +2756,7 @@ function () {
       if (this.invertAxis) {
         var catIndex = w.globals.labels.indexOf(anno.y);
         var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
-        y1 = parseInt(xLabel.getAttribute('y'));
+        y1 = parseFloat(xLabel.getAttribute('y'));
       } else {
         y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
       }
@@ -2813,7 +2820,7 @@ function () {
       if (typeof anno.x === 'string') {
         var catIndex = w.globals.labels.indexOf(anno.x);
         var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
-        var xPos = parseInt(xLabel.getAttribute('x'));
+        var xPos = parseFloat(xLabel.getAttribute('x'));
         x = xPos;
         var annoY = anno.y;
 
@@ -2825,7 +2832,7 @@ function () {
         pointY = w.globals.gridHeight - (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
       } else {
         x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth);
-        y = w.globals.gridHeight - (parseInt(anno.y) - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size;
+        y = w.globals.gridHeight - (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size;
         pointY = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
       }
 
@@ -2884,12 +2891,12 @@ function () {
 
           if (xAnno !== null) {
             var xAnnoCoord = xAnno.getBoundingClientRect();
-            xAnno.setAttribute('x', parseInt(xAnno.getAttribute('x')) - xAnnoCoord.height + 4);
+            xAnno.setAttribute('x', parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4);
 
             if (anno.label.position === 'top') {
-              xAnno.setAttribute('y', parseInt(xAnno.getAttribute('y')) + xAnnoCoord.width);
+              xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) + xAnnoCoord.width);
             } else {
-              xAnno.setAttribute('y', parseInt(xAnno.getAttribute('y')) - xAnnoCoord.width);
+              xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) - xAnnoCoord.width);
             }
 
             var annoRotatingCenter = _this4.graphics.rotateAroundCenter(xAnno);
@@ -3246,6 +3253,9 @@ function () {
             },
             dropShadow: {
               enabled: false
+            },
+            stroke: {
+              width: 0
             }
           }
         }
@@ -4907,8 +4917,8 @@ function () {
             point.attr('j', dataPointIndex);
             point.attr('index', seriesIndex);
             point.node.setAttribute('default-marker-size', opts.pSize);
-
-            _this.setSelectedPointFilter(point, seriesIndex, dataPointIndex);
+            var filters = new Filters(_this.ctx);
+            filters.setSelectionFilter(point, seriesIndex, dataPointIndex);
 
             _this.addEvents(point);
 
@@ -4958,23 +4968,6 @@ function () {
       circle.node.addEventListener('touchstart', graphics.pathMouseDown.bind(this.ctx, circle), {
         passive: true
       });
-    }
-  }, {
-    key: "setSelectedPointFilter",
-    value: function setSelectedPointFilter(circle, realIndex, dataPointIndex) {
-      var w = this.w;
-
-      if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-        if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
-          circle.node.setAttribute('selected', true);
-          var activeFilter = w.config.states.active.filter;
-
-          if (activeFilter !== 'none') {
-            var filters = new Filters(this.ctx);
-            filters.applyFilter(circle, activeFilter.type, activeFilter.value);
-          }
-        }
-      }
     }
   }, {
     key: "getMarkerStyle",
@@ -5075,7 +5068,9 @@ function () {
             filters.dropShadow(circle, {
               top: w.config.chart.dropShadow.top,
               left: w.config.chart.dropShadow.left,
-              blur: w.config.chart.dropShadow.blur
+              blur: w.config.chart.dropShadow.blur,
+              color: w.config.chart.dropShadow.color,
+              opacity: w.config.chart.dropShadow.opacity
             });
           }
 
@@ -5136,7 +5131,7 @@ function () {
             'default-marker-size': finishRadius
           });
           var markers = new Markers(this.ctx);
-          markers.setSelectedPointFilter(circle, realIndex, dataPointIndex);
+          filters.setSelectionFilter(circle, realIndex, dataPointIndex);
           markers.addEvents(circle);
           circle.node.classList.add('apexcharts-marker');
           elPointsWrap.add(circle);
@@ -5637,7 +5632,8 @@ function () {
         className: "apexcharts-".concat(type, "-area"),
         id: "apexcharts-".concat(type, "-area")
       });
-      this.setSelectedBarFilter(renderedPath, realIndex, j);
+      var filters = new Filters(this.ctx);
+      filters.setSelectionFilter(renderedPath, realIndex, j);
       elSeries.add(renderedPath);
       var dataLabels = this.calculateDataLabelsPos({
         x: x,
@@ -5792,7 +5788,7 @@ function () {
       pathFrom = graphics.move(zeroW, barYPosition);
 
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPathFrom(realIndex, j, true);
+        pathFrom = this.getPathFrom(realIndex, j);
       }
 
       if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
@@ -5864,7 +5860,7 @@ function () {
       pathFrom = graphics.move(barXPosition, zeroH);
 
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPathFrom(realIndex, j, true);
+        pathFrom = this.getPathFrom(realIndex, j);
       }
 
       if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
@@ -5911,7 +5907,6 @@ function () {
      * @memberof Bar
      * @param {int} realIndex - current iterating i
      * @param {int} j - current iterating series's j index
-     * @param {bool} typeGroup - Bars/columns are not stacked, but grouped
      * @return {string} pathFrom is the string which will be appended in animations
      **/
 
@@ -6329,23 +6324,6 @@ function () {
           ending_p_from: _endingShapeFrom,
           newY: y
         };
-      }
-    }
-  }, {
-    key: "setSelectedBarFilter",
-    value: function setSelectedBarFilter(el, realIndex, j) {
-      var w = this.w;
-
-      if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-        if (w.globals.selectedDataPoints[realIndex].indexOf(j) > -1) {
-          el.node.setAttribute('selected', true);
-          var activeFilter = w.config.states.active.filter;
-
-          if (activeFilter !== 'none') {
-            var filters = new Filters(this.ctx);
-            filters.applyFilter(el, activeFilter.type, activeFilter.value);
-          }
-        }
       }
     }
   }]);
@@ -7176,6 +7154,7 @@ function () {
       var shadowLeft = crosshairShadow.left;
       var shadowTop = crosshairShadow.top;
       var shadowBlur = crosshairShadow.blur;
+      var shadowColor = crosshairShadow.color;
       var shadowOpacity = crosshairShadow.opacity;
       var xcrosshairsFill = w.config.xaxis.crosshairs.fill.color;
 
@@ -7185,11 +7164,18 @@ function () {
         }
 
         var xcrosshairs = graphics.drawRect();
+
+        if (w.config.xaxis.crosshairs.width === 1) {
+          // to prevent drawing 2 lines, convert rect to line
+          xcrosshairs = graphics.drawLine();
+        }
+
         xcrosshairs.attr({
           class: 'apexcharts-xcrosshairs',
           x: 0,
           y: 0,
-          width: 0,
+          y2: w.globals.gridHeight,
+          width: Utils.isNumber(w.config.xaxis.crosshairs.width) ? w.config.xaxis.crosshairs.width : 0,
           height: w.globals.gridHeight,
           fill: xcrosshairsFill,
           filter: shadow,
@@ -7204,6 +7190,7 @@ function () {
             left: shadowLeft,
             top: shadowTop,
             blur: shadowBlur,
+            color: shadowColor,
             opacity: shadowOpacity
           });
         }
@@ -8201,7 +8188,7 @@ function () {
       var startDeg = startAngle;
       var startRadians = Math.PI * (startDeg - 90) / 180;
       var endDeg = angle + startAngle;
-      if (endDeg > 360) endDeg = 360;
+      if (Math.ceil(endDeg) >= 360) endDeg = 359.99;
       var endRadians = Math.PI * (endDeg - 90) / 180;
       var x1 = me.centerX + size * Math.cos(startRadians);
       var y1 = me.centerY + size * Math.sin(startRadians);
@@ -9021,8 +9008,10 @@ function (_Pie) {
         });
         var startAngle = this.startAngle;
         var prevStartAngle = void 0;
-        var totalAngle = Math.abs(w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle);
-        var endAngle = Math.round(totalAngle * Utils.negToZero(opts.series[i]) / 100) + this.startAngle;
+        var totalAngle = Math.abs(w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle); // if data exceeds 100, make it 100
+
+        var dataValue = Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100;
+        var endAngle = Math.round(totalAngle * dataValue) + this.startAngle;
         var prevEndAngle = void 0;
 
         if (w.globals.dataChanged) {
@@ -9657,8 +9646,13 @@ function () {
             pathFromLine = w.globals.previousPaths[pp].paths[0].d;
           } else if (gpp.type === 'area') {
             this.appendPathFrom = false;
-            pathFromLine = w.globals.previousPaths[pp].paths[0].d;
-            pathFromArea = w.globals.previousPaths[pp].paths[1].d;
+
+            if (w.config.stroke.show) {
+              pathFromLine = w.globals.previousPaths[pp].paths[0].d;
+              pathFromArea = w.globals.previousPaths[pp].paths[1].d;
+            } else {
+              pathFromArea = w.globals.previousPaths[pp].paths[0].d;
+            }
           }
         }
       }
@@ -9776,14 +9770,10 @@ function () {
         for (var i = tickAmount; i >= 0; i--) {
           var val = w.globals.yAxisScale[realIndex].result[i];
           val = lbFormatter(val, i);
-          var xPad = 20;
+          var xPad = w.config.yaxis[realIndex].labels.padding;
 
-          if (w.config.yaxis[realIndex].opposite) {
+          if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0) {
             xPad = xPad * -1;
-          }
-
-          if (w.config.yaxis.length === 0) {
-            xPad = 20;
           }
 
           var label = graphics.drawText({
@@ -9975,9 +9965,9 @@ function () {
         var titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle);
 
         if (!yAxisOpposite) {
-          yAxisTitle.setAttribute('transform', "rotate(-90 ".concat(titleRotatingCenter.x, " ").concat(titleRotatingCenter.y, ")"));
+          yAxisTitle.setAttribute('transform', "rotate(-".concat(w.config.yaxis[realIndex].title.rotate, " ").concat(titleRotatingCenter.x, " ").concat(titleRotatingCenter.y, ")"));
         } else {
-          yAxisTitle.setAttribute('transform', "rotate(90 ".concat(titleRotatingCenter.x, " ").concat(titleRotatingCenter.y, ")"));
+          yAxisTitle.setAttribute('transform', "rotate(".concat(w.config.yaxis[realIndex].title.rotate, " ").concat(titleRotatingCenter.x, " ").concat(titleRotatingCenter.y, ")"));
         }
       }
     }
@@ -10031,7 +10021,7 @@ function () {
 
       w.config.yaxis.map(function (yaxe, index) {
         var yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width;
-        var multipleYPadd = _this.multipleYs && yTitleCoords[index].width > 0 ? 20 : 8;
+        var multipleYPadd = _this.multipleYs && yTitleCoords[index].width > 0 ? yTitleCoords[index].width * 2 : 15;
 
         var paddingForYAxisTitle = _this.xPaddingForYAxisTitle(index, {
           width: yaxisLabelCoords[index].width
@@ -10610,7 +10600,8 @@ function () {
   _createClass(Range, [{
     key: "niceScale",
     value: function niceScale(yMin, yMax) {
-      var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
+      var index = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+      var ticks = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 10;
 
       if (yMin === Number.MIN_VALUE && yMax === 0 || !Utils.isNumber(yMin) && !Utils.isNumber(yMax)) {
         // when all values are 0
@@ -10678,7 +10669,7 @@ function () {
       } // TODO: need to remove this condition below which makes this function tightly coupled with w.
 
 
-      if (this.w.config.yaxis[0].max === undefined && this.w.config.yaxis[0].min === undefined) {
+      if (this.w.config.yaxis[index].max === undefined && this.w.config.yaxis[index].min === undefined || this.w.config.yaxis[index].forceNiceScale) {
         return {
           result: result,
           niceMin: result[0],
@@ -10787,7 +10778,7 @@ function () {
         } else {
           // there is some data. Turn off the allSeriesCollapsed flag
           gl.allSeriesCollapsed = false;
-          gl.yAxisScale[index] = this.niceScale(minY, maxY, y.tickAmount ? y.tickAmount : 6);
+          gl.yAxisScale[index] = this.niceScale(minY, maxY, index, y.tickAmount ? y.tickAmount : 6);
         }
       }
     }
@@ -10941,6 +10932,36 @@ function () {
           });
         });
       });
+    }
+  }, {
+    key: "autoScaleY",
+    value: function autoScaleY(ctx, e) {
+      if (!ctx) {
+        ctx = this;
+      }
+
+      var ret = [];
+      ctx.w.config.series.forEach(function (serie) {
+        var min, max;
+        var first = serie.data.find(function (x) {
+          return x[0] >= e.xaxis.min;
+        });
+        var firstValue = first[1];
+        max = min = firstValue;
+        serie.data.forEach(function (data) {
+          if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
+            if (data[1] > max && data[1] !== null) max = data[1];
+            if (data[1] < min && data[1] !== null) min = data[1];
+          }
+        });
+        min *= 0.95;
+        max *= 1.05;
+        ret.push({
+          min: min,
+          max: max
+        });
+      });
+      return ret;
     }
   }]);
 
@@ -11099,15 +11120,8 @@ function () {
             diff = 0;
           }
 
-          gl.minY = lowestYInAllSeries - diff * 5 / 100; // no negatives present and values are small.
-
-          if (lowestYInAllSeries > 0 && gl.maxY < 50 || lowestYInAllSeries > 0 && gl.minY < 0) {
-            gl.minY = 0;
-          }
-
-          if (gl.maxY > 10) {
-            gl.maxY = gl.maxY + diff * 5 / 100 + 0.6;
-          }
+          gl.minY = lowestYInAllSeries - diff * 5 / 100;
+          gl.maxY = gl.maxY + diff * 5 / 100 + 0.01;
         }
       }
 
@@ -13796,71 +13810,54 @@ function () {
 
 
       if (typeof w.config.chart.events.selection !== 'function') {
-        var targetChart = ApexCharts.getChartByID(w.config.chart.brush.target);
-        targetChart.w.globals.brushSource = this.ctx;
+        var targets = w.config.chart.brush.targets || [w.config.chart.brush.target]; // retro compatibility with single target option
 
-        var updateSourceChart = function updateSourceChart() {
-          _this3.ctx._updateOptions({
-            chart: {
-              selection: {
-                xaxis: {
-                  min: targetChart.w.globals.minX,
-                  max: targetChart.w.globals.maxX
+        targets.forEach(function (target) {
+          var targetChart = ApexCharts.getChartByID(target);
+          targetChart.w.globals.brushSource = _this3.ctx;
+
+          var updateSourceChart = function updateSourceChart() {
+            _this3.ctx._updateOptions({
+              chart: {
+                selection: {
+                  xaxis: {
+                    min: targetChart.w.globals.minX,
+                    max: targetChart.w.globals.maxX
+                  }
                 }
               }
-            }
-          }, false, false);
-        };
-
-        if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
-          targetChart.w.config.chart.events.zoomed = function () {
-            updateSourceChart();
+            }, false, false);
           };
-        }
 
-        if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
-          targetChart.w.config.chart.events.scrolled = function () {
-            updateSourceChart();
-          };
-        }
-
-        w.config.chart.events.selection = function (chart, e) {
-          var min, max;
-
-          if (w.config.chart.brush.autoScaleYaxis) {
-            var first = targetChart.w.config.series[0].data.filter(function (x) {
-              return x[0] >= e.xaxis.min;
-            })[0];
-            var firstValue = first[1];
-            max = min = firstValue;
-            targetChart.w.config.series.forEach(function (serie) {
-              serie.data.forEach(function (data) {
-                if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
-                  if (data[1] > max && data[1] !== null) max = data[1];
-                  if (data[1] < min && data[1] !== null) min = data[1];
-                }
-              });
-            });
-            min *= 0.95;
-            max *= 1.05;
+          if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
+            targetChart.w.config.chart.events.zoomed = function () {
+              updateSourceChart();
+            };
           }
 
-          var yaxis = {
-            min: min,
-            max: max
-          };
+          if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
+            targetChart.w.config.chart.events.scrolled = function () {
+              updateSourceChart();
+            };
+          }
 
-          targetChart._updateOptions({
-            xaxis: {
-              min: e.xaxis.min,
-              max: e.xaxis.max
-            },
-            yaxis: {
-              min: yaxis.min,
-              max: yaxis.max
+          w.config.chart.events.selection = function (chart, e) {
+            var yaxis = Utils.clone(w.config.yaxis);
+
+            if (w.config.chart.brush.autoScaleYaxis) {
+              var scale = new Range(targetChart);
+              yaxis = scale.autoScaleY(targetChart, e);
             }
-          }, false, false, false);
-        };
+
+            targetChart._updateOptions({
+              xaxis: {
+                min: e.xaxis.min,
+                max: e.xaxis.max
+              },
+              yaxis: yaxis
+            }, false, false, false);
+          };
+        });
       }
     }
   }]);
@@ -16069,6 +16066,9 @@ function () {
 
       if (xcrosshairs !== null) {
         xcrosshairs.setAttribute('x', x);
+        xcrosshairs.setAttribute('x1', x);
+        xcrosshairs.setAttribute('x2', x);
+        xcrosshairs.setAttribute('y2', w.globals.gridHeight);
         xcrosshairs.classList.add('active');
       }
 
@@ -17383,12 +17383,19 @@ function () {
       var j, x, y;
       var self = this;
       var capj = null;
-      var tooltipEl = this.getElTooltip();
-      var xcrosshairs = this.getElXCrosshairs();
+      var seriesBound = opt.elGrid.getBoundingClientRect();
       var clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
       var clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
       this.clientY = clientY;
       this.clientX = clientX;
+
+      if (clientY < seriesBound.top || clientY > seriesBound.top + seriesBound.height) {
+        self.handleMouseOut(opt);
+        return;
+      }
+
+      var tooltipEl = this.getElTooltip();
+      var xcrosshairs = this.getElXCrosshairs();
       var isStickyTooltip = w.globals.xyCharts || w.config.chart.type === 'bar' && !this.isBarHorizontal && this.hasBars() && w.config.tooltip.shared || w.globals.comboCharts && this.hasBars;
 
       if (w.config.chart.type === 'bar' && this.isBarHorizontal && this.hasBars()) {
@@ -17417,8 +17424,6 @@ function () {
           var capturedSeries = capj.capturedSeries;
 
           if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth) {
-            // capj.hoverY causing issues in grouped charts, so commented out that condition for now
-            // if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth || capj.hoverY < 0 || capj.hoverY > w.globals.gridHeight) {
             self.handleMouseOut(opt);
             return;
           }
@@ -18569,6 +18574,13 @@ function (_Toolbar) {
             });
           }
 
+          if (w.config.chart.zoom.autoScaleYaxis) {
+            var scale = new Range(me.ctx);
+            yaxis = scale.autoScaleY(me.ctx, {
+              xaxis: xaxis
+            });
+          }
+
           if (toolbar) {
             var beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis);
 
@@ -18578,20 +18590,10 @@ function (_Toolbar) {
             }
           }
 
-          if (zoomtype === 'x') {
-            me.ctx._updateOptions({
-              xaxis: xaxis
-            }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
-          } else if (zoomtype === 'y') {
-            me.ctx._updateOptions({
-              yaxis: yaxis
-            }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
-          } else {
-            me.ctx._updateOptions({
-              xaxis: xaxis,
-              yaxis: yaxis
-            }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
-          }
+          me.ctx._updateOptions({
+            xaxis: xaxis,
+            yaxis: yaxis
+          }, false, me.w.config.chart.animations.dynamicAnimation.enabled);
 
           if (typeof w.config.chart.events.zoomed === 'function') {
             toolbar.zoomCallback(xaxis, yaxis);
@@ -18665,6 +18667,7 @@ function (_Toolbar) {
     value: function panScrolled(moveDirection, xLowestValue, xHighestValue) {
       var w = this.w;
       var xyRatios = this.xyRatios;
+      var yaxis = Utils.clone(w.config.yaxis);
 
       if (moveDirection === 'left') {
         xLowestValue = w.globals.minX + w.globals.gridWidth / 15 * xyRatios.xRatio;
@@ -18679,11 +18682,24 @@ function (_Toolbar) {
         xHighestValue = w.globals.maxX;
       }
 
+      var xaxis = {
+        min: xLowestValue,
+        max: xHighestValue
+      };
+
+      if (w.config.chart.zoom.autoScaleYaxis) {
+        var scale = new Range(me.ctx);
+        yaxis = scale.autoScaleY(me.ctx, {
+          xaxis: xaxis
+        });
+      }
+
       this.ctx._updateOptions({
         xaxis: {
           min: xLowestValue,
           max: xHighestValue
-        }
+        },
+        yaxis: yaxis
       }, false, false);
 
       if (typeof w.config.chart.events.scrolled === 'function') {
