@@ -166,6 +166,16 @@ ApexCharts is an open source project. <br /> You can help by becoming a sponsor 
 
 <a href="https://patreon.com/junedchhipa"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patron" /> </a>
 
+## Our Supporters
+
+Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](patreon.com/junedchhipa)!
+
+
+### Sponsors
+Become a sponsor and get your logo on our website's home-page with a link to your site. [[Become a sponsor](https://www.patreon.com/join/junedchhipa)]
+
+<a href="https://www.santego.fr/?ref=apexcharts.com" target="_blank" style="text-align: center; display: inline-block;"><img src="https://apexcharts.com/media/sponsors/santego.png" width="100" height="100" /></a>
+
 
 ## License
 ApexCharts is released under MIT license. You are free to use, modify and distribute this software, as long as the copyright header is left intact.
