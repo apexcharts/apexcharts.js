@@ -10,7 +10,7 @@ import XAxis from './XAxis'
  **/
 
 class Grid {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -18,8 +18,10 @@ class Grid {
     this.anim = new Animations(this.ctx)
     this.xaxisLabels = w.globals.labels.slice()
 
-    this.animX = w.config.grid.xaxis.lines.animate && w.config.chart.animations.enabled
-    this.animY = w.config.grid.yaxis.lines.animate && w.config.chart.animations.enabled
+    this.animX =
+      w.config.grid.xaxis.lines.animate && w.config.chart.animations.enabled
+    this.animY =
+      w.config.grid.yaxis.lines.animate && w.config.chart.animations.enabled
 
     if (w.globals.timelineLabels.length > 0) {
       //  timeline labels are there
@@ -28,14 +30,14 @@ class Grid {
   }
 
   // .when using sparklines or when showing no grid, we need to have a grid area which is reused at many places for other calculations as well
-  drawGridArea (elGrid = null) {
+  drawGridArea(elGrid = null) {
     let w = this.w
 
     let graphics = new Graphics(this.ctx)
 
     if (elGrid === null) {
       elGrid = graphics.group({
-        'class': 'apexcharts-grid'
+        class: 'apexcharts-grid'
       })
     }
 
@@ -61,7 +63,7 @@ class Grid {
     return elGrid
   }
 
-  drawGrid () {
+  drawGrid() {
     let w = this.w
 
     let xAxis = new XAxis(this.ctx)
@@ -89,41 +91,55 @@ class Grid {
   }
 
   // This mask will clip off overflowing graphics from the drawable area
-  createGridMask () {
+  createGridMask() {
     let w = this.w
     let gl = w.globals
     const graphics = new Graphics(this.ctx)
 
-    let strokeSize = Array.isArray(w.config.stroke.width) ? 0 : w.config.stroke.width
+    let strokeSize = Array.isArray(w.config.stroke.width)
+      ? 0
+      : w.config.stroke.width
 
     if (Array.isArray(w.config.stroke.width)) {
       let strokeMaxSize = 0
-      w.config.stroke.width.forEach(function (m) {
+      w.config.stroke.width.forEach(function(m) {
         strokeMaxSize = Math.max(strokeMaxSize, m)
       })
       strokeSize = strokeMaxSize
     }
 
-    gl.dom.elGridRectMask = document.createElementNS(
-      gl.svgNS,
-      'clipPath'
-    )
+    gl.dom.elGridRectMask = document.createElementNS(gl.svgNS, 'clipPath')
     gl.dom.elGridRectMask.setAttribute('id', `gridRectMask${gl.cuid}`)
 
-    gl.dom.elGridRectMarkerMask = document.createElementNS(
-      gl.svgNS,
-      'clipPath'
+    gl.dom.elGridRectMarkerMask = document.createElementNS(gl.svgNS, 'clipPath')
+    gl.dom.elGridRectMarkerMask.setAttribute(
+      'id',
+      `gridRectMarkerMask${gl.cuid}`
     )
-    gl.dom.elGridRectMarkerMask.setAttribute('id', `gridRectMarkerMask${gl.cuid}`)
 
-    gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2, -strokeSize / 2, gl.gridWidth + strokeSize, gl.gridHeight + strokeSize, 0, '#fff')
+    gl.dom.elGridRect = graphics.drawRect(
+      -strokeSize / 2,
+      -strokeSize / 2,
+      gl.gridWidth + strokeSize,
+      gl.gridHeight + strokeSize,
+      0,
+      '#fff'
+    )
 
     const coreUtils = new CoreUtils(this)
     coreUtils.getLargestMarkerSize()
 
-    const markerSize = w.globals.markers.largestSize + w.config.markers.hover.sizeOffset + 1
+    const markerSize =
+      w.globals.markers.largestSize + w.config.markers.hover.sizeOffset + 1
 
-    gl.dom.elGridRectMarker = graphics.drawRect(-markerSize, -markerSize, gl.gridWidth + markerSize * 2, gl.gridHeight + markerSize * 2, 0, '#fff')
+    gl.dom.elGridRectMarker = graphics.drawRect(
+      -markerSize,
+      -markerSize,
+      gl.gridWidth + markerSize * 2,
+      gl.gridHeight + markerSize * 2,
+      0,
+      '#fff'
+    )
     gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node)
     gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node)
 
@@ -133,14 +149,14 @@ class Grid {
   }
 
   // actual grid rendering
-  renderGrid () {
+  renderGrid() {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
     let strokeDashArray = w.config.grid.strokeDashArray
 
     let elg = graphics.group({
-      'class': 'apexcharts-grid'
+      class: 'apexcharts-grid'
     })
 
     let tickAmount = 8
@@ -153,8 +169,9 @@ class Grid {
 
     let xCount
 
-    let inversedGrid = !!(w.config.plotOptions.bar.horizontal &&
-      w.config.chart.type === 'bar')
+    let inversedGrid = !!(
+      w.config.plotOptions.bar.horizontal && w.config.chart.type === 'bar'
+    )
 
     if (!inversedGrid) {
       xCount = this.xaxisLabels.length
@@ -168,8 +185,13 @@ class Grid {
 
         if (w.globals.timelineLabels.length > 0) {
           for (let i = 0; i < xCount; i++) {
-            x1 = this.xaxisLabels[i].position; x2 = this.xaxisLabels[i].position
-            if (w.config.grid.xaxis.lines.show && x1 > 0 && x1 < w.globals.gridWidth) {
+            x1 = this.xaxisLabels[i].position
+            x2 = this.xaxisLabels[i].position
+            if (
+              w.config.grid.xaxis.lines.show &&
+              x1 > 0 &&
+              x1 < w.globals.gridWidth
+            ) {
               let line = graphics.drawLine(
                 x1,
                 y1,
@@ -182,7 +204,7 @@ class Grid {
               elg.add(line)
 
               if (this.animX) {
-                this.animateLine(line, {x1: 0, x2: 0}, {x1: x1, x2})
+                this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
               }
             }
 
@@ -197,7 +219,7 @@ class Grid {
               x1Count -= 1
             }
 
-            x1 = (x1 + w.globals.gridWidth / x1Count)
+            x1 = x1 + w.globals.gridWidth / x1Count
             x2 = x1
 
             // skip the last line
@@ -217,7 +239,7 @@ class Grid {
               elg.add(line)
 
               if (this.animX) {
-                this.animateLine(line, {x1: 0, x2: 0}, {x1: x1, x2})
+                this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
               }
             }
 
@@ -246,7 +268,7 @@ class Grid {
           line.node.classList.add('apexcharts-gridline')
 
           if (this.animY) {
-            this.animateLine(line, {y1: y1 + 20, y2: y2 + 20}, {y1: y1, y2})
+            this.animateLine(line, { y1: y1 + 20, y2: y2 + 20 }, { y1: y1, y2 })
           }
 
           y1 = y1 + w.globals.gridHeight / tickAmount
@@ -263,7 +285,7 @@ class Grid {
         let x2
         let y2 = w.globals.gridHeight
         for (let i = 0; i < xCount + 1; i++) {
-          x1 = (x1 + w.globals.gridWidth / xCount) + 0.3
+          x1 = x1 + w.globals.gridWidth / xCount + 0.3
           x2 = x1
 
           // skip the last vertical line
@@ -283,7 +305,7 @@ class Grid {
             elg.add(line)
 
             if (this.animX) {
-              this.animateLine(line, {x1: 0, x2: 0}, {x1: x1, x2})
+              this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
             }
           }
 
@@ -312,7 +334,7 @@ class Grid {
           line.node.classList.add('apexcharts-gridline')
 
           if (this.animY) {
-            this.animateLine(line, {y1: y1 + 20, y2: y2 + 20}, {y1: y1, y2})
+            this.animateLine(line, { y1: y1 + 20, y2: y2 + 20 }, { y1: y1, y2 })
           }
 
           y1 = y1 + w.globals.gridHeight / w.globals.dataPoints
@@ -324,11 +346,11 @@ class Grid {
     this.drawGridBands(elg, xCount, tickAmount)
     return {
       el: elg,
-      xAxisTickWidth: (w.globals.gridWidth / xCount)
+      xAxisTickWidth: w.globals.gridWidth / xCount
     }
   }
 
-  drawGridBands (elg, xCount, tickAmount) {
+  drawGridBands(elg, xCount, tickAmount) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -370,7 +392,7 @@ class Grid {
     ) {
       let x1 = w.globals.padHorizontal
       let y1 = 0
-      let x2 = w.globals.padHorizontal + (w.globals.gridWidth / xCount)
+      let x2 = w.globals.padHorizontal + w.globals.gridWidth / xCount
       let y2 = w.globals.gridHeight
       for (let i = 0, c = 0; i < xCount; i++, c++) {
         if (c >= w.config.grid.column.colors.length) {
@@ -389,11 +411,11 @@ class Grid {
         rect.node.classList.add('apexcharts-gridColumn')
         elg.add(rect)
 
-        x1 = (x1 + w.globals.gridWidth / xCount)
+        x1 = x1 + w.globals.gridWidth / xCount
       }
     }
   }
-  animateLine (line, from, to) {
+  animateLine(line, from, to) {
     const w = this.w
 
     let initialAnim = w.config.chart.animations

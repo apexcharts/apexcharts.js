@@ -20,6 +20,7 @@ module.exports = {
         "screen": true
     },
     rules: {
+        // Remove this when prettier 2.0 is out
         'space-before-function-paren': 0 // Do not clash with Prettier
     }
 };

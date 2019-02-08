@@ -12,7 +12,7 @@ import Graphics from '../modules/Graphics'
  **/
 
 class CandleStick extends Bar {
-  draw (series, seriesIndex) {
+  draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
@@ -34,7 +34,8 @@ class CandleStick extends Bar {
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
       let pathTo, pathFrom
-      let x, y,
+      let x,
+        y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
         zeroH // zeroH is the baseline where 0 meets y axis
 
@@ -45,8 +46,10 @@ class CandleStick extends Bar {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${w.globals.seriesNames[realIndex].toString().replace(/ /g, '-')}`,
-        'rel': i + 1,
+        class: `apexcharts-series ${w.globals.seriesNames[realIndex]
+          .toString()
+          .replace(/ /g, '-')}`,
+        rel: i + 1,
         'data:realIndex': realIndex
       })
 
@@ -79,7 +82,11 @@ class CandleStick extends Bar {
         class: 'apexcharts-datalabels'
       })
 
-      for (let j = 0, tj = w.globals.dataPoints; j < w.globals.dataPoints; j++, tj--) {
+      for (
+        let j = 0, tj = w.globals.dataPoints;
+        j < w.globals.dataPoints;
+        j++, tj--
+      ) {
         if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
           this.isNullValue = true
         } else {
@@ -89,7 +96,9 @@ class CandleStick extends Bar {
           if (this.isNullValue) {
             strokeWidth = 0
           } else {
-            strokeWidth = Array.isArray(this.strokeWidth) ? this.strokeWidth[realIndex] : this.strokeWidth
+            strokeWidth = Array.isArray(this.strokeWidth)
+              ? this.strokeWidth[realIndex]
+              : this.strokeWidth
           }
         }
 
@@ -126,9 +135,29 @@ class CandleStick extends Bar {
           color
         })
 
-        let lineFill = this.candlestickOptions.wick.useFillColor ? color : undefined
+        let lineFill = this.candlestickOptions.wick.useFillColor
+          ? color
+          : undefined
 
-        elSeries = this.renderSeries({ realIndex, pathFill, lineFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries: this.visibleI, type: 'candlestick' })
+        elSeries = this.renderSeries({
+          realIndex,
+          pathFill,
+          lineFill,
+          j,
+          i,
+          pathFrom,
+          pathTo,
+          strokeWidth,
+          elSeries,
+          x,
+          y,
+          series,
+          barHeight,
+          barWidth,
+          elDataLabelsWrap,
+          visibleSeries: this.visibleI,
+          type: 'candlestick'
+        })
       }
 
       // push all x val arrays into main xArr
@@ -141,7 +170,7 @@ class CandleStick extends Bar {
     return ret
   }
 
-  drawCandleStickPaths ({
+  drawCandleStickPaths({
     indexes,
     x,
     y,
@@ -166,7 +195,8 @@ class CandleStick extends Bar {
     let realIndex = indexes.realIndex
 
     const ohlc = this.getOHLCValue(realIndex, j)
-    let l1 = zeroH; let l2 = zeroH
+    let l1 = zeroH
+    let l2 = zeroH
 
     if (ohlc.o > ohlc.c) {
       isPositive = false
@@ -176,7 +206,8 @@ class CandleStick extends Bar {
     let y2 = Math.max(ohlc.o, ohlc.c)
 
     if (w.globals.isXNumeric) {
-      x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
+      x =
+        (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
     }
 
     let barXPosition = x + barWidth * this.visibleI
@@ -187,7 +218,10 @@ class CandleStick extends Bar {
       pathFrom = this.getPathFrom(realIndex, j, true)
     }
 
-    if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
+    if (
+      typeof this.series[i][j] === 'undefined' ||
+      this.series[i][j] === null
+    ) {
       y1 = zeroH
     } else {
       y1 = zeroH - y1 / yRatio
@@ -223,7 +257,7 @@ class CandleStick extends Bar {
     }
   }
 
-  getOHLCValue (i, j) {
+  getOHLCValue(i, j) {
     const w = this.w
     return {
       o: w.globals.seriesCandleO[i][j],

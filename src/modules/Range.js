@@ -8,22 +8,29 @@ import Scales from './Scales'
  **/
 
 class Range {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
-    this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal)
-    
+    this.isBarHorizontal = !!(
+      this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.horizontal
+    )
+
     this.scales = new Scales(ctx)
   }
 
-  init () {
+  init() {
     this.setYRange()
     this.setXRange()
     this.setZRange()
   }
 
-  getMinYMaxY (startingIndex, lowestY = Number.MAX_VALUE, highestY = Number.MIN_SAFE_INTEGER, len = null) {
+  getMinYMaxY(
+    startingIndex,
+    lowestY = Number.MAX_VALUE,
+    highestY = Number.MIN_SAFE_INTEGER,
+    len = null
+  ) {
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
@@ -53,7 +60,10 @@ class Range {
           lowestY = Math.min(lowestY, seriesMin[i][j])
           highestY = Math.max(highestY, seriesMin[i][j])
           if (Utils.isFloat(series[i][j])) {
-            gl.yValueDecimal = Math.max(gl.yValueDecimal, series[i][j].toString().split('.')[1].length)
+            gl.yValueDecimal = Math.max(
+              gl.yValueDecimal,
+              series[i][j].toString().split('.')[1].length
+            )
           }
           if (minY > seriesMin[i][j] && seriesMin[i][j] < 0) {
             minY = seriesMin[i][j]
@@ -72,7 +82,7 @@ class Range {
     }
   }
 
-  setYRange () {
+  setYRange() {
     let gl = this.w.globals
     let cnf = this.w.config
     gl.maxY = -Number.MAX_VALUE
@@ -92,7 +102,12 @@ class Range {
     }
 
     // and then, get the minY and maxY from all series
-    const minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, null, gl.series.length)
+    const minYMaxY = this.getMinYMaxY(
+      0,
+      lowestYInAllSeries,
+      null,
+      gl.series.length
+    )
     gl.minY = minYMaxY.minY
     gl.maxY = minYMaxY.maxY
     lowestYInAllSeries = minYMaxY.lowestY
@@ -132,34 +147,35 @@ class Range {
 
     // if the numbers are too big, reduce the range
     // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
-    if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick') {
-      if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== Number.MAX_SAFE_INTEGER) {
+    if (
+      cnf.chart.type === 'line' ||
+      cnf.chart.type === 'area' ||
+      cnf.chart.type === 'candlestick'
+    ) {
+      if (
+        gl.minY === Number.MIN_VALUE &&
+        lowestYInAllSeries !== Number.MAX_SAFE_INTEGER
+      ) {
         let diff = gl.maxY - lowestYInAllSeries
         if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {
           // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
 
-        gl.minY = (lowestYInAllSeries - (diff * 5) / 100)
-        gl.maxY = (gl.maxY + (diff * 5) / 100) + 0.01
+        gl.minY = lowestYInAllSeries - (diff * 5) / 100
+        gl.maxY = gl.maxY + (diff * 5) / 100 + 0.01
       }
     }
 
     cnf.yaxis.map((yaxe, index) => {
       // override all min/max values by user defined values (y axis)
-      if (
-        yaxe.max !== undefined &&
-        typeof yaxe.max === 'number'
-      ) {
+      if (yaxe.max !== undefined && typeof yaxe.max === 'number') {
         gl.maxYArr[index] = yaxe.max
 
         // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
         gl.maxY = yaxis[0].max
       }
-      if (
-        yaxe.min !== undefined &&
-        typeof yaxe.min === 'number'
-      ) {
+      if (yaxe.min !== undefined && typeof yaxe.min === 'number') {
         gl.minYArr[index] = yaxe.min
 
         // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
@@ -195,11 +211,14 @@ class Range {
     }
   }
 
-  setXRange () {
+  setXRange() {
     let gl = this.w.globals
     let cnf = this.w.config
 
-    const isXNumeric = cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'datetime' || (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)
+    const isXNumeric =
+      cnf.xaxis.type === 'numeric' ||
+      cnf.xaxis.type === 'datetime' ||
+      (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)
 
     // minX maxX starts here
     if (gl.isXNumeric) {
@@ -227,12 +246,24 @@ class Range {
     }
 
     // for numeric xaxis, we need to adjust some padding left and right for bar charts
-    if (gl.comboChartsHasBars || cnf.chart.type === 'candlestick' || (cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category')) {
+    if (
+      gl.comboChartsHasBars ||
+      cnf.chart.type === 'candlestick' ||
+      (cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category')
+    ) {
       if (cnf.xaxis.type !== 'category') {
-        const minX = gl.minX - (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2
+        const minX =
+          gl.minX -
+          ((gl.svgWidth / gl.dataPoints) *
+            (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)) /
+            2
         gl.minX = minX
         gl.initialminX = minX
-        const maxX = gl.maxX + (gl.svgWidth / gl.dataPoints) * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2
+        const maxX =
+          gl.maxX +
+          ((gl.svgWidth / gl.dataPoints) *
+            (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)) /
+            2
         gl.maxX = maxX
         gl.initialmaxX = maxX
       }
@@ -260,16 +291,10 @@ class Range {
       }
 
       // override all min/max values by user defined values (x axis)
-      if (
-        cnf.xaxis.max !== undefined &&
-        typeof cnf.xaxis.max === 'number'
-      ) {
+      if (cnf.xaxis.max !== undefined && typeof cnf.xaxis.max === 'number') {
         gl.maxX = cnf.xaxis.max
       }
-      if (
-        cnf.xaxis.min !== undefined &&
-        typeof cnf.xaxis.min === 'number'
-      ) {
+      if (cnf.xaxis.min !== undefined && typeof cnf.xaxis.min === 'number') {
         gl.minX = cnf.xaxis.min
       }
 
@@ -279,15 +304,15 @@ class Range {
       }
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
-        gl.xAxisScale = this.scales.linearScale(
-          gl.minX,
-          gl.maxX,
-          ticks
-        )
+        gl.xAxisScale = this.scales.linearScale(gl.minX, gl.maxX, ticks)
       } else {
         gl.xAxisScale = this.scales.linearScale(1, ticks, ticks)
         if (gl.noLabelsProvided && gl.labels.length > 0) {
-          gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1)
+          gl.xAxisScale = this.scales.linearScale(
+            1,
+            gl.labels.length,
+            ticks - 1
+          )
           gl.seriesX = gl.labels.slice()
         }
       }
@@ -301,20 +326,23 @@ class Range {
       // single dataPoint
       if (cnf.xaxis.type === 'datetime') {
         const newMinX = new Date(gl.minX)
-        newMinX.setDate(newMinX.getDate()-2);
+        newMinX.setDate(newMinX.getDate() - 2)
         gl.minX = new Date(newMinX).getTime()
 
         const newMaxX = new Date(gl.maxX)
-        newMaxX.setDate(newMaxX.getDate() + 2);
+        newMaxX.setDate(newMaxX.getDate() + 2)
         gl.maxX = new Date(newMaxX).getTime()
-      } else if (cnf.xaxis.type === 'numeric' || (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)) {
+      } else if (
+        cnf.xaxis.type === 'numeric' ||
+        (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)
+      ) {
         gl.minX = gl.minX - 2
         gl.maxX = gl.maxX + 2
       }
     }
   }
 
-  setZRange () {
+  setZRange() {
     let gl = this.w.globals
 
     // minZ, maxZ starts here

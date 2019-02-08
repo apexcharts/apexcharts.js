@@ -1,23 +1,18 @@
 import Core from '../../src/modules/Core.js'
 import seriesxy from './data/seriesxy.js'
-import {
-  createChart
-} from './utils/utils.js'
+import { createChart } from './utils/utils.js'
 
-describe("Parse Data", () => {
-
-  it("should parse data for cartesian charts", () => {
+describe('Parse Data', () => {
+  it('should parse data for cartesian charts', () => {
     const chart = createChart('line', seriesxy)
     chart.w.globals.series = []
     chart.w.globals.seriesX = []
     chart.w.globals.labels = []
 
-    const core = new Core(document.querySelector("#chart"), chart)
+    const core = new Core(document.querySelector('#chart'), chart)
     const w = core.parseDataAxisCharts(seriesxy, seriesxy, chart)
 
-    expect(w.globals.series).toEqual([
-      [300, 230, 210]
-    ])
+    expect(w.globals.series).toEqual([[300, 230, 210]])
     expect(w.globals.seriesX).toEqual([
       [1262284200000, 1262370600000, 1262457000000]
     ])
@@ -26,17 +21,22 @@ describe("Parse Data", () => {
     ])
   })
 
-  it("should parse data for non-cartesian charts", () => {
-    const series = [30, 23, 12, 43];
+  it('should parse data for non-cartesian charts', () => {
+    const series = [30, 23, 12, 43]
     const chart = createChart('donut', series)
 
     chart.w.globals.series = []
     chart.w.globals.seriesNames = []
 
-    const core = new Core(document.querySelector("#chart"), chart)
+    const core = new Core(document.querySelector('#chart'), chart)
     const w = core.parseDataNonAxisCharts(series)
 
     expect(w.globals.series).toEqual([30, 23, 12, 43])
-    expect(w.globals.seriesNames).toEqual(['series-1', 'series-2', 'series-3', 'series-4'])
+    expect(w.globals.seriesNames).toEqual([
+      'series-1',
+      'series-2',
+      'series-3',
+      'series-4'
+    ])
   })
-});
+})

@@ -8,19 +8,22 @@ import Utils from '../utils/Utils'
  * @module Annotations
  **/
 export default class Annotations {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
     this.graphics = new Graphics(this.ctx)
 
-    if (this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal) {
+    if (
+      this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.horizontal
+    ) {
       this.invertAxis = true
     }
 
     this.xDivision = this.w.globals.gridWidth / this.w.globals.dataPoints
   }
 
-  drawAnnotations () {
+  drawAnnotations() {
     const w = this.w
     if (w.globals.axisCharts) {
       let yAnnotations = this.drawYAxisAnnotations()
@@ -30,7 +33,11 @@ export default class Annotations {
       const initialAnim = w.config.chart.animations.enabled
 
       const annoArray = [yAnnotations, xAnnotations, pointAnnotations]
-      const annoElArray = [xAnnotations.node, yAnnotations.node, pointAnnotations.node]
+      const annoElArray = [
+        xAnnotations.node,
+        yAnnotations.node,
+        pointAnnotations.node
+      ]
       for (let i = 0; i < 3; i++) {
         w.globals.dom.elGraphical.add(annoArray[i])
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -47,7 +54,7 @@ export default class Annotations {
     }
   }
 
-  addXaxisAnnotation (anno, parent, index) {
+  addXaxisAnnotation(anno, parent, index) {
     let w = this.w
 
     const min = this.invertAxis ? w.globals.minY : w.globals.minX
@@ -91,7 +98,7 @@ export default class Annotations {
     parent.appendChild(elText.node)
   }
 
-  drawXAxisAnnotations () {
+  drawXAxisAnnotations() {
     let w = this.w
 
     let elg = this.graphics.group({
@@ -105,7 +112,7 @@ export default class Annotations {
     return elg
   }
 
-  addYaxisAnnotation (anno, parent, index) {
+  addYaxisAnnotation(anno, parent, index) {
     let w = this.w
 
     let strokeDashArray = anno.strokeDashArray
@@ -114,11 +121,16 @@ export default class Annotations {
 
     if (this.invertAxis) {
       let catIndex = w.globals.labels.indexOf(anno.y)
-      const xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')')
+      const xLabel = w.globals.dom.baseEl.querySelector(
+        '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+      )
 
       y1 = parseFloat(xLabel.getAttribute('y'))
     } else {
-      y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      y1 =
+        w.globals.gridHeight -
+        (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
     }
 
     const text = anno.label.text ? anno.label.text : ''
@@ -153,7 +165,7 @@ export default class Annotations {
     parent.appendChild(elText.node)
   }
 
-  drawYAxisAnnotations () {
+  drawYAxisAnnotations() {
     let w = this.w
 
     let elg = this.graphics.group({
@@ -167,9 +179,11 @@ export default class Annotations {
     return elg
   }
 
-  clearAnnotations (ctx) {
+  clearAnnotations(ctx) {
     const w = ctx.w
-    const annos = w.globals.dom.baseEl.querySelectorAll('.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations')
+    const annos = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations'
+    )
 
     annos.forEach((a) => {
       while (a.firstChild) {
@@ -178,7 +192,7 @@ export default class Annotations {
     })
   }
 
-  addPointAnnotation (anno, parent, index) {
+  addPointAnnotation(anno, parent, index) {
     const w = this.w
 
     let x = 0
@@ -186,12 +200,16 @@ export default class Annotations {
     let pointY = 0
 
     if (this.invertAxis) {
-      console.warn('Point annotation is not supported in horizontal bar charts.')
+      console.warn(
+        'Point annotation is not supported in horizontal bar charts.'
+      )
     }
 
     if (typeof anno.x === 'string') {
       let catIndex = w.globals.labels.indexOf(anno.x)
-      const xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')')
+      const xLabel = w.globals.dom.baseEl.querySelector(
+        '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+      )
 
       const xPos = parseFloat(xLabel.getAttribute('x'))
 
@@ -201,14 +219,30 @@ export default class Annotations {
       if (anno.y === null) {
         annoY = w.globals.series[anno.seriesIndex][catIndex]
       }
-      y = w.globals.gridHeight - (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size
+      y =
+        w.globals.gridHeight -
+        (annoY - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
+        parseInt(anno.label.style.fontSize) -
+        anno.marker.size
 
-      pointY = w.globals.gridHeight - (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      pointY =
+        w.globals.gridHeight -
+        (annoY - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
     } else {
       x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
-      y = w.globals.gridHeight - (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size
+      y =
+        w.globals.gridHeight -
+        (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
+        parseInt(anno.label.style.fontSize) -
+        anno.marker.size
 
-      pointY = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      pointY =
+        w.globals.gridHeight -
+        (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
     }
 
     if (x < 0 || x > w.globals.gridWidth) return
@@ -221,7 +255,11 @@ export default class Annotations {
       shape: anno.marker.shape,
       radius: anno.marker.radius
     }
-    let point = this.graphics.drawMarker(x + anno.marker.offsetX, pointY + anno.marker.offsetY, optsPoints)
+    let point = this.graphics.drawMarker(
+      x + anno.marker.offsetX,
+      pointY + anno.marker.offsetY,
+      optsPoints
+    )
     parent.appendChild(point.node)
 
     const text = anno.label.text ? anno.label.text : ''
@@ -244,7 +282,7 @@ export default class Annotations {
     parent.appendChild(elText.node)
   }
 
-  drawPointAnnotations () {
+  drawPointAnnotations() {
     let w = this.w
 
     let elg = this.graphics.group({
@@ -258,41 +296,51 @@ export default class Annotations {
     return elg
   }
 
-  setOrientations (annos, annoIndex = null) {
+  setOrientations(annos, annoIndex = null) {
     let w = this.w
 
     annos.map((anno, index) => {
       if (anno.label.orientation === 'vertical') {
         const i = annoIndex !== null ? annoIndex : index
-        let xAnno = w.globals.dom.baseEl.querySelector(`.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`)
+        let xAnno = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`
+        )
 
         if (xAnno !== null) {
           const xAnnoCoord = xAnno.getBoundingClientRect()
-          xAnno.setAttribute('x', parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4)
+          xAnno.setAttribute(
+            'x',
+            parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4
+          )
 
           if (anno.label.position === 'top') {
-            xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) + xAnnoCoord.width)
+            xAnno.setAttribute(
+              'y',
+              parseFloat(xAnno.getAttribute('y')) + xAnnoCoord.width
+            )
           } else {
-            xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) - xAnnoCoord.width)
+            xAnno.setAttribute(
+              'y',
+              parseFloat(xAnno.getAttribute('y')) - xAnnoCoord.width
+            )
           }
 
           let annoRotatingCenter = this.graphics.rotateAroundCenter(xAnno)
           const x = annoRotatingCenter.x
           const y = annoRotatingCenter.y
 
-          xAnno.setAttribute(
-            'transform',
-            `rotate(-90 ${x} ${y})`
-          )
+          xAnno.setAttribute('transform', `rotate(-90 ${x} ${y})`)
         }
       }
     })
   }
 
-  addBackgroundToAnno (annoEl, anno) {
+  addBackgroundToAnno(annoEl, anno) {
     const w = this.w
 
-    const elGridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid').getBoundingClientRect()
+    const elGridRect = w.globals.dom.baseEl
+      .querySelector('.apexcharts-grid')
+      .getBoundingClientRect()
 
     const coords = annoEl.getBoundingClientRect()
 
@@ -326,11 +374,13 @@ export default class Annotations {
     return elRect
   }
 
-  annotationsBackground () {
+  annotationsBackground() {
     const w = this.w
 
     const add = (anno, i, type) => {
-      let annoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`)
+      let annoLabel = w.globals.dom.baseEl.querySelector(
+        `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
+      )
 
       if (annoLabel) {
         const parent = annoLabel.parentNode
@@ -353,8 +403,27 @@ export default class Annotations {
     })
   }
 
-  addText (params, pushToMemory, context) {
-    const { x, y, text, textAnchor, appendTo = '.apexcharts-inner', foreColor, fontSize, fontFamily, cssClass, backgroundColor, borderWidth, strokeDashArray, radius, borderColor, paddingLeft = 4, paddingRight = 4, paddingBottom = 2, paddingTop = 2 } = params
+  addText(params, pushToMemory, context) {
+    const {
+      x,
+      y,
+      text,
+      textAnchor,
+      appendTo = '.apexcharts-inner',
+      foreColor,
+      fontSize,
+      fontFamily,
+      cssClass,
+      backgroundColor,
+      borderWidth,
+      strokeDashArray,
+      radius,
+      borderColor,
+      paddingLeft = 4,
+      paddingRight = 4,
+      paddingBottom = 2,
+      paddingTop = 2
+    } = params
 
     const me = context
     const w = me.w
@@ -375,7 +444,18 @@ export default class Annotations {
     parentNode.appendChild(elText.node)
 
     const textRect = elText.bbox()
-    const elRect = this.graphics.drawRect(textRect.x - paddingLeft, textRect.y - paddingTop, textRect.width + paddingLeft + paddingRight, textRect.height + paddingBottom + paddingTop, radius, backgroundColor, 1, borderWidth, borderColor, strokeDashArray)
+    const elRect = this.graphics.drawRect(
+      textRect.x - paddingLeft,
+      textRect.y - paddingTop,
+      textRect.width + paddingLeft + paddingRight,
+      textRect.height + paddingBottom + paddingTop,
+      radius,
+      backgroundColor,
+      1,
+      borderWidth,
+      borderColor,
+      strokeDashArray
+    )
 
     elText.before(elRect)
 
@@ -383,37 +463,88 @@ export default class Annotations {
       w.globals.memory.methodsToExec.push({
         context: me,
         method: me.addText,
-        params: { x, y, text, textAnchor, appendTo, foreColor, fontSize, cssClass, backgroundColor, borderWidth, strokeDashArray, radius, borderColor, paddingLeft, paddingRight, paddingBottom, paddingTop }
+        params: {
+          x,
+          y,
+          text,
+          textAnchor,
+          appendTo,
+          foreColor,
+          fontSize,
+          cssClass,
+          backgroundColor,
+          borderWidth,
+          strokeDashArray,
+          radius,
+          borderColor,
+          paddingLeft,
+          paddingRight,
+          paddingBottom,
+          paddingTop
+        }
       })
     }
 
     return context
   }
 
-  addPointAnnotationExternal (params, pushToMemory, context) {
-    this.addAnnotationExternal({ params, pushToMemory, context, type: 'point', contextMethod: context.addPointAnnotation })
+  addPointAnnotationExternal(params, pushToMemory, context) {
+    this.addAnnotationExternal({
+      params,
+      pushToMemory,
+      context,
+      type: 'point',
+      contextMethod: context.addPointAnnotation
+    })
     return context
   }
 
-  addYaxisAnnotationExternal (params, pushToMemory, context) {
-    this.addAnnotationExternal({ params, pushToMemory, context, type: 'yaxis', contextMethod: context.addYaxisAnnotation })
+  addYaxisAnnotationExternal(params, pushToMemory, context) {
+    this.addAnnotationExternal({
+      params,
+      pushToMemory,
+      context,
+      type: 'yaxis',
+      contextMethod: context.addYaxisAnnotation
+    })
     return context
   }
 
   // The addXaxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method
-  addXaxisAnnotationExternal (params, pushToMemory, context) {
-    this.addAnnotationExternal({ params, pushToMemory, context, type: 'xaxis', contextMethod: context.addXaxisAnnotation })
+  addXaxisAnnotationExternal(params, pushToMemory, context) {
+    this.addAnnotationExternal({
+      params,
+      pushToMemory,
+      context,
+      type: 'xaxis',
+      contextMethod: context.addXaxisAnnotation
+    })
     return context
   }
 
-  addAnnotationExternal ({ params, pushToMemory, context, type, contextMethod }) {
+  addAnnotationExternal({
+    params,
+    pushToMemory,
+    context,
+    type,
+    contextMethod
+  }) {
     const me = context
     const w = me.w
-    const parent = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`)
+    const parent = w.globals.dom.baseEl.querySelector(
+      `.apexcharts-${type}-annotations`
+    )
     const index = parent.childNodes.length + 1
 
     const opt = new Options()
-    const axesAnno = Object.assign({}, (type === 'xaxis') ? (opt.xAxisAnnotation) : ((type === 'yaxis') ? (opt.yAxisAnnotation) : (opt.pointAnnotation)))
+    const axesAnno = Object.assign(
+      {},
+      type === 'xaxis'
+        ? opt.xAxisAnnotation
+        : type === 'yaxis'
+        ? opt.yAxisAnnotation
+        : opt.pointAnnotation
+    )
 
     const anno = Utils.extend(axesAnno, params)
 
@@ -430,7 +561,9 @@ export default class Annotations {
     }
 
     // add background
-    let axesAnnoLabel = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`)
+    let axesAnnoLabel = w.globals.dom.baseEl.querySelector(
+      `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`
+    )
     const elRect = this.addBackgroundToAnno(axesAnnoLabel, anno)
     parent.insertBefore(elRect.node, axesAnnoLabel)
 

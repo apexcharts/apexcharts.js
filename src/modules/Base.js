@@ -7,11 +7,11 @@ import Globals from './settings/Globals'
  * @module Base
  **/
 export default class Base {
-  constructor (opts) {
+  constructor(opts) {
     this.opts = opts
   }
 
-  init () {
+  init() {
     const config = new Config(this.opts).init()
     const globals = new Globals().init(config)
 

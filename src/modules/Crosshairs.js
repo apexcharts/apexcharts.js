@@ -1,14 +1,14 @@
 import Graphics from './Graphics'
 import Filters from './Filters'
-import Utils from '../utils/Utils';
+import Utils from '../utils/Utils'
 
 class Crosshairs {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
-  drawXCrosshairs () {
+  drawXCrosshairs() {
     const w = this.w
 
     let graphics = new Graphics(this.ctx)
@@ -58,12 +58,14 @@ class Crosshairs {
         x: 0,
         y: 0,
         y2: w.globals.gridHeight,
-        width: Utils.isNumber(w.config.xaxis.crosshairs.width) ? w.config.xaxis.crosshairs.width : 0,
+        width: Utils.isNumber(w.config.xaxis.crosshairs.width)
+          ? w.config.xaxis.crosshairs.width
+          : 0,
         height: w.globals.gridHeight,
         fill: xcrosshairsFill,
         filter: shadow,
         'fill-opacity': w.config.xaxis.crosshairs.opacity,
-        'stroke': w.config.xaxis.crosshairs.stroke.color,
+        stroke: w.config.xaxis.crosshairs.stroke.color,
         'stroke-width': w.config.xaxis.crosshairs.stroke.width,
         'stroke-dasharray': w.config.xaxis.crosshairs.stroke.dashArray
       })
@@ -82,7 +84,7 @@ class Crosshairs {
     }
   }
 
-  drawYCrosshairs () {
+  drawYCrosshairs() {
     const w = this.w
 
     let graphics = new Graphics(this.ctx)
@@ -90,7 +92,15 @@ class Crosshairs {
     let crosshair = w.config.yaxis[0].crosshairs
 
     if (w.config.yaxis[0].crosshairs.show) {
-      let ycrosshairs = graphics.drawLine(0, 0, w.globals.gridWidth, 0, crosshair.stroke.color, crosshair.stroke.dashArray, crosshair.stroke.width)
+      let ycrosshairs = graphics.drawLine(
+        0,
+        0,
+        w.globals.gridWidth,
+        0,
+        crosshair.stroke.color,
+        crosshair.stroke.dashArray,
+        crosshair.stroke.width
+      )
       ycrosshairs.attr({
         class: 'apexcharts-ycrosshairs'
       })
@@ -99,7 +109,15 @@ class Crosshairs {
     }
 
     // draw an invisible crosshair to help in positioning the yaxis tooltip
-    let ycrosshairsHidden = graphics.drawLine(0, 0, w.globals.gridWidth, 0, crosshair.stroke.color, 0, 0)
+    let ycrosshairsHidden = graphics.drawLine(
+      0,
+      0,
+      w.globals.gridWidth,
+      0,
+      crosshair.stroke.color,
+      0,
+      0
+    )
     ycrosshairsHidden.attr({
       class: 'apexcharts-ycrosshairs-hidden'
     })

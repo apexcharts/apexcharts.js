@@ -8,7 +8,7 @@ import Utils from '../utils/Utils'
  **/
 
 class Fill {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -16,7 +16,7 @@ class Fill {
     this.seriesIndex = 0
   }
 
-  clippedImgArea (params) {
+  clippedImgArea(params) {
     let w = this.w
     let cnf = w.config
 
@@ -75,10 +75,13 @@ class Fill {
     w.globals.dom.elDefs.node.appendChild(elPattern)
   }
 
-  getSeriesIndex (opts) {
+  getSeriesIndex(opts) {
     const w = this.w
 
-    if ((w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) || w.config.chart.type === 'heatmap') {
+    if (
+      (w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) ||
+      w.config.chart.type === 'heatmap'
+    ) {
       this.seriesIndex = opts.seriesNumber
     } else {
       this.seriesIndex = opts.seriesNumber % w.globals.series.length
@@ -87,7 +90,7 @@ class Fill {
     return this.seriesIndex
   }
 
-  fillPath (elSeries, opts) {
+  fillPath(elSeries, opts) {
     let w = this.w
     this.opts = opts
 
@@ -100,7 +103,9 @@ class Fill {
 
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
-    let fillOpacity = Array.isArray(cnf.fill.opacity) ? cnf.fill.opacity[this.seriesIndex] : cnf.fill.opacity
+    let fillOpacity = Array.isArray(cnf.fill.opacity)
+      ? cnf.fill.opacity[this.seriesIndex]
+      : cnf.fill.opacity
 
     let defaultColor = fillColor
 
@@ -109,22 +114,30 @@ class Fill {
     }
 
     if (fillColor.indexOf('rgb') === -1) {
-      defaultColor = Utils.hexToRgba(
-        fillColor,
-        fillOpacity
-      )
+      defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
     } else {
       if (fillColor.indexOf('rgba') > -1) {
-        fillOpacity = 0 + '.' + Utils.getOpacityFromRGBA(fillColors[this.seriesIndex])
+        fillOpacity =
+          0 + '.' + Utils.getOpacityFromRGBA(fillColors[this.seriesIndex])
       }
     }
 
     if (cnf.fill.type === 'pattern') {
-      patternFill = this.handlePatternFill(patternFill, fillColor, fillOpacity, defaultColor)
+      patternFill = this.handlePatternFill(
+        patternFill,
+        fillColor,
+        fillOpacity,
+        defaultColor
+      )
     }
 
     if (cnf.fill.type === 'gradient') {
-      gradientFill = this.handleGradientFill(gradientFill, fillColor, fillOpacity, this.seriesIndex)
+      gradientFill = this.handleGradientFill(
+        gradientFill,
+        fillColor,
+        fillOpacity,
+        this.seriesIndex
+      )
     }
 
     if (cnf.fill.image.src.length > 0 && cnf.fill.type === 'image') {
@@ -154,7 +167,7 @@ class Fill {
     return pathFill
   }
 
-  getFillColors () {
+  getFillColors() {
     const w = this.w
     const cnf = w.config
     const opts = this.opts
@@ -177,7 +190,9 @@ class Fill {
       }
     } else {
       if (cnf.chart.type === 'line') {
-        if (w.globals.stroke.colors instanceof Array) { fillColors = w.globals.stroke.colors } else {
+        if (w.globals.stroke.colors instanceof Array) {
+          fillColors = w.globals.stroke.colors
+        } else {
           fillColors.push(w.globals.stroke.colors)
         }
       } else {
@@ -202,14 +217,19 @@ class Fill {
     return fillColors
   }
 
-  handlePatternFill (patternFill, fillColor, fillOpacity, defaultColor) {
+  handlePatternFill(patternFill, fillColor, fillOpacity, defaultColor) {
     const cnf = this.w.config
     const opts = this.opts
     let graphics = new Graphics(this.ctx)
 
-    let patternStrokeWidth = cnf.fill.pattern.strokeWidth === undefined
-      ? Array.isArray(cnf.stroke.width) ? cnf.stroke.width[this.seriesIndex] : cnf.stroke.width
-      : Array.isArray(cnf.fill.pattern.strokeWidth) ? cnf.fill.pattern.strokeWidth[this.seriesIndex] : cnf.fill.pattern.strokeWidth
+    let patternStrokeWidth =
+      cnf.fill.pattern.strokeWidth === undefined
+        ? Array.isArray(cnf.stroke.width)
+          ? cnf.stroke.width[this.seriesIndex]
+          : cnf.stroke.width
+        : Array.isArray(cnf.fill.pattern.strokeWidth)
+        ? cnf.fill.pattern.strokeWidth[this.seriesIndex]
+        : cnf.fill.pattern.strokeWidth
     let patternLineColor = fillColor
 
     if (cnf.fill.pattern.style instanceof Array) {
@@ -239,7 +259,7 @@ class Fill {
     return patternFill
   }
 
-  handleGradientFill (gradientFill, fillColor, fillOpacity, i) {
+  handleGradientFill(gradientFill, fillColor, fillOpacity, i) {
     const cnf = this.w.config
     const opts = this.opts
     let graphics = new Graphics(this.ctx)
@@ -247,17 +267,23 @@ class Fill {
 
     let type = cnf.fill.gradient.type
     let gradientFrom, gradientTo
-    let opacityFrom = cnf.fill.gradient.opacityFrom === undefined
-      ? fillOpacity
-      : Array.isArray(cnf.fill.gradient.opacityFrom) ? cnf.fill.gradient.opacityFrom[i] : cnf.fill.gradient.opacityFrom
-    let opacityTo = cnf.fill.gradient.opacityTo === undefined
-      ? fillOpacity
-      : Array.isArray(cnf.fill.gradient.opacityTo) ? cnf.fill.gradient.opacityTo[i] : cnf.fill.gradient.opacityTo
+    let opacityFrom =
+      cnf.fill.gradient.opacityFrom === undefined
+        ? fillOpacity
+        : Array.isArray(cnf.fill.gradient.opacityFrom)
+        ? cnf.fill.gradient.opacityFrom[i]
+        : cnf.fill.gradient.opacityFrom
+    let opacityTo =
+      cnf.fill.gradient.opacityTo === undefined
+        ? fillOpacity
+        : Array.isArray(cnf.fill.gradient.opacityTo)
+        ? cnf.fill.gradient.opacityTo[i]
+        : cnf.fill.gradient.opacityTo
 
     gradientFrom = fillColor
     if (
       cnf.fill.gradient.gradientToColors === undefined ||
-        cnf.fill.gradient.gradientToColors.length === 0
+      cnf.fill.gradient.gradientToColors.length === 0
     ) {
       if (cnf.fill.gradient.shade === 'dark') {
         gradientTo = utils.shadeColor(

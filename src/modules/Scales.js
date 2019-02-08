@@ -1,13 +1,14 @@
 import Utils from '../utils/Utils'
 
 export default class Range {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
-    this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' &&
-    this.w.config.plotOptions.bar.horizontal)
-
+    this.isBarHorizontal = !!(
+      this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.horizontal
+    )
   }
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
@@ -70,7 +71,7 @@ export default class Range {
     // build Y label array.
     // Lower and upper bounds calculations
     let lb = stepSize * Math.floor(yMin / stepSize)
-    let ub = stepSize * Math.ceil((yMax / stepSize))
+    let ub = stepSize * Math.ceil(yMax / stepSize)
     // Build array
     let val = lb
     while (1) {
@@ -82,15 +83,17 @@ export default class Range {
     }
 
     // TODO: need to remove this condition below which makes this function tightly coupled with w.
-    if ((this.w.config.yaxis[index].max === undefined &&
-      this.w.config.yaxis[index].min === undefined) || this.w.config.yaxis[index].forceNiceScale) {
+    if (
+      (this.w.config.yaxis[index].max === undefined &&
+        this.w.config.yaxis[index].min === undefined) ||
+      this.w.config.yaxis[index].forceNiceScale
+    ) {
       return {
         result,
         niceMin: result[0],
         niceMax: result[result.length - 1]
       }
-    }
-    else {
+    } else {
       result = []
       let v = yMin
       result.push(v)
@@ -108,7 +111,7 @@ export default class Range {
     }
   }
 
-  linearScale (yMin, yMax, ticks = 10) {
+  linearScale(yMin, yMax, ticks = 10) {
     let range = Math.abs(yMax - yMin)
 
     let step = range / ticks
@@ -133,7 +136,7 @@ export default class Range {
     }
   }
 
-  logarithmicScale (index, yMin, yMax, ticks) {
+  logarithmicScale(index, yMin, yMax, ticks) {
     const w = this.w
 
     if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01
@@ -165,7 +168,10 @@ export default class Range {
       var scale = (max - min) / (yMax - yMin)
 
       const logVal = Math.pow(base, min + scale * (niceNumber - min))
-      return Math.round(logVal / Utils.roundToBase(logVal, base)) * Utils.roundToBase(logVal, base)
+      return (
+        Math.round(logVal / Utils.roundToBase(logVal, base)) *
+        Utils.roundToBase(logVal, base)
+      )
     })
 
     // Math.floor may have rounded the value to 0, revert back to 1
@@ -178,7 +184,7 @@ export default class Range {
     }
   }
 
-  setYScaleForIndex (index, minY, maxY) {
+  setYScaleForIndex(index, minY, maxY) {
     const gl = this.w.globals
     const cnf = this.w.config
 
@@ -199,11 +205,7 @@ export default class Range {
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
         // no data in the chart. Either all series collapsed or user passed a blank array
-        gl.yAxisScale[index] = this.linearScale(
-          0,
-          5,
-          5
-        )
+        gl.yAxisScale[index] = this.linearScale(0, 5, 5)
       } else {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
@@ -218,7 +220,7 @@ export default class Range {
     }
   }
 
-  setMultipleYScales () {
+  setMultipleYScales() {
     const gl = this.w.globals
     const cnf = this.w.config
 
@@ -231,7 +233,10 @@ export default class Range {
       let index = i
       cnf.series.forEach((s, si) => {
         // if seriesName matches and that series is not collapsed, we use that scale
-        if (s.name === yaxe.seriesName && gl.collapsedSeriesIndices.indexOf(si) === -1) {
+        if (
+          s.name === yaxe.seriesName &&
+          gl.collapsedSeriesIndices.indexOf(si) === -1
+        ) {
           index = si
 
           if (i !== si) {
@@ -257,7 +262,7 @@ export default class Range {
     this.sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices)
   }
 
-  sameScaleInMultipleAxes (minYArr, maxYArr, scalesIndices) {
+  sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices) {
     const cnf = this.w.config
 
     // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
@@ -272,8 +277,8 @@ export default class Range {
       }
     })
 
-    function intersect (a, b) {
-      return a.filter(value => b.indexOf(value) !== -1)
+    function intersect(a, b) {
+      return a.filter((value) => b.indexOf(value) !== -1)
     }
 
     similarIndices.forEach((si, i) => {
@@ -287,7 +292,7 @@ export default class Range {
     })
 
     // then, we remove duplicates from the similarScale array
-    let uniqueSimilarIndices = similarIndices.map(function (item) {
+    let uniqueSimilarIndices = similarIndices.map(function(item) {
       return item.filter((i, pos) => {
         return item.indexOf(i) === pos
       })
@@ -333,8 +338,12 @@ export default class Range {
       })
     })
 
-    let sameScaleMin = Array(indices.length).fill().map((e, i) => Number.MAX_SAFE_INTEGER)
-    let sameScaleMax = Array(indices.length).fill().map((e, i) => Number.MIN_SAFE_INTEGER)
+    let sameScaleMin = Array(indices.length)
+      .fill()
+      .map((e, i) => Number.MAX_SAFE_INTEGER)
+    let sameScaleMax = Array(indices.length)
+      .fill()
+      .map((e, i) => Number.MIN_SAFE_INTEGER)
 
     sameScaleMinYArr.forEach((s, i) => {
       s.forEach((sc, j) => {
@@ -368,7 +377,7 @@ export default class Range {
       })
     })
   }
-  
+
   autoScaleY(ctx, e) {
     if (!ctx) {
       ctx = this
@@ -378,10 +387,10 @@ export default class Range {
 
     ctx.w.config.series.forEach((serie) => {
       let min, max
-      let first = serie.data.find(x => x[0] >= e.xaxis.min)
+      let first = serie.data.find((x) => x[0] >= e.xaxis.min)
       let firstValue = first[1]
       max = min = firstValue
-      serie.data.forEach(data => {
+      serie.data.forEach((data) => {
         if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
           if (data[1] > max && data[1] !== null) max = data[1]
           if (data[1] < min && data[1] !== null) min = data[1]
@@ -392,11 +401,10 @@ export default class Range {
       max *= 1.05
 
       ret.push({
-        min, max
+        min,
+        max
       })
     })
-
-    
 
     return ret
   }

@@ -7,14 +7,14 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Animations {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
     this.setEasingFunctions()
   }
 
-  setEasingFunctions () {
+  setEasingFunctions() {
     let easing
 
     const userDefinedEasing = this.w.config.chart.animations.easing
@@ -45,14 +45,14 @@ export default class Animations {
       }
       case 'bounce': {
         easing = (pos) => {
-          if ((pos) < (1 / 2.75)) {
-            return (7.5625 * pos * pos)
-          } else if (pos < (2 / 2.75)) {
-            return (7.5625 * (pos -= (1.5 / 2.75)) * pos + 0.75)
-          } else if (pos < (2.5 / 2.75)) {
-            return (7.5625 * (pos -= (2.25 / 2.75)) * pos + 0.9375)
+          if (pos < 1 / 2.75) {
+            return 7.5625 * pos * pos
+          } else if (pos < 2 / 2.75) {
+            return 7.5625 * (pos -= 1.5 / 2.75) * pos + 0.75
+          } else if (pos < 2.5 / 2.75) {
+            return 7.5625 * (pos -= 2.25 / 2.75) * pos + 0.9375
           } else {
-            return (7.5625 * (pos -= (2.625 / 2.75)) * pos + 0.984375)
+            return 7.5625 * (pos -= 2.625 / 2.75) * pos + 0.984375
           }
         }
         break
@@ -60,7 +60,11 @@ export default class Animations {
       case 'elastic': {
         easing = (pos) => {
           if (pos === !!pos) return pos
-          return Math.pow(2, -10 * pos) * Math.sin((pos - 0.075) * (2 * Math.PI) / 0.3) + 1
+          return (
+            Math.pow(2, -10 * pos) *
+              Math.sin(((pos - 0.075) * (2 * Math.PI)) / 0.3) +
+            1
+          )
         }
         break
       }
@@ -73,54 +77,54 @@ export default class Animations {
     this.w.globals.easing = easing
   }
 
-  animateLine (el, from, to, speed) {
-    el.attr(from).animate(speed).attr(to)
+  animateLine(el, from, to, speed) {
+    el.attr(from)
+      .animate(speed)
+      .attr(to)
   }
 
   /*
-  ** Animate radius of a circle element
-  */
-  animateCircleRadius (el, from, to, speed, easing) {
+   ** Animate radius of a circle element
+   */
+  animateCircleRadius(el, from, to, speed, easing) {
     if (!from) from = 0
 
-    el.attr(
-      {
-        r: from
-      }
-    ).animate(speed, easing).attr(
-      {
+    el.attr({
+      r: from
+    })
+      .animate(speed, easing)
+      .attr({
         r: to
-      }
-    )
+      })
   }
 
   /*
-  ** Animate radius and position of a circle element
-  */
-  animateCircle (el, from, to, speed, easing) {
-    el.attr(
-      {
-        r: from.r,
-        cx: from.cx,
-        cy: from.cy
-      }
-    ).animate(speed, easing).attr(
-      {
+   ** Animate radius and position of a circle element
+   */
+  animateCircle(el, from, to, speed, easing) {
+    el.attr({
+      r: from.r,
+      cx: from.cx,
+      cy: from.cy
+    })
+      .animate(speed, easing)
+      .attr({
         r: to.r,
         cx: to.cx,
         cy: to.cy
-      }
-    )
+      })
   }
 
   /*
-  ** Animate rect properties
-  */
-  animateRect (el, from, to, speed) {
-    el.attr(from).animate(speed).attr(to)
+   ** Animate rect properties
+   */
+  animateRect(el, from, to, speed) {
+    el.attr(from)
+      .animate(speed)
+      .attr(to)
   }
 
-  animatePathsGradually (params) {
+  animatePathsGradually(params) {
     let { el, j, pathFrom, pathTo, speed, delay, strokeWidth } = params
 
     let me = this
@@ -129,8 +133,7 @@ export default class Animations {
     let delayFactor = 0
 
     if (w.config.chart.animations.animateGradually.enabled) {
-      delayFactor =
-        w.config.chart.animations.animateGradually.delay
+      delayFactor = w.config.chart.animations.animateGradually.delay
     }
 
     if (
@@ -151,7 +154,7 @@ export default class Animations {
     )
   }
 
-  showDelayedElements () {
+  showDelayedElements() {
     this.w.globals.delayedElements.forEach((d) => {
       const ele = d.el
       ele.classList.remove('hidden')
@@ -159,15 +162,7 @@ export default class Animations {
   }
 
   // SVG.js animation for morphing one path to another
-  morphSVG (
-    el,
-    j,
-    pathFrom,
-    pathTo,
-    speed,
-    strokeWidth,
-    delay
-  ) {
+  morphSVG(el, j, pathFrom, pathTo, speed, strokeWidth, delay) {
     let w = this.w
 
     if (!pathFrom) {
@@ -178,8 +173,11 @@ export default class Animations {
       pathTo = el.attr('pathTo')
     }
 
-
-    if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
+    if (
+      !pathFrom ||
+      pathFrom.indexOf('undefined') > -1 ||
+      pathFrom.indexOf('NaN') > -1
+    ) {
       pathFrom = `M 0 ${w.globals.gridHeight}`
       speed = 1
     }
@@ -191,22 +189,29 @@ export default class Animations {
       speed = 1
     }
 
-    el.plot(pathFrom).animate(1, w.globals.easing, delay).plot(pathFrom).animate(speed, w.globals.easing, delay).plot(pathTo).afterAll(() => {
-      // a flag to indicate that the original mount function can return true now as animation finished here
+    el.plot(pathFrom)
+      .animate(1, w.globals.easing, delay)
+      .plot(pathFrom)
+      .animate(speed, w.globals.easing, delay)
+      .plot(pathTo)
+      .afterAll(() => {
+        // a flag to indicate that the original mount function can return true now as animation finished here
 
-      if (Utils.isNumber(j)) {
-        if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
+        if (Utils.isNumber(j)) {
+          if (
+            j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 &&
+            w.globals.shouldAnimate
+          ) {
+            w.globals.animationEnded = true
+          }
+        } else if (w.globals.shouldAnimate) {
           w.globals.animationEnded = true
+          if (typeof w.config.chart.events.animationEnd === 'function') {
+            w.config.chart.events.animationEnd(this.ctx, w)
+          }
         }
-      } else if (w.globals.shouldAnimate) {
-        w.globals.animationEnded = true
-        if (typeof w.config.chart.events.animationEnd === 'function') {
-          w.config.chart.events.animationEnd(this.ctx, w)
-        }
-      }
 
-      this.showDelayedElements()
-    })
+        this.showDelayedElements()
+      })
   }
 }
-

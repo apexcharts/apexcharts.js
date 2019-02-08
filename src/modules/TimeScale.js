@@ -9,13 +9,13 @@ import Utils from '../utils/Utils'
  **/
 
 class TimeScale {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
     this.timeScaleArray = []
   }
 
-  calculateTimeScaleTicks (minX, maxX) {
+  calculateTimeScaleTicks(minX, maxX) {
     let w = this.w
 
     // null check when no series to show
@@ -85,27 +85,23 @@ class TimeScale {
     }
 
     switch (this.tickInterval) {
-      case 'years':
-      {
+      case 'years': {
         this.generateYearScale(params)
         break
       }
       case 'months':
-      case 'half_year':
-      {
+      case 'half_year': {
         this.generateMonthScale(params)
         break
       }
       case 'months_days':
       case 'months_fortnight':
       case 'days':
-      case 'week_days':
-      {
+      case 'week_days': {
         this.generateDayScale(params)
         break
       }
-      case 'hours':
-      {
+      case 'hours': {
         this.generateHourScale(params)
         break
       }
@@ -117,7 +113,7 @@ class TimeScale {
     // first, we will adjust the month values index
     // as in the upper function, it is starting from 0
     // we will start them from 1
-    const adjustedMonthInTimeScaleArray = this.timeScaleArray.map(ts => {
+    const adjustedMonthInTimeScaleArray = this.timeScaleArray.map((ts) => {
       let defaultReturn = {
         position: ts.position,
         unit: ts.unit,
@@ -230,11 +226,13 @@ class TimeScale {
     return filteredTimeScale
   }
 
-  recalcDimensionsBasedOnFormat (filteredTimeScale) {
+  recalcDimensionsBasedOnFormat(filteredTimeScale) {
     const w = this.w
     const reformattedTimescaleArray = this.formatDates(filteredTimeScale)
 
-    const removedOverlappingTS = this.removeOverlappingTS(reformattedTimescaleArray)
+    const removedOverlappingTS = this.removeOverlappingTS(
+      reformattedTimescaleArray
+    )
     w.globals.timelineLabels = removedOverlappingTS.slice()
 
     // at this stage, we need to re-calculate coords of the grid as timeline labels may have altered the xaxis labels coords
@@ -245,33 +243,33 @@ class TimeScale {
     dimensions.plotCoords()
   }
 
-  determineInterval (daysDiff) {
+  determineInterval(daysDiff) {
     switch (true) {
-      case (daysDiff > 1825): // difference is more than 5 years
+      case daysDiff > 1825: // difference is more than 5 years
         this.tickInterval = 'years'
         break
-      case (daysDiff > 800 && daysDiff <= 1825):
+      case daysDiff > 800 && daysDiff <= 1825:
         this.tickInterval = 'half_year'
         break
-      case (daysDiff > 180 && daysDiff <= 800):
+      case daysDiff > 180 && daysDiff <= 800:
         this.tickInterval = 'months'
         break
-      case (daysDiff > 90 && daysDiff <= 180):
+      case daysDiff > 90 && daysDiff <= 180:
         this.tickInterval = 'months_fortnight'
         break
-      case (daysDiff > 60 && daysDiff <= 90):
+      case daysDiff > 60 && daysDiff <= 90:
         this.tickInterval = 'months_days'
         break
-      case (daysDiff > 30 && daysDiff <= 60):
+      case daysDiff > 30 && daysDiff <= 60:
         this.tickInterval = 'week_days'
         break
-      case (daysDiff > 2 && daysDiff <= 30):
+      case daysDiff > 2 && daysDiff <= 30:
         this.tickInterval = 'days'
         break
-      case (daysDiff > 0.1 && daysDiff <= 2): // less than  2 days
+      case daysDiff > 0.1 && daysDiff <= 2: // less than  2 days
         this.tickInterval = 'hours'
         break
-      case (daysDiff < 0.1):
+      case daysDiff < 0.1:
         this.tickInterval = 'minutes'
         break
       default:
@@ -280,7 +278,7 @@ class TimeScale {
     }
   }
 
-  generateYearScale (params) {
+  generateYearScale(params) {
     const {
       firstVal,
       currentMonth,
@@ -296,10 +294,15 @@ class TimeScale {
     let unit = 'year'
 
     if (firstVal.minDate > 1 && firstVal.minMonth > 0) {
-      let remainingDays = dt.determineRemainingDaysOfYear(firstVal.minYear, firstVal.minMonth, firstVal.minDate)
+      let remainingDays = dt.determineRemainingDaysOfYear(
+        firstVal.minYear,
+        firstVal.minMonth,
+        firstVal.minDate
+      )
 
       // remainingDaysofFirstMonth is used to reacht the 2nd tick position
-      let remainingDaysOfFirstYear = dt.determineDaysOfYear(firstVal.minYear) - remainingDays + 1
+      let remainingDaysOfFirstYear =
+        dt.determineDaysOfYear(firstVal.minYear) - remainingDays + 1
 
       // calculate the first tick position
       firstTickPosition = remainingDaysOfFirstYear * daysWidthOnXAxis
@@ -329,7 +332,7 @@ class TimeScale {
     // keep drawing rest of the ticks
     for (let i = 0; i < numberOfYears; i++) {
       year++
-      pos = (dt.determineDaysOfYear(year - 1) * daysWidthOnXAxis) + pos
+      pos = dt.determineDaysOfYear(year - 1) * daysWidthOnXAxis + pos
       this.timeScaleArray.push({
         position: pos,
         value: year,
@@ -340,7 +343,7 @@ class TimeScale {
     }
   }
 
-  generateMonthScale (params) {
+  generateMonthScale(params) {
     const {
       firstVal,
       currentMonthDate,
@@ -358,7 +361,10 @@ class TimeScale {
 
     if (firstVal.minDate > 1) {
       // remainingDaysofFirstMonth is used to reacht the 2nd tick position
-      let remainingDaysOfFirstMonth = dt.determineDaysOfMonths(currentMonth + 1, firstVal.minYear) - currentMonthDate + 1
+      let remainingDaysOfFirstMonth =
+        dt.determineDaysOfMonths(currentMonth + 1, firstVal.minYear) -
+        currentMonthDate +
+        1
 
       // calculate the first tick position
       firstTickPosition = remainingDaysOfFirstMonth * daysWidthOnXAxis
@@ -408,9 +414,9 @@ class TimeScale {
       } else {
         unit = 'month'
       }
-      let year = currentYear + Math.floor(month / 12) + (yrCounter)
+      let year = currentYear + Math.floor(month / 12) + yrCounter
 
-      pos = (dt.determineDaysOfMonths(month, year) * daysWidthOnXAxis) + pos
+      pos = dt.determineDaysOfMonths(month, year) * daysWidthOnXAxis + pos
       let monthVal = month === 0 ? year : month
       this.timeScaleArray.push({
         position: pos,
@@ -423,7 +429,7 @@ class TimeScale {
     }
   }
 
-  generateDayScale (params) {
+  generateDayScale(params) {
     const {
       firstVal,
       currentMonth,
@@ -477,12 +483,16 @@ class TimeScale {
     for (let i = 0; i < numberOfDays; i++) {
       date += 1
       unit = 'day'
-      month = changeMonth(date, month, currentYear + Math.floor(month / 12) + yrCounter)
+      month = changeMonth(
+        date,
+        month,
+        currentYear + Math.floor(month / 12) + yrCounter
+      )
 
       let year = currentYear + Math.floor(month / 12) + yrCounter
 
-      pos = (24 * hoursWidthOnXAxis) + pos
-      let val = (date === 1) ? Utils.monthMod(month) : date
+      pos = 24 * hoursWidthOnXAxis + pos
+      let val = date === 1 ? Utils.monthMod(month) : date
       this.timeScaleArray.push({
         position: pos,
         value: val,
@@ -494,7 +504,7 @@ class TimeScale {
     }
   }
 
-  generateHourScale (params) {
+  generateHourScale(params) {
     const {
       firstVal,
       currentDate,
@@ -574,9 +584,12 @@ class TimeScale {
         month = changeMonth(date, month)
       }
 
-      let year = currentYear + Math.floor(month / 12) + (yrCounter)
-      pos = (hour === 0 && i === 0) ? (remainingMins * minutesWidthOnXAxis) : (60 * minutesWidthOnXAxis) + pos
-      let val = (hour === 0) ? date : hour
+      let year = currentYear + Math.floor(month / 12) + yrCounter
+      pos =
+        hour === 0 && i === 0
+          ? remainingMins * minutesWidthOnXAxis
+          : 60 * minutesWidthOnXAxis + pos
+      let val = hour === 0 ? date : hour
       this.timeScaleArray.push({
         position: pos,
         value: val,
@@ -591,7 +604,7 @@ class TimeScale {
     }
   }
 
-  generateMinuteScale (params) {
+  generateMinuteScale(params) {
     const {
       firstVal,
       currentMinute,
@@ -640,7 +653,7 @@ class TimeScale {
         }
       }
 
-      let year = currentYear + Math.floor(month / 12) + (yrCounter)
+      let year = currentYear + Math.floor(month / 12) + yrCounter
       pos = minutesWidthOnXAxis + pos
       let val = minute
       this.timeScaleArray.push({
@@ -658,7 +671,7 @@ class TimeScale {
     }
   }
 
-  createRawDateString (ts, value) {
+  createRawDateString(ts, value) {
     let raw = ts.year
 
     raw += '-' + ('0' + ts.month.toString()).slice(-2)
@@ -678,15 +691,18 @@ class TimeScale {
     }
 
     // unit is minute
-    raw += ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00.000Z' : ':00:00.000Z'
+    raw +=
+      ts.unit === 'minute'
+        ? ':' + ('0' + value).slice(-2) + ':00.000Z'
+        : ':00:00.000Z'
 
     return raw
   }
 
-  formatDates (filteredTimeScale) {
+  formatDates(filteredTimeScale) {
     const w = this.w
 
-    const reformattedTimescaleArray = filteredTimeScale.map(ts => {
+    const reformattedTimescaleArray = filteredTimeScale.map((ts) => {
       let value = ts.value.toString()
 
       let dt = new DateTime(this.ctx)
@@ -723,13 +739,14 @@ class TimeScale {
     return reformattedTimescaleArray
   }
 
-  removeOverlappingTS (arr) {
+  removeOverlappingTS(arr) {
     const graphics = new Graphics(this.ctx)
     let lastDrawnIndex = 0
 
     let filteredArray = arr.map((item, index) => {
       if (index > 0 && this.w.config.xaxis.labels.hideOverlappingLabels) {
-        const prevLabelWidth = graphics.getTextRects(arr[lastDrawnIndex].value).width
+        const prevLabelWidth = graphics.getTextRects(arr[lastDrawnIndex].value)
+          .width
         const prevPos = arr[lastDrawnIndex].position
         const pos = item.position
 
@@ -744,13 +761,12 @@ class TimeScale {
       }
     })
 
-    filteredArray = filteredArray.filter(f => {
+    filteredArray = filteredArray.filter((f) => {
       return f !== null
     })
 
     return filteredArray
   }
-
 }
 
 export default TimeScale

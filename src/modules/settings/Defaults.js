@@ -7,11 +7,11 @@ import Utils from '../../utils/Utils'
  **/
 
 export default class Defaults {
-  constructor (opts) {
+  constructor(opts) {
     this.opts = opts
   }
 
-  line () {
+  line() {
     return {
       chart: {
         animations: {
@@ -33,11 +33,10 @@ export default class Defaults {
           width: 1
         }
       }
-
     }
   }
 
-  sparkline (defaults) {
+  sparkline(defaults) {
     this.opts.yaxis[0].labels.show = false
     this.opts.yaxis[0].floating = true
 
@@ -81,7 +80,7 @@ export default class Defaults {
     return Utils.extend(defaults, ret)
   }
 
-  bar () {
+  bar() {
     return {
       chart: {
         stacked: false,
@@ -131,14 +130,14 @@ export default class Defaults {
             enabled: false
           },
           stroke: {
-            width: 0,
+            width: 0
           }
         }
       }
     }
   }
 
-  candlestick () {
+  candlestick() {
     return {
       stroke: {
         width: 1,
@@ -149,17 +148,27 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: function ({ seriesIndex, dataPointIndex, w }) {
+        custom: function({ seriesIndex, dataPointIndex, w }) {
           const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
           const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
           const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
           const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex]
-          return '<div class="apexcharts-tooltip-candlestick">' +
-            '<div>Open: <span class="value">' + o + '</span></div>' +
-            '<div>High: <span class="value">' + h + '</span></div>' +
-            '<div>Low: <span class="value">' + l + '</span></div>' +
-            '<div>Close: <span class="value">' + c + '</span></div>' +
+          return (
+            '<div class="apexcharts-tooltip-candlestick">' +
+            '<div>Open: <span class="value">' +
+            o +
+            '</span></div>' +
+            '<div>High: <span class="value">' +
+            h +
+            '</span></div>' +
+            '<div>Low: <span class="value">' +
+            l +
+            '</span></div>' +
+            '<div>Close: <span class="value">' +
+            c +
+            '</span></div>' +
             '</div>'
+          )
         }
       },
       states: {
@@ -177,7 +186,7 @@ export default class Defaults {
     }
   }
 
-  area () {
+  area() {
     return {
       stroke: {
         width: 4
@@ -205,7 +214,7 @@ export default class Defaults {
     }
   }
 
-  brush (defaults) {
+  brush(defaults) {
     const ret = {
       chart: {
         toolbar: {
@@ -235,7 +244,7 @@ export default class Defaults {
     return Utils.extend(defaults, ret)
   }
 
-  stacked100 () {
+  stacked100() {
     this.opts.dataLabels = this.opts.dataLabels || {}
     this.opts.dataLabels.formatter = this.opts.dataLabels.formatter || undefined
     const existingDataLabelFormatter = this.opts.dataLabels.formatter
@@ -248,37 +257,47 @@ export default class Defaults {
     const isBar = !!(this.opts.chart.type === 'bar')
 
     if (isBar) {
-      this.opts.dataLabels.formatter = existingDataLabelFormatter || function (val) {
-        if (typeof val === 'number') {
-          return val ? val.toFixed(0) + '%' : val
+      this.opts.dataLabels.formatter =
+        existingDataLabelFormatter ||
+        function(val) {
+          if (typeof val === 'number') {
+            return val ? val.toFixed(0) + '%' : val
+          }
+          return val
         }
-        return val
-      }
     }
   }
 
   // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
-  convertCatToNumeric () {
+  convertCatToNumeric() {
     const opts = this.opts
     opts.xaxis.type = 'numeric'
     opts.xaxis.labels = opts.xaxis.labels || {}
-    opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function(val) { return val }
-    opts.chart.zoom = opts.chart.zoom || (window.Apex.chart && window.Apex.chart.zoom) || {}
+    opts.xaxis.labels.formatter =
+      opts.xaxis.labels.formatter ||
+      function(val) {
+        return val
+      }
+    opts.chart.zoom =
+      opts.chart.zoom || (window.Apex.chart && window.Apex.chart.zoom) || {}
     const defaultFormatter = opts.xaxis.labels.formatter
-    const labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels
+    const labels =
+      opts.xaxis.categories && opts.xaxis.categories.length
+        ? opts.xaxis.categories
+        : opts.labels
 
     if (labels && labels.length) {
-      opts.xaxis.labels.formatter = function (val) {
+      opts.xaxis.labels.formatter = function(val) {
         return defaultFormatter(labels[val - 1])
       }
     }
 
     opts.xaxis.categories = []
     opts.labels = []
-    opts.chart.zoom.enabled = false    
+    opts.chart.zoom.enabled = false
   }
 
-  bubble () {
+  bubble() {
     return {
       dataLabels: {
         style: {
@@ -307,7 +326,7 @@ export default class Defaults {
     }
   }
 
-  scatter () {
+  scatter() {
     return {
       dataLabels: {
         enabled: false
@@ -326,7 +345,7 @@ export default class Defaults {
     }
   }
 
-  heatmap () {
+  heatmap() {
     return {
       chart: {
         stacked: false,
@@ -370,7 +389,7 @@ export default class Defaults {
     }
   }
 
-  pie () {
+  pie() {
     return {
       chart: {
         toolbar: {
@@ -387,7 +406,7 @@ export default class Defaults {
         }
       },
       dataLabels: {
-        formatter: function (val) {
+        formatter: function(val) {
           return val.toFixed(1) + '%'
         },
         style: {
@@ -423,7 +442,7 @@ export default class Defaults {
     }
   }
 
-  donut () {
+  donut() {
     return {
       chart: {
         toolbar: {
@@ -431,7 +450,7 @@ export default class Defaults {
         }
       },
       dataLabels: {
-        formatter: function (val) {
+        formatter: function(val) {
           return val.toFixed(1) + '%'
         },
         style: {
@@ -470,7 +489,7 @@ export default class Defaults {
     }
   }
 
-  radar () {
+  radar() {
     this.opts.yaxis[0].labels.style.fontSize = '13px'
     this.opts.yaxis[0].labels.offsetY = 6
 
@@ -512,7 +531,7 @@ export default class Defaults {
     }
   }
 
-  radialBar () {
+  radialBar() {
     return {
       chart: {
         animations: {

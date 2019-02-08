@@ -10,25 +10,31 @@ import Filters from '../modules/Filters'
  **/
 
 class Radar {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
     this.chartType = this.w.config.chart.type
 
     this.initialAnim = this.w.config.chart.animations.enabled
-    this.dynamicAnim = this.initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled
+    this.dynamicAnim =
+      this.initialAnim &&
+      this.w.config.chart.animations.dynamicAnimation.enabled
 
     this.animDur = 0
 
     const w = this.w
     this.graphics = new Graphics(this.ctx)
 
-    this.lineColorArr = w.globals.stroke.colors !== undefined
-      ? w.globals.stroke.colors
-      : w.globals.colors
+    this.lineColorArr =
+      w.globals.stroke.colors !== undefined
+        ? w.globals.stroke.colors
+        : w.globals.colors
 
-    this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.svgHeight - 35 : w.globals.gridWidth
+    this.defaultSize =
+      w.globals.svgHeight < w.globals.svgWidth
+        ? w.globals.svgHeight - 35
+        : w.globals.gridWidth
 
     this.maxValue = this.w.globals.maxY
 
@@ -36,13 +42,19 @@ class Radar {
 
     this.maxLabelWidth = 20
 
-    const longestLabel = w.globals.labels.slice().sort(function (a, b) { return b.length - a.length })[0]
-    const labelWidth = this.graphics.getTextRects(longestLabel, w.config.dataLabels.style.fontSize)
+    const longestLabel = w.globals.labels.slice().sort(function(a, b) {
+      return b.length - a.length
+    })[0]
+    const labelWidth = this.graphics.getTextRects(
+      longestLabel,
+      w.config.dataLabels.style.fontSize
+    )
 
     this.size =
       this.defaultSize / 2.1 -
       w.config.stroke.width -
-      w.config.chart.dropShadow.blur - labelWidth.width / 1.75
+      w.config.chart.dropShadow.blur -
+      labelWidth.width / 1.75
 
     if (w.config.plotOptions.radar.size !== undefined) {
       this.size = w.config.plotOptions.radar.size
@@ -55,14 +67,14 @@ class Radar {
     this.yaxisLabelsTextsPos = []
   }
 
-  draw (series) {
+  draw(series) {
     let w = this.w
     const fill = new Fill(this.ctx)
 
     const allSeries = []
 
     this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
-    this.disAngle = Math.PI * 2 / this.dataPointsLen
+    this.disAngle = (Math.PI * 2) / this.dataPointsLen
 
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
@@ -86,8 +98,10 @@ class Radar {
     series.forEach((s, i) => {
       // el to which series will be drawn
       let elSeries = this.graphics.group().attr({
-        class: `apexcharts-series ${w.globals.seriesNames[i].toString().replace(/ /g, '-')}`,
-        'rel': i + 1,
+        class: `apexcharts-series ${w.globals.seriesNames[i]
+          .toString()
+          .replace(/ /g, '-')}`,
+        rel: i + 1,
         'data:realIndex': i
       })
 
@@ -101,7 +115,10 @@ class Radar {
         this.angleArr[i][j] = j * this.disAngle
       })
 
-      dataPointsPos = this.getDataPointsPos(this.dataRadius[i], this.angleArr[i])
+      dataPointsPos = this.getDataPointsPos(
+        this.dataRadius[i],
+        this.angleArr[i]
+      )
       const paths = this.createPaths(dataPointsPos, { x: 0, y: 0 })
 
       // points
@@ -136,7 +153,9 @@ class Radar {
           ...defaultRenderedPathOptions,
           pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
           pathTo: paths.linePathsTo[p],
-          strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width,
+          strokeWidth: Array.isArray(w.config.stroke.width)
+            ? w.config.stroke.width[i]
+            : w.config.stroke.width,
           fill: 'none'
         })
 
@@ -158,7 +177,10 @@ class Radar {
           const filters = new Filters(this.ctx)
 
           const shadow = w.config.chart.dropShadow
-          filters.dropShadow(renderedAreaPath, {...shadow, noUserSpaceOnUse: true})
+          filters.dropShadow(renderedAreaPath, {
+            ...shadow,
+            noUserSpaceOnUse: true
+          })
         }
 
         elSeries.add(renderedAreaPath)
@@ -211,7 +233,7 @@ class Radar {
     return ret
   }
 
-  drawPolygons (opts) {
+  drawPolygons(opts) {
     const w = this.w
     const { parent } = opts
 
@@ -221,7 +243,7 @@ class Radar {
     let radiusSizes = []
     let layerDis = this.size / (layers - 1)
     for (var i = 0; i < layers; i++) {
-      radiusSizes[i] = layerDis * (i)
+      radiusSizes[i] = layerDis * i
     }
     radiusSizes.reverse()
 
@@ -234,7 +256,15 @@ class Radar {
 
       polygon.forEach((p, i) => {
         if (r === 0) {
-          const line = this.graphics.drawLine(p.x, p.y, 0, 0, Array.isArray(this.polygons.connectorColors) ? this.polygons.connectorColors[i] : this.polygons.connectorColors )
+          const line = this.graphics.drawLine(
+            p.x,
+            p.y,
+            0,
+            0,
+            Array.isArray(this.polygons.connectorColors)
+              ? this.polygons.connectorColors[i]
+              : this.polygons.connectorColors
+          )
 
           lines.push(line)
         }
@@ -254,7 +284,11 @@ class Radar {
 
     polygonStrings.forEach((p, i) => {
       const strokeColors = this.polygons.strokeColors
-      const polygon = this.graphics.drawPolygon(p, Array.isArray(strokeColors) ? strokeColors[i] : strokeColors, w.globals.radarPolygons.fill.colors[i])
+      const polygon = this.graphics.drawPolygon(
+        p,
+        Array.isArray(strokeColors) ? strokeColors[i] : strokeColors,
+        w.globals.radarPolygons.fill.colors[i]
+      )
       parent.add(polygon)
     })
 
@@ -270,7 +304,7 @@ class Radar {
     }
   }
 
-  drawYAxisText (x, y, i, text) {
+  drawYAxisText(x, y, i, text) {
     const w = this.w
 
     const yaxisConfig = w.config.yaxis[0]
@@ -289,7 +323,7 @@ class Radar {
     return yaxisLabel
   }
 
-  drawLabels () {
+  drawLabels() {
     const w = this.w
 
     let limit = 10
@@ -356,7 +390,7 @@ class Radar {
     return elDataLabelsWrap
   }
 
-  createPaths (pos, origin) {
+  createPaths(pos, origin) {
     let linePathsTo = []
     let linePathsFrom = []
     let areaPathsTo = []
@@ -390,7 +424,7 @@ class Radar {
     }
   }
 
-  getPathFrom (realIndex) {
+  getPathFrom(realIndex) {
     let w = this.w
     let pathFrom = null
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
@@ -408,7 +442,11 @@ class Radar {
     return pathFrom
   }
 
-  getDataPointsPos (dataRadiusArr, angleArr, dataPointsLen = this.dataPointsLen) {
+  getDataPointsPos(
+    dataRadiusArr,
+    angleArr,
+    dataPointsLen = this.dataPointsLen
+  ) {
     dataRadiusArr = dataRadiusArr || []
     angleArr = angleArr || []
     var dataPointsPosArray = []
@@ -421,9 +459,9 @@ class Radar {
     return dataPointsPosArray
   }
 
-  getPolygonPos (size) {
+  getPolygonPos(size) {
     var dotsArray = []
-    var angle = Math.PI * 2 / this.dataPointsLen
+    var angle = (Math.PI * 2) / this.dataPointsLen
     for (let i = 0; i < this.dataPointsLen; i++) {
       var curPos = {}
       curPos.x = size * Math.sin(i * angle)

@@ -10,18 +10,20 @@ import Markers from '../modules/Markers'
  * @module Scatter
  **/
 export default class Scatter {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
     this.initialAnim = this.w.config.chart.animations.enabled
-    this.dynamicAnim = this.initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled
+    this.dynamicAnim =
+      this.initialAnim &&
+      this.w.config.chart.animations.dynamicAnimation.enabled
 
     // this array will help in centering the label in bubbles
     this.radiusSizes = []
   }
 
-  draw (elSeries, j, opts) {
+  draw(elSeries, j, opts) {
     let w = this.w
 
     let anim = new Animations(this.ctx)
@@ -39,7 +41,9 @@ export default class Scatter {
     })
 
     let elPointsWrap = graphics.group({
-      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
+      class: `apexcharts-series-markers apexcharts-series-${
+        w.config.chart.type
+      }`
     })
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
@@ -75,7 +79,11 @@ export default class Scatter {
         y = y || 0
         radius = radius || 0
 
-        if ((x === 0 && y === 0) || typeof w.globals.series[realIndex][dataPointIndex] === 'undefined') return
+        if (
+          (x === 0 && y === 0) ||
+          typeof w.globals.series[realIndex][dataPointIndex] === 'undefined'
+        )
+          return
 
         let circle = graphics.drawCircle(radius)
 
@@ -100,7 +108,13 @@ export default class Scatter {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed
           }
-          anim.animateCircleRadius(circle, 0, finishRadius, speed, w.globals.easing)
+          anim.animateCircleRadius(
+            circle,
+            0,
+            finishRadius,
+            speed,
+            w.globals.easing
+          )
         }
 
         if (w.globals.dataChanged) {
@@ -110,15 +124,16 @@ export default class Scatter {
 
             let prevPathJ = null
 
-            prevPathJ = w.globals.previousPaths[realIndex] && w.globals.previousPaths[realIndex][j]
+            prevPathJ =
+              w.globals.previousPaths[realIndex] &&
+              w.globals.previousPaths[realIndex][j]
 
             if (typeof prevPathJ !== 'undefined' && prevPathJ !== null) {
-            // series containing less elements will ignore these values and revert to 0
+              // series containing less elements will ignore these values and revert to 0
               prevX = prevPathJ.x
               prevY = prevPathJ.y
-              prevR = typeof prevPathJ.r !== 'undefined'
-                ? prevPathJ.r
-                : finishRadius
+              prevR =
+                typeof prevPathJ.r !== 'undefined' ? prevPathJ.r : finishRadius
             }
 
             for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
@@ -130,11 +145,21 @@ export default class Scatter {
 
             if (x === 0 && y === 0) finishRadius = 0
 
-            anim.animateCircle(circle, {
-              cx: prevX, cy: prevY, r: prevR
-            }, {
-              cx: x, cy: y, r: finishRadius
-            }, speed, w.globals.easing)
+            anim.animateCircle(
+              circle,
+              {
+                cx: prevX,
+                cy: prevY,
+                r: prevR
+              },
+              {
+                cx: x,
+                cy: y,
+                r: finishRadius
+              },
+              speed,
+              w.globals.easing
+            )
           } else {
             circle.attr({
               r: finishRadius
@@ -143,9 +168,9 @@ export default class Scatter {
         }
 
         circle.attr({
-          'rel': dataPointIndex,
-          'j': dataPointIndex,
-          'index': realIndex,
+          rel: dataPointIndex,
+          j: dataPointIndex,
+          index: realIndex,
           'default-marker-size': finishRadius
         })
 
@@ -162,9 +187,9 @@ export default class Scatter {
     }
   }
 
-  centerTextInBubble (y) {
+  centerTextInBubble(y) {
     let w = this.w
-    y = y + (parseInt(w.config.dataLabels.style.fontSize) / 4)
+    y = y + parseInt(w.config.dataLabels.style.fontSize) / 4
 
     return {
       y

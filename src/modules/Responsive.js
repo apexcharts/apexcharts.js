@@ -9,14 +9,14 @@ import CoreUtils from './CoreUtils'
  **/
 
 export default class Responsive {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
   // the opts parameter if not null has to be set overriding everything
   // as the opts is set by user externally
-  checkResponsiveConfig (opts) {
+  checkResponsiveConfig(opts) {
     const w = this.w
     const cnf = w.config
 
@@ -24,23 +24,27 @@ export default class Responsive {
     if (cnf.responsive.length === 0) return
 
     let res = cnf.responsive.slice()
-    res.sort((a,b) => (a.breakpoint > b.breakpoint) ? 1 : ((b.breakpoint > a.breakpoint) ? -1 : 0)).reverse(); 
+    res
+      .sort((a, b) =>
+        a.breakpoint > b.breakpoint ? 1 : b.breakpoint > a.breakpoint ? -1 : 0
+      )
+      .reverse()
 
     let config = new Config({})
 
     const iterateResponsiveOptions = (newOptions = {}) => {
-
       let largestBreakpoint = res[0].breakpoint
-      const width = (window.innerWidth > 0) ? window.innerWidth : screen.width
+      const width = window.innerWidth > 0 ? window.innerWidth : screen.width
 
       if (width > largestBreakpoint) {
-        let options = CoreUtils.extendArrayProps(config, w.globals.initialConfig)
+        let options = CoreUtils.extendArrayProps(
+          config,
+          w.globals.initialConfig
+        )
         newOptions = Utils.extend(w.config, options)
         this.overrideResponsiveOptions(newOptions)
-      }
-      else {
+      } else {
         for (let i = 0; i < res.length; i++) {
-
           if (width < res[i].breakpoint) {
             newOptions = Utils.extend(config, newOptions)
             newOptions = CoreUtils.extendArrayProps(newOptions, res[i].options)
@@ -61,7 +65,7 @@ export default class Responsive {
     }
   }
 
-  overrideResponsiveOptions (newOptions) {
+  overrideResponsiveOptions(newOptions) {
     let newConfig = new Config(newOptions).init()
     this.w.config = newConfig
   }

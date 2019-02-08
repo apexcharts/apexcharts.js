@@ -1,4 +1,3 @@
-
 /**
  * ApexCharts Tooltip.Utils Class to support Tooltip functionality.
  *
@@ -6,26 +5,26 @@
  **/
 
 export default class Utils {
-  constructor (tooltipContext) {
+  constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
     this.ctx = tooltipContext.ctx
   }
 
   /**
-  ** When hovering over series, you need to capture which series is being hovered on.
-  ** This function will return both capturedseries index as well as inner index of that series
-  * @memberof Utils
-  * @param {object}
-  * - context = chart's context
-  * - hoverArea = the rect on which user hovers
-  * - elGrid = dimensions of the hover rect (it can be different than hoverarea)
-  * - lineSeriesWidth = Whatever series the user hovered on, get the width of it
-  * @return {object}
-  * - capturedSeries = i
-  * - j is the inner index of the capturedSeries
-  */
-  getNearestValues ({ hoverArea, elGrid, clientX, clientY, hasBars }) {
+   ** When hovering over series, you need to capture which series is being hovered on.
+   ** This function will return both capturedseries index as well as inner index of that series
+   * @memberof Utils
+   * @param {object}
+   * - context = chart's context
+   * - hoverArea = the rect on which user hovers
+   * - elGrid = dimensions of the hover rect (it can be different than hoverarea)
+   * - lineSeriesWidth = Whatever series the user hovered on, get the width of it
+   * @return {object}
+   * - capturedSeries = i
+   * - j is the inner index of the capturedSeries
+   */
+  getNearestValues({ hoverArea, elGrid, clientX, clientY, hasBars }) {
     let w = this.w
 
     const hoverWidth = w.globals.gridWidth
@@ -35,13 +34,17 @@ export default class Utils {
     const seriesBound = elGrid.getBoundingClientRect()
 
     if ((hasBars && w.globals.comboCharts) || hasBars) {
-      xDivisor = hoverWidth / (w.globals.dataPoints)
+      xDivisor = hoverWidth / w.globals.dataPoints
     }
 
     let hoverX = clientX - seriesBound.left
     let hoverY = clientY - seriesBound.top
 
-    const inRect = hoverX < 0 || hoverY < 0 || hoverX > w.globals.gridWidth || hoverY > w.globals.gridHeight
+    const inRect =
+      hoverX < 0 ||
+      hoverY < 0 ||
+      hoverX > w.globals.gridWidth ||
+      hoverY > w.globals.gridHeight
 
     if (inRect) {
       hoverArea.classList.remove('hovering-zoom')
@@ -69,24 +72,33 @@ export default class Utils {
     let seriesYValArr = []
 
     for (let s = 0; s < w.globals.seriesXvalues.length; s++) {
-      seriesXValArr.push([w.globals.seriesXvalues[s][0] - 0.000001].concat(w.globals.seriesXvalues[s]))
+      seriesXValArr.push(
+        [w.globals.seriesXvalues[s][0] - 0.000001].concat(
+          w.globals.seriesXvalues[s]
+        )
+      )
     }
 
-    seriesXValArr = seriesXValArr.map(seriesXVal => {
-      return seriesXVal.filter(s => {
+    seriesXValArr = seriesXValArr.map((seriesXVal) => {
+      return seriesXVal.filter((s) => {
         return s
       })
     })
 
-    seriesYValArr = w.globals.seriesYvalues.map(seriesYVal => {
-      return seriesYVal.filter(s => {
+    seriesYValArr = w.globals.seriesYvalues.map((seriesYVal) => {
+      return seriesYVal.filter((s) => {
         return s
       })
     })
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
     if (w.globals.isXNumeric) {
-      closest = this.closestInMultiArray(hoverX, hoverY, seriesXValArr, seriesYValArr)
+      closest = this.closestInMultiArray(
+        hoverX,
+        hoverY,
+        seriesXValArr,
+        seriesYValArr
+      )
       capturedSeries = closest.index
       j = closest.j
 
@@ -110,7 +122,7 @@ export default class Utils {
     }
   }
 
-  closestInMultiArray (hoverX, hoverY, Xarrays, Yarrays) {
+  closestInMultiArray(hoverX, hoverY, Xarrays, Yarrays) {
     let w = this.w
     let activeIndex = 0
     let currIndex = null
@@ -151,7 +163,7 @@ export default class Utils {
     }
   }
 
-  getFirstActiveXArray (Xarrays) {
+  getFirstActiveXArray(Xarrays) {
     let activeIndex = 0
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
@@ -172,7 +184,7 @@ export default class Utils {
     return activeIndex
   }
 
-  closestInArray (val, arr) {
+  closestInArray(val, arr) {
     let curr = arr[0]
     let currIndex = null
     let diff = Math.abs(val - curr)
@@ -192,19 +204,19 @@ export default class Utils {
   }
 
   /**
-  * When there are multiple series, it is possible to have different x values for each series.
-  * But it may be possible in those multiple series, that there is same x value for 2 or more
-  * series.
-  * @memberof Utils
-  * @param {int}
-  * - j = is the inner index of series -> (series[i][j])
-  * @return {bool}
-  */
-  isXoverlap (j) {
+   * When there are multiple series, it is possible to have different x values for each series.
+   * But it may be possible in those multiple series, that there is same x value for 2 or more
+   * series.
+   * @memberof Utils
+   * @param {int}
+   * - j = is the inner index of series -> (series[i][j])
+   * @return {bool}
+   */
+  isXoverlap(j) {
     let w = this.w
     let xSameForAllSeriesJArr = []
 
-    const seriesX = w.globals.seriesX.filter(s => {
+    const seriesX = w.globals.seriesX.filter((s) => {
       return typeof s[0] !== 'undefined'
     })
 
@@ -228,7 +240,7 @@ export default class Utils {
     return false
   }
 
-  isinitialSeriesSameLen () {
+  isinitialSeriesSameLen() {
     let sameLen = true
 
     const initialSeries = this.w.globals.initialSeries
@@ -243,7 +255,7 @@ export default class Utils {
     return sameLen
   }
 
-  getBarsHeight (allbars) {
+  getBarsHeight(allbars) {
     let bars = [...allbars]
     const totalHeight = bars.reduce((acc, bar) => {
       return acc + bar.getBBox().height
@@ -252,12 +264,14 @@ export default class Utils {
     return totalHeight
   }
 
-  toggleAllTooltipSeriesGroups (state) {
+  toggleAllTooltipSeriesGroups(state) {
     let w = this.w
     const ttCtx = this.ttCtx
 
     if (ttCtx.allTooltipSeriesGroups.length === 0) {
-      ttCtx.allTooltipSeriesGroups = w.globals.dom.baseEl.querySelectorAll('.apexcharts-tooltip-series-group')
+      ttCtx.allTooltipSeriesGroups = w.globals.dom.baseEl.querySelectorAll(
+        '.apexcharts-tooltip-series-group'
+      )
     }
 
     let allTooltipSeriesGroups = ttCtx.allTooltipSeriesGroups

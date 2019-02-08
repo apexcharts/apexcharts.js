@@ -11,7 +11,7 @@ import Utils from '../utils/Utils'
  **/
 
 class Legend {
-  constructor (ctx, opts) {
+  constructor(ctx, opts) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -19,13 +19,15 @@ class Legend {
     this.onLegendHovered = this.onLegendHovered.bind(this)
   }
 
-  init () {
+  init() {
     const w = this.w
 
     const gl = w.globals
     const cnf = w.config
 
-    const showLegendAlways = (cnf.legend.showForSingleSeries && gl.series.length === 1) || gl.series.length > 1
+    const showLegendAlways =
+      (cnf.legend.showForSingleSeries && gl.series.length === 1) ||
+      gl.series.length > 1
 
     if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
       while (gl.dom.elLegendWrap.firstChild) {
@@ -37,7 +39,9 @@ class Legend {
         this.appendToForeignObject()
       } else {
         // IE11 doesn't supports foreignObject, hence append it to <head>
-        document.getElementsByTagName('head')[0].appendChild(this.getLegendStyles())
+        document
+          .getElementsByTagName('head')[0]
+          .appendChild(this.getLegendStyles())
       }
 
       if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
@@ -51,7 +55,7 @@ class Legend {
     }
   }
 
-  appendToForeignObject () {
+  appendToForeignObject() {
     const gl = this.w.globals
 
     var elForeign = document.createElementNS(gl.svgNS, 'foreignObject')
@@ -68,7 +72,7 @@ class Legend {
     gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node)
   }
 
-  drawLegends () {
+  drawLegends() {
     let self = this
     let w = this.w
 
@@ -80,7 +84,9 @@ class Legend {
     if (w.config.chart.type === 'heatmap') {
       const ranges = w.config.plotOptions.heatmap.colorScale.ranges
       legendNames = ranges.map((colorScale) => {
-        return colorScale.name ? colorScale.name : colorScale.from + ' - ' + colorScale.to
+        return colorScale.name
+          ? colorScale.name
+          : colorScale.from + ' - ' + colorScale.to
       })
       fillcolor = ranges.map((color) => {
         return color.color
@@ -115,13 +121,23 @@ class Legend {
 
       mStyle.background = fillcolor[i]
       mStyle.color = fillcolor[i]
-      mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px'
-      mStyle.width = Array.isArray(mWidth) ? parseFloat(mWidth[i]) + 'px' : parseFloat(mWidth) + 'px'
+      mStyle.height = Array.isArray(mHeight)
+        ? parseFloat(mHeight[i]) + 'px'
+        : parseFloat(mHeight) + 'px'
+      mStyle.width = Array.isArray(mWidth)
+        ? parseFloat(mWidth[i]) + 'px'
+        : parseFloat(mWidth) + 'px'
       mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX
       mStyle.top = Array.isArray(mOffsetY) ? mOffsetY[i] : mOffsetY
-      mStyle.borderWidth = Array.isArray(mBorderWidth) ? mBorderWidth[i] : mBorderWidth
-      mStyle.borderColor = Array.isArray(mBorderColor) ? mBorderColor[i] : mBorderColor
-      mStyle.borderRadius = Array.isArray(mBorderRadius) ? parseFloat(mBorderRadius[i]) + 'px' : parseFloat(mBorderRadius) + 'px'
+      mStyle.borderWidth = Array.isArray(mBorderWidth)
+        ? mBorderWidth[i]
+        : mBorderWidth
+      mStyle.borderColor = Array.isArray(mBorderColor)
+        ? mBorderColor[i]
+        : mBorderColor
+      mStyle.borderRadius = Array.isArray(mBorderRadius)
+        ? parseFloat(mBorderRadius[i]) + 'px'
+        : parseFloat(mBorderRadius) + 'px'
 
       if (w.config.legend.markers.customHTML) {
         if (Array.isArray(w.config.legend.markers.customHTML)) {
@@ -132,7 +148,7 @@ class Legend {
       }
 
       Graphics.setAttrs(elMarker, {
-        'rel': i + 1,
+        rel: i + 1,
         'data:collapsed': collapsedSeries
       })
 
@@ -146,7 +162,9 @@ class Legend {
       elLegendText.classList.add('apexcharts-legend-text')
       elLegendText.innerHTML = text
 
-      let textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors
+      let textColor = w.config.legend.labels.useSeriesColors
+        ? w.globals.colors[i]
+        : w.config.legend.labels.colors
 
       if (!textColor) {
         textColor = w.config.chart.foreColor
@@ -158,7 +176,7 @@ class Legend {
       elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily
 
       Graphics.setAttrs(elLegendText, {
-        'rel': i + 1,
+        rel: i + 1,
         'data:collapsed': collapsedSeries
       })
 
@@ -169,13 +187,21 @@ class Legend {
       if (!w.config.legend.showForZeroSeries) {
         const total = coreUtils.getSeriesTotalByIndex(i)
 
-        if ((total === 0 && coreUtils.seriesHaveSameValues(i) && !coreUtils.isSeriesNull(i)) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+        if (
+          total === 0 &&
+          coreUtils.seriesHaveSameValues(i) &&
+          !coreUtils.isSeriesNull(i) &&
+          w.globals.collapsedSeriesIndices.indexOf(i) === -1
+        ) {
           elLegend.classList.add('apexcharts-hidden-zero-series')
         }
       }
 
       if (!w.config.legend.showForNullSeries) {
-        if (coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+        if (
+          coreUtils.isSeriesNull(i) &&
+          w.globals.collapsedSeriesIndices.indexOf(i) === -1
+        ) {
           elLegend.classList.add('apexcharts-hidden-null-series')
         }
       }
@@ -183,15 +209,23 @@ class Legend {
       w.globals.dom.elLegendWrap.appendChild(elLegend)
       w.globals.dom.elLegendWrap.classList.add(w.config.legend.horizontalAlign)
       // w.globals.dom.elLegendWrap.classList.add(w.config.legend.verticalAlign)
-      w.globals.dom.elLegendWrap.classList.add('position-' + w.config.legend.position)
+      w.globals.dom.elLegendWrap.classList.add(
+        'position-' + w.config.legend.position
+      )
 
       elLegend.classList.add('apexcharts-legend-series')
-      elLegend.style.margin = `${w.config.legend.itemMargin.horizontal}px ${w.config.legend.itemMargin.vertical}px`
-      w.globals.dom.elLegendWrap.style.width = w.config.legend.width ? w.config.legend.width + 'px' : ''
-      w.globals.dom.elLegendWrap.style.height = w.config.legend.height ? w.config.legend.height + 'px' : ''
+      elLegend.style.margin = `${w.config.legend.itemMargin.horizontal}px ${
+        w.config.legend.itemMargin.vertical
+      }px`
+      w.globals.dom.elLegendWrap.style.width = w.config.legend.width
+        ? w.config.legend.width + 'px'
+        : ''
+      w.globals.dom.elLegendWrap.style.height = w.config.legend.height
+        ? w.config.legend.height + 'px'
+        : ''
 
       Graphics.setAttrs(elLegend, {
-        'rel': i + 1,
+        rel: i + 1,
         'data:collapsed': collapsedSeries
       })
 
@@ -208,11 +242,7 @@ class Legend {
     const clickAllowed = w.config.chart.type !== 'heatmap'
 
     if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
-      w.globals.dom.elWrap.addEventListener(
-        'click',
-        self.onLegendClick,
-        true
-      )
+      w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
     }
 
     if (w.config.legend.onItemHover.highlightDataSeries) {
@@ -229,9 +259,11 @@ class Legend {
     }
   }
 
-  getLegendBBox () {
+  getLegendBBox() {
     const w = this.w
-    let currLegendsWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
+    let currLegendsWrap = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-legend'
+    )
     let currLegendsWrapRect = currLegendsWrap.getBoundingClientRect()
 
     let currLegendsWrapWidth = currLegendsWrapRect.width
@@ -243,12 +275,10 @@ class Legend {
     }
   }
 
-  setLegendWrapXY (offsetX, offsetY) {
+  setLegendWrapXY(offsetX, offsetY) {
     let w = this.w
 
-    let elLegendWrap = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-legend'
-    )
+    let elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
 
     const legendRect = elLegendWrap.getBoundingClientRect()
 
@@ -262,7 +292,10 @@ class Legend {
       const titleH = dim.getTitleSubtitleCoords('title').height
       const subtitleH = dim.getTitleSubtitleCoords('subtitle').height
 
-      y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0)
+      y =
+        y +
+        (titleH > 0 ? titleH - 10 : 0) +
+        (subtitleH > 0 ? subtitleH - 10 : 0)
     }
 
     elLegendWrap.style.position = 'absolute'
@@ -290,12 +323,10 @@ class Legend {
     }
   }
 
-  legendAlignHorizontal () {
+  legendAlignHorizontal() {
     let w = this.w
 
-    let elLegendWrap = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-legend'
-    )
+    let elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
 
     elLegendWrap.style.right = 0
 
@@ -312,13 +343,18 @@ class Legend {
     if (w.config.legend.position === 'bottom') {
       offsetY = -lRect.clwh / 1.8
     } else if (w.config.legend.position === 'top') {
-      offsetY = titleRect.height + subtitleRect.height + w.config.title.margin + w.config.subtitle.margin - 15
+      offsetY =
+        titleRect.height +
+        subtitleRect.height +
+        w.config.title.margin +
+        w.config.subtitle.margin -
+        15
     }
 
     this.setLegendWrapXY(offsetX, offsetY)
   }
 
-  legendAlignVertical () {
+  legendAlignVertical() {
     let w = this.w
 
     let lRect = this.getLegendBBox()
@@ -337,16 +373,15 @@ class Legend {
     this.setLegendWrapXY(offsetX, offsetY)
   }
 
-  onLegendHovered (e) {
+  onLegendHovered(e) {
     const w = this.w
 
-    const hoverOverLegend = (e.target.classList.contains('apexcharts-legend-text') ||
-      e.target.classList.contains('apexcharts-legend-marker'))
+    const hoverOverLegend =
+      e.target.classList.contains('apexcharts-legend-text') ||
+      e.target.classList.contains('apexcharts-legend-marker')
 
     if (w.config.chart.type !== 'heatmap') {
-      if (
-        !e.target.classList.contains('inactive-legend') &&
-        hoverOverLegend) {
+      if (!e.target.classList.contains('inactive-legend') && hoverOverLegend) {
         let series = new Series(this.ctx)
         series.toggleSeriesOnHover(e, e.target)
       }
@@ -362,7 +397,7 @@ class Legend {
     }
   }
 
-  onLegendClick (e) {
+  onLegendClick(e) {
     if (
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
@@ -378,7 +413,10 @@ class Legend {
       this.ctx.fireEvent('legendClick', [this.ctx, seriesCnt, this.w])
 
       const markerClick = this.w.config.legend.markers.onClick
-      if (typeof markerClick === 'function' && e.target.classList.contains('apexcharts-legend-marker')) {
+      if (
+        typeof markerClick === 'function' &&
+        e.target.classList.contains('apexcharts-legend-marker')
+      ) {
         markerClick(this.ctx, seriesCnt, this.w)
         this.ctx.fireEvent('legendMarkerClick', [this.ctx, seriesCnt, this.w])
       }
@@ -387,7 +425,7 @@ class Legend {
     }
   }
 
-  getLegendStyles () {
+  getLegendStyles() {
     var stylesheet = document.createElement('style')
     stylesheet.setAttribute('type', 'text/css')
 
@@ -467,7 +505,7 @@ class Legend {
     return stylesheet
   }
 
-  resetToggleDataSeries () {
+  resetToggleDataSeries() {
     const w = this.w
 
     let seriesEls = null
@@ -479,14 +517,14 @@ class Legend {
         `.apexcharts-series[data\\:realIndex]`
       )
 
-      seriesEls.forEach(v => {
+      seriesEls.forEach((v) => {
         realIndexes.push(parseInt(v.getAttribute('data:realIndex')))
       })
     } else {
       seriesEls = w.globals.dom.baseEl.querySelectorAll(
         `.apexcharts-series[rel]`
       )
-      seriesEls.forEach(v => {
+      seriesEls.forEach((v) => {
         realIndexes.push(parseInt(v.getAttribute('rel')) - 1)
       })
     }
@@ -502,7 +540,9 @@ class Legend {
 
         if (index !== -1) {
           if (w.globals.axisCharts) {
-            series[index].data = w.globals.collapsedSeries.slice()[c].data.slice()
+            series[index].data = w.globals.collapsedSeries
+              .slice()
+              [c].data.slice()
           } else {
             series[index] = w.globals.collapsedSeries.slice()[c].data
           }
@@ -513,11 +553,14 @@ class Legend {
       w.globals.collapsedSeriesIndices = []
       w.globals.risingSeries = risingSeries
       w.config.series = series
-      this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
+      this.ctx._updateSeries(
+        w.config.series,
+        w.config.chart.animations.dynamicAnimation.enabled
+      )
     }
   }
 
-  toggleDataSeries (seriesCnt, isHidden) {
+  toggleDataSeries(seriesCnt, isHidden) {
     const w = this.w
     if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
       w.globals.resized = true // we don't want initial animations again
@@ -546,7 +589,9 @@ class Legend {
           for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
             if (w.globals.collapsedSeries[c].index === realIndex) {
               if (w.globals.axisCharts) {
-                w.config.series[realIndex].data = w.globals.collapsedSeries[c].data.slice()
+                w.config.series[realIndex].data = w.globals.collapsedSeries[
+                  c
+                ].data.slice()
                 w.globals.collapsedSeries.splice(c, 1)
                 w.globals.collapsedSeriesIndices.splice(c, 1)
                 w.globals.risingSeries.push(realIndex)
@@ -556,7 +601,10 @@ class Legend {
                 w.globals.collapsedSeriesIndices.splice(c, 1)
                 w.globals.risingSeries.push(realIndex)
               }
-              this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
+              this.ctx._updateSeries(
+                w.config.series,
+                w.config.chart.animations.dynamicAnimation.enabled
+              )
             }
           }
         }
@@ -599,9 +647,13 @@ class Legend {
           }
         }
 
-        w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length
+        w.globals.allSeriesCollapsed =
+          w.globals.collapsedSeries.length === w.globals.series.length
 
-        this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled)
+        this.ctx._updateSeries(
+          w.config.series,
+          w.config.chart.animations.dynamicAnimation.enabled
+        )
       }
     } else {
       // for non-axis charts i.e pie / donuts

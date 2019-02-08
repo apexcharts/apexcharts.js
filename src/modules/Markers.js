@@ -9,15 +9,17 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Markers {
-  constructor (ctx, opts) {
+  constructor(ctx, opts) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
-  setGlobalMarkerSize () {
+  setGlobalMarkerSize() {
     const w = this.w
 
-    w.globals.markers.size = Array.isArray(w.config.markers.size) ? w.config.markers.size : [w.config.markers.size]
+    w.globals.markers.size = Array.isArray(w.config.markers.size)
+      ? w.config.markers.size
+      : [w.config.markers.size]
 
     if (w.globals.markers.size.length > 0) {
       if (w.globals.markers.size.length < w.globals.series.length + 1) {
@@ -34,7 +36,7 @@ export default class Markers {
     }
   }
 
-  plotChartMarkers (pointsPos, seriesIndex, j) {
+  plotChartMarkers(pointsPos, seriesIndex, j) {
     let w = this.w
 
     let p = pointsPos
@@ -49,7 +51,10 @@ export default class Markers {
         class: 'apexcharts-series-markers'
       })
 
-      elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
+      elPointsWrap.attr(
+        'clip-path',
+        `url(#gridRectMarkerMask${w.globals.cuid})`
+      )
     }
 
     if (p.x instanceof Array) {
@@ -59,13 +64,19 @@ export default class Markers {
         // a small hack as we have 2 points for the first val to connect it
         if (j === 1 && q === 0) dataPointIndex = 0
         if (j === 1 && q === 1) dataPointIndex = 1
-        
+
         let PointClasses = 'apexcharts-marker'
-        if (((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts) && !w.config.tooltip.intersect) {
+        if (
+          (w.config.chart.type === 'line' || w.config.chart.type === 'area') &&
+          !w.globals.comboCharts &&
+          !w.config.tooltip.intersect
+        ) {
           PointClasses += ' no-pointer-events'
         }
 
-        const shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0
+        const shouldMarkerDraw = Array.isArray(w.config.markers.size)
+          ? w.globals.markers.size[seriesIndex] > 0
+          : w.config.markers.size > 0
 
         if (shouldMarkerDraw) {
           if (Utils.isNumber(p.y[q])) {
@@ -78,19 +89,17 @@ export default class Markers {
 
           // discrete markers is an option where user can specify a particular marker with different size and color
           w.config.markers.discrete.map((marker) => {
-            if (marker.seriesIndex === seriesIndex && marker.dataPointIndex === dataPointIndex) {
+            if (
+              marker.seriesIndex === seriesIndex &&
+              marker.dataPointIndex === dataPointIndex
+            ) {
               opts.pointStrokeColor = marker.strokeColor
               opts.pointFillColor = marker.fillColor
               opts.pSize = marker.size
             }
           })
 
-          point = graphics.drawMarker(
-            p.x[q],
-            p.y[q],
-            opts
-          )
-
+          point = graphics.drawMarker(p.x[q], p.y[q], opts)
 
           point.attr('rel', dataPointIndex)
           point.attr('j', dataPointIndex)
@@ -106,7 +115,8 @@ export default class Markers {
           }
         } else {
           // dynamic array creation - multidimensional
-          if (typeof (w.globals.pointsArray[seriesIndex]) === 'undefined') w.globals.pointsArray[seriesIndex] = []
+          if (typeof w.globals.pointsArray[seriesIndex] === 'undefined')
+            w.globals.pointsArray[seriesIndex] = []
 
           w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]])
         }
@@ -116,7 +126,7 @@ export default class Markers {
     return elPointsWrap
   }
 
-  getMarkerConfig (cssClass, seriesIndex) {
+  getMarkerConfig(cssClass, seriesIndex) {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
 
@@ -128,7 +138,10 @@ export default class Markers {
       pWidth: w.config.markers.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
-      shape: (w.config.markers.shape instanceof Array ? w.config.markers.shape[seriesIndex] : w.config.markers.shape),
+      shape:
+        w.config.markers.shape instanceof Array
+          ? w.config.markers.shape[seriesIndex]
+          : w.config.markers.shape,
       class: cssClass,
       pointStrokeOpacity: w.config.markers.strokeOpacity,
       pointFillOpacity: w.config.markers.fillOpacity,
@@ -136,7 +149,7 @@ export default class Markers {
     }
   }
 
-  addEvents (circle) {
+  addEvents(circle) {
     const graphics = new Graphics(this.ctx)
     circle.node.addEventListener(
       'mouseenter',
@@ -154,21 +167,25 @@ export default class Markers {
 
     circle.node.addEventListener(
       'touchstart',
-      graphics.pathMouseDown.bind(this.ctx, circle), {passive: true}
+      graphics.pathMouseDown.bind(this.ctx, circle),
+      { passive: true }
     )
   }
 
-  getMarkerStyle (seriesIndex) {
+  getMarkerStyle(seriesIndex) {
     let w = this.w
 
     let colors = w.globals.markers.colors
-    let strokeColors = w.config.markers.strokeColor || w.config.markers.strokeColors
+    let strokeColors =
+      w.config.markers.strokeColor || w.config.markers.strokeColors
 
-    let pointStrokeColor = (strokeColors instanceof Array ? strokeColors[seriesIndex] : strokeColors) 
-    let pointFillColor = (colors instanceof Array ? colors[seriesIndex] : colors)
+    let pointStrokeColor =
+      strokeColors instanceof Array ? strokeColors[seriesIndex] : strokeColors
+    let pointFillColor = colors instanceof Array ? colors[seriesIndex] : colors
 
     return {
-      pointStrokeColor, pointFillColor
+      pointStrokeColor,
+      pointFillColor
     }
   }
 }

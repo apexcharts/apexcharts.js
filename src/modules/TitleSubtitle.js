@@ -1,19 +1,19 @@
 import Graphics from './Graphics'
 
 export default class TitleSubtitle {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
-  draw () {
+  draw() {
     this.drawTitleSubtitle('title')
     this.drawTitleSubtitle('subtitle')
   }
 
-  drawTitleSubtitle (type) {
+  drawTitleSubtitle(type) {
     let w = this.w
-    const tsConfig = (type === 'title') ? w.config.title : w.config.subtitle
+    const tsConfig = type === 'title' ? w.config.title : w.config.subtitle
 
     let x = w.globals.svgWidth / 2
     let y = tsConfig.offsetY

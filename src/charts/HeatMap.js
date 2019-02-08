@@ -10,7 +10,7 @@ import Filters from '../modules/Filters'
  **/
 
 export default class HeatMap {
-  constructor (ctx, xyRatios) {
+  constructor(ctx, xyRatios) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -23,7 +23,7 @@ export default class HeatMap {
     this.strokeWidth = this.w.config.stroke.width
   }
 
-  draw (series) {
+  draw(series) {
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -42,8 +42,12 @@ export default class HeatMap {
     for (let i = series.length - 1; i >= 0; i--) {
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series apexcharts-heatmap-series ${w.globals.seriesNames[i].toString().replace(/ /g, '-')}`,
-        'rel': i + 1,
+        class: `apexcharts-series apexcharts-heatmap-series ${w.globals.seriesNames[
+          i
+        ]
+          .toString()
+          .replace(/ /g, '-')}`,
+        rel: i + 1,
         'data:realIndex': i
       })
 
@@ -63,12 +67,14 @@ export default class HeatMap {
         if (w.globals.hasNegs) {
           let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
           if (heatColorProps.percent < 0) {
-            colorShadePercent = 1 - (1 + (heatColorProps.percent / 100)) * shadeIntensity
+            colorShadePercent =
+              1 - (1 + heatColorProps.percent / 100) * shadeIntensity
           } else {
-            colorShadePercent = (1 - (heatColorProps.percent / 100)) * shadeIntensity
+            colorShadePercent =
+              (1 - heatColorProps.percent / 100) * shadeIntensity
           }
         } else {
-          colorShadePercent = 1 - (heatColorProps.percent / 100)
+          colorShadePercent = 1 - heatColorProps.percent / 100
         }
 
         let color = heatColorProps.color
@@ -95,7 +101,7 @@ export default class HeatMap {
         rect.attr({
           fill: color,
           i,
-          'index': i,
+          index: i,
           j,
           val: series[i][j],
           'stroke-width': this.strokeWidth,
@@ -103,9 +109,18 @@ export default class HeatMap {
           color: color
         })
 
-        rect.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this, rect))
-        rect.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, rect))
-        rect.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, rect))
+        rect.node.addEventListener(
+          'mouseenter',
+          graphics.pathMouseEnter.bind(this, rect)
+        )
+        rect.node.addEventListener(
+          'mouseleave',
+          graphics.pathMouseLeave.bind(this, rect)
+        )
+        rect.node.addEventListener(
+          'mousedown',
+          graphics.pathMouseDown.bind(this, rect)
+        )
 
         if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
           let speed = 1
@@ -120,11 +135,19 @@ export default class HeatMap {
           if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
             speed = this.dynamicAnim.speed
 
-            let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color
+            let colorFrom =
+              w.globals.previousPaths[i] &&
+              w.globals.previousPaths[i][j] &&
+              w.globals.previousPaths[i][j].color
 
             if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 1)'
 
-            this.animateHeatColor(rect, Utils.rgb2hex(colorFrom), Utils.rgb2hex(color), speed)
+            this.animateHeatColor(
+              rect,
+              Utils.rgb2hex(colorFrom),
+              Utils.rgb2hex(color),
+              speed
+            )
           }
         }
 
@@ -157,7 +180,7 @@ export default class HeatMap {
     return ret
   }
 
-  determineHeatColor (i, j) {
+  determineHeatColor(i, j) {
     const w = this.w
 
     const val = w.globals.series[i][j]
@@ -175,8 +198,14 @@ export default class HeatMap {
     }
 
     if (typeof heatmap.colorScale.min !== 'undefined') {
-      min = heatmap.colorScale.min < w.globals.minY ? heatmap.colorScale.min : w.globals.minY
-      max = heatmap.colorScale.max > w.globals.maxY ? heatmap.colorScale.max : w.globals.maxY
+      min =
+        heatmap.colorScale.min < w.globals.minY
+          ? heatmap.colorScale.min
+          : w.globals.minY
+      max =
+        heatmap.colorScale.max > w.globals.maxY
+          ? heatmap.colorScale.max
+          : w.globals.maxY
     }
 
     let total = Math.abs(max) + Math.abs(min)
@@ -201,15 +230,7 @@ export default class HeatMap {
     }
   }
 
-  calculateHeatmapDataLabels ({
-    x,
-    y,
-    i,
-    j,
-    series,
-    rectHeight,
-    rectWidth
-  }) {
+  calculateHeatmapDataLabels({ x, y, i, j, series, rectHeight, rectWidth }) {
     let w = this.w
     // let graphics = new Graphics(this.ctx)
     let dataLabelsConfig = w.config.dataLabels
@@ -230,7 +251,11 @@ export default class HeatMap {
       const offY = dataLabelsConfig.offsetY
 
       let dataLabelsX = x + rectWidth / 2 + offX
-      let dataLabelsY = y + rectHeight / 2 + parseInt(dataLabelsConfig.style.fontSize) / 3 + offY
+      let dataLabelsY =
+        y +
+        rectHeight / 2 +
+        parseInt(dataLabelsConfig.style.fontSize) / 3 +
+        offY
 
       let text = formatter(w.globals.series[i][j], {
         seriesIndex: i,
@@ -251,16 +276,29 @@ export default class HeatMap {
     return elDataLabelsWrap
   }
 
-  animateHeatMap (el, x, y, width, height, speed) {
+  animateHeatMap(el, x, y, width, height, speed) {
     const animations = new Animations(this.ctx)
-    animations.animateRect(el, {
-      x: x + (width / 2), y: y + (height / 2), width: 0, height: 0
-    }, {
-      x, y, width, height
-    }, speed)
+    animations.animateRect(
+      el,
+      {
+        x: x + width / 2,
+        y: y + height / 2,
+        width: 0,
+        height: 0
+      },
+      {
+        x,
+        y,
+        width,
+        height
+      },
+      speed
+    )
   }
 
-  animateHeatColor (el, colorFrom, colorTo, speed) {
-    el.attr({ fill: colorFrom }).animate(speed).attr({ fill: colorTo })
+  animateHeatColor(el, colorFrom, colorTo, speed) {
+    el.attr({ fill: colorFrom })
+      .animate(speed)
+      .attr({ fill: colorTo })
   }
 }

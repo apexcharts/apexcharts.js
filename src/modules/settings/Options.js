@@ -4,7 +4,7 @@
 import en from './../../locales/en.json'
 
 export default class Options {
-  constructor () {
+  constructor() {
     this.yAxis = {
       show: true,
       opposite: false,
@@ -174,7 +174,7 @@ export default class Options {
     }
   }
 
-  init () {
+  init() {
     return {
       annotations: {
         position: 'front',
@@ -391,7 +391,7 @@ export default class Options {
               fontFamily: undefined,
               color: undefined,
               offsetY: 16,
-              formatter: function (val) {
+              formatter: function(val) {
                 return val + '%'
               }
             },
@@ -399,10 +399,14 @@ export default class Options {
               show: false,
               label: 'Total',
               color: '#373d3f',
-              formatter: function (w) {
-                return w.globals.seriesTotals.reduce((a, b) => {
-                  return a + b
-                }, 0) / w.globals.series.length + '%'
+              formatter: function(w) {
+                return (
+                  w.globals.seriesTotals.reduce((a, b) => {
+                    return a + b
+                  }, 0) /
+                    w.globals.series.length +
+                  '%'
+                )
               }
             }
           }
@@ -436,7 +440,7 @@ export default class Options {
                 fontFamily: undefined,
                 color: undefined,
                 offsetY: 10,
-                formatter: function (val) {
+                formatter: function(val) {
                   return val
                 }
               },
@@ -444,7 +448,7 @@ export default class Options {
                 show: false,
                 label: 'Total',
                 color: '#373d3f',
-                formatter: function (w) {
+                formatter: function(w) {
                   return w.globals.seriesTotals.reduce((a, b) => {
                     return a + b
                   }, 0)
@@ -470,7 +474,7 @@ export default class Options {
       colors: undefined,
       dataLabels: {
         enabled: true,
-        formatter: function (val) {
+        formatter: function(val) {
           return val
         },
         textAnchor: 'middle',
@@ -694,7 +698,8 @@ export default class Options {
         onDatasetHover: {
           highlightDataSeries: false
         },
-        x: { // x value
+        x: {
+          // x value
           show: true,
           format: 'dd MMM', // dd/MM, dd MMM yy, dd MMM yyyy
           formatter: undefined // a custom user supplied formatter function
@@ -702,7 +707,7 @@ export default class Options {
         y: {
           formatter: undefined,
           title: {
-            formatter: function (seriesName) {
+            formatter: function(seriesName) {
               return seriesName
             }
           }
@@ -750,7 +755,7 @@ export default class Options {
           formatter: undefined, // custom formatter function which will override format
           datetimeFormatter: {
             year: 'yyyy',
-            month: 'MMM \'yy',
+            month: "MMM 'yy",
             day: 'dd MMM',
             hour: 'HH:mm',
             minute: 'HH:mm:ss'
@@ -831,7 +836,8 @@ export default class Options {
       yaxis: this.yAxis,
       theme: {
         palette: 'palette1', // If defined, it will overwrite globals.colors variable
-        monochrome: { // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
+        monochrome: {
+          // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
           enabled: false,
           color: '#008FFB',
           shadeTo: 'light',

@@ -12,7 +12,7 @@ import Graphics from '../modules/Graphics'
  **/
 
 class BarStacked extends Bar {
-  draw (series, seriesIndex) {
+  draw(series, seriesIndex) {
     let w = this.w
     this.graphics = new Graphics(this.ctx)
     this.fill = new Fill(this.ctx)
@@ -57,7 +57,7 @@ class BarStacked extends Bar {
     this.zeroSerieses = []
     this.endingShapeOnSeriesNumber = series.length - 1 // which series to draw ending shape on
 
-    this.checkZeroSeries({series})
+    this.checkZeroSeries({ series })
 
     let ret = this.graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series'
@@ -86,9 +86,10 @@ class BarStacked extends Bar {
 
       // el to which series will be drawn
       let elSeries = this.graphics.group({
-        class: `apexcharts-series ${w.globals.seriesNames[realIndex].toString().replace(/ /g, '-')
-        }`,
-        'rel': i + 1,
+        class: `apexcharts-series ${w.globals.seriesNames[realIndex]
+          .toString()
+          .replace(/ /g, '-')}`,
+        rel: i + 1,
         'data:realIndex': realIndex
       })
 
@@ -101,7 +102,14 @@ class BarStacked extends Bar {
       let barHeight = 0
       let barWidth = 0
 
-      let initPositions = this.initialPositions(x, y, xDivision, yDivision, zeroH, zeroW)
+      let initPositions = this.initialPositions(
+        x,
+        y,
+        xDivision,
+        yDivision,
+        zeroH,
+        zeroW
+      )
       y = initPositions.y
       barHeight = initPositions.barHeight
       yDivision = initPositions.yDivision
@@ -128,14 +136,16 @@ class BarStacked extends Bar {
           if (this.isNullValue) {
             strokeWidth = 0
           } else {
-            strokeWidth = Array.isArray(this.strokeWidth) ? this.strokeWidth[realIndex] : this.strokeWidth
+            strokeWidth = Array.isArray(this.strokeWidth)
+              ? this.strokeWidth[realIndex]
+              : this.strokeWidth
           }
         }
 
         let paths = null
         if (this.isHorizontal) {
           paths = this.drawBarPaths({
-            indexes: {i, j, realIndex, bc},
+            indexes: { i, j, realIndex, bc },
             barHeight,
             strokeWidth,
             pathTo,
@@ -148,7 +158,7 @@ class BarStacked extends Bar {
           })
         } else {
           paths = this.drawColumnPaths({
-            indexes: {i, j, realIndex, bc},
+            indexes: { i, j, realIndex, bc },
             x,
             y,
             xDivision,
@@ -183,13 +193,28 @@ class BarStacked extends Bar {
         }
 
         let pathFill = this.fill.fillPath(elSeries, {
-          seriesNumber: this.barOptions.distributed
-            ? seriesNumber
-            : realIndex,
+          seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
           color: fillColor
         })
 
-        elSeries = this.renderSeries({ realIndex, pathFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, type: 'bar', visibleSeries: 0 })
+        elSeries = this.renderSeries({
+          realIndex,
+          pathFill,
+          j,
+          i,
+          pathFrom,
+          pathTo,
+          strokeWidth,
+          elSeries,
+          x,
+          y,
+          series,
+          barHeight,
+          barWidth,
+          elDataLabelsWrap,
+          type: 'bar',
+          visibleSeries: 0
+        })
       }
 
       // push all x val arrays into main xArr
@@ -210,7 +235,7 @@ class BarStacked extends Bar {
     return ret
   }
 
-  initialPositions (x, y, xDivision, yDivision, zeroH, zeroW) {
+  initialPositions(x, y, xDivision, yDivision, zeroH, zeroW) {
     let w = this.w
 
     let barHeight, barWidth
@@ -219,7 +244,8 @@ class BarStacked extends Bar {
       yDivision = w.globals.gridHeight / w.globals.dataPoints
       barHeight = yDivision
 
-      barHeight = barHeight * parseInt(w.config.plotOptions.bar.barHeight) / 100
+      barHeight =
+        (barHeight * parseInt(w.config.plotOptions.bar.barHeight)) / 100
 
       zeroW = this.baseLineInvertedY + w.globals.padHorizontal
 
@@ -234,9 +260,13 @@ class BarStacked extends Bar {
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
         xDivision = this.minXDiff / this.xRatio
-        barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
+        barWidth =
+          ((xDivision / this.seriesLen) *
+            parseInt(this.barOptions.columnWidth)) /
+          100
       } else {
-        barWidth = (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
+        barWidth =
+          (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
       }
 
       zeroH = this.baseLineY[this.yaxisIndex] + 1
@@ -245,11 +275,18 @@ class BarStacked extends Bar {
       x = w.globals.padHorizontal + (xDivision - barWidth) / 2
     }
     return {
-      x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
+      x,
+      y,
+      yDivision,
+      xDivision,
+      barHeight,
+      barWidth,
+      zeroH,
+      zeroW
     }
   }
 
-  drawBarPaths ({
+  drawBarPaths({
     indexes,
     barHeight,
     strokeWidth,
@@ -355,9 +392,7 @@ class BarStacked extends Bar {
       w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 &&
       i === 0
     ) {
-      if (
-        bc >= w.config.plotOptions.bar.colors.backgroundBarColors.length
-      ) {
+      if (bc >= w.config.plotOptions.bar.colors.backgroundBarColors.length) {
         bc = 0
       }
 
@@ -385,7 +420,7 @@ class BarStacked extends Bar {
     }
   }
 
-  drawColumnPaths ({
+  drawColumnPaths({
     indexes,
     x,
     y,
@@ -406,7 +441,7 @@ class BarStacked extends Bar {
     if (w.globals.isXNumeric) {
       let seriesVal = w.globals.seriesX[i][j]
       if (!seriesVal) seriesVal = 0
-      x = ((seriesVal - w.globals.minX) / this.xRatio) - barWidth / 2
+      x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2
     }
 
     let barXPosition = x
@@ -417,7 +452,12 @@ class BarStacked extends Bar {
       prevBarH = prevBarH + this.prevYF[k][j]
     }
 
-    if ((i > 0 && !w.globals.isXNumeric) || (i > 0 && w.globals.isXNumeric && w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])) {
+    if (
+      (i > 0 && !w.globals.isXNumeric) ||
+      (i > 0 &&
+        w.globals.isXNumeric &&
+        w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])
+    ) {
       let bYP
       let prevYValue = this.prevY[i - 1][j]
 
@@ -444,7 +484,7 @@ class BarStacked extends Bar {
     if (this.series[i][j] === null) {
       y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex]
     } else {
-      y = (barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex])
+      y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex]
     }
 
     let endingShapeOpts = {
@@ -499,9 +539,7 @@ class BarStacked extends Bar {
       w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 &&
       i === 0
     ) {
-      if (
-        bc >= w.config.plotOptions.bar.colors.backgroundBarColors.length
-      ) {
+      if (bc >= w.config.plotOptions.bar.colors.backgroundBarColors.length) {
         bc = 0
       }
       let bcolor = w.config.plotOptions.bar.colors.backgroundBarColors[bc]
@@ -529,12 +567,12 @@ class BarStacked extends Bar {
   }
 
   /*
-  * When user clicks on legends, the collapsed series will be filled with [0,0,0,...,0]
-  * We need to make sure, that the last series is not [0,0,0,...,0]
-  * as we need to draw shapes on the last series (for stacked bars/columns only)
-  * Hence, we are collecting all inner arrays in series which has [0,0,0...,0]
-  **/
-  checkZeroSeries ({series}) {
+   * When user clicks on legends, the collapsed series will be filled with [0,0,0,...,0]
+   * We need to make sure, that the last series is not [0,0,0,...,0]
+   * as we need to draw shapes on the last series (for stacked bars/columns only)
+   * Hence, we are collecting all inner arrays in series which has [0,0,0...,0]
+   **/
+  checkZeroSeries({ series }) {
     let w = this.w
     for (let zs = 0; zs < series.length; zs++) {
       let total = 0

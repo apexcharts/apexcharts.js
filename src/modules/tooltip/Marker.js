@@ -10,22 +10,20 @@ import Utils from '../../utils/Utils'
  **/
 
 export default class Marker {
-  constructor (tooltipContext) {
+  constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
     this.ctx = tooltipContext.ctx
     this.tooltipPosition = new Position(tooltipContext)
   }
 
-  drawDynamicPoints () {
+  drawDynamicPoints() {
     let w = this.w
 
     let graphics = new Graphics(this.ctx)
     let marker = new Markers(this.ctx)
 
-    let elsSeries = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-series'
-    )
+    let elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series')
 
     for (let i = 0; i < elsSeries.length; i++) {
       let seriesIndex = parseInt(elsSeries[i].getAttribute('data:realIndex'))
@@ -38,8 +36,14 @@ export default class Marker {
         // it can be null as we have tooltips in donut/bar charts
         let point
 
-        let PointClasses = `apexcharts-marker w${(Math.random() + 1).toString(36).substring(4)}`
-        if (((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts) && !w.config.tooltip.intersect) {
+        let PointClasses = `apexcharts-marker w${(Math.random() + 1)
+          .toString(36)
+          .substring(4)}`
+        if (
+          (w.config.chart.type === 'line' || w.config.chart.type === 'area') &&
+          !w.globals.comboCharts &&
+          !w.config.tooltip.intersect
+        ) {
           PointClasses += ' no-pointer-events'
         }
 
@@ -58,7 +62,7 @@ export default class Marker {
     }
   }
 
-  enlargeCurrentPoint (rel, point) {
+  enlargeCurrentPoint(rel, point) {
     let w = this.w
 
     if (w.config.chart.type !== 'bubble') {
@@ -78,15 +82,11 @@ export default class Marker {
         cx = this.ttCtx.e.clientX - seriesBound.left
       }
 
-      this.tooltipPosition.moveTooltip(
-        cx,
-        cy,
-        w.config.markers.hover.size
-      )
+      this.tooltipPosition.moveTooltip(cx, cy, w.config.markers.hover.size)
     }
   }
 
-  enlargePoints (j) {
+  enlargePoints(j) {
     let w = this.w
     let me = this
     const ttCtx = this.ttCtx
@@ -104,7 +104,8 @@ export default class Marker {
       let index = points[p].getAttribute('index')
 
       if (newSize === undefined) {
-        newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+        newSize =
+          w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
       }
 
       if (col === parseInt(rel)) {
@@ -124,7 +125,7 @@ export default class Marker {
     }
   }
 
-  newPointSize (rel, point) {
+  newPointSize(rel, point) {
     let w = this.w
     let newSize = w.config.markers.hover.size
 
@@ -138,18 +139,19 @@ export default class Marker {
 
     const index = parseInt(elPoint.getAttribute('index'))
     if (newSize === undefined) {
-      newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+      newSize =
+        w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
     }
 
     elPoint.setAttribute('r', newSize)
   }
 
-  oldPointSize (point) {
+  oldPointSize(point) {
     const size = parseInt(point.getAttribute('default-marker-size'))
     point.setAttribute('r', size)
   }
 
-  resetPointsSize () {
+  resetPointsSize() {
     let w = this.w
 
     let points = w.globals.dom.baseEl.querySelectorAll(

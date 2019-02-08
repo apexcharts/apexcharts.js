@@ -7,24 +7,22 @@ import Graphics from './Graphics'
  **/
 
 export default class Series {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
-  getAllSeriesEls () {
-    return this.w.globals.dom.baseEl.querySelectorAll(
-      `.apexcharts-series`
-    )
+  getAllSeriesEls() {
+    return this.w.globals.dom.baseEl.querySelectorAll(`.apexcharts-series`)
   }
 
-  getSeriesByName (seriesName) {
+  getSeriesByName(seriesName) {
     return this.w.globals.dom.baseEl.querySelector(
       `.apexcharts-series.${seriesName.toString().replace(/ /g, '-')}`
     )
   }
 
-  addCollapsedClassToSeries (elSeries, index) {
+  addCollapsedClassToSeries(elSeries, index) {
     const w = this.w
     for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
       if (w.globals.collapsedSeries[cs].index === index) {
@@ -33,7 +31,7 @@ export default class Series {
     }
   }
 
-  toggleSeriesOnHover (e, targetElement) {
+  toggleSeriesOnHover(e, targetElement) {
     const w = this.w
 
     let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
@@ -78,22 +76,24 @@ export default class Series {
     }
   }
 
-  highlightRangeInSeries (e, targetElement) {
+  highlightRangeInSeries(e, targetElement) {
     const w = this.w
-    const allHeatMapElements = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap-rect')
+    const allHeatMapElements = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-heatmap-rect'
+    )
 
-    const allActive = function () {
+    const allActive = function() {
       for (let i = 0; i < allHeatMapElements.length; i++) {
         allHeatMapElements[i].classList.remove('legend-mouseover-inactive')
       }
     }
-    const allInactive = function () {
+    const allInactive = function() {
       for (let i = 0; i < allHeatMapElements.length; i++) {
         allHeatMapElements[i].classList.add('legend-mouseover-inactive')
       }
     }
 
-    const selectedActive = function (range) {
+    const selectedActive = function(range) {
       for (let i = 0; i < allHeatMapElements.length; i++) {
         const val = parseInt(allHeatMapElements[i].getAttribute('val'))
         if (val >= range.from && val <= range.to) {
@@ -115,14 +115,18 @@ export default class Series {
     }
   }
 
-  getActiveSeriesIndex () {
+  getActiveSeriesIndex() {
     const w = this.w
     let activeIndex = 0
 
     if (w.globals.series.length > 1) {
       // active series flag is required to know if user has not deactivated via legend click
       let firstActiveSeriesIndex = w.globals.series.map((series, index) => {
-        if (series.length > 0 && (w.config.series[index].type !== 'bar' && w.config.series[index].type !== 'column')) {
+        if (
+          series.length > 0 &&
+          (w.config.series[index].type !== 'bar' &&
+            w.config.series[index].type !== 'column')
+        ) {
           return index
         } else {
           return -1
@@ -140,7 +144,7 @@ export default class Series {
     return activeIndex
   }
 
-  getActiveConfigSeriesIndex () {
+  getActiveConfigSeriesIndex() {
     const w = this.w
     let activeIndex = 0
 
@@ -165,12 +169,12 @@ export default class Series {
     return activeIndex
   }
 
-  getPreviousPaths () {
+  getPreviousPaths() {
     let w = this.w
 
     w.globals.previousPaths = []
 
-    function pushPaths (seriesEls, i, type) {
+    function pushPaths(seriesEls, i, type) {
       let paths = seriesEls[i].childNodes
       let dArr = {
         type,
@@ -278,7 +282,9 @@ export default class Series {
       }
     }
 
-    let heatmapColors = w.globals.dom.baseEl.querySelectorAll('.apexcharts-heatmap .apexcharts-series')
+    let heatmapColors = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-heatmap .apexcharts-series'
+    )
 
     if (heatmapColors.length > 0) {
       for (let h = 0; h < heatmapColors.length; h++) {
@@ -303,7 +309,7 @@ export default class Series {
     }
   }
 
-  handleNoData () {
+  handleNoData() {
     const w = this.w
     const me = this
 
@@ -354,7 +360,7 @@ export default class Series {
 
   // When user clicks on legends, the collapsed series is filled with [0,0,0,...,0]
   // This is because we don't want to alter the series' length as it is used at many places
-  setNullSeriesToZeroValues (series) {
+  setNullSeriesToZeroValues(series) {
     let w = this.w
     for (let sl = 0; sl < series.length; sl++) {
       if (series[sl].length === 0) {
@@ -366,7 +372,7 @@ export default class Series {
     return series
   }
 
-  hasAllSeriesEqualX () {
+  hasAllSeriesEqualX() {
     let equalLen = true
     const w = this.w
 
@@ -384,7 +390,7 @@ export default class Series {
     return equalLen
   }
 
-  filteredSeriesX () {
+  filteredSeriesX() {
     const w = this.w
 
     const filteredSeriesX = w.globals.seriesX.map((ser, index) => {

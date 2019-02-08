@@ -1,16 +1,16 @@
-import Promise from 'promise-polyfill';
+import Promise from 'promise-polyfill'
 
 class Exports {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
-  getSvgString () {
+  getSvgString() {
     return this.w.globals.dom.Paper.svg()
   }
 
-  cleanup () {
+  cleanup() {
     const w = this.w
 
     // hide some elements to avoid printing them on exported svg
@@ -29,15 +29,15 @@ class Exports {
     }
   }
 
-  svgUrl () {
+  svgUrl() {
     this.cleanup()
 
     const svgData = this.getSvgString()
-    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'})
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
     return URL.createObjectURL(svgBlob)
   }
 
-  dataURI () {
+  dataURI() {
     return new Promise((resolve) => {
       const w = this.w
 
@@ -46,7 +46,10 @@ class Exports {
       canvas.width = w.globals.svgWidth
       canvas.height = w.globals.svgHeight
 
-      const canvasBg = w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background
+      const canvasBg =
+        w.config.chart.background === 'transparent'
+          ? '#fff'
+          : w.config.chart.background
 
       var ctx = canvas.getContext('2d')
       ctx.fillStyle = canvasBg
@@ -64,8 +67,7 @@ class Exports {
         ctx.drawImage(img, 0, 0)
         DOMURL.revokeObjectURL(svgUrl)
 
-        var imgURI = canvas
-          .toDataURL('image/png')
+        var imgURI = canvas.toDataURL('image/png')
 
         resolve(imgURI)
       }
@@ -74,17 +76,17 @@ class Exports {
     })
   }
 
-  exportToSVG () {
+  exportToSVG() {
     this.triggerDownload(this.svgUrl(), '.svg')
   }
 
-  exportToPng () {
+  exportToPng() {
     this.dataURI().then((imgURI) => {
       this.triggerDownload(imgURI, '.png')
     })
   }
 
-  triggerDownload (href, ext) {
+  triggerDownload(href, ext) {
     const downloadLink = document.createElement('a')
     downloadLink.href = href
     downloadLink.download = this.w.globals.chartID + ext

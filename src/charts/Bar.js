@@ -11,7 +11,7 @@ import DataLabels from '../modules/DataLabels'
  **/
 
 class Bar {
-  constructor (ctx, xyRatios) {
+  constructor(ctx, xyRatios) {
     this.ctx = ctx
     this.w = ctx.w
     const w = this.w
@@ -42,7 +42,7 @@ class Bar {
    * @param {int} seriesIndex - the index by which series will be drawn on the svg
    * @return {node} element which is supplied to parent chart draw method for appending
    **/
-  draw (series, seriesIndex) {
+  draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
@@ -62,7 +62,8 @@ class Bar {
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
       let pathTo, pathFrom
-      let x, y,
+      let x,
+        y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
         yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
         zeroH, // zeroH is the baseline where 0 meets y axis
@@ -75,9 +76,10 @@ class Bar {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${w.globals.seriesNames[realIndex].toString().replace(/ /g, '-')
-        }`,
-        'rel': i + 1,
+        class: `apexcharts-series ${w.globals.seriesNames[realIndex]
+          .toString()
+          .replace(/ /g, '-')}`,
+        rel: i + 1,
         'data:realIndex': realIndex
       })
 
@@ -116,7 +118,11 @@ class Bar {
         class: 'apexcharts-datalabels'
       })
 
-      for (let j = 0, tj = w.globals.dataPoints; j < w.globals.dataPoints; j++, tj--) {
+      for (
+        let j = 0, tj = w.globals.dataPoints;
+        j < w.globals.dataPoints;
+        j++, tj--
+      ) {
         if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
           this.isNullValue = true
         } else {
@@ -126,7 +132,9 @@ class Bar {
           if (this.isNullValue) {
             strokeWidth = 0
           } else {
-            strokeWidth = Array.isArray(this.strokeWidth) ? this.strokeWidth[realIndex] : this.strokeWidth
+            strokeWidth = Array.isArray(this.strokeWidth)
+              ? this.strokeWidth[realIndex]
+              : this.strokeWidth
           }
         }
 
@@ -185,13 +193,28 @@ class Bar {
         }
 
         let pathFill = fill.fillPath(elSeries, {
-          seriesNumber: this.barOptions.distributed
-            ? seriesNumber
-            : realIndex,
+          seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
           color: fillColor
         })
 
-        elSeries = this.renderSeries({ realIndex, pathFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries: this.visibleI, type: 'bar' })
+        elSeries = this.renderSeries({
+          realIndex,
+          pathFill,
+          j,
+          i,
+          pathFrom,
+          pathTo,
+          strokeWidth,
+          elSeries,
+          x,
+          y,
+          series,
+          barHeight,
+          barWidth,
+          elDataLabelsWrap,
+          visibleSeries: this.visibleI,
+          type: 'bar'
+        })
       }
 
       // push all x val arrays into main xArr
@@ -204,7 +227,25 @@ class Bar {
     return ret
   }
 
-  renderSeries ({ realIndex, pathFill, lineFill, j, i, pathFrom, pathTo, strokeWidth, elSeries, x, y, series, barHeight, barWidth, elDataLabelsWrap, visibleSeries, type }) {
+  renderSeries({
+    realIndex,
+    pathFill,
+    lineFill,
+    j,
+    i,
+    pathFrom,
+    pathTo,
+    strokeWidth,
+    elSeries,
+    x,
+    y,
+    series,
+    barHeight,
+    barWidth,
+    elDataLabelsWrap,
+    visibleSeries,
+    type
+  }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -215,10 +256,10 @@ class Bar {
       pathFill = 'none'
     }
 
-    let delay = (j /
-      w.config.chart.animations.animateGradually.delay *
-      (w.config.chart.animations.speed /
-        w.globals.dataPoints)) / 2.4
+    let delay =
+      ((j / w.config.chart.animations.animateGradually.delay) *
+        (w.config.chart.animations.speed / w.globals.dataPoints)) /
+      2.4
 
     let renderedPath = graphics.renderPaths({
       i,
@@ -241,7 +282,18 @@ class Bar {
     filters.setSelectionFilter(renderedPath, realIndex, j)
     elSeries.add(renderedPath)
 
-    let dataLabels = this.calculateDataLabelsPos({ x, y, i, j, series, realIndex, barHeight, barWidth, renderedPath, visibleSeries })
+    let dataLabels = this.calculateDataLabelsPos({
+      x,
+      y,
+      i,
+      j,
+      series,
+      realIndex,
+      barHeight,
+      barWidth,
+      renderedPath,
+      visibleSeries
+    })
     if (dataLabels !== null) {
       elDataLabelsWrap.add(dataLabels)
     }
@@ -250,7 +302,7 @@ class Bar {
     return elSeries
   }
 
-  initVariables (series) {
+  initVariables(series) {
     const w = this.w
     this.series = series
     this.totalItems = 0
@@ -276,7 +328,10 @@ class Bar {
 
         // get max visible items
         for (let j = 0; j < series[sl].length; j++) {
-          if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
+          if (
+            w.globals.seriesX[sl][j] > w.globals.minX &&
+            w.globals.seriesX[sl][j] < w.globals.maxX
+          ) {
             this.visibleItems++
           }
         }
@@ -291,21 +346,20 @@ class Bar {
     }
   }
 
-  initialPositions () {
+  initialPositions() {
     let w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
     if (this.isHorizontal) {
       // height divided into equal parts
       yDivision = w.globals.gridHeight / w.globals.dataPoints
-      barHeight =
-        yDivision / this.seriesLen
+      barHeight = yDivision / this.seriesLen
 
       if (w.globals.isXNumeric) {
         yDivision = w.globals.gridHeight / this.totalItems
         barHeight = yDivision / this.seriesLen
       }
 
-      barHeight = barHeight * parseInt(this.barOptions.barHeight) / 100
+      barHeight = (barHeight * parseInt(this.barOptions.barHeight)) / 100
 
       zeroW = this.baseLineInvertedY + w.globals.padHorizontal
 
@@ -313,7 +367,9 @@ class Bar {
     } else {
       // width divided into equal parts
       xDivision = w.globals.gridWidth / this.visibleItems
-      barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
+      barWidth =
+        ((xDivision / this.seriesLen) * parseInt(this.barOptions.columnWidth)) /
+        100
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
@@ -331,7 +387,10 @@ class Bar {
         }
 
         xDivision = this.minXDiff / this.xRatio
-        barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100
+        barWidth =
+          ((xDivision / this.seriesLen) *
+            parseInt(this.barOptions.columnWidth)) /
+          100
       }
 
       zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
@@ -340,11 +399,18 @@ class Bar {
     }
 
     return {
-      x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
+      x,
+      y,
+      yDivision,
+      xDivision,
+      barHeight,
+      barWidth,
+      zeroH,
+      zeroW
     }
   }
 
-  drawBarPaths ({
+  drawBarPaths({
     indexes,
     barHeight,
     strokeWidth,
@@ -379,10 +445,13 @@ class Bar {
       pathFrom = this.getPathFrom(realIndex, j)
     }
 
-    if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
+    if (
+      typeof this.series[i][j] === 'undefined' ||
+      this.series[i][j] === null
+    ) {
       x = zeroW
     } else {
-      x = (zeroW + this.series[i][j] / this.invertedYRatio)
+      x = zeroW + this.series[i][j] / this.invertedYRatio
     }
 
     let endingShapeOpts = {
@@ -413,10 +482,7 @@ class Bar {
       y = y + yDivision
     }
 
-    if (
-      this.barOptions.colors.backgroundBarColors.length > 0 &&
-      i === 0
-    ) {
+    if (this.barOptions.colors.backgroundBarColors.length > 0 && i === 0) {
       if (bc >= this.barOptions.colors.backgroundBarColors.length) {
         bc = 0
       }
@@ -443,7 +509,7 @@ class Bar {
     }
   }
 
-  drawColumnPaths ({
+  drawColumnPaths({
     indexes,
     x,
     y,
@@ -465,7 +531,8 @@ class Bar {
     let bc = indexes.bc
 
     if (w.globals.isXNumeric) {
-      x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
+      x =
+        (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
     }
 
     let barXPosition = x + barWidth * this.visibleI
@@ -477,10 +544,13 @@ class Bar {
       pathFrom = this.getPathFrom(realIndex, j)
     }
 
-    if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
+    if (
+      typeof this.series[i][j] === 'undefined' ||
+      this.series[i][j] === null
+    ) {
       y = zeroH
     } else {
-      y = (zeroH - this.series[i][j] / this.yRatio[this.yaxisIndex])
+      y = zeroH - this.series[i][j] / this.yRatio[this.yaxisIndex]
     }
 
     let endingShapeOpts = {
@@ -510,10 +580,7 @@ class Bar {
       x = x + xDivision
     }
 
-    if (
-      this.barOptions.colors.backgroundBarColors.length > 0 &&
-      i === 0
-    ) {
+    if (this.barOptions.colors.backgroundBarColors.length > 0 && i === 0) {
       if (bc >= this.barOptions.colors.backgroundBarColors.length) {
         bc = 0
       }
@@ -546,7 +613,7 @@ class Bar {
    * @param {int} j - current iterating series's j index
    * @return {string} pathFrom is the string which will be appended in animations
    **/
-  getPathFrom (realIndex, j) {
+  getPathFrom(realIndex, j) {
     let w = this.w
     let pathFrom
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
@@ -571,25 +638,32 @@ class Bar {
    * drawing function
    * @return {object} dataLabels node-element which you can append later
    **/
-  calculateDataLabelsPos ({ x, y, i, j, realIndex, series, barHeight, barWidth, visibleSeries, renderedPath }) {
+  calculateDataLabelsPos({
+    x,
+    y,
+    i,
+    j,
+    realIndex,
+    series,
+    barHeight,
+    barWidth,
+    visibleSeries,
+    renderedPath
+  }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let strokeWidth = Array.isArray(this.strokeWidth) ? this.strokeWidth[realIndex] : this.strokeWidth
+    let strokeWidth = Array.isArray(this.strokeWidth)
+      ? this.strokeWidth[realIndex]
+      : this.strokeWidth
 
     let bcx = x + parseFloat(barWidth * visibleSeries)
     let bcy = y + parseFloat(barHeight * visibleSeries)
 
     if (w.globals.isXNumeric) {
-      bcx =
-        x +
-        parseFloat(barWidth * (visibleSeries + 1)) -
-        strokeWidth
+      bcx = x + parseFloat(barWidth * (visibleSeries + 1)) - strokeWidth
 
-      bcy =
-        y +
-        parseFloat(barHeight * (visibleSeries + 1)) -
-        strokeWidth
+      bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth
     }
 
     let dataLabels = null
@@ -602,12 +676,45 @@ class Bar {
     const offX = dataLabelsConfig.offsetX
     const offY = dataLabelsConfig.offsetY
 
-    let textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](w.globals.maxY), parseInt(dataLabelsConfig.style.fontSize))
+    let textRects = graphics.getTextRects(
+      w.globals.yLabelFormatters[0](w.globals.maxY),
+      parseInt(dataLabelsConfig.style.fontSize)
+    )
 
     if (this.isHorizontal) {
-      dataLabelsPos = this.calculateBarsDataLabelsPosition({ x, y, i, j, bcy, barHeight, textRects, strokeWidth, dataLabelsX, dataLabelsY, barDataLabelsConfig, offX, offY })
+      dataLabelsPos = this.calculateBarsDataLabelsPosition({
+        x,
+        y,
+        i,
+        j,
+        bcy,
+        barHeight,
+        textRects,
+        strokeWidth,
+        dataLabelsX,
+        dataLabelsY,
+        barDataLabelsConfig,
+        offX,
+        offY
+      })
     } else {
-      dataLabelsPos = this.calculateColumnsDataLabelsPosition({ x, y, i, j, realIndex, bcx, bcy, barHeight, barWidth, textRects, strokeWidth, dataLabelsY, barDataLabelsConfig, offX, offY })
+      dataLabelsPos = this.calculateColumnsDataLabelsPosition({
+        x,
+        y,
+        i,
+        j,
+        realIndex,
+        bcx,
+        bcy,
+        barHeight,
+        barWidth,
+        textRects,
+        strokeWidth,
+        dataLabelsY,
+        barDataLabelsConfig,
+        offX,
+        offY
+      })
     }
 
     renderedPath.attr({
@@ -619,18 +726,38 @@ class Bar {
       barWidth: barWidth
     })
 
-    dataLabels = this.drawCalculatedDataLabels({ x: dataLabelsPos.dataLabelsX, y: dataLabelsPos.dataLabelsY, val: series[i][j], i: realIndex, j: j, dataLabelsConfig })
+    dataLabels = this.drawCalculatedDataLabels({
+      x: dataLabelsPos.dataLabelsX,
+      y: dataLabelsPos.dataLabelsY,
+      val: series[i][j],
+      i: realIndex,
+      j: j,
+      dataLabelsConfig
+    })
 
     return dataLabels
   }
 
-  calculateColumnsDataLabelsPosition (opts) {
+  calculateColumnsDataLabelsPosition(opts) {
     const w = this.w
-    let { i, j, realIndex, y, bcx, barWidth, textRects, dataLabelsY, barDataLabelsConfig, strokeWidth, offX, offY } = opts
+    let {
+      i,
+      j,
+      realIndex,
+      y,
+      bcx,
+      barWidth,
+      textRects,
+      dataLabelsY,
+      barDataLabelsConfig,
+      strokeWidth,
+      offX,
+      offY
+    } = opts
     let dataLabelsX
     let barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
 
-    let dataPointsDividedWidth = w.globals.gridWidth / (w.globals.dataPoints)
+    let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
     bcx = bcx - strokeWidth / 2
 
     if (w.globals.isXNumeric) {
@@ -640,7 +767,9 @@ class Bar {
     }
 
     let baseline = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
-    let valIsNegative = !!(y > baseline && Math.abs(this.baseLineY[this.yaxisIndex]) !== 0)
+    let valIsNegative = !!(
+      y > baseline && Math.abs(this.baseLineY[this.yaxisIndex]) !== 0
+    )
     let negValuesPresent = Math.abs(w.globals.minYArr[realIndex]) !== 0
 
     switch (barDataLabelsConfig.position) {
@@ -659,10 +788,11 @@ class Bar {
           if (valIsNegative) {
             dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
           } else {
-            dataLabelsY = y + barHeight - textRects.height / 2 + strokeWidth - offY
+            dataLabelsY =
+              y + barHeight - textRects.height / 2 + strokeWidth - offY
           }
         } else {
-          dataLabelsY = (w.globals.gridHeight) - textRects.height / 2 - offY
+          dataLabelsY = w.globals.gridHeight - textRects.height / 2 - offY
         }
         break
       case 'top':
@@ -686,13 +816,31 @@ class Bar {
     }
   }
 
-  calculateBarsDataLabelsPosition (opts) {
+  calculateBarsDataLabelsPosition(opts) {
     const w = this.w
-    let { x, i, j, bcy, barHeight, textRects, dataLabelsX, strokeWidth, barDataLabelsConfig, offX, offY } = opts
+    let {
+      x,
+      i,
+      j,
+      bcy,
+      barHeight,
+      textRects,
+      dataLabelsX,
+      strokeWidth,
+      barDataLabelsConfig,
+      offX,
+      offY
+    } = opts
 
-    let dataPointsDividedHeight = w.globals.gridHeight / (w.globals.dataPoints)
+    let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
 
-    let dataLabelsY = bcy - dataPointsDividedHeight + (barHeight / 2) + textRects.height / 2 + offY - 3
+    let dataLabelsY =
+      bcy -
+      dataPointsDividedHeight +
+      barHeight / 2 +
+      textRects.height / 2 +
+      offY -
+      3
     let barWidth = this.series[i][j] / this.invertedYRatio
 
     let valIsNegative = this.series[i][j] <= 0
@@ -712,20 +860,33 @@ class Bar {
       case 'bottom':
         if (negValuesPresent) {
           if (valIsNegative) {
-            dataLabelsX = x - barWidth - strokeWidth - Math.round(textRects.width / 2) - offX
+            dataLabelsX =
+              x -
+              barWidth -
+              strokeWidth -
+              Math.round(textRects.width / 2) -
+              offX
           } else {
-            dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
+            dataLabelsX =
+              x -
+              barWidth +
+              strokeWidth +
+              Math.round(textRects.width / 2) +
+              offX
           }
         } else {
-          dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
+          dataLabelsX =
+            x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
         }
         break
       case 'top':
         if (negValuesPresent) {
           if (valIsNegative) {
-            dataLabelsX = x - strokeWidth + Math.round(textRects.width / 2) - offX
+            dataLabelsX =
+              x - strokeWidth + Math.round(textRects.width / 2) - offX
           } else {
-            dataLabelsX = x - strokeWidth - Math.round(textRects.width / 2) + offX
+            dataLabelsX =
+              x - strokeWidth - Math.round(textRects.width / 2) + offX
           }
         } else {
           dataLabelsX = x + strokeWidth - Math.round(textRects.width / 2) + offX
@@ -747,7 +908,7 @@ class Bar {
     }
   }
 
-  drawCalculatedDataLabels ({ x, y, val, i, j, dataLabelsConfig }) {
+  drawCalculatedDataLabels({ x, y, val, i, j, dataLabelsConfig }) {
     const w = this.w
 
     const dataLabels = new DataLabels(this.ctx)
@@ -756,7 +917,8 @@ class Bar {
 
     let elDataLabelsWrap = null
 
-    const isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) > -1
+    const isSeriesNotCollapsed =
+      w.globals.collapsedSeriesIndices.indexOf(i) > -1
 
     if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
       elDataLabelsWrap = graphics.group({
@@ -794,7 +956,7 @@ class Bar {
    *         ending_p_from - similar to pathFrom
    *         newY - which is calculated from existing y and new shape's top
    **/
-  barEndingShape (w, opts, series, i, j) {
+  barEndingShape(w, opts, series, i, j) {
     let graphics = new Graphics(this.ctx)
 
     if (this.isHorizontal) {
@@ -830,7 +992,10 @@ class Bar {
                 x + eX,
                 opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2
               ) +
-              graphics.line(x, opts.barYPosition + opts.barHeight - opts.strokeWidth)
+              graphics.line(
+                x,
+                opts.barYPosition + opts.barHeight - opts.strokeWidth
+              )
 
             endingShapeFrom = graphics.line(
               opts.zeroW,
@@ -888,7 +1053,10 @@ class Bar {
                 opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
                 y - eY
               ) +
-              graphics.line(opts.barXPosition + opts.barWidth - opts.strokeWidth, y)
+              graphics.line(
+                opts.barXPosition + opts.barWidth - opts.strokeWidth,
+                y
+              )
             endingShapeFrom = graphics.line(
               opts.barXPosition + opts.barWidth - opts.strokeWidth,
               opts.zeroH
@@ -911,7 +1079,6 @@ class Bar {
       }
     }
   }
-
 }
 
 export default Bar

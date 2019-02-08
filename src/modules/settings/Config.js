@@ -9,11 +9,11 @@ import Options from './Options'
  * @module Config
  **/
 export default class Config {
-  constructor (opts) {
+  constructor(opts) {
     this.opts = opts
   }
 
-  init () {
+  init() {
     let opts = this.opts
     let options = new Options()
     let defaults = new Defaults(opts)
@@ -23,13 +23,16 @@ export default class Config {
     if (this.chartType === 'histogram') {
       // technically, a histogram can be drawn by a column chart with no spaces in between
       opts.chart.type = 'bar'
-      opts = Utils.extend({
-        plotOptions: {
-          bar: {
-            columnWidth: '99.99%'
+      opts = Utils.extend(
+        {
+          plotOptions: {
+            bar: {
+              columnWidth: '99.99%'
+            }
           }
-        }
-      }, opts)
+        },
+        opts
+      )
     }
 
     opts.series = this.checkEmptySeries(opts.series)
@@ -94,14 +97,21 @@ export default class Config {
 
       const combo = CoreUtils.checkComboSeries(opts.series)
       if (
-        (opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') &&
-        (!combo.comboChartsHasBars) &&
-        (opts.xaxis.type !== 'datetime') &&
-        (opts.xaxis.tickPlacement !== 'between')
+        (opts.chart.type === 'line' ||
+          opts.chart.type === 'area' ||
+          opts.chart.type === 'scatter') &&
+        !combo.comboChartsHasBars &&
+        opts.xaxis.type !== 'datetime' &&
+        opts.xaxis.tickPlacement !== 'between'
       ) {
         defaults.convertCatToNumeric()
       }
-      if ((opts.chart.sparkline && opts.chart.sparkline.enabled) || (window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled)) {
+      if (
+        (opts.chart.sparkline && opts.chart.sparkline.enabled) ||
+        (window.Apex.chart &&
+          window.Apex.chart.sparkline &&
+          window.Apex.chart.sparkline.enabled)
+      ) {
         chartDefaults = defaults.sparkline(chartDefaults)
       }
       newDefaults = Utils.extend(config, chartDefaults)
@@ -122,14 +132,18 @@ export default class Config {
     return config
   }
 
-  extendYAxis (opts) {
+  extendYAxis(opts) {
     let options = new Options()
     if (typeof opts.yaxis === 'undefined') {
       opts.yaxis = {}
     }
 
     // extend global yaxis config (only if object is provided / not an array)
-    if (opts.yaxis.constructor !== Array && window.Apex.yaxis && window.Apex.yaxis.constructor !== Array) {
+    if (
+      opts.yaxis.constructor !== Array &&
+      window.Apex.yaxis &&
+      window.Apex.yaxis.constructor !== Array
+    ) {
       opts.yaxis = Utils.extend(opts.yaxis, window.Apex.yaxis)
     }
 
@@ -145,7 +159,7 @@ export default class Config {
   }
 
   // annotations also accepts array, so we need to extend them manually
-  extendAnnotations (opts) {
+  extendAnnotations(opts) {
     if (typeof opts.annotations === 'undefined') {
       opts.annotations = {}
       opts.annotations.yaxis = []
@@ -160,52 +174,77 @@ export default class Config {
     return opts
   }
 
-  extendYAxisAnnotations (opts) {
+  extendYAxisAnnotations(opts) {
     let options = new Options()
-    opts.annotations.yaxis = Utils.extendArray(typeof opts.annotations.yaxis !== 'undefined' ? opts.annotations.yaxis : [], options.yAxisAnnotation)
+    opts.annotations.yaxis = Utils.extendArray(
+      typeof opts.annotations.yaxis !== 'undefined'
+        ? opts.annotations.yaxis
+        : [],
+      options.yAxisAnnotation
+    )
     return opts
   }
 
-  extendXAxisAnnotations (opts) {
+  extendXAxisAnnotations(opts) {
     let options = new Options()
-    opts.annotations.xaxis = Utils.extendArray(typeof opts.annotations.xaxis !== 'undefined' ? opts.annotations.xaxis : [], options.xAxisAnnotation)
+    opts.annotations.xaxis = Utils.extendArray(
+      typeof opts.annotations.xaxis !== 'undefined'
+        ? opts.annotations.xaxis
+        : [],
+      options.xAxisAnnotation
+    )
     return opts
   }
-  extendPointAnnotations (opts) {
+  extendPointAnnotations(opts) {
     let options = new Options()
-    opts.annotations.points = Utils.extendArray(typeof opts.annotations.points !== 'undefined' ? opts.annotations.points : [], options.pointAnnotation)
+    opts.annotations.points = Utils.extendArray(
+      typeof opts.annotations.points !== 'undefined'
+        ? opts.annotations.points
+        : [],
+      options.pointAnnotation
+    )
     return opts
   }
 
-  checkEmptySeries (ser) {
+  checkEmptySeries(ser) {
     if (ser.length === 0) {
-      return [{
-        data: []
-      }]
+      return [
+        {
+          data: []
+        }
+      ]
     }
     return ser
   }
 
-  handleUserInputErrors (opts) {
+  handleUserInputErrors(opts) {
     let config = opts
     // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
     if (config.tooltip.shared && config.tooltip.intersect) {
-      throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false')
+      throw new Error(
+        'tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false'
+      )
     }
 
     if (config.chart.scroller) {
-      console.warn('Scroller has been deprecated since v2.0.0. Please remove the configuration for chart.scroller')
+      console.warn(
+        'Scroller has been deprecated since v2.0.0. Please remove the configuration for chart.scroller'
+      )
     }
 
     if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
       // No time series for horizontal bars
       if (config.xaxis.type === 'datetime') {
-        throw new Error('Timelines on bars are not supported yet. Switch to column chart by setting plotOptions.bar.horizontal=false')
+        throw new Error(
+          'Timelines on bars are not supported yet. Switch to column chart by setting plotOptions.bar.horizontal=false'
+        )
       }
 
       // No multiple yaxis for bars
       if (config.yaxis.length > 1) {
-        throw new Error('Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false')
+        throw new Error(
+          'Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false'
+        )
       }
 
       config.xaxis.tooltip.enabled = false // no xaxis tooltip for horizontal bar
@@ -215,15 +254,22 @@ export default class Config {
 
     if (config.chart.type === 'bar') {
       if (config.tooltip.shared) {
-        if (config.xaxis.crosshairs.width === 'barWidth' && config.series.length > 1) {
-          console.warn('crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart')
+        if (
+          config.xaxis.crosshairs.width === 'barWidth' &&
+          config.series.length > 1
+        ) {
+          console.warn(
+            'crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart'
+          )
           config.xaxis.crosshairs.width = 'tickWidth'
         }
         if (config.plotOptions.bar.horizontal) {
           config.states.hover.type = 'none'
         }
         if (!config.tooltip.followCursor) {
-          console.warn('followCursor option in shared columns cannot be turned off')
+          console.warn(
+            'followCursor option in shared columns cannot be turned off'
+          )
           config.tooltip.followCursor = true
         }
       }
@@ -232,7 +278,9 @@ export default class Config {
     // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
     if (Array.isArray(config.stroke.width)) {
       if (config.chart.type !== 'line' && config.chart.type !== 'area') {
-        console.warn('stroke.width option accepts array only for line and area charts. Reverted back to Number')
+        console.warn(
+          'stroke.width option accepts array only for line and area charts. Reverted back to Number'
+        )
         config.stroke.width = config.stroke.width[0]
       }
     }

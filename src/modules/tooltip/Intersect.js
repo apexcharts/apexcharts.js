@@ -7,16 +7,16 @@ import Utils from '../../utils/Utils'
  **/
 
 class Intersect {
-  constructor (tooltipContext) {
+  constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
   }
 
-  getAttr = (e, attr) => {
+  getAttr(e, attr) {
     return parseFloat(e.target.getAttribute(attr))
   }
 
-  handleHeatTooltip ({ e, opt, x, y }) {
+  handleHeatTooltip({ e, opt, x, y }) {
     const ttCtx = this.ttCtx
     const w = this.w
 
@@ -35,8 +35,8 @@ class Intersect {
         shared: false
       })
 
-      x = cx + (ttCtx.tooltipRect.ttWidth / 2) + width
-      y = cy + (ttCtx.tooltipRect.ttHeight / 2) - height / 2
+      x = cx + ttCtx.tooltipRect.ttWidth / 2 + width
+      y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2
 
       ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2)
 
@@ -57,7 +57,7 @@ class Intersect {
     }
   }
 
-  handleMarkerTooltip ({ e, opt, x, y }) {
+  handleMarkerTooltip({ e, opt, x, y }) {
     let w = this.w
     const ttCtx = this.ttCtx
 
@@ -69,14 +69,13 @@ class Intersect {
       let val = parseFloat(opt.paths.getAttribute('val'))
 
       j = parseInt(opt.paths.getAttribute('rel'))
-      i = parseInt(opt.paths.parentNode.parentNode.parentNode.getAttribute('rel')) - 1
+      i =
+        parseInt(
+          opt.paths.parentNode.parentNode.parentNode.getAttribute('rel')
+        ) - 1
 
       if (ttCtx.intersect) {
-        const el =
-          Utils.findAncestor(
-            opt.paths,
-            'apexcharts-series'
-          )
+        const el = Utils.findAncestor(opt.paths, 'apexcharts-series')
         if (el) {
           i = parseInt(el.getAttribute('data:realIndex'))
         }
@@ -111,7 +110,7 @@ class Intersect {
     }
   }
 
-  handleBarTooltip ({ e, opt }) {
+  handleBarTooltip({ e, opt }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -124,7 +123,10 @@ class Intersect {
     let i = 0
     let strokeWidth
 
-    if ((ttCtx.isBarHorizontal && ttCtx.hasBars()) || !w.config.tooltip.shared) {
+    if (
+      (ttCtx.isBarHorizontal && ttCtx.hasBars()) ||
+      !w.config.tooltip.shared
+    ) {
       let barXY = this.getBarTooltipXY({
         e,
         opt
@@ -132,7 +134,9 @@ class Intersect {
       x = barXY.x
       y = barXY.y
       i = barXY.i
-      strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width
+      strokeWidth = Array.isArray(w.config.stroke.width)
+        ? w.config.stroke.width[i]
+        : w.config.stroke.width
       // bW = barXY.barWidth
       bx = x
     } else {
@@ -161,9 +165,7 @@ class Intersect {
 
     // if tooltip is still null, querySelector
     if (ttCtx.tooltip === null) {
-      ttCtx.tooltip = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-tooltip'
-      )
+      ttCtx.tooltip = w.globals.dom.baseEl.querySelector('.apexcharts-tooltip')
     }
 
     if (!w.config.tooltip.shared) {
@@ -175,18 +177,25 @@ class Intersect {
     }
 
     // move tooltip here
-    if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || (ttCtx.isBarHorizontal && ttCtx.hasBars()))) {
+    if (
+      !ttCtx.fixedTooltip &&
+      (!w.config.tooltip.shared || (ttCtx.isBarHorizontal && ttCtx.hasBars()))
+    ) {
       tooltipEl.style.left = x + w.globals.translateX + 'px'
       if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {
-        y = w.globals.gridHeight - ttCtx.tooltipRect.ttHeight + w.globals.translateY
+        y =
+          w.globals.gridHeight -
+          ttCtx.tooltipRect.ttHeight +
+          w.globals.translateY
         tooltipEl.style.top = y + 'px'
       } else {
-        tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
+        tooltipEl.style.top =
+          y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
       }
     }
   }
 
-  getBarTooltipXY ({ e, opt }) {
+  getBarTooltipXY({ e, opt }) {
     let w = this.w
     let j = null
     const ttCtx = this.ttCtx
@@ -197,7 +206,10 @@ class Intersect {
 
     const cl = e.target.classList
 
-    if (cl.contains('apexcharts-bar-area') || cl.contains('apexcharts-candlestick-area')) {
+    if (
+      cl.contains('apexcharts-bar-area') ||
+      cl.contains('apexcharts-candlestick-area')
+    ) {
       let bar = e.target
       let barRect = bar.getBoundingClientRect()
 

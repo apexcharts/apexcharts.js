@@ -10,7 +10,7 @@ import Filters from '../modules/Filters'
  **/
 
 class Radial extends Pie {
-  constructor (ctx) {
+  constructor(ctx) {
     super(ctx)
 
     this.ctx = ctx
@@ -32,12 +32,15 @@ class Radial extends Pie {
 
     if (this.endAngle === 360) this.endAngle = 359.99
 
-    this.fullAngle = 360 - w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle
+    this.fullAngle =
+      360 -
+      w.config.plotOptions.radialBar.endAngle -
+      w.config.plotOptions.radialBar.startAngle
 
     this.margin = parseInt(w.config.plotOptions.radialBar.track.margin)
   }
 
-  draw (series) {
+  draw(series) {
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -94,7 +97,7 @@ class Radial extends Pie {
     return ret
   }
 
-  drawTracks (opts) {
+  drawTracks(opts) {
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -115,7 +118,7 @@ class Radial extends Pie {
 
       elRadialBarTrack.attr({
         id: 'apexcharts-track-' + i,
-        'rel': i + 1
+        rel: i + 1
       })
 
       opts.size = opts.size - strokeWidth - this.margin
@@ -124,21 +127,22 @@ class Radial extends Pie {
       let pathFill = fill.fillPath(elRadialBarTrack, {
         seriesNumber: 0,
         size: opts.size,
-        fillColors: Array.isArray(trackConfig.background) ? trackConfig.background[i] : trackConfig.background,
+        fillColors: Array.isArray(trackConfig.background)
+          ? trackConfig.background[i]
+          : trackConfig.background,
         solid: true
       })
 
       let startAngle = this.trackStartAngle
       let endAngle = this.trackEndAngle
 
-      if (Math.abs(endAngle) + Math.abs(startAngle) >= 360) endAngle = 360 - Math.abs(this.startAngle) - 0.1
+      if (Math.abs(endAngle) + Math.abs(startAngle) >= 360)
+        endAngle = 360 - Math.abs(this.startAngle) - 0.1
 
       let elPath = graphics.drawPath({
         d: '',
         stroke: pathFill,
-        strokeWidth: strokeWidth *
-        parseInt(trackConfig.strokeWidth) /
-        100,
+        strokeWidth: (strokeWidth * parseInt(trackConfig.strokeWidth)) / 100,
         fill: 'none',
         strokeOpacity: trackConfig.opacity,
         classes: 'apexcharts-radialbar-area'
@@ -171,7 +175,7 @@ class Radial extends Pie {
     return g
   }
 
-  drawArcs (opts) {
+  drawArcs(opts) {
     let w = this.w
     // size, donutSize, centerX, centerY, colorArr, lineColorArr, sectorAngleArr, series
 
@@ -188,8 +192,8 @@ class Radial extends Pie {
       opts.size -
       strokeWidth * opts.series.length -
       this.margin * opts.series.length -
-      strokeWidth *
-        parseInt(w.config.plotOptions.radialBar.track.strokeWidth) /
+      (strokeWidth *
+        parseInt(w.config.plotOptions.radialBar.track.strokeWidth)) /
         100 /
         2
 
@@ -240,15 +244,23 @@ class Radial extends Pie {
       reverseLoop = true
     }
 
-    for (let i = (reverseLoop ? opts.series.length - 1 : 0); (reverseLoop ? i >= 0 : i < opts.series.length) ; (reverseLoop ? i-- : i++)) {
+    for (
+      let i = reverseLoop ? opts.series.length - 1 : 0;
+      reverseLoop ? i >= 0 : i < opts.series.length;
+      reverseLoop ? i-- : i++
+    ) {
       let elRadialBarArc = graphics.group({
-        class: `apexcharts-series apexcharts-radial-series ${w.globals.seriesNames[i].toString().replace(/ /g, '-')}`
+        class: `apexcharts-series apexcharts-radial-series ${w.globals.seriesNames[
+          i
+        ]
+          .toString()
+          .replace(/ /g, '-')}`
       })
       g.add(elRadialBarArc)
 
       elRadialBarArc.attr({
         id: 'apexcharts-series-' + i,
-        'rel': i + 1
+        rel: i + 1
       })
 
       this.ctx.series.addCollapsedClassToSeries(elRadialBarArc, i)
@@ -263,17 +275,24 @@ class Radial extends Pie {
       let startAngle = this.startAngle
       let prevStartAngle
 
-      const totalAngle = Math.abs(w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle)
+      const totalAngle = Math.abs(
+        w.config.plotOptions.radialBar.endAngle -
+          w.config.plotOptions.radialBar.startAngle
+      )
 
       // if data exceeds 100, make it 100
-      const dataValue = Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100
+      const dataValue =
+        Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100
 
       let endAngle = Math.round(totalAngle * dataValue) + this.startAngle
 
       let prevEndAngle
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle
-        prevEndAngle = Math.round(totalAngle * Utils.negToZero(w.globals.previousPaths[i]) / 100) + prevStartAngle
+        prevEndAngle =
+          Math.round(
+            (totalAngle * Utils.negToZero(w.globals.previousPaths[i])) / 100
+          ) + prevStartAngle
       }
 
       const currFullAngle = Math.abs(endAngle) + Math.abs(startAngle)
@@ -288,7 +307,9 @@ class Radial extends Pie {
 
       let angle = endAngle - startAngle
 
-      const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray
+      const dashArray = Array.isArray(w.config.stroke.dashArray)
+        ? w.config.stroke.dashArray[i]
+        : w.config.stroke.dashArray
 
       let elPath = graphics.drawPath({
         d: '',
@@ -321,12 +342,10 @@ class Radial extends Pie {
         index: 0,
         j: i
       })
-      
 
       let dur = 0
       if (pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-        dur = ((endAngle - startAngle) / 360) *
-              w.config.chart.animations.speed
+        dur = ((endAngle - startAngle) / 360) * w.config.chart.animations.speed
 
         this.animDur = dur / (opts.series.length * 1.2) + this.animDur
         this.animBeginArr.push(this.animDur)
@@ -334,8 +353,8 @@ class Radial extends Pie {
 
       if (w.globals.dataChanged) {
         dur =
-            ((endAngle - startAngle) / 360) *
-            w.config.chart.animations.dynamicAnimation.speed
+          ((endAngle - startAngle) / 360) *
+          w.config.chart.animations.dynamicAnimation.speed
 
         this.animDur = dur / (opts.series.length * 1.2) + this.animDur
         this.animBeginArr.push(this.animDur)
@@ -359,11 +378,13 @@ class Radial extends Pie {
     }
 
     return {
-      g, elHollow, dataLabels
+      g,
+      elHollow,
+      dataLabels
     }
   }
 
-  drawHollow (opts) {
+  drawHollow(opts) {
     const graphics = new Graphics(this.ctx)
 
     let circle = graphics.drawCircle(opts.size * 2)
@@ -379,7 +400,7 @@ class Radial extends Pie {
     return circle
   }
 
-  drawHollowImage (opts, g, hollowSize, hollowFillID) {
+  drawHollowImage(opts, g, hollowSize, hollowFillID) {
     const w = this.w
     let fill = new Fill(this.ctx)
 
@@ -398,18 +419,30 @@ class Radial extends Pie {
       const imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth
       const imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight
       if (imgWidth === undefined && imgHeight === undefined) {
-        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
+        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function(
+          loader
+        ) {
           this.move(
-            opts.centerX - loader.width / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
-            opts.centerY - loader.height / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
+            opts.centerX -
+              loader.width / 2 +
+              w.config.plotOptions.radialBar.hollow.imageOffsetX,
+            opts.centerY -
+              loader.height / 2 +
+              w.config.plotOptions.radialBar.hollow.imageOffsetY
           )
         })
         g.add(image)
       } else {
-        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
+        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function(
+          loader
+        ) {
           this.move(
-            opts.centerX - imgWidth / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
-            opts.centerY - imgHeight / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
+            opts.centerX -
+              imgWidth / 2 +
+              w.config.plotOptions.radialBar.hollow.imageOffsetX,
+            opts.centerY -
+              imgHeight / 2 +
+              w.config.plotOptions.radialBar.hollow.imageOffsetY
           )
           this.size(imgWidth, imgHeight)
         })
@@ -419,12 +452,15 @@ class Radial extends Pie {
     return hollowFillID
   }
 
-  getStrokeWidth (opts) {
+  getStrokeWidth(opts) {
     const w = this.w
-    return opts.size *
-    (100 - parseInt(w.config.plotOptions.radialBar.hollow.size)) /
-    100 /
-    (opts.series.length + 1) - this.margin
+    return (
+      (opts.size *
+        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size))) /
+        100 /
+        (opts.series.length + 1) -
+      this.margin
+    )
   }
 }
 

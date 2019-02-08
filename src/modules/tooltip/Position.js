@@ -8,7 +8,7 @@ import Series from '../Series'
  **/
 
 export default class Position {
-  constructor (tooltipContext) {
+  constructor(tooltipContext) {
     this.ttCtx = tooltipContext
     this.ctx = tooltipContext.ctx
     this.w = tooltipContext.w
@@ -20,7 +20,7 @@ export default class Position {
    * @memberof Position
    * @param {int} - cx = point's x position, wherever point's x is, you need to move crosshair
    */
-  moveXCrosshairs (cx, j = null) {
+  moveXCrosshairs(cx, j = null) {
     const ttCtx = this.ttCtx
     let w = this.w
 
@@ -33,13 +33,16 @@ export default class Position {
       x = (w.globals.gridWidth / tickAmount) * j
     }
 
-    if (w.config.xaxis.crosshairs.width === 'tickWidth' || w.config.xaxis.crosshairs.width === 'barWidth') {
+    if (
+      w.config.xaxis.crosshairs.width === 'tickWidth' ||
+      w.config.xaxis.crosshairs.width === 'barWidth'
+    ) {
       if (x + ttCtx.xcrosshairsWidth > w.globals.gridWidth) {
         x = w.globals.gridWidth - ttCtx.xcrosshairsWidth
       }
     } else {
       if (j !== null) {
-        x = x + (w.globals.gridWidth / tickAmount) / 2
+        x = x + w.globals.gridWidth / tickAmount / 2
       }
     }
 
@@ -61,7 +64,10 @@ export default class Position {
 
     if (ttCtx.blxaxisTooltip) {
       let tx = x
-      if (w.config.xaxis.crosshairs.width === 'tickWidth' || w.config.xaxis.crosshairs.width === 'barWidth') {
+      if (
+        w.config.xaxis.crosshairs.width === 'tickWidth' ||
+        w.config.xaxis.crosshairs.width === 'barWidth'
+      ) {
         tx = x + ttCtx.xcrosshairsWidth / 2
       }
       this.moveXAxisTooltip(tx)
@@ -74,7 +80,7 @@ export default class Position {
    * @memberof Position
    * @param {int} - cx = point's x position, wherever point's x is, you need to move crosshair
    */
-  moveYCrosshairs (cy) {
+  moveYCrosshairs(cy) {
     const ttCtx = this.ttCtx
 
     if (ttCtx.ycrosshairs !== null) {
@@ -95,19 +101,24 @@ export default class Position {
    * @memberof Position
    * @param {int} - cx = point's x position, wherever point's x is, you need to move
    */
-  moveXAxisTooltip (cx) {
+  moveXAxisTooltip(cx) {
     let w = this.w
     const ttCtx = this.ttCtx
 
     if (ttCtx.xaxisTooltip !== null) {
       ttCtx.xaxisTooltip.classList.add('active')
 
-      let cy = ttCtx.xaxisOffY + w.config.xaxis.tooltip.offsetY + w.globals.translateY + 1 + w.config.xaxis.offsetY
+      let cy =
+        ttCtx.xaxisOffY +
+        w.config.xaxis.tooltip.offsetY +
+        w.globals.translateY +
+        1 +
+        w.config.xaxis.offsetY
 
       let xaxisTTText = ttCtx.xaxisTooltip.getBoundingClientRect()
       let xaxisTTTextWidth = xaxisTTText.width
 
-      cx = cx - (xaxisTTTextWidth / 2)
+      cx = cx - xaxisTTTextWidth / 2
 
       if (!isNaN(cx)) {
         cx = cx + w.globals.translateX
@@ -123,15 +134,19 @@ export default class Position {
     }
   }
 
-  moveYAxisTooltip (index) {
+  moveYAxisTooltip(index) {
     const w = this.w
     const ttCtx = this.ttCtx
 
     if (ttCtx.yaxisTTEls === null) {
-      ttCtx.yaxisTTEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-yaxistooltip')
+      ttCtx.yaxisTTEls = w.globals.dom.baseEl.querySelectorAll(
+        '.apexcharts-yaxistooltip'
+      )
     }
 
-    const ycrosshairsHiddenRectY1 = parseInt(ttCtx.ycrosshairsHidden.getAttribute('y1'))
+    const ycrosshairsHiddenRectY1 = parseInt(
+      ttCtx.ycrosshairsHidden.getAttribute('y1')
+    )
     let cy = w.globals.translateY + ycrosshairsHiddenRectY1
 
     const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
@@ -147,7 +162,8 @@ export default class Position {
     if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1) {
       ttCtx.yaxisTTEls[index].classList.add('active')
       ttCtx.yaxisTTEls[index].style.top = cy + 'px'
-      ttCtx.yaxisTTEls[index].style.left = cx + w.config.yaxis[index].tooltip.offsetX + 'px'
+      ttCtx.yaxisTTEls[index].style.left =
+        cx + w.config.yaxis[index].tooltip.offsetX + 'px'
     } else {
       ttCtx.yaxisTTEls[index].classList.remove('active')
     }
@@ -160,7 +176,7 @@ export default class Position {
    * @param {int} - cy = point's y position, wherever point's y is, you need to move tooltip
    * @param {int} - r = point's radius
    */
-  moveTooltip (cx, cy, r = null) {
+  moveTooltip(cx, cy, r = null) {
     let w = this.w
 
     let ttCtx = this.ttCtx
@@ -202,7 +218,7 @@ export default class Position {
     }
   }
 
-  positionChecks (tooltipRect, x, y) {
+  positionChecks(tooltipRect, x, y) {
     const w = this.w
     if (tooltipRect.ttHeight + y > w.globals.gridHeight) {
       y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
@@ -213,16 +229,19 @@ export default class Position {
     }
 
     return {
-      x, y
+      x,
+      y
     }
   }
 
-  moveMarkers (i, j) {
+  moveMarkers(i, j) {
     let w = this.w
     let ttCtx = this.ttCtx
 
     if (w.globals.markers.size[i] > 0) {
-      let allPoints = w.globals.dom.baseEl.querySelectorAll(` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`)
+      let allPoints = w.globals.dom.baseEl.querySelectorAll(
+        ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`
+      )
       for (let p = 0; p < allPoints.length; p++) {
         if (parseInt(allPoints[p].getAttribute('rel')) === j) {
           ttCtx.marker.resetPointsSize()
@@ -231,16 +250,13 @@ export default class Position {
       }
     } else {
       ttCtx.marker.resetPointsSize()
-      this.moveDynamicPointOnHover(
-        j,
-        i
-      )
+      this.moveDynamicPointOnHover(j, i)
     }
   }
 
   // This function is used when you need to show markers/points only on hover -
   // DIFFERENT X VALUES in multiple series
-  moveDynamicPointOnHover (j, capturedSeries) {
+  moveDynamicPointOnHover(j, capturedSeries) {
     let w = this.w
     let ttCtx = this.ttCtx
     let cx = 0
@@ -251,7 +267,9 @@ export default class Position {
     let hoverSize = w.config.markers.hover.size
 
     if (hoverSize === undefined) {
-      hoverSize = w.globals.markers.size[capturedSeries] + w.config.markers.hover.sizeOffset
+      hoverSize =
+        w.globals.markers.size[capturedSeries] +
+        w.config.markers.hover.sizeOffset
     }
 
     cx = pointsArr[capturedSeries][j][0]
@@ -276,7 +294,7 @@ export default class Position {
 
   // This function is used when you need to show markers/points only on hover -
   // SAME X VALUES in multiple series
-  moveDynamicPointsOnHover (j) {
+  moveDynamicPointsOnHover(j) {
     const ttCtx = this.ttCtx
     let w = ttCtx.w
     let cx = 0
@@ -290,7 +308,8 @@ export default class Position {
 
     let hoverSize = w.config.markers.hover.size
     if (hoverSize === undefined) {
-      hoverSize = w.globals.markers.size[activeSeries] + w.config.markers.hover.sizeOffset
+      hoverSize =
+        w.globals.markers.size[activeSeries] + w.config.markers.hover.sizeOffset
     }
 
     if (pointsArr[activeSeries]) {
@@ -340,11 +359,13 @@ export default class Position {
     }
   }
 
-  moveStickyTooltipOverBars (j) {
+  moveStickyTooltipOverBars(j) {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    let jBar = w.globals.dom.baseEl.querySelector(`.apexcharts-bar-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='1'] path[j='${j}']`)
+    let jBar = w.globals.dom.baseEl.querySelector(
+      `.apexcharts-bar-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='1'] path[j='${j}']`
+    )
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
     let bcy = 0
@@ -353,9 +374,9 @@ export default class Position {
     if (w.globals.isXNumeric) {
       bcx = bcx - bw / 2
     } else {
-      bcx = ttCtx.xAxisTicksPositions[j - 1] + (ttCtx.dataPointsDividedWidth / 2)
+      bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
       if (isNaN(bcx)) {
-        bcx = ttCtx.xAxisTicksPositions[j] - (ttCtx.dataPointsDividedWidth / 2)
+        bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2
       }
     }
 

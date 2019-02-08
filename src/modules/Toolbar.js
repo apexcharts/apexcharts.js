@@ -15,7 +15,7 @@ import icoMenu from './../assets/ico-menu.svg'
  **/
 
 export default class Toolbar {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -24,7 +24,7 @@ export default class Toolbar {
     this.localeValues = this.w.globals.locale.toolbar
   }
 
-  createToolbar () {
+  createToolbar() {
     let w = this.w
 
     const elToolbarWrap = document.createElement('div')
@@ -42,7 +42,6 @@ export default class Toolbar {
     this.elMenuItems = []
 
     let toolbarControls = []
-
 
     if (w.config.chart.toolbar.tools.zoomin && w.config.chart.zoom.enabled) {
       toolbarControls.push({
@@ -71,8 +70,10 @@ export default class Toolbar {
       })
     }
 
-
-    if (w.config.chart.toolbar.tools.selection && w.config.chart.selection.enabled) {
+    if (
+      w.config.chart.toolbar.tools.selection &&
+      w.config.chart.selection.enabled
+    ) {
       toolbarControls.push({
         el: this.elSelection,
         icon: icoSelect,
@@ -122,13 +123,16 @@ export default class Toolbar {
       class: 'apexcharts-menu'
     })
 
-    const menuItems = [{
-      name: 'exportSVG',
-      title: this.localeValues.exportToSVG
-    }, {
-      name: 'exportPNG',
-      title: this.localeValues.exportToPNG
-    }]
+    const menuItems = [
+      {
+        name: 'exportSVG',
+        title: this.localeValues.exportToSVG
+      },
+      {
+        name: 'exportPNG',
+        title: this.localeValues.exportToPNG
+      }
+    ]
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItems.push(document.createElement('div'))
       this.elMenuItems[i].innerHTML = menuItems[i].title
@@ -150,7 +154,7 @@ export default class Toolbar {
     this.addToolbarEventListeners()
   }
 
-  addToolbarEventListeners () {
+  addToolbarEventListeners() {
     this.elZoomReset.addEventListener('click', this.handleZoomReset.bind(this))
     this.elSelection.addEventListener('click', this.toggleSelection.bind(this))
     this.elZoom.addEventListener('click', this.toggleZooming.bind(this))
@@ -167,7 +171,7 @@ export default class Toolbar {
     })
   }
 
-  toggleSelection () {
+  toggleSelection() {
     this.toggleOtherControls()
     this.w.globals.selectionEnabled = !this.w.globals.selectionEnabled
 
@@ -178,7 +182,7 @@ export default class Toolbar {
     }
   }
 
-  toggleZooming () {
+  toggleZooming() {
     this.toggleOtherControls()
     this.w.globals.zoomEnabled = !this.w.globals.zoomEnabled
 
@@ -189,7 +193,7 @@ export default class Toolbar {
     }
   }
 
-  getToolbarIconsReference () {
+  getToolbarIconsReference() {
     const w = this.w
     if (!this.elZoom) {
       this.elZoom = w.globals.dom.baseEl.querySelector('.apexcharts-zoom-icon')
@@ -198,11 +202,13 @@ export default class Toolbar {
       this.elPan = w.globals.dom.baseEl.querySelector('.apexcharts-pan-icon')
     }
     if (!this.elSelection) {
-      this.elSelection = w.globals.dom.baseEl.querySelector('.apexcharts-selection-icon')
+      this.elSelection = w.globals.dom.baseEl.querySelector(
+        '.apexcharts-selection-icon'
+      )
     }
   }
 
-  enableZooming () {
+  enableZooming() {
     this.toggleOtherControls()
     this.w.globals.zoomEnabled = true
     if (this.elZoom) {
@@ -213,7 +219,7 @@ export default class Toolbar {
     }
   }
 
-  enablePanning () {
+  enablePanning() {
     this.toggleOtherControls()
     this.w.globals.panEnabled = true
 
@@ -225,7 +231,7 @@ export default class Toolbar {
     }
   }
 
-  togglePanning () {
+  togglePanning() {
     this.toggleOtherControls()
     this.w.globals.panEnabled = !this.w.globals.panEnabled
 
@@ -236,7 +242,7 @@ export default class Toolbar {
     }
   }
 
-  toggleOtherControls () {
+  toggleOtherControls() {
     const w = this.w
     w.globals.panEnabled = false
     w.globals.zoomEnabled = false
@@ -255,7 +261,7 @@ export default class Toolbar {
     }
   }
 
-  handleZoomIn () {
+  handleZoomIn() {
     const w = this.w
 
     const centerX = (w.globals.minX + w.globals.maxX) / 2
@@ -267,11 +273,14 @@ export default class Toolbar {
     }
   }
 
-  handleZoomOut () {
+  handleZoomOut() {
     const w = this.w
 
     // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
-    if (w.config.xaxis.type === 'datetime' && new Date(w.globals.minX).getUTCFullYear() < 1000) {
+    if (
+      w.config.xaxis.type === 'datetime' &&
+      new Date(w.globals.minX).getUTCFullYear() < 1000
+    ) {
       return
     }
 
@@ -284,7 +293,7 @@ export default class Toolbar {
     }
   }
 
-  zoomUpdateOptions (newMinX, newMaxX) {
+  zoomUpdateOptions(newMinX, newMaxX) {
     let xaxis = {
       min: newMinX,
       max: newMaxX
@@ -297,23 +306,24 @@ export default class Toolbar {
 
     this.w.globals.zoomed = true
 
-    this.ctx._updateOptions({
-      xaxis
-    },
-    false,
-    this.w.config.chart.animations.dynamicAnimation.enabled
+    this.ctx._updateOptions(
+      {
+        xaxis
+      },
+      false,
+      this.w.config.chart.animations.dynamicAnimation.enabled
     )
 
     this.zoomCallback({ min: newMinX, max: newMaxX })
   }
 
-  zoomCallback (xaxis, yaxis) {
+  zoomCallback(xaxis, yaxis) {
     if (typeof this.ev.zoomed === 'function') {
       this.ev.zoomed(this.ctx, { xaxis, yaxis })
     }
   }
 
-  getBeforeZoomRange (xaxis, yaxis) {
+  getBeforeZoomRange(xaxis, yaxis) {
     let newRange = null
     if (typeof this.ev.beforeZoom === 'function') {
       newRange = this.ev.beforeZoom(this, { xaxis, yaxis })
@@ -322,7 +332,7 @@ export default class Toolbar {
     return newRange
   }
 
-  toggleMenu () {
+  toggleMenu() {
     if (this.elMenu.classList.contains('open')) {
       this.elMenu.classList.remove('open')
     } else {
@@ -330,42 +340,57 @@ export default class Toolbar {
     }
   }
 
-  downloadPNG () {
+  downloadPNG() {
     const downloadPNG = new Exports(this.ctx)
     downloadPNG.exportToPng(this.ctx)
     this.toggleMenu()
   }
 
-  downloadSVG () {
+  downloadSVG() {
     const downloadSVG = new Exports(this.ctx)
     downloadSVG.exportToSVG()
     this.toggleMenu()
   }
 
-  handleZoomReset (e) {
+  handleZoomReset(e) {
     const charts = this.ctx.getSyncedCharts()
 
     charts.forEach((ch) => {
       let w = ch.w
 
-      if (w.globals.minX !== w.globals.initialminX && w.globals.maxX !== w.globals.initialmaxX) {
+      if (
+        w.globals.minX !== w.globals.initialminX &&
+        w.globals.maxX !== w.globals.initialmaxX
+      ) {
         ch.revertDefaultAxisMinMax()
 
         if (typeof w.config.chart.events.zoomed === 'function') {
-          this.zoomCallback({ min: w.config.xaxis.min, max: w.config.xaxis.max })
+          this.zoomCallback({
+            min: w.config.xaxis.min,
+            max: w.config.xaxis.max
+          })
         }
 
         w.globals.zoomed = false
 
-        ch._updateSeries(w.globals.initialSeries, w.config.chart.animations.dynamicAnimation.enabled)
+        ch._updateSeries(
+          w.globals.initialSeries,
+          w.config.chart.animations.dynamicAnimation.enabled
+        )
       }
     })
   }
 
-  destroy () {
+  destroy() {
     if (this.elZoomReset) {
-      this.elZoomReset.removeEventListener('click', this.handleZoomReset.bind(this))
-      this.elSelection.removeEventListener('click', this.toggleSelection.bind(this))
+      this.elZoomReset.removeEventListener(
+        'click',
+        this.handleZoomReset.bind(this)
+      )
+      this.elSelection.removeEventListener(
+        'click',
+        this.toggleSelection.bind(this)
+      )
       this.elZoom.removeEventListener('click', this.toggleZooming.bind(this))
       this.elZoomIn.removeEventListener('click', this.handleZoomIn.bind(this))
       this.elZoomOut.removeEventListener('click', this.handleZoomOut.bind(this))

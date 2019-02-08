@@ -7,7 +7,7 @@ import Utils from './Utils'
  **/
 
 class DateTime {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -17,16 +17,16 @@ class DateTime {
     this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
   }
 
-  isValidDate (date) {
+  isValidDate(date) {
     return !isNaN(this.parseDate(date))
   }
 
-  getUTCTimeStamp (dateStr) {
+  getUTCTimeStamp(dateStr) {
     return new Date(new Date(dateStr).toUTCString().substr(0, 25)).getTime()
     // return new Date(new Date(dateStr).setMinutes(new Date().getTimezoneOffset()))
   }
 
-  parseDate (dateStr) {
+  parseDate(dateStr) {
     const parsed = Date.parse(dateStr)
     if (!isNaN(parsed)) {
       return this.getUTCTimeStamp(dateStr)
@@ -38,14 +38,14 @@ class DateTime {
   }
 
   // https://stackoverflow.com/a/11252167/6495043
-  treatAsUtc (dateStr) {
+  treatAsUtc(dateStr) {
     let result = new Date(dateStr)
     result.setMinutes(result.getMinutes() - result.getTimezoneOffset())
     return result
   }
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
-  formatDate (date, format, utc = true, convertToUTC = true) {
+  formatDate(date, format, utc = true, convertToUTC = true) {
     const locale = this.w.globals.locale
 
     let MMMM = ['\x00', ...locale.months]
@@ -53,7 +53,7 @@ class DateTime {
     let dddd = ['\x02', ...locale.days]
     let ddd = ['\x03', ...locale.shortDays]
 
-    function ii (i, len) {
+    function ii(i, len) {
       let s = i + ''
       len = len || 2
       while (s.length < len) s = '0' + s
@@ -134,7 +134,7 @@ class DateTime {
     return format
   }
 
-  getTimeUnitsfromTimestamp (minX, maxX) {
+  getTimeUnitsfromTimestamp(minX, maxX) {
     let w = this.w
 
     if (w.config.xaxis.min !== undefined) {
@@ -160,22 +160,31 @@ class DateTime {
     let maxMinute = new Date(maxX).getMinutes()
 
     return {
-      minMinute, maxMinute, minHour, maxHour, minDate, maxDate, minMonth, maxMonth, minYear, maxYear
+      minMinute,
+      maxMinute,
+      minHour,
+      maxHour,
+      minDate,
+      maxDate,
+      minMonth,
+      maxMonth,
+      minYear,
+      maxYear
     }
   }
 
-  isLeapYear (year) {
-    return ((year % 4 === 0) && (year % 100 !== 0)) || (year % 400 === 0)
+  isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
   }
 
-  calculcateLastDaysOfMonth (month, year, subtract) {
+  calculcateLastDaysOfMonth(month, year, subtract) {
     const days = this.determineDaysOfMonths(month, year)
 
     // whatever days we get, subtract the number of days asked
     return days - subtract
   }
 
-  determineDaysOfYear (year) {
+  determineDaysOfYear(year) {
     let days = 365
 
     if (this.isLeapYear(year)) {
@@ -185,13 +194,13 @@ class DateTime {
     return days
   }
 
-  determineRemainingDaysOfYear (year, month, date) {
+  determineRemainingDaysOfYear(year, month, date) {
     let dayOfYear = this.daysCntOfYear[month] + date
     if (month > 1 && this.isLeapYear()) dayOfYear++
     return dayOfYear
   }
 
-  determineDaysOfMonths (month, year) {
+  determineDaysOfMonths(month, year) {
     let days = 30
 
     month = Utils.monthMod(month)

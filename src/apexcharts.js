@@ -21,7 +21,7 @@ import ZoomPanSelection from './modules/ZoomPanSelection'
 import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
-import Promise from 'promise-polyfill';
+import Promise from 'promise-polyfill'
 
 import './svgjs/svg.js'
 import 'svg.filter.js'
@@ -45,7 +45,7 @@ window.Apex = {}
  **/
 
 export default class ApexCharts {
-  constructor (el, opts) {
+  constructor(el, opts) {
     this.opts = opts
     this.ctx = this
 
@@ -55,7 +55,9 @@ export default class ApexCharts {
     this.el = el
 
     this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4)
-    this.w.globals.chartID = this.w.config.chart.id ? this.w.config.chart.id : this.w.globals.cuid
+    this.w.globals.chartID = this.w.config.chart.id
+      ? this.w.config.chart.id
+      : this.w.globals.cuid
 
     this.initModules()
 
@@ -66,7 +68,7 @@ export default class ApexCharts {
   /**
    * The primary method user will call to render the chart.
    */
-  render () {
+  render() {
     // main method
     return new Promise((resolve, reject) => {
       // only draw chart, if element found
@@ -91,29 +93,34 @@ export default class ApexCharts {
 
         this.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
-        window.addResizeListener(this.el.parentNode, this.parentResizeCallback.bind(this))
+        window.addResizeListener(
+          this.el.parentNode,
+          this.parentResizeCallback.bind(this)
+        )
 
-        let graphData = this.create(this.w.config.series, {}, false)
+        let graphData = this.create(this.w.config.series, {})
         if (!graphData) return resolve(this)
-        this.mount(graphData).then(() => {
-          resolve(graphData)
+        this.mount(graphData)
+          .then(() => {
+            resolve(graphData)
 
-          if (typeof this.w.config.chart.events.mounted === 'function') {
-            this.w.config.chart.events.mounted(this, this.w)
-          }
+            if (typeof this.w.config.chart.events.mounted === 'function') {
+              this.w.config.chart.events.mounted(this, this.w)
+            }
 
-          this.fireEvent('mounted', [this, this.w])
-        }).catch((e) => {
-          reject(e)
-          // handle error in case no data or element not found
-        })
+            this.fireEvent('mounted', [this, this.w])
+          })
+          .catch((e) => {
+            reject(e)
+            // handle error in case no data or element not found
+          })
       } else {
         reject(new Error('Element not found'))
       }
     })
   }
 
-  initModules () {
+  initModules() {
     this.animations = new Animations(this.ctx)
     this.annotations = new Annotations(this.ctx)
     this.core = new Core(this.el, this)
@@ -134,7 +141,7 @@ export default class ApexCharts {
     this.w.globals.tooltip = new Tooltip(this.ctx)
   }
 
-  addEventListener (name, handler) {
+  addEventListener(name, handler) {
     const w = this.w
 
     if (w.globals.events.hasOwnProperty(name)) {
@@ -142,9 +149,9 @@ export default class ApexCharts {
     } else {
       w.globals.events[name] = [handler]
     }
-  };
+  }
 
-  removeEventListener (name, handler) {
+  removeEventListener(name, handler) {
     const w = this.w
     if (!w.globals.events.hasOwnProperty(name)) {
       return
@@ -154,9 +161,9 @@ export default class ApexCharts {
     if (index !== -1) {
       w.globals.events[name].splice(index, 1)
     }
-  };
+  }
 
-  fireEvent (name, args) {
+  fireEvent(name, args) {
     const w = this.w
 
     if (!w.globals.events.hasOwnProperty(name)) {
@@ -175,7 +182,7 @@ export default class ApexCharts {
     }
   }
 
-  create (ser, opts, skipResponsiveCheck) {
+  create(ser, opts) {
     let w = this.w
     this.initModules()
     let gl = this.w.globals
@@ -183,9 +190,7 @@ export default class ApexCharts {
     gl.noData = false
     gl.animationEnded = false
 
-    if (!skipResponsiveCheck) {
-      this.responsive.checkResponsiveConfig(opts)      
-    }
+    this.responsive.checkResponsiveConfig(opts)
 
     if (this.el === null) {
       gl.animationEnded = true
@@ -204,7 +209,10 @@ export default class ApexCharts {
     gl.comboCharts = combo.comboCharts
     gl.comboChartsHasBars = combo.comboChartsHasBars
 
-    if (ser.length === 0 || (ser.length === 1 && ser[0].data && ser[0].data.length === 0)) {
+    if (
+      ser.length === 0 ||
+      (ser.length === 1 && ser[0].data && ser[0].data.length === 0)
+    ) {
       this.series.handleNoData()
     }
 
@@ -269,22 +277,21 @@ export default class ApexCharts {
     }
   }
 
-  mount (graphData = null) {
+  mount(graphData = null) {
     let me = this
     let w = me.w
 
     return new Promise((resolve, reject) => {
       // no data to display
       if (me.el === null) {
-        return reject(new Error('Not enough data to display or target element not found'))
+        return reject(
+          new Error('Not enough data to display or target element not found')
+        )
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
       }
 
-      me.core.drawAxis(
-        w.config.chart.type,
-        graphData.xyRatios
-      )
+      me.core.drawAxis(w.config.chart.type, graphData.xyRatios)
 
       me.grid = new Grid(me)
       if (w.config.grid.position === 'back') {
@@ -326,7 +333,11 @@ export default class ApexCharts {
         }
 
         if (w.globals.axisCharts && w.globals.isXNumeric) {
-          if (w.config.chart.zoom.enabled || (w.config.chart.selection && w.config.chart.selection.enabled) || (w.config.chart.pan && w.config.chart.pan.enabled)) {
+          if (
+            w.config.chart.zoom.enabled ||
+            (w.config.chart.selection && w.config.chart.selection.enabled) ||
+            (w.config.chart.pan && w.config.chart.pan.enabled)
+          ) {
             me.zoomPanSelection.init({
               xyRatios: graphData.xyRatios
             })
@@ -355,7 +366,7 @@ export default class ApexCharts {
     })
   }
 
-  clearPreviousPaths () {
+  clearPreviousPaths() {
     const w = this.w
     w.globals.previousPaths = []
     w.globals.allSeriesCollapsed = false
@@ -370,7 +381,12 @@ export default class ApexCharts {
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
    */
-  updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = true) {
+  updateOptions(
+    options,
+    redraw = false,
+    animate = true,
+    overwriteInitialConfig = true
+  ) {
     const w = this.w
     if (options.series) {
       if (options.series[0].data) {
@@ -405,7 +421,12 @@ export default class ApexCharts {
    * @param {boolean} animate - should animate or not on updating Options
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
    */
-  _updateOptions (options, redraw = false, animate = true, overwriteInitialConfig = false) {
+  _updateOptions(
+    options,
+    redraw = false,
+    animate = true,
+    overwriteInitialConfig = false
+  ) {
     let charts = this.getSyncedCharts()
 
     charts.forEach((ch) => {
@@ -448,7 +469,7 @@ export default class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  updateSeries (newSeries = [], animate = true, overwriteInitialSeries = true) {
+  updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
     this.revertDefaultAxisMinMax()
     return this._updateSeries(newSeries, animate, overwriteInitialSeries)
   }
@@ -458,7 +479,7 @@ export default class ApexCharts {
    *
    * @param {array} series - New series which will override the existing
    */
-  _updateSeries (newSeries, animate, overwriteInitialSeries = false) {
+  _updateSeries(newSeries, animate, overwriteInitialSeries = false) {
     const w = this.w
 
     this.w.globals.shouldAnimate = animate
@@ -493,7 +514,9 @@ export default class ApexCharts {
     }
 
     if (overwriteInitialSeries) {
-      w.globals.initialConfig.series = JSON.parse(JSON.stringify(w.config.series))
+      w.globals.initialConfig.series = JSON.parse(
+        JSON.stringify(w.config.series)
+      )
       w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
     }
 
@@ -503,7 +526,7 @@ export default class ApexCharts {
   /**
    * Get all charts in the same "group" (including the instance which is called upon) to sync them when user zooms in/out or pan.
    */
-  getSyncedCharts () {
+  getSyncedCharts() {
     const chartGroups = this.getGroupedCharts()
     let allCharts = [this]
     if (chartGroups.length) {
@@ -519,14 +542,16 @@ export default class ApexCharts {
   /**
    * Get charts in the same "group" (excluding the instance which is called upon) to perform operations on the other charts of the same group (eg., tooltip hovering)
    */
-  getGroupedCharts () {
-    return Apex._chartInstances.filter((ch) => {
-      if (ch.group) {
-        return true
-      }
-    }).map((ch) => {
-      return this.w.config.chart.group === ch.group ? ch.chart : this
-    })
+  getGroupedCharts() {
+    return Apex._chartInstances
+      .filter((ch) => {
+        if (ch.group) {
+          return true
+        }
+      })
+      .map((ch) => {
+        return this.w.config.chart.group === ch.group ? ch.chart : this
+      })
   }
 
   /**
@@ -534,7 +559,7 @@ export default class ApexCharts {
    *
    * @param {array} newData - New data in the same format as series
    */
-  appendData (newData, overwriteInitialSeries = true) {
+  appendData(newData, overwriteInitialSeries = true) {
     let me = this
 
     me.w.globals.dataChanged = true
@@ -552,34 +577,38 @@ export default class ApexCharts {
     }
     me.w.config.series = newSeries
     if (overwriteInitialSeries) {
-      me.w.globals.initialSeries = JSON.parse(JSON.stringify(me.w.config.series))
+      me.w.globals.initialSeries = JSON.parse(
+        JSON.stringify(me.w.config.series)
+      )
     }
 
     return this.update()
   }
 
-  update (options) {
+  update(options) {
     return new Promise((resolve, reject) => {
       this.clear()
 
-      const graphData = this.create(this.w.config.series, options, true)
+      const graphData = this.create(this.w.config.series, options)
       if (!graphData) return resolve(this)
-      this.mount(graphData).then(() => {
-        if (typeof this.w.config.chart.events.updated === 'function') {
-          this.w.config.chart.events.updated(this, this.w)
-        }
-        this.fireEvent('updated', [this, this.w])
+      this.mount(graphData)
+        .then(() => {
+          if (typeof this.w.config.chart.events.updated === 'function') {
+            this.w.config.chart.events.updated(this, this.w)
+          }
+          this.fireEvent('updated', [this, this.w])
 
-        this.w.globals.isDirty = true
+          this.w.globals.isDirty = true
 
-        resolve(this)
-      }).catch((e) => {
-        reject(e)
-      })
+          resolve(this)
+        })
+        .catch((e) => {
+          reject(e)
+        })
     })
   }
 
-  forceXAxisUpdate (options) {
+  forceXAxisUpdate(options) {
     const w = this.w
     if (typeof options.xaxis.min !== 'undefined') {
       w.config.xaxis.min = options.xaxis.min
@@ -596,7 +625,7 @@ export default class ApexCharts {
    * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
    * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
    */
-  revertDefaultAxisMinMax () {
+  revertDefaultAxisMinMax() {
     const w = this.w
 
     w.config.xaxis.min = w.globals.lastXAxis.min
@@ -614,7 +643,7 @@ export default class ApexCharts {
     })
   }
 
-  clear () {
+  clear() {
     if (this.zoomPanSelection) {
       this.zoomPanSelection.destroy()
     }
@@ -641,9 +670,9 @@ export default class ApexCharts {
     this.clearDomElements()
   }
 
-  killSVG (draw) {
+  killSVG(draw) {
     return new Promise((resolve, reject) => {
-      draw.each(function (i, children) {
+      draw.each(function(i, children) {
         this.removeClass('*')
         this.off()
         this.stop()
@@ -654,7 +683,7 @@ export default class ApexCharts {
     })
   }
 
-  clearDomElements () {
+  clearDomElements() {
     const domEls = this.w.globals.dom
 
     if (this.el !== null) {
@@ -680,7 +709,7 @@ export default class ApexCharts {
   /**
    * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
    */
-  destroy () {
+  destroy() {
     this.clear()
 
     // remove the chart's instance from the global Apex._chartInstances
@@ -693,13 +722,17 @@ export default class ApexCharts {
       })
     }
     window.removeEventListener('resize', this.windowResizeHandler)
-    window.removeResizeListener(this.el.parentNode, this.parentResizeCallback.bind(this))
+
+    window.removeResizeListener(
+      this.el.parentNode,
+      this.parentResizeCallback.bind(this)
+    )
   }
 
   /**
    * Allows the user to provide data attrs in the element and the chart will render automatically when this method is called by searching for the elements containing 'data-apexcharts' attribute
    */
-  static initOnLoad () {
+  static initOnLoad() {
     const els = document.querySelectorAll('[data-apexcharts]')
 
     for (let i = 0; i < els.length; i++) {
@@ -725,63 +758,57 @@ export default class ApexCharts {
    * @param {function} fn - The method name to call
    * @param {object} opts - The parameters which are accepted in the original method will be passed here in the same order.
    */
-  static exec (chartID, fn, ...opts) {
+  static exec(chartID, fn, ...opts) {
     const chart = this.getChartByID(chartID)
 
     if (!chart) return
 
     switch (fn) {
-      case 'updateOptions':
-      {
+      case 'updateOptions': {
         return chart.updateOptions(...opts)
       }
-      case 'updateSeries':
-      {
+      case 'updateSeries': {
         return chart.updateSeries(...opts)
       }
-      case 'appendData':
-      {
+      case 'appendData': {
         return chart.appendData(...opts)
       }
-      case 'addXaxisAnnotation':
-      {
+      case 'addXaxisAnnotation': {
         return chart.addXaxisAnnotation(...opts)
       }
-      case 'addYaxisAnnotation':
-      {
+      case 'addYaxisAnnotation': {
         return chart.addYaxisAnnotation(...opts)
       }
-      case 'addPointAnnotation':
-      {
+      case 'addPointAnnotation': {
         return chart.addPointAnnotation(...opts)
       }
-      case 'clearAnnotations':
-      {
+      case 'clearAnnotations': {
         return chart.clearAnnotations(...opts)
       }
-      case 'destroy':
-      {
+      case 'destroy': {
         return chart.destroy()
       }
     }
   }
 
-  static merge (target, source) {
+  static merge(target, source) {
     return Utils.extend(target, source)
   }
 
-  toggleSeries (seriesName) {
+  toggleSeries(seriesName) {
     const targetElement = this.series.getSeriesByName(seriesName)
     let seriesCnt = parseInt(targetElement.getAttribute('data:realIndex'))
-    let isHidden = targetElement.classList.contains('apexcharts-series-collapsed')
+    let isHidden = targetElement.classList.contains(
+      'apexcharts-series-collapsed'
+    )
     this.legend.toggleDataSeries(seriesCnt, isHidden)
   }
 
-  resetToggleSeries () {
+  resetToggleSeries() {
     this.legend.resetToggleDataSeries()
   }
 
-  setupEventHandlers () {
+  setupEventHandlers() {
     const w = this.w
     const me = this
 
@@ -798,10 +825,13 @@ export default class ApexCharts {
     eventList.forEach((event) => {
       clickableArea.addEventListener(
         event,
-        function (e) {
-          if ((e.type === 'mousedown' && e.which === 1)) {
+        function(e) {
+          if (e.type === 'mousedown' && e.which === 1) {
             // todo - provide a mousedown event too
-          } else if ((e.type === 'mouseup' && e.which === 1) || e.type === 'touchend') {
+          } else if (
+            (e.type === 'mouseup' && e.which === 1) ||
+            e.type === 'touchend'
+          ) {
             if (typeof w.config.chart.events.click === 'function') {
               w.config.chart.events.click(e, me, w)
             }
@@ -815,7 +845,7 @@ export default class ApexCharts {
     this.core.setupBrushHandler()
   }
 
-  addXaxisAnnotation (opts, pushToMemory = true, context = undefined) {
+  addXaxisAnnotation(opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
@@ -823,7 +853,7 @@ export default class ApexCharts {
     me.annotations.addXaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
-  addYaxisAnnotation (opts, pushToMemory = true, context = undefined) {
+  addYaxisAnnotation(opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
@@ -831,7 +861,7 @@ export default class ApexCharts {
     me.annotations.addYaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
-  addPointAnnotation (opts, pushToMemory = true, context = undefined) {
+  addPointAnnotation(opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
@@ -839,7 +869,7 @@ export default class ApexCharts {
     me.annotations.addPointAnnotationExternal(opts, pushToMemory, me)
   }
 
-  clearAnnotations (context = undefined) {
+  clearAnnotations(context = undefined) {
     let me = this
     if (context) {
       me = context
@@ -849,7 +879,7 @@ export default class ApexCharts {
 
   // This method is never used internally and will be only called externally on the chart instance.
   // Hence, we need to keep all these elements in memory when the chart gets updated and redraw again
-  addText (options, pushToMemory = true, context = undefined) {
+  addText(options, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
       me = context
@@ -858,44 +888,48 @@ export default class ApexCharts {
     me.annotations.addText(options, pushToMemory, me)
   }
 
-  getChartArea () {
+  getChartArea() {
     const el = this.w.globals.dom.baseEl.querySelector('.apexcharts-inner')
 
     return el
   }
 
-  getSeriesTotalXRange (minX, maxX) {
+  getSeriesTotalXRange(minX, maxX) {
     return this.coreUtils.getSeriesTotalsXRange(minX, maxX)
   }
 
-  getHighestValueInSeries (seriesIndex = 0) {
+  getHighestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.ctx)
     const minYmaxY = range.getMinYMaxY(seriesIndex)
 
     return minYmaxY.highestY
   }
 
-  getLowestValueInSeries (seriesIndex = 0) {
+  getLowestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.ctx)
     const minYmaxY = range.getMinYMaxY(seriesIndex)
 
     return minYmaxY.lowestY
   }
 
-  getSeriesTotal () {
+  getSeriesTotal() {
     return this.w.globals.seriesTotals
   }
 
-  setLocale (localeName) {
+  setLocale(localeName) {
     this.setCurrentLocaleValues(localeName)
   }
 
-  setCurrentLocaleValues (localeName) {
+  setCurrentLocaleValues(localeName) {
     let locales = this.w.config.chart.locales
 
     // check if user has specified locales in global Apex variable
     // if yes - then extend those with local chart's locale
-    if (window.Apex.chart && window.Apex.chart.locales && window.Apex.chart.locales.length > 0) {
+    if (
+      window.Apex.chart &&
+      window.Apex.chart.locales &&
+      window.Apex.chart.locales.length > 0
+    ) {
       locales = this.w.config.chart.locales.concat(window.Apex.chart.locales)
     }
 
@@ -911,32 +945,34 @@ export default class ApexCharts {
       // store these locale options in global var for ease access
       this.w.globals.locale = ret.options
     } else {
-      throw new Error('Wrong locale name provided. Please make sure you set the correct locale name in options')
+      throw new Error(
+        'Wrong locale name provided. Please make sure you set the correct locale name in options'
+      )
     }
   }
 
-  svgUrl () {
+  svgUrl() {
     const exp = new Exports(this.ctx)
     return exp.svgUrl()
   }
 
-  dataURI () {
+  dataURI() {
     const exp = new Exports(this.ctx)
     return exp.dataURI()
   }
 
-  paper () {
+  paper() {
     return this.w.globals.dom.Paper
   }
 
-  static getChartByID (chartID) {
+  static getChartByID(chartID) {
     const c = Apex._chartInstances.filter((ch) => {
       return ch.id === chartID
     })[0]
     return c.chart
   }
 
-  parentResizeCallback () {
+  parentResizeCallback() {
     if (this.w.globals.animationEnded) {
       this.windowResize()
     }
@@ -945,7 +981,7 @@ export default class ApexCharts {
   /**
    * Handle window resize and re-draw the whole chart.
    */
-  windowResize () {
+  windowResize() {
     clearTimeout(this.w.globals.resizeTimer)
     this.w.globals.resizeTimer = window.setTimeout(() => {
       this.w.globals.resized = true

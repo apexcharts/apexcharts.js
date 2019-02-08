@@ -8,46 +8,51 @@ import Utils from '../utils/Utils'
  **/
 
 class Formatters {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
     this.tooltipKeyFormat = 'dd MMM'
   }
 
-  xLabelFormat (fn, val) {
+  xLabelFormat(fn, val) {
     let w = this.w
 
     if (w.config.xaxis.type === 'datetime') {
       // if user has not specified a custom formatter, use the default tooltip.x.format
       if (w.config.tooltip.x.formatter === undefined) {
         let datetimeObj = new DateTime(this.ctx)
-        return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format, true, true)
+        return datetimeObj.formatDate(
+          new Date(val),
+          w.config.tooltip.x.format,
+          true,
+          true
+        )
       }
     }
 
     return fn(val)
   }
 
-  setLabelFormatters () {
+  setLabelFormatters() {
     let w = this.w
 
-    w.globals.xLabelFormatter = function (val) {
+    w.globals.xLabelFormatter = function(val) {
       return val
     }
 
-    w.globals.xaxisTooltipFormatter = function (val) {
+    w.globals.xaxisTooltipFormatter = function(val) {
       return val
     }
 
-    w.globals.ttKeyFormatter = function (val) {
+    w.globals.ttKeyFormatter = function(val) {
       return val
     }
 
-    w.globals.ttZFormatter = function (val) {
+    w.globals.ttZFormatter = function(val) {
       return val
     }
 
-    w.globals.legendFormatter = function (val) {
+    w.globals.legendFormatter = function(val) {
       return val
     }
 
@@ -80,7 +85,7 @@ class Formatters {
     if (w.config.xaxis.labels.formatter !== undefined) {
       w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
     } else {
-      w.globals.xLabelFormatter = function (val) {
+      w.globals.xLabelFormatter = function(val) {
         if (Utils.isNumber(val)) {
           // numeric xaxis may have smaller range, so defaulting to 1 decimal
           if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
@@ -97,7 +102,7 @@ class Formatters {
       if (yaxe.labels.formatter !== undefined) {
         w.globals.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
-        w.globals.yLabelFormatters[i] = function (val) {
+        w.globals.yLabelFormatters[i] = function(val) {
           if (Utils.isNumber(val)) {
             if (w.globals.yValueDecimal !== 0) {
               return val.toFixed(yaxe.decimalsInFloat)
@@ -113,13 +118,13 @@ class Formatters {
     return w.globals
   }
 
-  heatmapLabelFormatters () {
+  heatmapLabelFormatters() {
     const w = this.w
     if (w.config.chart.type === 'heatmap') {
       w.globals.yAxisScale[0].result = w.globals.seriesNames.slice()
 
       //  get the longest string from the labels array and also apply label formatter to it
-      let longest = w.globals.seriesNames.reduce(function (a, b) {
+      let longest = w.globals.seriesNames.reduce(function(a, b) {
         return a.length > b.length ? a : b
       }, 0)
       w.globals.yAxisScale[0].niceMax = longest

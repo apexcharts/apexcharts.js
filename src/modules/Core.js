@@ -25,7 +25,7 @@ import TimeScale from './TimeScale'
  **/
 
 export default class Core {
-  constructor (el, ctx) {
+  constructor(el, ctx) {
     this.ctx = ctx
     this.w = ctx.w
     this.el = el
@@ -39,7 +39,7 @@ export default class Core {
 
   // get data and store into appropriate vars
 
-  setupElements () {
+  setupElements() {
     let gl = this.w.globals
     let cnf = this.w.config
 
@@ -107,7 +107,7 @@ export default class Core {
     gl.dom.elGraphical.add(gl.dom.elDefs)
   }
 
-  plotChartType (ser, xyRatios) {
+  plotChartType(ser, xyRatios) {
     const w = this.w
     const cnf = w.config
     const gl = w.globals
@@ -156,7 +156,9 @@ export default class Core {
           candlestickSeries.i.push(st)
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
-          throw new Error('You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar')
+          throw new Error(
+            'You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar'
+          )
         }
         gl.comboCharts = true
       } else {
@@ -174,9 +176,7 @@ export default class Core {
 
     if (gl.comboCharts) {
       if (areaSeries.series.length > 0) {
-        elGraph.push(
-          line.draw(areaSeries.series, 'area', areaSeries.i)
-        )
+        elGraph.push(line.draw(areaSeries.series, 'area', areaSeries.i))
       }
       if (columnSeries.series.length > 0) {
         if (w.config.chart.stacked) {
@@ -188,9 +188,7 @@ export default class Core {
         }
       }
       if (lineSeries.series.length > 0) {
-        elGraph.push(
-          line.draw(lineSeries.series, 'line', lineSeries.i)
-        )
+        elGraph.push(line.draw(lineSeries.series, 'line', lineSeries.i))
       }
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
@@ -246,7 +244,7 @@ export default class Core {
     return elGraph
   }
 
-  setSVGDimensions () {
+  setSVGDimensions() {
     let gl = this.w.globals
     let cnf = this.w.config
 
@@ -255,7 +253,10 @@ export default class Core {
 
     let elDim = Utils.getDimensions(this.el)
 
-    let widthUnit = cnf.chart.width.toString().split(/[0-9]+/g).pop()
+    let widthUnit = cnf.chart.width
+      .toString()
+      .split(/[0-9]+/g)
+      .pop()
 
     if (widthUnit === '%') {
       if (Utils.isNumber(elDim[0])) {
@@ -263,18 +264,20 @@ export default class Core {
           elDim = Utils.getDimensions(this.el.parentNode)
         }
 
-        gl.svgWidth =
-          (elDim[0] * parseInt(cnf.chart.width) / 100)
+        gl.svgWidth = (elDim[0] * parseInt(cnf.chart.width)) / 100
       }
     } else if (widthUnit === 'px' || widthUnit === '') {
       gl.svgWidth = parseInt(cnf.chart.width)
     }
 
     if (gl.svgHeight !== 'auto' && gl.svgHeight !== '') {
-      let heightUnit = cnf.chart.height.toString().split(/[0-9]+/g).pop()
+      let heightUnit = cnf.chart.height
+        .toString()
+        .split(/[0-9]+/g)
+        .pop()
       if (heightUnit === '%') {
         let elParentDim = Utils.getDimensions(this.el.parentNode)
-        gl.svgHeight = elParentDim[1] * parseInt(cnf.chart.height) / 100
+        gl.svgHeight = (elParentDim[1] * parseInt(cnf.chart.height)) / 100
       } else {
         gl.svgHeight = parseInt(cnf.chart.height)
       }
@@ -301,7 +304,7 @@ export default class Core {
     gl.dom.elWrap.style.height = gl.svgHeight + 'px'
   }
 
-  shiftGraphPosition () {
+  shiftGraphPosition() {
     let gl = this.w.globals
 
     let tY = gl.translateY
@@ -316,12 +319,12 @@ export default class Core {
   /*
    ** All the calculations for setting range in charts will be done here
    */
-  coreCalculations () {
+  coreCalculations() {
     const range = new Range(this.ctx)
     range.init()
   }
 
-  resetGlobals () {
+  resetGlobals() {
     let gl = this.w.globals
     gl.series = []
     gl.seriesCandleO = []
@@ -378,9 +381,12 @@ export default class Core {
     gl.dataPoints = 0
   }
 
-  isMultipleY () {
+  isMultipleY() {
     // user has supplied an array in yaxis property. So, turn on multipleYAxis flag
-    if (this.w.config.yaxis.constructor === Array && this.w.config.yaxis.length > 1) {
+    if (
+      this.w.config.yaxis.constructor === Array &&
+      this.w.config.yaxis.length > 1
+    ) {
       // first, turn off stacking if multiple y axis
       this.w.config.chart.stacked = false
       this.w.globals.isMultipleYAxis = true
@@ -388,58 +394,67 @@ export default class Core {
     }
   }
 
-  excludeCollapsedSeriesInYAxis () {
+  excludeCollapsedSeriesInYAxis() {
     const w = this.w
-    w.globals.ignoreYAxisIndexes = w.globals.collapsedSeries.map((collapsed, i) => {
-      if (this.w.globals.isMultipleYAxis) {
-        return collapsed.index
+    w.globals.ignoreYAxisIndexes = w.globals.collapsedSeries.map(
+      (collapsed, i) => {
+        if (this.w.globals.isMultipleYAxis) {
+          return collapsed.index
+        }
       }
-    })
+    )
   }
 
-  isMultiFormat () {
+  isMultiFormat() {
     return this.isFormatXY() || this.isFormat2DArray()
   }
 
   // given format is [{x, y}, {x, y}]
-  isFormatXY () {
+  isFormatXY() {
     const series = this.w.config.series.slice()
 
     const sr = new Series(this.ctx)
     const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
 
-    if (typeof series[activeSeriesIndex].data !== 'undefined' &&
+    if (
+      typeof series[activeSeriesIndex].data !== 'undefined' &&
       series[activeSeriesIndex].data.length > 0 &&
       series[activeSeriesIndex].data[0] !== null &&
       typeof series[activeSeriesIndex].data[0].x !== 'undefined' &&
-      series[activeSeriesIndex].data[0] !== null) {
+      series[activeSeriesIndex].data[0] !== null
+    ) {
       return true
     }
   }
 
   // given format is [[x, y], [x, y]]
-  isFormat2DArray () {
+  isFormat2DArray() {
     const series = this.w.config.series.slice()
 
     const sr = new Series(this.ctx)
     const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
 
-    if (typeof series[activeSeriesIndex].data !== 'undefined' &&
+    if (
+      typeof series[activeSeriesIndex].data !== 'undefined' &&
       series[activeSeriesIndex].data.length > 0 &&
       typeof series[activeSeriesIndex].data[0] !== 'undefined' &&
       series[activeSeriesIndex].data[0] !== null &&
-      series[activeSeriesIndex].data[0].constructor === Array) {
+      series[activeSeriesIndex].data[0].constructor === Array
+    ) {
       return true
     }
   }
 
-  handleFormat2DArray (ser, i) {
+  handleFormat2DArray(ser, i) {
     const cnf = this.w.config
     const gl = this.w.globals
 
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j][1] !== 'undefined') {
-        if (Array.isArray(ser[i].data[j][1]) && ser[i].data[j][1].length === 4) {
+        if (
+          Array.isArray(ser[i].data[j][1]) &&
+          ser[i].data[j][1].length === 4
+        ) {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1][3]))
         } else {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1]))
@@ -464,7 +479,7 @@ export default class Core {
     }
   }
 
-  handleFormatXY (ser, i) {
+  handleFormatXY(ser, i) {
     const cnf = this.w.config
     const gl = this.w.globals
     const series = this.w.config.series.slice()
@@ -491,7 +506,7 @@ export default class Core {
           } else {
             // a category and not a numeric x value
             this.fallbackToCategory = true
-            this.twoDSeriesX.push((ser[i].data[j].x))
+            this.twoDSeriesX.push(ser[i].data[j].x)
           }
         } else {
           if (cnf.xaxis.type === 'datetime') {
@@ -514,7 +529,7 @@ export default class Core {
     }
   }
 
-  handleCandleStickData (ser, i) {
+  handleCandleStickData(ser, i) {
     const gl = this.w.globals
 
     let ohlc = {}
@@ -532,13 +547,14 @@ export default class Core {
     return ohlc
   }
 
-  handleCandleStickDataFormat (format, ser, i) {
+  handleCandleStickDataFormat(format, ser, i) {
     const serO = []
     const serH = []
     const serL = []
     const serC = []
 
-    const err = 'Please provide [Open, High, Low and Close] values in valid format. Read more https://apexcharts.com/docs/series/#candlestick'
+    const err =
+      'Please provide [Open, High, Low and Close] values in valid format. Read more https://apexcharts.com/docs/series/#candlestick'
 
     if (format === 'array') {
       if (ser[i].data[0][1].length !== 4) {
@@ -563,11 +579,14 @@ export default class Core {
     }
 
     return {
-      o: serO, h: serH, l: serL, c: serC
+      o: serO,
+      h: serH,
+      l: serL,
+      c: serC
     }
   }
 
-  parseDataAxisCharts (ser, series, ctx = this.ctx) {
+  parseDataAxisCharts(ser, series, ctx = this.ctx) {
     const cnf = this.w.config
     const gl = this.w.globals
 
@@ -579,7 +598,9 @@ export default class Core {
       this.threeDSeries = []
 
       if (typeof series[i].data === 'undefined') {
-        console.error("It is a possibility that you may have not included 'data' property in series.")
+        console.error(
+          "It is a possibility that you may have not included 'data' property in series."
+        )
         return
       }
 
@@ -606,15 +627,20 @@ export default class Core {
           // user didn't supplied [{x,y}] or [[x,y]], but single array in data.
           // Also labels/categories were supplied differently
           gl.isXNumeric = true
-          const dates = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
+          const dates =
+            cnf.labels.length > 0
+              ? cnf.labels.slice()
+              : cnf.xaxis.categories.slice()
 
           for (let j = 0; j < dates.length; j++) {
-            if (typeof (dates[j]) === 'string') {
+            if (typeof dates[j] === 'string') {
               let isDate = dt.isValidDate(dates[j])
               if (isDate) {
                 this.twoDSeriesX.push(dt.parseDate(dates[j]))
               } else {
-                throw new Error('You have provided invalid Date format. Please provide a valid JavaScript Date')
+                throw new Error(
+                  'You have provided invalid Date format. Please provide a valid JavaScript Date'
+                )
               }
             }
           }
@@ -622,7 +648,10 @@ export default class Core {
           gl.seriesX.push(this.twoDSeriesX)
         } else if (cnf.xaxis.type === 'numeric') {
           gl.isXNumeric = true
-          let x = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
+          let x =
+            cnf.labels.length > 0
+              ? cnf.labels.slice()
+              : cnf.xaxis.categories.slice()
 
           if (x.length > 0) {
             this.twoDSeriesX = x
@@ -630,12 +659,14 @@ export default class Core {
           }
         }
         gl.labels.push(this.twoDSeriesX)
-        gl.series.push(ser[i].data)
+        const singleArray = ser[i].data.map((d) => {
+          return Utils.parseNumber(d)
+        })
+        gl.series.push(singleArray)
       }
 
       gl.seriesZ.push(this.threeDSeries)
 
-      // gl.series.push(ser[i].data)
       if (ser[i].name !== undefined) {
         gl.seriesNames.push(ser[i].name)
       } else {
@@ -646,7 +677,7 @@ export default class Core {
     return this.w
   }
 
-  parseDataNonAxisCharts (ser) {
+  parseDataNonAxisCharts(ser) {
     const gl = this.w.globals
     const cnf = this.w.config
 
@@ -661,7 +692,7 @@ export default class Core {
     return this.w
   }
 
-  handleExternalLabelsData (ser) {
+  handleExternalLabelsData(ser) {
     const cnf = this.w.config
     const gl = this.w.globals
 
@@ -705,7 +736,7 @@ export default class Core {
   }
 
   // Segregate user provided data into appropriate vars
-  parseData (ser) {
+  parseData(ser) {
     let w = this.w
     let cnf = w.config
     let gl = w.globals
@@ -741,12 +772,17 @@ export default class Core {
     this.coreUtils.getPercentSeries()
 
     // user didn't provide a [[x,y],[x,y]] series, but a named series
-    if (!gl.isXNumeric || (cnf.xaxis.type === 'numeric' && cnf.labels.length === 0 && cnf.xaxis.categories.length === 0)) {
+    if (
+      !gl.isXNumeric ||
+      (cnf.xaxis.type === 'numeric' &&
+        cnf.labels.length === 0 &&
+        cnf.xaxis.categories.length === 0)
+    ) {
       this.handleExternalLabelsData(ser)
     }
   }
 
-  xySettings () {
+  xySettings() {
     let xyRatios = null
     const w = this.w
 
@@ -762,16 +798,24 @@ export default class Core {
 
       xyRatios = this.coreUtils.getCalculatedRatios()
 
-      if (w.config.xaxis.type === 'datetime' && w.config.xaxis.labels.formatter === undefined && isFinite(w.globals.minX) && isFinite(w.globals.maxX)) {
+      if (
+        w.config.xaxis.type === 'datetime' &&
+        w.config.xaxis.labels.formatter === undefined &&
+        isFinite(w.globals.minX) &&
+        isFinite(w.globals.maxX)
+      ) {
         let ts = new TimeScale(this.ctx)
-        const formattedTimeScale = ts.calculateTimeScaleTicks(w.globals.minX, w.globals.maxX)
+        const formattedTimeScale = ts.calculateTimeScaleTicks(
+          w.globals.minX,
+          w.globals.maxX
+        )
         ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
     }
     return xyRatios
   }
 
-  drawAxis (type, xyRatios) {
+  drawAxis(type, xyRatios) {
     let gl = this.w.globals
     let cnf = this.w.config
 
@@ -807,7 +851,7 @@ export default class Core {
     })
   }
 
-  setupBrushHandler () {
+  setupBrushHandler() {
     const w = this.w
 
     // only for brush charts
@@ -818,14 +862,17 @@ export default class Core {
     // if user has not defined a custom function for selection - we handle the brush chart
     // otherwise we leave it to the user to define the functionality for selection
     if (typeof w.config.chart.events.selection !== 'function') {
-      let targets = w.config.chart.brush.targets || [w.config.chart.brush.target]
+      let targets = w.config.chart.brush.targets || [
+        w.config.chart.brush.target
+      ]
       // retro compatibility with single target option
-      targets.forEach(target => {
-          let targetChart = ApexCharts.getChartByID(target)
-          targetChart.w.globals.brushSource = this.ctx
+      targets.forEach((target) => {
+        let targetChart = ApexCharts.getChartByID(target)
+        targetChart.w.globals.brushSource = this.ctx
 
-          let updateSourceChart = () => {
-            this.ctx._updateOptions({
+        let updateSourceChart = () => {
+          this.ctx._updateOptions(
+            {
               chart: {
                 selection: {
                   xaxis: {
@@ -834,33 +881,41 @@ export default class Core {
                   }
                 }
               }
-            }, false, false)
+            },
+            false,
+            false
+          )
+        }
+        if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
+          targetChart.w.config.chart.events.zoomed = () => {
+            updateSourceChart()
           }
-          if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
-            targetChart.w.config.chart.events.zoomed = () => {
-              updateSourceChart()
-            }
+        }
+        if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
+          targetChart.w.config.chart.events.scrolled = () => {
+            updateSourceChart()
           }
-          if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
-            targetChart.w.config.chart.events.scrolled = () => {
-              updateSourceChart()
-            }
-          }
+        }
 
-          w.config.chart.events.selection = (chart, e) => {
-            let yaxis = Utils.clone(w.config.yaxis)
-            if (w.config.chart.brush.autoScaleYaxis) {
-              const scale = new Scales(targetChart)
-              yaxis = scale.autoScaleY(targetChart, e)
-            }
-            targetChart._updateOptions({
+        w.config.chart.events.selection = (chart, e) => {
+          let yaxis = Utils.clone(w.config.yaxis)
+          if (w.config.chart.brush.autoScaleYaxis) {
+            const scale = new Scales(targetChart)
+            yaxis = scale.autoScaleY(targetChart, e)
+          }
+          targetChart._updateOptions(
+            {
               xaxis: {
                 min: e.xaxis.min,
                 max: e.xaxis.max
               },
               yaxis
-            }, false, false, false)
-          }
+            },
+            false,
+            false,
+            false
+          )
+        }
       })
     }
   }

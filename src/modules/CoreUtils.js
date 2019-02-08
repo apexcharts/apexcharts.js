@@ -3,12 +3,12 @@
  */
 
 class CoreUtils {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
-  static checkComboSeries (series) {
+  static checkComboSeries(series) {
     let comboCharts = false
     let comboChartsHasBars = false
     // if user specified a type in series too, turn on comboCharts flag
@@ -33,11 +33,15 @@ class CoreUtils {
    * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
    *  @return [34,36,48,13]
    **/
-  getStackedSeriesTotals () {
+  getStackedSeriesTotals() {
     const w = this.w
     let total = []
 
-    for (let i = 0; i < w.globals.series[w.globals.maxValsInArrayIndex].length; i++) {
+    for (
+      let i = 0;
+      i < w.globals.series[w.globals.maxValsInArrayIndex].length;
+      i++
+    ) {
       let t = 0
       for (let j = 0; j < w.globals.series.length; j++) {
         t += w.globals.series[j][i]
@@ -49,7 +53,7 @@ class CoreUtils {
   }
 
   // get total of the all values inside all series
-  getSeriesTotalByIndex (index = null) {
+  getSeriesTotalByIndex(index = null) {
     if (index === null) {
       // non-plot chart types - pie / donut / circle
       return this.w.config.series.reduce((acc, cur) => {
@@ -63,7 +67,7 @@ class CoreUtils {
     }
   }
 
-  isSeriesNull (index = null) {
+  isSeriesNull(index = null) {
     let r = []
     if (index === null) {
       // non-plot chart types - pie / donut / circle
@@ -80,34 +84,34 @@ class CoreUtils {
     return r.length === 0
   }
 
-  seriesHaveSameValues (index) {
+  seriesHaveSameValues(index) {
     return this.w.globals.series[index].every((val, i, arr) => {
       return val === arr[0]
     })
   }
 
   // maxValsInArrayIndex is the index of series[] which has the largest number of items
-  getLargestSeries () {
+  getLargestSeries() {
     const w = this.w
     w.globals.maxValsInArrayIndex = w.globals.series
-      .map(function (a) {
+      .map(function(a) {
         return a.length
       })
       .indexOf(
         Math.max.apply(
           Math,
-          w.globals.series.map(function (a) {
+          w.globals.series.map(function(a) {
             return a.length
           })
         )
       )
   }
 
-  getLargestMarkerSize () {
+  getLargestMarkerSize() {
     const w = this.w
     let size = 0
 
-    w.globals.markers.size.forEach(function (m) {
+    w.globals.markers.size.forEach(function(m) {
       size = Math.max(size, m)
     })
 
@@ -122,7 +126,7 @@ class CoreUtils {
    * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
    *  @return [120, 11]
    **/
-  getSeriesTotals () {
+  getSeriesTotals() {
     const w = this.w
 
     w.globals.seriesTotals = w.globals.series.map((ser, index) => {
@@ -141,14 +145,17 @@ class CoreUtils {
     })
   }
 
-  getSeriesTotalsXRange (minX, maxX) {
+  getSeriesTotalsXRange(minX, maxX) {
     const w = this.w
 
     const seriesTotalsXRange = w.globals.series.map((ser, index) => {
       let total = 0
 
       for (let j = 0; j < ser.length; j++) {
-        if (w.globals.seriesX[index][j] > minX && w.globals.seriesX[index][j] < maxX) {
+        if (
+          w.globals.seriesX[index][j] > minX &&
+          w.globals.seriesX[index][j] < maxX
+        ) {
           total += ser[j]
         }
       }
@@ -165,7 +172,7 @@ class CoreUtils {
    * Eg. w.globals.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
    *  @return [[94.11, 91.66, 89.58, 92.30], [5.88, 8.33, 10.41, 7.7]]
    **/
-  getPercentSeries () {
+  getPercentSeries() {
     const w = this.w
 
     w.globals.seriesPercent = w.globals.series.map((ser, index) => {
@@ -188,7 +195,7 @@ class CoreUtils {
     })
   }
 
-  getCalculatedRatios () {
+  getCalculatedRatios() {
     let gl = this.w.globals
 
     let yRatio = []
@@ -223,7 +230,7 @@ class CoreUtils {
 
     invertedYRatio = gl.yRange / gl.gridWidth
     invertedXRatio = gl.xRange / gl.gridHeight
-    zRatio = gl.zRange / gl.gridHeight * 16
+    zRatio = (gl.zRange / gl.gridHeight) * 16
 
     if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
       // Negative numbers present in series
@@ -258,7 +265,7 @@ class CoreUtils {
     }
   }
 
-  getLogSeries (series) {
+  getLogSeries(series) {
     const w = this.w
 
     w.globals.seriesLog = series.map((s, i) => {
@@ -266,7 +273,9 @@ class CoreUtils {
         return s.map((d) => {
           if (d === null) return null
 
-          const logVal = (Math.log(d) - Math.log(w.globals.minYArr[i])) / (Math.log(w.globals.maxYArr[i]) - Math.log(w.globals.minYArr[i]))
+          const logVal =
+            (Math.log(d) - Math.log(w.globals.minYArr[i])) /
+            (Math.log(w.globals.maxYArr[i]) - Math.log(w.globals.minYArr[i]))
 
           return logVal
         })
@@ -278,7 +287,7 @@ class CoreUtils {
     return w.globals.seriesLog
   }
 
-  getLogYRatios (yRatio) {
+  getLogYRatios(yRatio) {
     const w = this.w
     const gl = this.w.globals
 
@@ -309,7 +318,7 @@ class CoreUtils {
   }
 
   // Some config objects can be array - and we need to extend them correctly
-  static extendArrayProps (configInstance, options) {
+  static extendArrayProps(configInstance, options) {
     if (options.yaxis) {
       options = configInstance.extendYAxis(options)
     }

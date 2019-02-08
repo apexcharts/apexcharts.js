@@ -1,5 +1,6 @@
 module.exports = {
-  nullData: [{
+  nullData: [
+    {
       x: 1994,
       y: 3.5
     },

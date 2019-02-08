@@ -1,5 +1,6 @@
 module.exports = {
-  logData: [{
+  logData: [
+    {
       x: 1994,
       y: 2543763
     },

@@ -7,17 +7,17 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Theme {
-  constructor (ctx) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
     this.colors = []
   }
 
-  init () {
+  init() {
     this.setDefaultColors()
   }
 
-  setDefaultColors () {
+  setDefaultColors() {
     let w = this.w
     let utils = new Utils()
 
@@ -30,7 +30,10 @@ export default class Theme {
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
       let glsCnt = w.globals.series.length
-      if (w.config.plotOptions.bar.distributed && w.config.chart.type === 'bar') {
+      if (
+        w.config.plotOptions.bar.distributed &&
+        w.config.chart.type === 'bar'
+      ) {
         glsCnt = w.globals.series[0].length * w.globals.series.length
       }
 
@@ -85,7 +88,8 @@ export default class Theme {
     if (w.config.plotOptions.radar.polygons.fill.colors === undefined) {
       w.globals.radarPolygons.fill.colors = ['#fff']
     } else {
-      w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors
+      w.globals.radarPolygons.fill.colors =
+        w.config.plotOptions.radar.polygons.fill.colors
     }
     this.pushExtraColors(w.globals.radarPolygons.fill.colors, 20)
 
@@ -102,13 +106,17 @@ export default class Theme {
   // will push same colors to the list
   // params:
   // distributed is only valid for distributed column/bar charts
-  pushExtraColors (colorSeries, length, distributed = null) {
+  pushExtraColors(colorSeries, length, distributed = null) {
     let w = this.w
 
     let len = length || w.globals.series.length
 
     if (distributed === null) {
-      distributed = (w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) || (w.config.chart.type === 'heatmap' && w.config.plotOptions.heatmap.colorScale.inverse)
+      distributed =
+        (w.config.chart.type === 'bar' &&
+          w.config.plotOptions.bar.distributed) ||
+        (w.config.chart.type === 'heatmap' &&
+          w.config.plotOptions.heatmap.colorScale.inverse)
     } else {
       distributed = false
     }
@@ -125,7 +133,7 @@ export default class Theme {
     }
   }
 
-  predefined () {
+  predefined() {
     let palette = this.w.config.theme.palette
     // D6E3F8, FCEFEF, DCE0D9, A5978B, EDDDD4, D6E3F8, FEF5EF
     switch (palette) {

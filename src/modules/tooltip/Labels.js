@@ -8,23 +8,18 @@ import Utils from './Utils'
  **/
 
 export default class Labels {
-  constructor (tooltipContext) {
+  constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ctx = tooltipContext.ctx
     this.ttCtx = tooltipContext
     this.tooltipUtil = new Utils(tooltipContext)
   }
 
-  drawSeriesTexts ({
-    shared = true,
-    ttItems,
-    i = 0,
-    j = null
-  }) {
+  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null }) {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
-      this.handleCustomTooltip({i, j})
+      this.handleCustomTooltip({ i, j })
     } else {
       this.toggleActiveInactiveSeries(shared)
     }
@@ -49,37 +44,41 @@ export default class Labels {
     this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height
   }
 
-  printLabels ({
-    i,
-    j,
-    values,
-    ttItems,
-    shared
-  }) {
+  printLabels({ i, j, values, ttItems, shared }) {
     const w = this.w
     let val
-    const {
-      xVal,
-      zVal,
-      xAxisTTVal
-    } = values
+    const { xVal, zVal, xAxisTTVal } = values
 
     let seriesName = ''
 
     let pColor = w.globals.colors[i]
-    if ((j !== null && w.config.plotOptions.bar.distributed)) {
+    if (j !== null && w.config.plotOptions.bar.distributed) {
       pColor = w.globals.colors[j]
     }
 
-    for (let t = 0, inverset = w.globals.series.length - 1; t < w.globals.series.length; t++, inverset--) {
+    for (
+      let t = 0, inverset = w.globals.series.length - 1;
+      t < w.globals.series.length;
+      t++, inverset--
+    ) {
       let f = this.getFormatters(i)
-      seriesName = this.getSeriesName({ fn: f.yLbTitleFormatter, index: i, seriesIndex: i, j })
+      seriesName = this.getSeriesName({
+        fn: f.yLbTitleFormatter,
+        index: i,
+        seriesIndex: i,
+        j
+      })
 
       if (shared) {
         const tIndex = w.config.tooltip.inverseOrder ? inverset : t
         f = this.getFormatters(tIndex)
 
-        seriesName = this.getSeriesName({ fn: f.yLbTitleFormatter, index: tIndex, seriesIndex: i, j })
+        seriesName = this.getSeriesName({
+          fn: f.yLbTitleFormatter,
+          index: tIndex,
+          seriesIndex: i,
+          j
+        })
         pColor = w.globals.colors[tIndex]
 
         // for plot charts, not for pie/donuts
@@ -91,7 +90,12 @@ export default class Labels {
         })
 
         // discard 0 values in BARS
-        if ((this.ttCtx.hasBars() && w.config.chart.stacked && w.globals.series[tIndex][j] === 0) || typeof w.globals.series[tIndex][j] === 'undefined') {
+        if (
+          (this.ttCtx.hasBars() &&
+            w.config.chart.stacked &&
+            w.globals.series[tIndex][j] === 0) ||
+          typeof w.globals.series[tIndex][j] === 'undefined'
+        ) {
           val = undefined
         }
       } else {
@@ -124,7 +128,7 @@ export default class Labels {
     }
   }
 
-  getFormatters (i) {
+  getFormatters(i) {
     const w = this.w
 
     let yLbFormatter = w.globals.yLabelFormatters[i]
@@ -133,7 +137,10 @@ export default class Labels {
     if (w.globals.ttVal !== undefined) {
       if (Array.isArray(w.globals.ttVal)) {
         yLbFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].formatter
-        yLbTitleFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].title && w.globals.ttVal[i].title.formatter
+        yLbTitleFormatter =
+          w.globals.ttVal[i] &&
+          w.globals.ttVal[i].title &&
+          w.globals.ttVal[i].title.formatter
       } else {
         yLbFormatter = w.globals.ttVal.formatter
         if (typeof w.globals.ttVal.title.formatter === 'function') {
@@ -148,14 +155,14 @@ export default class Labels {
       if (w.globals.yLabelFormatters[0]) {
         yLbFormatter = w.globals.yLabelFormatters[0]
       } else {
-        yLbFormatter = function (label) {
+        yLbFormatter = function(label) {
           return label
         }
       }
     }
 
     if (typeof yLbTitleFormatter !== 'function') {
-      yLbTitleFormatter = function (label) {
+      yLbTitleFormatter = function(label) {
         return label
       }
     }
@@ -166,7 +173,7 @@ export default class Labels {
     }
   }
 
-  getSeriesName ({ fn, index, seriesIndex, j }) {
+  getSeriesName({ fn, index, seriesIndex, j }) {
     const w = this.w
     return fn(String(w.globals.seriesNames[index]), {
       series: w.globals.series,
@@ -176,23 +183,11 @@ export default class Labels {
     })
   }
 
-  DOMHandling ({
-    t,
-    ttItems,
-    values,
-    seriesName,
-    shared,
-    pColor
-  }) {
+  DOMHandling({ t, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    const {
-      val,
-      xVal,
-      xAxisTTVal,
-      zVal
-    } = values
+    const { val, xVal, xAxisTTVal, zVal } = values
 
     let ttItemsChildren = null
     ttItemsChildren = ttItems[t].children
@@ -227,7 +222,10 @@ export default class Labels {
       ttYVal.innerHTML = val
     }
 
-    if (ttItemsChildren[0] && ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')) {
+    if (
+      ttItemsChildren[0] &&
+      ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')
+    ) {
       ttItemsChildren[0].style.backgroundColor = pColor
     }
 
@@ -236,9 +234,13 @@ export default class Labels {
     }
 
     if (zVal !== null) {
-      const ttZLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-z-label')
+      const ttZLabel = ttItems[t].querySelector(
+        '.apexcharts-tooltip-text-z-label'
+      )
       ttZLabel.innerHTML = w.config.tooltip.z.title
-      const ttZVal = ttItems[t].querySelector('.apexcharts-tooltip-text-z-value')
+      const ttZVal = ttItems[t].querySelector(
+        '.apexcharts-tooltip-text-z-value'
+      )
       ttZVal.innerHTML = zVal
     }
 
@@ -247,12 +249,13 @@ export default class Labels {
       if (typeof val === 'undefined' || val === null) {
         ttItemsChildren[0].parentNode.style.display = 'none'
       } else {
-        ttItemsChildren[0].parentNode.style.display = w.config.tooltip.items.display
+        ttItemsChildren[0].parentNode.style.display =
+          w.config.tooltip.items.display
       }
     }
   }
 
-  toggleActiveInactiveSeries (shared) {
+  toggleActiveInactiveSeries(shared) {
     const w = this.w
     if (shared) {
       // make all tooltips active
@@ -273,10 +276,7 @@ export default class Labels {
     }
   }
 
-  getValuesToPrint ({
-    i,
-    j
-  }) {
+  getValuesToPrint({ i, j }) {
     const w = this.w
     const filteredSeriesX = this.ctx.series.filteredSeriesX()
 
@@ -301,13 +301,14 @@ export default class Labels {
         xVal = filteredSeriesX[i][j]
         if (filteredSeriesX[i].length === 0) {
           // a series (possibly the first one) might be collapsed, so get the next active index
-          const firstActiveSeriesIndex = this.tooltipUtil.getFirstActiveXArray(filteredSeriesX)
+          const firstActiveSeriesIndex = this.tooltipUtil.getFirstActiveXArray(
+            filteredSeriesX
+          )
           xVal = filteredSeriesX[firstActiveSeriesIndex][j]
         }
       } else {
-        xVal = typeof w.globals.labels[j] !== 'undefined'
-          ? w.globals.labels[j]
-          : ''
+        xVal =
+          typeof w.globals.labels[j] !== 'undefined' ? w.globals.labels[j] : ''
       }
     }
 
@@ -330,7 +331,10 @@ export default class Labels {
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {
-      xAxisTTVal = w.globals.xaxisTooltipFormatter(bufferXVal, customFormatterOpts)
+      xAxisTTVal = w.globals.xaxisTooltipFormatter(
+        bufferXVal,
+        customFormatterOpts
+      )
     } else {
       xAxisTTVal = xVal
     }
@@ -343,10 +347,7 @@ export default class Labels {
     }
   }
 
-  handleCustomTooltip ({
-    i,
-    j
-  }) {
+  handleCustomTooltip({ i, j }) {
     const w = this.w
     const tooltipEl = this.ttCtx.getElTooltip()
 

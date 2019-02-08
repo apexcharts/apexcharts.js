@@ -211,7 +211,7 @@ if ("document" in self) {
       var createMethod = function(method) {
         var original = DOMTokenList.prototype[method];
   
-        DOMTokenList.prototype[method] = function(token) {
+        DOMTokenList.prototype[method] = function (token) {
           var i, len = arguments.length;
   
           for (i = 0; i < len; i++) {
