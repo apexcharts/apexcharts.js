@@ -417,7 +417,7 @@ export default class YAxis {
       let yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
       let multipleYPadd =
         this.multipleYs && yTitleCoords[index].width > 0
-          ? yTitleCoords[index].width * 2
+          ? yTitleCoords[index].width * 1.8
           : 15
 
       let paddingForYAxisTitle = this.xPaddingForYAxisTitle(
@@ -446,7 +446,10 @@ export default class YAxis {
       if (!yaxe.opposite) {
         // left side y axis
         let offset = yAxisWidth + 5
-        if (w.globals.ignoreYAxisIndexes.indexOf(index) > -1) {
+        if (
+          w.globals.ignoreYAxisIndexes.indexOf(index) > -1 ||
+          yaxisLabelCoords[index].width === 0
+        ) {
           offset = 0
         }
 
