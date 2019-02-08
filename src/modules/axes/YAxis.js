@@ -414,7 +414,16 @@ export default class YAxis {
     }
 
     w.config.yaxis.map((yaxe, index) => {
+      let shouldNotDrawAxis =
+        w.globals.ignoreYAxisIndexes.indexOf(index) > -1 ||
+        yaxisLabelCoords[index].width === 0
+
       let yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
+
+      if (shouldNotDrawAxis) {
+        yAxisWidth = 0
+      }
+
       let multipleYPadd =
         this.multipleYs && yTitleCoords[index].width > 0
           ? yTitleCoords[index].width * 1.8
@@ -446,10 +455,7 @@ export default class YAxis {
       if (!yaxe.opposite) {
         // left side y axis
         let offset = yAxisWidth + 5
-        if (
-          w.globals.ignoreYAxisIndexes.indexOf(index) > -1 ||
-          yaxisLabelCoords[index].width === 0
-        ) {
+        if (shouldNotDrawAxis) {
           offset = 0
         }
 
@@ -488,8 +494,6 @@ export default class YAxis {
         rightDrawnYs = rightDrawnYs + yAxisWidth
         w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX
       }
-
-      // w.globals.yAxisWidths.push(yAxisWidth)
     })
   }
 }
