@@ -86,7 +86,7 @@ type ApexChart = {
   };
   brush?: {
     enabled?: boolean;
-    autoScaleYaxis: boolean,
+    autoScaleYaxis?: boolean,
     target?: string;
   };
   id?: string;
@@ -247,10 +247,10 @@ type AnnotationLabel = {
 };
 
 type AnnotationStyle = {
-  background: string;
-  color: string;
-  fontSize: string;
-  cssClass: string;
+  background?: string;
+  color?: string;
+  fontSize?: string;
+  cssClass?: string;
   padding?: {
     left?: number;
     right?: number;
@@ -414,7 +414,7 @@ type ApexPlotOptions = {
       offset?: number;
     }
   };
-  radar: {
+  radar?: {
     size?: number;
     offsetX?: number;
     offsetY?: number;
@@ -599,7 +599,7 @@ type ApexResponsive = {
 */
 type ApexTooltip = {
   enabled?: boolean;
-  shared: true;
+  shared?: true;
   followCursor?: boolean;
   intersect?: boolean;
   inverseOrder?: boolean;
@@ -628,14 +628,14 @@ type ApexTooltip = {
   marker?: {
     show?: boolean
   };
-  items: {
-    display: string
+  items?: {
+    display?: string
   };
-  fixed: {
-    enabled: boolean;
-    position: string; // topRight; topLeft; bottomRight; bottomLeft
-    offsetX: number;
-    offsetY: number
+  fixed?: {
+    enabled?: boolean;
+    position?: string; // topRight; topLeft; bottomRight; bottomLeft
+    offsetX?: number;
+    offsetY?: number
   }
 };
 
@@ -674,11 +674,11 @@ type ApexXAxis = {
     };
   };
   axisBorder?: {
-    show: boolean;
-    color: string;
-    offsetX: number;
-    offsetY: number;
-    strokeWidth: number;
+    show?: boolean;
+    color?: string;
+    offsetX?: number;
+    offsetY?: number;
+    strokeWidth?: number;
   };
   axisTicks?: {
     show?: boolean;
