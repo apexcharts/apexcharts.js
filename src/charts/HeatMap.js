@@ -140,12 +140,14 @@ export default class HeatMap {
               w.globals.previousPaths[i][j] &&
               w.globals.previousPaths[i][j].color
 
-            if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 1)'
+            if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 0)'
 
             this.animateHeatColor(
               rect,
-              Utils.rgb2hex(colorFrom),
-              Utils.rgb2hex(color),
+              Utils.isColorHex(colorFrom)
+                ? colorFrom
+                : Utils.rgb2hex(colorFrom),
+              Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
               speed
             )
           }
