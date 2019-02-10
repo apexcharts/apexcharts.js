@@ -777,7 +777,7 @@ export default class Options {
           offsetY: 0
         },
         tickAmount: undefined,
-        tickPlacement: 'on',
+        tickPlacement: 'between',
         min: undefined,
         max: undefined,
         range: undefined,
