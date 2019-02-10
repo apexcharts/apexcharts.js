@@ -26,7 +26,10 @@ export default class Defaults {
         curve: 'straight'
       },
       markers: {
-        size: 5
+        size: 0,
+        hover: {
+          sizeOffset: 6
+        }
       },
       xaxis: {
         crosshairs: {

@@ -365,27 +365,33 @@ export default class YAxis {
     let oppositeAxisCount = 0
 
     let x = 0
-    let padd = 20
+    let padd = 10
+
+    if (w.config.yaxis[realIndex].title.text === undefined || realIndex < 0) {
+      return {
+        xPos: x,
+        padd: 0
+      }
+    }
+
     if (yAxisOpposite) {
       x =
         yAxisLabelsCoord.width +
         w.config.yaxis[realIndex].title.offsetX +
-        padd +
-        yAxisTitleCoord.width / 2 -
-        15
+        yAxisTitleCoord.width / 2 +
+        padd / 2
 
       oppositeAxisCount += 1
 
       if (oppositeAxisCount === 0) {
-        x = x - 15
+        x = x - padd / 2
       }
     } else {
       x =
         yAxisLabelsCoord.width * -1 +
         w.config.yaxis[realIndex].title.offsetX +
-        padd +
-        yAxisTitleCoord.width / 2 -
-        15
+        padd / 2 +
+        yAxisTitleCoord.width / 2
 
       if (this.isBarHorizontal) {
         padd = 25
@@ -405,9 +411,8 @@ export default class YAxis {
 
     let xLeft = 0
     let xRight = 0
-    let leftDrawnYs = 0 // already drawn y axis on left side
-    let rightDrawnYs = 1 // already drawn y axis on right side
-    this.multipleYs = false
+    let leftOffsetX = 21
+    let rightOffsetX = 1
 
     if (w.config.yaxis.length > 1) {
       this.multipleYs = true
@@ -416,83 +421,82 @@ export default class YAxis {
     w.config.yaxis.map((yaxe, index) => {
       let shouldNotDrawAxis =
         w.globals.ignoreYAxisIndexes.indexOf(index) > -1 ||
+        !yaxe.show ||
+        yaxe.floating ||
         yaxisLabelCoords[index].width === 0
 
-      let yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
+      // let yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
+      // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
+      //   prevLeftYAxisWidth =
+      //     yaxisLabelCoords[index - 1].width + yTitleCoords[index - 1].width
+      // }
 
-      if (shouldNotDrawAxis) {
-        yAxisWidth = 0
-      }
+      // if (shouldNotDrawAxis) {
+      //   yAxisWidth = 0
+      //   prevLeftYAxisWidth = 0
+      // }
 
-      let multipleYPadd =
-        this.multipleYs && yTitleCoords[index].width > 0
-          ? yTitleCoords[index].width * 1.8
-          : 15
+      // let multipleYPadd =
+      //   this.multipleYs && yTitleCoords[index].width > 0
+      //     ? yTitleCoords[index].width * 1.02
+      //     : 15
 
-      let paddingForYAxisTitle = this.xPaddingForYAxisTitle(
-        index,
-        {
-          width: yaxisLabelCoords[index].width
-        },
-        {
-          width: yTitleCoords[index].width
-        },
-        yaxe.opposite
-      )
+      // let paddingForYAxisTitle = this.xPaddingForYAxisTitle(
+      //   index,
+      //   {
+      //     width: yaxisLabelCoords[index].width
+      //   },
+      //   {
+      //     width: yTitleCoords[index].width
+      //   },
+      //   yaxe.opposite
+      // )
 
-      if (w.config.yaxis.length > 1) {
-        // multiple yaxis
-        yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
-      } else {
-        // just a single y axis in axis chart
-        if (yaxe.title.text === undefined) {
-          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd) + 15
-        } else {
-          yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
-        }
-      }
+      // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
+      //   paddingForPrevYAxisTitle = this.xPaddingForYAxisTitle(
+      //     index - 1,
+      //     {
+      //       width: yaxisLabelCoords[index - 1].width
+      //     },
+      //     {
+      //       width: yTitleCoords[index - 1].width
+      //     },
+      //     w.config.yaxis[index - 1].opposite
+      //   )
+      // }
+
+      // yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
+      // prevLeftYAxisWidth =
+      //   prevLeftYAxisWidth + Math.abs(paddingForPrevYAxisTitle.padd)
+
+      let axisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
 
       if (!yaxe.opposite) {
         // left side y axis
-        let offset = yAxisWidth + 5
-        if (shouldNotDrawAxis) {
-          offset = 0
-        }
+        // let offset = yAxisWidth + 5
+        // if (shouldNotDrawAxis) {
+        //   offset = 0
+        // }
 
-        if (this.multipleYs) {
-          xLeft =
-            w.globals.translateX -
-            yAxisWidth -
-            leftDrawnYs +
-            multipleYPadd +
-            parseInt(w.config.yaxis[index].labels.style.fontSize) +
-            yaxe.labels.offsetX
-        } else {
-          xLeft =
-            w.globals.translateX -
-            yAxisWidth +
-            yaxisLabelCoords[index].width +
-            yaxe.labels.offsetX
-        }
+        // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
+        //   leftOffsetX =
+        //     yaxisLabelCoords[index - 1].width + yTitleCoords[index - 1].width
+        // }
 
-        leftDrawnYs = leftDrawnYs + offset
-        w.globals.translateYAxisX[index] = xLeft
+        xLeft = w.globals.translateX - leftOffsetX
+
+        if (!shouldNotDrawAxis) {
+          leftOffsetX = leftOffsetX + axisWidth + 20
+        }
+        w.globals.translateYAxisX[index] = xLeft + yaxe.labels.offsetX
       } else {
-        // right side y axis
-        xRight =
-          w.globals.gridWidth +
-          w.globals.translateX +
-          rightDrawnYs +
-          30 +
-          (w.globals.series.length - w.globals.collapsedSeries.length)
+        xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX
 
-        w.globals.collapsedSeries.forEach((c) => {
-          if (c.index === index) {
-            rightDrawnYs = rightDrawnYs - yAxisWidth
-          }
-        })
-        rightDrawnYs = rightDrawnYs + yAxisWidth
-        w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX
+        if (!shouldNotDrawAxis) {
+          rightOffsetX = rightOffsetX + axisWidth + 20
+        }
+
+        w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20
       }
     })
   }
