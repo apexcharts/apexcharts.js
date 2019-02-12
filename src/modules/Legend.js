@@ -230,7 +230,7 @@ class Legend {
       })
 
       if (collapsedSeries) {
-        elLegend.classList.add('inactiv`e-legend')
+        elLegend.classList.add('inactive-legend')
       }
 
       if (!w.config.legend.onItemClick.toggleDataSeries) {
