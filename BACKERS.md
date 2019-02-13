@@ -19,3 +19,4 @@ Backer on | Name
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=17096169" target="_blank">Thomas Janotta</a>
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/calinou/creators" target="_blank">Hugo Locurcio</a>
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=17230063" target="_blank">František Postl</a>
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=3900260" target="_blank">Bob</a>
