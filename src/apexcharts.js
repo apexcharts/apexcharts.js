@@ -394,6 +394,7 @@ export default class ApexCharts {
           return {
             ...w.config.series[i],
             name: s.name ? s.name : w.config.series[i].name,
+            type: s.type,
             data: s.data
           }
         })
@@ -503,6 +504,7 @@ export default class ApexCharts {
         return {
           ...w.config.series[i],
           name: s.name ? s.name : w.config.series[i].name,
+          type: s.type,
           data: s.data
         }
       })

@@ -125,6 +125,11 @@ export default class Core {
       i: []
     }
 
+    let bubbleSeries = {
+      series: [],
+      i: []
+    }
+
     let columnSeries = {
       series: [],
       i: []
@@ -151,13 +156,16 @@ export default class Core {
         } else if (ser[st].type === 'scatter') {
           scatterSeries.series.push(series)
           scatterSeries.i.push(st)
+        } else if (ser[st].type === 'bubble') {
+          bubbleSeries.series.push(series)
+          bubbleSeries.i.push(st)
         } else if (ser[st].type === 'candlestick') {
           candlestickSeries.series.push(series)
           candlestickSeries.i.push(st)
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
-          throw new Error(
-            'You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar'
+          console.warn(
+            'You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar/scatter/bubble'
           )
         }
         gl.comboCharts = true
@@ -201,6 +209,13 @@ export default class Core {
           scatterLine.draw(scatterSeries.series, 'scatter', scatterSeries.i)
         )
       }
+      // TODO: allow bubble series in a combo chart
+      // if (bubbleSeries.series.length > 0) {
+      //   const bubbleLine = new Line(this.ctx, xyRatios, true)
+      //   elGraph.push(
+      //     bubbleLine.draw(bubbleSeries.series, 'bubble', bubbleSeries.i)
+      //   )
+      // }
     } else {
       switch (cnf.chart.type) {
         case 'line':
