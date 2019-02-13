@@ -7,15 +7,15 @@ export default class Options {
   constructor() {
     this.yAxis = {
       show: true,
+      seriesName: undefined,
       opposite: false,
       logarithmic: false,
       tickAmount: undefined,
       forceNiceScale: false,
       max: undefined,
       min: undefined,
-      decimalsInFloat: 2,
       floating: false,
-      seriesName: undefined,
+      decimalsInFloat: 2,
       labels: {
         show: true,
         minWidth: 0,

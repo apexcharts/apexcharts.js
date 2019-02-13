@@ -500,7 +500,7 @@ export default class Defaults {
       dataLabels: {
         enabled: true,
         style: {
-          colors: '#a8a8a8',
+          colors: ['#a8a8a8'],
           fontSize: '11px'
         }
       },
