@@ -1800,7 +1800,6 @@
         show: true,
         opposite: false,
         logarithmic: false,
-        logBase: 10,
         tickAmount: undefined,
         forceNiceScale: false,
         max: undefined,
@@ -10764,9 +10763,8 @@
     }, {
       key: "logarithmicScale",
       value: function logarithmicScale(index, yMin, yMax, ticks) {
-        var w = this.w;
         if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01;
-        var base = w.config.yaxis[index].logBase;
+        var base = 10;
         var min = Math.log(yMin) / Math.log(base);
         var max = Math.log(yMax) / Math.log(base);
         var range = Math.abs(yMax - yMin);

@@ -137,11 +137,9 @@ export default class Range {
   }
 
   logarithmicScale(index, yMin, yMax, ticks) {
-    const w = this.w
-
     if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01
 
-    const base = w.config.yaxis[index].logBase
+    const base = 10
 
     let min = Math.log(yMin) / Math.log(base)
     let max = Math.log(yMax) / Math.log(base)
