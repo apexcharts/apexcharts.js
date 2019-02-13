@@ -83,7 +83,7 @@ export default class Theme {
     } else {
       w.globals.dataLabels.style.colors = w.config.dataLabels.style.colors
     }
-    this.pushExtraColors(w.globals.dataLabels.style.colors)
+    this.pushExtraColors(w.globals.dataLabels.style.colors, 50)
 
     if (w.config.plotOptions.radar.polygons.fill.colors === undefined) {
       w.globals.radarPolygons.fill.colors = ['#fff']
@@ -117,8 +117,6 @@ export default class Theme {
           w.config.plotOptions.bar.distributed) ||
         (w.config.chart.type === 'heatmap' &&
           w.config.plotOptions.heatmap.colorScale.inverse)
-    } else {
-      distributed = false
     }
 
     if (distributed) {
