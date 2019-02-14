@@ -457,6 +457,8 @@ class Pie {
               'stroke-width': w.config.stroke.width
             })
           }
+
+          w.globals.animationEnded = true
         })
         .during(function(pos) {
           currAngle = fromAngle + (angle - fromAngle) * pos
@@ -489,6 +491,7 @@ class Pie {
         size
       })
 
+      w.globals.animationEnded = true
       el.node.setAttribute('data:pathOrig', path)
 
       el.attr({

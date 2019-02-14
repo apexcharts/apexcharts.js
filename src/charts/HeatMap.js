@@ -296,6 +296,8 @@ export default class HeatMap {
       },
       speed
     )
+
+    this.w.globals.animationEnded = true
   }
 
   animateHeatColor(el, colorFrom, colorTo, speed) {
