@@ -538,14 +538,32 @@ export default class ZoomPanSelection extends Toolbar {
           }
         }
 
-        me.ctx._updateOptions(
-          {
-            xaxis,
-            yaxis
-          },
-          false,
-          me.w.config.chart.animations.dynamicAnimation.enabled
-        )
+        if (zoomtype === 'x') {
+          me.ctx._updateOptions(
+            {
+              xaxis
+            },
+            false,
+            me.w.config.chart.animations.dynamicAnimation.enabled
+          )
+        } else if (zoomtype === 'y') {
+          me.ctx._updateOptions(
+            {
+              yaxis
+            },
+            false,
+            me.w.config.chart.animations.dynamicAnimation.enabled
+          )
+        } else {
+          me.ctx._updateOptions(
+            {
+              xaxis,
+              yaxis
+            },
+            false,
+            me.w.config.chart.animations.dynamicAnimation.enabled
+          )
+        }
 
         if (typeof w.config.chart.events.zoomed === 'function') {
           toolbar.zoomCallback(xaxis, yaxis)
