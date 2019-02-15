@@ -28,7 +28,7 @@ export default class Options {
           colors: [],
           fontSize: '11px',
           fontFamily: undefined,
-          cssClass: 'apexcharts-yaxis-label'
+          cssClass: ''
         },
         formatter: undefined
       },
@@ -54,7 +54,7 @@ export default class Options {
           color: undefined,
           fontSize: '11px',
           fontFamily: undefined,
-          cssClass: 'apexcharts-yaxis-title'
+          cssClass: ''
         }
       },
       tooltip: {
@@ -92,7 +92,7 @@ export default class Options {
           color: undefined,
           fontSize: '11px',
           fontFamily: undefined,
-          cssClass: 'apexcharts-xaxis-annotation-label',
+          cssClass: '',
           padding: {
             left: 5,
             right: 5,
@@ -123,7 +123,7 @@ export default class Options {
           color: undefined,
           fontSize: '11px',
           fontFamily: undefined,
-          cssClass: 'apexcharts-yaxis-annotation-label',
+          cssClass: '',
           padding: {
             left: 5,
             right: 5,
@@ -147,7 +147,8 @@ export default class Options {
         shape: 'circle',
         offsetX: 0,
         offsetY: 0,
-        radius: 2
+        radius: 2,
+        cssClass: ''
       },
       label: {
         borderColor: '#c2c2c2',
@@ -161,7 +162,7 @@ export default class Options {
           color: undefined,
           fontSize: '11px',
           fontFamily: undefined,
-          cssClass: 'apexcharts-point-annotation-label',
+          cssClass: '',
           padding: {
             left: 5,
             right: 5,
@@ -746,7 +747,7 @@ export default class Options {
             colors: [],
             fontSize: '12px',
             fontFamily: undefined,
-            cssClass: 'apexcharts-xaxis-label'
+            cssClass: ''
           },
           offsetX: 0,
           offsetY: 0,
@@ -790,7 +791,7 @@ export default class Options {
             color: undefined,
             fontSize: '12px',
             fontFamily: undefined,
-            cssClass: 'apexcharts-xaxis-title'
+            cssClass: ''
           }
         },
         crosshairs: {

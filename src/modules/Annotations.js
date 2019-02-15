@@ -254,7 +254,7 @@ export default class Annotations {
       pointStrokeColor: anno.marker.strokeColor,
       shape: anno.marker.shape,
       radius: anno.marker.radius,
-      css: 'apexcharts-point-annotation-marker ' + anno.marker.cssClass
+      class: 'apexcharts-point-annotation-marker ' + anno.marker.cssClass
     }
     let point = this.graphics.drawMarker(
       x + anno.marker.offsetX,
