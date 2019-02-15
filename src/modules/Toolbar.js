@@ -26,7 +26,6 @@ export default class Toolbar {
 
   createToolbar() {
     let w = this.w
-
     const elToolbarWrap = document.createElement('div')
     elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
     w.globals.dom.elWrap.appendChild(elToolbarWrap)
@@ -39,9 +38,26 @@ export default class Toolbar {
     this.elZoomReset = document.createElement('div')
     this.elMenuIcon = document.createElement('div')
     this.elMenu = document.createElement('div')
+    this.elCustomIcons = []
+
+    if(Array.isArray(w.config.chart.toolbar.tools.customIcons)) {
+      for(let i=0; i<w.config.chart.toolbar.tools.customIcons.length; i++) {
+        this.elCustomIcons.push(document.createElement('div'))
+      }
+    }
+
     this.elMenuItems = []
 
     let toolbarControls = []
+
+    for(let i=0; i<this.elCustomIcons.length; i++) {
+      toolbarControls.push({
+        el: this.elCustomIcons[i],
+        icon: w.config.chart.toolbar.tools.customIcons[i].icon,
+        title: w.config.chart.toolbar.tools.customIcons[i].title,
+        class: w.config.chart.toolbar.tools.customIcons[i].class
+      })
+    }
 
     if (w.config.chart.toolbar.tools.zoomin && w.config.chart.zoom.enabled) {
       toolbarControls.push({
@@ -169,6 +185,9 @@ export default class Toolbar {
         m.addEventListener('click', this.downloadPNG.bind(this))
       }
     })
+    for(let i=0; i<this.w.config.chart.toolbar.tools.customIcons.length; i++) {
+      this.elCustomIcons[i].addEventListener('click', this.w.config.chart.toolbar.tools.customIcons[i].click)
+    }
   }
 
   toggleSelection() {
