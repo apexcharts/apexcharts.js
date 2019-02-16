@@ -1,5 +1,6 @@
 import Graphics from './Graphics'
 import Exports from './Exports'
+import Utils from './../utils/Utils'
 import icoPan from './../assets/ico-pan-hand.svg'
 import icoZoom from './../assets/ico-zoom-in.svg'
 import icoReset from './../assets/ico-home.svg'
@@ -40,8 +41,12 @@ export default class Toolbar {
     this.elMenu = document.createElement('div')
     this.elCustomIcons = []
 
-    if(Array.isArray(w.config.chart.toolbar.tools.customIcons)) {
-      for(let i=0; i<w.config.chart.toolbar.tools.customIcons.length; i++) {
+    if (Array.isArray(w.config.chart.toolbar.tools.customIcons)) {
+      for (
+        let i = 0;
+        i < w.config.chart.toolbar.tools.customIcons.length;
+        i++
+      ) {
         this.elCustomIcons.push(document.createElement('div'))
       }
     }
@@ -49,15 +54,6 @@ export default class Toolbar {
     this.elMenuItems = []
 
     let toolbarControls = []
-
-    for(let i=0; i<this.elCustomIcons.length; i++) {
-      toolbarControls.push({
-        el: this.elCustomIcons[i],
-        icon: w.config.chart.toolbar.tools.customIcons[i].icon,
-        title: w.config.chart.toolbar.tools.customIcons[i].title,
-        class: w.config.chart.toolbar.tools.customIcons[i].class
-      })
-    }
 
     if (w.config.chart.toolbar.tools.zoomin && w.config.chart.zoom.enabled) {
       toolbarControls.push({
@@ -124,11 +120,30 @@ export default class Toolbar {
       })
     }
 
+    for (let i = 0; i < this.elCustomIcons.length; i++) {
+      toolbarControls.push({
+        el: this.elCustomIcons[i],
+        icon: w.config.chart.toolbar.tools.customIcons[i].icon,
+        title: w.config.chart.toolbar.tools.customIcons[i].title,
+        index: w.config.chart.toolbar.tools.customIcons[i].index,
+        class:
+          'apexcharts-toolbar-custom-icon ' +
+          w.config.chart.toolbar.tools.customIcons[i].class
+      })
+    }
+
+    toolbarControls.forEach((t, index) => {
+      if (t.index) {
+        Utils.moveIndexInArray(toolbarControls, index, t.index)
+      }
+    })
+
     for (let i = 0; i < toolbarControls.length; i++) {
       Graphics.setAttrs(toolbarControls[i].el, {
         class: toolbarControls[i].class,
         title: toolbarControls[i].title
       })
+
       toolbarControls[i].el.innerHTML = toolbarControls[i].icon
       elToolbarWrap.appendChild(toolbarControls[i].el)
     }
@@ -185,8 +200,15 @@ export default class Toolbar {
         m.addEventListener('click', this.downloadPNG.bind(this))
       }
     })
-    for(let i=0; i<this.w.config.chart.toolbar.tools.customIcons.length; i++) {
-      this.elCustomIcons[i].addEventListener('click', this.w.config.chart.toolbar.tools.customIcons[i].click)
+    for (
+      let i = 0;
+      i < this.w.config.chart.toolbar.tools.customIcons.length;
+      i++
+    ) {
+      this.elCustomIcons[i].addEventListener(
+        'click',
+        this.w.config.chart.toolbar.tools.customIcons[i].click
+      )
     }
   }
 

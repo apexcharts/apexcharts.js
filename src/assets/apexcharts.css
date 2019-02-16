@@ -308,13 +308,15 @@
 .apexcharts-reset-zoom-icon, 
 .apexcharts-pan-icon, 
 .apexcharts-selection-icon,
-.apexcharts-menu-icon {
+.apexcharts-menu-icon, 
+.apexcharts-toolbar-custom-icon {
   cursor: pointer;
   width: 20px;
   height: 20px;
+  line-height: 24px;
+  color: #6E8192;
   text-align: center;
 }
-
 
 .apexcharts-zoom-icon svg, 
 .apexcharts-zoom-in-icon svg,

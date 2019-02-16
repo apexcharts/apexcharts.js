@@ -271,7 +271,8 @@ export default class Options {
             zoomin: true,
             zoomout: true,
             pan: true,
-            reset: true
+            reset: true,
+            customIcons: []
           },
           autoSelected: 'zoom' // accepts -> zoom, pan, selection
         },

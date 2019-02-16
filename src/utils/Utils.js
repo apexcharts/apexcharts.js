@@ -285,6 +285,17 @@ class Utils {
     return val < 0 ? 0 : val
   }
 
+  static moveIndexInArray(arr, old_index, new_index) {
+    if (new_index >= arr.length) {
+      var k = new_index - arr.length + 1
+      while (k--) {
+        arr.push(undefined)
+      }
+    }
+    arr.splice(new_index, 0, arr.splice(old_index, 1)[0])
+    return arr
+  }
+
   static randomString(len) {
     let text = ''
     let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
