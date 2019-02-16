@@ -221,6 +221,7 @@ class Graphics {
       d = pathFrom
     } else {
       d = pathTo
+      this.w.globals.animationEnded = true
     }
 
     let strokeDashArrayOpt = w.config.stroke.dashArray

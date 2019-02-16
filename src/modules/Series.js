@@ -321,6 +321,7 @@ export default class Series {
     let textAnchor = 'middle'
 
     w.globals.noData = true
+    w.globals.animationEnded = true
 
     if (noDataOpts.align === 'left') {
       x = 10
