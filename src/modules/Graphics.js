@@ -405,7 +405,7 @@ class Graphics {
       ) {
         let stops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops
         stops.forEach((s) => {
-          stop.at(s.offset, s.color, s.opacity)
+          stop.at(s.offset / 100, s.color, s.opacity)
         })
       })
     }
