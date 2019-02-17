@@ -262,6 +262,7 @@ export default class Range {
 
   sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices) {
     const cnf = this.w.config
+    const gl = this.w.globals
 
     // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
     let similarIndices = []
@@ -363,10 +364,18 @@ export default class Range {
         s.forEach((ind, k) => {
           if (s[k].key === i) {
             if (cnf.yaxis[i].min !== undefined) {
-              minY = cnf.yaxis[i].min
+              if (typeof cnf.yaxis[i].min === 'function') {
+                minY = cnf.yaxis[i].min(gl.minY)
+              } else {
+                minY = cnf.yaxis[i].min
+              }
             }
             if (cnf.yaxis[i].max !== undefined) {
-              maxY = cnf.yaxis[i].max
+              if (typeof cnf.yaxis[i].max === 'function') {
+                maxY = cnf.yaxis[i].max(gl.maxY)
+              } else {
+                maxY = cnf.yaxis[i].max
+              }
             }
 
             this.setYScaleForIndex(i, minY, maxY)

@@ -169,17 +169,24 @@ class Range {
 
     cnf.yaxis.map((yaxe, index) => {
       // override all min/max values by user defined values (y axis)
-      if (yaxe.max !== undefined && typeof yaxe.max === 'number') {
-        gl.maxYArr[index] = yaxe.max
+      if (yaxe.max !== undefined) {
+        if (typeof yaxe.max === 'number') {
+          gl.maxYArr[index] = yaxe.max
+        } else if (typeof yaxe.max === 'function') {
+          gl.maxYArr[index] = yaxe.max(gl.maxY)
+        }
 
         // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
-        gl.maxY = yaxis[0].max
+        gl.maxY = gl.maxYArr[index]
       }
-      if (yaxe.min !== undefined && typeof yaxe.min === 'number') {
-        gl.minYArr[index] = yaxe.min
-
+      if (yaxe.min !== undefined) {
+        if (typeof yaxe.min === 'number') {
+          gl.minYArr[index] = yaxe.min
+        } else if (typeof yaxe.min === 'function') {
+          gl.minYArr[index] = yaxe.min(gl.minY)
+        }
         // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
-        gl.minY = yaxis[0].min
+        gl.minY = gl.minYArr[index]
       }
     })
 

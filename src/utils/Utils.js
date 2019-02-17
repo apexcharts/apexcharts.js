@@ -296,6 +296,10 @@ class Utils {
     return arr
   }
 
+  static extractNumber(s) {
+    return parseFloat(s.replace(/[^\d\.]*/g, ''))
+  }
+
   static randomString(len) {
     let text = ''
     let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
