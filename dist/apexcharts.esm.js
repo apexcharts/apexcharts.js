@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.4.0
+ * ApexCharts v3.4.1
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1384,7 +1384,7 @@ function () {
         g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function (stop) {
           var stops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops;
           stops.forEach(function (s) {
-            stop.at(s.offset, s.color, s.opacity);
+            stop.at(s.offset / 100, s.color, s.opacity);
           });
         });
       }
