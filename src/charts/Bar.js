@@ -192,7 +192,7 @@ class Bar {
           })
         }
 
-        let pathFill = fill.fillPath(elSeries, {
+        let pathFill = fill.fillPath({
           seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
           color: fillColor
         })

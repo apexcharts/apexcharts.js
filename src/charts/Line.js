@@ -332,7 +332,7 @@ class Line {
         let lineFill = null
         if (type === 'line') {
           // fillable lines only for lineChart
-          lineFill = fill.fillPath(elSeries, {
+          lineFill = fill.fillPath({
             seriesNumber: realIndex,
             i: i
           })
@@ -359,7 +359,7 @@ class Line {
 
       // we have drawn the lines, now if it is area chart, we need to fill paths
       if (type === 'area') {
-        let pathFill = fill.fillPath(elSeries, {
+        let pathFill = fill.fillPath({
           seriesNumber: realIndex
         })
 

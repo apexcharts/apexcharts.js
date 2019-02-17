@@ -118,10 +118,13 @@ export default class Animations {
   /*
    ** Animate rect properties
    */
-  animateRect(el, from, to, speed) {
+  animateRect(el, from, to, speed, fn) {
     el.attr(from)
       .animate(speed)
       .attr(to)
+      .afterAll(function() {
+        fn()
+      })
   }
 
   animatePathsGradually(params) {

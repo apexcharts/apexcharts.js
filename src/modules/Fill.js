@@ -90,7 +90,7 @@ class Fill {
     return this.seriesIndex
   }
 
-  fillPath(elSeries, opts) {
+  fillPath(opts) {
     let w = this.w
     this.opts = opts
 
@@ -103,6 +103,7 @@ class Fill {
 
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
+    let fillType = this.getFillType(this.seriesIndex)
     let fillOpacity = Array.isArray(cnf.fill.opacity)
       ? cnf.fill.opacity[this.seriesIndex]
       : cnf.fill.opacity
@@ -122,7 +123,7 @@ class Fill {
       }
     }
 
-    if (cnf.fill.type === 'pattern') {
+    if (fillType === 'pattern') {
       patternFill = this.handlePatternFill(
         patternFill,
         fillColor,
@@ -131,7 +132,7 @@ class Fill {
       )
     }
 
-    if (cnf.fill.type === 'gradient') {
+    if (fillType === 'gradient') {
       gradientFill = this.handleGradientFill(
         gradientFill,
         fillColor,
@@ -140,7 +141,7 @@ class Fill {
       )
     }
 
-    if (cnf.fill.image.src.length > 0 && cnf.fill.type === 'image') {
+    if (cnf.fill.image.src.length > 0 && fillType === 'image') {
       if (opts.seriesNumber < cnf.fill.image.src.length) {
         this.clippedImgArea({
           opacity: fillOpacity,
@@ -151,9 +152,9 @@ class Fill {
       } else {
         pathFill = defaultColor
       }
-    } else if (cnf.fill.type === 'gradient') {
+    } else if (fillType === 'gradient') {
       pathFill = gradientFill
-    } else if (cnf.fill.type === 'pattern') {
+    } else if (fillType === 'pattern') {
       pathFill = patternFill
     } else {
       pathFill = defaultColor
@@ -165,6 +166,16 @@ class Fill {
     }
 
     return pathFill
+  }
+
+  getFillType(seriesIndex) {
+    const w = this.w
+
+    if (Array.isArray(w.config.fill.type)) {
+      return w.config.fill.type[seriesIndex]
+    } else {
+      return w.config.fill.type
+    }
   }
 
   getFillColors() {
@@ -313,7 +324,9 @@ class Fill {
       opacityFrom,
       opacityTo,
       opts.size,
-      cnf.fill.gradient.stops
+      cnf.fill.gradient.stops,
+      cnf.fill.gradient.colorStops,
+      i
     )
 
     return gradientFill

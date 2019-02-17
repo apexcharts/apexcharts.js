@@ -192,7 +192,7 @@ class BarStacked extends Bar {
           })
         }
 
-        let pathFill = this.fill.fillPath(elSeries, {
+        let pathFill = this.fill.fillPath({
           seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
           color: fillColor
         })

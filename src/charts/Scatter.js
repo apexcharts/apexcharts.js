@@ -36,7 +36,7 @@ export default class Scatter {
     let zRatio = opts.zRatio
     let elPointsMain = opts.elParent
 
-    let pathFillCircle = fill.fillPath(elSeries, {
+    let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex
     })
 

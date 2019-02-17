@@ -124,7 +124,7 @@ class Radial extends Pie {
       opts.size = opts.size - strokeWidth - this.margin
 
       const trackConfig = w.config.plotOptions.radialBar.track
-      let pathFill = fill.fillPath(elRadialBarTrack, {
+      let pathFill = fill.fillPath({
         seriesNumber: 0,
         size: opts.size,
         fillColors: Array.isArray(trackConfig.background)
@@ -267,7 +267,7 @@ class Radial extends Pie {
 
       opts.size = opts.size - strokeWidth - this.margin
 
-      let pathFill = fill.fillPath(elRadialBarArc, {
+      let pathFill = fill.fillPath({
         seriesNumber: i,
         size: opts.size
       })

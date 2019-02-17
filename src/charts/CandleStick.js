@@ -130,7 +130,7 @@ class CandleStick extends Bar {
 
         yArrj.push(y)
 
-        let pathFill = fill.fillPath(elSeries, {
+        let pathFill = fill.fillPath({
           seriesNumber: realIndex,
           color
         })

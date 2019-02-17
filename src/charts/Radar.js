@@ -161,7 +161,7 @@ class Radar {
 
         elSeries.add(renderedLinePath)
 
-        let pathFill = fill.fillPath(elSeries, {
+        let pathFill = fill.fillPath({
           seriesNumber: i
         })
 

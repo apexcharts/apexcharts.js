@@ -294,10 +294,11 @@ export default class HeatMap {
         width,
         height
       },
-      speed
+      speed,
+      () => {
+        this.w.globals.animationEnded = true
+      }
     )
-
-    this.w.globals.animationEnded = true
   }
 
   animateHeatColor(el, colorFrom, colorTo, speed) {

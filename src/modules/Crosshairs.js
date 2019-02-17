@@ -43,7 +43,8 @@ class Crosshairs {
           opacityFrom,
           opacityTo,
           null,
-          stops
+          stops,
+          null
         )
       }
 

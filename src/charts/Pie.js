@@ -207,7 +207,7 @@ class Pie {
 
       let angle = endAngle - startAngle
 
-      let pathFill = fill.fillPath(elPieArc, {
+      let pathFill = fill.fillPath({
         seriesNumber: i,
         size: this.size
       }) // additionaly, pass size for gradient drawing in the fillPath function

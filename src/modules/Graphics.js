@@ -360,9 +360,12 @@ class Graphics {
     opacityFrom,
     opacityTo,
     size = null,
-    stops = null
+    stops = null,
+    colorStops = null,
+    i = 0
   ) {
     let w = this.w
+    let g
 
     gfrom = Utils.hexToRgba(gfrom, opacityFrom)
     gto = Utils.hexToRgba(gto, opacityTo)
@@ -385,41 +388,51 @@ class Graphics {
       w.config.chart.type === 'bubble'
     )
 
-    const p = w.globals.dom.Paper.gradient(
-      radial ? 'radial' : 'linear',
-      function(stop) {
+    if (colorStops === null || colorStops.length === 0) {
+      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function(
+        stop
+      ) {
         stop.at(stop1, gfrom, opacityFrom)
         stop.at(stop2, gto, opacityTo)
         stop.at(stop3, gto, opacityTo)
         if (stop4 !== null) {
           stop.at(stop4, gfrom, opacityFrom)
         }
-      }
-    )
+      })
+    } else {
+      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function(
+        stop
+      ) {
+        let stops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops
+        stops.forEach((s) => {
+          stop.at(s.offset, s.color, s.opacity)
+        })
+      })
+    }
 
     if (!radial) {
       if (style === 'vertical') {
-        p.from(0, 0).to(0, 1)
+        g.from(0, 0).to(0, 1)
       } else if (style === 'diagonal') {
-        p.from(0, 0).to(1, 1)
+        g.from(0, 0).to(1, 1)
       } else if (style === 'horizontal') {
-        p.from(0, 1).to(1, 1)
+        g.from(0, 1).to(1, 1)
       } else if (style === 'diagonal2') {
-        p.from(0, 1).to(2, 2)
+        g.from(0, 1).to(2, 2)
       }
     } else {
       let offx = w.globals.gridWidth / 2
       let offy = w.globals.gridHeight / 2
 
       if (w.config.chart.type !== 'bubble') {
-        p.attr({
+        g.attr({
           gradientUnits: 'userSpaceOnUse',
           cx: offx,
           cy: offy,
           r: size
         })
       } else {
-        p.attr({
+        g.attr({
           cx: 0.5,
           cy: 0.5,
           r: 0.8,
@@ -429,7 +442,7 @@ class Graphics {
       }
     }
 
-    return p
+    return g
   }
 
   drawText(opts) {
