@@ -7,7 +7,7 @@
   <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="ver"></a>
   <img alt="gzip" src="https://img.shields.io/bundlephobia/minzip/apexcharts.svg?label=gzip">
   <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square" alt="prettier"></a>
-  <a href="https://patreon.com/junedchhipa"><img src="https://img.shields.io/badge/patrons-6-blue.svg?style=flat&logo=patreon" alt="patrons" /></a>
+  <a href="https://patreon.com/junedchhipa"><img src="https://img.shields.io/badge/patrons-7-blue.svg?style=flat&logo=patreon" alt="patrons" /></a>
 </p>
 
 
