@@ -2762,8 +2762,38 @@ function () {
       var strokeDashArray = anno.strokeDashArray;
       var x1 = (anno.x - min) / (range / w.globals.gridWidth);
       if (x1 < 0 || x1 > w.globals.gridWidth) return;
-      var line = this.graphics.drawLine(x1 + anno.offsetX, 0 + anno.offsetY, x1 + anno.offsetX, w.globals.gridHeight + anno.offsetY, anno.borderColor, strokeDashArray);
-      parent.appendChild(line.node);
+
+      if (!anno.x2) {
+        var line = this.graphics.drawLine(x1 + anno.offsetX, // x1
+        0 + anno.offsetY, // y1
+        x1 + anno.offsetX, // x2
+        w.globals.gridHeight + anno.offsetY, // y2
+        anno.borderColor, // lineColor
+        strokeDashArray //dashArray
+        );
+        parent.appendChild(line.node);
+      } else {
+        var x2 = (anno.x2 - min) / (range / w.globals.gridWidth);
+
+        if (x2 < x1) {
+          var temp = x1;
+          x1 = x2;
+          x2 = temp;
+        }
+
+        var rect = this.graphics.drawRect(x1 + anno.offsetX, // x1
+        0 + anno.offsetY, // y1
+        x2 - x1, // x2
+        w.globals.gridHeight + anno.offsetY, // y2
+        0, // radius
+        anno.borderColor, // color
+        anno.opacity || 0.3, // opacity,
+        anno.borderColor, // strokeColor
+        strokeDashArray // stokeDashArray
+        );
+        parent.appendChild(rect.node);
+      }
+
       var textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight;
       var text = anno.label.text ? anno.label.text : '';
       var elText = this.graphics.drawText({
@@ -2801,6 +2831,7 @@ function () {
       var w = this.w;
       var strokeDashArray = anno.strokeDashArray;
       var y1;
+      var y2;
 
       if (this.invertAxis) {
         var catIndex = w.globals.labels.indexOf(anno.y);
@@ -2811,12 +2842,50 @@ function () {
       }
 
       var text = anno.label.text ? anno.label.text : '';
-      var line = this.graphics.drawLine(0 + anno.offsetX, y1 + anno.offsetY, w.globals.gridWidth + anno.offsetX, y1 + anno.offsetY, anno.borderColor, strokeDashArray);
-      parent.appendChild(line.node);
+
+      if (!anno.y2) {
+        var line = this.graphics.drawLine(0 + anno.offsetX, // x1
+        y1 + anno.offsetY, // y1
+        w.globals.gridWidth + anno.offsetX, // x2
+        y1 + anno.offsetY, // y2
+        anno.borderColor, // lineColor
+        strokeDashArray // dashArray
+        );
+        parent.appendChild(line.node);
+      } else {
+        if (this.invertAxis) {
+          var _catIndex = w.globals.labels.indexOf(anno.y2);
+
+          var _xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (_catIndex + 1) + ')');
+
+          y2 = parseFloat(_xLabel.getAttribute('y'));
+        } else {
+          y2 = w.globals.gridHeight - (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+        }
+
+        if (y2 > y1) {
+          var temp = y1;
+          y1 = y2;
+          y2 = temp;
+        }
+
+        var rect = this.graphics.drawRect(0 + anno.offsetX, // x1
+        y2 + anno.offsetY, // y1
+        w.globals.gridWidth + anno.offsetX, // x2
+        y1 - y2, // y2
+        0, // radius
+        anno.borderColor, // color
+        anno.opacity || 0.3, // opacity,
+        anno.borderColor, // strokeColor
+        strokeDashArray // stokeDashArray
+        );
+        parent.appendChild(rect.node);
+      }
+
       var textX = anno.label.position === 'right' ? w.globals.gridWidth : 0;
       var elText = this.graphics.drawText({
         x: textX + anno.label.offsetX,
-        y: y1 + anno.label.offsetY - 3,
+        y: (y2 || y1) + anno.label.offsetY - 3,
         text: text,
         textAnchor: anno.label.textAnchor,
         fontSize: anno.label.style.fontSize,
@@ -17801,17 +17870,17 @@ function () {
   return Tooltip;
 }();
 
-var icoPan = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\n    <defs>\n        <path d=\"M0 0h24v24H0z\" id=\"a\"/>\n    </defs>\n    <clipPath id=\"b\">\n        <use overflow=\"visible\" xlink:href=\"#a\"/>\n    </clipPath>\n    <path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"/>\n</svg>";
+var icoPan = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\r\n    <defs>\r\n        <path d=\"M0 0h24v24H0z\" id=\"a\"/>\r\n    </defs>\r\n    <clipPath id=\"b\">\r\n        <use overflow=\"visible\" xlink:href=\"#a\"/>\r\n    </clipPath>\r\n    <path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"/>\r\n</svg>";
 
-var icoZoom = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\n    <path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"/>\n    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n    <path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"/>\n</svg>";
+var icoZoom = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\r\n    <path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"/>\r\n    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\r\n    <path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"/>\r\n</svg>";
 
-var icoReset = "<svg fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\n    <path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"/>\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n</svg>";
+var icoReset = "<svg fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\r\n    <path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"/>\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n</svg>";
 
-var icoZoomIn = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n    <path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\n</svg>\n";
+var icoZoomIn = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n    <path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\r\n</svg>\r\n";
 
-var icoZoomOut = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n    <path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\n</svg>\n";
+var icoZoomOut = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n    <path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\r\n</svg>\r\n";
 
-var icoSelect = "<svg fill=\"#6E8192\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n    <path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"/>\n</svg>";
+var icoSelect = "<svg fill=\"#6E8192\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n    <path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"/>\r\n</svg>";
 
 var icoMenu = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path fill=\"none\" d=\"M0 0h24v24H0V0z\"/><path d=\"M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z\"/></svg>";
 

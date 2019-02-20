@@ -66,16 +66,36 @@ export default class Annotations {
 
     if (x1 < 0 || x1 > w.globals.gridWidth) return
 
-    let line = this.graphics.drawLine(
-      x1 + anno.offsetX,
-      0 + anno.offsetY,
-      x1 + anno.offsetX,
-      w.globals.gridHeight + anno.offsetY,
-      anno.borderColor,
-      strokeDashArray
-    )
-    parent.appendChild(line.node)
-
+    if (!anno.x2) {
+      let line = this.graphics.drawLine(
+        x1 + anno.offsetX, // x1
+        0 + anno.offsetY, // y1
+        x1 + anno.offsetX, // x2
+        w.globals.gridHeight + anno.offsetY, // y2
+        anno.borderColor, // lineColor
+        strokeDashArray //dashArray
+      )
+      parent.appendChild(line.node)
+    } else {
+      let x2 = (anno.x2 - min) / (range / w.globals.gridWidth)
+      if (x2 < x1) {
+        let temp = x1
+        x1 = x2
+        x2 = temp
+      }
+      let rect = this.graphics.drawRect(
+        x1 + anno.offsetX, // x1
+        0 + anno.offsetY, // y1
+        x2 - x1, // x2
+        w.globals.gridHeight + anno.offsetY, // y2
+        0, // radius
+        anno.borderColor, // color
+        anno.opacity || 0.3, // opacity,
+        anno.borderColor, // strokeColor
+        strokeDashArray // stokeDashArray
+      )
+      parent.appendChild(rect.node)
+    }
     let textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight
 
     const text = anno.label.text ? anno.label.text : ''
@@ -118,6 +138,7 @@ export default class Annotations {
     let strokeDashArray = anno.strokeDashArray
 
     let y1
+    let y2
 
     if (this.invertAxis) {
       let catIndex = w.globals.labels.indexOf(anno.y)
@@ -135,21 +156,55 @@ export default class Annotations {
 
     const text = anno.label.text ? anno.label.text : ''
 
-    let line = this.graphics.drawLine(
-      0 + anno.offsetX,
-      y1 + anno.offsetY,
-      w.globals.gridWidth + anno.offsetX,
-      y1 + anno.offsetY,
-      anno.borderColor,
-      strokeDashArray
-    )
-    parent.appendChild(line.node)
+    if (!anno.y2) {
+      let line = this.graphics.drawLine(
+        0 + anno.offsetX, // x1
+        y1 + anno.offsetY, // y1
+        w.globals.gridWidth + anno.offsetX, // x2
+        y1 + anno.offsetY, // y2
+        anno.borderColor, // lineColor
+        strokeDashArray // dashArray
+      )
+      parent.appendChild(line.node)
+    } else {
+      if (this.invertAxis) {
+        let catIndex = w.globals.labels.indexOf(anno.y2)
+        const xLabel = w.globals.dom.baseEl.querySelector(
+          '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+        )
 
+        y2 = parseFloat(xLabel.getAttribute('y'))
+      } else {
+        y2 =
+          w.globals.gridHeight -
+          (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) /
+            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      }
+
+      if (y2 > y1) {
+        let temp = y1
+        y1 = y2
+        y2 = temp
+      }
+
+      let rect = this.graphics.drawRect(
+        0 + anno.offsetX, // x1
+        y2 + anno.offsetY, // y1
+        w.globals.gridWidth + anno.offsetX, // x2
+        y1 - y2, // y2
+        0, // radius
+        anno.borderColor, // color
+        anno.opacity || 0.3, // opacity,
+        anno.borderColor, // strokeColor
+        strokeDashArray // stokeDashArray
+      )
+      parent.appendChild(rect.node)
+    }
     let textX = anno.label.position === 'right' ? w.globals.gridWidth : 0
 
     let elText = this.graphics.drawText({
       x: textX + anno.label.offsetX,
-      y: y1 + anno.label.offsetY - 3,
+      y: (y2 || y1) + anno.label.offsetY - 3,
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
