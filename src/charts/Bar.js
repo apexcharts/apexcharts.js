@@ -680,10 +680,13 @@ class Bar {
     const offX = dataLabelsConfig.offsetX
     const offY = dataLabelsConfig.offsetY
 
-    let textRects = graphics.getTextRects(
-      w.globals.yLabelFormatters[0](w.globals.maxY),
-      parseInt(dataLabelsConfig.style.fontSize)
-    )
+    let textRects = { width: 0, height: 0 }
+    if (w.config.dataLabels.enabled) {
+      textRects = graphics.getTextRects(
+        w.globals.yLabelFormatters[0](w.globals.maxY),
+        parseInt(dataLabelsConfig.style.fontSize)
+      )
+    }
 
     if (this.isHorizontal) {
       dataLabelsPos = this.calculateBarsDataLabelsPosition({
