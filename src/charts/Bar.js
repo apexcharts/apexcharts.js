@@ -250,8 +250,12 @@ class Bar {
     const graphics = new Graphics(this.ctx)
 
     if (!lineFill) {
-      lineFill = w.globals.stroke.colors[realIndex]
+      /* fix apexcharts#341 */
+      lineFill = this.barOptions.distributed
+        ? w.globals.stroke.colors[j]
+        : w.globals.stroke.colors[realIndex]
     }
+
     if (this.isNullValue) {
       pathFill = 'none'
     }
