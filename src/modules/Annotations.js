@@ -66,7 +66,7 @@ export default class Annotations {
 
     if (x1 < 0 || x1 > w.globals.gridWidth) return
 
-    if (!anno.x2) {
+    if (anno.x2 == null) {
       let line = this.graphics.drawLine(
         x1 + anno.offsetX, // x1
         0 + anno.offsetY, // y1
@@ -156,7 +156,7 @@ export default class Annotations {
 
     const text = anno.label.text ? anno.label.text : ''
 
-    if (!anno.y2) {
+    if (anno.y2 == null) {
       let line = this.graphics.drawLine(
         0 + anno.offsetX, // x1
         y1 + anno.offsetY, // y1
