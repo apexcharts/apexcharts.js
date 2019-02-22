@@ -425,64 +425,9 @@ export default class YAxis {
         yaxe.floating ||
         yaxisLabelCoords[index].width === 0
 
-      // let yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
-      // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
-      //   prevLeftYAxisWidth =
-      //     yaxisLabelCoords[index - 1].width + yTitleCoords[index - 1].width
-      // }
-
-      // if (shouldNotDrawAxis) {
-      //   yAxisWidth = 0
-      //   prevLeftYAxisWidth = 0
-      // }
-
-      // let multipleYPadd =
-      //   this.multipleYs && yTitleCoords[index].width > 0
-      //     ? yTitleCoords[index].width * 1.02
-      //     : 15
-
-      // let paddingForYAxisTitle = this.xPaddingForYAxisTitle(
-      //   index,
-      //   {
-      //     width: yaxisLabelCoords[index].width
-      //   },
-      //   {
-      //     width: yTitleCoords[index].width
-      //   },
-      //   yaxe.opposite
-      // )
-
-      // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
-      //   paddingForPrevYAxisTitle = this.xPaddingForYAxisTitle(
-      //     index - 1,
-      //     {
-      //       width: yaxisLabelCoords[index - 1].width
-      //     },
-      //     {
-      //       width: yTitleCoords[index - 1].width
-      //     },
-      //     w.config.yaxis[index - 1].opposite
-      //   )
-      // }
-
-      // yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
-      // prevLeftYAxisWidth =
-      //   prevLeftYAxisWidth + Math.abs(paddingForPrevYAxisTitle.padd)
-
       let axisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
 
       if (!yaxe.opposite) {
-        // left side y axis
-        // let offset = yAxisWidth + 5
-        // if (shouldNotDrawAxis) {
-        //   offset = 0
-        // }
-
-        // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
-        //   leftOffsetX =
-        //     yaxisLabelCoords[index - 1].width + yTitleCoords[index - 1].width
-        // }
-
         xLeft = w.globals.translateX - leftOffsetX
 
         if (!shouldNotDrawAxis) {

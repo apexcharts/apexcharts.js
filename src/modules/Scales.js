@@ -16,12 +16,12 @@ export default class Range {
   niceScale(yMin, yMax, index = 0, ticks = 10) {
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
-      (!Utils.isNumber(yMin) && !Utils.isNumber(yMax))
+      (!Utils.isNumber(yMin) && !Utils.isNumber(yMax)) ||
+      (yMin === Number.MIN_VALUE && yMax === Number.MIN_SAFE_INTEGER)
     ) {
       // when all values are 0
       yMin = 0
-      yMax = 1
-      ticks = 1
+      yMax = ticks
       let linearScale = this.linearScale(yMin, yMax, ticks)
       return linearScale
     }
@@ -212,7 +212,7 @@ export default class Range {
           minY,
           maxY,
           index,
-          y.tickAmount ? y.tickAmount : 6
+          y.tickAmount ? y.tickAmount : 5
         )
       }
     }

@@ -56,7 +56,9 @@ export default class Globals {
       noLabelsProvided: false, // if user didn't provide any categories/labels or x values, fallback to 1,2,3,4...
       allSeriesCollapsed: false,
       collapsedSeries: [], // when user collapses a series, it goes into this array
-      collapsedSeriesIndices: [], // this just stores the index of the collapsedSeries instead of whole object
+      collapsedSeriesIndices: [], // this stores the index of the collapsedSeries instead of whole object for quick access
+      ancillaryCollapsedSeries: [], // when user collapses an "alwaysVisible" series, it goes into this array
+      ancillaryCollapsedSeriesIndices: [], // this stores the index of the collapsedSeries whose y-axis is always visible
       risingSeries: [], // when user re-opens a collapsed series, it goes here
       selectedDataPoints: [],
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
@@ -76,7 +78,7 @@ export default class Globals {
       minY: Number.MIN_VALUE, //  is 5e-324, i.e. the smallest positive number
       // NOTE: If there are multiple y axis, the first yaxis array element will be considered for all y values calculations. Rest all will be calculated based on that
       maxY: -Number.MAX_VALUE, // is -1.7976931348623157e+308
-      // NOTE: The above note for minY apllies here as well
+      // NOTE: The above note for minY applies here as well
 
       minYArr: [],
       maxYArr: [],

@@ -98,10 +98,23 @@ class Legend {
       let text = legendFormatter(legendNames[i], { seriesIndex: i, w })
 
       let collapsedSeries = false
+      let ancillaryCollapsedSeries = false
       if (w.globals.collapsedSeries.length > 0) {
         for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
           if (w.globals.collapsedSeries[c].index === i) {
             collapsedSeries = true
+          }
+        }
+      }
+
+      if (w.globals.ancillaryCollapsedSeriesIndices.length > 0) {
+        for (
+          let c = 0;
+          c < w.globals.ancillaryCollapsedSeriesIndices.length;
+          c++
+        ) {
+          if (w.globals.ancillaryCollapsedSeriesIndices[c] === i) {
+            ancillaryCollapsedSeries = true
           }
         }
       }
@@ -149,10 +162,10 @@ class Legend {
 
       Graphics.setAttrs(elMarker, {
         rel: i + 1,
-        'data:collapsed': collapsedSeries
+        'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
 
-      if (collapsedSeries) {
+      if (collapsedSeries || ancillaryCollapsedSeries) {
         elMarker.classList.add('inactive-legend')
       }
 
@@ -177,7 +190,7 @@ class Legend {
 
       Graphics.setAttrs(elLegendText, {
         rel: i + 1,
-        'data:collapsed': collapsedSeries
+        'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
 
       elLegend.appendChild(elMarker)
@@ -191,7 +204,8 @@ class Legend {
           total === 0 &&
           coreUtils.seriesHaveSameValues(i) &&
           !coreUtils.isSeriesNull(i) &&
-          w.globals.collapsedSeriesIndices.indexOf(i) === -1
+          w.globals.collapsedSeriesIndices.indexOf(i) === -1 &&
+          w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1
         ) {
           elLegend.classList.add('apexcharts-hidden-zero-series')
         }
@@ -200,7 +214,8 @@ class Legend {
       if (!w.config.legend.showForNullSeries) {
         if (
           coreUtils.isSeriesNull(i) &&
-          w.globals.collapsedSeriesIndices.indexOf(i) === -1
+          w.globals.collapsedSeriesIndices.indexOf(i) === -1 &&
+          w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1
         ) {
           elLegend.classList.add('apexcharts-hidden-null-series')
         }
@@ -226,10 +241,10 @@ class Legend {
 
       Graphics.setAttrs(elLegend, {
         rel: i + 1,
-        'data:collapsed': collapsedSeries
+        'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
 
-      if (collapsedSeries) {
+      if (collapsedSeries || ancillaryCollapsedSeries) {
         elLegend.classList.add('inactive-legend')
       }
 
@@ -550,7 +565,9 @@ class Legend {
         }
       }
       w.globals.collapsedSeries = []
+      w.globals.ancillaryCollapsedSeries = []
       w.globals.collapsedSeriesIndices = []
+      w.globals.ancillaryCollapsedSeriesIndices = []
       w.globals.risingSeries = risingSeries
       w.config.series = series
       this.ctx._updateSeries(
@@ -585,43 +602,52 @@ class Legend {
       }
 
       if (isHidden) {
-        if (w.globals.collapsedSeries.length > 0) {
-          for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
-            if (w.globals.collapsedSeries[c].index === realIndex) {
-              if (w.globals.axisCharts) {
-                w.config.series[realIndex].data = w.globals.collapsedSeries[
-                  c
-                ].data.slice()
-                w.globals.collapsedSeries.splice(c, 1)
-                w.globals.collapsedSeriesIndices.splice(c, 1)
-                w.globals.risingSeries.push(realIndex)
-              } else {
-                w.config.series[realIndex] = w.globals.collapsedSeries[c].data
-                w.globals.collapsedSeries.splice(c, 1)
-                w.globals.collapsedSeriesIndices.splice(c, 1)
-                w.globals.risingSeries.push(realIndex)
-              }
-              this.ctx._updateSeries(
-                w.config.series,
-                w.config.chart.animations.dynamicAnimation.enabled
-              )
-            }
-          }
-        }
+        this.riseCollapsedSeries(
+          w.globals.collapsedSeries,
+          w.globals.collapsedSeriesIndices,
+          realIndex
+        )
+        this.riseCollapsedSeries(
+          w.globals.ancillaryCollapsedSeries,
+          w.globals.ancillaryCollapsedSeriesIndices,
+          realIndex
+        )
       } else {
         if (w.globals.axisCharts) {
-          w.globals.collapsedSeries.push({
-            index: realIndex,
-            data: w.config.series[realIndex].data.slice(),
-            type: seriesEl.parentNode.className.baseVal.split('-')[1]
-          })
-          w.globals.collapsedSeriesIndices.push(realIndex)
+          let shouldNotHideYAxis = false
 
-          let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
+          if (
+            w.config.yaxis[realIndex] &&
+            w.config.yaxis[realIndex].show &&
+            w.config.yaxis[realIndex].showAlways
+          ) {
+            shouldNotHideYAxis = true
+            if (
+              w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0
+            ) {
+              w.globals.ancillaryCollapsedSeries.push({
+                index: realIndex,
+                data: w.config.series[realIndex].data.slice(),
+                type: seriesEl.parentNode.className.baseVal.split('-')[1]
+              })
+              w.globals.ancillaryCollapsedSeriesIndices.push(realIndex)
+            }
+          }
 
-          w.globals.risingSeries.splice(removeIndexOfRising, 1)
+          if (!shouldNotHideYAxis) {
+            w.globals.collapsedSeries.push({
+              index: realIndex,
+              data: w.config.series[realIndex].data.slice(),
+              type: seriesEl.parentNode.className.baseVal.split('-')[1]
+            })
+            w.globals.collapsedSeriesIndices.push(realIndex)
 
-          // mutating the user's config object here
+            let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
+
+            w.globals.risingSeries.splice(removeIndexOfRising, 1)
+          }
+
+          // TODO: AVOID mutating the user's config object below
           w.config.series[realIndex].data = []
         } else {
           w.globals.collapsedSeries.push({
@@ -662,6 +688,32 @@ class Legend {
       )
 
       seriesEl.fire('click')
+    }
+  }
+
+  riseCollapsedSeries(series, seriesIndices, realIndex) {
+    const w = this.w
+
+    if (series.length > 0) {
+      for (let c = 0; c < series.length; c++) {
+        if (series[c].index === realIndex) {
+          if (w.globals.axisCharts) {
+            w.config.series[realIndex].data = series[c].data.slice()
+            series.splice(c, 1)
+            seriesIndices.splice(c, 1)
+            w.globals.risingSeries.push(realIndex)
+          } else {
+            w.config.series[realIndex] = series[c].data
+            series.splice(c, 1)
+            seriesIndices.splice(c, 1)
+            w.globals.risingSeries.push(realIndex)
+          }
+          this.ctx._updateSeries(
+            w.config.series,
+            w.config.chart.animations.dynamicAnimation.enabled
+          )
+        }
+      }
     }
   }
 }

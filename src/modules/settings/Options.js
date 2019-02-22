@@ -7,6 +7,7 @@ export default class Options {
   constructor() {
     this.yAxis = {
       show: true,
+      showAlways: false,
       seriesName: undefined,
       opposite: false,
       logarithmic: false,
