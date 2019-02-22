@@ -10,6 +10,10 @@ import DataLabels from '../modules/DataLabels'
  * @module Bar
  **/
 
+const DATA_LABELS_WARNING_THRESHOLD = 50
+const DATA_LABELS_WARNING_TEXT =
+  'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering'
+
 class Bar {
   constructor(ctx, xyRatios) {
     this.ctx = ctx
@@ -59,6 +63,12 @@ class Bar {
     })
 
     ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
+
+    if (w.config.dataLabels.enabled) {
+      if (this.totalItems > DATA_LABELS_WARNING_THRESHOLD) {
+        console.warn(DATA_LABELS_WARNING_TEXT)
+      }
+    }
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
       let pathTo, pathFrom
