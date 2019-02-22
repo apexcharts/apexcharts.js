@@ -10,6 +10,10 @@ import DataLabels from '../modules/DataLabels'
  * @module Bar
  **/
 
+const DATA_LABELS_WARNING_THRESHOLD = 50
+const DATA_LABELS_WARNING_TEXT =
+  'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.'
+
 class Bar {
   constructor(ctx, xyRatios) {
     this.ctx = ctx
@@ -59,6 +63,12 @@ class Bar {
     })
 
     ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
+
+    if (w.config.dataLabels.enabled) {
+      if (this.totalItems > DATA_LABELS_WARNING_THRESHOLD) {
+        console.warn(DATA_LABELS_WARNING_TEXT)
+      }
+    }
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
       let pathTo, pathFrom
@@ -680,10 +690,13 @@ class Bar {
     const offX = dataLabelsConfig.offsetX
     const offY = dataLabelsConfig.offsetY
 
-    let textRects = graphics.getTextRects(
-      w.globals.yLabelFormatters[0](w.globals.maxY),
-      parseInt(dataLabelsConfig.style.fontSize)
-    )
+    let textRects = { width: 0, height: 0 }
+    if (w.config.dataLabels.enabled) {
+      textRects = graphics.getTextRects(
+        w.globals.yLabelFormatters[0](w.globals.maxY),
+        parseInt(dataLabelsConfig.style.fontSize)
+      )
+    }
 
     if (this.isHorizontal) {
       dataLabelsPos = this.calculateBarsDataLabelsPosition({
