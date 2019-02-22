@@ -22,9 +22,10 @@ class DateTime {
   }
 
   getUTCTimeStamp(dateStr) {
-    if (!Date.parse(dateStr)) return dateStr
-    return new Date(new Date(dateStr).toUTCString().substr(0, 25)).getTime()
-    // return new Date(new Date(dateStr).setMinutes(new Date().getTimezoneOffset()))
+    if (!Date.parse(dateStr)) {
+      return dateStr
+    }
+    return new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
   }
 
   parseDate(dateStr) {

@@ -599,7 +599,7 @@ type ApexResponsive = {
 */
 type ApexTooltip = {
   enabled?: boolean;
-  shared?: true;
+  shared?: boolean;
   followCursor?: boolean;
   intersect?: boolean;
   inverseOrder?: boolean;
