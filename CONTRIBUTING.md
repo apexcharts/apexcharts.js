@@ -15,7 +15,7 @@ npm install
 Run the following to build this library and watch its source files for changes:
 
 ```sh
-npm run start
+npm run dev
 ```
 
 You will now have a fully functioning local build of this library ready to be used. **Leave the `start` script running**, and continue with a new Terminal/shell window.
