@@ -22,7 +22,7 @@ class DateTime {
   }
 
   getUTCTimeStamp(dateStr) {
-    return new Date(new Date(dateStr).toUTCString().substr(0, 25)).getTime()
+    return new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
     // return new Date(new Date(dateStr).setMinutes(new Date().getTimezoneOffset()))
   }
 
