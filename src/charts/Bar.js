@@ -12,7 +12,7 @@ import DataLabels from '../modules/DataLabels'
 
 const DATA_LABELS_WARNING_THRESHOLD = 50
 const DATA_LABELS_WARNING_TEXT =
-  'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering'
+  'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.'
 
 class Bar {
   constructor(ctx, xyRatios) {
