@@ -168,6 +168,7 @@ class Radial extends Pie {
         totalItems: 2,
         animBeginArr: 0,
         dur: 0,
+        isTrack: true,
         easing: w.globals.easing
       })
     }

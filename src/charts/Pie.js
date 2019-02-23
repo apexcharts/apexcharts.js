@@ -412,18 +412,17 @@ class Pie {
     me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts)
   }
 
-  animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, params) {
+  animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
     let me = this
     const w = this.w
 
     let size = me.size
 
     if (!size) {
-      size = params.size
+      size = opts.size
     }
 
     let path
-    let opts = params
 
     if (isNaN(fromStartAngle) || isNaN(prevAngle)) {
       fromStartAngle = toStartAngle
@@ -435,7 +434,7 @@ class Pie {
     let startAngle = toStartAngle
     let fromAngle = fromStartAngle - toStartAngle
 
-    if (w.globals.dataChanged && params.shouldSetPrevPaths) {
+    if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
       // to avoid flickering, set prev path first and then we will animate from there
       path = me.getPiePath({
         me,
@@ -462,7 +461,7 @@ class Pie {
         })
         .during(function(pos) {
           currAngle = fromAngle + (angle - fromAngle) * pos
-          if (params.animateStartingPos) {
+          if (opts.animateStartingPos) {
             currAngle = prevAngle + (angle - prevAngle) * pos
             startAngle =
               fromStartAngle -
@@ -491,7 +490,9 @@ class Pie {
         size
       })
 
-      w.globals.animationEnded = true
+      if (!opts.isTrack) {
+        w.globals.animationEnded = true
+      }
       el.node.setAttribute('data:pathOrig', path)
 
       el.attr({
