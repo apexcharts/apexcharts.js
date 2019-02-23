@@ -477,6 +477,7 @@ export default class Options {
       colors: undefined,
       dataLabels: {
         enabled: true,
+        enabledOnSeries: undefined,
         formatter: function(val) {
           return val
         },

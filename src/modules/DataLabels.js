@@ -165,6 +165,12 @@ class DataLabels {
       offsetCorrection
     } = opts
 
+    if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
+      if (w.config.dataLabels.enabledOnSeries.indexOf(i) > -1) {
+        return
+      }
+    }
+
     let correctedLabels = {
       x: x,
       y: y,
