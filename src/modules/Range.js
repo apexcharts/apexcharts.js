@@ -87,7 +87,6 @@ class Range {
     let cnf = this.w.config
     gl.maxY = -Number.MAX_VALUE
     gl.minY = Number.MIN_VALUE
-    const yaxis = cnf.yaxis
 
     let lowestYInAllSeries = Number.MAX_VALUE
 
@@ -163,7 +162,8 @@ class Range {
         }
 
         gl.minY = lowestYInAllSeries - (diff * 5) / 100
-        gl.maxY = gl.maxY + (diff * 5) / 100 + 0.01
+        console.log(gl.maxY)
+        gl.maxY = gl.maxY + (diff * 5) / 100 + 0.025
       }
     }
 
