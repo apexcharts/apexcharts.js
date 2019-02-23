@@ -2,153 +2,153 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Line Chart with Range Annotations</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Line Chart with Range Annotations</title>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet" />
 
-    <style>
-        #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+
+  </style>
 </head>
 
 <body>
-    <div id="chart">
+  <div id="chart">
 
-    </div>
+  </div>
 
-    <script src="../../../dist/apexcharts.js"></script>
-    <script src="../../assets/stock-prices.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/stock-prices.js"></script>
 
-    <script>
-
-        var options = {
-            annotations: {
-                yaxis: [{
-                    y: 8600,
-                    y2: 9000,
-                    borderColor: '#FEB019',
-                    opacity: 0.1,
-                    label: {
-                        borderColor: '#333',
-                        style: {
-                            fontSize: '10px',
-                            color: '#333',
-                            background: '#FEB019',
-                        },
-                        text: 'Y-axis range',
-                    }
-                }],
-                xaxis: [{
-                    x: new Date('23 Nov 2017').getTime(),
-                    x2: new Date('28 Nov 2017').getTime(),
-                    borderColor: '#00E396',
-                    opacity: 0.5,
-                    label: {
-                        borderColor: '#00E396',
-                        style: {
-                            fontSize: '10px',
-                            color: '#fff',
-                            background: '#00E396',
-                        },
-                        offsetY: -10,
-                        text: 'X-axis range',
-                    }
-                }]
+  <script>
+    var options = {
+      annotations: {
+        yaxis: [{
+          y: 8600,
+          y2: 9000,
+          borderColor: '#FEB019',
+          opacity: 0.1,
+          label: {
+            borderColor: '#333',
+            style: {
+              fontSize: '10px',
+              color: '#333',
+              background: '#FEB019',
             },
-            chart: {
-                width: 350,
-                height: 220,
-                type: 'line',
-                sparkline: {
-                //  enabled: true
-                }
+            text: 'Y-axis range',
+          }
+        }],
+        xaxis: [{
+          x: new Date('23 Nov 2017').getTime(),
+          x2: new Date('28 Nov 2017').getTime(),
+          borderColor: '#00E396',
+          opacity: 0.5,
+          label: {
+            borderColor: '#00E396',
+            style: {
+              fontSize: '10px',
+              color: '#fff',
+              background: '#00E396',
             },
-            plotOptions: {
-                bar: {
-                    columnWidth: '50%'
-                }
-            },
-            markers: {
-                size: 0
-            },
-            dataLabels: {
-                enabled: false
-            },
-            stroke: {
-                curve: 'straight'
-            },
-            series: [ {
-                type: 'bar',
-                data: series.monthDataSeries2.prices
-            }, {
-                type: 'line',
-                data: series.monthDataSeries1.prices
-            }],
-            legend: {
-                show: false,
-            },
-            labels: series.monthDataSeries1.dates,
-            xaxis: {
-                type: 'datetime',
-                labels: {
-                    show: false
-                }
-            },
-            yaxis: {
-                labels: {
-                    show: false
-                }
-            }
+            offsetY: -10,
+            text: 'X-axis range',
+          }
+        }]
+      },
+      chart: {
+        width: 350,
+        height: 220,
+        type: 'line',
+        sparkline: {
+          //  enabled: true
         }
+      },
+      plotOptions: {
+        bar: {
+          columnWidth: '50%'
+        }
+      },
+      markers: {
+        size: 0
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'straight'
+      },
+      series: [{
+        type: 'bar',
+        data: series.monthDataSeries2.prices
+      }, {
+        type: 'line',
+        data: series.monthDataSeries1.prices
+      }],
+      legend: {
+        show: false,
+      },
+      labels: series.monthDataSeries1.dates,
+      xaxis: {
+        type: 'datetime',
+        labels: {
+          show: false
+        }
+      },
+      yaxis: {
+        labels: {
+          show: false
+        }
+      }
+    }
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
+    var chart = new ApexCharts(
+      document.querySelector("#chart"),
+      options
+    );
 
-        chart.render();
+    chart.render();
 
-        // adding annotation through chart instance by calling direct method
-        chart.addYaxisAnnotation({
-            y: 9200,
-            y2: 9400,
-            borderColor: '#64b5f6',
-            label: {
-                borderColor: '#333',
-                style: {
-                    fontSize: '10px',
-                    color: '#333',
-                    background: '#64b5f6',
-                },
-                text: 'Y-axis - runtime',
-            }
-        });
+    // adding annotation through chart instance by calling direct method
+    chart.addYaxisAnnotation({
+      y: 9200,
+      y2: 9400,
+      borderColor: '#64b5f6',
+      label: {
+        borderColor: '#333',
+        style: {
+          fontSize: '10px',
+          color: '#333',
+          background: '#64b5f6',
+        },
+        text: 'Y-axis - runtime',
+      }
+    });
 
-        chart.addXaxisAnnotation({
-            x: new Date('16 Nov 2017').getTime(),
-            x2: new Date('18 Nov 2017').getTime(),
-            borderColor: '#ef9a9a',
-            label: {
-                orientation: 'vertical',
-                borderColor: '#ef9a9a',
-                style: {
-                    fontSize: '10px',
-                    color: '#fff',
-                    background: '#ef9a9a',
-                },
-                offsetY: -10,
-                text: 'X-axis - runtime',
-            }
-        });
+    chart.addXaxisAnnotation({
+      x: new Date('16 Nov 2017').getTime(),
+      x2: new Date('18 Nov 2017').getTime(),
+      borderColor: '#ef9a9a',
+      label: {
+        orientation: 'vertical',
+        borderColor: '#ef9a9a',
+        style: {
+          fontSize: '10px',
+          color: '#fff',
+          background: '#ef9a9a',
+        },
+        offsetY: -10,
+        text: 'X-axis - runtime',
+      }
+    });
 
-    </script>
+  </script>
 </body>
 
 </html>
