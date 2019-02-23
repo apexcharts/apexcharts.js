@@ -228,6 +228,7 @@ export default class Options {
         fontFamily: 'Helvetica, Arial, sans-serif',
         height: 'auto',
         id: undefined,
+        group: undefined,
         offsetX: 0,
         offsetY: 0,
         selection: {

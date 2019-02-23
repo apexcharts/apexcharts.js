@@ -222,7 +222,7 @@ export default class Config {
     // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
     if (config.tooltip.shared && config.tooltip.intersect) {
       throw new Error(
-        'tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false'
+        'tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false.'
       )
     }
 
@@ -259,7 +259,7 @@ export default class Config {
           config.series.length > 1
         ) {
           console.warn(
-            'crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart'
+            'crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart.'
           )
           config.xaxis.crosshairs.width = 'tickWidth'
         }
@@ -268,11 +268,17 @@ export default class Config {
         }
         if (!config.tooltip.followCursor) {
           console.warn(
-            'followCursor option in shared columns cannot be turned off'
+            'followCursor option in shared columns cannot be turned off.'
           )
           config.tooltip.followCursor = true
         }
       }
+    }
+
+    if (config.chart.group && config.yaxis[0].labels.minWidth === 0) {
+      console.warn(
+        'It looks like you have multiple charts in synchronization. You must provide yaxis.labels.minWidth which must be EQUAL for all grouped charts to prevent incorrect behaviour.'
+      )
     }
 
     // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
