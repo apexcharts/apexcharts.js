@@ -476,6 +476,18 @@ export default class ApexCharts {
   }
 
   /**
+   * Allows users to append a new series after the chart has rendered.
+   *
+   * @param {array} newSerie - New serie which will be appended to the existing series
+   */
+  appendSeries(newSerie, animate = true) {
+    const newSeries = this.w.config.series.slice()
+    newSeries.push(newSerie)
+    this.revertDefaultAxisMinMax()
+    return this._updateSeries(newSeries, animate)
+  }
+
+  /**
    * Private method to update Series.
    *
    * @param {array} series - New series which will override the existing
