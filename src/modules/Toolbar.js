@@ -41,12 +41,10 @@ export default class Toolbar {
     this.elMenu = document.createElement('div')
     this.elCustomIcons = []
 
-    if (Array.isArray(w.config.chart.toolbar.tools.customIcons)) {
-      for (
-        let i = 0;
-        i < w.config.chart.toolbar.tools.customIcons.length;
-        i++
-      ) {
+    this.t = w.config.chart.toolbar.tools
+
+    if (Array.isArray(this.t.customIcons)) {
+      for (let i = 0; i < this.t.customIcons.length; i++) {
         this.elCustomIcons.push(document.createElement('div'))
       }
     }
@@ -55,66 +53,64 @@ export default class Toolbar {
 
     let toolbarControls = []
 
-    if (w.config.chart.toolbar.tools.zoomin && w.config.chart.zoom.enabled) {
+    if (this.t.zoomin && w.config.chart.zoom.enabled) {
       toolbarControls.push({
         el: this.elZoomIn,
-        icon: icoZoomIn,
+        icon: typeof this.t.zoomin === 'string' ? this.t.zoomin : icoZoomIn,
         title: this.localeValues.zoomIn,
         class: 'apexcharts-zoom-in-icon'
       })
     }
 
-    if (w.config.chart.toolbar.tools.zoomout && w.config.chart.zoom.enabled) {
+    if (this.t.zoomout && w.config.chart.zoom.enabled) {
       toolbarControls.push({
         el: this.elZoomOut,
-        icon: icoZoomOut,
+        icon: typeof this.t.zoomout === 'string' ? this.t.zoomout : icoZoomOut,
         title: this.localeValues.zoomOut,
         class: 'apexcharts-zoom-out-icon'
       })
     }
 
-    if (w.config.chart.toolbar.tools.zoom && w.config.chart.zoom.enabled) {
+    if (this.t.zoom && w.config.chart.zoom.enabled) {
       toolbarControls.push({
         el: this.elZoom,
-        icon: icoZoom,
+        icon: typeof this.t.zoom === 'string' ? this.t.zoom : icoZoom,
         title: this.localeValues.selectionZoom,
         class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-zoom-icon'
       })
     }
 
-    if (
-      w.config.chart.toolbar.tools.selection &&
-      w.config.chart.selection.enabled
-    ) {
+    if (this.t.selection && w.config.chart.selection.enabled) {
       toolbarControls.push({
         el: this.elSelection,
-        icon: icoSelect,
+        icon:
+          typeof this.t.selection === 'string' ? this.t.selection : icoSelect,
         title: this.localeValues.selection,
         class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-selection-icon'
       })
     }
 
-    if (w.config.chart.toolbar.tools.pan && w.config.chart.zoom.enabled) {
+    if (this.t.pan && w.config.chart.zoom.enabled) {
       toolbarControls.push({
         el: this.elPan,
-        icon: icoPan,
+        icon: typeof this.t.pan === 'string' ? this.t.pan : icoPan,
         title: this.localeValues.pan,
         class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-pan-icon'
       })
     }
 
-    if (w.config.chart.toolbar.tools.reset && w.config.chart.zoom.enabled) {
+    if (this.t.reset && w.config.chart.zoom.enabled) {
       toolbarControls.push({
         el: this.elZoomReset,
-        icon: icoReset,
+        icon: typeof this.t.reset === 'string' ? this.t.reset : icoReset,
         title: this.localeValues.reset,
         class: 'apexcharts-reset-zoom-icon'
       })
     }
-    if (w.config.chart.toolbar.tools.download) {
+    if (this.t.download) {
       toolbarControls.push({
         el: this.elMenuIcon,
-        icon: icoMenu,
+        icon: typeof this.t.download === 'string' ? this.t.download : icoMenu,
         title: this.localeValues.menu,
         class: 'apexcharts-menu-icon'
       })
@@ -123,12 +119,10 @@ export default class Toolbar {
     for (let i = 0; i < this.elCustomIcons.length; i++) {
       toolbarControls.push({
         el: this.elCustomIcons[i],
-        icon: w.config.chart.toolbar.tools.customIcons[i].icon,
-        title: w.config.chart.toolbar.tools.customIcons[i].title,
-        index: w.config.chart.toolbar.tools.customIcons[i].index,
-        class:
-          'apexcharts-toolbar-custom-icon ' +
-          w.config.chart.toolbar.tools.customIcons[i].class
+        icon: this.t.customIcons[i].icon,
+        title: this.t.customIcons[i].title,
+        index: this.t.customIcons[i].index,
+        class: 'apexcharts-toolbar-custom-icon ' + this.t.customIcons[i].class
       })
     }
 
@@ -200,14 +194,10 @@ export default class Toolbar {
         m.addEventListener('click', this.downloadPNG.bind(this))
       }
     })
-    for (
-      let i = 0;
-      i < this.w.config.chart.toolbar.tools.customIcons.length;
-      i++
-    ) {
+    for (let i = 0; i < this.t.customIcons.length; i++) {
       this.elCustomIcons[i].addEventListener(
         'click',
-        this.w.config.chart.toolbar.tools.customIcons[i].click
+        this.t.customIcons[i].click
       )
     }
   }
