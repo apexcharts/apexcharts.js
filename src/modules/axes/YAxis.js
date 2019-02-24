@@ -26,7 +26,7 @@ export default class YAxis {
     }
   }
 
-  drawYaxis(xyRatios, realIndex) {
+  drawYaxis(realIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 

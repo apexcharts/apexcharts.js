@@ -852,7 +852,7 @@ export default class Core {
 
         cnf.yaxis.map((yaxe, index) => {
           if (gl.ignoreYAxisIndexes.indexOf(index) === -1) {
-            elYaxis = yAxis.drawYaxis(xyRatios, index)
+            elYaxis = yAxis.drawYaxis(index)
             gl.dom.Paper.add(elYaxis)
           }
         })

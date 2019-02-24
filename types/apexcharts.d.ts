@@ -13,6 +13,7 @@ declare class ApexCharts {
   render(): Promise<void>;
   updateOptions(options: any, redrawPaths: boolean, animate: boolean): Promise<void>;
   updateSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate: boolean): void;
+  appendSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate: boolean): void;
   toggleSeries(seriesName: string): void;
   destroy(): void;
   addXaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
@@ -100,13 +101,13 @@ type ApexChart = {
   toolbar?: {
     show?: boolean;
     tools?: {
-      download?: boolean;
-      selection?: boolean;
-      zoom?: boolean;
-      zoomin?: boolean;
-      zoomout?: boolean;
-      pan?: boolean;
-      reset?: boolean;
+      download?: boolean | string;
+      selection?: boolean | string;
+      zoom?: boolean | string;
+      zoomin?: boolean | string;
+      zoomout?: boolean | string;
+      pan?: boolean | string;
+      reset?: boolean | string;
     };
     autoSelected?: "zoom" | "selection" | "pan";
   };
@@ -261,6 +262,7 @@ type AnnotationStyle = {
 
 type XAxisAnnotations = {
   x?: number;
+  x2?: number;
   strokeDashArray?: number;
   borderColor?: string;
   offsetX?: number;
@@ -280,6 +282,7 @@ type XAxisAnnotations = {
 
 type YAxisAnnotations = {
   y?: number;
+  y2?: number,
   strokeDashArray?: number;
   borderColor?: string;
   offsetX?: number;
@@ -743,24 +746,34 @@ type ApexXAxis = {
 * Y Axis options
 * See https://apexcharts.com/docs/options/yaxis/
 */
+
+
 type ApexYAxis = {
+  show?: boolean;
+  showAlways?: boolean;
   seriesName?: string;
   opposite?: boolean;
+  logarithmic?: boolean;
   tickAmount?: number;
+  forceNiceScale: false,
   min?: number;
   max?: number;
   floating?: boolean;
   decimalsInFloat?: number;
   labels?: {
     show?: boolean;
+    minWidth?: number;
     maxWidth?: number;
+    offsetX?: number;
+    offsetY?: number;
+    rotate?: number;
+    padding?: number,
     style?: {
       color?: string;
       fontSize?: string;
+      fontFamily?: string;
       cssClass?: string;
     };
-    offsetX?: number;
-    offsetY?: number;
     formatter?(val: number): string;
   };
   axisBorder?: {
@@ -771,7 +784,6 @@ type ApexYAxis = {
   };
   axisTicks?: {
     show?: boolean;
-    borderType?: string;
     color?: string;
     width?: number;
     offsetX?: number;
@@ -785,6 +797,7 @@ type ApexYAxis = {
     style?: {
       color?: string;
       fontSize?: string;
+      fontFamily?: string;
       cssClass?: string;
     };
   };
