@@ -307,7 +307,10 @@ type PointAnnotations = {
     strokeColor?: string;
     strokeWidth?: number;
     shape?: string;
+    offsetX?: number;
+    offsetY?: number;
     radius?: number;
+    cssClass?: string;
   };
   label?: AnnotationLabel;
 };
