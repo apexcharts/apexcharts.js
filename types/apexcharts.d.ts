@@ -264,7 +264,9 @@ type XAxisAnnotations = {
   x?: number;
   x2?: number;
   strokeDashArray?: number;
+  fillColor?: string,
   borderColor?: string;
+  opacity?: number;
   offsetX?: number;
   offsetY?: number;
   label?: {
@@ -284,7 +286,9 @@ type YAxisAnnotations = {
   y?: number;
   y2?: number,
   strokeDashArray?: number;
+  fillColor?: string,
   borderColor?: string;
+  opacity?: number;
   offsetX?: number;
   offsetY?: number;
   yAxisIndex?: number;
@@ -573,6 +577,7 @@ type ApexLegend = {
 */
 type ApexDataLabels = {
   enabled?: boolean;
+  enabledOnSeries?: number[];
   formatter?(val: number, opts: any): string;
   textAnchor?: "start" | "middle" | "end";
   offsetX?: number;

@@ -76,8 +76,10 @@ export default class Options {
     this.xAxisAnnotation = {
       x: 0,
       x2: null,
-      strokeDashArray: 4,
+      strokeDashArray: 1,
+      fillColor: '#c2c2c2',
       borderColor: '#c2c2c2',
+      opacity: 0.3,
       offsetX: 0,
       offsetY: 0,
       label: {
@@ -108,8 +110,10 @@ export default class Options {
     this.yAxisAnnotation = {
       y: 0,
       y2: null,
-      strokeDashArray: 4,
+      strokeDashArray: 1,
+      fillColor: '#c2c2c2',
       borderColor: '#c2c2c2',
+      opacity: 0.3,
       offsetX: 0,
       offsetY: 0,
       yAxisIndex: 0,

@@ -89,8 +89,9 @@ export default class Annotations {
         x2 - x1, // x2
         w.globals.gridHeight + anno.offsetY, // y2
         0, // radius
-        anno.borderColor, // color
-        anno.opacity || 0.3, // opacity,
+        anno.fillColor, // color
+        anno.opacity, // opacity,
+        1, // strokeWidth
         anno.borderColor, // strokeColor
         strokeDashArray // stokeDashArray
       )
@@ -193,8 +194,9 @@ export default class Annotations {
         w.globals.gridWidth + anno.offsetX, // x2
         y1 - y2, // y2
         0, // radius
-        anno.borderColor, // color
-        anno.opacity || 0.3, // opacity,
+        anno.fillColor, // color
+        anno.opacity, // opacity,
+        1, // strokeWidth
         anno.borderColor, // strokeColor
         strokeDashArray // stokeDashArray
       )
