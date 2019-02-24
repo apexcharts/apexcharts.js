@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.4.1
+ * ApexCharts v3.5.0
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1829,6 +1829,7 @@ function () {
 
     this.yAxis = {
       show: true,
+      showAlways: false,
       seriesName: undefined,
       opposite: false,
       logarithmic: false,
@@ -1895,8 +1896,11 @@ function () {
     };
     this.xAxisAnnotation = {
       x: 0,
-      strokeDashArray: 4,
+      x2: null,
+      strokeDashArray: 1,
+      fillColor: '#c2c2c2',
       borderColor: '#c2c2c2',
+      opacity: 0.3,
       offsetX: 0,
       offsetY: 0,
       label: {
@@ -1925,8 +1929,11 @@ function () {
     };
     this.yAxisAnnotation = {
       y: 0,
-      strokeDashArray: 4,
+      y2: null,
+      strokeDashArray: 1,
+      fillColor: '#c2c2c2',
       borderColor: '#c2c2c2',
+      opacity: 0.3,
       offsetX: 0,
       offsetY: 0,
       yAxisIndex: 0,
@@ -2049,6 +2056,7 @@ function () {
           fontFamily: 'Helvetica, Arial, sans-serif',
           height: 'auto',
           id: undefined,
+          group: undefined,
           offsetX: 0,
           offsetY: 0,
           selection: {
@@ -2300,6 +2308,7 @@ function () {
         colors: undefined,
         dataLabels: {
           enabled: true,
+          enabledOnSeries: undefined,
           formatter: function formatter(val) {
             return val;
           },
@@ -2765,7 +2774,7 @@ function () {
       var x1 = (anno.x - min) / (range / w.globals.gridWidth);
       if (x1 < 0 || x1 > w.globals.gridWidth) return;
 
-      if (!anno.x2) {
+      if (anno.x2 === null) {
         var line = this.graphics.drawLine(x1 + anno.offsetX, // x1
         0 + anno.offsetY, // y1
         x1 + anno.offsetX, // x2
@@ -2788,8 +2797,9 @@ function () {
         x2 - x1, // x2
         w.globals.gridHeight + anno.offsetY, // y2
         0, // radius
-        anno.borderColor, // color
-        anno.opacity || 0.3, // opacity,
+        anno.fillColor, // color
+        anno.opacity, // opacity,
+        1, // strokeWidth
         anno.borderColor, // strokeColor
         strokeDashArray // stokeDashArray
         );
@@ -2845,7 +2855,7 @@ function () {
 
       var text = anno.label.text ? anno.label.text : '';
 
-      if (!anno.y2) {
+      if (anno.y2 === null) {
         var line = this.graphics.drawLine(0 + anno.offsetX, // x1
         y1 + anno.offsetY, // y1
         w.globals.gridWidth + anno.offsetX, // x2
@@ -2876,8 +2886,9 @@ function () {
         w.globals.gridWidth + anno.offsetX, // x2
         y1 - y2, // y2
         0, // radius
-        anno.borderColor, // color
-        anno.opacity || 0.3, // opacity,
+        anno.fillColor, // color
+        anno.opacity, // opacity,
+        1, // strokeWidth
         anno.borderColor, // strokeColor
         strokeDashArray // stokeDashArray
         );
@@ -4369,7 +4380,7 @@ function () {
       var config = opts; // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
 
       if (config.tooltip.shared && config.tooltip.intersect) {
-        throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false');
+        throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false.');
       }
 
       if (config.chart.scroller) {
@@ -4397,7 +4408,7 @@ function () {
       if (config.chart.type === 'bar') {
         if (config.tooltip.shared) {
           if (config.xaxis.crosshairs.width === 'barWidth' && config.series.length > 1) {
-            console.warn('crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart');
+            console.warn('crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart.');
             config.xaxis.crosshairs.width = 'tickWidth';
           }
 
@@ -4406,10 +4417,14 @@ function () {
           }
 
           if (!config.tooltip.followCursor) {
-            console.warn('followCursor option in shared columns cannot be turned off');
+            console.warn('followCursor option in shared columns cannot be turned off.');
             config.tooltip.followCursor = true;
           }
         }
+      }
+
+      if (config.chart.group && config.yaxis[0].labels.minWidth === 0) {
+        console.warn('It looks like you have multiple charts in synchronization. You must provide yaxis.labels.minWidth which must be EQUAL for all grouped charts to prevent incorrect behaviour.');
       } // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
 
 
@@ -4505,7 +4520,11 @@ function () {
         collapsedSeries: [],
         // when user collapses a series, it goes into this array
         collapsedSeriesIndices: [],
-        // this just stores the index of the collapsedSeries instead of whole object
+        // this stores the index of the collapsedSeries instead of whole object for quick access
+        ancillaryCollapsedSeries: [],
+        // when user collapses an "alwaysVisible" series, it goes into this array
+        ancillaryCollapsedSeriesIndices: [],
+        // this stores the index of the collapsedSeries whose y-axis is always visible
         risingSeries: [],
         // when user re-opens a collapsed series, it goes here
         selectedDataPoints: [],
@@ -4522,7 +4541,7 @@ function () {
         // NOTE: If there are multiple y axis, the first yaxis array element will be considered for all y values calculations. Rest all will be calculated based on that
         maxY: -Number.MAX_VALUE,
         // is -1.7976931348623157e+308
-        // NOTE: The above note for minY apllies here as well
+        // NOTE: The above note for minY applies here as well
         minYArr: [],
         maxYArr: [],
         maxX: -Number.MAX_VALUE,
@@ -5429,6 +5448,13 @@ function () {
           dataLabelsConfig = opts.dataLabelsConfig,
           alwaysDrawDataLabel = opts.alwaysDrawDataLabel,
           offsetCorrection = opts.offsetCorrection;
+
+      if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
+        if (w.config.dataLabels.enabledOnSeries.indexOf(i) > -1) {
+          return;
+        }
+      }
+
       var correctedLabels = {
         x: x,
         y: y,
@@ -5490,6 +5516,8 @@ function () {
  * @module Bar
  **/
 
+var DATA_LABELS_WARNING_THRESHOLD = 50;
+
 var Bar =
 /*#__PURE__*/
 function () {
@@ -5543,6 +5571,12 @@ function () {
         class: 'apexcharts-bar-series apexcharts-plot-series'
       });
       ret.attr('clip-path', "url(#gridRectMask".concat(w.globals.cuid, ")"));
+
+      if (w.config.dataLabels.enabled) {
+        if (this.totalItems > DATA_LABELS_WARNING_THRESHOLD) {
+          console.warn('WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.');
+        }
+      }
 
       var _loop = function _loop(i, bc) {
         var pathTo = void 0,
@@ -5744,7 +5778,8 @@ function () {
       var graphics = new Graphics(this.ctx);
 
       if (!lineFill) {
-        lineFill = w.globals.stroke.colors[realIndex];
+        /* fix apexcharts#341 */
+        lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : w.globals.stroke.colors[realIndex];
       }
 
       if (this.isNullValue) {
@@ -6104,7 +6139,14 @@ function () {
       var barDataLabelsConfig = this.barOptions.dataLabels;
       var offX = dataLabelsConfig.offsetX;
       var offY = dataLabelsConfig.offsetY;
-      var textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](w.globals.maxY), parseInt(dataLabelsConfig.style.fontSize));
+      var textRects = {
+        width: 0,
+        height: 0
+      };
+
+      if (w.config.dataLabels.enabled) {
+        textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](w.globals.maxY), parseInt(dataLabelsConfig.style.fontSize));
+      }
 
       if (this.isHorizontal) {
         dataLabelsPos = this.calculateBarsDataLabelsPosition({
@@ -7388,7 +7430,11 @@ function () {
   }, {
     key: "getUTCTimeStamp",
     value: function getUTCTimeStamp(dateStr) {
-      return new Date(new Date(dateStr).toUTCString().substr(0, 25)).getTime(); // return new Date(new Date(dateStr).setMinutes(new Date().getTimezoneOffset()))
+      if (!Date.parse(dateStr)) {
+        return dateStr;
+      }
+
+      return new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime();
     }
   }, {
     key: "parseDate",
@@ -8185,17 +8231,16 @@ function () {
     }
   }, {
     key: "animateArc",
-    value: function animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, params) {
+    value: function animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
       var me = this;
       var w = this.w;
       var size = me.size;
 
       if (!size) {
-        size = params.size;
+        size = opts.size;
       }
 
       var path;
-      var opts = params;
 
       if (isNaN(fromStartAngle) || isNaN(prevAngle)) {
         fromStartAngle = toStartAngle;
@@ -8207,7 +8252,7 @@ function () {
       var startAngle = toStartAngle;
       var fromAngle = fromStartAngle - toStartAngle;
 
-      if (w.globals.dataChanged && params.shouldSetPrevPaths) {
+      if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
         // to avoid flickering, set prev path first and then we will animate from there
         path = me.getPiePath({
           me: me,
@@ -8232,7 +8277,7 @@ function () {
         }).during(function (pos) {
           currAngle = fromAngle + (angle - fromAngle) * pos;
 
-          if (params.animateStartingPos) {
+          if (opts.animateStartingPos) {
             currAngle = prevAngle + (angle - prevAngle) * pos;
             startAngle = fromStartAngle - prevAngle + (toStartAngle - (fromStartAngle - prevAngle)) * pos;
           }
@@ -8255,7 +8300,11 @@ function () {
           angle: angle,
           size: size
         });
-        w.globals.animationEnded = true;
+
+        if (!opts.isTrack) {
+          w.globals.animationEnded = true;
+        }
+
         el.node.setAttribute('data:pathOrig', path);
         el.attr({
           d: path
@@ -9065,6 +9114,7 @@ function (_Pie) {
           totalItems: 2,
           animBeginArr: 0,
           dur: 0,
+          isTrack: true,
           easing: w.globals.easing
         });
       }
@@ -9883,7 +9933,7 @@ function () {
 
   _createClass(YAxis, [{
     key: "drawYaxis",
-    value: function drawYaxis(xyRatios, realIndex) {
+    value: function drawYaxis(realIndex) {
       var w = this.w;
       var graphics = new Graphics(this.ctx);
       var yaxisFontSize = w.config.yaxis[realIndex].labels.style.fontSize;
@@ -10165,57 +10215,10 @@ function () {
       }
 
       w.config.yaxis.map(function (yaxe, index) {
-        var shouldNotDrawAxis = w.globals.ignoreYAxisIndexes.indexOf(index) > -1 || !yaxe.show || yaxe.floating || yaxisLabelCoords[index].width === 0; // let yAxisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width
-        // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
-        //   prevLeftYAxisWidth =
-        //     yaxisLabelCoords[index - 1].width + yTitleCoords[index - 1].width
-        // }
-        // if (shouldNotDrawAxis) {
-        //   yAxisWidth = 0
-        //   prevLeftYAxisWidth = 0
-        // }
-        // let multipleYPadd =
-        //   this.multipleYs && yTitleCoords[index].width > 0
-        //     ? yTitleCoords[index].width * 1.02
-        //     : 15
-        // let paddingForYAxisTitle = this.xPaddingForYAxisTitle(
-        //   index,
-        //   {
-        //     width: yaxisLabelCoords[index].width
-        //   },
-        //   {
-        //     width: yTitleCoords[index].width
-        //   },
-        //   yaxe.opposite
-        // )
-        // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
-        //   paddingForPrevYAxisTitle = this.xPaddingForYAxisTitle(
-        //     index - 1,
-        //     {
-        //       width: yaxisLabelCoords[index - 1].width
-        //     },
-        //     {
-        //       width: yTitleCoords[index - 1].width
-        //     },
-        //     w.config.yaxis[index - 1].opposite
-        //   )
-        // }
-        // yAxisWidth = yAxisWidth + Math.abs(paddingForYAxisTitle.padd)
-        // prevLeftYAxisWidth =
-        //   prevLeftYAxisWidth + Math.abs(paddingForPrevYAxisTitle.padd)
-
+        var shouldNotDrawAxis = w.globals.ignoreYAxisIndexes.indexOf(index) > -1 || !yaxe.show || yaxe.floating || yaxisLabelCoords[index].width === 0;
         var axisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width;
 
         if (!yaxe.opposite) {
-          // left side y axis
-          // let offset = yAxisWidth + 5
-          // if (shouldNotDrawAxis) {
-          //   offset = 0
-          // }
-          // if (index > 0 && !w.config.yaxis[index - 1].opposite) {
-          //   leftOffsetX =
-          //     yaxisLabelCoords[index - 1].width + yTitleCoords[index - 1].width
-          // }
           xLeft = w.globals.translateX - leftOffsetX;
 
           if (!shouldNotDrawAxis) {
@@ -10766,11 +10769,10 @@ function () {
       var index = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
       var ticks = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 10;
 
-      if (yMin === Number.MIN_VALUE && yMax === 0 || !Utils.isNumber(yMin) && !Utils.isNumber(yMax)) {
+      if (yMin === Number.MIN_VALUE && yMax === 0 || !Utils.isNumber(yMin) && !Utils.isNumber(yMax) || yMin === Number.MIN_VALUE && yMax === Number.MIN_SAFE_INTEGER) {
         // when all values are 0
         yMin = 0;
-        yMax = 1;
-        ticks = 1;
+        yMax = ticks;
         var linearScale = this.linearScale(yMin, yMax, ticks);
         return linearScale;
       }
@@ -10940,7 +10942,7 @@ function () {
         } else {
           // there is some data. Turn off the allSeriesCollapsed flag
           gl.allSeriesCollapsed = false;
-          gl.yAxisScale[index] = this.niceScale(minY, maxY, index, y.tickAmount ? y.tickAmount : 6);
+          gl.yAxisScale[index] = this.niceScale(minY, maxY, index, y.tickAmount ? y.tickAmount : 5);
         }
       }
     }
@@ -11227,7 +11229,6 @@ function () {
       var cnf = this.w.config;
       gl.maxY = -Number.MAX_VALUE;
       gl.minY = Number.MIN_VALUE;
-      var yaxis = cnf.yaxis;
       var lowestYInAllSeries = Number.MAX_VALUE;
 
       if (gl.isMultipleYAxis) {
@@ -11292,7 +11293,8 @@ function () {
           }
 
           gl.minY = lowestYInAllSeries - diff * 5 / 100;
-          gl.maxY = gl.maxY + diff * 5 / 100 + 0.01;
+          console.log(gl.maxY);
+          gl.maxY = gl.maxY + diff * 5 / 100 + 0.025;
         }
       }
 
@@ -13975,7 +13977,7 @@ function () {
           gl.dom.elGraphical.add(elXaxis);
           cnf.yaxis.map(function (yaxe, index) {
             if (gl.ignoreYAxisIndexes.indexOf(index) === -1) {
-              elYaxis = yAxis.drawYaxis(xyRatios, index);
+              elYaxis = yAxis.drawYaxis(index);
               gl.dom.Paper.add(elYaxis);
             }
           });
@@ -14877,11 +14879,20 @@ function () {
           w: w
         });
         var collapsedSeries = false;
+        var ancillaryCollapsedSeries = false;
 
         if (w.globals.collapsedSeries.length > 0) {
           for (var c = 0; c < w.globals.collapsedSeries.length; c++) {
             if (w.globals.collapsedSeries[c].index === i) {
               collapsedSeries = true;
+            }
+          }
+        }
+
+        if (w.globals.ancillaryCollapsedSeriesIndices.length > 0) {
+          for (var _c = 0; _c < w.globals.ancillaryCollapsedSeriesIndices.length; _c++) {
+            if (w.globals.ancillaryCollapsedSeriesIndices[_c] === i) {
+              ancillaryCollapsedSeries = true;
             }
           }
         }
@@ -14916,10 +14927,10 @@ function () {
 
         Graphics.setAttrs(elMarker, {
           rel: i + 1,
-          'data:collapsed': collapsedSeries
+          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
         });
 
-        if (collapsedSeries) {
+        if (collapsedSeries || ancillaryCollapsedSeries) {
           elMarker.classList.add('inactive-legend');
         }
 
@@ -14938,7 +14949,7 @@ function () {
         elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily;
         Graphics.setAttrs(elLegendText, {
           rel: i + 1,
-          'data:collapsed': collapsedSeries
+          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
         });
         elLegend.appendChild(elMarker);
         elLegend.appendChild(elLegendText);
@@ -14947,13 +14958,13 @@ function () {
         if (!w.config.legend.showForZeroSeries) {
           var total = coreUtils.getSeriesTotalByIndex(i);
 
-          if (total === 0 && coreUtils.seriesHaveSameValues(i) && !coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+          if (total === 0 && coreUtils.seriesHaveSameValues(i) && !coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1) {
             elLegend.classList.add('apexcharts-hidden-zero-series');
           }
         }
 
         if (!w.config.legend.showForNullSeries) {
-          if (coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1) {
+          if (coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1) {
             elLegend.classList.add('apexcharts-hidden-null-series');
           }
         }
@@ -14968,10 +14979,10 @@ function () {
         w.globals.dom.elLegendWrap.style.height = w.config.legend.height ? w.config.legend.height + 'px' : '';
         Graphics.setAttrs(elLegend, {
           rel: i + 1,
-          'data:collapsed': collapsedSeries
+          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
         });
 
-        if (collapsedSeries) {
+        if (collapsedSeries || ancillaryCollapsedSeries) {
           elLegend.classList.add('inactive-legend');
         }
 
@@ -15180,7 +15191,9 @@ function () {
         }
 
         w.globals.collapsedSeries = [];
+        w.globals.ancillaryCollapsedSeries = [];
         w.globals.collapsedSeriesIndices = [];
+        w.globals.ancillaryCollapsedSeriesIndices = [];
         w.globals.risingSeries = risingSeries;
         w.config.series = series;
 
@@ -15209,35 +15222,36 @@ function () {
         }
 
         if (isHidden) {
-          if (w.globals.collapsedSeries.length > 0) {
-            for (var c = 0; c < w.globals.collapsedSeries.length; c++) {
-              if (w.globals.collapsedSeries[c].index === realIndex) {
-                if (w.globals.axisCharts) {
-                  w.config.series[realIndex].data = w.globals.collapsedSeries[c].data.slice();
-                  w.globals.collapsedSeries.splice(c, 1);
-                  w.globals.collapsedSeriesIndices.splice(c, 1);
-                  w.globals.risingSeries.push(realIndex);
-                } else {
-                  w.config.series[realIndex] = w.globals.collapsedSeries[c].data;
-                  w.globals.collapsedSeries.splice(c, 1);
-                  w.globals.collapsedSeriesIndices.splice(c, 1);
-                  w.globals.risingSeries.push(realIndex);
-                }
-
-                this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
-              }
-            }
-          }
+          this.riseCollapsedSeries(w.globals.collapsedSeries, w.globals.collapsedSeriesIndices, realIndex);
+          this.riseCollapsedSeries(w.globals.ancillaryCollapsedSeries, w.globals.ancillaryCollapsedSeriesIndices, realIndex);
         } else {
           if (w.globals.axisCharts) {
-            w.globals.collapsedSeries.push({
-              index: realIndex,
-              data: w.config.series[realIndex].data.slice(),
-              type: seriesEl.parentNode.className.baseVal.split('-')[1]
-            });
-            w.globals.collapsedSeriesIndices.push(realIndex);
-            var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
-            w.globals.risingSeries.splice(removeIndexOfRising, 1); // mutating the user's config object here
+            var shouldNotHideYAxis = false;
+
+            if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].show && w.config.yaxis[realIndex].showAlways) {
+              shouldNotHideYAxis = true;
+
+              if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
+                w.globals.ancillaryCollapsedSeries.push({
+                  index: realIndex,
+                  data: w.config.series[realIndex].data.slice(),
+                  type: seriesEl.parentNode.className.baseVal.split('-')[1]
+                });
+                w.globals.ancillaryCollapsedSeriesIndices.push(realIndex);
+              }
+            }
+
+            if (!shouldNotHideYAxis) {
+              w.globals.collapsedSeries.push({
+                index: realIndex,
+                data: w.config.series[realIndex].data.slice(),
+                type: seriesEl.parentNode.className.baseVal.split('-')[1]
+              });
+              w.globals.collapsedSeriesIndices.push(realIndex);
+              var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
+              w.globals.risingSeries.splice(removeIndexOfRising, 1);
+            } // TODO: AVOID mutating the user's config object below
+
 
             w.config.series[realIndex].data = [];
           } else {
@@ -15270,6 +15284,31 @@ function () {
         var _seriesEl = w.globals.dom.Paper.select(" .apexcharts-series[rel='".concat(seriesCnt + 1, "'] path"));
 
         _seriesEl.fire('click');
+      }
+    }
+  }, {
+    key: "riseCollapsedSeries",
+    value: function riseCollapsedSeries(series, seriesIndices, realIndex) {
+      var w = this.w;
+
+      if (series.length > 0) {
+        for (var c = 0; c < series.length; c++) {
+          if (series[c].index === realIndex) {
+            if (w.globals.axisCharts) {
+              w.config.series[realIndex].data = series[c].data.slice();
+              series.splice(c, 1);
+              seriesIndices.splice(c, 1);
+              w.globals.risingSeries.push(realIndex);
+            } else {
+              w.config.series[realIndex] = series[c].data;
+              series.splice(c, 1);
+              seriesIndices.splice(c, 1);
+              w.globals.risingSeries.push(realIndex);
+            }
+
+            this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
+          }
+        }
       }
     }
   }]);
@@ -17872,17 +17911,17 @@ function () {
   return Tooltip;
 }();
 
-var icoPan = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\r\n    <defs>\r\n        <path d=\"M0 0h24v24H0z\" id=\"a\"/>\r\n    </defs>\r\n    <clipPath id=\"b\">\r\n        <use overflow=\"visible\" xlink:href=\"#a\"/>\r\n    </clipPath>\r\n    <path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"/>\r\n</svg>";
+var icoPan = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\n    <defs>\n        <path d=\"M0 0h24v24H0z\" id=\"a\"/>\n    </defs>\n    <clipPath id=\"b\">\n        <use overflow=\"visible\" xlink:href=\"#a\"/>\n    </clipPath>\n    <path clip-path=\"url(#b)\" d=\"M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z\"/>\n</svg>";
 
-var icoZoom = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\r\n    <path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"/>\r\n    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\r\n    <path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"/>\r\n</svg>";
+var icoZoom = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\">\n    <path d=\"M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"/>\n    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n    <path d=\"M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z\"/>\n</svg>";
 
-var icoReset = "<svg fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\r\n    <path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"/>\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n</svg>";
+var icoReset = "<svg fill=\"#000000\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\n    <path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\"/>\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n</svg>";
 
-var icoZoomIn = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n    <path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\r\n</svg>\r\n";
+var icoZoomIn = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n    <path d=\"M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\n</svg>\n";
 
-var icoZoomOut = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n    <path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\r\n</svg>\r\n";
+var icoZoomOut = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n    <path d=\"M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z\"/>\n</svg>\n";
 
-var icoSelect = "<svg fill=\"#6E8192\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\r\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\r\n    <path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"/>\r\n</svg>";
+var icoSelect = "<svg fill=\"#6E8192\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\">\n    <path d=\"M0 0h24v24H0z\" fill=\"none\"/>\n    <path d=\"M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z\"/>\n</svg>";
 
 var icoMenu = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path fill=\"none\" d=\"M0 0h24v24H0V0z\"/><path d=\"M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z\"/></svg>";
 
@@ -17920,9 +17959,10 @@ function () {
       this.elMenuIcon = document.createElement('div');
       this.elMenu = document.createElement('div');
       this.elCustomIcons = [];
+      this.t = w.config.chart.toolbar.tools;
 
-      if (Array.isArray(w.config.chart.toolbar.tools.customIcons)) {
-        for (var i = 0; i < w.config.chart.toolbar.tools.customIcons.length; i++) {
+      if (Array.isArray(this.t.customIcons)) {
+        for (var i = 0; i < this.t.customIcons.length; i++) {
           this.elCustomIcons.push(document.createElement('div'));
         }
       }
@@ -17930,64 +17970,64 @@ function () {
       this.elMenuItems = [];
       var toolbarControls = [];
 
-      if (w.config.chart.toolbar.tools.zoomin && w.config.chart.zoom.enabled) {
+      if (this.t.zoomin && w.config.chart.zoom.enabled) {
         toolbarControls.push({
           el: this.elZoomIn,
-          icon: icoZoomIn,
+          icon: typeof this.t.zoomin === 'string' ? this.t.zoomin : icoZoomIn,
           title: this.localeValues.zoomIn,
           class: 'apexcharts-zoom-in-icon'
         });
       }
 
-      if (w.config.chart.toolbar.tools.zoomout && w.config.chart.zoom.enabled) {
+      if (this.t.zoomout && w.config.chart.zoom.enabled) {
         toolbarControls.push({
           el: this.elZoomOut,
-          icon: icoZoomOut,
+          icon: typeof this.t.zoomout === 'string' ? this.t.zoomout : icoZoomOut,
           title: this.localeValues.zoomOut,
           class: 'apexcharts-zoom-out-icon'
         });
       }
 
-      if (w.config.chart.toolbar.tools.zoom && w.config.chart.zoom.enabled) {
+      if (this.t.zoom && w.config.chart.zoom.enabled) {
         toolbarControls.push({
           el: this.elZoom,
-          icon: icoZoom,
+          icon: typeof this.t.zoom === 'string' ? this.t.zoom : icoZoom,
           title: this.localeValues.selectionZoom,
           class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-zoom-icon'
         });
       }
 
-      if (w.config.chart.toolbar.tools.selection && w.config.chart.selection.enabled) {
+      if (this.t.selection && w.config.chart.selection.enabled) {
         toolbarControls.push({
           el: this.elSelection,
-          icon: icoSelect,
+          icon: typeof this.t.selection === 'string' ? this.t.selection : icoSelect,
           title: this.localeValues.selection,
           class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-selection-icon'
         });
       }
 
-      if (w.config.chart.toolbar.tools.pan && w.config.chart.zoom.enabled) {
+      if (this.t.pan && w.config.chart.zoom.enabled) {
         toolbarControls.push({
           el: this.elPan,
-          icon: icoPan,
+          icon: typeof this.t.pan === 'string' ? this.t.pan : icoPan,
           title: this.localeValues.pan,
           class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-pan-icon'
         });
       }
 
-      if (w.config.chart.toolbar.tools.reset && w.config.chart.zoom.enabled) {
+      if (this.t.reset && w.config.chart.zoom.enabled) {
         toolbarControls.push({
           el: this.elZoomReset,
-          icon: icoReset,
+          icon: typeof this.t.reset === 'string' ? this.t.reset : icoReset,
           title: this.localeValues.reset,
           class: 'apexcharts-reset-zoom-icon'
         });
       }
 
-      if (w.config.chart.toolbar.tools.download) {
+      if (this.t.download) {
         toolbarControls.push({
           el: this.elMenuIcon,
-          icon: icoMenu,
+          icon: typeof this.t.download === 'string' ? this.t.download : icoMenu,
           title: this.localeValues.menu,
           class: 'apexcharts-menu-icon'
         });
@@ -17996,10 +18036,10 @@ function () {
       for (var _i = 0; _i < this.elCustomIcons.length; _i++) {
         toolbarControls.push({
           el: this.elCustomIcons[_i],
-          icon: w.config.chart.toolbar.tools.customIcons[_i].icon,
-          title: w.config.chart.toolbar.tools.customIcons[_i].title,
-          index: w.config.chart.toolbar.tools.customIcons[_i].index,
-          class: 'apexcharts-toolbar-custom-icon ' + w.config.chart.toolbar.tools.customIcons[_i].class
+          icon: this.t.customIcons[_i].icon,
+          title: this.t.customIcons[_i].title,
+          index: this.t.customIcons[_i].index,
+          class: 'apexcharts-toolbar-custom-icon ' + this.t.customIcons[_i].class
         });
       }
 
@@ -18070,8 +18110,8 @@ function () {
         }
       });
 
-      for (var i = 0; i < this.w.config.chart.toolbar.tools.customIcons.length; i++) {
-        this.elCustomIcons[i].addEventListener('click', this.w.config.chart.toolbar.tools.customIcons[i].click);
+      for (var i = 0; i < this.t.customIcons.length; i++) {
+        this.elCustomIcons[i].addEventListener('click', this.t.customIcons[i].click);
       }
     }
   }, {
@@ -26953,6 +26993,21 @@ function () {
       var overwriteInitialSeries = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
       this.revertDefaultAxisMinMax();
       return this._updateSeries(newSeries, animate, overwriteInitialSeries);
+    }
+    /**
+     * Allows users to append a new series after the chart has rendered.
+     *
+     * @param {array} newSerie - New serie which will be appended to the existing series
+     */
+
+  }, {
+    key: "appendSeries",
+    value: function appendSeries(newSerie) {
+      var animate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+      var newSeries = this.w.config.series.slice();
+      newSeries.push(newSerie);
+      this.revertDefaultAxisMinMax();
+      return this._updateSeries(newSeries, animate);
     }
     /**
      * Private method to update Series.
