@@ -162,7 +162,6 @@ class Range {
         }
 
         gl.minY = lowestYInAllSeries - (diff * 5) / 100
-        console.log(gl.maxY)
         gl.maxY = gl.maxY + (diff * 5) / 100 + 0.025
       }
     }
