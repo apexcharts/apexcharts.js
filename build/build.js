@@ -11,7 +11,6 @@ if (!fs.existsSync('dist')) {
 
 const builds = require('./config').getAllBuilds()
 
-
 // Execute build directly
 build(builds)
   .then((r) => {

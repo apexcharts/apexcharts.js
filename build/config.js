@@ -6,6 +6,7 @@ const copy = require('rollup-plugin-copy-glob')
 const json = require('rollup-plugin-json')
 const resolve = require('rollup-plugin-node-resolve')
 const svgo = require('rollup-plugin-svgo')
+const strip = require('rollup-plugin-strip')
 
 const version = process.env.VERSION || require('../package.json').version
 
@@ -66,6 +67,13 @@ function generateConfig(name) {
       }),
       babel({
         exclude: 'node_modules/**'
+      }),
+      strip({
+        // set this to `false` if you don't want to
+        // remove debugger statements
+        debugger: true,
+        functions: ['console.log', 'debug', 'alert'],
+        sourceMap: false
       })
     ],
     output: {
@@ -82,18 +90,24 @@ function generateConfig(name) {
   }
 
   if (name === 'web-umd-prod') {
-    config.plugins.push(copy([{
-        files: 'src/assets/apexcharts.css',
-        dest: 'dist'
-      },
-      {
-        files: 'src/locales/*.*',
-        dest: 'dist/locales'
-      },
-    ], {
-      verbose: true,
-      watch: false
-    }))
+    config.plugins.push(
+      copy(
+        [
+          {
+            files: 'src/assets/apexcharts.css',
+            dest: 'dist'
+          },
+          {
+            files: 'src/locales/*.*',
+            dest: 'dist/locales'
+          }
+        ],
+        {
+          verbose: true,
+          watch: false
+        }
+      )
+    )
   }
 
   return config
