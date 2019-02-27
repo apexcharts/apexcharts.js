@@ -87,7 +87,9 @@ class Bar {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`,
+        class: `apexcharts-series ${Utils.escapeString(
+          w.globals.seriesNames[realIndex]
+        )}`,
         rel: i + 1,
         'data:realIndex': realIndex
       })

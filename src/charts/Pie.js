@@ -188,7 +188,9 @@ class Pie {
       // if(sectorAngleArr[i]>0) {
 
       let elPieArc = graphics.group({
-        class: `apexcharts-series apexcharts-pie-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`,
+        class: `apexcharts-series apexcharts-pie-series ${Utils.escapeString(
+          w.globals.seriesNames[realIndex]
+        )}`,
         id: 'apexcharts-series-' + i,
         rel: i + 1
       })

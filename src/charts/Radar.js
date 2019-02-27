@@ -28,14 +28,14 @@ class Radar {
     this.graphics = new Graphics(this.ctx)
 
     this.lineColorArr =
-      w.globals.stroke.colors !== undefined ?
-      w.globals.stroke.colors :
-      w.globals.colors
+      w.globals.stroke.colors !== undefined
+        ? w.globals.stroke.colors
+        : w.globals.colors
 
     this.defaultSize =
-      w.globals.svgHeight < w.globals.svgWidth ?
-      w.globals.svgHeight - 35 :
-      w.globals.gridWidth
+      w.globals.svgHeight < w.globals.svgWidth
+        ? w.globals.svgHeight - 35
+        : w.globals.gridWidth
 
     this.maxValue = this.w.globals.maxY
 
@@ -43,7 +43,7 @@ class Radar {
 
     this.maxLabelWidth = 20
 
-    const longestLabel = w.globals.labels.slice().sort(function (a, b) {
+    const longestLabel = w.globals.labels.slice().sort(function(a, b) {
       return b.length - a.length
     })[0]
     const labelWidth = this.graphics.getTextRects(
@@ -99,7 +99,9 @@ class Radar {
     series.forEach((s, i) => {
       // el to which series will be drawn
       let elSeries = this.graphics.group().attr({
-        class: `apexcharts-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`,
+        class: `apexcharts-series ${Utils.escapeString(
+          w.globals.seriesNames[realIndex]
+        )}`,
         rel: i + 1,
         'data:realIndex': i
       })
@@ -158,8 +160,9 @@ class Radar {
           ...defaultRenderedPathOptions,
           pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
           pathTo: paths.linePathsTo[p],
-          strokeWidth: Array.isArray(w.config.stroke.width) ?
-            w.config.stroke.width[i] : w.config.stroke.width,
+          strokeWidth: Array.isArray(w.config.stroke.width)
+            ? w.config.stroke.width[i]
+            : w.config.stroke.width,
           fill: 'none'
         })
 
@@ -241,9 +244,7 @@ class Radar {
 
   drawPolygons(opts) {
     const w = this.w
-    const {
-      parent
-    } = opts
+    const { parent } = opts
 
     const yaxisTexts = w.globals.yAxisScale[0].result.reverse()
     const layers = yaxisTexts.length
@@ -269,9 +270,9 @@ class Radar {
             p.y,
             0,
             0,
-            Array.isArray(this.polygons.connectorColors) ?
-            this.polygons.connectorColors[i] :
-            this.polygons.connectorColors
+            Array.isArray(this.polygons.connectorColors)
+              ? this.polygons.connectorColors[i]
+              : this.polygons.connectorColors
           )
 
           lines.push(line)

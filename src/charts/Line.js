@@ -19,10 +19,11 @@ class Line {
 
     this.xyRatios = xyRatios
 
-    this.pointsChart = !(
-      this.w.config.chart.type !== 'bubble' &&
-      this.w.config.chart.type !== 'scatter'
-    ) || isPointsChart
+    this.pointsChart =
+      !(
+        this.w.config.chart.type !== 'bubble' &&
+        this.w.config.chart.type !== 'scatter'
+      ) || isPointsChart
 
     if (this.pointsChart) {
       this.scatter = new Scatter(this.ctx)
@@ -101,7 +102,9 @@ class Line {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`
+        class: `apexcharts-series ${Utils.escapeString(
+          w.globals.seriesNames[realIndex]
+        )}`
       })
 
       // points
@@ -179,9 +182,9 @@ class Line {
       }
 
       const iterations =
-        w.globals.dataPoints > 1 ?
-        w.globals.dataPoints - 1 :
-        w.globals.dataPoints
+        w.globals.dataPoints > 1
+          ? w.globals.dataPoints - 1
+          : w.globals.dataPoints
       for (let j = 0; j < iterations; j++) {
         if (w.globals.isXNumeric) {
           x = (w.globals.seriesX[realIndex][j + 1] - w.globals.minX) / xRatio
@@ -189,9 +192,9 @@ class Line {
           x = x + xDivision
         }
 
-        const minY = Utils.isNumber(w.globals.minYArr[realIndex]) ?
-          w.globals.minYArr[realIndex] :
-          w.globals.minY
+        const minY = Utils.isNumber(w.globals.minYArr[realIndex])
+          ? w.globals.minYArr[realIndex]
+          : w.globals.minY
 
         if (w.config.chart.stacked) {
           if (
@@ -343,8 +346,9 @@ class Line {
             pathFrom: pathFromLine,
             pathTo: linePaths[p],
             stroke: lineFill,
-            strokeWidth: Array.isArray(w.config.stroke.width) ?
-              w.config.stroke.width[realIndex] : w.config.stroke.width,
+            strokeWidth: Array.isArray(w.config.stroke.width)
+              ? w.config.stroke.width[realIndex]
+              : w.config.stroke.width,
             strokeLineCap: w.config.stroke.lineCap,
             fill: 'none'
           })
@@ -405,9 +409,9 @@ class Line {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    const curve = Array.isArray(w.config.stroke.curve) ?
-      w.config.stroke.curve[i] :
-      w.config.stroke.curve
+    const curve = Array.isArray(w.config.stroke.curve)
+      ? w.config.stroke.curve[i]
+      : w.config.stroke.curve
 
     // logic of smooth curve derived from chartist
     // CREDITS: https://gionkunz.github.io/chartist-js/
@@ -548,11 +552,7 @@ class Line {
     return pointsPos
   }
 
-  checkPreviousPaths({
-    pathFromLine,
-    pathFromArea,
-    realIndex
-  }) {
+  checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
     let w = this.w
 
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
