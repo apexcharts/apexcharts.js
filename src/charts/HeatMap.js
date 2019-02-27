@@ -43,7 +43,7 @@ export default class HeatMap {
       // el to which series will be drawn
       let elSeries = graphics.group({
         class: `apexcharts-series apexcharts-heatmap-series ${Utils.escapeString(
-          w.globals.seriesNames[realIndex]
+          w.globals.seriesNames[i]
         )}`,
         rel: i + 1,
         'data:realIndex': i

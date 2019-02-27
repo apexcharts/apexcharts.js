@@ -189,7 +189,7 @@ class Pie {
 
       let elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series ${Utils.escapeString(
-          w.globals.seriesNames[realIndex]
+          w.globals.seriesNames[i]
         )}`,
         id: 'apexcharts-series-' + i,
         rel: i + 1

@@ -100,7 +100,7 @@ class Radar {
       // el to which series will be drawn
       let elSeries = this.graphics.group().attr({
         class: `apexcharts-series ${Utils.escapeString(
-          w.globals.seriesNames[realIndex]
+          w.globals.seriesNames[i]
         )}`,
         rel: i + 1,
         'data:realIndex': i
