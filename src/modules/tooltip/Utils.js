@@ -16,13 +16,8 @@ export default class Utils {
    ** This function will return both capturedseries index as well as inner index of that series
    * @memberof Utils
    * @param {object}
-   * - context = chart's context
    * - hoverArea = the rect on which user hovers
    * - elGrid = dimensions of the hover rect (it can be different than hoverarea)
-   * - lineSeriesWidth = Whatever series the user hovered on, get the width of it
-   * @return {object}
-   * - capturedSeries = i
-   * - j is the inner index of the capturedSeries
    */
   getNearestValues({ hoverArea, elGrid, clientX, clientY, hasBars }) {
     let w = this.w
