@@ -2,6 +2,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
+import Utils from '../utils/Utils'
 
 /**
  * ApexCharts BarStacked Class responsible for drawing both Stacked Columns and Bars.
@@ -86,9 +87,7 @@ class BarStacked extends Bar {
 
       // el to which series will be drawn
       let elSeries = this.graphics.group({
-        class: `apexcharts-series ${w.globals.seriesNames[realIndex]
-          .toString()
-          .replace(/ /g, '-')}`,
+        class: `apexcharts-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`,
         rel: i + 1,
         'data:realIndex': realIndex
       })

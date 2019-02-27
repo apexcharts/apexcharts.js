@@ -1,4 +1,5 @@
 import Graphics from './Graphics'
+import Utils from '../utils/Utils'
 
 /**
  * ApexCharts Series Class for interation with the Series of the chart.
@@ -18,7 +19,7 @@ export default class Series {
 
   getSeriesByName(seriesName) {
     return this.w.globals.dom.baseEl.querySelector(
-      `.apexcharts-series.${seriesName.toString().replace(/ /g, '-')}`
+      `.apexcharts-series.${Utils.escapeString(seriesName)}`
     )
   }
 

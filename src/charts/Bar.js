@@ -1,4 +1,5 @@
 import CoreUtils from '../modules/CoreUtils'
+import Utils from '../utils/Utils'
 import Fill from '../modules/Fill'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
@@ -86,9 +87,7 @@ class Bar {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${w.globals.seriesNames[realIndex]
-          .toString()
-          .replace(/ /g, '-')}`,
+        class: `apexcharts-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`,
         rel: i + 1,
         'data:realIndex': realIndex
       })

@@ -42,11 +42,7 @@ export default class HeatMap {
     for (let i = series.length - 1; i >= 0; i--) {
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series apexcharts-heatmap-series ${w.globals.seriesNames[
-          i
-        ]
-          .toString()
-          .replace(/ /g, '-')}`,
+        class: `apexcharts-series apexcharts-heatmap-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`,
         rel: i + 1,
         'data:realIndex': i
       })
@@ -144,9 +140,9 @@ export default class HeatMap {
 
             this.animateHeatColor(
               rect,
-              Utils.isColorHex(colorFrom)
-                ? colorFrom
-                : Utils.rgb2hex(colorFrom),
+              Utils.isColorHex(colorFrom) ?
+              colorFrom :
+              Utils.rgb2hex(colorFrom),
               Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
               speed
             )
@@ -201,13 +197,13 @@ export default class HeatMap {
 
     if (typeof heatmap.colorScale.min !== 'undefined') {
       min =
-        heatmap.colorScale.min < w.globals.minY
-          ? heatmap.colorScale.min
-          : w.globals.minY
+        heatmap.colorScale.min < w.globals.minY ?
+        heatmap.colorScale.min :
+        w.globals.minY
       max =
-        heatmap.colorScale.max > w.globals.maxY
-          ? heatmap.colorScale.max
-          : w.globals.maxY
+        heatmap.colorScale.max > w.globals.maxY ?
+        heatmap.colorScale.max :
+        w.globals.maxY
     }
 
     let total = Math.abs(max) + Math.abs(min)
@@ -232,7 +228,15 @@ export default class HeatMap {
     }
   }
 
-  calculateHeatmapDataLabels({ x, y, i, j, series, rectHeight, rectWidth }) {
+  calculateHeatmapDataLabels({
+    x,
+    y,
+    i,
+    j,
+    series,
+    rectHeight,
+    rectWidth
+  }) {
     let w = this.w
     // let graphics = new Graphics(this.ctx)
     let dataLabelsConfig = w.config.dataLabels
@@ -281,14 +285,12 @@ export default class HeatMap {
   animateHeatMap(el, x, y, width, height, speed) {
     const animations = new Animations(this.ctx)
     animations.animateRect(
-      el,
-      {
+      el, {
         x: x + width / 2,
         y: y + height / 2,
         width: 0,
         height: 0
-      },
-      {
+      }, {
         x,
         y,
         width,
@@ -302,8 +304,12 @@ export default class HeatMap {
   }
 
   animateHeatColor(el, colorFrom, colorTo, speed) {
-    el.attr({ fill: colorFrom })
+    el.attr({
+        fill: colorFrom
+      })
       .animate(speed)
-      .attr({ fill: colorTo })
+      .attr({
+        fill: colorTo
+      })
   }
 }

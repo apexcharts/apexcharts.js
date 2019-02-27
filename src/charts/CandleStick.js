@@ -2,6 +2,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
+import Utils from '../utils/Utils'
 
 /**
  * ApexCharts CandleStick Class responsible for drawing both Stacked Columns and Bars.
@@ -46,9 +47,7 @@ class CandleStick extends Bar {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${w.globals.seriesNames[realIndex]
-          .toString()
-          .replace(/ /g, '-')}`,
+        class: `apexcharts-series ${Utils.escapeString(w.globals.seriesNames[realIndex])}`,
         rel: i + 1,
         'data:realIndex': realIndex
       })
@@ -83,9 +82,7 @@ class CandleStick extends Bar {
       })
 
       for (
-        let j = 0, tj = w.globals.dataPoints;
-        j < w.globals.dataPoints;
-        j++, tj--
+        let j = 0, tj = w.globals.dataPoints; j < w.globals.dataPoints; j++, tj--
       ) {
         if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
           this.isNullValue = true
@@ -96,16 +93,21 @@ class CandleStick extends Bar {
           if (this.isNullValue) {
             strokeWidth = 0
           } else {
-            strokeWidth = Array.isArray(this.strokeWidth)
-              ? this.strokeWidth[realIndex]
-              : this.strokeWidth
+            strokeWidth = Array.isArray(this.strokeWidth) ?
+              this.strokeWidth[realIndex] :
+              this.strokeWidth
           }
         }
 
         let color
 
         let paths = this.drawCandleStickPaths({
-          indexes: { i, j, realIndex, bc },
+          indexes: {
+            i,
+            j,
+            realIndex,
+            bc
+          },
           x,
           y,
           xDivision,
@@ -135,9 +137,9 @@ class CandleStick extends Bar {
           color
         })
 
-        let lineFill = this.candlestickOptions.wick.useFillColor
-          ? color
-          : undefined
+        let lineFill = this.candlestickOptions.wick.useFillColor ?
+          color :
+          undefined
 
         elSeries = this.renderSeries({
           realIndex,
