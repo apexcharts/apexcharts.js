@@ -201,7 +201,18 @@ class Line {
             i > 0 &&
             w.globals.collapsedSeries.length < w.config.series.length - 1
           ) {
-            lineYPosition = prevSeriesY[i - 1][j + 1]
+            lineYPosition = zeroY
+
+            // get previous Y of any series for current X if there is one
+            w.globals.seriesX.forEach((x, k) => {
+              if (k === i || prevSeriesY[k] == null) return
+
+              x.forEach((y, m) => {
+                if (y === w.globals.seriesX[i][j]) {
+                  lineYPosition = prevSeriesY[k][m + 1]
+                }
+              })
+            })
           } else {
             // the first series will not have prevY values
             lineYPosition = zeroY
@@ -597,8 +608,18 @@ class Line {
     if (typeof series[i][0] !== 'undefined') {
       if (w.config.chart.stacked) {
         if (i > 0) {
-          // 1st y value of previous series
-          lineYPosition = prevSeriesY[i - 1][0]
+          lineYPosition = zeroY
+
+          // get previous Y of any series for current X if there is one
+          w.globals.seriesX.forEach((x, k) => {
+            if (k === i || prevSeriesY[k] == null) return
+
+            x.forEach((y, m) => {
+              if (y === w.globals.seriesX[i][0]) {
+                lineYPosition = prevSeriesY[k][m]
+              }
+            })
+          })
         } else {
           // the first series will not have prevY values
           lineYPosition = zeroY
