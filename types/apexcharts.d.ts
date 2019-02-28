@@ -56,7 +56,7 @@ declare module ApexCharts {
 type ApexChart = {
   width?: string | number;
   height?: string | number;
-  type: "line" | "area" | "bar" | "histogram" | "pie" | "donut" |
+  type?: "line" | "area" | "bar" | "histogram" | "pie" | "donut" |
   "radialBar" | "scatter" | "bubble" | "heatmap" | "candlestick" | "radar";
   foreColor?: string;
   fontFamily?: string;
