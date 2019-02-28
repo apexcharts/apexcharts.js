@@ -11,9 +11,9 @@
 declare class ApexCharts {
   constructor(el: any, options: any);
   render(): Promise<void>;
-  updateOptions(options: any, redrawPaths: boolean, animate: boolean): Promise<void>;
-  updateSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate: boolean): void;
-  appendSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate: boolean): void;
+  updateOptions(options: any, redrawPaths?: boolean, animate?: boolean): Promise<void>;
+  updateSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
+  appendSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
   toggleSeries(seriesName: string): void;
   destroy(): void;
   addXaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
