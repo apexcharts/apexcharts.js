@@ -24,12 +24,14 @@ const builds = {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist/apexcharts.common.js'),
     format: 'cjs',
+    env: 'production',
     banner
   },
   'web-esm': {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist/apexcharts.esm.js'),
     format: 'es',
+    env: 'production',
     banner
   },
   'web-umd-dev': {
@@ -43,7 +45,7 @@ const builds = {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist/apexcharts.min.js'),
     format: 'umd',
-    env: 'development',
+    env: 'production',
     banner
   }
 }
@@ -67,13 +69,6 @@ function generateConfig(name) {
       }),
       babel({
         exclude: 'node_modules/**'
-      }),
-      strip({
-        // set this to `false` if you don't want to
-        // remove debugger statements
-        debugger: true,
-        functions: ['console.log', 'debug', 'alert'],
-        sourceMap: false
       })
     ],
     output: {
@@ -87,6 +82,16 @@ function generateConfig(name) {
     config.plugins.push(
       replace({ 'process.env.NODE_ENV': JSON.stringify(opts.env) })
     )
+
+    if (opts.env === 'production') {
+      config.plugins.push(
+        strip({
+          debugger: true,
+          functions: ['console.log', 'debug', 'alert'],
+          sourceMap: false
+        })
+      )
+    }
   }
 
   if (name === 'web-umd-prod') {

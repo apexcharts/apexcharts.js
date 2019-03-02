@@ -162,7 +162,7 @@ class Range {
         }
 
         gl.minY = lowestYInAllSeries - (diff * 5) / 100
-        gl.maxY = gl.maxY + (diff * 5) / 100 + 0.025
+        gl.maxY = gl.maxY + (diff * 5) / 100 + 0.05
       }
     }
 

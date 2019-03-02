@@ -17,7 +17,6 @@ class Utils {
 
   // to extend defaults with user options
   // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
-  // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
   static extend(target, source) {
     if (typeof Object.assign !== 'function') {
       ;(function() {
@@ -238,8 +237,8 @@ class Utils {
         (Math.round((t - G) * p) + G) * 0x100 +
         (Math.round((t - B) * p) + B)
       )
-      .toString(16)
-      .slice(1)
+        .toString(16)
+        .slice(1)
     )
   }
 
@@ -284,7 +283,10 @@ class Utils {
 
   static escapeString(str, escapeWith = 'x') {
     let newStr = str.slice()
-    newStr = newStr.replace(/[` ~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, escapeWith)
+    newStr = newStr.replace(
+      /[` ~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,
+      escapeWith
+    )
     return newStr
   }
 

@@ -25,9 +25,7 @@ class Line {
         this.w.config.chart.type !== 'scatter'
       ) || isPointsChart
 
-    if (this.pointsChart) {
-      this.scatter = new Scatter(this.ctx)
-    }
+    this.scatter = new Scatter(this.ctx)
 
     this.noNegatives = this.w.globals.minX === Number.MAX_VALUE
 

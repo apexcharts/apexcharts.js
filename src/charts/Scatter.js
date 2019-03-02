@@ -26,19 +26,12 @@ export default class Scatter {
   draw(elSeries, j, opts) {
     let w = this.w
 
-    let anim = new Animations(this.ctx)
     let graphics = new Graphics(this.ctx)
-    let filters = new Filters(this.ctx)
-    let fill = new Fill(this.ctx)
 
     let realIndex = opts.realIndex
     let pointsPos = opts.pointsPos
     let zRatio = opts.zRatio
     let elPointsMain = opts.elParent
-
-    let pathFillCircle = fill.fillPath({
-      seriesNumber: realIndex
-    })
 
     let elPointsWrap = graphics.group({
       class: `apexcharts-series-markers apexcharts-series-${
@@ -51,6 +44,7 @@ export default class Scatter {
     if (pointsPos.x instanceof Array) {
       for (let q = 0; q < pointsPos.x.length; q++) {
         let dataPointIndex = j + 1
+        let shouldDraw = true
 
         // a small hack as we have 2 points for the first val to connect it
         if (j === 0 && q === 0) dataPointIndex = 0
@@ -75,116 +69,135 @@ export default class Scatter {
         let x = pointsPos.x[q]
         let y = pointsPos.y[q]
 
-        x = x || 0
-        y = y || 0
         radius = radius || 0
 
         if (
           (x === 0 && y === 0) ||
+          y === null ||
           typeof w.globals.series[realIndex][dataPointIndex] === 'undefined'
-        )
-          return
-
-        let circle = graphics.drawCircle(radius)
-
-        circle.attr({
-          cx: x,
-          cy: y,
-          fill: pathFillCircle
-        })
-
-        if (w.config.chart.dropShadow.enabled) {
-          filters.dropShadow(circle, {
-            top: w.config.chart.dropShadow.top,
-            left: w.config.chart.dropShadow.left,
-            blur: w.config.chart.dropShadow.blur,
-            color: w.config.chart.dropShadow.color,
-            opacity: w.config.chart.dropShadow.opacity
-          })
+        ) {
+          shouldDraw = false
         }
 
-        if (this.initialAnim && !w.globals.dataChanged) {
-          let speed = 1
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed
-          }
-          anim.animateCircleRadius(
-            circle,
-            0,
+        if (shouldDraw) {
+          const circle = this.drawPoint(
+            x,
+            y,
+            radius,
             finishRadius,
-            speed,
-            w.globals.easing
+            realIndex,
+            dataPointIndex,
+            j
           )
+          elPointsWrap.add(circle)
         }
-
-        if (w.globals.dataChanged) {
-          if (this.dynamicAnim) {
-            let speed = w.config.chart.animations.dynamicAnimation.speed
-            let prevX, prevY, prevR
-
-            let prevPathJ = null
-
-            prevPathJ =
-              w.globals.previousPaths[realIndex] &&
-              w.globals.previousPaths[realIndex][j]
-
-            if (typeof prevPathJ !== 'undefined' && prevPathJ !== null) {
-              // series containing less elements will ignore these values and revert to 0
-              prevX = prevPathJ.x
-              prevY = prevPathJ.y
-              prevR =
-                typeof prevPathJ.r !== 'undefined' ? prevPathJ.r : finishRadius
-            }
-
-            for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
-              if (w.globals.collapsedSeries[cs].index === realIndex) {
-                speed = 1
-                finishRadius = 0
-              }
-            }
-
-            if (x === 0 && y === 0) finishRadius = 0
-
-            anim.animateCircle(
-              circle,
-              {
-                cx: prevX,
-                cy: prevY,
-                r: prevR
-              },
-              {
-                cx: x,
-                cy: y,
-                r: finishRadius
-              },
-              speed,
-              w.globals.easing
-            )
-          } else {
-            circle.attr({
-              r: finishRadius
-            })
-          }
-        }
-
-        circle.attr({
-          rel: dataPointIndex,
-          j: dataPointIndex,
-          index: realIndex,
-          'default-marker-size': finishRadius
-        })
-
-        const markers = new Markers(this.ctx)
-        filters.setSelectionFilter(circle, realIndex, dataPointIndex)
-        markers.addEvents(circle)
-
-        circle.node.classList.add('apexcharts-marker')
-
-        elPointsWrap.add(circle)
 
         elPointsMain.add(elPointsWrap)
       }
     }
+  }
+
+  drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j) {
+    const w = this.w
+
+    let anim = new Animations(this.ctx)
+    let filters = new Filters(this.ctx)
+    let fill = new Fill(this.ctx)
+    const graphics = new Graphics(this.ctx)
+
+    let pathFillCircle = fill.fillPath({
+      seriesNumber: realIndex
+    })
+    let circle = graphics.drawCircle(radius)
+
+    circle.attr({
+      cx: x,
+      cy: y,
+      fill: pathFillCircle
+    })
+
+    if (w.config.chart.dropShadow.enabled) {
+      filters.dropShadow(circle, {
+        top: w.config.chart.dropShadow.top,
+        left: w.config.chart.dropShadow.left,
+        blur: w.config.chart.dropShadow.blur,
+        color: w.config.chart.dropShadow.color,
+        opacity: w.config.chart.dropShadow.opacity
+      })
+    }
+
+    if (this.initialAnim && !w.globals.dataChanged) {
+      let speed = 1
+      if (!w.globals.resized) {
+        speed = w.config.chart.animations.speed
+      }
+      anim.animateCircleRadius(circle, 0, finishRadius, speed, w.globals.easing)
+    }
+
+    if (w.globals.dataChanged) {
+      if (this.dynamicAnim) {
+        let speed = w.config.chart.animations.dynamicAnimation.speed
+        let prevX, prevY, prevR
+
+        let prevPathJ = null
+
+        prevPathJ =
+          w.globals.previousPaths[realIndex] &&
+          w.globals.previousPaths[realIndex][j]
+
+        if (typeof prevPathJ !== 'undefined' && prevPathJ !== null) {
+          // series containing less elements will ignore these values and revert to 0
+          prevX = prevPathJ.x
+          prevY = prevPathJ.y
+          prevR =
+            typeof prevPathJ.r !== 'undefined' ? prevPathJ.r : finishRadius
+        }
+
+        for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
+          if (w.globals.collapsedSeries[cs].index === realIndex) {
+            speed = 1
+            finishRadius = 0
+          }
+        }
+
+        if (x === 0 && y === 0) finishRadius = 0
+
+        anim.animateCircle(
+          circle,
+          {
+            cx: prevX,
+            cy: prevY,
+            r: prevR
+          },
+          {
+            cx: x,
+            cy: y,
+            r: finishRadius
+          },
+          speed,
+          w.globals.easing
+        )
+      } else {
+        circle.attr({
+          r: finishRadius
+        })
+      }
+    }
+
+    circle.attr({
+      rel: dataPointIndex,
+      j: dataPointIndex,
+      index: realIndex,
+      'default-marker-size': finishRadius
+    })
+
+    const markers = new Markers(this.ctx)
+    filters.setSelectionFilter(circle, realIndex, dataPointIndex)
+    markers.addEvents(circle)
+
+    circle.node.classList.add('apexcharts-marker')
+
+    return circle
   }
 
   centerTextInBubble(y) {
