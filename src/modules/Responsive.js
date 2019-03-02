@@ -41,7 +41,8 @@ export default class Responsive {
           config,
           w.globals.initialConfig
         )
-        newOptions = Utils.extend(w.config, options)
+        newOptions = Utils.extend(options, newOptions)
+        newOptions = Utils.extend(w.config, newOptions)
         this.overrideResponsiveOptions(newOptions)
       } else {
         for (let i = 0; i < res.length; i++) {
