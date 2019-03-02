@@ -45,6 +45,11 @@ Integrate easily with 3rd party frameworks
 - [react-apexcharts](https://github.com/apexcharts/react-apexcharts)
 - [ng-apexcharts](https://github.com/morrisjdev/ng-apexcharts) - By Morris Janatzek
 
+### Unofficial Wrappers
+Useful links to wrappers other than the popular frameworks mentioned above
+- [stencil-apexcharts](https://github.com/mikaelkaron/stencil-apexcharts) - Stencil Component for ApexCharts
+- [apexcharter](https://github.com/dreamRs/apexcharter) - Htmlwidget for ApexCharts 
+
 ## Usage
 ```js
 import ApexCharts from 'apexcharts'
