@@ -454,26 +454,14 @@ class BarStacked extends Bar {
       prevBarH = prevBarH + this.prevYF[k][j]
     }
 
-    let prevYValue
-    // get previous Y of any series for current X if there is one,
-    // otherwise we'll fallback to zero later on
-    if (i > 0 && w.globals.isXNumeric) {
-      w.globals.seriesX.forEach((x, k) => {
-        if (k === i || this.prevY[k] == null) return
-
-        x.forEach((y, m) => {
-          if (y === w.globals.seriesX[i][j]) {
-            prevYValue = this.prevY[k][m]
-          }
-        })
-      })
-    }
-
-    if (i > 0 && (!w.globals.isXNumeric || prevYValue != null)) {
+    if (
+      (i > 0 && !w.globals.isXNumeric) ||
+      (i > 0 &&
+        w.globals.isXNumeric &&
+        w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])
+    ) {
       let bYP
-      if (prevYValue == null) {
-        prevYValue = this.prevY[i - 1][j]
-      }
+      let prevYValue = this.prevY[i - 1][j]
 
       if (this.prevYVal[i - 1][j] < 0) {
         if (this.series[i][j] >= 0) {
