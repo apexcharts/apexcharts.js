@@ -295,8 +295,8 @@ class CoreUtils {
 
     gl.logYRange = gl.yRange.map((yRange, i) => {
       if (w.config.yaxis[i] && this.w.config.yaxis[i].logarithmic) {
-        let maxY = Number.MIN_SAFE_INTEGER
-        let minY = Number.MAX_SAFE_INTEGER
+        let maxY = -Number.MAX_VALUE
+        let minY = Number.MIN_VALUE
         let range = 1
         gl.seriesLog.forEach((s, si) => {
           s.forEach((v) => {

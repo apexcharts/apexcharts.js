@@ -27,8 +27,8 @@ class Range {
 
   getMinYMaxY(
     startingIndex,
-    lowestY = Number.MAX_VALUE,
-    highestY = Number.MIN_SAFE_INTEGER,
+    lowestY = Number.MIN_VALUE,
+    highestY = -Number.MAX_VALUE,
     len = null
   ) {
     const gl = this.w.globals
@@ -50,9 +50,6 @@ class Range {
 
     for (let i = startingIndex; i < len; i++) {
       gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
-      if (Utils.isIE11()) {
-        minY = Math.min(...seriesMin[i], 0)
-      }
 
       for (let j = 0; j < gl.series[i].length; j++) {
         if (series[i][j] !== null && Utils.isNumber(series[i][j])) {
@@ -153,7 +150,7 @@ class Range {
     ) {
       if (
         gl.minY === Number.MIN_VALUE &&
-        lowestYInAllSeries !== Number.MAX_SAFE_INTEGER
+        lowestYInAllSeries !== -Number.MAX_VALUE
       ) {
         let diff = gl.maxY - lowestYInAllSeries
         if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {

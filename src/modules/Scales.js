@@ -17,7 +17,7 @@ export default class Range {
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
       (!Utils.isNumber(yMin) && !Utils.isNumber(yMax)) ||
-      (yMin === Number.MIN_VALUE && yMax === Number.MIN_SAFE_INTEGER)
+      (yMin === Number.MIN_VALUE && yMax === -Number.MAX_VALUE)
     ) {
       // when all values are 0
       yMin = 0
@@ -337,12 +337,8 @@ export default class Range {
       })
     })
 
-    let sameScaleMin = Array(indices.length)
-      .fill()
-      .map((e, i) => Number.MAX_SAFE_INTEGER)
-    let sameScaleMax = Array(indices.length)
-      .fill()
-      .map((e, i) => Number.MIN_SAFE_INTEGER)
+    let sameScaleMin =  Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf,Number.MIN_VALUE);
+    let sameScaleMax =  Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf,-Number.MAX_VALUE);
 
     sameScaleMinYArr.forEach((s, i) => {
       s.forEach((sc, j) => {
