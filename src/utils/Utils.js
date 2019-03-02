@@ -249,25 +249,6 @@ class Utils {
     else return this.shadeHexColor(p, color)
   }
 
-  // https://stackoverflow.com/questions/1573053/javascript-function-to-convert-color-names-to-hex-codes
-  // getHexColorFromName(colorStr) {
-  //   var a = document.createElement('div')
-  //   a.style.color = colorStr
-  //   var colors = window
-  //     .getComputedStyle(document.body.appendChild(a))
-  //     .color.match(/\d+/g)
-  //     .map(function(a) {
-  //       return parseInt(a, 10)
-  //     })
-  //   document.body.removeChild(a)
-  //   return colors.length >= 3
-  //     ? '#' +
-  //         ((1 << 24) + (colors[0] << 16) + (colors[1] << 8) + colors[2])
-  //           .toString(16)
-  //           .substr(1)
-  //     : false
-  // }
-
   static isColorHex(color) {
     return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(color)
   }

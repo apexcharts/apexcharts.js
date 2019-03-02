@@ -513,7 +513,7 @@ export default class Core {
       }
     }
 
-    // gte seriesX
+    // get seriesX
     for (let j = 0; j < ser[activeI].data.length; j++) {
       const isXString = typeof ser[activeI].data[j].x === 'string'
       const isXDate = !!dt.isValidDate(ser[activeI].data[j].x.toString())
