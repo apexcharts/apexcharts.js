@@ -429,14 +429,14 @@ export default class Core {
     const series = this.w.config.series.slice()
 
     const sr = new Series(this.ctx)
-    const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+    this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
 
     if (
-      typeof series[activeSeriesIndex].data !== 'undefined' &&
-      series[activeSeriesIndex].data.length > 0 &&
-      series[activeSeriesIndex].data[0] !== null &&
-      typeof series[activeSeriesIndex].data[0].x !== 'undefined' &&
-      series[activeSeriesIndex].data[0] !== null
+      typeof series[this.activeSeriesIndex].data !== 'undefined' &&
+      series[this.activeSeriesIndex].data.length > 0 &&
+      series[this.activeSeriesIndex].data[0] !== null &&
+      typeof series[this.activeSeriesIndex].data[0].x !== 'undefined' &&
+      series[this.activeSeriesIndex].data[0] !== null
     ) {
       return true
     }
@@ -447,14 +447,14 @@ export default class Core {
     const series = this.w.config.series.slice()
 
     const sr = new Series(this.ctx)
-    const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+    this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
 
     if (
-      typeof series[activeSeriesIndex].data !== 'undefined' &&
-      series[activeSeriesIndex].data.length > 0 &&
-      typeof series[activeSeriesIndex].data[0] !== 'undefined' &&
-      series[activeSeriesIndex].data[0] !== null &&
-      series[activeSeriesIndex].data[0].constructor === Array
+      typeof series[this.activeSeriesIndex].data !== 'undefined' &&
+      series[this.activeSeriesIndex].data.length > 0 &&
+      typeof series[this.activeSeriesIndex].data[0] !== 'undefined' &&
+      series[this.activeSeriesIndex].data[0] !== null &&
+      series[this.activeSeriesIndex].data[0].constructor === Array
     ) {
       return true
     }
@@ -497,10 +497,12 @@ export default class Core {
   handleFormatXY(ser, i) {
     const cnf = this.w.config
     const gl = this.w.globals
-    const series = this.w.config.series.slice()
 
     const dt = new DateTime(this.ctx)
 
+    let activeI = this.activeSeriesIndex
+
+    // get series
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j].y !== 'undefined') {
         if (Array.isArray(ser[i].data[j].y) && ser[i].data[j].y.length === 4) {
@@ -509,36 +511,41 @@ export default class Core {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j].y))
         }
       }
+    }
 
-      const isXString = typeof ser[i].data[j].x === 'string'
-      const isXDate = !!dt.isValidDate(ser[i].data[j].x.toString())
+    // gte seriesX
+    for (let j = 0; j < ser[activeI].data.length; j++) {
+      const isXString = typeof ser[activeI].data[j].x === 'string'
+      const isXDate = !!dt.isValidDate(ser[activeI].data[j].x.toString())
 
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
         if (isXString) {
           if (cnf.xaxis.type === 'datetime') {
-            this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x))
+            this.twoDSeriesX.push(dt.parseDate(ser[activeI].data[j].x))
           } else {
             // a category and not a numeric x value
             this.fallbackToCategory = true
-            this.twoDSeriesX.push(ser[i].data[j].x)
+            this.twoDSeriesX.push(ser[activeI].data[j].x)
           }
         } else {
           if (cnf.xaxis.type === 'datetime') {
-            this.twoDSeriesX.push(dt.parseDate(ser[i].data[j].x.toString()))
+            this.twoDSeriesX.push(
+              dt.parseDate(ser[activeI].data[j].x.toString())
+            )
           } else {
-            this.twoDSeriesX.push(parseFloat(ser[i].data[j].x))
+            this.twoDSeriesX.push(parseFloat(ser[activeI].data[j].x))
           }
         }
       } else {
         // a numeric value in x property
-        this.twoDSeriesX.push(ser[i].data[j].x)
+        this.twoDSeriesX.push(ser[activeI].data[j].x)
       }
     }
 
-    if (series[i].data[0] && typeof series[i].data[0].z !== 'undefined') {
-      for (let t = 0; t < series[i].data.length; t++) {
-        this.threeDSeries.push(series[i].data[t].z)
+    if (ser[i].data[0] && typeof ser[i].data[0].z !== 'undefined') {
+      for (let t = 0; t < ser[i].data.length; t++) {
+        this.threeDSeries.push(ser[i].data[t].z)
       }
       gl.isDataXYZ = true
     }
@@ -601,18 +608,18 @@ export default class Core {
     }
   }
 
-  parseDataAxisCharts(ser, series, ctx = this.ctx) {
+  parseDataAxisCharts(ser, ctx = this.ctx) {
     const cnf = this.w.config
     const gl = this.w.globals
 
     const dt = new DateTime(ctx)
 
-    for (let i = 0; i < series.length; i++) {
+    for (let i = 0; i < ser.length; i++) {
       this.twoDSeries = []
       this.twoDSeriesX = []
       this.threeDSeries = []
 
-      if (typeof series[i].data === 'undefined') {
+      if (typeof ser[i].data === 'undefined') {
         console.error(
           "It is a possibility that you may have not included 'data' property in series."
         )
@@ -757,16 +764,13 @@ export default class Core {
     let gl = w.globals
     this.excludeCollapsedSeriesInYAxis()
 
-    // to determine whether data is in XY format or array format, we use original config
-    const configSeries = cnf.series.slice()
-
     this.fallbackToCategory = false
 
     this.resetGlobals()
     this.isMultipleY()
 
     if (gl.axisCharts) {
-      this.parseDataAxisCharts(ser, configSeries)
+      this.parseDataAxisCharts(ser)
     } else {
       this.parseDataNonAxisCharts(ser)
     }
