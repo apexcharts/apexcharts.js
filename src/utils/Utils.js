@@ -263,7 +263,7 @@ class Utils {
   }
 
   static escapeString(str, escapeWith = 'x') {
-    let newStr = str.slice()
+    let newStr = str.toString().slice()
     newStr = newStr.replace(
       /[` ~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,
       escapeWith
