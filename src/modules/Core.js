@@ -500,7 +500,11 @@ export default class Core {
 
     const dt = new DateTime(this.ctx)
 
-    let activeI = this.activeSeriesIndex
+    let activeI = i
+    if (gl.collapsedSeriesIndices.indexOf(i) > -1) {
+      // fix #368
+      activeI = this.activeSeriesIndex
+    }
 
     // get series
     for (let j = 0; j < ser[i].data.length; j++) {
