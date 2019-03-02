@@ -337,8 +337,14 @@ export default class Range {
       })
     })
 
-    let sameScaleMin =  Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf,Number.MIN_VALUE);
-    let sameScaleMax =  Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf,-Number.MAX_VALUE);
+    let sameScaleMin = Array.apply(null, Array(indices.length)).map(
+      Number.prototype.valueOf,
+      Number.MIN_VALUE
+    )
+    let sameScaleMax = Array.apply(null, Array(indices.length)).map(
+      Number.prototype.valueOf,
+      -Number.MAX_VALUE
+    )
 
     sameScaleMinYArr.forEach((s, i) => {
       s.forEach((sc, j) => {

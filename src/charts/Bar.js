@@ -33,7 +33,7 @@ class Bar {
       this.baseLineY = xyRatios.baseLineY
       this.baseLineInvertedY = xyRatios.baseLineInvertedY
     }
-    this.minXDiff = -Number.MAX_VALUE
+    this.minXDiff = Number.MAX_VALUE
     this.yaxisIndex = 0
 
     this.seriesLen = 0
@@ -388,7 +388,7 @@ class Bar {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        if (this.minXDiff === -Number.MAX_VALUE) {
+        if (this.minXDiff === Number.MAX_VALUE) {
           // possibly a single dataPoint (fixes react-apexcharts/issue#34)
           let len = w.globals.labels.length
           if (w.globals.timelineLabels.length > 0) {

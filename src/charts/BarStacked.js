@@ -262,10 +262,7 @@ class BarStacked extends Bar {
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
         xDivision = this.minXDiff / this.xRatio
-        barWidth =
-          ((xDivision / this.seriesLen) *
-            parseInt(this.barOptions.columnWidth)) /
-          100
+        barWidth = (xDivision * parseInt(this.barOptions.columnWidth)) / 100
       } else {
         barWidth =
           (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
