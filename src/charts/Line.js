@@ -185,7 +185,12 @@ class Line {
           : w.globals.dataPoints
       for (let j = 0; j < iterations; j++) {
         if (w.globals.isXNumeric) {
-          x = (w.globals.seriesX[realIndex][j + 1] - w.globals.minX) / xRatio
+          let sX = w.globals.seriesX[realIndex][j + 1]
+          if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
+            /* fix #374 */
+            sX = w.globals.seriesX[realIndex][iterations - 1]
+          }
+          x = (sX - w.globals.minX) / xRatio
         } else {
           x = x + xDivision
         }
