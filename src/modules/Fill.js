@@ -52,7 +52,9 @@ class Fill {
 
     Graphics.setAttrs(elPattern, {
       id: params.patternID,
-      patternUnits: 'userSpaceOnUse',
+      patternUnits: params.patternUnits
+        ? params.patternUnits
+        : 'userSpaceOnUse',
       width: imgWidth + 'px',
       height: imgHeight + 'px'
     })
@@ -146,6 +148,7 @@ class Fill {
         this.clippedImgArea({
           opacity: fillOpacity,
           image: cnf.fill.image.src[opts.seriesNumber],
+          patternUnits: opts.patternUnits,
           patternID: `pattern${w.globals.cuid}${opts.seriesNumber + 1}`
         })
         pathFill = `url(#pattern${w.globals.cuid}${opts.seriesNumber + 1})`

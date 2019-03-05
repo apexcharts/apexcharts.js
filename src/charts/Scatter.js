@@ -106,7 +106,8 @@ export default class Scatter {
     const graphics = new Graphics(this.ctx)
 
     let pathFillCircle = fill.fillPath({
-      seriesNumber: realIndex
+      seriesNumber: realIndex,
+      patternUnits: 'objectBoundingBox'
     })
     let circle = graphics.drawCircle(radius)
 

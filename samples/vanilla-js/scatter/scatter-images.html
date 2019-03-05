@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Scatter - Image Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="chart">
+
+  </div>
+
+
+  <script src="../../../dist/apexcharts.js"></script>
+
+  <script>
+    var options = {
+      chart: {
+        height: 350,
+        type: 'scatter',
+        animations: {
+          enabled: false,
+        },
+        zoom: {
+          enabled: false,
+        }
+      },
+
+      series: [{
+        data: [
+          [16.4, 5.4],
+          [21.7, 2],
+          [25.4, 3],
+          [19, 2],
+          [10.9, 1],
+          [13.6, 3.2],
+          [10.9, 7.4],
+          [10.9, 7],
+          [10.9, 8.2],
+          [16.4, 4],
+          [16.4, 1.8],
+          [13.6, 0.3],
+          [13.6, 12],
+          [29.9, 3],
+          [27.1, 2.3],
+          [16.4, 5],
+          [13.6, 3.7],
+          [10.9, 5.2],
+          [16.4, 6.5],
+          [10.9, 8],
+          [24.5, 7.1],
+          [10.9, 7],
+          [8.1, 4.7],
+          [19, 10],
+          [21.7, 1.8],
+          [27.1, 10],
+          [24.5, 8],
+          [27.1, 3],
+          [29.9, 11.5],
+          [27.1, 0.8],
+          [22.1, 2]
+        ]
+      }],
+      xaxis: {
+        tickAmount: 10,
+      },
+      yaxis: {
+        tickAmount: 7
+      },
+      markers: {
+        size: 15
+      },
+      fill: {
+        type: 'image',
+        opacity: 1,
+        image: {
+          src: ['https://i.ibb.co/xhMYYRD/Screen-Shot-2019-03-04-at-4-45-20-PM.png'],
+          width: 30,
+          height: 30
+        }
+      }
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#chart"),
+      options
+    );
+
+    chart.render();
+
+  </script>
+</body>
+
+</html>
