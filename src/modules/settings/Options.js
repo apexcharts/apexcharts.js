@@ -177,6 +177,12 @@ export default class Options {
             bottom: 2
           }
         }
+      },
+      customSVG: {
+        SVG: undefined,
+        cssClass: undefined,
+        offsetX: 0,
+        offsetY: 0
       }
     }
   }

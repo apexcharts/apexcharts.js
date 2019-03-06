@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Min Max Points example</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="chart">
+
+  </div>
+
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/stock-prices.js"></script>
+
+  <script>
+    var options = {
+      chart: {
+        height: 350,
+        type: "area",
+        zoom: {
+          enabled: false
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: "straight"
+      },
+      series: [{
+        data: [344, 345, 333, 323, 322, 342, 383, 353, 323, 376]
+      }]
+    };
+
+    var chart = new ApexCharts(document.querySelector("#chart"), options);
+
+
+    chart.render().then(() => {
+      const lowest = chart.getLowestValueInSeries(0)
+      const highest = chart.getHighestValueInSeries(0)
+
+      chart.addPointAnnotation({
+        x: new Date(chart.w.globals.seriesX[0][chart.w.globals.series[0].indexOf(lowest)]).getTime(),
+        y: lowest,
+        label: {
+          text: 'Lowest: ' + lowest,
+          offsetY: 2
+        },
+        customSVG: {
+            SVG: `<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            <path d="M0 0h24v24H0z" fill="none"/>`,
+            cssClass: undefined,
+            offsetX: -10,
+            offsetY: -30
+        }
+      })
+
+      chart.addPointAnnotation({
+        x: new Date(chart.w.globals.seriesX[0][chart.w.globals.series[0].indexOf(highest)]).getTime(),
+        y: highest,
+        label: {
+          text: 'Highest: ' + highest,
+          offsetY: 2
+        },
+      })
+    });
+
+  </script>
+</body>
+
+</html>

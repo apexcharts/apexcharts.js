@@ -338,6 +338,21 @@ export default class Annotations {
     })
 
     parent.appendChild(elText.node)
+
+    if (anno.customSVG.SVG) {
+      let g = this.graphics.group({
+        class:
+          'apexcharts-point-annotations-custom-svg ' + anno.customSVG.cssClass
+      })
+
+      g.attr({
+        transform: `translate(${x + anno.customSVG.offsetX}, ${y +
+          anno.customSVG.offsetY})`
+      })
+
+      g.node.innerHTML = anno.customSVG.SVG
+      parent.appendChild(g.node)
+    }
   }
 
   drawPointAnnotations() {
