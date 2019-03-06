@@ -27,7 +27,7 @@ class Range {
 
   getMinYMaxY(
     startingIndex,
-    lowestY = Number.MIN_VALUE,
+    lowestY = Number.MAX_VALUE,
     highestY = -Number.MAX_VALUE,
     len = null
   ) {
