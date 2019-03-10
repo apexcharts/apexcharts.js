@@ -245,8 +245,12 @@ export default class Labels {
     }
 
     if (shared && ttItemsChildren[0]) {
-      // hide when no Val
-      if (typeof val === 'undefined' || val === null) {
+      // hide when no Val or series collapsed
+      if (
+        typeof val === 'undefined' ||
+        val === null ||
+        w.globals.collapsedSeriesIndices.indexOf(t) > -1
+      ) {
         ttItemsChildren[0].parentNode.style.display = 'none'
       } else {
         ttItemsChildren[0].parentNode.style.display =
