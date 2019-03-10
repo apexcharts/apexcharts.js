@@ -345,7 +345,7 @@ export default class Toolbar {
       this.w.config.chart.animations.dynamicAnimation.enabled
     )
 
-    this.zoomCallback({ min: newMinX, max: newMaxX })
+    this.zoomCallback(xaxis)
   }
 
   zoomCallback(xaxis, yaxis) {
