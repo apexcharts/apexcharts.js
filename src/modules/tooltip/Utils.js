@@ -3,6 +3,7 @@
  *
  * @module Tooltip.Utils
  **/
+import CoreUtils from '../CoreUtils'
 
 export default class Utils {
   constructor(tooltipContext) {
@@ -160,6 +161,7 @@ export default class Utils {
 
   getFirstActiveXArray(Xarrays) {
     let activeIndex = 0
+    const coreUtils = new CoreUtils(this.ctx)
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
       if (xarr.length > 0) {
@@ -170,7 +172,12 @@ export default class Utils {
     })
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
-      if (firstActiveSeriesIndex[a] !== -1) {
+      const total = coreUtils.getSeriesTotalByIndex(a)
+
+      if (
+        firstActiveSeriesIndex[a] !== -1 &&
+        (total !== 0 && !coreUtils.seriesHaveSameValues(a))
+      ) {
         activeIndex = firstActiveSeriesIndex[a]
         break
       }
