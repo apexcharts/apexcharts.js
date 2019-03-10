@@ -275,6 +275,7 @@ export default class Defaults {
   convertCatToNumeric() {
     const opts = this.opts
     opts.xaxis.type = 'numeric'
+    opts.xaxis.convertedCatToNumeric = true
     opts.xaxis.labels = opts.xaxis.labels || {}
     opts.xaxis.labels.formatter =
       opts.xaxis.labels.formatter ||

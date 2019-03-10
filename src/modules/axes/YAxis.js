@@ -63,7 +63,6 @@ export default class YAxis {
       labels.reverse()
     }
 
-    //console.log(labels)
     if (w.config.yaxis[realIndex].labels.show) {
       for (let i = tickAmount; i >= 0; i--) {
         let val = labels[i]

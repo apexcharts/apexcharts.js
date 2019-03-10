@@ -60,9 +60,21 @@ export default class Annotations {
     const min = this.invertAxis ? w.globals.minY : w.globals.minX
     const range = this.invertAxis ? w.globals.yRange[0] : w.globals.xRange
 
-    let strokeDashArray = anno.strokeDashArray
-
     let x1 = (anno.x - min) / (range / w.globals.gridWidth)
+
+    if (
+      w.config.xaxis.type === 'category' ||
+      w.config.xaxis.convertedCatToNumeric
+    ) {
+      let catIndex = w.globals.labels.indexOf(anno.x)
+      const xLabel = w.globals.dom.baseEl.querySelector(
+        '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+      )
+
+      x1 = parseFloat(xLabel.getAttribute('x'))
+    }
+
+    let strokeDashArray = anno.strokeDashArray
 
     if (x1 < 0 || x1 > w.globals.gridWidth) return
 
