@@ -18,6 +18,9 @@ export default class Dimensions {
     this.xAxisHeight = 0
     this.isSparkline = this.w.config.chart.sparkline.enabled
 
+    this.xPadRight = 0
+    this.xPadLeft = 0
+
     this.isBarHorizontal = !!(
       this.w.config.chart.type === 'bar' &&
       this.w.config.plotOptions.bar.horizontal
@@ -301,8 +304,6 @@ export default class Dimensions {
   // NOTE: datetime x-axis won't have any effect with this as we don't know the label length there due to many constraints.
   additionalPaddingXLabels(xaxisLabelCoords) {
     const w = this.w
-    this.xPadRight = 0
-    this.xPadLeft = 0
 
     if (
       (w.config.xaxis.type === 'category' && this.isBarHorizontal) ||
