@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.6.0
+ * ApexCharts v3.6.1
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -11773,6 +11773,8 @@ function () {
     this.yAxisWidth = 0;
     this.xAxisHeight = 0;
     this.isSparkline = this.w.config.chart.sparkline.enabled;
+    this.xPadRight = 0;
+    this.xPadLeft = 0;
     this.isBarHorizontal = !!(this.w.config.chart.type === 'bar' && this.w.config.plotOptions.bar.horizontal);
   }
   /**
@@ -12016,8 +12018,6 @@ function () {
       var _this = this;
 
       var w = this.w;
-      this.xPadRight = 0;
-      this.xPadLeft = 0;
 
       if (w.config.xaxis.type === 'category' && this.isBarHorizontal || w.config.xaxis.type === 'numeric') {
         var rightPad = function rightPad(labels) {
