@@ -24,7 +24,7 @@ module.exports = {
   // collectCoverageFrom: null,
 
   // The directory where Jest should output its coverage files
-  coverageDirectory: "coverage",
+  coverageDirectory: 'coverage',
 
   // An array of regexp pattern strings used to skip coverage collection
   // coveragePathIgnorePatterns: [
@@ -83,7 +83,7 @@ module.exports = {
   // notifyMode: "always",
 
   // A preset that is used as a base for Jest's configuration
-   preset: "jest-puppeteer",
+  preset: 'jest-puppeteer',
 
   // Run tests from one or more projects
   // projects: null,
@@ -124,7 +124,7 @@ module.exports = {
   // snapshotSerializers: [],
 
   // The test environment that will be used for testing
-  testEnvironment: "jest-environment-jsdom",
+  testEnvironment: 'jest-environment-jsdom',
 
   // Options that will be passed to the testEnvironment
   // testEnvironmentOptions: {},
@@ -133,16 +133,13 @@ module.exports = {
   // testLocationInResults: false,
 
   // The glob patterns Jest uses to detect test files
-  testMatch: [
-    "**/tests/**/*.js?(x)",
-    "**/?(*.)+(spec|test).js?(x)"
-  ],
+  testMatch: ['**/tests/**/*.js?(x)', '**/?(*.)+(spec|test).js?(x)'],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   testPathIgnorePatterns: [
-    "/node_modules/",
-    "/tests/unit/data/",
-    "/tests/unit/utils/"
+    '/node_modules/',
+    '/tests/unit/data/',
+    '/tests/unit/utils/'
   ],
 
   // The regexp pattern Jest uses to detect test files
@@ -182,4 +179,4 @@ module.exports = {
 
   // Whether to use watchman for file crawling
   // watchman: true,
-};
+}

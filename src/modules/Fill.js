@@ -48,7 +48,7 @@ class Fill {
       imgHeight = params.height
     }
 
-    let elPattern = document.createElementNS(w.globals.svgNS, 'pattern')
+    let elPattern = document.createElementNS(w.globals.SVGNS, 'pattern')
 
     Graphics.setAttrs(elPattern, {
       id: params.patternID,
@@ -59,7 +59,7 @@ class Fill {
       height: imgHeight + 'px'
     })
 
-    let elImage = document.createElementNS(w.globals.svgNS, 'image')
+    let elImage = document.createElementNS(w.globals.SVGNS, 'image')
     elPattern.appendChild(elImage)
 
     elImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', fillImg)

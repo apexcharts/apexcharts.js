@@ -49,9 +49,13 @@ export default class Dimensions {
       gl.gridHeight - w.config.grid.padding.top - w.config.grid.padding.bottom
 
     gl.gridWidth =
-      gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right
+      gl.gridWidth -
+      w.config.grid.padding.left -
+      w.config.grid.padding.right -
+      this.xPadRight -
+      this.xPadLeft
 
-    gl.translateX = gl.translateX + w.config.grid.padding.left
+    gl.translateX = gl.translateX + w.config.grid.padding.left + this.xPadLeft
     gl.translateY = gl.translateY + w.config.grid.padding.top
   }
 
@@ -59,7 +63,7 @@ export default class Dimensions {
     const w = this.w
     this.xAxisHeight =
       (xaxisLabelCoords.height + xtitleCoords.height) *
-        w.globals.lineHeightRatio +
+        w.globals.LINE_HEIGHT_RATIO +
       15
 
     this.xAxisWidth = xaxisLabelCoords.width
@@ -163,6 +167,8 @@ export default class Dimensions {
       translateY = 0
     }
 
+    this.additionalPaddingXLabels(xaxisLabelCoords)
+
     switch (w.config.legend.position) {
       case 'bottom':
         gl.translateY = translateY
@@ -200,9 +206,7 @@ export default class Dimensions {
         throw new Error('Legend position not supported')
     }
 
-    if (!this.isBarHorizontal) {
-      this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
-    }
+    this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
 
     // after drawing everything, set the Y axis positions
     let objyAxis = new YAxis(this.ctx)
@@ -290,6 +294,64 @@ export default class Dimensions {
         }
       }
     })
+  }
+
+  // Sometimes, the last labels gets cropped in category/numeric xaxis.
+  // Hence, we add some additional padding based on the label length to avoid the last label being cropped.
+  // NOTE: datetime x-axis won't have any effect with this as we don't know the label length there due to many constraints.
+  additionalPaddingXLabels(xaxisLabelCoords) {
+    const w = this.w
+    this.xPadRight = 0
+    this.xPadLeft = 0
+
+    if (
+      (w.config.xaxis.type === 'category' && this.isBarHorizontal) ||
+      w.config.xaxis.type === 'numeric'
+    ) {
+      const rightPad = (labels) => {
+        if (w.config.grid.padding.right < labels.width) {
+          this.xPadRight = labels.width / 2 + 1
+        }
+      }
+
+      const leftPad = (labels) => {
+        if (w.config.grid.padding.left < labels.width) {
+          this.xPadLeft = labels.width / 2 + 1
+        }
+      }
+
+      const lineArea =
+        w.config.chart.type === 'line' || w.config.chart.type === 'area'
+
+      w.config.yaxis.forEach((yaxe, i) => {
+        let shouldPad =
+          !yaxe.show ||
+          yaxe.floating ||
+          w.globals.collapsedSeriesIndices.indexOf(i) !== -1 ||
+          lineArea ||
+          (yaxe.opposite && this.isBarHorizontal)
+
+        if (shouldPad) {
+          if (
+            (lineArea &&
+              w.globals.isMultipleYAxis &&
+              w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
+            (this.isBarHorizontal && yaxe.opposite)
+          ) {
+            leftPad(xaxisLabelCoords)
+          }
+
+          if (
+            (!this.isBarHorizontal &&
+              yaxe.opposite &&
+              w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
+            (lineArea && !w.globals.isMultipleYAxis)
+          ) {
+            rightPad(xaxisLabelCoords)
+          }
+        }
+      })
+    }
   }
 
   titleSubtitleOffset() {

@@ -102,7 +102,7 @@ export default class Config {
           opts.chart.type === 'scatter') &&
         !combo.comboChartsHasBars &&
         opts.xaxis.type !== 'datetime' &&
-        opts.xaxis.tickPlacement === 'on'
+        opts.xaxis.tickPlacement !== 'between'
       ) {
         defaults.convertCatToNumeric()
       }
@@ -247,6 +247,10 @@ export default class Config {
         )
       }
 
+      if (config.yaxis[0].reversed) {
+        config.yaxis[0].opposite = true
+      }
+
       config.xaxis.tooltip.enabled = false // no xaxis tooltip for horizontal bar
       config.yaxis[0].tooltip.enabled = false // no xaxis tooltip for horizontal bar
       config.chart.zoom.enabled = false // no zooming for horz bars
@@ -272,6 +276,13 @@ export default class Config {
           )
           config.tooltip.followCursor = true
         }
+      }
+    }
+
+    if (config.chart.type === 'candlestick') {
+      if (config.yaxis[0].reversed) {
+        console.warn('Reversed y-axis in candlestick chart is not supported.')
+        config.yaxis[0].reversed = false
       }
     }
 

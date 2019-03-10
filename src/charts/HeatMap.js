@@ -38,8 +38,19 @@ export default class HeatMap {
     let yDivision = w.globals.gridHeight / w.globals.series.length
 
     let y1 = 0
+    let rev = false
 
-    for (let i = series.length - 1; i >= 0; i--) {
+    let heatSeries = series.slice()
+    if (w.config.yaxis[0].reversed) {
+      rev = true
+      heatSeries.reverse()
+    }
+
+    for (
+      let i = rev ? 0 : heatSeries.length - 1;
+      rev ? i < heatSeries.length : i >= 0;
+      rev ? i++ : i--
+    ) {
       // el to which series will be drawn
       let elSeries = graphics.group({
         class: `apexcharts-series apexcharts-heatmap-series ${Utils.escapeString(
@@ -57,7 +68,7 @@ export default class HeatMap {
 
       let x1 = 0
 
-      for (let j = 0; j < series[i].length; j++) {
+      for (let j = 0; j < heatSeries[i].length; j++) {
         let colorShadePercent = 1
 
         const heatColorProps = this.determineHeatColor(i, j)
@@ -101,7 +112,7 @@ export default class HeatMap {
           i,
           index: i,
           j,
-          val: series[i][j],
+          val: heatSeries[i][j],
           'stroke-width': this.strokeWidth,
           stroke: w.globals.stroke.colors[0],
           color: color
@@ -156,7 +167,7 @@ export default class HeatMap {
           y: y1,
           i,
           j,
-          series,
+          series: heatSeries,
           rectHeight: yDivision,
           rectWidth: xDivision
         })
@@ -173,7 +184,13 @@ export default class HeatMap {
     }
 
     // adjust yaxis labels for heatmap
-    w.globals.yAxisScale[0].result.push('')
+    let yAxisScale = w.globals.yAxisScale[0].result.slice()
+    if (w.config.yaxis[0].reversed) {
+      yAxisScale.unshift('')
+    } else {
+      yAxisScale.push('')
+    }
+    w.globals.yAxisScale[0].result = yAxisScale
     let divisor = w.globals.gridHeight / w.globals.series.length
     w.config.yaxis[0].labels.offsetY = -(divisor / 2)
 

@@ -108,10 +108,10 @@ class Grid {
       strokeSize = strokeMaxSize
     }
 
-    gl.dom.elGridRectMask = document.createElementNS(gl.svgNS, 'clipPath')
+    gl.dom.elGridRectMask = document.createElementNS(gl.SVGNS, 'clipPath')
     gl.dom.elGridRectMask.setAttribute('id', `gridRectMask${gl.cuid}`)
 
-    gl.dom.elGridRectMarkerMask = document.createElementNS(gl.svgNS, 'clipPath')
+    gl.dom.elGridRectMarkerMask = document.createElementNS(gl.SVGNS, 'clipPath')
     gl.dom.elGridRectMarkerMask.setAttribute(
       'id',
       `gridRectMarkerMask${gl.cuid}`

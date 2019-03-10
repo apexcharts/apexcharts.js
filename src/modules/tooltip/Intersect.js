@@ -122,18 +122,20 @@ class Intersect {
     // let bW = 0
     let i = 0
     let strokeWidth
+    let barXY = this.getBarTooltipXY({
+      e,
+      opt
+    })
+    i = barXY.i
+    let barHeight = barXY.barHeight
+    let j = barXY.j
 
     if (
       (ttCtx.isBarHorizontal && ttCtx.hasBars()) ||
       !w.config.tooltip.shared
     ) {
-      let barXY = this.getBarTooltipXY({
-        e,
-        opt
-      })
       x = barXY.x
       y = barXY.y
-      i = barXY.i
       strokeWidth = Array.isArray(w.config.stroke.width)
         ? w.config.stroke.width[i]
         : w.config.stroke.width
@@ -181,7 +183,22 @@ class Intersect {
       !ttCtx.fixedTooltip &&
       (!w.config.tooltip.shared || (ttCtx.isBarHorizontal && ttCtx.hasBars()))
     ) {
+      if (isReversed) {
+        x = w.globals.gridWidth - x
+      }
       tooltipEl.style.left = x + w.globals.translateX + 'px'
+
+      const seriesIndex = parseInt(
+        opt.paths.parentNode.getAttribute('data:realIndex')
+      )
+
+      const isReversed = w.globals.isMultipleYAxis
+        ? w.config.yaxis[seriesIndex].reversed
+        : w.config.yaxis[0].reversed
+
+      if (isReversed && !(ttCtx.isBarHorizontal && ttCtx.hasBars())) {
+        y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2
+      }
       if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {
         y =
           w.globals.gridHeight -
@@ -203,6 +220,7 @@ class Intersect {
     let x = 0
     let y = 0
     let barWidth = 0
+    let barHeight = 0
 
     const cl = e.target.classList
 
@@ -216,6 +234,7 @@ class Intersect {
       let seriesBound = opt.elGrid.getBoundingClientRect()
 
       let bh = barRect.height
+      barHeight = barRect.height
       let bw = barRect.width
 
       let cx = parseInt(bar.getAttribute('cx'))
@@ -289,6 +308,7 @@ class Intersect {
     return {
       x,
       y,
+      barHeight,
       barWidth,
       i,
       j

@@ -108,6 +108,10 @@ class Bar {
         this.yaxisIndex = realIndex
       }
 
+      this.isReversed =
+        w.config.yaxis[this.yaxisIndex] &&
+        w.config.yaxis[this.yaxisIndex].reversed
+
       let initPositions = this.initialPositions()
 
       y = initPositions.y
@@ -376,7 +380,11 @@ class Bar {
 
       barHeight = (barHeight * parseInt(this.barOptions.barHeight)) / 100
 
-      zeroW = this.baseLineInvertedY + w.globals.padHorizontal
+      zeroW =
+        this.baseLineInvertedY +
+        w.globals.padHorizontal +
+        (this.isReversed ? w.globals.gridWidth : 0) -
+        (this.isReversed ? this.baseLineInvertedY * 2 : 0)
 
       y = (yDivision - barHeight * this.seriesLen) / 2
     } else {
@@ -408,7 +416,11 @@ class Bar {
           100
       }
 
-      zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
+      zeroH =
+        w.globals.gridHeight -
+        this.baseLineY[this.yaxisIndex] -
+        (this.isReversed ? w.globals.gridHeight : 0) +
+        (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
 
       x = w.globals.padHorizontal + (xDivision - barWidth * this.seriesLen) / 2
     }
@@ -466,29 +478,22 @@ class Bar {
     ) {
       x = zeroW
     } else {
-      x = zeroW + this.series[i][j] / this.invertedYRatio
+      x =
+        zeroW +
+        this.series[i][j] / this.invertedYRatio -
+        (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
     }
-
-    let endingShapeOpts = {
-      barHeight,
-      strokeWidth,
-      barYPosition,
-      x,
-      zeroW
-    }
-    let endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j)
 
     pathTo =
       pathTo +
-      graphics.line(endingShape.newX, barYPosition) +
-      endingShape.path +
+      graphics.line(x, barYPosition) +
+      graphics.line(x, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition)
 
     pathFrom =
       pathFrom +
       graphics.line(zeroW, barYPosition) +
-      endingShape.ending_p_from +
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition)
@@ -565,28 +570,24 @@ class Bar {
     ) {
       y = zeroH
     } else {
-      y = zeroH - this.series[i][j] / this.yRatio[this.yaxisIndex]
+      y =
+        zeroH -
+        this.series[i][j] / this.yRatio[this.yaxisIndex] +
+        (this.isReversed
+          ? this.series[i][j] / this.yRatio[this.yaxisIndex]
+          : 0) *
+          2
     }
-
-    let endingShapeOpts = {
-      barWidth,
-      strokeWidth,
-      barXPosition,
-      y,
-      zeroH
-    }
-    let endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j)
 
     pathTo =
       pathTo +
-      graphics.line(barXPosition, endingShape.newY) +
-      endingShape.path +
+      graphics.line(barXPosition, y) +
+      graphics.line(barXPosition + barWidth - strokeWidth, y) +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition, zeroH)
     pathFrom =
       pathFrom +
       graphics.line(barXPosition, zeroH) +
-      endingShape.ending_p_from +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition, zeroH)
@@ -705,6 +706,7 @@ class Bar {
         y,
         i,
         j,
+        renderedPath,
         bcy,
         barHeight,
         textRects,
@@ -721,6 +723,7 @@ class Bar {
         y,
         i,
         j,
+        renderedPath,
         realIndex,
         bcx,
         bcy,
@@ -783,43 +786,31 @@ class Bar {
     } else {
       dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
     }
+    let valIsNegative = this.series[i][j] <= 0
 
-    let baseline = w.globals.gridHeight - this.baseLineY[this.yaxisIndex]
-    let valIsNegative = !!(
-      y > baseline && Math.abs(this.baseLineY[this.yaxisIndex]) !== 0
-    )
-    let negValuesPresent = Math.abs(w.globals.minYArr[realIndex]) !== 0
+    if (w.config.yaxis[this.yaxisIndex].reversed) {
+      y = y - barHeight
+    }
 
     switch (barDataLabelsConfig.position) {
       case 'center':
-        dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
-        if (negValuesPresent) {
-          if (valIsNegative) {
-            dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
-          } else {
-            dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
-          }
+        if (valIsNegative) {
+          dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
+        } else {
+          dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
         }
         break
       case 'bottom':
-        if (negValuesPresent) {
-          if (valIsNegative) {
-            dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
-          } else {
-            dataLabelsY =
-              y + barHeight - textRects.height / 2 + strokeWidth - offY
-          }
+        if (valIsNegative) {
+          dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
         } else {
-          dataLabelsY = w.globals.gridHeight - textRects.height / 2 - offY
+          dataLabelsY =
+            y + barHeight - textRects.height / 2 + strokeWidth - offY
         }
         break
       case 'top':
-        if (negValuesPresent) {
-          if (valIsNegative) {
-            dataLabelsY = y - textRects.height / 2 - offY
-          } else {
-            dataLabelsY = y + textRects.height + offY
-          }
+        if (valIsNegative) {
+          dataLabelsY = y - textRects.height / 2 - offY
         } else {
           dataLabelsY = y + textRects.height + offY
         }
@@ -862,52 +853,33 @@ class Bar {
     let barWidth = this.series[i][j] / this.invertedYRatio
 
     let valIsNegative = this.series[i][j] <= 0
-    let negValuesPresent = Math.abs(w.globals.minY) !== 0
+
+    if (w.config.yaxis[this.yaxisIndex].reversed) {
+      x = x + barWidth
+    }
 
     switch (barDataLabelsConfig.position) {
       case 'center':
-        dataLabelsX = x - barWidth / 2 + offX
-        if (negValuesPresent) {
-          if (valIsNegative) {
-            dataLabelsX = x - barWidth / 2 - offX
-          } else {
-            dataLabelsX = x - barWidth / 2 + offX
-          }
+        if (valIsNegative) {
+          dataLabelsX = x - barWidth / 2 - offX
+        } else {
+          dataLabelsX = x - barWidth / 2 + offX
         }
         break
       case 'bottom':
-        if (negValuesPresent) {
-          if (valIsNegative) {
-            dataLabelsX =
-              x -
-              barWidth -
-              strokeWidth -
-              Math.round(textRects.width / 2) -
-              offX
-          } else {
-            dataLabelsX =
-              x -
-              barWidth +
-              strokeWidth +
-              Math.round(textRects.width / 2) +
-              offX
-          }
+        if (valIsNegative) {
+          dataLabelsX =
+            x - barWidth - strokeWidth - Math.round(textRects.width / 2) - offX
         } else {
           dataLabelsX =
             x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
         }
         break
       case 'top':
-        if (negValuesPresent) {
-          if (valIsNegative) {
-            dataLabelsX =
-              x - strokeWidth + Math.round(textRects.width / 2) - offX
-          } else {
-            dataLabelsX =
-              x - strokeWidth - Math.round(textRects.width / 2) + offX
-          }
+        if (valIsNegative) {
+          dataLabelsX = x - strokeWidth + Math.round(textRects.width / 2) - offX
         } else {
-          dataLabelsX = x + strokeWidth - Math.round(textRects.width / 2) + offX
+          dataLabelsX = x - strokeWidth - Math.round(textRects.width / 2) + offX
         }
         break
     }
@@ -961,141 +933,6 @@ class Bar {
     }
 
     return elDataLabelsWrap
-  }
-
-  /** barEndingShape draws the various shapes on top of bars/columns
-   * @memberof Bar
-   * @param {object} w - chart context
-   * @param {object} opts - consists several properties like barHeight/barWidth
-   * @param {array} series - global primary series
-   * @param {int} i - current iterating series's index
-   * @param {int} j - series's j of i
-   * @return {object} path - ending shape whether round/arrow
-   *         ending_p_from - similar to pathFrom
-   *         newY - which is calculated from existing y and new shape's top
-   **/
-  barEndingShape(w, opts, series, i, j) {
-    let graphics = new Graphics(this.ctx)
-
-    if (this.isHorizontal) {
-      let endingShape = null
-      let endingShapeFrom = ''
-      let x = opts.x
-
-      if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
-        let inverse = series[i][j] < 0
-        let eX = opts.barHeight / 2 - opts.strokeWidth
-        if (inverse) eX = -opts.barHeight / 2 - opts.strokeWidth
-
-        if (!w.config.chart.stacked) {
-          // if (Math.abs(series[i][j] / this.invertedYRatio) > eX) {
-          if (this.barOptions.endingShape === 'arrow') {
-            x = opts.x - eX
-          } else if (this.barOptions.endingShape === 'rounded') {
-            x = opts.x - eX / 2
-          }
-          // }
-        }
-
-        switch (this.barOptions.endingShape) {
-          case 'flat':
-            endingShape = graphics.line(
-              x,
-              opts.barYPosition + opts.barHeight - opts.strokeWidth
-            )
-            break
-          case 'arrow':
-            endingShape =
-              graphics.line(
-                x + eX,
-                opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2
-              ) +
-              graphics.line(
-                x,
-                opts.barYPosition + opts.barHeight - opts.strokeWidth
-              )
-
-            endingShapeFrom = graphics.line(
-              opts.zeroW,
-              opts.barYPosition + opts.barHeight - opts.strokeWidth
-            )
-            break
-          case 'rounded':
-            endingShape = graphics.quadraticCurve(
-              x + eX,
-              opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2,
-              x,
-              opts.barYPosition + opts.barHeight - opts.strokeWidth
-            )
-            break
-        }
-      }
-      return {
-        path: endingShape,
-        ending_p_from: endingShapeFrom,
-        newX: x
-      }
-    } else {
-      let endingShape = null
-      let endingShapeFrom = ''
-      let y = opts.y
-
-      if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
-        let inverse = series[i][j] < 0
-
-        let eY = opts.barWidth / 2 - opts.strokeWidth
-
-        if (inverse) eY = -opts.barWidth / 2 - opts.strokeWidth
-
-        if (!w.config.chart.stacked) {
-          // if (Math.abs(series[i][j] / this.yRatio[this.yaxisIndex]) > eY) {
-          // the arrow exceeds the chart height, hence reduce y
-          if (this.barOptions.endingShape === 'arrow') {
-            y = y + eY
-          } else if (this.barOptions.endingShape === 'rounded') {
-            y = y + eY / 2
-          }
-          // }
-        }
-
-        switch (this.barOptions.endingShape) {
-          case 'flat':
-            endingShape = graphics.line(
-              opts.barXPosition + opts.barWidth - opts.strokeWidth,
-              y
-            )
-            break
-          case 'arrow':
-            endingShape =
-              graphics.line(
-                opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
-                y - eY
-              ) +
-              graphics.line(
-                opts.barXPosition + opts.barWidth - opts.strokeWidth,
-                y
-              )
-            endingShapeFrom = graphics.line(
-              opts.barXPosition + opts.barWidth - opts.strokeWidth,
-              opts.zeroH
-            )
-            break
-          case 'rounded':
-            endingShape = graphics.quadraticCurve(
-              opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
-              y - eY,
-              opts.barXPosition + opts.barWidth - opts.strokeWidth,
-              y
-            )
-            break
-        }
-      }
-      return {
-        path: endingShape,
-        ending_p_from: endingShapeFrom,
-        newY: y
-      }
-    }
   }
 }
 

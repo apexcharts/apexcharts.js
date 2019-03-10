@@ -14,7 +14,7 @@ module.exports = {
     ]
   ],
   plugins: ['@babel/plugin-proposal-class-properties'],
-  ignore: ['build/*.js', 'dist/*.js', 'samples/**/*.js'],
+  ignore: ['build/*.js', 'samples/**/*.js'],
   env: {
     test: {
       presets: [

@@ -58,9 +58,15 @@ export default class YAxis {
     let l = w.globals.translateY
     let lbFormatter = w.globals.yLabelFormatters[realIndex]
 
+    let labels = w.globals.yAxisScale[realIndex].result.slice()
+    if (w.config.yaxis[realIndex].reversed) {
+      labels.reverse()
+    }
+
+    //console.log(labels)
     if (w.config.yaxis[realIndex].labels.show) {
       for (let i = tickAmount; i >= 0; i--) {
-        let val = w.globals.yAxisScale[realIndex].result[i]
+        let val = labels[i]
 
         val = lbFormatter(val, i)
 
@@ -182,9 +188,14 @@ export default class YAxis {
 
     let lbFormatter = w.globals.xLabelFormatter
 
+    let labels = w.globals.yAxisScale[realIndex].result.slice()
+    if (w.config.yaxis[realIndex].reversed) {
+      labels.reverse()
+    }
+
     if (w.config.xaxis.labels.show) {
       for (let i = tickAmount; i >= 0; i--) {
-        let val = w.globals.yAxisScale[realIndex].result[i]
+        let val = labels[i]
         val = lbFormatter(val, i)
 
         let elTick = graphics.drawText({
@@ -208,7 +219,7 @@ export default class YAxis {
 
         elTick.tspan(val)
 
-        let elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title')
+        let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
         elTooltipTitle.textContent = val
         elTick.node.appendChild(elTooltipTitle)
 
@@ -433,15 +444,22 @@ export default class YAxis {
         if (!shouldNotDrawAxis) {
           leftOffsetX = leftOffsetX + axisWidth + 20
         }
+
         w.globals.translateYAxisX[index] = xLeft + yaxe.labels.offsetX
       } else {
-        xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX
+        if (this.isBarHorizontal) {
+          xRight = w.globals.gridWidth + w.globals.translateX - 1
 
-        if (!shouldNotDrawAxis) {
-          rightOffsetX = rightOffsetX + axisWidth + 20
+          w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX
+        } else {
+          xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX
+
+          if (!shouldNotDrawAxis) {
+            rightOffsetX = rightOffsetX + axisWidth + 20
+          }
+
+          w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20
         }
-
-        w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20
       }
     })
   }

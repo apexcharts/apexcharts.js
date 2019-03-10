@@ -96,7 +96,7 @@ export default class Globals {
       xRange: 0, // xAxis range
       yValueDecimal: 0, // are there floating numbers in the series. If yes, this represent the len of the decimals
       total: 0,
-      svgNS: 'http://www.w3.org/2000/svg', // svg namespace
+      SVGNS: 'http://www.w3.org/2000/svg', // svg namespace
       svgWidth: 0, // the whole svg width
       svgHeight: 0, // the whole svg height
       noData: false, // whether there is any data to display or not
@@ -158,7 +158,7 @@ export default class Globals {
       ttKeyFormatter: undefined,
       ttVal: undefined,
       ttZFormatter: undefined,
-      lineHeightRatio: 1.618,
+      LINE_HEIGHT_RATIO: 1.618,
       xAxisLabelsHeight: 0,
       yAxisLabelsWidth: 0,
       scaleX: 1,

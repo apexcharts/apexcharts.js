@@ -10,6 +10,7 @@ export default class Options {
       showAlways: false,
       seriesName: undefined,
       opposite: false,
+      reversed: false,
       logarithmic: false,
       tickAmount: undefined,
       forceNiceScale: false,
@@ -566,7 +567,7 @@ export default class Options {
           top: 0,
           right: 10,
           bottom: 0,
-          left: 10
+          left: 12
         }
       },
       labels: [],
@@ -794,7 +795,7 @@ export default class Options {
           offsetY: 0
         },
         tickAmount: undefined,
-        tickPlacement: 'between',
+        tickPlacement: 'on',
         min: undefined,
         max: undefined,
         range: undefined,

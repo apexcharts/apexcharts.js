@@ -58,7 +58,7 @@ class Legend {
   appendToForeignObject() {
     const gl = this.w.globals
 
-    var elForeign = document.createElementNS(gl.svgNS, 'foreignObject')
+    var elForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
 
     elForeign.setAttribute('x', 0)
     elForeign.setAttribute('y', 0)

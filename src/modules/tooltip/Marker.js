@@ -53,7 +53,7 @@ export default class Marker {
 
         point.node.setAttribute('default-marker-size', 0)
 
-        let elPointsG = document.createElementNS(w.globals.svgNS, 'g')
+        let elPointsG = document.createElementNS(w.globals.SVGNS, 'g')
         elPointsG.classList.add('apexcharts-series-markers')
 
         elPointsG.appendChild(point.node)

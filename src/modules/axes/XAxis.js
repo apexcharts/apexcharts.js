@@ -151,7 +151,7 @@ export default class XAxis {
 
         graphics.addTspan(elTick, label, this.xaxisFontFamily)
 
-        let elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title')
+        let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
         elTooltipTitle.textContent = label
         elTick.node.appendChild(elTooltipTitle)
 
@@ -213,13 +213,18 @@ export default class XAxis {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
+    let translateYAxisX = w.config.yaxis[0].opposite
+      ? w.globals.translateYAxisX[realIndex]
+      : 0
+
     let elYaxis = graphics.group({
       class: 'apexcharts-yaxis apexcharts-xaxis-inversed',
       rel: realIndex
     })
 
     let elYaxisTexts = graphics.group({
-      class: 'apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g'
+      class: 'apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g',
+      transform: 'translate(' + translateYAxisX + ', 0)'
     })
 
     elYaxis.add(elYaxisTexts)
@@ -251,7 +256,7 @@ export default class XAxis {
           x: ylabels.offsetX - 15,
           y: yPos + colHeight + ylabels.offsetY,
           text: label,
-          textAnchor: 'end',
+          textAnchor: this.yaxis.opposite ? 'start' : 'end',
           foreColor: ylabels.style.color
             ? ylabels.style.color
             : ylabels.style.colors[i],
@@ -275,7 +280,8 @@ export default class XAxis {
 
     if (w.config.yaxis[0].title.text !== undefined) {
       let elXaxisTitle = graphics.group({
-        class: 'apexcharts-yaxis-title apexcharts-xaxis-title-inversed'
+        class: 'apexcharts-yaxis-title apexcharts-xaxis-title-inversed',
+        transform: 'translate(' + translateYAxisX + ', 0)'
       })
 
       let elXAxisTitleText = graphics.drawText({
@@ -480,7 +486,7 @@ export default class XAxis {
   // renderXAxisBands() {
   //   let w = this.w;
 
-  //   let plotBand = document.createElementNS(w.globals.svgNS, 'rect')
+  //   let plotBand = document.createElementNS(w.globals.SVGNS, 'rect')
   //   w.globals.dom.elGraphical.add(plotBand)
   // }
 }

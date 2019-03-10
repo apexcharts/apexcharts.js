@@ -55,11 +55,6 @@ class BarStacked extends Bar {
       }
     }
 
-    this.zeroSerieses = []
-    this.endingShapeOnSeriesNumber = series.length - 1 // which series to draw ending shape on
-
-    this.checkZeroSeries({ series })
-
     let ret = this.graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series'
     })
@@ -84,6 +79,10 @@ class BarStacked extends Bar {
       if (this.yRatio.length > 1) {
         this.yaxisIndex = realIndex
       }
+
+      this.isReversed =
+        w.config.yaxis[this.yaxisIndex] &&
+        w.config.yaxis[this.yaxisIndex].reversed
 
       // el to which series will be drawn
       let elSeries = this.graphics.group({
@@ -249,7 +248,11 @@ class BarStacked extends Bar {
       barHeight =
         (barHeight * parseInt(w.config.plotOptions.bar.barHeight)) / 100
 
-      zeroW = this.baseLineInvertedY + w.globals.padHorizontal
+      zeroW =
+        this.baseLineInvertedY +
+        w.globals.padHorizontal +
+        (this.isReversed ? w.globals.gridWidth : 0) -
+        (this.isReversed ? this.baseLineInvertedY * 2 : 0)
 
       // initial y position is half of barHeight * half of number of Bars
       y = (yDivision - barHeight) / 2
@@ -268,7 +271,10 @@ class BarStacked extends Bar {
           (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
       }
 
-      zeroH = this.baseLineY[this.yaxisIndex] + 1
+      zeroH =
+        this.baseLineY[this.yaxisIndex] +
+        (this.isReversed ? w.globals.gridHeight : 0) -
+        (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
 
       // initial x position is one third of barWidth
       x = w.globals.padHorizontal + (xDivision - barWidth) / 2
@@ -315,7 +321,10 @@ class BarStacked extends Bar {
 
       if (this.prevXVal[i - 1][j] < 0) {
         if (this.series[i][j] >= 0) {
-          bXP = this.prevX[i - 1][j] + prevBarW
+          bXP =
+            this.prevX[i - 1][j] +
+            prevBarW -
+            (this.isReversed ? prevBarW : 0) * 2
         } else {
           bXP = this.prevX[i - 1][j]
         }
@@ -323,7 +332,10 @@ class BarStacked extends Bar {
         if (this.series[i][j] >= 0) {
           bXP = this.prevX[i - 1][j]
         } else {
-          bXP = this.prevX[i - 1][j] - prevBarW
+          bXP =
+            this.prevX[i - 1][j] -
+            prevBarW +
+            (this.isReversed ? prevBarW : 0) * 2
         }
       }
 
@@ -336,34 +348,14 @@ class BarStacked extends Bar {
     if (this.series[i][j] === null) {
       x = barXPosition
     } else {
-      x = barXPosition + this.series[i][j] / this.invertedYRatio
+      x =
+        barXPosition +
+        this.series[i][j] / this.invertedYRatio -
+        (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
     }
 
-    let endingShapeOpts = {
-      barHeight,
-      strokeWidth,
-      invertedYRatio: this.invertedYRatio,
-      barYPosition,
-      x
-    }
-    let endingShape = this.bar.barEndingShape(
-      w,
-      endingShapeOpts,
-      this.series,
-      i,
-      j
-    )
-
-    if (this.series.length > 1 && i !== this.endingShapeOnSeriesNumber) {
-      // revert back to flat shape if not last series
-      endingShape.path = this.graphics.line(
-        endingShape.newX,
-        barYPosition + barHeight - strokeWidth
-      )
-    }
-
-    this.xArrj.push(endingShape.newX)
-    this.xArrjF.push(Math.abs(barXPosition - endingShape.newX))
+    this.xArrj.push(x)
+    this.xArrjF.push(Math.abs(barXPosition - x))
     this.xArrjVal.push(this.series[i][j])
 
     pathTo = this.graphics.move(barXPosition, barYPosition)
@@ -375,8 +367,8 @@ class BarStacked extends Bar {
 
     pathTo =
       pathTo +
-      this.graphics.line(endingShape.newX, barYPosition) +
-      endingShape.path +
+      this.graphics.line(x, barYPosition) +
+      this.graphics.line(x, barYPosition + barHeight - strokeWidth) +
       this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) +
       this.graphics.line(barXPosition, barYPosition)
     pathFrom =
@@ -462,7 +454,7 @@ class BarStacked extends Bar {
 
       if (this.prevYVal[i - 1][j] < 0) {
         if (this.series[i][j] >= 0) {
-          bYP = prevYValue - prevBarH
+          bYP = prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
         } else {
           bYP = prevYValue
         }
@@ -470,7 +462,7 @@ class BarStacked extends Bar {
         if (this.series[i][j] >= 0) {
           bYP = prevYValue
         } else {
-          bYP = prevYValue + prevBarH
+          bYP = prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
         }
       }
 
@@ -480,38 +472,14 @@ class BarStacked extends Bar {
       barYPosition = w.globals.gridHeight - zeroH
     }
 
-    if (this.series[i][j] === null) {
-      y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex]
-    } else {
-      y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex]
-    }
+    y =
+      barYPosition -
+      this.series[i][j] / this.yRatio[this.yaxisIndex] +
+      (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) *
+        2
 
-    let endingShapeOpts = {
-      barWidth,
-      strokeWidth,
-      yRatio: this.yRatio[this.yaxisIndex],
-      barXPosition,
-      y
-    }
-    let endingShape = this.bar.barEndingShape(
-      w,
-      endingShapeOpts,
-      this.series,
-      i,
-      j
-    )
-
-    if (this.series.length > 1 && i !== this.endingShapeOnSeriesNumber) {
-      /* if(this.zeroSerieses) {} */
-      // revert back to flat shape if not last series
-      endingShape.path = this.graphics.line(
-        barXPosition + barWidth - strokeWidth,
-        endingShape.newY
-      )
-    }
-
-    this.yArrj.push(endingShape.newY)
-    this.yArrjF.push(Math.abs(barYPosition - endingShape.newY))
+    this.yArrj.push(y)
+    this.yArrjF.push(Math.abs(barYPosition - y))
     this.yArrjVal.push(this.series[i][j])
 
     pathTo = this.graphics.move(barXPosition, barYPosition)
@@ -522,8 +490,8 @@ class BarStacked extends Bar {
 
     pathTo =
       pathTo +
-      this.graphics.line(barXPosition, endingShape.newY) +
-      endingShape.path +
+      this.graphics.line(barXPosition, y) +
+      this.graphics.line(barXPosition + barWidth - strokeWidth, y) +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
       this.graphics.line(barXPosition, barYPosition)
     pathFrom =
@@ -562,39 +530,6 @@ class BarStacked extends Bar {
       pathFrom,
       x: w.globals.isXNumeric ? x - xDivision : x,
       y
-    }
-  }
-
-  /*
-   * When user clicks on legends, the collapsed series will be filled with [0,0,0,...,0]
-   * We need to make sure, that the last series is not [0,0,0,...,0]
-   * as we need to draw shapes on the last series (for stacked bars/columns only)
-   * Hence, we are collecting all inner arrays in series which has [0,0,0...,0]
-   **/
-  checkZeroSeries({ series }) {
-    let w = this.w
-    for (let zs = 0; zs < series.length; zs++) {
-      let total = 0
-      for (
-        let zsj = 0;
-        zsj < series[w.globals.maxValsInArrayIndex].length;
-        zsj++
-      ) {
-        total += series[zs][zsj]
-      }
-      if (total === 0) {
-        this.zeroSerieses.push(zs)
-      }
-    }
-
-    // After getting all zeroserieses, we need to ensure whether endingshapeonSeries is not in that zeroseries array
-    for (let s = series.length - 1; s >= 0; s--) {
-      if (
-        this.zeroSerieses.indexOf(s) > -1 &&
-        s === this.endingShapeOnSeriesNumber
-      ) {
-        this.endingShapeOnSeriesNumber -= 1
-      }
     }
   }
 }

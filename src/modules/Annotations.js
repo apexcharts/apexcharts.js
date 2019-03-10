@@ -153,6 +153,12 @@ export default class Annotations {
         w.globals.gridHeight -
         (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+
+      if (w.config.yaxis[anno.yAxisIndex].reversed) {
+        y1 =
+          (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      }
     }
 
     const text = anno.label.text ? anno.label.text : ''
@@ -180,6 +186,12 @@ export default class Annotations {
           w.globals.gridHeight -
           (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+
+        if (w.config.yaxis[anno.yAxisIndex].reversed) {
+          y2 =
+            (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) /
+            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+        }
       }
 
       if (y2 > y1) {
@@ -287,6 +299,18 @@ export default class Annotations {
         w.globals.gridHeight -
         (annoY - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+
+      if (w.config.yaxis[anno.yAxisIndex].reversed) {
+        y =
+          (annoY - w.globals.minYArr[anno.yAxisIndex]) /
+            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) +
+          parseInt(anno.label.style.fontSize) +
+          anno.marker.size
+
+        pointY =
+          (annoY - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      }
     } else {
       x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
       y =
@@ -300,6 +324,18 @@ export default class Annotations {
         w.globals.gridHeight -
         (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+
+      if (w.config.yaxis[anno.yAxisIndex].reversed) {
+        y =
+          (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
+            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
+          parseInt(anno.label.style.fontSize) -
+          anno.marker.size
+
+        pointY =
+          (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      }
     }
 
     if (x < 0 || x > w.globals.gridWidth) return
