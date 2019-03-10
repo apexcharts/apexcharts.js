@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.5.1
+ * ApexCharts v3.6.0
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1822,6 +1822,7 @@ function () {
       showAlways: false,
       seriesName: undefined,
       opposite: false,
+      reversed: false,
       logarithmic: false,
       tickAmount: undefined,
       forceNiceScale: false,
@@ -1986,6 +1987,12 @@ function () {
             bottom: 2
           }
         }
+      },
+      customSVG: {
+        SVG: undefined,
+        cssClass: undefined,
+        offsetX: 0,
+        offsetY: 0
       }
     };
   }
@@ -2381,7 +2388,7 @@ function () {
             top: 0,
             right: 10,
             bottom: 0,
-            left: 10
+            left: 12
           }
         },
         labels: [],
@@ -2622,7 +2629,7 @@ function () {
             offsetY: 0
           },
           tickAmount: undefined,
-          tickPlacement: 'between',
+          tickPlacement: 'on',
           min: undefined,
           max: undefined,
           range: undefined,
@@ -2760,8 +2767,15 @@ function () {
       var w = this.w;
       var min = this.invertAxis ? w.globals.minY : w.globals.minX;
       var range = this.invertAxis ? w.globals.yRange[0] : w.globals.xRange;
-      var strokeDashArray = anno.strokeDashArray;
       var x1 = (anno.x - min) / (range / w.globals.gridWidth);
+
+      if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
+        var catIndex = w.globals.labels.indexOf(anno.x);
+        var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
+        x1 = parseFloat(xLabel.getAttribute('x'));
+      }
+
+      var strokeDashArray = anno.strokeDashArray;
       if (x1 < 0 || x1 > w.globals.gridWidth) return;
 
       if (anno.x2 === null) {
@@ -2841,6 +2855,10 @@ function () {
         y1 = parseFloat(xLabel.getAttribute('y'));
       } else {
         y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+
+        if (w.config.yaxis[anno.yAxisIndex].reversed) {
+          y1 = (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+        }
       }
 
       var text = anno.label.text ? anno.label.text : '';
@@ -2863,6 +2881,10 @@ function () {
           y2 = parseFloat(_xLabel.getAttribute('y'));
         } else {
           y2 = w.globals.gridHeight - (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+
+          if (w.config.yaxis[anno.yAxisIndex].reversed) {
+            y2 = (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+          }
         }
 
         if (y2 > y1) {
@@ -2951,10 +2973,20 @@ function () {
 
         y = w.globals.gridHeight - (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size;
         pointY = w.globals.gridHeight - (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+
+        if (w.config.yaxis[anno.yAxisIndex].reversed) {
+          y = (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) + parseInt(anno.label.style.fontSize) + anno.marker.size;
+          pointY = (annoY - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+        }
       } else {
         x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth);
         y = w.globals.gridHeight - (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size;
         pointY = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+
+        if (w.config.yaxis[anno.yAxisIndex].reversed) {
+          y = (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) - parseInt(anno.label.style.fontSize) - anno.marker.size;
+          pointY = (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
+        }
       }
 
       if (x < 0 || x > w.globals.gridWidth) return;
@@ -2984,6 +3016,17 @@ function () {
         rel: index
       });
       parent.appendChild(elText.node);
+
+      if (anno.customSVG.SVG) {
+        var g = this.graphics.group({
+          class: 'apexcharts-point-annotations-custom-svg ' + anno.customSVG.cssClass
+        });
+        g.attr({
+          transform: "translate(".concat(x + anno.customSVG.offsetX, ", ").concat(y + anno.customSVG.offsetY, ")")
+        });
+        g.node.innerHTML = anno.customSVG.SVG;
+        parent.appendChild(g.node);
+      }
     }
   }, {
     key: "drawPointAnnotations",
@@ -3513,6 +3556,7 @@ function () {
     value: function convertCatToNumeric() {
       var opts = this.opts;
       opts.xaxis.type = 'numeric';
+      opts.xaxis.convertedCatToNumeric = true;
       opts.xaxis.labels = opts.xaxis.labels || {};
 
       opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function (val) {
@@ -4270,7 +4314,7 @@ function () {
         opts.xaxis = opts.xaxis || window.Apex.xaxis || {};
         var combo = CoreUtils.checkComboSeries(opts.series);
 
-        if ((opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') && !combo.comboChartsHasBars && opts.xaxis.type !== 'datetime' && opts.xaxis.tickPlacement === 'on') {
+        if ((opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') && !combo.comboChartsHasBars && opts.xaxis.type !== 'datetime' && opts.xaxis.tickPlacement !== 'between') {
           defaults.convertCatToNumeric();
         }
 
@@ -4388,6 +4432,10 @@ function () {
           throw new Error('Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false');
         }
 
+        if (config.yaxis[0].reversed) {
+          config.yaxis[0].opposite = true;
+        }
+
         config.xaxis.tooltip.enabled = false; // no xaxis tooltip for horizontal bar
 
         config.yaxis[0].tooltip.enabled = false; // no xaxis tooltip for horizontal bar
@@ -4410,6 +4458,13 @@ function () {
             console.warn('followCursor option in shared columns cannot be turned off.');
             config.tooltip.followCursor = true;
           }
+        }
+      }
+
+      if (config.chart.type === 'candlestick') {
+        if (config.yaxis[0].reversed) {
+          console.warn('Reversed y-axis in candlestick chart is not supported.');
+          config.yaxis[0].reversed = false;
         }
       }
 
@@ -4557,7 +4612,7 @@ function () {
         yValueDecimal: 0,
         // are there floating numbers in the series. If yes, this represent the len of the decimals
         total: 0,
-        svgNS: 'http://www.w3.org/2000/svg',
+        SVGNS: 'http://www.w3.org/2000/svg',
         // svg namespace
         svgWidth: 0,
         // the whole svg width
@@ -4651,7 +4706,7 @@ function () {
         ttKeyFormatter: undefined,
         ttVal: undefined,
         ttZFormatter: undefined,
-        lineHeightRatio: 1.618,
+        LINE_HEIGHT_RATIO: 1.618,
         xAxisLabelsHeight: 0,
         yAxisLabelsWidth: 0,
         scaleX: 1,
@@ -4757,14 +4812,14 @@ function () {
         imgHeight = params.height;
       }
 
-      var elPattern = document.createElementNS(w.globals.svgNS, 'pattern');
+      var elPattern = document.createElementNS(w.globals.SVGNS, 'pattern');
       Graphics.setAttrs(elPattern, {
         id: params.patternID,
-        patternUnits: 'userSpaceOnUse',
+        patternUnits: params.patternUnits ? params.patternUnits : 'userSpaceOnUse',
         width: imgWidth + 'px',
         height: imgHeight + 'px'
       });
-      var elImage = document.createElementNS(w.globals.svgNS, 'image');
+      var elImage = document.createElementNS(w.globals.SVGNS, 'image');
       elPattern.appendChild(elImage);
       elImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', fillImg);
       Graphics.setAttrs(elImage, {
@@ -4830,6 +4885,7 @@ function () {
           this.clippedImgArea({
             opacity: fillOpacity,
             image: cnf.fill.image.src[opts.seriesNumber],
+            patternUnits: opts.patternUnits,
             patternID: "pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1)
           });
           pathFill = "url(#pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1, ")");
@@ -5217,7 +5273,8 @@ function () {
       var fill = new Fill(this.ctx);
       var graphics = new Graphics(this.ctx);
       var pathFillCircle = fill.fillPath({
-        seriesNumber: realIndex
+        seriesNumber: realIndex,
+        patternUnits: 'objectBoundingBox'
       });
       var circle = graphics.drawCircle(radius);
       circle.attr({
@@ -5619,6 +5676,8 @@ function () {
           _this.yaxisIndex = realIndex;
         }
 
+        _this.isReversed = w.config.yaxis[_this.yaxisIndex] && w.config.yaxis[_this.yaxisIndex].reversed;
+
         var initPositions = _this.initialPositions();
 
         y = initPositions.y;
@@ -5889,7 +5948,7 @@ function () {
         }
 
         barHeight = barHeight * parseInt(this.barOptions.barHeight) / 100;
-        zeroW = this.baseLineInvertedY + w.globals.padHorizontal;
+        zeroW = this.baseLineInvertedY + w.globals.padHorizontal + (this.isReversed ? w.globals.gridWidth : 0) - (this.isReversed ? this.baseLineInvertedY * 2 : 0);
         y = (yDivision - barHeight * this.seriesLen) / 2;
       } else {
         // width divided into equal parts
@@ -5917,7 +5976,7 @@ function () {
           barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
         }
 
-        zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex];
+        zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex] - (this.isReversed ? w.globals.gridHeight : 0) + (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0);
         x = w.globals.padHorizontal + (xDivision - barWidth * this.seriesLen) / 2;
       }
 
@@ -5967,19 +6026,11 @@ function () {
       if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
         x = zeroW;
       } else {
-        x = zeroW + this.series[i][j] / this.invertedYRatio;
+        x = zeroW + this.series[i][j] / this.invertedYRatio - (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2;
       }
 
-      var endingShapeOpts = {
-        barHeight: barHeight,
-        strokeWidth: strokeWidth,
-        barYPosition: barYPosition,
-        x: x,
-        zeroW: zeroW
-      };
-      var endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j);
-      pathTo = pathTo + graphics.line(endingShape.newX, barYPosition) + endingShape.path + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition);
-      pathFrom = pathFrom + graphics.line(zeroW, barYPosition) + endingShape.ending_p_from + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition);
+      pathTo = pathTo + graphics.line(x, barYPosition) + graphics.line(x, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition);
+      pathFrom = pathFrom + graphics.line(zeroW, barYPosition) + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition + barHeight - strokeWidth) + graphics.line(zeroW, barYPosition);
 
       if (!w.globals.isXNumeric) {
         y = y + yDivision;
@@ -6039,19 +6090,11 @@ function () {
       if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
         y = zeroH;
       } else {
-        y = zeroH - this.series[i][j] / this.yRatio[this.yaxisIndex];
+        y = zeroH - this.series[i][j] / this.yRatio[this.yaxisIndex] + (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) * 2;
       }
 
-      var endingShapeOpts = {
-        barWidth: barWidth,
-        strokeWidth: strokeWidth,
-        barXPosition: barXPosition,
-        y: y,
-        zeroH: zeroH
-      };
-      var endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j);
-      pathTo = pathTo + graphics.line(barXPosition, endingShape.newY) + endingShape.path + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition, zeroH);
-      pathFrom = pathFrom + graphics.line(barXPosition, zeroH) + endingShape.ending_p_from + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition, zeroH);
+      pathTo = pathTo + graphics.line(barXPosition, y) + graphics.line(barXPosition + barWidth - strokeWidth, y) + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition, zeroH);
+      pathFrom = pathFrom + graphics.line(barXPosition, zeroH) + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition + barWidth - strokeWidth, zeroH) + graphics.line(barXPosition, zeroH);
 
       if (!w.globals.isXNumeric) {
         x = x + xDivision;
@@ -6156,6 +6199,7 @@ function () {
           y: y,
           i: i,
           j: j,
+          renderedPath: renderedPath,
           bcy: bcy,
           barHeight: barHeight,
           textRects: textRects,
@@ -6172,6 +6216,7 @@ function () {
           y: y,
           i: i,
           j: j,
+          renderedPath: renderedPath,
           realIndex: realIndex,
           bcx: bcx,
           bcy: bcy,
@@ -6231,44 +6276,34 @@ function () {
         dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
       }
 
-      var baseline = w.globals.gridHeight - this.baseLineY[this.yaxisIndex];
-      var valIsNegative = !!(y > baseline && Math.abs(this.baseLineY[this.yaxisIndex]) !== 0);
-      var negValuesPresent = Math.abs(w.globals.minYArr[realIndex]) !== 0;
+      var valIsNegative = this.series[i][j] <= 0;
+
+      if (w.config.yaxis[this.yaxisIndex].reversed) {
+        y = y - barHeight;
+      }
 
       switch (barDataLabelsConfig.position) {
         case 'center':
-          dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY;
-
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY;
-            } else {
-              dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY;
-            }
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY;
+          } else {
+            dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY;
           }
 
           break;
 
         case 'bottom':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY;
-            } else {
-              dataLabelsY = y + barHeight - textRects.height / 2 + strokeWidth - offY;
-            }
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY;
           } else {
-            dataLabelsY = w.globals.gridHeight - textRects.height / 2 - offY;
+            dataLabelsY = y + barHeight - textRects.height / 2 + strokeWidth - offY;
           }
 
           break;
 
         case 'top':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsY = y - textRects.height / 2 - offY;
-            } else {
-              dataLabelsY = y + textRects.height + offY;
-            }
+          if (valIsNegative) {
+            dataLabelsY = y - textRects.height / 2 - offY;
           } else {
             dataLabelsY = y + textRects.height + offY;
           }
@@ -6302,29 +6337,24 @@ function () {
       var dataLabelsY = bcy - dataPointsDividedHeight + barHeight / 2 + textRects.height / 2 + offY - 3;
       var barWidth = this.series[i][j] / this.invertedYRatio;
       var valIsNegative = this.series[i][j] <= 0;
-      var negValuesPresent = Math.abs(w.globals.minY) !== 0;
+
+      if (w.config.yaxis[this.yaxisIndex].reversed) {
+        x = x + barWidth;
+      }
 
       switch (barDataLabelsConfig.position) {
         case 'center':
-          dataLabelsX = x - barWidth / 2 + offX;
-
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsX = x - barWidth / 2 - offX;
-            } else {
-              dataLabelsX = x - barWidth / 2 + offX;
-            }
+          if (valIsNegative) {
+            dataLabelsX = x - barWidth / 2 - offX;
+          } else {
+            dataLabelsX = x - barWidth / 2 + offX;
           }
 
           break;
 
         case 'bottom':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsX = x - barWidth - strokeWidth - Math.round(textRects.width / 2) - offX;
-            } else {
-              dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX;
-            }
+          if (valIsNegative) {
+            dataLabelsX = x - barWidth - strokeWidth - Math.round(textRects.width / 2) - offX;
           } else {
             dataLabelsX = x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX;
           }
@@ -6332,14 +6362,10 @@ function () {
           break;
 
         case 'top':
-          if (negValuesPresent) {
-            if (valIsNegative) {
-              dataLabelsX = x - strokeWidth + Math.round(textRects.width / 2) - offX;
-            } else {
-              dataLabelsX = x - strokeWidth - Math.round(textRects.width / 2) + offX;
-            }
+          if (valIsNegative) {
+            dataLabelsX = x - strokeWidth + Math.round(textRects.width / 2) - offX;
           } else {
-            dataLabelsX = x + strokeWidth - Math.round(textRects.width / 2) + offX;
+            dataLabelsX = x - strokeWidth - Math.round(textRects.width / 2) + offX;
           }
 
           break;
@@ -6402,109 +6428,6 @@ function () {
       }
 
       return elDataLabelsWrap;
-    }
-    /** barEndingShape draws the various shapes on top of bars/columns
-     * @memberof Bar
-     * @param {object} w - chart context
-     * @param {object} opts - consists several properties like barHeight/barWidth
-     * @param {array} series - global primary series
-     * @param {int} i - current iterating series's index
-     * @param {int} j - series's j of i
-     * @return {object} path - ending shape whether round/arrow
-     *         ending_p_from - similar to pathFrom
-     *         newY - which is calculated from existing y and new shape's top
-     **/
-
-  }, {
-    key: "barEndingShape",
-    value: function barEndingShape(w, opts, series, i, j) {
-      var graphics = new Graphics(this.ctx);
-
-      if (this.isHorizontal) {
-        var endingShape = null;
-        var endingShapeFrom = '';
-        var x = opts.x;
-
-        if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
-          var inverse = series[i][j] < 0;
-          var eX = opts.barHeight / 2 - opts.strokeWidth;
-          if (inverse) eX = -opts.barHeight / 2 - opts.strokeWidth;
-
-          if (!w.config.chart.stacked) {
-            // if (Math.abs(series[i][j] / this.invertedYRatio) > eX) {
-            if (this.barOptions.endingShape === 'arrow') {
-              x = opts.x - eX;
-            } else if (this.barOptions.endingShape === 'rounded') {
-              x = opts.x - eX / 2;
-            } // }
-
-          }
-
-          switch (this.barOptions.endingShape) {
-            case 'flat':
-              endingShape = graphics.line(x, opts.barYPosition + opts.barHeight - opts.strokeWidth);
-              break;
-
-            case 'arrow':
-              endingShape = graphics.line(x + eX, opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2) + graphics.line(x, opts.barYPosition + opts.barHeight - opts.strokeWidth);
-              endingShapeFrom = graphics.line(opts.zeroW, opts.barYPosition + opts.barHeight - opts.strokeWidth);
-              break;
-
-            case 'rounded':
-              endingShape = graphics.quadraticCurve(x + eX, opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2, x, opts.barYPosition + opts.barHeight - opts.strokeWidth);
-              break;
-          }
-        }
-
-        return {
-          path: endingShape,
-          ending_p_from: endingShapeFrom,
-          newX: x
-        };
-      } else {
-        var _endingShape = null;
-        var _endingShapeFrom = '';
-        var y = opts.y;
-
-        if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
-          var _inverse = series[i][j] < 0;
-
-          var eY = opts.barWidth / 2 - opts.strokeWidth;
-          if (_inverse) eY = -opts.barWidth / 2 - opts.strokeWidth;
-
-          if (!w.config.chart.stacked) {
-            // if (Math.abs(series[i][j] / this.yRatio[this.yaxisIndex]) > eY) {
-            // the arrow exceeds the chart height, hence reduce y
-            if (this.barOptions.endingShape === 'arrow') {
-              y = y + eY;
-            } else if (this.barOptions.endingShape === 'rounded') {
-              y = y + eY / 2;
-            } // }
-
-          }
-
-          switch (this.barOptions.endingShape) {
-            case 'flat':
-              _endingShape = graphics.line(opts.barXPosition + opts.barWidth - opts.strokeWidth, y);
-              break;
-
-            case 'arrow':
-              _endingShape = graphics.line(opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2, y - eY) + graphics.line(opts.barXPosition + opts.barWidth - opts.strokeWidth, y);
-              _endingShapeFrom = graphics.line(opts.barXPosition + opts.barWidth - opts.strokeWidth, opts.zeroH);
-              break;
-
-            case 'rounded':
-              _endingShape = graphics.quadraticCurve(opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2, y - eY, opts.barXPosition + opts.barWidth - opts.strokeWidth, y);
-              break;
-          }
-        }
-
-        return {
-          path: _endingShape,
-          ending_p_from: _endingShapeFrom,
-          newY: y
-        };
-      }
     }
   }]);
 
@@ -6582,12 +6505,6 @@ function (_Bar) {
         }
       }
 
-      this.zeroSerieses = [];
-      this.endingShapeOnSeriesNumber = series.length - 1; // which series to draw ending shape on
-
-      this.checkZeroSeries({
-        series: series
-      });
       var ret = this.graphics.group({
         class: 'apexcharts-bar-series apexcharts-plot-series'
       });
@@ -6612,8 +6529,9 @@ function (_Bar) {
 
         if (_this.yRatio.length > 1) {
           _this.yaxisIndex = realIndex;
-        } // el to which series will be drawn
+        }
 
+        _this.isReversed = w.config.yaxis[_this.yaxisIndex] && w.config.yaxis[_this.yaxisIndex].reversed; // el to which series will be drawn
 
         var elSeries = _this.graphics.group({
           class: "apexcharts-series ".concat(Utils.escapeString(w.globals.seriesNames[realIndex])),
@@ -6781,7 +6699,7 @@ function (_Bar) {
         yDivision = w.globals.gridHeight / w.globals.dataPoints;
         barHeight = yDivision;
         barHeight = barHeight * parseInt(w.config.plotOptions.bar.barHeight) / 100;
-        zeroW = this.baseLineInvertedY + w.globals.padHorizontal; // initial y position is half of barHeight * half of number of Bars
+        zeroW = this.baseLineInvertedY + w.globals.padHorizontal + (this.isReversed ? w.globals.gridWidth : 0) - (this.isReversed ? this.baseLineInvertedY * 2 : 0); // initial y position is half of barHeight * half of number of Bars
 
         y = (yDivision - barHeight) / 2;
       } else {
@@ -6797,7 +6715,7 @@ function (_Bar) {
           barWidth = barWidth * parseInt(w.config.plotOptions.bar.columnWidth) / 100;
         }
 
-        zeroH = this.baseLineY[this.yaxisIndex] + 1; // initial x position is one third of barWidth
+        zeroH = this.baseLineY[this.yaxisIndex] + (this.isReversed ? w.globals.gridHeight : 0) - (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0); // initial x position is one third of barWidth
 
         x = w.globals.padHorizontal + (xDivision - barWidth) / 2;
       }
@@ -6844,7 +6762,7 @@ function (_Bar) {
 
         if (this.prevXVal[i - 1][j] < 0) {
           if (this.series[i][j] >= 0) {
-            bXP = this.prevX[i - 1][j] + prevBarW;
+            bXP = this.prevX[i - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2;
           } else {
             bXP = this.prevX[i - 1][j];
           }
@@ -6852,7 +6770,7 @@ function (_Bar) {
           if (this.series[i][j] >= 0) {
             bXP = this.prevX[i - 1][j];
           } else {
-            bXP = this.prevX[i - 1][j] - prevBarW;
+            bXP = this.prevX[i - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
           }
         }
 
@@ -6865,25 +6783,11 @@ function (_Bar) {
       if (this.series[i][j] === null) {
         x = barXPosition;
       } else {
-        x = barXPosition + this.series[i][j] / this.invertedYRatio;
+        x = barXPosition + this.series[i][j] / this.invertedYRatio - (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2;
       }
 
-      var endingShapeOpts = {
-        barHeight: barHeight,
-        strokeWidth: strokeWidth,
-        invertedYRatio: this.invertedYRatio,
-        barYPosition: barYPosition,
-        x: x
-      };
-      var endingShape = this.bar.barEndingShape(w, endingShapeOpts, this.series, i, j);
-
-      if (this.series.length > 1 && i !== this.endingShapeOnSeriesNumber) {
-        // revert back to flat shape if not last series
-        endingShape.path = this.graphics.line(endingShape.newX, barYPosition + barHeight - strokeWidth);
-      }
-
-      this.xArrj.push(endingShape.newX);
-      this.xArrjF.push(Math.abs(barXPosition - endingShape.newX));
+      this.xArrj.push(x);
+      this.xArrjF.push(Math.abs(barXPosition - x));
       this.xArrjVal.push(this.series[i][j]);
       pathTo = this.graphics.move(barXPosition, barYPosition);
       pathFrom = this.graphics.move(barXPosition, barYPosition);
@@ -6892,7 +6796,7 @@ function (_Bar) {
         pathFrom = this.bar.getPathFrom(realIndex, j, false);
       }
 
-      pathTo = pathTo + this.graphics.line(endingShape.newX, barYPosition) + endingShape.path + this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) + this.graphics.line(barXPosition, barYPosition);
+      pathTo = pathTo + this.graphics.line(x, barYPosition) + this.graphics.line(x, barYPosition + barHeight - strokeWidth) + this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) + this.graphics.line(barXPosition, barYPosition);
       pathFrom = pathFrom + this.graphics.line(barXPosition, barYPosition) + this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) + this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) + this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) + this.graphics.line(barXPosition, barYPosition);
 
       if (w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 && i === 0) {
@@ -6953,7 +6857,7 @@ function (_Bar) {
 
         if (this.prevYVal[i - 1][j] < 0) {
           if (this.series[i][j] >= 0) {
-            bYP = prevYValue - prevBarH;
+            bYP = prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2;
           } else {
             bYP = prevYValue;
           }
@@ -6961,7 +6865,7 @@ function (_Bar) {
           if (this.series[i][j] >= 0) {
             bYP = prevYValue;
           } else {
-            bYP = prevYValue + prevBarH;
+            bYP = prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
           }
         }
 
@@ -6971,29 +6875,9 @@ function (_Bar) {
         barYPosition = w.globals.gridHeight - zeroH;
       }
 
-      if (this.series[i][j] === null) {
-        y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex];
-      } else {
-        y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex];
-      }
-
-      var endingShapeOpts = {
-        barWidth: barWidth,
-        strokeWidth: strokeWidth,
-        yRatio: this.yRatio[this.yaxisIndex],
-        barXPosition: barXPosition,
-        y: y
-      };
-      var endingShape = this.bar.barEndingShape(w, endingShapeOpts, this.series, i, j);
-
-      if (this.series.length > 1 && i !== this.endingShapeOnSeriesNumber) {
-        /* if(this.zeroSerieses) {} */
-        // revert back to flat shape if not last series
-        endingShape.path = this.graphics.line(barXPosition + barWidth - strokeWidth, endingShape.newY);
-      }
-
-      this.yArrj.push(endingShape.newY);
-      this.yArrjF.push(Math.abs(barYPosition - endingShape.newY));
+      y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex] + (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) * 2;
+      this.yArrj.push(y);
+      this.yArrjF.push(Math.abs(barYPosition - y));
       this.yArrjVal.push(this.series[i][j]);
       pathTo = this.graphics.move(barXPosition, barYPosition);
       pathFrom = this.graphics.move(barXPosition, barYPosition);
@@ -7002,7 +6886,7 @@ function (_Bar) {
         pathFrom = this.bar.getPathFrom(realIndex, j, false);
       }
 
-      pathTo = pathTo + this.graphics.line(barXPosition, endingShape.newY) + endingShape.path + this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) + this.graphics.line(barXPosition, barYPosition);
+      pathTo = pathTo + this.graphics.line(barXPosition, y) + this.graphics.line(barXPosition + barWidth - strokeWidth, y) + this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) + this.graphics.line(barXPosition, barYPosition);
       pathFrom = pathFrom + this.graphics.line(barXPosition, barYPosition) + this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) + this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) + this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) + this.graphics.line(barXPosition, barYPosition);
 
       if (w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 && i === 0) {
@@ -7023,38 +6907,6 @@ function (_Bar) {
         x: w.globals.isXNumeric ? x - xDivision : x,
         y: y
       };
-    }
-    /*
-     * When user clicks on legends, the collapsed series will be filled with [0,0,0,...,0]
-     * We need to make sure, that the last series is not [0,0,0,...,0]
-     * as we need to draw shapes on the last series (for stacked bars/columns only)
-     * Hence, we are collecting all inner arrays in series which has [0,0,0...,0]
-     **/
-
-  }, {
-    key: "checkZeroSeries",
-    value: function checkZeroSeries(_ref3) {
-      var series = _ref3.series;
-      var w = this.w;
-
-      for (var zs = 0; zs < series.length; zs++) {
-        var total = 0;
-
-        for (var zsj = 0; zsj < series[w.globals.maxValsInArrayIndex].length; zsj++) {
-          total += series[zs][zsj];
-        }
-
-        if (total === 0) {
-          this.zeroSerieses.push(zs);
-        }
-      } // After getting all zeroserieses, we need to ensure whether endingshapeonSeries is not in that zeroseries array
-
-
-      for (var s = series.length - 1; s >= 0; s--) {
-        if (this.zeroSerieses.indexOf(s) > -1 && s === this.endingShapeOnSeriesNumber) {
-          this.endingShapeOnSeriesNumber -= 1;
-        }
-      }
     }
   }]);
 
@@ -7676,8 +7528,15 @@ function () {
       var xDivision = w.globals.gridWidth / w.globals.dataPoints;
       var yDivision = w.globals.gridHeight / w.globals.series.length;
       var y1 = 0;
+      var rev = false;
+      var heatSeries = series.slice();
 
-      for (var i = series.length - 1; i >= 0; i--) {
+      if (w.config.yaxis[0].reversed) {
+        rev = true;
+        heatSeries.reverse();
+      }
+
+      for (var i = rev ? 0 : heatSeries.length - 1; rev ? i < heatSeries.length : i >= 0; rev ? i++ : i--) {
         // el to which series will be drawn
         var elSeries = graphics.group({
           class: "apexcharts-series apexcharts-heatmap-series ".concat(Utils.escapeString(w.globals.seriesNames[i])),
@@ -7693,7 +7552,7 @@ function () {
 
         var x1 = 0;
 
-        for (var j = 0; j < series[i].length; j++) {
+        for (var j = 0; j < heatSeries[i].length; j++) {
           var colorShadePercent = 1;
           var heatColorProps = this.determineHeatColor(i, j);
 
@@ -7729,7 +7588,7 @@ function () {
             i: i,
             index: i,
             j: j,
-            val: series[i][j],
+            val: heatSeries[i][j],
             'stroke-width': this.strokeWidth,
             stroke: w.globals.stroke.colors[0],
             color: color
@@ -7764,7 +7623,7 @@ function () {
             y: y1,
             i: i,
             j: j,
-            series: series,
+            series: heatSeries,
             rectHeight: yDivision,
             rectWidth: xDivision
           });
@@ -7781,7 +7640,15 @@ function () {
       } // adjust yaxis labels for heatmap
 
 
-      w.globals.yAxisScale[0].result.push('');
+      var yAxisScale = w.globals.yAxisScale[0].result.slice();
+
+      if (w.config.yaxis[0].reversed) {
+        yAxisScale.unshift('');
+      } else {
+        yAxisScale.push('');
+      }
+
+      w.globals.yAxisScale[0].result = yAxisScale;
       var divisor = w.globals.gridHeight / w.globals.series.length;
       w.config.yaxis[0].labels.offsetY = -(divisor / 2);
       return ret;
@@ -9408,12 +9275,13 @@ function () {
           this.yaxisIndex = realIndex;
         }
 
+        this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
         var yArrj = []; // hold y values of current iterating series
 
         var xArrj = []; // hold x values of current iterating series
         // zeroY is the 0 value in y series which can be used in negative charts
 
-        var zeroY = w.globals.gridHeight - baseLineY[this.yaxisIndex];
+        var zeroY = w.globals.gridHeight - baseLineY[this.yaxisIndex] - (this.isReversed ? w.globals.gridHeight : 0) + (this.isReversed ? baseLineY[this.yaxisIndex] * 2 : 0);
         var areaBottomY = zeroY;
 
         if (zeroY > w.globals.gridHeight) {
@@ -9508,7 +9376,14 @@ function () {
 
         for (var j = 0; j < iterations; j++) {
           if (w.globals.isXNumeric) {
-            x = (w.globals.seriesX[realIndex][j + 1] - w.globals.minX) / xRatio;
+            var sX = w.globals.seriesX[realIndex][j + 1];
+
+            if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
+              /* fix #374 */
+              sX = w.globals.seriesX[realIndex][iterations - 1];
+            }
+
+            x = (sX - w.globals.minX) / xRatio;
           } else {
             x = x + xDivision;
           }
@@ -9524,15 +9399,15 @@ function () {
             }
 
             if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-              y = lineYPosition - minY / yRatio[this.yaxisIndex];
+              y = lineYPosition - minY / yRatio[this.yaxisIndex] + (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2;
             } else {
-              y = lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex];
+              y = lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex] + (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2;
             }
           } else {
             if (typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null) {
-              y = zeroY - minY / yRatio[this.yaxisIndex];
+              y = zeroY - minY / yRatio[this.yaxisIndex] + (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2;
             } else {
-              y = zeroY - series[i][j + 1] / yRatio[this.yaxisIndex];
+              y = zeroY - series[i][j + 1] / yRatio[this.yaxisIndex] + (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2;
             }
           } // push current X
 
@@ -9875,9 +9750,9 @@ function () {
             lineYPosition = zeroY;
           }
 
-          prevY = lineYPosition - series[i][0] / yRatio;
+          prevY = lineYPosition - series[i][0] / yRatio + (this.isReversed ? series[i][0] / yRatio : 0) * 2;
         } else {
-          prevY = zeroY - series[i][0] / yRatio;
+          prevY = zeroY - series[i][0] / yRatio + (this.isReversed ? series[i][0] / yRatio : 0) * 2;
         }
       } else {
         // the first value in the current series is null
@@ -9956,10 +9831,15 @@ function () {
 
       var l = w.globals.translateY;
       var lbFormatter = w.globals.yLabelFormatters[realIndex];
+      var labels = w.globals.yAxisScale[realIndex].result.slice();
+
+      if (w.config.yaxis[realIndex].reversed) {
+        labels.reverse();
+      }
 
       if (w.config.yaxis[realIndex].labels.show) {
         for (var i = tickAmount; i >= 0; i--) {
-          var val = w.globals.yAxisScale[realIndex].result[i];
+          var val = labels[i];
           val = lbFormatter(val, i);
           var xPad = w.config.yaxis[realIndex].labels.padding;
 
@@ -10048,10 +9928,15 @@ function () {
 
       var l = labelsDivider + w.config.xaxis.labels.offsetX;
       var lbFormatter = w.globals.xLabelFormatter;
+      var labels = w.globals.yAxisScale[realIndex].result.slice();
+
+      if (w.config.yaxis[realIndex].reversed) {
+        labels.reverse();
+      }
 
       if (w.config.xaxis.labels.show) {
         for (var i = tickAmount; i >= 0; i--) {
-          var val = w.globals.yAxisScale[realIndex].result[i];
+          var val = labels[i];
           val = lbFormatter(val, i);
           var elTick = graphics.drawText({
             x: w.globals.gridWidth + w.globals.padHorizontal - (l - labelsDivider + w.config.xaxis.labels.offsetX),
@@ -10065,7 +9950,7 @@ function () {
           });
           elXaxisTexts.add(elTick);
           elTick.tspan(val);
-          var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
+          var elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title');
           elTooltipTitle.textContent = val;
           elTick.node.appendChild(elTooltipTitle);
           l = l + labelsDivider;
@@ -10202,6 +10087,8 @@ function () {
   }, {
     key: "setYAxisXPosition",
     value: function setYAxisXPosition(yaxisLabelCoords, yTitleCoords) {
+      var _this = this;
+
       var w = this.w;
       var xLeft = 0;
       var xRight = 0;
@@ -10225,13 +10112,18 @@ function () {
 
           w.globals.translateYAxisX[index] = xLeft + yaxe.labels.offsetX;
         } else {
-          xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX;
+          if (_this.isBarHorizontal) {
+            xRight = w.globals.gridWidth + w.globals.translateX - 1;
+            w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX;
+          } else {
+            xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX;
 
-          if (!shouldNotDrawAxis) {
-            rightOffsetX = rightOffsetX + axisWidth + 20;
+            if (!shouldNotDrawAxis) {
+              rightOffsetX = rightOffsetX + axisWidth + 20;
+            }
+
+            w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20;
           }
-
-          w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20;
         }
       });
     }
@@ -10510,7 +10402,7 @@ function () {
           });
           elXaxisTexts.add(elTick);
           graphics.addTspan(elTick, label, this.xaxisFontFamily);
-          var elTooltipTitle = document.createElementNS(w.globals.svgNS, 'title');
+          var elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title');
           elTooltipTitle.textContent = label;
           elTick.node.appendChild(elTooltipTitle);
           xPos = xPos + colWidth;
@@ -10554,12 +10446,14 @@ function () {
     value: function drawXaxisInversed(realIndex) {
       var w = this.w;
       var graphics = new Graphics(this.ctx);
+      var translateYAxisX = w.config.yaxis[0].opposite ? w.globals.translateYAxisX[realIndex] : 0;
       var elYaxis = graphics.group({
         class: 'apexcharts-yaxis apexcharts-xaxis-inversed',
         rel: realIndex
       });
       var elYaxisTexts = graphics.group({
-        class: 'apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g'
+        class: 'apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g',
+        transform: 'translate(' + translateYAxisX + ', 0)'
       });
       elYaxis.add(elYaxisTexts);
       var colHeight; // initial x Position (keep adding column width in the loop)
@@ -10584,7 +10478,7 @@ function () {
             x: ylabels.offsetX - 15,
             y: yPos + colHeight + ylabels.offsetY,
             text: label,
-            textAnchor: 'end',
+            textAnchor: this.yaxis.opposite ? 'start' : 'end',
             foreColor: ylabels.style.color ? ylabels.style.color : ylabels.style.colors[_i2],
             fontSize: ylabels.style.fontSize,
             fontFamily: ylabels.style.fontFamily,
@@ -10604,7 +10498,8 @@ function () {
 
       if (w.config.yaxis[0].title.text !== undefined) {
         var elXaxisTitle = graphics.group({
-          class: 'apexcharts-yaxis-title apexcharts-xaxis-title-inversed'
+          class: 'apexcharts-yaxis-title apexcharts-xaxis-title-inversed',
+          transform: 'translate(' + translateYAxisX + ', 0)'
         });
         var elXAxisTitleText = graphics.drawText({
           x: 0,
@@ -10739,7 +10634,7 @@ function () {
       }
     } // renderXAxisBands() {
     //   let w = this.w;
-    //   let plotBand = document.createElementNS(w.globals.svgNS, 'rect')
+    //   let plotBand = document.createElementNS(w.globals.SVGNS, 'rect')
     //   w.globals.dom.elGraphical.add(plotBand)
     // }
 
@@ -11163,7 +11058,7 @@ function () {
   }, {
     key: "getMinYMaxY",
     value: function getMinYMaxY(startingIndex) {
-      var lowestY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Number.MIN_VALUE;
+      var lowestY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Number.MAX_VALUE;
       var highestY = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -Number.MAX_VALUE;
       var len = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
       var gl = this.w.globals;
@@ -11904,15 +11799,15 @@ function () {
       this.titleSubtitleOffset(); // after calculating everything, apply padding set by user
 
       gl.gridHeight = gl.gridHeight - w.config.grid.padding.top - w.config.grid.padding.bottom;
-      gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right;
-      gl.translateX = gl.translateX + w.config.grid.padding.left;
+      gl.gridWidth = gl.gridWidth - w.config.grid.padding.left - w.config.grid.padding.right - this.xPadRight - this.xPadLeft;
+      gl.translateX = gl.translateX + w.config.grid.padding.left + this.xPadLeft;
       gl.translateY = gl.translateY + w.config.grid.padding.top;
     }
   }, {
     key: "conditionalChecksForAxisCoords",
     value: function conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords) {
       var w = this.w;
-      this.xAxisHeight = (xaxisLabelCoords.height + xtitleCoords.height) * w.globals.lineHeightRatio + 15;
+      this.xAxisHeight = (xaxisLabelCoords.height + xtitleCoords.height) * w.globals.LINE_HEIGHT_RATIO + 15;
       this.xAxisWidth = xaxisLabelCoords.width;
 
       if (this.xAxisHeight - xtitleCoords.height > w.config.xaxis.labels.maxHeight) {
@@ -11997,6 +11892,8 @@ function () {
         translateY = 0;
       }
 
+      this.additionalPaddingXLabels(xaxisLabelCoords);
+
       switch (w.config.legend.position) {
         case 'bottom':
           gl.translateY = translateY;
@@ -12030,10 +11927,7 @@ function () {
           throw new Error('Legend position not supported');
       }
 
-      if (!this.isBarHorizontal) {
-        this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords);
-      } // after drawing everything, set the Y axis positions
-
+      this.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords); // after drawing everything, set the Y axis positions
 
       var objyAxis = new YAxis(this.ctx);
       objyAxis.setYAxisXPosition(yaxisLabelCoords, yTitleCoords);
@@ -12112,6 +12006,47 @@ function () {
           }
         }
       });
+    } // Sometimes, the last labels gets cropped in category/numeric xaxis.
+    // Hence, we add some additional padding based on the label length to avoid the last label being cropped.
+    // NOTE: datetime x-axis won't have any effect with this as we don't know the label length there due to many constraints.
+
+  }, {
+    key: "additionalPaddingXLabels",
+    value: function additionalPaddingXLabels(xaxisLabelCoords) {
+      var _this = this;
+
+      var w = this.w;
+      this.xPadRight = 0;
+      this.xPadLeft = 0;
+
+      if (w.config.xaxis.type === 'category' && this.isBarHorizontal || w.config.xaxis.type === 'numeric') {
+        var rightPad = function rightPad(labels) {
+          if (w.config.grid.padding.right < labels.width) {
+            _this.xPadRight = labels.width / 2 + 1;
+          }
+        };
+
+        var leftPad = function leftPad(labels) {
+          if (w.config.grid.padding.left < labels.width) {
+            _this.xPadLeft = labels.width / 2 + 1;
+          }
+        };
+
+        var lineArea = w.config.chart.type === 'line' || w.config.chart.type === 'area';
+        w.config.yaxis.forEach(function (yaxe, i) {
+          var shouldPad = !yaxe.show || yaxe.floating || w.globals.collapsedSeriesIndices.indexOf(i) !== -1 || lineArea || yaxe.opposite && _this.isBarHorizontal;
+
+          if (shouldPad) {
+            if (lineArea && w.globals.isMultipleYAxis && w.globals.collapsedSeriesIndices.indexOf(i) !== -1 || _this.isBarHorizontal && yaxe.opposite) {
+              leftPad(xaxisLabelCoords);
+            }
+
+            if (!_this.isBarHorizontal && yaxe.opposite && w.globals.collapsedSeriesIndices.indexOf(i) !== -1 || lineArea && !w.globals.isMultipleYAxis) {
+              rightPad(xaxisLabelCoords);
+            }
+          }
+        });
+      }
     }
   }, {
     key: "titleSubtitleOffset",
@@ -12284,7 +12219,7 @@ function () {
   }, {
     key: "getyAxisLabelsCoords",
     value: function getyAxisLabelsCoords() {
-      var _this = this;
+      var _this2 = this;
 
       var w = this.w;
       var width = 0;
@@ -12301,7 +12236,7 @@ function () {
             val = w.globals.yAxisScale[index].niceMax;
           }
 
-          if (_this.isBarHorizontal) {
+          if (_this2.isBarHorizontal) {
             labelPad = 0;
             var barYaxisLabels = w.globals.labels.slice(); //  get the longest string from the labels array and also apply label formatter to it
 
@@ -12311,7 +12246,7 @@ function () {
             val = lbFormatter(val, -1);
           }
 
-          var graphics = new Graphics(_this.ctx);
+          var graphics = new Graphics(_this2.ctx);
           var rect = graphics.getTextRects(val, yaxe.labels.style.fontSize);
           ret.push({
             width: rect.width + labelPad,
@@ -12360,13 +12295,13 @@ function () {
   }, {
     key: "getyAxisTitleCoords",
     value: function getyAxisTitleCoords() {
-      var _this2 = this;
+      var _this3 = this;
 
       var w = this.w;
       var ret = [];
       w.config.yaxis.map(function (yaxe, index) {
         if (yaxe.show && yaxe.title.text !== undefined) {
-          var graphics = new Graphics(_this2.ctx);
+          var graphics = new Graphics(_this3.ctx);
           var rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, 'rotate(-90 0 0)', false);
           ret.push({
             width: rect.width,
@@ -14504,9 +14439,9 @@ function () {
         strokeSize = strokeMaxSize;
       }
 
-      gl.dom.elGridRectMask = document.createElementNS(gl.svgNS, 'clipPath');
+      gl.dom.elGridRectMask = document.createElementNS(gl.SVGNS, 'clipPath');
       gl.dom.elGridRectMask.setAttribute('id', "gridRectMask".concat(gl.cuid));
-      gl.dom.elGridRectMarkerMask = document.createElementNS(gl.svgNS, 'clipPath');
+      gl.dom.elGridRectMarkerMask = document.createElementNS(gl.SVGNS, 'clipPath');
       gl.dom.elGridRectMarkerMask.setAttribute('id', "gridRectMarkerMask".concat(gl.cuid));
       gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2, -strokeSize / 2, gl.gridWidth + strokeSize, gl.gridHeight + strokeSize, 0, '#fff');
       var coreUtils = new CoreUtils(this);
@@ -14838,7 +14773,7 @@ function () {
     key: "appendToForeignObject",
     value: function appendToForeignObject() {
       var gl = this.w.globals;
-      var elForeign = document.createElementNS(gl.svgNS, 'foreignObject');
+      var elForeign = document.createElementNS(gl.SVGNS, 'foreignObject');
       elForeign.setAttribute('x', 0);
       elForeign.setAttribute('y', 0);
       elForeign.setAttribute('width', gl.svgWidth);
@@ -15582,11 +15517,6 @@ function () {
   return Theme;
 }();
 
-/**
- * ApexCharts Tooltip.Utils Class to support Tooltip functionality.
- *
- * @module Tooltip.Utils
- **/
 var Utils$1 =
 /*#__PURE__*/
 function () {
@@ -15732,6 +15662,7 @@ function () {
     key: "getFirstActiveXArray",
     value: function getFirstActiveXArray(Xarrays) {
       var activeIndex = 0;
+      var coreUtils = new CoreUtils(this.ctx);
       var firstActiveSeriesIndex = Xarrays.map(function (xarr, index) {
         if (xarr.length > 0) {
           return index;
@@ -15741,7 +15672,9 @@ function () {
       });
 
       for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
-        if (firstActiveSeriesIndex[a] !== -1) {
+        var total = coreUtils.getSeriesTotalByIndex(a);
+
+        if (firstActiveSeriesIndex[a] !== -1 && total !== 0 && !coreUtils.seriesHaveSameValues(a)) {
           activeIndex = firstActiveSeriesIndex[a];
           break;
         }
@@ -16115,8 +16048,8 @@ function () {
       }
 
       if (shared && ttItemsChildren[0]) {
-        // hide when no Val
-        if (typeof val === 'undefined' || val === null) {
+        // hide when no Val or series collapsed
+        if (typeof val === 'undefined' || val === null || w.globals.collapsedSeriesIndices.indexOf(t) > -1) {
           ttItemsChildren[0].parentNode.style.display = 'none';
         } else {
           ttItemsChildren[0].parentNode.style.display = w.config.tooltip.items.display;
@@ -16638,7 +16571,7 @@ function () {
           var elPointOptions = marker.getMarkerConfig(PointClasses, seriesIndex);
           point = graphics.drawMarker(0, 0, elPointOptions);
           point.node.setAttribute('default-marker-size', 0);
-          var elPointsG = document.createElementNS(w.globals.svgNS, 'g');
+          var elPointsG = document.createElementNS(w.globals.SVGNS, 'g');
           elPointsG.classList.add('apexcharts-series-markers');
           elPointsG.appendChild(point.node);
           pointsMain.appendChild(elPointsG);
@@ -16880,15 +16813,17 @@ function () {
 
       var i = 0;
       var strokeWidth;
+      var barXY = this.getBarTooltipXY({
+        e: e,
+        opt: opt
+      });
+      i = barXY.i;
+      var barHeight = barXY.barHeight;
+      var j = barXY.j;
 
       if (ttCtx.isBarHorizontal && ttCtx.hasBars() || !w.config.tooltip.shared) {
-        var barXY = this.getBarTooltipXY({
-          e: e,
-          opt: opt
-        });
         x = barXY.x;
         y = barXY.y;
-        i = barXY.i;
         strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width; // bW = barXY.barWidth
 
         bx = x;
@@ -16931,7 +16866,17 @@ function () {
 
 
       if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || ttCtx.isBarHorizontal && ttCtx.hasBars())) {
+        if (isReversed) {
+          x = w.globals.gridWidth - x;
+        }
+
         tooltipEl.style.left = x + w.globals.translateX + 'px';
+        var seriesIndex = parseInt(opt.paths.parentNode.getAttribute('data:realIndex'));
+        var isReversed = w.globals.isMultipleYAxis ? w.config.yaxis[seriesIndex].reversed : w.config.yaxis[0].reversed;
+
+        if (isReversed && !(ttCtx.isBarHorizontal && ttCtx.hasBars())) {
+          y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2;
+        }
 
         if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {
           y = w.globals.gridHeight - ttCtx.tooltipRect.ttHeight + w.globals.translateY;
@@ -16953,6 +16898,7 @@ function () {
       var x = 0;
       var y = 0;
       var barWidth = 0;
+      var barHeight = 0;
       var cl = e.target.classList;
 
       if (cl.contains('apexcharts-bar-area') || cl.contains('apexcharts-candlestick-area')) {
@@ -16960,6 +16906,7 @@ function () {
         var barRect = bar.getBoundingClientRect();
         var seriesBound = opt.elGrid.getBoundingClientRect();
         var bh = barRect.height;
+        barHeight = barRect.height;
         var bw = barRect.width;
         var cx = parseInt(bar.getAttribute('cx'));
         var cy = parseInt(bar.getAttribute('cy'));
@@ -17023,6 +16970,7 @@ function () {
       return {
         x: x,
         y: y,
+        barHeight: barHeight,
         barWidth: barWidth,
         i: i,
         j: j
@@ -18256,10 +18204,7 @@ function () {
         xaxis: xaxis
       }, false, this.w.config.chart.animations.dynamicAnimation.enabled);
 
-      this.zoomCallback({
-        min: newMinX,
-        max: newMaxX
-      });
+      this.zoomCallback(xaxis);
     }
   }, {
     key: "zoomCallback",
@@ -26922,8 +26867,12 @@ function () {
 
 
         if (options$$1.xaxis.categories && options$$1.xaxis.categories.length && w.config.xaxis.tickPlacement === 'on') {
-          options$$1.xaxis.categories = [];
-          options$$1.labels = [];
+          var combo = CoreUtils.checkComboSeries(w.config.series);
+
+          if ((w.config.chart.type === 'line' || w.config.chart.type === 'area' || w.config.chart.type === 'scatter') && !combo.comboChartsHasBars) {
+            options$$1.xaxis.categories = [];
+            options$$1.labels = [];
+          }
         }
       }
 
