@@ -474,6 +474,7 @@ class Legend {
 
       .apexcharts-legend-series {
         cursor: pointer;
+        line-height: normal;
       }
 
       .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{
