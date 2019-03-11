@@ -225,7 +225,7 @@ class Pie {
       })
 
       elPath.attr({
-        id: 'apexcharts-pieSlice-' + i,
+        id: 'apexcharts-pie-slice-' + i,
         index: 0,
         j: i
       })
@@ -244,7 +244,10 @@ class Pie {
         'data:value': series[i]
       })
 
-      let labelPosition
+      let labelPosition = {
+        x: 0,
+        y: 0
+      }
 
       if (w.config.chart.type === 'pie') {
         labelPosition = Utils.polarToCartesian(
@@ -364,7 +367,7 @@ class Pie {
     )
     elPath.node.addEventListener(
       'mouseenter',
-      this.dataLabelsMouseIn.bind(this, elPath.node, dataLabels)
+      this.printDataLabelsInner.bind(this, elPath.node, dataLabels)
     )
     elPath.node.addEventListener(
       'mouseleave',
@@ -372,11 +375,15 @@ class Pie {
     )
     elPath.node.addEventListener(
       'mouseleave',
-      this.dataLabelsMouseout.bind(this, elPath.node, dataLabels)
+      this.revertDataLabelsInner.bind(this, elPath.node, dataLabels)
     )
     elPath.node.addEventListener(
       'mousedown',
       graphics.pathMouseDown.bind(this, elPath)
+    )
+    elPath.node.addEventListener(
+      'mousedown',
+      this.printDataLabelsInner.bind(this, elPath.node, dataLabels)
     )
   }
 
@@ -504,8 +511,8 @@ class Pie {
     let me = this
     let path
 
-    let size = me.size + 5
-    let elPath = w.globals.dom.Paper.select('#apexcharts-pieSlice-' + i)
+    let size = me.size + 3
+    let elPath = w.globals.dom.Paper.select('#apexcharts-pie-slice-' + i)
       .members[0]
 
     let pathFrom = elPath.attr('d')
@@ -740,7 +747,7 @@ class Pie {
    *
    * @param {string} name - The name of the series
    * @param {string} val - The value of that series
-   * @param {object} el - Optional el (indicates which series was hovered). If this param is not present, means we need to show total
+   * @param {object} el - Optional el (indicates which series was hovered/clicked). If this param is not present, means we need to show total
    */
   printInnerLabels(labelsConfig, name, val, el) {
     const w = this.w
@@ -787,7 +794,7 @@ class Pie {
     }
   }
 
-  dataLabelsMouseIn(el, dataLabelsConfig) {
+  printDataLabelsInner(el, dataLabelsConfig) {
     let w = this.w
 
     let val = el.getAttribute('data:value')
@@ -806,7 +813,7 @@ class Pie {
     }
   }
 
-  dataLabelsMouseout(el, dataLabelsConfig) {
+  revertDataLabelsInner(el, dataLabelsConfig) {
     let w = this.w
     let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
       '.apexcharts-datalabels-group'
@@ -820,7 +827,21 @@ class Pie {
         dataLabelsConfig.total.formatter(w)
       )
     } else {
-      if (dataLabelsGroup !== null && w.globals.series.length > 1) {
+      if (w.globals.selectedDataPoints.length) {
+        if (w.globals.selectedDataPoints[0].length > 0) {
+          const index = w.globals.selectedDataPoints[0]
+          const el = w.globals.dom.baseEl.querySelector(
+            `#apexcharts-pie-slice-${index}`
+          )
+
+          this.printDataLabelsInner(el, dataLabelsConfig)
+        } else {
+          dataLabelsGroup.style.opacity = 0
+        }
+      } else if (
+        w.globals.selectedDataPoints.length === 0 ||
+        (dataLabelsGroup !== null && w.globals.series.length > 1)
+      ) {
         dataLabelsGroup.style.opacity = 0
       }
     }

@@ -662,7 +662,7 @@ export default class Options {
           allowMultipleDataPointsSelection: false,
           filter: {
             type: 'darken',
-            value: 0.35
+            value: 0.65
           }
         }
       },
