@@ -43,7 +43,7 @@ npm install apexcharts --save
 Integrate easily with 3rd party frameworks
 - [vue-apexcharts](https://github.com/apexcharts/vue-apexcharts)
 - [react-apexcharts](https://github.com/apexcharts/react-apexcharts)
-- [ng-apexcharts](https://github.com/morrisjdev/ng-apexcharts) - By Morris Janatzek
+- [ng-apexcharts](https://github.com/apexcharts/ng-apexcharts) - Plugin by [Morris Janatzek](https://morrisj.net/)
 
 ### Unofficial Wrappers
 Useful links to wrappers other than the popular frameworks mentioned above
