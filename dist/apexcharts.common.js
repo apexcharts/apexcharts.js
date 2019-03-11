@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.6.1
+ * ApexCharts v3.6.2
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1453,7 +1453,7 @@ function () {
         x: x,
         y: y,
         'text-anchor': textAnchor,
-        'dominate-baseline': 'central',
+        'dominant-baseline': 'central',
         'font-size': fontSize,
         'font-family': fontFamily,
         fill: foreColor,
@@ -2486,7 +2486,7 @@ function () {
             allowMultipleDataPointsSelection: false,
             filter: {
               type: 'darken',
-              value: 0.35
+              value: 0.65
             }
           }
         },
@@ -3538,7 +3538,7 @@ function () {
         _this.opts.yaxis[index].min = 0;
         _this.opts.yaxis[index].max = 100;
       });
-      var isBar = !!(this.opts.chart.type === 'bar');
+      var isBar = this.opts.chart.type === 'bar';
 
       if (isBar) {
         this.opts.dataLabels.formatter = existingDataLabelFormatter || function (val) {
@@ -3551,32 +3551,6 @@ function () {
       }
     } // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
 
-  }, {
-    key: "convertCatToNumeric",
-    value: function convertCatToNumeric() {
-      var opts = this.opts;
-      opts.xaxis.type = 'numeric';
-      opts.xaxis.convertedCatToNumeric = true;
-      opts.xaxis.labels = opts.xaxis.labels || {};
-
-      opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function (val) {
-        return val;
-      };
-
-      opts.chart.zoom = opts.chart.zoom || window.Apex.chart && window.Apex.chart.zoom || {};
-      var defaultFormatter = opts.xaxis.labels.formatter;
-      var labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels;
-
-      if (labels && labels.length) {
-        opts.xaxis.labels.formatter = function (val) {
-          return defaultFormatter(labels[val - 1]);
-        };
-      }
-
-      opts.xaxis.categories = [];
-      opts.labels = [];
-      opts.chart.zoom.enabled = false;
-    }
   }, {
     key: "bubble",
     value: function bubble() {
@@ -3855,6 +3829,33 @@ function () {
           fillSeriesColor: true
         }
       };
+    }
+  }], [{
+    key: "convertCatToNumeric",
+    value: function convertCatToNumeric(opts) {
+      opts.xaxis.type = 'numeric';
+      opts.xaxis.convertedCatToNumeric = true;
+      opts.xaxis.labels = opts.xaxis.labels || {};
+
+      opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function (val) {
+        return val;
+      };
+
+      opts.chart = opts.chart || {};
+      opts.chart.zoom = opts.chart.zoom || window.Apex.chart && window.Apex.chart.zoom || {};
+      var defaultFormatter = opts.xaxis.labels.formatter;
+      var labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels;
+
+      if (labels && labels.length) {
+        opts.xaxis.labels.formatter = function (val) {
+          return defaultFormatter(labels[val - 1]);
+        };
+      }
+
+      opts.xaxis.categories = [];
+      opts.labels = [];
+      opts.chart.zoom.enabled = false;
+      return opts;
     }
   }]);
 
@@ -4315,7 +4316,7 @@ function () {
         var combo = CoreUtils.checkComboSeries(opts.series);
 
         if ((opts.chart.type === 'line' || opts.chart.type === 'area' || opts.chart.type === 'scatter') && !combo.comboChartsHasBars && opts.xaxis.type !== 'datetime' && opts.xaxis.tickPlacement !== 'between') {
-          defaults.convertCatToNumeric();
+          opts = Defaults.convertCatToNumeric(opts);
         }
 
         if (opts.chart.sparkline && opts.chart.sparkline.enabled || window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled) {
@@ -7946,7 +7947,7 @@ function () {
           classes: 'apexcharts-pie-area'
         });
         elPath.attr({
-          id: 'apexcharts-pieSlice-' + i,
+          id: 'apexcharts-pie-slice-' + i,
           index: 0,
           j: i
         });
@@ -7963,7 +7964,10 @@ function () {
           'data:strokeWidth': this.strokeWidth,
           'data:value': series[i]
         });
-        var labelPosition = void 0;
+        var labelPosition = {
+          x: 0,
+          y: 0
+        };
 
         if (w.config.chart.type === 'pie') {
           labelPosition = Utils.polarToCartesian(this.centerX, this.centerY, this.size / 1.25 + w.config.plotOptions.pie.dataLabels.offset, startAngle + (endAngle - startAngle) / 2);
@@ -8065,10 +8069,11 @@ function () {
       var graphics = new Graphics(this.ctx); // append filters on mouseenter and mouseleave
 
       elPath.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this, elPath));
-      elPath.node.addEventListener('mouseenter', this.dataLabelsMouseIn.bind(this, elPath.node, dataLabels));
+      elPath.node.addEventListener('mouseenter', this.printDataLabelsInner.bind(this, elPath.node, dataLabels));
       elPath.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, elPath));
-      elPath.node.addEventListener('mouseleave', this.dataLabelsMouseout.bind(this, elPath.node, dataLabels));
+      elPath.node.addEventListener('mouseleave', this.revertDataLabelsInner.bind(this, elPath.node, dataLabels));
       elPath.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, elPath));
+      elPath.node.addEventListener('mousedown', this.printDataLabelsInner.bind(this, elPath.node, dataLabels));
     } // This function can be used for other circle charts too
 
   }, {
@@ -8186,8 +8191,8 @@ function () {
       var w = this.w;
       var me = this;
       var path;
-      var size = me.size + 5;
-      var elPath = w.globals.dom.Paper.select('#apexcharts-pieSlice-' + i).members[0];
+      var size = me.size + 3;
+      var elPath = w.globals.dom.Paper.select('#apexcharts-pie-slice-' + i).members[0];
       var pathFrom = elPath.attr('d');
 
       if (elPath.attr('data:pieClicked') === 'true') {
@@ -8347,7 +8352,7 @@ function () {
      *
      * @param {string} name - The name of the series
      * @param {string} val - The value of that series
-     * @param {object} el - Optional el (indicates which series was hovered). If this param is not present, means we need to show total
+     * @param {object} el - Optional el (indicates which series was hovered/clicked). If this param is not present, means we need to show total
      */
 
   }, {
@@ -8390,8 +8395,8 @@ function () {
       }
     }
   }, {
-    key: "dataLabelsMouseIn",
-    value: function dataLabelsMouseIn(el, dataLabelsConfig) {
+    key: "printDataLabelsInner",
+    value: function printDataLabelsInner(el, dataLabelsConfig) {
       var w = this.w;
       var val = el.getAttribute('data:value');
       var name = w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1];
@@ -8407,8 +8412,8 @@ function () {
       }
     }
   }, {
-    key: "dataLabelsMouseout",
-    value: function dataLabelsMouseout(el, dataLabelsConfig) {
+    key: "revertDataLabelsInner",
+    value: function revertDataLabelsInner(el, dataLabelsConfig) {
       var w = this.w;
       var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
 
@@ -8416,7 +8421,17 @@ function () {
         var pie = new Pie(this.ctx);
         pie.printInnerLabels(dataLabelsConfig, dataLabelsConfig.total.label, dataLabelsConfig.total.formatter(w));
       } else {
-        if (dataLabelsGroup !== null && w.globals.series.length > 1) {
+        if (w.globals.selectedDataPoints.length) {
+          if (w.globals.selectedDataPoints[0].length > 0) {
+            var index = w.globals.selectedDataPoints[0];
+
+            var _el = w.globals.dom.baseEl.querySelector("#apexcharts-pie-slice-".concat(index));
+
+            this.printDataLabelsInner(_el, dataLabelsConfig);
+          } else {
+            dataLabelsGroup.style.opacity = 0;
+          }
+        } else if (w.globals.selectedDataPoints.length === 0 || dataLabelsGroup !== null && w.globals.series.length > 1) {
           dataLabelsGroup.style.opacity = 0;
         }
       }
@@ -15077,7 +15092,7 @@ function () {
     value: function getLegendStyles() {
       var stylesheet = document.createElement('style');
       stylesheet.setAttribute('type', 'text/css');
-      var text = "\n    \n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n\n      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n\n      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        justify-content: flex-start;\n      }\n\n      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {\n        justify-content: center;  \n      }\n\n      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {\n        justify-content: flex-end;\n      }\n\n      .apexcharts-legend-series {\n        cursor: pointer;\n      }\n\n      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{\n        display: flex;\n        align-items: center;\n      }\n\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n\n      .apexcharts-legend-marker {\n        position: relative;\n        display: inline-block;\n        cursor: pointer;\n        margin-right: 3px;\n      }\n      \n      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{\n        display: inline-block;\n      }\n\n      .apexcharts-legend-series.no-click {\n        cursor: auto;\n      }\n\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n\n      .inactive-legend {\n        opacity: 0.45;\n      }";
+      var text = "\n    \n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n\n      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n\n      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        justify-content: flex-start;\n      }\n\n      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {\n        justify-content: center;  \n      }\n\n      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {\n        justify-content: flex-end;\n      }\n\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n      }\n\n      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{\n        display: flex;\n        align-items: center;\n      }\n\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n\n      .apexcharts-legend-marker {\n        position: relative;\n        display: inline-block;\n        cursor: pointer;\n        margin-right: 3px;\n      }\n      \n      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{\n        display: inline-block;\n      }\n\n      .apexcharts-legend-series.no-click {\n        cursor: auto;\n      }\n\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n\n      .inactive-legend {\n        opacity: 0.45;\n      }";
       var rules = document.createTextNode(text);
       stylesheet.appendChild(rules);
       return stylesheet;
@@ -26863,16 +26878,11 @@ function () {
         if (options$$1.xaxis.min || options$$1.xaxis.max) {
           this.forceXAxisUpdate(options$$1);
         }
-        /* fixes #369 */
+        /* fixes apexcharts.js#369 and react-apexcharts#46 */
 
 
-        if (options$$1.xaxis.categories && options$$1.xaxis.categories.length && w.config.xaxis.tickPlacement === 'on') {
-          var combo = CoreUtils.checkComboSeries(w.config.series);
-
-          if ((w.config.chart.type === 'line' || w.config.chart.type === 'area' || w.config.chart.type === 'scatter') && !combo.comboChartsHasBars) {
-            options$$1.xaxis.categories = [];
-            options$$1.labels = [];
-          }
+        if (options$$1.xaxis.categories && options$$1.xaxis.categories.length && w.config.xaxis.convertedCatToNumeric) {
+          options$$1 = Defaults.convertCatToNumeric(options$$1);
         }
       }
 
