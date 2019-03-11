@@ -257,7 +257,7 @@ export default class Defaults {
       this.opts.yaxis[index].max = 100
     })
 
-    const isBar = !!(this.opts.chart.type === 'bar')
+    const isBar = this.opts.chart.type === 'bar'
 
     if (isBar) {
       this.opts.dataLabels.formatter =
@@ -272,8 +272,7 @@ export default class Defaults {
   }
 
   // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
-  convertCatToNumeric() {
-    const opts = this.opts
+  static convertCatToNumeric(opts) {
     opts.xaxis.type = 'numeric'
     opts.xaxis.convertedCatToNumeric = true
     opts.xaxis.labels = opts.xaxis.labels || {}
@@ -282,6 +281,7 @@ export default class Defaults {
       function(val) {
         return val
       }
+    opts.chart = opts.chart || {}
     opts.chart.zoom =
       opts.chart.zoom || (window.Apex.chart && window.Apex.chart.zoom) || {}
     const defaultFormatter = opts.xaxis.labels.formatter
@@ -299,6 +299,8 @@ export default class Defaults {
     opts.xaxis.categories = []
     opts.labels = []
     opts.chart.zoom.enabled = false
+
+    return opts
   }
 
   bubble() {

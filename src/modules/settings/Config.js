@@ -104,7 +104,7 @@ export default class Config {
         opts.xaxis.type !== 'datetime' &&
         opts.xaxis.tickPlacement !== 'between'
       ) {
-        defaults.convertCatToNumeric()
+        opts = Defaults.convertCatToNumeric(opts)
       }
       if (
         (opts.chart.sparkline && opts.chart.sparkline.enabled) ||

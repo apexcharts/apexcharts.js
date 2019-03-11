@@ -5,6 +5,7 @@ import Config from './modules/settings/Config'
 import Core from './modules/Core'
 import CoreUtils from './modules/CoreUtils'
 import Crosshairs from './modules/Crosshairs'
+import Defaults from './modules/settings/Defaults'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
 import Exports from './modules/Exports'
@@ -409,23 +410,14 @@ export default class ApexCharts {
       if (options.xaxis.min || options.xaxis.max) {
         this.forceXAxisUpdate(options)
       }
-      /* fixes #369 */
+
+      /* fixes apexcharts.js#369 and react-apexcharts#46 */
       if (
         options.xaxis.categories &&
         options.xaxis.categories.length &&
-        w.config.xaxis.tickPlacement === 'on'
+        w.config.xaxis.convertedCatToNumeric
       ) {
-        const combo = CoreUtils.checkComboSeries(w.config.series)
-
-        if (
-          (w.config.chart.type === 'line' ||
-            w.config.chart.type === 'area' ||
-            w.config.chart.type === 'scatter') &&
-          !combo.comboChartsHasBars
-        ) {
-          options.xaxis.categories = []
-          options.labels = []
-        }
+        options = Defaults.convertCatToNumeric(options)
       }
     }
     if (w.globals.collapsedSeriesIndices.length > 0) {
