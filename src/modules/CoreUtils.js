@@ -235,21 +235,22 @@ class CoreUtils {
     if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
       // Negative numbers present in series
       gl.hasNegs = true
+    }
+
+    if (gl.isMultipleYAxis) {
       baseLineY = []
 
       // baseline variables is the 0 of the yaxis which will be needed when there are negatives
-      if (gl.isMultipleYAxis) {
-        for (let i = 0; i < yRatio.length; i++) {
-          baseLineY.push(-gl.minYArr[i] / yRatio[i])
-        }
-      } else {
-        baseLineY.push(-gl.minY / yRatio[0])
+      for (let i = 0; i < yRatio.length; i++) {
+        baseLineY.push(-gl.minYArr[i] / yRatio[i])
       }
-
-      baseLineInvertedY = -gl.minY / invertedYRatio // this is for bar chart
-      baseLineX = gl.minX / xRatio
     } else {
-      baseLineY.push(0)
+      baseLineY.push(-gl.minY / yRatio[0])
+
+      if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
+        baseLineInvertedY = -gl.minY / invertedYRatio // this is for bar chart
+        baseLineX = gl.minX / xRatio
+      }
     }
 
     return {
