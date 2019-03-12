@@ -12,6 +12,16 @@ describe('Rendering Pie Charts', () => {
 
     await page.waitFor(2000)
 
+    const paths = await page.$('.apexcharts-pie-series')
+
+    const attrD = await paths.$$eval('path', (nodes) =>
+      nodes.map((n) => n.getAttribute('d'))
+    )
+
+    attrD.forEach((d) => {
+      expect(d).toEqual(expect.not.stringContaining('NaN'))
+    })
+
     await page.screenshot({ path: screenshotPath })
     await browser.close()
   })
