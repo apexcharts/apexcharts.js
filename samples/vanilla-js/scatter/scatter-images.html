@@ -7,13 +7,25 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Scatter - Image Chart</title>
 
-
   <link href="../../assets/styles.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/brands.css" integrity="sha384-QT2Z8ljl3UupqMtQNmPyhSPO/d5qbrzWmFxJqmY7tqoTuT2YrQLEqzvVOP2cT5XW" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/fontawesome.css" integrity="sha384-u5J7JghGz0qUrmEsWzBQkfvc8nK3fUT7DCaQzNQ+q4oEXhGSx+P2OqjWsfIRB8QT" crossorigin="anonymous">
 
   <style>
     #chart {
       max-width: 650px;
       margin: 35px auto;
+    }
+    .apexcharts-legend {
+      overflow: hidden !important;
+      min-height: 17px;
+    }
+    .apexcharts-legend-marker {
+      background: none !important;
+      margin-right: 7px !important;
+    }
+    .apexcharts-legend-series {
+      align-items: flex-start !important;
     }
 
   </style>
@@ -37,10 +49,14 @@
         },
         zoom: {
           enabled: false,
+        },
+        toolbar: {
+          show: false
         }
       },
-
+      colors: ['#056BF6', '#D2376A'],
       series: [{
+        name: 'Messenger',
         data: [
           [16.4, 5.4],
           [21.7, 4],
@@ -68,6 +84,19 @@
           [27.1, 0.8],
           [22.1, 2]
         ]
+      }, {
+        name: 'Instagram',
+        data: [
+          [6.4, 5.4],
+          [11.7, 4],
+          [15.4, 3],
+          [9, 2],
+          [10.9, 11],
+          [20.9, 7],
+          [12.9, 8.2],
+          [6.4, 14],
+          [11.6, 12]
+        ]
       }],
       xaxis: {
         tickAmount: 10,
@@ -84,9 +113,23 @@
         type: 'image',
         opacity: 1,
         image: {
-          src: ['../../assets/images/ico-home.png'],
+          src: ['../../assets/images/ico-messenger.png', '../../assets/images/ico-instagram.png'],
           width: 40,
           height: 40
+        }
+      },
+      legend: {
+        labels: {
+          useSeriesColors: true
+        },
+        markers: {
+          customHTML: [
+            function() {
+              return '<span><i class="fab fa-facebook"></i></span>'
+            }, function() {
+              return '<span><i class="fab fa-instagram"></i></span>'
+            }
+          ]
         }
       }
     }
