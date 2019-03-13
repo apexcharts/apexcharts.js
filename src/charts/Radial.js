@@ -337,7 +337,7 @@ class Radial extends Pie {
       elRadialBarArc.add(elPath)
 
       elPath.attr({
-        id: 'apexcharts-radialArc-' + i,
+        id: 'apexcharts-radialbar-slice-' + i,
         index: 0,
         j: i
       })

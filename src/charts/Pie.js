@@ -225,7 +225,7 @@ class Pie {
       })
 
       elPath.attr({
-        id: 'apexcharts-pie-slice-' + i,
+        id: `apexcharts-${w.config.chart.type}-slice-${i}`,
         index: 0,
         j: i
       })
@@ -511,9 +511,10 @@ class Pie {
     let me = this
     let path
 
-    let size = me.size + 3
-    let elPath = w.globals.dom.Paper.select('#apexcharts-pie-slice-' + i)
-      .members[0]
+    let size = me.size + 4
+    let elPath = w.globals.dom.Paper.select(
+      `#apexcharts-${w.config.chart.type.toLowerCase()}-slice-${i}`
+    ).members[0]
 
     let pathFrom = elPath.attr('d')
 
@@ -827,22 +828,24 @@ class Pie {
         dataLabelsConfig.total.formatter(w)
       )
     } else {
-      if (w.globals.selectedDataPoints.length) {
+      if (w.globals.selectedDataPoints.length && w.globals.series.length > 1) {
         if (w.globals.selectedDataPoints[0].length > 0) {
           const index = w.globals.selectedDataPoints[0]
           const el = w.globals.dom.baseEl.querySelector(
-            `#apexcharts-pie-slice-${index}`
+            `#apexcharts-${w.config.chart.type.toLowerCase()}-slice-${index}`
           )
 
           this.printDataLabelsInner(el, dataLabelsConfig)
-        } else {
+        } else if (
+          w.globals.selectedDataPoints.length &&
+          w.globals.selectedDataPoints[0].length === 0
+        ) {
           dataLabelsGroup.style.opacity = 0
         }
-      } else if (
-        w.globals.selectedDataPoints.length === 0 ||
-        (dataLabelsGroup !== null && w.globals.series.length > 1)
-      ) {
-        dataLabelsGroup.style.opacity = 0
+      } else {
+        if (dataLabelsGroup !== null && w.globals.series.length > 1) {
+          dataLabelsGroup.style.opacity = 0
+        }
       }
     }
   }
