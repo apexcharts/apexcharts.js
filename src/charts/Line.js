@@ -357,6 +357,26 @@ class Line {
         id: `apexcharts-${type}`
       }
 
+      if (type === 'area') {
+        let pathFill = fill.fillPath({
+          seriesNumber: realIndex
+        })
+
+        for (let p = 0; p < areaPaths.length; p++) {
+          let renderedPath = graphics.renderPaths({
+            ...defaultRenderedPathOptions,
+            pathFrom: pathFromArea,
+            pathTo: areaPaths[p],
+            stroke: 'none',
+            strokeWidth: 0,
+            strokeLineCap: null,
+            fill: pathFill
+          })
+
+          elSeries.add(renderedPath)
+        }
+      }
+
       if (w.config.stroke.show && !this.pointsChart) {
         let lineFill = null
         if (type === 'line') {
@@ -380,27 +400,6 @@ class Line {
               : w.config.stroke.width,
             strokeLineCap: w.config.stroke.lineCap,
             fill: 'none'
-          })
-
-          elSeries.add(renderedPath)
-        }
-      }
-
-      // we have drawn the lines, now if it is area chart, we need to fill paths
-      if (type === 'area') {
-        let pathFill = fill.fillPath({
-          seriesNumber: realIndex
-        })
-
-        for (let p = 0; p < areaPaths.length; p++) {
-          let renderedPath = graphics.renderPaths({
-            ...defaultRenderedPathOptions,
-            pathFrom: pathFromArea,
-            pathTo: areaPaths[p],
-            stroke: 'none',
-            strokeWidth: 0,
-            strokeLineCap: null,
-            fill: pathFill
           })
 
           elSeries.add(renderedPath)
