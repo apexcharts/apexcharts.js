@@ -71,7 +71,9 @@ export default class Annotations {
         '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
       )
 
-      x1 = parseFloat(xLabel.getAttribute('x'))
+      if (xLabel) {
+        x1 = parseFloat(xLabel.getAttribute('x'))
+      }
     }
 
     let strokeDashArray = anno.strokeDashArray
@@ -159,7 +161,9 @@ export default class Annotations {
         '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
       )
 
-      y1 = parseFloat(xLabel.getAttribute('y'))
+      if (xLabel) {
+        y1 = parseFloat(xLabel.getAttribute('y'))
+      }
     } else {
       y1 =
         w.globals.gridHeight -
@@ -192,7 +196,9 @@ export default class Annotations {
           '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
         )
 
-        y2 = parseFloat(xLabel.getAttribute('y'))
+        if (xLabel) {
+          y2 = parseFloat(xLabel.getAttribute('y'))
+        }
       } else {
         y2 =
           w.globals.gridHeight -

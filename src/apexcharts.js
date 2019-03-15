@@ -395,8 +395,8 @@ export default class ApexCharts {
           return {
             ...w.config.series[i],
             name: s.name ? s.name : w.config.series[i].name,
-            type: s.type,
-            data: s.data
+            type: s.type ? s.type : w.config.series[i].type,
+            data: s.data ? s.data : w.config.series[i].data
           }
         })
       }
@@ -529,8 +529,8 @@ export default class ApexCharts {
         return {
           ...w.config.series[i],
           name: s.name ? s.name : w.config.series[i].name,
-          type: s.type,
-          data: s.data
+          type: s.type ? s.type : w.config.series[i].type,
+          data: s.data ? s.data : w.config.series[i].data
         }
       })
 

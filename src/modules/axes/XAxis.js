@@ -115,6 +115,8 @@ export default class XAxis {
           }
         }
 
+        if (typeof label === 'undefined') label = ''
+
         label = label.toString()
         if (
           label.indexOf('NaN') === 0 ||
