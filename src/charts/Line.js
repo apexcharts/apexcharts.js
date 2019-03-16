@@ -65,6 +65,19 @@ class Line {
     for (let i = 0; i < series.length; i++) {
       // width divided into equal parts
 
+      if (
+        coreUtils.seriesHaveSameValues(i) &&
+        type === 'line' &&
+        (w.config.fill.type === 'gradient' ||
+          w.config.fill.type[i] === 'gradient')
+      ) {
+        // a small adjustment to allow gradient line to draw correctly for all same values
+        /* #fix https://github.com/apexcharts/apexcharts.js/issues/358 */
+        let gSeries = series[i].slice()
+        gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 0.000001
+        series[i] = gSeries
+      }
+
       let xDivision = w.globals.gridWidth / w.globals.dataPoints
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
