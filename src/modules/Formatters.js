@@ -106,7 +106,7 @@ class Formatters {
           if (Utils.isNumber(val)) {
             if (
               w.globals.yValueDecimal !== 0 ||
-              w.globals.maxY - w.globals.minY < 1
+              w.globals.maxY - w.globals.minY < 3
             ) {
               return val.toFixed(yaxe.decimalsInFloat)
             } else {

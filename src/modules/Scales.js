@@ -212,8 +212,10 @@ export default class Range {
           minY,
           maxY,
           index,
-          y.tickAmount ? y.tickAmount : 5
+          // fix https://github.com/apexcharts/apexcharts.js/issues/397
+          y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5
         )
+        //
       }
     }
   }
