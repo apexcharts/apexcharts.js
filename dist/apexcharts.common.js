@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.6.2
+ * ApexCharts v3.6.3
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -2772,7 +2772,10 @@ function () {
       if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
         var catIndex = w.globals.labels.indexOf(anno.x);
         var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
-        x1 = parseFloat(xLabel.getAttribute('x'));
+
+        if (xLabel) {
+          x1 = parseFloat(xLabel.getAttribute('x'));
+        }
       }
 
       var strokeDashArray = anno.strokeDashArray;
@@ -2852,7 +2855,10 @@ function () {
       if (this.invertAxis) {
         var catIndex = w.globals.labels.indexOf(anno.y);
         var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
-        y1 = parseFloat(xLabel.getAttribute('y'));
+
+        if (xLabel) {
+          y1 = parseFloat(xLabel.getAttribute('y'));
+        }
       } else {
         y1 = w.globals.gridHeight - (anno.y - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
 
@@ -2878,7 +2884,9 @@ function () {
 
           var _xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (_catIndex + 1) + ')');
 
-          y2 = parseFloat(_xLabel.getAttribute('y'));
+          if (_xLabel) {
+            y2 = parseFloat(_xLabel.getAttribute('y'));
+          }
         } else {
           y2 = w.globals.gridHeight - (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) / (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight);
 
@@ -4084,21 +4092,22 @@ function () {
       if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
         // Negative numbers present in series
         gl.hasNegs = true;
+      }
+
+      if (gl.isMultipleYAxis) {
         baseLineY = []; // baseline variables is the 0 of the yaxis which will be needed when there are negatives
 
-        if (gl.isMultipleYAxis) {
-          for (var _i2 = 0; _i2 < yRatio.length; _i2++) {
-            baseLineY.push(-gl.minYArr[_i2] / yRatio[_i2]);
-          }
-        } else {
-          baseLineY.push(-gl.minY / yRatio[0]);
+        for (var _i2 = 0; _i2 < yRatio.length; _i2++) {
+          baseLineY.push(-gl.minYArr[_i2] / yRatio[_i2]);
         }
-
-        baseLineInvertedY = -gl.minY / invertedYRatio; // this is for bar chart
-
-        baseLineX = gl.minX / xRatio;
       } else {
-        baseLineY.push(0);
+        baseLineY.push(-gl.minY / yRatio[0]);
+
+        if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
+          baseLineInvertedY = -gl.minY / invertedYRatio; // this is for bar chart
+
+          baseLineX = gl.minX / xRatio;
+        }
       }
 
       return {
@@ -7947,7 +7956,7 @@ function () {
           classes: 'apexcharts-pie-area'
         });
         elPath.attr({
-          id: 'apexcharts-pie-slice-' + i,
+          id: "apexcharts-".concat(w.config.chart.type, "-slice-").concat(i),
           index: 0,
           j: i
         });
@@ -8191,8 +8200,8 @@ function () {
       var w = this.w;
       var me = this;
       var path;
-      var size = me.size + 3;
-      var elPath = w.globals.dom.Paper.select('#apexcharts-pie-slice-' + i).members[0];
+      var size = me.size + 4;
+      var elPath = w.globals.dom.Paper.select("#apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(i)).members[0];
       var pathFrom = elPath.attr('d');
 
       if (elPath.attr('data:pieClicked') === 'true') {
@@ -8421,18 +8430,20 @@ function () {
         var pie = new Pie(this.ctx);
         pie.printInnerLabels(dataLabelsConfig, dataLabelsConfig.total.label, dataLabelsConfig.total.formatter(w));
       } else {
-        if (w.globals.selectedDataPoints.length) {
+        if (w.globals.selectedDataPoints.length && w.globals.series.length > 1) {
           if (w.globals.selectedDataPoints[0].length > 0) {
             var index = w.globals.selectedDataPoints[0];
 
-            var _el = w.globals.dom.baseEl.querySelector("#apexcharts-pie-slice-".concat(index));
+            var _el = w.globals.dom.baseEl.querySelector("#apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(index));
 
             this.printDataLabelsInner(_el, dataLabelsConfig);
-          } else {
+          } else if (w.globals.selectedDataPoints.length && w.globals.selectedDataPoints[0].length === 0) {
             dataLabelsGroup.style.opacity = 0;
           }
-        } else if (w.globals.selectedDataPoints.length === 0 || dataLabelsGroup !== null && w.globals.series.length > 1) {
-          dataLabelsGroup.style.opacity = 0;
+        } else {
+          if (dataLabelsGroup !== null && w.globals.series.length > 1) {
+            dataLabelsGroup.style.opacity = 0;
+          }
         }
       }
     }
@@ -9135,7 +9146,7 @@ function (_Pie) {
 
         elRadialBarArc.add(elPath);
         elPath.attr({
-          id: 'apexcharts-radialArc-' + i,
+          id: 'apexcharts-radialbar-slice-' + i,
           index: 0,
           j: i
         });
@@ -9283,6 +9294,17 @@ function () {
 
       for (var i = 0; i < series.length; i++) {
         // width divided into equal parts
+        if (type === 'line' && (w.config.fill.type === 'gradient' || w.config.fill.type[i] === 'gradient')) {
+          // a small adjustment to allow gradient line to draw correctly for all same values
+
+          /* #fix https://github.com/apexcharts/apexcharts.js/issues/358 */
+          if (coreUtils.seriesHaveSameValues(i)) {
+            var gSeries = series[i].slice();
+            gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 0.000001;
+            series[i] = gSeries;
+          }
+        }
+
         var xDivision = w.globals.gridWidth / w.globals.dataPoints;
         var realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
 
@@ -9522,6 +9544,24 @@ function () {
           id: "apexcharts-".concat(type)
         };
 
+        if (type === 'area') {
+          var pathFill = fill.fillPath({
+            seriesNumber: realIndex
+          });
+
+          for (var p = 0; p < areaPaths.length; p++) {
+            var renderedPath = graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
+              pathFrom: pathFromArea,
+              pathTo: areaPaths[p],
+              stroke: 'none',
+              strokeWidth: 0,
+              strokeLineCap: null,
+              fill: pathFill
+            }));
+            elSeries.add(renderedPath);
+          }
+        }
+
         if (w.config.stroke.show && !this.pointsChart) {
           var lineFill = null;
 
@@ -9535,33 +9575,14 @@ function () {
             lineFill = w.globals.stroke.colors[realIndex];
           }
 
-          for (var p = 0; p < linePaths.length; p++) {
-            var renderedPath = graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
+          for (var _p = 0; _p < linePaths.length; _p++) {
+            var _renderedPath = graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
               pathFrom: pathFromLine,
-              pathTo: linePaths[p],
+              pathTo: linePaths[_p],
               stroke: lineFill,
               strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[realIndex] : w.config.stroke.width,
               strokeLineCap: w.config.stroke.lineCap,
               fill: 'none'
-            }));
-            elSeries.add(renderedPath);
-          }
-        } // we have drawn the lines, now if it is area chart, we need to fill paths
-
-
-        if (type === 'area') {
-          var pathFill = fill.fillPath({
-            seriesNumber: realIndex
-          });
-
-          for (var _p = 0; _p < areaPaths.length; _p++) {
-            var _renderedPath = graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
-              pathFrom: pathFromArea,
-              pathTo: areaPaths[_p],
-              stroke: 'none',
-              strokeWidth: 0,
-              strokeLineCap: null,
-              fill: pathFill
             }));
 
             elSeries.add(_renderedPath);
@@ -9727,12 +9748,10 @@ function () {
             pathFromLine = w.globals.previousPaths[pp].paths[0].d;
           } else if (gpp.type === 'area') {
             this.appendPathFrom = false;
+            pathFromArea = w.globals.previousPaths[pp].paths[0].d;
 
             if (w.config.stroke.show) {
-              pathFromLine = w.globals.previousPaths[pp].paths[0].d;
-              pathFromArea = w.globals.previousPaths[pp].paths[1].d;
-            } else {
-              pathFromArea = w.globals.previousPaths[pp].paths[0].d;
+              pathFromLine = w.globals.previousPaths[pp].paths[1].d;
             }
           }
         }
@@ -10254,7 +10273,7 @@ function () {
         } else {
           w.globals.yLabelFormatters[i] = function (val) {
             if (Utils.isNumber(val)) {
-              if (w.globals.yValueDecimal !== 0 || w.globals.maxY - w.globals.minY < 1) {
+              if (w.globals.yValueDecimal !== 0 || w.globals.maxY - w.globals.minY < 3) {
                 return val.toFixed(yaxe.decimalsInFloat);
               } else {
                 return val.toFixed(0);
@@ -10392,9 +10411,10 @@ function () {
             }
           }
 
+          if (typeof label === 'undefined') label = '';
           label = label.toString();
 
-          if (label.indexOf('NaN') === 0 || label === 'undefined' || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || this.drawnLabels.indexOf(label) >= 0 && !w.config.xaxis.labels.showDuplicates) {
+          if (label.indexOf('NaN') === 0 || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || this.drawnLabels.indexOf(label) >= 0 && !w.config.xaxis.labels.showDuplicates) {
             label = '';
           }
 
@@ -10850,7 +10870,8 @@ function () {
         } else {
           // there is some data. Turn off the allSeriesCollapsed flag
           gl.allSeriesCollapsed = false;
-          gl.yAxisScale[index] = this.niceScale(minY, maxY, index, y.tickAmount ? y.tickAmount : 5);
+          gl.yAxisScale[index] = this.niceScale(minY, maxY, index, // fix https://github.com/apexcharts/apexcharts.js/issues/397
+          y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5); //
         }
       }
     }
@@ -26862,8 +26883,8 @@ function () {
           options$$1.series = options$$1.series.map(function (s, i) {
             return _objectSpread({}, w.config.series[i], {
               name: s.name ? s.name : w.config.series[i].name,
-              type: s.type,
-              data: s.data
+              type: s.type ? s.type : w.config.series[i].type,
+              data: s.data ? s.data : w.config.series[i].data
             });
           });
         } // user updated the series via updateOptions() function.
@@ -26997,8 +27018,8 @@ function () {
         existingSeries = newSeries.map(function (s, i) {
           return _objectSpread({}, w.config.series[i], {
             name: s.name ? s.name : w.config.series[i].name,
-            type: s.type,
-            data: s.data
+            type: s.type ? s.type : w.config.series[i].type,
+            data: s.data ? s.data : w.config.series[i].data
           });
         });
         w.config.series = existingSeries;
