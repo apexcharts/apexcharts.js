@@ -800,6 +800,15 @@ export default class ApexCharts {
       case 'appendData': {
         return chart.appendData(...opts)
       }
+      case 'appendSeries': {
+        return chart.appendSeries(...opts)
+      }
+      case 'toggleSeries': {
+        return chart.toggleSeries(...opts)
+      }
+      case 'dataURI': {
+        return chart.dataURI(...opts)
+      }
       case 'addXaxisAnnotation': {
         return chart.addXaxisAnnotation(...opts)
       }
@@ -809,8 +818,14 @@ export default class ApexCharts {
       case 'addPointAnnotation': {
         return chart.addPointAnnotation(...opts)
       }
+      case 'addText': {
+        return chart.addText(...opts)
+      }
       case 'clearAnnotations': {
         return chart.clearAnnotations(...opts)
+      }
+      case 'paper': {
+        return chart.paper(...opts)
       }
       case 'destroy': {
         return chart.destroy()
@@ -976,11 +991,6 @@ export default class ApexCharts {
         'Wrong locale name provided. Please make sure you set the correct locale name in options'
       )
     }
-  }
-
-  svgUrl() {
-    const exp = new Exports(this.ctx)
-    return exp.svgUrl()
   }
 
   dataURI() {
