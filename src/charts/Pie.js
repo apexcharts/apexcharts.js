@@ -837,13 +837,14 @@ class Pie {
 
           this.printDataLabelsInner(el, dataLabelsConfig)
         } else if (
+          dataLabelsGroup &&
           w.globals.selectedDataPoints.length &&
           w.globals.selectedDataPoints[0].length === 0
         ) {
           dataLabelsGroup.style.opacity = 0
         }
       } else {
-        if (dataLabelsGroup !== null && w.globals.series.length > 1) {
+        if (dataLabelsGroup && w.globals.series.length > 1) {
           dataLabelsGroup.style.opacity = 0
         }
       }
