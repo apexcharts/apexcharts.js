@@ -14,7 +14,8 @@
     define(function () {
       return factory(root, root.document)
     })
-  } else if (typeof exports === 'object') {
+    /* below check fixes #412 */
+  } else if (typeof exports === 'object' && typeof module !== 'undefined') {
     module.exports = root.document ? factory(root, root.document) : function (w) { return factory(w, w.document) }
   } else {
     root.SVG = factory(root, root.document)
