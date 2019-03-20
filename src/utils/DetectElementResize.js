@@ -14,13 +14,19 @@
     var triggers = element.__resizeTriggers__,
       expand = triggers.firstElementChild,
       contract = triggers.lastElementChild,
-      expandChild = expand.firstElementChild
-    contract.scrollLeft = contract.scrollWidth
-    contract.scrollTop = contract.scrollHeight
-    expandChild.style.width = expand.offsetWidth + 1 + 'px'
-    expandChild.style.height = expand.offsetHeight + 1 + 'px'
-    expand.scrollLeft = expand.scrollWidth
-    expand.scrollTop = expand.scrollHeight
+      expandChild = expand ? expand.firstElementChild : null
+    if (contract) {
+      contract.scrollLeft = contract.scrollWidth
+      contract.scrollTop = contract.scrollHeight
+    }
+    if (expandChild) {
+      expandChild.style.width = expand.offsetWidth + 1 + 'px'
+      expandChild.style.height = expand.offsetHeight + 1 + 'px'
+    }
+    if (expand) {
+      expand.scrollLeft = expand.scrollWidth
+      expand.scrollTop = expand.scrollHeight
+    }
   }
 
   function checkTriggers (element) {
@@ -131,7 +137,9 @@
       element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1)  
       if (!element.__resizeListeners__.length) {
         element.removeEventListener('scroll', scrollListener)
-        element.__resizeTriggers__ = !element.removeChild(element.__resizeTriggers__)        
+        if (element.__resizeTriggers__.parentNode) {
+          element.__resizeTriggers__ = !element.removeChild(element.__resizeTriggers__)
+        }
       }
     }    
   }
