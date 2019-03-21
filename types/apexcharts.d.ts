@@ -615,8 +615,12 @@ type ApexTooltip = {
   intersect?: boolean;
   inverseOrder?: boolean;
   custom?(options: any): void;
-  theme?: string;
   fillSeriesColor?: boolean;
+  theme?: string;
+  style?: {
+    fontSize?: string;
+    fontFamily?: string;
+  };
   onDatasetHover?: {
     highlightDAtaSeries?: boolean;
   };
@@ -626,7 +630,6 @@ type ApexTooltip = {
     formatter?(val: number): string;
   }
   y?: {
-    show?: boolean;
     formatter?(val: number): string;
     title?: {
       formatter?(seriesName: string): string;
