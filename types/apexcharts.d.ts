@@ -31,21 +31,23 @@ declare module ApexCharts {
     chart?: ApexChart;
     colors?: string[];
     dataLabels?: ApexDataLabels;
-    series?: ApexAxisChartSeries | ApexNonAxisChartSeries;
-    stroke?: ApexStroke;
+    fill?: ApexFill;
+    grid?: ApexGrid;
     labels?: string[];
     legend?: ApexLegend;
-    fill?: ApexFill;
-    tooltip?: ApexTooltip;
+    markers?: ApexMarkers;
+    noData?: ApexNoData;
     plotOptions?: ApexPlotOptions;
     responsive?: ApexResponsive[];
-    xaxis?: ApexXAxis;
-    yaxis?: ApexYAxis | ApexYAxis[];
-    grid?: ApexGrid;
+    series?: ApexAxisChartSeries | ApexNonAxisChartSeries;
     states?: ApexStates;
-    title?: ApexTitleSubtitle;
+    stroke?: ApexStroke;
     subtitle?: ApexTitleSubtitle;
     theme?: ApexTheme;
+    title?: ApexTitleSubtitle;
+    tooltip?: ApexTooltip;
+    xaxis?: ApexXAxis;
+    yaxis?: ApexYAxis | ApexYAxis[];
   }
 }
 
@@ -345,7 +347,6 @@ type ApexLocale = {
 type ApexPlotOptions = {
   bar?: {
     horizontal?: boolean;
-    endingShape?: "flat" | "rounded" | "arrow";
     columnWidth?: string;
     barHeight?: string;
     distributed?: boolean;
@@ -377,18 +378,26 @@ type ApexPlotOptions = {
     shadeIntensity?: number;
     distributed?: boolean;
     colorScale?: {
-      inverse?: boolean;
       ranges?: {
         from?: number;
         to?: number;
         color?: string;
+        name?: string;
       }[];
+      inverse?: boolean;
       min?: number;
       max?: number;
     }
   };
   pie?: {
     size?: number;
+    customScale?: number;
+    offsetX?: number;
+    offsetY?: number;
+    expandOnClick?: boolean;
+    dataLabels?: {
+      offset?: number;
+    };
     donut?: {
       size?: string;
       background?: string;
@@ -417,19 +426,14 @@ type ApexPlotOptions = {
         }
       }
     };
-    customScale?: number;
-    offsetX?: number;
-    offsetY?: number;
-    dataLabels?: {
-      offset?: number;
-    }
   };
   radar?: {
     size?: number;
     offsetX?: number;
     offsetY?: number;
     polygons?: {
-      strokeColor?: string;
+      strokeColor?: string | string[];
+      connectorColors?: string | string[];
       fill?: {
         colors?: string[]
       }
@@ -573,6 +577,45 @@ type ApexLegend = {
     highlightDataSeries?: boolean;
   }
 };
+
+type ApexDiscretePoint = {
+  seriesIndex?: number;
+  dataPointIndex?: number;
+  fillColor?: string;
+  strokeColor?: string;
+  size?: number;
+}
+
+type ApexMarkers = {
+  size?: number;
+  colors?: string[];
+  strokeColor?: string;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  fillOpacity?: number;
+  discrete?: ApexDiscretePoint[];
+  shape?: 'circle' | 'square';
+  radius?: number;
+  offsetX?: number;
+  offsetY?: number;
+  hover?: {
+    size?: number;
+    sizeOffset?: number;
+  };
+}
+
+type ApexNoData = {
+  text?: string,
+  align?: 'left' | 'right' | 'center',
+  verticalAlign?: 'top' | 'middle' | 'bottom',
+  offsetX?: number,
+  offsetY?: number,
+  style?: {
+    color?: string,
+    fontSize?: string,
+    fontFamily?: string
+  }
+}
 
 /**
 * Chart Datalabels options
