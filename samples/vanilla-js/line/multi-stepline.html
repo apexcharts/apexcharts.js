@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Stepline Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="chart">
+
+  </div>
+
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="../../assets/irregular-data-series.js"></script>
+
+  <script>
+    var ts2 = 1484418600000;
+    var data = [];
+    var spikes = [5, -5, 3, -3, 8, -8]
+    for (var i = 0; i < 30; i++) {
+      ts2 = ts2 + 86400000;
+      var innerArr = [ts2, dataSeries[1][i].value];
+      data.push(innerArr)
+    }
+
+    var options = {
+      chart: {
+        type: 'line',
+        height: 350
+      },
+      stroke: {
+        curve: ['smooth', 'stepline'],
+      },
+      dataLabels: {
+        enabled: false
+      },
+      series: [{
+        data: [34, 44, 54, 21, 12, 43, 33, 23, 66, 66, 58]
+      },{
+        data: [24, 34, 44, 11, 2, 33, 23, 13, 56, 56, 48],
+        type: 'area'
+      }],
+      title: {
+        text: 'Stepline Chart',
+        align: 'left'
+      },
+      markers: {
+        hover: {
+          sizeOffset: 4
+        }
+      },
+
+    }
+
+    var chart = new ApexCharts(
+      document.querySelector("#chart"),
+      options
+    );
+
+    chart.render();
+  </script>
+</body>
+
+</html>
