@@ -43,10 +43,10 @@ class BarStacked extends Bar {
     this.prevXVal = [] // x values (series[i][j]) in bars
 
     this.xArrj = [] // xj indicates x position on graph in bars
-    this.xArrjF = [] // xjF indicates bar's x position + endingshape's positions in bars
+    this.xArrjF = [] // xjF indicates bar's x position positions in bars
     this.xArrjVal = [] // x val means the actual series's y values in horizontal/bars
     this.yArrj = [] // yj indicates y position on graph in columns
-    this.yArrjF = [] // yjF indicates bar's y position + endingshape's positions in columns
+    this.yArrjF = [] // yjF indicates bar's y position positions in columns
     this.yArrjVal = [] // y val means the actual series's y values in columns
 
     for (let sl = 0; sl < series.length; sl++) {
