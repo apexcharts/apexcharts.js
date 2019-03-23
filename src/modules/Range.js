@@ -56,6 +56,15 @@ class Range {
           maxY = Math.max(maxY, seriesMax[i][j])
           lowestY = Math.min(lowestY, seriesMin[i][j])
           highestY = Math.max(highestY, seriesMin[i][j])
+
+          if (this.w.config.chart.type === 'candlestick') {
+            maxY = Math.max(maxY, gl.seriesCandleO[i][j])
+            maxY = Math.max(maxY, gl.seriesCandleH[i][j])
+            maxY = Math.max(maxY, gl.seriesCandleL[i][j])
+            maxY = Math.max(maxY, gl.seriesCandleC[i][j])
+            highestY = maxY
+          }
+
           if (Utils.isFloat(series[i][j])) {
             gl.yValueDecimal = Math.max(
               gl.yValueDecimal,

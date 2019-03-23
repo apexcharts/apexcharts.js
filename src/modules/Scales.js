@@ -51,6 +51,10 @@ export default class Range {
 
     // Determine Range
     let range = yMax - yMin
+
+    if (range < 1) {
+      yMax = yMax * 1.01
+    }
     let tiks = ticks + 1
     // Adjust ticks if needed
     if (tiks < 2) {
