@@ -22,6 +22,11 @@
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
+<p align="center">Sponsored by</p> <br />
+<p align="center">
+  <a href="https://metru.de/?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/metru.png" height="70px" /></a>
+</p><br />
+
 ## Browsers support
 
 | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_48x48.png" alt="Firefox" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Firefox | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_48x48.png" alt="Chrome" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Chrome | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_48x48.png" alt="Safari" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Safari | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_48x48.png" alt="Edge" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> Edge | [<img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Internet_Explorer_9_icon.svg" alt="IE" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> IE11 |
@@ -179,8 +184,6 @@ Financial contributions to ApexCharts go towards ongoing development costs, serv
 
 ### Sponsors
 Become a sponsor and get your logo on our website's home-page with a link to your site. [[Become a sponsor](https://www.patreon.com/join/junedchhipa)]
-
-<a href="https://www.santego.fr/?ref=apexcharts.com" target="_blank" style="text-align: center; display: inline-block;"><img src="https://apexcharts.com/media/sponsors/santego.png" width="100" height="100" /></a>
 
 
 ## License
