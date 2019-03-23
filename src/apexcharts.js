@@ -394,9 +394,15 @@ export default class ApexCharts {
         options.series = options.series.map((s, i) => {
           return {
             ...w.config.series[i],
-            name: s.name ? s.name : w.config.series[i].name,
-            type: s.type ? s.type : w.config.series[i].type,
-            data: s.data ? s.data : w.config.series[i].data
+            name: s.name
+              ? s.name
+              : w.config.series[i] && w.config.series[i].name,
+            type: s.type
+              ? s.type
+              : w.config.series[i] && w.config.series[i].type,
+            data: s.data
+              ? s.data
+              : w.config.series[i] && w.config.series[i].data
           }
         })
       }
@@ -528,9 +534,9 @@ export default class ApexCharts {
       existingSeries = newSeries.map((s, i) => {
         return {
           ...w.config.series[i],
-          name: s.name ? s.name : w.config.series[i].name,
-          type: s.type ? s.type : w.config.series[i].type,
-          data: s.data ? s.data : w.config.series[i].data
+          name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
+          type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
+          data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
         }
       })
 
