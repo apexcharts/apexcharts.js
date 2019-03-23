@@ -288,8 +288,7 @@ class Line {
           linePath,
           areaPath,
           linePaths,
-          areaPaths,
-          seriesIndex
+          areaPaths
         })
 
         areaPaths = calculatedPaths.areaPaths
@@ -447,21 +446,14 @@ class Line {
     linePath,
     areaPath,
     linePaths,
-    areaPaths,
-    seriesIndex
+    areaPaths
   }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    var curve = w.config.stroke.curve
-
-    if (Array.isArray(w.config.stroke.curve)) {
-      if (Array.isArray(seriesIndex)) {
-        curve = w.config.stroke.curve[seriesIndex[i]]
-      } else {
-        curve = w.config.stroke.curve[i]
-      }
-    }
+    const curve = Array.isArray(w.config.stroke.curve)
+      ? w.config.stroke.curve[i]
+      : w.config.stroke.curve
 
     // logic of smooth curve derived from chartist
     // CREDITS: https://gionkunz.github.io/chartist-js/
