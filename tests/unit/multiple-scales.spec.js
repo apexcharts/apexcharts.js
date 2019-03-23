@@ -1,5 +1,4 @@
 import { createChartWithOptions } from './utils/utils.js'
-import Range from '../../src/modules/Range'
 
 import { logData } from './data/log-data.js'
 

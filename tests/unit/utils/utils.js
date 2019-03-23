@@ -1,4 +1,4 @@
-import ApexCharts from '../../../dist/apexcharts.min.js'
+import ApexCharts from '../../../dist/apexcharts.js'
 
 module.exports = {
   createChart: function(type, series) {

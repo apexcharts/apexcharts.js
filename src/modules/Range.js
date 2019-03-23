@@ -159,7 +159,8 @@ class Range {
         }
 
         gl.minY = lowestYInAllSeries - (diff * 5) / 100
-        gl.maxY = gl.maxY + (diff * 5) / 100 + 0.05
+        /* fix https://github.com/apexcharts/apexcharts.js/issues/426 */
+        gl.maxY = gl.maxY + (diff * 5) / 100
       }
     }
 
