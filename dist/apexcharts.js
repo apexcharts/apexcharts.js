@@ -8441,11 +8441,11 @@
               var _el = w.globals.dom.baseEl.querySelector("#apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(index));
 
               this.printDataLabelsInner(_el, dataLabelsConfig);
-            } else if (dataLabelsGroup && w.globals.selectedDataPoints.length && w.globals.selectedDataPoints[0].length === 0) {
+            } else if (w.globals.selectedDataPoints.length && w.globals.selectedDataPoints[0].length === 0) {
               dataLabelsGroup.style.opacity = 0;
             }
           } else {
-            if (dataLabelsGroup && w.globals.series.length > 1) {
+            if (dataLabelsGroup !== null && w.globals.series.length > 1) {
               dataLabelsGroup.style.opacity = 0;
             }
           }
@@ -9469,8 +9469,7 @@
               linePath: linePath,
               areaPath: areaPath,
               linePaths: linePaths,
-              areaPaths: areaPaths,
-              seriesIndex: seriesIndex
+              areaPaths: areaPaths
             });
             areaPaths = calculatedPaths.areaPaths;
             linePaths = calculatedPaths.linePaths;
@@ -9620,21 +9619,11 @@
             linePath = _ref.linePath,
             areaPath = _ref.areaPath,
             linePaths = _ref.linePaths,
-            areaPaths = _ref.areaPaths,
-            seriesIndex = _ref.seriesIndex;
+            areaPaths = _ref.areaPaths;
         var w = this.w;
         var graphics = new Graphics(this.ctx);
-        var curve = w.config.stroke.curve;
-
-        if (Array.isArray(w.config.stroke.curve)) {
-          if (Array.isArray(seriesIndex)) {
-            curve = w.config.stroke.curve[seriesIndex[i]];
-          } else {
-            curve = w.config.stroke.curve[i];
-          }
-        } // logic of smooth curve derived from chartist
+        var curve = Array.isArray(w.config.stroke.curve) ? w.config.stroke.curve[i] : w.config.stroke.curve; // logic of smooth curve derived from chartist
         // CREDITS: https://gionkunz.github.io/chartist-js/
-
 
         if (curve === 'smooth') {
           var length = (x - pX) * 0.35;
@@ -19036,8 +19025,7 @@
       define(function () {
         return factory(root, root.document);
       });
-      /* below check fixes #412 */
-    } else if ((typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object' && typeof module !== 'undefined') {
+    } else if ((typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object') {
       module.exports = root.document ? factory(root, root.document) : function (w) {
         return factory(w, w.document);
       };
@@ -27438,6 +27426,12 @@
         }
       }
     }, {
+      key: "svgUrl",
+      value: function svgUrl() {
+        var exp = new Exports(this.ctx);
+        return exp.svgUrl();
+      }
+    }, {
       key: "dataURI",
       value: function dataURI() {
         var exp = new Exports(this.ctx);
@@ -27526,21 +27520,6 @@
               return chart.appendData.apply(chart, opts);
             }
 
-          case 'appendSeries':
-            {
-              return chart.appendSeries.apply(chart, opts);
-            }
-
-          case 'toggleSeries':
-            {
-              return chart.toggleSeries.apply(chart, opts);
-            }
-
-          case 'dataURI':
-            {
-              return chart.dataURI.apply(chart, opts);
-            }
-
           case 'addXaxisAnnotation':
             {
               return chart.addXaxisAnnotation.apply(chart, opts);
@@ -27556,19 +27535,9 @@
               return chart.addPointAnnotation.apply(chart, opts);
             }
 
-          case 'addText':
-            {
-              return chart.addText.apply(chart, opts);
-            }
-
           case 'clearAnnotations':
             {
               return chart.clearAnnotations.apply(chart, opts);
-            }
-
-          case 'paper':
-            {
-              return chart.paper.apply(chart, opts);
             }
 
           case 'destroy':
