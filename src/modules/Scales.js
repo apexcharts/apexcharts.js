@@ -53,6 +53,7 @@ export default class Range {
     let range = yMax - yMin
 
     if (range < 1) {
+      /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
       yMax = yMax * 1.01
     }
     let tiks = ticks + 1
