@@ -27,8 +27,8 @@ describe('Y-axis with ultra-small values', () => {
     const minY = chart.w.globals.minY
     const maxY = chart.w.globals.maxY
 
-    expect(minY).toEqual(0.0037530000000000003)
-    expect(maxY).toEqual(0.0038069999999999996)
+    expect(minY.toFixed(6)).toEqual('0.003753')
+    expect(maxY.toFixed(6)).toEqual('0.003843')
   })
 
   it('should not round values for smaller range (less than 5)', () => {
