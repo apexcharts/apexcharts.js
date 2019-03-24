@@ -26,7 +26,7 @@
 <p align="center">Sponsored by</p> <br />
 <p align="center">
   <a href="https://www.aputime.com?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/aputime.png"
-      height="120px" /></a>
+      height="150px" /></a>
 </p><br />
 
 <p align="center">
