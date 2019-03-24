@@ -20,11 +20,18 @@
 <p align="center">A modern JavaScript charting library to build interactive charts and visualizations with simple API.</p>
 
 
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
+      src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
 <p align="center">Sponsored by</p> <br />
 <p align="center">
-  <a href="https://metru.de/?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/metru.png" height="70px" /></a>
+  <a href="https://www.aputime.com?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/aputime.png"
+      height="150px" /></a>
+</p><br />
+
+<p align="center">
+  <a href="https://metru.de/?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/metru.png"
+      height="50px" /></a>
 </p><br />
 
 ## Browsers support
