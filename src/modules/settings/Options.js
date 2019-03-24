@@ -24,6 +24,7 @@ export default class Options {
         maxWidth: 160,
         offsetX: 0,
         offsetY: 0,
+        align: undefined,
         rotate: 0,
         padding: 20,
         style: {

@@ -462,4 +462,52 @@ export default class YAxis {
       }
     })
   }
+
+  setYAxisTextAlignments() {
+    const w = this.w
+
+    // w.config.yaxis.forEach((yaxe, index) => {
+    const yaxis = w.globals.dom.baseEl.querySelectorAll(`.apexcharts-yaxis`)
+
+    yaxis.forEach((y, index) => {
+      const yaxe = w.config.yaxis[index]
+      // proceed only if user has specified alignment
+      if (yaxe.labels.align !== undefined) {
+        const yAxisInner = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
+        )
+        const yAxisTexts = w.globals.dom.baseEl.querySelectorAll(
+          `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`
+        )
+
+        const rect = yAxisInner.getBoundingClientRect()
+
+        if (yaxe.labels.align === 'left') {
+          yAxisTexts.forEach((label, lI) => {
+            label.setAttribute('text-anchor', 'start')
+          })
+          if (!yaxe.opposite) {
+            yAxisInner.setAttribute('transform', `translate(-${rect.width}, 0)`)
+          }
+        } else if (yaxe.labels.align === 'center') {
+          yAxisTexts.forEach((label, lI) => {
+            label.setAttribute('text-anchor', 'middle')
+          })
+          yAxisInner.setAttribute(
+            'transform',
+            `translate(${(rect.width / 2) * (!yaxe.opposite ? -1 : 1)}, 0)`
+          )
+        } else if (yaxe.labels.align === 'right') {
+          yAxisTexts.forEach((label, lI) => {
+            label.setAttribute('text-anchor', 'end')
+          })
+          if (yaxe.opposite) {
+            yAxisInner.setAttribute('transform', `translate(${rect.width}, 0)`)
+          }
+        }
+      }
+    })
+
+    // })
+  }
 }

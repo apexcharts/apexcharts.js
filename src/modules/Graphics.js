@@ -483,7 +483,7 @@ class Graphics {
       x: x,
       y: y,
       'text-anchor': textAnchor,
-      'dominant-baseline': 'central',
+      'dominant-baseline': 'auto',
       'font-size': fontSize,
       'font-family': fontFamily,
       fill: foreColor,

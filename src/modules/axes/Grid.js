@@ -2,6 +2,7 @@ import Animations from '../Animations'
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
+import YAxis from './YAxis'
 
 /**
  * ApexCharts Grid Class for drawing Cartesian Grid.
@@ -67,6 +68,7 @@ class Grid {
     let w = this.w
 
     let xAxis = new XAxis(this.ctx)
+    let yaxis = new YAxis(this.ctx)
 
     let gl = this.w.globals
 
@@ -87,6 +89,8 @@ class Grid {
       if (elgrid !== null) {
         xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
       }
+
+      yaxis.setYAxisTextAlignments()
     }
   }
 
