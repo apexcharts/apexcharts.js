@@ -809,7 +809,7 @@ type ApexYAxis = {
   opposite?: boolean;
   logarithmic?: boolean;
   tickAmount?: number;
-  forceNiceScale: false,
+  forceNiceScale?: boolean,
   min?: number;
   max?: number;
   floating?: boolean;
@@ -821,6 +821,7 @@ type ApexYAxis = {
     offsetX?: number;
     offsetY?: number;
     rotate?: number;
+    align?: 'left' | 'center' | 'right';
     padding?: number,
     style?: {
       color?: string;
