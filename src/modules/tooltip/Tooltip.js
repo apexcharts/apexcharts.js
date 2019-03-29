@@ -351,7 +351,7 @@ export default class Tooltip {
 
       this.w.globals.tooltipOpts = extendedOpts
 
-      let events = ['mousemove', 'touchmove', 'mouseout', 'touchend']
+      let events = ['mousemove', 'mouseup', 'touchmove', 'mouseout', 'touchend']
 
       events.map((ev) => {
         return paths[p].addEventListener(
@@ -502,7 +502,11 @@ export default class Tooltip {
       isStickyTooltip = false
     }
 
-    if (e.type === 'mousemove' || e.type === 'touchmove') {
+    if (
+      e.type === 'mousemove' ||
+      e.type === 'touchmove' ||
+      e.type === 'mouseup'
+    ) {
       if (xcrosshairs !== null) {
         xcrosshairs.classList.add('active')
       }
@@ -542,20 +546,20 @@ export default class Tooltip {
               this.tooltipUtil.isXoverlap(j) &&
               this.tooltipUtil.isinitialSeriesSameLen()
             ) {
-              this.create(self, capturedSeries, j, opt.ttItems)
+              this.create(e, self, capturedSeries, j, opt.ttItems)
             } else {
-              this.create(self, capturedSeries, j, opt.ttItems, false)
+              this.create(e, self, capturedSeries, j, opt.ttItems, false)
             }
           } else {
             if (this.tooltipUtil.isXoverlap(j)) {
-              self.create(self, 0, j, opt.ttItems)
+              self.create(e, self, 0, j, opt.ttItems)
             }
           }
         } else {
           // couldn't capture any series. check if shared X is same,
           // if yes, draw a grouped tooltip
           if (this.tooltipUtil.isXoverlap(j)) {
-            self.create(self, 0, j, opt.ttItems)
+            self.create(e, self, 0, j, opt.ttItems)
           }
         }
       } else {
@@ -723,9 +727,29 @@ export default class Tooltip {
     return bars.length > 0
   }
 
-  create(context, capturedSeries, j, ttItems, shared = null) {
+  markerClick(e, seriesIndex, dataPointIndex) {
+    const w = this.w
+    if (typeof w.config.chart.events.markerClick === 'function') {
+      w.config.chart.events.markerClick(e, this.ctx, {
+        seriesIndex,
+        dataPointIndex,
+        w
+      })
+    }
+    this.ctx.fireEvent('markerClick', [
+      e,
+      this.ctx,
+      { seriesIndex, dataPointIndex, w }
+    ])
+  }
+
+  create(e, context, capturedSeries, j, ttItems, shared = null) {
     let w = this.w
-    let self = context
+    let ttCtx = context
+
+    if (e.type === 'mouseup') {
+      this.markerClick(e, capturedSeries, j)
+    }
 
     if (shared === null) shared = w.config.tooltip.shared
 
@@ -734,7 +758,7 @@ export default class Tooltip {
     const bars = this.getElBars()
 
     if (shared) {
-      self.tooltipLabels.drawSeriesTexts({
+      ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems,
         i: capturedSeries,
         j,
@@ -743,9 +767,9 @@ export default class Tooltip {
 
       if (hasMarkers) {
         if (w.globals.markers.largestSize > 0) {
-          self.marker.enlargePoints(j)
+          ttCtx.marker.enlargePoints(j)
         } else {
-          self.tooltipPosition.moveDynamicPointsOnHover(j)
+          ttCtx.tooltipPosition.moveDynamicPointsOnHover(j)
         }
       }
 
@@ -769,7 +793,7 @@ export default class Tooltip {
         }
       }
     } else {
-      self.tooltipLabels.drawSeriesTexts({
+      ttCtx.tooltipLabels.drawSeriesTexts({
         shared: false,
         ttItems,
         i: capturedSeries,
@@ -777,11 +801,11 @@ export default class Tooltip {
       })
 
       if (this.hasBars()) {
-        self.tooltipPosition.moveStickyTooltipOverBars(j)
+        ttCtx.tooltipPosition.moveStickyTooltipOverBars(j)
       }
 
       if (hasMarkers) {
-        self.tooltipPosition.moveMarkers(capturedSeries, j)
+        ttCtx.tooltipPosition.moveMarkers(capturedSeries, j)
       }
     }
   }

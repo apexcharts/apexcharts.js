@@ -88,6 +88,10 @@ class Intersect {
         shared: ttCtx.intersect ? false : w.config.tooltip.shared
       })
 
+      if (e.type === 'mouseup') {
+        ttCtx.markerClick(e, i, j)
+      }
+
       ttCtx.marker.enlargeCurrentPoint(j, opt.paths)
 
       x = cx

@@ -230,6 +230,7 @@ export default class Options {
           updated: undefined,
           click: undefined,
           legendClick: undefined,
+          markerClick: undefined,
           selection: undefined,
           dataPointSelection: undefined,
           dataPointMouseEnter: undefined,
