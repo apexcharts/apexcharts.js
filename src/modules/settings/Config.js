@@ -93,6 +93,10 @@ export default class Config {
         defaults.stacked100()
       }
 
+      // If user has specified a dark theme, make the tooltip dark too
+      this.checkForDarkTheme(window.Apex) // check global window Apex options
+      this.checkForDarkTheme(opts) // check locally passed options
+
       opts.xaxis = opts.xaxis || window.Apex.xaxis || {}
 
       const combo = CoreUtils.checkComboSeries(opts.series)
@@ -206,6 +210,25 @@ export default class Config {
     return opts
   }
 
+  checkForDarkTheme(opts) {
+    if (opts.theme && opts.theme.mode === 'dark') {
+      if (!opts.tooltip) {
+        opts.tooltip = {}
+      }
+      if (opts.tooltip.theme !== 'light') {
+        opts.tooltip.theme = 'dark'
+      }
+
+      if (!opts.chart.foreColor) {
+        opts.chart.foreColor = '#f6f7f8'
+      }
+
+      if (!opts.theme.palette) {
+        opts.theme.palette = 'palette4'
+      }
+    }
+  }
+
   checkEmptySeries(ser) {
     if (ser.length === 0) {
       return [
@@ -247,6 +270,7 @@ export default class Config {
         )
       }
 
+      // if yaxis is reversed in horizontal bar chart, you should draw the y-axis on right side
       if (config.yaxis[0].reversed) {
         config.yaxis[0].opposite = true
       }

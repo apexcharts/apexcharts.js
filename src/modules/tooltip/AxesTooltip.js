@@ -34,7 +34,10 @@ class AxesTooltip {
 
       if (xaxisTooltip === null) {
         ttCtx.xaxisTooltip = document.createElement('div')
-        ttCtx.xaxisTooltip.setAttribute('class', tooltipCssClass)
+        ttCtx.xaxisTooltip.setAttribute(
+          'class',
+          tooltipCssClass + ' ' + w.config.tooltip.theme
+        )
 
         renderTo.appendChild(ttCtx.xaxisTooltip)
 
@@ -77,7 +80,10 @@ class AxesTooltip {
 
         if (yaxisTooltip === null) {
           ttCtx.yaxisTooltip = document.createElement('div')
-          ttCtx.yaxisTooltip.setAttribute('class', tooltipCssClass)
+          ttCtx.yaxisTooltip.setAttribute(
+            'class',
+            tooltipCssClass + ' ' + w.config.tooltip.theme
+          )
 
           renderTo.appendChild(ttCtx.yaxisTooltip)
 

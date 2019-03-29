@@ -911,6 +911,7 @@ type ApexGrid = {
 };
 
 type ApexTheme = {
+  mode?: "light" | "dark";
   palette?: string;
   monochrome?: {
     enabled?: boolean,

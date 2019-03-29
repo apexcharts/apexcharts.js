@@ -21,6 +21,8 @@ export default class Theme {
     let w = this.w
     let utils = new Utils()
 
+    w.globals.dom.elWrap.classList.add(w.config.theme.mode)
+
     if (w.config.colors === undefined) {
       w.globals.colors = this.predefined()
     } else {
@@ -133,6 +135,7 @@ export default class Theme {
 
   predefined() {
     let palette = this.w.config.theme.palette
+
     // D6E3F8, FCEFEF, DCE0D9, A5978B, EDDDD4, D6E3F8, FEF5EF
     switch (palette) {
       case 'palette1':
@@ -145,7 +148,7 @@ export default class Theme {
         this.colors = ['#33b2df', '#546E7A', '#d4526e', '#13d8aa', '#A5978B']
         break
       case 'palette4':
-        this.colors = ['#546E7A', '#4ecdc4', '#c7f464', '#81D4FA', '#fd6a6a']
+        this.colors = ['#4ecdc4', '#c7f464', '#81D4FA', '#fd6a6a', '#546E7A']
         break
       case 'palette5':
         this.colors = ['#2b908f', '#f9a3a4', '#90ee7e', '#fa4443', '#69d2e7']

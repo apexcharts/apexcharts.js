@@ -414,7 +414,7 @@ export default class Options {
             total: {
               show: false,
               label: 'Total',
-              color: '#373d3f',
+              color: undefined,
               formatter: function(w) {
                 return (
                   w.globals.seriesTotals.reduce((a, b) => {
@@ -463,7 +463,7 @@ export default class Options {
               total: {
                 show: false,
                 label: 'Total',
-                color: '#373d3f',
+                color: undefined,
                 formatter: function(w) {
                   return w.globals.seriesTotals.reduce((a, b) => {
                     return a + b
@@ -853,6 +853,7 @@ export default class Options {
       },
       yaxis: this.yAxis,
       theme: {
+        mode: 'light',
         palette: 'palette1', // If defined, it will overwrite globals.colors variable
         monochrome: {
           // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
