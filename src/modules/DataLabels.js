@@ -72,7 +72,7 @@ class DataLabels {
     }
   }
 
-  drawDataLabel(pos, i, j, z = null) {
+  drawDataLabel(pos, i, j, z = null, align = 'top') {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
     // all other charts like bars / heatmaps will define their own drawDataLabel routine
     let w = this.w
@@ -103,6 +103,13 @@ class DataLabels {
     for (let q = 0; q < pos.x.length; q++) {
       x = pos.x[q] + dataLabelsConfig.offsetX
       y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5
+
+      if (align === 'bottom') {
+        y =
+          y +
+          w.globals.markers.size[i] * 2 +
+          parseInt(dataLabelsConfig.style.fontSize) * 1.4
+      }
 
       if (!isNaN(x)) {
         // a small hack as we have 2 points for the first val to connect it

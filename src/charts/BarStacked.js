@@ -59,8 +59,6 @@ class BarStacked extends Bar {
       class: 'apexcharts-bar-series apexcharts-plot-series'
     })
 
-    ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
-
     let x = 0
     let y = 0
 

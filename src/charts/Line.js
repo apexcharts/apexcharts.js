@@ -340,8 +340,19 @@ class Line {
           })
         }
 
+        let dataLabelAlign =
+          !series[i][j + 1] || series[i][j + 1] > series[i][j]
+            ? 'top'
+            : 'bottom'
+
         let dataLabels = new DataLabels(this.ctx)
-        let drawnLabels = dataLabels.drawDataLabel(pointsPos, realIndex, j + 1)
+        let drawnLabels = dataLabels.drawDataLabel(
+          pointsPos,
+          realIndex,
+          j + 1,
+          null,
+          dataLabelAlign
+        )
         if (drawnLabels !== null) {
           elDataLabelsWrap.add(drawnLabels)
         }

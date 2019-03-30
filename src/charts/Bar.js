@@ -11,8 +11,6 @@ import DataLabels from '../modules/DataLabels'
  * @module Bar
  **/
 
-const DATA_LABELS_WARNING_THRESHOLD = 50
-
 class Bar {
   constructor(ctx, xyRatios) {
     this.ctx = ctx
@@ -61,10 +59,8 @@ class Bar {
       class: 'apexcharts-bar-series apexcharts-plot-series'
     })
 
-    ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
-
     if (w.config.dataLabels.enabled) {
-      if (this.totalItems > DATA_LABELS_WARNING_THRESHOLD) {
+      if (this.totalItems > w.config.plotOptions.bar.dataLabels.maxItems) {
         console.warn(
           'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.'
         )
@@ -296,6 +292,8 @@ class Bar {
       className: `apexcharts-${type}-area`,
       id: `apexcharts-${type}-area`
     })
+
+    renderedPath.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     const filters = new Filters(this.ctx)
     filters.setSelectionFilter(renderedPath, realIndex, j)

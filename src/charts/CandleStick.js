@@ -31,8 +31,6 @@ class CandleStick extends Bar {
       class: 'apexcharts-candlestick-series apexcharts-plot-series'
     })
 
-    ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
-
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
       let pathTo, pathFrom
       let x,
