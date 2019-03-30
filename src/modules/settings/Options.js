@@ -242,6 +242,7 @@ export default class Options {
         foreColor: '#373d3f',
         fontFamily: 'Helvetica, Arial, sans-serif',
         height: 'auto',
+        parentHeightOffset: 15,
         id: undefined,
         group: undefined,
         offsetX: 0,

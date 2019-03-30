@@ -310,7 +310,11 @@ export default class Core {
     })
 
     // gl.dom.Paper.node.parentNode.parentNode.style.minWidth = gl.svgWidth + "px";
-    let offsetY = cnf.chart.sparkline.enabled ? 0 : gl.axisCharts ? 14 : 5
+    let offsetY = cnf.chart.sparkline.enabled
+      ? 0
+      : gl.axisCharts
+      ? cnf.chart.parentHeightOffset
+      : 0
 
     gl.dom.Paper.node.parentNode.parentNode.style.minHeight =
       gl.svgHeight + offsetY + 'px'
