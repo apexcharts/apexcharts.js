@@ -318,6 +318,7 @@ export default class Options {
           columnWidth: '70%', // should be in percent 0 - 100
           barHeight: '70%', // should be in percent 0 - 100
           distributed: false,
+          endingShape: 'flat',
           colors: {
             ranges: [],
             backgroundBarColors: [],

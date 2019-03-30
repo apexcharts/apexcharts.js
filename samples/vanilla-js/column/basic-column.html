@@ -2,86 +2,91 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Basic Column - Grouped</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Basic Column - Grouped</title>
 
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <style>
-    #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-
-  </style>
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
 </head>
 
 <body>
-  <div id="chart">
+    <div id="chart">
 
-  </div>
+    </div>
 
 
-  <script src="../../../dist/apexcharts.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
 
-  <script>
-    var options = {
-      plotOptions: {
-        bar: {
-          barHeight: '50%',
-          dataLabels: {
-            position: 'top', // top, center, bottom
-          },
+    <script>
+        var options = {
+            chart: {
+                height: 350,
+                type: 'bar',
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '55%',
+                    endingShape: 'rounded'	
+                },
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+            },
+            series: [{
+                name: 'Net Profit',
+                data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
+            }, {
+                name: 'Revenue',
+                data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
+            }, {
+                name: 'Free Cash Flow',
+                data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
+            }],
+            xaxis: {
+                categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+            },
+            yaxis: {
+                title: {
+                    text: '$ (thousands)'
+                }
+            },
+            fill: {
+                opacity: 1
+
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return "$ " + val + " thousands"
+                    }
+                }
+            }
         }
-      },
 
-      dataLabels: {
-        enabled: true,
-        // offsetY: -20,
-        formatter: function(val) {
-            return val + 'dsfs'
-          },
-        style: {
-        //   padding: {
-        //     top: 30
-        //   },
-          fontSize: '15px',
-          colors: ["#304758"]
-        }
-      },
+        var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
 
-      chart: {
-        height: 400,
-        // toolbar: {
-        //   show: false
-        // },
-        type: 'line'
-      },
-      series: [ {
-        name: 'Revenue',
-        data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
-      }],
-    //   dataLabels: {
-         
-    //   },
-      grid: {
-          padding: {
-              top: 20
-          }
-      }
-    }
+        chart.render();
+       
 
-    var chart = new ApexCharts(
-      document.querySelector("#chart"),
-      options
-    );
-
-    chart.render();
-
-  </script>
+    </script>
 </body>
 
 </html>

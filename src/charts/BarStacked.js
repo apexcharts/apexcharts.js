@@ -43,10 +43,10 @@ class BarStacked extends Bar {
     this.prevXVal = [] // x values (series[i][j]) in bars
 
     this.xArrj = [] // xj indicates x position on graph in bars
-    this.xArrjF = [] // xjF indicates bar's x position positions in bars
+    this.xArrjF = [] // xjF indicates bar's x position + endingshape's positions in bars
     this.xArrjVal = [] // x val means the actual series's y values in horizontal/bars
     this.yArrj = [] // yj indicates y position on graph in columns
-    this.yArrjF = [] // yjF indicates bar's y position positions in columns
+    this.yArrjF = [] // yjF indicates bar's y position + endingshape's positions in columns
     this.yArrjVal = [] // y val means the actual series's y values in columns
 
     for (let sl = 0; sl < series.length; sl++) {
@@ -352,8 +352,31 @@ class BarStacked extends Bar {
         (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
     }
 
-    this.xArrj.push(x)
-    this.xArrjF.push(Math.abs(barXPosition - x))
+    let endingShapeOpts = {
+      barHeight,
+      strokeWidth,
+      invertedYRatio: this.invertedYRatio,
+      barYPosition,
+      x
+    }
+    let endingShape = this.bar.barEndingShape(
+      w,
+      endingShapeOpts,
+      this.series,
+      i,
+      j
+    )
+
+    if (this.series.length > 1 && i !== this.endingShapeOnSeriesNumber) {
+      // revert back to flat shape if not last series
+      endingShape.path = this.graphics.line(
+        endingShape.newX,
+        barYPosition + barHeight - strokeWidth
+      )
+    }
+
+    this.xArrj.push(endingShape.newX)
+    this.xArrjF.push(Math.abs(barXPosition - endingShape.newX))
     this.xArrjVal.push(this.series[i][j])
 
     pathTo = this.graphics.move(barXPosition, barYPosition)
@@ -365,8 +388,8 @@ class BarStacked extends Bar {
 
     pathTo =
       pathTo +
-      this.graphics.line(x, barYPosition) +
-      this.graphics.line(x, barYPosition + barHeight - strokeWidth) +
+      this.graphics.line(endingShape.newX, barYPosition) +
+      endingShape.path +
       this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) +
       this.graphics.line(barXPosition, barYPosition)
     pathFrom =
@@ -476,8 +499,23 @@ class BarStacked extends Bar {
       (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) *
         2
 
-    this.yArrj.push(y)
-    this.yArrjF.push(Math.abs(barYPosition - y))
+    let endingShapeOpts = {
+      barWidth,
+      strokeWidth,
+      yRatio: this.yRatio[this.yaxisIndex],
+      barXPosition,
+      y
+    }
+    let endingShape = this.bar.barEndingShape(
+      w,
+      endingShapeOpts,
+      this.series,
+      i,
+      j
+    )
+
+    this.yArrj.push(endingShape.newY)
+    this.yArrjF.push(Math.abs(barYPosition - endingShape.newY))
     this.yArrjVal.push(this.series[i][j])
 
     pathTo = this.graphics.move(barXPosition, barYPosition)
@@ -488,8 +526,8 @@ class BarStacked extends Bar {
 
     pathTo =
       pathTo +
-      this.graphics.line(barXPosition, y) +
-      this.graphics.line(barXPosition + barWidth - strokeWidth, y) +
+      this.graphics.line(barXPosition, endingShape.newY) +
+      endingShape.path +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
       this.graphics.line(barXPosition, barYPosition)
     pathFrom =
@@ -528,6 +566,40 @@ class BarStacked extends Bar {
       pathFrom,
       x: w.globals.isXNumeric ? x - xDivision : x,
       y
+    }
+  }
+
+  /*
+   * When user clicks on legends, the collapsed series will be filled with [0,0,0,...,0]
+   * We need to make sure, that the last series is not [0,0,0,...,0]
+   * as we need to draw shapes on the last series (for stacked bars/columns only)
+   * Hence, we are collecting all inner arrays in series which has [0,0,0...,0]
+   **/
+
+  checkZeroSeries({ series }) {
+    let w = this.w
+    for (let zs = 0; zs < series.length; zs++) {
+      let total = 0
+      for (
+        let zsj = 0;
+        zsj < series[w.globals.maxValsInArrayIndex].length;
+        zsj++
+      ) {
+        total += series[zs][zsj]
+      }
+      if (total === 0) {
+        this.zeroSerieses.push(zs)
+      }
+    }
+
+    // After getting all zeroserieses, we need to ensure whether endingshapeonSeries is not in that zeroseries array
+    for (let s = series.length - 1; s >= 0; s--) {
+      if (
+        this.zeroSerieses.indexOf(s) > -1 &&
+        s === this.endingShapeOnSeriesNumber
+      ) {
+        this.endingShapeOnSeriesNumber -= 1
+      }
     }
   }
 }

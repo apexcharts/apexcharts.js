@@ -30,7 +30,8 @@
         var options = {
             chart: {
                 height: 350,
-                type: 'line',
+                type: 'bar',
+                stacked: true,
                 zoom: {
                     enabled: false
                 }
@@ -41,10 +42,10 @@
             stroke: {
                 curve: 'straight'
             },
-            series: [{
-                name: "Desktops",
-                data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
-            }],
+            series: [
+  { name: "Tripper", data: [{ x: "2019-02-28T23:00:00.000Z", y: 129689 }] },
+  { name: "Overnighter", data: [{ x: "2019-02-28T23:00:00.000Z", y: 462186 }] }
+],
             title: {
                 text: 'Product Trends by Month',
                 align: 'left'
@@ -56,7 +57,8 @@
                 },
             },
             xaxis: {
-                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                type: 'datetime',
+                //categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
             }
         }
 

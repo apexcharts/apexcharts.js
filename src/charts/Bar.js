@@ -482,16 +482,28 @@ class Bar {
         (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
     }
 
+    let endingShapeOpts = {
+      barHeight,
+      strokeWidth,
+      barYPosition,
+      x,
+      zeroW
+    }
+    let endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j)
+
     pathTo =
       pathTo +
-      graphics.line(x, barYPosition) +
-      graphics.line(x, barYPosition + barHeight - strokeWidth) +
+      graphics.line(endingShape.newX, barYPosition) +
+      endingShape.path +
+      // graphics.line(x, barYPosition) +
+      // graphics.line(x, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition)
 
     pathFrom =
       pathFrom +
       graphics.line(zeroW, barYPosition) +
+      endingShape.ending_p_from +
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition)
@@ -577,15 +589,27 @@ class Bar {
           2
     }
 
+    let endingShapeOpts = {
+      barWidth,
+      strokeWidth,
+      barXPosition,
+      y,
+      zeroH
+    }
+    let endingShape = this.barEndingShape(w, endingShapeOpts, this.series, i, j)
+
     pathTo =
       pathTo +
-      graphics.line(barXPosition, y) +
-      graphics.line(barXPosition + barWidth - strokeWidth, y) +
+      graphics.line(barXPosition, endingShape.newY) +
+      endingShape.path +
+      // graphics.line(barXPosition, y) +
+      // graphics.line(barXPosition + barWidth - strokeWidth, y) +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition, zeroH)
     pathFrom =
       pathFrom +
       graphics.line(barXPosition, zeroH) +
+      endingShape.ending_p_from +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition, zeroH)
@@ -931,6 +955,107 @@ class Bar {
     }
 
     return elDataLabelsWrap
+  }
+
+  /** barEndingShape draws the various shapes on top of bars/columns
+   * @memberof Bar
+   * @param {object} w - chart context
+   * @param {object} opts - consists several properties like barHeight/barWidth
+   * @param {array} series - global primary series
+   * @param {int} i - current iterating series's index
+   * @param {int} j - series's j of i
+   * @return {object} path - ending shape whether round/arrow
+   *         ending_p_from - similar to pathFrom
+   *         newY - which is calculated from existing y and new shape's top
+   **/
+
+  barEndingShape(w, opts, series, i, j) {
+    let graphics = new Graphics(this.ctx)
+
+    if (this.isHorizontal) {
+      let endingShape = null
+      let endingShapeFrom = ''
+      let x = opts.x
+
+      if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
+        let inverse = series[i][j] < 0
+        let eX = opts.barHeight / 2 - opts.strokeWidth
+        if (inverse) eX = -opts.barHeight / 2 - opts.strokeWidth
+
+        if (!w.config.chart.stacked) {
+          if (this.barOptions.endingShape === 'rounded') {
+            x = opts.x - eX / 2
+          }
+        }
+
+        switch (this.barOptions.endingShape) {
+          case 'flat':
+            endingShape = graphics.line(
+              x,
+              opts.barYPosition + opts.barHeight - opts.strokeWidth
+            )
+            break
+
+          case 'rounded':
+            endingShape = graphics.quadraticCurve(
+              x + eX,
+              opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2,
+              x,
+              opts.barYPosition + opts.barHeight - opts.strokeWidth
+            )
+            break
+        }
+      }
+      return {
+        path: endingShape,
+        ending_p_from: endingShapeFrom,
+        newX: x
+      }
+    } else {
+      let endingShape = null
+      let endingShapeFrom = ''
+      let y = opts.y
+
+      if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
+        let inverse = series[i][j] < 0
+
+        let eY = opts.barWidth / 2 - opts.strokeWidth
+
+        if (inverse) eY = -opts.barWidth / 2 - opts.strokeWidth
+
+        if (!w.config.chart.stacked) {
+          // the arrow exceeds the chart height, hence reduce y
+          if (this.barOptions.endingShape === 'arrow') {
+            y = y + eY
+          } else if (this.barOptions.endingShape === 'rounded') {
+            y = y + eY / 2
+          }
+        }
+
+        switch (this.barOptions.endingShape) {
+          case 'flat':
+            endingShape = graphics.line(
+              opts.barXPosition + opts.barWidth - opts.strokeWidth,
+              y
+            )
+            break
+
+          case 'rounded':
+            endingShape = graphics.quadraticCurve(
+              opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
+              y - eY,
+              opts.barXPosition + opts.barWidth - opts.strokeWidth,
+              y
+            )
+            break
+        }
+      }
+      return {
+        path: endingShape,
+        ending_p_from: endingShapeFrom,
+        newY: y
+      }
+    }
   }
 }
 
