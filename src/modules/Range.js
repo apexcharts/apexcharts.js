@@ -159,14 +159,14 @@ class Range {
     ) {
       if (
         gl.minY === Number.MIN_VALUE &&
-        lowestYInAllSeries !== -Number.MAX_VALUE
+        lowestYInAllSeries !== -Number.MAX_VALUE &&
+        lowestYInAllSeries !== gl.maxY // single value possibility
       ) {
         let diff = gl.maxY - lowestYInAllSeries
         if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {
           // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
-
         gl.minY = lowestYInAllSeries - (diff * 5) / 100
         /* fix https://github.com/apexcharts/apexcharts.js/issues/426 */
         gl.maxY = gl.maxY + (diff * 5) / 100

@@ -261,6 +261,7 @@ class BarStacked extends Bar {
       barWidth = xDivision
 
       if (w.globals.isXNumeric) {
+        this.minXDiff = this.bar.calcMinimumXDiff()
         // max barwidth should be equal to minXDiff to avoid overlap
         xDivision = this.minXDiff / this.xRatio
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth)) / 100

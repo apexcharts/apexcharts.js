@@ -394,19 +394,7 @@ class Bar {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        if (this.minXDiff === Number.MAX_VALUE) {
-          // possibly a single dataPoint (fixes react-apexcharts/issue#34)
-          let len = w.globals.labels.length
-          if (w.globals.timelineLabels.length > 0) {
-            len = w.globals.timelineLabels.length
-          }
-
-          if (len < 3) {
-            len = 3
-          }
-          this.minXDiff = (w.globals.maxX - w.globals.minX) / len
-        }
-
+        this.calcMinimumXDiff()
         xDivision = this.minXDiff / this.xRatio
         barWidth =
           ((xDivision / this.seriesLen) *
@@ -433,6 +421,30 @@ class Bar {
       zeroH,
       zeroW
     }
+  }
+
+  calcMinimumXDiff() {
+    const w = this.w
+
+    let len = w.globals.labels.length
+
+    if (w.globals.labels.length === 1) {
+      this.minXDiff = (w.globals.maxX - w.globals.minX) / len / 3
+    } else {
+      if (this.minXDiff === Number.MAX_VALUE) {
+        // possibly a single dataPoint (fixes react-apexcharts/issue#34)
+        if (w.globals.timelineLabels.length > 0) {
+          len = w.globals.timelineLabels.length
+        }
+
+        if (len < 3) {
+          len = 3
+        }
+        this.minXDiff = (w.globals.maxX - w.globals.minX) / len
+      }
+    }
+
+    return this.minXDiff
   }
 
   drawBarPaths({
@@ -1024,10 +1036,8 @@ class Bar {
         if (inverse) eY = -opts.barWidth / 2 - opts.strokeWidth
 
         if (!w.config.chart.stacked) {
-          // the arrow exceeds the chart height, hence reduce y
-          if (this.barOptions.endingShape === 'arrow') {
-            y = y + eY
-          } else if (this.barOptions.endingShape === 'rounded') {
+          // the shape exceeds the chart height, hence reduce y
+          if (this.barOptions.endingShape === 'rounded') {
             y = y + eY / 2
           }
         }
@@ -1050,6 +1060,7 @@ class Bar {
             break
         }
       }
+
       return {
         path: endingShape,
         ending_p_from: endingShapeFrom,
