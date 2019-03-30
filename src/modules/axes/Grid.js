@@ -162,6 +162,15 @@ class Grid {
     let elg = graphics.group({
       class: 'apexcharts-grid'
     })
+    let elgridLinesH = graphics.group({
+      class: 'apexcharts-gridlines-horizontal'
+    })
+    let elgridLinesV = graphics.group({
+      class: 'apexcharts-gridlines-vertical'
+    })
+
+    elg.add(elgridLinesH)
+    elg.add(elgridLinesV)
 
     let tickAmount = 8
     for (let i = 0; i < w.globals.series.length; i++) {
@@ -205,7 +214,7 @@ class Grid {
                 strokeDashArray
               )
               line.node.classList.add('apexcharts-gridline')
-              elg.add(line)
+              elgridLinesV.add(line)
 
               if (this.animX) {
                 this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
@@ -240,7 +249,7 @@ class Grid {
               )
 
               line.node.classList.add('apexcharts-gridline')
-              elg.add(line)
+              elgridLinesV.add(line)
 
               if (this.animX) {
                 this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
@@ -268,7 +277,7 @@ class Grid {
             w.config.grid.borderColor,
             strokeDashArray
           )
-          elg.add(line)
+          elgridLinesH.add(line)
           line.node.classList.add('apexcharts-gridline')
 
           if (this.animY) {
@@ -306,7 +315,7 @@ class Grid {
             )
 
             line.node.classList.add('apexcharts-gridline')
-            elg.add(line)
+            elgridLinesV.add(line)
 
             if (this.animX) {
               this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
@@ -334,7 +343,7 @@ class Grid {
             w.config.grid.borderColor,
             strokeDashArray
           )
-          elg.add(line)
+          elgridLinesH.add(line)
           line.node.classList.add('apexcharts-gridline')
 
           if (this.animY) {
