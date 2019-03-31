@@ -1,4 +1,5 @@
 import Graphics from '../Graphics'
+import Utils from '../../utils/Utils'
 
 /**
  * ApexCharts YAxis Class for drawing Y-Axis.
@@ -467,8 +468,8 @@ export default class YAxis {
     const w = this.w
 
     // w.config.yaxis.forEach((yaxe, index) => {
-    const yaxis = w.globals.dom.baseEl.querySelectorAll(`.apexcharts-yaxis`)
-
+    let yaxis = w.globals.dom.baseEl.querySelectorAll(`.apexcharts-yaxis`)
+    yaxis = Utils.listToArray(yaxis)
     yaxis.forEach((y, index) => {
       const yaxe = w.config.yaxis[index]
       // proceed only if user has specified alignment
@@ -476,9 +477,11 @@ export default class YAxis {
         const yAxisInner = w.globals.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
         )
-        const yAxisTexts = w.globals.dom.baseEl.querySelectorAll(
+        let yAxisTexts = w.globals.dom.baseEl.querySelectorAll(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`
         )
+
+        yAxisTexts = Utils.listToArray(yAxisTexts)
 
         const rect = yAxisInner.getBoundingClientRect()
 

@@ -15,6 +15,14 @@ class Utils {
     )
   }
 
+  static listToArray(list) {
+    let i, array = [];
+    for  (i = 0; i < list.length; i++) {
+      array[i] = list[i];
+    }
+    return array;
+  }
+
   // to extend defaults with user options
   // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
   static extend(target, source) {

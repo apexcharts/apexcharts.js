@@ -532,6 +532,7 @@ class Legend {
       seriesEls = w.globals.dom.baseEl.querySelectorAll(
         `.apexcharts-series[data\\:realIndex]`
       )
+      seriesEls = Utils.listToArray(seriesEls)
 
       seriesEls.forEach((v) => {
         realIndexes.push(parseInt(v.getAttribute('data:realIndex')))
@@ -540,6 +541,8 @@ class Legend {
       seriesEls = w.globals.dom.baseEl.querySelectorAll(
         `.apexcharts-series[rel]`
       )
+      seriesEls = Utils.listToArray(seriesEls)
+      
       seriesEls.forEach((v) => {
         realIndexes.push(parseInt(v.getAttribute('rel')) - 1)
       })
