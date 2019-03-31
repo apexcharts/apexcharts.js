@@ -542,7 +542,7 @@ class Legend {
         `.apexcharts-series[rel]`
       )
       seriesEls = Utils.listToArray(seriesEls)
-      
+
       seriesEls.forEach((v) => {
         realIndexes.push(parseInt(v.getAttribute('rel')) - 1)
       })

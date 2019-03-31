@@ -16,11 +16,12 @@ class Utils {
   }
 
   static listToArray(list) {
-    let i, array = [];
-    for  (i = 0; i < list.length; i++) {
-      array[i] = list[i];
+    let i,
+      array = []
+    for (i = 0; i < list.length; i++) {
+      array[i] = list[i]
     }
-    return array;
+    return array
   }
 
   // to extend defaults with user options

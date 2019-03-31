@@ -467,7 +467,6 @@ export default class YAxis {
   setYAxisTextAlignments() {
     const w = this.w
 
-    // w.config.yaxis.forEach((yaxe, index) => {
     let yaxis = w.globals.dom.baseEl.querySelectorAll(`.apexcharts-yaxis`)
     yaxis = Utils.listToArray(yaxis)
     yaxis.forEach((y, index) => {
@@ -510,7 +509,5 @@ export default class YAxis {
         }
       }
     })
-
-    // })
   }
 }
