@@ -282,7 +282,10 @@ class Range {
       }
     }
 
-    if (gl.isXNumeric || gl.noLabelsProvided) {
+    if (
+      (gl.isXNumeric || gl.noLabelsProvided) &&
+      !cnf.xaxis.convertedCatToNumeric
+    ) {
       let ticks
 
       if (cnf.xaxis.tickAmount === undefined) {
