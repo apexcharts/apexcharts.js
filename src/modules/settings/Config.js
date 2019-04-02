@@ -256,13 +256,6 @@ export default class Config {
     }
 
     if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
-      // No time series for horizontal bars
-      if (config.xaxis.type === 'datetime') {
-        throw new Error(
-          'Timelines on bars are not supported yet. Switch to column chart by setting plotOptions.bar.horizontal=false'
-        )
-      }
-
       // No multiple yaxis for bars
       if (config.yaxis.length > 1) {
         throw new Error(

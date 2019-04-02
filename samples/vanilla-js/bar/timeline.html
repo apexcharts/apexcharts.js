@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Basic Bar Chart</title>
+
+    
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                height: 350,
+                type: 'bar',
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            series: [{
+                name: 'Bob',
+                data: [{
+                  x: 'Design',
+                  y1: new Date('2019-03-01').getTime(),
+                  y2: new Date('2019-03-02').getTime() 
+                }, {
+                  x: 'Code',
+                  y1: new Date('2019-03-03').getTime(),
+                  y2: new Date('2019-03-04').getTime() 
+                }, {
+                  x: 'Test',
+                  y1: new Date('2019-03-05').getTime(),
+                  y2: new Date('2019-03-06').getTime() 
+                }, {
+                  x: 'Deployment',
+                  y1: new Date('2019-03-11').getTime(),
+                  y2: new Date('2019-03-12').getTime() 
+                }]
+            }, {
+                name: 'Joe',
+                data: [{
+                  x: 'Design',
+                  y1: new Date('2019-03-01').getTime(),
+                  y2: new Date('2019-03-03').getTime() 
+                }, {
+                  x: 'Code',
+                  y1: new Date('2019-03-03').getTime(),
+                  y2: new Date('2019-03-04').getTime() 
+                }, {
+                  x: 'Test',
+                  y1: new Date('2019-03-08').getTime(),
+                  y2: new Date('2019-03-09').getTime() 
+                }, {
+                  x: 'Deployment',
+                  y1: new Date('2019-03-10').getTime(),
+                  y2: new Date('2019-03-12').getTime() 
+                }]
+            }],
+            xaxis: {
+               type: 'datetime'
+            }
+        }
+
+       var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+        
+        chart.render();
+    </script>
+</body>
+
+</html>
