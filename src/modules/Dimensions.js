@@ -498,7 +498,17 @@ export default class Dimensions {
           : 0
 
       //  get the longest string from the labels array and also apply label formatter to it
-      let val = xaxisLabels.reduce(function(a, b) {
+      let labels = []
+      let xlbFormatter = w.globals.xLabelFormatter
+
+      xaxisLabels.forEach((xl) => {
+        let xFormat = new Formatters(this.ctx)
+        let label = xFormat.xLabelFormat(xlbFormatter, xl)
+
+        labels.push(label)
+      })
+
+      let val = labels.reduce(function(a, b) {
         return a.length > b.length ? a : b
       }, 0)
 
@@ -508,8 +518,6 @@ export default class Dimensions {
           return a.length > b.length ? a : b
         }, 0)
       }
-
-      let xlbFormatter = w.globals.xLabelFormatter
 
       let xFormat = new Formatters(this.ctx)
       val = xFormat.xLabelFormat(xlbFormatter, val)
