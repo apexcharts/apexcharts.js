@@ -96,13 +96,17 @@ export default class Dimensions {
         w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
     }
 
-    if (!w.globals.isMultipleYAxis) {
-      if (this.yAxisWidth < w.config.yaxis[0].labels.minWidth) {
-        this.yAxisWidth = w.config.yaxis[0].labels.minWidth
-      }
-      if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
-        this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
-      }
+    let minYAxisWidth = 0
+    let maxYAxisWidth = 0
+    w.config.yaxis.forEach((y) => {
+      minYAxisWidth += y.labels.minWidth
+      maxYAxisWidth += y.labels.maxWidth
+    })
+    if (this.yAxisWidth < minYAxisWidth) {
+      this.yAxisWidth = minYAxisWidth
+    }
+    if (this.yAxisWidth > maxYAxisWidth) {
+      this.yAxisWidth = maxYAxisWidth
     }
   }
 
