@@ -23,6 +23,7 @@ class Bar {
     this.isNullValue = false
 
     this.xyRatios = xyRatios
+
     if (this.xyRatios !== null) {
       this.xRatio = xyRatios.xRatio
       this.yRatio = xyRatios.yRatio
@@ -49,8 +50,8 @@ class Bar {
     let fill = new Fill(this.ctx)
 
     const coreUtils = new CoreUtils(this.ctx, w)
-    this.series = coreUtils.getLogSeries(series)
-    series = this.series
+    series = coreUtils.getLogSeries(series)
+    this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
     this.initVariables(series)
@@ -507,8 +508,6 @@ class Bar {
       pathTo +
       graphics.line(endingShape.newX, barYPosition) +
       endingShape.path +
-      // graphics.line(x, barYPosition) +
-      // graphics.line(x, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
       graphics.line(zeroW, barYPosition)
 
@@ -798,7 +797,6 @@ class Bar {
     let {
       i,
       j,
-      realIndex,
       y,
       bcx,
       barWidth,

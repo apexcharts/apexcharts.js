@@ -1,32 +1,28 @@
-import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
 
 /**
- * ApexCharts CandleStick Class responsible for drawing both Stacked Columns and Bars.
+ * ApexCharts RangeBar Class responsible for drawing Range/Timeline Bars.
  *
- * @module CandleStick
+ * @module RangeBar
  **/
 
-class CandleStick extends Bar {
+class RangeBar extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
 
-    this.candlestickOptions = this.w.config.plotOptions.candlestick
+    this.rangeBarOptions = this.w.config.plotOptions.rangeBar
 
-    const coreUtils = new CoreUtils(this.ctx, w)
-    series = coreUtils.getLogSeries(series)
     this.series = series
-    this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
     this.initVariables(series)
 
     let ret = graphics.group({
-      class: 'apexcharts-candlestick-series apexcharts-plot-series'
+      class: 'apexcharts-rangebar-series apexcharts-plot-series'
     })
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
@@ -34,7 +30,9 @@ class CandleStick extends Bar {
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
-        zeroH // zeroH is the baseline where 0 meets y axis
+        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
+        zeroH, // zeroH is the baseline where 0 meets y axis
+        zeroW // zeroW is the baseline where 0 meets x axis
 
       let yArrj = [] // hold y values of current iterating series
       let xArrj = [] // hold x values of current iterating series
@@ -66,7 +64,9 @@ class CandleStick extends Bar {
       let initPositions = this.initialPositions()
 
       y = initPositions.y
+      yDivision = initPositions.yDivision
       barHeight = initPositions.barHeight
+      zeroW = initPositions.zeroW
 
       x = initPositions.x
       barWidth = initPositions.barWidth
@@ -100,31 +100,39 @@ class CandleStick extends Bar {
           }
         }
 
-        let color
-
-        let paths = this.drawCandleStickPaths({
-          indexes: {
-            i,
-            j,
-            realIndex,
-            bc
-          },
-          x,
-          y,
-          xDivision,
-          pathTo,
-          pathFrom,
-          barWidth,
-          zeroH,
-          strokeWidth,
-          elSeries
-        })
+        let paths = null
+        if (this.isHorizontal) {
+          paths = this.drawRangeBarPaths({
+            indexes: { i, j, realIndex, bc },
+            barHeight,
+            strokeWidth,
+            pathTo,
+            pathFrom,
+            zeroW,
+            x,
+            y,
+            yDivision,
+            elSeries
+          })
+        } else {
+          paths = this.drawRangeColumnPaths({
+            indexes: { i, j, realIndex, bc },
+            x,
+            y,
+            xDivision,
+            pathTo,
+            pathFrom,
+            barWidth,
+            zeroH,
+            strokeWidth,
+            elSeries
+          })
+        }
 
         pathTo = paths.pathTo
         pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
-        color = paths.color
 
         // push current X
         if (j > 0) {
@@ -134,13 +142,10 @@ class CandleStick extends Bar {
         yArrj.push(y)
 
         let pathFill = fill.fillPath({
-          seriesNumber: realIndex,
-          color
+          seriesNumber: realIndex
         })
 
-        let lineFill = this.candlestickOptions.wick.useFillColor
-          ? color
-          : undefined
+        let lineFill = w.globals.stroke.colors[realIndex]
 
         elSeries = this.renderSeries({
           realIndex,
@@ -159,7 +164,7 @@ class CandleStick extends Bar {
           barWidth,
           elDataLabelsWrap,
           visibleSeries: this.visibleI,
-          type: 'candlestick'
+          type: 'rangebar'
         })
       }
 
@@ -173,16 +178,16 @@ class CandleStick extends Bar {
     return ret
   }
 
-  drawCandleStickPaths({
+  drawRangeColumnPaths({
     indexes,
     x,
     y,
+    strokeWidth,
     xDivision,
     pathTo,
     pathFrom,
     barWidth,
-    zeroH,
-    strokeWidth
+    zeroH
   }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
@@ -190,23 +195,13 @@ class CandleStick extends Bar {
     let i = indexes.i
     let j = indexes.j
 
-    let isPositive = true
-    let colorPos = w.config.plotOptions.candlestick.colors.upward
-    let colorNeg = w.config.plotOptions.candlestick.colors.downward
-
     const yRatio = this.yRatio[this.yaxisIndex]
     let realIndex = indexes.realIndex
 
-    const ohlc = this.getOHLCValue(realIndex, j)
-    let l1 = zeroH
-    let l2 = zeroH
+    const range = this.getRangeValue(realIndex, j)
 
-    if (ohlc.o > ohlc.c) {
-      isPositive = false
-    }
-
-    let y1 = Math.min(ohlc.o, ohlc.c)
-    let y2 = Math.max(ohlc.o, ohlc.c)
+    let y1 = Math.min(range.start, range.end)
+    let y2 = Math.max(range.start, range.end)
 
     if (w.globals.isXNumeric) {
       x =
@@ -229,20 +224,12 @@ class CandleStick extends Bar {
     } else {
       y1 = zeroH - y1 / yRatio
       y2 = zeroH - y2 / yRatio
-      l1 = zeroH - ohlc.h / yRatio
-      l2 = zeroH - ohlc.l / yRatio
     }
 
     pathTo =
       graphics.move(barXPosition, y2) +
-      graphics.line(barXPosition + barWidth / 2, y2) +
-      graphics.line(barXPosition + barWidth / 2, l1) +
-      graphics.line(barXPosition + barWidth / 2, y2) +
       graphics.line(barXPosition + barWidth, y2) +
       graphics.line(barXPosition + barWidth, y1) +
-      graphics.line(barXPosition + barWidth / 2, y1) +
-      graphics.line(barXPosition + barWidth / 2, l2) +
-      graphics.line(barXPosition + barWidth / 2, y1) +
       graphics.line(barXPosition, y1) +
       graphics.line(barXPosition, y2 - strokeWidth / 2)
 
@@ -255,20 +242,85 @@ class CandleStick extends Bar {
       pathFrom,
       x,
       y: y2,
-      barXPosition,
-      color: isPositive ? colorPos : colorNeg
+      barXPosition
     }
   }
 
-  getOHLCValue(i, j) {
+  drawRangeBarPaths({
+    indexes,
+    x,
+    y,
+    yDivision,
+    pathTo,
+    pathFrom,
+    barHeight,
+    zeroW
+  }) {
+    let w = this.w
+    let graphics = new Graphics(this.ctx)
+
+    let i = indexes.i
+    let j = indexes.j
+
+    const xRatio = this.xRatio
+    let realIndex = indexes.realIndex
+
+    const range = this.getRangeValue(realIndex, j)
+
+    let x1 = Math.min(range.start, range.end)
+    let x2 = Math.max(range.start, range.end)
+
+    if (w.globals.isXNumeric) {
+      y =
+        (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
+        barHeight
+    }
+
+    let barYPosition = y + barHeight * this.visibleI
+
+    pathTo = graphics.move(zeroW, barYPosition)
+    pathFrom = graphics.move(zeroW, barYPosition)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPathFrom(realIndex, j)
+    }
+
+    if (
+      typeof this.series[i][j] === 'undefined' ||
+      this.series[i][j] === null
+    ) {
+      x1 = zeroW
+    } else {
+      x1 = zeroW - x1 / xRatio
+      x2 = zeroW - x2 / xRatio
+    }
+
+    pathTo =
+      graphics.move(x1, barYPosition) +
+      graphics.line(x2, barYPosition) +
+      graphics.line(x2, barYPosition + barHeight) +
+      graphics.line(x1, barYPosition + barHeight) +
+      graphics.line(x1, barYPosition)
+
+    if (!w.globals.isXNumeric) {
+      y = y + yDivision
+    }
+
+    return {
+      pathTo,
+      pathFrom,
+      x: x2,
+      y,
+      barYPosition
+    }
+  }
+
+  getRangeValue(i, j) {
     const w = this.w
     return {
-      o: w.globals.seriesCandleO[i][j],
-      h: w.globals.seriesCandleH[i][j],
-      l: w.globals.seriesCandleL[i][j],
-      c: w.globals.seriesCandleC[i][j]
+      start: w.globals.seriesRangeStart[i][j],
+      end: w.globals.seriesRangeEnd[i][j]
     }
   }
 }
 
-export default CandleStick
+export default RangeBar

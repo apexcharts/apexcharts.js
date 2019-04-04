@@ -44,6 +44,8 @@ export default class Globals {
       lastXAxis: [],
       lastYAxis: [],
       series: [], // the MAIN series array (y values)
+      seriesRangeStart: [], // the clone of series becomes the start in range
+      seriesRangeEnd: [], // the end values in range chart
       seriesPercent: [], // the percentage values of the given series
       seriesTotals: [],
       stackedSeriesTotals: [],

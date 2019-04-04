@@ -20,18 +20,16 @@ class BarStacked extends Bar {
     this.bar = new Bar(this.ctx, this.xyRatios)
 
     const coreUtils = new CoreUtils(this.ctx, w)
-    this.series = coreUtils.getLogSeries(series)
-    series = this.series
+    series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
-
-    this.series = series
 
     this.initVariables(series)
 
     if (w.config.chart.stackType === '100%') {
-      this.series = w.globals.seriesPercent.slice()
-      series = this.series
+      series = w.globals.seriesPercent.slice()
     }
+
+    this.series = series
 
     this.totalItems = 0
 

@@ -8,7 +8,8 @@ import HeatMap from '../charts/HeatMap'
 import Pie from '../charts/Pie'
 import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
-import Line from '../charts/Line'
+import RangeBar from '../charts/RangeBar'
+import Line_Area from '../charts/Line_Area'
 import Graphics from './Graphics'
 import XAxis from './axes/XAxis'
 import YAxis from './axes/YAxis'
@@ -50,6 +51,8 @@ export default class Core {
       'line',
       'area',
       'bar',
+      'rangeBar',
+      // 'rangeArea',
       'candlestick',
       'radar',
       'scatter',
@@ -61,6 +64,8 @@ export default class Core {
       'line',
       'area',
       'bar',
+      'rangeBar',
+      // 'rangeArea',
       'candlestick',
       'scatter',
       'bubble'
@@ -144,7 +149,7 @@ export default class Core {
       // if user has specified a particular type for particular series
       if (typeof ser[st].type !== 'undefined') {
         if (ser[st].type === 'column' || ser[st].type === 'bar') {
-          w.config.plotOptions.bar.horizontal = false // bar not supported in mixed charts
+          w.config.plotOptions.bar.horizontal = false // horizontal bars not supported in mixed charts, hence forcefully set to false
           columnSeries.series.push(series)
           columnSeries.i.push(st)
         } else if (ser[st].type === 'area') {
@@ -175,10 +180,11 @@ export default class Core {
       }
     })
 
-    let line = new Line(this.ctx, xyRatios)
+    let line = new Line_Area(this.ctx, xyRatios)
     let candlestick = new CandleStick(this.ctx, xyRatios)
     let pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
+    let rangeBar = new RangeBar(this.ctx, xyRatios)
     let radar = new Radar(this.ctx)
     let elGraph = []
 
@@ -204,14 +210,14 @@ export default class Core {
         )
       }
       if (scatterSeries.series.length > 0) {
-        const scatterLine = new Line(this.ctx, xyRatios, true)
+        const scatterLine = new Line_Area(this.ctx, xyRatios, true)
         elGraph.push(
           scatterLine.draw(scatterSeries.series, 'scatter', scatterSeries.i)
         )
       }
       // TODO: allow bubble series in a combo chart
       // if (bubbleSeries.series.length > 0) {
-      //   const bubbleLine = new Line(this.ctx, xyRatios, true)
+      //   const bubbleLine = new Line_Area(this.ctx, xyRatios, true)
       //   elGraph.push(
       //     bubbleLine.draw(bubbleSeries.series, 'bubble', bubbleSeries.i)
       //   )
@@ -236,6 +242,9 @@ export default class Core {
         case 'candlestick':
           let candleStick = new CandleStick(this.ctx, xyRatios)
           elGraph = candleStick.draw(gl.series)
+          break
+        case 'rangeBar':
+          elGraph = rangeBar.draw(gl.series)
           break
         case 'heatmap':
           let heatmap = new HeatMap(this.ctx, xyRatios)
@@ -350,6 +359,8 @@ export default class Core {
     gl.seriesCandleH = []
     gl.seriesCandleL = []
     gl.seriesCandleC = []
+    gl.seriesRangeStart = []
+    gl.seriesRangeEnd = []
     gl.seriesPercent = []
     gl.seriesX = []
     gl.seriesZ = []
@@ -529,7 +540,7 @@ export default class Core {
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
         if (isXString) {
-          if (cnf.xaxis.type === 'datetime') {
+          if (cnf.xaxis.type === 'datetime' && !gl.isRangeData) {
             this.twoDSeriesX.push(dt.parseDate(ser[activeI].data[j].x))
           } else {
             // a category and not a numeric x value
@@ -559,6 +570,22 @@ export default class Core {
     }
   }
 
+  handleRangeData(ser, i) {
+    const gl = this.w.globals
+
+    let range = {}
+    if (this.isFormat2DArray()) {
+      range = this.handleRangeDataFormat('array', ser, i)
+    } else if (this.isFormatXY()) {
+      range = this.handleRangeDataFormat('xy', ser, i)
+    }
+
+    gl.seriesRangeStart.push(range.start)
+    gl.seriesRangeEnd.push(range.end)
+
+    return range
+  }
+
   handleCandleStickData(ser, i) {
     const gl = this.w.globals
 
@@ -575,6 +602,37 @@ export default class Core {
     gl.seriesCandleC.push(ohlc.c)
 
     return ohlc
+  }
+
+  handleRangeDataFormat(format, ser, i) {
+    const rangeStart = []
+    const rangeEnd = []
+
+    const err =
+      'Please provide [Start, End] values in valid format. Read more https://apexcharts.com/docs/series/#rangecharts'
+
+    if (format === 'array') {
+      if (ser[i].data[0][1].length !== 2) {
+        throw new Error(err)
+      }
+      for (let j = 0; j < ser[i].data.length; j++) {
+        rangeStart.push(ser[i].data[j][1][0])
+        rangeEnd.push(ser[i].data[j][1][1])
+      }
+    } else if (format === 'xy') {
+      if (ser[i].data[0].y.length !== 2) {
+        throw new Error(err)
+      }
+      for (let j = 0; j < ser[i].data.length; j++) {
+        rangeStart.push(ser[i].data[j].y[0])
+        rangeEnd.push(ser[i].data[j].y[1])
+      }
+    }
+
+    return {
+      start: rangeStart,
+      end: rangeEnd
+    }
   }
 
   handleCandleStickDataFormat(format, ser, i) {
@@ -632,6 +690,16 @@ export default class Core {
           "It is a possibility that you may have not included 'data' property in series."
         )
         return
+      }
+
+      if (
+        cnf.chart.type === 'rangeBar' ||
+        cnf.chart.type === 'rangeArea' ||
+        ser[i].type === 'rangeBar' ||
+        ser[i].type === 'rangeArea'
+      ) {
+        gl.isRangeData = true
+        this.handleRangeData(ser, i)
       }
 
       if (this.isMultiFormat()) {

@@ -30,11 +30,11 @@
         var options = {
             chart: {
                 height: 350,
-                type: 'bar',
+                type: 'rangeBar',
             },
             plotOptions: {
                 bar: {
-                    horizontal: true,
+                    horizontal: false,
                 }
             },
             dataLabels: {
@@ -44,41 +44,38 @@
                 name: 'Bob',
                 data: [{
                   x: 'Design',
-                  y1: new Date('2019-03-01').getTime(),
-                  y2: new Date('2019-03-02').getTime() 
+                  y: [new Date('2019-03-01').getTime(), new Date('2019-03-02').getTime()]
                 }, {
                   x: 'Code',
-                  y1: new Date('2019-03-03').getTime(),
-                  y2: new Date('2019-03-04').getTime() 
+                  y: [new Date('2019-03-03').getTime(), new Date('2019-03-04').getTime()]
+                 
                 }, {
                   x: 'Test',
-                  y1: new Date('2019-03-05').getTime(),
-                  y2: new Date('2019-03-06').getTime() 
+                  y: [new Date('2019-03-05').getTime(), new Date('2019-03-06').getTime()]
                 }, {
                   x: 'Deployment',
-                  y1: new Date('2019-03-11').getTime(),
-                  y2: new Date('2019-03-12').getTime() 
+                  y: [new Date('2019-03-11').getTime(), new Date('2019-03-12').getTime()]
                 }]
             }, {
                 name: 'Joe',
                 data: [{
                   x: 'Design',
-                  y1: new Date('2019-03-01').getTime(),
-                  y2: new Date('2019-03-03').getTime() 
+                  y: [new Date('2019-03-01').getTime(), new Date('2019-03-02').getTime()] 
                 }, {
                   x: 'Code',
-                  y1: new Date('2019-03-03').getTime(),
-                  y2: new Date('2019-03-04').getTime() 
+                  y: [new Date('2019-03-03').getTime(), new Date('2019-03-04').getTime()] 
                 }, {
                   x: 'Test',
-                  y1: new Date('2019-03-08').getTime(),
-                  y2: new Date('2019-03-09').getTime() 
+                  y: [new Date('2019-03-08').getTime(), new Date('2019-03-09').getTime()]
                 }, {
                   x: 'Deployment',
-                  y1: new Date('2019-03-10').getTime(),
-                  y2: new Date('2019-03-12').getTime() 
+                  y: [new Date('2019-03-10').getTime(), new Date('2019-03-12').getTime()]
                 }]
             }],
+            yaxis: {
+              min: new Date('2019-03-01').getTime(),
+              max: new Date('2019-03-21').getTime()
+            },
             xaxis: {
                type: 'datetime'
             }
