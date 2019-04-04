@@ -96,13 +96,17 @@ export default class Dimensions {
         w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
     }
 
-    if (!w.globals.isMultipleYAxis) {
-      if (this.yAxisWidth < w.config.yaxis[0].labels.minWidth) {
-        this.yAxisWidth = w.config.yaxis[0].labels.minWidth
-      }
-      if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
-        this.yAxisWidth = w.config.yaxis[0].labels.maxWidth
-      }
+    let minYAxisWidth = 0
+    let maxYAxisWidth = 0
+    w.config.yaxis.forEach((y) => {
+      minYAxisWidth += y.labels.minWidth
+      maxYAxisWidth += y.labels.maxWidth
+    })
+    if (this.yAxisWidth < minYAxisWidth) {
+      this.yAxisWidth = minYAxisWidth
+    }
+    if (this.yAxisWidth > maxYAxisWidth) {
+      this.yAxisWidth = maxYAxisWidth
     }
   }
 
@@ -498,7 +502,17 @@ export default class Dimensions {
           : 0
 
       //  get the longest string from the labels array and also apply label formatter to it
-      let val = xaxisLabels.reduce(function(a, b) {
+      let labels = []
+      let xlbFormatter = w.globals.xLabelFormatter
+
+      xaxisLabels.forEach((xl) => {
+        let xFormat = new Formatters(this.ctx)
+        let label = xFormat.xLabelFormat(xlbFormatter, xl)
+
+        labels.push(label)
+      })
+
+      let val = labels.reduce(function(a, b) {
         return a.length > b.length ? a : b
       }, 0)
 
@@ -508,8 +522,6 @@ export default class Dimensions {
           return a.length > b.length ? a : b
         }, 0)
       }
-
-      let xlbFormatter = w.globals.xLabelFormatter
 
       let xFormat = new Formatters(this.ctx)
       val = xFormat.xLabelFormat(xlbFormatter, val)

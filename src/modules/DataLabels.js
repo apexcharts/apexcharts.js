@@ -140,6 +140,8 @@ class DataLabels {
           }
         }
 
+        if (text === null) text = ''
+
         this.plotDataLabelsText({
           x,
           y,
