@@ -1,6 +1,6 @@
 import Graphics from '../Graphics'
-import XAxis from './XAxis'
 import Utils from '../../utils/Utils'
+import AxesUtils from './AxesUtils'
 
 /**
  * ApexCharts YAxis Class for drawing Y-Axis.
@@ -23,6 +23,8 @@ export default class YAxis {
     if (w.config.xaxis.position === 'bottom') {
       this.xAxisoffX = w.globals.gridHeight
     }
+    this.drawnLabels = []
+    this.axesUtils = new AxesUtils(ctx)
   }
 
   drawYaxis(realIndex) {
@@ -144,7 +146,7 @@ export default class YAxis {
 
       elYaxis.add(elVerticalLine)
 
-      this.drawAxisTicks(
+      this.axesUtils.drawYAxisTicks(
         x,
         tickAmount,
         axisBorder,
@@ -162,7 +164,6 @@ export default class YAxis {
   drawYaxisInversed(realIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
-    let xaxis = new XAxis(this.ctx)
 
     let elXaxis = graphics.group({
       class: 'apexcharts-xaxis apexcharts-yaxis-inversed'
@@ -217,9 +218,16 @@ export default class YAxis {
           (l - labelsDivider + w.config.xaxis.labels.offsetX)
 
         if (timelineLabels.length) {
-          let label = xaxis.getLabel(labels, timelineLabels, x, i)
+          let label = this.axesUtils.getLabel(
+            labels,
+            timelineLabels,
+            x,
+            i,
+            this.drawnLabels
+          )
           x = label.x
           val = label.text
+          this.drawnLabels.push(label.text)
         }
 
         let elTick = graphics.drawText({
@@ -287,43 +295,6 @@ export default class YAxis {
     }
 
     return elXaxis
-  }
-
-  drawAxisTicks(
-    x,
-    tickAmount,
-    axisBorder,
-    axisTicks,
-    realIndex,
-    labelsDivider,
-    elYaxis
-  ) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
-
-    // initial label position = 0;
-    let t = w.globals.translateY
-
-    if (axisTicks.show) {
-      if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width
-
-      for (let i = tickAmount; i >= 0; i--) {
-        let tY =
-          t + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY - 1
-        if (w.globals.isBarHorizontal) {
-          tY = labelsDivider * i
-        }
-        let elTick = graphics.drawLine(
-          x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX,
-          tY + axisTicks.offsetY,
-          x + axisBorder.offsetX + axisTicks.offsetX,
-          tY + axisTicks.offsetY,
-          axisBorder.color
-        )
-        elYaxis.add(elTick)
-        t = t + labelsDivider
-      }
-    }
   }
 
   yAxisTitleRotate(realIndex, yAxisOpposite) {

@@ -1,6 +1,5 @@
 import Graphics from '../Graphics'
-import YAxis from './YAxis'
-import Formatters from '../Formatters'
+import AxesUtils from './AxesUtils'
 
 /**
  * ApexCharts XAxis Class for drawing X-Axis.
@@ -45,6 +44,7 @@ export default class XAxis {
     // For bars, we will only consider single y xais,
     // as we are not providing multiple yaxis for bar charts
     this.yaxis = w.config.yaxis[0]
+    this.axesUtils = new AxesUtils(ctx)
   }
 
   drawXaxis() {
@@ -91,7 +91,13 @@ export default class XAxis {
       for (let i = 0; i <= labelsLen - 1; i++) {
         let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
 
-        let label = this.getLabel(labels, w.globals.timelineLabels, x, i)
+        let label = this.axesUtils.getLabel(
+          labels,
+          w.globals.timelineLabels,
+          x,
+          i,
+          this.drawnLabels
+        )
 
         this.drawnLabels.push(label.text)
 
@@ -174,50 +180,6 @@ export default class XAxis {
     return elXaxis
   }
 
-  // Based on the formatter function, get the label text and position
-  getLabel(labels, timelineLabels, x, i) {
-    const w = this.w
-    let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
-    let label
-
-    let xlbFormatter = w.globals.xLabelFormatter
-    let customFormatter = w.config.xaxis.labels.formatter
-
-    let xFormat = new Formatters(this.ctx)
-    label = xFormat.xLabelFormat(xlbFormatter, rawLabel)
-
-    if (customFormatter !== undefined) {
-      label = customFormatter(rawLabel, this.xaxisLabels[i], i)
-    }
-
-    if (timelineLabels.length > 0) {
-      x = timelineLabels[i].position
-      label = timelineLabels[i].value
-    } else {
-      if (w.config.xaxis.type === 'datetime' && customFormatter === undefined) {
-        label = ''
-      }
-    }
-
-    if (typeof label === 'undefined') label = ''
-
-    label = label.toString()
-    if (
-      label.indexOf('NaN') === 0 ||
-      label.toLowerCase().indexOf('invalid') === 0 ||
-      label.toLowerCase().indexOf('infinity') >= 0 ||
-      (this.drawnLabels.indexOf(label) >= 0 &&
-        !w.config.xaxis.labels.showDuplicates)
-    ) {
-      label = ''
-    }
-
-    return {
-      x,
-      text: label
-    }
-  }
-
   // this actually becomes the vertical axis (for bar charts)
   drawXaxisInversed(realIndex) {
     let w = this.w
@@ -275,14 +237,6 @@ export default class XAxis {
           cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
         })
 
-        // let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
-        // if (ylabels.rotate !== 0) {
-        //   elLabel.node.setAttribute(
-        //     'transform',
-        //     `rotate(${ylabels.rotate} ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
-        //   )
-        // }
-
         elYaxisTexts.add(elLabel)
         yPos = yPos + colHeight
       }
@@ -325,14 +279,7 @@ export default class XAxis {
 
       elYaxis.add(elHorzLine)
 
-      // let x = w.globals.yAxisWidths[0] / 2
-      // if (w.config.yaxis[0].opposite) {
-      //   x = -w.globals.yAxisWidths[0] / 2
-      // }
-
-      let yaxis = new YAxis(this.ctx)
-
-      yaxis.drawAxisTicks(
+      this.axesUtils.drawYAxisTicks(
         0,
         labels.length,
         w.config.yaxis[0].axisBorder,

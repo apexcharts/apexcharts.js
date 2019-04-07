@@ -9,7 +9,7 @@ import Pie from '../charts/Pie'
 import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
-import Line_Area from '../charts/Line_Area'
+import Line from '../charts/Line'
 import Graphics from './Graphics'
 import XAxis from './axes/XAxis'
 import YAxis from './axes/YAxis'
@@ -184,7 +184,7 @@ export default class Core {
       }
     })
 
-    let line = new Line_Area(this.ctx, xyRatios)
+    let line = new Line(this.ctx, xyRatios)
     let candlestick = new CandleStick(this.ctx, xyRatios)
     let pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
@@ -214,14 +214,14 @@ export default class Core {
         )
       }
       if (scatterSeries.series.length > 0) {
-        const scatterLine = new Line_Area(this.ctx, xyRatios, true)
+        const scatterLine = new Line(this.ctx, xyRatios, true)
         elGraph.push(
           scatterLine.draw(scatterSeries.series, 'scatter', scatterSeries.i)
         )
       }
       // TODO: allow bubble series in a combo chart
       // if (bubbleSeries.series.length > 0) {
-      //   const bubbleLine = new Line_Area(this.ctx, xyRatios, true)
+      //   const bubbleLine = new Line(this.ctx, xyRatios, true)
       //   elGraph.push(
       //     bubbleLine.draw(bubbleSeries.series, 'bubble', bubbleSeries.i)
       //   )

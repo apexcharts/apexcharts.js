@@ -7,12 +7,12 @@ import Scatter from './Scatter'
 import Utils from '../utils/Utils'
 
 /**
- * ApexCharts Line_Area Class responsible for drawing Line / Area Charts.
+ * ApexCharts Line Class responsible for drawing Line / Area Charts.
  * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
- * @module Line_Area
+ * @module Line
  **/
 
-class Line_Area {
+class Line {
   constructor(ctx, xyRatios, isPointsChart) {
     this.ctx = ctx
     this.w = ctx.w
@@ -698,4 +698,4 @@ class Line_Area {
   }
 }
 
-export default Line_Area
+export default Line
