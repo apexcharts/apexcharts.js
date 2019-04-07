@@ -737,8 +737,21 @@ export default class Core {
       // user didn't provided labels, fallback to 1-2-3-4-5
       let labelArr = []
       if (gl.axisCharts) {
-        for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-          labelArr.push(i + 1)
+        if (this.twoDSeriesX.length > 0) {
+          const scales = new Scales(this.ctx)
+          labelArr = scales
+            .linearScale(
+              this.twoDSeriesX[0],
+              this.twoDSeriesX[this.twoDSeriesX.length - 1],
+              cnf.xaxis.tickAmount ? cnf.xaxis.tickAmount : 6
+            )
+            .result.map((r) => {
+              return r.toFixed(1)
+            })
+        } else {
+          for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+            labelArr.push(i + 1)
+          }
         }
 
         for (let i = 0; i < ser.length; i++) {
