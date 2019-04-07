@@ -429,7 +429,10 @@ export default class ApexCharts {
     if (w.globals.collapsedSeriesIndices.length > 0) {
       this.clearPreviousPaths()
     }
-
+    /* update theme mode#459 */
+    if (options.theme) {
+      options = this.updateThemeOptions(options)
+    }
     return this._updateOptions(options, redraw, animate, overwriteInitialConfig)
   }
 
@@ -1033,5 +1036,27 @@ export default class ApexCharts {
       // we need to redraw the whole chart on window resize (with a small delay).
       this.update()
     }, 150)
+  }
+
+  updateThemeOptions(options) {
+    options.chart = options.chart || {}
+    options.tooltip = options.tooltip || {}
+    const mode = options.theme.mode || 'light'
+    const palette = options.theme.palette
+      ? options.theme.palette
+      : mode === 'dark'
+      ? 'palette4'
+      : 'palette1'
+    const foreColor = options.chart.foreColor
+      ? options.chart.foreColor
+      : mode === 'dark'
+      ? '#f6f7f8'
+      : '#373d3f'
+
+    options.tooltip.theme = mode
+    options.chart.foreColor = foreColor
+    options.theme.palette = palette
+
+    return options
   }
 }
