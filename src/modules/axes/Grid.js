@@ -184,11 +184,7 @@ class Grid {
 
     let xCount
 
-    let inversedGrid = !!(
-      w.config.plotOptions.bar.horizontal && w.config.chart.type === 'bar'
-    )
-
-    if (!inversedGrid) {
+    if (!w.globals.isBarHorizontal) {
       xCount = this.xaxisLabels.length
 
       // draw vertical lines

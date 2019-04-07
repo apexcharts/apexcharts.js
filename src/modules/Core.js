@@ -75,6 +75,10 @@ export default class Core {
 
     gl.xyCharts = xyChartsArrTypes.indexOf(ct) > -1
 
+    gl.isBarHorizontal =
+      (cnf.chart.type === 'bar' || cnf.chart.type === 'rangeBar') &&
+      cnf.plotOptions.bar.horizontal
+
     gl.chartClass = '.apexcharts' + gl.cuid
 
     gl.dom.baseEl = this.el
@@ -524,8 +528,10 @@ export default class Core {
     // get series
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j].y !== 'undefined') {
-        if (Array.isArray(ser[i].data[j].y) && ser[i].data[j].y.length === 4) {
-          this.twoDSeries.push(Utils.parseNumber(ser[i].data[j].y[3]))
+        if (Array.isArray(ser[i].data[j].y)) {
+          this.twoDSeries.push(
+            Utils.parseNumber(ser[i].data[j].y[ser[i].data[j].y.length - 1])
+          )
         } else {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j].y))
         }
@@ -895,16 +901,27 @@ export default class Core {
 
       if (
         w.config.xaxis.type === 'datetime' &&
-        w.config.xaxis.labels.formatter === undefined &&
-        isFinite(w.globals.minX) &&
-        isFinite(w.globals.maxX)
+        w.config.xaxis.labels.formatter === undefined
       ) {
         let ts = new TimeScale(this.ctx)
-        const formattedTimeScale = ts.calculateTimeScaleTicks(
-          w.globals.minX,
-          w.globals.maxX
-        )
-        ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
+        let formattedTimeScale
+        if (
+          isFinite(w.globals.minX) &&
+          isFinite(w.globals.maxX) &&
+          !w.globals.isBarHorizontal
+        ) {
+          formattedTimeScale = ts.calculateTimeScaleTicks(
+            w.globals.minX,
+            w.globals.maxX
+          )
+          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, false)
+        } else if (w.globals.isBarHorizontal) {
+          formattedTimeScale = ts.calculateTimeScaleTicks(
+            w.globals.minY,
+            w.globals.maxY
+          )
+          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, true)
+        }
       }
     }
     return xyRatios
@@ -920,7 +937,7 @@ export default class Core {
     if (gl.axisCharts && type !== 'radar') {
       let elXaxis, elYaxis
 
-      if (type === 'bar' && cnf.plotOptions.bar.horizontal) {
+      if (gl.isBarHorizontal) {
         elYaxis = yAxis.drawYaxisInversed(0)
         elXaxis = xAxis.drawXaxisInversed(0)
 

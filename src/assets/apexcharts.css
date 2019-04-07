@@ -141,6 +141,14 @@
   font-weight: bold;
 }
 
+.apexcharts-tooltip-rangebar {
+  padding: 4px 8px;
+}
+
+.apexcharts-tooltip-rangebar .series-name {
+  font-weight: bold;
+}
+
 .apexcharts-xaxistooltip {
   opacity: 0;
   padding: 9px 10px;

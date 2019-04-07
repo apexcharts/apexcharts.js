@@ -20,11 +20,6 @@ export default class Dimensions {
 
     this.xPadRight = 0
     this.xPadLeft = 0
-
-    this.isBarHorizontal = !!(
-      this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal
-    )
   }
 
   /**
@@ -89,7 +84,7 @@ export default class Dimensions {
       this.xAxisHeight = 0
     }
 
-    if (!this.isBarHorizontal) {
+    if (!w.globals.isBarHorizontal) {
       this.yAxisWidth = this.getTotalYAxisWidth()
     } else {
       this.yAxisWidth =
@@ -144,7 +139,7 @@ export default class Dimensions {
         ? -this.xAxisWidth / 4
         : 0
 
-    if (this.isBarHorizontal) {
+    if (w.globals.isBarHorizontal) {
       gl.rotateXLabels = false
       gl.translateXAxisY =
         -1 * (parseInt(w.config.xaxis.labels.style.fontSize) / 1.5)
@@ -310,7 +305,7 @@ export default class Dimensions {
     const w = this.w
 
     if (
-      (w.config.xaxis.type === 'category' && this.isBarHorizontal) ||
+      (w.config.xaxis.type === 'category' && w.globals.isBarHorizontal) ||
       w.config.xaxis.type === 'numeric'
     ) {
       const rightPad = (labels) => {
@@ -334,20 +329,20 @@ export default class Dimensions {
           yaxe.floating ||
           w.globals.collapsedSeriesIndices.indexOf(i) !== -1 ||
           lineArea ||
-          (yaxe.opposite && this.isBarHorizontal)
+          (yaxe.opposite && w.globals.isBarHorizontal)
 
         if (shouldPad) {
           if (
             (lineArea &&
               w.globals.isMultipleYAxis &&
               w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
-            (this.isBarHorizontal && yaxe.opposite)
+            (w.globals.isBarHorizontal && yaxe.opposite)
           ) {
             leftPad(xaxisLabelCoords)
           }
 
           if (
-            (!this.isBarHorizontal &&
+            (!w.globals.isBarHorizontal &&
               yaxe.opposite &&
               w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
             (lineArea && !w.globals.isMultipleYAxis)
@@ -443,6 +438,9 @@ export default class Dimensions {
     let rect
 
     let timescaleLabels = w.globals.timelineLabels.slice()
+    if (w.globals.isBarHorizontal && w.config.xaxis.type === 'datetime') {
+      timescaleLabels = w.globals.invertedTimelineLabels.slice()
+    }
 
     let labels = timescaleLabels.map((label) => {
       return label.value
@@ -517,7 +515,7 @@ export default class Dimensions {
       }, 0)
 
       // the labels gets changed for bar charts
-      if (this.isBarHorizontal) {
+      if (w.globals.isBarHorizontal) {
         val = w.globals.yAxisScale[0].result.reduce(function(a, b) {
           return a.length > b.length ? a : b
         }, 0)
@@ -542,7 +540,7 @@ export default class Dimensions {
           w.globals.svgWidth - lgWidthForSideLegends - this.yAxisWidth &&
         w.config.xaxis.labels.rotate !== 0
       ) {
-        if (!this.isBarHorizontal) {
+        if (!w.globals.isBarHorizontal) {
           w.globals.rotateXLabels = true
           xLabelrect = graphics.getTextRects(
             val,
@@ -601,7 +599,7 @@ export default class Dimensions {
           val = w.globals.yAxisScale[index].niceMax
         }
 
-        if (this.isBarHorizontal) {
+        if (w.globals.isBarHorizontal) {
           labelPad = 0
 
           let barYaxisLabels = w.globals.labels.slice()

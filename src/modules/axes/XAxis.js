@@ -85,57 +85,22 @@ export default class XAxis {
       xPos = xPos + colWidth + w.config.xaxis.labels.offsetX
     }
 
-    let xlbFormatter = w.globals.xLabelFormatter
-    let customFormatter = w.config.xaxis.labels.formatter
-
     let labelsLen = labels.length
 
     if (w.config.xaxis.labels.show) {
       for (let i = 0; i <= labelsLen - 1; i++) {
-        let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
-        let label
-
-        let xFormat = new Formatters(this.ctx)
-        label = xFormat.xLabelFormat(xlbFormatter, rawLabel)
-
-        if (customFormatter !== undefined) {
-          label = customFormatter(rawLabel, this.xaxisLabels[i], i)
-        }
-
         let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
-        if (w.globals.timelineLabels.length > 0) {
-          x = w.globals.timelineLabels[i].position
-          label = w.globals.timelineLabels[i].value
-        } else {
-          if (
-            w.config.xaxis.type === 'datetime' &&
-            customFormatter === undefined
-          ) {
-            label = ''
-          }
-        }
 
-        if (typeof label === 'undefined') label = ''
+        let label = this.getLabel(labels, w.globals.timelineLabels, x, i)
 
-        label = label.toString()
-        if (
-          label.indexOf('NaN') === 0 ||
-          label.toLowerCase().indexOf('invalid') === 0 ||
-          label.toLowerCase().indexOf('infinity') >= 0 ||
-          (this.drawnLabels.indexOf(label) >= 0 &&
-            !w.config.xaxis.labels.showDuplicates)
-        ) {
-          label = ''
-        }
-
-        this.drawnLabels.push(label)
+        this.drawnLabels.push(label.text)
 
         let offsetYCorrection = 28
         if (w.globals.rotateXLabels) {
           offsetYCorrection = 22
         }
         let elTick = graphics.drawText({
-          x: x,
+          x: label.x,
           y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
           text: '',
           textAnchor: 'middle',
@@ -150,10 +115,10 @@ export default class XAxis {
 
         elXaxisTexts.add(elTick)
 
-        graphics.addTspan(elTick, label, this.xaxisFontFamily)
+        graphics.addTspan(elTick, label.text, this.xaxisFontFamily)
 
         let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
-        elTooltipTitle.textContent = label
+        elTooltipTitle.textContent = label.text
         elTick.node.appendChild(elTooltipTitle)
 
         xPos = xPos + colWidth
@@ -207,6 +172,50 @@ export default class XAxis {
     }
 
     return elXaxis
+  }
+
+  // Based on the formatter function, get the label text and position
+  getLabel(labels, timelineLabels, x, i) {
+    const w = this.w
+    let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
+    let label
+
+    let xlbFormatter = w.globals.xLabelFormatter
+    let customFormatter = w.config.xaxis.labels.formatter
+
+    let xFormat = new Formatters(this.ctx)
+    label = xFormat.xLabelFormat(xlbFormatter, rawLabel)
+
+    if (customFormatter !== undefined) {
+      label = customFormatter(rawLabel, this.xaxisLabels[i], i)
+    }
+
+    if (timelineLabels.length > 0) {
+      x = timelineLabels[i].position
+      label = timelineLabels[i].value
+    } else {
+      if (w.config.xaxis.type === 'datetime' && customFormatter === undefined) {
+        label = ''
+      }
+    }
+
+    if (typeof label === 'undefined') label = ''
+
+    label = label.toString()
+    if (
+      label.indexOf('NaN') === 0 ||
+      label.toLowerCase().indexOf('invalid') === 0 ||
+      label.toLowerCase().indexOf('infinity') >= 0 ||
+      (this.drawnLabels.indexOf(label) >= 0 &&
+        !w.config.xaxis.labels.showDuplicates)
+    ) {
+      label = ''
+    }
+
+    return {
+      x,
+      text: label
+    }
   }
 
   // this actually becomes the vertical axis (for bar charts)
@@ -443,10 +452,7 @@ export default class XAxis {
       for (let xat = 0; xat < xAxisTexts.length; xat++) {
         let tSpan = xAxisTexts[xat].childNodes
 
-        if (
-          w.config.xaxis.labels.trim &&
-          (w.config.chart.type !== 'bar' && w.config.plotOptions.bar.horizontal)
-        ) {
+        if (w.config.xaxis.labels.trim && !w.globals.isBarHorizontal) {
           graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, width)
         }
       }

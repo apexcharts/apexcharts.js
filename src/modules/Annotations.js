@@ -13,10 +13,7 @@ export default class Annotations {
     this.w = ctx.w
     this.graphics = new Graphics(this.ctx)
 
-    if (
-      this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal
-    ) {
+    if (this.w.globals.isBarHorizontal) {
       this.invertAxis = true
     }
 

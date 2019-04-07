@@ -4,11 +4,6 @@ export default class Range {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
-
-    this.isBarHorizontal = !!(
-      this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal
-    )
   }
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
@@ -191,7 +186,7 @@ export default class Range {
     const gl = this.w.globals
     const cnf = this.w.config
 
-    let y = this.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index]
+    let y = gl.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index]
 
     if (typeof gl.yAxisScale[index] === 'undefined') {
       gl.yAxisScale[index] = []

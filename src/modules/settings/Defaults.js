@@ -189,6 +189,46 @@ export default class Defaults {
     }
   }
 
+  rangeBar() {
+    return {
+      stroke: {
+        width: 0
+      },
+      tooltip: {
+        shared: true,
+        custom: function({ seriesIndex, dataPointIndex, w }) {
+          const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
+          const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+          return (
+            '<div class="apexcharts-tooltip-rangebar">' +
+            '<div> <span class="series-name">' +
+            (w.config.series[seriesIndex].name
+              ? w.config.series[seriesIndex].name
+              : '') +
+            '</span></div>' +
+            '<div>Start: <span class="value">' +
+            start +
+            '</span></div>' +
+            '<div>End: <span class="value">' +
+            end +
+            '</span></div>' +
+            '</div>'
+          )
+        }
+      },
+      xaxis: {
+        tooltip: {
+          enabled: false
+        },
+        crosshairs: {
+          stroke: {
+            width: 0
+          }
+        }
+      }
+    }
+  }
+
   area() {
     return {
       stroke: {

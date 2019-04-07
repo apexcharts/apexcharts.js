@@ -137,7 +137,7 @@ class AxesTooltip {
       }
     }
 
-    if (w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal) {
+    if (w.globals.isBarHorizontal) {
       ttCtx.xcrosshairsWidth = 0
     }
     if (xcrosshairs !== null && ttCtx.xcrosshairsWidth > 0) {

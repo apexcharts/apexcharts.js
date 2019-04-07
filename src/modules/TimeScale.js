@@ -226,14 +226,19 @@ class TimeScale {
     return filteredTimeScale
   }
 
-  recalcDimensionsBasedOnFormat(filteredTimeScale) {
+  recalcDimensionsBasedOnFormat(filteredTimeScale, inverted) {
     const w = this.w
     const reformattedTimescaleArray = this.formatDates(filteredTimeScale)
 
     const removedOverlappingTS = this.removeOverlappingTS(
       reformattedTimescaleArray
     )
-    w.globals.timelineLabels = removedOverlappingTS.slice()
+
+    if (!inverted) {
+      w.globals.timelineLabels = removedOverlappingTS.slice()
+    } else {
+      w.globals.invertedTimelineLabels = removedOverlappingTS.slice()
+    }
 
     // at this stage, we need to re-calculate coords of the grid as timeline labels may have altered the xaxis labels coords
     // The reason we can't do this prior to this stage is because timeline labels depends on gridWidth, and as the ticks are calculated based on available gridWidth, there can be unknown number of ticks generated for different minX and maxX

@@ -431,6 +431,7 @@ export default class Options {
             }
           }
         },
+        rangeBar: {},
         pie: {
           size: undefined,
           customScale: 1,

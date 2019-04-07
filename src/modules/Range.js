@@ -11,10 +11,6 @@ class Range {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
-    this.isBarHorizontal = !!(
-      this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal
-    )
 
     this.scales = new Scales(ctx)
   }
@@ -46,6 +42,9 @@ class Range {
     if (this.w.config.chart.type === 'candlestick') {
       seriesMin = gl.seriesCandleL
       seriesMax = gl.seriesCandleH
+    } else if (gl.isRangeData) {
+      seriesMin = gl.seriesRangeStart
+      seriesMax = gl.seriesRangeEnd
     }
 
     for (let i = startingIndex; i < len; i++) {
@@ -197,7 +196,7 @@ class Range {
     })
 
     // for horizontal bar charts, we need to check xaxis min/max as user may have specified there
-    if (this.isBarHorizontal) {
+    if (gl.isBarHorizontal) {
       if (cnf.xaxis.min !== undefined && typeof cnf.xaxis.min === 'number') {
         gl.minY = cnf.xaxis.min
       }

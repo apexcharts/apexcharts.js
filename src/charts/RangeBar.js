@@ -18,6 +18,8 @@ class RangeBar extends Bar {
     this.rangeBarOptions = this.w.config.plotOptions.rangeBar
 
     this.series = series
+    this.seriesRangeStart = w.globals.seriesRangeStart
+    this.seriesRangeEnd = w.globals.seriesRangeEnd
 
     this.initVariables(series)
 
@@ -262,13 +264,10 @@ class RangeBar extends Bar {
     let i = indexes.i
     let j = indexes.j
 
-    const xRatio = this.xRatio
     let realIndex = indexes.realIndex
 
-    const range = this.getRangeValue(realIndex, j)
-
-    let x1 = Math.min(range.start, range.end)
-    let x2 = Math.max(range.start, range.end)
+    let x1 = zeroW
+    let x2 = zeroW
 
     if (w.globals.isXNumeric) {
       y =
@@ -285,13 +284,11 @@ class RangeBar extends Bar {
     }
 
     if (
-      typeof this.series[i][j] === 'undefined' ||
-      this.series[i][j] === null
+      typeof this.series[i][j] !== 'undefined' &&
+      this.series[i][j] !== null
     ) {
-      x1 = zeroW
-    } else {
-      x1 = zeroW - x1 / xRatio
-      x2 = zeroW - x2 / xRatio
+      x1 = zeroW + this.seriesRangeStart[i][j] / this.invertedYRatio
+      x2 = zeroW + this.seriesRangeEnd[i][j] / this.invertedYRatio
     }
 
     pathTo =

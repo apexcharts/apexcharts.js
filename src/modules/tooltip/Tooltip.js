@@ -31,9 +31,7 @@ export default class Tooltip {
     this.fixedTooltip = w.config.tooltip.fixed.enabled
     this.xaxisTooltip = null
     this.yaxisTTEls = null
-    this.isBarHorizontal = w.config.plotOptions.bar.horizontal
-    this.isBarShared =
-      !w.config.plotOptions.bar.horizontal && w.config.tooltip.shared
+    this.isBarShared = !w.globals.isBarHorizontal && w.config.tooltip.shared
   }
 
   getElTooltip(ctx) {
@@ -80,7 +78,8 @@ export default class Tooltip {
     if (
       (w.globals.comboCharts && !w.config.tooltip.shared) ||
       (w.config.tooltip.intersect && !w.config.tooltip.shared) ||
-      (w.config.chart.type === 'bar' && !w.config.tooltip.shared)
+      ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
+        !w.config.tooltip.shared)
     ) {
       this.showOnIntersect = true
     }
@@ -184,7 +183,11 @@ export default class Tooltip {
     let type = w.config.chart.type
     const tooltipEl = this.getElTooltip()
 
-    const barOrCandlestick = !!(type === 'bar' || type === 'candlestick')
+    const commonBar = !!(
+      type === 'bar' ||
+      type === 'candlestick' ||
+      type === 'rangeBar'
+    )
 
     let hoverArea = w.globals.dom.Paper.node
 
@@ -217,10 +220,9 @@ export default class Tooltip {
         points = w.globals.dom.baseEl.querySelectorAll(
           ".apexcharts-series[data\\:longestSeries='true'] .apexcharts-marker"
         )
-      } else if (barOrCandlestick) {
+      } else if (commonBar) {
         points = w.globals.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-bar-area',
-          '.apexcharts-series .apexcharts-candlestick-area'
+          '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-rangebar-area'
         )
       } else if (type === 'heatmap') {
         points = w.globals.dom.baseEl.querySelectorAll(
@@ -243,11 +245,11 @@ export default class Tooltip {
     const validSharedChartTypes =
       (w.globals.xyCharts && !this.showOnIntersect) ||
       (w.globals.comboCharts && !this.showOnIntersect) ||
-      (barOrCandlestick && this.hasBars() && w.config.tooltip.shared)
+      (commonBar && this.hasBars() && w.config.tooltip.shared)
 
     if (validSharedChartTypes) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
-    } else if (barOrCandlestick && !w.globals.comboCharts) {
+    } else if (commonBar && !w.globals.comboCharts) {
       this.addBarsEventListeners(seriesHoverParams)
     } else if (
       type === 'bubble' ||
@@ -329,7 +331,7 @@ export default class Tooltip {
   addBarsEventListeners(seriesHoverParams) {
     let w = this.w
     let bars = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-area, .apexcharts-candlestick-area'
+      '.apexcharts-bar-area, .apexcharts-candlestick-area, .apexcharts-rangebar-area'
     )
 
     this.addPathsEventListeners(bars, seriesHoverParams)
@@ -491,14 +493,11 @@ export default class Tooltip {
     let isStickyTooltip =
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
-        (!this.isBarHorizontal && this.hasBars()) &&
+        (!w.globals.isBarHorizontal && this.hasBars()) &&
         w.config.tooltip.shared) ||
       (w.globals.comboCharts && this.hasBars)
 
-    if (
-      w.config.chart.type === 'bar' &&
-      (this.isBarHorizontal && this.hasBars())
-    ) {
+    if (w.globals.isBarHorizontal && this.hasBars()) {
       isStickyTooltip = false
     }
 
@@ -718,7 +717,7 @@ export default class Tooltip {
 
   getElBars() {
     return this.w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-series,  .apexcharts-candlestick-series'
+      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-rangebar-series'
     )
   }
 

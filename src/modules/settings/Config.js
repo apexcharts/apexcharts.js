@@ -57,6 +57,9 @@ export default class Config {
         case 'candlestick':
           chartDefaults = defaults.candlestick()
           break
+        case 'rangeBar':
+          chartDefaults = defaults.rangeBar()
+          break
         case 'histogram':
           chartDefaults = defaults.bar()
           break
@@ -255,7 +258,10 @@ export default class Config {
       )
     }
 
-    if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
+    if (
+      (config.chart.type === 'bar' || config.chart.type === 'rangeBar') &&
+      config.plotOptions.bar.horizontal
+    ) {
       // No multiple yaxis for bars
       if (config.yaxis.length > 1) {
         throw new Error(
@@ -273,7 +279,7 @@ export default class Config {
       config.chart.zoom.enabled = false // no zooming for horz bars
     }
 
-    if (config.chart.type === 'bar') {
+    if (config.chart.type === 'bar' || config.chart.type === 'rangeBar') {
       if (config.tooltip.shared) {
         if (
           config.xaxis.crosshairs.width === 'barWidth' &&
@@ -286,6 +292,7 @@ export default class Config {
         }
         if (config.plotOptions.bar.horizontal) {
           config.states.hover.type = 'none'
+          config.tooltip.shared = false
         }
         if (!config.tooltip.followCursor) {
           console.warn(

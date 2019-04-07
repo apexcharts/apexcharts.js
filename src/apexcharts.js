@@ -122,24 +122,24 @@ export default class ApexCharts {
   }
 
   initModules() {
-    this.animations = new Animations(this.ctx)
-    this.annotations = new Annotations(this.ctx)
+    this.animations = new Animations(this)
+    this.annotations = new Annotations(this)
     this.core = new Core(this.el, this)
     this.grid = new Grid(this)
     this.coreUtils = new CoreUtils(this)
     this.config = new Config({})
-    this.crosshairs = new Crosshairs(this.ctx)
+    this.crosshairs = new Crosshairs(this)
     this.options = new Options()
-    this.responsive = new Responsive(this.ctx)
-    this.series = new Series(this.ctx)
-    this.theme = new Theme(this.ctx)
-    this.formatters = new Formatters(this.ctx)
-    this.titleSubtitle = new TitleSubtitle(this.ctx)
-    this.legend = new Legend(this.ctx)
-    this.toolbar = new Toolbar(this.ctx)
-    this.dimensions = new Dimensions(this.ctx)
-    this.zoomPanSelection = new ZoomPanSelection(this.ctx)
-    this.w.globals.tooltip = new Tooltip(this.ctx)
+    this.responsive = new Responsive(this)
+    this.series = new Series(this)
+    this.theme = new Theme(this)
+    this.formatters = new Formatters(this)
+    this.titleSubtitle = new TitleSubtitle(this)
+    this.legend = new Legend(this)
+    this.toolbar = new Toolbar(this)
+    this.dimensions = new Dimensions(this)
+    this.zoomPanSelection = new ZoomPanSelection(this)
+    this.w.globals.tooltip = new Tooltip(this)
   }
 
   addEventListener(name, handler) {

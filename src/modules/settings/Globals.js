@@ -54,6 +54,7 @@ export default class Globals {
       labels: [], // store the text to draw on x axis
       // Don't mutate the labels, many things including tooltips depends on it!
       timelineLabels: [], // store the timeline Labels in another variable
+      invertedTimelineLabels: [], // for rangebar timeline
       seriesNames: [], // same as labels, used in non axis charts
       noLabelsProvided: false, // if user didn't provide any categories/labels or x values, fallback to 1,2,3,4...
       allSeriesCollapsed: false,

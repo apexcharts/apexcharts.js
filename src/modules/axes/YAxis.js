@@ -1,4 +1,5 @@
 import Graphics from '../Graphics'
+import XAxis from './XAxis'
 import Utils from '../../utils/Utils'
 
 /**
@@ -11,19 +12,16 @@ export default class YAxis {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
+    const w = this.w
 
-    this.xaxisFontSize = this.w.config.xaxis.labels.style.fontSize
-    this.axisFontFamily = this.w.config.xaxis.labels.style.fontFamily
-    this.isBarHorizontal = !!(
-      this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal
-    )
+    this.xaxisFontSize = w.config.xaxis.labels.style.fontSize
+    this.axisFontFamily = w.config.xaxis.labels.style.fontFamily
 
-    this.xaxisForeColors = this.w.config.xaxis.labels.style.colors
+    this.xaxisForeColors = w.config.xaxis.labels.style.colors
 
     this.xAxisoffX = 0
-    if (this.w.config.xaxis.position === 'bottom') {
-      this.xAxisoffX = this.w.globals.gridHeight
+    if (w.config.xaxis.position === 'bottom') {
+      this.xAxisoffX = w.globals.gridHeight
     }
   }
 
@@ -164,6 +162,7 @@ export default class YAxis {
   drawYaxisInversed(realIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
+    let xaxis = new XAxis(this.ctx)
 
     let elXaxis = graphics.group({
       class: 'apexcharts-xaxis apexcharts-yaxis-inversed'
@@ -189,20 +188,42 @@ export default class YAxis {
     let lbFormatter = w.globals.xLabelFormatter
 
     let labels = w.globals.yAxisScale[realIndex].result.slice()
+
+    let timelineLabels = w.globals.invertedTimelineLabels
+    if (timelineLabels.length > 0) {
+      this.xaxisLabels = timelineLabels.slice()
+      labels = timelineLabels.slice()
+      tickAmount = labels.length
+    }
+
     if (w.config.yaxis[realIndex].reversed) {
       labels.reverse()
     }
 
+    const tl = timelineLabels.length
+
     if (w.config.xaxis.labels.show) {
-      for (let i = tickAmount; i >= 0; i--) {
+      for (
+        let i = tl ? 0 : tickAmount;
+        tl ? i < tl - 1 : i >= 0;
+        tl ? i++ : i--
+      ) {
         let val = labels[i]
         val = lbFormatter(val, i)
 
+        let x =
+          w.globals.gridWidth +
+          w.globals.padHorizontal -
+          (l - labelsDivider + w.config.xaxis.labels.offsetX)
+
+        if (timelineLabels.length) {
+          let label = xaxis.getLabel(labels, timelineLabels, x, i)
+          x = label.x
+          val = label.text
+        }
+
         let elTick = graphics.drawText({
-          x:
-            w.globals.gridWidth +
-            w.globals.padHorizontal -
-            (l - labelsDivider + w.config.xaxis.labels.offsetX),
+          x: x,
           y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
           text: '',
           textAnchor: 'middle',
@@ -289,7 +310,7 @@ export default class YAxis {
       for (let i = tickAmount; i >= 0; i--) {
         let tY =
           t + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY - 1
-        if (this.isBarHorizontal) {
+        if (w.globals.isBarHorizontal) {
           tY = labelsDivider * i
         }
         let elTick = graphics.drawLine(
@@ -404,7 +425,7 @@ export default class YAxis {
         padd / 2 +
         yAxisTitleCoord.width / 2
 
-      if (this.isBarHorizontal) {
+      if (w.globals.isBarHorizontal) {
         padd = 25
         x =
           yAxisLabelsCoord.width * -1 -
@@ -447,7 +468,7 @@ export default class YAxis {
 
         w.globals.translateYAxisX[index] = xLeft + yaxe.labels.offsetX
       } else {
-        if (this.isBarHorizontal) {
+        if (w.globals.isBarHorizontal) {
           xRight = w.globals.gridWidth + w.globals.translateX - 1
 
           w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX

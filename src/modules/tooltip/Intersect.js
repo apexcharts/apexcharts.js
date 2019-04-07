@@ -135,7 +135,7 @@ class Intersect {
     let j = barXY.j
 
     if (
-      (ttCtx.isBarHorizontal && ttCtx.hasBars()) ||
+      (w.globals.isBarHorizontal && ttCtx.hasBars()) ||
       !w.config.tooltip.shared
     ) {
       x = barXY.x
@@ -185,7 +185,8 @@ class Intersect {
     // move tooltip here
     if (
       !ttCtx.fixedTooltip &&
-      (!w.config.tooltip.shared || (ttCtx.isBarHorizontal && ttCtx.hasBars()))
+      (!w.config.tooltip.shared ||
+        (w.globals.isBarHorizontal && ttCtx.hasBars()))
     ) {
       if (isReversed) {
         x = w.globals.gridWidth - x
@@ -200,7 +201,7 @@ class Intersect {
         ? w.config.yaxis[seriesIndex].reversed
         : w.config.yaxis[0].reversed
 
-      if (isReversed && !(ttCtx.isBarHorizontal && ttCtx.hasBars())) {
+      if (isReversed && !(w.globals.isBarHorizontal && ttCtx.hasBars())) {
         y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2
       }
       if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {
@@ -230,7 +231,8 @@ class Intersect {
 
     if (
       cl.contains('apexcharts-bar-area') ||
-      cl.contains('apexcharts-candlestick-area')
+      cl.contains('apexcharts-candlestick-area') ||
+      cl.contains('apexcharts-rangebar-area')
     ) {
       let bar = e.target
       let barRect = bar.getBoundingClientRect()
@@ -269,7 +271,7 @@ class Intersect {
       })
 
       if (w.config.tooltip.followCursor) {
-        if (w.config.plotOptions.bar.horizontal) {
+        if (w.globals.isBarHorizontal) {
           x = clientX - seriesBound.left + 15
           y =
             cy -
@@ -285,7 +287,7 @@ class Intersect {
           y = e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15
         }
       } else {
-        if (w.config.plotOptions.bar.horizontal) {
+        if (w.globals.isBarHorizontal) {
           x = cx
           if (x < ttCtx.xyRatios.baseLineInvertedY) {
             x = cx - ttCtx.tooltipRect.ttWidth
