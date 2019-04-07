@@ -12391,7 +12391,10 @@ var ApexCharts = function () {
       if (w.globals.collapsedSeriesIndices.length > 0) {
         this.clearPreviousPaths();
       }
-
+      /* update theme mode#459 */
+      if (options.theme) {
+        options = this.theme.updateThemeOptions(options);
+      }
       return this._updateOptions(options, redraw, animate, overwriteInitialConfig);
     }
 
@@ -12511,7 +12514,7 @@ var ApexCharts = function () {
       var existingSeries = void 0;
 
       // axis charts
-      if (newSeries[0].data) {
+      if (w.globals.axisCharts) {
         existingSeries = newSeries.map(function (s, i) {
           return _extends({}, w.config.series[i], {
             name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
@@ -12520,6 +12523,9 @@ var ApexCharts = function () {
           });
         });
 
+        if (existingSeries.length === 0) {
+          existingSeries = [{ data: [] }];
+        }
         w.config.series = existingSeries;
       } else {
         // non-axis chart (pie/radialbar)
@@ -26086,8 +26092,15 @@ var Core = function () {
         // user didn't provided labels, fallback to 1-2-3-4-5
         var labelArr = [];
         if (gl.axisCharts) {
-          for (var i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-            labelArr.push(i + 1);
+          if (this.twoDSeriesX.length > 0) {
+            var scales = new _Scales2.default(this.ctx);
+            labelArr = scales.linearScale(this.twoDSeriesX[0], this.twoDSeriesX[this.twoDSeriesX.length - 1], cnf.xaxis.tickAmount ? cnf.xaxis.tickAmount : 6).result.map(function (r) {
+              return r.toFixed(1);
+            });
+          } else {
+            for (var i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+              labelArr.push(i + 1);
+            }
           }
 
           for (var _i = 0; _i < ser.length; _i++) {
@@ -27151,6 +27164,21 @@ var Theme = function () {
           colorSeries.push(colorSeries[i]);
         }
       }
+    }
+  }, {
+    key: 'updateThemeOptions',
+    value: function updateThemeOptions(options) {
+      options.chart = options.chart || {};
+      options.tooltip = options.tooltip || {};
+      var mode = options.theme.mode || 'light';
+      var palette = options.theme.palette ? options.theme.palette : mode === 'dark' ? 'palette4' : 'palette1';
+      var foreColor = options.chart.foreColor ? options.chart.foreColor : mode === 'dark' ? '#f6f7f8' : '#373d3f';
+
+      options.tooltip.theme = mode;
+      options.chart.foreColor = foreColor;
+      options.theme.palette = palette;
+
+      return options;
     }
   }, {
     key: 'predefined',

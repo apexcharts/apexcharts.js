@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.6.5
+ * ApexCharts v3.6.6
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -4521,7 +4521,7 @@ function () {
       }
 
       if (config.chart.group && config.yaxis[0].labels.minWidth === 0) {
-        console.warn('It looks like you have multiple charts in synchronization. You must provide yaxis.labels.minWidth which must be EQUAL for all grouped charts to prevent incorrect behaviour.');
+        console.error('It looks like you have multiple charts in synchronization. You must provide yaxis.labels.minWidth which must be EQUAL for all grouped charts to prevent incorrect behaviour.');
       } // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
 
 
@@ -5534,6 +5534,7 @@ function () {
             }
           }
 
+          if (text === null) text = '';
           this.plotDataLabelsText({
             x: x,
             y: y,
@@ -11595,7 +11596,7 @@ function () {
         }
       }
 
-      if (gl.isXNumeric || gl.noLabelsProvided) {
+      if ((gl.isXNumeric || gl.noLabelsProvided) && !cnf.xaxis.convertedCatToNumeric) {
         var ticks;
 
         if (cnf.xaxis.tickAmount === undefined) {
@@ -12149,14 +12150,19 @@ function () {
         this.yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15;
       }
 
-      if (!w.globals.isMultipleYAxis) {
-        if (this.yAxisWidth < w.config.yaxis[0].labels.minWidth) {
-          this.yAxisWidth = w.config.yaxis[0].labels.minWidth;
-        }
+      var minYAxisWidth = 0;
+      var maxYAxisWidth = 0;
+      w.config.yaxis.forEach(function (y) {
+        minYAxisWidth += y.labels.minWidth;
+        maxYAxisWidth += y.labels.maxWidth;
+      });
 
-        if (this.yAxisWidth > w.config.yaxis[0].labels.maxWidth) {
-          this.yAxisWidth = w.config.yaxis[0].labels.maxWidth;
-        }
+      if (this.yAxisWidth < minYAxisWidth) {
+        this.yAxisWidth = minYAxisWidth;
+      }
+
+      if (this.yAxisWidth > maxYAxisWidth) {
+        this.yAxisWidth = maxYAxisWidth;
       }
     }
   }, {
@@ -12473,6 +12479,8 @@ function () {
   }, {
     key: "getxAxisLabelsCoords",
     value: function getxAxisLabelsCoords() {
+      var _this2 = this;
+
       var w = this.w;
       var xaxisLabels = w.globals.labels.slice();
       var rect;
@@ -12486,7 +12494,14 @@ function () {
       } else {
         var lgWidthForSideLegends = w.config.legend.position === 'left' && w.config.legend.position === 'right' && !w.config.legend.floating ? this.lgRect.width : 0; //  get the longest string from the labels array and also apply label formatter to it
 
-        var val = xaxisLabels.reduce(function (a, b) {
+        var labels = [];
+        var xlbFormatter = w.globals.xLabelFormatter;
+        xaxisLabels.forEach(function (xl) {
+          var xFormat = new Formatters(_this2.ctx);
+          var label = xFormat.xLabelFormat(xlbFormatter, xl);
+          labels.push(label);
+        });
+        var val = labels.reduce(function (a, b) {
           return a.length > b.length ? a : b;
         }, 0); // the labels gets changed for bar charts
 
@@ -12496,7 +12511,6 @@ function () {
           }, 0);
         }
 
-        var xlbFormatter = w.globals.xLabelFormatter;
         var xFormat = new Formatters(this.ctx);
         val = xFormat.xLabelFormat(xlbFormatter, val);
         var graphics = new Graphics(this.ctx);
@@ -12538,7 +12552,7 @@ function () {
   }, {
     key: "getyAxisLabelsCoords",
     value: function getyAxisLabelsCoords() {
-      var _this2 = this;
+      var _this3 = this;
 
       var w = this.w;
       var width = 0;
@@ -12555,7 +12569,7 @@ function () {
             val = w.globals.yAxisScale[index].niceMax;
           }
 
-          if (_this2.isBarHorizontal) {
+          if (_this3.isBarHorizontal) {
             labelPad = 0;
             var barYaxisLabels = w.globals.labels.slice(); //  get the longest string from the labels array and also apply label formatter to it
 
@@ -12565,7 +12579,7 @@ function () {
             val = lbFormatter(val, -1);
           }
 
-          var graphics = new Graphics(_this2.ctx);
+          var graphics = new Graphics(_this3.ctx);
           var rect = graphics.getTextRects(val, yaxe.labels.style.fontSize);
           ret.push({
             width: rect.width + labelPad,
@@ -12614,13 +12628,13 @@ function () {
   }, {
     key: "getyAxisTitleCoords",
     value: function getyAxisTitleCoords() {
-      var _this3 = this;
+      var _this4 = this;
 
       var w = this.w;
       var ret = [];
       w.config.yaxis.map(function (yaxe, index) {
         if (yaxe.show && yaxe.title.text !== undefined) {
-          var graphics = new Graphics(_this3.ctx);
+          var graphics = new Graphics(_this4.ctx);
           var rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, 'rotate(-90 0 0)', false);
           ret.push({
             width: rect.width,
@@ -14112,8 +14126,15 @@ function () {
         var labelArr = [];
 
         if (gl.axisCharts) {
-          for (var i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-            labelArr.push(i + 1);
+          if (this.twoDSeriesX.length > 0) {
+            var scales = new Range(this.ctx);
+            labelArr = scales.linearScale(this.twoDSeriesX[0], this.twoDSeriesX[this.twoDSeriesX.length - 1], cnf.xaxis.tickAmount ? cnf.xaxis.tickAmount : 6).result.map(function (r) {
+              return r.toFixed(1);
+            });
+          } else {
+            for (var i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+              labelArr.push(i + 1);
+            }
           }
 
           for (var _i = 0; _i < ser.length; _i++) {
@@ -15791,6 +15812,19 @@ function () {
           colorSeries.push(colorSeries[i]);
         }
       }
+    }
+  }, {
+    key: "updateThemeOptions",
+    value: function updateThemeOptions(options) {
+      options.chart = options.chart || {};
+      options.tooltip = options.tooltip || {};
+      var mode = options.theme.mode || 'light';
+      var palette = options.theme.palette ? options.theme.palette : mode === 'dark' ? 'palette4' : 'palette1';
+      var foreColor = options.chart.foreColor ? options.chart.foreColor : mode === 'dark' ? '#f6f7f8' : '#373d3f';
+      options.tooltip.theme = mode;
+      options.chart.foreColor = foreColor;
+      options.theme.palette = palette;
+      return options;
     }
   }, {
     key: "predefined",
@@ -27237,6 +27271,12 @@ function () {
       if (w.globals.collapsedSeriesIndices.length > 0) {
         this.clearPreviousPaths();
       }
+      /* update theme mode#459 */
+
+
+      if (options$$1.theme) {
+        options$$1 = this.theme.updateThemeOptions(options$$1);
+      }
 
       return this._updateOptions(options$$1, redraw, animate, overwriteInitialConfig);
     }
@@ -27341,7 +27381,7 @@ function () {
 
       var existingSeries; // axis charts
 
-      if (newSeries[0].data) {
+      if (w.globals.axisCharts) {
         existingSeries = newSeries.map(function (s, i) {
           return _objectSpread({}, w.config.series[i], {
             name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
@@ -27349,6 +27389,13 @@ function () {
             data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
           });
         });
+
+        if (existingSeries.length === 0) {
+          existingSeries = [{
+            data: []
+          }];
+        }
+
         w.config.series = existingSeries;
       } else {
         // non-axis chart (pie/radialbar)
