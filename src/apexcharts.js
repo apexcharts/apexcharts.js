@@ -533,7 +533,7 @@ export default class ApexCharts {
     let existingSeries
 
     // axis charts
-    if (newSeries[0].data) {
+    if (w.globals.axisCharts) {
       existingSeries = newSeries.map((s, i) => {
         return {
           ...w.config.series[i],
@@ -543,6 +543,9 @@ export default class ApexCharts {
         }
       })
 
+      if (existingSeries.length === 0) {
+        existingSeries = [{ data: [] }]
+      }
       w.config.series = existingSeries
     } else {
       // non-axis chart (pie/radialbar)
