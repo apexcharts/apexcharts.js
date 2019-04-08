@@ -60,6 +60,8 @@ export default class Globals {
       ancillaryCollapsedSeries: [], // when user collapses an "alwaysVisible" series, it goes into this array
       ancillaryCollapsedSeriesIndices: [], // this stores the index of the collapsedSeries whose y-axis is always visible
       risingSeries: [], // when user re-opens a collapsed series, it goes here
+      dataFormat2DArray: false,
+      dataFormatXY: false,
       selectedDataPoints: [],
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       padHorizontal: 0,

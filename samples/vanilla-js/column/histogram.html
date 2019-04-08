@@ -20,6 +20,10 @@
       opacity: 1;
       border: 0;
     }
+
+    .selection {
+      opacity: 0;
+    }
   </style>
 </head>
 
@@ -27,7 +31,9 @@
 
   <div id="chart">
     <div id="timeline-chart"></div>
-    Selected: <span id="selected-count">0</span>
+    <div class="selection">
+      Selected: <span id="selected-count">0</span>
+    </div>
   </div>
 
 
@@ -59,7 +65,6 @@
       },
       plotOptions: {
         bar: {
-          distributed: true,
           dataLabels: {
             enabled: false
           }
@@ -71,16 +76,6 @@
       states: {
         active: {
           allowMultipleDataPointsSelection: true
-        }
-      },
-      markers: {
-        size: 5,
-        strokeColor: "#fff",
-        strokeWidth: 3,
-        strokeOpacity: 1,
-        fillOpacity: 1,
-        hover: {
-          size: 8
         }
       },
       xaxis: {
@@ -114,8 +109,8 @@
     
 
      chart.addEventListener("dataPointSelection", function(e, opts) { 
-            console.log(e, opts)
-        })
+          console.log(e, opts)
+      })
 
         
 

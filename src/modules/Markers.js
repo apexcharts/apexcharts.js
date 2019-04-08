@@ -39,6 +39,7 @@ export default class Markers {
   plotChartMarkers(pointsPos, seriesIndex, j) {
     let w = this.w
 
+    let i = seriesIndex
     let p = pointsPos
     let elPointsWrap = null
 
@@ -98,6 +99,16 @@ export default class Markers {
               opts.pSize = marker.size
             }
           })
+
+          if (w.config.series[i].data[j]) {
+            if (w.config.series[i].data[j].fillColor) {
+              opts.pointFillColor = w.config.series[i].data[j].fillColor
+            }
+
+            if (w.config.series[i].data[j].strokeColor) {
+              opts.pointStrokeColor = w.config.series[i].data[j].strokeColor
+            }
+          }
 
           point = graphics.drawMarker(p.x[q], p.y[q], opts)
 

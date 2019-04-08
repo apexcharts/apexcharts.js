@@ -478,6 +478,7 @@ export default class Core {
         } else {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1]))
         }
+        gl.dataFormat2DArray = true
       }
       if (cnf.xaxis.type === 'datetime') {
         // if timestamps are provided and xaxis type is datettime,
@@ -509,6 +510,7 @@ export default class Core {
       // fix #368
       activeI = this.activeSeriesIndex
     }
+    gl.dataFormatXY = true
 
     // get series
     for (let j = 0; j < ser[i].data.length; j++) {
@@ -737,7 +739,7 @@ export default class Core {
       // user didn't provided labels, fallback to 1-2-3-4-5
       let labelArr = []
       if (gl.axisCharts) {
-        if (this.twoDSeriesX.length > 0) {
+        if (gl.dataFormat2DArray) {
           const scales = new Scales(this.ctx)
           labelArr = scales
             .linearScale(

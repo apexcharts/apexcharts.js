@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Basic Column - Grouped</title>
+
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+
+    <script src="../../../dist/apexcharts.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                height: 350,
+                type: 'bar',
+            },
+            plotOptions: {
+                bar: {
+                  horizontal: false,
+                  columnWidth: '60%'
+                },
+            },
+            stroke: {
+                show: true,
+                width: 2,
+            },
+            dataLabels: {
+                enabled: false
+            },
+            series: [{
+              name: 'Yearly Profit',
+              data: [{
+                x: '2011',
+                y: 1292
+              }, {
+                x: '2012',
+                y: 4432
+              }, {
+                x: '2013',
+                y: 5423
+              }, {
+                x: '2014',
+                y: 6653
+              }, {
+                x: '2015',
+                y: 8133,
+                fillColor: '#EB8C87',
+                strokeColor: '#C23829'
+              }, {
+                x: '2016',
+                y: 7132
+              }, {
+                x: '2017',
+                y: 7332
+              }, {
+                x: '2018',
+                y: 6553
+              }]
+            }],
+            yaxis: {
+              labels: {
+                formatter: function(val) {
+                  return val / 1000 + 'K $'
+                }
+              }
+            },
+            fill: {
+                opacity: 1,
+            },
+            xaxis: {
+              type: 'datetime'
+            }
+        }
+
+        var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+
+        chart.render();
+       
+
+    </script>
+</body>
+
+</html>

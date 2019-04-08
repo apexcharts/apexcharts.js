@@ -279,10 +279,13 @@ export default class Position {
       `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers circle`
     )
 
-    point.setAttribute('r', hoverSize)
+    if (point) {
+      point.setAttribute('r', hoverSize)
 
-    point.setAttribute('cx', cx)
-    point.setAttribute('cy', cy)
+      point.setAttribute('cx', cx)
+      point.setAttribute('cy', cy)
+    }
+
     // point.style.opacity = w.config.markers.hover.opacity
 
     this.moveXCrosshairs(cx)

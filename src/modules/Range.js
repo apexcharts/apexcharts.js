@@ -284,7 +284,7 @@ class Range {
 
     if (
       (gl.isXNumeric || gl.noLabelsProvided) &&
-      !cnf.xaxis.convertedCatToNumeric
+      (!cnf.xaxis.convertedCatToNumeric || gl.dataFormat2DArray)
     ) {
       let ticks
 
@@ -355,6 +355,11 @@ class Range {
         gl.minX = gl.minX - 2
         gl.maxX = gl.maxX + 2
       }
+    }
+
+    return {
+      minX: gl.minX,
+      maxX: gl.maxX
     }
   }
 
