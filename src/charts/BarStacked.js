@@ -176,23 +176,7 @@ class BarStacked extends Bar {
         xArrValues.push(x)
         yArrValues.push(y)
 
-        let seriesNumber = w.config.plotOptions.bar.distributed ? j : i
-
-        let fillColor = null
-
-        if (this.barOptions.colors.ranges.length > 0) {
-          const colorRange = this.barOptions.colors.ranges
-          colorRange.map((range, index) => {
-            if (series[i][j] >= range.from && series[i][j] <= range.to) {
-              fillColor = range.color
-            }
-          })
-        }
-
-        let pathFill = this.fill.fillPath({
-          seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
-          color: fillColor
-        })
+        let pathFill = this.bar.getPathFillColor(i, j, realIndex)
 
         elSeries = this.renderSeries({
           realIndex,
@@ -528,14 +512,14 @@ class BarStacked extends Bar {
       this.graphics.line(barXPosition, endingShape.newY) +
       endingShape.path +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition, barYPosition)
+      this.graphics.line(barXPosition - strokeWidth / 2, barYPosition)
     pathFrom =
       pathFrom +
       this.graphics.line(barXPosition, barYPosition) +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition, barYPosition)
+      this.graphics.line(barXPosition - strokeWidth / 2, barYPosition)
 
     if (
       w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 &&

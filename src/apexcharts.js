@@ -429,7 +429,10 @@ export default class ApexCharts {
     if (w.globals.collapsedSeriesIndices.length > 0) {
       this.clearPreviousPaths()
     }
-
+    /* update theme mode#459 */
+    if (options.theme) {
+      options = this.theme.updateThemeOptions(options)
+    }
     return this._updateOptions(options, redraw, animate, overwriteInitialConfig)
   }
 
@@ -530,7 +533,7 @@ export default class ApexCharts {
     let existingSeries
 
     // axis charts
-    if (newSeries[0].data) {
+    if (w.globals.axisCharts) {
       existingSeries = newSeries.map((s, i) => {
         return {
           ...w.config.series[i],
@@ -540,6 +543,9 @@ export default class ApexCharts {
         }
       })
 
+      if (existingSeries.length === 0) {
+        existingSeries = [{ data: [] }]
+      }
       w.config.series = existingSeries
     } else {
       // non-axis chart (pie/radialbar)

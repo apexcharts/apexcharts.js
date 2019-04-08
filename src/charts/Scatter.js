@@ -100,10 +100,14 @@ export default class Scatter {
   drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j) {
     const w = this.w
 
+    let i = realIndex
     let anim = new Animations(this.ctx)
     let filters = new Filters(this.ctx)
     let fill = new Fill(this.ctx)
+    let markers = new Markers(this.ctx)
     const graphics = new Graphics(this.ctx)
+
+    const markerConfig = markers.getMarkerConfig('apexcharts-marker', i)
 
     let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex,
@@ -111,10 +115,18 @@ export default class Scatter {
     })
     let circle = graphics.drawCircle(radius)
 
+    if (w.config.series[i].data[dataPointIndex]) {
+      if (w.config.series[i].data[dataPointIndex].fillColor) {
+        pathFillCircle = w.config.series[i].data[dataPointIndex].fillColor
+      }
+    }
+
     circle.attr({
       cx: x,
       cy: y,
-      fill: pathFillCircle
+      fill: pathFillCircle,
+      stroke: markerConfig.pointStrokeColor,
+      strokeWidth: markerConfig.pWidth
     })
 
     if (w.config.chart.dropShadow.enabled) {
@@ -192,7 +204,6 @@ export default class Scatter {
       'default-marker-size': finishRadius
     })
 
-    const markers = new Markers(this.ctx)
     filters.setSelectionFilter(circle, realIndex, dataPointIndex)
     markers.addEvents(circle)
 

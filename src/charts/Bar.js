@@ -47,7 +47,6 @@ class Bar {
   draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
-    let fill = new Fill(this.ctx)
 
     const coreUtils = new CoreUtils(this.ctx, w)
     series = coreUtils.getLogSeries(series)
@@ -191,23 +190,7 @@ class Bar {
 
         yArrj.push(y)
 
-        let seriesNumber = this.barOptions.distributed ? j : i
-
-        let fillColor = null
-
-        if (this.barOptions.colors.ranges.length > 0) {
-          const colorRange = this.barOptions.colors.ranges
-          colorRange.map((range) => {
-            if (series[i][j] >= range.from && series[i][j] <= range.to) {
-              fillColor = range.color
-            }
-          })
-        }
-
-        let pathFill = fill.fillPath({
-          seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
-          color: fillColor
-        })
+        let pathFill = this.getPathFillColor(i, j, realIndex)
 
         elSeries = this.renderSeries({
           realIndex,
@@ -239,6 +222,34 @@ class Bar {
     return ret
   }
 
+  getPathFillColor(i, j, realIndex) {
+    const w = this.w
+    let fill = new Fill(this.ctx)
+
+    let fillColor = null
+    let seriesNumber = this.barOptions.distributed ? j : i
+
+    if (this.barOptions.colors.ranges.length > 0) {
+      const colorRange = this.barOptions.colors.ranges
+      colorRange.map((range) => {
+        if (series[i][j] >= range.from && series[i][j] <= range.to) {
+          fillColor = range.color
+        }
+      })
+    }
+
+    if (w.config.series[i].data[j] && w.config.series[i].data[j].fillColor) {
+      fillColor = w.config.series[i].data[j].fillColor
+    }
+
+    let pathFill = fill.fillPath({
+      seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
+      color: fillColor
+    })
+
+    return pathFill
+  }
+
   renderSeries({
     realIndex,
     pathFill,
@@ -266,6 +277,10 @@ class Bar {
       lineFill = this.barOptions.distributed
         ? w.globals.stroke.colors[j]
         : w.globals.stroke.colors[realIndex]
+    }
+
+    if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
+      lineFill = w.config.series[i].data[j].strokeColor
     }
 
     if (this.isNullValue) {
@@ -613,17 +628,15 @@ class Bar {
       pathTo +
       graphics.line(barXPosition, endingShape.newY) +
       endingShape.path +
-      // graphics.line(barXPosition, y) +
-      // graphics.line(barXPosition + barWidth - strokeWidth, y) +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
-      graphics.line(barXPosition, zeroH)
+      graphics.line(barXPosition - strokeWidth / 2, zeroH)
     pathFrom =
       pathFrom +
       graphics.line(barXPosition, zeroH) +
       endingShape.ending_p_from +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
       graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
-      graphics.line(barXPosition, zeroH)
+      graphics.line(barXPosition - strokeWidth / 2, zeroH)
 
     if (!w.globals.isXNumeric) {
       x = x + xDivision
