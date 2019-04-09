@@ -198,7 +198,7 @@ class Intersect {
       )
 
       const isReversed = w.globals.isMultipleYAxis
-        ? w.config.yaxis[seriesIndex].reversed
+        ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
         : w.config.yaxis[0].reversed
 
       if (isReversed && !(w.globals.isBarHorizontal && ttCtx.hasBars())) {

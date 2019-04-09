@@ -833,7 +833,7 @@ class Bar {
     }
     let valIsNegative = this.series[i][j] <= 0
 
-    if (w.config.yaxis[this.yaxisIndex].reversed) {
+    if (this.isReversed) {
       y = y - barHeight
     }
 
@@ -899,7 +899,7 @@ class Bar {
 
     let valIsNegative = this.series[i][j] <= 0
 
-    if (w.config.yaxis[this.yaxisIndex].reversed) {
+    if (this.isReversed) {
       x = x + barWidth
     }
 

@@ -167,7 +167,10 @@ export default class Annotations {
         (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
 
-      if (w.config.yaxis[anno.yAxisIndex].reversed) {
+      if (
+        w.config.yaxis[anno.yAxisIndex] &&
+        w.config.yaxis[anno.yAxisIndex].reversed
+      ) {
         y1 =
           (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
@@ -202,7 +205,10 @@ export default class Annotations {
           (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
 
-        if (w.config.yaxis[anno.yAxisIndex].reversed) {
+        if (
+          w.config.yaxis[anno.yAxisIndex] &&
+          w.config.yaxis[anno.yAxisIndex].reversed
+        ) {
           y2 =
             (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
@@ -317,7 +323,10 @@ export default class Annotations {
         (annoY - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
 
-      if (w.config.yaxis[anno.yAxisIndex].reversed) {
+      if (
+        w.config.yaxis[anno.yAxisIndex] &&
+        w.config.yaxis[anno.yAxisIndex].reversed
+      ) {
         y =
           (annoY - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) +
@@ -342,7 +351,10 @@ export default class Annotations {
         (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
 
-      if (w.config.yaxis[anno.yAxisIndex].reversed) {
+      if (
+        w.config.yaxis[anno.yAxisIndex] &&
+        w.config.yaxis[anno.yAxisIndex].reversed
+      ) {
         y =
           (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -

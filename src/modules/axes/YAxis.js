@@ -60,7 +60,7 @@ export default class YAxis {
     let lbFormatter = w.globals.yLabelFormatters[realIndex]
 
     let labels = w.globals.yAxisScale[realIndex].result.slice()
-    if (w.config.yaxis[realIndex].reversed) {
+    if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].reversed) {
       labels.reverse()
     }
 
@@ -197,7 +197,7 @@ export default class YAxis {
       tickAmount = labels.length
     }
 
-    if (w.config.yaxis[realIndex].reversed) {
+    if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].reversed) {
       labels.reverse()
     }
 
