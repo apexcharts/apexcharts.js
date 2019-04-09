@@ -190,7 +190,7 @@ class Bar {
 
         yArrj.push(y)
 
-        let pathFill = this.getPathFillColor(i, j, realIndex)
+        let pathFill = this.getPathFillColor(series, i, j, realIndex)
 
         elSeries = this.renderSeries({
           realIndex,
@@ -222,7 +222,7 @@ class Bar {
     return ret
   }
 
-  getPathFillColor(i, j, realIndex) {
+  getPathFillColor(series, i, j, realIndex) {
     const w = this.w
     let fill = new Fill(this.ctx)
 

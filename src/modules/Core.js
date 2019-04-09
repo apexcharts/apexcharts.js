@@ -813,21 +813,8 @@ export default class Core {
       // user didn't provided labels, fallback to 1-2-3-4-5
       let labelArr = []
       if (gl.axisCharts) {
-        if (gl.dataFormat2DArray) {
-          const scales = new Scales(this.ctx)
-          labelArr = scales
-            .linearScale(
-              this.twoDSeriesX[0],
-              this.twoDSeriesX[this.twoDSeriesX.length - 1],
-              cnf.xaxis.tickAmount ? cnf.xaxis.tickAmount : 6
-            )
-            .result.map((r) => {
-              return r.toFixed(1)
-            })
-        } else {
-          for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-            labelArr.push(i + 1)
-          }
+        for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+          labelArr.push(i + 1)
         }
 
         for (let i = 0; i < ser.length; i++) {
@@ -887,12 +874,14 @@ export default class Core {
 
     this.coreUtils.getPercentSeries()
 
-    // user didn't provide a [[x,y],[x,y]] series, but a named series
+    // x-axis labels couldn't be detected; hence try searching every option in config
+    // Also, if dataFormat2DArray = [[3, 2], [4, 5]], then skip
     if (
-      !gl.isXNumeric ||
-      (cnf.xaxis.type === 'numeric' &&
-        cnf.labels.length === 0 &&
-        cnf.xaxis.categories.length === 0)
+      !gl.dataFormat2DArray &&
+      (!gl.isXNumeric ||
+        (cnf.xaxis.type === 'numeric' &&
+          cnf.labels.length === 0 &&
+          cnf.xaxis.categories.length === 0))
     ) {
       this.handleExternalLabelsData(ser)
     }

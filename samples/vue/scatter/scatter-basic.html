@@ -155,10 +155,13 @@
               type: 'xy'
             }
           },
-
-
           xaxis: {
-            tickAmount: 10,
+              tickAmount: 10,
+              labels: {
+                  formatter: function(val) {
+                      return parseFloat(val).toFixed(1)
+                  }
+              }
           },
           yaxis: {
             tickAmount: 7

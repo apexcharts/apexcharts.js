@@ -176,7 +176,7 @@ class BarStacked extends Bar {
         xArrValues.push(x)
         yArrValues.push(y)
 
-        let pathFill = this.bar.getPathFillColor(i, j, realIndex)
+        let pathFill = this.bar.getPathFillColor(series, i, j, realIndex)
 
         elSeries = this.renderSeries({
           realIndex,

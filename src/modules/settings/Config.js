@@ -311,7 +311,7 @@ export default class Config {
     }
 
     if (config.chart.group && config.yaxis[0].labels.minWidth === 0) {
-      console.error(
+      console.warn(
         'It looks like you have multiple charts in synchronization. You must provide yaxis.labels.minWidth which must be EQUAL for all grouped charts to prevent incorrect behaviour.'
       )
     }
