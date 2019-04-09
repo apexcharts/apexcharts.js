@@ -8,7 +8,7 @@
   <img alt="gzip" src="https://img.shields.io/bundlephobia/minzip/apexcharts.svg?label=gzip">
   <a href="https://www.jsdelivr.com/package/npm/apexcharts"><img src="https://data.jsdelivr.com/v1/package/npm/apexcharts/badge" alt="jsdelivr" /></a>
   <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square" alt="prettier"></a>
-  <a href="https://patreon.com/junedchhipa"><img src="https://img.shields.io/badge/patrons-8-blue.svg?style=flat&logo=patreon" alt="patrons" /></a>
+  <a href="https://patreon.com/junedchhipa"><img src="https://img.shields.io/badge/patrons-10-blue.svg?style=flat&logo=patreon" alt="patrons" /></a>
 </p>
 
 
