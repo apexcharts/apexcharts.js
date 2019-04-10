@@ -108,7 +108,7 @@ export default class Config {
           opts.chart.type === 'area' ||
           opts.chart.type === 'scatter') &&
         !combo.comboChartsHasBars &&
-        opts.xaxis.type !== 'datetime' &&
+        opts.xaxis.type === 'category' &&
         opts.xaxis.tickPlacement !== 'between'
       ) {
         opts = Defaults.convertCatToNumeric(opts)
