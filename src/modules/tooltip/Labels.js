@@ -357,6 +357,7 @@ export default class Labels {
 
     // override everything with a custom html tooltip and replace it
     tooltipEl.innerHTML = w.config.tooltip.custom({
+      ctx: this.ctx,
       series: w.globals.series,
       seriesIndex: i,
       dataPointIndex: j,

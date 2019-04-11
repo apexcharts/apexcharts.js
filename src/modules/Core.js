@@ -619,8 +619,10 @@ export default class Core {
     const err =
       'Please provide [Start, End] values in valid format. Read more https://apexcharts.com/docs/series/#rangecharts'
 
+    const serObj = new Series(this.ctx)
+    const activeIndex = serObj.getActiveConfigSeriesIndex()
     if (format === 'array') {
-      if (ser[i].data[0][1].length !== 2) {
+      if (ser[activeIndex].data[0][1].length !== 2) {
         throw new Error(err)
       }
       for (let j = 0; j < ser[i].data.length; j++) {
@@ -628,7 +630,7 @@ export default class Core {
         rangeEnd.push(ser[i].data[j][1][1])
       }
     } else if (format === 'xy') {
-      if (ser[i].data[0].y.length !== 2) {
+      if (ser[activeIndex].data[0].y.length !== 2) {
         throw new Error(err)
       }
       for (let j = 0; j < ser[i].data.length; j++) {

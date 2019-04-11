@@ -1,4 +1,5 @@
 import Utils from '../../utils/Utils'
+import DateTime from '../../utils/DateTime'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
@@ -196,9 +197,53 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: function({ seriesIndex, dataPointIndex, w }) {
+        custom: function({ ctx, seriesIndex, dataPointIndex, w }) {
           const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
           const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+
+          let startVal = ''
+          let endVal = ''
+          if (w.config.tooltip.x.formatter === undefined) {
+            var datetimeObj = new DateTime(ctx)
+            startVal = datetimeObj.formatDate(
+              new Date(start),
+              w.config.tooltip.x.format,
+              true,
+              true
+            )
+            endVal = datetimeObj.formatDate(
+              new Date(end),
+              w.config.tooltip.x.format,
+              true,
+              true
+            )
+          } else {
+            startVal = w.config.tooltip.x.formatter(start)
+            endVal = w.config.tooltip.x.formatter(end)
+          }
+          // const values = tooltipContext.tooltipLabels.getValuesToPrint({
+          //   i: seriesIndex,
+          //   j: dataPointIndex
+          // })
+          // const formatter = tooltipContext.tooltipLabels.getFormatters(
+          //   seriesIndex
+          // )
+          // const valStart = formatter.yLbFormatter(start, {
+          //   series: w.globals.series,
+          //   seriesIndex,
+          //   dataPointIndex,
+          //   w
+          // })
+
+          // const valEnd = formatter.yLbFormatter(end, {
+          //   series: w.globals.series,
+          //   seriesIndex,
+          //   dataPointIndex,
+          //   w
+          // })
+
+          console.log(w.globals.yLabelFormatters[0], w.globals.xLabelFormatter)
+
           return (
             '<div class="apexcharts-tooltip-rangebar">' +
             '<div> <span class="series-name">' +
@@ -207,10 +252,10 @@ export default class Defaults {
               : '') +
             '</span></div>' +
             '<div>Start: <span class="value">' +
-            start +
+            startVal +
             '</span></div>' +
             '<div>End: <span class="value">' +
-            end +
+            endVal +
             '</span></div>' +
             '</div>'
           )
