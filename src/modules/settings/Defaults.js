@@ -196,13 +196,16 @@ export default class Defaults {
         width: 0
       },
       tooltip: {
-        shared: true,
+        shared: false,
+        followCursor: true,
         custom: function({ ctx, seriesIndex, dataPointIndex, w }) {
           const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
           const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
 
           let startVal = ''
           let endVal = ''
+
+          const color = w.globals.colors[seriesIndex]
           if (w.config.tooltip.x.formatter === undefined) {
             var datetimeObj = new DateTime(ctx)
             startVal = datetimeObj.formatDate(
@@ -221,40 +224,23 @@ export default class Defaults {
             startVal = w.config.tooltip.x.formatter(start)
             endVal = w.config.tooltip.x.formatter(end)
           }
-          // const values = tooltipContext.tooltipLabels.getValuesToPrint({
-          //   i: seriesIndex,
-          //   j: dataPointIndex
-          // })
-          // const formatter = tooltipContext.tooltipLabels.getFormatters(
-          //   seriesIndex
-          // )
-          // const valStart = formatter.yLbFormatter(start, {
-          //   series: w.globals.series,
-          //   seriesIndex,
-          //   dataPointIndex,
-          //   w
-          // })
 
-          // const valEnd = formatter.yLbFormatter(end, {
-          //   series: w.globals.series,
-          //   seriesIndex,
-          //   dataPointIndex,
-          //   w
-          // })
-
-          console.log(w.globals.yLabelFormatters[0], w.globals.xLabelFormatter)
+          const ylabel = w.globals.labels[dataPointIndex]
 
           return (
             '<div class="apexcharts-tooltip-rangebar">' +
-            '<div> <span class="series-name">' +
+            '<div> <span class="series-name" style="color: ' +
+            color +
+            '">' +
             (w.config.series[seriesIndex].name
               ? w.config.series[seriesIndex].name
               : '') +
             '</span></div>' +
-            '<div>Start: <span class="value">' +
+            '<div> <span class="category">' +
+            ylabel +
+            ': </span> <span class="value start-value">' +
             startVal +
-            '</span></div>' +
-            '<div>End: <span class="value">' +
+            '</span> <span class="separator">-</span> <span class="value end-value">' +
             endVal +
             '</span></div>' +
             '</div>'
