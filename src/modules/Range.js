@@ -284,7 +284,7 @@ class Range {
 
     if (
       (gl.isXNumeric || gl.noLabelsProvided) &&
-      (!cnf.xaxis.convertedCatToNumeric || gl.dataFormat2DArray)
+      (!cnf.xaxis.convertedCatToNumeric || gl.dataFormatXNumeric)
     ) {
       let ticks
 

@@ -410,6 +410,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     me.drawSelectionRect(selectionRect)
+    me.selectionDragging('resizing')
     return selectionRect
   }
 

@@ -369,7 +369,7 @@ export default class Defaults {
 
     opts.xaxis.categories = []
     opts.labels = []
-    opts.chart.zoom.enabled = false
+    opts.chart.zoom.enabled = opts.chart.zoom.enabled || false
 
     return opts
   }

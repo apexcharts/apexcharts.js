@@ -493,7 +493,7 @@ export default class Core {
         } else {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1]))
         }
-        gl.dataFormat2DArray = true
+        gl.dataFormatXNumeric = true
       }
       if (cnf.xaxis.type === 'datetime') {
         // if timestamps are provided and xaxis type is datettime,
@@ -525,7 +525,6 @@ export default class Core {
       // fix #368
       activeI = this.activeSeriesIndex
     }
-    gl.dataFormatXY = true
 
     // get series
     for (let j = 0; j < ser[i].data.length; j++) {
@@ -561,6 +560,7 @@ export default class Core {
               dt.parseDate(ser[activeI].data[j].x.toString())
             )
           } else {
+            gl.dataFormatXNumeric = true
             this.twoDSeriesX.push(parseFloat(ser[activeI].data[j].x))
           }
         }
@@ -877,9 +877,10 @@ export default class Core {
     this.coreUtils.getPercentSeries()
 
     // x-axis labels couldn't be detected; hence try searching every option in config
-    // Also, if dataFormat2DArray = [[3, 2], [4, 5]], then skip
+    // Also, if dataFormatXNumeric = [[3, 2], [4, 5]] ||
+    //          dataFormatXNumeric = [{ x: 3, y: 55 }], then skip
     if (
-      !gl.dataFormat2DArray &&
+      !gl.dataFormatXNumeric &&
       (!gl.isXNumeric ||
         (cnf.xaxis.type === 'numeric' &&
           cnf.labels.length === 0 &&
