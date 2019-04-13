@@ -9,6 +9,7 @@ export default class Range {
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
   niceScale(yMin, yMax, index = 0, ticks = 10) {
+    const w = this.w
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
       (!Utils.isNumber(yMin) && !Utils.isNumber(yMax)) ||
@@ -47,7 +48,13 @@ export default class Range {
     // Determine Range
     let range = yMax - yMin
 
-    if (range < 1) {
+    if (
+      range < 1 &&
+      w.config.yaxis[index].forceNiceScale &&
+      (w.config.chart.type === 'candlestick' ||
+        w.config.series[index].type === 'candlestick' ||
+        w.globals.isRangeData)
+    ) {
       /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
       yMax = yMax * 1.01
     }
