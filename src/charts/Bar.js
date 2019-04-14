@@ -53,7 +53,8 @@ class Bar {
     this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.initVariables(series)
+    let initVars = this.initVariables(series, this.minXDiff)
+    this.minXDiff = initVars.minXDiff
 
     let ret = graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series'
@@ -335,7 +336,7 @@ class Bar {
     return elSeries
   }
 
-  initVariables(series) {
+  initVariables(series, minXDiff) {
     const w = this.w
     this.series = series
     this.totalItems = 0
@@ -354,7 +355,7 @@ class Bar {
           sX.forEach((s, j) => {
             if (j > 0) {
               let xDiff = s - w.globals.seriesX[i][j - 1]
-              this.minXDiff = Math.min(xDiff, this.minXDiff)
+              minXDiff = Math.min(xDiff, minXDiff)
             }
           })
         })
@@ -376,6 +377,10 @@ class Bar {
     if (this.seriesLen === 0) {
       // A small adjustment when combo charts are used
       this.seriesLen = 1
+    }
+
+    return {
+      minXDiff
     }
   }
 
@@ -410,7 +415,7 @@ class Bar {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        this.calcMinimumXDiff()
+        this.minXDiff = this.calcMinimumXDiff(this.minXDiff)
         xDivision = this.minXDiff / this.xRatio
         barWidth =
           ((xDivision / this.seriesLen) *
@@ -439,28 +444,27 @@ class Bar {
     }
   }
 
-  calcMinimumXDiff() {
+  calcMinimumXDiff(minXDiff) {
     const w = this.w
 
     let len = w.globals.labels.length
 
     if (w.globals.labels.length === 1) {
-      this.minXDiff = (w.globals.maxX - w.globals.minX) / len / 3
+      minXDiff = (w.globals.maxX - w.globals.minX) / len / 3
     } else {
-      if (this.minXDiff === Number.MAX_VALUE) {
+      if (minXDiff === Number.MAX_VALUE) {
         // possibly a single dataPoint (fixes react-apexcharts/issue#34)
         if (w.globals.timelineLabels.length > 0) {
           len = w.globals.timelineLabels.length
         }
-
         if (len < 3) {
           len = 3
         }
-        this.minXDiff = (w.globals.maxX - w.globals.minX) / len
+        minXDiff = (w.globals.maxX - w.globals.minX) / len
       }
     }
 
-    return this.minXDiff
+    return minXDiff
   }
 
   drawBarPaths({
