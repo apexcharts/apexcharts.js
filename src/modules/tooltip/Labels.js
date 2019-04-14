@@ -84,7 +84,7 @@ export default class Labels {
         // for plot charts, not for pie/donuts
         val = f.yLbFormatter(w.globals.series[tIndex][j], {
           series: w.globals.series,
-          seriesIndex: i,
+          seriesIndex: tIndex,
           dataPointIndex: j,
           w
         })
