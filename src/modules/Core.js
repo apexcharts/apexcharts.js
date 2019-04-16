@@ -404,6 +404,7 @@ export default class Core {
     gl.minDate = Number.MAX_VALUE
     gl.minZ = Number.MAX_VALUE
     gl.maxZ = -Number.MAX_VALUE
+    gl.minXDiff = Number.MAX_VALUE
     gl.yAxisScale = []
     gl.xAxisScale = null
     gl.xAxisTicksPositions = []

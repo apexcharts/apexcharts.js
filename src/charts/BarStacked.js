@@ -23,10 +23,7 @@ class BarStacked extends Bar {
     series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.minXDiff = Number.MAX_VALUE
-
-    let initVars = this.initVariables(series, this.minXDiff)
-    this.minXDiff = initVars.minXDiff
+    this.initVariables(series)
 
     if (w.config.chart.stackType === '100%') {
       series = w.globals.seriesPercent.slice()
@@ -246,9 +243,7 @@ class BarStacked extends Bar {
       barWidth = xDivision
 
       if (w.globals.isXNumeric) {
-        this.minXDiff = this.calcMinimumXDiff(this.minXDiff)
-        // max barwidth should be equal to minXDiff to avoid overlap
-        xDivision = this.minXDiff / this.xRatio
+        xDivision = w.globals.minXDiff / this.xRatio
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth)) / 100
       } else {
         barWidth =

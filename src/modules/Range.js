@@ -329,6 +329,8 @@ class Range {
             gl.labels.length,
             ticks - 1
           )
+
+          // this is the only place seriesX is again mutated
           gl.seriesX = gl.labels.slice()
         }
       }
@@ -357,10 +359,47 @@ class Range {
       }
     }
 
+    if (gl.isXNumeric) {
+      // get the least x diff if numeric x axis is present
+      gl.seriesX.forEach((sX, i) => {
+        sX.forEach((s, j) => {
+          if (j > 0) {
+            let xDiff = s - gl.seriesX[i][j - 1]
+            gl.minXDiff = Math.min(xDiff, gl.minXDiff)
+          }
+        })
+      })
+
+      this.calcMinXDiffForTinySeries()
+    }
+
     return {
       minX: gl.minX,
       maxX: gl.maxX
     }
+  }
+
+  calcMinXDiffForTinySeries() {
+    const w = this.w
+
+    let len = w.globals.labels.length
+
+    if (w.globals.labels.length === 1) {
+      w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len / 3
+    } else {
+      if (w.globals.minXDiff === Number.MAX_VALUE) {
+        // possibly a single dataPoint (fixes react-apexcharts/issue#34)
+        if (w.globals.timelineLabels.length > 0) {
+          len = w.globals.timelineLabels.length
+        }
+        if (len < 3) {
+          len = 3
+        }
+        w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len
+      }
+    }
+
+    return w.globals.minXDiff
   }
 
   setZRange() {

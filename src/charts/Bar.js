@@ -32,7 +32,6 @@ class Bar {
       this.baseLineY = xyRatios.baseLineY
       this.baseLineInvertedY = xyRatios.baseLineInvertedY
     }
-    this.minXDiff = Number.MAX_VALUE
     this.yaxisIndex = 0
 
     this.seriesLen = 0
@@ -53,8 +52,7 @@ class Bar {
     this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    let initVars = this.initVariables(series, this.minXDiff)
-    this.minXDiff = initVars.minXDiff
+    this.initVariables(series)
 
     let ret = graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series'
@@ -336,7 +334,7 @@ class Bar {
     return elSeries
   }
 
-  initVariables(series, minXDiff) {
+  initVariables(series) {
     const w = this.w
     this.series = series
     this.totalItems = 0
@@ -350,16 +348,6 @@ class Bar {
         this.totalItems += series[sl].length
       }
       if (w.globals.isXNumeric) {
-        // get the least x diff if numeric x axis is present
-        w.globals.seriesX.forEach((sX, i) => {
-          sX.forEach((s, j) => {
-            if (j > 0) {
-              let xDiff = s - w.globals.seriesX[i][j - 1]
-              minXDiff = Math.min(xDiff, minXDiff)
-            }
-          })
-        })
-
         // get max visible items
         for (let j = 0; j < series[sl].length; j++) {
           if (
@@ -377,10 +365,6 @@ class Bar {
     if (this.seriesLen === 0) {
       // A small adjustment when combo charts are used
       this.seriesLen = 1
-    }
-
-    return {
-      minXDiff
     }
   }
 
@@ -415,8 +399,7 @@ class Bar {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        this.minXDiff = this.calcMinimumXDiff(this.minXDiff)
-        xDivision = this.minXDiff / this.xRatio
+        xDivision = w.globals.minXDiff / this.xRatio
         barWidth =
           ((xDivision / this.seriesLen) *
             parseInt(this.barOptions.columnWidth)) /
@@ -442,29 +425,6 @@ class Bar {
       zeroH,
       zeroW
     }
-  }
-
-  calcMinimumXDiff(minXDiff) {
-    const w = this.w
-
-    let len = w.globals.labels.length
-
-    if (w.globals.labels.length === 1) {
-      minXDiff = (w.globals.maxX - w.globals.minX) / len / 3
-    } else {
-      if (minXDiff === Number.MAX_VALUE) {
-        // possibly a single dataPoint (fixes react-apexcharts/issue#34)
-        if (w.globals.timelineLabels.length > 0) {
-          len = w.globals.timelineLabels.length
-        }
-        if (len < 3) {
-          len = 3
-        }
-        minXDiff = (w.globals.maxX - w.globals.minX) / len
-      }
-    }
-
-    return minXDiff
   }
 
   drawBarPaths({
