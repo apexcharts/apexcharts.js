@@ -110,7 +110,10 @@ class Line {
       let x = w.globals.padHorizontal + categoryAxisCorrection
       let y = 1
 
+      console.log(w.globals.isXNumeric)
+
       if (w.globals.isXNumeric && w.globals.seriesX.length > 0) {
+        console.log('kk')
         x = (w.globals.seriesX[realIndex][0] - w.globals.minX) / xRatio
       }
 

@@ -800,33 +800,46 @@ export default class Core {
     return this.w
   }
 
+  /** User possibly set string categories in xaxis.categories or labels prop
+   * Or didn't set xaxis labels at all - in which case we manually do it.
+   * If user passed series data as [[3, 2], [4, 5]] or [{ x: 3, y: 55 }],
+   * this shouldn't be called
+   * @param {array} ser - the series which user passed to the config
+   */
   handleExternalLabelsData(ser) {
     const cnf = this.w.config
     const gl = this.w.globals
 
-    // user provided labels in category axis
     if (cnf.xaxis.categories.length > 0) {
+      // user provided labels in xaxis.category prop
       gl.labels = cnf.xaxis.categories
     } else if (cnf.labels.length > 0) {
+      // user provided labels in labels props
       gl.labels = cnf.labels.slice()
     } else if (this.fallbackToCategory) {
+      // user provided labels in x prop in [{ x: 3, y: 55 }] data, and those labels are already stored in gl.labels[0], so just re-arrange the gl.labels array
       gl.labels = gl.labels[0]
     } else {
-      // user didn't provided labels, fallback to 1-2-3-4-5
+      // user didn't provided any labels, fallback to 1-2-3-4-5
       let labelArr = []
+
       if (gl.axisCharts) {
+        // for axis charts, we get the longest series and create labels from it
         for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
           labelArr.push(i + 1)
         }
 
+        // create gl.seriesX as it will be used in calculations of x positions
         for (let i = 0; i < ser.length; i++) {
           gl.seriesX.push(labelArr)
         }
 
+        // turn on the isXNumeric flag to allow minX and maxX to function properly
         gl.isXNumeric = true
       }
 
       // no series to pull labels from, put a 0-10 series
+      // possibly, user collapsed all series. Hence we can't work with above calc
       if (labelArr.length === 0) {
         labelArr = [0, 10]
         for (let i = 0; i < ser.length; i++) {
@@ -834,12 +847,11 @@ export default class Core {
         }
       }
 
+      // Finally, pass the labelArr in gl.labels which will be printed on x-axis
       gl.labels = labelArr
-      gl.noLabelsProvided = true
 
-      if (cnf.xaxis.type === 'category') {
-        gl.isXNumeric = false
-      }
+      // Turn on this global flag to indicate no labels were provided by user
+      gl.noLabelsProvided = true
     }
   }
 
@@ -850,14 +862,17 @@ export default class Core {
     let gl = w.globals
     this.excludeCollapsedSeriesInYAxis()
 
+    // If we detected string in X prop of series, we fallback to category x-axis
     this.fallbackToCategory = false
 
     this.resetGlobals()
     this.isMultipleY()
 
     if (gl.axisCharts) {
+      // axisCharts includes line / area / column / scatter
       this.parseDataAxisCharts(ser)
     } else {
+      // non-axis charts are pie / donut
       this.parseDataNonAxisCharts(ser)
     }
 
@@ -876,9 +891,6 @@ export default class Core {
 
     this.coreUtils.getPercentSeries()
 
-    // x-axis labels couldn't be detected; hence try searching every option in config
-    // Also, if dataFormatXNumeric = [[3, 2], [4, 5]] ||
-    //          dataFormatXNumeric = [{ x: 3, y: 55 }], then skip
     if (
       !gl.dataFormatXNumeric &&
       (!gl.isXNumeric ||
@@ -886,6 +898,7 @@ export default class Core {
           cnf.labels.length === 0 &&
           cnf.xaxis.categories.length === 0))
     ) {
+      // x-axis labels couldn't be detected; hence try searching every option in config
       this.handleExternalLabelsData(ser)
     }
   }

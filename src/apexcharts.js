@@ -218,15 +218,18 @@ export default class ApexCharts {
     }
 
     this.setupEventHandlers()
+
+    // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
     this.core.parseData(ser)
+
     // this is a good time to set theme colors first
     this.theme.init()
-    // labelFormatters should be called before dimensions as in dimensions we need text labels width
 
     // as markers accepts array, we need to setup global markers for easier access
     const markers = new Markers(this)
     markers.setGlobalMarkerSize()
 
+    // labelFormatters should be called before dimensions as in dimensions we need text labels width
     this.formatters.setLabelFormatters()
     this.titleSubtitle.draw()
 
