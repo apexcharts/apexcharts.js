@@ -399,7 +399,7 @@ export default class XAxis {
       for (let xat = 0; xat < xAxisTexts.length; xat++) {
         let tSpan = xAxisTexts[xat].childNodes
 
-        if (w.config.xaxis.labels.trim && !w.globals.isBarHorizontal) {
+        if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
           graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, width)
         }
       }
