@@ -17,6 +17,8 @@ export default class HeatMap {
     this.xRatio = xyRatios.xRatio
     this.yRatio = xyRatios.yRatio
 
+    this.negRange = false
+
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
 
     this.rectRadius = this.w.config.plotOptions.heatmap.radius
@@ -39,6 +41,8 @@ export default class HeatMap {
 
     let y1 = 0
     let rev = false
+
+    this.checkColorRange()
 
     let heatSeries = series.slice()
     if (w.config.yaxis[0].reversed) {
@@ -73,7 +77,7 @@ export default class HeatMap {
 
         const heatColorProps = this.determineHeatColor(i, j)
 
-        if (w.globals.hasNegs) {
+        if (w.globals.hasNegs || this.negRange) {
           let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
           if (heatColorProps.percent < 0) {
             colorShadePercent =
@@ -197,10 +201,25 @@ export default class HeatMap {
     return ret
   }
 
+  checkColorRange() {
+    const w = this.w
+
+    let heatmap = w.config.plotOptions.heatmap
+
+    if (heatmap.colorScale.ranges.length > 0) {
+      heatmap.colorScale.ranges.map((range, index) => {
+        if (range.from < 0) {
+          this.negRange = true
+        }
+      })
+    }
+  }
+
   determineHeatColor(i, j) {
     const w = this.w
 
-    const val = w.globals.series[i][j]
+    let val = w.globals.series[i][j]
+
     let heatmap = w.config.plotOptions.heatmap
 
     let seriesNumber = heatmap.colorScale.inverse ? j : i
@@ -235,8 +254,8 @@ export default class HeatMap {
           color = range.color
           min = range.from
           max = range.to
-          total = Math.abs(max) + Math.abs(min)
-          percent = (100 * val) / total
+          let total = Math.abs(max) + Math.abs(min)
+          percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
         }
       })
     }
