@@ -313,7 +313,11 @@ class Pie {
         let yPos = labelPosition.y
         let text = (100 * (endAngle - startAngle)) / 360 + '%'
 
-        if (angle !== 0) {
+        if (
+          angle !== 0 &&
+          w.config.plotOptions.pie.dataLabels.minAngleToShowLabel <
+            sectorAngleArr[i]
+        ) {
           let formatter = w.config.dataLabels.formatter
           if (formatter !== undefined) {
             text = formatter(w.globals.seriesPercent[i][0], {

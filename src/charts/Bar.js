@@ -763,6 +763,9 @@ class Bar {
       val: series[i][j],
       i: realIndex,
       j: j,
+      barWidth,
+      barHeight,
+      textRects,
       dataLabelsConfig
     })
 
@@ -893,11 +896,12 @@ class Bar {
         break
     }
 
-    if (dataLabelsX < 0) {
-      dataLabelsX = textRects.width + strokeWidth
-    } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
-      dataLabelsX = dataLabelsX - textRects.width - strokeWidth
-    }
+    // commenting below lines as this causes overlaps over other labels
+    // if (dataLabelsX < 0) {
+    //   dataLabelsX = textRects.width + strokeWidth
+    // } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
+    //   dataLabelsX = dataLabelsX - textRects.width - strokeWidth
+    // }
 
     return {
       bcx: x,
@@ -907,7 +911,17 @@ class Bar {
     }
   }
 
-  drawCalculatedDataLabels({ x, y, val, i, j, dataLabelsConfig }) {
+  drawCalculatedDataLabels({
+    x,
+    y,
+    val,
+    i,
+    j,
+    textRects,
+    barHeight,
+    barWidth,
+    dataLabelsConfig
+  }) {
     const w = this.w
 
     const dataLabels = new DataLabels(this.ctx)
@@ -927,6 +941,15 @@ class Bar {
       let text = ''
       if (typeof val !== 'undefined' && val !== null) {
         text = formatter(val, { seriesIndex: i, dataPointIndex: j, w })
+      }
+
+      if (this.isHorizontal) {
+        barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex]
+      } else {
+        barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
+      }
+      if (textRects.width / 1.6 > barWidth || textRects.height > barHeight) {
+        text = ''
       }
       dataLabels.plotDataLabelsText({
         x,

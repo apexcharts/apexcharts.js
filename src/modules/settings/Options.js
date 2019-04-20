@@ -440,7 +440,8 @@ export default class Options {
           expandOnClick: true,
           dataLabels: {
             // These are the percentage values which are displayed on slice
-            offset: 0 // offset by which labels will move outside
+            offset: 0, // offset by which labels will move outside
+            minAngleToShowLabel: 15
           },
           donut: {
             size: '65%',
