@@ -89,7 +89,6 @@ export default class Range {
       }
     }
 
-    // TODO: need to remove this condition below which makes this function tightly coupled with w.
     if (
       (this.w.config.yaxis[index].max === undefined &&
         this.w.config.yaxis[index].min === undefined) ||
@@ -215,13 +214,18 @@ export default class Range {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
 
-        gl.yAxisScale[index] = this.niceScale(
-          minY,
-          maxY,
-          index,
-          // fix https://github.com/apexcharts/apexcharts.js/issues/397
-          y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5
-        )
+        if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
+          // fix https://github.com/apexcharts/apexcharts.js/issues/492
+          gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount)
+        } else {
+          gl.yAxisScale[index] = this.niceScale(
+            minY,
+            maxY,
+            index,
+            // fix https://github.com/apexcharts/apexcharts.js/issues/397
+            y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5
+          )
+        }
       }
     }
   }

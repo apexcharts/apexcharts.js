@@ -2,7 +2,7 @@ import Range from '../../src/modules/Range.js'
 import series2dArrayNumeric from './data/series2dArrayNumeric.js'
 import { createChartWithOptions } from './utils/utils.js'
 
-describe('X-axis data', () => {
+describe('User defined X-axis min/max', () => {
   it('should set the min and max of x-axis based on user input', () => {
     const chart = createChartWithOptions({
       chart: {

@@ -221,6 +221,13 @@ class Range {
       gl.minYArr[0] = gl.yAxisScale[0].niceMin
       gl.maxYArr[0] = gl.yAxisScale[0].niceMax
     }
+
+    return {
+      minY: gl.minY,
+      maxY: gl.maxY,
+      minYArr: gl.minYArr,
+      maxYArr: gl.maxYArr
+    }
   }
 
   setXRange() {
