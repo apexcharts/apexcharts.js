@@ -62,7 +62,7 @@ export default class Marker {
     }
   }
 
-  enlargeCurrentPoint(rel, point) {
+  enlargeCurrentPoint(rel, point, x = null, y = null) {
     let w = this.w
 
     if (w.config.chart.type !== 'bubble') {
@@ -71,6 +71,11 @@ export default class Marker {
 
     let cx = point.getAttribute('cx')
     let cy = point.getAttribute('cy')
+
+    if (x !== null && y !== null) {
+      cx = x
+      cy = y
+    }
 
     this.tooltipPosition.moveXCrosshairs(cx)
 

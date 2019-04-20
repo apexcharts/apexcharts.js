@@ -85,27 +85,26 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
-        shared: ttCtx.intersect ? false : w.config.tooltip.shared
+        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
       })
 
       if (e.type === 'mouseup') {
         ttCtx.markerClick(e, i, j)
       }
 
-      ttCtx.marker.enlargeCurrentPoint(j, opt.paths)
-
       x = cx
-      y = cy - ttCtx.tooltipRect.ttHeight * 1.4
+      y = cy + w.globals.translateY - ttCtx.tooltipRect.ttHeight * 1.4
 
       if (ttCtx.w.config.tooltip.followCursor) {
         const elGrid = ttCtx.getElGrid()
         const seriesBound = elGrid.getBoundingClientRect()
-        y = ttCtx.e.clientY - seriesBound.top
+        y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top
       }
 
       if (val < 0) {
         y = cy
       }
+      ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y)
     }
 
     return {

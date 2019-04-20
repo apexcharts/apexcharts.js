@@ -203,7 +203,11 @@ export default class Position {
     if (w.config.tooltip.followCursor) {
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
-      y = ttCtx.e.clientY - seriesBound.top - tooltipRect.ttHeight / 2
+      y =
+        ttCtx.e.clientY +
+        w.globals.translateY -
+        seriesBound.top -
+        tooltipRect.ttHeight / 2
     }
 
     const newPositions = this.positionChecks(tooltipRect, x, y)
