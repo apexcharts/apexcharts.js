@@ -20,7 +20,7 @@ declare class ApexCharts {
   addYaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addText(options: any, pushToMemory?: boolean, context?: any): void;
-  dataURI(): void;
+  dataURI(): Promise<void>;
   static exec(chartID: string, fn: () => void, options: any): any;
   static initOnLoad(): void;
 }
@@ -79,6 +79,7 @@ type ApexChart = {
     updated?(chart: any, options: any): void;
     click?(e: any, chart: any, options: any): void;
     legendClick?(chart: any, seriesIndex: number, options: any): void;
+    markerClick?(e: any, chart: any, options: any): void;
     selection?(chart: any, options: any): void;
     dataPointSelection?(e: any, chart: any, options: any): void;
     dataPointMouseEnter?(e: any, chart: any, options: any): void;
@@ -95,6 +96,7 @@ type ApexChart = {
   id?: string;
   locales?: ApexLocale[];
   defaultLocale?: string;
+  parentHeightOffset?: number;
   sparkline?: {
     enabled?: boolean;
   };
@@ -360,6 +362,7 @@ type ApexPlotOptions = {
       backgroundBarOpacity?: number;
     };
     dataLabels?: {
+      maxItems?: number;
       position?: string;
     }
   };
@@ -397,6 +400,7 @@ type ApexPlotOptions = {
     expandOnClick?: boolean;
     dataLabels?: {
       offset?: number;
+      minAngleToShowLabel?: number;
     };
     donut?: {
       size?: string;
