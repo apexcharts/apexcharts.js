@@ -558,7 +558,7 @@ export default class Options {
         yaxis: {
           lines: {
             show: true,
-            animate: true
+            animate: false
           }
         },
         row: {

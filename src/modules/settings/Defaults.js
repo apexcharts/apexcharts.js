@@ -195,6 +195,24 @@ export default class Defaults {
       stroke: {
         width: 0
       },
+      plotOptions: {
+        bar: {
+          dataLabels: {
+            position: 'center'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: false,
+        formatter: function(val, { ctx, seriesIndex, dataPointIndex, w }) {
+          const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
+          const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+          return end - start
+        },
+        style: {
+          colors: ['#fff']
+        }
+      },
       tooltip: {
         shared: false,
         followCursor: true,
@@ -207,19 +225,24 @@ export default class Defaults {
 
           const color = w.globals.colors[seriesIndex]
           if (w.config.tooltip.x.formatter === undefined) {
-            var datetimeObj = new DateTime(ctx)
-            startVal = datetimeObj.formatDate(
-              new Date(start),
-              w.config.tooltip.x.format,
-              true,
-              true
-            )
-            endVal = datetimeObj.formatDate(
-              new Date(end),
-              w.config.tooltip.x.format,
-              true,
-              true
-            )
+            if (w.config.xaxis.type === 'datetime') {
+              var datetimeObj = new DateTime(ctx)
+              startVal = datetimeObj.formatDate(
+                new Date(start),
+                w.config.tooltip.x.format,
+                true,
+                true
+              )
+              endVal = datetimeObj.formatDate(
+                new Date(end),
+                w.config.tooltip.x.format,
+                true,
+                true
+              )
+            } else {
+              startVal = start
+              endVal = end
+            }
           } else {
             startVal = w.config.tooltip.x.formatter(start)
             endVal = w.config.tooltip.x.formatter(end)

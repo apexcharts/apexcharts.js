@@ -133,6 +133,7 @@ class DataLabels {
         } else {
           if (typeof val !== 'undefined') {
             text = w.config.dataLabels.formatter(val, {
+              ctx: this.ctx,
               seriesIndex: i,
               dataPointIndex: dataPointIndex,
               w

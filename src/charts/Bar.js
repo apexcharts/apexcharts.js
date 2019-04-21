@@ -719,6 +719,7 @@ class Bar {
         renderedPath,
         bcy,
         barHeight,
+        barWidth,
         textRects,
         strokeWidth,
         dataLabelsX,
@@ -780,6 +781,7 @@ class Bar {
       y,
       bcx,
       barWidth,
+      barHeight,
       textRects,
       dataLabelsY,
       barDataLabelsConfig,
@@ -788,7 +790,6 @@ class Bar {
       offY
     } = opts
     let dataLabelsX
-    let barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
 
     let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
     bcx = bcx - strokeWidth / 2
@@ -845,6 +846,7 @@ class Bar {
       j,
       bcy,
       barHeight,
+      barWidth,
       textRects,
       dataLabelsX,
       strokeWidth,
@@ -862,7 +864,6 @@ class Bar {
       textRects.height / 2 +
       offY -
       3
-    let barWidth = this.series[i][j] / this.invertedYRatio
 
     let valIsNegative = this.series[i][j] <= 0
 

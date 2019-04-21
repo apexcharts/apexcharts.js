@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Basic Timeline Chart</title>
+
+    
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                height: 350,
+                type: 'rangeBar',
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                }
+            },
+            dataLabels: {
+              enabled: true
+            },
+            series: [{
+                data: [{
+                  x: 'A',
+                  y: [1, 5]
+                }, {
+                  x: 'B',
+                  y: [4, 6]
+                }, {
+                  x: 'C',
+                  y: [5, 8]
+                }, {
+                  x: 'D',
+                  y: [3, 11]
+                }]
+            }, {
+                data: [{
+                  x: 'A',
+                  y: [2, 6]
+                }, {
+                  x: 'B',
+                  y: [1, 3]
+                }, {
+                  x: 'C',
+                  y: [7, 8]
+                }, {
+                  x: 'D',
+                  y: [5, 9]
+                }]
+            }],
+            
+        }
+
+       var chart = new ApexCharts(
+            document.querySelector("#chart"),
+            options
+        );
+        
+        chart.render();
+    </script>
+</body>
+
+</html>

@@ -116,6 +116,8 @@ class RangeBar extends Bar {
             yDivision,
             elSeries
           })
+
+          barWidth = paths.barWidth
         } else {
           paths = this.drawRangeColumnPaths({
             indexes: { i, j, realIndex, bc },
@@ -129,6 +131,8 @@ class RangeBar extends Bar {
             strokeWidth,
             elSeries
           })
+
+          barHeight = paths.barHeight
         }
 
         pathTo = paths.pathTo
@@ -212,12 +216,6 @@ class RangeBar extends Bar {
 
     let barXPosition = x + barWidth * this.visibleI
 
-    pathTo = graphics.move(barXPosition, zeroH)
-    pathFrom = graphics.move(barXPosition, zeroH)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
-    }
-
     if (
       typeof this.series[i][j] === 'undefined' ||
       this.series[i][j] === null
@@ -227,6 +225,13 @@ class RangeBar extends Bar {
       y1 = zeroH - y1 / yRatio
       y2 = zeroH - y2 / yRatio
     }
+    const barHeight = Math.abs(y2 - y1)
+
+    pathTo = graphics.move(barXPosition, zeroH)
+    pathFrom = graphics.move(barXPosition, y1)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPathFrom(realIndex, j, true)
+    }
 
     pathTo =
       graphics.move(barXPosition, y2) +
@@ -235,6 +240,13 @@ class RangeBar extends Bar {
       graphics.line(barXPosition, y1) +
       graphics.line(barXPosition, y2 - strokeWidth / 2)
 
+    pathFrom =
+      pathFrom +
+      graphics.move(barXPosition, y1) +
+      graphics.line(barXPosition + barWidth, y1) +
+      graphics.line(barXPosition + barWidth, y1) +
+      graphics.line(barXPosition, y1)
+
     if (!w.globals.isXNumeric) {
       x = x + xDivision
     }
@@ -242,6 +254,7 @@ class RangeBar extends Bar {
     return {
       pathTo,
       pathFrom,
+      barHeight,
       x,
       y: y2,
       barXPosition
@@ -277,12 +290,6 @@ class RangeBar extends Bar {
 
     let barYPosition = y + barHeight * this.visibleI
 
-    pathTo = graphics.move(zeroW, barYPosition)
-    pathFrom = graphics.move(zeroW, barYPosition)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j)
-    }
-
     if (
       typeof this.series[i][j] !== 'undefined' &&
       this.series[i][j] !== null
@@ -291,10 +298,25 @@ class RangeBar extends Bar {
       x2 = zeroW + this.seriesRangeEnd[i][j] / this.invertedYRatio
     }
 
+    pathTo = graphics.move(zeroW, barYPosition)
+    pathFrom = graphics.move(zeroW, barYPosition)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPathFrom(realIndex, j)
+    }
+
+    const barWidth = Math.abs(x2 - x1)
+
     pathTo =
       graphics.move(x1, barYPosition) +
       graphics.line(x2, barYPosition) +
       graphics.line(x2, barYPosition + barHeight) +
+      graphics.line(x1, barYPosition + barHeight) +
+      graphics.line(x1, barYPosition)
+
+    pathFrom =
+      pathFrom +
+      graphics.line(x1, barYPosition) +
+      graphics.line(x1, barYPosition + barHeight) +
       graphics.line(x1, barYPosition + barHeight) +
       graphics.line(x1, barYPosition)
 
@@ -305,6 +327,7 @@ class RangeBar extends Bar {
     return {
       pathTo,
       pathFrom,
+      barWidth,
       x: x2,
       y,
       barYPosition

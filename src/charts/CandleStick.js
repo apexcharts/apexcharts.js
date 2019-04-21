@@ -215,12 +215,6 @@ class CandleStick extends Bar {
 
     let barXPosition = x + barWidth * this.visibleI
 
-    pathTo = graphics.move(barXPosition, zeroH)
-    pathFrom = graphics.move(barXPosition, zeroH)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
-    }
-
     if (
       typeof this.series[i][j] === 'undefined' ||
       this.series[i][j] === null
@@ -231,6 +225,12 @@ class CandleStick extends Bar {
       y2 = zeroH - y2 / yRatio
       l1 = zeroH - ohlc.h / yRatio
       l2 = zeroH - ohlc.l / yRatio
+    }
+
+    pathTo = graphics.move(barXPosition, zeroH)
+    pathFrom = graphics.move(barXPosition, y1)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPathFrom(realIndex, j, true)
     }
 
     pathTo =
@@ -245,6 +245,8 @@ class CandleStick extends Bar {
       graphics.line(barXPosition + barWidth / 2, y1) +
       graphics.line(barXPosition, y1) +
       graphics.line(barXPosition, y2 - strokeWidth / 2)
+
+    pathFrom = pathFrom + graphics.move(barXPosition, y1)
 
     if (!w.globals.isXNumeric) {
       x = x + xDivision
