@@ -59,7 +59,7 @@ type ApexChart = {
   width?: string | number;
   height?: string | number;
   type?: "line" | "area" | "bar" | "histogram" | "pie" | "donut" |
-  "radialBar" | "scatter" | "bubble" | "heatmap" | "candlestick" | "radar";
+  "radialBar" | "scatter" | "bubble" | "heatmap" | "candlestick" | "radar" | "rangeBar";
   foreColor?: string;
   fontFamily?: string;
   background?: string;

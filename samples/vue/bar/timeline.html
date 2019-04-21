@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Timeline Bar Chart</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+  <div id="chart">
+    <apexchart type=rangeBar height=350 :options="chartOptions" :series="series" />
+  </div>
+
+  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+  <div id="html">
+    &lt;div id="chart">
+      &lt;apexchart type=rangeBar height=350 :options="chartOptions" :series="series" />
+    &lt;/div>
+  </div>
+
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+  <script>
+    new Vue({
+      el: '#chart',
+      components: {
+        apexchart: VueApexCharts,
+      },
+      data: {
+        series: [{
+            name: 'Bob',
+            data: [{
+              x: 'Design',
+              y: [new Date('2019-03-02').getTime(), new Date('2019-03-03').getTime()]
+            }, {
+              x: 'Code',
+              y: [new Date('2019-03-02').getTime(), new Date('2019-03-04').getTime()]
+              
+            }, {
+              x: 'Test',
+              y: [new Date('2019-03-04').getTime(), new Date('2019-03-07').getTime()]
+            }, {
+              x: 'Deployment',
+              y: [new Date('2019-03-11').getTime(), new Date('2019-03-12').getTime()]
+            }]
+        }, {
+            name: 'Joe',
+            data: [{
+              x: 'Design',
+              y: [new Date('2019-03-01').getTime(), new Date('2019-03-02').getTime()] 
+            }, {
+              x: 'Code',
+              y: [new Date('2019-03-03').getTime(), new Date('2019-03-07').getTime()] 
+            }, {
+              x: 'Test',
+              y: [new Date('2019-03-06').getTime(), new Date('2019-03-09').getTime()]
+            }, {
+              x: 'Deployment',
+              y: [new Date('2019-03-10').getTime(), new Date('2019-03-11').getTime()]
+            }]
+        }],
+        chartOptions: {
+          plotOptions: {
+              bar: {
+                  horizontal: true,
+              }
+          },
+          yaxis: {
+            min: new Date('2019-03-01').getTime(),
+            max: new Date('2019-03-14').getTime()
+          },
+          xaxis: {
+              type: 'datetime'
+          },
+          fill: {
+            type: 'gradient',
+            gradient: {
+                  shade: 'light',
+                  type: "vertical",
+                  shadeIntensity: 0.25,
+                  gradientToColors: undefined,
+                  inverseColors: true,
+                  opacityFrom: 1,
+                  opacityTo: 1,
+                  stops: [50, 0, 100, 100]
+              }
+          }
+        }
+      }
+    })
+  </script>
+
+</body>
+
+</html>
