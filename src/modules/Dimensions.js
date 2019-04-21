@@ -357,18 +357,18 @@ export default class Dimensions {
   titleSubtitleOffset() {
     const w = this.w
     const gl = w.globals
-    let gridShrinkOffset = this.isSparkline ? 0 : 10
+    let gridShrinkOffset = this.isSparkline || !w.globals.axisCharts ? 0 : 10
 
     if (w.config.title.text !== undefined) {
       gridShrinkOffset += w.config.title.margin
     } else {
-      gridShrinkOffset += this.isSparkline ? 0 : 5
+      gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5
     }
 
     if (w.config.subtitle.text !== undefined) {
       gridShrinkOffset += w.config.subtitle.margin
     } else {
-      gridShrinkOffset += this.isSparkline ? 0 : 5
+      gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5
     }
 
     if (
@@ -388,6 +388,7 @@ export default class Dimensions {
       titleCoords.height -
       subtitleCoords.height -
       gridShrinkOffset
+
     gl.translateY =
       gl.translateY +
       titleCoords.height +
