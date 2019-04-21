@@ -3174,7 +3174,6 @@ var Bar = function () {
       this.baseLineY = xyRatios.baseLineY;
       this.baseLineInvertedY = xyRatios.baseLineInvertedY;
     }
-    this.minXDiff = Number.MAX_VALUE;
     this.yaxisIndex = 0;
 
     this.seriesLen = 0;
@@ -3199,8 +3198,7 @@ var Bar = function () {
       this.series = series;
       this.yRatio = coreUtils.getLogYRatios(this.yRatio);
 
-      var initVars = this.initVariables(series, this.minXDiff);
-      this.minXDiff = initVars.minXDiff;
+      this.initVariables(series);
 
       var ret = graphics.group({
         class: 'apexcharts-bar-series apexcharts-plot-series'
@@ -3472,7 +3470,7 @@ var Bar = function () {
     }
   }, {
     key: 'initVariables',
-    value: function initVariables(series, minXDiff) {
+    value: function initVariables(series) {
       var w = this.w;
       this.series = series;
       this.totalItems = 0;
@@ -3486,16 +3484,6 @@ var Bar = function () {
           this.totalItems += series[sl].length;
         }
         if (w.globals.isXNumeric) {
-          // get the least x diff if numeric x axis is present
-          w.globals.seriesX.forEach(function (sX, i) {
-            sX.forEach(function (s, j) {
-              if (j > 0) {
-                var xDiff = s - w.globals.seriesX[i][j - 1];
-                minXDiff = Math.min(xDiff, minXDiff);
-              }
-            });
-          });
-
           // get max visible items
           for (var j = 0; j < series[sl].length; j++) {
             if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
@@ -3511,10 +3499,6 @@ var Bar = function () {
         // A small adjustment when combo charts are used
         this.seriesLen = 1;
       }
-
-      return {
-        minXDiff: minXDiff
-      };
     }
   }, {
     key: 'initialPositions',
@@ -3550,8 +3534,7 @@ var Bar = function () {
 
         if (w.globals.isXNumeric) {
           // max barwidth should be equal to minXDiff to avoid overlap
-          this.minXDiff = this.calcMinimumXDiff(this.minXDiff);
-          xDivision = this.minXDiff / this.xRatio;
+          xDivision = w.globals.minXDiff / this.xRatio;
           barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
         }
 
@@ -3570,30 +3553,6 @@ var Bar = function () {
         zeroH: zeroH,
         zeroW: zeroW
       };
-    }
-  }, {
-    key: 'calcMinimumXDiff',
-    value: function calcMinimumXDiff(minXDiff) {
-      var w = this.w;
-
-      var len = w.globals.labels.length;
-
-      if (w.globals.labels.length === 1) {
-        minXDiff = (w.globals.maxX - w.globals.minX) / len / 3;
-      } else {
-        if (minXDiff === Number.MAX_VALUE) {
-          // possibly a single dataPoint (fixes react-apexcharts/issue#34)
-          if (w.globals.timelineLabels.length > 0) {
-            len = w.globals.timelineLabels.length;
-          }
-          if (len < 3) {
-            len = 3;
-          }
-          minXDiff = (w.globals.maxX - w.globals.minX) / len;
-        }
-      }
-
-      return minXDiff;
     }
   }, {
     key: 'drawBarPaths',
@@ -3876,6 +3835,9 @@ var Bar = function () {
         val: series[i][j],
         i: realIndex,
         j: j,
+        barWidth: barWidth,
+        barHeight: barHeight,
+        textRects: textRects,
         dataLabelsConfig: dataLabelsConfig
       });
 
@@ -3997,11 +3959,12 @@ var Bar = function () {
           break;
       }
 
-      if (dataLabelsX < 0) {
-        dataLabelsX = textRects.width + strokeWidth;
-      } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
-        dataLabelsX = dataLabelsX - textRects.width - strokeWidth;
-      }
+      // commenting below lines as this causes overlaps over other labels
+      // if (dataLabelsX < 0) {
+      //   dataLabelsX = textRects.width + strokeWidth
+      // } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
+      //   dataLabelsX = dataLabelsX - textRects.width - strokeWidth
+      // }
 
       return {
         bcx: x,
@@ -4018,6 +3981,9 @@ var Bar = function () {
           val = _ref5.val,
           i = _ref5.i,
           j = _ref5.j,
+          textRects = _ref5.textRects,
+          barHeight = _ref5.barHeight,
+          barWidth = _ref5.barWidth,
           dataLabelsConfig = _ref5.dataLabelsConfig;
 
       var w = this.w;
@@ -4038,6 +4004,15 @@ var Bar = function () {
         var text = '';
         if (typeof val !== 'undefined' && val !== null) {
           text = formatter(val, { seriesIndex: i, dataPointIndex: j, w: w });
+        }
+
+        if (this.isHorizontal) {
+          barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex];
+        } else {
+          barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex];
+        }
+        if (textRects.width / 1.6 > barWidth || textRects.height > barHeight) {
+          text = '';
         }
         dataLabels.plotDataLabelsText({
           x: x,
@@ -5188,18 +5163,18 @@ var Dimensions = function () {
     value: function titleSubtitleOffset() {
       var w = this.w;
       var gl = w.globals;
-      var gridShrinkOffset = this.isSparkline ? 0 : 10;
+      var gridShrinkOffset = this.isSparkline || !w.globals.axisCharts ? 0 : 10;
 
       if (w.config.title.text !== undefined) {
         gridShrinkOffset += w.config.title.margin;
       } else {
-        gridShrinkOffset += this.isSparkline ? 0 : 5;
+        gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5;
       }
 
       if (w.config.subtitle.text !== undefined) {
         gridShrinkOffset += w.config.subtitle.margin;
       } else {
-        gridShrinkOffset += this.isSparkline ? 0 : 5;
+        gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5;
       }
 
       if (w.config.legend.show && w.config.legend.position === 'bottom' && !w.config.legend.floating && w.config.series.length > 1) {
@@ -5210,6 +5185,7 @@ var Dimensions = function () {
       var subtitleCoords = this.getTitleSubtitleCoords('subtitle');
 
       gl.gridHeight = gl.gridHeight - titleCoords.height - subtitleCoords.height - gridShrinkOffset;
+
       gl.translateY = gl.translateY + titleCoords.height + subtitleCoords.height + gridShrinkOffset;
     }
   }, {
@@ -5664,7 +5640,6 @@ var Range = function () {
         }
       }
 
-      // TODO: need to remove this condition below which makes this function tightly coupled with w.
       if (this.w.config.yaxis[index].max === undefined && this.w.config.yaxis[index].min === undefined || this.w.config.yaxis[index].forceNiceScale) {
         return {
           result: result,
@@ -5783,9 +5758,14 @@ var Range = function () {
           // there is some data. Turn off the allSeriesCollapsed flag
           gl.allSeriesCollapsed = false;
 
-          gl.yAxisScale[index] = this.niceScale(minY, maxY, index,
-          // fix https://github.com/apexcharts/apexcharts.js/issues/397
-          y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5);
+          if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
+            // fix https://github.com/apexcharts/apexcharts.js/issues/492
+            gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount);
+          } else {
+            gl.yAxisScale[index] = this.niceScale(minY, maxY, index,
+            // fix https://github.com/apexcharts/apexcharts.js/issues/397
+            y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5);
+          }
         }
       }
     }
@@ -6363,7 +6343,7 @@ var XAxis = function () {
         for (var _xat = 0; _xat < xAxisTexts.length; _xat++) {
           var _tSpan = xAxisTexts[_xat].childNodes;
 
-          if (w.config.xaxis.labels.trim && !w.globals.isBarHorizontal) {
+          if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
             graphics.placeTextWithEllipsis(_tSpan[0], _tSpan[0].textContent, width);
           }
         }
@@ -7148,7 +7128,7 @@ var Config = function () {
             config.tooltip.shared = false;
           }
           if (!config.tooltip.followCursor) {
-            console.warn('followCursor option in shared columns cannot be turned off.');
+            console.warn('followCursor option in shared columns cannot be turned off. Please set %ctooltip.followCursor: true', 'color: blue;');
             config.tooltip.followCursor = true;
           }
         }
@@ -7644,7 +7624,8 @@ var Options = function () {
             expandOnClick: true,
             dataLabels: {
               // These are the percentage values which are displayed on slice
-              offset: 0 // offset by which labels will move outside
+              offset: 0, // offset by which labels will move outside
+              minAngleToShowLabel: 15
             },
             donut: {
               size: '65%',
@@ -8398,7 +8379,7 @@ var Pie = function () {
           var yPos = labelPosition.y;
           var text = 100 * (endAngle - startAngle) / 360 + '%';
 
-          if (angle !== 0) {
+          if (angle !== 0 && w.config.plotOptions.pie.dataLabels.minAngleToShowLabel < sectorAngleArr[i]) {
             var formatter = w.config.dataLabels.formatter;
             if (formatter !== undefined) {
               text = formatter(w.globals.seriesPercent[i][0], {
@@ -9590,6 +9571,13 @@ var Range = function () {
         gl.minYArr[0] = gl.yAxisScale[0].niceMin;
         gl.maxYArr[0] = gl.yAxisScale[0].niceMax;
       }
+
+      return {
+        minY: gl.minY,
+        maxY: gl.maxY,
+        minYArr: gl.minYArr,
+        maxYArr: gl.maxYArr
+      };
     }
   }, {
     key: 'setXRange',
@@ -9676,6 +9664,8 @@ var Range = function () {
           gl.xAxisScale = this.scales.linearScale(1, ticks, ticks);
           if (gl.noLabelsProvided && gl.labels.length > 0) {
             gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1);
+
+            // this is the only place seriesX is again mutated
             gl.seriesX = gl.labels.slice();
           }
         }
@@ -9701,10 +9691,48 @@ var Range = function () {
         }
       }
 
+      if (gl.isXNumeric) {
+        // get the least x diff if numeric x axis is present
+        gl.seriesX.forEach(function (sX, i) {
+          sX.forEach(function (s, j) {
+            if (j > 0) {
+              var xDiff = s - gl.seriesX[i][j - 1];
+              gl.minXDiff = Math.min(xDiff, gl.minXDiff);
+            }
+          });
+        });
+
+        this.calcMinXDiffForTinySeries();
+      }
+
       return {
         minX: gl.minX,
         maxX: gl.maxX
       };
+    }
+  }, {
+    key: 'calcMinXDiffForTinySeries',
+    value: function calcMinXDiffForTinySeries() {
+      var w = this.w;
+
+      var len = w.globals.labels.length;
+
+      if (w.globals.labels.length === 1) {
+        w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len / 3;
+      } else {
+        if (w.globals.minXDiff === Number.MAX_VALUE) {
+          // possibly a single dataPoint (fixes react-apexcharts/issue#34)
+          if (w.globals.timelineLabels.length > 0) {
+            len = w.globals.timelineLabels.length;
+          }
+          if (len < 3) {
+            len = 3;
+          }
+          w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len;
+        }
+      }
+
+      return w.globals.minXDiff;
     }
   }, {
     key: 'setZRange',
@@ -11223,7 +11251,7 @@ var Position = function () {
       if (w.config.tooltip.followCursor) {
         var elGrid = ttCtx.getElGrid();
         var seriesBound = elGrid.getBoundingClientRect();
-        y = ttCtx.e.clientY - seriesBound.top - tooltipRect.ttHeight / 2;
+        y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top - tooltipRect.ttHeight / 2;
       }
 
       var newPositions = this.positionChecks(tooltipRect, x, y);
@@ -12342,15 +12370,18 @@ var ApexCharts = function () {
       }
 
       this.setupEventHandlers();
+
+      // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
       this.core.parseData(ser);
+
       // this is a good time to set theme colors first
       this.theme.init();
-      // labelFormatters should be called before dimensions as in dimensions we need text labels width
 
       // as markers accepts array, we need to setup global markers for easier access
       var markers = new _Markers2.default(this);
       markers.setGlobalMarkerSize();
 
+      // labelFormatters should be called before dimensions as in dimensions we need text labels width
       this.formatters.setLabelFormatters();
       this.titleSubtitle.draw();
 
@@ -12953,6 +12984,13 @@ var ApexCharts = function () {
         }, { capture: false, passive: true });
       });
 
+      eventList.forEach(function (event) {
+        document.addEventListener(event, function (e) {
+          w.globals.clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+          w.globals.clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+        });
+      });
+
       this.core.setupBrushHandler();
     }
   }, {
@@ -13391,10 +13429,7 @@ var BarStacked = function (_Bar) {
       series = coreUtils.getLogSeries(series);
       this.yRatio = coreUtils.getLogYRatios(this.yRatio);
 
-      this.minXDiff = Number.MAX_VALUE;
-
-      var initVars = this.initVariables(series, this.minXDiff);
-      this.minXDiff = initVars.minXDiff;
+      this.initVariables(series);
 
       if (w.config.chart.stackType === '100%') {
         series = w.globals.seriesPercent.slice();
@@ -13599,9 +13634,7 @@ var BarStacked = function (_Bar) {
         barWidth = xDivision;
 
         if (w.globals.isXNumeric) {
-          this.minXDiff = this.calcMinimumXDiff(this.minXDiff);
-          // max barwidth should be equal to minXDiff to avoid overlap
-          xDivision = this.minXDiff / this.xRatio;
+          xDivision = w.globals.minXDiff / this.xRatio;
           barWidth = xDivision * parseInt(this.barOptions.columnWidth) / 100;
         } else {
           barWidth = barWidth * parseInt(w.config.plotOptions.bar.columnWidth) / 100;
@@ -14223,6 +14256,8 @@ var HeatMap = function () {
     this.xRatio = xyRatios.xRatio;
     this.yRatio = xyRatios.yRatio;
 
+    this.negRange = false;
+
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
 
     this.rectRadius = this.w.config.plotOptions.heatmap.radius;
@@ -14247,6 +14282,8 @@ var HeatMap = function () {
 
       var y1 = 0;
       var rev = false;
+
+      this.checkColorRange();
 
       var heatSeries = series.slice();
       if (w.config.yaxis[0].reversed) {
@@ -14275,7 +14312,7 @@ var HeatMap = function () {
 
           var heatColorProps = this.determineHeatColor(i, j);
 
-          if (w.globals.hasNegs) {
+          if (w.globals.hasNegs || this.negRange) {
             var shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
             if (heatColorProps.percent < 0) {
               colorShadePercent = 1 - (1 + heatColorProps.percent / 100) * shadeIntensity;
@@ -14375,11 +14412,29 @@ var HeatMap = function () {
       return ret;
     }
   }, {
+    key: 'checkColorRange',
+    value: function checkColorRange() {
+      var _this = this;
+
+      var w = this.w;
+
+      var heatmap = w.config.plotOptions.heatmap;
+
+      if (heatmap.colorScale.ranges.length > 0) {
+        heatmap.colorScale.ranges.map(function (range, index) {
+          if (range.from < 0) {
+            _this.negRange = true;
+          }
+        });
+      }
+    }
+  }, {
     key: 'determineHeatColor',
     value: function determineHeatColor(i, j) {
       var w = this.w;
 
       var val = w.globals.series[i][j];
+
       var heatmap = w.config.plotOptions.heatmap;
 
       var seriesNumber = heatmap.colorScale.inverse ? j : i;
@@ -14408,8 +14463,8 @@ var HeatMap = function () {
             color = range.color;
             min = range.from;
             max = range.to;
-            total = Math.abs(max) + Math.abs(min);
-            percent = 100 * val / total;
+            var _total = Math.abs(max) + Math.abs(min);
+            percent = 100 * val / (_total === 0 ? _total - 0.000001 : _total);
           }
         });
       }
@@ -14473,7 +14528,7 @@ var HeatMap = function () {
   }, {
     key: 'animateHeatMap',
     value: function animateHeatMap(el, x, y, width, height, speed) {
-      var _this = this;
+      var _this2 = this;
 
       var animations = new _Animations2.default(this.ctx);
       animations.animateRect(el, {
@@ -14487,7 +14542,7 @@ var HeatMap = function () {
         width: width,
         height: height
       }, speed, function () {
-        _this.w.globals.animationEnded = true;
+        _this2.w.globals.animationEnded = true;
       });
     }
   }, {
@@ -17645,6 +17700,7 @@ var Core = function () {
       gl.minDate = Number.MAX_VALUE;
       gl.minZ = Number.MAX_VALUE;
       gl.maxZ = -Number.MAX_VALUE;
+      gl.minXDiff = Number.MAX_VALUE;
       gl.yAxisScale = [];
       gl.xAxisScale = null;
       gl.xAxisTicksPositions = [];
@@ -18020,35 +18076,50 @@ var Core = function () {
 
       return this.w;
     }
+
+    /** User possibly set string categories in xaxis.categories or labels prop
+     * Or didn't set xaxis labels at all - in which case we manually do it.
+     * If user passed series data as [[3, 2], [4, 5]] or [{ x: 3, y: 55 }],
+     * this shouldn't be called
+     * @param {array} ser - the series which user passed to the config
+     */
+
   }, {
     key: 'handleExternalLabelsData',
     value: function handleExternalLabelsData(ser) {
       var cnf = this.w.config;
       var gl = this.w.globals;
 
-      // user provided labels in category axis
       if (cnf.xaxis.categories.length > 0) {
+        // user provided labels in xaxis.category prop
         gl.labels = cnf.xaxis.categories;
       } else if (cnf.labels.length > 0) {
+        // user provided labels in labels props
         gl.labels = cnf.labels.slice();
       } else if (this.fallbackToCategory) {
+        // user provided labels in x prop in [{ x: 3, y: 55 }] data, and those labels are already stored in gl.labels[0], so just re-arrange the gl.labels array
         gl.labels = gl.labels[0];
       } else {
-        // user didn't provided labels, fallback to 1-2-3-4-5
+        // user didn't provided any labels, fallback to 1-2-3-4-5
         var labelArr = [];
+
         if (gl.axisCharts) {
+          // for axis charts, we get the longest series and create labels from it
           for (var i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
             labelArr.push(i + 1);
           }
 
+          // create gl.seriesX as it will be used in calculations of x positions
           for (var _i = 0; _i < ser.length; _i++) {
             gl.seriesX.push(labelArr);
           }
 
+          // turn on the isXNumeric flag to allow minX and maxX to function properly
           gl.isXNumeric = true;
         }
 
         // no series to pull labels from, put a 0-10 series
+        // possibly, user collapsed all series. Hence we can't work with above calc
         if (labelArr.length === 0) {
           labelArr = [0, 10];
           for (var _i2 = 0; _i2 < ser.length; _i2++) {
@@ -18056,7 +18127,10 @@ var Core = function () {
           }
         }
 
+        // Finally, pass the labelArr in gl.labels which will be printed on x-axis
         gl.labels = labelArr;
+
+        // Turn on this global flag to indicate no labels were provided by user
         gl.noLabelsProvided = true;
 
         if (cnf.xaxis.type === 'category') {
@@ -18075,14 +18149,17 @@ var Core = function () {
       var gl = w.globals;
       this.excludeCollapsedSeriesInYAxis();
 
+      // If we detected string in X prop of series, we fallback to category x-axis
       this.fallbackToCategory = false;
 
       this.resetGlobals();
       this.isMultipleY();
 
       if (gl.axisCharts) {
+        // axisCharts includes line / area / column / scatter
         this.parseDataAxisCharts(ser);
       } else {
+        // non-axis charts are pie / donut
         this.parseDataNonAxisCharts(ser);
       }
 
@@ -18101,10 +18178,8 @@ var Core = function () {
 
       this.coreUtils.getPercentSeries();
 
-      // x-axis labels couldn't be detected; hence try searching every option in config
-      // Also, if dataFormatXNumeric = [[3, 2], [4, 5]] ||
-      //          dataFormatXNumeric = [{ x: 3, y: 55 }], then skip
       if (!gl.dataFormatXNumeric && (!gl.isXNumeric || cnf.xaxis.type === 'numeric' && cnf.labels.length === 0 && cnf.xaxis.categories.length === 0)) {
+        // x-axis labels couldn't be detected; hence try searching every option in config
         this.handleExternalLabelsData(ser);
       }
     }
@@ -21182,6 +21257,8 @@ var Globals = function () {
           scrolled: []
         },
         colors: [],
+        clientX: null,
+        clientY: null,
         fill: {
           colors: []
         },
@@ -21251,6 +21328,7 @@ var Globals = function () {
         initialminX: Number.MIN_VALUE,
         minZ: Number.MIN_VALUE, // Max Z value in charts with Z axis
         maxZ: -Number.MAX_VALUE, // Max Z value in charts with Z axis
+        minXDiff: Number.MAX_VALUE,
         mousedown: false,
         lastClientPosition: {}, // don't reset this variable this the chart is destroyed. It is used to detect right or left mousemove in panning
         visibleXRange: undefined,
@@ -21669,27 +21747,26 @@ var Intersect = function () {
           ttItems: opt.ttItems,
           i: i,
           j: j,
-          shared: ttCtx.intersect ? false : w.config.tooltip.shared
+          shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
         });
 
         if (e.type === 'mouseup') {
           ttCtx.markerClick(e, i, j);
         }
 
-        ttCtx.marker.enlargeCurrentPoint(j, opt.paths);
-
         x = cx;
-        y = cy - ttCtx.tooltipRect.ttHeight * 1.4;
+        y = cy + w.globals.translateY - ttCtx.tooltipRect.ttHeight * 1.4;
 
         if (ttCtx.w.config.tooltip.followCursor) {
           var elGrid = ttCtx.getElGrid();
           var seriesBound = elGrid.getBoundingClientRect();
-          y = ttCtx.e.clientY - seriesBound.top;
+          y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top;
         }
 
         if (val < 0) {
           y = cy;
         }
+        ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y);
       }
 
       return {
@@ -22393,6 +22470,9 @@ var Marker = function () {
   }, {
     key: 'enlargeCurrentPoint',
     value: function enlargeCurrentPoint(rel, point) {
+      var x = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+      var y = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
       var w = this.w;
 
       if (w.config.chart.type !== 'bubble') {
@@ -22401,6 +22481,11 @@ var Marker = function () {
 
       var cx = point.getAttribute('cx');
       var cy = point.getAttribute('cy');
+
+      if (x !== null && y !== null) {
+        cx = x;
+        cy = y;
+      }
 
       this.tooltipPosition.moveXCrosshairs(cx);
 
@@ -23132,22 +23217,7 @@ var Tooltip = function () {
 
       var tooltipEl = this.getElTooltip();
 
-      var trX = 0;
-      var trY = 0;
-      var elPie = null;
-
-      var clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-
-      if (w.config.chart.type === 'radialBar') {
-        elPie = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar');
-      } else {
-        elPie = w.globals.dom.baseEl.querySelector('.apexcharts-pie');
-
-        trX = parseInt(elPie.getAttribute('data:innerTranslateX'));
-        trY = parseInt(elPie.getAttribute('data:innerTranslateY'));
-      }
-
-      var seriesBound = elPie.getBoundingClientRect();
+      var seriesBound = w.globals.dom.elWrap.getBoundingClientRect();
 
       if (e.type === 'mousemove' || e.type === 'touchmove') {
         tooltipEl.classList.add('active');
@@ -23158,17 +23228,10 @@ var Tooltip = function () {
           shared: false
         });
 
-        var x = clientX - seriesBound.left - tooltipRect.ttWidth / 2.2 + trX;
-        var y = e.clientY - seriesBound.top - tooltipRect.ttHeight / 2 - 15 + trY;
+        var x = w.globals.clientX - seriesBound.left - tooltipRect.ttWidth / 2;
+        var y = w.globals.clientY - seriesBound.top - tooltipRect.ttHeight - 10;
 
-        if (x < 0) {
-          x = 0;
-        } else if (x + tooltipRect.ttWidth > w.globals.gridWidth) {
-          x = clientX - seriesBound.left - tooltipRect.ttWidth + trX;
-        }
-        if (y < 0) y = tooltipRect.ttHeight + 20;
-
-        tooltipEl.style.left = x + w.globals.translateX + 'px';
+        tooltipEl.style.left = x + 'px';
         tooltipEl.style.top = y + 'px';
       } else if (e.type === 'mouseout' || e.type === 'touchend') {
         tooltipEl.classList.remove('active');
