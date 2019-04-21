@@ -899,6 +899,15 @@ export default class ApexCharts {
       )
     })
 
+    eventList.forEach((event) => {
+      document.addEventListener(event, (e) => {
+        w.globals.clientX =
+          e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
+        w.globals.clientY =
+          e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
+      })
+    })
+
     this.core.setupBrushHandler()
   }
 

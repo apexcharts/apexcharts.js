@@ -613,22 +613,7 @@ export default class Tooltip {
 
     const tooltipEl = this.getElTooltip()
 
-    let trX = 0
-    let trY = 0
-    let elPie = null
-
-    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
-
-    if (w.config.chart.type === 'radialBar') {
-      elPie = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar')
-    } else {
-      elPie = w.globals.dom.baseEl.querySelector('.apexcharts-pie')
-
-      trX = parseInt(elPie.getAttribute('data:innerTranslateX'))
-      trY = parseInt(elPie.getAttribute('data:innerTranslateY'))
-    }
-
-    let seriesBound = elPie.getBoundingClientRect()
+    let seriesBound = w.globals.dom.elWrap.getBoundingClientRect()
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
       tooltipEl.classList.add('active')
@@ -639,17 +624,10 @@ export default class Tooltip {
         shared: false
       })
 
-      let x = clientX - seriesBound.left - tooltipRect.ttWidth / 2.2 + trX
-      let y = e.clientY - seriesBound.top - tooltipRect.ttHeight / 2 - 15 + trY
+      let x = w.globals.clientX - seriesBound.left - tooltipRect.ttWidth / 2
+      let y = w.globals.clientY - seriesBound.top - tooltipRect.ttHeight - 10
 
-      if (x < 0) {
-        x = 0
-      } else if (x + tooltipRect.ttWidth > w.globals.gridWidth) {
-        x = clientX - seriesBound.left - tooltipRect.ttWidth + trX
-      }
-      if (y < 0) y = tooltipRect.ttHeight + 20
-
-      tooltipEl.style.left = x + w.globals.translateX + 'px'
+      tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       tooltipEl.classList.remove('active')

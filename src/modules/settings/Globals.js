@@ -16,6 +16,8 @@ export default class Globals {
         scrolled: []
       },
       colors: [],
+      clientX: null,
+      clientY: null,
       fill: {
         colors: []
       },
