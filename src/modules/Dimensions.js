@@ -500,18 +500,11 @@ export default class Dimensions {
           ? this.lgRect.width
           : 0
 
-      //  get the longest string from the labels array and also apply label formatter to it
-      let labels = []
+      // get the longest string from the labels array and also apply label formatter
       let xlbFormatter = w.globals.xLabelFormatter
 
-      xaxisLabels.forEach((xl) => {
-        let xFormat = new Formatters(this.ctx)
-        let label = xFormat.xLabelFormat(xlbFormatter, xl)
-
-        labels.push(label)
-      })
-
-      let val = labels.reduce(function(a, b) {
+      // prevent changing xaxisLabels to avoid issues in multi-yaxies - fix #522
+      let val = xaxisLabels.reduce(function(a, b) {
         return a.length > b.length ? a : b
       }, 0)
 
