@@ -853,10 +853,6 @@ export default class Core {
 
       // Turn on this global flag to indicate no labels were provided by user
       gl.noLabelsProvided = true
-
-      if (cnf.xaxis.type === 'category') {
-        gl.isXNumeric = false
-      }
     }
   }
 
