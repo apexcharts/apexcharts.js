@@ -153,6 +153,7 @@ class BarStacked extends Bar {
             yDivision,
             elSeries
           })
+          barWidth = this.series[i][j] / this.invertedYRatio
         } else {
           paths = this.drawColumnPaths({
             indexes: { i, j, realIndex, bc },
@@ -166,6 +167,7 @@ class BarStacked extends Bar {
             strokeWidth,
             elSeries
           })
+          barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
 
         pathTo = paths.pathTo
