@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.6.7
+ * ApexCharts v3.6.8
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -7764,7 +7764,7 @@
         if (w.config.plotOptions.heatmap.displayAsBubbles) {
           xDivision = w.globals.gridWidth / w.globals.dataPoints / 2;
           yDivision = w.globals.gridHeight / w.globals.series.length / 2;
-          y1 = w.globals.series.length * 1.6;
+          y1 = w.globals.series.length * 2.6;
           xPadding = w.globals.gridWidth / w.globals.dataPoints / w.globals.dataPoints + y1;
         } else {
           xDivision = w.globals.gridWidth / w.globals.dataPoints;

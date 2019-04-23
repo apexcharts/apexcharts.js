@@ -1,10 +1,10 @@
 {
   "name": "ikizmet-apexcharts",
   "version": "3.6.8",
-  "description": "A JavaScript Chart Library",
+  "description": "iKizmet fork of Apex Charts library",
   "repository": {
     "type": "git",
-    "url": "https://github.com/apexcharts/apexcharts.js.git"
+    "url": "https://github.com/ikizmet/apexcharts.js.git"
   },
   "main": "dist/apexcharts.common.js",
   "module": "dist/apexcharts.esm.js",
@@ -87,7 +87,7 @@
     "email": "juned.chhipa@gmail.com"
   },
   "bugs": {
-    "url": "https://github.com/apexcharts/apexcharts.js/issues"
+    "url": "https://github.com/ikizmet/apexcharts.js/issues"
   },
   "license": "MIT",
   "licenses": [

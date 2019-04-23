@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.6.7
+ * ApexCharts v3.6.8
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
