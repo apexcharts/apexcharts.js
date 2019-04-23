@@ -43,7 +43,7 @@ export default class HeatMap {
     if (w.config.plotOptions.heatmap.displayAsBubbles) {
       xDivision = w.globals.gridWidth / w.globals.dataPoints / 2
       yDivision = w.globals.gridHeight / w.globals.series.length / 2
-      y1 = w.globals.series.length * 2.6
+      y1 = w.globals.series.length * 1.6
       xPadding =
         w.globals.gridWidth / w.globals.dataPoints / w.globals.dataPoints + y1
     } else {
@@ -128,13 +128,17 @@ export default class HeatMap {
         elSeries.add(rect)
 
         rect.attr({
-          fill: color,
+          fill: w.config.plotOptions.heatmap.filledBubbles
+            ? color
+            : 'transparent',
           i,
           index: i,
           j,
           val: heatSeries[i][j],
           'stroke-width': this.strokeWidth,
-          stroke: w.globals.stroke.colors[0],
+          stroke: w.config.plotOptions.heatmap.filledBubbles
+            ? w.globals.stroke.colors[0]
+            : '#353942',
           color: color
         })
 
@@ -330,7 +334,8 @@ export default class HeatMap {
         i,
         j,
         parent: elDataLabelsWrap,
-        dataLabelsConfig
+        dataLabelsConfig,
+        filledBubbles: w.config.plotOptions.heatmap.filledBubbles
       })
     }
 

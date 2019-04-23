@@ -171,7 +171,8 @@ class DataLabels {
       parent,
       dataLabelsConfig,
       alwaysDrawDataLabel,
-      offsetCorrection
+      offsetCorrection,
+      filledBubbles
     } = opts
 
     if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
@@ -206,14 +207,27 @@ class DataLabels {
     }
 
     if (correctedLabels.drawnextLabel) {
+      let foreColor
+      if (!filledBubbles) {
+        let value = parseInt(text.split('%'))
+        if (value < 26) {
+          foreColor = '#ee145b'
+        } else if (value > 25 && value < 50) {
+          foreColor = '#f26c4f'
+        } else {
+          foreColor = '#00aeef'
+        }
+      } else {
+        foreColor = w.globals.dataLabels.style.colors[i]
+      }
       let dataLabelText = graphics.drawText({
         width: 100,
         height: parseInt(dataLabelsConfig.style.fontSize),
         x: x,
         y: y,
-        foreColor: w.globals.dataLabels.style.colors[i],
+        foreColor: foreColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
-        text: text,
+        text: filledBubbles ? text : '●' + text,
         fontSize: dataLabelsConfig.style.fontSize,
         fontFamily: dataLabelsConfig.style.fontFamily
       })

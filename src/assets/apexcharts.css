@@ -23,7 +23,7 @@
   position: relative;
 }
 
-.legend-mouseover-inactive {
+.legend-mouseover-inactive, .legend-mouseover-inactive + g  {
   transition: 0.15s ease all;
   opacity: 0.20;
 }

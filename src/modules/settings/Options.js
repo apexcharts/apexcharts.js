@@ -346,6 +346,7 @@ export default class Options {
           shadeIntensity: 0.5,
           distributed: false,
           displayAsBubbles: false,
+          filledBubbles: true,
           colorScale: {
             inverse: false,
             ranges: [],
