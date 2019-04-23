@@ -486,6 +486,8 @@ class Graphics {
       'dominant-baseline': 'auto',
       'font-size': fontSize,
       'font-family': fontFamily,
+      // Todo Pass in as props
+      'font-weight': '800',
       fill: foreColor,
       class: 'apexcharts-text ' + opts.cssClass ? opts.cssClass : ''
     })

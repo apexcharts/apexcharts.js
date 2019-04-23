@@ -36,10 +36,23 @@ export default class HeatMap {
     ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     // width divided into equal parts
-    let xDivision = w.globals.gridWidth / w.globals.dataPoints
-    let yDivision = w.globals.gridHeight / w.globals.series.length
+    let xDivision
+    let yDivision
+    let y1
+    let xPadding
+    if (w.config.plotOptions.heatmap.displayAsBubbles) {
+      xDivision = w.globals.gridWidth / w.globals.dataPoints / 2
+      yDivision = w.globals.gridHeight / w.globals.series.length / 2
+      y1 = w.globals.series.length * 1.6
+      xPadding =
+        w.globals.gridWidth / w.globals.dataPoints / w.globals.dataPoints + y1
+    } else {
+      xDivision = w.globals.gridWidth / w.globals.dataPoints
+      yDivision = w.globals.gridHeight / w.globals.series.length
+      y1 = 0
+      xPadding = 0
+    }
 
-    let y1 = 0
     let rev = false
 
     this.checkColorRange()
@@ -69,9 +82,12 @@ export default class HeatMap {
         const filters = new Filters(this.ctx)
         filters.dropShadow(elSeries, shadow)
       }
-
-      let x1 = 0
-
+      let x1
+      if (w.config.plotOptions.heatmap.displayAsBubbles) {
+        x1 = xPadding
+      } else {
+        x1 = 0
+      }
       for (let j = 0; j < heatSeries[i].length; j++) {
         let colorShadePercent = 1
 
@@ -179,10 +195,18 @@ export default class HeatMap {
           elSeries.add(dataLabels)
         }
 
-        x1 = x1 + xDivision
+        if (w.config.plotOptions.heatmap.displayAsBubbles) {
+          x1 = xPadding + (j + 1) * (xDivision * 2)
+        } else {
+          x1 = x1 + xDivision
+        }
       }
 
-      y1 = y1 + yDivision
+      if (w.config.plotOptions.heatmap.displayAsBubbles) {
+        y1 = y1 + yDivision + 28
+      } else {
+        y1 = y1 + yDivision
+      }
 
       ret.add(elSeries)
     }
@@ -301,7 +325,8 @@ export default class HeatMap {
       dataLabels.plotDataLabelsText({
         x: dataLabelsX,
         y: dataLabelsY,
-        text,
+        // todo: pass in as props
+        text: text + '%',
         i,
         j,
         parent: elDataLabelsWrap,
