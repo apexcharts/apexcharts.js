@@ -17,7 +17,7 @@
   <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
 </p>
 
-<p align="center">A modern JavaScript charting library to build interactive charts and visualizations with simple API.</p>
+<p align="center">iKizmnet forked version of Apex Charts with custom changes.</p>
 
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
