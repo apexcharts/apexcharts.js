@@ -163,7 +163,8 @@ class Radar {
           strokeWidth: Array.isArray(w.config.stroke.width)
             ? w.config.stroke.width[i]
             : w.config.stroke.width,
-          fill: 'none'
+          fill: 'none',
+          drawShadow: false
         })
 
         elSeries.add(renderedLinePath)
@@ -177,17 +178,19 @@ class Radar {
           pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
           pathTo: paths.areaPathsTo[p],
           strokeWidth: 0,
-          fill: pathFill
+          fill: pathFill,
+          drawShadow: false
         })
 
         if (w.config.chart.dropShadow.enabled) {
           const filters = new Filters(this.ctx)
 
           const shadow = w.config.chart.dropShadow
-          filters.dropShadow(renderedAreaPath, {
-            ...shadow,
-            noUserSpaceOnUse: true
-          })
+          filters.dropShadow(
+            renderedAreaPath,
+            Object.assign({}, shadow, { noUserSpaceOnUse: true }),
+            i
+          )
         }
 
         elSeries.add(renderedAreaPath)

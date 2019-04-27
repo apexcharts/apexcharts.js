@@ -130,13 +130,8 @@ export default class Scatter {
     })
 
     if (w.config.chart.dropShadow.enabled) {
-      filters.dropShadow(circle, {
-        top: w.config.chart.dropShadow.top,
-        left: w.config.chart.dropShadow.left,
-        blur: w.config.chart.dropShadow.blur,
-        color: w.config.chart.dropShadow.color,
-        opacity: w.config.chart.dropShadow.opacity
-      })
+      const dropShadow = w.config.chart.dropShadow
+      filters.dropShadow(circle, dropShadow, realIndex)
     }
 
     if (this.initialAnim && !w.globals.dataChanged) {

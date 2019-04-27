@@ -201,7 +201,8 @@ class Graphics {
     className,
     id,
     shouldClipToGrid = true,
-    bindEventsOnPaths = true
+    bindEventsOnPaths = true,
+    drawShadow = true
   }) {
     let w = this.w
     const filters = new Filters(this.ctx)
@@ -255,20 +256,16 @@ class Graphics {
     // const defaultFilter = el.filterer
 
     if (w.config.states.normal.filter.type !== 'none') {
-      filters.getDefaultFilter(
-        el,
-        w.config.states.normal.filter.type,
-        w.config.states.normal.filter.value
-      )
+      filters.getDefaultFilter(el, realIndex)
     } else {
-      if (w.config.chart.dropShadow.enabled) {
+      if (w.config.chart.dropShadow.enabled && drawShadow) {
         if (
           !w.config.chart.dropShadow.enabledSeries ||
           (w.config.chart.dropShadow.enabledSeries &&
             w.config.chart.dropShadow.enabledSeries.indexOf(realIndex) !== -1)
         ) {
           const shadow = w.config.chart.dropShadow
-          filters.dropShadow(el, shadow)
+          filters.dropShadow(el, shadow, realIndex)
         }
       }
     }
@@ -592,7 +589,7 @@ class Graphics {
         !w.globals.isTouchDevice
       ) {
         let hoverFilter = w.config.states.hover.filter
-        filters.applyFilter(path, hoverFilter.type, hoverFilter.value)
+        filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
       }
     }
   }
@@ -624,7 +621,7 @@ class Graphics {
     }
 
     if (w.config.states.hover.filter.type !== 'none') {
-      filters.getDefaultFilter(path)
+      filters.getDefaultFilter(path, i)
     }
   }
 
@@ -657,12 +654,12 @@ class Graphics {
 
         elPaths.forEach((elPath) => {
           elPath.node.setAttribute('selected', 'false')
-          filters.getDefaultFilter(elPath)
+          filters.getDefaultFilter(elPath, i)
         })
 
         elCircles.forEach((circle) => {
           circle.node.setAttribute('selected', 'false')
-          filters.getDefaultFilter(circle)
+          filters.getDefaultFilter(circle, i)
         })
       }
 
@@ -678,11 +675,11 @@ class Graphics {
     if (selected === 'true') {
       let activeFilter = w.config.states.active.filter
       if (activeFilter !== 'none') {
-        filters.applyFilter(path, activeFilter.type, activeFilter.value)
+        filters.applyFilter(path, i, activeFilter.type, activeFilter.value)
       }
     } else {
       if (w.config.states.active.filter.type !== 'none') {
-        filters.getDefaultFilter(path)
+        filters.getDefaultFilter(path, i)
       }
     }
 

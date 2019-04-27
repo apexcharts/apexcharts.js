@@ -327,7 +327,7 @@ class Radial extends Pie {
 
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
-        filters.dropShadow(elPath, shadow)
+        filters.dropShadow(elPath, shadow, i)
       }
 
       this.addListeners(elPath, this.radialDataLabels)

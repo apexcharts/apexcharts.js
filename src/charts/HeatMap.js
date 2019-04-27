@@ -67,7 +67,7 @@ export default class HeatMap {
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
         const filters = new Filters(this.ctx)
-        filters.dropShadow(elSeries, shadow)
+        filters.dropShadow(elSeries, shadow, i)
       }
 
       let x1 = 0
