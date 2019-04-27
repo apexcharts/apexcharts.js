@@ -946,14 +946,29 @@ class Bar {
         text = formatter(val, { seriesIndex: i, dataPointIndex: j, w })
       }
 
-      if (this.isHorizontal) {
-        barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex]
-      } else {
-        barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
-      }
-      if (textRects.width / 1.6 > barWidth || textRects.height > barHeight) {
+      if (val === 0 && w.config.chart.stacked) {
+        // in a stacked bar/column chart, 0 value should be neglected as it will overlap on the next element
         text = ''
       }
+
+      if (
+        this.barOptions.dataLabels.position === 'center' &&
+        this.barOptions.dataLabels.hideOverflowingLabels
+      ) {
+        // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property
+        if (this.isHorizontal) {
+          barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex]
+          if (textRects.width / 1.6 > barWidth) {
+            text = ''
+          }
+        } else {
+          barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
+          if (textRects.height > barHeight) {
+            text = ''
+          }
+        }
+      }
+
       dataLabels.plotDataLabelsText({
         x,
         y,
