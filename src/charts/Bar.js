@@ -688,9 +688,8 @@ class Bar {
     let bcx = x + parseFloat(barWidth * visibleSeries)
     let bcy = y + parseFloat(barHeight * visibleSeries)
 
-    if (w.globals.isXNumeric) {
+    if (w.globals.isXNumeric && !w.globals.isBarHorizontal) {
       bcx = x + parseFloat(barWidth * (visibleSeries + 1)) - strokeWidth
-
       bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth
     }
 
@@ -832,6 +831,14 @@ class Bar {
         break
     }
 
+    if (!w.config.chart.stacked) {
+      if (dataLabelsY < 0) {
+        dataLabelsY = 0 + strokeWidth
+      } else if (dataLabelsY + textRects.height / 3 > w.globals.gridHeight) {
+        dataLabelsY = w.globals.gridHeight - strokeWidth
+      }
+    }
+
     return {
       bcx,
       bcy: y,
@@ -899,12 +906,13 @@ class Bar {
         break
     }
 
-    // commenting below lines as this causes overlaps over other labels
-    // if (dataLabelsX < 0) {
-    //   dataLabelsX = textRects.width + strokeWidth
-    // } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
-    //   dataLabelsX = dataLabelsX - textRects.width - strokeWidth
-    // }
+    if (!w.config.chart.stacked) {
+      if (dataLabelsX < 0) {
+        dataLabelsX = dataLabelsX + textRects.width + strokeWidth
+      } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
+        dataLabelsX = w.globals.gridWidth - textRects.width - strokeWidth
+      }
+    }
 
     return {
       bcx: x,
@@ -952,10 +960,11 @@ class Bar {
       }
 
       if (
-        this.barOptions.dataLabels.position === 'center' &&
+        w.config.chart.stacked &&
         this.barOptions.dataLabels.hideOverflowingLabels
       ) {
-        // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property
+        // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
+        // Note: This issue is only seen in stacked charts
         if (this.isHorizontal) {
           barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex]
           if (textRects.width / 1.6 > barWidth) {
@@ -963,7 +972,7 @@ class Bar {
           }
         } else {
           barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
-          if (textRects.height > barHeight) {
+          if (textRects.height / 1.6 > barHeight) {
             text = ''
           }
         }

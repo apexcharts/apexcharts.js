@@ -327,6 +327,7 @@ export default class Options {
           },
           dataLabels: {
             maxItems: 100,
+            hideOverflowingLabels: true,
             position: 'top' // top, center, bottom
             // TODO: provide stackedLabels for stacked charts which gives additions of values
           }
@@ -441,7 +442,7 @@ export default class Options {
           dataLabels: {
             // These are the percentage values which are displayed on slice
             offset: 0, // offset by which labels will move outside
-            minAngleToShowLabel: 15
+            minAngleToShowLabel: 10
           },
           donut: {
             size: '65%',
