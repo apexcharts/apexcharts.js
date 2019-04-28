@@ -363,6 +363,7 @@ type ApexPlotOptions = {
     };
     dataLabels?: {
       maxItems?: number;
+      hideOverflowingLabels?: boolean;
       position?: string;
     }
   };
