@@ -51,7 +51,8 @@ class Range {
       gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
 
       for (let j = 0; j < gl.series[i].length; j++) {
-        if (series[i][j] !== null && Utils.isNumber(series[i][j])) {
+        let val = series[i][j]
+        if (val !== null && Utils.isNumber(val)) {
           maxY = Math.max(maxY, seriesMax[i][j])
           lowestY = Math.min(lowestY, seriesMin[i][j])
           highestY = Math.max(highestY, seriesMin[i][j])
@@ -64,10 +65,11 @@ class Range {
             highestY = maxY
           }
 
-          if (Utils.isFloat(series[i][j])) {
+          if (Utils.isFloat(val)) {
+            val = Utils.noExponents(val)
             gl.yValueDecimal = Math.max(
               gl.yValueDecimal,
-              series[i][j].toString().split('.')[1].length
+              val.toString().split('.')[1].length
             )
           }
           if (minY > seriesMin[i][j] && seriesMin[i][j] < 0) {

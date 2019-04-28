@@ -38,6 +38,7 @@ window.Apex = {
     }
   },
   yaxis: {
+    decimalsInFloat: 2,
     opposite: true,
     labels: {
       offsetX: -10

@@ -10,6 +10,10 @@ export default class Range {
   // This routine creates the Y axis values for a graph.
   niceScale(yMin, yMax, index = 0, ticks = 10) {
     const w = this.w
+    const NO_MIN_MAX_PROVIDED =
+      (this.w.config.yaxis[index].max === undefined &&
+        this.w.config.yaxis[index].min === undefined) ||
+      this.w.config.yaxis[index].forceNiceScale
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
       (!Utils.isNumber(yMin) && !Utils.isNumber(yMax)) ||
@@ -50,13 +54,18 @@ export default class Range {
 
     if (
       range < 1 &&
-      w.config.yaxis[index].forceNiceScale &&
+      NO_MIN_MAX_PROVIDED &&
       (w.config.chart.type === 'candlestick' ||
         w.config.series[index].type === 'candlestick' ||
         w.globals.isRangeData)
     ) {
       /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
       yMax = yMax * 1.01
+    }
+
+    // for extremely small values - #fix #553
+    if (range < 0.001 && NO_MIN_MAX_PROVIDED) {
+      yMax = yMax * 1.05
     }
     let tiks = ticks + 1
     // Adjust ticks if needed
@@ -89,11 +98,7 @@ export default class Range {
       }
     }
 
-    if (
-      (this.w.config.yaxis[index].max === undefined &&
-        this.w.config.yaxis[index].min === undefined) ||
-      this.w.config.yaxis[index].forceNiceScale
-    ) {
+    if (NO_MIN_MAX_PROVIDED) {
       return {
         result,
         niceMin: result[0],

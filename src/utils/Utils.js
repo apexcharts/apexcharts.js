@@ -143,6 +143,25 @@ class Utils {
     return parseFloat(val)
   }
 
+  static noExponents(val) {
+    let data = String(val).split(/[eE]/)
+    if (data.length == 1) return data[0]
+
+    let z = '',
+      sign = val < 0 ? '-' : '',
+      str = data[0].replace('.', ''),
+      mag = Number(data[1]) + 1
+
+    if (mag < 0) {
+      z = sign + '0.'
+      while (mag++) z += '0'
+      return z + str.replace(/^\-/, '')
+    }
+    mag -= str.length
+    while (mag--) z += '0'
+    return str + z
+  }
+
   static getDimensions(el) {
     let computedStyle = getComputedStyle(el)
     let ret = []

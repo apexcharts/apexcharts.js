@@ -108,7 +108,11 @@ class Formatters {
               w.globals.yValueDecimal !== 0 ||
               w.globals.maxY - w.globals.minY < 4
             ) {
-              return val.toFixed(yaxe.decimalsInFloat)
+              return val.toFixed(
+                yaxe.decimalsInFloat !== undefined
+                  ? yaxe.decimalsInFloat
+                  : w.globals.yValueDecimal
+              )
             } else {
               return val.toFixed(0)
             }
