@@ -64,9 +64,10 @@ export default class Range {
     }
 
     // for extremely small values - #fix #553
-    if (range < 0.001 && NO_MIN_MAX_PROVIDED) {
+    if (range < 0.00001 && NO_MIN_MAX_PROVIDED) {
       yMax = yMax * 1.05
     }
+
     let tiks = ticks + 1
     // Adjust ticks if needed
     if (tiks < 2) {
