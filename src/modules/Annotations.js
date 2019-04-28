@@ -58,6 +58,7 @@ export default class Annotations {
     const range = this.invertAxis ? w.globals.yRange[0] : w.globals.xRange
 
     let x1 = (anno.x - min) / (range / w.globals.gridWidth)
+    const text = anno.label.text
 
     if (
       w.config.xaxis.type === 'category' ||
@@ -94,23 +95,24 @@ export default class Annotations {
         x1 = x2
         x2 = temp
       }
-      let rect = this.graphics.drawRect(
-        x1 + anno.offsetX, // x1
-        0 + anno.offsetY, // y1
-        x2 - x1, // x2
-        w.globals.gridHeight + anno.offsetY, // y2
-        0, // radius
-        anno.fillColor, // color
-        anno.opacity, // opacity,
-        1, // strokeWidth
-        anno.borderColor, // strokeColor
-        strokeDashArray // stokeDashArray
-      )
-      parent.appendChild(rect.node)
+
+      if (text) {
+        let rect = this.graphics.drawRect(
+          x1 + anno.offsetX, // x1
+          0 + anno.offsetY, // y1
+          x2 - x1, // x2
+          w.globals.gridHeight + anno.offsetY, // y2
+          0, // radius
+          anno.fillColor, // color
+          anno.opacity, // opacity,
+          1, // strokeWidth
+          anno.borderColor, // strokeColor
+          strokeDashArray // stokeDashArray
+        )
+        parent.appendChild(rect.node)
+      }
     }
     let textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight
-
-    const text = anno.label.text ? anno.label.text : ''
 
     let elText = this.graphics.drawText({
       x: x1 + anno.label.offsetX,
@@ -177,7 +179,7 @@ export default class Annotations {
       }
     }
 
-    const text = anno.label.text ? anno.label.text : ''
+    const text = anno.label.text
 
     if (anno.y2 === null) {
       let line = this.graphics.drawLine(
@@ -221,19 +223,21 @@ export default class Annotations {
         y2 = temp
       }
 
-      let rect = this.graphics.drawRect(
-        0 + anno.offsetX, // x1
-        y2 + anno.offsetY, // y1
-        w.globals.gridWidth + anno.offsetX, // x2
-        y1 - y2, // y2
-        0, // radius
-        anno.fillColor, // color
-        anno.opacity, // opacity,
-        1, // strokeWidth
-        anno.borderColor, // strokeColor
-        strokeDashArray // stokeDashArray
-      )
-      parent.appendChild(rect.node)
+      if (text) {
+        let rect = this.graphics.drawRect(
+          0 + anno.offsetX, // x1
+          y2 + anno.offsetY, // y1
+          w.globals.gridWidth + anno.offsetX, // x2
+          y1 - y2, // y2
+          0, // radius
+          anno.fillColor, // color
+          anno.opacity, // opacity,
+          1, // strokeWidth
+          anno.borderColor, // strokeColor
+          strokeDashArray // stokeDashArray
+        )
+        parent.appendChild(rect.node)
+      }
     }
     let textX = anno.label.position === 'right' ? w.globals.gridWidth : 0
 
@@ -476,6 +480,8 @@ export default class Annotations {
   addBackgroundToAnno(annoEl, anno) {
     const w = this.w
 
+    if (!anno.label.text) return null
+
     const elGridRect = w.globals.dom.baseEl
       .querySelector('.apexcharts-grid')
       .getBoundingClientRect()
@@ -524,7 +530,9 @@ export default class Annotations {
         const parent = annoLabel.parentNode
         const elRect = this.addBackgroundToAnno(annoLabel, anno)
 
-        parent.insertBefore(elRect.node, annoLabel)
+        if (elRect) {
+          parent.insertBefore(elRect.node, annoLabel)
+        }
       }
     }
 
@@ -582,20 +590,23 @@ export default class Annotations {
     parentNode.appendChild(elText.node)
 
     const textRect = elText.bbox()
-    const elRect = this.graphics.drawRect(
-      textRect.x - paddingLeft,
-      textRect.y - paddingTop,
-      textRect.width + paddingLeft + paddingRight,
-      textRect.height + paddingBottom + paddingTop,
-      radius,
-      backgroundColor,
-      1,
-      borderWidth,
-      borderColor,
-      strokeDashArray
-    )
 
-    elText.before(elRect)
+    if (text) {
+      const elRect = this.graphics.drawRect(
+        textRect.x - paddingLeft,
+        textRect.y - paddingTop,
+        textRect.width + paddingLeft + paddingRight,
+        textRect.height + paddingBottom + paddingTop,
+        radius,
+        backgroundColor,
+        1,
+        borderWidth,
+        borderColor,
+        strokeDashArray
+      )
+
+      elText.before(elRect)
+    }
 
     if (pushToMemory) {
       w.globals.memory.methodsToExec.push({
@@ -703,7 +714,9 @@ export default class Annotations {
       `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`
     )
     const elRect = this.addBackgroundToAnno(axesAnnoLabel, anno)
-    parent.insertBefore(elRect.node, axesAnnoLabel)
+    if (elRect) {
+      parent.insertBefore(elRect.node, axesAnnoLabel)
+    }
 
     if (pushToMemory) {
       w.globals.memory.methodsToExec.push({

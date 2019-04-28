@@ -456,6 +456,8 @@ class Graphics {
       opacity
     } = opts
 
+    if (typeof text === 'undefined') text = ''
+
     if (!textAnchor) {
       textAnchor = 'start'
     }
