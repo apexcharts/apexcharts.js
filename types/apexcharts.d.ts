@@ -210,10 +210,17 @@ type ApexTitleSubtitle = {
 * Chart Series options.  
 * Use ApexNonAxisChartSeries for Pie and Donut charts.
 * See https://apexcharts.com/docs/options/series/
+*
+* According to the documentation at
+* https://apexcharts.com/docs/series/
+* Section 1: data can be a list of single numbers
+* Sections 2.1 and 3.1: data can be a list of tuples of two numbers
+* Sections 2.2 and 3.2: data can be a list of objects where x is a string
+* and y is a number
 */
 type ApexAxisChartSeries = {
   name: string;
-  data: number[] | { x: string; y: number }[];
+  data: number[] | { x: string; y: number }[] | [number, number][];
 }[];
 
 type ApexNonAxisChartSeries = number[];
