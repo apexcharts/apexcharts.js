@@ -215,7 +215,7 @@ type ApexTitleSubtitle = {
 * https://apexcharts.com/docs/series/
 * Section 1: data can be a list of single numbers
 * Sections 2.1 and 3.1: data can be a list of tuples of two numbers
-* Sections 2.2 and 3.1: data can be a list of objects where x is a string
+* Sections 2.2 and 3.2: data can be a list of objects where x is a string
 * and y is a number
 */
 type ApexAxisChartSeries = {
