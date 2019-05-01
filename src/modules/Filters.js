@@ -181,7 +181,7 @@ class Filters {
         el.node.setAttribute('selected', true)
         let activeFilter = w.config.states.active.filter
         if (activeFilter !== 'none') {
-          this.applyFilter(el, realindex, activeFilter.type, activeFilter.value)
+          this.applyFilter(el, realIndex, activeFilter.type, activeFilter.value)
         }
       }
     }
