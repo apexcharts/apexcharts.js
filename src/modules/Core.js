@@ -562,11 +562,14 @@ export default class Core {
             )
           } else {
             gl.dataFormatXNumeric = true
+            gl.isXNumeric = true
             this.twoDSeriesX.push(parseFloat(ser[activeI].data[j].x))
           }
         }
       } else {
         // a numeric value in x property
+        gl.isXNumeric = true
+        gl.dataFormatXNumeric = true
         this.twoDSeriesX.push(ser[activeI].data[j].x)
       }
     }

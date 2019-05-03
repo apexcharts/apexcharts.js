@@ -25,7 +25,9 @@
     "build:umd": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "build:amd": "webpack",
     "lint": "eslint src/**/*.js tests/**/*.js --no-fix",
-    "test": "jest"
+    "test": "jest",
+    "unit": "jest tests/unit/",
+    "e2e": "jest tests/e2e/"
   },
   "dependencies": {
     "promise-polyfill": "8.1.0",

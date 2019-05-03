@@ -240,7 +240,8 @@ class Range {
       cnf.xaxis.type === 'numeric' ||
       cnf.xaxis.type === 'datetime' ||
       (cnf.xaxis.type === 'category' && !gl.noLabelsProvided) ||
-      gl.noLabelsProvided
+      gl.noLabelsProvided ||
+      gl.isXNumeric
 
     // minX maxX starts here
     if (gl.isXNumeric) {

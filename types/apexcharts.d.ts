@@ -220,7 +220,7 @@ type ApexTitleSubtitle = {
 */
 type ApexAxisChartSeries = {
   name: string;
-  data: number[] | { x: string; y: number }[] | [number, number][];
+  data: number[] | { x: any; y: any }[] | [number, number][] | [number, number[]][];
 }[];
 
 type ApexNonAxisChartSeries = number[];
