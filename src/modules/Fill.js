@@ -105,6 +105,14 @@ class Fill {
 
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
+
+    if (typeof fillColor === 'function') {
+      fillColor = fillColor({
+        seriesIndex: this.seriesIndex,
+        value: opts.value,
+        w
+      })
+    }
     let fillType = this.getFillType(this.seriesIndex)
     let fillOpacity = Array.isArray(cnf.fill.opacity)
       ? cnf.fill.opacity[this.seriesIndex]

@@ -268,7 +268,8 @@ class Radial extends Pie {
 
       let pathFill = fill.fillPath({
         seriesNumber: i,
-        size: opts.size
+        size: opts.size,
+        value: opts.series[i]
       })
 
       let startAngle = this.startAngle

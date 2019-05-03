@@ -111,7 +111,8 @@ export default class Scatter {
 
     let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex,
-      patternUnits: 'objectBoundingBox'
+      patternUnits: 'objectBoundingBox',
+      value: w.globals.series[realIndex][j]
     })
     let circle = graphics.drawCircle(radius)
 

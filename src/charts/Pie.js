@@ -207,7 +207,8 @@ class Pie {
 
       let pathFill = fill.fillPath({
         seriesNumber: i,
-        size: this.size
+        size: this.size,
+        value: series[i]
       }) // additionaly, pass size for gradient drawing in the fillPath function
 
       let path = this.getChangedPath(prevStartAngle, prevEndAngle)

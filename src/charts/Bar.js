@@ -245,7 +245,8 @@ class Bar {
 
     let pathFill = fill.fillPath({
       seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
-      color: fillColor
+      color: fillColor,
+      value: series[i][j]
     })
 
     return pathFill

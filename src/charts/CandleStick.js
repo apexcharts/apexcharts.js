@@ -135,7 +135,8 @@ class CandleStick extends Bar {
 
         let pathFill = fill.fillPath({
           seriesNumber: realIndex,
-          color
+          color,
+          value: series[i][j]
         })
 
         let lineFill = this.candlestickOptions.wick.useFillColor
