@@ -238,6 +238,16 @@ export default class XAxis {
         })
 
         elYaxisTexts.add(elLabel)
+
+        if (w.config.yaxis[realIndex].labels.rotate !== 0) {
+          let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
+          elLabel.node.setAttribute(
+            'transform',
+            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${
+              labelRotatingCenter.x
+            } ${labelRotatingCenter.y})`
+          )
+        }
         yPos = yPos + colHeight
       }
     }
