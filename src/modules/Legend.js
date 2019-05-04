@@ -1,6 +1,7 @@
 import CoreUtils from './CoreUtils'
 import Dimensions from './Dimensions'
 import Graphics from './Graphics'
+import Pie from '../charts/Pie'
 import Series from './Series'
 import Utils from '../utils/Utils'
 
@@ -690,6 +691,16 @@ class Legend {
       let seriesEl = w.globals.dom.Paper.select(
         ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
       )
+
+      const type = w.config.chart.type
+      if (type === 'pie' || type === 'donut') {
+        let dataLabels = w.config.plotOptions.pie.donut.labels
+
+        const graphics = new Graphics(this.ctx)
+        const pie = new Pie(this.ctx)
+        graphics.pathMouseDown(seriesEl.members[0], null)
+        pie.printDataLabelsInner(seriesEl.members[0].node, dataLabels)
+      }
 
       seriesEl.fire('click')
     }

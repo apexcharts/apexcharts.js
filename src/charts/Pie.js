@@ -527,6 +527,7 @@ class Pie {
       elPath.attr({
         'data:pieClicked': 'false'
       })
+      this.revertDataLabelsInner(elPath.node, this.donutDataLabels)
 
       let origPath = elPath.attr('data:pathOrig')
       elPath.attr({
@@ -819,7 +820,7 @@ class Pie {
     }
   }
 
-  revertDataLabelsInner(el, dataLabelsConfig) {
+  revertDataLabelsInner(el, dataLabelsConfig, event) {
     let w = this.w
     let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
       '.apexcharts-datalabels-group'
@@ -833,24 +834,39 @@ class Pie {
         dataLabelsConfig.total.formatter(w)
       )
     } else {
-      if (w.globals.selectedDataPoints.length && w.globals.series.length > 1) {
-        if (w.globals.selectedDataPoints[0].length > 0) {
-          const index = w.globals.selectedDataPoints[0]
-          const el = w.globals.dom.baseEl.querySelector(
-            `#apexcharts-${w.config.chart.type.toLowerCase()}-slice-${index}`
-          )
+      const slices = document.querySelectorAll(`.apexcharts-pie-area`)
+      let sliceOut = false
 
-          this.printDataLabelsInner(el, dataLabelsConfig)
-        } else if (
-          dataLabelsGroup &&
-          w.globals.selectedDataPoints.length &&
-          w.globals.selectedDataPoints[0].length === 0
-        ) {
-          dataLabelsGroup.style.opacity = 0
+      slices.forEach((s) => {
+        if (s.getAttribute('data:pieClicked') === 'true') {
+          sliceOut = true
+          this.printDataLabelsInner(s, dataLabelsConfig)
         }
-      } else {
-        if (dataLabelsGroup && w.globals.series.length > 1) {
-          dataLabelsGroup.style.opacity = 0
+      })
+
+      if (!sliceOut) {
+        if (
+          w.globals.selectedDataPoints.length &&
+          w.globals.series.length > 1
+        ) {
+          if (w.globals.selectedDataPoints[0].length > 0) {
+            const index = w.globals.selectedDataPoints[0]
+            const el = w.globals.dom.baseEl.querySelector(
+              `#apexcharts-${w.config.chart.type.toLowerCase()}-slice-${index}`
+            )
+
+            this.printDataLabelsInner(el, dataLabelsConfig)
+          } else if (
+            dataLabelsGroup &&
+            w.globals.selectedDataPoints.length &&
+            w.globals.selectedDataPoints[0].length === 0
+          ) {
+            dataLabelsGroup.style.opacity = 0
+          }
+        } else {
+          if (dataLabelsGroup && w.globals.series.length > 1) {
+            dataLabelsGroup.style.opacity = 0
+          }
         }
       }
     }
