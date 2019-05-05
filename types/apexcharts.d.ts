@@ -29,7 +29,7 @@ declare module ApexCharts {
   export interface ApexOptions {
     annotations?: ApexAnnotations;
     chart?: ApexChart;
-    colors?: string[];
+    colors?: any[];
     dataLabels?: ApexDataLabels;
     fill?: ApexFill;
     grid?: ApexGrid;
@@ -512,7 +512,7 @@ type ApexPlotOptions = {
 };
 
 type ApexFill = {
-  colors?: string[];
+  colors?: any[];
   opacity?: number;
   type?: string;
   gradient?: {
