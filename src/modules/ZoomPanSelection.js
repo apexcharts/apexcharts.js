@@ -425,7 +425,10 @@ export default class ZoomPanSelection extends Toolbar {
     if (type === 'resizing') {
       timerInterval = 30
     }
-    if (typeof w.config.chart.events.selection === 'function') {
+    if (
+      typeof w.config.chart.events.selection === 'function' &&
+      w.globals.selectionEnabled
+    ) {
       // a small debouncer is required when resizing to avoid freezing the chart
       clearTimeout(this.w.globals.selectionResizeTimer)
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {

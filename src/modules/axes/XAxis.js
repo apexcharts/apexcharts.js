@@ -119,6 +119,12 @@ export default class XAxis {
             'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
 
+        if (i === labelsLen - 1) {
+          if (w.globals.skipLastTimelinelabel) {
+            label.text = ''
+          }
+        }
+
         elXaxisTexts.add(elTick)
 
         graphics.addTspan(elTick, label.text, this.xaxisFontFamily)

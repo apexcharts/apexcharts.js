@@ -220,7 +220,15 @@ class Grid {
             }
 
             let xAxis = new XAxis(this.ctx)
-            xAxis.drawXaxisTicks(x1, elg)
+
+            if (i === xCount - 1) {
+              if (!w.globals.skipLastTimelinelabel) {
+                // skip drawing last label here
+                xAxis.drawXaxisTicks(x1, elg)
+              }
+            } else {
+              xAxis.drawXaxisTicks(x1, elg)
+            }
           }
         } else {
           let xCountForCategoryCharts = xCount

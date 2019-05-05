@@ -120,6 +120,7 @@ export default class Globals {
         methodsToExec: []
       },
       shouldAnimate: true,
+      skipLastTimelinelabel: false, // when last label is cropped, skip drawing it
       delayedElements: [], // element which appear after animation has finished
       axisCharts: true, // chart type = line or area or bar
       // (refer them also as plot charts in the code)

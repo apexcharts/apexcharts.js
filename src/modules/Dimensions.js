@@ -306,11 +306,26 @@ export default class Dimensions {
 
     if (
       (w.config.xaxis.type === 'category' && w.globals.isBarHorizontal) ||
-      w.config.xaxis.type === 'numeric'
+      w.config.xaxis.type === 'numeric' ||
+      w.config.xaxis.type === 'datetime'
     ) {
       const rightPad = (labels) => {
-        if (w.config.grid.padding.right < labels.width) {
-          this.xPadRight = labels.width / 2 + 1
+        if (this.timescaleLabels) {
+          // for timeline labels, we take the last label and check if it exceeds gridWidth
+          const lastTimescaleLabel = this.timescaleLabels[
+            this.timescaleLabels.length - 1
+          ]
+          const labelPosition = lastTimescaleLabel.position + labels.width
+          if (labelPosition > w.globals.gridWidth) {
+            w.globals.skipLastTimelinelabel = true
+          } else {
+            // we have to make it false again in case of zooming/panning
+            w.globals.skipLastTimelinelabel = false
+          }
+        } else if (w.config.xaxis.type !== 'datetime') {
+          if (w.config.grid.padding.right < labels.width) {
+            this.xPadRight = labels.width / 2 + 1
+          }
         }
       }
 
@@ -320,20 +335,19 @@ export default class Dimensions {
         }
       }
 
-      const lineArea =
-        w.config.chart.type === 'line' || w.config.chart.type === 'area'
+      const isXNumeric = w.globals.isXNumeric
 
       w.config.yaxis.forEach((yaxe, i) => {
         let shouldPad =
           !yaxe.show ||
           yaxe.floating ||
           w.globals.collapsedSeriesIndices.indexOf(i) !== -1 ||
-          lineArea ||
+          isXNumeric ||
           (yaxe.opposite && w.globals.isBarHorizontal)
 
         if (shouldPad) {
           if (
-            (lineArea &&
+            (isXNumeric &&
               w.globals.isMultipleYAxis &&
               w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
             (w.globals.isBarHorizontal && yaxe.opposite)
@@ -345,7 +359,7 @@ export default class Dimensions {
             (!w.globals.isBarHorizontal &&
               yaxe.opposite &&
               w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
-            (lineArea && !w.globals.isMultipleYAxis)
+            (isXNumeric && !w.globals.isMultipleYAxis)
           ) {
             rightPad(xaxisLabelCoords)
           }
@@ -438,12 +452,12 @@ export default class Dimensions {
     let w = this.w
     let rect
 
-    let timescaleLabels = w.globals.timelineLabels.slice()
+    this.timescaleLabels = w.globals.timelineLabels.slice()
     if (w.globals.isBarHorizontal && w.config.xaxis.type === 'datetime') {
-      timescaleLabels = w.globals.invertedTimelineLabels.slice()
+      this.timescaleLabels = w.globals.invertedTimelineLabels.slice()
     }
 
-    let labels = timescaleLabels.map((label) => {
+    let labels = this.timescaleLabels.map((label) => {
       return label.value
     })
 
@@ -519,6 +533,7 @@ export default class Dimensions {
       val = xFormat.xLabelFormat(xlbFormatter, val)
 
       let graphics = new Graphics(this.ctx)
+
       let xLabelrect = graphics.getTextRects(
         val,
         w.config.xaxis.labels.style.fontSize
