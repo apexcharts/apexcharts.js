@@ -218,12 +218,12 @@ type ApexTitleSubtitle = {
 * Sections 2.2 and 3.2: data can be a list of objects where x is a string
 * and y is a number
 */
-export type ApexAxisChartSeries = {
+type ApexAxisChartSeries = {
   name: string;
   data: number[] | { x: any; y: any }[] | [number, number][] | [number, number[]][];
 }[];
 
-export type ApexNonAxisChartSeries = number[];
+type ApexNonAxisChartSeries = number[];
 
 /**
 * Options for the line drawn on line and area charts.
