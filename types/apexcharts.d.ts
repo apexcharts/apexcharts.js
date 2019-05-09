@@ -713,7 +713,7 @@ type ApexTooltip = {
 * See https://apexcharts.com/docs/options/xaxis/
 */
 type ApexXAxis = {
-  type?: "categories" | "datetime" | "numeric";
+  type?: "category" | "datetime" | "numeric";
   categories?: string[] | number[];
   labels?: {
     show?: boolean;
