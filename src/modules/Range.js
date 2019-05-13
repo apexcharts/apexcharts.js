@@ -272,9 +272,9 @@ class Range {
     if (
       gl.comboChartsHasBars ||
       cnf.chart.type === 'candlestick' ||
-      (cnf.chart.type === 'bar' && cnf.xaxis.type !== 'category')
+      (cnf.chart.type === 'bar' && gl.isXNumeric)
     ) {
-      if (cnf.xaxis.type !== 'category') {
+      if (cnf.xaxis.type !== 'category' || gl.isXNumeric) {
         const minX =
           gl.minX -
           ((gl.svgWidth / gl.dataPoints) *
