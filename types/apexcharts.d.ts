@@ -261,6 +261,7 @@ type AnnotationLabel = {
 type AnnotationStyle = {
   background?: string;
   color?: string;
+  fontFamily?: string;
   fontSize?: string;
   cssClass?: string;
   padding?: {
@@ -272,30 +273,20 @@ type AnnotationStyle = {
 };
 
 type XAxisAnnotations = {
-  x?: number;
-  x2?: number;
+  x?: number | string;
+  x2?: null | number;
   strokeDashArray?: number;
   fillColor?: string,
   borderColor?: string;
   opacity?: number;
   offsetX?: number;
   offsetY?: number;
-  label?: {
-    borderColor?: string;
-    borderWidth?: number;
-    text?: string;
-    textAnchor?: string;
-    position?: string;
-    orientation?: string;
-    offsetX?: number;
-    offsetY?: number;
-    style?: AnnotationStyle;
-  };
+  label?: AnnotationLabel;
 };
 
 type YAxisAnnotations = {
-  y?: number;
-  y2?: number,
+  y?: null | number;
+  y2?: null | number,
   strokeDashArray?: number;
   fillColor?: string,
   borderColor?: string;
@@ -308,8 +299,8 @@ type YAxisAnnotations = {
 
 
 type PointAnnotations = {
-  x?: number;
-  y?: null;
+  x?: number | string;
+  y?: null | number;
   yAxisIndex?: number;
   seriesIndex?: number;
   marker?: {
