@@ -79,12 +79,23 @@ export default class HeatMap {
 
         if (w.globals.hasNegs || this.negRange) {
           let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
-          if (heatColorProps.percent < 0) {
-            colorShadePercent =
-              1 - (1 + heatColorProps.percent / 100) * shadeIntensity
+
+          if (w.config.plotOptions.heatmap.reverseNegativeShade) {
+            if (heatColorProps.percent < 0) {
+              colorShadePercent =
+                (heatColorProps.percent / 100) * (shadeIntensity * 1.25)
+            } else {
+              colorShadePercent =
+                (1 - heatColorProps.percent / 100) * (shadeIntensity * 1.25)
+            }
           } else {
-            colorShadePercent =
-              (1 - heatColorProps.percent / 100) * shadeIntensity
+            if (heatColorProps.percent < 0) {
+              colorShadePercent =
+                1 - (1 + heatColorProps.percent / 100) * shadeIntensity
+            } else {
+              colorShadePercent =
+                (1 - heatColorProps.percent / 100) * shadeIntensity
+            }
           }
         } else {
           colorShadePercent = 1 - heatColorProps.percent / 100
