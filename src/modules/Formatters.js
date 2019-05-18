@@ -104,15 +104,14 @@ class Formatters {
       } else {
         w.globals.yLabelFormatters[i] = function(val) {
           if (Utils.isNumber(val)) {
-            if (
-              w.globals.yValueDecimal !== 0 ||
-              w.globals.maxY - w.globals.minY < 4
-            ) {
+            if (w.globals.yValueDecimal !== 0) {
               return val.toFixed(
                 yaxe.decimalsInFloat !== undefined
                   ? yaxe.decimalsInFloat
                   : w.globals.yValueDecimal
               )
+            } else if (w.globals.maxY - w.globals.minY < 5) {
+              return val.toFixed(1)
             } else {
               return val.toFixed(0)
             }

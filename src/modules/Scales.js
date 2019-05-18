@@ -8,7 +8,7 @@ export default class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale(yMin, yMax, index = 0, ticks = 10) {
+  niceScale(yMin, yMax, diff, index = 0, ticks = 10) {
     const w = this.w
     const NO_MIN_MAX_PROVIDED =
       (this.w.config.yaxis[index].max === undefined &&
@@ -50,7 +50,7 @@ export default class Range {
     let result = []
 
     // Determine Range
-    let range = yMax - yMin
+    let range = Math.abs(yMax - yMin)
 
     if (
       range < 1 &&
@@ -64,8 +64,12 @@ export default class Range {
     }
 
     // for extremely small values - #fix #553
-    if (range < 0.00001 && NO_MIN_MAX_PROVIDED) {
+    if (range < 0.00001 && NO_MIN_MAX_PROVIDED && yMax < 10) {
       yMax = yMax * 1.05
+    } else if (diff > 0.1 && diff < 3 && NO_MIN_MAX_PROVIDED) {
+      /* fix https://github.com/apexcharts/apexcharts.js/issues/576 */
+      /* fix https://github.com/apexcharts/apexcharts.js/issues/588 */
+      yMax = yMax + diff / 3
     }
 
     let tiks = ticks + 1
@@ -224,12 +228,15 @@ export default class Range {
           // fix https://github.com/apexcharts/apexcharts.js/issues/492
           gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount)
         } else {
+          let diff = Math.abs(maxY - minY)
+
           gl.yAxisScale[index] = this.niceScale(
             minY,
             maxY,
+            diff,
             index,
             // fix https://github.com/apexcharts/apexcharts.js/issues/397
-            y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5
+            y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5
           )
         }
       }
