@@ -123,9 +123,8 @@ class Line {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${Utils.escapeString(
-          w.globals.seriesNames[realIndex]
-        )}`
+        class: `apexcharts-series`,
+        seriesName: Utils.escapeString(w.globals.seriesNames[realIndex])
       })
 
       // points

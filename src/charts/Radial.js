@@ -251,9 +251,8 @@ class Radial extends Pie {
       reverseLoop ? i-- : i++
     ) {
       let elRadialBarArc = graphics.group({
-        class: `apexcharts-series apexcharts-radial-series ${Utils.escapeString(
-          w.globals.seriesNames[i]
-        )}`
+        class: `apexcharts-series apexcharts-radial-series`,
+        seriesName: Utils.escapeString(w.globals.seriesNames[i])
       })
       g.add(elRadialBarArc)
 
