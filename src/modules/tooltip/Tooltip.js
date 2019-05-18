@@ -20,18 +20,20 @@ export default class Tooltip {
     this.w = ctx.w
     const w = this.w
 
+    this.tConfig = w.config.tooltip
+
     this.tooltipUtil = new Utils(this)
     this.tooltipLabels = new Labels(this)
     this.tooltipPosition = new Position(this)
     this.marker = new Marker(this)
     this.intersect = new Intersect(this)
     this.axesTooltip = new AxesTooltip(this)
-    this.showOnIntersect = w.config.tooltip.intersect
-    this.showTooltipTitle = w.config.tooltip.x.show
-    this.fixedTooltip = w.config.tooltip.fixed.enabled
+    this.showOnIntersect = this.tConfig.intersect
+    this.showTooltipTitle = this.tConfig.x.show
+    this.fixedTooltip = this.tConfig.fixed.enabled
     this.xaxisTooltip = null
     this.yaxisTTEls = null
-    this.isBarShared = !w.globals.isBarHorizontal && w.config.tooltip.shared
+    this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
   }
 
   getElTooltip(ctx) {
@@ -61,7 +63,7 @@ export default class Tooltip {
 
     const tooltipEl = document.createElement('div')
     tooltipEl.classList.add('apexcharts-tooltip')
-    tooltipEl.classList.add(w.config.tooltip.theme)
+    tooltipEl.classList.add(this.tConfig.theme)
     w.globals.dom.elWrap.appendChild(tooltipEl)
 
     if (w.globals.axisCharts) {
@@ -76,10 +78,10 @@ export default class Tooltip {
 
     // we forcefully set intersect true for these conditions
     if (
-      (w.globals.comboCharts && !w.config.tooltip.shared) ||
-      (w.config.tooltip.intersect && !w.config.tooltip.shared) ||
+      (w.globals.comboCharts && !this.tConfig.shared) ||
+      (this.tConfig.intersect && !this.tConfig.shared) ||
       ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
-        !w.config.tooltip.shared)
+        !this.tConfig.shared)
     ) {
       this.showOnIntersect = true
     }
@@ -99,16 +101,13 @@ export default class Tooltip {
       this.tooltipTitle = document.createElement('div')
       this.tooltipTitle.classList.add('apexcharts-tooltip-title')
       this.tooltipTitle.style.fontFamily =
-        w.config.tooltip.style.fontFamily || w.config.chart.fontFamily
-      this.tooltipTitle.style.fontSize = w.config.tooltip.style.fontSize
+        this.tConfig.style.fontFamily || w.config.chart.fontFamily
+      this.tooltipTitle.style.fontSize = this.tConfig.style.fontSize
       tooltipEl.appendChild(this.tooltipTitle)
     }
 
     let ttItemsCnt = w.globals.series.length // whether shared or not, default is shared
-    if (
-      (w.globals.xyCharts || w.globals.comboCharts) &&
-      w.config.tooltip.shared
-    ) {
+    if ((w.globals.xyCharts || w.globals.comboCharts) && this.tConfig.shared) {
       if (!this.showOnIntersect) {
         ttItemsCnt = w.globals.series.length
       } else {
@@ -128,6 +127,15 @@ export default class Tooltip {
     for (let i = 0; i < ttItemsCnt; i++) {
       let gTxt = document.createElement('div')
       gTxt.classList.add('apexcharts-tooltip-series-group')
+      if (
+        this.tConfig.shared &&
+        this.tConfig.enabledOnSeries &&
+        Array.isArray(this.tConfig.enabledOnSeries)
+      ) {
+        if (this.tConfig.enabledOnSeries.indexOf(i) < 0) {
+          gTxt.classList.add('apexcharts-tooltip-series-group-hidden')
+        }
+      }
 
       let point = document.createElement('span')
       point.classList.add('apexcharts-tooltip-marker')
@@ -138,8 +146,8 @@ export default class Tooltip {
       gYZ.classList.add('apexcharts-tooltip-text')
 
       gYZ.style.fontFamily =
-        w.config.tooltip.style.fontFamily || w.config.chart.fontFamily
-      gYZ.style.fontSize = w.config.tooltip.style.fontSize
+        this.tConfig.style.fontFamily || w.config.chart.fontFamily
+      gYZ.style.fontSize = this.tConfig.style.fontSize
 
       // y values group
       const gYValText = document.createElement('div')
@@ -245,7 +253,7 @@ export default class Tooltip {
     const validSharedChartTypes =
       (w.globals.xyCharts && !this.showOnIntersect) ||
       (w.globals.comboCharts && !this.showOnIntersect) ||
-      (commonBar && this.hasBars() && w.config.tooltip.shared)
+      (commonBar && this.hasBars() && this.tConfig.shared)
 
     if (validSharedChartTypes) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
@@ -283,7 +291,7 @@ export default class Tooltip {
       }
 
       // combo charts may have bars, so add event listeners here too
-      if (this.hasBars() && !w.config.tooltip.shared) {
+      if (this.hasBars() && !this.tConfig.shared) {
         this.addBarsEventListeners(seriesHoverParams)
       }
     }
@@ -298,14 +306,14 @@ export default class Tooltip {
 
     let ttWidth = tooltipRect.width + 10
     let ttHeight = tooltipRect.height + 10
-    let x = w.config.tooltip.fixed.offsetX
-    let y = w.config.tooltip.fixed.offsetY
+    let x = this.tConfig.fixed.offsetX
+    let y = this.tConfig.fixed.offsetY
 
-    if (w.config.tooltip.fixed.position.toLowerCase().indexOf('right') > -1) {
+    if (this.tConfig.fixed.position.toLowerCase().indexOf('right') > -1) {
       x = x + w.globals.svgWidth - ttWidth + 10
     }
 
-    if (w.config.tooltip.fixed.position.toLowerCase().indexOf('bottom') > -1) {
+    if (this.tConfig.fixed.position.toLowerCase().indexOf('bottom') > -1) {
       y = y + w.globals.svgHeight - ttHeight - 10
     }
 
@@ -437,7 +445,7 @@ export default class Tooltip {
 
     // highlight the current hovered bars
     if (ttCtx.hasBars() && !w.globals.comboCharts && !ttCtx.isBarShared) {
-      if (w.config.tooltip.onDatasetHover.highlightDataSeries) {
+      if (this.tConfig.onDatasetHover.highlightDataSeries) {
         let series = new Series(chartCtx)
         series.toggleSeriesOnHover(e, e.target.parentNode)
       }
@@ -487,6 +495,14 @@ export default class Tooltip {
       return
     }
 
+    if (Array.isArray(this.tConfig.enabledOnSeries)) {
+      const index = parseInt(opt.paths.getAttribute('index'))
+      if (this.tConfig.enabledOnSeries.indexOf(index) < 0) {
+        self.handleMouseOut(opt)
+        return
+      }
+    }
+
     const tooltipEl = this.getElTooltip()
     const xcrosshairs = this.getElXCrosshairs()
 
@@ -494,7 +510,7 @@ export default class Tooltip {
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
         (!w.globals.isBarHorizontal && this.hasBars()) &&
-        w.config.tooltip.shared) ||
+        this.tConfig.shared) ||
       (w.globals.comboCharts && this.hasBars)
 
     if (w.globals.isBarHorizontal && this.hasBars()) {
@@ -541,7 +557,7 @@ export default class Tooltip {
 
           if (typeof w.globals.series[capturedSeries][j] !== 'undefined') {
             if (
-              w.config.tooltip.shared &&
+              this.tConfig.shared &&
               this.tooltipUtil.isXoverlap(j) &&
               this.tooltipUtil.isinitialSeriesSameLen()
             ) {
@@ -728,7 +744,7 @@ export default class Tooltip {
       this.markerClick(e, capturedSeries, j)
     }
 
-    if (shared === null) shared = w.config.tooltip.shared
+    if (shared === null) shared = this.tConfig.shared
 
     const hasMarkers = this.hasMarkers()
 
@@ -739,7 +755,7 @@ export default class Tooltip {
         ttItems,
         i: capturedSeries,
         j,
-        shared: this.showOnIntersect ? false : w.config.tooltip.shared
+        shared: this.showOnIntersect ? false : this.tConfig.shared
       })
 
       if (hasMarkers) {

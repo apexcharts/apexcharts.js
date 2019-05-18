@@ -710,6 +710,7 @@ export default class Options {
       },
       tooltip: {
         enabled: true,
+        enabledOnSeries: undefined,
         shared: true,
         followCursor: false, // when disabled, the tooltip will show on top of the series instead of mouse position
         intersect: false, // when enabled, tooltip will only show when user directly hovers over point
