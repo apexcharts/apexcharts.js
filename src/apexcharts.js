@@ -123,7 +123,6 @@ export default class ApexCharts {
 
   initModules() {
     this.animations = new Animations(this)
-    this.annotations = new Annotations(this)
     this.core = new Core(this.el, this)
     this.grid = new Grid(this)
     this.coreUtils = new CoreUtils(this)
@@ -294,7 +293,7 @@ export default class ApexCharts {
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
       }
-
+      me.annotations = new Annotations(me)
       me.core.drawAxis(w.config.chart.type, graphData.xyRatios)
 
       me.grid = new Grid(me)

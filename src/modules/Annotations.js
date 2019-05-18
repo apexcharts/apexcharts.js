@@ -43,9 +43,6 @@ export default class Annotations {
         w.globals.delayedElements.push({ el: annoElArray[i], index: 0 })
       }
 
-      // after placing the annotations on svg, set any vertically placed annotations
-      this.setOrientations(w.config.annotations.xaxis)
-
       // background sizes needs to be calculated after text is drawn, so calling them last
       this.annotationsBackground()
     }
@@ -130,6 +127,9 @@ export default class Annotations {
     })
 
     parent.appendChild(elText.node)
+
+    // after placing the annotations on svg, set any vertically placed annotations
+    this.setOrientations(anno, index)
   }
 
   drawXAxisAnnotations() {
@@ -438,43 +438,41 @@ export default class Annotations {
     return elg
   }
 
-  setOrientations(annos, annoIndex = null) {
+  setOrientations(anno, annoIndex = null) {
     let w = this.w
 
-    annos.map((anno, index) => {
-      if (anno.label.orientation === 'vertical') {
-        const i = annoIndex !== null ? annoIndex : index
-        let xAnno = w.globals.dom.baseEl.querySelector(
-          `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`
+    if (anno.label.orientation === 'vertical') {
+      const i = annoIndex !== null ? annoIndex : 0
+      let xAnno = w.globals.dom.baseEl.querySelector(
+        `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`
+      )
+
+      if (xAnno !== null) {
+        const xAnnoCoord = xAnno.getBoundingClientRect()
+        xAnno.setAttribute(
+          'x',
+          parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4
         )
 
-        if (xAnno !== null) {
-          const xAnnoCoord = xAnno.getBoundingClientRect()
+        if (anno.label.position === 'top') {
           xAnno.setAttribute(
-            'x',
-            parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4
+            'y',
+            parseFloat(xAnno.getAttribute('y')) + xAnnoCoord.width
           )
-
-          if (anno.label.position === 'top') {
-            xAnno.setAttribute(
-              'y',
-              parseFloat(xAnno.getAttribute('y')) + xAnnoCoord.width
-            )
-          } else {
-            xAnno.setAttribute(
-              'y',
-              parseFloat(xAnno.getAttribute('y')) - xAnnoCoord.width
-            )
-          }
-
-          let annoRotatingCenter = this.graphics.rotateAroundCenter(xAnno)
-          const x = annoRotatingCenter.x
-          const y = annoRotatingCenter.y
-
-          xAnno.setAttribute('transform', `rotate(-90 ${x} ${y})`)
+        } else {
+          xAnno.setAttribute(
+            'y',
+            parseFloat(xAnno.getAttribute('y')) - xAnnoCoord.width
+          )
         }
+
+        let annoRotatingCenter = this.graphics.rotateAroundCenter(xAnno)
+        const x = annoRotatingCenter.x
+        const y = annoRotatingCenter.y
+
+        xAnno.setAttribute('transform', `rotate(-90 ${x} ${y})`)
       }
-    })
+    }
   }
 
   addBackgroundToAnno(annoEl, anno) {
@@ -638,6 +636,10 @@ export default class Annotations {
   }
 
   addPointAnnotationExternal(params, pushToMemory, context) {
+    if (typeof this.invertAxis === 'undefined') {
+      this.invertAxis = context.w.globals.isBarHorizontal
+    }
+
     this.addAnnotationExternal({
       params,
       pushToMemory,
