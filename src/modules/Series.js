@@ -25,11 +25,16 @@ export default class Series {
 
   addCollapsedClassToSeries(elSeries, index) {
     const w = this.w
-    for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
-      if (w.globals.collapsedSeries[cs].index === index) {
-        elSeries.node.classList.add('apexcharts-series-collapsed')
+    function iterateOnAllCollapsedSeries(series) {
+      for (let cs = 0; cs < series.length; cs++) {
+        if (series[cs].index === index) {
+          elSeries.node.classList.add('apexcharts-series-collapsed')
+        }
       }
     }
+
+    iterateOnAllCollapsedSeries(w.globals.collapsedSeries)
+    iterateOnAllCollapsedSeries(w.globals.ancillaryCollapsedSeries)
   }
 
   toggleSeriesOnHover(e, targetElement) {
