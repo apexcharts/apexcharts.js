@@ -28,18 +28,10 @@
 
     <script>
 
-        /*
-        // this function will generate output in this format
-        // data = [
-            [timestamp, 23],
-            [timestamp, 33],
-            [timestamp, 12]
-            ...
-        ]
-        */
-
         var lastDate = 0;
         var data = []
+        var TICKINTERVAL = 86400000
+        let XAXISRANGE = 777600000
         function getDayWiseTimeSeries(baseval, count, yrange) {
             var i = 0;
             while (i < count) {
@@ -50,7 +42,7 @@
                     x, y
                 });
                 lastDate = baseval
-                baseval += 86400000;
+                baseval += TICKINTERVAL;
                 i++;
             }
         }
@@ -61,15 +53,26 @@
         })
 
         function getNewSeries(baseval, yrange) {
-            var newDate = baseval + 86400000;
+            var newDate = baseval + TICKINTERVAL;
             lastDate = newDate
+
+            for(var i = 0; i< data.length - 10; i++) {
+                // IMPORTANT
+                // we reset the x and y of the data which is out of drawing area
+                // to prevent memory leaks
+                data[i].x = newDate - XAXISRANGE - TICKINTERVAL
+                data[i].y = 0
+            }
+            
             data.push({
                 x: newDate,
                 y: Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
             })
+           
         }
 
         function resetData(){
+            // Alternatively, you can also reset the data at certain intervals to prevent creating a huge series 
             data = data.slice(data.length - 10, data.length);
         }
 
@@ -81,7 +84,7 @@
                     enabled: true,
                     easing: 'linear',
                     dynamicAnimation: {
-                        speed: 2000
+                        speed: 1000
                     }
                 },
                 toolbar: {
@@ -109,7 +112,7 @@
             },
             xaxis: {
                 type: 'datetime',
-                range: 777600000,
+                range: XAXISRANGE,
             },
             yaxis: {
                 max: 100
@@ -126,26 +129,16 @@
 
         chart.render();
 
-        var dataPointsLength = 10;
-
         window.setInterval(function () {
             getNewSeries(lastDate, {
                 min: 10,
                 max: 90
             })
-
             chart.updateSeries([{
                 data: data
             }])
-        }, 2000)
+        }, 1000)
         
-        // every 60 seconds, we reset the data 
-        window.setInterval(function() {
-            resetData()
-            chart.updateSeries([{
-                data
-            }], false, true)
-        }, 60000)
 
     </script>
 </body>

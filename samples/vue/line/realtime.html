@@ -87,7 +87,7 @@
               enabled: true,
               easing: 'linear',
               dynamicAnimation: {
-                speed: 2000
+                speed: 1000
               }
             },
             toolbar: {
@@ -138,9 +138,9 @@
             me.$refs.realtimeChart.updateSeries([{
               data: data
             }])
-          }, 2000)
+          }, 1000)
 
-          // every 60 seconds, we reset the data 
+          // every 60 seconds, we reset the data to prevent memory leaks
           window.setInterval(function () {
             resetData()
             me.$refs.realtimeChart.updateSeries([{
