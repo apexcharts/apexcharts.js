@@ -454,6 +454,12 @@ export default class ApexCharts {
   ) {
     let charts = this.getSyncedCharts()
 
+    if (this.w.globals.isExecCalled) {
+      // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
+      charts = [this]
+      this.w.globals.isExecCalled = false
+    }
+
     charts.forEach((ch) => {
       let w = ch.w
 
@@ -801,8 +807,10 @@ export default class ApexCharts {
    */
   static exec(chartID, fn, ...opts) {
     const chart = this.getChartByID(chartID)
-
     if (!chart) return
+
+    // turn on the global exec flag to indicate this method was called
+    chart.w.globals.isExecCalled = true
 
     switch (fn) {
       case 'updateOptions': {
