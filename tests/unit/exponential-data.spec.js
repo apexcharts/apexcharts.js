@@ -80,7 +80,7 @@ describe('Exponential values should parse', () => {
     const minY = chart.w.globals.minY
     const maxY = chart.w.globals.maxY
 
-    expect(minY).toEqual(2.2e-7)
-    expect(maxY).toEqual(3.200000000000001e-7)
+    expect(minY).toEqual(2.3e-7)
+    expect(maxY).toEqual(3.255e-7)
   })
 })
