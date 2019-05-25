@@ -413,22 +413,6 @@ export default class Toolbar {
   }
 
   destroy() {
-    if (this.elZoomReset) {
-      this.elZoomReset.removeEventListener(
-        'click',
-        this.handleZoomReset.bind(this)
-      )
-      this.elSelection.removeEventListener(
-        'click',
-        this.toggleSelection.bind(this)
-      )
-      this.elZoom.removeEventListener('click', this.toggleZooming.bind(this))
-      this.elZoomIn.removeEventListener('click', this.handleZoomIn.bind(this))
-      this.elZoomOut.removeEventListener('click', this.handleZoomOut.bind(this))
-      this.elPan.removeEventListener('click', this.togglePanning.bind(this))
-      this.elMenuIcon.removeEventListener('click', this.toggleMenu.bind(this))
-    }
-
     this.elZoom = null
     this.elZoomIn = null
     this.elZoomOut = null

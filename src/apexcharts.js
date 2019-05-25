@@ -63,6 +63,7 @@ export default class ApexCharts {
     this.initModules()
 
     this.create = Utils.bind(this.create, this)
+    this.documentEvent = Utils.bind(this.documentEvent, this)
     this.windowResizeHandler = this.windowResize.bind(this)
   }
 
@@ -731,6 +732,11 @@ export default class ApexCharts {
   }
 
   clearDomElements() {
+    // detach document event
+    this.eventList.forEach((event) => {
+      document.removeEventListener(event, this.documentEvent)
+    })
+
     const domEls = this.w.globals.dom
 
     if (this.el !== null) {
@@ -878,7 +884,7 @@ export default class ApexCharts {
 
     let clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
 
-    let eventList = [
+    this.eventList = [
       'mousedown',
       'mousemove',
       'touchstart',
@@ -886,7 +892,9 @@ export default class ApexCharts {
       'mouseup',
       'touchend'
     ]
-    eventList.forEach((event) => {
+
+    this.eventListHandlers = []
+    this.eventList.forEach((event) => {
       clickableArea.addEventListener(
         event,
         function(e) {
@@ -906,16 +914,19 @@ export default class ApexCharts {
       )
     })
 
-    eventList.forEach((event) => {
-      document.addEventListener(event, (e) => {
-        w.globals.clientX =
-          e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
-        w.globals.clientY =
-          e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
-      })
+    this.eventList.forEach((event) => {
+      document.addEventListener(event, this.documentEvent)
     })
 
     this.core.setupBrushHandler()
+  }
+
+  documentEvent(e) {
+    const w = this.w
+    w.globals.clientX =
+      e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
+    w.globals.clientY =
+      e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
   }
 
   addXaxisAnnotation(opts, pushToMemory = true, context = undefined) {

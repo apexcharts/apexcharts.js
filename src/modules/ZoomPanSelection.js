@@ -90,17 +90,6 @@ export default class ZoomPanSelection extends Toolbar {
 
   // remove the event listeners which were previously added on hover area
   destroy() {
-    const me = this
-    this.eventList.forEach((event) => {
-      if (this.hoverArea) {
-        this.hoverArea.removeEventListener(
-          event,
-          me.svgMouseEvents.bind(me, me.xyRatios),
-          { capture: false, passive: true }
-        )
-      }
-    })
-
     if (this.slDraggableRect) {
       this.slDraggableRect.draggable(false)
       this.slDraggableRect.off()
