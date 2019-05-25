@@ -168,7 +168,12 @@ class Range {
           // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
+
         gl.minY = lowestYInAllSeries - (diff * 5) / 100
+        // if (lowestYInAllSeries > 0 && gl.minY < 0) {
+        /* fix https://github.com/apexcharts/apexcharts.js/issues/614 */
+        //  gl.minY = 0
+        // }
         /* fix https://github.com/apexcharts/apexcharts.js/issues/426 */
         gl.maxY = gl.maxY + (diff * 5) / 100
       }
