@@ -48,6 +48,22 @@ export default class Annotations {
     }
   }
 
+  getStringX(x) {
+    const w = this.w
+    let rX = x
+
+    let catIndex = w.globals.labels.indexOf(x)
+    const xLabel = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+    )
+
+    if (xLabel) {
+      rX = parseFloat(xLabel.getAttribute('x'))
+    }
+
+    return rX
+  }
+
   addXaxisAnnotation(anno, parent, index) {
     let w = this.w
 
@@ -61,14 +77,7 @@ export default class Annotations {
       w.config.xaxis.type === 'category' ||
       w.config.xaxis.convertedCatToNumeric
     ) {
-      let catIndex = w.globals.labels.indexOf(anno.x)
-      const xLabel = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
-      )
-
-      if (xLabel) {
-        x1 = parseFloat(xLabel.getAttribute('x'))
-      }
+      x1 = this.getStringX(anno.x)
     }
 
     let strokeDashArray = anno.strokeDashArray
@@ -87,6 +96,14 @@ export default class Annotations {
       parent.appendChild(line.node)
     } else {
       let x2 = (anno.x2 - min) / (range / w.globals.gridWidth)
+
+      if (
+        w.config.xaxis.type === 'category' ||
+        w.config.xaxis.convertedCatToNumeric
+      ) {
+        x2 = this.getStringX(anno.x2)
+      }
+
       if (x2 < x1) {
         let temp = x1
         x1 = x2
