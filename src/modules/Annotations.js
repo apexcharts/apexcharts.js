@@ -478,7 +478,8 @@ export default class Annotations {
   addBackgroundToAnno(annoEl, anno) {
     const w = this.w
 
-    if (!anno.label.text) return null
+    if (!anno.label.text || (anno.label.text && !anno.label.text.trim()))
+      return null
 
     const elGridRect = w.globals.dom.baseEl
       .querySelector('.apexcharts-grid')
