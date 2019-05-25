@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.6.12
+ * ApexCharts v3.7.0
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -2108,7 +2108,7 @@
             },
             brush: {
               enabled: false,
-              autoScaleYaxis: false,
+              autoScaleYaxis: true,
               target: undefined
             },
             stacked: false,
@@ -2133,7 +2133,7 @@
             zoom: {
               enabled: true,
               type: 'x',
-              // autoScaleYaxis: false, // TODO: rewrite the autoScaleY function
+              autoScaleYaxis: false,
               zoomedArea: {
                 fill: {
                   color: '#90CAF9',
@@ -2790,6 +2790,20 @@
         }
       }
     }, {
+      key: "getStringX",
+      value: function getStringX(x) {
+        var w = this.w;
+        var rX = x;
+        var catIndex = w.globals.labels.indexOf(x);
+        var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
+
+        if (xLabel) {
+          rX = parseFloat(xLabel.getAttribute('x'));
+        }
+
+        return rX;
+      }
+    }, {
       key: "addXaxisAnnotation",
       value: function addXaxisAnnotation(anno, parent, index) {
         var w = this.w;
@@ -2799,12 +2813,7 @@
         var text = anno.label.text;
 
         if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
-          var catIndex = w.globals.labels.indexOf(anno.x);
-          var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
-
-          if (xLabel) {
-            x1 = parseFloat(xLabel.getAttribute('x'));
-          }
+          x1 = this.getStringX(anno.x);
         }
 
         var strokeDashArray = anno.strokeDashArray;
@@ -2821,6 +2830,10 @@
           parent.appendChild(line.node);
         } else {
           var x2 = (anno.x2 - min) / (range / w.globals.gridWidth);
+
+          if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
+            x2 = this.getStringX(anno.x2);
+          }
 
           if (x2 < x1) {
             var temp = x1;
@@ -3116,7 +3129,7 @@
       key: "addBackgroundToAnno",
       value: function addBackgroundToAnno(annoEl, anno) {
         var w = this.w;
-        if (!anno.label.text) return null;
+        if (!anno.label.text || anno.label.text && !anno.label.text.trim()) return null;
         var elGridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid').getBoundingClientRect();
         var coords = annoEl.getBoundingClientRect();
         var pleft = anno.label.style.padding.left;
@@ -4932,6 +4945,8 @@
           isTouchDevice: 'ontouchstart' in window || navigator.msMaxTouchPoints,
           isDirty: false,
           // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
+          isExecCalled: false,
+          // whether user updated the chart through the exec method
           initialConfig: null,
           // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
           lastXAxis: [],
@@ -10624,7 +10639,7 @@
               if (Utils.isNumber(val)) {
                 if (w.globals.yValueDecimal !== 0) {
                   return val.toFixed(yaxe.decimalsInFloat !== undefined ? yaxe.decimalsInFloat : w.globals.yValueDecimal);
-                } else if (w.globals.maxY - w.globals.minY < 5) {
+                } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 5) {
                   return val.toFixed(1);
                 } else {
                   return val.toFixed(0);
@@ -11569,7 +11584,7 @@
           }
         }
 
-        if (NO_MIN_MAX_PROVIDED) {
+        if (NO_MIN_MAX_PROVIDED && diff > 4) {
           return {
             result: result,
             niceMin: result[0],
@@ -11852,28 +11867,80 @@
           ctx = this;
         }
 
-        var ret = [];
-        ctx.w.config.series.forEach(function (serie) {
+        var w = ctx.w;
+        var seriesX = w.globals.seriesX[0];
+        var yaxis = Utils.clone(w.config.yaxis);
+        var isStacked = w.config.chart.stacked;
+        w.config.yaxis.forEach(function (yaxe, yI) {
+          var firstXIndex = 0;
+
+          for (var xi = 0; xi < seriesX.length; xi++) {
+            if (seriesX[xi] >= e.xaxis.min) {
+              firstXIndex = xi;
+              break;
+            }
+          }
+
+          var initialMin = w.globals.minYArr[yI];
+          var initialMax = w.globals.maxYArr[yI];
           var min, max;
-          var first = serie.data.find(function (x) {
-            return x[0] >= e.xaxis.min;
-          });
-          var firstValue = first[1];
-          max = min = firstValue;
-          serie.data.forEach(function (data) {
-            if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
-              if (data[1] > max && data[1] !== null) max = data[1];
-              if (data[1] < min && data[1] !== null) min = data[1];
+          var stackedSer = w.globals.stackedSeriesTotals;
+          w.globals.series.forEach(function (serie, sI) {
+            var firstValue = serie[firstXIndex];
+
+            if (isStacked) {
+              firstValue = stackedSer[firstXIndex];
+              min = max = firstValue;
+              stackedSer.forEach(function (y, yI) {
+                if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+                  if (y > max && y !== null) max = y;
+                  if (serie[yI] < min && serie[yI] !== null) min = serie[yI];
+                }
+              });
+            } else {
+              min = max = firstValue;
+              serie.forEach(function (y, yI) {
+                if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+                  var valMin = y;
+                  var valMax = y;
+                  w.globals.series.forEach(function (wS, wSI) {
+                    if (y !== null) {
+                      valMin = Math.min(wS[yI], valMin);
+                      valMax = Math.max(wS[yI], valMax);
+                    }
+                  });
+                  if (valMax > max && valMax !== null) max = valMax;
+                  if (valMin < min && valMin !== null) min = valMin;
+                }
+              });
+            }
+
+            if (min === undefined && max === undefined) {
+              min = initialMin;
+              max = initialMax;
+            }
+
+            min *= min < 0 ? 1.1 : 0.9;
+            max *= max < 0 ? 0.9 : 1.1;
+
+            if (max < 0 && max < initialMax) {
+              max = initialMax;
+            }
+
+            if (min < 0 && min > initialMin) {
+              min = initialMin;
+            }
+
+            if (yaxis.length > 1) {
+              yaxis[sI].min = yaxe.min === undefined ? min : yaxe.min;
+              yaxis[sI].max = yaxe.max === undefined ? max : yaxe.max;
+            } else {
+              yaxis[0].min = yaxe.min === undefined ? min : yaxe.min;
+              yaxis[0].max = yaxe.max === undefined ? max : yaxe.max;
             }
           });
-          min *= 0.95;
-          max *= 1.05;
-          ret.push({
-            min: min,
-            max: max
-          });
         });
-        return ret;
+        return yaxis;
       }
     }]);
 
@@ -12041,7 +12108,12 @@
                 diff = 0;
               }
 
-              gl.minY = lowestYInAllSeries - diff * 5 / 100;
+              gl.minY = lowestYInAllSeries - diff * 5 / 100; // if (lowestYInAllSeries > 0 && gl.minY < 0) {
+
+              /* fix https://github.com/apexcharts/apexcharts.js/issues/614 */
+              //  gl.minY = 0
+              // }
+
               /* fix https://github.com/apexcharts/apexcharts.js/issues/426 */
 
               gl.maxY = gl.maxY + diff * 5 / 100;
@@ -19408,16 +19480,6 @@
     }, {
       key: "destroy",
       value: function destroy() {
-        if (this.elZoomReset) {
-          this.elZoomReset.removeEventListener('click', this.handleZoomReset.bind(this));
-          this.elSelection.removeEventListener('click', this.toggleSelection.bind(this));
-          this.elZoom.removeEventListener('click', this.toggleZooming.bind(this));
-          this.elZoomIn.removeEventListener('click', this.handleZoomIn.bind(this));
-          this.elZoomOut.removeEventListener('click', this.handleZoomOut.bind(this));
-          this.elPan.removeEventListener('click', this.togglePanning.bind(this));
-          this.elMenuIcon.removeEventListener('click', this.toggleMenu.bind(this));
-        }
-
         this.elZoom = null;
         this.elZoomIn = null;
         this.elZoomOut = null;
@@ -19511,18 +19573,6 @@
     }, {
       key: "destroy",
       value: function destroy() {
-        var _this3 = this;
-
-        var me = this;
-        this.eventList.forEach(function (event) {
-          if (_this3.hoverArea) {
-            _this3.hoverArea.removeEventListener(event, me.svgMouseEvents.bind(me, me.xyRatios), {
-              capture: false,
-              passive: true
-            });
-          }
-        });
-
         if (this.slDraggableRect) {
           this.slDraggableRect.draggable(false);
           this.slDraggableRect.off();
@@ -19809,7 +19859,7 @@
     }, {
       key: "selectionDragging",
       value: function selectionDragging(type, e) {
-        var _this4 = this;
+        var _this3 = this;
 
         var w = this.w;
         var xyRatios = this.xyRatios;
@@ -19824,14 +19874,14 @@
           // a small debouncer is required when resizing to avoid freezing the chart
           clearTimeout(this.w.globals.selectionResizeTimer);
           this.w.globals.selectionResizeTimer = window.setTimeout(function () {
-            var gridRectDim = _this4.gridRect.getBoundingClientRect();
+            var gridRectDim = _this3.gridRect.getBoundingClientRect();
 
             var selectionRect = selRect.node.getBoundingClientRect();
             var minX = w.globals.xAxisScale.niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.xRatio;
             var maxX = w.globals.xAxisScale.niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.xRatio;
             var minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
             var maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
-            w.config.chart.events.selection(_this4.ctx, {
+            w.config.chart.events.selection(_this3.ctx, {
               xaxis: {
                 min: minX,
                 max: maxX
@@ -27641,6 +27691,7 @@
       this.w.globals.chartID = this.w.config.chart.id ? this.w.config.chart.id : this.w.globals.cuid;
       this.initModules();
       this.create = Utils.bind(this.create, this);
+      this.documentEvent = Utils.bind(this.documentEvent, this);
       this.windowResizeHandler = this.windowResize.bind(this);
     }
     /**
@@ -28019,6 +28070,13 @@
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
         var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
         var charts = this.getSyncedCharts();
+
+        if (this.w.globals.isExecCalled) {
+          // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
+          charts = [this];
+          this.w.globals.isExecCalled = false;
+        }
+
         charts.forEach(function (ch) {
           var w = ch.w;
           w.globals.shouldAnimate = animate;
@@ -28310,6 +28368,12 @@
     }, {
       key: "clearDomElements",
       value: function clearDomElements() {
+        var _this4 = this;
+
+        // detach document event
+        this.eventList.forEach(function (event) {
+          document.removeEventListener(event, _this4.documentEvent);
+        });
         var domEls = this.w.globals.dom;
 
         if (this.el !== null) {
@@ -28372,11 +28436,14 @@
     }, {
       key: "setupEventHandlers",
       value: function setupEventHandlers() {
+        var _this5 = this;
+
         var w = this.w;
         var me = this;
         var clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass);
-        var eventList = ['mousedown', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
-        eventList.forEach(function (event) {
+        this.eventList = ['mousedown', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
+        this.eventListHandlers = [];
+        this.eventList.forEach(function (event) {
           clickableArea.addEventListener(event, function (e) {
             if (e.type === 'mousedown' && e.which === 1) ; else if (e.type === 'mouseup' && e.which === 1 || e.type === 'touchend') {
               if (typeof w.config.chart.events.click === 'function') {
@@ -28390,13 +28457,17 @@
             passive: true
           });
         });
-        eventList.forEach(function (event) {
-          document.addEventListener(event, function (e) {
-            w.globals.clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-            w.globals.clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-          });
+        this.eventList.forEach(function (event) {
+          document.addEventListener(event, _this5.documentEvent);
         });
         this.core.setupBrushHandler();
+      }
+    }, {
+      key: "documentEvent",
+      value: function documentEvent(e) {
+        var w = this.w;
+        w.globals.clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        w.globals.clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
       }
     }, {
       key: "addXaxisAnnotation",
@@ -28550,14 +28621,14 @@
     }, {
       key: "windowResize",
       value: function windowResize() {
-        var _this4 = this;
+        var _this6 = this;
 
         clearTimeout(this.w.globals.resizeTimer);
         this.w.globals.resizeTimer = window.setTimeout(function () {
-          _this4.w.globals.resized = true;
-          _this4.w.globals.dataChanged = false; // we need to redraw the whole chart on window resize (with a small delay).
+          _this6.w.globals.resized = true;
+          _this6.w.globals.dataChanged = false; // we need to redraw the whole chart on window resize (with a small delay).
 
-          _this4.update();
+          _this6.update();
         }, 150);
       }
     }], [{
@@ -28592,7 +28663,9 @@
       key: "exec",
       value: function exec(chartID, fn) {
         var chart = this.getChartByID(chartID);
-        if (!chart) return;
+        if (!chart) return; // turn on the global exec flag to indicate this method was called
+
+        chart.w.globals.isExecCalled = true;
 
         for (var _len = arguments.length, opts = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
           opts[_key - 2] = arguments[_key];
