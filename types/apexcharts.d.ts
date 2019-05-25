@@ -118,6 +118,7 @@ type ApexChart = {
   zoom?: {
     enabled?: boolean;
     type?: "x" | "y" | "xy";
+    autoScaleYaxis?: boolean,
     zoomedArea?: {
       fill?: {
         color?: string;
@@ -378,6 +379,7 @@ type ApexPlotOptions = {
     radius?: number;
     enableShades?: boolean;
     shadeIntensity?: number;
+    reverseNegativeShade?: boolean,
     distributed?: boolean;
     colorScale?: {
       ranges?: {
@@ -626,7 +628,7 @@ type ApexNoData = {
 */
 type ApexDataLabels = {
   enabled?: boolean;
-  enabledOnSeries?: number[];
+  enabledOnSeries?: undefined | boolean;
   formatter?(val: number, opts: any): string;
   textAnchor?: "start" | "middle" | "end";
   offsetX?: number;
@@ -656,6 +658,7 @@ type ApexResponsive = {
 */
 type ApexTooltip = {
   enabled?: boolean;
+  enabledOnSeries?: undefined | boolean;
   shared?: boolean;
   followCursor?: boolean;
   intersect?: boolean;
