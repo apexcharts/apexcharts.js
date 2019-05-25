@@ -275,7 +275,7 @@ export default class Options {
         },
         brush: {
           enabled: false,
-          autoScaleYaxis: false,
+          autoScaleYaxis: true,
           target: undefined
         },
         stacked: false,
@@ -299,7 +299,7 @@ export default class Options {
         zoom: {
           enabled: true,
           type: 'x',
-          // autoScaleYaxis: false, // TODO: rewrite the autoScaleY function
+          autoScaleYaxis: false,
           zoomedArea: {
             fill: {
               color: '#90CAF9',

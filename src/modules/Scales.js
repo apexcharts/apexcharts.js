@@ -417,29 +417,85 @@ export default class Range {
       ctx = this
     }
 
-    let ret = []
+    const w = ctx.w
 
-    ctx.w.config.series.forEach((serie) => {
-      let min, max
-      let first = serie.data.find((x) => x[0] >= e.xaxis.min)
-      let firstValue = first[1]
-      max = min = firstValue
-      serie.data.forEach((data) => {
-        if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
-          if (data[1] > max && data[1] !== null) max = data[1]
-          if (data[1] < min && data[1] !== null) min = data[1]
+    const seriesX = w.globals.seriesX[0]
+
+    let yaxis = Utils.clone(w.config.yaxis)
+    let isStacked = w.config.chart.stacked
+
+    w.config.yaxis.forEach((yaxe, yI) => {
+      let firstXIndex = 0
+
+      for (let xi = 0; xi < seriesX.length; xi++) {
+        if (seriesX[xi] >= e.xaxis.min) {
+          firstXIndex = xi
+          break
         }
-      })
+      }
 
-      min *= 0.95
-      max *= 1.05
+      let initialMin = w.globals.minYArr[yI]
+      let initialMax = w.globals.maxYArr[yI]
+      let min, max
 
-      ret.push({
-        min,
-        max
+      let stackedSer = w.globals.stackedSeriesTotals
+
+      w.globals.series.forEach((serie, sI) => {
+        let firstValue = serie[firstXIndex]
+
+        if (isStacked) {
+          firstValue = stackedSer[firstXIndex]
+          min = max = firstValue
+
+          stackedSer.forEach((y, yI) => {
+            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+              if (y > max && y !== null) max = y
+              if (serie[yI] < min && serie[yI] !== null) min = serie[yI]
+            }
+          })
+        } else {
+          min = max = firstValue
+
+          serie.forEach((y, yI) => {
+            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+              let valMin = y
+              let valMax = y
+              w.globals.series.forEach((wS, wSI) => {
+                if (y !== null) {
+                  valMin = Math.min(wS[yI], valMin)
+                  valMax = Math.max(wS[yI], valMax)
+                }
+              })
+              if (valMax > max && valMax !== null) max = valMax
+              if (valMin < min && valMin !== null) min = valMin
+            }
+          })
+        }
+
+        if (min === undefined && max === undefined) {
+          min = initialMin
+          max = initialMax
+        }
+        min *= min < 0 ? 1.1 : 0.9
+        max *= max < 0 ? 0.9 : 1.1
+
+        if (max < 0 && max < initialMax) {
+          max = initialMax
+        }
+        if (min < 0 && min > initialMin) {
+          min = initialMin
+        }
+
+        if (yaxis.length > 1) {
+          yaxis[sI].min = yaxe.min === undefined ? min : yaxe.min
+          yaxis[sI].max = yaxe.max === undefined ? max : yaxe.max
+        } else {
+          yaxis[0].min = yaxe.min === undefined ? min : yaxe.min
+          yaxis[0].max = yaxe.max === undefined ? max : yaxe.max
+        }
       })
     })
 
-    return ret
+    return yaxis
   }
 }
