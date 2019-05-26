@@ -63,15 +63,6 @@ export default class Range {
       yMax = yMax * 1.01
     }
 
-    // for extremely small values - #fix #553
-    if (range < 0.00001 && NO_MIN_MAX_PROVIDED && yMax < 10) {
-      yMax = yMax * 1.05
-    } else if (diff > 0.1 && diff < 3 && NO_MIN_MAX_PROVIDED) {
-      /* fix https://github.com/apexcharts/apexcharts.js/issues/576 */
-      /* fix https://github.com/apexcharts/apexcharts.js/issues/588 */
-      yMax = yMax + diff / 3
-    }
-
     let tiks = ticks + 1
     // Adjust ticks if needed
     if (tiks < 2) {
@@ -103,7 +94,7 @@ export default class Range {
       }
     }
 
-    if (NO_MIN_MAX_PROVIDED && diff > 4) {
+    if (NO_MIN_MAX_PROVIDED && diff > 20) {
       return {
         result,
         niceMin: result[0],
@@ -114,9 +105,13 @@ export default class Range {
       let v = yMin
       result.push(v)
       let valuesDivider = Math.abs(yMax - yMin) / ticks
-      for (let i = 0; i <= ticks - 1; i++) {
+      for (let i = 0; i <= ticks; i++) {
         v = v + valuesDivider
         result.push(v)
+      }
+
+      if (result[result.length - 2] >= yMax) {
+        result.pop()
       }
 
       return {
