@@ -280,18 +280,17 @@ class Range {
       (cnf.chart.type === 'bar' && gl.isXNumeric)
     ) {
       if (cnf.xaxis.type !== 'category' || gl.isXNumeric) {
-        const minX =
-          gl.minX -
-          ((gl.svgWidth / gl.dataPoints) *
-            (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)) /
-            2
+        const t =
+          (gl.svgWidth / gl.dataPoints) *
+          (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)
+
+        // some padding to the left to prevent cropping of the bars
+        const minX = gl.minX - t / 2
         gl.minX = minX
         gl.initialminX = minX
-        const maxX =
-          gl.maxX +
-          ((gl.svgWidth / gl.dataPoints) *
-            (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)) /
-            2
+
+        // some padding to the right to prevent cropping of the bars
+        const maxX = gl.maxX + t / ((gl.series.length + 1) / gl.series.length)
         gl.maxX = maxX
         gl.initialmaxX = maxX
       }

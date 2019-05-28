@@ -94,7 +94,7 @@ export default class Range {
       }
     }
 
-    if (NO_MIN_MAX_PROVIDED && diff > 20) {
+    if (NO_MIN_MAX_PROVIDED && diff > 10) {
       return {
         result,
         niceMin: result[0],
