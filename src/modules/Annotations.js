@@ -74,8 +74,9 @@ export default class Annotations {
     const text = anno.label.text
 
     if (
-      w.config.xaxis.type === 'category' ||
-      w.config.xaxis.convertedCatToNumeric
+      (w.config.xaxis.type === 'category' ||
+        w.config.xaxis.convertedCatToNumeric) &&
+      !this.invertAxis
     ) {
       x1 = this.getStringX(anno.x)
     }
@@ -98,8 +99,9 @@ export default class Annotations {
       let x2 = (anno.x2 - min) / (range / w.globals.gridWidth)
 
       if (
-        w.config.xaxis.type === 'category' ||
-        w.config.xaxis.convertedCatToNumeric
+        (w.config.xaxis.type === 'category' ||
+          w.config.xaxis.convertedCatToNumeric) &&
+        !this.invertAxis
       ) {
         x2 = this.getStringX(anno.x2)
       }
