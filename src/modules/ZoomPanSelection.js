@@ -21,6 +21,7 @@ export default class ZoomPanSelection extends Toolbar {
 
     this.eventList = [
       'mousedown',
+      'mouseleave',
       'mousemove',
       'touchstart',
       'touchmove',
@@ -174,7 +175,11 @@ export default class ZoomPanSelection extends Toolbar {
       }
     }
 
-    if (e.type === 'mouseup' || e.type === 'touchend') {
+    if (
+      e.type === 'mouseup' ||
+      e.type === 'touchend' ||
+      e.type === 'mouseleave'
+    ) {
       // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
       let gridRectDim = me.gridRect.getBoundingClientRect()
 
@@ -346,15 +351,12 @@ export default class ZoomPanSelection extends Toolbar {
 
     let selectionRect = {}
 
-    if (
-      Math.abs(selectionWidth + startX) > w.globals.gridWidth ||
-      me.clientX - gridRectDim.left < 0
-    ) {
-      // user dragged the mouse outside drawing area
-      // TODO: test the selectionRect and make sure it doesn't crosses drawing area
-      me.hideSelectionRect(this.zoomRect)
-      me.dragged = false
-      me.w.globals.mousedown = false
+    if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
+      // user dragged the mouse outside drawing area to the right
+      selectionWidth = w.globals.gridWidth - startX
+    } else if (me.clientX - gridRectDim.left < 0) {
+      // user dragged the mouse outside drawing area to the left
+      selectionWidth = startX
     }
 
     // inverse selection X
