@@ -10,6 +10,7 @@ import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
 import Exports from './modules/Exports'
 import Grid from './modules/axes/Grid'
+import Graphics from './modules/Graphics'
 import Legend from './modules/Legend'
 import Markers from './modules/Markers'
 import Range from './modules/Range'
@@ -59,6 +60,15 @@ export default class ApexCharts {
     this.w.globals.chartID = this.w.config.chart.id
       ? this.w.config.chart.id
       : this.w.globals.cuid
+
+    this.eventList = [
+      'mousedown',
+      'mousemove',
+      'touchstart',
+      'touchmove',
+      'mouseup',
+      'touchend'
+    ]
 
     this.initModules()
 
@@ -884,15 +894,6 @@ export default class ApexCharts {
 
     let clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
 
-    this.eventList = [
-      'mousedown',
-      'mousemove',
-      'touchstart',
-      'touchmove',
-      'mouseup',
-      'touchend'
-    ]
-
     this.eventListHandlers = []
     this.eventList.forEach((event) => {
       clickableArea.addEventListener(
@@ -1002,6 +1003,28 @@ export default class ApexCharts {
 
   setLocale(localeName) {
     this.setCurrentLocaleValues(localeName)
+  }
+
+  toggleDataPointSelection(seriesIndex, dataPointIndex) {
+    const w = this.w
+    let elPath = null
+
+    if (w.globals.axisCharts) {
+      elPath = w.globals.dom.Paper.select(
+        `.apexcharts-series[data\\:realIndex='${seriesIndex}'] path[j='${dataPointIndex}'], .apexcharts-series[data\\:realIndex='${seriesIndex}'] circle[j='${dataPointIndex}'], .apexcharts-series[data\\:realIndex='${seriesIndex}'] rect[j='${dataPointIndex}']`
+      ).members[0]
+    } else {
+      elPath = w.globals.dom.Paper.select(
+        `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
+      ).members[0]
+    }
+
+    if (elPath) {
+      const graphics = new Graphics(this.ctx)
+      graphics.pathMouseDown(elPath, null)
+    } else {
+      console.warn('toggleDataPointSelection: Element not found')
+    }
   }
 
   setCurrentLocaleValues(localeName) {
