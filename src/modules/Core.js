@@ -746,6 +746,7 @@ export default class Core {
 
           for (let j = 0; j < dates.length; j++) {
             if (typeof dates[j] === 'string') {
+              // user provided date strings
               let isDate = dt.isValidDate(dates[j])
               if (isDate) {
                 this.twoDSeriesX.push(dt.parseDate(dates[j]))
@@ -753,6 +754,13 @@ export default class Core {
                 throw new Error(
                   'You have provided invalid Date format. Please provide a valid JavaScript Date'
                 )
+              }
+            } else {
+              // user provided timestamps
+              if (String(dates[j]).length !== 13) {
+                throw new Error('Please provide a valid JavaScript timestamp')
+              } else {
+                this.twoDSeriesX.push(dates[j])
               }
             }
           }
