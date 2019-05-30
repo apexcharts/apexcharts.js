@@ -131,7 +131,7 @@ class DataLabels {
           )
           y = centerTextInBubbleCoords.y
         } else {
-          if (typeof val !== 'undefined' && val !== null) {
+          if (typeof val !== 'undefined') {
             text = w.config.dataLabels.formatter(val, {
               ctx: this.ctx,
               seriesIndex: i,

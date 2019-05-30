@@ -950,7 +950,7 @@ class Bar {
       })
 
       let text = ''
-      if (typeof val !== 'undefined' && val !== null) {
+      if (typeof val !== 'undefined') {
         text = formatter(val, { seriesIndex: i, dataPointIndex: j, w })
       }
 

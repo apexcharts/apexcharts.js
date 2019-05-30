@@ -500,7 +500,7 @@ export default class Options {
         enabled: true,
         enabledOnSeries: undefined,
         formatter: function(val) {
-          return val
+          return val !== null ? val : ''
         },
         textAnchor: 'middle',
         offsetX: 0,
