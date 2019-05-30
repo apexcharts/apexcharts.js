@@ -693,20 +693,19 @@ class Graphics {
         w
       })
     }
-    this.ctx.fireEvent('dataPointSelection', [
-      e,
-      this.ctx,
-      {
-        selectedDataPoints: w.globals.selectedDataPoints,
-        seriesIndex: i,
-        dataPointIndex: j,
-        w
-      }
-    ])
 
-    // if (this.w.config.chart.selection.selectedPoints !== undefined) {
-    //   this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)
-    // }
+    if (e) {
+      this.ctx.fireEvent('dataPointSelection', [
+        e,
+        this.ctx,
+        {
+          selectedDataPoints: w.globals.selectedDataPoints,
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        }
+      ])
+    }
   }
 
   rotateAroundCenter(el) {

@@ -191,7 +191,8 @@ class Pie {
         class: `apexcharts-series apexcharts-pie-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         id: 'apexcharts-series-' + i,
-        rel: i + 1
+        rel: i + 1,
+        'data:realIndex': i
       })
 
       g.add(elPieArc)

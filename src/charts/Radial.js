@@ -258,7 +258,8 @@ class Radial extends Pie {
 
       elRadialBarArc.attr({
         id: 'apexcharts-series-' + i,
-        rel: i + 1
+        rel: i + 1,
+        'data:realIndex': i
       })
 
       this.ctx.series.addCollapsedClassToSeries(elRadialBarArc, i)
