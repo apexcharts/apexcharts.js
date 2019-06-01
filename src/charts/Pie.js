@@ -112,6 +112,11 @@ class Pie {
     this.donutSize =
       (this.size * parseInt(w.config.plotOptions.pie.donut.size)) / 100
 
+    // on small chart size after few count of resizes browser window donutSize can be negative
+    if (this.donutSize < 0) {
+      this.donutSize = 0
+    }
+
     let scaleSize = w.config.plotOptions.pie.customScale
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
