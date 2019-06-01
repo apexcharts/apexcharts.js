@@ -317,6 +317,9 @@ export default class Core {
       }
     }
 
+    if (gl.svgWidth < 0) gl.svgWidth = 0
+    if (gl.svgHeight < 0) gl.svgHeight = 0
+
     Graphics.setAttrs(gl.dom.Paper.node, {
       width: gl.svgWidth,
       height: gl.svgHeight
