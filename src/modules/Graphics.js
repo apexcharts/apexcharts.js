@@ -768,7 +768,7 @@ class Graphics {
 
     if (textString.length > 0) {
       // ellipsis is needed
-      if (textObj.getSubStringLength(0, textString.length) >= width) {
+      if (textObj.getComputedTextLength() >= width) {
         for (let x = textString.length - 3; x > 0; x -= 3) {
           if (textObj.getSubStringLength(0, x) <= width) {
             textObj.textContent = textString.substring(0, x) + '...'
