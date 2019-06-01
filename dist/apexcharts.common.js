@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.7.0
+ * ApexCharts v3.7.1
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1671,14 +1671,14 @@ function () {
         });
       }
 
-      this.ctx.fireEvent('dataPointSelection', [e, this.ctx, {
-        selectedDataPoints: w.globals.selectedDataPoints,
-        seriesIndex: i,
-        dataPointIndex: j,
-        w: w
-      }]); // if (this.w.config.chart.selection.selectedPoints !== undefined) {
-      //   this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)
-      // }
+      if (e) {
+        this.ctx.fireEvent('dataPointSelection', [e, this.ctx, {
+          selectedDataPoints: w.globals.selectedDataPoints,
+          seriesIndex: i,
+          dataPointIndex: j,
+          w: w
+        }]);
+      }
     }
   }, {
     key: "rotateAroundCenter",
@@ -2331,7 +2331,7 @@ function () {
           enabled: true,
           enabledOnSeries: undefined,
           formatter: function formatter(val) {
-            return val;
+            return val !== null ? val : '';
           },
           textAnchor: 'middle',
           offsetX: 0,
@@ -2808,7 +2808,7 @@ function () {
       var x1 = (anno.x - min) / (range / w.globals.gridWidth);
       var text = anno.label.text;
 
-      if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
+      if ((w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) && !this.invertAxis) {
         x1 = this.getStringX(anno.x);
       }
 
@@ -2827,7 +2827,7 @@ function () {
       } else {
         var x2 = (anno.x2 - min) / (range / w.globals.gridWidth);
 
-        if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
+        if ((w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) && !this.invertAxis) {
           x2 = this.getStringX(anno.x2);
         }
 
@@ -5917,7 +5917,7 @@ function () {
             var centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, dataPointIndex);
             y = centerTextInBubbleCoords.y;
           } else {
-            if (typeof val !== 'undefined' && val !== null) {
+            if (typeof val !== 'undefined') {
               text = w.config.dataLabels.formatter(val, {
                 ctx: this.ctx,
                 seriesIndex: i,
@@ -6865,7 +6865,7 @@ function () {
         });
         var text = '';
 
-        if (typeof val !== 'undefined' && val !== null) {
+        if (typeof val !== 'undefined') {
           text = formatter(val, {
             seriesIndex: i,
             dataPointIndex: j,
@@ -8300,7 +8300,8 @@ function () {
           class: "apexcharts-series apexcharts-pie-series",
           seriesName: Utils.escapeString(w.globals.seriesNames[i]),
           id: 'apexcharts-series-' + i,
-          rel: i + 1
+          rel: i + 1,
+          'data:realIndex': i
         });
         g.add(elPieArc);
         startAngle = endAngle;
@@ -9473,7 +9474,8 @@ function (_Pie) {
         g.add(elRadialBarArc);
         elRadialBarArc.attr({
           id: 'apexcharts-series-' + i,
-          rel: i + 1
+          rel: i + 1,
+          'data:realIndex': i
         });
         this.ctx.series.addCollapsedClassToSeries(elRadialBarArc, i);
         opts.size = opts.size - strokeWidth - this.margin;
@@ -11537,16 +11539,6 @@ function () {
       if (range < 1 && NO_MIN_MAX_PROVIDED && (w.config.chart.type === 'candlestick' || w.config.series[index].type === 'candlestick' || w.globals.isRangeData)) {
         /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
         yMax = yMax * 1.01;
-      } // for extremely small values - #fix #553
-
-
-      if (range < 0.00001 && NO_MIN_MAX_PROVIDED && yMax < 10) {
-        yMax = yMax * 1.05;
-      } else if (diff > 0.1 && diff < 3 && NO_MIN_MAX_PROVIDED) {
-        /* fix https://github.com/apexcharts/apexcharts.js/issues/576 */
-
-        /* fix https://github.com/apexcharts/apexcharts.js/issues/588 */
-        yMax = yMax + diff / 3;
       }
 
       var tiks = ticks + 1; // Adjust ticks if needed
@@ -11580,7 +11572,7 @@ function () {
         }
       }
 
-      if (NO_MIN_MAX_PROVIDED && diff > 4) {
+      if (NO_MIN_MAX_PROVIDED && diff > 10) {
         return {
           result: result,
           niceMin: result[0],
@@ -11592,9 +11584,13 @@ function () {
         result.push(v);
         var valuesDivider = Math.abs(yMax - yMin) / ticks;
 
-        for (var i = 0; i <= ticks - 1; i++) {
+        for (var i = 0; i <= ticks; i++) {
           v = v + valuesDivider;
           result.push(v);
+        }
+
+        if (result[result.length - 2] >= yMax) {
+          result.pop();
         }
 
         return {
@@ -12208,10 +12204,13 @@ function () {
 
       if (gl.comboChartsHasBars || cnf.chart.type === 'candlestick' || cnf.chart.type === 'bar' && gl.isXNumeric) {
         if (cnf.xaxis.type !== 'category' || gl.isXNumeric) {
-          var minX = gl.minX - gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2;
+          var t = gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth); // some padding to the left to prevent cropping of the bars
+
+          var minX = gl.minX - t / 2;
           gl.minX = minX;
-          gl.initialminX = minX;
-          var maxX = gl.maxX + gl.svgWidth / gl.dataPoints * (Math.abs(gl.maxX - gl.minX) / gl.svgWidth) / 2;
+          gl.initialminX = minX; // some padding to the right to prevent cropping of the bars
+
+          var maxX = gl.maxX + t / ((gl.series.length + 1) / gl.series.length);
           gl.maxX = maxX;
           gl.initialmaxX = maxX;
         }
@@ -14812,12 +14811,20 @@ function () {
 
             for (var j = 0; j < dates.length; j++) {
               if (typeof dates[j] === 'string') {
+                // user provided date strings
                 var isDate = dt.isValidDate(dates[j]);
 
                 if (isDate) {
                   this.twoDSeriesX.push(dt.parseDate(dates[j]));
                 } else {
                   throw new Error('You have provided invalid Date format. Please provide a valid JavaScript Date');
+                }
+              } else {
+                // user provided timestamps
+                if (String(dates[j]).length !== 13) {
+                  throw new Error('Please provide a valid JavaScript timestamp');
+                } else {
+                  this.twoDSeriesX.push(dates[j]);
                 }
               }
             }
@@ -19510,7 +19517,7 @@ function (_Toolbar) {
     _this.w = ctx.w;
     _this.dragged = false;
     _this.graphics = new Graphics(_this.ctx);
-    _this.eventList = ['mousedown', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
+    _this.eventList = ['mousedown', 'mouseleave', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
     _this.clientX = 0;
     _this.clientY = 0;
     _this.startX = 0;
@@ -19633,7 +19640,7 @@ function (_Toolbar) {
         }
       }
 
-      if (e.type === 'mouseup' || e.type === 'touchend') {
+      if (e.type === 'mouseup' || e.type === 'touchend' || e.type === 'mouseleave') {
         // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
         var _gridRectDim = me.gridRect.getBoundingClientRect();
 
@@ -19799,12 +19806,12 @@ function (_Toolbar) {
       var translateY = 0;
       var selectionRect = {};
 
-      if (Math.abs(selectionWidth + startX) > w.globals.gridWidth || me.clientX - gridRectDim.left < 0) {
-        // user dragged the mouse outside drawing area
-        // TODO: test the selectionRect and make sure it doesn't crosses drawing area
-        me.hideSelectionRect(this.zoomRect);
-        me.dragged = false;
-        me.w.globals.mousedown = false;
+      if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
+        // user dragged the mouse outside drawing area to the right
+        selectionWidth = w.globals.gridWidth - startX;
+      } else if (me.clientX - gridRectDim.left < 0) {
+        // user dragged the mouse outside drawing area to the left
+        selectionWidth = startX;
       } // inverse selection X
 
 
@@ -27685,6 +27692,7 @@ function () {
     this.el = el;
     this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4);
     this.w.globals.chartID = this.w.config.chart.id ? this.w.config.chart.id : this.w.globals.cuid;
+    this.eventList = ['mousedown', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
     this.initModules();
     this.create = Utils.bind(this.create, this);
     this.documentEvent = Utils.bind(this.documentEvent, this);
@@ -28437,7 +28445,6 @@ function () {
       var w = this.w;
       var me = this;
       var clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass);
-      this.eventList = ['mousedown', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
       this.eventListHandlers = [];
       this.eventList.forEach(function (event) {
         clickableArea.addEventListener(event, function (e) {
@@ -28567,6 +28574,25 @@ function () {
     key: "setLocale",
     value: function setLocale(localeName) {
       this.setCurrentLocaleValues(localeName);
+    }
+  }, {
+    key: "toggleDataPointSelection",
+    value: function toggleDataPointSelection(seriesIndex, dataPointIndex) {
+      var w = this.w;
+      var elPath = null;
+
+      if (w.globals.axisCharts) {
+        elPath = w.globals.dom.Paper.select(".apexcharts-series[data\\:realIndex='".concat(seriesIndex, "'] path[j='").concat(dataPointIndex, "'], .apexcharts-series[data\\:realIndex='").concat(seriesIndex, "'] circle[j='").concat(dataPointIndex, "'], .apexcharts-series[data\\:realIndex='").concat(seriesIndex, "'] rect[j='").concat(dataPointIndex, "']")).members[0];
+      } else {
+        elPath = w.globals.dom.Paper.select(".apexcharts-series[data\\:realIndex='".concat(seriesIndex, "']")).members[0];
+      }
+
+      if (elPath) {
+        var graphics = new Graphics(this.ctx);
+        graphics.pathMouseDown(elPath, null);
+      } else {
+        console.warn('toggleDataPointSelection: Element not found');
+      }
     }
   }, {
     key: "setCurrentLocaleValues",
