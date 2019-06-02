@@ -407,7 +407,7 @@ export default class Range {
     })
   }
 
-  autoScaleY(ctx, e) {
+  autoScaleY(ctx, yaxis, e) {
     if (!ctx) {
       ctx = this
     }
@@ -416,10 +416,9 @@ export default class Range {
 
     const seriesX = w.globals.seriesX[0]
 
-    let yaxis = Utils.clone(w.config.yaxis)
     let isStacked = w.config.chart.stacked
 
-    w.config.yaxis.forEach((yaxe, yI) => {
+    yaxis.forEach((yaxe, yI) => {
       let firstXIndex = 0
 
       for (let xi = 0; xi < seriesX.length; xi++) {

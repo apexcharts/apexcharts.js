@@ -1048,7 +1048,7 @@ export default class Core {
           let yaxis = Utils.clone(w.config.yaxis)
           if (w.config.chart.brush.autoScaleYaxis) {
             const scale = new Scales(targetChart)
-            yaxis = scale.autoScaleY(targetChart, e)
+            yaxis = scale.autoScaleY(targetChart, yaxis, e)
           }
           targetChart._updateOptions(
             {

@@ -84,7 +84,10 @@ export default class ZoomPanSelection extends Toolbar {
       this.hoverArea.addEventListener(
         event,
         me.svgMouseEvents.bind(me, xyRatios),
-        { capture: false, passive: true }
+        {
+          capture: false,
+          passive: true
+        }
       )
     })
   }
@@ -499,7 +502,7 @@ export default class ZoomPanSelection extends Toolbar {
       xLowestValue !== xHighestValue
     ) {
       if (w.globals.zoomEnabled) {
-        let yaxis = Utils.clone(w.config.yaxis)
+        let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
         // before zooming in/out, store the last yaxis and xaxis range, so that when user hits the RESET button, we get the original range
         // also - make sure user is not already zoomed in/out - otherwise we will store zoomed values in lastAxis
@@ -522,7 +525,9 @@ export default class ZoomPanSelection extends Toolbar {
 
         if (w.config.chart.zoom.autoScaleYaxis) {
           const scale = new Scales(me.ctx)
-          yaxis = scale.autoScaleY(me.ctx, { xaxis })
+          yaxis = scale.autoScaleY(me.ctx, yaxis, {
+            xaxis
+          })
         }
 
         if (toolbar) {
@@ -573,7 +578,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
-  panDragging({ context, zoomtype }) {
+  panDragging({ context }) {
     const w = this.w
     let me = context
 
@@ -606,13 +611,14 @@ export default class ZoomPanSelection extends Toolbar {
     let xLowestValue = w.globals.minX
     let xHighestValue = w.globals.maxX
 
-    this.panScrolled(moveDirection, xLowestValue, xHighestValue)
+    me.panScrolled(moveDirection, xLowestValue, xHighestValue)
   }
 
   panScrolled(moveDirection, xLowestValue, xHighestValue) {
     const w = this.w
+
     const xyRatios = this.xyRatios
-    let yaxis = Utils.clone(w.config.yaxis)
+    let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
     if (moveDirection === 'left') {
       xLowestValue =
@@ -640,9 +646,12 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     if (w.config.chart.zoom.autoScaleYaxis) {
-      const scale = new Scales(me.ctx)
-      yaxis = scale.autoScaleY(me.ctx, { xaxis })
+      const scale = new Scales(this.ctx)
+      yaxis = scale.autoScaleY(this.ctx, yaxis, {
+        xaxis
+      })
     }
+
     this.ctx._updateOptions(
       {
         xaxis: {
