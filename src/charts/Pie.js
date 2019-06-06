@@ -843,7 +843,7 @@ class Pie {
       const slices = document.querySelectorAll(`.apexcharts-pie-area`)
       let sliceOut = false
 
-      slices.forEach((s) => {
+      Array.prototype.forEach.call(slices, function(s) {
         if (s.getAttribute('data:pieClicked') === 'true') {
           sliceOut = true
           this.printDataLabelsInner(s, dataLabelsConfig)
