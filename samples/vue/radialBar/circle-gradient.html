@@ -15,7 +15,7 @@
       background: #fff;
       max-width: 650px;
       margin: 35px auto;
-      padding-top: 0px;
+      padding: 0px;
       text-align: center;
     }
 
@@ -42,8 +42,10 @@
 </head>
 
 <body>
-  <div id="chart">
-    <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
+  <div id="card">
+    <div id="chart">
+      <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
+    </div>
   </div>
 
   <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->

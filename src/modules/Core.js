@@ -9,6 +9,7 @@ import Pie from '../charts/Pie'
 import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
+import Legend from './Legend'
 import Line from '../charts/Line'
 import Graphics from './Graphics'
 import XAxis from './axes/XAxis'
@@ -349,6 +350,49 @@ export default class Core {
       transform: 'translate(' + tX + ', ' + tY + ')'
     }
     Graphics.setAttrs(gl.dom.elGraphical.node, scalingAttrs)
+  }
+
+  // To prevent extra spacings in the bottom of the chart, we need to recalculate the height for pie/donut/radialbar charts
+  resizeNonAxisCharts() {
+    const w = this.w
+
+    const gl = w.globals
+
+    let legendHeight = 0
+    let offY = 20
+
+    if (
+      w.config.legend.position === 'top' ||
+      w.config.legend.position === 'bottom'
+    ) {
+      legendHeight = new Legend(this.ctx).getLegendBBox().clwh + 10
+    }
+
+    let radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar')
+    let elRadialSize = w.globals.radialSize * 2
+
+    if (radialEl && w.config.plotOptions.radialBar.startAngle !== -90) {
+      elRadialSize = Utils.getBoundingClientRect(radialEl).height
+    }
+
+    const chartInnerDimensions = Math.max(
+      elRadialSize,
+      w.globals.radialSize * 2
+    )
+
+    const newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY
+
+    if (gl.dom.elLegendForeign) {
+      gl.dom.elLegendForeign.setAttribute('height', newHeight)
+    }
+
+    gl.dom.elWrap.style.height = newHeight + 'px'
+
+    Graphics.setAttrs(gl.dom.Paper.node, {
+      height: newHeight
+    })
+
+    gl.dom.Paper.node.parentNode.parentNode.style.minHeight = newHeight + 'px'
   }
 
   /*

@@ -71,6 +71,7 @@ export default class Globals {
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       padHorizontal: 0,
       maxValsInArrayIndex: 0,
+      radialSize: 0,
       zoomEnabled:
         config.chart.toolbar.autoSelected === 'zoom' &&
         config.chart.toolbar.tools.zoom &&

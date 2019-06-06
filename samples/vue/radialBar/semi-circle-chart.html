@@ -12,8 +12,9 @@
 
   <style>
     #chart {
-            max-width: 450px;
-            margin: 35px auto;
+          padding: 0;           
+          max-width: 450px;
+          margin: 35px auto;
         }
     </style>
 </head>
@@ -42,6 +43,9 @@
       data: {
         series: [76],
         chartOptions: {
+          chart: {
+            offsetY: -20
+          },
           plotOptions: {
             radialBar: {
               startAngle: -90,

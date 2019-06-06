@@ -42,7 +42,6 @@ class Pie {
 
     this.fullAngle = 360
 
-    this.size = 0
     this.donutSize = 0
 
     this.sliceLabels = []
@@ -100,17 +99,18 @@ class Pie {
       }
     }
 
-    this.size =
+    w.globals.radialSize =
       this.defaultSize / 2.05 -
       w.config.stroke.width -
       w.config.chart.dropShadow.blur
 
     if (w.config.plotOptions.pie.size !== undefined) {
-      this.size = w.config.plotOptions.pie.size
+      w.globals.radialSize = w.config.plotOptions.pie.size
     }
 
     this.donutSize =
-      (this.size * parseInt(w.config.plotOptions.pie.donut.size)) / 100
+      (w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size)) /
+      100
 
     // on small chart size after few count of resizes browser window donutSize can be negative
     if (this.donutSize < 0) {
@@ -180,7 +180,9 @@ class Pie {
 
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
-    let g = graphics.group()
+    let g = graphics.group({
+      class: 'apexcharts-slices'
+    })
 
     let startAngle = 0
     let prevStartAngle = 0
@@ -212,7 +214,7 @@ class Pie {
 
       let pathFill = fill.fillPath({
         seriesNumber: i,
-        size: this.size,
+        size: w.globals.radialSize,
         value: series[i]
       }) // additionaly, pass size for gradient drawing in the fillPath function
 
@@ -259,14 +261,15 @@ class Pie {
         labelPosition = Utils.polarToCartesian(
           this.centerX,
           this.centerY,
-          this.size / 1.25 + w.config.plotOptions.pie.dataLabels.offset,
+          w.globals.radialSize / 1.25 +
+            w.config.plotOptions.pie.dataLabels.offset,
           startAngle + (endAngle - startAngle) / 2
         )
       } else if (w.config.chart.type === 'donut') {
         labelPosition = Utils.polarToCartesian(
           this.centerX,
           this.centerY,
-          (this.size + this.donutSize) / 2 +
+          (w.globals.radialSize + this.donutSize) / 2 +
             w.config.plotOptions.pie.dataLabels.offset,
           startAngle + (endAngle - startAngle) / 2
         )
@@ -289,6 +292,7 @@ class Pie {
 
       if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
+          size: w.globals.radialSize,
           endAngle,
           startAngle,
           prevStartAngle,
@@ -300,6 +304,7 @@ class Pie {
         })
       } else {
         this.animatePaths(elPath, {
+          size: w.globals.radialSize,
           endAngle,
           startAngle,
           i,
@@ -431,11 +436,7 @@ class Pie {
     let me = this
     const w = this.w
 
-    let size = me.size
-
-    if (!size) {
-      size = opts.size
-    }
+    let size = opts.size
 
     let path
 
@@ -521,7 +522,7 @@ class Pie {
     let me = this
     let path
 
-    let size = me.size + 4
+    let size = me.w.globals.radialSize + 4
     let elPath = w.globals.dom.Paper.select(
       `#apexcharts-${w.config.chart.type.toLowerCase()}-slice-${i}`
     ).members[0]

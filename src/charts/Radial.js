@@ -83,6 +83,17 @@ class Radial extends Pie {
       series
     })
 
+    let totalAngle = 360
+
+    if (w.config.plotOptions.radialBar.startAngle < 0) {
+      totalAngle = Math.abs(
+        w.config.plotOptions.radialBar.endAngle -
+          w.config.plotOptions.radialBar.startAngle
+      )
+    }
+
+    w.globals.radialSize = size - size / (360 / (360 - totalAngle)) + 10
+
     elSeries.add(elG.g)
 
     if (w.config.plotOptions.radialBar.hollow.position === 'front') {
@@ -101,7 +112,9 @@ class Radial extends Pie {
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
-    let g = graphics.group()
+    let g = graphics.group({
+      class: 'apexcharts-tracks'
+    })
 
     let filters = new Filters(this.ctx)
     let fill = new Fill(this.ctx)
@@ -157,8 +170,7 @@ class Radial extends Pie {
 
       elPath.attr('id', 'apexcharts-radialbarTrack-' + i)
 
-      let pie = new Pie(this.ctx)
-      pie.animatePaths(elPath, {
+      this.animatePaths(elPath, {
         centerX: opts.centerX,
         centerY: opts.centerY,
         endAngle,
@@ -221,11 +233,10 @@ class Radial extends Pie {
       shown = 0
     }
 
-    let pie = new Pie(this.ctx)
     let dataLabels = null
 
     if (this.radialDataLabels.show) {
-      dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
+      dataLabels = this.renderInnerDataLabels(this.radialDataLabels, {
         hollowSize,
         centerX: opts.centerX,
         centerY: opts.centerY,
@@ -333,8 +344,6 @@ class Radial extends Pie {
 
       this.addListeners(elPath, this.radialDataLabels)
 
-      let pie = new Pie(this.ctx)
-
       elRadialBarArc.add(elPath)
 
       elPath.attr({
@@ -344,7 +353,7 @@ class Radial extends Pie {
       })
 
       let dur = 0
-      if (pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+      if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
         dur = ((endAngle - startAngle) / 360) * w.config.chart.animations.speed
 
         this.animDur = dur / (opts.series.length * 1.2) + this.animDur
@@ -360,7 +369,7 @@ class Radial extends Pie {
         this.animBeginArr.push(this.animDur)
       }
 
-      pie.animatePaths(elPath, {
+      this.animatePaths(elPath, {
         centerX: opts.centerX,
         centerY: opts.centerY,
         endAngle,

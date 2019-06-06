@@ -257,7 +257,7 @@ export default class Dimensions {
         gl.gridHeight = gl.svgHeight - lgRect.height - 35
         gl.gridWidth = gl.gridHeight
 
-        gl.translateY = lgRect.height + offY
+        gl.translateY = lgRect.height + offY + 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'left':
