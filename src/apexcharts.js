@@ -376,6 +376,10 @@ export default class ApexCharts {
           fn.method(fn.params, false, fn.context)
         })
       }
+
+      if (!w.globals.axisCharts) {
+        me.core.resizeNonAxisCharts()
+      }
       resolve(me)
     })
   }
@@ -403,6 +407,7 @@ export default class ApexCharts {
   ) {
     const w = this.w
     if (options.series) {
+      this.resetSeries(false)
       if (options.series[0].data) {
         options.series = options.series.map((s, i) => {
           return {
@@ -512,6 +517,7 @@ export default class ApexCharts {
    * @param {array} series - New series which will override the existing
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
+    this.resetSeries(false)
     this.revertDefaultAxisMinMax()
     return this._updateSeries(newSeries, animate, overwriteInitialSeries)
   }
@@ -524,6 +530,7 @@ export default class ApexCharts {
   appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
     const newSeries = this.w.config.series.slice()
     newSeries.push(newSerie)
+    this.resetSeries(false)
     this.revertDefaultAxisMinMax()
     return this._updateSeries(newSeries, animate, overwriteInitialSeries)
   }
@@ -884,8 +891,8 @@ export default class ApexCharts {
     this.legend.toggleDataSeries(seriesCnt, isHidden)
   }
 
-  resetToggleSeries() {
-    this.legend.resetToggleDataSeries()
+  resetSeries(shouldUpdateChart = true) {
+    this.series.resetSeries(shouldUpdateChart)
   }
 
   setupEventHandlers() {
@@ -1025,6 +1032,8 @@ export default class ApexCharts {
     } else {
       console.warn('toggleDataPointSelection: Element not found')
     }
+
+    return elPath.node ? elPath.node : null
   }
 
   setCurrentLocaleValues(localeName) {

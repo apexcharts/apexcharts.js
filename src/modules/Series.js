@@ -37,6 +37,26 @@ export default class Series {
     iterateOnAllCollapsedSeries(w.globals.ancillaryCollapsedSeries)
   }
 
+  resetSeries(shouldUpdateChart = true) {
+    const w = this.w
+
+    let series = w.globals.initialSeries.slice()
+    w.config.series = series
+
+    w.globals.collapsedSeries = []
+    w.globals.ancillaryCollapsedSeries = []
+    w.globals.collapsedSeriesIndices = []
+    w.globals.ancillaryCollapsedSeriesIndices = []
+    w.globals.previousPaths = []
+
+    if (shouldUpdateChart) {
+      this.ctx._updateSeries(
+        series,
+        w.config.chart.animations.dynamicAnimation.enabled
+      )
+    }
+  }
+
   toggleSeriesOnHover(e, targetElement) {
     const w = this.w
 

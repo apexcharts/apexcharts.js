@@ -59,7 +59,9 @@ class Legend {
   appendToForeignObject() {
     const gl = this.w.globals
 
-    var elForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
+    gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
+
+    let elForeign = gl.dom.elLegendForeign
 
     elForeign.setAttribute('x', 0)
     elForeign.setAttribute('y', 0)
@@ -520,66 +522,6 @@ class Legend {
     stylesheet.appendChild(rules)
 
     return stylesheet
-  }
-
-  resetToggleDataSeries() {
-    const w = this.w
-
-    let seriesEls = null
-
-    let realIndexes = []
-
-    if (w.globals.axisCharts) {
-      seriesEls = w.globals.dom.baseEl.querySelectorAll(
-        `.apexcharts-series[data\\:realIndex]`
-      )
-      seriesEls = Utils.listToArray(seriesEls)
-
-      seriesEls.forEach((v) => {
-        realIndexes.push(parseInt(v.getAttribute('data:realIndex')))
-      })
-    } else {
-      seriesEls = w.globals.dom.baseEl.querySelectorAll(
-        `.apexcharts-series[rel]`
-      )
-      seriesEls = Utils.listToArray(seriesEls)
-
-      seriesEls.forEach((v) => {
-        realIndexes.push(parseInt(v.getAttribute('rel')) - 1)
-      })
-    }
-
-    realIndexes.sort()
-
-    if (w.globals.collapsedSeries.length > 0) {
-      let risingSeries = w.globals.risingSeries.slice()
-      let series = w.config.series.slice()
-
-      for (let c = 0; c < w.globals.collapsedSeries.length; c++) {
-        let index = realIndexes.indexOf(w.globals.collapsedSeries[c].index)
-
-        if (index !== -1) {
-          if (w.globals.axisCharts) {
-            series[index].data = w.globals.collapsedSeries
-              .slice()
-              [c].data.slice()
-          } else {
-            series[index] = w.globals.collapsedSeries.slice()[c].data
-          }
-          risingSeries.push(index)
-        }
-      }
-      w.globals.collapsedSeries = []
-      w.globals.ancillaryCollapsedSeries = []
-      w.globals.collapsedSeriesIndices = []
-      w.globals.ancillaryCollapsedSeriesIndices = []
-      w.globals.risingSeries = risingSeries
-      w.config.series = series
-      this.ctx._updateSeries(
-        w.config.series,
-        w.config.chart.animations.dynamicAnimation.enabled
-      )
-    }
   }
 
   toggleDataSeries(seriesCnt, isHidden) {
