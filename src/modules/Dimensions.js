@@ -389,7 +389,9 @@ export default class Dimensions {
       w.config.legend.show &&
       w.config.legend.position === 'bottom' &&
       !w.config.legend.floating &&
-      w.config.series.length > 1
+      (w.config.series.length > 1 ||
+        !w.globals.axisCharts ||
+        w.config.legend.showForSingleSeries)
     ) {
       gridShrinkOffset += 10
     }
