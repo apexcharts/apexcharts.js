@@ -32,12 +32,11 @@
   },
   "dependencies": {
     "promise-polyfill": "8.1.0",
-    "svg.draggable.js": "^2.2.1",
+    "svg.draggable.js": "^2.2.2",
     "svg.easing.js": "^2.0.0",
     "svg.filter.js": "^2.0.2",
-    "svg.js": "^2.6.6",
     "svg.pathmorphing.js": "^0.1.3",
-    "svg.resize.js": "^1.4.1",
+    "svg.resize.js": "^1.4.3",
     "svg.select.js": "^2.1.2"
   },
   "devDependencies": {
