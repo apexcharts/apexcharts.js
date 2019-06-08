@@ -21,63 +21,41 @@
 
 <body>
   <div id="chart">
-  </div>
-  <p><button type="button" onclick="update()">updateSeries()</button></p>
-  
-   
-
+  </div>  
 
   <script src="../../../dist/apexcharts.js"></script>
 
   <script>
-                 var options = {
+        var options = {
             chart: {
                 height: 350,
-                type: 'bar',
+                type: 'line',
+                zoom: {
+                    enabled: false
+                }
             },
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                    columnWidth: '55%',
-                    endingShape: 'rounded'	
-                },
-            },
+            series: [{
+                name: "Desktops",
+                data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
+            }],
             dataLabels: {
                 enabled: false
             },
             stroke: {
-                show: true,
-                width: 2,
-                colors: ['transparent']
+                curve: 'straight'
             },
-            series: [{
-                name: 'Net Profit',
-                data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
-            }, {
-                name: 'Revenue',
-                data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
-            }, {
-                name: 'Free Cash Flow',
-                data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
-            }],
+            title: {
+                text: 'Product Trends by Month',
+                align: 'left'
+            },
+            grid: {
+                row: {
+                    colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
+                    opacity: 0.5
+                },
+            },
             xaxis: {
-                categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
-            },
-            yaxis: {
-                title: {
-                    text: '$ (thousands)'
-                }
-            },
-            fill: {
-                opacity: 1
-
-            },
-            tooltip: {
-                y: {
-                    formatter: function (val) {
-                        return "$ " + val + " thousands"
-                    }
-                }
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
             }
         }
 
@@ -87,23 +65,6 @@
         );
 
         chart.render();
-
-      chart.toggleSeries("Revenue");
-
-function update() {
-  data = [{
-                name: 'Net Profit',
-                data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
-            }, {
-                name: 'Revenue',
-                data: [449, 55, 57, 56, 61, 58, 63, 60, 66]
-            }, {
-                name: 'Free Cash Flow',
-                data: [88, 20, 36, 26, 45, 55, 52, 53, 11]
-            }]
-  chart.updateSeries(data);
-
-}
 
   </script>
 </body>

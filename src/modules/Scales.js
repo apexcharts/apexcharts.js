@@ -383,6 +383,18 @@ export default class Range {
         let minY = sameScaleMin[si]
         let maxY = sameScaleMax[si]
 
+        if (cnf.chart.stacked) {
+          // for stacked charts, we need to add the values
+          maxY = 0
+
+          s.forEach((ind, k) => {
+            maxY += ind.value
+            if (minY !== Number.MIN_VALUE) {
+              minY += sameScaleMinYArr[si][k].value
+            }
+          })
+        }
+
         s.forEach((ind, k) => {
           if (s[k].key === i) {
             if (cnf.yaxis[i].min !== undefined) {

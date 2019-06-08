@@ -469,8 +469,6 @@ export default class Core {
       this.w.config.yaxis.constructor === Array &&
       this.w.config.yaxis.length > 1
     ) {
-      // first, turn off stacking if multiple y axis
-      this.w.config.chart.stacked = false
       this.w.globals.isMultipleYAxis = true
       return true
     }
