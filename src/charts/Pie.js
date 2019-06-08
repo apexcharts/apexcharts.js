@@ -59,6 +59,8 @@ class Pie {
       class: 'apexcharts-pie'
     })
 
+    if (w.globals.noData) return ret
+
     let total = 0
     for (let k = 0; k < series.length; k++) {
       // CALCULATE THE TOTAL

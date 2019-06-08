@@ -244,7 +244,9 @@ export default class ApexCharts {
     this.titleSubtitle.draw()
 
     // legend is calculated here before coreCalculations because it affects the plottable area
-    this.legend.init()
+    if (!w.globals.noData) {
+      this.legend.init()
+    }
 
     // check whether in multiple series, all series share the same X
     this.series.hasAllSeriesEqualX()
@@ -377,7 +379,7 @@ export default class ApexCharts {
         })
       }
 
-      if (!w.globals.axisCharts) {
+      if (!w.globals.axisCharts && !w.globals.noData) {
         me.core.resizeNonAxisCharts()
       }
       resolve(me)

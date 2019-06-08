@@ -48,6 +48,8 @@ class Radial extends Pie {
       class: 'apexcharts-radialbar'
     })
 
+    if (w.globals.noData) return ret
+
     let elSeries = graphics.group()
 
     let centerY = this.defaultSize / 2
