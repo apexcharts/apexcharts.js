@@ -15,6 +15,8 @@ declare class ApexCharts {
   updateSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
   appendSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
   toggleSeries(seriesName: string): void;
+  resetSeries(): void;
+  toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): any;
   destroy(): void;
   addXaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addYaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
