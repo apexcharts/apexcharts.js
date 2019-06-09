@@ -1279,7 +1279,7 @@ var Graphics = function () {
 
       if (textString.length > 0) {
         // ellipsis is needed
-        if (textObj.getSubStringLength(0, textString.length) >= width) {
+        if (textObj.getComputedTextLength() >= width) {
           for (var x = textString.length - 3; x > 0; x -= 3) {
             if (textObj.getSubStringLength(0, x) <= width) {
               textObj.textContent = textString.substring(0, x) + '...';
@@ -2759,6 +2759,26 @@ var Series = function () {
 
       iterateOnAllCollapsedSeries(w.globals.collapsedSeries);
       iterateOnAllCollapsedSeries(w.globals.ancillaryCollapsedSeries);
+    }
+  }, {
+    key: 'resetSeries',
+    value: function resetSeries() {
+      var shouldUpdateChart = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+
+      var w = this.w;
+
+      var series = w.globals.initialSeries.slice();
+      w.config.series = series;
+
+      w.globals.collapsedSeries = [];
+      w.globals.ancillaryCollapsedSeries = [];
+      w.globals.collapsedSeriesIndices = [];
+      w.globals.ancillaryCollapsedSeriesIndices = [];
+      w.globals.previousPaths = [];
+
+      if (shouldUpdateChart) {
+        this.ctx._updateSeries(series, w.config.chart.animations.dynamicAnimation.enabled);
+      }
     }
   }, {
     key: 'toggleSeriesOnHover',
@@ -4921,7 +4941,6 @@ var Pie = function () {
 
     this.fullAngle = 360;
 
-    this.size = 0;
     this.donutSize = 0;
 
     this.sliceLabels = [];
@@ -4940,6 +4959,8 @@ var Pie = function () {
       var ret = graphics.group({
         class: 'apexcharts-pie'
       });
+
+      if (w.globals.noData) return ret;
 
       var total = 0;
       for (var k = 0; k < series.length; k++) {
@@ -4979,13 +5000,18 @@ var Pie = function () {
         }
       }
 
-      this.size = this.defaultSize / 2.05 - w.config.stroke.width - w.config.chart.dropShadow.blur;
+      w.globals.radialSize = this.defaultSize / 2.05 - w.config.stroke.width - w.config.chart.dropShadow.blur;
 
       if (w.config.plotOptions.pie.size !== undefined) {
-        this.size = w.config.plotOptions.pie.size;
+        w.globals.radialSize = w.config.plotOptions.pie.size;
       }
 
-      this.donutSize = this.size * parseInt(w.config.plotOptions.pie.donut.size) / 100;
+      this.donutSize = w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size) / 100;
+
+      // on small chart size after few count of resizes browser window donutSize can be negative
+      if (this.donutSize < 0) {
+        this.donutSize = 0;
+      }
 
       var scaleSize = w.config.plotOptions.pie.customScale;
       var halfW = w.globals.gridWidth / 2;
@@ -5052,7 +5078,9 @@ var Pie = function () {
 
       var graphics = new _Graphics2.default(this.ctx);
       var fill = new _Fill2.default(this.ctx);
-      var g = graphics.group();
+      var g = graphics.group({
+        class: 'apexcharts-slices'
+      });
 
       var startAngle = 0;
       var prevStartAngle = 0;
@@ -5084,7 +5112,7 @@ var Pie = function () {
 
         var pathFill = fill.fillPath({
           seriesNumber: i,
-          size: this.size,
+          size: w.globals.radialSize,
           value: series[i]
         }); // additionaly, pass size for gradient drawing in the fillPath function
 
@@ -5125,9 +5153,9 @@ var Pie = function () {
         };
 
         if (w.config.chart.type === 'pie') {
-          labelPosition = _Utils2.default.polarToCartesian(this.centerX, this.centerY, this.size / 1.25 + w.config.plotOptions.pie.dataLabels.offset, startAngle + (endAngle - startAngle) / 2);
+          labelPosition = _Utils2.default.polarToCartesian(this.centerX, this.centerY, w.globals.radialSize / 1.25 + w.config.plotOptions.pie.dataLabels.offset, startAngle + (endAngle - startAngle) / 2);
         } else if (w.config.chart.type === 'donut') {
-          labelPosition = _Utils2.default.polarToCartesian(this.centerX, this.centerY, (this.size + this.donutSize) / 2 + w.config.plotOptions.pie.dataLabels.offset, startAngle + (endAngle - startAngle) / 2);
+          labelPosition = _Utils2.default.polarToCartesian(this.centerX, this.centerY, (w.globals.radialSize + this.donutSize) / 2 + w.config.plotOptions.pie.dataLabels.offset, startAngle + (endAngle - startAngle) / 2);
         }
 
         elPieArc.add(elPath);
@@ -5145,6 +5173,7 @@ var Pie = function () {
 
         if (this.dynamicAnim && w.globals.dataChanged) {
           this.animatePaths(elPath, {
+            size: w.globals.radialSize,
             endAngle: endAngle,
             startAngle: startAngle,
             prevStartAngle: prevStartAngle,
@@ -5156,6 +5185,7 @@ var Pie = function () {
           });
         } else {
           this.animatePaths(elPath, {
+            size: w.globals.radialSize,
             endAngle: endAngle,
             startAngle: startAngle,
             i: i,
@@ -5265,11 +5295,7 @@ var Pie = function () {
       var me = this;
       var w = this.w;
 
-      var size = me.size;
-
-      if (!size) {
-        size = opts.size;
-      }
+      var size = opts.size;
 
       var path = void 0;
 
@@ -5348,7 +5374,7 @@ var Pie = function () {
       var me = this;
       var path = void 0;
 
-      var size = me.size + 4;
+      var size = me.w.globals.radialSize + 4;
       var elPath = w.globals.dom.Paper.select('#apexcharts-' + w.config.chart.type.toLowerCase() + '-slice-' + i).members[0];
 
       var pathFrom = elPath.attr('d');
@@ -5593,8 +5619,6 @@ var Pie = function () {
   }, {
     key: 'revertDataLabelsInner',
     value: function revertDataLabelsInner(el, dataLabelsConfig, event) {
-      var _this = this;
-
       var w = this.w;
       var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
 
@@ -5605,10 +5629,10 @@ var Pie = function () {
         var slices = document.querySelectorAll('.apexcharts-pie-area');
         var sliceOut = false;
 
-        slices.forEach(function (s) {
+        Array.prototype.forEach.call(slices, function (s) {
           if (s.getAttribute('data:pieClicked') === 'true') {
             sliceOut = true;
-            _this.printDataLabelsInner(s, dataLabelsConfig);
+            this.printDataLabelsInner(s, dataLabelsConfig);
           }
         });
 
@@ -5904,7 +5928,7 @@ var Dimensions = function () {
           gl.gridHeight = gl.svgHeight - lgRect.height - 35;
           gl.gridWidth = gl.gridHeight;
 
-          gl.translateY = lgRect.height + offY;
+          gl.translateY = lgRect.height + offY + 10;
           gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
           break;
         case 'left':
@@ -6010,7 +6034,7 @@ var Dimensions = function () {
         gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5;
       }
 
-      if (w.config.legend.show && w.config.legend.position === 'bottom' && !w.config.legend.floating && w.config.series.length > 1) {
+      if (w.config.legend.show && w.config.legend.position === 'bottom' && !w.config.legend.floating && (w.config.series.length > 1 || !w.globals.axisCharts || w.config.legend.showForSingleSeries)) {
         gridShrinkOffset += 10;
       }
 
@@ -6747,6 +6771,18 @@ var Range = function () {
           var minY = sameScaleMin[si];
           var maxY = sameScaleMax[si];
 
+          if (cnf.chart.stacked) {
+            // for stacked charts, we need to add the values
+            maxY = 0;
+
+            s.forEach(function (ind, k) {
+              maxY += ind.value;
+              if (minY !== Number.MIN_VALUE) {
+                minY += sameScaleMinYArr[si][k].value;
+              }
+            });
+          }
+
           s.forEach(function (ind, k) {
             if (s[k].key === i) {
               if (cnf.yaxis[i].min !== undefined) {
@@ -6772,7 +6808,7 @@ var Range = function () {
     }
   }, {
     key: 'autoScaleY',
-    value: function autoScaleY(ctx, e) {
+    value: function autoScaleY(ctx, yaxis, e) {
       if (!ctx) {
         ctx = this;
       }
@@ -6781,10 +6817,9 @@ var Range = function () {
 
       var seriesX = w.globals.seriesX[0];
 
-      var yaxis = _Utils2.default.clone(w.config.yaxis);
       var isStacked = w.config.chart.stacked;
 
-      w.config.yaxis.forEach(function (yaxe, yI) {
+      yaxis.forEach(function (yaxe, yI) {
         var firstXIndex = 0;
 
         for (var xi = 0; xi < seriesX.length; xi++) {
@@ -6884,7 +6919,7 @@ var _Graphics = __webpack_require__(1);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _AxesUtils = __webpack_require__(24);
+var _AxesUtils = __webpack_require__(25);
 
 var _AxesUtils2 = _interopRequireDefault(_AxesUtils);
 
@@ -7303,7 +7338,7 @@ var _Utils = __webpack_require__(0);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _AxesUtils = __webpack_require__(24);
+var _AxesUtils = __webpack_require__(25);
 
 var _AxesUtils2 = _interopRequireDefault(_AxesUtils);
 
@@ -7749,7 +7784,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Defaults = __webpack_require__(25);
+var _Defaults = __webpack_require__(26);
 
 var _Defaults2 = _interopRequireDefault(_Defaults);
 
@@ -8077,7 +8112,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       **/
 
 
-var _en = __webpack_require__(30);
+var _en = __webpack_require__(31);
 
 var _en2 = _interopRequireDefault(_en);
 
@@ -9353,7 +9388,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _promisePolyfill = __webpack_require__(28);
+var _promisePolyfill = __webpack_require__(29);
 
 var _promisePolyfill2 = _interopRequireDefault(_promisePolyfill);
 
@@ -9471,6 +9506,569 @@ exports.default = Exports;
 
 /***/ }),
 /* 22 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _CoreUtils = __webpack_require__(2);
+
+var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
+
+var _Dimensions = __webpack_require__(13);
+
+var _Dimensions2 = _interopRequireDefault(_Dimensions);
+
+var _Graphics = __webpack_require__(1);
+
+var _Graphics2 = _interopRequireDefault(_Graphics);
+
+var _Pie = __webpack_require__(12);
+
+var _Pie2 = _interopRequireDefault(_Pie);
+
+var _Series = __webpack_require__(7);
+
+var _Series2 = _interopRequireDefault(_Series);
+
+var _Utils = __webpack_require__(0);
+
+var _Utils2 = _interopRequireDefault(_Utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * ApexCharts Legend Class to draw legend.
+ *
+ * @module Legend
+ **/
+
+var Legend = function () {
+  function Legend(ctx, opts) {
+    _classCallCheck(this, Legend);
+
+    this.ctx = ctx;
+    this.w = ctx.w;
+
+    this.onLegendClick = this.onLegendClick.bind(this);
+    this.onLegendHovered = this.onLegendHovered.bind(this);
+  }
+
+  _createClass(Legend, [{
+    key: 'init',
+    value: function init() {
+      var w = this.w;
+
+      var gl = w.globals;
+      var cnf = w.config;
+
+      var showLegendAlways = cnf.legend.showForSingleSeries && gl.series.length === 1 || gl.series.length > 1;
+
+      if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
+        while (gl.dom.elLegendWrap.firstChild) {
+          gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild);
+        }
+
+        this.drawLegends();
+        if (!_Utils2.default.isIE11()) {
+          this.appendToForeignObject();
+        } else {
+          // IE11 doesn't supports foreignObject, hence append it to <head>
+          document.getElementsByTagName('head')[0].appendChild(this.getLegendStyles());
+        }
+
+        if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
+          this.legendAlignHorizontal();
+        } else if (cnf.legend.position === 'right' || cnf.legend.position === 'left') {
+          this.legendAlignVertical();
+        }
+      }
+    }
+  }, {
+    key: 'appendToForeignObject',
+    value: function appendToForeignObject() {
+      var gl = this.w.globals;
+
+      gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject');
+
+      var elForeign = gl.dom.elLegendForeign;
+
+      elForeign.setAttribute('x', 0);
+      elForeign.setAttribute('y', 0);
+      elForeign.setAttribute('width', gl.svgWidth);
+      elForeign.setAttribute('height', gl.svgHeight);
+      gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+
+      elForeign.appendChild(gl.dom.elLegendWrap);
+      elForeign.appendChild(this.getLegendStyles());
+
+      gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node);
+    }
+  }, {
+    key: 'drawLegends',
+    value: function drawLegends() {
+      var self = this;
+      var w = this.w;
+
+      var fontFamily = w.config.legend.fontFamily;
+
+      var legendNames = w.globals.seriesNames;
+      var fillcolor = w.globals.colors.slice();
+
+      if (w.config.chart.type === 'heatmap') {
+        var ranges = w.config.plotOptions.heatmap.colorScale.ranges;
+        legendNames = ranges.map(function (colorScale) {
+          return colorScale.name ? colorScale.name : colorScale.from + ' - ' + colorScale.to;
+        });
+        fillcolor = ranges.map(function (color) {
+          return color.color;
+        });
+      }
+      var legendFormatter = w.globals.legendFormatter;
+
+      for (var i = 0; i <= legendNames.length - 1; i++) {
+        var text = legendFormatter(legendNames[i], { seriesIndex: i, w: w });
+
+        var collapsedSeries = false;
+        var ancillaryCollapsedSeries = false;
+        if (w.globals.collapsedSeries.length > 0) {
+          for (var c = 0; c < w.globals.collapsedSeries.length; c++) {
+            if (w.globals.collapsedSeries[c].index === i) {
+              collapsedSeries = true;
+            }
+          }
+        }
+
+        if (w.globals.ancillaryCollapsedSeriesIndices.length > 0) {
+          for (var _c = 0; _c < w.globals.ancillaryCollapsedSeriesIndices.length; _c++) {
+            if (w.globals.ancillaryCollapsedSeriesIndices[_c] === i) {
+              ancillaryCollapsedSeries = true;
+            }
+          }
+        }
+
+        var elMarker = document.createElement('span');
+        elMarker.classList.add('apexcharts-legend-marker');
+
+        var mOffsetX = w.config.legend.markers.offsetX;
+        var mOffsetY = w.config.legend.markers.offsetY;
+        var mHeight = w.config.legend.markers.height;
+        var mWidth = w.config.legend.markers.width;
+        var mBorderWidth = w.config.legend.markers.strokeWidth;
+        var mBorderColor = w.config.legend.markers.strokeColor;
+        var mBorderRadius = w.config.legend.markers.radius;
+
+        var mStyle = elMarker.style;
+
+        mStyle.background = fillcolor[i];
+        mStyle.color = fillcolor[i];
+        mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px';
+        mStyle.width = Array.isArray(mWidth) ? parseFloat(mWidth[i]) + 'px' : parseFloat(mWidth) + 'px';
+        mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX;
+        mStyle.top = Array.isArray(mOffsetY) ? mOffsetY[i] : mOffsetY;
+        mStyle.borderWidth = Array.isArray(mBorderWidth) ? mBorderWidth[i] : mBorderWidth;
+        mStyle.borderColor = Array.isArray(mBorderColor) ? mBorderColor[i] : mBorderColor;
+        mStyle.borderRadius = Array.isArray(mBorderRadius) ? parseFloat(mBorderRadius[i]) + 'px' : parseFloat(mBorderRadius) + 'px';
+
+        if (w.config.legend.markers.customHTML) {
+          if (Array.isArray(w.config.legend.markers.customHTML)) {
+            elMarker.innerHTML = w.config.legend.markers.customHTML[i]();
+          } else {
+            elMarker.innerHTML = w.config.legend.markers.customHTML();
+          }
+        }
+
+        _Graphics2.default.setAttrs(elMarker, {
+          rel: i + 1,
+          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
+        });
+
+        if (collapsedSeries || ancillaryCollapsedSeries) {
+          elMarker.classList.add('inactive-legend');
+        }
+
+        var elLegend = document.createElement('div');
+
+        var elLegendText = document.createElement('span');
+        elLegendText.classList.add('apexcharts-legend-text');
+        elLegendText.innerHTML = text;
+
+        var textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors;
+
+        if (!textColor) {
+          textColor = w.config.chart.foreColor;
+        }
+
+        elLegendText.style.color = textColor;
+
+        elLegendText.style.fontSize = parseFloat(w.config.legend.fontSize) + 'px';
+        elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily;
+
+        _Graphics2.default.setAttrs(elLegendText, {
+          rel: i + 1,
+          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
+        });
+
+        elLegend.appendChild(elMarker);
+        elLegend.appendChild(elLegendText);
+
+        var coreUtils = new _CoreUtils2.default(this.ctx);
+        if (!w.config.legend.showForZeroSeries) {
+          var total = coreUtils.getSeriesTotalByIndex(i);
+
+          if (total === 0 && coreUtils.seriesHaveSameValues(i) && !coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1) {
+            elLegend.classList.add('apexcharts-hidden-zero-series');
+          }
+        }
+
+        if (!w.config.legend.showForNullSeries) {
+          if (coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1) {
+            elLegend.classList.add('apexcharts-hidden-null-series');
+          }
+        }
+
+        w.globals.dom.elLegendWrap.appendChild(elLegend);
+        w.globals.dom.elLegendWrap.classList.add(w.config.legend.horizontalAlign);
+        // w.globals.dom.elLegendWrap.classList.add(w.config.legend.verticalAlign)
+        w.globals.dom.elLegendWrap.classList.add('position-' + w.config.legend.position);
+
+        elLegend.classList.add('apexcharts-legend-series');
+        elLegend.style.margin = w.config.legend.itemMargin.horizontal + 'px ' + w.config.legend.itemMargin.vertical + 'px';
+        w.globals.dom.elLegendWrap.style.width = w.config.legend.width ? w.config.legend.width + 'px' : '';
+        w.globals.dom.elLegendWrap.style.height = w.config.legend.height ? w.config.legend.height + 'px' : '';
+
+        _Graphics2.default.setAttrs(elLegend, {
+          rel: i + 1,
+          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
+        });
+
+        if (collapsedSeries || ancillaryCollapsedSeries) {
+          elLegend.classList.add('inactive-legend');
+        }
+
+        if (!w.config.legend.onItemClick.toggleDataSeries) {
+          elLegend.classList.add('no-click');
+        }
+      }
+
+      // for now - just prevent click on heatmap legend - and allow hover only
+      var clickAllowed = w.config.chart.type !== 'heatmap';
+
+      if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
+        w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true);
+      }
+
+      if (w.config.legend.onItemHover.highlightDataSeries) {
+        w.globals.dom.elWrap.addEventListener('mousemove', self.onLegendHovered, true);
+        w.globals.dom.elWrap.addEventListener('mouseout', self.onLegendHovered, true);
+      }
+    }
+  }, {
+    key: 'getLegendBBox',
+    value: function getLegendBBox() {
+      var w = this.w;
+      var currLegendsWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend');
+      var currLegendsWrapRect = currLegendsWrap.getBoundingClientRect();
+
+      var currLegendsWrapWidth = currLegendsWrapRect.width;
+      var currLegendsWrapHeight = currLegendsWrapRect.height;
+
+      return {
+        clwh: currLegendsWrapHeight,
+        clww: currLegendsWrapWidth
+      };
+    }
+  }, {
+    key: 'setLegendWrapXY',
+    value: function setLegendWrapXY(offsetX, offsetY) {
+      var w = this.w;
+
+      var elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend');
+
+      var legendRect = elLegendWrap.getBoundingClientRect();
+
+      var x = 0;
+      var y = 0;
+
+      if (w.config.legend.position === 'bottom') {
+        y = y + (w.globals.svgHeight - legendRect.height / 2);
+      } else if (w.config.legend.position === 'top') {
+        var dim = new _Dimensions2.default(this.ctx);
+        var titleH = dim.getTitleSubtitleCoords('title').height;
+        var subtitleH = dim.getTitleSubtitleCoords('subtitle').height;
+
+        y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0);
+      }
+
+      elLegendWrap.style.position = 'absolute';
+
+      x = x + offsetX + w.config.legend.offsetX;
+      y = y + offsetY + w.config.legend.offsetY;
+
+      elLegendWrap.style.left = x + 'px';
+      elLegendWrap.style.top = y + 'px';
+
+      if (w.config.legend.position === 'bottom') {
+        elLegendWrap.style.top = 'auto';
+        elLegendWrap.style.bottom = 10 + w.config.legend.offsetY + 'px';
+      } else if (w.config.legend.position === 'right') {
+        elLegendWrap.style.left = 'auto';
+        elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px';
+      }
+
+      if (elLegendWrap.style.width) {
+        elLegendWrap.style.width = parseInt(w.config.legend.width) + 'px';
+      }
+
+      if (elLegendWrap.style.height) {
+        elLegendWrap.style.height = parseInt(w.config.legend.height) + 'px';
+      }
+    }
+  }, {
+    key: 'legendAlignHorizontal',
+    value: function legendAlignHorizontal() {
+      var w = this.w;
+
+      var elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend');
+
+      elLegendWrap.style.right = 0;
+
+      var lRect = this.getLegendBBox();
+
+      var dimensions = new _Dimensions2.default(this.ctx);
+      var titleRect = dimensions.getTitleSubtitleCoords('title');
+      var subtitleRect = dimensions.getTitleSubtitleCoords('subtitle');
+
+      var offsetX = 20;
+      var offsetY = 0;
+
+      // the whole legend box is set to bottom
+      if (w.config.legend.position === 'bottom') {
+        offsetY = -lRect.clwh / 1.8;
+      } else if (w.config.legend.position === 'top') {
+        offsetY = titleRect.height + subtitleRect.height + w.config.title.margin + w.config.subtitle.margin - 15;
+      }
+
+      this.setLegendWrapXY(offsetX, offsetY);
+    }
+  }, {
+    key: 'legendAlignVertical',
+    value: function legendAlignVertical() {
+      var w = this.w;
+
+      var lRect = this.getLegendBBox();
+
+      var offsetY = 20;
+      var offsetX = 0;
+
+      if (w.config.legend.position === 'left') {
+        offsetX = 20;
+      }
+
+      if (w.config.legend.position === 'right') {
+        offsetX = w.globals.svgWidth - lRect.clww - 10;
+      }
+
+      this.setLegendWrapXY(offsetX, offsetY);
+    }
+  }, {
+    key: 'onLegendHovered',
+    value: function onLegendHovered(e) {
+      var w = this.w;
+
+      var hoverOverLegend = e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker');
+
+      if (w.config.chart.type !== 'heatmap') {
+        if (!e.target.classList.contains('inactive-legend') && hoverOverLegend) {
+          var series = new _Series2.default(this.ctx);
+          series.toggleSeriesOnHover(e, e.target);
+        }
+      } else {
+        // for heatmap handling
+        if (hoverOverLegend) {
+          var seriesCnt = parseInt(e.target.getAttribute('rel')) - 1;
+          this.ctx.fireEvent('legendHover', [this.ctx, seriesCnt, this.w]);
+
+          var _series = new _Series2.default(this.ctx);
+          _series.highlightRangeInSeries(e, e.target);
+        }
+      }
+    }
+  }, {
+    key: 'onLegendClick',
+    value: function onLegendClick(e) {
+      if (e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker')) {
+        var seriesCnt = parseInt(e.target.getAttribute('rel')) - 1;
+        var isHidden = e.target.getAttribute('data:collapsed') === 'true';
+
+        var legendClick = this.w.config.chart.events.legendClick;
+        if (typeof legendClick === 'function') {
+          legendClick(this.ctx, seriesCnt, this.w);
+        }
+
+        this.ctx.fireEvent('legendClick', [this.ctx, seriesCnt, this.w]);
+
+        var markerClick = this.w.config.legend.markers.onClick;
+        if (typeof markerClick === 'function' && e.target.classList.contains('apexcharts-legend-marker')) {
+          markerClick(this.ctx, seriesCnt, this.w);
+          this.ctx.fireEvent('legendMarkerClick', [this.ctx, seriesCnt, this.w]);
+        }
+
+        this.toggleDataSeries(seriesCnt, isHidden);
+      }
+    }
+  }, {
+    key: 'getLegendStyles',
+    value: function getLegendStyles() {
+      var stylesheet = document.createElement('style');
+      stylesheet.setAttribute('type', 'text/css');
+
+      var text = '\n    \n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n\n      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n\n      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        justify-content: flex-start;\n      }\n\n      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {\n        justify-content: center;  \n      }\n\n      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {\n        justify-content: flex-end;\n      }\n\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n      }\n\n      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{\n        display: flex;\n        align-items: center;\n      }\n\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n\n      .apexcharts-legend-marker {\n        position: relative;\n        display: inline-block;\n        cursor: pointer;\n        margin-right: 3px;\n      }\n      \n      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{\n        display: inline-block;\n      }\n\n      .apexcharts-legend-series.no-click {\n        cursor: auto;\n      }\n\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n\n      .inactive-legend {\n        opacity: 0.45;\n      }';
+
+      var rules = document.createTextNode(text);
+
+      stylesheet.appendChild(rules);
+
+      return stylesheet;
+    }
+  }, {
+    key: 'toggleDataSeries',
+    value: function toggleDataSeries(seriesCnt, isHidden) {
+      var w = this.w;
+      if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
+        w.globals.resized = true; // we don't want initial animations again
+
+        var seriesEl = null;
+
+        var realIndex = null;
+
+        // yes, make it null. 1 series will rise at a time
+        w.globals.risingSeries = [];
+
+        if (w.globals.axisCharts) {
+          seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[data\\:realIndex=\'' + seriesCnt + '\']');
+          realIndex = parseInt(seriesEl.getAttribute('data:realIndex'));
+        } else {
+          seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[rel=\'' + (seriesCnt + 1) + '\']');
+          realIndex = parseInt(seriesEl.getAttribute('rel')) - 1;
+        }
+
+        if (isHidden) {
+          this.riseCollapsedSeries(w.globals.collapsedSeries, w.globals.collapsedSeriesIndices, realIndex);
+          this.riseCollapsedSeries(w.globals.ancillaryCollapsedSeries, w.globals.ancillaryCollapsedSeriesIndices, realIndex);
+        } else {
+          if (w.globals.axisCharts) {
+            var shouldNotHideYAxis = false;
+
+            if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].show && w.config.yaxis[realIndex].showAlways) {
+              shouldNotHideYAxis = true;
+              if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
+                w.globals.ancillaryCollapsedSeries.push({
+                  index: realIndex,
+                  data: w.config.series[realIndex].data.slice(),
+                  type: seriesEl.parentNode.className.baseVal.split('-')[1]
+                });
+                w.globals.ancillaryCollapsedSeriesIndices.push(realIndex);
+              }
+            }
+
+            if (!shouldNotHideYAxis) {
+              w.globals.collapsedSeries.push({
+                index: realIndex,
+                data: w.config.series[realIndex].data.slice(),
+                type: seriesEl.parentNode.className.baseVal.split('-')[1]
+              });
+              w.globals.collapsedSeriesIndices.push(realIndex);
+
+              var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
+
+              w.globals.risingSeries.splice(removeIndexOfRising, 1);
+            }
+
+            // TODO: AVOID mutating the user's config object below
+            w.config.series[realIndex].data = [];
+          } else {
+            w.globals.collapsedSeries.push({
+              index: realIndex,
+              data: w.config.series[realIndex]
+            });
+            w.globals.collapsedSeriesIndices.push(realIndex);
+            w.config.series[realIndex] = 0;
+          }
+
+          var seriesChildren = seriesEl.childNodes;
+          for (var sc = 0; sc < seriesChildren.length; sc++) {
+            if (seriesChildren[sc].classList.contains('apexcharts-series-markers-wrap')) {
+              if (seriesChildren[sc].classList.contains('apexcharts-hide')) {
+                seriesChildren[sc].classList.remove('apexcharts-hide');
+              } else {
+                seriesChildren[sc].classList.add('apexcharts-hide');
+              }
+            }
+          }
+
+          w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length;
+
+          this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
+        }
+      } else {
+        // for non-axis charts i.e pie / donuts
+        var _seriesEl = w.globals.dom.Paper.select(' .apexcharts-series[rel=\'' + (seriesCnt + 1) + '\'] path');
+
+        var type = w.config.chart.type;
+        if (type === 'pie' || type === 'donut') {
+          var dataLabels = w.config.plotOptions.pie.donut.labels;
+
+          var graphics = new _Graphics2.default(this.ctx);
+          var pie = new _Pie2.default(this.ctx);
+          graphics.pathMouseDown(_seriesEl.members[0], null);
+          pie.printDataLabelsInner(_seriesEl.members[0].node, dataLabels);
+        }
+
+        _seriesEl.fire('click');
+      }
+    }
+  }, {
+    key: 'riseCollapsedSeries',
+    value: function riseCollapsedSeries(series, seriesIndices, realIndex) {
+      var w = this.w;
+
+      if (series.length > 0) {
+        for (var c = 0; c < series.length; c++) {
+          if (series[c].index === realIndex) {
+            if (w.globals.axisCharts) {
+              w.config.series[realIndex].data = series[c].data.slice();
+              series.splice(c, 1);
+              seriesIndices.splice(c, 1);
+              w.globals.risingSeries.push(realIndex);
+            } else {
+              w.config.series[realIndex] = series[c].data;
+              series.splice(c, 1);
+              seriesIndices.splice(c, 1);
+              w.globals.risingSeries.push(realIndex);
+            }
+            this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
+          }
+        }
+      }
+    }
+  }]);
+
+  return Legend;
+}();
+
+exports.default = Legend;
+
+/***/ }),
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9906,7 +10504,7 @@ var Range = function () {
 exports.default = Range;
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10387,7 +10985,7 @@ var Toolbar = function () {
 exports.default = Toolbar;
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10495,7 +11093,7 @@ var AxesUtils = function () {
 exports.default = AxesUtils;
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11183,7 +11781,7 @@ var Defaults = function () {
 exports.default = Defaults;
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11609,7 +12207,7 @@ var Position = function () {
 exports.default = Position;
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11927,7 +12525,7 @@ var Utils = function () {
 exports.default = Utils;
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -12170,7 +12768,7 @@ exports.default = Promise;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(65).setImmediate))
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -12200,13 +12798,13 @@ try {
 module.exports = g;
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ (function(module, exports) {
 
 module.exports = {"name":"en","options":{"months":["January","February","March","April","May","June","July","August","September","October","November","December"],"shortMonths":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"days":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"shortDays":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"toolbar":{"exportToSVG":"Download SVG","exportToPNG":"Download PNG","menu":"Menu","selection":"Selection","selectionZoom":"Selection Zoom","zoomIn":"Zoom In","zoomOut":"Zoom Out","pan":"Panning","reset":"Reset Zoom"}}}
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -12223,7 +12821,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Annotations = __webpack_require__(40);
+var _Annotations = __webpack_require__(41);
 
 var _Annotations2 = _interopRequireDefault(_Annotations);
 
@@ -12231,7 +12829,7 @@ var _Animations = __webpack_require__(5);
 
 var _Animations2 = _interopRequireDefault(_Animations);
 
-var _Base = __webpack_require__(41);
+var _Base = __webpack_require__(42);
 
 var _Base2 = _interopRequireDefault(_Base);
 
@@ -12239,7 +12837,7 @@ var _Config = __webpack_require__(17);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Core = __webpack_require__(42);
+var _Core = __webpack_require__(43);
 
 var _Core2 = _interopRequireDefault(_Core);
 
@@ -12251,7 +12849,7 @@ var _Crosshairs = __webpack_require__(20);
 
 var _Crosshairs2 = _interopRequireDefault(_Crosshairs);
 
-var _Defaults = __webpack_require__(25);
+var _Defaults = __webpack_require__(26);
 
 var _Defaults2 = _interopRequireDefault(_Defaults);
 
@@ -12275,7 +12873,7 @@ var _Graphics = __webpack_require__(1);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Legend = __webpack_require__(43);
+var _Legend = __webpack_require__(22);
 
 var _Legend2 = _interopRequireDefault(_Legend);
 
@@ -12283,7 +12881,7 @@ var _Markers = __webpack_require__(6);
 
 var _Markers2 = _interopRequireDefault(_Markers);
 
-var _Range = __webpack_require__(22);
+var _Range = __webpack_require__(23);
 
 var _Range2 = _interopRequireDefault(_Range);
 
@@ -12315,7 +12913,7 @@ var _TitleSubtitle = __webpack_require__(47);
 
 var _TitleSubtitle2 = _interopRequireDefault(_TitleSubtitle);
 
-var _Toolbar = __webpack_require__(23);
+var _Toolbar = __webpack_require__(24);
 
 var _Toolbar2 = _interopRequireDefault(_Toolbar);
 
@@ -12323,7 +12921,7 @@ var _Options = __webpack_require__(18);
 
 var _Options2 = _interopRequireDefault(_Options);
 
-var _promisePolyfill = __webpack_require__(28);
+var _promisePolyfill = __webpack_require__(29);
 
 var _promisePolyfill2 = _interopRequireDefault(_promisePolyfill);
 
@@ -12345,7 +12943,7 @@ __webpack_require__(67);
 
 __webpack_require__(68);
 
-var _en = __webpack_require__(30);
+var _en = __webpack_require__(31);
 
 var _en2 = _interopRequireDefault(_en);
 
@@ -12555,7 +13153,9 @@ var ApexCharts = function () {
       this.titleSubtitle.draw();
 
       // legend is calculated here before coreCalculations because it affects the plottable area
-      this.legend.init();
+      if (!w.globals.noData) {
+        this.legend.init();
+      }
 
       // check whether in multiple series, all series share the same X
       this.series.hasAllSeriesEqualX();
@@ -12684,6 +13284,10 @@ var ApexCharts = function () {
             fn.method(fn.params, false, fn.context);
           });
         }
+
+        if (!w.globals.axisCharts && !w.globals.noData) {
+          me.core.resizeNonAxisCharts();
+        }
         resolve(me);
       });
     }
@@ -12714,6 +13318,7 @@ var ApexCharts = function () {
 
       var w = this.w;
       if (options.series) {
+        this.resetSeries(false);
         if (options.series[0].data) {
           options.series = options.series.map(function (s, i) {
             return _extends({}, w.config.series[i], {
@@ -12821,6 +13426,7 @@ var ApexCharts = function () {
       var animate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
       var overwriteInitialSeries = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
+      this.resetSeries(false);
       this.revertDefaultAxisMinMax();
       return this._updateSeries(newSeries, animate, overwriteInitialSeries);
     }
@@ -12839,6 +13445,7 @@ var ApexCharts = function () {
 
       var newSeries = this.w.config.series.slice();
       newSeries.push(newSerie);
+      this.resetSeries(false);
       this.revertDefaultAxisMinMax();
       return this._updateSeries(newSeries, animate, overwriteInitialSeries);
     }
@@ -13141,9 +13748,11 @@ var ApexCharts = function () {
       this.legend.toggleDataSeries(seriesCnt, isHidden);
     }
   }, {
-    key: 'resetToggleSeries',
-    value: function resetToggleSeries() {
-      this.legend.resetToggleDataSeries();
+    key: 'resetSeries',
+    value: function resetSeries() {
+      var shouldUpdateChart = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+
+      this.series.resetSeries(shouldUpdateChart);
     }
   }, {
     key: 'setupEventHandlers',
@@ -13306,6 +13915,8 @@ var ApexCharts = function () {
       } else {
         console.warn('toggleDataPointSelection: Element not found');
       }
+
+      return elPath.node ? elPath.node : null;
     }
   }, {
     key: 'setCurrentLocaleValues',
@@ -13488,7 +14099,7 @@ var ApexCharts = function () {
 exports.default = ApexCharts;
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13570,7 +14181,7 @@ function toComment(sourceMap) {
 }
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14113,7 +14724,7 @@ var BarStacked = function (_Bar) {
 exports.default = BarStacked;
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14418,7 +15029,7 @@ var CandleStick = function (_Bar) {
 exports.default = CandleStick;
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14788,7 +15399,7 @@ var HeatMap = function () {
 exports.default = HeatMap;
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15442,7 +16053,7 @@ var Line = function () {
 exports.default = Line;
 
 /***/ }),
-/* 37 */
+/* 38 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15941,7 +16552,7 @@ var Radar = function () {
 exports.default = Radar;
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16029,6 +16640,8 @@ var Radial = function (_Pie) {
         class: 'apexcharts-radialbar'
       });
 
+      if (w.globals.noData) return ret;
+
       var elSeries = graphics.group();
 
       var centerY = this.defaultSize / 2;
@@ -16061,6 +16674,14 @@ var Radial = function (_Pie) {
         series: series
       });
 
+      var totalAngle = 360;
+
+      if (w.config.plotOptions.radialBar.startAngle < 0) {
+        totalAngle = Math.abs(w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle);
+      }
+
+      w.globals.radialSize = size - size / (360 / (360 - totalAngle)) + 10;
+
       elSeries.add(elG.g);
 
       if (w.config.plotOptions.radialBar.hollow.position === 'front') {
@@ -16080,7 +16701,9 @@ var Radial = function (_Pie) {
       var w = this.w;
       var graphics = new _Graphics2.default(this.ctx);
 
-      var g = graphics.group();
+      var g = graphics.group({
+        class: 'apexcharts-tracks'
+      });
 
       var filters = new _Filters2.default(this.ctx);
       var fill = new _Fill2.default(this.ctx);
@@ -16133,8 +16756,7 @@ var Radial = function (_Pie) {
 
         elPath.attr('id', 'apexcharts-radialbarTrack-' + i);
 
-        var pie = new _Pie3.default(this.ctx);
-        pie.animatePaths(elPath, {
+        this.animatePaths(elPath, {
           centerX: opts.centerX,
           centerY: opts.centerY,
           endAngle: endAngle,
@@ -16191,11 +16813,10 @@ var Radial = function (_Pie) {
         shown = 0;
       }
 
-      var pie = new _Pie3.default(this.ctx);
       var dataLabels = null;
 
       if (this.radialDataLabels.show) {
-        dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
+        dataLabels = this.renderInnerDataLabels(this.radialDataLabels, {
           hollowSize: hollowSize,
           centerX: opts.centerX,
           centerY: opts.centerY,
@@ -16290,8 +16911,6 @@ var Radial = function (_Pie) {
 
         this.addListeners(elPath, this.radialDataLabels);
 
-        var _pie = new _Pie3.default(this.ctx);
-
         elRadialBarArc.add(elPath);
 
         elPath.attr({
@@ -16301,7 +16920,7 @@ var Radial = function (_Pie) {
         });
 
         var dur = 0;
-        if (_pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+        if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
           dur = (endAngle - startAngle) / 360 * w.config.chart.animations.speed;
 
           this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
@@ -16315,7 +16934,7 @@ var Radial = function (_Pie) {
           this.animBeginArr.push(this.animDur);
         }
 
-        _pie.animatePaths(elPath, {
+        this.animatePaths(elPath, {
           centerX: opts.centerX,
           centerY: opts.centerY,
           endAngle: endAngle,
@@ -16404,7 +17023,7 @@ var Radial = function (_Pie) {
 exports.default = Radial;
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16766,7 +17385,7 @@ var RangeBar = function (_Bar) {
 exports.default = RangeBar;
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17454,7 +18073,7 @@ var Annotations = function () {
 exports.default = Annotations;
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17512,7 +18131,7 @@ var Base = function () {
 exports.default = Base;
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17529,11 +18148,11 @@ var _Bar = __webpack_require__(8);
 
 var _Bar2 = _interopRequireDefault(_Bar);
 
-var _BarStacked = __webpack_require__(33);
+var _BarStacked = __webpack_require__(34);
 
 var _BarStacked2 = _interopRequireDefault(_BarStacked);
 
-var _CandleStick = __webpack_require__(34);
+var _CandleStick = __webpack_require__(35);
 
 var _CandleStick2 = _interopRequireDefault(_CandleStick);
 
@@ -17549,7 +18168,7 @@ var _DateTime = __webpack_require__(11);
 
 var _DateTime2 = _interopRequireDefault(_DateTime);
 
-var _HeatMap = __webpack_require__(35);
+var _HeatMap = __webpack_require__(36);
 
 var _HeatMap2 = _interopRequireDefault(_HeatMap);
 
@@ -17557,19 +18176,23 @@ var _Pie = __webpack_require__(12);
 
 var _Pie2 = _interopRequireDefault(_Pie);
 
-var _Radar = __webpack_require__(37);
+var _Radar = __webpack_require__(38);
 
 var _Radar2 = _interopRequireDefault(_Radar);
 
-var _Radial = __webpack_require__(38);
+var _Radial = __webpack_require__(39);
 
 var _Radial2 = _interopRequireDefault(_Radial);
 
-var _RangeBar = __webpack_require__(39);
+var _RangeBar = __webpack_require__(40);
 
 var _RangeBar2 = _interopRequireDefault(_RangeBar);
 
-var _Line = __webpack_require__(36);
+var _Legend = __webpack_require__(22);
+
+var _Legend2 = _interopRequireDefault(_Legend);
+
+var _Line = __webpack_require__(37);
 
 var _Line2 = _interopRequireDefault(_Line);
 
@@ -17585,7 +18208,7 @@ var _YAxis = __webpack_require__(16);
 
 var _YAxis2 = _interopRequireDefault(_YAxis);
 
-var _Range = __webpack_require__(22);
+var _Range = __webpack_require__(23);
 
 var _Range2 = _interopRequireDefault(_Range);
 
@@ -17883,6 +18506,9 @@ var Core = function () {
         }
       }
 
+      if (gl.svgWidth < 0) gl.svgWidth = 0;
+      if (gl.svgHeight < 0) gl.svgHeight = 0;
+
       _Graphics2.default.setAttrs(gl.dom.Paper.node, {
         width: gl.svgWidth,
         height: gl.svgHeight
@@ -17908,6 +18534,46 @@ var Core = function () {
         transform: 'translate(' + tX + ', ' + tY + ')'
       };
       _Graphics2.default.setAttrs(gl.dom.elGraphical.node, scalingAttrs);
+    }
+
+    // To prevent extra spacings in the bottom of the chart, we need to recalculate the height for pie/donut/radialbar charts
+
+  }, {
+    key: 'resizeNonAxisCharts',
+    value: function resizeNonAxisCharts() {
+      var w = this.w;
+
+      var gl = w.globals;
+
+      var legendHeight = 0;
+      var offY = 20;
+
+      if (w.config.legend.position === 'top' || w.config.legend.position === 'bottom') {
+        legendHeight = new _Legend2.default(this.ctx).getLegendBBox().clwh + 10;
+      }
+
+      var radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar');
+      var elRadialSize = w.globals.radialSize * 2;
+
+      if (radialEl && w.config.plotOptions.radialBar.startAngle !== -90) {
+        elRadialSize = _Utils2.default.getBoundingClientRect(radialEl).height;
+      }
+
+      var chartInnerDimensions = Math.max(elRadialSize, w.globals.radialSize * 2);
+
+      var newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY;
+
+      if (gl.dom.elLegendForeign) {
+        gl.dom.elLegendForeign.setAttribute('height', newHeight);
+      }
+
+      gl.dom.elWrap.style.height = newHeight + 'px';
+
+      _Graphics2.default.setAttrs(gl.dom.Paper.node, {
+        height: newHeight
+      });
+
+      gl.dom.Paper.node.parentNode.parentNode.style.minHeight = newHeight + 'px';
     }
 
     /*
@@ -17988,8 +18654,6 @@ var Core = function () {
     value: function isMultipleY() {
       // user has supplied an array in yaxis property. So, turn on multipleYAxis flag
       if (this.w.config.yaxis.constructor === Array && this.w.config.yaxis.length > 1) {
-        // first, turn off stacking if multiple y axis
-        this.w.config.chart.stacked = false;
         this.w.globals.isMultipleYAxis = true;
         return true;
       }
@@ -18580,7 +19244,7 @@ var Core = function () {
             var yaxis = _Utils2.default.clone(w.config.yaxis);
             if (w.config.chart.brush.autoScaleYaxis) {
               var scale = new _Scales2.default(targetChart);
-              yaxis = scale.autoScaleY(targetChart, e);
+              yaxis = scale.autoScaleY(targetChart, yaxis, e);
             }
             targetChart._updateOptions({
               xaxis: {
@@ -18599,619 +19263,6 @@ var Core = function () {
 }();
 
 exports.default = Core;
-
-/***/ }),
-/* 43 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _CoreUtils = __webpack_require__(2);
-
-var _CoreUtils2 = _interopRequireDefault(_CoreUtils);
-
-var _Dimensions = __webpack_require__(13);
-
-var _Dimensions2 = _interopRequireDefault(_Dimensions);
-
-var _Graphics = __webpack_require__(1);
-
-var _Graphics2 = _interopRequireDefault(_Graphics);
-
-var _Pie = __webpack_require__(12);
-
-var _Pie2 = _interopRequireDefault(_Pie);
-
-var _Series = __webpack_require__(7);
-
-var _Series2 = _interopRequireDefault(_Series);
-
-var _Utils = __webpack_require__(0);
-
-var _Utils2 = _interopRequireDefault(_Utils);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * ApexCharts Legend Class to draw legend.
- *
- * @module Legend
- **/
-
-var Legend = function () {
-  function Legend(ctx, opts) {
-    _classCallCheck(this, Legend);
-
-    this.ctx = ctx;
-    this.w = ctx.w;
-
-    this.onLegendClick = this.onLegendClick.bind(this);
-    this.onLegendHovered = this.onLegendHovered.bind(this);
-  }
-
-  _createClass(Legend, [{
-    key: 'init',
-    value: function init() {
-      var w = this.w;
-
-      var gl = w.globals;
-      var cnf = w.config;
-
-      var showLegendAlways = cnf.legend.showForSingleSeries && gl.series.length === 1 || gl.series.length > 1;
-
-      if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
-        while (gl.dom.elLegendWrap.firstChild) {
-          gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild);
-        }
-
-        this.drawLegends();
-        if (!_Utils2.default.isIE11()) {
-          this.appendToForeignObject();
-        } else {
-          // IE11 doesn't supports foreignObject, hence append it to <head>
-          document.getElementsByTagName('head')[0].appendChild(this.getLegendStyles());
-        }
-
-        if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
-          this.legendAlignHorizontal();
-        } else if (cnf.legend.position === 'right' || cnf.legend.position === 'left') {
-          this.legendAlignVertical();
-        }
-      }
-    }
-  }, {
-    key: 'appendToForeignObject',
-    value: function appendToForeignObject() {
-      var gl = this.w.globals;
-
-      var elForeign = document.createElementNS(gl.SVGNS, 'foreignObject');
-
-      elForeign.setAttribute('x', 0);
-      elForeign.setAttribute('y', 0);
-      elForeign.setAttribute('width', gl.svgWidth);
-      elForeign.setAttribute('height', gl.svgHeight);
-      gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-
-      elForeign.appendChild(gl.dom.elLegendWrap);
-      elForeign.appendChild(this.getLegendStyles());
-
-      gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node);
-    }
-  }, {
-    key: 'drawLegends',
-    value: function drawLegends() {
-      var self = this;
-      var w = this.w;
-
-      var fontFamily = w.config.legend.fontFamily;
-
-      var legendNames = w.globals.seriesNames;
-      var fillcolor = w.globals.colors.slice();
-
-      if (w.config.chart.type === 'heatmap') {
-        var ranges = w.config.plotOptions.heatmap.colorScale.ranges;
-        legendNames = ranges.map(function (colorScale) {
-          return colorScale.name ? colorScale.name : colorScale.from + ' - ' + colorScale.to;
-        });
-        fillcolor = ranges.map(function (color) {
-          return color.color;
-        });
-      }
-      var legendFormatter = w.globals.legendFormatter;
-
-      for (var i = 0; i <= legendNames.length - 1; i++) {
-        var text = legendFormatter(legendNames[i], { seriesIndex: i, w: w });
-
-        var collapsedSeries = false;
-        var ancillaryCollapsedSeries = false;
-        if (w.globals.collapsedSeries.length > 0) {
-          for (var c = 0; c < w.globals.collapsedSeries.length; c++) {
-            if (w.globals.collapsedSeries[c].index === i) {
-              collapsedSeries = true;
-            }
-          }
-        }
-
-        if (w.globals.ancillaryCollapsedSeriesIndices.length > 0) {
-          for (var _c = 0; _c < w.globals.ancillaryCollapsedSeriesIndices.length; _c++) {
-            if (w.globals.ancillaryCollapsedSeriesIndices[_c] === i) {
-              ancillaryCollapsedSeries = true;
-            }
-          }
-        }
-
-        var elMarker = document.createElement('span');
-        elMarker.classList.add('apexcharts-legend-marker');
-
-        var mOffsetX = w.config.legend.markers.offsetX;
-        var mOffsetY = w.config.legend.markers.offsetY;
-        var mHeight = w.config.legend.markers.height;
-        var mWidth = w.config.legend.markers.width;
-        var mBorderWidth = w.config.legend.markers.strokeWidth;
-        var mBorderColor = w.config.legend.markers.strokeColor;
-        var mBorderRadius = w.config.legend.markers.radius;
-
-        var mStyle = elMarker.style;
-
-        mStyle.background = fillcolor[i];
-        mStyle.color = fillcolor[i];
-        mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px';
-        mStyle.width = Array.isArray(mWidth) ? parseFloat(mWidth[i]) + 'px' : parseFloat(mWidth) + 'px';
-        mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX;
-        mStyle.top = Array.isArray(mOffsetY) ? mOffsetY[i] : mOffsetY;
-        mStyle.borderWidth = Array.isArray(mBorderWidth) ? mBorderWidth[i] : mBorderWidth;
-        mStyle.borderColor = Array.isArray(mBorderColor) ? mBorderColor[i] : mBorderColor;
-        mStyle.borderRadius = Array.isArray(mBorderRadius) ? parseFloat(mBorderRadius[i]) + 'px' : parseFloat(mBorderRadius) + 'px';
-
-        if (w.config.legend.markers.customHTML) {
-          if (Array.isArray(w.config.legend.markers.customHTML)) {
-            elMarker.innerHTML = w.config.legend.markers.customHTML[i]();
-          } else {
-            elMarker.innerHTML = w.config.legend.markers.customHTML();
-          }
-        }
-
-        _Graphics2.default.setAttrs(elMarker, {
-          rel: i + 1,
-          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
-        });
-
-        if (collapsedSeries || ancillaryCollapsedSeries) {
-          elMarker.classList.add('inactive-legend');
-        }
-
-        var elLegend = document.createElement('div');
-
-        var elLegendText = document.createElement('span');
-        elLegendText.classList.add('apexcharts-legend-text');
-        elLegendText.innerHTML = text;
-
-        var textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors;
-
-        if (!textColor) {
-          textColor = w.config.chart.foreColor;
-        }
-
-        elLegendText.style.color = textColor;
-
-        elLegendText.style.fontSize = parseFloat(w.config.legend.fontSize) + 'px';
-        elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily;
-
-        _Graphics2.default.setAttrs(elLegendText, {
-          rel: i + 1,
-          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
-        });
-
-        elLegend.appendChild(elMarker);
-        elLegend.appendChild(elLegendText);
-
-        var coreUtils = new _CoreUtils2.default(this.ctx);
-        if (!w.config.legend.showForZeroSeries) {
-          var total = coreUtils.getSeriesTotalByIndex(i);
-
-          if (total === 0 && coreUtils.seriesHaveSameValues(i) && !coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1) {
-            elLegend.classList.add('apexcharts-hidden-zero-series');
-          }
-        }
-
-        if (!w.config.legend.showForNullSeries) {
-          if (coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1) {
-            elLegend.classList.add('apexcharts-hidden-null-series');
-          }
-        }
-
-        w.globals.dom.elLegendWrap.appendChild(elLegend);
-        w.globals.dom.elLegendWrap.classList.add(w.config.legend.horizontalAlign);
-        // w.globals.dom.elLegendWrap.classList.add(w.config.legend.verticalAlign)
-        w.globals.dom.elLegendWrap.classList.add('position-' + w.config.legend.position);
-
-        elLegend.classList.add('apexcharts-legend-series');
-        elLegend.style.margin = w.config.legend.itemMargin.horizontal + 'px ' + w.config.legend.itemMargin.vertical + 'px';
-        w.globals.dom.elLegendWrap.style.width = w.config.legend.width ? w.config.legend.width + 'px' : '';
-        w.globals.dom.elLegendWrap.style.height = w.config.legend.height ? w.config.legend.height + 'px' : '';
-
-        _Graphics2.default.setAttrs(elLegend, {
-          rel: i + 1,
-          'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
-        });
-
-        if (collapsedSeries || ancillaryCollapsedSeries) {
-          elLegend.classList.add('inactive-legend');
-        }
-
-        if (!w.config.legend.onItemClick.toggleDataSeries) {
-          elLegend.classList.add('no-click');
-        }
-      }
-
-      // for now - just prevent click on heatmap legend - and allow hover only
-      var clickAllowed = w.config.chart.type !== 'heatmap';
-
-      if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
-        w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true);
-      }
-
-      if (w.config.legend.onItemHover.highlightDataSeries) {
-        w.globals.dom.elWrap.addEventListener('mousemove', self.onLegendHovered, true);
-        w.globals.dom.elWrap.addEventListener('mouseout', self.onLegendHovered, true);
-      }
-    }
-  }, {
-    key: 'getLegendBBox',
-    value: function getLegendBBox() {
-      var w = this.w;
-      var currLegendsWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend');
-      var currLegendsWrapRect = currLegendsWrap.getBoundingClientRect();
-
-      var currLegendsWrapWidth = currLegendsWrapRect.width;
-      var currLegendsWrapHeight = currLegendsWrapRect.height;
-
-      return {
-        clwh: currLegendsWrapHeight,
-        clww: currLegendsWrapWidth
-      };
-    }
-  }, {
-    key: 'setLegendWrapXY',
-    value: function setLegendWrapXY(offsetX, offsetY) {
-      var w = this.w;
-
-      var elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend');
-
-      var legendRect = elLegendWrap.getBoundingClientRect();
-
-      var x = 0;
-      var y = 0;
-
-      if (w.config.legend.position === 'bottom') {
-        y = y + (w.globals.svgHeight - legendRect.height / 2);
-      } else if (w.config.legend.position === 'top') {
-        var dim = new _Dimensions2.default(this.ctx);
-        var titleH = dim.getTitleSubtitleCoords('title').height;
-        var subtitleH = dim.getTitleSubtitleCoords('subtitle').height;
-
-        y = y + (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0);
-      }
-
-      elLegendWrap.style.position = 'absolute';
-
-      x = x + offsetX + w.config.legend.offsetX;
-      y = y + offsetY + w.config.legend.offsetY;
-
-      elLegendWrap.style.left = x + 'px';
-      elLegendWrap.style.top = y + 'px';
-
-      if (w.config.legend.position === 'bottom') {
-        elLegendWrap.style.top = 'auto';
-        elLegendWrap.style.bottom = 10 + w.config.legend.offsetY + 'px';
-      } else if (w.config.legend.position === 'right') {
-        elLegendWrap.style.left = 'auto';
-        elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px';
-      }
-
-      if (elLegendWrap.style.width) {
-        elLegendWrap.style.width = parseInt(w.config.legend.width) + 'px';
-      }
-
-      if (elLegendWrap.style.height) {
-        elLegendWrap.style.height = parseInt(w.config.legend.height) + 'px';
-      }
-    }
-  }, {
-    key: 'legendAlignHorizontal',
-    value: function legendAlignHorizontal() {
-      var w = this.w;
-
-      var elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend');
-
-      elLegendWrap.style.right = 0;
-
-      var lRect = this.getLegendBBox();
-
-      var dimensions = new _Dimensions2.default(this.ctx);
-      var titleRect = dimensions.getTitleSubtitleCoords('title');
-      var subtitleRect = dimensions.getTitleSubtitleCoords('subtitle');
-
-      var offsetX = 20;
-      var offsetY = 0;
-
-      // the whole legend box is set to bottom
-      if (w.config.legend.position === 'bottom') {
-        offsetY = -lRect.clwh / 1.8;
-      } else if (w.config.legend.position === 'top') {
-        offsetY = titleRect.height + subtitleRect.height + w.config.title.margin + w.config.subtitle.margin - 15;
-      }
-
-      this.setLegendWrapXY(offsetX, offsetY);
-    }
-  }, {
-    key: 'legendAlignVertical',
-    value: function legendAlignVertical() {
-      var w = this.w;
-
-      var lRect = this.getLegendBBox();
-
-      var offsetY = 20;
-      var offsetX = 0;
-
-      if (w.config.legend.position === 'left') {
-        offsetX = 20;
-      }
-
-      if (w.config.legend.position === 'right') {
-        offsetX = w.globals.svgWidth - lRect.clww - 10;
-      }
-
-      this.setLegendWrapXY(offsetX, offsetY);
-    }
-  }, {
-    key: 'onLegendHovered',
-    value: function onLegendHovered(e) {
-      var w = this.w;
-
-      var hoverOverLegend = e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker');
-
-      if (w.config.chart.type !== 'heatmap') {
-        if (!e.target.classList.contains('inactive-legend') && hoverOverLegend) {
-          var series = new _Series2.default(this.ctx);
-          series.toggleSeriesOnHover(e, e.target);
-        }
-      } else {
-        // for heatmap handling
-        if (hoverOverLegend) {
-          var seriesCnt = parseInt(e.target.getAttribute('rel')) - 1;
-          this.ctx.fireEvent('legendHover', [this.ctx, seriesCnt, this.w]);
-
-          var _series = new _Series2.default(this.ctx);
-          _series.highlightRangeInSeries(e, e.target);
-        }
-      }
-    }
-  }, {
-    key: 'onLegendClick',
-    value: function onLegendClick(e) {
-      if (e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker')) {
-        var seriesCnt = parseInt(e.target.getAttribute('rel')) - 1;
-        var isHidden = e.target.getAttribute('data:collapsed') === 'true';
-
-        var legendClick = this.w.config.chart.events.legendClick;
-        if (typeof legendClick === 'function') {
-          legendClick(this.ctx, seriesCnt, this.w);
-        }
-
-        this.ctx.fireEvent('legendClick', [this.ctx, seriesCnt, this.w]);
-
-        var markerClick = this.w.config.legend.markers.onClick;
-        if (typeof markerClick === 'function' && e.target.classList.contains('apexcharts-legend-marker')) {
-          markerClick(this.ctx, seriesCnt, this.w);
-          this.ctx.fireEvent('legendMarkerClick', [this.ctx, seriesCnt, this.w]);
-        }
-
-        this.toggleDataSeries(seriesCnt, isHidden);
-      }
-    }
-  }, {
-    key: 'getLegendStyles',
-    value: function getLegendStyles() {
-      var stylesheet = document.createElement('style');
-      stylesheet.setAttribute('type', 'text/css');
-
-      var text = '\n    \n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n\n      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n\n      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {\n        justify-content: flex-start;\n      }\n\n      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {\n        justify-content: center;  \n      }\n\n      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {\n        justify-content: flex-end;\n      }\n\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n      }\n\n      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{\n        display: flex;\n        align-items: center;\n      }\n\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n\n      .apexcharts-legend-marker {\n        position: relative;\n        display: inline-block;\n        cursor: pointer;\n        margin-right: 3px;\n      }\n      \n      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{\n        display: inline-block;\n      }\n\n      .apexcharts-legend-series.no-click {\n        cursor: auto;\n      }\n\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n\n      .inactive-legend {\n        opacity: 0.45;\n      }';
-
-      var rules = document.createTextNode(text);
-
-      stylesheet.appendChild(rules);
-
-      return stylesheet;
-    }
-  }, {
-    key: 'resetToggleDataSeries',
-    value: function resetToggleDataSeries() {
-      var w = this.w;
-
-      var seriesEls = null;
-
-      var realIndexes = [];
-
-      if (w.globals.axisCharts) {
-        seriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series[data\\:realIndex]');
-        seriesEls = _Utils2.default.listToArray(seriesEls);
-
-        seriesEls.forEach(function (v) {
-          realIndexes.push(parseInt(v.getAttribute('data:realIndex')));
-        });
-      } else {
-        seriesEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series[rel]');
-        seriesEls = _Utils2.default.listToArray(seriesEls);
-
-        seriesEls.forEach(function (v) {
-          realIndexes.push(parseInt(v.getAttribute('rel')) - 1);
-        });
-      }
-
-      realIndexes.sort();
-
-      if (w.globals.collapsedSeries.length > 0) {
-        var risingSeries = w.globals.risingSeries.slice();
-        var series = w.config.series.slice();
-
-        for (var c = 0; c < w.globals.collapsedSeries.length; c++) {
-          var index = realIndexes.indexOf(w.globals.collapsedSeries[c].index);
-
-          if (index !== -1) {
-            if (w.globals.axisCharts) {
-              series[index].data = w.globals.collapsedSeries.slice()[c].data.slice();
-            } else {
-              series[index] = w.globals.collapsedSeries.slice()[c].data;
-            }
-            risingSeries.push(index);
-          }
-        }
-        w.globals.collapsedSeries = [];
-        w.globals.ancillaryCollapsedSeries = [];
-        w.globals.collapsedSeriesIndices = [];
-        w.globals.ancillaryCollapsedSeriesIndices = [];
-        w.globals.risingSeries = risingSeries;
-        w.config.series = series;
-        this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
-      }
-    }
-  }, {
-    key: 'toggleDataSeries',
-    value: function toggleDataSeries(seriesCnt, isHidden) {
-      var w = this.w;
-      if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
-        w.globals.resized = true; // we don't want initial animations again
-
-        var seriesEl = null;
-
-        var realIndex = null;
-
-        // yes, make it null. 1 series will rise at a time
-        w.globals.risingSeries = [];
-
-        if (w.globals.axisCharts) {
-          seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[data\\:realIndex=\'' + seriesCnt + '\']');
-          realIndex = parseInt(seriesEl.getAttribute('data:realIndex'));
-        } else {
-          seriesEl = w.globals.dom.baseEl.querySelector('.apexcharts-series[rel=\'' + (seriesCnt + 1) + '\']');
-          realIndex = parseInt(seriesEl.getAttribute('rel')) - 1;
-        }
-
-        if (isHidden) {
-          this.riseCollapsedSeries(w.globals.collapsedSeries, w.globals.collapsedSeriesIndices, realIndex);
-          this.riseCollapsedSeries(w.globals.ancillaryCollapsedSeries, w.globals.ancillaryCollapsedSeriesIndices, realIndex);
-        } else {
-          if (w.globals.axisCharts) {
-            var shouldNotHideYAxis = false;
-
-            if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].show && w.config.yaxis[realIndex].showAlways) {
-              shouldNotHideYAxis = true;
-              if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
-                w.globals.ancillaryCollapsedSeries.push({
-                  index: realIndex,
-                  data: w.config.series[realIndex].data.slice(),
-                  type: seriesEl.parentNode.className.baseVal.split('-')[1]
-                });
-                w.globals.ancillaryCollapsedSeriesIndices.push(realIndex);
-              }
-            }
-
-            if (!shouldNotHideYAxis) {
-              w.globals.collapsedSeries.push({
-                index: realIndex,
-                data: w.config.series[realIndex].data.slice(),
-                type: seriesEl.parentNode.className.baseVal.split('-')[1]
-              });
-              w.globals.collapsedSeriesIndices.push(realIndex);
-
-              var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
-
-              w.globals.risingSeries.splice(removeIndexOfRising, 1);
-            }
-
-            // TODO: AVOID mutating the user's config object below
-            w.config.series[realIndex].data = [];
-          } else {
-            w.globals.collapsedSeries.push({
-              index: realIndex,
-              data: w.config.series[realIndex]
-            });
-            w.globals.collapsedSeriesIndices.push(realIndex);
-            w.config.series[realIndex] = 0;
-          }
-
-          var seriesChildren = seriesEl.childNodes;
-          for (var sc = 0; sc < seriesChildren.length; sc++) {
-            if (seriesChildren[sc].classList.contains('apexcharts-series-markers-wrap')) {
-              if (seriesChildren[sc].classList.contains('apexcharts-hide')) {
-                seriesChildren[sc].classList.remove('apexcharts-hide');
-              } else {
-                seriesChildren[sc].classList.add('apexcharts-hide');
-              }
-            }
-          }
-
-          w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.globals.series.length;
-
-          this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
-        }
-      } else {
-        // for non-axis charts i.e pie / donuts
-        var _seriesEl = w.globals.dom.Paper.select(' .apexcharts-series[rel=\'' + (seriesCnt + 1) + '\'] path');
-
-        var type = w.config.chart.type;
-        if (type === 'pie' || type === 'donut') {
-          var dataLabels = w.config.plotOptions.pie.donut.labels;
-
-          var graphics = new _Graphics2.default(this.ctx);
-          var pie = new _Pie2.default(this.ctx);
-          graphics.pathMouseDown(_seriesEl.members[0], null);
-          pie.printDataLabelsInner(_seriesEl.members[0].node, dataLabels);
-        }
-
-        _seriesEl.fire('click');
-      }
-    }
-  }, {
-    key: 'riseCollapsedSeries',
-    value: function riseCollapsedSeries(series, seriesIndices, realIndex) {
-      var w = this.w;
-
-      if (series.length > 0) {
-        for (var c = 0; c < series.length; c++) {
-          if (series[c].index === realIndex) {
-            if (w.globals.axisCharts) {
-              w.config.series[realIndex].data = series[c].data.slice();
-              series.splice(c, 1);
-              seriesIndices.splice(c, 1);
-              w.globals.risingSeries.push(realIndex);
-            } else {
-              w.config.series[realIndex] = series[c].data;
-              series.splice(c, 1);
-              seriesIndices.splice(c, 1);
-              w.globals.risingSeries.push(realIndex);
-            }
-            this.ctx._updateSeries(w.config.series, w.config.chart.animations.dynamicAnimation.enabled);
-          }
-        }
-      }
-    }
-  }]);
-
-  return Legend;
-}();
-
-exports.default = Legend;
 
 /***/ }),
 /* 44 */
@@ -20457,7 +20508,7 @@ var _Utils = __webpack_require__(0);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
-var _Toolbar2 = __webpack_require__(23);
+var _Toolbar2 = __webpack_require__(24);
 
 var _Toolbar3 = _interopRequireDefault(_Toolbar2);
 
@@ -20548,7 +20599,10 @@ var ZoomPanSelection = function (_Toolbar) {
       this.hoverArea.classList.add('zoomable');
 
       this.eventList.forEach(function (event) {
-        _this2.hoverArea.addEventListener(event, me.svgMouseEvents.bind(me, xyRatios), { capture: false, passive: true });
+        _this2.hoverArea.addEventListener(event, me.svgMouseEvents.bind(me, xyRatios), {
+          capture: false,
+          passive: true
+        });
       });
     }
 
@@ -20926,7 +20980,7 @@ var ZoomPanSelection = function (_Toolbar) {
 
       if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
         if (w.globals.zoomEnabled) {
-          var yaxis = _Utils2.default.clone(w.config.yaxis);
+          var yaxis = _Utils2.default.clone(w.globals.initialConfig.yaxis);
 
           // before zooming in/out, store the last yaxis and xaxis range, so that when user hits the RESET button, we get the original range
           // also - make sure user is not already zoomed in/out - otherwise we will store zoomed values in lastAxis
@@ -20949,7 +21003,9 @@ var ZoomPanSelection = function (_Toolbar) {
 
           if (w.config.chart.zoom.autoScaleYaxis) {
             var scale = new _Scales2.default(me.ctx);
-            yaxis = scale.autoScaleY(me.ctx, { xaxis: xaxis });
+            yaxis = scale.autoScaleY(me.ctx, yaxis, {
+              xaxis: xaxis
+            });
           }
 
           if (toolbar) {
@@ -20998,8 +21054,7 @@ var ZoomPanSelection = function (_Toolbar) {
   }, {
     key: 'panDragging',
     value: function panDragging(_ref5) {
-      var context = _ref5.context,
-          zoomtype = _ref5.zoomtype;
+      var context = _ref5.context;
 
       var w = this.w;
       var me = context;
@@ -21033,14 +21088,15 @@ var ZoomPanSelection = function (_Toolbar) {
       var xLowestValue = w.globals.minX;
       var xHighestValue = w.globals.maxX;
 
-      this.panScrolled(moveDirection, xLowestValue, xHighestValue);
+      me.panScrolled(moveDirection, xLowestValue, xHighestValue);
     }
   }, {
     key: 'panScrolled',
     value: function panScrolled(moveDirection, xLowestValue, xHighestValue) {
       var w = this.w;
+
       var xyRatios = this.xyRatios;
-      var yaxis = _Utils2.default.clone(w.config.yaxis);
+      var yaxis = _Utils2.default.clone(w.globals.initialConfig.yaxis);
 
       if (moveDirection === 'left') {
         xLowestValue = w.globals.minX + w.globals.gridWidth / 15 * xyRatios.xRatio;
@@ -21061,9 +21117,12 @@ var ZoomPanSelection = function (_Toolbar) {
       };
 
       if (w.config.chart.zoom.autoScaleYaxis) {
-        var scale = new _Scales2.default(me.ctx);
-        yaxis = scale.autoScaleY(me.ctx, { xaxis: xaxis });
+        var scale = new _Scales2.default(this.ctx);
+        yaxis = scale.autoScaleY(this.ctx, yaxis, {
+          xaxis: xaxis
+        });
       }
+
       this.ctx._updateOptions({
         xaxis: {
           min: xLowestValue,
@@ -21592,6 +21651,7 @@ var Globals = function () {
         ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
         padHorizontal: 0,
         maxValsInArrayIndex: 0,
+        radialSize: 0,
         zoomEnabled: config.chart.toolbar.autoSelected === 'zoom' && config.chart.toolbar.tools.zoom && config.chart.zoom.enabled,
         panEnabled: config.chart.toolbar.autoSelected === 'pan' && config.chart.toolbar.tools.pan,
         selectionEnabled: config.chart.toolbar.autoSelected === 'selection' && config.chart.toolbar.tools.selection,
@@ -22267,7 +22327,7 @@ var _Formatters = __webpack_require__(10);
 
 var _Formatters2 = _interopRequireDefault(_Formatters);
 
-var _Utils = __webpack_require__(27);
+var _Utils = __webpack_require__(28);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
@@ -22679,7 +22739,7 @@ var _Graphics = __webpack_require__(1);
 
 var _Graphics2 = _interopRequireDefault(_Graphics);
 
-var _Position = __webpack_require__(26);
+var _Position = __webpack_require__(27);
 
 var _Position2 = _interopRequireDefault(_Position);
 
@@ -22887,7 +22947,7 @@ var _Labels = __webpack_require__(53);
 
 var _Labels2 = _interopRequireDefault(_Labels);
 
-var _Position = __webpack_require__(26);
+var _Position = __webpack_require__(27);
 
 var _Position2 = _interopRequireDefault(_Position);
 
@@ -22915,7 +22975,7 @@ var _XAxis = __webpack_require__(15);
 
 var _XAxis2 = _interopRequireDefault(_XAxis);
 
-var _Utils = __webpack_require__(27);
+var _Utils = __webpack_require__(28);
 
 var _Utils2 = _interopRequireDefault(_Utils);
 
@@ -24101,7 +24161,7 @@ exports.default = finallyConstructor;
     attachTo.setImmediate = setImmediate;
     attachTo.clearImmediate = clearImmediate;
 })(typeof self === "undefined" ? typeof global === "undefined" ? undefined : global : self);
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(29), __webpack_require__(56)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(30), __webpack_require__(56)))
 
 /***/ }),
 /* 59 */
@@ -24207,9 +24267,9 @@ module.exports = function (css) {
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-/*! svg.draggable.js - v2.2.1 - 2016-08-25
-* https://github.com/wout/svg.draggable.js
-* Copyright (c) 2016 Wout Fierens; Licensed MIT */
+/*! svg.draggable.js - v2.2.2 - 2019-01-08
+* https://github.com/svgdotjs/svg.draggable.js
+* Copyright (c) 2019 Wout Fierens; Licensed MIT */
 ;(function () {
 
   // creates handler, saves it
@@ -24235,8 +24295,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   DragHandler.prototype.transformPoint = function (event, offset) {
     event = event || window.event;
     var touches = event.changedTouches && event.changedTouches[0] || event;
-    this.p.x = touches.pageX - (offset || 0);
-    this.p.y = touches.pageY;
+    this.p.x = touches.clientX - (offset || 0);
+    this.p.y = touches.clientY;
     return this.p.matrixTransform(this.m);
   };
 
@@ -24269,6 +24329,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     // fire beforedrag event
     this.el.fire('beforedrag', { event: e, handler: this });
+    if (this.el.event().defaultPrevented) return;
+
+    // prevent browser drag behavior as soon as possible
+    e.preventDefault();
+
+    // prevent propagation to a parent that might also have dragging enabled
+    e.stopPropagation();
 
     // search for parent on the fly to make sure we can call
     // draggable() even when element is not in the dom currently
@@ -24318,12 +24385,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     // fire dragstart event
     this.el.fire('dragstart', { event: e, p: this.startPoints.point, m: this.m, handler: this });
-
-    // prevent browser drag behavior
-    e.preventDefault();
-
-    // prevent propagation to a parent that might also have dragging enabled
-    e.stopPropagation();
   };
 
   // while dragging
@@ -24337,19 +24398,14 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         gx = p.x - this.startPoints.point.x,
         gy = p.y - this.startPoints.point.y;
 
-    var event = new CustomEvent('dragmove', {
-      detail: {
-        event: e,
-        p: p,
-        m: this.m,
-        handler: this
-      },
-      cancelable: true
+    this.el.fire('dragmove', {
+      event: e,
+      p: p,
+      m: this.m,
+      handler: this
     });
 
-    this.el.fire(event);
-
-    if (event.defaultPrevented) return p;
+    if (this.el.event().defaultPrevented) return p;
 
     // move the element to its new position, if possible by constraint
     if (typeof c == 'function') {
@@ -24379,9 +24435,26 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     } else if ((typeof c === 'undefined' ? 'undefined' : _typeof(c)) == 'object') {
 
       // keep element within constrained box
-      if (c.minX != null && x < c.minX) x = c.minX;else if (c.maxX != null && x > c.maxX - box.width) {
+      if (c.minX != null && x < c.minX) {
+        x = c.minX;
+        gx = x - this.startPoints.box.x;
+      } else if (c.maxX != null && x > c.maxX - box.width) {
         x = c.maxX - box.width;
-      }if (c.minY != null && y < c.minY) y = c.minY;else if (c.maxY != null && y > c.maxY - box.height) y = c.maxY - box.height;
+        gx = x - this.startPoints.box.x;
+      }if (c.minY != null && y < c.minY) {
+        y = c.minY;
+        gy = y - this.startPoints.box.y;
+      } else if (c.maxY != null && y > c.maxY - box.height) {
+        y = c.maxY - box.height;
+        gy = y - this.startPoints.box.y;
+      }
+
+      if (c.snapToGrid != null) {
+        x = x - x % c.snapToGrid;
+        y = y - y % c.snapToGrid;
+        gx = gx - gx % c.snapToGrid;
+        gy = gy - gy % c.snapToGrid;
+      }
 
       if (this.el instanceof SVG.G) this.el.matrix(this.startPoints.transform).transform({ x: gx, y: gy }, true);else this.el.move(x, y);
     }
@@ -25471,7 +25544,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 /*!
 * svg.resize.js - An extension for svg.js which allows to resize elements which are selected
-* @version 1.4.2
+* @version 1.4.3
 * https://github.com/svgdotjs/svg.resize.js
 *
 * @copyright [object Object]
@@ -25664,7 +25737,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                                 return;
                             }
 
-                            snap = this.checkAspectRatio(snap);
+                            snap = this.checkAspectRatio(snap, true);
 
                             this.el.move(this.parameters.box.x, this.parameters.box.y + snap[1]).size(this.parameters.box.width + snap[0], this.parameters.box.height - snap[1]);
                         }
@@ -25702,7 +25775,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                                 return;
                             }
 
-                            snap = this.checkAspectRatio(snap);
+                            snap = this.checkAspectRatio(snap, true);
 
                             this.el.move(this.parameters.box.x + snap[0], this.parameters.box.y).size(this.parameters.box.width - snap[0], this.parameters.box.height + snap[1]);
                         }
@@ -25784,12 +25857,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                         // end minus middle
                         var pAngle = Math.atan2(current.y - this.parameters.box.y - this.parameters.box.height / 2, current.x - this.parameters.box.x - this.parameters.box.width / 2);
 
-                        var angle = (pAngle - sAngle) * 180 / Math.PI;
+                        var angle = this.parameters.rotation + (pAngle - sAngle) * 180 / Math.PI + this.options.snapToAngle / 2;
 
                         // We have to move the element to the center of the box first and change the rotation afterwards
                         // because rotation always works around a rotation-center, which is changed when moving the element
                         // We also set the new rotation center to the center of the box.
-                        this.el.center(this.parameters.box.cx, this.parameters.box.cy).rotate(this.parameters.rotation + angle - angle % this.options.snapToAngle, this.parameters.box.cx, this.parameters.box.cy);
+                        this.el.center(this.parameters.box.cx, this.parameters.box.cy).rotate(angle - angle % this.options.snapToAngle, this.parameters.box.cx, this.parameters.box.cy);
                     };
                     break;
 
@@ -25883,6 +25956,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 temp = [(this.parameters.box.x + diffX + (flag & 1 ? 0 : this.parameters.box.width)) % this.options.snapToGrid, (this.parameters.box.y + diffY + (flag & 1 << 1 ? 0 : this.parameters.box.height)) % this.options.snapToGrid];
             }
 
+            if (diffX < 0) {
+                temp[0] -= this.options.snapToGrid;
+            }
+            if (diffY < 0) {
+                temp[1] -= this.options.snapToGrid;
+            }
+
             diffX -= Math.abs(temp[0]) < this.options.snapToGrid / 2 ? temp[0] : temp[0] - (diffX < 0 ? -this.options.snapToGrid : this.options.snapToGrid);
             diffY -= Math.abs(temp[1]) < this.options.snapToGrid / 2 ? temp[1] : temp[1] - (diffY < 0 ? -this.options.snapToGrid : this.options.snapToGrid);
 
@@ -25922,7 +26002,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             return [diffX, diffY];
         };
 
-        ResizeHandler.prototype.checkAspectRatio = function (snap) {
+        ResizeHandler.prototype.checkAspectRatio = function (snap, isReverse) {
             if (!this.options.saveAspectRatio) {
                 return snap;
             }
@@ -25936,9 +26016,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             if (newAspectRatio < aspectRatio) {
                 // Height is too big. Adapt it
                 updatedSnap[1] = newW / aspectRatio - this.parameters.box.height;
+                isReverse && (updatedSnap[1] = -updatedSnap[1]);
             } else if (newAspectRatio > aspectRatio) {
                 // Width is too big. Adapt it
                 updatedSnap[0] = this.parameters.box.width - newH * aspectRatio;
+                isReverse && (updatedSnap[0] = -updatedSnap[0]);
             }
 
             return updatedSnap;
@@ -26338,7 +26420,7 @@ __webpack_require__(58);
 // `setimmediate` library.
 exports.setImmediate = typeof self !== "undefined" && self.setImmediate || typeof global !== "undefined" && global.setImmediate || undefined && undefined.setImmediate;
 exports.clearImmediate = typeof self !== "undefined" && self.clearImmediate || typeof global !== "undefined" && global.clearImmediate || undefined && undefined.clearImmediate;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(29)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(30)))
 
 /***/ }),
 /* 66 */
@@ -32297,7 +32379,7 @@ if ("document" in self) {
 /* 69 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(32)(false);
+exports = module.exports = __webpack_require__(33)(false);
 // imports
 
 
@@ -32809,7 +32891,7 @@ module.exports = "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"#000000\" vie
 /* 79 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(31);
+module.exports = __webpack_require__(32);
 
 
 /***/ })
