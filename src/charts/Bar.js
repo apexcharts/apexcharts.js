@@ -971,8 +971,10 @@ class Bar {
           // FIXED: Don't always hide the stacked negative side label
           // A negative value will result in a negative bar width
           // Only hide the text when the width is smaller (a higher negative number) than the negative bar width.
-          if ((barWidth > 0 && textRects.width / 1.6 > barWidth) || 
-          (barWidth < 0 && textRects.width / 1.6 < barWidth)) {
+          if (
+            (barWidth > 0 && textRects.width / 1.6 > barWidth) ||
+            (barWidth < 0 && textRects.width / 1.6 < barWidth)
+          ) {
             text = ''
           }
         } else {
@@ -982,15 +984,15 @@ class Bar {
           }
         }
       }
-      
-      let modifiedDataLabelsConfig = {...dataLabelsConfig};
+
+      let modifiedDataLabelsConfig = { ...dataLabelsConfig }
       if (this.isHorizontal) {
-        if(val < 0) {
-          modifiedDataLabelsConfig = { ...dataLabelsConfig };
-          if(dataLabelsConfig.textAnchor === 'start'){
-            modifiedDataLabelsConfig.textAnchor = 'end';
+        if (val < 0) {
+          modifiedDataLabelsConfig = { ...dataLabelsConfig }
+          if (dataLabelsConfig.textAnchor === 'start') {
+            modifiedDataLabelsConfig.textAnchor = 'end'
           } else if (dataLabelsConfig.textAnchor === 'end') {
-            modifiedDataLabelsConfig.textAnchor = 'start';
+            modifiedDataLabelsConfig.textAnchor = 'start'
           }
         }
       }
