@@ -979,12 +979,14 @@ class Bar {
       }
       
       let modifiedDataLabelsConfig = {...dataLabelsConfig};
-      if(val < 0) {
-        modifiedDataLabelsConfig = { ...dataLabelsConfig };
-        if(dataLabelsConfig.textAnchor === 'start'){
-          modifiedDataLabelsConfig.textAnchor = 'end';
-        } else if (dataLabelsConfig.textAnchor === 'end') {
-          modifiedDataLabelsConfig.textAnchor = 'start';
+      if (this.isHorizontal) {
+        if(val < 0) {
+          modifiedDataLabelsConfig = { ...dataLabelsConfig };
+          if(dataLabelsConfig.textAnchor === 'start'){
+            modifiedDataLabelsConfig.textAnchor = 'end';
+          } else if (dataLabelsConfig.textAnchor === 'end') {
+            modifiedDataLabelsConfig.textAnchor = 'start';
+          }
         }
       }
 
