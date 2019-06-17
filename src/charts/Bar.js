@@ -967,7 +967,12 @@ class Bar {
         // Note: This issue is only seen in stacked charts
         if (this.isHorizontal) {
           barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex]
-          if (textRects.width / 1.6 > barWidth) {
+
+          // FIXED: Don't always hide the stacked negative side label
+          // A negative value will result in a negative bar width
+          // Only hide the text when the width is smaller (a higher negative number) than the negative bar width.
+          if ((barWidth > 0 && textRects.width / 1.6 > barWidth) || 
+          (barWidth < 0 && textRects.width / 1.6 < barWidth)) {
             text = ''
           }
         } else {
