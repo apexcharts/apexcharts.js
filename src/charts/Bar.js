@@ -977,6 +977,16 @@ class Bar {
           }
         }
       }
+      
+      let modifiedDataLabelsConfig = {...dataLabelsConfig};
+      if(val < 0) {
+        modifiedDataLabelsConfig = { ...dataLabelsConfig };
+        if(dataLabelsConfig.textAnchor === 'start'){
+          modifiedDataLabelsConfig.textAnchor = 'end';
+        } else if (dataLabelsConfig.textAnchor === 'end') {
+          modifiedDataLabelsConfig.textAnchor = 'start';
+        }
+      }
 
       dataLabels.plotDataLabelsText({
         x,
@@ -985,7 +995,7 @@ class Bar {
         i,
         j,
         parent: elDataLabelsWrap,
-        dataLabelsConfig,
+        dataLabelsConfig: modifiedDataLabelsConfig,
         alwaysDrawDataLabel: true,
         offsetCorrection: true
       })
