@@ -1085,8 +1085,11 @@ export default class Core {
             updateSourceChart()
           }
         }
+      })
 
-        w.config.chart.events.selection = (chart, e) => {
+      w.config.chart.events.selection = (chart, e) => {
+        targets.forEach((target) => {
+          let targetChart = ApexCharts.getChartByID(target)
           let yaxis = Utils.clone(w.config.yaxis)
           if (w.config.chart.brush.autoScaleYaxis) {
             const scale = new Scales(targetChart)
@@ -1102,10 +1105,11 @@ export default class Core {
             },
             false,
             false,
+            false,
             false
           )
-        }
-      })
+        })
+      }
     }
   }
 }

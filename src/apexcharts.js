@@ -468,9 +468,13 @@ export default class ApexCharts {
     options,
     redraw = false,
     animate = true,
-    overwriteInitialConfig = false
+    overwriteInitialConfig = false,
+    updateSyncedCharts = true
   ) {
-    let charts = this.getSyncedCharts()
+    let charts = [this]
+    if (updateSyncedCharts) {
+      charts = this.getSyncedCharts()
+    }
 
     if (this.w.globals.isExecCalled) {
       // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
