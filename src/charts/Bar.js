@@ -306,8 +306,7 @@ class Bar {
       animationDelay: delay,
       initialSpeed: w.config.chart.animations.speed,
       dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-      className: `apexcharts-${type}-area`,
-      id: `apexcharts-${type}-area`
+      className: `apexcharts-${type}-area`
     })
 
     renderedPath.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)

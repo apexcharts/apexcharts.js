@@ -141,7 +141,6 @@ class Radar {
         initialSpeed: w.config.chart.animations.speed,
         dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
         className: `apexcharts-radar`,
-        id: `apexcharts-radar`,
         shouldClipToGrid: false,
         bindEventsOnPaths: false,
         stroke: w.globals.stroke.colors[i],

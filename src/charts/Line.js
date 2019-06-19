@@ -379,8 +379,7 @@ class Line {
         animationDelay: i,
         initialSpeed: w.config.chart.animations.speed,
         dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-        className: `apexcharts-${type}`,
-        id: `apexcharts-${type}`
+        className: `apexcharts-${type}`
       }
 
       if (type === 'area') {

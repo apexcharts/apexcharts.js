@@ -132,7 +132,6 @@ class Radial extends Pie {
       g.add(elRadialBarTrack)
 
       elRadialBarTrack.attr({
-        id: 'apexcharts-track-' + i,
         rel: i + 1
       })
 
@@ -270,7 +269,6 @@ class Radial extends Pie {
       g.add(elRadialBarArc)
 
       elRadialBarArc.attr({
-        id: 'apexcharts-series-' + i,
         rel: i + 1,
         'data:realIndex': i
       })
@@ -330,7 +328,7 @@ class Radial extends Pie {
         strokeWidth,
         fill: 'none',
         fillOpacity: w.config.fill.opacity,
-        classes: 'apexcharts-radialbar-area',
+        classes: 'apexcharts-radialbar-area apexcharts-radialbar-slice-' + i,
         strokeDashArray: dashArray
       })
 
@@ -349,7 +347,6 @@ class Radial extends Pie {
       elRadialBarArc.add(elPath)
 
       elPath.attr({
-        id: 'apexcharts-radialbar-slice-' + i,
         index: 0,
         j: i
       })

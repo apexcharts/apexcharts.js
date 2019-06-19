@@ -199,7 +199,6 @@ class Pie {
       let elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
-        id: 'apexcharts-series-' + i,
         rel: i + 1,
         'data:realIndex': i
       })
@@ -231,11 +230,12 @@ class Pie {
         strokeWidth: this.strokeWidth,
         fill: pathFill,
         fillOpacity: w.config.fill.opacity,
-        classes: 'apexcharts-pie-area'
+        classes: `apexcharts-pie-area apexcharts-${
+          w.config.chart.type
+        }-slice-${i}`
       })
 
       elPath.attr({
-        id: `apexcharts-${w.config.chart.type}-slice-${i}`,
         index: 0,
         j: i
       })
@@ -526,7 +526,7 @@ class Pie {
 
     let size = me.w.globals.radialSize + 4
     let elPath = w.globals.dom.Paper.select(
-      `#apexcharts-${w.config.chart.type.toLowerCase()}-slice-${i}`
+      `.apexcharts-${w.config.chart.type.toLowerCase()}-slice-${i}`
     ).members[0]
 
     let pathFrom = elPath.attr('d')
@@ -545,7 +545,7 @@ class Pie {
     } else {
       // reset all elems
       let allEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-pie-area')
-      Array.prototype.forEach.call(allEls, function(pieSlice) {
+      Array.prototype.forEach.call(allEls, (pieSlice) => {
         pieSlice.setAttribute('data:pieClicked', 'false')
         let origPath = pieSlice.getAttribute('data:pathOrig')
         pieSlice.setAttribute('d', origPath)
@@ -845,7 +845,7 @@ class Pie {
       const slices = document.querySelectorAll(`.apexcharts-pie-area`)
       let sliceOut = false
 
-      Array.prototype.forEach.call(slices, function(s) {
+      Array.prototype.forEach.call(slices, (s) => {
         if (s.getAttribute('data:pieClicked') === 'true') {
           sliceOut = true
           this.printDataLabelsInner(s, dataLabelsConfig)
@@ -860,7 +860,7 @@ class Pie {
           if (w.globals.selectedDataPoints[0].length > 0) {
             const index = w.globals.selectedDataPoints[0]
             const el = w.globals.dom.baseEl.querySelector(
-              `#apexcharts-${w.config.chart.type.toLowerCase()}-slice-${index}`
+              `.apexcharts-${w.config.chart.type.toLowerCase()}-slice-${index}`
             )
 
             this.printDataLabelsInner(el, dataLabelsConfig)
