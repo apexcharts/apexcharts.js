@@ -405,7 +405,8 @@ export default class ApexCharts {
     options,
     redraw = false,
     animate = true,
-    overwriteInitialConfig = true
+    overwriteInitialConfig = true,
+    updateSyncedCharts = true
   ) {
     const w = this.w
     if (options.series) {
@@ -453,7 +454,13 @@ export default class ApexCharts {
     if (options.theme) {
       options = this.theme.updateThemeOptions(options)
     }
-    return this._updateOptions(options, redraw, animate, overwriteInitialConfig)
+    return this._updateOptions(
+      options,
+      redraw,
+      animate,
+      overwriteInitialConfig,
+      updateSyncedCharts
+    )
   }
 
   /**

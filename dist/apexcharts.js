@@ -6318,8 +6318,7 @@
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
           dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-          className: "apexcharts-".concat(type, "-area"),
-          id: "apexcharts-".concat(type, "-area")
+          className: "apexcharts-".concat(type, "-area")
         });
         renderedPath.attr('clip-path', "url(#gridRectMask".concat(w.globals.cuid, ")"));
         var filters = new Filters(this.ctx);
@@ -8311,7 +8310,6 @@
           var elPieArc = graphics.group({
             class: "apexcharts-series apexcharts-pie-series",
             seriesName: Utils.escapeString(w.globals.seriesNames[i]),
-            id: 'apexcharts-series-' + i,
             rel: i + 1,
             'data:realIndex': i
           });
@@ -8334,10 +8332,9 @@
             strokeWidth: this.strokeWidth,
             fill: pathFill,
             fillOpacity: w.config.fill.opacity,
-            classes: 'apexcharts-pie-area'
+            classes: "apexcharts-pie-area apexcharts-".concat(w.config.chart.type, "-slice-").concat(i)
           });
           elPath.attr({
-            id: "apexcharts-".concat(w.config.chart.type, "-slice-").concat(i),
             index: 0,
             j: i
           });
@@ -8579,7 +8576,7 @@
         var me = this;
         var path;
         var size = me.w.globals.radialSize + 4;
-        var elPath = w.globals.dom.Paper.select("#apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(i)).members[0];
+        var elPath = w.globals.dom.Paper.select(".apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(i)).members[0];
         var pathFrom = elPath.attr('d');
 
         if (elPath.attr('data:pieClicked') === 'true') {
@@ -8802,6 +8799,8 @@
     }, {
       key: "revertDataLabelsInner",
       value: function revertDataLabelsInner(el, dataLabelsConfig, event) {
+        var _this = this;
+
         var w = this.w;
         var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
 
@@ -8814,7 +8813,8 @@
           Array.prototype.forEach.call(slices, function (s) {
             if (s.getAttribute('data:pieClicked') === 'true') {
               sliceOut = true;
-              this.printDataLabelsInner(s, dataLabelsConfig);
+
+              _this.printDataLabelsInner(s, dataLabelsConfig);
             }
           });
 
@@ -8823,7 +8823,7 @@
               if (w.globals.selectedDataPoints[0].length > 0) {
                 var index = w.globals.selectedDataPoints[0];
 
-                var _el = w.globals.dom.baseEl.querySelector("#apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(index));
+                var _el = w.globals.dom.baseEl.querySelector(".apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(index));
 
                 this.printDataLabelsInner(_el, dataLabelsConfig);
               } else if (dataLabelsGroup && w.globals.selectedDataPoints.length && w.globals.selectedDataPoints[0].length === 0) {
@@ -8946,7 +8946,6 @@
             initialSpeed: w.config.chart.animations.speed,
             dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
             className: "apexcharts-radar",
-            id: "apexcharts-radar",
             shouldClipToGrid: false,
             bindEventsOnPaths: false,
             stroke: w.globals.stroke.colors[i],
@@ -9371,7 +9370,6 @@
           });
           g.add(elRadialBarTrack);
           elRadialBarTrack.attr({
-            id: 'apexcharts-track-' + i,
             rel: i + 1
           });
           opts.size = opts.size - strokeWidth - this.margin;
@@ -9487,7 +9485,6 @@
           });
           g.add(elRadialBarArc);
           elRadialBarArc.attr({
-            id: 'apexcharts-series-' + i,
             rel: i + 1,
             'data:realIndex': i
           });
@@ -9531,7 +9528,7 @@
             strokeWidth: strokeWidth,
             fill: 'none',
             fillOpacity: w.config.fill.opacity,
-            classes: 'apexcharts-radialbar-area',
+            classes: 'apexcharts-radialbar-area apexcharts-radialbar-slice-' + i,
             strokeDashArray: dashArray
           });
           Graphics.setAttrs(elPath.node, {
@@ -9547,7 +9544,6 @@
           this.addListeners(elPath, this.radialDataLabels);
           elRadialBarArc.add(elPath);
           elPath.attr({
-            id: 'apexcharts-radialbar-slice-' + i,
             index: 0,
             j: i
           });
@@ -12402,8 +12398,7 @@
             animationDelay: i,
             initialSpeed: w.config.chart.animations.speed,
             dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-            className: "apexcharts-".concat(type),
-            id: "apexcharts-".concat(type)
+            className: "apexcharts-".concat(type)
           };
 
           if (type === 'area') {
@@ -15646,8 +15641,11 @@
                 updateSourceChart();
               };
             }
+          });
 
-            w.config.chart.events.selection = function (chart, e) {
+          w.config.chart.events.selection = function (chart, e) {
+            targets.forEach(function (target) {
+              var targetChart = ApexCharts.getChartByID(target);
               var yaxis = Utils.clone(w.config.yaxis);
 
               if (w.config.chart.brush.autoScaleYaxis) {
@@ -15661,9 +15659,9 @@
                   max: e.xaxis.max
                 },
                 yaxis: yaxis
-              }, false, false, false);
-            };
-          });
+              }, false, false, false, false);
+            });
+          };
         }
       }
     }]);
@@ -28059,6 +28057,7 @@
         var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
         var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+        var updateSyncedCharts = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
         var w = this.w;
 
         if (options$$1.series) {
@@ -28102,7 +28101,7 @@
           options$$1 = this.theme.updateThemeOptions(options$$1);
         }
 
-        return this._updateOptions(options$$1, redraw, animate, overwriteInitialConfig);
+        return this._updateOptions(options$$1, redraw, animate, overwriteInitialConfig, updateSyncedCharts);
       }
       /**
        * private method to update Options.
@@ -28119,7 +28118,12 @@
         var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
         var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-        var charts = this.getSyncedCharts();
+        var updateSyncedCharts = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
+        var charts = [this];
+
+        if (updateSyncedCharts) {
+          charts = this.getSyncedCharts();
+        }
 
         if (this.w.globals.isExecCalled) {
           // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
