@@ -150,7 +150,12 @@ class Bar {
         let paths = null
         if (this.isHorizontal) {
           paths = this.drawBarPaths({
-            indexes: { i, j, realIndex, bc },
+            indexes: {
+              i,
+              j,
+              realIndex,
+              bc
+            },
             barHeight,
             strokeWidth,
             pathTo,
@@ -164,7 +169,12 @@ class Bar {
           barWidth = this.series[i][j] / this.invertedYRatio
         } else {
           paths = this.drawColumnPaths({
-            indexes: { i, j, realIndex, bc },
+            indexes: {
+              i,
+              j,
+              realIndex,
+              bc
+            },
             x,
             y,
             xDivision,
@@ -702,7 +712,10 @@ class Bar {
     const offX = dataLabelsConfig.offsetX
     const offY = dataLabelsConfig.offsetY
 
-    let textRects = { width: 0, height: 0 }
+    let textRects = {
+      width: 0,
+      height: 0
+    }
     if (w.config.dataLabels.enabled) {
       textRects = graphics.getTextRects(
         w.globals.yLabelFormatters[0](w.globals.maxY),
@@ -950,7 +963,11 @@ class Bar {
 
       let text = ''
       if (typeof val !== 'undefined') {
-        text = formatter(val, { seriesIndex: i, dataPointIndex: j, w })
+        text = formatter(val, {
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        })
       }
 
       if (val === 0 && w.config.chart.stacked) {
@@ -984,10 +1001,11 @@ class Bar {
         }
       }
 
-      let modifiedDataLabelsConfig = { ...dataLabelsConfig }
+      let modifiedDataLabelsConfig = {
+        ...dataLabelsConfig
+      }
       if (this.isHorizontal) {
         if (val < 0) {
-          modifiedDataLabelsConfig = { ...dataLabelsConfig }
           if (dataLabelsConfig.textAnchor === 'start') {
             modifiedDataLabelsConfig.textAnchor = 'end'
           } else if (dataLabelsConfig.textAnchor === 'end') {
