@@ -114,7 +114,7 @@ class Formatters {
                   ? yaxe.decimalsInFloat
                   : w.globals.yValueDecimal
               )
-            } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 5) {
+            } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 10) {
               return val.toFixed(1)
             } else {
               return val.toFixed(0)
