@@ -322,6 +322,10 @@ export default class Dimensions {
             // we have to make it false again in case of zooming/panning
             w.globals.skipLastTimelinelabel = false
           }
+        } else if (w.config.xaxis.type === 'datetime') {
+          if (w.config.grid.padding.right < labels.width) {
+            w.globals.skipLastTimelinelabel = true
+          }
         } else if (w.config.xaxis.type !== 'datetime') {
           if (w.config.grid.padding.right < labels.width) {
             this.xPadRight = labels.width / 2 + 1
@@ -532,7 +536,8 @@ export default class Dimensions {
       }
 
       let xFormat = new Formatters(this.ctx)
-      val = xFormat.xLabelFormat(xlbFormatter, val)
+      let timestamp = val
+      val = xFormat.xLabelFormat(xlbFormatter, val, timestamp)
 
       let graphics = new Graphics(this.ctx)
 

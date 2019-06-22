@@ -320,7 +320,11 @@ export default class Labels {
 
     if (w.globals.isXNumeric && w.config.xaxis.type === 'datetime') {
       let xFormat = new Formatters(this.ctx)
-      xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal)
+      xVal = xFormat.xLabelFormat(
+        w.globals.ttKeyFormatter,
+        bufferXVal,
+        bufferXVal
+      )
     } else {
       xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts)
     }

@@ -17,7 +17,8 @@ export default class AxesUtils {
     let customFormatter = w.config.xaxis.labels.formatter
 
     let xFormat = new Formatters(this.ctx)
-    label = xFormat.xLabelFormat(xlbFormatter, rawLabel)
+    let timestamp = rawLabel
+    label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp)
 
     if (customFormatter !== undefined) {
       label = customFormatter(rawLabel, labels[i], i)

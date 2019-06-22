@@ -14,23 +14,25 @@ class Formatters {
     this.tooltipKeyFormat = 'dd MMM'
   }
 
-  xLabelFormat(fn, val) {
+  xLabelFormat(fn, val, timestamp) {
     let w = this.w
 
     if (w.config.xaxis.type === 'datetime') {
-      // if user has not specified a custom formatter, use the default tooltip.x.format
-      if (w.config.tooltip.x.formatter === undefined) {
-        let datetimeObj = new DateTime(this.ctx)
-        return datetimeObj.formatDate(
-          new Date(val),
-          w.config.tooltip.x.format,
-          true,
-          true
-        )
+      if (w.config.xaxis.labels.formatter === undefined) {
+        // if user has not specified a custom formatter, use the default tooltip.x.format
+        if (w.config.tooltip.x.formatter === undefined) {
+          let datetimeObj = new DateTime(this.ctx)
+          return datetimeObj.formatDate(
+            new Date(val),
+            w.config.tooltip.x.format,
+            true,
+            true
+          )
+        }
       }
     }
 
-    return fn(val)
+    return fn(val, timestamp)
   }
 
   setLabelFormatters() {
@@ -56,8 +58,26 @@ class Formatters {
       return val
     }
 
+    // formatter function will always overwrite format property
+    if (w.config.xaxis.labels.formatter !== undefined) {
+      w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
+    } else {
+      w.globals.xLabelFormatter = function(val) {
+        if (Utils.isNumber(val)) {
+          // numeric xaxis may have smaller range, so defaulting to 1 decimal
+          if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
+            return val.toFixed(1)
+          }
+          return val.toFixed(0)
+        }
+        return val
+      }
+    }
+
     if (typeof w.config.tooltip.x.formatter === 'function') {
       w.globals.ttKeyFormatter = w.config.tooltip.x.formatter
+    } else {
+      w.globals.ttKeyFormatter = w.globals.xLabelFormatter
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {
@@ -79,22 +99,6 @@ class Formatters {
     // legend formatter - if user wants to append any global values of series to legend text
     if (w.config.legend.formatter !== undefined) {
       w.globals.legendFormatter = w.config.legend.formatter
-    }
-
-    // formatter function will always overwrite format property
-    if (w.config.xaxis.labels.formatter !== undefined) {
-      w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
-    } else {
-      w.globals.xLabelFormatter = function(val) {
-        if (Utils.isNumber(val)) {
-          // numeric xaxis may have smaller range, so defaulting to 1 decimal
-          if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
-            return val.toFixed(1)
-          }
-          return val.toFixed(0)
-        }
-        return val
-      }
     }
 
     // formatter function will always overwrite format property
