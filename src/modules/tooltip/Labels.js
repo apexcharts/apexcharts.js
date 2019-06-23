@@ -326,7 +326,9 @@ export default class Labels {
         bufferXVal
       )
     } else {
-      xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts)
+      if (!w.globals.isBarHorizontal) {
+        xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts)
+      }
     }
 
     // override default x-axis formatter with tooltip formatter
