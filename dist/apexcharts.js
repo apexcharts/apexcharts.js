@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.8.0
+ * ApexCharts v3.8.1
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -3667,9 +3667,6 @@
             zoom: {
               enabled: false
             }
-          },
-          dataLabels: {
-            enabled: false
           }
         };
         return Utils.extend(defaults, ret);
@@ -6886,9 +6883,11 @@
             // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
             // Note: This issue is only seen in stacked charts
             if (this.isHorizontal) {
-              barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex];
+              barWidth = this.series[i][j] / this.yRatio[this.yaxisIndex]; // FIXED: Don't always hide the stacked negative side label
+              // A negative value will result in a negative bar width
+              // Only hide the text when the width is smaller (a higher negative number) than the negative bar width.
 
-              if (textRects.width / 1.6 > barWidth) {
+              if (barWidth > 0 && textRects.width / 1.6 > barWidth || barWidth < 0 && textRects.width / 1.6 < barWidth) {
                 text = '';
               }
             } else {
@@ -6900,6 +6899,18 @@
             }
           }
 
+          var modifiedDataLabelsConfig = _objectSpread({}, dataLabelsConfig);
+
+          if (this.isHorizontal) {
+            if (val < 0) {
+              if (dataLabelsConfig.textAnchor === 'start') {
+                modifiedDataLabelsConfig.textAnchor = 'end';
+              } else if (dataLabelsConfig.textAnchor === 'end') {
+                modifiedDataLabelsConfig.textAnchor = 'start';
+              }
+            }
+          }
+
           dataLabels.plotDataLabelsText({
             x: x,
             y: y,
@@ -6907,7 +6918,7 @@
             i: i,
             j: j,
             parent: elDataLabelsWrap,
-            dataLabelsConfig: dataLabelsConfig,
+            dataLabelsConfig: modifiedDataLabelsConfig,
             alwaysDrawDataLabel: true,
             offsetCorrection: true
           });
@@ -9977,18 +9988,20 @@
 
     _createClass(Formatters, [{
       key: "xLabelFormat",
-      value: function xLabelFormat(fn, val) {
+      value: function xLabelFormat(fn, val, timestamp) {
         var w = this.w;
 
         if (w.config.xaxis.type === 'datetime') {
-          // if user has not specified a custom formatter, use the default tooltip.x.format
-          if (w.config.tooltip.x.formatter === undefined) {
-            var datetimeObj = new DateTime(this.ctx);
-            return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format, true, true);
+          if (w.config.xaxis.labels.formatter === undefined) {
+            // if user has not specified a custom formatter, use the default tooltip.x.format
+            if (w.config.tooltip.x.formatter === undefined) {
+              var datetimeObj = new DateTime(this.ctx);
+              return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format, true, true);
+            }
           }
         }
 
-        return fn(val);
+        return fn(val, timestamp);
       }
     }, {
       key: "setLabelFormatters",
@@ -10013,10 +10026,30 @@
 
         w.globals.legendFormatter = function (val) {
           return val;
-        };
+        }; // formatter function will always overwrite format property
+
+
+        if (w.config.xaxis.labels.formatter !== undefined) {
+          w.globals.xLabelFormatter = w.config.xaxis.labels.formatter;
+        } else {
+          w.globals.xLabelFormatter = function (val) {
+            if (Utils.isNumber(val)) {
+              // numeric xaxis may have smaller range, so defaulting to 1 decimal
+              if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
+                return val.toFixed(1);
+              }
+
+              return val.toFixed(0);
+            }
+
+            return val;
+          };
+        }
 
         if (typeof w.config.tooltip.x.formatter === 'function') {
           w.globals.ttKeyFormatter = w.config.tooltip.x.formatter;
+        } else {
+          w.globals.ttKeyFormatter = w.globals.xLabelFormatter;
         }
 
         if (typeof w.config.xaxis.tooltip.formatter === 'function') {
@@ -10041,24 +10074,6 @@
         } // formatter function will always overwrite format property
 
 
-        if (w.config.xaxis.labels.formatter !== undefined) {
-          w.globals.xLabelFormatter = w.config.xaxis.labels.formatter;
-        } else {
-          w.globals.xLabelFormatter = function (val) {
-            if (Utils.isNumber(val)) {
-              // numeric xaxis may have smaller range, so defaulting to 1 decimal
-              if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
-                return val.toFixed(1);
-              }
-
-              return val.toFixed(0);
-            }
-
-            return val;
-          };
-        } // formatter function will always overwrite format property
-
-
         w.config.yaxis.forEach(function (yaxe, i) {
           if (yaxe.labels.formatter !== undefined) {
             w.globals.yLabelFormatters[i] = yaxe.labels.formatter;
@@ -10067,7 +10082,7 @@
               if (Utils.isNumber(val)) {
                 if (w.globals.yValueDecimal !== 0) {
                   return val.toFixed(yaxe.decimalsInFloat !== undefined ? yaxe.decimalsInFloat : w.globals.yValueDecimal);
-                } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 5) {
+                } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 10) {
                   return val.toFixed(1);
                 } else {
                   return val.toFixed(0);
@@ -10121,7 +10136,8 @@
         var xlbFormatter = w.globals.xLabelFormatter;
         var customFormatter = w.config.xaxis.labels.formatter;
         var xFormat = new Formatters(this.ctx);
-        label = xFormat.xLabelFormat(xlbFormatter, rawLabel);
+        var timestamp = rawLabel;
+        label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp);
 
         if (customFormatter !== undefined) {
           label = customFormatter(rawLabel, labels[i], i);
@@ -10846,6 +10862,10 @@
                 // we have to make it false again in case of zooming/panning
                 w.globals.skipLastTimelinelabel = false;
               }
+            } else if (w.config.xaxis.type === 'datetime') {
+              if (w.config.grid.padding.right < labels.width) {
+                w.globals.skipLastTimelinelabel = true;
+              }
             } else if (w.config.xaxis.type !== 'datetime') {
               if (w.config.grid.padding.right < labels.width) {
                 _this.xPadRight = labels.width / 2 + 1;
@@ -11012,7 +11032,8 @@
           }
 
           var xFormat = new Formatters(this.ctx);
-          val = xFormat.xLabelFormat(xlbFormatter, val);
+          var timestamp = val;
+          val = xFormat.xLabelFormat(xlbFormatter, val, timestamp);
           var graphics = new Graphics(this.ctx);
           var xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
           rect = {
@@ -17300,9 +17321,11 @@
 
         if (w.globals.isXNumeric && w.config.xaxis.type === 'datetime') {
           var xFormat = new Formatters(this.ctx);
-          xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal);
+          xVal = xFormat.xLabelFormat(w.globals.ttKeyFormatter, bufferXVal, bufferXVal);
         } else {
-          xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts);
+          if (!w.globals.isBarHorizontal) {
+            xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts);
+          }
         } // override default x-axis formatter with tooltip formatter
 
 
@@ -28056,8 +28079,8 @@
       value: function updateOptions(options$$1) {
         var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-        var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
-        var updateSyncedCharts = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
+        var updateSyncedCharts = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+        var overwriteInitialConfig = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
         var w = this.w;
 
         if (options$$1.series) {
@@ -28101,7 +28124,7 @@
           options$$1 = this.theme.updateThemeOptions(options$$1);
         }
 
-        return this._updateOptions(options$$1, redraw, animate, overwriteInitialConfig, updateSyncedCharts);
+        return this._updateOptions(options$$1, redraw, animate, updateSyncedCharts, overwriteInitialConfig);
       }
       /**
        * private method to update Options.
@@ -28117,8 +28140,8 @@
       value: function _updateOptions(options$$1) {
         var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-        var overwriteInitialConfig = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-        var updateSyncedCharts = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
+        var updateSyncedCharts = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+        var overwriteInitialConfig = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
         var charts = [this];
 
         if (updateSyncedCharts) {
