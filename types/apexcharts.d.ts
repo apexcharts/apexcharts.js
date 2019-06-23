@@ -205,6 +205,7 @@ type ApexTitleSubtitle = {
   floating?: number;
   style?: {
     fontSize?: string;
+    fontFamily?: string,
     color?: string;
   };
 };
@@ -485,12 +486,14 @@ type ApexPlotOptions = {
       show?: boolean;
       name?: {
         show?: boolean;
+        fontFamily?: string;
         fontSize?: string;
         color?: string;
         offsetY?: number;
       };
       value?: {
         show?: boolean;
+        fontFamily?: string;
         fontSize?: string;
         color?: string;
         offsetY?: number;
@@ -765,6 +768,7 @@ type ApexXAxis = {
     offsetY?: number;
     style?: {
       color?: string;
+      fontFamily?: string;
       fontSize?: string;
       cssClass?: string;
     };
@@ -801,6 +805,11 @@ type ApexXAxis = {
   tooltip?: {
     enabled?: boolean;
     offsetY?: number;
+    formatter?(value: string, opts: object): string;
+    style?: {
+      fontSize?: string,
+      fontFamily?: string
+    }
   };
 };
 
