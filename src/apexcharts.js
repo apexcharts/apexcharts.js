@@ -405,8 +405,8 @@ export default class ApexCharts {
     options,
     redraw = false,
     animate = true,
-    overwriteInitialConfig = true,
-    updateSyncedCharts = true
+    updateSyncedCharts = true,
+    overwriteInitialConfig = true
   ) {
     const w = this.w
     if (options.series) {
@@ -458,8 +458,8 @@ export default class ApexCharts {
       options,
       redraw,
       animate,
-      overwriteInitialConfig,
-      updateSyncedCharts
+      updateSyncedCharts,
+      overwriteInitialConfig
     )
   }
 
@@ -475,8 +475,8 @@ export default class ApexCharts {
     options,
     redraw = false,
     animate = true,
-    overwriteInitialConfig = false,
-    updateSyncedCharts = true
+    updateSyncedCharts = true,
+    overwriteInitialConfig = false
   ) {
     let charts = [this]
     if (updateSyncedCharts) {
