@@ -495,7 +495,10 @@ export default class Tooltip {
       return
     }
 
-    if (Array.isArray(this.tConfig.enabledOnSeries)) {
+    if (
+      Array.isArray(this.tConfig.enabledOnSeries) &&
+      !w.config.tooltip.shared
+    ) {
       const index = parseInt(opt.paths.getAttribute('index'))
       if (this.tConfig.enabledOnSeries.indexOf(index) < 0) {
         self.handleMouseOut(opt)
