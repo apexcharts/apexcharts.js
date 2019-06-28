@@ -74,7 +74,9 @@ class Radar {
 
     const allSeries = []
 
-    this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
+    if (series.length) {
+      this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
+    }
     this.disAngle = (Math.PI * 2) / this.dataPointsLen
 
     let halfW = w.globals.gridWidth / 2

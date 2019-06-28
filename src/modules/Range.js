@@ -123,23 +123,25 @@ class Range {
       let stackedPoss = []
       let stackedNegs = []
 
-      for (let j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
-        let poss = 0
-        let negs = 0
-        for (let i = 0; i < gl.series.length; i++) {
-          if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
-            if (gl.series[i][j] > 0) {
-              // 0.0001 fixes #185 when values are very small
-              poss = poss + parseFloat(gl.series[i][j]) + 0.0001
-            } else {
-              negs = negs + parseFloat(gl.series[i][j])
+      if (gl.series.length) {
+        for (let j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
+          let poss = 0
+          let negs = 0
+          for (let i = 0; i < gl.series.length; i++) {
+            if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
+              if (gl.series[i][j] > 0) {
+                // 0.0001 fixes #185 when values are very small
+                poss = poss + parseFloat(gl.series[i][j]) + 0.0001
+              } else {
+                negs = negs + parseFloat(gl.series[i][j])
+              }
             }
-          }
 
-          if (i === gl.series.length - 1) {
-            // push all the totals to the array for future use
-            stackedPoss.push(poss)
-            stackedNegs.push(negs)
+            if (i === gl.series.length - 1) {
+              // push all the totals to the array for future use
+              stackedPoss.push(poss)
+              stackedNegs.push(negs)
+            }
           }
         }
       }

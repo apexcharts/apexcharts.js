@@ -882,8 +882,10 @@ export default class Core {
 
       if (gl.axisCharts) {
         // for axis charts, we get the longest series and create labels from it
-        for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-          labelArr.push(i + 1)
+        if (gl.series.length > 0) {
+          for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+            labelArr.push(i + 1)
+          }
         }
 
         // create gl.seriesX as it will be used in calculations of x positions

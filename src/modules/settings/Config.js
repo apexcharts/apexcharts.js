@@ -35,8 +35,6 @@ export default class Config {
       )
     }
 
-    opts.series = this.checkEmptySeries(opts.series)
-
     opts = this.extendYAxis(opts)
     opts = this.extendAnnotations(opts)
 
@@ -230,17 +228,6 @@ export default class Config {
         opts.theme.palette = 'palette4'
       }
     }
-  }
-
-  checkEmptySeries(ser) {
-    if (ser.length === 0) {
-      return [
-        {
-          data: []
-        }
-      ]
-    }
-    return ser
   }
 
   handleUserInputErrors(opts) {

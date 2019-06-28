@@ -37,6 +37,8 @@ class CoreUtils {
     const w = this.w
     let total = []
 
+    if (w.globals.series.length === 0) return total
+
     for (
       let i = 0;
       i < w.globals.series[w.globals.maxValsInArrayIndex].length;
