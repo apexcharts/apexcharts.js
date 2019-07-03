@@ -864,6 +864,12 @@ export default class ApexCharts {
       case 'toggleSeries': {
         return chart.toggleSeries(...opts)
       }
+      case 'resetSeries': {
+        return chart.resetSeries(...opts)
+      }
+      case 'toggleDataPointSelection': {
+        return chart.toggleDataPointSelection(...opts)
+      }
       case 'dataURI': {
         return chart.dataURI(...opts)
       }
