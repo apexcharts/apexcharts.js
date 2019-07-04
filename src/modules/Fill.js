@@ -129,7 +129,7 @@ class Fill {
     } else {
       if (fillColor.indexOf('rgba') > -1) {
         fillOpacity =
-          0 + '.' + Utils.getOpacityFromRGBA(fillColors[this.seriesIndex])
+          0 + '.' + Utils.getOpacityFromRGBA(fillColor)
       }
     }
 
