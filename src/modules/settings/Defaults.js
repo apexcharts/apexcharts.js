@@ -75,6 +75,9 @@ export default class Defaults {
         zoom: {
           enabled: false
         }
+      },
+      dataLabels: {
+        enabled: false
       }
     }
 
