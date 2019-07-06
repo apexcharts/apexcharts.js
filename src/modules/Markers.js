@@ -86,19 +86,11 @@ export default class Markers {
             PointClasses = 'apexcharts-nullpoint'
           }
 
-          let opts = this.getMarkerConfig(PointClasses, seriesIndex)
-
-          // discrete markers is an option where user can specify a particular marker with different size and color
-          w.config.markers.discrete.map((marker) => {
-            if (
-              marker.seriesIndex === seriesIndex &&
-              marker.dataPointIndex === dataPointIndex
-            ) {
-              opts.pointStrokeColor = marker.strokeColor
-              opts.pointFillColor = marker.fillColor
-              opts.pSize = marker.size
-            }
-          })
+          let opts = this.getMarkerConfig(
+            PointClasses,
+            seriesIndex,
+            dataPointIndex
+          )
 
           if (w.config.series[i].data[j]) {
             if (w.config.series[i].data[j].fillColor) {
@@ -137,11 +129,25 @@ export default class Markers {
     return elPointsWrap
   }
 
-  getMarkerConfig(cssClass, seriesIndex) {
+  getMarkerConfig(cssClass, seriesIndex, dataPointIndex = null) {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
+    let pSize = w.globals.markers.size[seriesIndex]
 
-    const pSize = w.globals.markers.size[seriesIndex]
+    // discrete markers is an option where user can specify a particular marker with different size and color
+
+    if (dataPointIndex !== null && w.config.markers.discrete.length) {
+      w.config.markers.discrete.map((marker) => {
+        if (
+          marker.seriesIndex === seriesIndex &&
+          marker.dataPointIndex === dataPointIndex
+        ) {
+          pStyle.pointStrokeColor = marker.strokeColor
+          pStyle.pointFillColor = marker.fillColor
+          pSize = marker.size
+        }
+      })
+    }
 
     return {
       pSize,

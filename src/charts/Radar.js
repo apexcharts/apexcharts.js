@@ -199,7 +199,8 @@ class Radar {
       s.forEach((sj, j) => {
         let markers = new Markers(this.ctx)
 
-        let opts = markers.getMarkerConfig('apexcharts-marker', i)
+        let opts = markers.getMarkerConfig('apexcharts-marker', i, j)
+
         let point = this.graphics.drawMarker(
           dataPointsPos[j].x,
           dataPointsPos[j].y,
