@@ -300,6 +300,8 @@ export default class Range {
       return a.filter((value) => b.indexOf(value) !== -1)
     }
 
+    gl.yAxisSameScaleIndices = similarIndices
+
     similarIndices.forEach((si, i) => {
       similarIndices.forEach((sj, j) => {
         if (i !== j) {

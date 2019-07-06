@@ -67,9 +67,19 @@ class AxesTooltip {
         w.config.yaxis[i].opposite || w.config.yaxis[i].crosshairs.opposite
 
       ttCtx.yaxisOffX = isRight ? w.globals.gridWidth + 1 : 1
-      const tooltipCssClass = isRight
+      let tooltipCssClass = isRight
         ? `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-right`
         : `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-left`
+
+      w.globals.yAxisSameScaleIndices.map((samescales, ssi) => {
+        samescales.map((s, si) => {
+          if (si === i) {
+            tooltipCssClass += w.config.yaxis[si].show
+              ? ` `
+              : ` apexcharts-yaxistooltip-hidden`
+          }
+        })
+      })
 
       let renderTo = w.globals.dom.elWrap
 

@@ -69,6 +69,7 @@ export default class Globals {
       dataFormatXNumeric: false, // boolean value to indicate user has passed numeric x values
       selectedDataPoints: [],
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
+      yAxisSameScaleIndices: [],
       padHorizontal: 0,
       maxValsInArrayIndex: 0,
       radialSize: 0,
