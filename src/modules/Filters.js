@@ -137,7 +137,14 @@ class Filters {
   // the only way it is different from the addShadow() function is that addShadow is chainable to other filters, while this function discards all filters and add dropShadow
   dropShadow(el, attrs, i = 0) {
     let { top, left, blur, color, opacity, noUserSpaceOnUse } = attrs
+    const w = this.w
+
     el.unfilter(true)
+
+    if(Utils.isIE() && w.config.chart.type === 'radialBar') {
+      // in radialbar charts, dropshadow is clipping actual drawing in IE
+      return el;
+    }
 
     color = Array.isArray(color) ? color[i] : color
 
