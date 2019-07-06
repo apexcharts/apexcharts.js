@@ -76,7 +76,8 @@ export default class Annotations {
     if (
       (w.config.xaxis.type === 'category' ||
         w.config.xaxis.convertedCatToNumeric) &&
-      !this.invertAxis
+      !this.invertAxis &&
+      !w.globals.isXNumeric
     ) {
       x1 = this.getStringX(anno.x)
     }
@@ -101,7 +102,8 @@ export default class Annotations {
       if (
         (w.config.xaxis.type === 'category' ||
           w.config.xaxis.convertedCatToNumeric) &&
-        !this.invertAxis
+        !this.invertAxis &&
+        !w.globals.isXNumeric
       ) {
         x2 = this.getStringX(anno.x2)
       }
@@ -401,11 +403,13 @@ export default class Annotations {
       radius: anno.marker.radius,
       class: 'apexcharts-point-annotation-marker ' + anno.marker.cssClass
     }
+
     let point = this.graphics.drawMarker(
       x + anno.marker.offsetX,
       pointY + anno.marker.offsetY,
       optsPoints
     )
+
     parent.appendChild(point.node)
 
     const text = anno.label.text ? anno.label.text : ''

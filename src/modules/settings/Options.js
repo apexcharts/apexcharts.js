@@ -149,7 +149,7 @@ export default class Options {
       yAxisIndex: 0,
       seriesIndex: 0,
       marker: {
-        size: 0,
+        size: 4,
         fillColor: '#fff',
         strokeWidth: 2,
         strokeColor: '#333',
