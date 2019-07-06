@@ -426,6 +426,11 @@ export default class Range {
 
     const w = ctx.w
 
+    if (w.globals.isMultipleYAxis) {
+      // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
+      return yaxis
+    }
+
     const seriesX = w.globals.seriesX[0]
 
     let isStacked = w.config.chart.stacked
