@@ -538,11 +538,17 @@ export default class ZoomPanSelection extends Toolbar {
           }
         }
 
+        let options = {
+          xaxis
+        }
+
+        if (!w.config.chart.group) {
+          // if chart in a group, prevent yaxis update here
+          // fix issue #650
+          options[yaxis] = yaxis
+        }
         me.ctx._updateOptions(
-          {
-            xaxis,
-            yaxis
-          },
+          options,
           false,
           me.w.config.chart.animations.dynamicAnimation.enabled
         )
@@ -652,17 +658,19 @@ export default class ZoomPanSelection extends Toolbar {
       })
     }
 
-    this.ctx._updateOptions(
-      {
-        xaxis: {
-          min: xLowestValue,
-          max: xHighestValue
-        },
-        yaxis
-      },
-      false,
-      false
-    )
+    let options = {
+      xaxis: {
+        min: xLowestValue,
+        max: xHighestValue
+      }
+    }
+
+    if (!w.config.chart.group) {
+      // if chart in a group, prevent yaxis update here
+      // fix issue #650
+      options[yaxis] = yaxis
+    }
+    this.ctx._updateOptions(options, false, false)
 
     if (typeof w.config.chart.events.scrolled === 'function') {
       w.config.chart.events.scrolled(this.ctx, {
