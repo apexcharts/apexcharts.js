@@ -322,6 +322,9 @@
 .apexcharts-yaxistooltip.active {
   opacity: 1;
 }
+.apexcharts-yaxistooltip-hidden {
+  display: none;
+}
 
 .apexcharts-xcrosshairs, .apexcharts-ycrosshairs {
   pointer-events: none;

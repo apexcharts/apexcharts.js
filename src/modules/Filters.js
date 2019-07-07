@@ -141,9 +141,9 @@ class Filters {
 
     el.unfilter(true)
 
-    if(Utils.isIE() && w.config.chart.type === 'radialBar') {
+    if (Utils.isIE() && w.config.chart.type === 'radialBar') {
       // in radialbar charts, dropshadow is clipping actual drawing in IE
-      return el;
+      return el
     }
 
     color = Array.isArray(color) ? color[i] : color
