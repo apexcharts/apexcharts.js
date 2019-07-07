@@ -634,6 +634,8 @@ export default class Options {
         radius: 2,
         offsetX: 0,
         offsetY: 0,
+        onClick: undefined,
+        onDblClick: undefined,
         hover: {
           size: undefined,
           sizeOffset: 3

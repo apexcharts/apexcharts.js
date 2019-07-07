@@ -167,6 +167,8 @@ export default class Markers {
   }
 
   addEvents(circle) {
+    const w = this.w
+
     const graphics = new Graphics(this.ctx)
     circle.node.addEventListener(
       'mouseenter',
@@ -181,6 +183,9 @@ export default class Markers {
       'mousedown',
       graphics.pathMouseDown.bind(this.ctx, circle)
     )
+
+    circle.node.addEventListener('click', w.config.markers.onClick)
+    circle.node.addEventListener('dblclick', w.config.markers.onDblClick)
 
     circle.node.addEventListener(
       'touchstart',
