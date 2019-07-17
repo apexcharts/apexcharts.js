@@ -158,6 +158,9 @@ export default class Toolbar {
         title: this.localeValues.exportToPNG
       }
     ]
+    if (w.config.chart.toolbar.tools.source) {
+      menuItems.push({ name: 'sourceBTN', title: 'Source' })
+    } 
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItems.push(document.createElement('div'))
       this.elMenuItems[i].innerHTML = menuItems[i].title
@@ -188,6 +191,9 @@ export default class Toolbar {
     this.elPan.addEventListener('click', this.togglePanning.bind(this))
     this.elMenuIcon.addEventListener('click', this.toggleMenu.bind(this))
     this.elMenuItems.forEach((m) => {
+      if (m.classList.contains('sourceBTN')) {
+        m.addEventListener('click', this.sourceBTN.bind(this))
+      }
       if (m.classList.contains('exportSVG')) {
         m.addEventListener('click', this.downloadSVG.bind(this))
       } else if (m.classList.contains('exportPNG')) {
@@ -381,6 +387,11 @@ export default class Toolbar {
     const downloadSVG = new Exports(this.ctx)
     downloadSVG.exportToSVG()
     this.toggleMenu()
+  }
+
+  sourceBTN() {
+    let w = this.w
+    window.location.href = w.config.chart.toolbar.tools.source
   }
 
   handleZoomReset(e) {

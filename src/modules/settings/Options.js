@@ -283,6 +283,7 @@ export default class Options {
         toolbar: {
           show: true,
           tools: {
+            source: false,
             download: true,
             selection: true,
             zoom: true,
