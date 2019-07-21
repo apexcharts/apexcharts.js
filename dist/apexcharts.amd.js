@@ -747,8 +747,7 @@ var Graphics = function () {
   }, {
     key: 'renderPaths',
     value: function renderPaths(_ref2) {
-      var i = _ref2.i,
-          j = _ref2.j,
+      var j = _ref2.j,
           realIndex = _ref2.realIndex,
           pathFrom = _ref2.pathFrom,
           pathTo = _ref2.pathTo,
@@ -760,7 +759,6 @@ var Graphics = function () {
           initialSpeed = _ref2.initialSpeed,
           dataChangeSpeed = _ref2.dataChangeSpeed,
           className = _ref2.className,
-          id = _ref2.id,
           _ref2$shouldClipToGri = _ref2.shouldClipToGrid,
           shouldClipToGrid = _ref2$shouldClipToGri === undefined ? true : _ref2$shouldClipToGri,
           _ref2$bindEventsOnPat = _ref2.bindEventsOnPaths,
@@ -804,7 +802,6 @@ var Graphics = function () {
         strokeDashArray: strokeDashArray
       });
 
-      el.attr('id', id + '-' + i);
       el.attr('index', realIndex);
 
       if (shouldClipToGrid) {
@@ -1498,7 +1495,10 @@ var CoreUtils = function () {
         if (Array.isArray(ser)) {
           for (var j = 0; j < ser.length; j++) {
             var total = w.globals.stackedSeriesTotals[j];
-            var percent = 100 * ser[j] / total;
+            var percent = 0;
+            if (total) {
+              percent = 100 * ser[j] / total;
+            }
             seriesPercent.push(percent);
           }
         } else {
@@ -4310,6 +4310,7 @@ var DataLabels = function () {
       return {
         x: x,
         y: y,
+        textRects: textRects,
         drawnextLabel: drawnextLabel
       };
     }
@@ -4340,8 +4341,6 @@ var DataLabels = function () {
       elDataLabelsWrap = graphics.group({
         class: 'apexcharts-data-labels'
       });
-
-      elDataLabelsWrap.attr('clip-path', 'url(#gridRectMarkerMask' + w.globals.cuid + ')');
 
       for (var q = 0; q < pos.x.length; q++) {
         x = pos.x[q] + dataLabelsConfig.offsetX;
@@ -4430,6 +4429,13 @@ var DataLabels = function () {
       if (!w.globals.zoomed) {
         x = correctedLabels.x;
         y = correctedLabels.y;
+      }
+
+      if (correctedLabels.textRects) {
+        if (x + correctedLabels.textRects.width < 10 || x > w.globals.gridWidth + 10) {
+          // datalabels fall outside drawing area, so draw a blank label
+          text = '';
+        }
       }
 
       if (correctedLabels.drawnextLabel) {
@@ -6537,15 +6543,16 @@ var Range = function () {
       var ub = stepSize * Math.ceil(yMax / stepSize);
       // Build array
       var val = lb;
-      while (1) {
-        result.push(val);
-        val += stepSize;
-        if (val > ub) {
-          break;
-        }
-      }
 
-      if (NO_MIN_MAX_PROVIDED && diff > 10) {
+      if (NO_MIN_MAX_PROVIDED && diff > 6) {
+        while (1) {
+          result.push(val);
+          val += stepSize;
+          if (val > ub) {
+            break;
+          }
+        }
+
         return {
           result: result,
           niceMin: result[0],
@@ -10403,6 +10410,7 @@ var Range = function () {
         }
       }
 
+      // bar chart specific
       // for numeric xaxis, we need to adjust some padding left and right for bar charts
       if (gl.comboChartsHasBars || cnf.chart.type === 'candlestick' || cnf.chart.type === 'bar' && gl.isXNumeric) {
         if (cnf.xaxis.type !== 'category' || gl.isXNumeric) {
@@ -13374,7 +13382,7 @@ var ApexCharts = function () {
       var w = this.w;
       if (options.series) {
         this.resetSeries(false);
-        if (options.series[0].data) {
+        if (options.series.length && options.series[0].data) {
           options.series = options.series.map(function (s, i) {
             return _extends({}, w.config.series[i], {
               name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
@@ -17515,7 +17523,10 @@ var Annotations = function () {
         for (var i = 0; i < 3; i++) {
           w.globals.dom.elGraphical.add(annoArray[i]);
           if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-            annoElArray[i].classList.add('hidden');
+            // fixes apexcharts/apexcharts.js#685
+            if (w.config.chart.type !== 'scatter' && w.config.chart.type !== 'bubble') {
+              annoElArray[i].classList.add('hidden');
+            }
           }
           w.globals.delayedElements.push({ el: annoElArray[i], index: 0 });
         }
@@ -19834,6 +19845,7 @@ var TimeScale = function () {
         };
         if (ts.unit === 'month') {
           return _extends({}, defaultReturn, {
+            day: 1,
             value: ts.value + 1
           });
         } else if (ts.unit === 'day' || ts.unit === 'hour') {

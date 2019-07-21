@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.8.2
+ * ApexCharts v3.8.3
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1212,8 +1212,7 @@ function () {
   }, {
     key: "renderPaths",
     value: function renderPaths(_ref2) {
-      var i = _ref2.i,
-          j = _ref2.j,
+      var j = _ref2.j,
           realIndex = _ref2.realIndex,
           pathFrom = _ref2.pathFrom,
           pathTo = _ref2.pathTo,
@@ -1225,7 +1224,6 @@ function () {
           initialSpeed = _ref2.initialSpeed,
           dataChangeSpeed = _ref2.dataChangeSpeed,
           className = _ref2.className,
-          id = _ref2.id,
           _ref2$shouldClipToGri = _ref2.shouldClipToGrid,
           shouldClipToGrid = _ref2$shouldClipToGri === void 0 ? true : _ref2$shouldClipToGri,
           _ref2$bindEventsOnPat = _ref2.bindEventsOnPaths,
@@ -1266,7 +1264,6 @@ function () {
         strokeLinecap: strokeLinecap,
         strokeDashArray: strokeDashArray
       });
-      el.attr('id', "".concat(id, "-").concat(i));
       el.attr('index', realIndex);
 
       if (shouldClipToGrid) {
@@ -2781,7 +2778,10 @@ function () {
           w.globals.dom.elGraphical.add(annoArray[i]);
 
           if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-            annoElArray[i].classList.add('hidden');
+            // fixes apexcharts/apexcharts.js#685
+            if (w.config.chart.type !== 'scatter' && w.config.chart.type !== 'bubble') {
+              annoElArray[i].classList.add('hidden');
+            }
           }
 
           w.globals.delayedElements.push({
@@ -4410,7 +4410,12 @@ function () {
         if (Array.isArray(ser)) {
           for (var j = 0; j < ser.length; j++) {
             var total = w.globals.stackedSeriesTotals[j];
-            var percent = 100 * ser[j] / total;
+            var percent = 0;
+
+            if (total) {
+              percent = 100 * ser[j] / total;
+            }
+
             seriesPercent.push(percent);
           }
         } else {
@@ -5868,6 +5873,7 @@ function () {
       return {
         x: x,
         y: y,
+        textRects: textRects,
         drawnextLabel: drawnextLabel
       };
     }
@@ -5892,7 +5898,6 @@ function () {
       elDataLabelsWrap = graphics.group({
         class: 'apexcharts-data-labels'
       });
-      elDataLabelsWrap.attr('clip-path', "url(#gridRectMarkerMask".concat(w.globals.cuid, ")"));
 
       for (var q = 0; q < pos.x.length; q++) {
         x = pos.x[q] + dataLabelsConfig.offsetX;
@@ -5978,6 +5983,13 @@ function () {
       if (!w.globals.zoomed) {
         x = correctedLabels.x;
         y = correctedLabels.y;
+      }
+
+      if (correctedLabels.textRects) {
+        if (x + correctedLabels.textRects.width < 10 || x > w.globals.gridWidth + 10) {
+          // datalabels fall outside drawing area, so draw a blank label
+          text = '';
+        }
       }
 
       if (correctedLabels.drawnextLabel) {
@@ -13130,16 +13142,16 @@ function () {
 
       var val = lb;
 
-      while (1) {
-        result.push(val);
-        val += stepSize;
+      if (NO_MIN_MAX_PROVIDED && diff > 6) {
+        while (1) {
+          result.push(val);
+          val += stepSize;
 
-        if (val > ub) {
-          break;
+          if (val > ub) {
+            break;
+          }
         }
-      }
 
-      if (NO_MIN_MAX_PROVIDED && diff > 10) {
         return {
           result: result,
           niceMin: result[0],
@@ -13787,7 +13799,8 @@ function () {
           gl.minX = 1;
           gl.initialminX = 1;
         }
-      } // for numeric xaxis, we need to adjust some padding left and right for bar charts
+      } // bar chart specific
+      // for numeric xaxis, we need to adjust some padding left and right for bar charts
 
 
       if (gl.comboChartsHasBars || cnf.chart.type === 'candlestick' || cnf.chart.type === 'bar' && gl.isXNumeric) {
@@ -14068,6 +14081,7 @@ function () {
 
         if (ts.unit === 'month') {
           return _objectSpread({}, defaultReturn, {
+            day: 1,
             value: ts.value + 1
           });
         } else if (ts.unit === 'day' || ts.unit === 'hour') {
@@ -28123,7 +28137,7 @@ function () {
       if (options$$1.series) {
         this.resetSeries(false);
 
-        if (options$$1.series[0].data) {
+        if (options$$1.series.length && options$$1.series[0].data) {
           options$$1.series = options$$1.series.map(function (s, i) {
             return _objectSpread({}, w.config.series[i], {
               name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
