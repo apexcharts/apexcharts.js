@@ -275,6 +275,7 @@ class Range {
       }
     }
 
+    // bar chart specific
     // for numeric xaxis, we need to adjust some padding left and right for bar charts
     if (
       gl.comboChartsHasBars ||

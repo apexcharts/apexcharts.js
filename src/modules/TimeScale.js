@@ -125,6 +125,7 @@ class TimeScale {
       if (ts.unit === 'month') {
         return {
           ...defaultReturn,
+          day: 1,
           value: ts.value + 1
         }
       } else if (ts.unit === 'day' || ts.unit === 'hour') {
