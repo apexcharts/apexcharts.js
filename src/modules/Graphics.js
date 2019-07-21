@@ -186,7 +186,6 @@ class Graphics {
    * @return {object} svg.js path object
    **/
   renderPaths({
-    i,
     j,
     realIndex,
     pathFrom,
@@ -199,7 +198,6 @@ class Graphics {
     initialSpeed,
     dataChangeSpeed,
     className,
-    id,
     shouldClipToGrid = true,
     bindEventsOnPaths = true,
     drawShadow = true
@@ -244,7 +242,6 @@ class Graphics {
       strokeDashArray
     })
 
-    el.attr('id', `${id}-${i}`)
     el.attr('index', realIndex)
 
     if (shouldClipToGrid) {

@@ -181,8 +181,11 @@ class CoreUtils {
       let seriesPercent = []
       if (Array.isArray(ser)) {
         for (let j = 0; j < ser.length; j++) {
-          const total = w.globals.stackedSeriesTotals[j]
-          let percent = (100 * ser[j]) / total
+          let total = w.globals.stackedSeriesTotals[j]
+          let percent = 0
+          if (total) {
+            percent = (100 * ser[j]) / total
+          }
           seriesPercent.push(percent)
         }
       } else {
