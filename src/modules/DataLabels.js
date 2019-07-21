@@ -68,6 +68,7 @@ class DataLabels {
     return {
       x,
       y,
+      textRects,
       drawnextLabel
     }
   }
@@ -94,11 +95,6 @@ class DataLabels {
     elDataLabelsWrap = graphics.group({
       class: 'apexcharts-data-labels'
     })
-
-    elDataLabelsWrap.attr(
-      'clip-path',
-      `url(#gridRectMarkerMask${w.globals.cuid})`
-    )
 
     for (let q = 0; q < pos.x.length; q++) {
       x = pos.x[q] + dataLabelsConfig.offsetX
@@ -202,6 +198,16 @@ class DataLabels {
     if (!w.globals.zoomed) {
       x = correctedLabels.x
       y = correctedLabels.y
+    }
+
+    if (correctedLabels.textRects) {
+      if (
+        x + correctedLabels.textRects.width < 10 ||
+        x > w.globals.gridWidth + 10
+      ) {
+        // datalabels fall outside drawing area, so draw a blank label
+        text = ''
+      }
     }
 
     if (correctedLabels.drawnextLabel) {
