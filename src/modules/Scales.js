@@ -86,15 +86,16 @@ export default class Range {
     let ub = stepSize * Math.ceil(yMax / stepSize)
     // Build array
     let val = lb
-    while (1) {
-      result.push(val)
-      val += stepSize
-      if (val > ub) {
-        break
-      }
-    }
 
-    if (NO_MIN_MAX_PROVIDED && diff > 10) {
+    if (NO_MIN_MAX_PROVIDED && diff > 6) {
+      while (1) {
+        result.push(val)
+        val += stepSize
+        if (val > ub) {
+          break
+        }
+      }
+
       return {
         result,
         niceMin: result[0],
