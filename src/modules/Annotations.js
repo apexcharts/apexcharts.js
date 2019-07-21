@@ -38,7 +38,13 @@ export default class Annotations {
       for (let i = 0; i < 3; i++) {
         w.globals.dom.elGraphical.add(annoArray[i])
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-          annoElArray[i].classList.add('hidden')
+          // fixes apexcharts/apexcharts.js#685
+          if (
+            w.config.chart.type !== 'scatter' &&
+            w.config.chart.type !== 'bubble'
+          ) {
+            annoElArray[i].classList.add('hidden')
+          }
         }
         w.globals.delayedElements.push({ el: annoElArray[i], index: 0 })
       }
