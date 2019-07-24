@@ -545,7 +545,7 @@ export default class ZoomPanSelection extends Toolbar {
         if (!w.config.chart.group) {
           // if chart in a group, prevent yaxis update here
           // fix issue #650
-          options[yaxis] = yaxis
+          options.yaxis = yaxis
         }
         me.ctx._updateOptions(
           options,
@@ -668,7 +668,7 @@ export default class ZoomPanSelection extends Toolbar {
     if (!w.config.chart.group) {
       // if chart in a group, prevent yaxis update here
       // fix issue #650
-      options[yaxis] = yaxis
+      options.yaxis = yaxis
     }
     this.ctx._updateOptions(options, false, false)
 
