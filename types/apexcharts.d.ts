@@ -224,6 +224,7 @@ type ApexTitleSubtitle = {
 */
 type ApexAxisChartSeries = {
   name: string;
+  type?: string;
   data: number[] | { x: any; y: any }[] | [number, number][] | [number, number[]][];
 }[];
 
