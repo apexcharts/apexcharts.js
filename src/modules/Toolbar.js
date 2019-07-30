@@ -197,7 +197,7 @@ export default class Toolbar {
     for (let i = 0; i < this.t.customIcons.length; i++) {
       this.elCustomIcons[i].addEventListener(
         'click',
-        this.t.customIcons[i].click
+        this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w)
       )
     }
   }
