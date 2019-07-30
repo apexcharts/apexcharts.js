@@ -23,7 +23,7 @@ declare class ApexCharts {
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addText(options: any, pushToMemory?: boolean, context?: any): void;
   dataURI(): Promise<void>;
-  static exec(chartID: string, fn: () => void, options: any): any;
+  static exec(chartID: string, fn: string, options: any): any;
   static initOnLoad(): void;
 }
 
@@ -224,6 +224,7 @@ type ApexTitleSubtitle = {
 */
 type ApexAxisChartSeries = {
   name: string;
+  type?: string;
   data: number[] | { x: any; y: any }[] | [number, number][] | [number, number[]][];
 }[];
 

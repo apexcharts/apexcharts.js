@@ -77,8 +77,12 @@ export default class Range {
 
     let mag = Math.floor(Utils.log10(tempStep))
     let magPow = Math.pow(10, mag)
-    let magMsd = parseInt(tempStep / magPow)
+    let magMsd = Math.round(tempStep / magPow)
+    if (magMsd < 1) {
+      magMsd = 1
+    }
     let stepSize = magMsd * magPow
+
 
     // build Y label array.
     // Lower and upper bounds calculations
@@ -87,7 +91,7 @@ export default class Range {
     // Build array
     let val = lb
 
-    if (NO_MIN_MAX_PROVIDED && diff > 6) {
+    if (NO_MIN_MAX_PROVIDED) {
       while (1) {
         result.push(val)
         val += stepSize
