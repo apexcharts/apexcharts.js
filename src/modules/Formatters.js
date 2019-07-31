@@ -107,6 +107,8 @@ class Formatters {
         w.globals.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
         w.globals.yLabelFormatters[i] = function(val) {
+          if (!w.globals.axisCharts) return val
+
           if (Utils.isNumber(val)) {
             if (w.globals.yValueDecimal !== 0) {
               return val.toFixed(
