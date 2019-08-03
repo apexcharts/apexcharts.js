@@ -68,6 +68,12 @@ class Formatters {
           if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
             return val.toFixed(1)
           }
+          if (w.globals.isBarHorizontal) {
+            const range = w.globals.maxY - w.globals.minYArr
+            if (range < 4) {
+              return val.toFixed(1)
+            }
+          }
           return val.toFixed(0)
         }
         return val
