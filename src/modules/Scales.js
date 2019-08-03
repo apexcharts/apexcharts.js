@@ -83,7 +83,6 @@ export default class Range {
     }
     let stepSize = magMsd * magPow
 
-
     // build Y label array.
     // Lower and upper bounds calculations
     let lb = stepSize * Math.floor(yMin / stepSize)

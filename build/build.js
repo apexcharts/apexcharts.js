@@ -40,11 +40,11 @@ async function build(builds) {
 async function executeBuildEntry(buildConfig) {
   const outputLocation = buildConfig.output
   const { file, banner } = outputLocation
-  const isProd = /min\.js$/.test(file)
+  const isDev = /apexcharts\.js$/.test(file)
   const buildBundle = await rollup.rollup(buildConfig)
   const generated = await buildBundle.generate(outputLocation)
   let code = generated.output[0].code
-  if (isProd) {
+  if (!isDev) {
     const minified =
       (banner ? banner + '\n' : '') +
       terser.minify(code, {
