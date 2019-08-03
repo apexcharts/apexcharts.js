@@ -110,6 +110,7 @@ export default class XAxis {
           y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
           text: '',
           textAnchor: 'middle',
+          fontWeight: label.isBold ? 600 : 400,
           fontSize: this.xaxisFontSize,
           fontFamily: this.xaxisFontFamily,
           foreColor: Array.isArray(this.xaxisForeColors)

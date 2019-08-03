@@ -16,6 +16,8 @@ export default class AxesUtils {
     let xlbFormatter = w.globals.xLabelFormatter
     let customFormatter = w.config.xaxis.labels.formatter
 
+    let isBold = false
+
     let xFormat = new Formatters(this.ctx)
     let timestamp = rawLabel
     label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp)
@@ -24,7 +26,24 @@ export default class AxesUtils {
       label = customFormatter(rawLabel, labels[i], i)
     }
 
+    const determineHighestUnit = (unit) => {
+      let highestUnit = null
+      timelineLabels.forEach((t) => {
+        if (t.unit === 'month') {
+          highestUnit = 'year'
+        } else if (t.unit === 'day') {
+          highestUnit = 'month'
+        } else if (t.unit === 'hour') {
+          highestUnit = 'day'
+        } else if (t.unit === 'minute') {
+          highestUnit = 'hour'
+        }
+      })
+
+      return highestUnit === unit
+    }
     if (timelineLabels.length > 0) {
+      isBold = determineHighestUnit(timelineLabels[i].unit)
       x = timelineLabels[i].position
       label = timelineLabels[i].value
     } else {
@@ -48,7 +67,8 @@ export default class AxesUtils {
 
     return {
       x,
-      text: label
+      text: label,
+      isBold
     }
   }
 

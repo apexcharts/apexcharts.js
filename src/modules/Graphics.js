@@ -449,6 +449,7 @@ class Graphics {
       textAnchor,
       fontSize,
       fontFamily,
+      fontWeight,
       foreColor,
       opacity
     } = opts
@@ -463,6 +464,7 @@ class Graphics {
       foreColor = w.config.chart.foreColor
     }
     fontFamily = fontFamily || w.config.chart.fontFamily
+    fontWeight = fontWeight || 'regular'
 
     let elText
     if (Array.isArray(text)) {
@@ -482,6 +484,7 @@ class Graphics {
       'dominant-baseline': 'auto',
       'font-size': fontSize,
       'font-family': fontFamily,
+      'font-weight': fontWeight,
       fill: foreColor,
       class: 'apexcharts-text ' + opts.cssClass ? opts.cssClass : ''
     })
