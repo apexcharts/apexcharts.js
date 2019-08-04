@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.8.3
+ * ApexCharts v3.8.4
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1449,6 +1449,7 @@
             textAnchor = opts.textAnchor,
             fontSize = opts.fontSize,
             fontFamily = opts.fontFamily,
+            fontWeight = opts.fontWeight,
             foreColor = opts.foreColor,
             opacity = opts.opacity;
         if (typeof text === 'undefined') text = '';
@@ -1462,6 +1463,7 @@
         }
 
         fontFamily = fontFamily || w.config.chart.fontFamily;
+        fontWeight = fontWeight || 'regular';
         var elText;
 
         if (Array.isArray(text)) {
@@ -1481,6 +1483,7 @@
           'dominant-baseline': 'auto',
           'font-size': fontSize,
           'font-family': fontFamily,
+          'font-weight': fontWeight,
           fill: foreColor,
           class: 'apexcharts-text ' + opts.cssClass ? opts.cssClass : ''
         });
@@ -10056,6 +10059,14 @@
                 return val.toFixed(1);
               }
 
+              if (w.globals.isBarHorizontal) {
+                var range = w.globals.maxY - w.globals.minYArr;
+
+                if (range < 4) {
+                  return val.toFixed(1);
+                }
+              }
+
               return val.toFixed(0);
             }
 
@@ -10096,6 +10107,8 @@
             w.globals.yLabelFormatters[i] = yaxe.labels.formatter;
           } else {
             w.globals.yLabelFormatters[i] = function (val) {
+              if (!w.globals.xyCharts) return val;
+
               if (Utils.isNumber(val)) {
                 if (w.globals.yValueDecimal !== 0) {
                   return val.toFixed(yaxe.decimalsInFloat !== undefined ? yaxe.decimalsInFloat : w.globals.yValueDecimal);
@@ -10152,6 +10165,7 @@
         var label;
         var xlbFormatter = w.globals.xLabelFormatter;
         var customFormatter = w.config.xaxis.labels.formatter;
+        var isBold = false;
         var xFormat = new Formatters(this.ctx);
         var timestamp = rawLabel;
         label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp);
@@ -10160,7 +10174,24 @@
           label = customFormatter(rawLabel, labels[i], i);
         }
 
+        var determineHighestUnit = function determineHighestUnit(unit) {
+          var highestUnit = null;
+          timelineLabels.forEach(function (t) {
+            if (t.unit === 'month') {
+              highestUnit = 'year';
+            } else if (t.unit === 'day') {
+              highestUnit = 'month';
+            } else if (t.unit === 'hour') {
+              highestUnit = 'day';
+            } else if (t.unit === 'minute') {
+              highestUnit = 'hour';
+            }
+          });
+          return highestUnit === unit;
+        };
+
         if (timelineLabels.length > 0) {
+          isBold = determineHighestUnit(timelineLabels[i].unit);
           x = timelineLabels[i].position;
           label = timelineLabels[i].value;
         } else {
@@ -10178,7 +10209,8 @@
 
         return {
           x: x,
-          text: label
+          text: label,
+          isBold: isBold
         };
       }
     }, {
@@ -12816,6 +12848,7 @@
               y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
               text: '',
               textAnchor: 'middle',
+              fontWeight: label.isBold ? 600 : 400,
               fontSize: this.xaxisFontSize,
               fontFamily: this.xaxisFontFamily,
               foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[_i] : this.xaxisForeColors,
@@ -13137,7 +13170,12 @@
 
         var mag = Math.floor(Utils.log10(tempStep));
         var magPow = Math.pow(10, mag);
-        var magMsd = parseInt(tempStep / magPow);
+        var magMsd = Math.round(tempStep / magPow);
+
+        if (magMsd < 1) {
+          magMsd = 1;
+        }
+
         var stepSize = magMsd * magPow; // build Y label array.
         // Lower and upper bounds calculations
 
@@ -13146,7 +13184,7 @@
 
         var val = lb;
 
-        if (NO_MIN_MAX_PROVIDED && diff > 6) {
+        if (NO_MIN_MAX_PROVIDED) {
           while (1) {
             result.push(val);
             val += stepSize;
@@ -13458,8 +13496,9 @@
 
         var w = ctx.w;
 
-        if (w.globals.isMultipleYAxis) {
+        if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
           // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
+          // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
           return yaxis;
         }
 
@@ -19338,7 +19377,7 @@
         });
 
         for (var i = 0; i < this.t.customIcons.length; i++) {
-          this.elCustomIcons[i].addEventListener('click', this.t.customIcons[i].click);
+          this.elCustomIcons[i].addEventListener('click', this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w));
         }
       }
     }, {
@@ -20059,7 +20098,7 @@
             if (!w.config.chart.group) {
               // if chart in a group, prevent yaxis update here
               // fix issue #650
-              options[yaxis] = yaxis;
+              options.yaxis = yaxis;
             }
 
             me.ctx._updateOptions(options, false, me.w.config.chart.animations.dynamicAnimation.enabled);
@@ -20172,7 +20211,7 @@
         if (!w.config.chart.group) {
           // if chart in a group, prevent yaxis update here
           // fix issue #650
-          options[yaxis] = yaxis;
+          options.yaxis = yaxis;
         }
 
         this.ctx._updateOptions(options, false, false);
