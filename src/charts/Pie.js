@@ -125,19 +125,6 @@ class Pie {
     let translateX = halfW - (w.globals.gridWidth / 2) * scaleSize
     let translateY = halfH - (w.globals.gridHeight / 2) * scaleSize
 
-    if (this.donutDataLabels.show) {
-      let dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
-        hollowSize: this.donutSize,
-        centerX: this.centerX,
-        centerY: this.centerY,
-        opacity: this.donutDataLabels.show,
-        translateX: translateX,
-        translateY: translateY
-      })
-
-      ret.add(dataLabels)
-    }
-
     if (w.config.chart.type === 'donut') {
       // draw the inner circle and add some text to it
       const circle = graphics.drawCircle(this.donutSize)
@@ -171,6 +158,19 @@ class Pie {
     elSeries.add(elG)
 
     ret.add(elSeries)
+
+    if (this.donutDataLabels.show) {
+      let dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
+        hollowSize: this.donutSize,
+        centerX: this.centerX,
+        centerY: this.centerY,
+        opacity: this.donutDataLabels.show,
+        translateX: translateX,
+        translateY: translateY
+      })
+
+      ret.add(dataLabels)
+    }
 
     return ret
   }
