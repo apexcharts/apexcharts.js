@@ -456,7 +456,10 @@ export default class Options {
                 fontSize: '16px',
                 fontFamily: undefined,
                 color: undefined,
-                offsetY: -10
+                offsetY: -10,
+                formatter: function(name, isTotal = false, w) {
+                  return name
+                }
               },
               value: {
                 show: true,
