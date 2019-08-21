@@ -97,7 +97,13 @@ class Legend {
     }
     let legendFormatter = w.globals.legendFormatter
 
-    for (let i = 0; i <= legendNames.length - 1; i++) {
+    let isLegendInversed = w.config.legend.inverseOrder
+
+    for (
+      let i = isLegendInversed ? legendNames.length - 1 : 0;
+      isLegendInversed ? i >= 0 : i <= legendNames.length - 1;
+      isLegendInversed ? i-- : i++
+    ) {
       let text = legendFormatter(legendNames[i], { seriesIndex: i, w })
 
       let collapsedSeries = false

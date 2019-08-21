@@ -588,6 +588,7 @@ export default class Options {
         position: 'bottom', // whether to position legends in 1 of 4
         // direction - top, bottom, left, right
         horizontalAlign: 'center', // when position top/bottom, you can specify whether to align legends left, right or center
+        inverseOrder: false,
         fontSize: '12px',
         fontFamily: undefined,
         width: undefined,
