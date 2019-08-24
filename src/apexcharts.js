@@ -13,6 +13,7 @@ import Grid from './modules/axes/Grid'
 import Graphics from './modules/Graphics'
 import Legend from './modules/Legend'
 import Markers from './modules/Markers'
+import Pie from './charts/Pie'
 import Range from './modules/Range'
 import Responsive from './modules/Responsive'
 import Series from './modules/Series'
@@ -1043,6 +1044,11 @@ export default class ApexCharts {
       elPath = w.globals.dom.Paper.select(
         `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
       ).members[0]
+
+      if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
+        const pie = new Pie(this.ctx)
+        pie.pieClicked(seriesIndex)
+      }
     }
 
     if (elPath) {

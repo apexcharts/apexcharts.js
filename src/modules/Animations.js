@@ -164,6 +164,15 @@ export default class Animations {
     })
   }
 
+  animationCompleted() {
+    const w = this.w
+    w.globals.animationEnded = true
+
+    if (typeof w.config.chart.events.animationEnd === 'function') {
+      w.config.chart.events.animationEnd(this.ctx, w)
+    }
+  }
+
   // SVG.js animation for morphing one path to another
   morphSVG(el, j, pathFrom, pathTo, speed, strokeWidth, delay) {
     let w = this.w
@@ -205,13 +214,10 @@ export default class Animations {
             j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 &&
             w.globals.shouldAnimate
           ) {
-            w.globals.animationEnded = true
+            this.animationCompleted()
           }
         } else if (w.globals.shouldAnimate) {
-          w.globals.animationEnded = true
-          if (typeof w.config.chart.events.animationEnd === 'function') {
-            w.config.chart.events.animationEnd(this.ctx, w)
-          }
+          this.animationCompleted()
         }
 
         this.showDelayedElements()

@@ -90,7 +90,7 @@ export default class Range {
     // Build array
     let val = lb
 
-    if (NO_MIN_MAX_PROVIDED) {
+    if (NO_MIN_MAX_PROVIDED && range > 2) {
       while (1) {
         result.push(val)
         val += stepSize

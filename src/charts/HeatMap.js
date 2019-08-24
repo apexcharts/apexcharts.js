@@ -340,7 +340,7 @@ export default class HeatMap {
       },
       speed,
       () => {
-        this.w.globals.animationEnded = true
+        animations.animationCompleted()
       }
     )
   }

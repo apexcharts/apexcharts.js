@@ -1,3 +1,4 @@
+import Animations from '../modules/Animations'
 import Fill from '../modules/Fill'
 import Utils from '../utils/Utils'
 import Graphics from '../modules/Graphics'
@@ -42,7 +43,18 @@ class Pie {
 
     this.fullAngle = 360
 
-    this.donutSize = 0
+    w.globals.radialSize =
+      this.defaultSize / 2.05 -
+      w.config.stroke.width -
+      w.config.chart.dropShadow.blur
+
+    if (w.config.plotOptions.pie.size !== undefined) {
+      w.globals.radialSize = w.config.plotOptions.pie.size
+    }
+
+    this.donutSize =
+      (w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size)) /
+      100
 
     this.sliceLabels = []
 
@@ -100,19 +112,6 @@ class Pie {
         this.prevSectorAngleArr.push(previousAngle)
       }
     }
-
-    w.globals.radialSize =
-      this.defaultSize / 2.05 -
-      w.config.stroke.width -
-      w.config.chart.dropShadow.blur
-
-    if (w.config.plotOptions.pie.size !== undefined) {
-      w.globals.radialSize = w.config.plotOptions.pie.size
-    }
-
-    this.donutSize =
-      (w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size)) /
-      100
 
     // on small chart size after few count of resizes browser window donutSize can be negative
     if (this.donutSize < 0) {
@@ -437,6 +436,7 @@ class Pie {
   animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
     let me = this
     const w = this.w
+    const animations = new Animations(this.ctx)
 
     let size = opts.size
 
@@ -475,7 +475,9 @@ class Pie {
             })
           }
 
-          w.globals.animationEnded = true
+          if (opts.i === w.config.series.length - 1) {
+            animations.animationCompleted()
+          }
         })
         .during(function(pos) {
           currAngle = fromAngle + (angle - fromAngle) * pos

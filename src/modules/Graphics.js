@@ -220,7 +220,7 @@ class Graphics {
       d = pathFrom
     } else {
       d = pathTo
-      this.w.globals.animationEnded = true
+      anim.animationCompleted()
     }
 
     let strokeDashArrayOpt = w.config.stroke.dashArray
