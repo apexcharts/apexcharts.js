@@ -36,13 +36,13 @@ export default class Utils {
     let hoverX = clientX - seriesBound.left
     let hoverY = clientY - seriesBound.top
 
-    const inRect =
+    const notInRect =
       hoverX < 0 ||
       hoverY < 0 ||
       hoverX > w.globals.gridWidth ||
       hoverY > w.globals.gridHeight
 
-    if (inRect) {
+    if (notInRect) {
       hoverArea.classList.remove('hovering-zoom')
       hoverArea.classList.remove('hovering-pan')
     } else {

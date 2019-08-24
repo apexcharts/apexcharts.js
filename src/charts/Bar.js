@@ -410,7 +410,9 @@ class Bar {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        xDivision = w.globals.minXDiff / this.xRatio
+        if (w.globals.minXDiff) {
+          xDivision = w.globals.minXDiff / this.xRatio
+        }
         barWidth =
           ((xDivision / this.seriesLen) *
             parseInt(this.barOptions.columnWidth)) /

@@ -379,6 +379,16 @@ class Range {
     if (gl.isXNumeric) {
       // get the least x diff if numeric x axis is present
       gl.seriesX.forEach((sX, i) => {
+        if (sX.length === 1) {
+          // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
+          // fix #811
+          sX.push(
+            gl.seriesX[gl.maxValsInArrayIndex][
+              gl.seriesX[gl.maxValsInArrayIndex].length - 1
+            ]
+          )
+        }
+
         sX.forEach((s, j) => {
           if (j > 0) {
             let xDiff = s - gl.seriesX[i][j - 1]

@@ -276,6 +276,14 @@ export default class Position {
         w.config.markers.hover.sizeOffset
     }
 
+    if (
+      w.config.series[capturedSeries].type &&
+      w.config.series[capturedSeries].type === 'column'
+    ) {
+      // fix error mentioned in #811
+      return
+    }
+
     cx = pointsArr[capturedSeries][j][0]
     cy = pointsArr[capturedSeries][j][1] ? pointsArr[capturedSeries][j][1] : 0
 
