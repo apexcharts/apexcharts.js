@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.8.4
+ * ApexCharts v3.8.5
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -958,6 +958,16 @@
           var ele = d.el;
           ele.classList.remove('hidden');
         });
+      }
+    }, {
+      key: "animationCompleted",
+      value: function animationCompleted() {
+        var w = this.w;
+        w.globals.animationEnded = true;
+
+        if (typeof w.config.chart.events.animationEnd === 'function') {
+          w.config.chart.events.animationEnd(this.ctx, w);
+        }
       } // SVG.js animation for morphing one path to another
 
     }, {
@@ -993,14 +1003,10 @@
           // a flag to indicate that the original mount function can return true now as animation finished here
           if (Utils.isNumber(j)) {
             if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
-              w.globals.animationEnded = true;
+              _this.animationCompleted();
             }
           } else if (w.globals.shouldAnimate) {
-            w.globals.animationEnded = true;
-
-            if (typeof w.config.chart.events.animationEnd === 'function') {
-              w.config.chart.events.animationEnd(_this.ctx, w);
-            }
+            _this.animationCompleted();
           }
 
           _this.showDelayedElements();
@@ -1246,7 +1252,7 @@
           d = pathFrom;
         } else {
           d = pathTo;
-          this.w.globals.animationEnded = true;
+          anim.animationCompleted();
         }
 
         var strokeDashArrayOpt = w.config.stroke.dashArray;
@@ -2438,6 +2444,7 @@
             // direction - top, bottom, left, right
             horizontalAlign: 'center',
             // when position top/bottom, you can specify whether to align legends left, right or center
+            inverseOrder: false,
             fontSize: '12px',
             fontFamily: undefined,
             width: undefined,
@@ -5970,7 +5977,7 @@
             offsetCorrection = opts.offsetCorrection;
 
         if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
-          if (w.config.dataLabels.enabledOnSeries.indexOf(i) > -1) {
+          if (w.config.dataLabels.enabledOnSeries.indexOf(i) < 0) {
             return;
           }
         }
@@ -6416,7 +6423,10 @@
 
           if (w.globals.isXNumeric) {
             // max barwidth should be equal to minXDiff to avoid overlap
-            xDivision = w.globals.minXDiff / this.xRatio;
+            if (w.globals.minXDiff) {
+              xDivision = w.globals.minXDiff / this.xRatio;
+            }
+
             barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
           }
 
@@ -8149,8 +8159,6 @@
     }, {
       key: "animateHeatMap",
       value: function animateHeatMap(el, x, y, width, height, speed) {
-        var _this2 = this;
-
         var animations = new Animations(this.ctx);
         animations.animateRect(el, {
           x: x + width / 2,
@@ -8163,7 +8171,7 @@
           width: width,
           height: height
         }, speed, function () {
-          _this2.w.globals.animationEnded = true;
+          animations.animationCompleted();
         });
       }
     }, {
@@ -8205,7 +8213,13 @@
       this.centerY = this.defaultSize / 2;
       this.centerX = w.globals.gridWidth / 2;
       this.fullAngle = 360;
-      this.donutSize = 0;
+      w.globals.radialSize = this.defaultSize / 2.05 - w.config.stroke.width - w.config.chart.dropShadow.blur;
+
+      if (w.config.plotOptions.pie.size !== undefined) {
+        w.globals.radialSize = w.config.plotOptions.pie.size;
+      }
+
+      this.donutSize = w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size) / 100;
       this.sliceLabels = [];
       this.prevSectorAngleArr = []; // for dynamic animations
     }
@@ -8256,15 +8270,8 @@
             previousAngle = this.fullAngle * Utils.negToZero(w.globals.previousPaths[_i]) / prevTotal;
             this.prevSectorAngleArr.push(previousAngle);
           }
-        }
+        } // on small chart size after few count of resizes browser window donutSize can be negative
 
-        w.globals.radialSize = this.defaultSize / 2.05 - w.config.stroke.width - w.config.chart.dropShadow.blur;
-
-        if (w.config.plotOptions.pie.size !== undefined) {
-          w.globals.radialSize = w.config.plotOptions.pie.size;
-        }
-
-        this.donutSize = w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size) / 100; // on small chart size after few count of resizes browser window donutSize can be negative
 
         if (this.donutSize < 0) {
           this.donutSize = 0;
@@ -8275,18 +8282,6 @@
         var halfH = w.globals.gridHeight / 2;
         var translateX = halfW - w.globals.gridWidth / 2 * scaleSize;
         var translateY = halfH - w.globals.gridHeight / 2 * scaleSize;
-
-        if (this.donutDataLabels.show) {
-          var dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
-            hollowSize: this.donutSize,
-            centerX: this.centerX,
-            centerY: this.centerY,
-            opacity: this.donutDataLabels.show,
-            translateX: translateX,
-            translateY: translateY
-          });
-          ret.add(dataLabels);
-        }
 
         if (w.config.chart.type === 'donut') {
           // draw the inner circle and add some text to it
@@ -8313,6 +8308,19 @@
         });
         elSeries.add(elG);
         ret.add(elSeries);
+
+        if (this.donutDataLabels.show) {
+          var dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
+            hollowSize: this.donutSize,
+            centerX: this.centerX,
+            centerY: this.centerY,
+            opacity: this.donutDataLabels.show,
+            translateX: translateX,
+            translateY: translateY
+          });
+          ret.add(dataLabels);
+        }
+
         return ret;
       } // core function for drawing pie arcs
 
@@ -8524,6 +8532,7 @@
       value: function animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
         var me = this;
         var w = this.w;
+        var animations = new Animations(this.ctx);
         var size = opts.size;
         var path;
 
@@ -8558,7 +8567,9 @@
               });
             }
 
-            w.globals.animationEnded = true;
+            if (opts.i === w.config.series.length - 1) {
+              animations.animationCompleted();
+            }
           }).during(function (pos) {
             currAngle = fromAngle + (angle - fromAngle) * pos;
 
@@ -11769,8 +11780,9 @@
         }
 
         var legendFormatter = w.globals.legendFormatter;
+        var isLegendInversed = w.config.legend.inverseOrder;
 
-        for (var i = 0; i <= legendNames.length - 1; i++) {
+        for (var i = isLegendInversed ? legendNames.length - 1 : 0; isLegendInversed ? i >= 0 : i <= legendNames.length - 1; isLegendInversed ? i-- : i++) {
           var text = legendFormatter(legendNames[i], {
             seriesIndex: i,
             w: w
@@ -13184,7 +13196,7 @@
 
         var val = lb;
 
-        if (NO_MIN_MAX_PROVIDED) {
+        if (NO_MIN_MAX_PROVIDED && range > 2) {
           while (1) {
             result.push(val);
             val += stepSize;
@@ -13930,6 +13942,12 @@
         if (gl.isXNumeric) {
           // get the least x diff if numeric x axis is present
           gl.seriesX.forEach(function (sX, i) {
+            if (sX.length === 1) {
+              // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
+              // fix #811
+              sX.push(gl.seriesX[gl.maxValsInArrayIndex][gl.seriesX[gl.maxValsInArrayIndex].length - 1]);
+            }
+
             sX.forEach(function (s, j) {
               if (j > 0) {
                 var xDiff = s - gl.seriesX[i][j - 1];
@@ -16831,9 +16849,9 @@
 
         var hoverX = clientX - seriesBound.left;
         var hoverY = clientY - seriesBound.top;
-        var inRect = hoverX < 0 || hoverY < 0 || hoverX > w.globals.gridWidth || hoverY > w.globals.gridHeight;
+        var notInRect = hoverX < 0 || hoverY < 0 || hoverX > w.globals.gridWidth || hoverY > w.globals.gridHeight;
 
-        if (inRect) {
+        if (notInRect) {
           hoverArea.classList.remove('hovering-zoom');
           hoverArea.classList.remove('hovering-pan');
         } else {
@@ -17697,6 +17715,11 @@
 
         if (hoverSize === undefined) {
           hoverSize = w.globals.markers.size[capturedSeries] + w.config.markers.hover.sizeOffset;
+        }
+
+        if (w.config.series[capturedSeries].type && w.config.series[capturedSeries].type === 'column') {
+          // fix error mentioned in #811
+          return;
         }
 
         cx = pointsArr[capturedSeries][j][0];
@@ -28755,6 +28778,11 @@
           elPath = w.globals.dom.Paper.select(".apexcharts-series[data\\:realIndex='".concat(seriesIndex, "'] path[j='").concat(dataPointIndex, "'], .apexcharts-series[data\\:realIndex='").concat(seriesIndex, "'] circle[j='").concat(dataPointIndex, "'], .apexcharts-series[data\\:realIndex='").concat(seriesIndex, "'] rect[j='").concat(dataPointIndex, "']")).members[0];
         } else {
           elPath = w.globals.dom.Paper.select(".apexcharts-series[data\\:realIndex='".concat(seriesIndex, "']")).members[0];
+
+          if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
+            var pie = new Pie(this.ctx);
+            pie.pieClicked(seriesIndex);
+          }
         }
 
         if (elPath) {
