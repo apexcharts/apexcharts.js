@@ -170,7 +170,7 @@ class DataLabels {
     } = opts
 
     if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
-      if (w.config.dataLabels.enabledOnSeries.indexOf(i) > -1) {
+      if (w.config.dataLabels.enabledOnSeries.indexOf(i) < 0) {
         return
       }
     }
