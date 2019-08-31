@@ -17,6 +17,8 @@ export default class Animations {
   setEasingFunctions() {
     let easing
 
+    if (this.w.globals.easing) return
+
     const userDefinedEasing = this.w.config.chart.animations.easing
 
     switch (userDefinedEasing) {

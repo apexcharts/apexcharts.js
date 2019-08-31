@@ -594,6 +594,7 @@ export default class Options {
         width: undefined,
         height: undefined,
         formatter: undefined,
+        tooltipHoverFormatter: undefined,
         offsetX: -20,
         offsetY: 0,
         labels: {

@@ -547,6 +547,7 @@ type ApexLegend = {
   showForNullSeries?: boolean;
   showForZeroSeries?: boolean;
   floating?: boolean;
+  inverseOrder?: boolean;
   position?: "top" | "right" | "bottom" | "left";
   horizontalAlign?: "left" | "center" | "right";
   fontSize?: string;
@@ -555,7 +556,8 @@ type ApexLegend = {
   height?: number;
   offsetX?: number;
   offsetY?: number;
-  formatter?(val: string, opts: any): string;
+  formatter?(legendName: string, opts: any): string;
+  tooltipHoverFormatter?(legendName: string, opts: any): string;
   textAnchor?: string;
   labels?: {
     color?: string
@@ -609,6 +611,8 @@ type ApexMarkers = {
   radius?: number;
   offsetX?: number;
   offsetY?: number;
+  onClick?(e: any): void;
+  onDblClick?(e: any): void;
   hover?: {
     size?: number;
     sizeOffset?: number;

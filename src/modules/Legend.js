@@ -199,6 +199,8 @@ class Legend {
 
       Graphics.setAttrs(elLegendText, {
         rel: i + 1,
+        i: i,
+        'data:default-text': text,
         'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
 

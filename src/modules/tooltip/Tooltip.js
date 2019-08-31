@@ -115,6 +115,10 @@ export default class Tooltip {
       }
     }
 
+    this.legendLabels = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-legend-text'
+    )
+
     this.ttItems = this.createTTElements(ttItemsCnt)
     this.addSVGEvents()
   }
@@ -476,7 +480,6 @@ export default class Tooltip {
     let w = this.w
     let j, x, y
 
-    let self = this
     let capj = null
 
     let seriesBound = opt.elGrid.getBoundingClientRect()
@@ -491,7 +494,7 @@ export default class Tooltip {
       clientY < seriesBound.top ||
       clientY > seriesBound.top + seriesBound.height
     ) {
-      self.handleMouseOut(opt)
+      this.handleMouseOut(opt)
       return
     }
 
@@ -501,7 +504,7 @@ export default class Tooltip {
     ) {
       const index = parseInt(opt.paths.getAttribute('index'))
       if (this.tConfig.enabledOnSeries.indexOf(index) < 0) {
-        self.handleMouseOut(opt)
+        this.handleMouseOut(opt)
         return
       }
     }
@@ -529,32 +532,32 @@ export default class Tooltip {
         xcrosshairs.classList.add('active')
       }
 
-      if (self.ycrosshairs !== null && self.blyaxisTooltip) {
-        self.ycrosshairs.classList.add('active')
+      if (this.ycrosshairs !== null && this.blyaxisTooltip) {
+        this.ycrosshairs.classList.add('active')
       }
 
-      if (isStickyTooltip && !self.showOnIntersect) {
-        capj = self.tooltipUtil.getNearestValues({
-          context: self,
+      if (isStickyTooltip && !this.showOnIntersect) {
+        capj = this.tooltipUtil.getNearestValues({
+          context: this,
           hoverArea: opt.hoverArea,
           elGrid: opt.elGrid,
           clientX,
           clientY,
-          hasBars: self.hasBars
+          hasBars: this.hasBars
         })
 
         j = capj.j
         let capturedSeries = capj.capturedSeries
 
         if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth) {
-          self.handleMouseOut(opt)
+          this.handleMouseOut(opt)
           return
         }
 
         if (capturedSeries !== null) {
           let ignoreNull = w.globals.series[capturedSeries][j] === null
           if (ignoreNull) {
-            opt.tooltipEl.classList.remove('active')
+            this.handleMouseOut(opt)
             return
           }
 
@@ -564,20 +567,20 @@ export default class Tooltip {
               this.tooltipUtil.isXoverlap(j) &&
               this.tooltipUtil.isinitialSeriesSameLen()
             ) {
-              this.create(e, self, capturedSeries, j, opt.ttItems)
+              this.create(e, this, capturedSeries, j, opt.ttItems)
             } else {
-              this.create(e, self, capturedSeries, j, opt.ttItems, false)
+              this.create(e, this, capturedSeries, j, opt.ttItems, false)
             }
           } else {
             if (this.tooltipUtil.isXoverlap(j)) {
-              self.create(e, self, 0, j, opt.ttItems)
+              this.create(e, this, 0, j, opt.ttItems)
             }
           }
         } else {
           // couldn't capture any series. check if shared X is same,
           // if yes, draw a grouped tooltip
           if (this.tooltipUtil.isXoverlap(j)) {
-            self.create(e, self, 0, j, opt.ttItems)
+            this.create(e, this, 0, j, opt.ttItems)
           }
         }
       } else {
@@ -615,7 +618,7 @@ export default class Tooltip {
 
       if (this.blyaxisTooltip) {
         for (let yt = 0; yt < w.config.yaxis.length; yt++) {
-          self.axesTooltip.drawYaxisTooltipText(yt, clientY, self.xyRatios)
+          this.axesTooltip.drawYaxisTooltipText(yt, clientY, this.xyRatios)
         }
       }
 
@@ -693,6 +696,13 @@ export default class Tooltip {
         this.yaxisTTEls[i].classList.remove('active')
       }
     }
+
+    if (w.config.legend.tooltipHoverFormatter) {
+      this.legendLabels.forEach((l) => {
+        const defaultText = l.getAttribute('data:default-text')
+        l.innerHTML = defaultText
+      })
+    }
   }
 
   getElMarkers() {
@@ -752,6 +762,40 @@ export default class Tooltip {
     const hasMarkers = this.hasMarkers()
 
     const bars = this.getElBars()
+
+    if (w.config.legend.tooltipHoverFormatter) {
+      let legendFormatter = w.config.legend.tooltipHoverFormatter
+
+      let els = Array.from(this.legendLabels)
+
+      // reset all legend values first
+      els.forEach((l) => {
+        const legendName = l.getAttribute('data:default-text')
+        l.innerHTML = legendName
+      })
+
+      // for irregular time series
+      for (let i = 0; i < els.length; i++) {
+        const l = els[i]
+        const lsIndex = parseInt(l.getAttribute('i'))
+        const legendName = l.getAttribute('data:default-text')
+
+        let text = legendFormatter(legendName, {
+          seriesIndex: shared ? lsIndex : capturedSeries,
+          dataPointIndex: j,
+          w
+        })
+
+        if (!shared) {
+          l.innerHTML = lsIndex === capturedSeries ? text : legendName
+          if (capturedSeries === lsIndex) {
+            break
+          }
+        } else {
+          l.innerHTML = text
+        }
+      }
+    }
 
     if (shared) {
       ttCtx.tooltipLabels.drawSeriesTexts({
