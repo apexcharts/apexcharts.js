@@ -792,7 +792,10 @@ export default class Tooltip {
             break
           }
         } else {
-          l.innerHTML = text
+          l.innerHTML =
+            w.globals.collapsedSeriesIndices.indexOf(lsIndex) < 0
+              ? text
+              : legendName
         }
       }
     }
