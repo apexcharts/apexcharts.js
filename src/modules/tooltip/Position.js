@@ -378,8 +378,10 @@ export default class Position {
     const w = this.w
     const ttCtx = this.ttCtx
 
+    const i = w.globals.maxValsInArrayIndex + 1
+
     let jBar = w.globals.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='1'] path[j='${j}']`
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     )
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0

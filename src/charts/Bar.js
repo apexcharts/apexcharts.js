@@ -562,13 +562,17 @@ class Bar {
 
     let realIndex = indexes.realIndex
     let bc = indexes.bc
+    let barXPosition = x + barWidth * this.visibleI
 
     if (w.globals.isXNumeric) {
-      x =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
+      let sxI = i
+      if (!w.globals.seriesX[i].length) {
+        sxI = w.globals.maxValsInArrayIndex
+      }
+      x = (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio
+      barXPosition =
+        x + barWidth * this.visibleI - (barWidth * this.seriesLen) / 2
     }
-
-    let barXPosition = x + barWidth * this.visibleI
 
     pathTo = graphics.move(barXPosition, zeroH)
 
@@ -700,7 +704,7 @@ class Bar {
     let bcy = y + parseFloat(barHeight * visibleSeries)
 
     if (w.globals.isXNumeric && !w.globals.isBarHorizontal) {
-      bcx = x + parseFloat(barWidth * (visibleSeries + 1)) - strokeWidth
+      bcx = x + parseFloat(barWidth * (visibleSeries + 1)) / 2
       bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth
     }
 
