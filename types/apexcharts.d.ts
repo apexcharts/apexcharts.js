@@ -352,6 +352,7 @@ type ApexLocale = {
 type ApexPlotOptions = {
   bar?: {
     horizontal?: boolean;
+    endingShape: 'flat' | 'rounded';
     columnWidth?: string;
     barHeight?: string;
     distributed?: boolean;
