@@ -238,7 +238,7 @@ type ApexStroke = {
   show?: boolean;
   curve?: "smooth" | "straight" | "stepline";
   lineCap?: "butt" | "square" | "round";
-  colors?: string;
+  colors?: string[];
   width?: number;
   dashArray?: number | number[]
 };
@@ -352,6 +352,7 @@ type ApexLocale = {
 type ApexPlotOptions = {
   bar?: {
     horizontal?: boolean;
+    endingShape: 'flat' | 'rounded';
     columnWidth?: string;
     barHeight?: string;
     distributed?: boolean;
