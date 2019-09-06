@@ -94,7 +94,7 @@ class Radial extends Pie {
       )
     }
 
-    w.globals.radialSize = size - size / (360 / (360 - totalAngle)) + 10
+    w.globals.radialSize = size - size / (360 / (360 - totalAngle))
 
     elSeries.add(elG.g)
 
