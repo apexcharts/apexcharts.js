@@ -108,6 +108,10 @@ export default class Utils {
       }
     }
 
+    w.globals.capturedSeriesIndex =
+      capturedSeries === null ? -1 : capturedSeries
+    w.globals.capturedDataPointIndex = j === null ? -1 : j
+
     if (!j || j < 1) j = 0
 
     return {
@@ -195,7 +199,6 @@ export default class Utils {
       let newdiff = Math.abs(val - arr[i])
       if (newdiff < diff) {
         diff = newdiff
-        curr = arr[i]
         currIndex = i
       }
     }
@@ -242,7 +245,7 @@ export default class Utils {
     return false
   }
 
-  isinitialSeriesSameLen() {
+  isInitialSeriesSameLen() {
     let sameLen = true
 
     const initialSeries = this.w.globals.initialSeries

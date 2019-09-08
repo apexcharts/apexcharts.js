@@ -490,6 +490,9 @@ export default class Tooltip {
     this.clientY = clientY
     this.clientX = clientX
 
+    w.globals.capturedSeriesIndex = -1
+    w.globals.capturedDataPointIndex = -1
+
     if (
       clientY < seriesBound.top ||
       clientY > seriesBound.top + seriesBound.height
@@ -565,7 +568,7 @@ export default class Tooltip {
             if (
               this.tConfig.shared &&
               this.tooltipUtil.isXoverlap(j) &&
-              this.tooltipUtil.isinitialSeriesSameLen()
+              this.tooltipUtil.isInitialSeriesSameLen()
             ) {
               this.create(e, this, capturedSeries, j, opt.ttItems)
             } else {

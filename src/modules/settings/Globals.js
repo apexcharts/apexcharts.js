@@ -67,6 +67,8 @@ export default class Globals {
       ancillaryCollapsedSeriesIndices: [], // this stores the index of the ancillaryCollapsedSeries whose y-axis is always visible
       risingSeries: [], // when user re-opens a collapsed series, it goes here
       dataFormatXNumeric: false, // boolean value to indicate user has passed numeric x values
+      capturedSeriesIndex: -1,
+      capturedDataPointIndex: -1,
       selectedDataPoints: [],
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       yAxisSameScaleIndices: [],

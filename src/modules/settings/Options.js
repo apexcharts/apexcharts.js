@@ -229,6 +229,7 @@ export default class Options {
           mounted: undefined,
           updated: undefined,
           click: undefined,
+          mouseMove: undefined,
           legendClick: undefined,
           markerClick: undefined,
           selection: undefined,

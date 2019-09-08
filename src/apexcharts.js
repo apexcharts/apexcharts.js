@@ -926,16 +926,23 @@ export default class ApexCharts {
       clickableArea.addEventListener(
         event,
         function(e) {
-          if (e.type === 'mousedown' && e.which === 1) {
-            // todo - provide a mousedown event too
+          const opts = Object.assign({}, w, {
+            seriesIndex: w.globals.capturedSeriesIndex,
+            dataPointIndex: w.globals.capturedDataPointIndex
+          })
+
+          if (e.type === 'mousemove' || e.type === 'touchmove') {
+            if (typeof w.config.chart.events.mouseMove === 'function') {
+              w.config.chart.events.mouseMove(e, me, opts)
+            }
           } else if (
             (e.type === 'mouseup' && e.which === 1) ||
             e.type === 'touchend'
           ) {
             if (typeof w.config.chart.events.click === 'function') {
-              w.config.chart.events.click(e, me, w)
+              w.config.chart.events.click(e, me, opts)
             }
-            me.fireEvent('click', [e, me, w])
+            me.fireEvent('click', [e, me, opts])
           }
         },
         { capture: false, passive: true }
