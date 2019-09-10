@@ -1,5 +1,6 @@
 import Graphics from './Graphics'
 import Exports from './Exports'
+import Scales from './Scales'
 import Utils from './../utils/Utils'
 import icoPan from './../assets/ico-pan-hand.svg'
 import icoZoom from './../assets/ico-zoom-in.svg'
@@ -325,6 +326,8 @@ export default class Toolbar {
   }
 
   zoomUpdateOptions(newMinX, newMaxX) {
+    const w = this.w
+
     let xaxis = {
       min: newMinX,
       max: newMaxX
@@ -335,17 +338,33 @@ export default class Toolbar {
       xaxis = beforeZoomRange.xaxis
     }
 
+    let options = {
+      xaxis
+    }
+
+    let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
+    if (w.config.chart.zoom.autoScaleYaxis) {
+      const scale = new Scales(this.ctx)
+      yaxis = scale.autoScaleY(this.ctx, yaxis, {
+        xaxis
+      })
+    }
+
+    if (!w.config.chart.group) {
+      // if chart in a group, prevent yaxis update here
+      // fix issue #650
+      options.yaxis = yaxis
+    }
+
     this.w.globals.zoomed = true
 
     this.ctx._updateOptions(
-      {
-        xaxis
-      },
+      options,
       false,
       this.w.config.chart.animations.dynamicAnimation.enabled
     )
 
-    this.zoomCallback(xaxis)
+    this.zoomCallback(xaxis, yaxis)
   }
 
   zoomCallback(xaxis, yaxis) {
