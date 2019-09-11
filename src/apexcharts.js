@@ -508,6 +508,11 @@ export default class ApexCharts {
         ch.config = new Config(options)
         options = CoreUtils.extendArrayProps(ch.config, options)
 
+        if (ch !== this) {
+          // don't overwrite series of synchronized charts
+          delete options.series
+        }
+
         w.config = Utils.extend(w.config, options)
 
         if (overwriteInitialConfig) {
