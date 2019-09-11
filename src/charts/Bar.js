@@ -59,7 +59,7 @@ class Bar {
     })
 
     if (w.config.dataLabels.enabled) {
-      if (this.totalItems > w.config.plotOptions.bar.dataLabels.maxItems) {
+      if (this.totalItems > this.barOptions.dataLabels.maxItems) {
         console.warn(
           'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.'
         )
@@ -1024,7 +1024,7 @@ class Bar {
         x,
         y,
         text,
-        i,
+        i: this.barOptions.distributed ? j : i,
         j,
         parent: elDataLabelsWrap,
         dataLabelsConfig: modifiedDataLabelsConfig,
