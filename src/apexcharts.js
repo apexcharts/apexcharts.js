@@ -245,7 +245,8 @@ export default class ApexCharts {
     this.titleSubtitle.draw()
 
     // legend is calculated here before coreCalculations because it affects the plottable area
-    if (!w.globals.noData) {
+    // if there is some data to show or user collapsed all series, then proceed drawing legend
+    if (!gl.noData || gl.collapsedSeries.length === gl.series.length) {
       this.legend.init()
     }
 
