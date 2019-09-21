@@ -606,6 +606,7 @@ export default class Options {
           width: 12,
           height: 12,
           strokeWidth: 0,
+          fillColors: undefined,
           strokeColor: '#fff',
           radius: 12,
           customHTML: undefined,
@@ -749,7 +750,8 @@ export default class Options {
           title: 'Size: '
         },
         marker: {
-          show: true
+          show: true,
+          fillColors: undefined
         },
         items: {
           display: 'flex'

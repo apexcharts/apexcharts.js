@@ -143,6 +143,15 @@ class Legend {
 
       mStyle.background = fillcolor[i]
       mStyle.color = fillcolor[i]
+
+      // override fill color with custom legend.markers.fillColors
+      if (
+        w.config.legend.markers.fillColors &&
+        w.config.legend.markers.fillColors[i]
+      ) {
+        mStyle.background = w.config.legend.markers.fillColors[i]
+      }
+
       mStyle.height = Array.isArray(mHeight)
         ? parseFloat(mHeight[i]) + 'px'
         : parseFloat(mHeight) + 'px'

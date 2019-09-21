@@ -570,6 +570,7 @@ type ApexLegend = {
     height?: number;
     strokeColor?: string
     strokeWidth?: number;
+    fillColors?: string[]
     offsetX?: number;
     offsetY?: number;
     radius?: number;
@@ -700,7 +701,8 @@ type ApexTooltip = {
     title?: string
   };
   marker?: {
-    show?: boolean
+    show?: boolean,
+    fillColors?: string[]
   };
   items?: {
     display?: string

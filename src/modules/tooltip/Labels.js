@@ -113,6 +113,7 @@ export default class Labels {
       }
 
       this.DOMHandling({
+        i,
         t,
         ttItems,
         values: {
@@ -183,7 +184,7 @@ export default class Labels {
     })
   }
 
-  DOMHandling({ t, ttItems, values, seriesName, shared, pColor }) {
+  DOMHandling({ i, t, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -226,6 +227,13 @@ export default class Labels {
       ttItemsChildren[0] &&
       ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')
     ) {
+      if (
+        w.config.tooltip.marker.fillColors &&
+        Array.isArray(w.config.tooltip.marker.fillColors)
+      ) {
+        pColor = w.config.tooltip.marker.fillColors[i]
+      }
+
       ttItemsChildren[0].style.backgroundColor = pColor
     }
 

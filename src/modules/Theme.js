@@ -27,6 +27,30 @@ export default class Theme {
       w.globals.colors = this.predefined()
     } else {
       w.globals.colors = w.config.colors
+
+      // if user provided a function in colors, we need to eval here
+      if (
+        w.globals.axisCharts &&
+        w.config.chart.type !== 'bar' &&
+        Array.isArray(w.config.colors) &&
+        w.config.colors.length > 0 &&
+        w.config.colors.length === w.config.series.length
+        // colors & series length needs same
+      ) {
+        w.globals.colors = w.config.colors.map((c, i) => {
+          return typeof c === 'function'
+            ? c({
+                value: w.globals.axisCharts
+                  ? w.globals.series[i][0]
+                    ? w.globals.series[i][0]
+                    : 0
+                  : w.globals.series[i],
+                seriesIndex: i,
+                w: w
+              })
+            : c
+        })
+      }
     }
 
     if (w.config.theme.monochrome.enabled) {
