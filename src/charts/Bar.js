@@ -417,6 +417,10 @@ class Bar {
           ((xDivision / this.seriesLen) *
             parseInt(this.barOptions.columnWidth)) /
           100
+
+        if (barWidth < 1) {
+          barWidth = 1
+        }
       }
 
       zeroH =
