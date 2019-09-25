@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v1.0.1
+ * ApexCharts v1.0.3
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -7841,7 +7841,11 @@ function () {
             // )
             // console.log(heatColorProps.color, colorShadePercent)
 
-            color = "rgba(".concat(heatColorProps.color.r, ", ").concat(heatColorProps.color.g, ", ").concat(heatColorProps.color.b, ", ").concat(1 - colorShadePercent, ")");
+            if (heatColorProps.color.r === undefined) {
+              color = "rgba(0,174,239,1)";
+            } else {
+              color = "rgba(".concat(heatColorProps.color.r, ", \n              ").concat(heatColorProps.color.g, ", ").concat(heatColorProps.color.b, ",\n            ").concat(1 - colorShadePercent, ")");
+            }
           }
 
           var radius = this.rectRadius;
@@ -26016,9 +26020,9 @@ function arcToBeziere(pos, val) {
 }
 }());
 
-/*! svg.draggable.js - v2.2.2 - 2019-01-08
-* https://github.com/svgdotjs/svg.draggable.js
-* Copyright (c) 2019 Wout Fierens; Licensed MIT */
+/*! svg.draggable.js - v2.2.1 - 2016-08-25
+* https://github.com/wout/svg.draggable.js
+* Copyright (c) 2016 Wout Fierens; Licensed MIT */
 (function() {
 
   // creates handler, saves it
@@ -26041,18 +26045,18 @@ function arcToBeziere(pos, val) {
   DragHandler.prototype.transformPoint = function(event, offset){
       event = event || window.event;
       var touches = event.changedTouches && event.changedTouches[0] || event;
-      this.p.x = touches.clientX - (offset || 0);
-      this.p.y = touches.clientY;
+      this.p.x = touches.pageX - (offset || 0);
+      this.p.y = touches.pageY;
       return this.p.matrixTransform(this.m)
   };
-
+  
   // gets elements bounding box with special handling of groups, nested and use
   DragHandler.prototype.getBBox = function(){
 
     var box = this.el.bbox();
 
     if(this.el instanceof SVG.Nested) box = this.el.rbox();
-
+    
     if (this.el instanceof SVG.G || this.el instanceof SVG.Use || this.el instanceof SVG.Nested) {
       box.x = this.el.x();
       box.y = this.el.y();
@@ -26070,18 +26074,11 @@ function arcToBeziere(pos, val) {
           return
       }
     }
-
+  
     var _this = this;
 
     // fire beforedrag event
     this.el.fire('beforedrag', { event: e, handler: this });
-    if(this.el.event().defaultPrevented) return;
-
-    // prevent browser drag behavior as soon as possible
-    e.preventDefault();
-
-    // prevent propagation to a parent that might also have dragging enabled
-    e.stopPropagation();
 
     // search for parent on the fly to make sure we can call
     // draggable() even when element is not in the dom currently
@@ -26092,13 +26089,13 @@ function arcToBeziere(pos, val) {
     this.m = this.el.node.getScreenCTM().inverse();
 
     var box = this.getBBox();
-
+    
     var anchorOffset;
-
+    
     // fix text-anchor in text-element (#37)
     if(this.el instanceof SVG.Text){
       anchorOffset = this.el.node.getComputedTextLength();
-
+        
       switch(this.el.attr('text-anchor')){
         case 'middle':
           anchorOffset /= 2;
@@ -26108,14 +26105,14 @@ function arcToBeziere(pos, val) {
           break;
       }
     }
-
+    
     this.startPoints = {
       // We take absolute coordinates since we are just using a delta here
       point: this.transformPoint(e, anchorOffset),
       box:   box,
       transform: this.el.transform()
     };
-
+    
     // add drag and end events to window
     SVG.on(window, 'mousemove.drag', function(e){ _this.drag(e); });
     SVG.on(window, 'touchmove.drag', function(e){ _this.drag(e); });
@@ -26124,6 +26121,12 @@ function arcToBeziere(pos, val) {
 
     // fire dragstart event
     this.el.fire('dragstart', {event: e, p: this.startPoints.point, m: this.m, handler: this});
+
+    // prevent browser drag behavior
+    e.preventDefault();
+
+    // prevent propagation to a parent that might also have dragging enabled
+    e.stopPropagation();
   };
 
   // while dragging
@@ -26136,15 +26139,20 @@ function arcToBeziere(pos, val) {
       , c   = this.constraint
       , gx  = p.x - this.startPoints.point.x
       , gy  = p.y - this.startPoints.point.y;
-
-    this.el.fire('dragmove', {
-        event: e
-      , p: p
-      , m: this.m
-      , handler: this
+      
+    var event = new CustomEvent('dragmove', {
+        detail: {
+            event: e
+          , p: p
+          , m: this.m
+          , handler: this
+        }
+      , cancelable: true
     });
-
-    if(this.el.event().defaultPrevented) return p
+      
+    this.el.fire(event);
+    
+    if(event.defaultPrevented) return p
 
     // move the element to its new position, if possible by constraint
     if (typeof c == 'function') {
@@ -26175,33 +26183,21 @@ function arcToBeziere(pos, val) {
     } else if (typeof c == 'object') {
 
       // keep element within constrained box
-      if (c.minX != null && x < c.minX) {
+      if (c.minX != null && x < c.minX)
         x = c.minX;
-        gx = x - this.startPoints.box.x;
-      } else if (c.maxX != null && x > c.maxX - box.width) {
+      else if (c.maxX != null && x > c.maxX - box.width){
         x = c.maxX - box.width;
-        gx = x - this.startPoints.box.x;
-      } if (c.minY != null && y < c.minY) {
+      }if (c.minY != null && y < c.minY)
         y = c.minY;
-        gy = y - this.startPoints.box.y;
-      } else if (c.maxY != null && y > c.maxY - box.height) {
+      else if (c.maxY != null && y > c.maxY - box.height)
         y = c.maxY - box.height;
-        gy = y - this.startPoints.box.y;
-      }
-
-      if (c.snapToGrid != null) {
-        x = x - (x % c.snapToGrid);
-        y = y - (y % c.snapToGrid);
-        gx = gx - (gx % c.snapToGrid);
-        gy = gy - (gy % c.snapToGrid);
-      }
-
+        
       if(this.el instanceof SVG.G)
         this.el.matrix(this.startPoints.transform).transform({x:gx, y: gy}, true);
       else
         this.el.move(x, y);
     }
-
+    
     // so we can use it in the end-method, too
     return p
   };
@@ -26728,7 +26724,7 @@ SVG.Element.prototype.selectize.defaults = {
                             return;
                         }
 
-                        snap = this.checkAspectRatio(snap, true);
+                        snap = this.checkAspectRatio(snap);
 
                         this.el.move(this.parameters.box.x, this.parameters.box.y + snap[1]).size(this.parameters.box.width + snap[0], this.parameters.box.height - snap[1]);
                     }
@@ -26766,7 +26762,7 @@ SVG.Element.prototype.selectize.defaults = {
                             return;
                         }
 
-                        snap = this.checkAspectRatio(snap, true);
+                        snap = this.checkAspectRatio(snap);
 
                         this.el.move(this.parameters.box.x + snap[0], this.parameters.box.y).size(this.parameters.box.width - snap[0], this.parameters.box.height + snap[1]);
                     }
@@ -26848,12 +26844,12 @@ SVG.Element.prototype.selectize.defaults = {
                     // end minus middle
                     var pAngle = Math.atan2((current.y - this.parameters.box.y - this.parameters.box.height / 2), (current.x - this.parameters.box.x - this.parameters.box.width / 2));
 
-                    var angle = this.parameters.rotation + (pAngle - sAngle) * 180 / Math.PI + this.options.snapToAngle / 2;
+                    var angle = (pAngle - sAngle) * 180 / Math.PI;
 
                     // We have to move the element to the center of the box first and change the rotation afterwards
                     // because rotation always works around a rotation-center, which is changed when moving the element
                     // We also set the new rotation center to the center of the box.
-                    this.el.center(this.parameters.box.cx, this.parameters.box.cy).rotate(angle - (angle % this.options.snapToAngle), this.parameters.box.cx, this.parameters.box.cy);
+                    this.el.center(this.parameters.box.cx, this.parameters.box.cy).rotate(this.parameters.rotation + angle - angle % this.options.snapToAngle, this.parameters.box.cx, this.parameters.box.cy);
                 };
                 break;
 
@@ -26948,12 +26944,6 @@ SVG.Element.prototype.selectize.defaults = {
             temp = [(this.parameters.box.x + diffX + (flag & 1 ? 0 : this.parameters.box.width)) % this.options.snapToGrid, (this.parameters.box.y + diffY + (flag & (1 << 1) ? 0 : this.parameters.box.height)) % this.options.snapToGrid];
         }
 
-        if(diffX < 0) {
-            temp[0] -= this.options.snapToGrid;
-        }
-        if(diffY < 0) {
-            temp[1] -= this.options.snapToGrid;
-        }
 
         diffX -= (Math.abs(temp[0]) < this.options.snapToGrid / 2 ?
                   temp[0] :
@@ -26999,7 +26989,7 @@ SVG.Element.prototype.selectize.defaults = {
         return [diffX, diffY];
     };
 
-    ResizeHandler.prototype.checkAspectRatio = function (snap, isReverse) {
+    ResizeHandler.prototype.checkAspectRatio = function (snap) {
         if (!this.options.saveAspectRatio) {
             return snap;
         }
@@ -27013,14 +27003,13 @@ SVG.Element.prototype.selectize.defaults = {
         if (newAspectRatio < aspectRatio) {
             // Height is too big. Adapt it
             updatedSnap[1] = newW / aspectRatio - this.parameters.box.height;
-            isReverse && (updatedSnap[1] = -updatedSnap[1]);
         } else if (newAspectRatio > aspectRatio) {
             // Width is too big. Adapt it
             updatedSnap[0] = this.parameters.box.width - newH * aspectRatio;
-            isReverse && (updatedSnap[0] = -updatedSnap[0]);
         }
 
         return updatedSnap;
+
     };
 
     SVG.extend(SVG.Element, {
