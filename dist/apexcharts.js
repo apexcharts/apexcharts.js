@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v1.0.0
+ * ApexCharts v1.0.1
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -170,6 +170,7 @@
     }, {
       key: "shadeHexColor",
       value: function shadeHexColor(percent, color) {
+        console.log(percent, color);
         var f = parseInt(color.slice(1), 16),
             t = percent < 0 ? 0 : 255,
             p = percent < 0 ? percent * -1 : percent,
@@ -7841,8 +7842,17 @@
             var color = heatColorProps.color;
 
             if (w.config.plotOptions.heatmap.enableShades) {
-              var utils = new Utils();
-              color = Utils.hexToRgba(utils.shadeColor(colorShadePercent, heatColorProps.color), w.config.fill.opacity);
+              var utils = new Utils(); // color = Utils.hexToRgba(
+              //   utils.shadeColor(colorShadePercent, heatColorProps.color),
+              //   w.config.fill.opacity
+              // )
+              // console.log(heatColorProps.color, colorShadePercent)
+
+              if (heatColorProps.color.r === undefined) {
+                color = "rgba(0,174,239,1)";
+              } else {
+                color = "rgba(".concat(heatColorProps.color.r, ", \n              ").concat(heatColorProps.color.g, ", ").concat(heatColorProps.color.b, ",\n            ").concat(1 - colorShadePercent, ")");
+              }
             }
 
             var radius = this.rectRadius;
@@ -8027,7 +8037,7 @@
             x: dataLabelsX,
             y: dataLabelsY,
             // todo: pass in as props
-            text: text + '%',
+            text: text === 0 ? '-' : text + '%',
             i: i,
             j: j,
             parent: elDataLabelsWrap,

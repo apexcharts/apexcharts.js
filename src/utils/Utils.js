@@ -232,6 +232,7 @@ class Utils {
   }
 
   shadeHexColor(percent, color) {
+    console.log(percent, color)
     var f = parseInt(color.slice(1), 16),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,

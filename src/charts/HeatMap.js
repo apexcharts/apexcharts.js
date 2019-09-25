@@ -110,10 +110,18 @@ export default class HeatMap {
 
         if (w.config.plotOptions.heatmap.enableShades) {
           let utils = new Utils()
-          color = Utils.hexToRgba(
-            utils.shadeColor(colorShadePercent, heatColorProps.color),
-            w.config.fill.opacity
-          )
+          // color = Utils.hexToRgba(
+          //   utils.shadeColor(colorShadePercent, heatColorProps.color),
+          //   w.config.fill.opacity
+          // )
+          // console.log(heatColorProps.color, colorShadePercent)
+          if (heatColorProps.color.r === undefined) {
+            color = `rgba(0,174,239,1)`
+          } else {
+            color = `rgba(${heatColorProps.color.r}, 
+              ${heatColorProps.color.g}, ${heatColorProps.color.b},
+            ${1 - colorShadePercent})`
+          }
         }
 
         let radius = this.rectRadius
@@ -330,7 +338,7 @@ export default class HeatMap {
         x: dataLabelsX,
         y: dataLabelsY,
         // todo: pass in as props
-        text: text + '%',
+        text: text === 0 ? '-' : text + '%',
         i,
         j,
         parent: elDataLabelsWrap,
