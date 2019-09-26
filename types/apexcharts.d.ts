@@ -604,10 +604,10 @@ type ApexDiscretePoint = {
 type ApexMarkers = {
   size?: number;
   colors?: string[];
-  strokeColor?: string;
-  strokeWidth?: number;
-  strokeOpacity?: number;
-  fillOpacity?: number;
+  strokeColor?: string | string[];
+  strokeWidth?: number | number[];
+  strokeOpacity?: number | number[];
+  fillOpacity?: number | number[];
   discrete?: ApexDiscretePoint[];
   shape?: 'circle' | 'square' | string[];
   radius?: number;
