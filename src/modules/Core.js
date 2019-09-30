@@ -368,17 +368,29 @@ export default class Core {
       legendHeight = new Legend(this.ctx).getLegendBBox().clwh + 10
     }
 
-    let radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar')
-    let elRadialSize = w.globals.radialSize * 2
-
-    if (radialEl && w.config.plotOptions.radialBar.startAngle !== -90) {
-      elRadialSize = Utils.getBoundingClientRect(radialEl).height
-    }
-
-    const chartInnerDimensions = Math.max(
-      elRadialSize,
-      w.globals.radialSize * 2
+    let radialEl = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-radialbar .apexcharts-tracks'
     )
+
+    let radialElDataLabels = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-radialbar .apexcharts-datalabels-group'
+    )
+
+    let chartInnerDimensions = w.globals.radialSize * 2
+
+    if (radialEl && radialElDataLabels) {
+      let elRadialRect = Utils.getBoundingClientRect(radialEl)
+      let elRadialDataLalelsRect = Utils.getBoundingClientRect(
+        radialElDataLabels
+      )
+
+      let maxHeight =
+        Math.max(elRadialRect.bottom, elRadialDataLalelsRect.bottom) -
+        elRadialRect.top +
+        elRadialDataLalelsRect.height
+
+      chartInnerDimensions = Math.max(w.globals.radialSize * 2, maxHeight)
+    }
 
     const newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY
 

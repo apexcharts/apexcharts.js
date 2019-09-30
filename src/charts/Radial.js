@@ -94,7 +94,16 @@ class Radial extends Pie {
       )
     }
 
-    w.globals.radialSize = size - size / (360 / (360 - totalAngle))
+    let angleRatio = (360 - totalAngle) / 360
+    w.globals.radialSize = size - size * angleRatio
+
+    if (this.radialDataLabels.value.show) {
+      let offset = Math.max(
+        this.radialDataLabels.value.offsetY,
+        this.radialDataLabels.name.offsetY
+      )
+      w.globals.radialSize += offset * angleRatio
+    }
 
     elSeries.add(elG.g)
 
