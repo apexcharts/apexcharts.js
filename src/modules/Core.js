@@ -378,18 +378,22 @@ export default class Core {
 
     let chartInnerDimensions = w.globals.radialSize * 2
 
-    if (radialEl && radialElDataLabels) {
+    if (radialEl) {
       let elRadialRect = Utils.getBoundingClientRect(radialEl)
-      let elRadialDataLalelsRect = Utils.getBoundingClientRect(
-        radialElDataLabels
-      )
+      chartInnerDimensions = elRadialRect.bottom
 
-      let maxHeight =
-        Math.max(elRadialRect.bottom, elRadialDataLalelsRect.bottom) -
-        elRadialRect.top +
-        elRadialDataLalelsRect.height
+      if (radialElDataLabels) {
+        let elRadialDataLalelsRect = Utils.getBoundingClientRect(
+          radialElDataLabels
+        )
 
-      chartInnerDimensions = Math.max(w.globals.radialSize * 2, maxHeight)
+        let maxHeight =
+          Math.max(elRadialRect.bottom, elRadialDataLalelsRect.bottom) -
+          elRadialRect.top +
+          elRadialDataLalelsRect.height
+
+        chartInnerDimensions = Math.max(w.globals.radialSize * 2, maxHeight)
+      }
     }
 
     const newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY
