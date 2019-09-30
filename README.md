@@ -26,7 +26,7 @@
 <p align="center">Sponsored by</p> <br />
 <p align="center">
   <a href="https://www.wrappixel.com/?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/wrappixel-logo.png"
-    height="24px" /></a>
+    height="32px" /></a> <br />
 </p>
 
 ## Browsers support
