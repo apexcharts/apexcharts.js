@@ -60,20 +60,35 @@
     return obj;
   }
 
-  function _objectSpread(target) {
+  function ownKeys(object, enumerableOnly) {
+    var keys = Object.keys(object);
+
+    if (Object.getOwnPropertySymbols) {
+      var symbols = Object.getOwnPropertySymbols(object);
+      if (enumerableOnly) symbols = symbols.filter(function (sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      });
+      keys.push.apply(keys, symbols);
+    }
+
+    return keys;
+  }
+
+  function _objectSpread2(target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i] != null ? arguments[i] : {};
-      var ownKeys = Object.keys(source);
 
-      if (typeof Object.getOwnPropertySymbols === 'function') {
-        ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) {
-          return Object.getOwnPropertyDescriptor(source, sym).enumerable;
-        }));
+      if (i % 2) {
+        ownKeys(source, true).forEach(function (key) {
+          _defineProperty(target, key, source[key]);
+        });
+      } else if (Object.getOwnPropertyDescriptors) {
+        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+      } else {
+        ownKeys(source).forEach(function (key) {
+          Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+        });
       }
-
-      ownKeys.forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
     }
 
     return target;
@@ -1314,7 +1329,7 @@
         };
 
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-          anim.animatePathsGradually(_objectSpread({}, defaultAnimateOpts, {
+          anim.animatePathsGradually(_objectSpread2({}, defaultAnimateOpts, {
             speed: initialSpeed,
             delay: animationDelay
           }));
@@ -1325,7 +1340,7 @@
         }
 
         if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
-          anim.animatePathsGradually(_objectSpread({}, defaultAnimateOpts, {
+          anim.animatePathsGradually(_objectSpread2({}, defaultAnimateOpts, {
             speed: dataChangeSpeed
           }));
         }
@@ -1539,7 +1554,7 @@
             'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
           });
           elPoint = p;
-        } else if (opts.shape === 'circle') {
+        } else if (opts.shape === 'circle' || !opts.shape) {
           if (!Utils.isNumber(y)) {
             size = 0;
             y = 0;
@@ -2463,6 +2478,7 @@
               width: 12,
               height: 12,
               strokeWidth: 0,
+              fillColors: undefined,
               strokeColor: '#fff',
               radius: 12,
               customHTML: undefined,
@@ -2615,7 +2631,8 @@
               title: 'Size: '
             },
             marker: {
-              show: true
+              show: true,
+              fillColors: undefined
             },
             items: {
               display: 'flex'
@@ -5591,10 +5608,11 @@
         var dataPointIndex = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
         var w = this.w;
         var pStyle = this.getMarkerStyle(seriesIndex);
-        var pSize = w.globals.markers.size[seriesIndex]; // discrete markers is an option where user can specify a particular marker with different size and color
+        var pSize = w.globals.markers.size[seriesIndex];
+        var m = w.config.markers; // discrete markers is an option where user can specify a particular marker with different size and color
 
-        if (dataPointIndex !== null && w.config.markers.discrete.length) {
-          w.config.markers.discrete.map(function (marker) {
+        if (dataPointIndex !== null && m.discrete.length) {
+          m.discrete.map(function (marker) {
             if (marker.seriesIndex === seriesIndex && marker.dataPointIndex === dataPointIndex) {
               pStyle.pointStrokeColor = marker.strokeColor;
               pStyle.pointFillColor = marker.fillColor;
@@ -5605,14 +5623,14 @@
 
         return {
           pSize: pSize,
-          pRadius: w.config.markers.radius,
-          pWidth: w.config.markers.strokeWidth,
+          pRadius: m.radius,
+          pWidth: m.strokeWidth instanceof Array ? m.strokeWidth[seriesIndex] : m.strokeWidth,
           pointStrokeColor: pStyle.pointStrokeColor,
           pointFillColor: pStyle.pointFillColor,
-          shape: w.config.markers.shape instanceof Array ? w.config.markers.shape[seriesIndex] : w.config.markers.shape,
+          shape: m.shape instanceof Array ? m.shape[seriesIndex] : m.shape,
           class: cssClass,
-          pointStrokeOpacity: w.config.markers.strokeOpacity,
-          pointFillOpacity: w.config.markers.fillOpacity,
+          pointStrokeOpacity: m.strokeOpacity instanceof Array ? m.strokeOpacity[seriesIndex] : m.strokeOpacity,
+          pointFillOpacity: m.fillOpacity instanceof Array ? m.fillOpacity[seriesIndex] : m.fillOpacity,
           seriesIndex: seriesIndex
         };
       }
@@ -5753,7 +5771,7 @@
           cy: y,
           fill: pathFillCircle,
           stroke: markerConfig.pointStrokeColor,
-          strokeWidth: markerConfig.pWidth
+          'stroke-width': markerConfig.pWidth
         });
 
         if (w.config.chart.dropShadow.enabled) {
@@ -5934,7 +5952,13 @@
             var text = '';
 
             if (w.config.chart.type === 'bubble') {
-              text = w.globals.seriesZ[i][dataPointIndex];
+              val = w.globals.seriesZ[i][dataPointIndex];
+              text = w.config.dataLabels.formatter(val, {
+                ctx: this.ctx,
+                seriesIndex: i,
+                dataPointIndex: dataPointIndex,
+                w: w
+              });
               y = pos.y[q] + w.config.dataLabels.offsetY;
               var scatter = new Scatter(this.ctx);
               var centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, dataPointIndex);
@@ -6105,7 +6129,7 @@
         });
 
         if (w.config.dataLabels.enabled) {
-          if (this.totalItems > w.config.plotOptions.bar.dataLabels.maxItems) {
+          if (this.totalItems > this.barOptions.dataLabels.maxItems) {
             console.warn('WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.');
           }
         }
@@ -6433,6 +6457,10 @@
             }
 
             barWidth = xDivision / this.seriesLen * parseInt(this.barOptions.columnWidth) / 100;
+
+            if (barWidth < 1) {
+              barWidth = 1;
+            }
           }
 
           zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex] - (this.isReversed ? w.globals.gridHeight : 0) + (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0);
@@ -6937,7 +6965,7 @@
             }
           }
 
-          var modifiedDataLabelsConfig = _objectSpread({}, dataLabelsConfig);
+          var modifiedDataLabelsConfig = _objectSpread2({}, dataLabelsConfig);
 
           if (this.isHorizontal) {
             if (val < 0) {
@@ -6953,7 +6981,7 @@
             x: x,
             y: y,
             text: text,
-            i: i,
+            i: this.barOptions.distributed ? j : i,
             j: j,
             parent: elDataLabelsWrap,
             dataLabelsConfig: modifiedDataLabelsConfig,
@@ -9012,7 +9040,7 @@
           }
 
           for (var p = 0; p < paths.linePathsTo.length; p++) {
-            var renderedLinePath = _this.graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
+            var renderedLinePath = _this.graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
               pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
               pathTo: paths.linePathsTo[p],
               strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[i] : w.config.stroke.width,
@@ -9025,7 +9053,7 @@
               seriesNumber: i
             });
 
-            var renderedAreaPath = _this.graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
+            var renderedAreaPath = _this.graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
               pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
               pathTo: paths.areaPathsTo[p],
               strokeWidth: 0,
@@ -9391,7 +9419,14 @@
           totalAngle = Math.abs(w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle);
         }
 
-        w.globals.radialSize = size - size / (360 / (360 - totalAngle));
+        var angleRatio = (360 - totalAngle) / 360;
+        w.globals.radialSize = size - size * angleRatio;
+
+        if (this.radialDataLabels.value.show) {
+          var offset = Math.max(this.radialDataLabels.value.offsetY, this.radialDataLabels.name.offsetY);
+          w.globals.radialSize += offset * angleRatio;
+        }
+
         elSeries.add(elG.g);
 
         if (w.config.plotOptions.radialBar.hollow.position === 'front') {
@@ -11829,7 +11864,12 @@
           var mBorderRadius = w.config.legend.markers.radius;
           var mStyle = elMarker.style;
           mStyle.background = fillcolor[i];
-          mStyle.color = fillcolor[i];
+          mStyle.color = fillcolor[i]; // override fill color with custom legend.markers.fillColors
+
+          if (w.config.legend.markers.fillColors && w.config.legend.markers.fillColors[i]) {
+            mStyle.background = w.config.legend.markers.fillColors[i];
+          }
+
           mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px';
           mStyle.width = Array.isArray(mWidth) ? parseFloat(mWidth[i]) + 'px' : parseFloat(mWidth) + 'px';
           mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX;
@@ -12503,7 +12543,7 @@
             });
 
             for (var p = 0; p < areaPaths.length; p++) {
-              var renderedPath = graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
+              var renderedPath = graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
                 pathFrom: pathFromArea,
                 pathTo: areaPaths[p],
                 stroke: 'none',
@@ -12529,7 +12569,7 @@
             }
 
             for (var _p = 0; _p < linePaths.length; _p++) {
-              var _renderedPath = graphics.renderPaths(_objectSpread({}, defaultRenderedPathOptions, {
+              var _renderedPath = graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
                 pathFrom: pathFromLine,
                 pathTo: linePaths[_p],
                 stroke: lineFill,
@@ -13962,6 +14002,7 @@
               sX.push(gl.seriesX[gl.maxValsInArrayIndex][gl.seriesX[gl.maxValsInArrayIndex].length - 1]);
             }
 
+            sX.sort();
             sX.forEach(function (s, j) {
               if (j > 0) {
                 var xDiff = s - gl.seriesX[i][j - 1];
@@ -13969,38 +14010,12 @@
               }
             });
           });
-          this.calcMinXDiffForTinySeries();
         }
 
         return {
           minX: gl.minX,
           maxX: gl.maxX
         };
-      }
-    }, {
-      key: "calcMinXDiffForTinySeries",
-      value: function calcMinXDiffForTinySeries() {
-        var w = this.w;
-        var len = w.globals.labels.length;
-
-        if (w.globals.labels.length === 1) {
-          w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len / 3;
-        } else {
-          if (w.globals.minXDiff === Number.MAX_VALUE) {
-            // possibly a single dataPoint (fixes react-apexcharts/issue#34)
-            if (w.globals.timelineLabels.length > 0) {
-              len = w.globals.timelineLabels.length;
-            }
-
-            if (len < 3) {
-              len = 3;
-            }
-
-            w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len;
-          }
-        }
-
-        return w.globals.minXDiff;
       }
     }, {
       key: "setZRange",
@@ -14155,16 +14170,16 @@
           };
 
           if (ts.unit === 'month') {
-            return _objectSpread({}, defaultReturn, {
+            return _objectSpread2({}, defaultReturn, {
               day: 1,
               value: ts.value + 1
             });
           } else if (ts.unit === 'day' || ts.unit === 'hour') {
-            return _objectSpread({}, defaultReturn, {
+            return _objectSpread2({}, defaultReturn, {
               value: ts.value
             });
           } else if (ts.unit === 'minute') {
-            return _objectSpread({}, defaultReturn, {
+            return _objectSpread2({}, defaultReturn, {
               value: ts.value,
               minute: ts.value
             });
@@ -15084,14 +15099,21 @@
           legendHeight = new Legend(this.ctx).getLegendBBox().clwh + 10;
         }
 
-        var radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar');
-        var elRadialSize = w.globals.radialSize * 2;
+        var radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar .apexcharts-tracks');
+        var radialElDataLabels = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar .apexcharts-datalabels-group');
+        var chartInnerDimensions = w.globals.radialSize * 2;
 
-        if (radialEl && w.config.plotOptions.radialBar.startAngle !== -90) {
-          elRadialSize = Utils.getBoundingClientRect(radialEl).height;
+        if (radialEl) {
+          var elRadialRect = Utils.getBoundingClientRect(radialEl);
+          chartInnerDimensions = elRadialRect.bottom;
+
+          if (radialElDataLabels) {
+            var elRadialDataLalelsRect = Utils.getBoundingClientRect(radialElDataLabels);
+            var maxHeight = Math.max(elRadialRect.bottom, elRadialDataLalelsRect.bottom) - elRadialRect.top + elRadialDataLalelsRect.height;
+            chartInnerDimensions = Math.max(w.globals.radialSize * 2, maxHeight);
+          }
         }
 
-        var chartInnerDimensions = Math.max(elRadialSize, w.globals.radialSize * 2);
         var newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY;
 
         if (gl.dom.elLegendForeign) {
@@ -16650,7 +16672,18 @@
         if (w.config.colors === undefined) {
           w.globals.colors = this.predefined();
         } else {
-          w.globals.colors = w.config.colors;
+          w.globals.colors = w.config.colors; // if user provided a function in colors, we need to eval here
+
+          if (w.globals.axisCharts && w.config.chart.type !== 'bar' && Array.isArray(w.config.colors) && w.config.colors.length > 0 && w.config.colors.length === w.config.series.length // colors & series length needs same
+          ) {
+              w.globals.colors = w.config.colors.map(function (c, i) {
+                return typeof c === 'function' ? c({
+                  value: w.globals.axisCharts ? w.globals.series[i][0] ? w.globals.series[i][0] : 0 : w.globals.series[i],
+                  seriesIndex: i,
+                  w: w
+                }) : c;
+              });
+            }
         }
 
         if (w.config.theme.monochrome.enabled) {
@@ -17219,6 +17252,7 @@
           }
 
           this.DOMHandling({
+            i: i,
             t: t,
             ttItems: ttItems,
             values: {
@@ -17294,7 +17328,8 @@
     }, {
       key: "DOMHandling",
       value: function DOMHandling(_ref4) {
-        var t = _ref4.t,
+        var i = _ref4.i,
+            t = _ref4.t,
             ttItems = _ref4.ttItems,
             values = _ref4.values,
             seriesName = _ref4.seriesName,
@@ -17342,6 +17377,10 @@
         }
 
         if (ttItemsChildren[0] && ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')) {
+          if (w.config.tooltip.marker.fillColors && Array.isArray(w.config.tooltip.marker.fillColors)) {
+            pColor = w.config.tooltip.marker.fillColors[i];
+          }
+
           ttItemsChildren[0].style.backgroundColor = pColor;
         }
 
@@ -18838,9 +18877,8 @@
               tooltipX: opt.tooltipX,
               elGrid: opt.elGrid,
               hoverArea: opt.hoverArea,
-              ttItems: ch.w.globals.tooltip.ttItems // all the charts should have the same minX and maxX (same xaxis) for multiple tooltips to work correctly
-
-            };
+              ttItems: ch.w.globals.tooltip.ttItems
+            }; // all the charts should have the same minX and maxX (same xaxis) for multiple tooltips to work correctly
 
             if (ch.w.globals.minX === _this2.w.globals.minX && ch.w.globals.maxX === _this2.w.globals.maxX) {
               ch.w.globals.tooltip.seriesHoverByContext({
@@ -19600,6 +19638,7 @@
     }, {
       key: "zoomUpdateOptions",
       value: function zoomUpdateOptions(newMinX, newMaxX) {
+        var w = this.w;
         var xaxis = {
           min: newMinX,
           max: newMaxX
@@ -19610,13 +19649,29 @@
           xaxis = beforeZoomRange.xaxis;
         }
 
+        var options = {
+          xaxis: xaxis
+        };
+        var yaxis = Utils.clone(w.globals.initialConfig.yaxis);
+
+        if (w.config.chart.zoom.autoScaleYaxis) {
+          var scale = new Range(this.ctx);
+          yaxis = scale.autoScaleY(this.ctx, yaxis, {
+            xaxis: xaxis
+          });
+        }
+
+        if (!w.config.chart.group) {
+          // if chart in a group, prevent yaxis update here
+          // fix issue #650
+          options.yaxis = yaxis;
+        }
+
         this.w.globals.zoomed = true;
 
-        this.ctx._updateOptions({
-          xaxis: xaxis
-        }, false, this.w.config.chart.animations.dynamicAnimation.enabled);
+        this.ctx._updateOptions(options, false, this.w.config.chart.animations.dynamicAnimation.enabled);
 
-        this.zoomCallback(xaxis);
+        this.zoomCallback(xaxis, yaxis);
       }
     }, {
       key: "zoomCallback",
@@ -19950,10 +20005,9 @@
 
         if (this.dragged || w.globals.selection !== null) {
           var scalingAttrs = {
-            transform: 'translate(' + translateX + ', ' + translateY + ')' // change styles based on zoom or selection
-            // zoom is Enabled and user has dragged, so draw blue rect
-
-          };
+            transform: 'translate(' + translateX + ', ' + translateY + ')'
+          }; // change styles based on zoom or selection
+          // zoom is Enabled and user has dragged, so draw blue rect
 
           if (w.globals.zoomEnabled && this.dragged) {
             zoomRect.attr({
@@ -20652,9 +20706,8 @@
         'font-size': 16,
         'font-family': 'Helvetica, Arial, sans-serif',
         'text-anchor': 'start'
-      } // Module for color convertions
-
-    };
+      }
+    }; // Module for color convertions
 
     SVG.Color = function (color) {
       var match; // initialize defaults
@@ -22729,9 +22782,9 @@
         var source,
             base = {
           x: 0,
-          y: 0 // ensure source as object
+          y: 0
+        }; // ensure source as object
 
-        };
         source = Array.isArray(x) ? {
           x: x[0],
           y: x[1]
@@ -24850,9 +24903,9 @@
       fill: ['color', 'opacity', 'rule'],
       prefix: function prefix(t, a) {
         return a == 'color' ? t : t + '-' + a;
-      } // Add sugar for fill and stroke
-
-    };
+      }
+    } // Add sugar for fill and stroke
+    ;
     ['fill', 'stroke'].forEach(function (m) {
       var i,
           extension = {};
@@ -28105,8 +28158,9 @@
 
         this.formatters.setLabelFormatters();
         this.titleSubtitle.draw(); // legend is calculated here before coreCalculations because it affects the plottable area
+        // if there is some data to show or user collapsed all series, then proceed drawing legend
 
-        if (!w.globals.noData) {
+        if (!gl.noData || gl.collapsedSeries.length === gl.series.length) {
           this.legend.init();
         } // check whether in multiple series, all series share the same X
 
@@ -28268,7 +28322,7 @@
 
           if (options$$1.series.length && options$$1.series[0].data) {
             options$$1.series = options$$1.series.map(function (s, i) {
-              return _objectSpread({}, w.config.series[i], {
+              return _objectSpread2({}, w.config.series[i], {
                 name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
                 type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
                 data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
@@ -28424,7 +28478,7 @@
 
         if (w.globals.axisCharts) {
           existingSeries = newSeries.map(function (s, i) {
-            return _objectSpread({}, w.config.series[i], {
+            return _objectSpread2({}, w.config.series[i], {
               name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
               type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
               data: s.data ? s.data : w.config.series[i] && w.config.series[i].data

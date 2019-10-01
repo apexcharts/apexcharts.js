@@ -127,7 +127,7 @@ export default class Scatter {
       cy: y,
       fill: pathFillCircle,
       stroke: markerConfig.pointStrokeColor,
-      strokeWidth: markerConfig.pWidth
+      'stroke-width': markerConfig.pWidth
     })
 
     if (w.config.chart.dropShadow.enabled) {
