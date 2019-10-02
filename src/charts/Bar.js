@@ -667,6 +667,7 @@ class Bar {
       let gpp = w.globals.previousPaths[pp]
 
       if (
+        gpp.paths &&
         gpp.paths.length > 0 &&
         parseInt(gpp.realIndex) === parseInt(realIndex)
       ) {
