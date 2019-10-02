@@ -5,8 +5,12 @@
 Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](patreon.com/junedchhipa)!
 
 
-### Sponsors
+## Sponsors
 Become a sponsor and get your logo on our website's home-page with a link to your site. [[Become a sponsor](https://www.patreon.com/join/junedchhipa)]
+
+### Platinum Sponsors	
+
+<a href="https://www.aputime.com?ref=apexcharts.com" target="_blank" style="text-align: center; display: inline-block;"><img src="https://apexcharts.com/media/sponsors/aputime.png" width="200" /></a>	
 
 ### Bronze Sponsors
 
