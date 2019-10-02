@@ -151,13 +151,14 @@ export default class Markers {
       })
     }
 
+    const strokeWidth =
+      w.config.chart.type === 'bubble' ? w.config.stroke.width : m.strokeWidth
+
     return {
       pSize,
       pRadius: m.radius,
       pWidth:
-        m.strokeWidth instanceof Array
-          ? m.strokeWidth[seriesIndex]
-          : m.strokeWidth,
+        strokeWidth instanceof Array ? strokeWidth[seriesIndex] : strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
       shape: m.shape instanceof Array ? m.shape[seriesIndex] : m.shape,
