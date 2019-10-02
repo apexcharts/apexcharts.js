@@ -607,31 +607,31 @@
 
 .resize-triggers {
   -webkit-animation: 1ms resizeanim;
-  -moz-animation:    1ms resizeanim;
-  -o-animation:      1ms resizeanim;
-  -ms-animation:     1ms resizeanim;
+  -moz-animation: 1ms resizeanim;
+  -o-animation: 1ms resizeanim;
+  -ms-animation: 1ms resizeanim;
 
-  visibility:        hidden;
-  opacity:           0;
+  visibility: hidden;
+  opacity: 0;
 }
 
 .resize-triggers, .resize-triggers > div, .contract-trigger:before {
-  content:  " ";
-  display:  block;
+  content: " ";
+  display: block;
   position: absolute;
-  top:      0;
-  left:     0;
-  height:   100%;
-  width:    100%;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
 .resize-triggers > div {
   background: #eee;
-  overflow:   auto;
+  overflow: auto;
 }
 
 .contract-trigger:before {
-  width:  200%;
+  width: 200%;
   height: 200%;
 }
