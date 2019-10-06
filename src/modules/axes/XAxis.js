@@ -229,7 +229,11 @@ export default class XAxis {
       for (let i = 0; i <= labels.length - 1; i++) {
         let label = typeof labels[i] === 'undefined' ? '' : labels[i]
 
-        label = lbFormatter(label)
+        label = lbFormatter(label, {
+          seriesIndex: realIndex,
+          dataPointIndex: i,
+          w
+        })
 
         let elLabel = graphics.drawText({
           x: ylabels.offsetX - 15,
