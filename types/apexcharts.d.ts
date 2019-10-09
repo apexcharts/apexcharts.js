@@ -431,6 +431,7 @@ type ApexPlotOptions = {
         };
         total?: {
           show?: boolean;
+          showAlways?: boolean;
           label?: string;
           color?: string;
           formatter?(w: any): string;

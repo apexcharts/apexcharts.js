@@ -471,6 +471,7 @@ export default class Options {
               },
               total: {
                 show: false,
+                showAlways: false,
                 label: 'Total',
                 color: undefined,
                 formatter: function(w) {

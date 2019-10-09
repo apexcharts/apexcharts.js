@@ -45,6 +45,19 @@
                 width: 0,
             },
             series: [44, 55, 41, 17, 15],
+            plotOptions: {
+                pie: {
+                    donut: {
+                        labels: {
+                            show: true,
+                            total: {
+                                showAlways: true,
+                                show: true
+                            }
+                        }
+                    }
+                }
+            },
             labels: ["Comedy", "Action", "SciFi", "Drama", "Horror"],
             dataLabels: {
                 dropShadow: {
