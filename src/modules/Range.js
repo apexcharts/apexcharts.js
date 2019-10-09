@@ -389,7 +389,10 @@ class Range {
           )
         }
 
-        sX.sort()
+        sX.sort((a, b) => {
+          return a - b
+        })
+
         sX.forEach((s, j) => {
           if (j > 0) {
             let xDiff = s - gl.seriesX[i][j - 1]
