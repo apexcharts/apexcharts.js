@@ -638,35 +638,7 @@
 }
 
 /* Resize generated styles */
-
-@-webkit-keyframes resizeanim {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@-moz-keyframes resizeanim {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@-o-keyframes resizeanim {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@-ms-keyframes resizeanim {
+@keyframes resizeanim {
   from {
     opacity: 0;
   }
@@ -676,11 +648,7 @@
 }
 
 .resize-triggers {
-  -webkit-animation: 1ms resizeanim;
-  -moz-animation: 1ms resizeanim;
-  -o-animation: 1ms resizeanim;
-  -ms-animation: 1ms resizeanim;
-
+  animation: 1ms resizeanim;
   visibility: hidden;
   opacity: 0;
 }
