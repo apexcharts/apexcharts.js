@@ -157,6 +157,7 @@ export default class Core {
           w.config.plotOptions.bar.horizontal = false // horizontal bars not supported in mixed charts, hence forcefully set to false
           columnSeries.series.push(series)
           columnSeries.i.push(st)
+          w.globals.columnSeries = columnSeries.series
         } else if (ser[st].type === 'area') {
           areaSeries.series.push(series)
           areaSeries.i.push(st)

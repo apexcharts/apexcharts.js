@@ -54,6 +54,7 @@ export default class Globals {
       stackedSeriesTotals: [],
       seriesX: [], // store the numeric x values in this array (x values)
       seriesZ: [], // The 3rd "Z" dimension for bubbles chart (z values)
+      columnSeries: null,
       labels: [], // store the text to draw on x axis
       // Don't mutate the labels, many things including tooltips depends on it!
       timelineLabels: [], // store the timeline Labels in another variable

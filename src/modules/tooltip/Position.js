@@ -378,7 +378,14 @@ export default class Position {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    const i = w.globals.maxValsInArrayIndex + 1
+    let barLen = w.globals.columnSeries
+      ? w.globals.columnSeries.length
+      : w.globals.series.length
+
+    const i =
+      barLen >= 2 && barLen % 2 === 0
+        ? Math.floor(barLen / 2)
+        : Math.floor(barLen / 2) + 1
 
     let jBar = w.globals.dom.baseEl.querySelector(
       `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
@@ -389,7 +396,7 @@ export default class Position {
     let bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0
 
     if (w.globals.isXNumeric) {
-      bcx = bcx - bw / 2
+      bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
     } else {
       bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
       if (isNaN(bcx)) {
