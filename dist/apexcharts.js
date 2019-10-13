@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.9.0
+ * ApexCharts v3.10.0
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -9785,10 +9785,6 @@
               // zeroH is the baseline where 0 meets y axis
           zeroW = void 0; // zeroW is the baseline where 0 meets x axis
 
-          var yArrj = []; // hold y values of current iterating series
-
-          var xArrj = []; // hold x values of current iterating series
-
           var realIndex = w.globals.comboCharts ? seriesIndex[i] : i; // el to which series will be drawn
 
           var elSeries = graphics.group({
@@ -9818,18 +9814,17 @@
           x = initPositions.x;
           barWidth = initPositions.barWidth;
           xDivision = initPositions.xDivision;
-          zeroH = initPositions.zeroH;
-          xArrj.push(x + barWidth / 2); // eldatalabels
+          zeroH = initPositions.zeroH; // eldatalabels
 
           var elDataLabelsWrap = graphics.group({
             class: 'apexcharts-datalabels'
           });
 
           for (var j = 0, tj = w.globals.dataPoints; j < w.globals.dataPoints; j++, tj--) {
+            this.isNullValue = false;
+
             if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
               this.isNullValue = true;
-            } else {
-              this.isNullValue = false;
             }
 
             if (w.config.stroke.show) {
@@ -9887,11 +9882,6 @@
             y = paths.y;
             x = paths.x; // push current X
 
-            if (j > 0) {
-              xArrj.push(x + barWidth / 2);
-            }
-
-            yArrj.push(y);
             var pathFill = fill.fillPath({
               seriesNumber: realIndex
             });
@@ -9915,11 +9905,8 @@
               visibleSeries: this.visibleI,
               type: 'rangebar'
             });
-          } // push all x val arrays into main xArr
+          }
 
-
-          w.globals.seriesXvalues[realIndex] = xArrj;
-          w.globals.seriesYvalues[realIndex] = yArrj;
           ret.add(elSeries);
         }
 
@@ -14003,12 +13990,14 @@
               // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
               // fix #811
               sX.push(gl.seriesX[gl.maxValsInArrayIndex][gl.seriesX[gl.maxValsInArrayIndex].length - 1]);
-            }
+            } // fix #983 (clone the array to avoid side effects)
 
-            sX.sort(function (a, b) {
+
+            var seriesX = sX.slice();
+            seriesX.sort(function (a, b) {
               return a - b;
             });
-            sX.forEach(function (s, j) {
+            seriesX.forEach(function (s, j) {
               if (j > 0) {
                 var xDiff = s - gl.seriesX[i][j - 1];
                 gl.minXDiff = Math.min(xDiff, gl.minXDiff);
