@@ -36,9 +36,6 @@ class RangeBar extends Bar {
         zeroH, // zeroH is the baseline where 0 meets y axis
         zeroW // zeroW is the baseline where 0 meets x axis
 
-      let yArrj = [] // hold y values of current iterating series
-      let xArrj = [] // hold x values of current iterating series
-
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
       // el to which series will be drawn
@@ -73,8 +70,6 @@ class RangeBar extends Bar {
       xDivision = initPositions.xDivision
       zeroH = initPositions.zeroH
 
-      xArrj.push(x + barWidth / 2)
-
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels'
@@ -85,10 +80,9 @@ class RangeBar extends Bar {
         j < w.globals.dataPoints;
         j++, tj--
       ) {
+        this.isNullValue = false
         if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
           this.isNullValue = true
-        } else {
-          this.isNullValue = false
         }
         if (w.config.stroke.show) {
           if (this.isNullValue) {
@@ -139,11 +133,6 @@ class RangeBar extends Bar {
         x = paths.x
 
         // push current X
-        if (j > 0) {
-          xArrj.push(x + barWidth / 2)
-        }
-
-        yArrj.push(y)
 
         let pathFill = fill.fillPath({
           seriesNumber: realIndex
@@ -171,10 +160,6 @@ class RangeBar extends Bar {
           type: 'rangebar'
         })
       }
-
-      // push all x val arrays into main xArr
-      w.globals.seriesXvalues[realIndex] = xArrj
-      w.globals.seriesYvalues[realIndex] = yArrj
 
       ret.add(elSeries)
     }
