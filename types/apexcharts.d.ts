@@ -412,7 +412,7 @@ type ApexPlotOptions = {
     donut?: {
       size?: string;
       background?: string;
-      labels: {
+      labels?: {
         show?: boolean;
         name?: {
           show?: boolean;
@@ -855,7 +855,7 @@ type ApexYAxis = {
       fontFamily?: string;
       cssClass?: string;
     };
-    formatter?(val: number): string;
+    formatter?(val: number, opts?: any): string;
   };
   axisBorder?: {
     show?: boolean;
