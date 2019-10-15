@@ -442,7 +442,10 @@ export default class XAxis {
         )
       }
 
-      if (lastLabelPosX.x + lastLabelPosX.width > w.globals.gridWidth) {
+      if (
+        lastLabelPosX.x + lastLabelPosX.width > w.globals.gridWidth &&
+        !w.globals.isBarHorizontal
+      ) {
         yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0])
       }
 
