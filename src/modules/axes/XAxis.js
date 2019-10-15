@@ -410,7 +410,8 @@ export default class XAxis {
           graphics.placeTextWithEllipsis(
             tSpan[0],
             tSpan[0].textContent,
-            w.config.xaxis.labels.maxHeight - 40
+            w.config.xaxis.labels.maxHeight -
+              (w.config.legend.position === 'bottom' ? 20 : 10)
           )
         }
       }
