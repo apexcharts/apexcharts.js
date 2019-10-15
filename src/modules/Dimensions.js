@@ -370,6 +370,10 @@ export default class Dimensions {
         }
       })
     }
+
+    if (w.globals.isBarHorizontal) {
+      this.xPadRight = xaxisLabelCoords.width / 2 + 1
+    }
   }
 
   titleSubtitleOffset() {
