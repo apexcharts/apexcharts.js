@@ -481,7 +481,7 @@ class Pie {
           }
 
           if (opts.i === w.config.series.length - 1) {
-            animations.animationCompleted()
+            animations.animationCompleted(el)
           }
         })
         .during(function(pos) {
