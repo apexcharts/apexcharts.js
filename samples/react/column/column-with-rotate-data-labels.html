@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Column with rotate Data Labels</title>
+
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <div id="html">
+          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;bar&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
+  </div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    class BarChart extends React.Component {
+
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            plotOptions: {
+              bar: {
+                  dataLabels: {
+                      vertical: true,
+                      position: 'bottom' // top, center, bottom
+                  },
+              }
+            },
+            dataLabels: {
+              enabled: true,
+              formatter: function (val) {
+                return val + "%";
+              },
+              style: {
+                fontSize: '12px',
+                colors: ["#304758"]
+              }
+            },
+            xaxis: {
+              categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+              position: 'top',
+              labels: {
+                offsetY: -18,
+              },
+              axisBorder: {
+                show: false
+              },
+              axisTicks: {
+                show: false
+              },
+              crosshairs: {
+                fill: {
+                  type: 'gradient',
+                  gradient: {
+                    colorFrom: '#D8E3F0',
+                    colorTo: '#BED1E6',
+                    stops: [0, 100],
+                    opacityFrom: 0.4,
+                    opacityTo: 0.5,
+                  }
+                }
+              },
+              tooltip: {
+                enabled: true,
+                offsetY: -35,
+              }
+            },
+            fill: {
+              gradient: {
+                shade: 'light',
+                type: "horizontal",
+                shadeIntensity: 0.25,
+                gradientToColors: undefined,
+                inverseColors: true,
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [50, 0, 100, 100]
+              },
+            },
+            yaxis: {
+              axisBorder: {
+                show: false
+              },
+              axisTicks: {
+                show: false,
+              },
+              labels: {
+                show: false,
+                formatter: function (val) {
+                  return val + "%";
+                }
+              }
+            },
+            title: {
+              text: 'Monthly Inflation in Argentina, 2002',
+              floating: true,
+              offsetY: 320,
+              align: 'center',
+              style: {
+                color: '#444'
+              }
+            }
+          },
+          series: [{
+            name: 'Inflation',
+            data: [2.3, 3.1, 4.0, 10.1, 4.0, 3.6, 3.2, 2.3, 1.4, 0.8, 0.5, 0.2]
+          }],
+        }
+      }
+
+      render() {
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height="350" />
+            </div>
+            <div id="html-dist">
+            </div>
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(BarChart), domContainer);
+
+  </script>
+</body>
+</html>
