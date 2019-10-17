@@ -138,9 +138,19 @@ export default class Annotations {
     }
     let textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight
 
+    let graphics = new Graphics(this.ctx)
+    let textRects = {
+      width: 0,
+      height: 0
+    }
+    textRects = graphics.getTextRects(
+      text,
+      parseInt(anno.label.style.fontSize)
+    )
+
     let elText = this.graphics.drawText({
       x: x1 + anno.label.offsetX,
-      y: textY + anno.label.offsetY,
+      y: textY + anno.label.offsetY - (textRects.width / 2) + 12,
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
