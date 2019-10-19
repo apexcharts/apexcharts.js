@@ -708,8 +708,8 @@ export default class ApexCharts {
   revertDefaultAxisMinMax() {
     const w = this.w
 
-    w.config.xaxis.min = w.globals.lastXAxis.min
-    w.config.xaxis.max = w.globals.lastXAxis.max
+    w.config.xaxis.min = this.opts.xaxis.min || (Apex.xaxis && Apex.xaxis.min);
+    w.config.xaxis.max = this.opts.xaxis.max || (Apex.xaxis && Apex.xaxis.max);
 
     w.config.yaxis.map((yaxe, index) => {
       if (w.globals.zoomed) {
