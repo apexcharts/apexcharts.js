@@ -75,21 +75,21 @@ type ApexChart = {
     opacity?: number;
   };
   events?: {
-    animationEnd?(chart: any, options: any): void;
-    beforeMount?(chart: any, options: any): void;
-    mounted?(chart: any, options: any): void;
-    updated?(chart: any, options: any): void;
-    click?(e: any, chart: any, options: any): void;
-    mouseMove?(e: any, chart: any, options: any): void;
-    legendClick?(chart: any, seriesIndex: number, options: any): void;
-    markerClick?(e: any, chart: any, options: any): void;
-    selection?(chart: any, options: any): void;
-    dataPointSelection?(e: any, chart: any, options: any): void;
-    dataPointMouseEnter?(e: any, chart: any, options: any): void;
-    dataPointMouseLeave?(e: any, chart: any, options: any): void;
-    beforeZoom?(chart: any, options: any): void;
-    zoomed?(chart: any, options: any): void;
-    scrolled?(chart: any, options: any): void;
+    animationEnd?(chart: any, options?: any): void;
+    beforeMount?(chart: any, options?: any): void;
+    mounted?(chart: any, options?: any): void;
+    updated?(chart: any, options?: any): void;
+    mouseMove?(e: any, chart?: any, options?: any): void;
+    click?(e: any, chart?: any, options?: any): void;
+    legendClick?(chart: any, seriesIndex?: number, options?: any): void;
+    markerClick?(e: any, chart?: any, options?: any): void;
+    selection?(chart: any, options?: any): void;
+    dataPointSelection?(e: any, chart?: any, options?: any): void;
+    dataPointMouseEnter?(e: any, chart?: any, options?: any): void;
+    dataPointMouseLeave?(e: any, chart?: any, options?: any): void;
+    beforeZoom?(chart: any, options?: any): void;
+    zoomed?(chart: any, options?: any): void;
+    scrolled?(chart: any, options?: any): void;
   };
   brush?: {
     enabled?: boolean;
@@ -559,8 +559,8 @@ type ApexLegend = {
   height?: number;
   offsetX?: number;
   offsetY?: number;
-  formatter?(legendName: string, opts: any): string;
-  tooltipHoverFormatter?(legendName: string, opts: any): string;
+  formatter?(legendName: string, opts?: any): string;
+  tooltipHoverFormatter?(legendName: string, opts?: any): string;
   textAnchor?: string;
   labels?: {
     color?: string
@@ -614,8 +614,8 @@ type ApexMarkers = {
   radius?: number;
   offsetX?: number;
   offsetY?: number;
-  onClick?(e: any): void;
-  onDblClick?(e: any): void;
+  onClick?(e?: any): void;
+  onDblClick?(e?: any): void;
   hover?: {
     size?: number;
     sizeOffset?: number;
@@ -642,7 +642,6 @@ type ApexNoData = {
 type ApexDataLabels = {
   enabled?: boolean;
   enabledOnSeries?: undefined | boolean;
-  formatter?(val: number, opts: any): string;
   textAnchor?: "start" | "middle" | "end";
   offsetX?: number;
   offsetY?: number;
@@ -657,7 +656,8 @@ type ApexDataLabels = {
     left?: number;
     blur?: number;
     opacity?: number;
-  }
+  };
+  formatter?(val: number, opts?: any): string;
 };
 
 type ApexResponsive = {
@@ -690,16 +690,16 @@ type ApexTooltip = {
     show?: boolean;
     format?: string;
     formatter?(val: number): string;
-  }
+  };
   y?: {
-    formatter?(val: number): string;
     title?: {
       formatter?(seriesName: string): string;
     }
+    formatter?(val: number, opts?: any): string;
   };
   z?: {
+    title?: string;
     formatter?(val: number): string;
-    title?: string
   };
   marker?: {
     show?: boolean,
@@ -741,7 +741,7 @@ type ApexXAxis = {
     offsetX?: number;
     offsetY?: number;
     format?: string;
-    formatter?(value: string, timestamp: number): string;
+    formatter?(value: string, timestamp?: number): string;
     datetimeFormatter?: {
       year?: string;
       month?: string;
@@ -814,7 +814,7 @@ type ApexXAxis = {
   tooltip?: {
     enabled?: boolean;
     offsetY?: number;
-    formatter?(value: string, opts: object): string;
+    formatter?(value: string, opts?: object): string;
     style?: {
       fontSize?: string,
       fontFamily?: string
