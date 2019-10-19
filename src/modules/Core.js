@@ -552,7 +552,11 @@ export default class Core {
           Array.isArray(ser[i].data[j][1]) &&
           ser[i].data[j][1].length === 4
         ) {
+          // candlestick nested ohlc format
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1][3]))
+        } else if (ser[i].data[j].length === 5) {
+          // candlestick non-nested ohlc format
+          this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][4]))
         } else {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1]))
         }
@@ -721,14 +725,27 @@ export default class Core {
       'Please provide [Open, High, Low and Close] values in valid format. Read more https://apexcharts.com/docs/series/#candlestick'
 
     if (format === 'array') {
-      if (ser[i].data[0][1].length !== 4) {
+      if (
+        (!Array.isArray(ser[i].data[0][1]) && ser[i].data[0].length !== 5) ||
+        (Array.isArray(ser[i].data[0][1]) && ser[i].data[0][1].length !== 4)
+      ) {
         throw new Error(err)
       }
-      for (let j = 0; j < ser[i].data.length; j++) {
-        serO.push(ser[i].data[j][1][0])
-        serH.push(ser[i].data[j][1][1])
-        serL.push(ser[i].data[j][1][2])
-        serC.push(ser[i].data[j][1][3])
+
+      if (ser[i].data[0].length === 5) {
+        for (let j = 0; j < ser[i].data.length; j++) {
+          serO.push(ser[i].data[j][1])
+          serH.push(ser[i].data[j][2])
+          serL.push(ser[i].data[j][3])
+          serC.push(ser[i].data[j][4])
+        }
+      } else {
+        for (let j = 0; j < ser[i].data.length; j++) {
+          serO.push(ser[i].data[j][1][0])
+          serH.push(ser[i].data[j][1][1])
+          serL.push(ser[i].data[j][1][2])
+          serC.push(ser[i].data[j][1][3])
+        }
       }
     } else if (format === 'xy') {
       if (ser[i].data[0].y.length !== 4) {
