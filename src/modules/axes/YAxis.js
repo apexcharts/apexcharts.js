@@ -265,8 +265,8 @@ export default class YAxis {
         x: w.globals.gridWidth / 2,
         y:
           this.xAxisoffX +
-          parseInt(this.xaxisFontSize) +
-          parseInt(w.config.xaxis.title.style.fontSize) +
+          parseFloat(this.xaxisFontSize) +
+          parseFloat(w.config.xaxis.title.style.fontSize) +
           20,
         text: w.config.xaxis.title.text,
         textAnchor: 'middle',

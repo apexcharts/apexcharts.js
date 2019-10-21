@@ -731,7 +731,7 @@ class Pie {
     if (dataLabelsConfig.name.show) {
       let elLabel = graphics.drawText({
         x: x,
-        y: y + parseInt(dataLabelsConfig.name.offsetY),
+        y: y + parseFloat(dataLabelsConfig.name.offsetY),
         text: name,
         textAnchor: 'middle',
         foreColor: labelColor,
@@ -744,7 +744,7 @@ class Pie {
 
     if (dataLabelsConfig.value.show) {
       let valOffset = dataLabelsConfig.name.show
-        ? parseInt(dataLabelsConfig.value.offsetY) + 16
+        ? parseFloat(dataLabelsConfig.value.offsetY) + 16
         : dataLabelsConfig.value.offsetY
 
       let elValue = graphics.drawText({

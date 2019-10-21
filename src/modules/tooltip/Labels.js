@@ -249,7 +249,7 @@ export default class Labels {
       const ttZVal = ttItems[t].querySelector(
         '.apexcharts-tooltip-text-z-value'
       )
-      ttZVal.innerHTML = zVal
+      ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : ''
     }
 
     if (shared && ttItemsChildren[0]) {

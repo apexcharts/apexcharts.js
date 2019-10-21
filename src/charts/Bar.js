@@ -731,8 +731,8 @@ class Bar {
     }
     if (w.config.dataLabels.enabled) {
       textRects = graphics.getTextRects(
-        series[i][j],
-        parseInt(dataLabelsConfig.style.fontSize)
+        w.globals.yLabelFormatters[0](w.globals.maxY),
+        parseFloat(dataLabelsConfig.style.fontSize)
       )
     }
 
