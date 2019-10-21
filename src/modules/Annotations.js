@@ -141,7 +141,7 @@ export default class Annotations {
     let graphics = new Graphics(this.ctx)
     let textRects = graphics.getTextRects(
       text,
-      parseInt(anno.label.style.fontSize)
+      parseFloat(anno.label.style.fontSize)
     )
 
     let elText = this.graphics.drawText({
@@ -357,7 +357,7 @@ export default class Annotations {
         w.globals.gridHeight -
         (annoY - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseInt(anno.label.style.fontSize) -
+        parseFloat(anno.label.style.fontSize) -
         anno.marker.size
 
       pointY =
@@ -372,7 +372,7 @@ export default class Annotations {
         y =
           (annoY - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) +
-          parseInt(anno.label.style.fontSize) +
+          parseFloat(anno.label.style.fontSize) +
           anno.marker.size
 
         pointY =
@@ -385,7 +385,7 @@ export default class Annotations {
         w.globals.gridHeight -
         (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseInt(anno.label.style.fontSize) -
+        parseFloat(anno.label.style.fontSize) -
         anno.marker.size
 
       pointY =
@@ -400,7 +400,7 @@ export default class Annotations {
         y =
           (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-          parseInt(anno.label.style.fontSize) -
+          parseFloat(anno.label.style.fontSize) -
           anno.marker.size
 
         pointY =

@@ -300,7 +300,7 @@ export default class HeatMap {
       let dataLabelsY =
         y +
         rectHeight / 2 +
-        parseInt(dataLabelsConfig.style.fontSize) / 3 +
+        parseFloat(dataLabelsConfig.style.fontSize) / 3 +
         offY
 
       let text = formatter(w.globals.series[i][j], {

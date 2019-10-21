@@ -221,13 +221,12 @@ export default class Core {
           scatterLine.draw(scatterSeries.series, 'scatter', scatterSeries.i)
         )
       }
-      // TODO: allow bubble series in a combo chart
-      // if (bubbleSeries.series.length > 0) {
-      //   const bubbleLine = new Line(this.ctx, xyRatios, true)
-      //   elGraph.push(
-      //     bubbleLine.draw(bubbleSeries.series, 'bubble', bubbleSeries.i)
-      //   )
-      // }
+      if (bubbleSeries.series.length > 0) {
+        const bubbleLine = new Line(this.ctx, xyRatios, true)
+        elGraph.push(
+          bubbleLine.draw(bubbleSeries.series, 'bubble', bubbleSeries.i)
+        )
+      }
     } else {
       switch (cnf.chart.type) {
         case 'line':
