@@ -819,8 +819,8 @@ class Bar {
 
     let vertical =
       w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
-    if (vertical) bcx = bcx + textRects.height / 2 - strokeWidth / 2
-    else bcx = bcx - strokeWidth / 2
+
+    bcx = bcx - strokeWidth / 2
 
     let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
     if (w.globals.isXNumeric) {
@@ -828,6 +828,13 @@ class Bar {
     } else {
       dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
     }
+
+    if (vertical) {
+      const offsetDLX = 2
+      dataLabelsX =
+        dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX
+    }
+
     let valIsNegative = this.series[i][j] <= 0
 
     if (this.isReversed) {

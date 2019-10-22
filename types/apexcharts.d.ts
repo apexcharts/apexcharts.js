@@ -370,6 +370,7 @@ type ApexPlotOptions = {
       maxItems?: number;
       hideOverflowingLabels?: boolean;
       position?: string;
+      orientation?: 'horizontal' | 'vertical'
     }
   };
   candlestick?: {
