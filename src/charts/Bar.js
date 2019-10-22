@@ -817,7 +817,8 @@ class Bar {
     } = opts
     let dataLabelsX
 
-    let vertical = w.config.plotOptions.bar.dataLabels.vertical
+    let vertical =
+      w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
     if (vertical) bcx = bcx + textRects.height / 2 - strokeWidth / 2
     else bcx = bcx - strokeWidth / 2
 
@@ -986,7 +987,7 @@ class Bar {
   }) {
     const w = this.w
     let rotate = 'rotate(0)'
-    if (w.config.plotOptions.bar.dataLabels.vertical)
+    if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical')
       rotate = `rotate(-90, ${x}, ${y})`
 
     const dataLabels = new DataLabels(this.ctx)
@@ -1020,7 +1021,7 @@ class Bar {
 
       let valIsNegative = this.series[i][j] <= 0
       let position = w.config.plotOptions.bar.dataLabels.position
-      if (w.config.plotOptions.bar.dataLabels.vertical) {
+      if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
         if (position == 'top') {
           if (valIsNegative) dataLabelsConfig.textAnchor = 'end'
           else dataLabelsConfig.textAnchor = 'start'
