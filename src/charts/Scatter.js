@@ -72,7 +72,6 @@ export default class Scatter {
         radius = radius || 0
 
         if (
-          (x === 0 && y === 0) ||
           y === null ||
           typeof w.globals.series[realIndex][dataPointIndex] === 'undefined'
         ) {

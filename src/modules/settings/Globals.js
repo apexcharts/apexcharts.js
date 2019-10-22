@@ -44,8 +44,6 @@ export default class Globals {
       isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
       isExecCalled: false, // whether user updated the chart through the exec method
       initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
-      lastXAxis: [],
-      lastYAxis: [],
       series: [], // the MAIN series array (y values)
       seriesRangeStart: [], // the clone of series becomes the start in range
       seriesRangeEnd: [], // the end values in range chart
@@ -54,6 +52,7 @@ export default class Globals {
       stackedSeriesTotals: [],
       seriesX: [], // store the numeric x values in this array (x values)
       seriesZ: [], // The 3rd "Z" dimension for bubbles chart (z values)
+      columnSeries: null,
       labels: [], // store the text to draw on x axis
       // Don't mutate the labels, many things including tooltips depends on it!
       timelineLabels: [], // store the timeline Labels in another variable
@@ -196,8 +195,6 @@ export default class Globals {
     globals.initialSeries = JSON.parse(
       JSON.stringify(globals.initialConfig.series)
     )
-    globals.lastXAxis = JSON.parse(JSON.stringify(globals.initialConfig.xaxis))
-    globals.lastYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis))
     return globals
   }
 }

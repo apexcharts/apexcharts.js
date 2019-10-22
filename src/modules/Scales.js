@@ -435,6 +435,7 @@ export default class Range {
     if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
       // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
       // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
+      console.warn('autoScaleYaxis is not supported in a multi-yaxis chart.')
       return yaxis
     }
 

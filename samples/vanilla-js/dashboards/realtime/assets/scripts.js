@@ -93,14 +93,8 @@ var optionsColumn = {
         speed: 1000
       }
     },
-    // dropShadow: {
-    //   enabled: true,
-    //   left: -14,
-    //   top: -10,
-    //   opacity: 0.05
-    // },
     events: {
-      animationEnd: function (chartCtx) {
+      animationEnd: function (chartCtx, opts) {
         const newData = chartCtx.w.config.series[0].data.slice()
         newData.shift()
         window.setTimeout(function () {
@@ -204,23 +198,28 @@ var optionsLine = {
       top: 22
     },
     events: {
-      animationEnd: function (chartCtx) {
+      animationEnd: function (chartCtx, opts) {
         const newData1 = chartCtx.w.config.series[0].data.slice()
         newData1.shift()
         const newData2 = chartCtx.w.config.series[1].data.slice()
         newData2.shift()
-        window.setTimeout(function () {
-          chartCtx.updateOptions({
-            series: [{
-              data: newData1
-            }, {
-              data: newData2
-            }],
-            subtitle: {
-              text: parseInt(getRandom() * Math.random()).toString(),
-            }
-          }, false, false)
-        }, 300)
+
+        // check animation end event for just 1 series to avoid multiple updates
+        if (opts.el.node.getAttribute('index') === '0') {
+          window.setTimeout(function () {
+            chartCtx.updateOptions({
+              series: [{
+                data: newData1
+              }, {
+                data: newData2
+              }],
+              subtitle: {
+                text: parseInt(getRandom() * Math.random()).toString(),
+              }
+            }, false, false)
+          }, 300)
+        }
+        
       }
     },
     toolbar: {
@@ -333,8 +332,8 @@ var optionsCircle = {
   legend: {
     show: true,
     position: 'left',
-    offsetX: -40,
-    offsetY: -10,
+    offsetX: -30,
+    offsetY: 10,
     formatter: function (val, opts) {
       return val + " - " + opts.w.globals.series[opts.seriesIndex] + '%'
     }

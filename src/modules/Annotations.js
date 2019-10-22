@@ -138,9 +138,20 @@ export default class Annotations {
     }
     let textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight
 
+    let graphics = new Graphics(this.ctx)
+    let textRects = graphics.getTextRects(
+      text,
+      parseFloat(anno.label.style.fontSize)
+    )
+
     let elText = this.graphics.drawText({
       x: x1 + anno.label.offsetX,
-      y: textY + anno.label.offsetY,
+      y:
+        textY +
+        anno.label.offsetY -
+        (anno.label.position === 'top'
+          ? textRects.width / 2 - 12
+          : -textRects.width / 2),
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
@@ -346,7 +357,7 @@ export default class Annotations {
         w.globals.gridHeight -
         (annoY - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseInt(anno.label.style.fontSize) -
+        parseFloat(anno.label.style.fontSize) -
         anno.marker.size
 
       pointY =
@@ -361,7 +372,7 @@ export default class Annotations {
         y =
           (annoY - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) +
-          parseInt(anno.label.style.fontSize) +
+          parseFloat(anno.label.style.fontSize) +
           anno.marker.size
 
         pointY =
@@ -374,7 +385,7 @@ export default class Annotations {
         w.globals.gridHeight -
         (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseInt(anno.label.style.fontSize) -
+        parseFloat(anno.label.style.fontSize) -
         anno.marker.size
 
       pointY =
@@ -389,7 +400,7 @@ export default class Annotations {
         y =
           (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-          parseInt(anno.label.style.fontSize) -
+          parseFloat(anno.label.style.fontSize) -
           anno.marker.size
 
         pointY =

@@ -389,11 +389,13 @@ class Range {
           )
         }
 
-        sX.sort((a, b) => {
+        // fix #983 (clone the array to avoid side effects)
+        const seriesX = sX.slice()
+        seriesX.sort((a, b) => {
           return a - b
         })
 
-        sX.forEach((s, j) => {
+        seriesX.forEach((s, j) => {
           if (j > 0) {
             let xDiff = s - gl.seriesX[i][j - 1]
             gl.minXDiff = Math.min(xDiff, gl.minXDiff)

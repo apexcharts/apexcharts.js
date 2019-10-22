@@ -148,15 +148,7 @@ export default class Animations {
       delayFactor = 0
     }
 
-    me.morphSVG(
-      el,
-      j,
-      pathFrom,
-      pathTo,
-      speed,
-      strokeWidth,
-      delay * delayFactor
-    )
+    me.morphSVG(el, j, pathFrom, pathTo, speed, delay * delayFactor)
   }
 
   showDelayedElements() {
@@ -166,17 +158,17 @@ export default class Animations {
     })
   }
 
-  animationCompleted() {
+  animationCompleted(el) {
     const w = this.w
     w.globals.animationEnded = true
 
     if (typeof w.config.chart.events.animationEnd === 'function') {
-      w.config.chart.events.animationEnd(this.ctx, w)
+      w.config.chart.events.animationEnd(this.ctx, { el, w })
     }
   }
 
   // SVG.js animation for morphing one path to another
-  morphSVG(el, j, pathFrom, pathTo, speed, strokeWidth, delay) {
+  morphSVG(el, j, pathFrom, pathTo, speed, delay) {
     let w = this.w
 
     if (!pathFrom) {
@@ -216,10 +208,10 @@ export default class Animations {
             j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 &&
             w.globals.shouldAnimate
           ) {
-            this.animationCompleted()
+            this.animationCompleted(el)
           }
         } else if (w.globals.shouldAnimate) {
-          this.animationCompleted()
+          this.animationCompleted(el)
         }
 
         this.showDelayedElements()
