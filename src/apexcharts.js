@@ -897,12 +897,30 @@ export default class ApexCharts {
   }
 
   toggleSeries(seriesName) {
-    const targetElement = this.series.getSeriesByName(seriesName)
-    let seriesCnt = parseInt(targetElement.getAttribute('data:realIndex'))
-    let isHidden = targetElement.classList.contains(
-      'apexcharts-series-collapsed'
+    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
+
+    this.legend.toggleDataSeries(
+      isSeriesHidden.realIndex,
+      isSeriesHidden.isHidden
     )
-    this.legend.toggleDataSeries(seriesCnt, isHidden)
+
+    return isSeriesHidden.isHidden
+  }
+
+  showSeries(seriesName) {
+    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
+
+    if (isSeriesHidden.isHidden) {
+      this.legend.toggleDataSeries(isSeriesHidden.realIndex, true)
+    }
+  }
+
+  hideSeries(seriesName) {
+    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
+
+    if (!isSeriesHidden.isHidden) {
+      this.legend.toggleDataSeries(isSeriesHidden.realIndex, false)
+    }
   }
 
   resetSeries(shouldUpdateChart = true) {
