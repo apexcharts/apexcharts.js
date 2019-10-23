@@ -23,6 +23,16 @@ export default class Series {
     )
   }
 
+  isSeriesHidden(seriesName) {
+    const targetElement = this.getSeriesByName(seriesName)
+    let realIndex = parseInt(targetElement.getAttribute('data:realIndex'))
+    let isHidden = targetElement.classList.contains(
+      'apexcharts-series-collapsed'
+    )
+
+    return { isHidden, realIndex: realIndex }
+  }
+
   addCollapsedClassToSeries(elSeries, index) {
     const w = this.w
     function iterateOnAllCollapsedSeries(series) {

@@ -14,7 +14,9 @@ declare class ApexCharts {
   updateOptions(options: any, redrawPaths?: boolean, animate?: boolean, updateSyncedCharts?: boolean): Promise<void>;
   updateSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
   appendSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
-  toggleSeries(seriesName: string): void;
+  toggleSeries(seriesName: string): any;
+  showSeries(seriesName: string): void;
+  hideSeries(seriesName: string): void;
   resetSeries(): void;
   toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): any;
   destroy(): void;
