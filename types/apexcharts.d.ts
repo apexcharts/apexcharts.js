@@ -768,7 +768,7 @@ type ApexXAxis = {
     offsetX?: number;
     offsetY?: number;
   };
-  tickAmount?: number;
+  tickAmount?: number | 'dataPoints';
   min?: number;
   max?: number;
   range?: number;
