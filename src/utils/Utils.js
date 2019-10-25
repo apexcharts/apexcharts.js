@@ -143,6 +143,10 @@ class Utils {
     return parseFloat(val)
   }
 
+  static randomId() {
+    return (Math.random() + 1).toString(36).substring(4)
+  }
+
   static noExponents(val) {
     let data = String(val).split(/[eE]/)
     if (data.length == 1) return data[0]

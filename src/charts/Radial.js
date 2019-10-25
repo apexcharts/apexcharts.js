@@ -421,7 +421,7 @@ class Radial extends Pie {
     const w = this.w
     let fill = new Fill(this.ctx)
 
-    let randID = (Math.random() + 1).toString(36).substring(4)
+    let randID = Utils.randomId()
     let hollowFillImg = w.config.plotOptions.radialBar.hollow.image
 
     if (w.config.plotOptions.radialBar.hollow.imageClipped) {

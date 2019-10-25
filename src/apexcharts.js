@@ -57,7 +57,7 @@ export default class ApexCharts {
 
     this.el = el
 
-    this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4)
+    this.w.globals.cuid = Utils.randomId()
     this.w.globals.chartID = this.w.config.chart.id
       ? this.w.config.chart.id
       : this.w.globals.cuid
@@ -883,6 +883,9 @@ export default class ApexCharts {
       case 'clearAnnotations': {
         return chart.clearAnnotations(...opts)
       }
+      case 'removeAnnotation': {
+        return chart.removeAnnotation(...opts)
+      }
       case 'paper': {
         return chart.paper(...opts)
       }
@@ -1006,6 +1009,14 @@ export default class ApexCharts {
       me = context
     }
     me.annotations.clearAnnotations(me)
+  }
+
+  removeAnnotation(id, context = undefined) {
+    let me = this
+    if (context) {
+      me = context
+    }
+    me.annotations.removeAnnotation(me, id)
   }
 
   // This method is never used internally and will be only called externally on the chart instance.

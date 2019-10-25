@@ -81,7 +81,7 @@ export default class Markers {
 
         if (shouldMarkerDraw) {
           if (Utils.isNumber(p.y[q])) {
-            PointClasses += ` w${(Math.random() + 1).toString(36).substring(4)}`
+            PointClasses += ` w${Utils.randomId()}`
           } else {
             PointClasses = 'apexcharts-nullpoint'
           }
