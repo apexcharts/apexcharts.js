@@ -278,7 +278,8 @@ export default class Position {
 
     if (
       w.config.series[capturedSeries].type &&
-      w.config.series[capturedSeries].type === 'column'
+      (w.config.series[capturedSeries].type === 'column' ||
+        w.config.series[capturedSeries].type === 'candlestick')
     ) {
       // fix error mentioned in #811
       return

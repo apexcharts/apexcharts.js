@@ -673,10 +673,10 @@ export default class Core {
       ohlc = this.handleCandleStickDataFormat('xy', ser, i)
     }
 
-    gl.seriesCandleO.push(ohlc.o)
-    gl.seriesCandleH.push(ohlc.h)
-    gl.seriesCandleL.push(ohlc.l)
-    gl.seriesCandleC.push(ohlc.c)
+    gl.seriesCandleO[i] = ohlc.o
+    gl.seriesCandleH[i] = ohlc.h
+    gl.seriesCandleL[i] = ohlc.l
+    gl.seriesCandleC[i] = ohlc.c
 
     return ohlc
   }

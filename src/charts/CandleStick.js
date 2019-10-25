@@ -209,7 +209,8 @@ class CandleStick extends Bar {
 
     if (w.globals.isXNumeric) {
       x =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
+        (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio -
+        barWidth / 2
     }
 
     let barXPosition = x + barWidth * this.visibleI
