@@ -334,6 +334,10 @@ export default class Options {
             // TODO: provide stackedLabels for stacked charts which gives additions of values
           }
         },
+        bubble: {
+          minBubbleRadius: undefined,
+          maxBubbleRadius: undefined
+        },
         candlestick: {
           colors: {
             upward: '#00B746',

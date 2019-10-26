@@ -18,9 +18,6 @@ export default class Scatter {
     this.dynamicAnim =
       this.initialAnim &&
       this.w.config.chart.animations.dynamicAnimation.enabled
-
-    // this array will help in centering the label in bubbles
-    this.radiusSizes = []
   }
 
   draw(elSeries, j, opts) {
@@ -56,10 +53,15 @@ export default class Scatter {
         if (zRatio !== Infinity) {
           // means we have a bubble
           finishRadius = w.globals.seriesZ[realIndex][dataPointIndex] / zRatio
-          if (typeof this.radiusSizes[realIndex] === 'undefined') {
-            this.radiusSizes.push([])
+
+          const bubble = w.config.plotOptions.bubble
+          if (bubble.minBubbleRadius && finishRadius < bubble.minBubbleRadius) {
+            finishRadius = bubble.minBubbleRadius
           }
-          this.radiusSizes[realIndex].push(finishRadius)
+
+          if (bubble.maxBubbleRadius && finishRadius > bubble.maxBubbleRadius) {
+            finishRadius = bubble.maxBubbleRadius
+          }
         }
 
         if (!w.config.chart.animations.enabled) {
