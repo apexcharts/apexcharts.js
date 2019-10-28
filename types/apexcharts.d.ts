@@ -836,6 +836,7 @@ type ApexYAxis = {
   showAlways?: boolean;
   seriesName?: string;
   opposite?: boolean;
+  reversed?: boolean;
   logarithmic?: boolean;
   tickAmount?: number;
   forceNiceScale?: boolean,
