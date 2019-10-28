@@ -703,7 +703,7 @@ export default class Tooltip {
     if (w.config.legend.tooltipHoverFormatter) {
       this.legendLabels.forEach((l) => {
         const defaultText = l.getAttribute('data:default-text')
-        l.innerHTML = defaultText
+        l.innerHTML = decodeURIComponent(defaultText)
       })
     }
   }
@@ -774,14 +774,16 @@ export default class Tooltip {
       // reset all legend values first
       els.forEach((l) => {
         const legendName = l.getAttribute('data:default-text')
-        l.innerHTML = legendName
+        l.innerHTML = decodeURIComponent(legendName)
       })
 
       // for irregular time series
       for (let i = 0; i < els.length; i++) {
         const l = els[i]
         const lsIndex = parseInt(l.getAttribute('i'))
-        const legendName = l.getAttribute('data:default-text')
+        const legendName = decodeURIComponent(
+          l.getAttribute('data:default-text')
+        )
 
         let text = legendFormatter(legendName, {
           seriesIndex: shared ? lsIndex : capturedSeries,
