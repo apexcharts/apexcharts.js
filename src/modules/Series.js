@@ -374,7 +374,7 @@ export default class Series {
     }
 
     x = x + noDataOpts.offsetX
-    y = y + parseInt(noDataOpts.style.fontSize) + 2
+    y = y + parseInt(noDataOpts.style.fontSize) + 2 + noDataOpts.offsetY
 
     if (noDataOpts.text !== undefined && noDataOpts.text !== '') {
       let titleText = graphics.drawText({

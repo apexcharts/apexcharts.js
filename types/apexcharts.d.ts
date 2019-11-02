@@ -23,9 +23,11 @@ declare class ApexCharts {
   addXaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addYaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
+  removeAnnotation(id: string, options?: any): void;
+  clearAnnotations(options?: any): void;
   addText(options: any, pushToMemory?: boolean, context?: any): void;
   dataURI(): Promise<void>;
-  static exec(chartID: string, fn: string, options: any): any;
+  static exec(chartID: string, fn: string, options?: any): any;
   static initOnLoad(): void;
 }
 
