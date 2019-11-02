@@ -377,6 +377,10 @@ type ApexPlotOptions = {
       orientation?: 'horizontal' | 'vertical'
     }
   };
+  bubble?: {
+    minBubbleRadius?: number;
+    maxBubbleRadius?: number;
+  };
   candlestick?: {
     colors?: {
       upward?: string;
@@ -681,7 +685,7 @@ type ApexTooltip = {
   followCursor?: boolean;
   intersect?: boolean;
   inverseOrder?: boolean;
-  custom?(options: any): void;
+  custom?: ((options: any) => any) | ((options: any) => any)[]
   fillSeriesColor?: boolean;
   theme?: string;
   style?: {
