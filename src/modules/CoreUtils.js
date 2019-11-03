@@ -237,6 +237,10 @@ class CoreUtils {
     invertedXRatio = gl.xRange / gl.gridHeight
     zRatio = (gl.zRange / gl.gridHeight) * 16
 
+    if (!zRatio) {
+      zRatio = 1
+    }
+
     if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
       // Negative numbers present in series
       gl.hasNegs = true

@@ -56,6 +56,75 @@ class Legend {
     }
   }
 
+  getLegendStyles() {
+    var stylesheet = document.createElement('style')
+    stylesheet.setAttribute('type', 'text/css')
+
+    const text = `	
+    	
+      .apexcharts-legend {	
+        display: flex;	
+        overflow: auto;	
+        padding: 0 10px;	
+      }	
+      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {	
+        flex-wrap: wrap	
+      }	
+      .apexcharts-legend.position-right, .apexcharts-legend.position-left {	
+        flex-direction: column;	
+        bottom: 0;	
+      }	
+      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {	
+        justify-content: flex-start;	
+      }	
+      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {	
+        justify-content: center;  	
+      }	
+      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {	
+        justify-content: flex-end;	
+      }	
+      .apexcharts-legend-series {	
+        cursor: pointer;	
+        line-height: normal;	
+      }	
+      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{	
+        display: flex;	
+        align-items: center;	
+      }	
+      .apexcharts-legend-text {	
+        position: relative;	
+        font-size: 14px;	
+      }	
+      .apexcharts-legend-text *, .apexcharts-legend-marker * {	
+        pointer-events: none;	
+      }	
+      .apexcharts-legend-marker {	
+        position: relative;	
+        display: inline-block;	
+        cursor: pointer;	
+        margin-right: 3px;	
+      }	
+      	
+      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{	
+        display: inline-block;	
+      }	
+      .apexcharts-legend-series.no-click {	
+        cursor: auto;	
+      }	
+      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {	
+        display: none !important;	
+      }	
+      .inactive-legend {	
+        opacity: 0.45;	
+      }`
+
+    var rules = document.createTextNode(text)
+
+    stylesheet.appendChild(rules)
+
+    return stylesheet
+  }
+
   appendToForeignObject() {
     const gl = this.w.globals
 
@@ -143,6 +212,15 @@ class Legend {
 
       mStyle.background = fillcolor[i]
       mStyle.color = fillcolor[i]
+
+      // override fill color with custom legend.markers.fillColors
+      if (
+        w.config.legend.markers.fillColors &&
+        w.config.legend.markers.fillColors[i]
+      ) {
+        mStyle.background = w.config.legend.markers.fillColors[i]
+      }
+
       mStyle.height = Array.isArray(mHeight)
         ? parseFloat(mHeight[i]) + 'px'
         : parseFloat(mHeight) + 'px'
@@ -200,7 +278,7 @@ class Legend {
       Graphics.setAttrs(elLegendText, {
         rel: i + 1,
         i: i,
-        'data:default-text': text,
+        'data:default-text': encodeURIComponent(text),
         'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
 
@@ -449,87 +527,6 @@ class Legend {
 
       this.toggleDataSeries(seriesCnt, isHidden)
     }
-  }
-
-  getLegendStyles() {
-    var stylesheet = document.createElement('style')
-    stylesheet.setAttribute('type', 'text/css')
-
-    const text = `
-    
-      .apexcharts-legend {
-        display: flex;
-        overflow: auto;
-        padding: 0 10px;
-      }
-
-      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {
-        flex-wrap: wrap
-      }
-      .apexcharts-legend.position-right, .apexcharts-legend.position-left {
-        flex-direction: column;
-        bottom: 0;
-      }
-
-      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {
-        justify-content: flex-start;
-      }
-
-      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {
-        justify-content: center;  
-      }
-
-      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {
-        justify-content: flex-end;
-      }
-
-      .apexcharts-legend-series {
-        cursor: pointer;
-        line-height: normal;
-      }
-
-      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{
-        display: flex;
-        align-items: center;
-      }
-
-      .apexcharts-legend-text {
-        position: relative;
-        font-size: 14px;
-      }
-
-      .apexcharts-legend-text *, .apexcharts-legend-marker * {
-        pointer-events: none;
-      }
-
-      .apexcharts-legend-marker {
-        position: relative;
-        display: inline-block;
-        cursor: pointer;
-        margin-right: 3px;
-      }
-      
-      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{
-        display: inline-block;
-      }
-
-      .apexcharts-legend-series.no-click {
-        cursor: auto;
-      }
-
-      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {
-        display: none !important;
-      }
-
-      .inactive-legend {
-        opacity: 0.45;
-      }`
-
-    var rules = document.createTextNode(text)
-
-    stylesheet.appendChild(rules)
-
-    return stylesheet
   }
 
   toggleDataSeries(seriesCnt, isHidden) {

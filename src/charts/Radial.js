@@ -94,7 +94,16 @@ class Radial extends Pie {
       )
     }
 
-    w.globals.radialSize = size - size / (360 / (360 - totalAngle)) + 10
+    let angleRatio = (360 - totalAngle) / 360
+    w.globals.radialSize = size - size * angleRatio
+
+    if (this.radialDataLabels.value.show) {
+      let offset = Math.max(
+        this.radialDataLabels.value.offsetY,
+        this.radialDataLabels.name.offsetY
+      )
+      w.globals.radialSize += offset * angleRatio
+    }
 
     elSeries.add(elG.g)
 
@@ -412,7 +421,7 @@ class Radial extends Pie {
     const w = this.w
     let fill = new Fill(this.ctx)
 
-    let randID = (Math.random() + 1).toString(36).substring(4)
+    let randID = Utils.randomId()
     let hollowFillImg = w.config.plotOptions.radialBar.hollow.image
 
     if (w.config.plotOptions.radialBar.hollow.imageClipped) {

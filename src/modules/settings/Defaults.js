@@ -590,8 +590,7 @@ export default class Defaults {
   }
 
   radar() {
-    this.opts.yaxis[0].labels.style.fontSize = '13px'
-    this.opts.yaxis[0].labels.offsetY = 6
+    this.opts.yaxis[0].labels.offsetY = this.opts.yaxis[0].labels.offsetY ? this.opts.yaxis[0].labels.offsetY : 6
 
     return {
       dataLabels: {

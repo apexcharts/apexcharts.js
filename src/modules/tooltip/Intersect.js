@@ -35,6 +35,9 @@ class Intersect {
         shared: false
       })
 
+      w.globals.capturedSeriesIndex = i
+      w.globals.capturedDataPointIndex = j
+
       x = cx + ttCtx.tooltipRect.ttWidth / 2 + width
       y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2
 
@@ -92,6 +95,9 @@ class Intersect {
         ttCtx.markerClick(e, i, j)
       }
 
+      w.globals.capturedSeriesIndex = i
+      w.globals.capturedDataPointIndex = j
+
       x = cx
       y = cy + w.globals.translateY - ttCtx.tooltipRect.ttHeight * 1.4
 
@@ -132,6 +138,9 @@ class Intersect {
     i = barXY.i
     let barHeight = barXY.barHeight
     let j = barXY.j
+
+    w.globals.capturedSeriesIndex = i
+    w.globals.capturedDataPointIndex = j
 
     if (
       (w.globals.isBarHorizontal && ttCtx.hasBars()) ||

@@ -14,16 +14,20 @@ declare class ApexCharts {
   updateOptions(options: any, redrawPaths?: boolean, animate?: boolean, updateSyncedCharts?: boolean): Promise<void>;
   updateSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
   appendSeries(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries, animate?: boolean): void;
-  toggleSeries(seriesName: string): void;
+  toggleSeries(seriesName: string): any;
+  showSeries(seriesName: string): void;
+  hideSeries(seriesName: string): void;
   resetSeries(): void;
   toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): any;
   destroy(): void;
   addXaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addYaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void;
+  removeAnnotation(id: string, options?: any): void;
+  clearAnnotations(options?: any): void;
   addText(options: any, pushToMemory?: boolean, context?: any): void;
   dataURI(): Promise<void>;
-  static exec(chartID: string, fn: string, options: any): any;
+  static exec(chartID: string, fn: string, options?: any): any;
   static initOnLoad(): void;
 }
 
@@ -75,20 +79,21 @@ type ApexChart = {
     opacity?: number;
   };
   events?: {
-    animationEnd?(chart: any, options: any): void;
-    beforeMount?(chart: any, options: any): void;
-    mounted?(chart: any, options: any): void;
-    updated?(chart: any, options: any): void;
-    click?(e: any, chart: any, options: any): void;
-    legendClick?(chart: any, seriesIndex: number, options: any): void;
-    markerClick?(e: any, chart: any, options: any): void;
-    selection?(chart: any, options: any): void;
-    dataPointSelection?(e: any, chart: any, options: any): void;
-    dataPointMouseEnter?(e: any, chart: any, options: any): void;
-    dataPointMouseLeave?(e: any, chart: any, options: any): void;
-    beforeZoom?(chart: any, options: any): void;
-    zoomed?(chart: any, options: any): void;
-    scrolled?(chart: any, options: any): void;
+    animationEnd?(chart: any, options?: any): void;
+    beforeMount?(chart: any, options?: any): void;
+    mounted?(chart: any, options?: any): void;
+    updated?(chart: any, options?: any): void;
+    mouseMove?(e: any, chart?: any, options?: any): void;
+    click?(e: any, chart?: any, options?: any): void;
+    legendClick?(chart: any, seriesIndex?: number, options?: any): void;
+    markerClick?(e: any, chart?: any, options?: any): void;
+    selection?(chart: any, options?: any): void;
+    dataPointSelection?(e: any, chart?: any, options?: any): void;
+    dataPointMouseEnter?(e: any, chart?: any, options?: any): void;
+    dataPointMouseLeave?(e: any, chart?: any, options?: any): void;
+    beforeZoom?(chart: any, options?: any): void;
+    zoomed?(chart: any, options?: any): void;
+    scrolled?(chart: any, options?: any): void;
   };
   brush?: {
     enabled?: boolean;
@@ -238,7 +243,7 @@ type ApexStroke = {
   show?: boolean;
   curve?: "smooth" | "straight" | "stepline";
   lineCap?: "butt" | "square" | "round";
-  colors?: string;
+  colors?: string[];
   width?: number;
   dashArray?: number | number[]
 };
@@ -352,6 +357,7 @@ type ApexLocale = {
 type ApexPlotOptions = {
   bar?: {
     horizontal?: boolean;
+    endingShape?: 'flat' | 'rounded';
     columnWidth?: string;
     barHeight?: string;
     distributed?: boolean;
@@ -368,7 +374,12 @@ type ApexPlotOptions = {
       maxItems?: number;
       hideOverflowingLabels?: boolean;
       position?: string;
+      orientation?: 'horizontal' | 'vertical'
     }
+  };
+  bubble?: {
+    minBubbleRadius?: number;
+    maxBubbleRadius?: number;
   };
   candlestick?: {
     colors?: {
@@ -410,7 +421,7 @@ type ApexPlotOptions = {
     donut?: {
       size?: string;
       background?: string;
-      labels: {
+      labels?: {
         show?: boolean;
         name?: {
           show?: boolean;
@@ -429,6 +440,7 @@ type ApexPlotOptions = {
         };
         total?: {
           show?: boolean;
+          showAlways?: boolean;
           label?: string;
           color?: string;
           formatter?(w: any): string;
@@ -556,8 +568,8 @@ type ApexLegend = {
   height?: number;
   offsetX?: number;
   offsetY?: number;
-  formatter?(legendName: string, opts: any): string;
-  tooltipHoverFormatter?(legendName: string, opts: any): string;
+  formatter?(legendName: string, opts?: any): string;
+  tooltipHoverFormatter?(legendName: string, opts?: any): string;
   textAnchor?: string;
   labels?: {
     color?: string
@@ -568,10 +580,10 @@ type ApexLegend = {
     height?: number;
     strokeColor?: string
     strokeWidth?: number;
+    fillColors?: string[]
     offsetX?: number;
     offsetY?: number;
     radius?: number;
-    shape?: "circle" | "square";
     customHTML?(): string;
     onClick?(): void;
   };
@@ -602,17 +614,17 @@ type ApexDiscretePoint = {
 type ApexMarkers = {
   size?: number;
   colors?: string[];
-  strokeColor?: string;
-  strokeWidth?: number;
-  strokeOpacity?: number;
-  fillOpacity?: number;
+  strokeColor?: string | string[];
+  strokeWidth?: number | number[];
+  strokeOpacity?: number | number[];
+  fillOpacity?: number | number[];
   discrete?: ApexDiscretePoint[];
-  shape?: 'circle' | 'square';
+  shape?: 'circle' | 'square' | string[];
   radius?: number;
   offsetX?: number;
   offsetY?: number;
-  onClick?(e: any): void;
-  onDblClick?(e: any): void;
+  onClick?(e?: any): void;
+  onDblClick?(e?: any): void;
   hover?: {
     size?: number;
     sizeOffset?: number;
@@ -639,7 +651,6 @@ type ApexNoData = {
 type ApexDataLabels = {
   enabled?: boolean;
   enabledOnSeries?: undefined | boolean;
-  formatter?(val: number, opts: any): string;
   textAnchor?: "start" | "middle" | "end";
   offsetX?: number;
   offsetY?: number;
@@ -654,7 +665,8 @@ type ApexDataLabels = {
     left?: number;
     blur?: number;
     opacity?: number;
-  }
+  };
+  formatter?(val: number, opts?: any): string;
 };
 
 type ApexResponsive = {
@@ -673,7 +685,7 @@ type ApexTooltip = {
   followCursor?: boolean;
   intersect?: boolean;
   inverseOrder?: boolean;
-  custom?(options: any): void;
+  custom?: ((options: any) => any) | ((options: any) => any)[]
   fillSeriesColor?: boolean;
   theme?: string;
   style?: {
@@ -687,19 +699,20 @@ type ApexTooltip = {
     show?: boolean;
     format?: string;
     formatter?(val: number): string;
-  }
+  };
   y?: {
-    formatter?(val: number): string;
     title?: {
       formatter?(seriesName: string): string;
     }
+    formatter?(val: number, opts?: any): string;
   };
   z?: {
+    title?: string;
     formatter?(val: number): string;
-    title?: string
   };
   marker?: {
-    show?: boolean
+    show?: boolean,
+    fillColors?: string[]
   };
   items?: {
     display?: string
@@ -737,7 +750,7 @@ type ApexXAxis = {
     offsetX?: number;
     offsetY?: number;
     format?: string;
-    formatter?(value: string, timestamp: number): string;
+    formatter?(value: string, timestamp?: number): string;
     datetimeFormatter?: {
       year?: string;
       month?: string;
@@ -761,7 +774,7 @@ type ApexXAxis = {
     offsetX?: number;
     offsetY?: number;
   };
-  tickAmount?: number;
+  tickAmount?: number | 'dataPoints';
   min?: number;
   max?: number;
   range?: number;
@@ -810,7 +823,7 @@ type ApexXAxis = {
   tooltip?: {
     enabled?: boolean;
     offsetY?: number;
-    formatter?(value: string, opts: object): string;
+    formatter?(value: string, opts?: object): string;
     style?: {
       fontSize?: string,
       fontFamily?: string
@@ -829,11 +842,12 @@ type ApexYAxis = {
   showAlways?: boolean;
   seriesName?: string;
   opposite?: boolean;
+  reversed?: boolean;
   logarithmic?: boolean;
   tickAmount?: number;
   forceNiceScale?: boolean,
-  min?: number;
-  max?: number;
+  min?: number | ((min: number) => number);
+  max?: number | ((max: number) => number);
   floating?: boolean;
   decimalsInFloat?: number;
   labels?: {
@@ -851,7 +865,7 @@ type ApexYAxis = {
       fontFamily?: string;
       cssClass?: string;
     };
-    formatter?(val: number): string;
+    formatter?(val: number, opts?: any): string;
   };
   axisBorder?: {
     show?: boolean;

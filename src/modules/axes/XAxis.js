@@ -147,7 +147,7 @@ export default class XAxis {
         x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
         y:
           this.offY -
-          parseInt(this.xaxisFontSize) +
+          parseFloat(this.xaxisFontSize) +
           w.globals.xAxisLabelsHeight +
           w.config.xaxis.title.offsetY,
         text: w.config.xaxis.title.text,
@@ -229,7 +229,11 @@ export default class XAxis {
       for (let i = 0; i <= labels.length - 1; i++) {
         let label = typeof labels[i] === 'undefined' ? '' : labels[i]
 
-        label = lbFormatter(label)
+        label = lbFormatter(label, {
+          seriesIndex: realIndex,
+          dataPointIndex: i,
+          w
+        })
 
         let elLabel = graphics.drawText({
           x: ylabels.offsetX - 15,
@@ -406,7 +410,8 @@ export default class XAxis {
           graphics.placeTextWithEllipsis(
             tSpan[0],
             tSpan[0].textContent,
-            w.config.xaxis.labels.maxHeight - 40
+            w.config.xaxis.labels.maxHeight -
+              (w.config.legend.position === 'bottom' ? 20 : 10)
           )
         }
       }
@@ -437,7 +442,10 @@ export default class XAxis {
         )
       }
 
-      if (lastLabelPosX.x + lastLabelPosX.width > w.globals.gridWidth) {
+      if (
+        lastLabelPosX.x + lastLabelPosX.width > w.globals.gridWidth &&
+        !w.globals.isBarHorizontal
+      ) {
         yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0])
       }
 
@@ -447,7 +455,7 @@ export default class XAxis {
           xAxisTextsInversed[xat],
           xAxisTextsInversed[xat].textContent,
           w.config.yaxis[0].labels.maxWidth -
-            parseInt(w.config.yaxis[0].title.style.fontSize) * 2 -
+            parseFloat(w.config.yaxis[0].title.style.fontSize) * 2 -
             20
         )
       }

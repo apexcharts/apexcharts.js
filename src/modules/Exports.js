@@ -44,7 +44,7 @@ class Exports {
       this.cleanup()
       const canvas = document.createElement('canvas')
       canvas.width = w.globals.svgWidth
-      canvas.height = w.globals.svgHeight
+      canvas.height = parseInt(w.globals.dom.elWrap.style.height) // because of resizeNonAxisCharts
 
       const canvasBg =
         w.config.chart.background === 'transparent'

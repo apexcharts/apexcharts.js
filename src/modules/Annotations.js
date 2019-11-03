@@ -138,15 +138,28 @@ export default class Annotations {
     }
     let textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight
 
+    let graphics = new Graphics(this.ctx)
+    let textRects = graphics.getTextRects(
+      text,
+      parseFloat(anno.label.style.fontSize)
+    )
+
     let elText = this.graphics.drawText({
       x: x1 + anno.label.offsetX,
-      y: textY + anno.label.offsetY,
+      y:
+        textY +
+        anno.label.offsetY -
+        (anno.label.position === 'top'
+          ? textRects.width / 2 - 12
+          : -textRects.width / 2),
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
       fontFamily: anno.label.style.fontFamily,
       foreColor: anno.label.style.color,
-      cssClass: 'apexcharts-xaxis-annotation-label ' + anno.label.style.cssClass
+      cssClass: `apexcharts-xaxis-annotation-label ${
+        anno.label.style.cssClass
+      } ${anno.id ? anno.id : ''}`
     })
 
     elText.attr({
@@ -276,7 +289,9 @@ export default class Annotations {
       fontSize: anno.label.style.fontSize,
       fontFamily: anno.label.style.fontFamily,
       foreColor: anno.label.style.color,
-      cssClass: 'apexcharts-yaxis-annotation-label ' + anno.label.style.cssClass
+      cssClass: `apexcharts-yaxis-annotation-label ${
+        anno.label.style.cssClass
+      } ${anno.id ? anno.id : ''}`
     })
 
     elText.attr({
@@ -306,13 +321,38 @@ export default class Annotations {
       '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations'
     )
 
+    // annotations added externally should be cleared out too
+    w.globals.memory.methodsToExec.map((m, i) => {
+      if (m.label === 'addText' || m.label === 'addAnnotation') {
+        w.globals.memory.methodsToExec.splice(i, 1)
+      }
+    })
+
     annos = Utils.listToArray(annos)
 
+    // delete the DOM elements
     annos.forEach((a) => {
       while (a.firstChild) {
         a.removeChild(a.firstChild)
       }
     })
+  }
+
+  removeAnnotation(ctx, id) {
+    const w = ctx.w
+    let annos = w.globals.dom.baseEl.querySelectorAll(`.${id}`)
+
+    if (annos) {
+      w.globals.memory.methodsToExec.map((m, i) => {
+        if (m.id === id) {
+          w.globals.memory.methodsToExec.splice(i, 1)
+        }
+      })
+
+      annos.forEach((a) => {
+        a.parentElement.removeChild(a)
+      })
+    }
   }
 
   addPointAnnotation(anno, parent, index) {
@@ -346,7 +386,7 @@ export default class Annotations {
         w.globals.gridHeight -
         (annoY - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseInt(anno.label.style.fontSize) -
+        parseFloat(anno.label.style.fontSize) -
         anno.marker.size
 
       pointY =
@@ -361,7 +401,7 @@ export default class Annotations {
         y =
           (annoY - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) +
-          parseInt(anno.label.style.fontSize) +
+          parseFloat(anno.label.style.fontSize) +
           anno.marker.size
 
         pointY =
@@ -374,7 +414,7 @@ export default class Annotations {
         w.globals.gridHeight -
         (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseInt(anno.label.style.fontSize) -
+        parseFloat(anno.label.style.fontSize) -
         anno.marker.size
 
       pointY =
@@ -389,7 +429,7 @@ export default class Annotations {
         y =
           (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
             (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-          parseInt(anno.label.style.fontSize) -
+          parseFloat(anno.label.style.fontSize) -
           anno.marker.size
 
         pointY =
@@ -407,7 +447,9 @@ export default class Annotations {
       pointStrokeColor: anno.marker.strokeColor,
       shape: anno.marker.shape,
       radius: anno.marker.radius,
-      class: 'apexcharts-point-annotation-marker ' + anno.marker.cssClass
+      class: `apexcharts-point-annotation-marker ${anno.marker.cssClass} ${
+        anno.id ? anno.id : ''
+      }`
     }
 
     let point = this.graphics.drawMarker(
@@ -428,7 +470,9 @@ export default class Annotations {
       fontSize: anno.label.style.fontSize,
       fontFamily: anno.label.style.fontFamily,
       foreColor: anno.label.style.color,
-      cssClass: 'apexcharts-point-annotation-label ' + anno.label.style.cssClass
+      cssClass: `apexcharts-point-annotation-label ${
+        anno.label.style.cssClass
+      } ${anno.id ? anno.id : ''}`
     })
 
     elText.attr({
@@ -543,6 +587,10 @@ export default class Annotations {
       0
     )
 
+    if (anno.id) {
+      elRect.node.classList.add(anno.id)
+    }
+
     return elRect
   }
 
@@ -640,6 +688,7 @@ export default class Annotations {
       w.globals.memory.methodsToExec.push({
         context: me,
         method: me.addText,
+        label: 'addText',
         params: {
           x,
           y,
@@ -753,7 +802,9 @@ export default class Annotations {
     if (pushToMemory) {
       w.globals.memory.methodsToExec.push({
         context: me,
+        id: anno.id ? anno.id : Utils.randomId(),
         method: contextMethod,
+        label: 'addAnnotation',
         params: params
       })
     }

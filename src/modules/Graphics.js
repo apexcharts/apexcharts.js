@@ -220,7 +220,7 @@ class Graphics {
       d = pathFrom
     } else {
       d = pathTo
-      anim.animationCompleted()
+      w.globals.animationEnded = true
     }
 
     let strokeDashArrayOpt = w.config.stroke.dashArray
@@ -536,7 +536,7 @@ class Graphics {
       })
 
       elPoint = p
-    } else if (opts.shape === 'circle') {
+    } else if (opts.shape === 'circle' || !opts.shape) {
       if (!Utils.isNumber(y)) {
         size = 0
         y = 0

@@ -370,6 +370,10 @@ export default class Dimensions {
         }
       })
     }
+
+    if (w.globals.isBarHorizontal) {
+      this.xPadRight = xaxisLabelCoords.width / 2 + 1
+    }
   }
 
   titleSubtitleOffset() {
@@ -608,7 +612,11 @@ export default class Dimensions {
         let lbFormatter = w.globals.yLabelFormatters[index]
 
         // the second parameter -1 is the index of tick which user can use in the formatter
-        let val = lbFormatter(w.globals.yAxisScale[index].niceMax, -1)
+        let val = lbFormatter(w.globals.yAxisScale[index].niceMax, {
+          seriesIndex: index,
+          dataPointIndex: -1,
+          w
+        })
 
         // if user has specified a custom formatter, and the result is null or empty, we need to discard the formatter and take the value as it is.
         if (typeof val === 'undefined' || val.length === 0) {
@@ -625,7 +633,7 @@ export default class Dimensions {
             return a.length > b.length ? a : b
           }, 0)
 
-          val = lbFormatter(val, -1)
+          val = lbFormatter(val, { seriesIndex: index, dataPointIndex: -1, w })
         }
 
         let graphics = new Graphics(this.ctx)

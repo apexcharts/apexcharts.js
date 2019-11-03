@@ -119,6 +119,7 @@
 
         // adding annotation through chart instance by calling direct method
         chart.addYaxisAnnotation({
+            id: 'yaxis-anno',
             y: 9000,
             borderColor: '#FEB019',
             label: {
@@ -133,6 +134,7 @@
         });
 
         chart.addXaxisAnnotation({
+            id: 'xaxis-anno',
             x: new Date('25 Nov 2017').getTime(),
             borderColor: '#00E396',
             label: {
@@ -149,6 +151,7 @@
         });
 
         chart.addPointAnnotation({
+            id: 'point-anno',
             x: new Date('17 Nov 2017').getTime(),
             y: 9425,
             label: {
@@ -164,6 +167,8 @@
             } 
         })
 
+        chart.removeAnnotation('point-anno')
+        
     </script>
 </body>
 

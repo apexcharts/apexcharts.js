@@ -59,7 +59,7 @@ class Bar {
     })
 
     if (w.config.dataLabels.enabled) {
-      if (this.totalItems > w.config.plotOptions.bar.dataLabels.maxItems) {
+      if (this.totalItems > this.barOptions.dataLabels.maxItems) {
         console.warn(
           'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.'
         )
@@ -410,13 +410,17 @@ class Bar {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        if (w.globals.minXDiff) {
+        if (w.globals.minXDiff && w.globals.minXDiff / this.xRatio > 0) {
           xDivision = w.globals.minXDiff / this.xRatio
         }
         barWidth =
           ((xDivision / this.seriesLen) *
             parseInt(this.barOptions.columnWidth)) /
           100
+
+        if (barWidth < 1) {
+          barWidth = 1
+        }
       }
 
       zeroH =
@@ -564,8 +568,14 @@ class Bar {
     let bc = indexes.bc
 
     if (w.globals.isXNumeric) {
+      let sxI = i
+      if (!w.globals.seriesX[i].length) {
+        sxI = w.globals.maxValsInArrayIndex
+      }
+
       x =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
+        (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
+        barWidth / 2
     }
 
     let barXPosition = x + barWidth * this.visibleI
@@ -659,6 +669,7 @@ class Bar {
       let gpp = w.globals.previousPaths[pp]
 
       if (
+        gpp.paths &&
         gpp.paths.length > 0 &&
         parseInt(gpp.realIndex) === parseInt(realIndex)
       ) {
@@ -700,7 +711,7 @@ class Bar {
     let bcy = y + parseFloat(barHeight * visibleSeries)
 
     if (w.globals.isXNumeric && !w.globals.isBarHorizontal) {
-      bcx = x + parseFloat(barWidth * (visibleSeries + 1)) - strokeWidth
+      bcx = x + parseFloat(barWidth * (visibleSeries + 1))
       bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth
     }
 
@@ -721,7 +732,7 @@ class Bar {
     if (w.config.dataLabels.enabled) {
       textRects = graphics.getTextRects(
         w.globals.yLabelFormatters[0](w.globals.maxY),
-        parseInt(dataLabelsConfig.style.fontSize)
+        parseFloat(dataLabelsConfig.style.fontSize)
       )
     }
 
@@ -806,14 +817,24 @@ class Bar {
     } = opts
     let dataLabelsX
 
-    let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
+    let vertical =
+      w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
+
     bcx = bcx - strokeWidth / 2
 
+    let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
     if (w.globals.isXNumeric) {
       dataLabelsX = bcx - barWidth / 2 + offX
     } else {
       dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
     }
+
+    if (vertical) {
+      const offsetDLX = 2
+      dataLabelsX =
+        dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX
+    }
+
     let valIsNegative = this.series[i][j] <= 0
 
     if (this.isReversed) {
@@ -822,25 +843,49 @@ class Bar {
 
     switch (barDataLabelsConfig.position) {
       case 'center':
-        if (valIsNegative) {
-          dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
+        if (vertical) {
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight / 2 + offY
+          } else {
+            dataLabelsY = y + barHeight / 2 - offY
+          }
         } else {
-          dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
+          } else {
+            dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
+          }
         }
         break
       case 'bottom':
-        if (valIsNegative) {
-          dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
+        if (vertical) {
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight + offY
+          } else {
+            dataLabelsY = y + barHeight - offY
+          }
         } else {
-          dataLabelsY =
-            y + barHeight - textRects.height / 2 + strokeWidth - offY
+          if (valIsNegative) {
+            dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
+          } else {
+            dataLabelsY =
+              y + barHeight - textRects.height / 2 + strokeWidth - offY
+          }
         }
         break
       case 'top':
-        if (valIsNegative) {
-          dataLabelsY = y - textRects.height / 2 - offY
+        if (vertical) {
+          if (valIsNegative) {
+            dataLabelsY = y + offY
+          } else {
+            dataLabelsY = y - offY
+          }
         } else {
-          dataLabelsY = y + textRects.height + offY
+          if (valIsNegative) {
+            dataLabelsY = y - textRects.height / 2 - offY
+          } else {
+            dataLabelsY = y + textRects.height + offY
+          }
         }
         break
     }
@@ -948,6 +993,9 @@ class Bar {
     dataLabelsConfig
   }) {
     const w = this.w
+    let rotate = 'rotate(0)'
+    if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical')
+      rotate = `rotate(-90, ${x}, ${y})`
 
     const dataLabels = new DataLabels(this.ctx)
     const graphics = new Graphics(this.ctx)
@@ -960,7 +1008,8 @@ class Bar {
 
     if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
       elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-data-labels'
+        class: 'apexcharts-data-labels',
+        transform: rotate
       })
 
       let text = ''
@@ -975,6 +1024,22 @@ class Bar {
       if (val === 0 && w.config.chart.stacked) {
         // in a stacked bar/column chart, 0 value should be neglected as it will overlap on the next element
         text = ''
+      }
+
+      let valIsNegative = this.series[i][j] <= 0
+      let position = w.config.plotOptions.bar.dataLabels.position
+      if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
+        if (position == 'top') {
+          if (valIsNegative) dataLabelsConfig.textAnchor = 'end'
+          else dataLabelsConfig.textAnchor = 'start'
+        }
+        if (position == 'center') {
+          dataLabelsConfig.textAnchor = 'middle'
+        }
+        if (position == 'bottom') {
+          if (valIsNegative) dataLabelsConfig.textAnchor = 'end'
+          else dataLabelsConfig.textAnchor = 'start'
+        }
       }
 
       if (
@@ -1020,7 +1085,7 @@ class Bar {
         x,
         y,
         text,
-        i,
+        i: this.barOptions.distributed ? j : i,
         j,
         parent: elDataLabelsWrap,
         dataLabelsConfig: modifiedDataLabelsConfig,

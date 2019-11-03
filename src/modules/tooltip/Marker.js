@@ -152,7 +152,7 @@ export default class Marker {
   }
 
   oldPointSize(point) {
-    const size = parseInt(point.getAttribute('default-marker-size'))
+    const size = parseFloat(point.getAttribute('default-marker-size'))
     point.setAttribute('r', size)
   }
 
@@ -164,7 +164,7 @@ export default class Marker {
     )
 
     for (let p = 0; p < points.length; p++) {
-      const size = parseInt(points[p].getAttribute('default-marker-size'))
+      const size = parseFloat(points[p].getAttribute('default-marker-size'))
       if (Utils.isNumber(size)) {
         points[p].setAttribute('r', size)
       } else {

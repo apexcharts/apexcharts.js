@@ -117,7 +117,14 @@ class DataLabels {
         let text = ''
 
         if (w.config.chart.type === 'bubble') {
-          text = w.globals.seriesZ[i][dataPointIndex]
+          val = w.globals.seriesZ[i][dataPointIndex]
+          text = w.config.dataLabels.formatter(val, {
+            ctx: this.ctx,
+            seriesIndex: i,
+            dataPointIndex: dataPointIndex,
+            w
+          })
+
           y = pos.y[q] + w.config.dataLabels.offsetY
           const scatter = new Scatter(this.ctx)
           let centerTextInBubbleCoords = scatter.centerTextInBubble(

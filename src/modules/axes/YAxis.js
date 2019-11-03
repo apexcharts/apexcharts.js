@@ -113,7 +113,10 @@ export default class YAxis {
       }
       let elYAxisTitleText = graphics.drawText({
         x,
-        y: w.globals.gridHeight / 2 + w.globals.translateY,
+        y:
+          w.globals.gridHeight / 2 +
+          w.globals.translateY +
+          w.config.yaxis[realIndex].title.offsetY,
         text: w.config.yaxis[realIndex].title.text,
         textAnchor: 'end',
         foreColor: w.config.yaxis[realIndex].title.style.color,
@@ -265,8 +268,8 @@ export default class YAxis {
         x: w.globals.gridWidth / 2,
         y:
           this.xAxisoffX +
-          parseInt(this.xaxisFontSize) +
-          parseInt(w.config.xaxis.title.style.fontSize) +
+          parseFloat(this.xaxisFontSize) +
+          parseFloat(w.config.xaxis.title.style.fontSize) +
           20,
         text: w.config.xaxis.title.text,
         textAnchor: 'middle',
@@ -405,7 +408,10 @@ export default class YAxis {
       }
     }
 
-    return { xPos: x, padd }
+    return {
+      xPos: x,
+      padd
+    }
   }
 
   // sets the x position of the y-axis by counting the labels width, title width and any offset

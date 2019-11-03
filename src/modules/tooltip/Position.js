@@ -183,10 +183,10 @@ export default class Position {
     const tooltipEl = ttCtx.getElTooltip()
     let tooltipRect = ttCtx.tooltipRect
 
-    let pointR = r !== null ? parseInt(r) : 1
+    let pointR = r !== null ? parseFloat(r) : 1
 
-    let x = parseInt(cx) + pointR + 5
-    let y = parseInt(cy) + pointR / 2 // - tooltipRect.ttHeight / 2
+    let x = parseFloat(cx) + pointR + 5
+    let y = parseFloat(cy) + pointR / 2 // - tooltipRect.ttHeight / 2
 
     if (x > w.globals.gridWidth / 2) {
       x = x - tooltipRect.ttWidth - pointR - 15
@@ -278,7 +278,8 @@ export default class Position {
 
     if (
       w.config.series[capturedSeries].type &&
-      w.config.series[capturedSeries].type === 'column'
+      (w.config.series[capturedSeries].type === 'column' ||
+        w.config.series[capturedSeries].type === 'candlestick')
     ) {
       // fix error mentioned in #811
       return
@@ -378,8 +379,17 @@ export default class Position {
     const w = this.w
     const ttCtx = this.ttCtx
 
+    let barLen = w.globals.columnSeries
+      ? w.globals.columnSeries.length
+      : w.globals.series.length
+
+    const i =
+      barLen >= 2 && barLen % 2 === 0
+        ? Math.floor(barLen / 2)
+        : Math.floor(barLen / 2) + 1
+
     let jBar = w.globals.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='1'] path[j='${j}']`
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     )
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
@@ -387,7 +397,7 @@ export default class Position {
     let bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0
 
     if (w.globals.isXNumeric) {
-      bcx = bcx - bw / 2
+      bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
     } else {
       bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
       if (isNaN(bcx)) {

@@ -19,7 +19,11 @@ export default class Labels {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
-      this.handleCustomTooltip({ i, j })
+      if (Array.isArray(w.config.tooltip.custom)) {
+        this.handleCustomTooltip({ i, j, isArray: true })
+      } else {
+        this.handleCustomTooltip({ i, j, isArray: false })
+      }
     } else {
       this.toggleActiveInactiveSeries(shared)
     }
@@ -113,6 +117,7 @@ export default class Labels {
       }
 
       this.DOMHandling({
+        i,
         t,
         ttItems,
         values: {
@@ -183,7 +188,7 @@ export default class Labels {
     })
   }
 
-  DOMHandling({ t, ttItems, values, seriesName, shared, pColor }) {
+  DOMHandling({ i, t, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -226,6 +231,13 @@ export default class Labels {
       ttItemsChildren[0] &&
       ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')
     ) {
+      if (
+        w.config.tooltip.marker.fillColors &&
+        Array.isArray(w.config.tooltip.marker.fillColors)
+      ) {
+        pColor = w.config.tooltip.marker.fillColors[i]
+      }
+
       ttItemsChildren[0].style.backgroundColor = pColor
     }
 
@@ -241,7 +253,7 @@ export default class Labels {
       const ttZVal = ttItems[t].querySelector(
         '.apexcharts-tooltip-text-z-value'
       )
-      ttZVal.innerHTML = zVal
+      ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : ''
     }
 
     if (shared && ttItemsChildren[0]) {
@@ -357,12 +369,17 @@ export default class Labels {
     }
   }
 
-  handleCustomTooltip({ i, j }) {
+  handleCustomTooltip({ i, j, isArray }) {
     const w = this.w
     const tooltipEl = this.ttCtx.getElTooltip()
+    let fn = w.config.tooltip.custom
+
+    if (isArray && fn[i]) {
+      fn = w.config.tooltip.custom[i]
+    }
 
     // override everything with a custom html tooltip and replace it
-    tooltipEl.innerHTML = w.config.tooltip.custom({
+    tooltipEl.innerHTML = fn({
       ctx: this.ctx,
       series: w.globals.series,
       seriesIndex: i,

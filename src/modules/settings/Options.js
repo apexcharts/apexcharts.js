@@ -229,6 +229,7 @@ export default class Options {
           mounted: undefined,
           updated: undefined,
           click: undefined,
+          mouseMove: undefined,
           legendClick: undefined,
           markerClick: undefined,
           selection: undefined,
@@ -326,11 +327,16 @@ export default class Options {
             backgroundBarOpacity: 1
           },
           dataLabels: {
+            position: 'top', // top, center, bottom
             maxItems: 100,
             hideOverflowingLabels: true,
-            position: 'top' // top, center, bottom
+            orientation: 'horizontal'
             // TODO: provide stackedLabels for stacked charts which gives additions of values
           }
+        },
+        bubble: {
+          minBubbleRadius: undefined,
+          maxBubbleRadius: undefined
         },
         candlestick: {
           colors: {
@@ -470,6 +476,7 @@ export default class Options {
               },
               total: {
                 show: false,
+                showAlways: false,
                 label: 'Total',
                 color: undefined,
                 formatter: function(w) {
@@ -605,6 +612,7 @@ export default class Options {
           width: 12,
           height: 12,
           strokeWidth: 0,
+          fillColors: undefined,
           strokeColor: '#fff',
           radius: 12,
           customHTML: undefined,
@@ -748,7 +756,8 @@ export default class Options {
           title: 'Size: '
         },
         marker: {
-          show: true
+          show: true,
+          fillColors: undefined
         },
         items: {
           display: 'flex'
