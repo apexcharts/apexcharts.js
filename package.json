@@ -4,7 +4,7 @@
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
-    "url": "https://github.com/apexcharts/apexcharts.js.git"
+    "url": "https://github.com/JBJannes/apexcharts.js.git"
   },
   "main": "dist/apexcharts.common.js",
   "module": "dist/apexcharts.esm.js",
@@ -86,11 +86,11 @@
     "webpack": "^2.2.1"
   },
   "author": {
-    "name": "Juned Chhipa",
-    "email": "juned.chhipa@gmail.com"
+    "name": "Jannes Beterams",
+    "email": "jannesbeterams@gmail.com"
   },
   "bugs": {
-    "url": "https://github.com/apexcharts/apexcharts.js/issues"
+    "url": "https://github.com/JBJannes/vue-apexcharts/issues"
   },
   "license": "MIT",
   "licenses": [
