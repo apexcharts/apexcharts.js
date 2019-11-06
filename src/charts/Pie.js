@@ -193,7 +193,6 @@ class Pie {
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
 
     for (let i = 0; i < sectorAngleArr.length; i++) {
-
       let elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
@@ -529,7 +528,8 @@ class Pie {
     let me = this
     let path
 
-    let size = me.w.globals.radialSize + (w.config.plotOptions.pie.expandOnClick ? 4 : 0)
+    let size =
+      me.w.globals.radialSize + (w.config.plotOptions.pie.expandOnClick ? 4 : 0)
     let elPath = w.globals.dom.Paper.select(
       `.apexcharts-${w.config.chart.type.toLowerCase()}-slice-${i}`
     ).members[0]
