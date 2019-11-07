@@ -4,12 +4,12 @@
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
-    "url": "https://github.com/apexcharts/apexcharts.js.git"
+    "url": "git+https://github.com/znicholasbrown/apexcharts.js.git"
   },
-  "main": "dist/apexcharts.common.js",
-  "module": "dist/apexcharts.esm.js",
-  "unpkg": "dist/apexcharts.js",
-  "jsdelivr": "dist/apexcharts.js",
+  "main": "src/apexcharts.js",
+  "module": "src/apexcharts.js",
+  "unpkg": "src/apexcharts.js",
+  "jsdelivr": "src/apexcharts.js",
   "typings": "types/apexcharts.d.ts",
   "files": [
     "src",
@@ -85,12 +85,9 @@
     "typescript": "3.2.2",
     "webpack": "^2.2.1"
   },
-  "author": {
-    "name": "Juned Chhipa",
-    "email": "juned.chhipa@gmail.com"
-  },
+  "author": "Nicholas Brown <znicholasbrown@gmail.com>",
   "bugs": {
-    "url": "https://github.com/apexcharts/apexcharts.js/issues"
+    "url": "https://github.com/znicholasbrown/apexcharts.js/issues"
   },
   "license": "MIT",
   "licenses": [
@@ -105,5 +102,8 @@
     "graphs",
     "visualizations",
     "data"
-  ]
+  ],
+  "directories": {
+    "test": "tests"
+  }
 }
