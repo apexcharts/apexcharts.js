@@ -132,12 +132,7 @@ class RangeBar extends Bar {
         y = paths.y
         x = paths.x
 
-        // push current X
-
-        let pathFill = fill.fillPath({
-          seriesNumber: realIndex
-        })
-
+        let pathFill = fill.w.config.colors[j]
         let lineFill = w.globals.stroke.colors[realIndex]
 
         elSeries = this.renderSeries({
