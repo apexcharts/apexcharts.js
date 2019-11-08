@@ -196,6 +196,10 @@ class Intersect {
       (!w.config.tooltip.shared ||
         (w.globals.isBarHorizontal && ttCtx.hasBars()))
     ) {
+      const isReversed = w.globals.isMultipleYAxis
+      ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
+      : w.config.yaxis[0].reversed
+
       if (isReversed) {
         x = w.globals.gridWidth - x
       }
@@ -204,10 +208,6 @@ class Intersect {
       const seriesIndex = parseInt(
         opt.paths.parentNode.getAttribute('data:realIndex')
       )
-
-      const isReversed = w.globals.isMultipleYAxis
-        ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
-        : w.config.yaxis[0].reversed
 
       if (isReversed && !(w.globals.isBarHorizontal && ttCtx.hasBars())) {
         y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2
