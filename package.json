@@ -6,10 +6,10 @@
     "type": "git",
     "url": "git+https://github.com/znicholasbrown/apexcharts.js.git"
   },
-  "main": "src/apexcharts.js",
-  "module": "src/apexcharts.js",
-  "unpkg": "src/apexcharts.js",
-  "jsdelivr": "src/apexcharts.js",
+  "main": "dist/apexcharts.js",
+  "module": "dist/apexcharts.js",
+  "unpkg": "dist/apexcharts.js",
+  "jsdelivr": "dist/apexcharts.js",
   "typings": "types/apexcharts.d.ts",
   "files": [
     "src",
