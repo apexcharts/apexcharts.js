@@ -234,7 +234,7 @@ new ApexCharts(document.querySelector("#spark4"), spark4).render();
 
 var optionsLine = {
   chart: {
-    height: 360,
+    height: 328,
     type: 'line',
     zoom: {
       enabled: false
@@ -284,7 +284,10 @@ var optionsLine = {
     }
   },
   grid: {
-    show: true
+    show: true,
+    padding: {
+      bottom: 0
+    }
   },
   labels: ['01/15/2002', '01/16/2002', '01/17/2002', '01/18/2002', '01/19/2002', '01/20/2002'],
   xaxis: {
@@ -306,7 +309,7 @@ var optionsCircle4 = {
   chart: {
     type: 'radialBar',
     width: 380,
-    height: 360,
+    height: 370,
   },
   plotOptions: {
     radialBar: {

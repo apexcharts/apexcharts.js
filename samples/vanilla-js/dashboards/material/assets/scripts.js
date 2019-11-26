@@ -177,7 +177,7 @@ var optionsBar = {
     height: 250,
     width: '100%',
     stacked: true,
-    foreColor: '#999'
+    foreColor: '#999',
   },
   plotOptions: {
     bar: {
@@ -259,7 +259,7 @@ chartBar.render();
 var optionsCircle1 = {
   chart: {
     type: 'radialBar',
-    height: 250,
+    height: 294,
     zoom: {
       enabled: false
     },
@@ -295,12 +295,11 @@ chartCircle1.render();
 
 var optionsDonutTop = {
   chart: {
-    height: 250,
+    height: 272,
     type: 'donut',
   },
   plotOptions: {
     pie: {
-      size: 76,
       donut: {
         size: '72%',
       },
@@ -414,7 +413,7 @@ chartArea.render();
 var optionsCircle4 = {
   chart: {
     type: 'radialBar',
-    height: 280,
+    height: 322,
     width: 380,
   },
   colors: ['#775DD0', '#00C8E1', '#FFB900'],
