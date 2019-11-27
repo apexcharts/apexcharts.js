@@ -484,15 +484,10 @@ export default class ZoomPanSelection extends Toolbar {
 
     w.config.yaxis.forEach((yaxe, index) => {
       yHighestValue.push(
-        Math.floor(
-          w.globals.yAxisScale[index].niceMax -
-            xyRatios.yRatio[index] * me.startY
-        )
+        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.startY
       )
       yLowestValue.push(
-        Math.floor(
-          w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.endY
-        )
+        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.endY
       )
     })
 
