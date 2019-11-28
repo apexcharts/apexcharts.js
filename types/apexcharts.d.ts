@@ -1,5 +1,5 @@
-// Typescript declarations for Apex class and module. 
-// Note: When you have a class and a module with the same name; the module is merged 
+// Typescript declarations for Apex class and module.
+// Note: When you have a class and a module with the same name; the module is merged
 // with the class.  This is necessary since apexcharts exports the main ApexCharts class only.
 //
 // This is a sparse typed declarations of chart interfaces.  See Apex Chart documentation
@@ -57,6 +57,14 @@ declare module ApexCharts {
   }
 }
 
+type ApexDropShadow = {
+  enabled?: boolean;
+  top?: number;
+  left?: number;
+  blur?: number;
+  opacity?: number;
+};
+
 /**
 * Main Chart options
 * See https://apexcharts.com/docs/options/chart/
@@ -71,12 +79,9 @@ type ApexChart = {
   background?: string;
   offsetX?: number;
   offsetY?: number;
-  dropShadow?: {
-    enabled?: boolean;
-    top?: number;
-    left?: number;
-    blur?: number;
-    opacity?: number;
+  dropShadow?: ApexDropShadow & {
+    enabledOnSeries?: number[];
+    color?: string | string[];
   };
   events?: {
     animationEnd?(chart: any, options?: any): void;
@@ -216,7 +221,7 @@ type ApexTitleSubtitle = {
 };
 
 /**
-* Chart Series options.  
+* Chart Series options.
 * Use ApexNonAxisChartSeries for Pie and Donut charts.
 * See https://apexcharts.com/docs/options/series/
 *
@@ -478,6 +483,7 @@ type ApexPlotOptions = {
       offsetY?: number;
       clipped?: boolean;
       position?: "front" | "back";
+      dropShadow?: ApexDropShadow;
     };
     track?: {
       show?: boolean;
@@ -487,13 +493,7 @@ type ApexPlotOptions = {
       strokeWidth?: string;
       opacity?: number;
       margin?: number;
-      dropShadow?: {
-        enabled?: boolean;
-        top?: number;
-        left?: number;
-        blur?: number;
-        opacity?: number
-      }
+      dropShadow?: ApexDropShadow;
     };
     dataLabels?: {
       show?: boolean;
@@ -659,13 +659,7 @@ type ApexDataLabels = {
     fontFamily?: string;
     colors?: string[];
   };
-  dropShadow?: {
-    enabled: boolean;
-    top?: number;
-    left?: number;
-    blur?: number;
-    opacity?: number;
-  };
+  dropShadow?: ApexDropShadow;
   formatter?(val: number, opts?: any): string;
 };
 
@@ -812,13 +806,7 @@ type ApexXAxis = {
         opacityTo?: number;
       };
     };
-    dropShadow?: {
-      enabled?: boolean;
-      top?: number;
-      left?: number;
-      blur?: number;
-      opacity?: number;
-    };
+    dropShadow?: ApexDropShadow;
   };
   tooltip?: {
     enabled?: boolean;
