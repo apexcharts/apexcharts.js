@@ -24,10 +24,6 @@
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
 <p align="center">Sponsored by</p> <br />
-<p align="center">	
-  <a href="https://www.aputime.com?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/aputime.png"	
-      height="150px" /></a>	
-</p><br />
 <p align="center">
   <a href="https://www.wrappixel.com/?ref=apexcharts.com"><img src="https://apexcharts.com/media/sponsors/wrappixel-logo.png"
     height="24px" /></a> <br />
