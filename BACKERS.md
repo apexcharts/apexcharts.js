@@ -8,10 +8,6 @@ Financial contributions to ApexCharts go towards ongoing development costs, serv
 ## Sponsors
 Become a sponsor and get your logo on our website's home-page with a link to your site. [[Become a sponsor](https://www.patreon.com/join/junedchhipa)]
 
-### Platinum Sponsors	
-
-<a href="https://www.aputime.com?ref=apexcharts.com" target="_blank" style="text-align: center; display: inline-block;"><img src="https://apexcharts.com/media/sponsors/aputime.png" width="200" /></a>	
-
 ### Bronze Sponsors
 
 <a href="https://www.wrappixel.com?ref=apexcharts.com" target="_blank" style="text-align: center; display: inline-block;"><img src="https://apexcharts.com/media/sponsors/wrappixel.png" height="32" /></a>
