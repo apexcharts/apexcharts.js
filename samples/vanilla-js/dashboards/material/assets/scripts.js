@@ -547,7 +547,7 @@ chart.render().then(function () {
 (() => {
   const btn = document.getElementById('fusionexport-btn')
   btn.addEventListener('click', async function() {
-    const endPoint = 'http://localhost:8081/api/export-dashboard'
+    const endPoint = 'https://www.fusioncharts.com/demos/dashboards/fusionexport-apexcharts/api/export-dashboard'
     const information = {
       dashboardName: 'material'
     };
