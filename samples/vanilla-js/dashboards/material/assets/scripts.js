@@ -539,6 +539,26 @@ var chart = new ApexCharts(
 chart.render().then(function () {
   var ifr = document.querySelector("#wrapper");
   if (ifr.contentDocument) {
-    ifr.style.height = ifr.contentDocument.body.scrollHeight + 20 +'px';    
+    ifr.style.height = ifr.contentDocument.body.scrollHeight + 20 +'px';
   }
 });
+
+/* fusionexport integrations START */
+(() => {
+  const btn = document.getElementById('fusionexport-btn')
+  btn.addEventListener('click', async function() {
+    const endPoint = 'http://localhost:8081/api/export-dashboard'
+    const information = {
+      dashboardName: 'material'
+    };
+
+    this.setAttribute('disabled', true)
+    const { data } = await axios.post(endPoint, information, {
+      responseType: 'blob'
+    });
+    await download(data, 'apexCharts-material-dashboard.pdf', 'application/pdf')
+    this.removeAttribute('disabled')
+  });
+}
+)();
+/* fusionexport integrations END */
