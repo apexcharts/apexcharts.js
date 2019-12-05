@@ -625,7 +625,7 @@ $(window).resize(function() {
       dashboardName: 'modern'
     };
 
-    this.setAttribute('disabled', true)
+    this.setAttribute('disabled', true);
     const { data } = await axios.post(endPoint, information, {
       responseType: 'blob'
     });

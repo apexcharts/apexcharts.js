@@ -435,7 +435,7 @@ chartArea.render();
         dashboardName: 'dark'
       };
 
-      this.setAttribute('disabled', true)
+      this.setAttribute('disabled', true);
       const { data } = await axios.post(endPoint, information, {
         responseType: 'blob'
       });

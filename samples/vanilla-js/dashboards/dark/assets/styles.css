@@ -25,7 +25,7 @@ body {
 
 .box {
   background-color: #2B2D3E;
-  padding: 25px 20px;  
+  padding: 25px 20px;
 }
 
 .shadow {
@@ -69,4 +69,31 @@ body {
   background-image: linear-gradient( 135deg, #EE9AE5 10%, #5961F9 100%);
 }
 
+/* fusionexport btn CSS START */
+#fusionexport-btn {
+  min-width: 169px;
+  min-height: 38px;
+  text-align: center;
+}
+
+#fusionexport-btn .span {
+  display: inline-block;
+}
+
+.spinner-border {
+  display: none;
+}
+
+#fusionexport-btn[disabled] {
+  cursor: wait;
+}
+
+#fusionexport-btn[disabled] .spinner-border {
+  display: inline-block;
+}
+
+#fusionexport-btn[disabled] .btn-text {
+  display: none;
+}
+/* fusionexport btn CSS START */
 
