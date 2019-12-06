@@ -219,7 +219,7 @@ var optionsLine = {
             }, false, false)
           }, 300)
         }
-        
+
       }
     },
     toolbar: {
@@ -600,4 +600,24 @@ window.setInterval(function () {
 
 
 
-}, 3000)
+}, 3000);
+
+/* fusionexport integrations START */
+(() => {
+  const btn = document.getElementById('fusionexport-btn')
+  btn.addEventListener('click', async function() {
+    const endPoint = 'https://www.fusioncharts.com/demos/dashboards/fusionexport-apexcharts/api/export-dashboard'
+    const information = {
+      dashboardName: 'realtime'
+    };
+
+    this.setAttribute('disabled', true);
+    const { data } = await axios.post(endPoint, information, {
+      responseType: 'blob'
+    });
+    await download(data, 'apexCharts-realtime-dashboard.pdf', 'application/pdf')
+    this.removeAttribute('disabled')
+  });
+}
+)();
+/* fusionexport integrations END */

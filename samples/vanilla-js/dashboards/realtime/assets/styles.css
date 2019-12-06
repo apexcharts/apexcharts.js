@@ -25,8 +25,8 @@ h1, h2, h3, h4, h5, h6, strong {
 
 .box {
   background-color: #262D47;
-  padding: 25px 25px; 
-  border-radius: 4px; 
+  padding: 25px 25px;
+  border-radius: 4px;
 }
 
 .columnbox {
@@ -50,3 +50,32 @@ h1, h2, h3, h4, h5, h6, strong {
   top: -30px;
   cursor: pointer;
 }
+
+/* fusionexport btn CSS START */
+#fusionexport-btn {
+  min-width: 169px;
+  min-height: 38px;
+  text-align: center;
+}
+
+#fusionexport-btn .span {
+  display: inline-block;
+}
+
+#fusionexport-btn[disabled] {
+  cursor: wait;
+}
+
+
+.spinner-border {
+  display: none;
+}
+
+#fusionexport-btn[disabled] .spinner-border {
+  display: inline-block;
+}
+
+#fusionexport-btn[disabled] .btn-text {
+  display: none;
+}
+/* fusionexport btn CSS START */

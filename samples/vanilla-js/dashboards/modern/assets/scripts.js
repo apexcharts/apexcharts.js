@@ -12,7 +12,7 @@ Apex.dataLabels = {
 var randomizeArray = function (arg) {
   var array = arg.slice();
   var currentIndex = array.length, temporaryValue, randomIndex;
-  
+
   while (0 !== currentIndex) {
 
     randomIndex = Math.floor(Math.random() * currentIndex);
@@ -202,7 +202,7 @@ var monthlyEarningsOpt = {
     max: 130
   },
   colors: ['#dce6ec'],
-  
+
   title: {
     text: 'Total Earned',
     offsetX: -30,
@@ -251,7 +251,7 @@ var optionsArea = {
     {
       name: "Blog",
       data: [{
-        x: 0, 
+        x: 0,
         y: 0
       }, {
         x: 4,
@@ -276,7 +276,7 @@ var optionsArea = {
     {
       name: "Social Media",
       data: [{
-        x: 0, 
+        x: 0,
         y: 0
       }, {
         x: 4,
@@ -301,7 +301,7 @@ var optionsArea = {
     {
       name: "External",
       data: [{
-        x: 0, 
+        x: 0,
         y: 0
       }, {
         x: 2,
@@ -536,9 +536,9 @@ var optionsLine = {
   markers: {
     size: 0
   },
-    
+
   grid: {
-  
+
   },
   xaxis: {
     labels: {
@@ -570,7 +570,7 @@ var optionsLine = {
     offsetY: -20,
     offsetX: -30
   }
- 
+
 }
 
 var chartLine = new ApexCharts(document.querySelector('#line'), optionsLine);
@@ -614,4 +614,24 @@ var mobileDonut = function() {
 
 $(window).resize(function() {
   mobileDonut()
-})
+});
+
+/* fusionexport integrations START */
+(() => {
+  const btn = document.getElementById('fusionexport-btn')
+  btn.addEventListener('click', async function() {
+    const endPoint = 'https://www.fusioncharts.com/demos/dashboards/fusionexport-apexcharts/api/export-dashboard'
+    const information = {
+      dashboardName: 'modern'
+    };
+
+    this.setAttribute('disabled', true);
+    const { data } = await axios.post(endPoint, information, {
+      responseType: 'blob'
+    });
+    await download(data, 'apexCharts-modern-dashboard.pdf', 'application/pdf')
+    this.removeAttribute('disabled')
+  });
+}
+)();
+/* fusionexport integrations END */
