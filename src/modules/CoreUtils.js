@@ -294,7 +294,7 @@ class CoreUtils {
       }
     })
 
-    return w.globals.seriesLog
+    return w.globals.invalidLogScale ? series : w.globals.seriesLog
   }
 
   getLogYRatios(yRatio) {
@@ -324,7 +324,7 @@ class CoreUtils {
       }
     })
 
-    return gl.yLogRatio
+    return gl.invalidLogScale ? yRatio.slice() : gl.yLogRatio
   }
 
   // Some config objects can be array - and we need to extend them correctly

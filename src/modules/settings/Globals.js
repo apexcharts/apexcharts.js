@@ -69,6 +69,7 @@ export default class Globals {
       capturedSeriesIndex: -1,
       capturedDataPointIndex: -1,
       selectedDataPoints: [],
+      invalidLogScale: false, // if a user enabled log scale but the data provided is not valid to generate a log scale, turn on this flag
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       yAxisSameScaleIndices: [],
       padHorizontal: 0,

@@ -153,7 +153,7 @@ export default class Range {
 
   logarithmicScale(index, yMin, yMax, ticks) {
     if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01
-
+    
     const base = 10
 
     let min = Math.log(yMin) / Math.log(base)
@@ -207,7 +207,13 @@ export default class Range {
       gl.yAxisScale[index] = []
     }
 
-    if (y.logarithmic) {
+    let diff = Math.abs(maxY - minY)
+
+    if (y.logarithmic && diff <= 5) {
+      gl.invalidLogScale = true
+    }
+
+    if (y.logarithmic && diff > 5) {
       gl.allSeriesCollapsed = false
       gl.yAxisScale[index] = this.logarithmicScale(
         index,
@@ -227,8 +233,6 @@ export default class Range {
           // fix https://github.com/apexcharts/apexcharts.js/issues/492
           gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount)
         } else {
-          let diff = Math.abs(maxY - minY)
-
           gl.yAxisScale[index] = this.niceScale(
             minY,
             maxY,
