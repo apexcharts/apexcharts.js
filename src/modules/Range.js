@@ -27,6 +27,7 @@ class Range {
     highestY = -Number.MAX_VALUE,
     len = null
   ) {
+    const cnf = this.w.config
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
@@ -34,17 +35,22 @@ class Range {
     if (len === null) {
       len = startingIndex + 1
     }
-
     const series = gl.series
     let seriesMin = series
     let seriesMax = series
 
-    if (this.w.config.chart.type === 'candlestick') {
+    if (cnf.chart.type === 'candlestick') {
       seriesMin = gl.seriesCandleL
       seriesMax = gl.seriesCandleH
     } else if (gl.isRangeData) {
       seriesMin = gl.seriesRangeStart
       seriesMax = gl.seriesRangeEnd
+      if (cnf.chart.type === 'rangeBar' && cnf.xaxis.type === 'datetime') {
+        // it's a timeline chart
+        gl.seriesRangeStart.map((g) => {
+          minY = Math.min(g[0], minY === Number.MIN_VALUE ? Number.MAX_VALUE : minY)
+        })
+      }
     }
 
     for (let i = startingIndex; i < len; i++) {
