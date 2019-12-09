@@ -2260,7 +2260,7 @@
                   formatter: function formatter(w) {
                     return w.globals.seriesTotals.reduce(function (a, b) {
                       return a + b;
-                    }, 0) / w.globals.series.length + '%';
+                    }, 0) / w.globals.series.length;
                   }
                 }
               }
@@ -4316,6 +4316,7 @@
     }, {
       key: "getSeriesTotalsXRange",
       value: function getSeriesTotalsXRange(minX, maxX) {
+        console.log(w);
         var w = this.w;
         var seriesTotalsXRange = w.globals.series.map(function (ser, index) {
           var total = 0;
@@ -8003,6 +8004,22 @@
         };
       }
     }, {
+      key: "formatDisplayValue",
+      value: function formatDisplayValue(displayValue, valueSymbol) {
+        // console.log(valueSymbol)
+        var finalValue;
+
+        if (displayValue === '0%' || displayValue === 0) {
+          finalValue = '-';
+        } else if (valueSymbol !== '' & valueSymbol !== '%') {
+          finalValue = valueSymbol + displayValue;
+        } else {
+          finalValue = displayValue;
+        }
+
+        return finalValue;
+      }
+    }, {
       key: "calculateHeatmapDataLabels",
       value: function calculateHeatmapDataLabels(_ref) {
         var x = _ref.x,
@@ -8012,7 +8029,8 @@
             series = _ref.series,
             rectHeight = _ref.rectHeight,
             rectWidth = _ref.rectWidth;
-        var w = this.w; // let graphics = new Graphics(this.ctx)
+        var w = this.w; // console.log(this.w.config.series[i].data[j].displayValue)
+        // let graphics = new Graphics(this.ctx)
 
         var dataLabelsConfig = w.config.dataLabels;
         var graphics = new Graphics(this.ctx);
@@ -8033,11 +8051,13 @@
             dataPointIndex: j,
             w: w
           });
+          var displayValue = this.w.config.series[i].data[j].displayValue;
+          var valueSymbol = this.w.config.series[i].data[j].valueSymbol;
           dataLabels.plotDataLabelsText({
             x: dataLabelsX,
             y: dataLabelsY,
             // todo: pass in as props
-            text: text === 0 ? '-' : text + '%',
+            text: this.formatDisplayValue(displayValue, valueSymbol),
             i: i,
             j: j,
             parent: elDataLabelsWrap,

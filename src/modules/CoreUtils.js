@@ -146,6 +146,7 @@ class CoreUtils {
   }
 
   getSeriesTotalsXRange(minX, maxX) {
+    console.log(w)
     const w = this.w
 
     const seriesTotalsXRange = w.globals.series.map((ser, index) => {

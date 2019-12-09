@@ -26,6 +26,7 @@ export default class HeatMap {
   }
 
   draw(series) {
+    console.log('draw series dude')
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -302,8 +303,23 @@ export default class HeatMap {
     }
   }
 
+  formatDisplayValue(displayValue, valueSymbol) {
+    // console.log(valueSymbol)
+    let finalValue
+    if (displayValue === '0%' || displayValue === 0) {
+      finalValue = '-'
+    } else if ((valueSymbol !== '') & (valueSymbol !== '%')) {
+      finalValue = valueSymbol + displayValue
+    } else {
+      finalValue = displayValue
+    }
+
+    return finalValue
+  }
+
   calculateHeatmapDataLabels({ x, y, i, j, series, rectHeight, rectWidth }) {
     let w = this.w
+    // console.log(this.w.config.series[i].data[j].displayValue)
     // let graphics = new Graphics(this.ctx)
     let dataLabelsConfig = w.config.dataLabels
 
@@ -334,11 +350,13 @@ export default class HeatMap {
         dataPointIndex: j,
         w
       })
+      let displayValue = this.w.config.series[i].data[j].displayValue
+      let valueSymbol = this.w.config.series[i].data[j].valueSymbol
       dataLabels.plotDataLabelsText({
         x: dataLabelsX,
         y: dataLabelsY,
         // todo: pass in as props
-        text: text === 0 ? '-' : text + '%',
+        text: this.formatDisplayValue(displayValue, valueSymbol),
         i,
         j,
         parent: elDataLabelsWrap,
