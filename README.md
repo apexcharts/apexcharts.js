@@ -170,17 +170,13 @@ ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawi
 
 
 ## Supporting ApexCharts
-ApexCharts is an open source project. <br /> You can help by becoming a sponsor on <a href="https://patreon.com/junedchhipa">Patreon</a> or doing a one time donation on <a href="https://paypal.me/junedchhipa">PayPal</a> <br />
+ApexCharts is an open source project. <br /> You can help by becoming a supporter on <a href="https://patreon.com/junedchhipa">Patreon</a> or doing a one time donation on <a href="https://paypal.me/junedchhipa">PayPal</a> <br />
 
 <a href="https://patreon.com/junedchhipa"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patron" /> </a>
 
 ## Our Supporters
 
-Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](patreon.com/junedchhipa)!
-
-
-### Sponsors
-Become a sponsor and get your logo on our website's home-page with a link to your site. [[Become a sponsor](https://www.patreon.com/join/junedchhipa)]
+Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](https://patreon.com/junedchhipa)!
 
 
 ## License
