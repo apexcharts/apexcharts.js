@@ -544,7 +544,6 @@ export default class ApexCharts {
    */
 
   filterSeries(callback, animate = true, overwriteInitialSeries = true) {
-    console.log('filtering eries')
     const originalSeries = this.w.config.series.slice()
     this.resetSeries(false)
     // this.revertDefaultAxisMinMax()
@@ -862,8 +861,6 @@ export default class ApexCharts {
     const chart = this.getChartByID(chartID)
     if (!chart) return
 
-    console.log('exec called')
-    debugger
     // turn on the global exec flag to indicate this method was called
     chart.w.globals.isExecCalled = true
     switch (fn) {
