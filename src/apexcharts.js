@@ -57,7 +57,7 @@ export default class ApexCharts {
 
     this.el = el
 
-    this.w.globals.cuid = Utils.randomId()
+    this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4)
     this.w.globals.chartID = this.w.config.chart.id
       ? this.w.config.chart.id
       : this.w.globals.cuid
@@ -512,7 +512,11 @@ export default class ApexCharts {
         w.config = Utils.extend(w.config, options)
 
         if (overwriteInitialConfig) {
-          // restore the new config in initialConfig/initialSeries
+          // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
+          w.globals.lastXAxis = []
+          w.globals.lastYAxis = []
+
+          // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
           w.globals.initialConfig = Utils.extend({}, w.config)
           w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
         }
@@ -531,6 +535,21 @@ export default class ApexCharts {
     this.resetSeries(false)
     this.revertDefaultAxisMinMax()
     return this._updateSeries(newSeries, animate, overwriteInitialSeries)
+  }
+
+  /**
+   * Allows users to filter series
+   * provides the original series and allows user to return which series should be displayed
+   * @param {function} callback - callback which provides the original series
+   */
+
+  filterSeries(callback, animate = true, overwriteInitialSeries = true) {
+    console.log('filtering eries')
+    const originalSeries = this.w.config.series.slice()
+    this.resetSeries(false)
+    // this.revertDefaultAxisMinMax()
+    const filteredSeries = callback(originalSeries)
+    return this._updateSeries(filteredSeries, animate, overwriteInitialSeries)
   }
 
   /**
@@ -688,9 +707,11 @@ export default class ApexCharts {
     const w = this.w
     if (typeof options.xaxis.min !== 'undefined') {
       w.config.xaxis.min = options.xaxis.min
+      w.globals.lastXAxis.min = options.xaxis.min
     }
     if (typeof options.xaxis.max !== 'undefined') {
       w.config.xaxis.max = options.xaxis.max
+      w.globals.lastXAxis.max = options.xaxis.max
     }
   }
 
@@ -702,15 +723,16 @@ export default class ApexCharts {
   revertDefaultAxisMinMax() {
     const w = this.w
 
-    w.config.xaxis.min = this.opts.xaxis.min || (Apex.xaxis && Apex.xaxis.min)
-    w.config.xaxis.max = this.opts.xaxis.max || (Apex.xaxis && Apex.xaxis.max)
+    w.config.xaxis.min = w.globals.lastXAxis.min
+    w.config.xaxis.max = w.globals.lastXAxis.max
 
     w.config.yaxis.map((yaxe, index) => {
       if (w.globals.zoomed) {
-        // user has zoomed, check the original yaxis
-        if (typeof this.opts.yaxis[index] !== 'undefined') {
-          yaxe.min = this.opts.yaxis[index].min
-          yaxe.max = this.opts.yaxis[index].max
+        // if user has zoomed, and this function is called
+        // then we need to get the lastAxis min and max
+        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+          yaxe.min = w.globals.lastYAxis[index].min
+          yaxe.max = w.globals.lastYAxis[index].max
         }
       }
     })
@@ -840,9 +862,10 @@ export default class ApexCharts {
     const chart = this.getChartByID(chartID)
     if (!chart) return
 
+    console.log('exec called')
+    debugger
     // turn on the global exec flag to indicate this method was called
     chart.w.globals.isExecCalled = true
-
     switch (fn) {
       case 'updateOptions': {
         return chart.updateOptions(...opts)
@@ -883,14 +906,14 @@ export default class ApexCharts {
       case 'clearAnnotations': {
         return chart.clearAnnotations(...opts)
       }
-      case 'removeAnnotation': {
-        return chart.removeAnnotation(...opts)
-      }
       case 'paper': {
         return chart.paper(...opts)
       }
       case 'destroy': {
         return chart.destroy()
+      }
+      case 'updateAnnotations': {
+        return chart.updateAnnotations(...opts)
       }
     }
   }
@@ -900,30 +923,12 @@ export default class ApexCharts {
   }
 
   toggleSeries(seriesName) {
-    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
-
-    this.legend.toggleDataSeries(
-      isSeriesHidden.realIndex,
-      isSeriesHidden.isHidden
+    const targetElement = this.series.getSeriesByName(seriesName)
+    let seriesCnt = parseInt(targetElement.getAttribute('data:realIndex'))
+    let isHidden = targetElement.classList.contains(
+      'apexcharts-series-collapsed'
     )
-
-    return isSeriesHidden.isHidden
-  }
-
-  showSeries(seriesName) {
-    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
-
-    if (isSeriesHidden.isHidden) {
-      this.legend.toggleDataSeries(isSeriesHidden.realIndex, true)
-    }
-  }
-
-  hideSeries(seriesName) {
-    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
-
-    if (!isSeriesHidden.isHidden) {
-      this.legend.toggleDataSeries(isSeriesHidden.realIndex, false)
-    }
+    this.legend.toggleDataSeries(seriesCnt, isHidden)
   }
 
   resetSeries(shouldUpdateChart = true) {
@@ -1003,20 +1008,20 @@ export default class ApexCharts {
     me.annotations.addPointAnnotationExternal(opts, pushToMemory, me)
   }
 
+  updateAnnotations(opts, pushToMemory = true, context = undefined) {
+    let me = this
+    if (context) {
+      me = context
+    }
+    me.annotations.updateAnnotations(opts, pushToMemory, me)
+  }
+
   clearAnnotations(context = undefined) {
     let me = this
     if (context) {
       me = context
     }
     me.annotations.clearAnnotations(me)
-  }
-
-  removeAnnotation(id, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-    me.annotations.removeAnnotation(me, id)
   }
 
   // This method is never used internally and will be only called externally on the chart instance.
