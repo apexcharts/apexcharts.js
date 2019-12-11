@@ -22,6 +22,16 @@
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
+      
+
+<p align="center"><b>Featured Partner</b> <br /><br />
+  <a href="https://fusioncharts.com">
+    <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
+  </a> <br />
+  ApexCharts is now a partner of FusionCharts to bring a wider range of data visualization components.
+
+</p> <br />
+
 
 ## Browsers support
 
@@ -170,13 +180,14 @@ ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawi
 
 
 ## Supporting ApexCharts
-ApexCharts is an open source project. <br /> You can help by becoming a supporter on <a href="https://patreon.com/junedchhipa">Patreon</a> or doing a one time donation on <a href="https://paypal.me/junedchhipa">PayPal</a> <br />
+ApexCharts is an open source project. Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can help by becoming a supporter on <a href="https://patreon.com/junedchhipa">Patreon</a> or doing a one time donation on <a href="https://paypal.me/junedchhipa">PayPal</a> <br />
 
-<a href="https://patreon.com/junedchhipa"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patron" /> </a>
 
-## Our Supporters
-
-Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](https://patreon.com/junedchhipa)!
+## Our Partners
+<a href="https://fusioncharts.com">
+    <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
+</a> <br/>
+While ApexCharts brings you the goodness of open-source charts, FusionCharts offers additional visualizations for your dashboards. With extensive documentation, consistent API, and cross-browser support, FusionCharts is loved by 28,000+ customers and 750,000+ developers across the globe. 
 
 
 ## License
