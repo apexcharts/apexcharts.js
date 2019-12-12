@@ -27,7 +27,7 @@
 <p align="center"><b>Featured Partner</b> <br /><br />
   <a href="https://fusioncharts.com">
     <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
-  </a> <br />
+  </a> <br /><br />
   ApexCharts is now a partner of FusionCharts to bring a wider range of data visualization components.
 
 </p> <br />
@@ -131,6 +131,9 @@ The tiny gauges are an important part of a dashboard and are useful in displayin
 Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature most extreme and least values:
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
 
+## More advanced chart types from our friends at FusionCharts
+Thanks to our friends at FusionCharts, you now have a better data experience of your <a target="_blank" href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.demos&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples">time-series</a> data with features like visual time navigator, annotations with the date and event markers, multi-variate analysis, and real-time support.
+<p align="center"><a href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.demos&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples"><img src="https://apexcharts.com/media/fc/time-series.png" alt="time-series" /></a></p>
 
 ## What's included
 
@@ -184,9 +187,11 @@ ApexCharts is an open source project. Financial contributions to ApexCharts go t
 
 
 ## Our Partners
+<p>
 <a href="https://fusioncharts.com">
     <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
 </a> <br/>
+</p>
 While ApexCharts brings you the goodness of open-source charts, FusionCharts offers additional visualizations for your dashboards. With extensive documentation, consistent API, and cross-browser support, FusionCharts is loved by 28,000+ customers and 750,000+ developers across the globe. 
 
 
