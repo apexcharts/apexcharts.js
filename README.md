@@ -24,12 +24,15 @@
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
       
 
-<p align="center"><b>Featured Partner</b> <br /><br />
-  <a href="https://fusioncharts.com">
-    <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
+<p align="center"><br /><b>Our Partner</b> <br /><br />
+  <a target="_blank" href="https://www.fusioncharts.com/?utm_source=ac.github%2Fnpm&utm_medium=logo&utm_campaign=apexcharts&utm_content=homepage">
+    <img src="https://apexcharts.com/media/logo-fusioncharts.svg" />
   </a> <br /><br />
-  ApexCharts is now a partner of FusionCharts to bring a wider range of data visualization components.
-
+  ApexCharts is now a partner of <a href="https://github.com/fusioncharts">FusionCharts</a> to bring a wider range of data visualization components. <br />
+  They offer data driven maps, gauges, widgets, advanced timeseries charts and much more.<br /><br />
+  <a target="_blank" href="https://www.fusioncharts.com/?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=homepage">
+    <img width="740" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner.png" />
+  </a> <br />
 </p> <br />
 
 
@@ -131,9 +134,14 @@ The tiny gauges are an important part of a dashboard and are useful in displayin
 Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature most extreme and least values:
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
 
-## More advanced chart types from our friends at FusionCharts
-Thanks to our friends at FusionCharts, you now have a better data experience of your <a target="_blank" href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.demos&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples">time-series</a> data with features like visual time navigator, annotations with the date and event markers, multi-variate analysis, and real-time support.
-<p align="center"><a href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.demos&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples"><img src="https://apexcharts.com/media/fc/time-series.png" alt="time-series" /></a></p>
+## More advanced chart types from our friends at FusionCharts <img align="center" src="https://apexcharts.com/media/fc/sponsored.png?v=1.2.1"/>
+Thanks to our friends at FusionCharts, you now have a better data experience of your <a target="_blank" href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples">time-series</a> data with features like visual time navigator, annotations with the date and event markers, multi-variate analysis, and real-time support.
+<p align="center"><a href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples"><img src="https://apexcharts.com/media/fc/time-series.png" alt="time-series" /></a></p>
+
+## Export full dashboards <img align="center" src="https://apexcharts.com/media/fc/sponsored.png?v=1.2.1"/>
+Want to export your dashboards to PDF, send them via email or simply export a chart on the server-side? You can do these and more with FusionExport, a new product from our friends at FusionCharts.
+<p align="center"><a href="https://www.fusioncharts.com/fusionexport?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=fusionexport"><img src="https://apexcharts.com/wp-content/themes/apexcharts/img/fc/fusionexports.svg" alt="fusionexport" /></a></p>
+
 
 ## What's included
 
@@ -188,7 +196,7 @@ ApexCharts is an open source project. Financial contributions to ApexCharts go t
 
 ## Our Partners
 <p>
-<a href="https://fusioncharts.com">
+<a href="https://www.fusioncharts.com/?utm_source=ac.github%2Fnpm&utm_medium=logo&utm_campaign=apexcharts&utm_content=homepage">
     <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
 </a> <br/>
 </p>
