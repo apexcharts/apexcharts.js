@@ -463,7 +463,7 @@ export default class Dimensions {
     let rect
 
     this.timescaleLabels = w.globals.timelineLabels.slice()
-    if (w.globals.isBarHorizontal && w.config.xaxis.type === 'datetime') {
+    if (w.globals.invertedTimelineLabels.length) {
       this.timescaleLabels = w.globals.invertedTimelineLabels.slice()
     }
 

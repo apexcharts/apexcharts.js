@@ -81,7 +81,8 @@ class Fill {
     const w = this.w
 
     if (
-      (w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) ||
+      ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
+        w.config.plotOptions.bar.distributed) ||
       w.config.chart.type === 'heatmap'
     ) {
       this.seriesIndex = opts.seriesNumber

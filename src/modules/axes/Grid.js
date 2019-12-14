@@ -24,9 +24,16 @@ class Grid {
     this.animY =
       w.config.grid.yaxis.lines.animate && w.config.chart.animations.enabled
 
+    this.isTimelineBar =
+      w.config.xaxis.type === 'datetime' &&
+      w.globals.seriesRangeBarTimeline.length
+
     if (w.globals.timelineLabels.length > 0) {
       //  timeline labels are there
       this.xaxisLabels = w.globals.timelineLabels.slice()
+    }
+    if (w.globals.invertedTimelineLabels.length > 0) {
+      this.xaxisLabels = w.globals.invertedTimelineLabels.slice()
     }
   }
 
@@ -181,7 +188,7 @@ class Grid {
 
     let xCount
 
-    if (!w.globals.isBarHorizontal) {
+    if (!w.globals.isBarHorizontal || this.isTimelineBar) {
       xCount = this.xaxisLabels.length
 
       // draw vertical lines
@@ -191,7 +198,10 @@ class Grid {
         let x2
         let y2 = w.globals.gridHeight
 
-        if (w.globals.timelineLabels.length > 0) {
+        if (
+          w.globals.timelineLabels.length ||
+          w.globals.invertedTimelineLabels.length
+        ) {
           for (let i = 0; i < xCount; i++) {
             x1 = this.xaxisLabels[i].position
             x2 = this.xaxisLabels[i].position
@@ -271,7 +281,13 @@ class Grid {
         let y1 = 0
         let y2 = 0
         let x2 = w.globals.gridWidth
-        for (let i = 0; i < tickAmount + 1; i++) {
+        let tA = tickAmount + 1
+
+        if (this.isTimelineBar) {
+          tA = w.globals.labels.length
+        }
+
+        for (let i = 0; i < tA; i++) {
           let line = graphics.drawLine(
             x1,
             y1,
@@ -287,7 +303,9 @@ class Grid {
             this.animateLine(line, { y1: y1 + 20, y2: y2 + 20 }, { y1: y1, y2 })
           }
 
-          y1 = y1 + w.globals.gridHeight / tickAmount
+          y1 =
+            y1 + w.globals.gridHeight / (this.isTimelineBar ? tA : tickAmount)
+
           y2 = y1
         }
       }
@@ -337,6 +355,7 @@ class Grid {
         let y1 = 0
         let y2 = 0
         let x2 = w.globals.gridWidth
+
         for (let i = 0; i < w.globals.dataPoints + 1; i++) {
           let line = graphics.drawLine(
             x1,
@@ -357,6 +376,10 @@ class Grid {
           y2 = y1
         }
       }
+    }
+
+    if (this.isTimelineBar) {
+      tickAmount = w.globals.labels.length
     }
 
     this.drawGridBands(elg, xCount, tickAmount)

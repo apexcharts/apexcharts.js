@@ -45,12 +45,6 @@ class Range {
     } else if (gl.isRangeData) {
       seriesMin = gl.seriesRangeStart
       seriesMax = gl.seriesRangeEnd
-      if (cnf.chart.type === 'rangeBar' && cnf.xaxis.type === 'datetime') {
-        // it's a timeline chart
-        gl.seriesRangeStart.map((g) => {
-          minY = Math.min(g[0], minY === Number.MIN_VALUE ? Number.MAX_VALUE : minY)
-        })
-      }
     }
 
     for (let i = startingIndex; i < len; i++) {
@@ -85,6 +79,14 @@ class Range {
           gl.hasNullValues = true
         }
       }
+    }
+
+    if (
+      cnf.chart.type === 'rangeBar' &&
+      gl.seriesRangeStart.length &&
+      cnf.xaxis.type === 'datetime'
+    ) {
+      minY = lowestY
     }
 
     return {

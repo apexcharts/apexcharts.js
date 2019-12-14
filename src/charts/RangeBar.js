@@ -94,71 +94,122 @@ class RangeBar extends Bar {
           }
         }
 
-        let paths = null
-        if (this.isHorizontal) {
-          paths = this.drawRangeBarPaths({
-            indexes: { i, j, realIndex, bc },
-            barHeight,
-            strokeWidth,
-            pathTo,
-            pathFrom,
-            zeroW,
-            x,
-            y,
-            yDivision,
-            elSeries
-          })
+        let itemsLen = 1
+        let y1 = this.seriesRangeStart[i][j]
+        let y2 = this.seriesRangeEnd[i][j]
 
-          barWidth = paths.barWidth
-        } else {
-          paths = this.drawRangeColumnPaths({
-            indexes: { i, j, realIndex, bc },
-            x,
-            y,
-            xDivision,
-            pathTo,
-            pathFrom,
-            barWidth,
-            zeroH,
-            strokeWidth,
-            elSeries
-          })
+        const srt =
+          w.globals.seriesRangeBarTimeline.length &&
+          w.globals.seriesRangeBarTimeline[i][j]
 
-          barHeight = paths.barHeight
+        if (srt) {
+          itemsLen = srt.y.length
+          y = 0
         }
 
-        pathTo = paths.pathTo
-        pathFrom = paths.pathFrom
-        y = paths.y
-        x = paths.x
+        for (let ii = 0; ii < itemsLen; ii++) {
+          let paths = null
+          let barYPosition = null
 
-        // push current X
+          if (this.isHorizontal) {
+            barYPosition = y + barHeight * this.visibleI
 
-        let pathFill = fill.fillPath({
-          seriesNumber: realIndex
-        })
+            if (srt) {
+              let srty = (yDivision - barHeight * this.seriesLen) / 2
+              const rt = srt.y[ii]
+              y1 = rt.y1
+              y2 = rt.y2
 
-        let lineFill = w.globals.stroke.colors[realIndex]
+              const yPosition = w.globals.labels.indexOf(srt.x)
 
-        elSeries = this.renderSeries({
-          realIndex,
-          pathFill,
-          lineFill,
-          j,
-          i,
-          pathFrom,
-          pathTo,
-          strokeWidth,
-          elSeries,
-          x,
-          y,
-          series,
-          barHeight,
-          barWidth,
-          elDataLabelsWrap,
-          visibleSeries: this.visibleI,
-          type: 'rangebar'
-        })
+              barYPosition =
+                srty + barHeight * this.visibleI + yDivision * yPosition
+            } else {
+              // no item exists for further indices in a timeline, hence break
+              if (this.isTimelineBar) {
+                break
+              }
+            }
+
+            paths = this.drawRangeBarPaths({
+              indexes: { i, j, realIndex, bc },
+              barHeight,
+              barYPosition,
+              strokeWidth,
+              pathTo,
+              pathFrom,
+              zeroW,
+              x,
+              y,
+              y1,
+              y2,
+              yDivision,
+              elSeries
+            })
+
+            barWidth = paths.barWidth
+          } else {
+            paths = this.drawRangeColumnPaths({
+              indexes: { i, j, realIndex, bc },
+              x,
+              y,
+              xDivision,
+              pathTo,
+              pathFrom,
+              barWidth,
+              zeroH,
+              strokeWidth,
+              elSeries
+            })
+
+            barHeight = paths.barHeight
+          }
+
+          pathTo = paths.pathTo
+          pathFrom = paths.pathFrom
+          y = paths.y
+          x = paths.x
+
+          // push current X
+          let fillColor = null
+
+          if (
+            w.config.series[i].data[j] &&
+            w.config.series[i].data[j].fillColor
+          ) {
+            fillColor = w.config.series[i].data[j].fillColor
+          }
+
+          let pathFill = fill.fillPath({
+            seriesNumber: realIndex,
+            color: fillColor
+          })
+
+          let lineFill = w.globals.stroke.colors[realIndex]
+
+          this.renderSeries({
+            realIndex,
+            pathFill,
+            lineFill,
+            j,
+            i,
+            x,
+            y,
+            y1,
+            y2,
+            pathFrom,
+            pathTo,
+            strokeWidth,
+            elSeries,
+            series,
+            barHeight,
+            barYPosition,
+            barWidth,
+            elDataLabelsWrap,
+            visibleSeries: this.visibleI,
+            type: 'rangebar'
+          })
+        }
       }
 
       ret.add(elSeries)
@@ -248,10 +299,13 @@ class RangeBar extends Bar {
     indexes,
     x,
     y,
+    y1,
+    y2,
     yDivision,
     pathTo,
     pathFrom,
     barHeight,
+    barYPosition,
     zeroW
   }) {
     let w = this.w
@@ -265,21 +319,8 @@ class RangeBar extends Bar {
     let x1 = zeroW
     let x2 = zeroW
 
-    if (w.globals.isXNumeric) {
-      y =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
-        barHeight
-    }
-
-    let barYPosition = y + barHeight * this.visibleI
-
-    if (
-      typeof this.series[i][j] !== 'undefined' &&
-      this.series[i][j] !== null
-    ) {
-      x1 = zeroW + this.seriesRangeStart[i][j] / this.invertedYRatio
-      x2 = zeroW + this.seriesRangeEnd[i][j] / this.invertedYRatio
-    }
+    x1 = zeroW + y1 / this.invertedYRatio
+    x2 = zeroW + y2 / this.invertedYRatio
 
     pathTo = graphics.move(zeroW, barYPosition)
     pathFrom = graphics.move(zeroW, barYPosition)
@@ -312,8 +353,7 @@ class RangeBar extends Bar {
       pathFrom,
       barWidth,
       x: x2,
-      y,
-      barYPosition
+      y
     }
   }
 

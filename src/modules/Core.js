@@ -428,6 +428,7 @@ export default class Core {
     gl.seriesCandleC = []
     gl.seriesRangeStart = []
     gl.seriesRangeEnd = []
+    gl.seriesRangeBarTimeline = []
     gl.seriesPercent = []
     gl.seriesX = []
     gl.seriesZ = []
@@ -648,6 +649,7 @@ export default class Core {
   }
 
   handleRangeData(ser, i) {
+    const cnf = this.w.config
     const gl = this.w.globals
 
     let range = {}
@@ -659,6 +661,10 @@ export default class Core {
 
     gl.seriesRangeStart.push(range.start)
     gl.seriesRangeEnd.push(range.end)
+
+    if (cnf.xaxis.type === 'datetime') {
+      gl.seriesRangeBarTimeline.push(range.rangeUniques)
+    }
 
     return range
   }
@@ -682,8 +688,23 @@ export default class Core {
   }
 
   handleRangeDataFormat(format, ser, i) {
+    const w = this.w
+
     const rangeStart = []
     const rangeEnd = []
+    const rangeUniques = []
+
+    const uniqueKeys = ser[i].data
+      .filter(
+        (thing, index, self) => index === self.findIndex((t) => t.x === thing.x)
+      )
+      .map((r, index) => {
+        return {
+          x: r.x,
+          index,
+          y: []
+        }
+      })
 
     const err =
       'Please provide [Start, End] values in valid format. Read more https://apexcharts.com/docs/series/#rangecharts'
@@ -703,14 +724,24 @@ export default class Core {
         throw new Error(err)
       }
       for (let j = 0; j < ser[i].data.length; j++) {
-        rangeStart.push(ser[i].data[j].y[0])
-        rangeEnd.push(ser[i].data[j].y[1])
+        const x = ser[i].data[j].x
+        const y = {
+          y1: ser[i].data[j].y[0],
+          y2: ser[i].data[j].y[1]
+        }
+
+        const uI = uniqueKeys.findIndex((t) => t.x === x)
+        uniqueKeys[uI].y.push(y)
+
+        rangeStart.push(y.y1)
+        rangeEnd.push(y.y2)
       }
     }
 
     return {
       start: rangeStart,
-      end: rangeEnd
+      end: rangeEnd,
+      rangeUniques: uniqueKeys
     }
   }
 
@@ -909,6 +940,19 @@ export default class Core {
     } else if (this.fallbackToCategory) {
       // user provided labels in x prop in [{ x: 3, y: 55 }] data, and those labels are already stored in gl.labels[0], so just re-arrange the gl.labels array
       gl.labels = gl.labels[0]
+
+      if (gl.seriesRangeBarTimeline.length) {
+        gl.seriesRangeBarTimeline.map((srt) => {
+          srt.forEach((sr) => {
+            if (gl.labels.indexOf(sr.x) < 0 && sr.x) {
+              gl.labels.push(sr.x)
+            }
+          })
+        })
+        gl.labels = gl.labels.filter((elem, pos, arr) => {
+          return arr.indexOf(elem) == pos
+        })
+      }
     } else {
       // user didn't provided any labels, fallback to 1-2-3-4-5
       let labelArr = []

@@ -22,6 +22,10 @@ class Bar {
     this.strokeWidth = w.config.stroke.width
     this.isNullValue = false
 
+    this.isTimelineBar =
+      w.config.xaxis.type === 'datetime' &&
+      w.globals.seriesRangeBarTimeline.length
+
     this.xyRatios = xyRatios
 
     if (this.xyRatios !== null) {
@@ -202,7 +206,7 @@ class Bar {
 
         let pathFill = this.getPathFillColor(series, i, j, realIndex)
 
-        elSeries = this.renderSeries({
+        this.renderSeries({
           realIndex,
           pathFill,
           j,
@@ -273,9 +277,12 @@ class Bar {
     elSeries,
     x,
     y,
+    y1,
+    y2,
     series,
     barHeight,
     barWidth,
+    barYPosition,
     elDataLabelsWrap,
     visibleSeries,
     type
@@ -320,6 +327,10 @@ class Bar {
     })
 
     renderedPath.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
+    if (typeof y1 !== 'undefined' && typeof y2 !== 'undefined') {
+      renderedPath.attr('data-range-y1', y1)
+      renderedPath.attr('data-range-y2', y2)
+    }
 
     const filters = new Filters(this.ctx)
     filters.setSelectionFilter(renderedPath, realIndex, j)
@@ -328,12 +339,15 @@ class Bar {
     let dataLabels = this.calculateDataLabelsPos({
       x,
       y,
+      y1,
+      y2,
       i,
       j,
       series,
       realIndex,
       barHeight,
       barWidth,
+      barYPosition,
       renderedPath,
       visibleSeries
     })
@@ -382,9 +396,16 @@ class Bar {
   initialPositions() {
     let w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
+
+    let dataPoints = w.globals.dataPoints
+    if (this.isTimelineBar) {
+      // timeline rangebar chart
+      dataPoints = w.globals.labels.length
+    }
+
     if (this.isHorizontal) {
       // height divided into equal parts
-      yDivision = w.globals.gridHeight / w.globals.dataPoints
+      yDivision = w.globals.gridHeight / dataPoints
       barHeight = yDivision / this.seriesLen
 
       if (w.globals.isXNumeric) {
@@ -691,12 +712,15 @@ class Bar {
   calculateDataLabelsPos({
     x,
     y,
+    y1,
+    y2,
     i,
     j,
     realIndex,
     series,
     barHeight,
     barWidth,
+    barYPosition,
     visibleSeries,
     renderedPath
   }) {
@@ -721,6 +745,11 @@ class Bar {
     let dataLabelsPos = {}
     let dataLabelsConfig = w.config.dataLabels
     let barDataLabelsConfig = this.barOptions.dataLabels
+
+    if (typeof barYPosition !== 'undefined' && this.isTimelineBar) {
+      bcy = barYPosition
+      dataLabelsY = barYPosition
+    }
 
     const offX = dataLabelsConfig.offsetX
     const offY = dataLabelsConfig.offsetY
@@ -787,7 +816,7 @@ class Bar {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: series[i][j],
+      val: this.isTimelineBar ? [y1, y2] : series[i][j],
       i: realIndex,
       j: j,
       barWidth,
@@ -927,7 +956,7 @@ class Bar {
 
     let dataLabelsY =
       bcy -
-      dataPointsDividedHeight +
+      (this.isTimelineBar ? 0 : dataPointsDividedHeight) +
       barHeight / 2 +
       textRects.height / 2 +
       offY -
@@ -1043,6 +1072,20 @@ class Bar {
       }
 
       if (
+        this.isTimelineBar &&
+        this.barOptions.dataLabels.hideOverflowingLabels
+      ) {
+        // hide the datalabel if it cannot fit into the rect
+        const txRect = graphics.getTextRects(
+          text,
+          parseFloat(dataLabelsConfig.style.fontSize)
+        )
+        if (barWidth < txRect.width) {
+          text = ''
+        }
+      }
+
+      if (
         w.config.chart.stacked &&
         this.barOptions.dataLabels.hideOverflowingLabels
       ) {
@@ -1085,7 +1128,7 @@ class Bar {
         x,
         y,
         text,
-        i: this.barOptions.distributed ? j : i,
+        i,
         j,
         parent: elDataLabelsWrap,
         dataLabelsConfig: modifiedDataLabelsConfig,

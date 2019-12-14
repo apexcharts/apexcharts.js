@@ -141,7 +141,7 @@ class CandleStick extends Bar {
           ? color
           : undefined
 
-        elSeries = this.renderSeries({
+        this.renderSeries({
           realIndex,
           pathFill,
           lineFill,
