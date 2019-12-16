@@ -18,6 +18,11 @@ class Legend {
 
     this.onLegendClick = this.onLegendClick.bind(this)
     this.onLegendHovered = this.onLegendHovered.bind(this)
+
+    this.isBarsDistributed =
+      this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.distributed &&
+      this.w.config.series.length === 1
   }
 
   init() {
@@ -28,6 +33,7 @@ class Legend {
 
     const showLegendAlways =
       (cnf.legend.showForSingleSeries && gl.series.length === 1) ||
+      this.isBarsDistributed ||
       gl.series.length > 1
 
     if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
@@ -163,6 +169,8 @@ class Legend {
       fillcolor = ranges.map((color) => {
         return color.color
       })
+    } else if (this.isBarsDistributed) {
+      legendNames = w.globals.labels.slice()
     }
     let legendFormatter = w.globals.legendFormatter
 
@@ -343,7 +351,8 @@ class Legend {
     }
 
     // for now - just prevent click on heatmap legend - and allow hover only
-    const clickAllowed = w.config.chart.type !== 'heatmap'
+    const clickAllowed =
+      w.config.chart.type !== 'heatmap' && !this.isBarsDistributed
 
     if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
       w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
@@ -484,7 +493,7 @@ class Legend {
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
 
-    if (w.config.chart.type !== 'heatmap') {
+    if (w.config.chart.type !== 'heatmap' && !this.isBarsDistributed) {
       if (!e.target.classList.contains('inactive-legend') && hoverOverLegend) {
         let series = new Series(this.ctx)
         series.toggleSeriesOnHover(e, e.target)
