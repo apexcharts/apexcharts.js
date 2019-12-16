@@ -153,7 +153,7 @@ export default class Range {
 
   logarithmicScale(index, yMin, yMax, ticks) {
     if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01
-    
+
     const base = 10
 
     let min = Math.log(yMin) / Math.log(base)
