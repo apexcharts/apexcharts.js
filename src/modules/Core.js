@@ -1,6 +1,7 @@
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
 import CandleStick from '../charts/CandleStick'
+import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
 import DateTime from './../utils/DateTime'
 import HeatMap from '../charts/HeatMap'
@@ -469,6 +470,62 @@ export default class Core {
     gl.yRange = []
     gl.zRange = 0
     gl.dataPoints = 0
+  }
+
+  isMultipleY() {
+    // user has supplied an array in yaxis property. So, turn on multipleYAxis flag
+    if (
+      this.w.config.yaxis.constructor === Array &&
+      this.w.config.yaxis.length > 1
+    ) {
+      this.w.globals.isMultipleYAxis = true
+      return true
+    }
+  }
+
+  xySettings() {
+    let xyRatios = null
+    const w = this.w
+
+    if (w.globals.axisCharts) {
+      if (w.config.xaxis.crosshairs.position === 'back') {
+        const crosshairs = new Crosshairs(this.ctx)
+        crosshairs.drawXCrosshairs()
+      }
+      if (w.config.yaxis[0].crosshairs.position === 'back') {
+        const crosshairs = new Crosshairs(this.ctx)
+        crosshairs.drawYCrosshairs()
+      }
+
+      const coreUtils = new CoreUtils(this.ctx)
+      xyRatios = coreUtils.getCalculatedRatios()
+
+      if (
+        w.config.xaxis.type === 'datetime' &&
+        w.config.xaxis.labels.formatter === undefined
+      ) {
+        let ts = new TimeScale(this.ctx)
+        let formattedTimeScale
+        if (
+          isFinite(w.globals.minX) &&
+          isFinite(w.globals.maxX) &&
+          !w.globals.isBarHorizontal
+        ) {
+          formattedTimeScale = ts.calculateTimeScaleTicks(
+            w.globals.minX,
+            w.globals.maxX
+          )
+          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, false)
+        } else if (w.globals.isBarHorizontal) {
+          formattedTimeScale = ts.calculateTimeScaleTicks(
+            w.globals.minY,
+            w.globals.maxY
+          )
+          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, true)
+        }
+      }
+    }
+    return xyRatios
   }
 
   setupBrushHandler() {

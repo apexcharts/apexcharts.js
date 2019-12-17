@@ -515,7 +515,7 @@ export default class Data {
     this.fallbackToCategory = false
 
     this.ctx.core.resetGlobals()
-    this.coreUtils.isMultipleY()
+    this.ctx.core.isMultipleY()
 
     if (gl.axisCharts) {
       // axisCharts includes line / area / column / scatter
@@ -561,44 +561,5 @@ export default class Data {
         }
       }
     )
-  }
-
-  xySettings() {
-    let xyRatios = null
-    const w = this.w
-
-    if (w.globals.axisCharts) {
-      if (w.config.xaxis.crosshairs.position === 'back') {
-        const crosshairs = new Crosshairs(this.ctx)
-        crosshairs.drawXCrosshairs()
-      }
-      if (w.config.yaxis[0].crosshairs.position === 'back') {
-        const crosshairs = new Crosshairs(this.ctx)
-        crosshairs.drawYCrosshairs()
-      }
-
-      xyRatios = this.coreUtils.getCalculatedRatios()
-
-      if (
-        w.config.xaxis.type === 'datetime' &&
-        w.config.xaxis.labels.formatter === undefined
-      ) {
-        let ts = new TimeScale(this.ctx)
-        let formattedTimeScale = ts.calculateTimeScaleTicks(
-          w.globals.minY,
-          w.globals.maxY
-        )
-        if (
-          isFinite(w.globals.minX) &&
-          isFinite(w.globals.maxX) &&
-          !w.globals.isBarHorizontal
-        ) {
-          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, false)
-        } else if (w.globals.isBarHorizontal) {
-          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, true)
-        }
-      }
-    }
-    return xyRatios
   }
 }

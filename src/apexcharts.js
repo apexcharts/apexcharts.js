@@ -273,7 +273,7 @@ export default class ApexCharts {
     // We got plottable area here, next task would be to calculate axis areas
     this.dimensions.plotCoords()
 
-    const xyRatios = this.data.xySettings()
+    const xyRatios = this.core.xySettings()
 
     this.grid.createGridMask()
 
