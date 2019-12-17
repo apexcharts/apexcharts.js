@@ -709,21 +709,22 @@ class Bar {
    * drawing function
    * @return {object} dataLabels node-element which you can append later
    **/
-  calculateDataLabelsPos({
-    x,
-    y,
-    y1,
-    y2,
-    i,
-    j,
-    realIndex,
-    series,
-    barHeight,
-    barWidth,
-    barYPosition,
-    visibleSeries,
-    renderedPath
-  }) {
+  calculateDataLabelsPos(opts) {
+    let {
+      x,
+      y,
+      y1,
+      y2,
+      i,
+      j,
+      realIndex,
+      series,
+      barHeight,
+      barWidth,
+      barYPosition,
+      visibleSeries,
+      renderedPath
+    } = opts
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
@@ -765,43 +766,29 @@ class Bar {
       )
     }
 
+    const params = {
+      x,
+      y,
+      i,
+      j,
+      renderedPath,
+      bcx,
+      bcy,
+      barHeight,
+      barWidth,
+      textRects,
+      strokeWidth,
+      dataLabelsX,
+      dataLabelsY,
+      barDataLabelsConfig,
+      offX,
+      offY
+    }
+
     if (this.isHorizontal) {
-      dataLabelsPos = this.calculateBarsDataLabelsPosition({
-        x,
-        y,
-        i,
-        j,
-        renderedPath,
-        bcy,
-        barHeight,
-        barWidth,
-        textRects,
-        strokeWidth,
-        dataLabelsX,
-        dataLabelsY,
-        barDataLabelsConfig,
-        offX,
-        offY
-      })
+      dataLabelsPos = this.calculateBarsDataLabelsPosition(params)
     } else {
-      dataLabelsPos = this.calculateColumnsDataLabelsPosition({
-        x,
-        y,
-        i,
-        j,
-        renderedPath,
-        realIndex,
-        bcx,
-        bcy,
-        barHeight,
-        barWidth,
-        textRects,
-        strokeWidth,
-        dataLabelsY,
-        barDataLabelsConfig,
-        offX,
-        offY
-      })
+      dataLabelsPos = this.calculateColumnsDataLabelsPosition(params)
     }
 
     renderedPath.attr({
@@ -844,6 +831,7 @@ class Bar {
       offX,
       offY
     } = opts
+    
     let dataLabelsX
 
     let vertical =

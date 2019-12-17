@@ -131,35 +131,26 @@ class RangeBar extends Bar {
               }
             }
 
+            const params = { x, y, pathTo, pathFrom, strokeWidth, elSeries }
             paths = this.drawRangeBarPaths({
               indexes: { i, j, realIndex, bc },
               barHeight,
               barYPosition,
-              strokeWidth,
-              pathTo,
-              pathFrom,
               zeroW,
-              x,
-              y,
+              yDivision,
               y1,
               y2,
-              yDivision,
-              elSeries
+              ...params
             })
 
             barWidth = paths.barWidth
           } else {
             paths = this.drawRangeColumnPaths({
               indexes: { i, j, realIndex, bc },
-              x,
-              y,
-              xDivision,
-              pathTo,
-              pathFrom,
-              barWidth,
               zeroH,
-              strokeWidth,
-              elSeries
+              barWidth,
+              xDivision,
+              ...params
             })
 
             barHeight = paths.barHeight

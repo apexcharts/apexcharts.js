@@ -1,4 +1,3 @@
-import Animations from '../Animations'
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
@@ -16,13 +15,7 @@ class Grid {
     this.w = ctx.w
 
     const w = this.w
-    this.anim = new Animations(this.ctx)
     this.xaxisLabels = w.globals.labels.slice()
-
-    this.animX =
-      w.config.grid.xaxis.lines.animate && w.config.chart.animations.enabled
-    this.animY =
-      w.config.grid.yaxis.lines.animate && w.config.chart.animations.enabled
 
     this.isTimelineBar =
       w.config.xaxis.type === 'datetime' &&
@@ -158,12 +151,46 @@ class Grid {
     defs.appendChild(gl.dom.elGridRectMarkerMask)
   }
 
+  _drawGridLine({ x1, y1, x2, y2, parent }) {
+    const w = this.w
+    let strokeDashArray = w.config.grid.strokeDashArray
+
+    const graphics = new Graphics(this)
+    let line = graphics.drawLine(
+      x1,
+      y1,
+      x2,
+      y2,
+      w.config.grid.borderColor,
+      strokeDashArray
+    )
+    line.node.classList.add('apexcharts-gridline')
+    parent.add(line)
+  }
+
+  _drawGridBandRect({ x1, y1, x2, y2, type, parent }) {
+    const w = this.w
+    if (c >= w.config.grid[type][colors].length) {
+      c = 0
+    }
+    const color = w.config.grid[type][colors][c]
+    let rect = graphics.drawRect(
+      x1,
+      y1,
+      x2,
+      y2,
+      0,
+      color,
+      w.config.grid[type][opacity]
+    )
+    parent.add(rect)
+    rect.node.classList.add(`apexcharts-grid-${type}`)
+  }
+
   // actual grid rendering
   renderGrid() {
     let w = this.w
     let graphics = new Graphics(this.ctx)
-
-    let strokeDashArray = w.config.grid.strokeDashArray
 
     let elg = graphics.group({
       class: 'apexcharts-grid'
@@ -188,6 +215,52 @@ class Grid {
 
     let xCount
 
+    const datetimeLines = ({ xCount, x1, y1, x2, y2 }) => {
+      for (let i = 0; i < xCount; i++) {
+        x1 = this.xaxisLabels[i].position
+        x2 = this.xaxisLabels[i].position
+        if (
+          w.config.grid.xaxis.lines.show &&
+          x1 > 0 &&
+          x1 < w.globals.gridWidth
+        ) {
+          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesV })
+        }
+
+        let xAxis = new XAxis(this.ctx)
+        if (i === xCount - 1) {
+          if (!w.globals.skipLastTimelinelabel) {
+            // skip drawing last label here
+            xAxis.drawXaxisTicks(x1, elg)
+          }
+        } else {
+          xAxis.drawXaxisTicks(x1, elg)
+        }
+      }
+    }
+
+    const categoryLines = ({ xCount, x1, y1, x2, y2 }) => {
+      for (let i = 0; i < xCount; i++) {
+        let x1Count = xCount
+        if (w.globals.isXNumeric) {
+          x1Count -= 1
+        }
+
+        x1 = x1 + w.globals.gridWidth / x1Count
+        x2 = x1
+
+        // skip the last line
+        if (i === x1Count - 1) break
+
+        if (w.config.grid.xaxis.lines.show) {
+          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesV })
+        }
+
+        let xAxis = new XAxis(this.ctx)
+        xAxis.drawXaxisTicks(x1, elg)
+      }
+    }
+
     if (!w.globals.isBarHorizontal || this.isTimelineBar) {
       xCount = this.xaxisLabels.length
 
@@ -202,76 +275,9 @@ class Grid {
           w.globals.timelineLabels.length ||
           w.globals.invertedTimelineLabels.length
         ) {
-          for (let i = 0; i < xCount; i++) {
-            x1 = this.xaxisLabels[i].position
-            x2 = this.xaxisLabels[i].position
-            if (
-              w.config.grid.xaxis.lines.show &&
-              x1 > 0 &&
-              x1 < w.globals.gridWidth
-            ) {
-              let line = graphics.drawLine(
-                x1,
-                y1,
-                x2,
-                y2,
-                w.config.grid.borderColor,
-                strokeDashArray
-              )
-              line.node.classList.add('apexcharts-gridline')
-              elgridLinesV.add(line)
-
-              if (this.animX) {
-                this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
-              }
-            }
-
-            let xAxis = new XAxis(this.ctx)
-
-            if (i === xCount - 1) {
-              if (!w.globals.skipLastTimelinelabel) {
-                // skip drawing last label here
-                xAxis.drawXaxisTicks(x1, elg)
-              }
-            } else {
-              xAxis.drawXaxisTicks(x1, elg)
-            }
-          }
+          datetimeLines({ xCount, x1, y1, x2, y2 })
         } else {
-          let xCountForCategoryCharts = xCount
-          for (let i = 0; i < xCountForCategoryCharts; i++) {
-            let x1Count = xCountForCategoryCharts
-            if (w.globals.isXNumeric) {
-              x1Count -= 1
-            }
-
-            x1 = x1 + w.globals.gridWidth / x1Count
-            x2 = x1
-
-            // skip the last line
-            if (i === x1Count - 1) break
-
-            if (w.config.grid.xaxis.lines.show) {
-              let line = graphics.drawLine(
-                x1,
-                y1,
-                x2,
-                y2,
-                w.config.grid.borderColor,
-                strokeDashArray
-              )
-
-              line.node.classList.add('apexcharts-gridline')
-              elgridLinesV.add(line)
-
-              if (this.animX) {
-                this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
-              }
-            }
-
-            let xAxis = new XAxis(this.ctx)
-            xAxis.drawXaxisTicks(x1, elg)
-          }
+          categoryLines({ xCount, x1, y1, x2, y2 })
         }
       }
 
@@ -288,20 +294,7 @@ class Grid {
         }
 
         for (let i = 0; i < tA; i++) {
-          let line = graphics.drawLine(
-            x1,
-            y1,
-            x2,
-            y2,
-            w.config.grid.borderColor,
-            strokeDashArray
-          )
-          elgridLinesH.add(line)
-          line.node.classList.add('apexcharts-gridline')
-
-          if (this.animY) {
-            this.animateLine(line, { y1: y1 + 20, y2: y2 + 20 }, { y1: y1, y2 })
-          }
+          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesH })
 
           y1 =
             y1 + w.globals.gridHeight / (this.isTimelineBar ? tA : tickAmount)
@@ -326,21 +319,7 @@ class Grid {
           if (i === xCount - 1) break
 
           if (w.config.grid.xaxis.lines.show) {
-            let line = graphics.drawLine(
-              x1,
-              y1,
-              x2,
-              y2,
-              w.config.grid.borderColor,
-              strokeDashArray
-            )
-
-            line.node.classList.add('apexcharts-gridline')
-            elgridLinesV.add(line)
-
-            if (this.animX) {
-              this.animateLine(line, { x1: 0, x2: 0 }, { x1: x1, x2 })
-            }
+            this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesV })
           }
 
           // skip the first vertical line
@@ -357,20 +336,7 @@ class Grid {
         let x2 = w.globals.gridWidth
 
         for (let i = 0; i < w.globals.dataPoints + 1; i++) {
-          let line = graphics.drawLine(
-            x1,
-            y1,
-            x2,
-            y2,
-            w.config.grid.borderColor,
-            strokeDashArray
-          )
-          elgridLinesH.add(line)
-          line.node.classList.add('apexcharts-gridline')
-
-          if (this.animY) {
-            this.animateLine(line, { y1: y1 + 20, y2: y2 + 20 }, { y1: y1, y2 })
-          }
+          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesH })
 
           y1 = y1 + w.globals.gridHeight / w.globals.dataPoints
           y2 = y1
@@ -404,21 +370,7 @@ class Grid {
       let x2 = w.globals.gridWidth
 
       for (let i = 0, c = 0; i < tickAmount; i++, c++) {
-        if (c >= w.config.grid.row.colors.length) {
-          c = 0
-        }
-        const color = w.config.grid.row.colors[c]
-        let rect = graphics.drawRect(
-          x1,
-          y1,
-          x2,
-          y2,
-          0,
-          color,
-          w.config.grid.row.opacity
-        )
-        elg.add(rect)
-        rect.node.classList.add('apexcharts-gridRow')
+        this._drawGridBandRect({ c, x1, y1, x2, y2, parent: elg, type: 'row' })
 
         y1 = y1 + w.globals.gridHeight / tickAmount
       }
@@ -434,34 +386,18 @@ class Grid {
       let x2 = w.globals.padHorizontal + w.globals.gridWidth / xCount
       let y2 = w.globals.gridHeight
       for (let i = 0, c = 0; i < xCount; i++, c++) {
-        if (c >= w.config.grid.column.colors.length) {
-          c = 0
-        }
-        const color = w.config.grid.column.colors[c]
-        let rect = graphics.drawRect(
+        this._drawGridBandRect({
+          c,
           x1,
           y1,
           x2,
           y2,
-          0,
-          color,
-          w.config.grid.column.opacity
-        )
-        rect.node.classList.add('apexcharts-gridColumn')
-        elg.add(rect)
+          parent: elg,
+          type: 'column'
+        })
 
         x1 = x1 + w.globals.gridWidth / xCount
       }
-    }
-  }
-  animateLine(line, from, to) {
-    const w = this.w
-
-    let initialAnim = w.config.chart.animations
-
-    if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-      let speed = initialAnim.speed
-      this.anim.animateLine(line, from, to, speed)
     }
   }
 }

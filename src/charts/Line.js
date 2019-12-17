@@ -206,6 +206,9 @@ class Line {
           ? w.globals.dataPoints - 1
           : w.globals.dataPoints
       for (let j = 0; j < iterations; j++) {
+        const isNull =
+          typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
+
         if (w.globals.isXNumeric) {
           let sX = w.globals.seriesX[realIndex][j + 1]
           if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
@@ -231,42 +234,21 @@ class Line {
             // the first series will not have prevY values
             lineYPosition = zeroY
           }
-
-          if (
-            typeof series[i][j + 1] === 'undefined' ||
-            series[i][j + 1] === null
-          ) {
-            y =
-              lineYPosition -
-              minY / yRatio[this.yaxisIndex] +
-              (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
-          } else {
-            y =
-              lineYPosition -
-              series[i][j + 1] / yRatio[this.yaxisIndex] +
-              (this.isReversed
-                ? series[i][j + 1] / yRatio[this.yaxisIndex]
-                : 0) *
-                2
-          }
         } else {
-          if (
-            typeof series[i][j + 1] === 'undefined' ||
-            series[i][j + 1] === null
-          ) {
-            y =
-              zeroY -
-              minY / yRatio[this.yaxisIndex] +
-              (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
-          } else {
-            y =
-              zeroY -
-              series[i][j + 1] / yRatio[this.yaxisIndex] +
-              (this.isReversed
-                ? series[i][j + 1] / yRatio[this.yaxisIndex]
-                : 0) *
-                2
-          }
+          lineYPosition = zeroY
+        }
+
+        if (isNull) {
+          y =
+            lineYPosition -
+            minY / yRatio[this.yaxisIndex] +
+            (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
+        } else {
+          y =
+            lineYPosition -
+            series[i][j + 1] / yRatio[this.yaxisIndex] +
+            (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) *
+              2
         }
 
         // push current X
@@ -561,17 +543,19 @@ class Line {
     }
   }
 
-  calculatePoints({
-    series,
-    realIndex,
-    x,
-    y,
-    i,
-    j,
-    prevY,
-    categoryAxisCorrection,
-    xRatio
-  }) {
+  calculatePoints(opts) {
+    let {
+      series,
+      realIndex,
+      x,
+      y,
+      i,
+      j,
+      prevY,
+      categoryAxisCorrection,
+      xRatio
+    } = opts
+
     let w = this.w
 
     let ptX = []
@@ -662,16 +646,13 @@ class Line {
           // the first series will not have prevY values
           lineYPosition = zeroY
         }
-        prevY =
-          lineYPosition -
-          series[i][0] / yRatio +
-          (this.isReversed ? series[i][0] / yRatio : 0) * 2
       } else {
-        prevY =
-          zeroY -
-          series[i][0] / yRatio +
-          (this.isReversed ? series[i][0] / yRatio : 0) * 2
+        lineYPosition = zeroY
       }
+      prevY =
+        lineYPosition -
+        series[i][0] / yRatio +
+        (this.isReversed ? series[i][0] / yRatio : 0) * 2
     } else {
       // the first value in the current series is null
       if (

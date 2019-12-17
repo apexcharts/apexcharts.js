@@ -623,19 +623,11 @@ class Pie {
 
     let largeArc = angle > 180 ? 1 : 0
 
+    const pathBeginning = ['M', x1, y1, 'A', size, size, 0, largeArc, 1, x2, y2]
+
     if (w.config.chart.type === 'donut') {
       path = [
-        'M',
-        x1,
-        y1,
-        'A',
-        size,
-        size,
-        0,
-        largeArc,
-        1,
-        x2,
-        y2,
+        ...pathBeginning,
         'L',
         startInner.x,
         startInner.y,
@@ -653,27 +645,11 @@ class Pie {
         'z'
       ].join(' ')
     } else if (w.config.chart.type === 'pie') {
-      path = [
-        'M',
-        x1,
-        y1,
-        'A',
-        size,
-        size,
-        0,
-        largeArc,
-        1,
-        x2,
-        y2,
-        'L',
-        me.centerX,
-        me.centerY,
-        'L',
-        x1,
-        y1
-      ].join(' ')
+      path = [...pathBeginning, 'L', me.centerX, me.centerY, 'L', x1, y1].join(
+        ' '
+      )
     } else {
-      path = ['M', x1, y1, 'A', size, size, 0, largeArc, 1, x2, y2].join(' ')
+      path = [...pathBeginning].join(' ')
     }
 
     return path

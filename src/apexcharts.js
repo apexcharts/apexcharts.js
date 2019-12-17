@@ -845,60 +845,62 @@ export default class ApexCharts {
   static exec(chartID, fn, ...opts) {
     const chart = this.getChartByID(chartID)
     if (!chart) return
+    let ret = null
 
     // turn on the global exec flag to indicate this method was called
     chart.w.globals.isExecCalled = true
 
     switch (fn) {
       case 'updateOptions': {
-        return chart.updateOptions(...opts)
+        ret = chart.updateOptions(...opts)
       }
       case 'updateSeries': {
-        return chart.updateSeries(...opts)
+        ret = chart.updateSeries(...opts)
       }
       case 'appendData': {
-        return chart.appendData(...opts)
+        ret = chart.appendData(...opts)
       }
       case 'appendSeries': {
-        return chart.appendSeries(...opts)
+        ret = chart.appendSeries(...opts)
       }
       case 'toggleSeries': {
-        return chart.toggleSeries(...opts)
+        ret = chart.toggleSeries(...opts)
       }
       case 'resetSeries': {
-        return chart.resetSeries(...opts)
+        ret = chart.resetSeries(...opts)
       }
       case 'toggleDataPointSelection': {
-        return chart.toggleDataPointSelection(...opts)
+        ret = chart.toggleDataPointSelection(...opts)
       }
       case 'dataURI': {
-        return chart.dataURI(...opts)
+        ret = chart.dataURI(...opts)
       }
       case 'addXaxisAnnotation': {
-        return chart.addXaxisAnnotation(...opts)
+        ret = chart.addXaxisAnnotation(...opts)
       }
       case 'addYaxisAnnotation': {
-        return chart.addYaxisAnnotation(...opts)
+        ret = chart.addYaxisAnnotation(...opts)
       }
       case 'addPointAnnotation': {
-        return chart.addPointAnnotation(...opts)
+        ret = chart.addPointAnnotation(...opts)
       }
       case 'addText': {
-        return chart.addText(...opts)
+        ret = chart.addText(...opts)
       }
       case 'clearAnnotations': {
-        return chart.clearAnnotations(...opts)
+        ret = chart.clearAnnotations(...opts)
       }
       case 'removeAnnotation': {
-        return chart.removeAnnotation(...opts)
+        ret = chart.removeAnnotation(...opts)
       }
       case 'paper': {
-        return chart.paper(...opts)
+        ret = chart.paper(...opts)
       }
       case 'destroy': {
-        return chart.destroy()
+        ret = chart.destroy()
       }
     }
+    return ret
   }
 
   static merge(target, source) {
