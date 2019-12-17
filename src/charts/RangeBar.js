@@ -21,7 +21,7 @@ class RangeBar extends Bar {
     this.seriesRangeStart = w.globals.seriesRangeStart
     this.seriesRangeEnd = w.globals.seriesRangeEnd
 
-    this.initVariables(series)
+    this.barHelpers.initVariables(series)
 
     let ret = graphics.group({
       class: 'apexcharts-rangebar-series apexcharts-plot-series'
@@ -58,7 +58,7 @@ class RangeBar extends Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions()
+      let initPositions = this.barHelpers.initialPositions()
 
       y = initPositions.y
       yDivision = initPositions.yDivision
@@ -110,6 +110,7 @@ class RangeBar extends Bar {
         for (let ii = 0; ii < itemsLen; ii++) {
           let paths = null
           let barYPosition = null
+          const params = { x, y, pathTo, pathFrom, strokeWidth, elSeries }
 
           if (this.isHorizontal) {
             barYPosition = y + barHeight * this.visibleI
@@ -131,7 +132,6 @@ class RangeBar extends Bar {
               }
             }
 
-            const params = { x, y, pathTo, pathFrom, strokeWidth, elSeries }
             paths = this.drawRangeBarPaths({
               indexes: { i, j, realIndex, bc },
               barHeight,
@@ -255,7 +255,7 @@ class RangeBar extends Bar {
     pathTo = graphics.move(barXPosition, zeroH)
     pathFrom = graphics.move(barXPosition, y1)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
+      pathFrom = this.getPreviousPath(realIndex, j, true)
     }
 
     pathTo =
@@ -316,7 +316,7 @@ class RangeBar extends Bar {
     pathTo = graphics.move(zeroW, barYPosition)
     pathFrom = graphics.move(zeroW, barYPosition)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j)
+      pathFrom = this.getPreviousPath(realIndex, j)
     }
 
     const barWidth = Math.abs(x2 - x1)

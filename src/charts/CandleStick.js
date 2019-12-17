@@ -23,7 +23,7 @@ class CandleStick extends Bar {
     this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.initVariables(series)
+    this.barHelpers.initVariables(series)
 
     let ret = graphics.group({
       class: 'apexcharts-candlestick-series apexcharts-plot-series'
@@ -61,7 +61,7 @@ class CandleStick extends Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions()
+      let initPositions = this.barHelpers.initialPositions()
 
       y = initPositions.y
       barHeight = initPositions.barHeight
@@ -230,7 +230,7 @@ class CandleStick extends Bar {
     pathTo = graphics.move(barXPosition, zeroH)
     pathFrom = graphics.move(barXPosition, y1)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
+      pathFrom = this.getPreviousPath(realIndex, j, true)
     }
 
     pathTo =

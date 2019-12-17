@@ -152,7 +152,7 @@ class Radar {
       let pathFrom = null
 
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPathFrom(i)
+        pathFrom = this.getPreviousPath(i)
       }
 
       for (let p = 0; p < paths.linePathsTo.length; p++) {
@@ -437,7 +437,7 @@ class Radar {
     }
   }
 
-  getPathFrom(realIndex) {
+  getPreviousPath(realIndex) {
     let w = this.w
     let pathFrom = null
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {

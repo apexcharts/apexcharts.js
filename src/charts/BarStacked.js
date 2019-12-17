@@ -16,14 +16,13 @@ class BarStacked extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     this.graphics = new Graphics(this.ctx)
-    this.fill = new Fill(this.ctx)
     this.bar = new Bar(this.ctx, this.xyRatios)
 
     const coreUtils = new CoreUtils(this.ctx, w)
     series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.initVariables(series)
+    this.barHelpers.initVariables(series)
 
     if (w.config.chart.stackType === '100%') {
       series = w.globals.seriesPercent.slice()
@@ -177,7 +176,7 @@ class BarStacked extends Bar {
         xArrValues.push(x)
         yArrValues.push(y)
 
-        let pathFill = this.bar.getPathFillColor(series, i, j, realIndex)
+        let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
         elSeries = this.renderSeries({
           realIndex,
@@ -341,7 +340,7 @@ class BarStacked extends Bar {
       barYPosition,
       x
     }
-    let endingShape = this.bar.barEndingShape(
+    let endingShape = this.barHelpers.getBarEndingShape(
       w,
       endingShapeOpts,
       this.series,
@@ -365,7 +364,7 @@ class BarStacked extends Bar {
     pathFrom = this.graphics.move(barXPosition, barYPosition)
 
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.bar.getPathFrom(realIndex, j, false)
+      pathFrom = this.bar.getPreviousPath(realIndex, j, false)
     }
 
     pathTo =
@@ -488,7 +487,7 @@ class BarStacked extends Bar {
       barXPosition,
       y
     }
-    let endingShape = this.bar.barEndingShape(
+    let endingShape = this.barHelpers.getBarEndingShape(
       w,
       endingShapeOpts,
       this.series,
@@ -503,7 +502,7 @@ class BarStacked extends Bar {
     pathTo = this.graphics.move(barXPosition, barYPosition)
     pathFrom = this.graphics.move(barXPosition, barYPosition)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.bar.getPathFrom(realIndex, j, false)
+      pathFrom = this.bar.getPreviousPath(realIndex, j, false)
     }
 
     pathTo =
