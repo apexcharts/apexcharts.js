@@ -303,11 +303,11 @@ export default class Dimensions {
   // NOTE: datetime x-axis won't have any effect with this as we don't know the label length there due to many constraints.
   additionalPaddingXLabels(xaxisLabelCoords) {
     const w = this.w
+    const xtype = w.config.xaxis.type
 
     if (
-      (w.config.xaxis.type === 'category' && w.globals.isBarHorizontal) ||
-      w.config.xaxis.type === 'numeric' ||
-      w.config.xaxis.type === 'datetime'
+      (xtype === 'category' && w.globals.isBarHorizontal) ||
+      xtype !== 'category'
     ) {
       const rightPad = (labels) => {
         if (this.timescaleLabels) {
@@ -322,11 +322,11 @@ export default class Dimensions {
             // we have to make it false again in case of zooming/panning
             w.globals.skipLastTimelinelabel = false
           }
-        } else if (w.config.xaxis.type === 'datetime') {
+        } else if (xtype === 'datetime') {
           if (w.config.grid.padding.right < labels.width) {
             w.globals.skipLastTimelinelabel = true
           }
-        } else if (w.config.xaxis.type !== 'datetime') {
+        } else if (xtype !== 'datetime') {
           if (w.config.grid.padding.right < labels.width) {
             this.xPadRight = labels.width / 2 + 1
           }
