@@ -346,6 +346,17 @@ class CoreUtils {
 
     return options
   }
+
+  isMultipleY() {
+    // user has supplied an array in yaxis property. So, turn on multipleYAxis flag
+    if (
+      this.w.config.yaxis.constructor === Array &&
+      this.w.config.yaxis.length > 1
+    ) {
+      this.w.globals.isMultipleYAxis = true
+      return true
+    }
+  }
 }
 
 export default CoreUtils

@@ -1,10 +1,12 @@
 import Annotations from './modules/Annotations'
 import Animations from './modules/Animations'
+import Axes from './modules/axes/Axes'
 import Base from './modules/Base'
 import Config from './modules/settings/Config'
 import Core from './modules/Core'
 import CoreUtils from './modules/CoreUtils'
 import Crosshairs from './modules/Crosshairs'
+import Data from './modules/Data'
 import Defaults from './modules/settings/Defaults'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
@@ -135,7 +137,9 @@ export default class ApexCharts {
 
   initModules() {
     this.animations = new Animations(this)
+    this.axes = new Axes(this)
     this.core = new Core(this.el, this)
+    this.data = new Data(this)
     this.grid = new Grid(this)
     this.coreUtils = new CoreUtils(this)
     this.config = new Config({})
@@ -231,7 +235,7 @@ export default class ApexCharts {
     this.setupEventHandlers()
 
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
-    this.core.parseData(ser)
+    this.data.parseData(ser)
 
     // this is a good time to set theme colors first
     this.theme.init()
@@ -269,7 +273,7 @@ export default class ApexCharts {
     // We got plottable area here, next task would be to calculate axis areas
     this.dimensions.plotCoords()
 
-    const xyRatios = this.core.xySettings()
+    const xyRatios = this.data.xySettings()
 
     this.grid.createGridMask()
 
@@ -309,7 +313,7 @@ export default class ApexCharts {
         me.series.handleNoData()
       }
       me.annotations = new Annotations(me)
-      me.core.drawAxis(w.config.chart.type, graphData.xyRatios)
+      me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
 
       me.grid = new Grid(me)
       if (w.config.grid.position === 'back') {
@@ -725,8 +729,10 @@ export default class ApexCharts {
     }
 
     this.animations = null
+    this.axes = null
     this.annotations = null
     this.core = null
+    this.data = null
     this.grid = null
     this.series = null
     this.responsive = null

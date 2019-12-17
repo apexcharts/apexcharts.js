@@ -306,6 +306,10 @@ export default class Dimensions {
     const xtype = w.config.xaxis.type
     const isXNumeric = w.globals.isXNumeric
 
+    const isCollapsed = (i) => {
+      return w.globals.collapsedSeriesIndices.indexOf(i) !== -1
+    }
+
     const rightPad = (labels) => {
       if (this.timescaleLabels) {
         // for timeline labels, we take the last label and check if it exceeds gridWidth
@@ -337,37 +341,31 @@ export default class Dimensions {
     }
 
     const padYAxe = (yaxe, shouldPad, i) => {
-      if (!shouldPad) return
+      if (!shouldPad || !isXNumeric) return
       if (
-        (isXNumeric &&
-          w.globals.isMultipleYAxis &&
-          w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
+        (isXNumeric && w.globals.isMultipleYAxis && wisCollapsed(i)) ||
         (w.globals.isBarHorizontal && yaxe.opposite)
       ) {
         leftPad(xaxisLabelCoords)
       }
 
       if (
-        (!w.globals.isBarHorizontal &&
-          yaxe.opposite &&
-          w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
+        (!w.globals.isBarHorizontal && yaxe.opposite && isCollapsed(i)) ||
         (isXNumeric && !w.globals.isMultipleYAxis)
       ) {
         rightPad(xaxisLabelCoords)
       }
     }
 
-    if (
-      (xtype === 'category' && w.globals.isBarHorizontal) ||
-      xtype !== 'category'
-    ) {
+    const paddingAllowed = xtype !== 'category' || w.globals.isBarHorizontal
+
+    if (paddingAllowed) {
       w.config.yaxis.forEach((yaxe, i) => {
-        let shouldPad =
-          !yaxe.show ||
-          yaxe.floating ||
-          w.globals.collapsedSeriesIndices.indexOf(i) !== -1 ||
-          isXNumeric ||
-          (yaxe.opposite && w.globals.isBarHorizontal)
+        const isYInvisible = !yaxe.show || yaxe.floating
+
+        const isBarOpposite = yaxe.opposite && w.globals.isBarHorizontal
+
+        let shouldPad = isYInvisible || isCollapsed(i) || isBarOpposite
 
         padYAxe(yaxe, shouldPad, i)
       })
@@ -395,13 +393,16 @@ export default class Dimensions {
       gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5
     }
 
+    const nonAxisOrMultiSeriesCharts =
+      w.config.series.length > 1 ||
+      !w.globals.axisCharts ||
+      w.config.legend.showForSingleSeries
+
     if (
       w.config.legend.show &&
       w.config.legend.position === 'bottom' &&
       !w.config.legend.floating &&
-      (w.config.series.length > 1 ||
-        !w.globals.axisCharts ||
-        w.config.legend.showForSingleSeries)
+      nonAxisOrMultiSeriesCharts
     ) {
       gridShrinkOffset += 10
     }
@@ -430,31 +431,27 @@ export default class Dimensions {
     const isHiddenYAxis = function(index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
     }
-    w.globals.yLabelsCoords.map((yLabelCoord, index) => {
+
+    const padForLabelTitle = (el, index) => {
       let floating = w.config.yaxis[index].floating
-      if (yLabelCoord.width > 0 && !floating) {
-        yAxisWidth = yAxisWidth + yLabelCoord.width + padding
+
+      if (el.width > 0 && !floating) {
+        yAxisWidth = yAxisWidth + el.width + padding
         if (isHiddenYAxis(index)) {
-          yAxisWidth = yAxisWidth - yLabelCoord.width - padding
+          yAxisWidth = yAxisWidth - el.width - padding
         }
       } else {
         yAxisWidth =
           yAxisWidth + (floating || !w.config.yaxis[index].show ? 0 : 5)
       }
+    }
+
+    w.globals.yLabelsCoords.map((yLabelCoord, index) => {
+      padForLabelTitle(yLabelCoord, index)
     })
 
     w.globals.yTitleCoords.map((yTitleCoord, index) => {
-      let floating = w.config.yaxis[index].floating
-      padding = parseInt(w.config.yaxis[index].title.style.fontSize)
-      if (yTitleCoord.width > 0 && !floating) {
-        yAxisWidth = yAxisWidth + yTitleCoord.width + padding
-        if (isHiddenYAxis(index)) {
-          yAxisWidth = yAxisWidth - yTitleCoord.width - padding
-        }
-      } else {
-        yAxisWidth =
-          yAxisWidth + (floating || !w.config.yaxis[index].show ? 0 : 5)
-      }
+      padForLabelTitle(yTitleCoord, index)
     })
 
     return yAxisWidth
