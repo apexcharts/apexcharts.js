@@ -168,12 +168,14 @@ class Grid {
     parent.add(line)
   }
 
-  _drawGridBandRect({ x1, y1, x2, y2, type, parent }) {
+  _drawGridBandRect({ c, x1, y1, x2, y2, type, parent }) {
     const w = this.w
-    if (c >= w.config.grid[type][colors].length) {
-      c = 0
-    }
-    const color = w.config.grid[type][colors][c]
+    const graphics = new Graphics(this.ctx)
+
+    if (type === 'column' && w.config.xaxis.type === 'datetime') return
+
+    const color = w.config.grid[type].colors[c]
+
     let rect = graphics.drawRect(
       x1,
       y1,
@@ -181,7 +183,7 @@ class Grid {
       y2,
       0,
       color,
-      w.config.grid[type][opacity]
+      w.config.grid[type].opacity
     )
     parent.add(rect)
     rect.node.classList.add(`apexcharts-grid-${type}`)
@@ -357,7 +359,6 @@ class Grid {
 
   drawGridBands(elg, xCount, tickAmount) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
 
     // rows background bands
     if (
@@ -370,6 +371,9 @@ class Grid {
       let x2 = w.globals.gridWidth
 
       for (let i = 0, c = 0; i < tickAmount; i++, c++) {
+        if (c >= w.config.grid.row.colors.length) {
+          c = 0
+        }
         this._drawGridBandRect({ c, x1, y1, x2, y2, parent: elg, type: 'row' })
 
         y1 = y1 + w.globals.gridHeight / tickAmount
@@ -381,11 +385,19 @@ class Grid {
       w.config.grid.column.colors !== undefined &&
       w.config.grid.column.colors.length > 0
     ) {
+      const xc =
+        w.config.xaxis.type === 'category' ||
+        w.config.xaxis.convertedCatToNumeric
+          ? xCount - 1
+          : xCount
       let x1 = w.globals.padHorizontal
       let y1 = 0
-      let x2 = w.globals.padHorizontal + w.globals.gridWidth / xCount
+      let x2 = w.globals.padHorizontal + w.globals.gridWidth / xc
       let y2 = w.globals.gridHeight
       for (let i = 0, c = 0; i < xCount; i++, c++) {
+        if (c >= w.config.grid.column.colors.length) {
+          c = 0
+        }
         this._drawGridBandRect({
           c,
           x1,
@@ -396,7 +408,7 @@ class Grid {
           type: 'column'
         })
 
-        x1 = x1 + w.globals.gridWidth / xCount
+        x1 = x1 + w.globals.gridWidth / xc
       }
     }
   }
