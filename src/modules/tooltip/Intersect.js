@@ -197,8 +197,8 @@ class Intersect {
         (w.globals.isBarHorizontal && ttCtx.hasBars()))
     ) {
       const isReversed = w.globals.isMultipleYAxis
-      ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
-      : w.config.yaxis[0].reversed
+        ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
+        : w.config.yaxis[0].reversed
 
       if (isReversed) {
         x = w.globals.gridWidth - x
@@ -259,6 +259,9 @@ class Intersect {
       j = parseInt(bar.getAttribute('j'))
       i = parseInt(bar.parentNode.getAttribute('rel')) - 1
 
+      let y1 = bar.getAttribute('data-range-y1')
+      let y2 = bar.getAttribute('data-range-y2')
+
       if (w.globals.comboCharts) {
         i = parseInt(bar.parentNode.getAttribute('data:realIndex'))
       }
@@ -275,6 +278,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
+        y1: y1 ? parseInt(y1) : null,
+        y2: y2 ? parseInt(y2) : null,
         shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
       })
 

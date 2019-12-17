@@ -15,14 +15,14 @@ export default class Labels {
     this.tooltipUtil = new Utils(tooltipContext)
   }
 
-  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null }) {
+  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2 }) {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
       if (Array.isArray(w.config.tooltip.custom)) {
-        this.handleCustomTooltip({ i, j, isArray: true })
+        this.handleCustomTooltip({ i, j, y1, y2, isArray: true })
       } else {
-        this.handleCustomTooltip({ i, j, isArray: false })
+        this.handleCustomTooltip({ i, j, y1, y2, isArray: false })
       }
     } else {
       this.toggleActiveInactiveSeries(shared)
@@ -369,7 +369,7 @@ export default class Labels {
     }
   }
 
-  handleCustomTooltip({ i, j, isArray }) {
+  handleCustomTooltip({ i, j, y1, y2, isArray }) {
     const w = this.w
     const tooltipEl = this.ttCtx.getElTooltip()
     let fn = w.config.tooltip.custom
@@ -384,6 +384,8 @@ export default class Labels {
       series: w.globals.series,
       seriesIndex: i,
       dataPointIndex: j,
+      y1,
+      y2,
       w
     })
   }

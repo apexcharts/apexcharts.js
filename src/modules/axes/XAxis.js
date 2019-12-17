@@ -214,8 +214,10 @@ export default class XAxis {
     let yPos
     let labels = []
 
-    for (let i = 0; i < this.xaxisLabels.length; i++) {
-      labels.push(this.xaxisLabels[i])
+    if (w.config.yaxis[realIndex].show) {
+      for (let i = 0; i < this.xaxisLabels.length; i++) {
+        labels.push(this.xaxisLabels[i])
+      }
     }
 
     colHeight = w.globals.gridHeight / labels.length

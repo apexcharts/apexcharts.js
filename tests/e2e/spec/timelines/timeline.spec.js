@@ -1,11 +1,11 @@
 import puppeteer from 'puppeteer'
 import { root } from '../../../../config.js'
 
-const APP = root + '/samples/vanilla-js/bar/timeline.html'
-const screenshotPath = root + '/tests/e2e/snapshots/bar-timeline.png'
+const APP = root + '/samples/vanilla-js/timelines/advanced.html'
+const screenshotPath = root + '/tests/e2e/snapshots/advanced-timeline.png'
 
-describe('Rendering Timeline / Rangebar Charts', () => {
-  it('should render basic timeline chart', async () => {
+describe('Rendering Timeline Charts', () => {
+  it('should render an advanced timeline chart', async () => {
     const browser = await puppeteer.launch()
     const page = await browser.newPage()
     await page.goto('file://' + APP)

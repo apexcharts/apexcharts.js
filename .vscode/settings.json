@@ -1,4 +1,5 @@
 {
   // Temporary until prettier and eslint are correctly setup
-  "editor.formatOnSave": false
+  "editor.formatOnSave": true,
+  "linter_codeclimate.enabled": true
 }

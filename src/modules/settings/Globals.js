@@ -47,6 +47,7 @@ export default class Globals {
       series: [], // the MAIN series array (y values)
       seriesRangeStart: [], // the clone of series becomes the start in range
       seriesRangeEnd: [], // the end values in range chart
+      seriesRangeBarTimeline: [], // the values in timeline chart
       seriesPercent: [], // the percentage values of the given series
       seriesTotals: [],
       stackedSeriesTotals: [],

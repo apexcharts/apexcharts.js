@@ -1,101 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Distributed Bar</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Distributed Bar</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
+    <style>
+      #chart {
         max-width: 650px;
         margin: 35px auto;
-    }
-    #chart .apexcharts-xaxis-label {
+      }
+      #chart .apexcharts-xaxis-label {
         font-weight: bold;
-    }
+      }
     </style>
-</head>
+  </head>
 
-<body>
-  <div id="app"></div>
-  
-  <div id="html">
-          &#60;div id=&#34;chart&#34;&#62;&#10;            &#60;ReactApexChart options={this.state.options} series={this.state.series} type=&#34;bar&#34; height=&#34;350&#34; /&#62;&#10;          &#60;/div&#62;
-  </div>
+  <body>
+    <div id="app"></div>
 
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <div id="html">
+      &#60;div id=&#34;chart&#34;&#62;&#10; &#60;ReactApexChart
+      options={this.state.options} series={this.state.series} type=&#34;bar&#34;
+      height=&#34;350&#34; /&#62;&#10; &#60;/div&#62;
+    </div>
 
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react@16/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"
+    ></script>
+    <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
 
-  <script type="text/babel">
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
 
-    var colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8'];
-    
-    class BarChart extends React.Component {
-      
-      constructor(props) {
-        super(props);
+    <script type="text/babel">
+      var colors = [
+        '#008FFB',
+        '#00E396',
+        '#FEB019',
+        '#FF4560',
+        '#775DD0',
+        '#546E7A',
+        '#26a69a',
+        '#D10CE8'
+      ]
 
-        this.state = {
-          options: {
-            chart: {
-              events: {
-                click: function (chart, w, e) {
-                  console.log(chart, w, e)
+      class BarChart extends React.Component {
+        constructor(props) {
+          super(props)
+
+          this.state = {
+            options: {
+              chart: {
+                events: {
+                  click: function(chart, w, e) {
+                    console.log(chart, w, e)
+                  }
                 }
               },
-            },
-            colors: colors,
-            plotOptions: {
-              bar: {
-                columnWidth: '45%',
-                distributed: true
-              }
-            },
-            dataLabels: {
-              enabled: false,
-            },
-            xaxis: {
-              categories: ['John', 'Joe', 'Jake', 'Amber', 'Peter', 'Mary', 'David', 'Lily'],
-              labels: {
-                style: {
-                  colors: colors,
-                  fontSize: '14px'
+              colors: colors,
+              plotOptions: {
+                bar: {
+                  columnWidth: '45%',
+                  distributed: true
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              xaxis: {
+                categories: [
+                  'John',
+                  'Joe',
+                  'Jake',
+                  'Amber',
+                  'Peter',
+                  'Mary',
+                  'David',
+                  'Lily'
+                ],
+                labels: {
+                  style: {
+                    colors: colors,
+                    fontSize: '14px'
+                  }
                 }
               }
-            }
-          },
-          series: [{
-            data: [21, 22, 10, 28, 16, 21, 13, 30]
-          }],
+            },
+            legend: {
+              position: 'top'
+            },
+            series: [
+              {
+                data: [21, 22, 10, 28, 16, 21, 13, 30]
+              }
+            ]
+          }
+        }
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart
+                  options={this.state.options}
+                  series={this.state.series}
+                  type="bar"
+                  height="350"
+                />
+              </div>
+              <div id="html-dist" />
+            </div>
+          )
         }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height="350" />
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
-
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(BarChart), domContainer);
-
-  </script>
-</body>
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(React.createElement(BarChart), domContainer)
+    </script>
+  </body>
 </html>

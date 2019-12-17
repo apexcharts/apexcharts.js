@@ -216,9 +216,19 @@ export default class Defaults {
       tooltip: {
         shared: false,
         followCursor: true,
-        custom: function({ ctx, seriesIndex, dataPointIndex, w }) {
-          const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
-          const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+        custom: function({ ctx, seriesIndex, dataPointIndex, y1, y2, w }) {
+          let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
+          let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+          let ylabel = w.globals.labels[dataPointIndex]
+
+          if (y1 && y2) {
+            start = y1
+            end = y2
+
+            if (w.config.series[seriesIndex].data[dataPointIndex].x) {
+              ylabel = w.config.series[seriesIndex].data[dataPointIndex].x
+            }
+          }
 
           let startVal = ''
           let endVal = ''
@@ -247,8 +257,6 @@ export default class Defaults {
             startVal = w.config.tooltip.x.formatter(start)
             endVal = w.config.tooltip.x.formatter(end)
           }
-
-          const ylabel = w.globals.labels[dataPointIndex]
 
           return (
             '<div class="apexcharts-tooltip-rangebar">' +
@@ -590,7 +598,9 @@ export default class Defaults {
   }
 
   radar() {
-    this.opts.yaxis[0].labels.offsetY = this.opts.yaxis[0].labels.offsetY ? this.opts.yaxis[0].labels.offsetY : 6
+    this.opts.yaxis[0].labels.offsetY = this.opts.yaxis[0].labels.offsetY
+      ? this.opts.yaxis[0].labels.offsetY
+      : 6
 
     return {
       dataLabels: {

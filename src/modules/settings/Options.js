@@ -560,14 +560,12 @@ export default class Options {
         position: 'back',
         xaxis: {
           lines: {
-            show: false,
-            animate: false
+            show: false
           }
         },
         yaxis: {
           lines: {
-            show: true,
-            animate: false
+            show: true
           }
         },
         row: {

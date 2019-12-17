@@ -249,8 +249,8 @@ type ApexStroke = {
   curve?: "smooth" | "straight" | "stepline";
   lineCap?: "butt" | "square" | "round";
   colors?: string[];
-  width?: number;
-  dashArray?: number | number[]
+  width?: number | number[];
+  dashArray?: number | number[];
 };
 
 type ApexAnnotations = {

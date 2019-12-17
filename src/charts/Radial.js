@@ -22,6 +22,11 @@ class Radial extends Pie {
     this.startAngle = w.config.plotOptions.radialBar.startAngle
     this.endAngle = w.config.plotOptions.radialBar.endAngle
 
+    this.totalAngle = Math.abs(
+      w.config.plotOptions.radialBar.endAngle -
+        w.config.plotOptions.radialBar.startAngle
+    )
+
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
     this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle
 
@@ -88,10 +93,7 @@ class Radial extends Pie {
     let totalAngle = 360
 
     if (w.config.plotOptions.radialBar.startAngle < 0) {
-      totalAngle = Math.abs(
-        w.config.plotOptions.radialBar.endAngle -
-          w.config.plotOptions.radialBar.startAngle
-      )
+      totalAngle = this.totalAngle
     }
 
     let angleRatio = (360 - totalAngle) / 360
@@ -295,23 +297,19 @@ class Radial extends Pie {
       let startAngle = this.startAngle
       let prevStartAngle
 
-      const totalAngle = Math.abs(
-        w.config.plotOptions.radialBar.endAngle -
-          w.config.plotOptions.radialBar.startAngle
-      )
-
       // if data exceeds 100, make it 100
       const dataValue =
         Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100
 
-      let endAngle = Math.round(totalAngle * dataValue) + this.startAngle
+      let endAngle = Math.round(this.totalAngle * dataValue) + this.startAngle
 
       let prevEndAngle
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle
         prevEndAngle =
           Math.round(
-            (totalAngle * Utils.negToZero(w.globals.previousPaths[i])) / 100
+            (this.totalAngle * Utils.negToZero(w.globals.previousPaths[i])) /
+              100
           ) + prevStartAngle
       }
 

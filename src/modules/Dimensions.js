@@ -303,71 +303,71 @@ export default class Dimensions {
   // NOTE: datetime x-axis won't have any effect with this as we don't know the label length there due to many constraints.
   additionalPaddingXLabels(xaxisLabelCoords) {
     const w = this.w
+    const xtype = w.config.xaxis.type
+    const isXNumeric = w.globals.isXNumeric
 
-    if (
-      (w.config.xaxis.type === 'category' && w.globals.isBarHorizontal) ||
-      w.config.xaxis.type === 'numeric' ||
-      w.config.xaxis.type === 'datetime'
-    ) {
-      const rightPad = (labels) => {
-        if (this.timescaleLabels) {
-          // for timeline labels, we take the last label and check if it exceeds gridWidth
-          const lastTimescaleLabel = this.timescaleLabels[
-            this.timescaleLabels.length - 1
-          ]
-          const labelPosition = lastTimescaleLabel.position + labels.width
-          if (labelPosition > w.globals.gridWidth) {
-            w.globals.skipLastTimelinelabel = true
-          } else {
-            // we have to make it false again in case of zooming/panning
-            w.globals.skipLastTimelinelabel = false
-          }
-        } else if (w.config.xaxis.type === 'datetime') {
-          if (w.config.grid.padding.right < labels.width) {
-            w.globals.skipLastTimelinelabel = true
-          }
-        } else if (w.config.xaxis.type !== 'datetime') {
-          if (w.config.grid.padding.right < labels.width) {
-            this.xPadRight = labels.width / 2 + 1
-          }
+    const isCollapsed = (i) => {
+      return w.globals.collapsedSeriesIndices.indexOf(i) !== -1
+    }
+
+    const rightPad = (labels) => {
+      if (this.timescaleLabels) {
+        // for timeline labels, we take the last label and check if it exceeds gridWidth
+        const lastTimescaleLabel = this.timescaleLabels[
+          this.timescaleLabels.length - 1
+        ]
+        const labelPosition = lastTimescaleLabel.position + labels.width
+        if (labelPosition > w.globals.gridWidth) {
+          w.globals.skipLastTimelinelabel = true
+        } else {
+          // we have to make it false again in case of zooming/panning
+          w.globals.skipLastTimelinelabel = false
+        }
+      } else if (xtype === 'datetime') {
+        if (w.config.grid.padding.right < labels.width) {
+          w.globals.skipLastTimelinelabel = true
+        }
+      } else if (xtype !== 'datetime') {
+        if (w.config.grid.padding.right < labels.width) {
+          this.xPadRight = labels.width / 2 + 1
         }
       }
+    }
 
-      const leftPad = (labels) => {
-        if (w.config.grid.padding.left < labels.width) {
-          this.xPadLeft = labels.width / 2 + 1
-        }
+    const leftPad = (labels) => {
+      if (w.config.grid.padding.left < labels.width) {
+        this.xPadLeft = labels.width / 2 + 1
+      }
+    }
+
+    const padYAxe = (yaxe, shouldPad, i) => {
+      if (!shouldPad || !isXNumeric) return
+      if (
+        (isXNumeric && w.globals.isMultipleYAxis && wisCollapsed(i)) ||
+        (w.globals.isBarHorizontal && yaxe.opposite)
+      ) {
+        leftPad(xaxisLabelCoords)
       }
 
-      const isXNumeric = w.globals.isXNumeric
+      if (
+        (!w.globals.isBarHorizontal && yaxe.opposite && isCollapsed(i)) ||
+        (isXNumeric && !w.globals.isMultipleYAxis)
+      ) {
+        rightPad(xaxisLabelCoords)
+      }
+    }
 
+    const paddingAllowed = xtype !== 'category' || w.globals.isBarHorizontal
+
+    if (paddingAllowed) {
       w.config.yaxis.forEach((yaxe, i) => {
-        let shouldPad =
-          !yaxe.show ||
-          yaxe.floating ||
-          w.globals.collapsedSeriesIndices.indexOf(i) !== -1 ||
-          isXNumeric ||
-          (yaxe.opposite && w.globals.isBarHorizontal)
+        const isYInvisible = !yaxe.show || yaxe.floating
 
-        if (shouldPad) {
-          if (
-            (isXNumeric &&
-              w.globals.isMultipleYAxis &&
-              w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
-            (w.globals.isBarHorizontal && yaxe.opposite)
-          ) {
-            leftPad(xaxisLabelCoords)
-          }
+        const isBarOpposite = yaxe.opposite && w.globals.isBarHorizontal
 
-          if (
-            (!w.globals.isBarHorizontal &&
-              yaxe.opposite &&
-              w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
-            (isXNumeric && !w.globals.isMultipleYAxis)
-          ) {
-            rightPad(xaxisLabelCoords)
-          }
-        }
+        let shouldPad = isYInvisible || isCollapsed(i) || isBarOpposite
+
+        padYAxe(yaxe, shouldPad, i)
       })
     }
 
@@ -393,13 +393,16 @@ export default class Dimensions {
       gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5
     }
 
+    const nonAxisOrMultiSeriesCharts =
+      w.config.series.length > 1 ||
+      !w.globals.axisCharts ||
+      w.config.legend.showForSingleSeries
+
     if (
       w.config.legend.show &&
       w.config.legend.position === 'bottom' &&
       !w.config.legend.floating &&
-      (w.config.series.length > 1 ||
-        !w.globals.axisCharts ||
-        w.config.legend.showForSingleSeries)
+      nonAxisOrMultiSeriesCharts
     ) {
       gridShrinkOffset += 10
     }
@@ -428,31 +431,27 @@ export default class Dimensions {
     const isHiddenYAxis = function(index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
     }
-    w.globals.yLabelsCoords.map((yLabelCoord, index) => {
+
+    const padForLabelTitle = (el, index) => {
       let floating = w.config.yaxis[index].floating
-      if (yLabelCoord.width > 0 && !floating) {
-        yAxisWidth = yAxisWidth + yLabelCoord.width + padding
+
+      if (el.width > 0 && !floating) {
+        yAxisWidth = yAxisWidth + el.width + padding
         if (isHiddenYAxis(index)) {
-          yAxisWidth = yAxisWidth - yLabelCoord.width - padding
+          yAxisWidth = yAxisWidth - el.width - padding
         }
       } else {
         yAxisWidth =
           yAxisWidth + (floating || !w.config.yaxis[index].show ? 0 : 5)
       }
+    }
+
+    w.globals.yLabelsCoords.map((yLabelCoord, index) => {
+      padForLabelTitle(yLabelCoord, index)
     })
 
     w.globals.yTitleCoords.map((yTitleCoord, index) => {
-      let floating = w.config.yaxis[index].floating
-      padding = parseInt(w.config.yaxis[index].title.style.fontSize)
-      if (yTitleCoord.width > 0 && !floating) {
-        yAxisWidth = yAxisWidth + yTitleCoord.width + padding
-        if (isHiddenYAxis(index)) {
-          yAxisWidth = yAxisWidth - yTitleCoord.width - padding
-        }
-      } else {
-        yAxisWidth =
-          yAxisWidth + (floating || !w.config.yaxis[index].show ? 0 : 5)
-      }
+      padForLabelTitle(yTitleCoord, index)
     })
 
     return yAxisWidth
@@ -463,7 +462,7 @@ export default class Dimensions {
     let rect
 
     this.timescaleLabels = w.globals.timelineLabels.slice()
-    if (w.globals.isBarHorizontal && w.config.xaxis.type === 'datetime') {
+    if (w.globals.invertedTimelineLabels.length) {
       this.timescaleLabels = w.globals.invertedTimelineLabels.slice()
     }
 

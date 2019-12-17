@@ -217,13 +217,21 @@ class DataLabels {
       }
     }
 
+    let dataLabelColor = w.globals.dataLabels.style.colors[i]
+    if (
+      (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
+      w.config.plotOptions.bar.distributed
+    ) {
+      dataLabelColor = w.globals.dataLabels.style.colors[j]
+    }
+
     if (correctedLabels.drawnextLabel) {
       let dataLabelText = graphics.drawText({
         width: 100,
         height: parseInt(dataLabelsConfig.style.fontSize),
         x: x,
         y: y,
-        foreColor: w.globals.dataLabels.style.colors[i],
+        foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text: text,
         fontSize: dataLabelsConfig.style.fontSize,
