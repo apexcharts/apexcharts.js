@@ -304,43 +304,63 @@ export default class Dimensions {
   additionalPaddingXLabels(xaxisLabelCoords) {
     const w = this.w
     const xtype = w.config.xaxis.type
+    const isXNumeric = w.globals.isXNumeric
+
+    const rightPad = (labels) => {
+      if (this.timescaleLabels) {
+        // for timeline labels, we take the last label and check if it exceeds gridWidth
+        const lastTimescaleLabel = this.timescaleLabels[
+          this.timescaleLabels.length - 1
+        ]
+        const labelPosition = lastTimescaleLabel.position + labels.width
+        if (labelPosition > w.globals.gridWidth) {
+          w.globals.skipLastTimelinelabel = true
+        } else {
+          // we have to make it false again in case of zooming/panning
+          w.globals.skipLastTimelinelabel = false
+        }
+      } else if (xtype === 'datetime') {
+        if (w.config.grid.padding.right < labels.width) {
+          w.globals.skipLastTimelinelabel = true
+        }
+      } else if (xtype !== 'datetime') {
+        if (w.config.grid.padding.right < labels.width) {
+          this.xPadRight = labels.width / 2 + 1
+        }
+      }
+    }
+
+    const leftPad = (labels) => {
+      if (w.config.grid.padding.left < labels.width) {
+        this.xPadLeft = labels.width / 2 + 1
+      }
+    }
+
+    const padYAxe = (yaxe, shouldPad, i) => {
+      if (!shouldPad) return
+      if (
+        (isXNumeric &&
+          w.globals.isMultipleYAxis &&
+          w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
+        (w.globals.isBarHorizontal && yaxe.opposite)
+      ) {
+        leftPad(xaxisLabelCoords)
+      }
+
+      if (
+        (!w.globals.isBarHorizontal &&
+          yaxe.opposite &&
+          w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
+        (isXNumeric && !w.globals.isMultipleYAxis)
+      ) {
+        rightPad(xaxisLabelCoords)
+      }
+    }
 
     if (
       (xtype === 'category' && w.globals.isBarHorizontal) ||
       xtype !== 'category'
     ) {
-      const rightPad = (labels) => {
-        if (this.timescaleLabels) {
-          // for timeline labels, we take the last label and check if it exceeds gridWidth
-          const lastTimescaleLabel = this.timescaleLabels[
-            this.timescaleLabels.length - 1
-          ]
-          const labelPosition = lastTimescaleLabel.position + labels.width
-          if (labelPosition > w.globals.gridWidth) {
-            w.globals.skipLastTimelinelabel = true
-          } else {
-            // we have to make it false again in case of zooming/panning
-            w.globals.skipLastTimelinelabel = false
-          }
-        } else if (xtype === 'datetime') {
-          if (w.config.grid.padding.right < labels.width) {
-            w.globals.skipLastTimelinelabel = true
-          }
-        } else if (xtype !== 'datetime') {
-          if (w.config.grid.padding.right < labels.width) {
-            this.xPadRight = labels.width / 2 + 1
-          }
-        }
-      }
-
-      const leftPad = (labels) => {
-        if (w.config.grid.padding.left < labels.width) {
-          this.xPadLeft = labels.width / 2 + 1
-        }
-      }
-
-      const isXNumeric = w.globals.isXNumeric
-
       w.config.yaxis.forEach((yaxe, i) => {
         let shouldPad =
           !yaxe.show ||
@@ -349,25 +369,7 @@ export default class Dimensions {
           isXNumeric ||
           (yaxe.opposite && w.globals.isBarHorizontal)
 
-        if (shouldPad) {
-          if (
-            (isXNumeric &&
-              w.globals.isMultipleYAxis &&
-              w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
-            (w.globals.isBarHorizontal && yaxe.opposite)
-          ) {
-            leftPad(xaxisLabelCoords)
-          }
-
-          if (
-            (!w.globals.isBarHorizontal &&
-              yaxe.opposite &&
-              w.globals.collapsedSeriesIndices.indexOf(i) !== -1) ||
-            (isXNumeric && !w.globals.isMultipleYAxis)
-          ) {
-            rightPad(xaxisLabelCoords)
-          }
-        }
+        padYAxe(yaxe, shouldPad, i)
       })
     }
 
