@@ -28,7 +28,6 @@ class RangeBar extends Bar {
     })
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathFrom
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -82,7 +81,7 @@ class RangeBar extends Bar {
 
         let paths = null
         let barYPosition = null
-        const params = { x, y, pathFrom, strokeWidth, elSeries }
+        const params = { x, y, strokeWidth, elSeries }
 
         if (this.isHorizontal) {
           barYPosition = y + barHeight * this.visibleI
@@ -128,7 +127,6 @@ class RangeBar extends Bar {
           barHeight = paths.barHeight
         }
 
-        pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
 
@@ -146,7 +144,7 @@ class RangeBar extends Bar {
           y,
           y1,
           y2,
-          pathFrom,
+          pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
@@ -172,7 +170,6 @@ class RangeBar extends Bar {
     y,
     strokeWidth,
     xDivision,
-    pathFrom,
     barWidth,
     zeroH
   }) {
@@ -209,7 +206,7 @@ class RangeBar extends Bar {
     const barHeight = Math.abs(y2 - y1)
 
     let pathTo = graphics.move(barXPosition, zeroH)
-    pathFrom = graphics.move(barXPosition, y1)
+    let pathFrom = graphics.move(barXPosition, y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, true)
     }
@@ -249,7 +246,6 @@ class RangeBar extends Bar {
     y1,
     y2,
     yDivision,
-    pathFrom,
     barHeight,
     barYPosition,
     zeroW
@@ -269,7 +265,7 @@ class RangeBar extends Bar {
     x2 = zeroW + y2 / this.invertedYRatio
 
     let pathTo = graphics.move(zeroW, barYPosition)
-    pathFrom = graphics.move(x1, barYPosition)
+    let pathFrom = graphics.move(x1, barYPosition)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j)
     }

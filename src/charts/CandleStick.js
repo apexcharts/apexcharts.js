@@ -30,7 +30,6 @@ class CandleStick extends Bar {
     })
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathFrom
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -92,14 +91,12 @@ class CandleStick extends Bar {
           x,
           y,
           xDivision,
-          pathFrom,
           barWidth,
           zeroH,
           strokeWidth,
           elSeries
         })
 
-        pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
         color = paths.color
@@ -127,7 +124,7 @@ class CandleStick extends Bar {
           lineFill,
           j,
           i,
-          pathFrom,
+          pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
@@ -157,7 +154,6 @@ class CandleStick extends Bar {
     x,
     y,
     xDivision,
-    pathFrom,
     barWidth,
     zeroH,
     strokeWidth
@@ -207,7 +203,7 @@ class CandleStick extends Bar {
     }
 
     let pathTo = graphics.move(barXPosition, zeroH)
-    pathFrom = graphics.move(barXPosition, y1)
+    let pathFrom = graphics.move(barXPosition, y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, true)
     }
