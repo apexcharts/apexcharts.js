@@ -518,7 +518,8 @@ export default class Tooltip {
     let isStickyTooltip =
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
-        (!w.globals.isBarHorizontal && this.hasBars()) &&
+        !w.globals.isBarHorizontal &&
+        this.hasBars() &&
         this.tConfig.shared) ||
       (w.globals.comboCharts && this.hasBars)
 

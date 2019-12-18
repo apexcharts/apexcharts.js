@@ -172,7 +172,8 @@ export default class Utils {
 
       if (
         firstActiveSeriesIndex[a] !== -1 &&
-        (total !== 0 && !coreUtils.seriesHaveSameValues(a))
+        total !== 0 &&
+        !coreUtils.seriesHaveSameValues(a)
       ) {
         activeIndex = firstActiveSeriesIndex[a]
         break
