@@ -91,7 +91,6 @@ class BarStacked extends Bar {
         class: 'apexcharts-datalabels'
       })
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -125,7 +124,7 @@ class BarStacked extends Bar {
       // }
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
-        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let paths = null
         if (this.isHorizontal) {

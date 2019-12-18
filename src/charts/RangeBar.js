@@ -1,5 +1,4 @@
 import Bar from './Bar'
-import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
 
@@ -13,7 +12,6 @@ class RangeBar extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
-    let fill = new Fill(this.ctx)
 
     this.rangeBarOptions = this.w.config.plotOptions.rangeBar
 
@@ -27,7 +25,7 @@ class RangeBar extends Bar {
       class: 'apexcharts-rangebar-series apexcharts-plot-series'
     })
 
-    for (let i = 0, bc = 0; i < series.length; i++, bc++) {
+    for (let i = 0; i < series.length; i++) {
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -104,7 +102,7 @@ class RangeBar extends Bar {
           }
 
           paths = this.drawRangeBarPaths({
-            indexes: { i, j, realIndex, bc },
+            indexes: { i, j, realIndex },
             barHeight,
             barYPosition,
             zeroW,
@@ -117,7 +115,7 @@ class RangeBar extends Bar {
           barWidth = paths.barWidth
         } else {
           paths = this.drawRangeColumnPaths({
-            indexes: { i, j, realIndex, bc },
+            indexes: { i, j, realIndex },
             zeroH,
             barWidth,
             xDivision,
@@ -167,7 +165,6 @@ class RangeBar extends Bar {
   drawRangeColumnPaths({
     indexes,
     x,
-    y,
     strokeWidth,
     xDivision,
     barWidth,
@@ -241,7 +238,6 @@ class RangeBar extends Bar {
 
   drawRangeBarPaths({
     indexes,
-    x,
     y,
     y1,
     y2,
@@ -258,11 +254,8 @@ class RangeBar extends Bar {
 
     let realIndex = indexes.realIndex
 
-    let x1 = zeroW
-    let x2 = zeroW
-
-    x1 = zeroW + y1 / this.invertedYRatio
-    x2 = zeroW + y2 / this.invertedYRatio
+    const x1 = zeroW + y1 / this.invertedYRatio
+    const x2 = zeroW + y2 / this.invertedYRatio
 
     let pathTo = graphics.move(zeroW, barYPosition)
     let pathFrom = graphics.move(x1, barYPosition)

@@ -29,7 +29,7 @@ class CandleStick extends Bar {
       class: 'apexcharts-candlestick-series apexcharts-plot-series'
     })
 
-    for (let i = 0, bc = 0; i < series.length; i++, bc++) {
+    for (let i = 0; i < series.length; i++) {
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -85,8 +85,7 @@ class CandleStick extends Bar {
           indexes: {
             i,
             j,
-            realIndex,
-            bc
+            realIndex
           },
           x,
           y,
