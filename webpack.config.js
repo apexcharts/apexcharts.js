@@ -34,11 +34,12 @@ module.exports = {
         ]
       },
       {
-        test: /\.js?$/,
-        loader: 'babel-loader',
-        options: {
-          presets: ['es2015', 'stage-0'],
-          plugins: ['transform-class-properties', 'transform-decorators-legacy']
+        test: /\.js$/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env']
+          }
         }
       },
       {
@@ -56,7 +57,6 @@ module.exports = {
   },
   resolve: {
     modules: [__dirname, 'src', 'node_modules'],
-
     extensions: ['.js', '.json']
   }
 }
