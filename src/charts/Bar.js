@@ -72,7 +72,7 @@ class Bar {
     }
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathTo, pathFrom
+      let pathFrom
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -144,7 +144,6 @@ class Bar {
           },
           x,
           y,
-          pathTo,
           pathFrom,
           strokeWidth,
           elSeries
@@ -167,7 +166,6 @@ class Bar {
           barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
 
-        pathTo = paths.pathTo
         pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
@@ -187,7 +185,7 @@ class Bar {
           j,
           i,
           pathFrom,
-          pathTo,
+          pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
           x,
@@ -261,7 +259,7 @@ class Bar {
       j,
       realIndex,
       pathFrom: pathFrom,
-      pathTo: pathTo,
+      pathTo,
       stroke: lineFill,
       strokeWidth,
       strokeLineCap: w.config.stroke.lineCap,
@@ -310,7 +308,6 @@ class Bar {
     indexes,
     barHeight,
     strokeWidth,
-    pathTo,
     pathFrom,
     zeroW,
     x,
@@ -334,7 +331,7 @@ class Bar {
 
     let barYPosition = y + barHeight * this.visibleI
 
-    pathTo = graphics.move(zeroW, barYPosition)
+    let pathTo = graphics.move(zeroW, barYPosition)
 
     pathFrom = graphics.move(zeroW, barYPosition)
     if (w.globals.previousPaths.length > 0) {
@@ -419,7 +416,6 @@ class Bar {
     x,
     y,
     xDivision,
-    pathTo,
     pathFrom,
     barWidth,
     zeroH,
@@ -448,7 +444,7 @@ class Bar {
 
     let barXPosition = x + barWidth * this.visibleI
 
-    pathTo = graphics.move(barXPosition, zeroH)
+    let pathTo = graphics.move(barXPosition, zeroH)
 
     pathFrom = graphics.move(barXPosition, zeroH)
     if (w.globals.previousPaths.length > 0) {

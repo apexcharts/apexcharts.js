@@ -28,7 +28,7 @@ class RangeBar extends Bar {
     })
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathTo, pathFrom
+      let pathFrom
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -82,7 +82,7 @@ class RangeBar extends Bar {
 
         let paths = null
         let barYPosition = null
-        const params = { x, y, pathTo, pathFrom, strokeWidth, elSeries }
+        const params = { x, y, pathFrom, strokeWidth, elSeries }
 
         if (this.isHorizontal) {
           barYPosition = y + barHeight * this.visibleI
@@ -128,7 +128,6 @@ class RangeBar extends Bar {
           barHeight = paths.barHeight
         }
 
-        pathTo = paths.pathTo
         pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
@@ -148,7 +147,7 @@ class RangeBar extends Bar {
           y1,
           y2,
           pathFrom,
-          pathTo,
+          pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
           series,
@@ -173,7 +172,6 @@ class RangeBar extends Bar {
     y,
     strokeWidth,
     xDivision,
-    pathTo,
     pathFrom,
     barWidth,
     zeroH
@@ -210,7 +208,7 @@ class RangeBar extends Bar {
     }
     const barHeight = Math.abs(y2 - y1)
 
-    pathTo = graphics.move(barXPosition, zeroH)
+    let pathTo = graphics.move(barXPosition, zeroH)
     pathFrom = graphics.move(barXPosition, y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, true)
@@ -251,7 +249,6 @@ class RangeBar extends Bar {
     y1,
     y2,
     yDivision,
-    pathTo,
     pathFrom,
     barHeight,
     barYPosition,
@@ -271,7 +268,7 @@ class RangeBar extends Bar {
     x1 = zeroW + y1 / this.invertedYRatio
     x2 = zeroW + y2 / this.invertedYRatio
 
-    pathTo = graphics.move(zeroW, barYPosition)
+    let pathTo = graphics.move(zeroW, barYPosition)
     pathFrom = graphics.move(x1, barYPosition)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j)
