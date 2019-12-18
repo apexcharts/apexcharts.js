@@ -149,6 +149,28 @@ export default class Helpers {
     return pathFill
   }
 
+  getStrokeWidth(i, j, realIndex) {
+    let strokeWidth = 0
+    const w = this.w
+
+    if (
+      typeof this.barCtx.series[i][j] === 'undefined' ||
+      this.barCtx.series[i][j] === null
+    ) {
+      this.barCtx.isNullValue = true
+    } else {
+      this.barCtx.isNullValue = false
+    }
+    if (w.config.stroke.show) {
+      if (!this.barCtx.isNullValue) {
+        strokeWidth = Array.isArray(this.barCtx.strokeWidth)
+          ? this.barCtx.strokeWidth[realIndex]
+          : this.barCtx.strokeWidth
+      }
+    }
+    return strokeWidth
+  }
+
   /** getBarEndingShape draws the various shapes on top of bars/columns
    * @memberof Bar
    * @param {object} w - chart context

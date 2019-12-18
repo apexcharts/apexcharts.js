@@ -80,19 +80,7 @@ class RangeBar extends Bar {
         j < w.globals.dataPoints;
         j++, tj--
       ) {
-        this.isNullValue = false
-        if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
-          this.isNullValue = true
-        }
-        if (w.config.stroke.show) {
-          if (this.isNullValue) {
-            strokeWidth = 0
-          } else {
-            strokeWidth = Array.isArray(this.strokeWidth)
-              ? this.strokeWidth[realIndex]
-              : this.strokeWidth
-          }
-        }
+        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let y1 = this.seriesRangeStart[i][j]
         let y2 = this.seriesRangeEnd[i][j]
@@ -111,12 +99,15 @@ class RangeBar extends Bar {
             // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
             break
           }
-          const yPosition = w.globals.labels.indexOf(
-            w.config.series[i].data[j].x
-          )
 
-          barYPosition =
-            srty + barHeight * this.visibleI + yDivision * yPosition
+          if (this.isTimelineBar && w.config.series[i].data[j].x) {
+            const yPosition = w.globals.labels.indexOf(
+              w.config.series[i].data[j].x
+            )
+
+            barYPosition =
+              srty + barHeight * this.visibleI + yDivision * yPosition
+          }
 
           paths = this.drawRangeBarPaths({
             indexes: { i, j, realIndex, bc },
@@ -299,7 +290,7 @@ class RangeBar extends Bar {
     x2 = zeroW + y2 / this.invertedYRatio
 
     pathTo = graphics.move(zeroW, barYPosition)
-    pathFrom = graphics.move(zeroW, barYPosition)
+    pathFrom = graphics.move(x1, barYPosition)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j)
     }

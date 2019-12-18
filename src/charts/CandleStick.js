@@ -83,20 +83,7 @@ class CandleStick extends Bar {
         j < w.globals.dataPoints;
         j++, tj--
       ) {
-        if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
-          this.isNullValue = true
-        } else {
-          this.isNullValue = false
-        }
-        if (w.config.stroke.show) {
-          if (this.isNullValue) {
-            strokeWidth = 0
-          } else {
-            strokeWidth = Array.isArray(this.strokeWidth)
-              ? this.strokeWidth[realIndex]
-              : this.strokeWidth
-          }
-        }
+        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let color
 

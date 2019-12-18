@@ -127,15 +127,7 @@ class BarStacked extends Bar {
       // }
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
-        if (w.config.stroke.show) {
-          if (this.isNullValue) {
-            strokeWidth = 0
-          } else {
-            strokeWidth = Array.isArray(this.strokeWidth)
-              ? this.strokeWidth[realIndex]
-              : this.strokeWidth
-          }
-        }
+        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let paths = null
         if (this.isHorizontal) {
