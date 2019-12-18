@@ -867,7 +867,7 @@ export default class ApexCharts {
     ]
     let ret = null
     if (methodNames.indexOf(fn) !== -1) {
-      ret = chart.updateOptions(...opts)
+      ret = chart[fn](...opts)
     }
     return ret
   }
