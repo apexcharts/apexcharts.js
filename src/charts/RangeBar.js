@@ -138,20 +138,7 @@ class RangeBar extends Bar {
         y = paths.y
         x = paths.x
 
-        // push current X
-        let fillColor = null
-
-        if (
-          w.config.series[i].data[j] &&
-          w.config.series[i].data[j].fillColor
-        ) {
-          fillColor = w.config.series[i].data[j].fillColor
-        }
-
-        let pathFill = fill.fillPath({
-          seriesNumber: realIndex,
-          color: fillColor
-        })
+        let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
         let lineFill = w.globals.stroke.colors[realIndex]
 
