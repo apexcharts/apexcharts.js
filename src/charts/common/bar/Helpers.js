@@ -61,7 +61,8 @@ export default class Helpers {
         barHeight = yDivision / this.barCtx.seriesLen
       }
 
-      barHeight = (barHeight * parseInt(this.barCtx.barOptions.barHeight)) / 100
+      barHeight =
+        (barHeight * parseInt(this.barCtx.barOptions.barHeight, 10)) / 100
 
       zeroW =
         this.barCtx.baseLineInvertedY +
@@ -75,7 +76,7 @@ export default class Helpers {
       xDivision = w.globals.gridWidth / this.barCtx.visibleItems
       barWidth =
         ((xDivision / this.barCtx.seriesLen) *
-          parseInt(this.barCtx.barOptions.columnWidth)) /
+          parseInt(this.barCtx.barOptions.columnWidth, 10)) /
         100
 
       if (w.globals.isXNumeric) {
@@ -85,7 +86,7 @@ export default class Helpers {
         }
         barWidth =
           ((xDivision / this.barCtx.seriesLen) *
-            parseInt(this.barCtx.barOptions.columnWidth)) /
+            parseInt(this.barCtx.barOptions.columnWidth, 10)) /
           100
 
         if (barWidth < 1) {

@@ -209,7 +209,7 @@ class BarStacked extends Bar {
       barHeight = yDivision
 
       barHeight =
-        (barHeight * parseInt(w.config.plotOptions.bar.barHeight)) / 100
+        (barHeight * parseInt(w.config.plotOptions.bar.barHeight, 10)) / 100
 
       zeroW =
         this.baseLineInvertedY +
@@ -227,10 +227,10 @@ class BarStacked extends Bar {
 
       if (w.globals.isXNumeric) {
         xDivision = w.globals.minXDiff / this.xRatio
-        barWidth = (xDivision * parseInt(this.barOptions.columnWidth)) / 100
+        barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
       } else {
         barWidth =
-          (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
+          (barWidth * parseInt(w.config.plotOptions.bar.columnWidth, 10)) / 100
       }
 
       zeroH =

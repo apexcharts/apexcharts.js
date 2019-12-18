@@ -43,9 +43,9 @@ class Radar {
 
     this.maxLabelWidth = 20
 
-    const longestLabel = w.globals.labels.slice().sort(function(a, b) {
-      return b.length - a.length
-    })[0]
+    const longestLabel = w.globals.labels
+      .slice()
+      .sort((a, b) => b.length - a.length)[0]
     const labelWidth = this.graphics.getTextRects(
       longestLabel,
       w.config.dataLabels.style.fontSize
@@ -255,7 +255,7 @@ class Radar {
 
     let radiusSizes = []
     let layerDis = this.size / (layers - 1)
-    for (var i = 0; i < layers; i++) {
+    for (let i = 0; i < layers; i++) {
       radiusSizes[i] = layerDis * i
     }
     radiusSizes.reverse()
@@ -391,7 +391,7 @@ class Radar {
           y: currPosY,
           text,
           textAnchor,
-          i: i,
+          i,
           j: i,
           parent: elDataLabelsWrap,
           dataLabelsConfig,
@@ -445,7 +445,7 @@ class Radar {
 
       if (
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex) === parseInt(realIndex)
+        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
       ) {
         if (typeof w.globals.previousPaths[pp].paths[0] !== 'undefined') {
           pathFrom = w.globals.previousPaths[pp].paths[0].d
@@ -462,9 +462,9 @@ class Radar {
   ) {
     dataRadiusArr = dataRadiusArr || []
     angleArr = angleArr || []
-    var dataPointsPosArray = []
-    for (var j = 0; j < dataPointsLen; j++) {
-      var curPointPos = {}
+    let dataPointsPosArray = []
+    for (let j = 0; j < dataPointsLen; j++) {
+      let curPointPos = {}
       curPointPos.x = dataRadiusArr[j] * Math.sin(angleArr[j])
       curPointPos.y = -dataRadiusArr[j] * Math.cos(angleArr[j])
       dataPointsPosArray.push(curPointPos)
@@ -473,10 +473,10 @@ class Radar {
   }
 
   getPolygonPos(size) {
-    var dotsArray = []
-    var angle = (Math.PI * 2) / this.dataPointsLen
+    let dotsArray = []
+    let angle = (Math.PI * 2) / this.dataPointsLen
     for (let i = 0; i < this.dataPointsLen; i++) {
-      var curPos = {}
+      let curPos = {}
       curPos.x = size * Math.sin(i * angle)
       curPos.y = -size * Math.cos(i * angle)
       dotsArray.push(curPos)

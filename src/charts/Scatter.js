@@ -31,9 +31,7 @@ export default class Scatter {
     let elPointsMain = opts.elParent
 
     let elPointsWrap = graphics.group({
-      class: `apexcharts-series-markers apexcharts-series-${
-        w.config.chart.type
-      }`
+      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
     })
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
@@ -211,7 +209,7 @@ export default class Scatter {
 
   centerTextInBubble(y) {
     let w = this.w
-    y = y + parseInt(w.config.dataLabels.style.fontSize) / 4
+    y = y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4
 
     return {
       y

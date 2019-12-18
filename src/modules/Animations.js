@@ -40,7 +40,7 @@ export default class Animations {
       }
       case 'swing': {
         easing = (pos) => {
-          var s = 1.70158
+          let s = 1.70158
           return (pos -= 1) * pos * ((s + 1) * pos + s) + 1
         }
         break
@@ -124,13 +124,11 @@ export default class Animations {
     el.attr(from)
       .animate(speed)
       .attr(to)
-      .afterAll(function() {
-        fn()
-      })
+      .afterAll(() => fn())
   }
 
   animatePathsGradually(params) {
-    let { el, j, pathFrom, pathTo, speed, delay, strokeWidth } = params
+    let { el, j, pathFrom, pathTo, speed, delay } = params
 
     let me = this
     let w = this.w

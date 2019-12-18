@@ -35,9 +35,9 @@ export default class XAxis {
 
     if (this.xaxisBorderWidth.indexOf('%') > -1) {
       this.xaxisBorderWidth =
-        (w.globals.gridWidth * parseInt(this.xaxisBorderWidth)) / 100
+        (w.globals.gridWidth * parseInt(this.xaxisBorderWidth, 10)) / 100
     } else {
-      this.xaxisBorderWidth = parseInt(this.xaxisBorderWidth)
+      this.xaxisBorderWidth = parseInt(this.xaxisBorderWidth, 10)
     }
     this.xaxisBorderHeight = w.config.xaxis.axisBorder.height
 
@@ -53,16 +53,12 @@ export default class XAxis {
 
     let elXaxis = graphics.group({
       class: 'apexcharts-xaxis',
-      transform: `translate(${w.config.xaxis.offsetX}, ${
-        w.config.xaxis.offsetY
-      })`
+      transform: `translate(${w.config.xaxis.offsetX}, ${w.config.xaxis.offsetY})`
     })
 
     let elXaxisTexts = graphics.group({
       class: 'apexcharts-xaxis-texts-g',
-      transform: `translate(${w.globals.translateXAxisX}, ${
-        w.globals.translateXAxisY
-      })`
+      transform: `translate(${w.globals.translateXAxisX}, ${w.globals.translateXAxisY})`
     })
 
     elXaxis.add(elXaxisTexts)
@@ -256,9 +252,7 @@ export default class XAxis {
           let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
           elLabel.node.setAttribute(
             'transform',
-            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${
-              labelRotatingCenter.x
-            } ${labelRotatingCenter.y})`
+            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
           )
         }
         yPos = yPos + colHeight
@@ -395,9 +389,7 @@ export default class XAxis {
 
         xAxisTexts[xat].setAttribute(
           'transform',
-          `rotate(${w.config.xaxis.labels.rotate} ${textRotatingCenter.x} ${
-            textRotatingCenter.y
-          })`
+          `rotate(${w.config.xaxis.labels.rotate} ${textRotatingCenter.x} ${textRotatingCenter.y})`
         )
 
         xAxisTexts[xat].setAttribute('text-anchor', `end`)

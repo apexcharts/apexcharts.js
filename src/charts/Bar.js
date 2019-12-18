@@ -536,7 +536,7 @@ class Bar {
       if (
         gpp.paths &&
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex) === parseInt(realIndex)
+        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
       ) {
         if (typeof w.globals.previousPaths[pp].paths[j] !== 'undefined') {
           pathFrom = w.globals.previousPaths[pp].paths[j].d

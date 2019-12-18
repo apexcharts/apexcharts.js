@@ -99,10 +99,10 @@ export default class BarDataLabels {
     renderedPath.attr({
       cy: dataLabelsPos.bcy,
       cx: dataLabelsPos.bcx,
-      j: j,
+      j,
       val: series[i][j],
-      barHeight: barHeight,
-      barWidth: barWidth
+      barHeight,
+      barWidth
     })
 
     dataLabels = this.drawCalculatedDataLabels({
@@ -110,7 +110,7 @@ export default class BarDataLabels {
       y: dataLabelsPos.dataLabelsY,
       val: this.barCtx.isTimelineBar ? [y1, y2] : series[i][j],
       i: realIndex,
-      j: j,
+      j,
       barWidth,
       barHeight,
       textRects,
@@ -351,14 +351,14 @@ export default class BarDataLabels {
       let valIsNegative = this.barCtx.series[i][j] <= 0
       let position = w.config.plotOptions.bar.dataLabels.position
       if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
-        if (position == 'top') {
+        if (position === 'top') {
           if (valIsNegative) dataLabelsConfig.textAnchor = 'end'
           else dataLabelsConfig.textAnchor = 'start'
         }
-        if (position == 'center') {
+        if (position === 'center') {
           dataLabelsConfig.textAnchor = 'middle'
         }
-        if (position == 'bottom') {
+        if (position === 'bottom') {
           if (valIsNegative) dataLabelsConfig.textAnchor = 'end'
           else dataLabelsConfig.textAnchor = 'start'
         }

@@ -26,7 +26,10 @@ export default class Marker {
     let elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series')
 
     for (let i = 0; i < elsSeries.length; i++) {
-      let seriesIndex = parseInt(elsSeries[i].getAttribute('data:realIndex'))
+      let seriesIndex = parseInt(
+        elsSeries[i].getAttribute('data:realIndex'),
+        10
+      )
 
       let pointsMain = w.globals.dom.baseEl.querySelector(
         `.apexcharts-series[data\\:realIndex='${seriesIndex}'] .apexcharts-series-markers-wrap`
@@ -113,7 +116,7 @@ export default class Marker {
           w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
       }
 
-      if (col === parseInt(rel)) {
+      if (col === parseInt(rel, 10)) {
         me.newPointSize(col, points[p])
 
         let cx = points[p].getAttribute('cx')
@@ -142,7 +145,7 @@ export default class Marker {
       elPoint = point.parentNode.lastChild
     }
 
-    const index = parseInt(elPoint.getAttribute('index'))
+    const index = parseInt(elPoint.getAttribute('index'), 10)
     if (newSize === undefined) {
       newSize =
         w.globals.markers.size[index] + w.config.markers.hover.sizeOffset

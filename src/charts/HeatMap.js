@@ -129,7 +129,7 @@ export default class HeatMap {
           val: heatSeries[i][j],
           'stroke-width': this.strokeWidth,
           stroke: w.globals.stroke.colors[0],
-          color: color
+          color
         })
 
         rect.node.addEventListener(
@@ -264,8 +264,8 @@ export default class HeatMap {
           color = range.color
           min = range.from
           max = range.to
-          let total = Math.abs(max) + Math.abs(min)
-          percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
+          let rTotal = Math.abs(max) + Math.abs(min)
+          percent = (100 * val) / (rTotal === 0 ? rTotal - 0.000001 : rTotal)
         }
       })
     }

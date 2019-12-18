@@ -145,7 +145,8 @@ export default class Position {
     }
 
     const ycrosshairsHiddenRectY1 = parseInt(
-      ttCtx.ycrosshairsHidden.getAttribute('y1')
+      ttCtx.ycrosshairsHidden.getAttribute('y1'),
+      10
     )
     let cy = w.globals.translateY + ycrosshairsHiddenRectY1
 
@@ -247,7 +248,7 @@ export default class Position {
         ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`
       )
       for (let p = 0; p < allPoints.length; p++) {
-        if (parseInt(allPoints[p].getAttribute('rel')) === j) {
+        if (parseInt(allPoints[p].getAttribute('rel'), 10) === j) {
           ttCtx.marker.resetPointsSize()
           ttCtx.marker.enlargeCurrentPoint(j, allPoints[p])
         }
@@ -354,7 +355,8 @@ export default class Position {
           let realIndex = parseInt(
             points[p].parentNode.parentNode.parentNode.getAttribute(
               'data:realIndex'
-            )
+            ),
+            10
           )
 
           if (pcy !== null) {

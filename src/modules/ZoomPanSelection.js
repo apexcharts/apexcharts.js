@@ -41,7 +41,7 @@ export default class ZoomPanSelection extends Toolbar {
 
   init({ xyRatios }) {
     let w = this.w
-    var me = this
+    let me = this
 
     this.xyRatios = xyRatios
 

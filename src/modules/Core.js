@@ -3,7 +3,6 @@ import BarStacked from '../charts/BarStacked'
 import CandleStick from '../charts/CandleStick'
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
-import DateTime from './../utils/DateTime'
 import HeatMap from '../charts/HeatMap'
 import Pie from '../charts/Pie'
 import Radar from '../charts/Radar'
@@ -12,12 +11,9 @@ import RangeBar from '../charts/RangeBar'
 import Legend from './Legend'
 import Line from '../charts/Line'
 import Graphics from './Graphics'
-import XAxis from './axes/XAxis'
-import YAxis from './axes/YAxis'
 import Range from './Range'
 import Utils from '../utils/Utils'
 import Scales from './Scales'
-import Series from './Series'
 import TimeScale from './TimeScale'
 
 /**
@@ -287,10 +283,10 @@ export default class Core {
           elDim = Utils.getDimensions(this.el.parentNode)
         }
 
-        gl.svgWidth = (elDim[0] * parseInt(cnf.chart.width)) / 100
+        gl.svgWidth = (elDim[0] * parseInt(cnf.chart.width, 10)) / 100
       }
     } else if (widthUnit === 'px' || widthUnit === '') {
-      gl.svgWidth = parseInt(cnf.chart.width)
+      gl.svgWidth = parseInt(cnf.chart.width, 10)
     }
 
     if (gl.svgHeight !== 'auto' && gl.svgHeight !== '') {
@@ -300,9 +296,9 @@ export default class Core {
         .pop()
       if (heightUnit === '%') {
         let elParentDim = Utils.getDimensions(this.el.parentNode)
-        gl.svgHeight = (elParentDim[1] * parseInt(cnf.chart.height)) / 100
+        gl.svgHeight = (elParentDim[1] * parseInt(cnf.chart.height, 10)) / 100
       } else {
-        gl.svgHeight = parseInt(cnf.chart.height)
+        gl.svgHeight = parseInt(cnf.chart.height, 10)
       }
     } else {
       if (gl.axisCharts) {
@@ -415,9 +411,7 @@ export default class Core {
 
   resetGlobals() {
     const resetxyValues = () => {
-      return this.w.config.series.map((s) => {
-        return []
-      })
+      return this.w.config.series.map((s) => [])
     }
 
     let gl = this.w.globals

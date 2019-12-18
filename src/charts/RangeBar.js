@@ -249,18 +249,13 @@ class RangeBar extends Bar {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let i = indexes.i
-    let j = indexes.j
-
-    let realIndex = indexes.realIndex
-
     const x1 = zeroW + y1 / this.invertedYRatio
     const x2 = zeroW + y2 / this.invertedYRatio
 
     let pathTo = graphics.move(zeroW, barYPosition)
     let pathFrom = graphics.move(x1, barYPosition)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j)
+      pathFrom = this.getPreviousPath(indexes.realIndex, indexes.j)
     }
 
     const barWidth = Math.abs(x2 - x1)

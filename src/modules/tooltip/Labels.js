@@ -182,7 +182,7 @@ export default class Labels {
     const w = this.w
     return fn(String(w.globals.seriesNames[index]), {
       series: w.globals.series,
-      seriesIndex: seriesIndex,
+      seriesIndex,
       dataPointIndex: j,
       w
     })

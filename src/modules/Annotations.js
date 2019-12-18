@@ -653,8 +653,8 @@ export default class Annotations {
     const parentNode = w.globals.dom.baseEl.querySelector(appendTo)
 
     let elText = this.graphics.drawText({
-      x: x,
-      y: y,
+      x,
+      y,
       text,
       textAnchor: textAnchor || 'start',
       fontSize: fontSize || '12px',
@@ -805,7 +805,7 @@ export default class Annotations {
         id: anno.id ? anno.id : Utils.randomId(),
         method: contextMethod,
         label: 'addAnnotation',
-        params: params
+        params
       })
     }
 

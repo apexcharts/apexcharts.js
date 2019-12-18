@@ -213,8 +213,8 @@ export default class Tooltip {
 
     let seriesHoverParams = {
       hoverArea,
-      elGrid: elGrid,
-      tooltipEl: tooltipEl,
+      elGrid,
+      tooltipEl,
       tooltipY,
       tooltipX,
       ttItems: this.ttItems
@@ -403,7 +403,7 @@ export default class Tooltip {
 
         const newOpts = {
           paths: opt.paths,
-          tooltipEl: tooltipEl,
+          tooltipEl,
           tooltipY: opt.tooltipY,
           tooltipX: opt.tooltipX,
           elGrid: opt.elGrid,
@@ -505,7 +505,7 @@ export default class Tooltip {
       Array.isArray(this.tConfig.enabledOnSeries) &&
       !w.config.tooltip.shared
     ) {
-      const index = parseInt(opt.paths.getAttribute('index'))
+      const index = parseInt(opt.paths.getAttribute('index'), 10)
       if (this.tConfig.enabledOnSeries.indexOf(index) < 0) {
         this.handleMouseOut(opt)
         return
@@ -518,7 +518,8 @@ export default class Tooltip {
     let isStickyTooltip =
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
-        (!w.globals.isBarHorizontal && this.hasBars()) &&
+        !w.globals.isBarHorizontal &&
+        this.hasBars() &&
         this.tConfig.shared) ||
       (w.globals.comboCharts && this.hasBars)
 
@@ -645,7 +646,7 @@ export default class Tooltip {
 
       this.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
-        i: parseInt(rel) - 1,
+        i: parseInt(rel, 10) - 1,
         shared: false
       })
 
@@ -780,7 +781,7 @@ export default class Tooltip {
       // for irregular time series
       for (let i = 0; i < els.length; i++) {
         const l = els[i]
-        const lsIndex = parseInt(l.getAttribute('i'))
+        const lsIndex = parseInt(l.getAttribute('i'), 10)
         const legendName = decodeURIComponent(
           l.getAttribute('data:default-text')
         )

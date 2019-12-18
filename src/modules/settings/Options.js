@@ -419,7 +419,7 @@ export default class Options {
               fontFamily: undefined,
               color: undefined,
               offsetY: 16,
-              formatter: function(val) {
+              formatter(val) {
                 return val + '%'
               }
             },
@@ -427,11 +427,9 @@ export default class Options {
               show: false,
               label: 'Total',
               color: undefined,
-              formatter: function(w) {
+              formatter(w) {
                 return (
-                  w.globals.seriesTotals.reduce((a, b) => {
-                    return a + b
-                  }, 0) /
+                  w.globals.seriesTotals.reduce((a, b) => a + b, 0) /
                     w.globals.series.length +
                   '%'
                 )
@@ -470,7 +468,7 @@ export default class Options {
                 fontFamily: undefined,
                 color: undefined,
                 offsetY: 10,
-                formatter: function(val) {
+                formatter(val) {
                   return val
                 }
               },
@@ -479,10 +477,8 @@ export default class Options {
                 showAlways: false,
                 label: 'Total',
                 color: undefined,
-                formatter: function(w) {
-                  return w.globals.seriesTotals.reduce((a, b) => {
-                    return a + b
-                  }, 0)
+                formatter(w) {
+                  return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
                 }
               }
             }
@@ -506,7 +502,7 @@ export default class Options {
       dataLabels: {
         enabled: true,
         enabledOnSeries: undefined,
-        formatter: function(val) {
+        formatter(val) {
           return val !== null ? val : ''
         },
         textAnchor: 'middle',
@@ -744,7 +740,7 @@ export default class Options {
         y: {
           formatter: undefined,
           title: {
-            formatter: function(seriesName) {
+            formatter(seriesName) {
               return seriesName
             }
           }

@@ -93,9 +93,7 @@ export default class YAxis {
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {
           label.node.setAttribute(
             'transform',
-            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${
-              labelRotatingCenter.x
-            } ${labelRotatingCenter.y})`
+            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
           )
         }
         l = l + labelsDivider
@@ -174,9 +172,7 @@ export default class YAxis {
 
     let elXaxisTexts = graphics.group({
       class: 'apexcharts-xaxis-texts-g',
-      transform: `translate(${w.globals.translateXAxisX}, ${
-        w.globals.translateXAxisY
-      })`
+      transform: `translate(${w.globals.translateXAxisX}, ${w.globals.translateXAxisY})`
     })
 
     elXaxis.add(elXaxisTexts)
@@ -234,7 +230,7 @@ export default class YAxis {
         }
 
         let elTick = graphics.drawText({
-          x: x,
+          x,
           y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
           text: '',
           textAnchor: 'middle',
@@ -346,16 +342,12 @@ export default class YAxis {
       if (!yAxisOpposite) {
         yAxisTitle.setAttribute(
           'transform',
-          `rotate(-${w.config.yaxis[realIndex].title.rotate} ${
-            titleRotatingCenter.x
-          } ${titleRotatingCenter.y})`
+          `rotate(-${w.config.yaxis[realIndex].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
         )
       } else {
         yAxisTitle.setAttribute(
           'transform',
-          `rotate(${w.config.yaxis[realIndex].title.rotate} ${
-            titleRotatingCenter.x
-          } ${titleRotatingCenter.y})`
+          `rotate(${w.config.yaxis[realIndex].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
         )
       }
     }

@@ -76,15 +76,11 @@ export default class Utils {
     }
 
     seriesXValArr = seriesXValArr.map((seriesXVal) => {
-      return seriesXVal.filter((s) => {
-        return s
-      })
+      return seriesXVal.filter((s) => s)
     })
 
     seriesYValArr = w.globals.seriesYvalues.map((seriesYVal) => {
-      return seriesYVal.filter((s) => {
-        return s
-      })
+      return seriesYVal.filter((s) => s)
     })
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
@@ -168,11 +164,7 @@ export default class Utils {
     const coreUtils = new CoreUtils(this.ctx)
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
-      if (xarr.length > 0) {
-        return index
-      } else {
-        return -1
-      }
+      xarr.length > 0 ? index : -1
     })
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
@@ -180,7 +172,8 @@ export default class Utils {
 
       if (
         firstActiveSeriesIndex[a] !== -1 &&
-        (total !== 0 && !coreUtils.seriesHaveSameValues(a))
+        total !== 0 &&
+        !coreUtils.seriesHaveSameValues(a)
       ) {
         activeIndex = firstActiveSeriesIndex[a]
         break
@@ -221,9 +214,7 @@ export default class Utils {
     let w = this.w
     let xSameForAllSeriesJArr = []
 
-    const seriesX = w.globals.seriesX.filter((s) => {
-      return typeof s[0] !== 'undefined'
-    })
+    const seriesX = w.globals.seriesX.filter((s) => typeof s[0] !== 'undefined')
 
     if (seriesX.length > 0) {
       for (let i = 0; i < seriesX.length - 1; i++) {
@@ -262,9 +253,7 @@ export default class Utils {
 
   getBarsHeight(allbars) {
     let bars = [...allbars]
-    const totalHeight = bars.reduce((acc, bar) => {
-      return acc + bar.getBBox().height
-    }, 0)
+    const totalHeight = bars.reduce((acc, bar) => acc + bar.getBBox().height, 0)
 
     return totalHeight
   }

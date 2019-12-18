@@ -106,7 +106,7 @@ class Grid {
 
     if (Array.isArray(w.config.stroke.width)) {
       let strokeMaxSize = 0
-      w.config.stroke.width.forEach(function(m) {
+      w.config.stroke.width.forEach((m) => {
         strokeMaxSize = Math.max(strokeMaxSize, m)
       })
       strokeSize = strokeMaxSize
@@ -215,8 +215,6 @@ class Grid {
       if (tickAmount > 2) break
     }
 
-    let xCount
-
     const datetimeLines = ({ xCount, x1, y1, x2, y2 }) => {
       for (let i = 0; i < xCount; i++) {
         x1 = this.xaxisLabels[i].position
@@ -262,6 +260,8 @@ class Grid {
         xAxis.drawXaxisTicks(x1, elg)
       }
     }
+
+    let xCount
 
     if (!w.globals.isBarHorizontal || this.isTimelineBar) {
       xCount = this.xaxisLabels.length
