@@ -27,7 +27,7 @@
     "build:umd": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "build:amd": "webpack -p",
     "lint": "eslint src/**/*.js tests/**/*.js --no-fix",
-    "test": "jest",
+    "test": "jest --testTimeout=30000",
     "unit": "jest tests/unit/",
     "e2e": "jest tests/e2e/"
   },
