@@ -393,8 +393,10 @@ class Graphics {
       })
     } else {
       g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', (stop) => {
-        let stops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops
-        stops.forEach((s) => {
+        let gradientStops = Array.isArray(colorStops[i])
+          ? colorStops[i]
+          : colorStops
+        gradientStops.forEach((s) => {
           stop.at(s.offset / 100, s.color, s.opacity)
         })
       })

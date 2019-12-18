@@ -77,7 +77,7 @@ module.exports = {
     },
     overrides: [
         {
-            files: ['tests/unit/**/*.js'],
+            files: ['tests/**/*.js'],
             globals: {
                 describe: true,
                 it: true,

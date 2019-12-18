@@ -26,7 +26,8 @@
     "build": "npm run bundle && webpack -p",
     "build:umd": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "build:amd": "webpack -p",
-    "lint": "eslint src/apexcharts.js src/**/*.js tests/**/*.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "jest --testTimeout=30000",
     "unit": "jest tests/unit/",
     "e2e": "jest tests/e2e/"

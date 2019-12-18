@@ -215,8 +215,6 @@ class Grid {
       if (tickAmount > 2) break
     }
 
-    let xCount
-
     const datetimeLines = ({ xCount, x1, y1, x2, y2 }) => {
       for (let i = 0; i < xCount; i++) {
         x1 = this.xaxisLabels[i].position
@@ -262,6 +260,8 @@ class Grid {
         xAxis.drawXaxisTicks(x1, elg)
       }
     }
+
+    let xCount
 
     if (!w.globals.isBarHorizontal || this.isTimelineBar) {
       xCount = this.xaxisLabels.length

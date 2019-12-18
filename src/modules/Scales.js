@@ -439,7 +439,7 @@ export default class Range {
 
     let isStacked = w.config.chart.stacked
 
-    yaxis.forEach((yaxe, yI) => {
+    yaxis.forEach((yaxe, yi) => {
       let firstXIndex = 0
 
       for (let xi = 0; xi < seriesX.length; xi++) {
@@ -449,8 +449,8 @@ export default class Range {
         }
       }
 
-      let initialMin = w.globals.minYArr[yI]
-      let initialMax = w.globals.maxYArr[yI]
+      let initialMin = w.globals.minYArr[yi]
+      let initialMax = w.globals.maxYArr[yi]
       let min, max
 
       let stackedSer = w.globals.stackedSeriesTotals

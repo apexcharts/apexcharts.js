@@ -348,7 +348,6 @@ class Pie {
 
           if (w.config.dataLabels.dropShadow.enabled) {
             const textShadow = w.config.dataLabels.dropShadow
-            const filters = new Filters(this.ctx)
             filters.dropShadow(elPieLabel, textShadow)
           }
 
@@ -808,7 +807,7 @@ class Pie {
     }
   }
 
-  revertDataLabelsInner(el, dataLabelsConfig, event) {
+  revertDataLabelsInner(elem, dataLabelsConfig, event) {
     let w = this.w
     let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
       '.apexcharts-datalabels-group'
