@@ -55,9 +55,7 @@
               })
 
             });
-            arraySelected = arraySelected.reduce((acc, curr) => {
-              return acc + curr;
-            }, 0)
+            arraySelected = arraySelected.reduce((acc, curr) => acc + curr, 0)
                         
             document.querySelector("#selected-count").innerHTML = arraySelected
           }

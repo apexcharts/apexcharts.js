@@ -63,7 +63,7 @@ class Legend {
   }
 
   getLegendStyles() {
-    var stylesheet = document.createElement('style')
+    let stylesheet = document.createElement('style')
     stylesheet.setAttribute('type', 'text/css')
 
     const text = `	
@@ -124,7 +124,7 @@ class Legend {
         opacity: 0.45;	
       }`
 
-    var rules = document.createTextNode(text)
+    let rules = document.createTextNode(text)
 
     stylesheet.appendChild(rules)
 
@@ -166,9 +166,7 @@ class Legend {
           ? colorScale.name
           : colorScale.from + ' - ' + colorScale.to
       })
-      fillcolor = ranges.map((color) => {
-        return color.color
-      })
+      fillcolor = ranges.map((color) => color.color)
     } else if (this.isBarsDistributed) {
       legendNames = w.globals.labels.slice()
     }
@@ -285,7 +283,7 @@ class Legend {
 
       Graphics.setAttrs(elLegendText, {
         rel: i + 1,
-        i: i,
+        i,
         'data:default-text': encodeURIComponent(text),
         'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
@@ -428,11 +426,11 @@ class Legend {
     }
 
     if (elLegendWrap.style.width) {
-      elLegendWrap.style.width = parseInt(w.config.legend.width) + 'px'
+      elLegendWrap.style.width = parseInt(w.config.legend.width, 10) + 'px'
     }
 
     if (elLegendWrap.style.height) {
-      elLegendWrap.style.height = parseInt(w.config.legend.height) + 'px'
+      elLegendWrap.style.height = parseInt(w.config.legend.height, 10) + 'px'
     }
   }
 
@@ -501,7 +499,7 @@ class Legend {
     } else {
       // for heatmap handling
       if (hoverOverLegend) {
-        let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
+        let seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
         this.ctx.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
 
         let series = new Series(this.ctx)
@@ -515,7 +513,7 @@ class Legend {
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
     ) {
-      let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
+      let seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
       let isHidden = e.target.getAttribute('data:collapsed') === 'true'
 
       const legendClick = this.w.config.chart.events.legendClick
@@ -554,12 +552,12 @@ class Legend {
         seriesEl = w.globals.dom.baseEl.querySelector(
           `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
         )
-        realIndex = parseInt(seriesEl.getAttribute('data:realIndex'))
+        realIndex = parseInt(seriesEl.getAttribute('data:realIndex'), 10)
       } else {
         seriesEl = w.globals.dom.baseEl.querySelector(
           `.apexcharts-series[rel='${seriesCnt + 1}']`
         )
-        realIndex = parseInt(seriesEl.getAttribute('rel')) - 1
+        realIndex = parseInt(seriesEl.getAttribute('rel'), 10) - 1
       }
 
       if (isHidden) {

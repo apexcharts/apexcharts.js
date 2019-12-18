@@ -142,7 +142,7 @@ export default class Dimensions {
     if (w.globals.isBarHorizontal) {
       gl.rotateXLabels = false
       gl.translateXAxisY =
-        -1 * (parseInt(w.config.xaxis.labels.style.fontSize) / 1.5)
+        -1 * (parseInt(w.config.xaxis.labels.style.fontSize, 10) / 1.5)
     }
 
     gl.translateXAxisY = gl.translateXAxisY + w.config.xaxis.labels.offsetY
@@ -291,7 +291,7 @@ export default class Dimensions {
           w.globals.translateX =
             w.globals.translateX -
             (yaxisLabelCoords[index].width + yTitleCoords[index].width) -
-            parseInt(w.config.yaxis[index].labels.style.fontSize) / 1.2 -
+            parseInt(w.config.yaxis[index].labels.style.fontSize, 10) / 1.2 -
             12
         }
       }
@@ -306,9 +306,8 @@ export default class Dimensions {
     const xtype = w.config.xaxis.type
     const isXNumeric = w.globals.isXNumeric
 
-    const isCollapsed = (i) => {
-      return w.globals.collapsedSeriesIndices.indexOf(i) !== -1
-    }
+    const isCollapsed = (i) =>
+      w.globals.collapsedSeriesIndices.indexOf(i) !== -1
 
     const rightPad = (labels) => {
       if (this.timescaleLabels) {
@@ -343,7 +342,7 @@ export default class Dimensions {
     const padYAxe = (yaxe, shouldPad, i) => {
       if (!shouldPad || !isXNumeric) return
       if (
-        (isXNumeric && w.globals.isMultipleYAxis && wisCollapsed(i)) ||
+        (isXNumeric && w.globals.isMultipleYAxis && isCollapsed(i)) ||
         (w.globals.isBarHorizontal && yaxe.opposite)
       ) {
         leftPad(xaxisLabelCoords)
@@ -466,12 +465,10 @@ export default class Dimensions {
       this.timescaleLabels = w.globals.invertedTimelineLabels.slice()
     }
 
-    let labels = this.timescaleLabels.map((label) => {
-      return label.value
-    })
+    let labels = this.timescaleLabels.map((label) => label.value)
 
     //  get the longest string from the labels array and also apply label formatter to it
-    let val = labels.reduce(function(a, b) {
+    let val = labels.reduce((a, b) => {
       // if undefined, maybe user didn't pass the datetime(x) values
       if (typeof a === 'undefined') {
         console.error(
@@ -527,15 +524,14 @@ export default class Dimensions {
       let xlbFormatter = w.globals.xLabelFormatter
 
       // prevent changing xaxisLabels to avoid issues in multi-yaxies - fix #522
-      let val = xaxisLabels.reduce(function(a, b) {
-        return a.length > b.length ? a : b
-      }, 0)
+      let val = xaxisLabels.reduce((a, b) => (a.length > b.length ? a : b), 0)
 
       // the labels gets changed for bar charts
       if (w.globals.isBarHorizontal) {
-        val = w.globals.yAxisScale[0].result.reduce(function(a, b) {
-          return a.length > b.length ? a : b
-        }, 0)
+        val = w.globals.yAxisScale[0].result.reduce(
+          (a, b) => (a.length > b.length ? a : b),
+          0
+        )
       }
 
       let xFormat = new Formatters(this.ctx)
@@ -628,9 +624,10 @@ export default class Dimensions {
           let barYaxisLabels = w.globals.labels.slice()
 
           //  get the longest string from the labels array and also apply label formatter to it
-          val = barYaxisLabels.reduce(function(a, b) {
-            return a.length > b.length ? a : b
-          }, 0)
+          val = barYaxisLabels.reduce(
+            (a, b) => (a.length > b.length ? a : b),
+            0
+          )
 
           val = lbFormatter(val, { seriesIndex: index, dataPointIndex: -1, w })
         }
@@ -676,8 +673,8 @@ export default class Dimensions {
     }
 
     return {
-      width: width,
-      height: height
+      width,
+      height
     }
   }
 

@@ -402,9 +402,7 @@ class Range {
 
         // fix #983 (clone the array to avoid side effects)
         const seriesX = sX.slice()
-        seriesX.sort((a, b) => {
-          return a - b
-        })
+        seriesX.sort((a, b) => a - b)
 
         seriesX.forEach((s, j) => {
           if (j > 0) {

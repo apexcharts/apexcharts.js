@@ -104,7 +104,7 @@ class DataLabels {
         y =
           y +
           w.globals.markers.size[i] * 2 +
-          parseInt(dataLabelsConfig.style.fontSize) * 1.4
+          parseInt(dataLabelsConfig.style.fontSize, 10) * 1.4
       }
 
       if (!isNaN(x)) {
@@ -121,7 +121,7 @@ class DataLabels {
           text = w.config.dataLabels.formatter(val, {
             ctx: this.ctx,
             seriesIndex: i,
-            dataPointIndex: dataPointIndex,
+            dataPointIndex,
             w
           })
 
@@ -138,7 +138,7 @@ class DataLabels {
             text = w.config.dataLabels.formatter(val, {
               ctx: this.ctx,
               seriesIndex: i,
-              dataPointIndex: dataPointIndex,
+              dataPointIndex,
               w
             })
           }
@@ -183,8 +183,8 @@ class DataLabels {
     }
 
     let correctedLabels = {
-      x: x,
-      y: y,
+      x,
+      y,
       drawnextLabel: true
     }
 
@@ -196,7 +196,7 @@ class DataLabels {
         i,
         j,
         alwaysDrawDataLabel,
-        parseInt(dataLabelsConfig.style.fontSize)
+        parseInt(dataLabelsConfig.style.fontSize, 10)
       )
     }
 
@@ -228,12 +228,12 @@ class DataLabels {
     if (correctedLabels.drawnextLabel) {
       let dataLabelText = graphics.drawText({
         width: 100,
-        height: parseInt(dataLabelsConfig.style.fontSize),
-        x: x,
-        y: y,
+        height: parseInt(dataLabelsConfig.style.fontSize, 10),
+        x,
+        y,
         foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
-        text: text,
+        text,
         fontSize: dataLabelsConfig.style.fontSize,
         fontFamily: dataLabelsConfig.style.fontFamily
       })

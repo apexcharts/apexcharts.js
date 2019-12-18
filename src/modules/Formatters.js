@@ -142,9 +142,10 @@ class Formatters {
       w.globals.yAxisScale[0].result = w.globals.seriesNames.slice()
 
       //  get the longest string from the labels array and also apply label formatter to it
-      let longest = w.globals.seriesNames.reduce(function(a, b) {
-        return a.length > b.length ? a : b
-      }, 0)
+      let longest = w.globals.seriesNames.reduce(
+        (a, b) => (a.length > b.length ? a : b),
+        0
+      )
       w.globals.yAxisScale[0].niceMax = longest
       w.globals.yAxisScale[0].niceMin = longest
     }

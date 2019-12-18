@@ -245,7 +245,7 @@ class TimeScale {
     // The reason we can't do this prior to this stage is because timeline labels depends on gridWidth, and as the ticks are calculated based on available gridWidth, there can be unknown number of ticks generated for different minX and maxX
     // Dependency on Dimensions(), need to refactor correctly
     // TODO - find an alternate way to avoid calling this Heavy method twice
-    var dimensions = new Dimensions(this.ctx)
+    let dimensions = new Dimensions(this.ctx)
     dimensions.plotCoords()
   }
 
@@ -735,7 +735,7 @@ class TimeScale {
       return {
         dateString: raw,
         position: ts.position,
-        value: value,
+        value,
         unit: ts.unit,
         year: ts.year,
         month: ts.month
@@ -767,9 +767,7 @@ class TimeScale {
       }
     })
 
-    filteredArray = filteredArray.filter((f) => {
-      return f !== null
-    })
+    filteredArray = filteredArray.filter((f) => f !== null)
 
     return filteredArray
   }

@@ -173,7 +173,7 @@ export default class ApexCharts {
       return
     }
 
-    var index = w.globals.events[name].indexOf(handler)
+    let index = w.globals.events[name].indexOf(handler)
     if (index !== -1) {
       w.globals.events[name].splice(index, 1)
     }
@@ -193,7 +193,7 @@ export default class ApexCharts {
     let evs = w.globals.events[name]
     let l = evs.length
 
-    for (var i = 0; i < l; i++) {
+    for (let i = 0; i < l; i++) {
       evs[i].apply(null, args)
     }
   }
@@ -629,9 +629,7 @@ export default class ApexCharts {
           return true
         }
       })
-      .map((ch) => {
-        return this.w.config.chart.group === ch.group ? ch.chart : this
-      })
+      .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
   }
 
   /**
@@ -845,60 +843,31 @@ export default class ApexCharts {
   static exec(chartID, fn, ...opts) {
     const chart = this.getChartByID(chartID)
     if (!chart) return
-    let ret = null
 
     // turn on the global exec flag to indicate this method was called
     chart.w.globals.isExecCalled = true
 
-    switch (fn) {
-      case 'updateOptions': {
-        ret = chart.updateOptions(...opts)
-      }
-      case 'updateSeries': {
-        ret = chart.updateSeries(...opts)
-      }
-      case 'appendData': {
-        ret = chart.appendData(...opts)
-      }
-      case 'appendSeries': {
-        ret = chart.appendSeries(...opts)
-      }
-      case 'toggleSeries': {
-        ret = chart.toggleSeries(...opts)
-      }
-      case 'resetSeries': {
-        ret = chart.resetSeries(...opts)
-      }
-      case 'toggleDataPointSelection': {
-        ret = chart.toggleDataPointSelection(...opts)
-      }
-      case 'dataURI': {
-        ret = chart.dataURI(...opts)
-      }
-      case 'addXaxisAnnotation': {
-        ret = chart.addXaxisAnnotation(...opts)
-      }
-      case 'addYaxisAnnotation': {
-        ret = chart.addYaxisAnnotation(...opts)
-      }
-      case 'addPointAnnotation': {
-        ret = chart.addPointAnnotation(...opts)
-      }
-      case 'addText': {
-        ret = chart.addText(...opts)
-      }
-      case 'clearAnnotations': {
-        ret = chart.clearAnnotations(...opts)
-      }
-      case 'removeAnnotation': {
-        ret = chart.removeAnnotation(...opts)
-      }
-      case 'paper': {
-        ret = chart.paper(...opts)
-      }
-      case 'destroy': {
-        ret = chart.destroy()
-      }
+    const methodNames = [
+      'updateOptions',
+      'updateSeries',
+      'appendData',
+      'appendSeries',
+      'toggleSeries',
+      'resetSeries',
+      'toggleDataPointSelection',
+      'dataURI',
+      'addXaxisAnnotation',
+      'addYaxisAnnotation',
+      'addPointAnnotation',
+      'addText',
+      'clearAnnotations',
+      'removeAnnotation',
+      'paper',
+      'destroy'
+    ]
+    let ret = null
+    if (methodNames.indexOf(fn) !== -1) {
+      ret = chart.updateOptions(...opts)
     }
     return ret
   }
@@ -948,7 +917,7 @@ export default class ApexCharts {
     this.eventList.forEach((event) => {
       clickableArea.addEventListener(
         event,
-        function(e) {
+        (e) => {
           const opts = Object.assign({}, w, {
             seriesIndex: w.globals.capturedSeriesIndex,
             dataPointIndex: w.globals.capturedDataPointIndex
@@ -1113,9 +1082,7 @@ export default class ApexCharts {
     }
 
     // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)
-    const selectedLocale = locales.filter((c) => {
-      return c.name === localeName
-    })[0]
+    const selectedLocale = locales.filter((c) => c.name === localeName)[0]
 
     if (selectedLocale) {
       // create a complete locale object by extending defaults so you don't get undefined errors.
@@ -1140,9 +1107,7 @@ export default class ApexCharts {
   }
 
   static getChartByID(chartID) {
-    const c = Apex._chartInstances.filter((ch) => {
-      return ch.id === chartID
-    })[0]
+    const c = Apex._chartInstances.filter((ch) => ch.id === chartID)[0]
     return c.chart
   }
 

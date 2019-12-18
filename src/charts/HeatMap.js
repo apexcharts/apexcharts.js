@@ -129,7 +129,7 @@ export default class HeatMap {
           val: heatSeries[i][j],
           'stroke-width': this.strokeWidth,
           stroke: w.globals.stroke.colors[0],
-          color: color
+          color
         })
 
         rect.node.addEventListener(

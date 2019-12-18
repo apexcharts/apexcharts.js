@@ -28,15 +28,15 @@ export default class TitleSubtitle {
     }
 
     x = x + tsConfig.offsetX
-    y = y + parseInt(tsConfig.style.fontSize) + 2
+    y = y + parseInt(tsConfig.style.fontSize, 10) + 2
 
     if (tsConfig.text !== undefined) {
       let graphics = new Graphics(this.ctx)
       let titleText = graphics.drawText({
-        x: x,
-        y: y,
+        x,
+        y,
         text: tsConfig.text,
-        textAnchor: textAnchor,
+        textAnchor,
         fontSize: tsConfig.style.fontSize,
         fontFamily: tsConfig.style.fontFamily,
         foreColor: tsConfig.style.color,

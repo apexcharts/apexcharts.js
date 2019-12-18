@@ -390,7 +390,7 @@ class Line {
           // fillable lines only for lineChart
           lineFill = fill.fillPath({
             seriesNumber: realIndex,
-            i: i
+            i
           })
         } else {
           lineFill = w.globals.stroke.colors[realIndex]
@@ -445,7 +445,7 @@ class Line {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    var curve = w.config.stroke.curve
+    let curve = w.config.stroke.curve
 
     if (Array.isArray(w.config.stroke.curve)) {
       if (Array.isArray(seriesIndex)) {
@@ -605,7 +605,7 @@ class Line {
       if (
         (gpp.type === 'line' || gpp.type === 'area') &&
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex) === parseInt(realIndex)
+        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
       ) {
         if (gpp.type === 'line') {
           this.appendPathFrom = false

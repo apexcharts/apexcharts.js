@@ -51,7 +51,7 @@ export default class Theme {
                     : 0
                   : w.globals.series[i],
                 seriesIndex: i,
-                w: w
+                w
               })
             : c
         })

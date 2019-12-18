@@ -1,8 +1,6 @@
-import Crosshairs from './Crosshairs'
 import CoreUtils from './CoreUtils'
 import DateTime from './../utils/DateTime'
 import Series from './Series'
-import TimeScale from './TimeScale'
 import Utils from '../utils/Utils'
 
 export default class Data {
@@ -202,11 +200,8 @@ export default class Data {
   }
 
   handleRangeDataFormat(format, ser, i) {
-    const w = this.w
-
     const rangeStart = []
     const rangeEnd = []
-    const rangeUniques = []
 
     const uniqueKeys = ser[i].data
       .filter(
@@ -401,9 +396,7 @@ export default class Data {
           }
         }
         gl.labels.push(this.twoDSeriesX)
-        const singleArray = ser[i].data.map((d) => {
-          return Utils.parseNumber(d)
-        })
+        const singleArray = ser[i].data.map((d) => Utils.parseNumber(d))
         gl.series.push(singleArray)
       }
 
@@ -412,7 +405,7 @@ export default class Data {
       if (ser[i].name !== undefined) {
         gl.seriesNames.push(ser[i].name)
       } else {
-        gl.seriesNames.push('series-' + parseInt(i + 1))
+        gl.seriesNames.push('series-' + parseInt(i + 1, 10))
       }
     }
 
@@ -462,9 +455,9 @@ export default class Data {
             }
           })
         })
-        gl.labels = gl.labels.filter((elem, pos, arr) => {
-          return arr.indexOf(elem) == pos
-        })
+        gl.labels = gl.labels.filter(
+          (elem, pos, arr) => arr.indexOf(elem) === pos
+        )
       }
     } else {
       // user didn't provided any labels, fallback to 1-2-3-4-5

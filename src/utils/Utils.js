@@ -94,7 +94,7 @@ class Utils {
 
     obj[arr[0]] = obj[arr[0]] || {}
 
-    var tmpObj = obj[arr[0]]
+    let tmpObj = obj[arr[0]]
 
     if (arr.length > 1) {
       arr.shift()
@@ -149,7 +149,7 @@ class Utils {
 
   static noExponents(val) {
     let data = String(val).split(/[eE]/)
-    if (data.length == 1) return data[0]
+    if (data.length === 1) return data[0]
 
     let z = '',
       sign = val < 0 ? '-' : '',
@@ -159,7 +159,7 @@ class Utils {
     if (mag < 0) {
       z = sign + '0.'
       while (mag++) z += '0'
-      return z + str.replace(/^\-/, '')
+      return z + str.replace(/^-/, '')
     }
     mag -= str.length
     while (mag--) z += '0'
@@ -237,12 +237,12 @@ class Utils {
   }
 
   shadeRGBColor(percent, color) {
-    var f = color.split(','),
+    let f = color.split(','),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,
-      R = parseInt(f[0].slice(4)),
-      G = parseInt(f[1]),
-      B = parseInt(f[2])
+      R = parseInt(f[0].slice(4), 10),
+      G = parseInt(f[1], 10),
+      B = parseInt(f[2], 10)
     return (
       'rgb(' +
       (Math.round((t - R) * p) + R) +
@@ -255,7 +255,7 @@ class Utils {
   }
 
   shadeHexColor(percent, color) {
-    var f = parseInt(color.slice(1), 16),
+    let f = parseInt(color.slice(1), 16),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,
       R = f >> 16,
@@ -297,7 +297,7 @@ class Utils {
   static escapeString(str, escapeWith = 'x') {
     let newStr = str.toString().slice()
     newStr = newStr.replace(
-      /[` ~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,
+      /[` ~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\/]/gi,
       escapeWith
     )
     return newStr
@@ -309,7 +309,7 @@ class Utils {
 
   static moveIndexInArray(arr, old_index, new_index) {
     if (new_index >= arr.length) {
-      var k = new_index - arr.length + 1
+      let k = new_index - arr.length + 1
       while (k--) {
         arr.push(undefined)
       }
@@ -319,7 +319,7 @@ class Utils {
   }
 
   static extractNumber(s) {
-    return parseFloat(s.replace(/[^\d\.]*/g, ''))
+    return parseFloat(s.replace(/[^\d.]*/g, ''))
   }
 
   static randomString(len) {

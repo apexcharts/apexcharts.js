@@ -53,7 +53,8 @@ class Pie {
     }
 
     this.donutSize =
-      (w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size)) /
+      (w.globals.radialSize *
+        parseInt(w.config.plotOptions.pie.donut.size, 10)) /
       100
 
     this.sliceLabels = []
@@ -164,8 +165,8 @@ class Pie {
         centerX: this.centerX,
         centerY: this.centerY,
         opacity: this.donutDataLabels.show,
-        translateX: translateX,
-        translateY: translateY
+        translateX,
+        translateY
       })
 
       ret.add(dataLabels)
@@ -340,7 +341,7 @@ class Pie {
           let elPieLabel = graphics.drawText({
             x: xPos,
             y: yPos,
-            text: text,
+            text,
             textAnchor: 'middle',
             fontSize: w.config.dataLabels.style.fontSize,
             fontFamily: w.config.dataLabels.style.fontFamily,
@@ -411,7 +412,7 @@ class Pie {
     let me = this
 
     let angle = opts.endAngle - opts.startAngle
-    var prevAngle = angle
+    let prevAngle = angle
 
     let fromStartAngle = opts.startAngle
     let toStartAngle = opts.startAngle
@@ -481,7 +482,7 @@ class Pie {
             animations.animationCompleted(el)
           }
         })
-        .during(function(pos) {
+        .during((pos) => {
           currAngle = fromAngle + (angle - fromAngle) * pos
           if (opts.animateStartingPos) {
             currAngle = prevAngle + (angle - prevAngle) * pos
@@ -558,8 +559,8 @@ class Pie {
       elPath.attr('data:pieClicked', 'true')
     }
 
-    let startAngle = parseInt(elPath.attr('data:startAngle'))
-    let angle = parseInt(elPath.attr('data:angle'))
+    let startAngle = parseInt(elPath.attr('data:startAngle'), 10)
+    let angle = parseInt(elPath.attr('data:angle'), 10)
 
     path = me.getPiePath({
       me,
@@ -704,7 +705,7 @@ class Pie {
 
     if (dataLabelsConfig.name.show) {
       let elLabel = graphics.drawText({
-        x: x,
+        x,
         y: y + parseFloat(dataLabelsConfig.name.offsetY),
         text: name,
         textAnchor: 'middle',
@@ -722,7 +723,7 @@ class Pie {
         : dataLabelsConfig.value.offsetY
 
       let elValue = graphics.drawText({
-        x: x,
+        x,
         y: y + valOffset,
         text: val,
         textAnchor: 'middle',
@@ -753,7 +754,7 @@ class Pie {
     if (el) {
       if (labelsConfig.name.color === undefined) {
         labelColor =
-          w.globals.colors[parseInt(el.parentNode.getAttribute('rel')) - 1]
+          w.globals.colors[parseInt(el.parentNode.getAttribute('rel'), 10) - 1]
       } else {
         labelColor = labelsConfig.name.color
       }
@@ -795,7 +796,7 @@ class Pie {
 
     let val = el.getAttribute('data:value')
     let name =
-      w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel')) - 1]
+      w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel'), 10) - 1]
 
     if (w.globals.series.length > 1) {
       this.printInnerLabels(dataLabelsConfig, name, val, el)

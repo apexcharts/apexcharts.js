@@ -45,20 +45,20 @@ class Exports {
       this.cleanup()
       const canvas = document.createElement('canvas')
       canvas.width = w.globals.svgWidth
-      canvas.height = parseInt(w.globals.dom.elWrap.style.height) // because of resizeNonAxisCharts
+      canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) // because of resizeNonAxisCharts
 
       const canvasBg =
         w.config.chart.background === 'transparent'
           ? '#fff'
           : w.config.chart.background
 
-      var ctx = canvas.getContext('2d')
+      let ctx = canvas.getContext('2d')
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      var DOMURL = window.URL || window.webkitURL || window
+      let DOMURL = window.URL || window.webkitURL || window
 
-      var img = new Image()
+      let img = new Image()
       img.crossOrigin = 'anonymous'
 
       const svgData = this.getSvgString()
@@ -68,7 +68,7 @@ class Exports {
         ctx.drawImage(img, 0, 0)
         DOMURL.revokeObjectURL(svgUrl)
 
-        var imgURI = canvas.toDataURL('image/png')
+        let imgURI = canvas.toDataURL('image/png')
 
         resolve(imgURI)
       }

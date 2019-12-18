@@ -42,7 +42,7 @@ class Radial extends Pie {
       w.config.plotOptions.radialBar.endAngle -
       w.config.plotOptions.radialBar.startAngle
 
-    this.margin = parseInt(w.config.plotOptions.radialBar.track.margin)
+    this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10)
   }
 
   draw(series) {
@@ -167,7 +167,8 @@ class Radial extends Pie {
       let elPath = graphics.drawPath({
         d: '',
         stroke: pathFill,
-        strokeWidth: (strokeWidth * parseInt(trackConfig.strokeWidth)) / 100,
+        strokeWidth:
+          (strokeWidth * parseInt(trackConfig.strokeWidth, 10)) / 100,
         fill: 'none',
         strokeOpacity: trackConfig.opacity,
         classes: 'apexcharts-radialbar-area'
@@ -218,7 +219,7 @@ class Radial extends Pie {
       strokeWidth * opts.series.length -
       this.margin * opts.series.length -
       (strokeWidth *
-        parseInt(w.config.plotOptions.radialBar.track.strokeWidth)) /
+        parseInt(w.config.plotOptions.radialBar.track.strokeWidth, 10)) /
         100 /
         2
 
@@ -386,7 +387,7 @@ class Radial extends Pie {
         i,
         totalItems: 2,
         animBeginArr: this.animBeginArr,
-        dur: dur,
+        dur,
         shouldSetPrevPaths: true,
         easing: w.globals.easing
       })
@@ -471,7 +472,7 @@ class Radial extends Pie {
     const w = this.w
     return (
       (opts.size *
-        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size))) /
+        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size, 10))) /
         100 /
         (opts.series.length + 1) -
       this.margin

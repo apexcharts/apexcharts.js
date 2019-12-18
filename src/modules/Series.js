@@ -25,12 +25,12 @@ export default class Series {
 
   isSeriesHidden(seriesName) {
     const targetElement = this.getSeriesByName(seriesName)
-    let realIndex = parseInt(targetElement.getAttribute('data:realIndex'))
+    let realIndex = parseInt(targetElement.getAttribute('data:realIndex'), 10)
     let isHidden = targetElement.classList.contains(
       'apexcharts-series-collapsed'
     )
 
-    return { isHidden, realIndex: realIndex }
+    return { isHidden, realIndex }
   }
 
   addCollapsedClassToSeries(elSeries, index) {
@@ -75,7 +75,7 @@ export default class Series {
     )
 
     if (e.type === 'mousemove') {
-      let seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1
+      let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
       let seriesEl = null
       if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
@@ -131,7 +131,7 @@ export default class Series {
 
     const selectedActive = function(range) {
       for (let i = 0; i < allHeatMapElements.length; i++) {
-        const val = parseInt(allHeatMapElements[i].getAttribute('val'))
+        const val = parseInt(allHeatMapElements[i].getAttribute('val'), 10)
         if (val >= range.from && val <= range.to) {
           allHeatMapElements[i].classList.remove('legend-mouseover-inactive')
         }
@@ -139,7 +139,7 @@ export default class Series {
     }
 
     if (e.type === 'mousemove') {
-      let seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1
+      let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
       allActive()
       allInactive()
 
@@ -186,13 +186,9 @@ export default class Series {
 
     if (w.config.series.length > 1) {
       // active series flag is required to know if user has not deactivated via legend click
-      let firstActiveSeriesIndex = w.config.series.map((series, index) => {
-        if (series.data && series.data.length > 0) {
-          return index
-        } else {
-          return -1
-        }
-      })
+      let firstActiveSeriesIndex = w.config.series.map((series, index) =>
+        series.data && series.data.length > 0 ? index : -1
+      )
 
       for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
         if (firstActiveSeriesIndex[a] !== -1) {
@@ -374,14 +370,14 @@ export default class Series {
     }
 
     x = x + noDataOpts.offsetX
-    y = y + parseInt(noDataOpts.style.fontSize) + 2 + noDataOpts.offsetY
+    y = y + parseInt(noDataOpts.style.fontSize, 10) + 2 + noDataOpts.offsetY
 
     if (noDataOpts.text !== undefined && noDataOpts.text !== '') {
       let titleText = graphics.drawText({
-        x: x,
-        y: y,
+        x,
+        y,
         text: noDataOpts.text,
-        textAnchor: textAnchor,
+        textAnchor,
         fontSize: noDataOpts.style.fontSize,
         fontFamily: noDataOpts.style.fontFamily,
         foreColor: noDataOpts.style.color,
@@ -430,13 +426,9 @@ export default class Series {
   filteredSeriesX() {
     const w = this.w
 
-    const filteredSeriesX = w.globals.seriesX.map((ser, index) => {
-      if (ser.length > 0) {
-        return ser
-      } else {
-        return []
-      }
-    })
+    const filteredSeriesX = w.globals.seriesX.map((ser) =>
+      ser.length > 0 ? ser : []
+    )
 
     return filteredSeriesX
   }

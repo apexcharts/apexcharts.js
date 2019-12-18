@@ -151,7 +151,7 @@ class Filters {
     let filter = new window.SVG.Filter()
     filter.size('120%', '180%', '-5%', '-40%')
 
-    el.filter(function(add) {
+    el.filter((add) => {
       let shadowBlur = null
       if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
         // safari/firefox has some alternative way to use this filter

@@ -20,8 +20,8 @@ class Fill {
     let w = this.w
     let cnf = w.config
 
-    let svgW = parseInt(w.globals.gridWidth)
-    let svgH = parseInt(w.globals.gridHeight)
+    let svgW = parseInt(w.globals.gridWidth, 10)
+    let svgH = parseInt(w.globals.gridHeight, 10)
 
     let size = svgW > svgH ? svgW : svgH
 

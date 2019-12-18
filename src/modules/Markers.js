@@ -30,9 +30,7 @@ export default class Markers {
         }
       }
     } else {
-      w.globals.markers.size = w.config.series.map((s) => {
-        return w.config.markers.size
-      })
+      w.globals.markers.size = w.config.series.map((s) => w.config.markers.size)
     }
   }
 
