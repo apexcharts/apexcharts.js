@@ -72,7 +72,6 @@ class Bar {
     }
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathTo, pathFrom
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -99,7 +98,6 @@ class Bar {
         this.visibleI = this.visibleI + 1
       }
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -132,12 +130,8 @@ class Bar {
         class: 'apexcharts-datalabels'
       })
 
-      for (
-        let j = 0, tj = w.globals.dataPoints;
-        j < w.globals.dataPoints;
-        j++, tj--
-      ) {
-        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let paths = null
         const pathsParams = {
@@ -149,8 +143,6 @@ class Bar {
           },
           x,
           y,
-          pathTo,
-          pathFrom,
           strokeWidth,
           elSeries
         }
@@ -172,8 +164,6 @@ class Bar {
           barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
 
-        pathTo = paths.pathTo
-        pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
 
@@ -191,8 +181,8 @@ class Bar {
           pathFill,
           j,
           i,
-          pathFrom,
-          pathTo,
+          pathFrom: paths.pathFrom,
+          pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
           x,
@@ -265,8 +255,8 @@ class Bar {
       i,
       j,
       realIndex,
-      pathFrom: pathFrom,
-      pathTo: pathTo,
+      pathFrom,
+      pathTo,
       stroke: lineFill,
       strokeWidth,
       strokeLineCap: w.config.stroke.lineCap,
@@ -315,8 +305,6 @@ class Bar {
     indexes,
     barHeight,
     strokeWidth,
-    pathTo,
-    pathFrom,
     zeroW,
     x,
     y,
@@ -339,9 +327,9 @@ class Bar {
 
     let barYPosition = y + barHeight * this.visibleI
 
-    pathTo = graphics.move(zeroW, barYPosition)
+    let pathTo = graphics.move(zeroW, barYPosition)
 
-    pathFrom = graphics.move(zeroW, barYPosition)
+    let pathFrom = graphics.move(zeroW, barYPosition)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j)
     }
@@ -424,8 +412,6 @@ class Bar {
     x,
     y,
     xDivision,
-    pathTo,
-    pathFrom,
     barWidth,
     zeroH,
     strokeWidth,
@@ -453,9 +439,9 @@ class Bar {
 
     let barXPosition = x + barWidth * this.visibleI
 
-    pathTo = graphics.move(barXPosition, zeroH)
+    let pathTo = graphics.move(barXPosition, zeroH)
 
-    pathFrom = graphics.move(barXPosition, zeroH)
+    let pathFrom = graphics.move(barXPosition, zeroH)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j)
     }

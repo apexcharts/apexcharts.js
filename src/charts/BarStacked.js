@@ -1,6 +1,5 @@
 import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
-import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
 
@@ -60,7 +59,6 @@ class BarStacked extends Bar {
     let y = 0
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathTo, pathFrom
       let xDivision // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
       let yDivision // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
       let zeroH // zeroH is the baseline where 0 meets y axis
@@ -93,7 +91,6 @@ class BarStacked extends Bar {
         class: 'apexcharts-datalabels'
       })
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -127,7 +124,7 @@ class BarStacked extends Bar {
       // }
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
-        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let paths = null
         if (this.isHorizontal) {
@@ -135,8 +132,6 @@ class BarStacked extends Bar {
             indexes: { i, j, realIndex, bc },
             barHeight,
             strokeWidth,
-            pathTo,
-            pathFrom,
             zeroW,
             x,
             y,
@@ -150,8 +145,6 @@ class BarStacked extends Bar {
             x,
             y,
             xDivision,
-            pathTo,
-            pathFrom,
             barWidth,
             zeroH,
             strokeWidth,
@@ -160,8 +153,6 @@ class BarStacked extends Bar {
           barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
 
-        pathTo = paths.pathTo
-        pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
 
@@ -175,8 +166,8 @@ class BarStacked extends Bar {
           pathFill,
           j,
           i,
-          pathFrom,
-          pathTo,
+          pathFrom: paths.pathFrom,
+          pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
           x,
@@ -266,8 +257,6 @@ class BarStacked extends Bar {
     indexes,
     barHeight,
     strokeWidth,
-    pathTo,
-    pathFrom,
     zeroW,
     x,
     y,
@@ -352,8 +341,8 @@ class BarStacked extends Bar {
     this.xArrjF.push(Math.abs(barXPosition - endingShape.newX))
     this.xArrjVal.push(this.series[i][j])
 
-    pathTo = this.graphics.move(barXPosition, barYPosition)
-    pathFrom = this.graphics.move(barXPosition, barYPosition)
+    let pathTo = this.graphics.move(barXPosition, barYPosition)
+    let pathFrom = this.graphics.move(barXPosition, barYPosition)
 
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.bar.getPreviousPath(realIndex, j, false)
@@ -410,8 +399,6 @@ class BarStacked extends Bar {
     x,
     y,
     xDivision,
-    pathTo,
-    pathFrom,
     barWidth,
     zeroH,
     strokeWidth,
@@ -491,8 +478,8 @@ class BarStacked extends Bar {
     this.yArrjF.push(Math.abs(barYPosition - endingShape.newY))
     this.yArrjVal.push(this.series[i][j])
 
-    pathTo = this.graphics.move(barXPosition, barYPosition)
-    pathFrom = this.graphics.move(barXPosition, barYPosition)
+    let pathTo = this.graphics.move(barXPosition, barYPosition)
+    let pathFrom = this.graphics.move(barXPosition, barYPosition)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.bar.getPreviousPath(realIndex, j, false)
     }
