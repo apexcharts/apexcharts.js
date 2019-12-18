@@ -99,7 +99,6 @@ class Bar {
         this.visibleI = this.visibleI + 1
       }
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -132,12 +131,8 @@ class Bar {
         class: 'apexcharts-datalabels'
       })
 
-      for (
-        let j = 0, tj = w.globals.dataPoints;
-        j < w.globals.dataPoints;
-        j++, tj--
-      ) {
-        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let paths = null
         const pathsParams = {

@@ -50,7 +50,6 @@ class RangeBar extends Bar {
         this.visibleI = this.visibleI + 1
       }
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -75,15 +74,11 @@ class RangeBar extends Bar {
         class: 'apexcharts-datalabels'
       })
 
-      for (
-        let j = 0, tj = w.globals.dataPoints;
-        j < w.globals.dataPoints;
-        j++, tj--
-      ) {
-        strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
-        let y1 = this.seriesRangeStart[i][j]
-        let y2 = this.seriesRangeEnd[i][j]
+        const y1 = this.seriesRangeStart[i][j]
+        const y2 = this.seriesRangeEnd[i][j]
 
         let paths = null
         let barYPosition = null
