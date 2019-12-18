@@ -87,7 +87,12 @@ class CoreUtils {
     const w = this.w
     w.globals.maxValsInArrayIndex = w.globals.series
       .map((a) => a.length)
-      .indexOf(Math.max.apply(Math, w.globals.series.map((a) => a.length)))
+      .indexOf(
+        Math.max.apply(
+          Math,
+          w.globals.series.map((a) => a.length)
+        )
+      )
   }
 
   getLargestMarkerSize() {

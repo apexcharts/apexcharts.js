@@ -234,7 +234,7 @@ export default class YAxis {
         }
 
         let elTick = graphics.drawText({
-          x: x,
+          x,
           y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
           text: '',
           textAnchor: 'middle',

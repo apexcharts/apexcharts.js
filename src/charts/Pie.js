@@ -228,9 +228,7 @@ class Pie {
         strokeWidth: this.strokeWidth,
         fill: pathFill,
         fillOpacity: w.config.fill.opacity,
-        classes: `apexcharts-pie-area apexcharts-${
-          w.config.chart.type
-        }-slice-${i}`
+        classes: `apexcharts-pie-area apexcharts-${w.config.chart.type}-slice-${i}`
       })
 
       elPath.attr({

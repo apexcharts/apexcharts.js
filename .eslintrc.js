@@ -10,7 +10,12 @@ module.exports = {
         es6: true,
         node: true
     },
-    extends: ['plugin:prettier/recommended'],
+    extends: [
+        'plugin:prettier/recommended',
+        'plugin:import/errors',
+        'plugin:import/warnings',
+    ],
+    plugins: ['promise'],
     globals: {
         "Blob": true,
         "Image": true,
@@ -65,6 +70,10 @@ module.exports = {
         'no-lone-blocks': 1,
         'no-multi-str': 1,
         'no-useless-escape': 1,
+
+        'promise/no-promise-in-callback': 1,
+        'promise/no-callback-in-promise': 1,
+        "promise/valid-params": 1,
     },
     overrides: [
         {

@@ -35,9 +35,9 @@ export default class XAxis {
 
     if (this.xaxisBorderWidth.indexOf('%') > -1) {
       this.xaxisBorderWidth =
-        (w.globals.gridWidth * parseInt(this.xaxisBorderWidth)) / 100
+        (w.globals.gridWidth * parseInt(this.xaxisBorderWidth, 10)) / 100
     } else {
-      this.xaxisBorderWidth = parseInt(this.xaxisBorderWidth)
+      this.xaxisBorderWidth = parseInt(this.xaxisBorderWidth, 10)
     }
     this.xaxisBorderHeight = w.config.xaxis.axisBorder.height
 

@@ -152,7 +152,7 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: function({ seriesIndex, dataPointIndex, w }) {
+        custom({ seriesIndex, dataPointIndex, w }) {
           const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
           const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
           const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
@@ -204,7 +204,7 @@ export default class Defaults {
       },
       dataLabels: {
         enabled: false,
-        formatter: function(val, { ctx, seriesIndex, dataPointIndex, w }) {
+        formatter(val, { ctx, seriesIndex, dataPointIndex, w }) {
           const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
           const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
           return end - start
@@ -216,7 +216,7 @@ export default class Defaults {
       tooltip: {
         shared: false,
         followCursor: true,
-        custom: function({ ctx, seriesIndex, dataPointIndex, y1, y2, w }) {
+        custom({ ctx, seriesIndex, dataPointIndex, y1, y2, w }) {
           let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
           let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
           let ylabel = w.globals.labels[dataPointIndex]
@@ -236,7 +236,7 @@ export default class Defaults {
           const color = w.globals.colors[seriesIndex]
           if (w.config.tooltip.x.formatter === undefined) {
             if (w.config.xaxis.type === 'datetime') {
-              var datetimeObj = new DateTime(ctx)
+              let datetimeObj = new DateTime(ctx)
               startVal = datetimeObj.formatDate(
                 new Date(start),
                 w.config.tooltip.x.format,
@@ -514,7 +514,7 @@ export default class Defaults {
         }
       },
       dataLabels: {
-        formatter: function(val) {
+        formatter(val) {
           return val.toFixed(1) + '%'
         },
         style: {
@@ -558,7 +558,7 @@ export default class Defaults {
         }
       },
       dataLabels: {
-        formatter: function(val) {
+        formatter(val) {
           return val.toFixed(1) + '%'
         },
         style: {

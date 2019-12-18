@@ -160,8 +160,8 @@ export default class Series {
       let firstActiveSeriesIndex = w.globals.series.map((series, index) => {
         if (
           series.length > 0 &&
-          (w.config.series[index].type !== 'bar' &&
-            w.config.series[index].type !== 'column')
+          w.config.series[index].type !== 'bar' &&
+          w.config.series[index].type !== 'column'
         ) {
           return index
         } else {

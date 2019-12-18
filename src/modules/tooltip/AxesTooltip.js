@@ -119,7 +119,7 @@ class AxesTooltip {
 
     // set xcrosshairs width
     const xcrosshairs = ttCtx.getElXCrosshairs()
-    ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width)
+    ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width, 10)
 
     if (!w.globals.comboCharts) {
       if (w.config.xaxis.crosshairs.width === 'tickWidth') {

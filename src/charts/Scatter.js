@@ -31,9 +31,7 @@ export default class Scatter {
     let elPointsMain = opts.elParent
 
     let elPointsWrap = graphics.group({
-      class: `apexcharts-series-markers apexcharts-series-${
-        w.config.chart.type
-      }`
+      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
     })
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)

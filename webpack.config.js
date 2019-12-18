@@ -1,4 +1,4 @@
-var path = require('path')
+const path = require('path')
 
 module.exports = {
   entry: [path.resolve(__dirname, 'src/apexcharts.js')],
@@ -41,7 +41,6 @@ module.exports = {
           plugins: ['transform-class-properties', 'transform-decorators-legacy']
         }
       },
-
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']

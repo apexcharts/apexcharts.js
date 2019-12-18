@@ -106,7 +106,7 @@ class Grid {
 
     if (Array.isArray(w.config.stroke.width)) {
       let strokeMaxSize = 0
-      w.config.stroke.width.forEach(function(m) {
+      w.config.stroke.width.forEach((m) => {
         strokeMaxSize = Math.max(strokeMaxSize, m)
       })
       strokeSize = strokeMaxSize
