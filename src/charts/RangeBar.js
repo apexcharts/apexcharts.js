@@ -106,6 +106,11 @@ class RangeBar extends Bar {
 
           let srty = (yDivision - barHeight * this.seriesLen) / 2
 
+          if (typeof w.config.series[i].data[j] === 'undefined') {
+            // no data exists for further indexes, hence we need to get out the innr loop.
+            // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
+            break
+          }
           const yPosition = w.globals.labels.indexOf(
             w.config.series[i].data[j].x
           )
