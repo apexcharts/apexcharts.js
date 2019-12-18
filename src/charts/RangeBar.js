@@ -94,113 +94,93 @@ class RangeBar extends Bar {
           }
         }
 
-        let itemsLen = 1
         let y1 = this.seriesRangeStart[i][j]
         let y2 = this.seriesRangeEnd[i][j]
 
-        const srt =
-          w.globals.seriesRangeBarTimeline.length &&
-          w.globals.seriesRangeBarTimeline[i][j]
+        let paths = null
+        let barYPosition = null
+        const params = { x, y, pathTo, pathFrom, strokeWidth, elSeries }
 
-        if (srt) {
-          itemsLen = srt.y.length
-          y = 0
-        }
+        if (this.isHorizontal) {
+          barYPosition = y + barHeight * this.visibleI
 
-        for (let ii = 0; ii < itemsLen; ii++) {
-          let paths = null
-          let barYPosition = null
-          const params = { x, y, pathTo, pathFrom, strokeWidth, elSeries }
+          let srty = (yDivision - barHeight * this.seriesLen) / 2
 
-          if (this.isHorizontal) {
-            barYPosition = y + barHeight * this.visibleI
+          const yPosition = w.globals.labels.indexOf(
+            w.config.series[i].data[j].x
+          )
 
-            if (srt) {
-              let srty = (yDivision - barHeight * this.seriesLen) / 2
-              const rt = srt.y[ii]
-              y1 = rt.y1
-              y2 = rt.y2
+          barYPosition =
+            srty + barHeight * this.visibleI + yDivision * yPosition
 
-              const yPosition = w.globals.labels.indexOf(srt.x)
-
-              barYPosition =
-                srty + barHeight * this.visibleI + yDivision * yPosition
-            } else {
-              // no item exists for further indices in a timeline, hence break
-              if (this.isTimelineBar) {
-                break
-              }
-            }
-
-            paths = this.drawRangeBarPaths({
-              indexes: { i, j, realIndex, bc },
-              barHeight,
-              barYPosition,
-              zeroW,
-              yDivision,
-              y1,
-              y2,
-              ...params
-            })
-
-            barWidth = paths.barWidth
-          } else {
-            paths = this.drawRangeColumnPaths({
-              indexes: { i, j, realIndex, bc },
-              zeroH,
-              barWidth,
-              xDivision,
-              ...params
-            })
-
-            barHeight = paths.barHeight
-          }
-
-          pathTo = paths.pathTo
-          pathFrom = paths.pathFrom
-          y = paths.y
-          x = paths.x
-
-          // push current X
-          let fillColor = null
-
-          if (
-            w.config.series[i].data[j] &&
-            w.config.series[i].data[j].fillColor
-          ) {
-            fillColor = w.config.series[i].data[j].fillColor
-          }
-
-          let pathFill = fill.fillPath({
-            seriesNumber: realIndex,
-            color: fillColor
-          })
-
-          let lineFill = w.globals.stroke.colors[realIndex]
-
-          this.renderSeries({
-            realIndex,
-            pathFill,
-            lineFill,
-            j,
-            i,
-            x,
-            y,
-            y1,
-            y2,
-            pathFrom,
-            pathTo,
-            strokeWidth,
-            elSeries,
-            series,
+          paths = this.drawRangeBarPaths({
+            indexes: { i, j, realIndex, bc },
             barHeight,
             barYPosition,
-            barWidth,
-            elDataLabelsWrap,
-            visibleSeries: this.visibleI,
-            type: 'rangebar'
+            zeroW,
+            yDivision,
+            y1,
+            y2,
+            ...params
           })
+
+          barWidth = paths.barWidth
+        } else {
+          paths = this.drawRangeColumnPaths({
+            indexes: { i, j, realIndex, bc },
+            zeroH,
+            barWidth,
+            xDivision,
+            ...params
+          })
+
+          barHeight = paths.barHeight
         }
+
+        pathTo = paths.pathTo
+        pathFrom = paths.pathFrom
+        y = paths.y
+        x = paths.x
+
+        // push current X
+        let fillColor = null
+
+        if (
+          w.config.series[i].data[j] &&
+          w.config.series[i].data[j].fillColor
+        ) {
+          fillColor = w.config.series[i].data[j].fillColor
+        }
+
+        let pathFill = fill.fillPath({
+          seriesNumber: realIndex,
+          color: fillColor
+        })
+
+        let lineFill = w.globals.stroke.colors[realIndex]
+
+        this.renderSeries({
+          realIndex,
+          pathFill,
+          lineFill,
+          j,
+          i,
+          x,
+          y,
+          y1,
+          y2,
+          pathFrom,
+          pathTo,
+          strokeWidth,
+          elSeries,
+          series,
+          barHeight,
+          barYPosition,
+          barWidth,
+          elDataLabelsWrap,
+          visibleSeries: this.visibleI,
+          type: 'rangebar'
+        })
       }
 
       ret.add(elSeries)
