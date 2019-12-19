@@ -164,7 +164,7 @@ export default class Utils {
     const coreUtils = new CoreUtils(this.ctx)
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
-      xarr.length > 0 ? index : -1
+      return xarr.length > 0 ? index : -1
     })
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
