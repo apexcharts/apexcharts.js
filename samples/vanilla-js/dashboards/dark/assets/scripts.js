@@ -308,8 +308,8 @@ chartLine.render();
 var optionsCircle4 = {
   chart: {
     type: 'radialBar',
+    height: 403,
     width: 380,
-    height: 370,
   },
   plotOptions: {
     radialBar: {

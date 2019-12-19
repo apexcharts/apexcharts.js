@@ -35,7 +35,7 @@ class Pie {
 
     this.defaultSize =
       w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.svgHeight - 35
+        ? w.globals.gridHeight - w.globals.goldenPadding
         : w.globals.gridWidth
 
     this.centerY = this.defaultSize / 2
@@ -661,7 +661,7 @@ class Pie {
       class: 'apexcharts-datalabels-group',
       transform: `translate(${opts.translateX ? opts.translateX : 0}, ${
         opts.translateY ? opts.translateY : 0
-      })`
+      }) scale(${w.config.plotOptions.pie.customScale})`
     })
 
     const showTotal = dataLabelsConfig.total.show

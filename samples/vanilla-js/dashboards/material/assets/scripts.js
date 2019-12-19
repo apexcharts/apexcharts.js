@@ -295,11 +295,12 @@ chartCircle1.render();
 
 var optionsDonutTop = {
   chart: {
-    height: 272,
+    height: 333,
     type: 'donut',
   },
   plotOptions: {
     pie: {
+      customScale: 0.76,
       donut: {
         size: '72%',
       },
@@ -413,7 +414,7 @@ chartArea.render();
 var optionsCircle4 = {
   chart: {
     type: 'radialBar',
-    height: 322,
+    height: 348,
     width: 380,
   },
   colors: ['#775DD0', '#00C8E1', '#FFB900'],

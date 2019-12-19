@@ -218,6 +218,7 @@ export default class Dimensions {
   setGridCoordsForNonAxisCharts(lgRect) {
     let w = this.w
     let gl = w.globals
+    let cnf = w.config
     let xPad = 0
 
     if (w.config.legend.show && !w.config.legend.floating) {
@@ -235,8 +236,8 @@ export default class Dimensions {
       offX = offX + w.config.plotOptions.radialBar.offsetX
     }
 
-    if (!w.config.legend.show) {
-      gl.gridHeight = gl.svgHeight - 35
+    if (!w.config.legend.show || w.config.legend.floating) {
+      gl.gridHeight = gl.svgHeight - gl.goldenPadding
       gl.gridWidth = gl.gridHeight
 
       gl.translateY = offY - 10
@@ -247,14 +248,14 @@ export default class Dimensions {
 
     switch (w.config.legend.position) {
       case 'bottom':
-        gl.gridHeight = gl.svgHeight - lgRect.height - 35
+        gl.gridHeight = gl.svgHeight - lgRect.height - gl.goldenPadding
         gl.gridWidth = gl.gridHeight
 
         gl.translateY = offY - 20
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':
-        gl.gridHeight = gl.svgHeight - lgRect.height - 35
+        gl.gridHeight = gl.svgHeight - lgRect.height - gl.goldenPadding
         gl.gridWidth = gl.gridHeight
 
         gl.translateY = lgRect.height + offY + 10
@@ -262,17 +263,19 @@ export default class Dimensions {
         break
       case 'left':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad
-        gl.gridHeight = gl.gridWidth
+        gl.gridHeight = Utils.isNumber(cnf.chart.height)
+          ? gl.svgHeight
+          : gl.gridWidth
         gl.translateY = offY
         gl.translateX = offX + lgRect.width + xPad
-
         break
       case 'right':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad - 5
-        gl.gridHeight = gl.gridWidth
+        gl.gridHeight = Utils.isNumber(cnf.chart.height)
+          ? gl.svgHeight
+          : gl.gridWidth
         gl.translateY = offY
         gl.translateX = offX + 10
-
         break
       default:
         throw new Error('Legend position not supported')
