@@ -1,3 +1,5 @@
+import Utilities from '../../utils/Utils'
+
 /**
  * ApexCharts Tooltip.Utils Class to support Tooltip functionality.
  *
@@ -80,7 +82,7 @@ export default class Utils {
     })
 
     seriesYValArr = w.globals.seriesYvalues.map((seriesYVal) => {
-      return seriesYVal.filter((s) => s)
+      return seriesYVal.filter((s) => Utilities.isNumber(s))
     })
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
