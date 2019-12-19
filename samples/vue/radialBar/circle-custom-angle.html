@@ -25,7 +25,7 @@
 
 <body>
   <div id="chart">
-    <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
+    <apexchart type=radialBar height=390 :options="chartOptions" :series="series" />
   </div>
 
   <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
@@ -50,7 +50,7 @@
         chartOptions: {
           plotOptions: {
             radialBar: {
-              offsetY: -10,
+              offsetY: 0,
               startAngle: 0,
               endAngle: 270,
               hollow: {

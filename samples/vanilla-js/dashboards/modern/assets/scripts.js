@@ -441,13 +441,15 @@ chartBar.render();
 var optionDonut = {
   chart: {
       type: 'donut',
-      width: '100%'
+      width: '100%',
+      height: 400
   },
   dataLabels: {
     enabled: false,
   },
   plotOptions: {
     pie: {
+      customScale: 0.8,
       donut: {
         size: '75%',
       },

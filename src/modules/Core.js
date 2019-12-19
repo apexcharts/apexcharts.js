@@ -304,7 +304,7 @@ export default class Core {
       if (gl.axisCharts) {
         gl.svgHeight = gl.svgWidth / 1.61
       } else {
-        gl.svgHeight = gl.svgWidth
+        gl.svgHeight = gl.svgWidth / 1.2
       }
     }
 

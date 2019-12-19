@@ -69,8 +69,9 @@ export default class Labels {
         j
       })
 
+      const tIndex = w.config.tooltip.inverseOrder ? inverset : t
+
       if (shared) {
-        const tIndex = w.config.tooltip.inverseOrder ? inverset : t
         f = this.getFormatters(tIndex)
 
         seriesName = this.getSeriesName({
@@ -114,7 +115,7 @@ export default class Labels {
 
       this.DOMHandling({
         i,
-        t,
+        t: tIndex,
         ttItems,
         values: {
           val,
