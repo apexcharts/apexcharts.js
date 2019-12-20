@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>HeatMap with image fill</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    </style>
+</head>
+
+<body>
+  <div id="app"></div>
+  
+  <div id="html">
+          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;heatmap&quot; height=&quot;360&quot; /&gt;&#10;          &lt;/div&gt;
+  </div>
+
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+
+  <script type="text/babel">
+
+    function generateData(count, yrange) {
+      var i = 0;
+      var series = [];
+      while (i < count) {
+        var x = 'round' + (i + 1).toString();
+        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+        series.push({
+          x: x,
+          y: y
+        });
+        i++;
+      }
+      return series;
+    }
+
+    class HeatmapChart extends React.Component {
+      
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          options: {
+            dataLabels: {
+              enabled: false
+            },
+            colors: ["#008FFB"],
+            title: {
+                text: 'HeatMap Chart with image fill'
+            },
+            fill: {
+                type: 'image',
+                image: {
+                    src: 'https://www.publicdomainpictures.net/pictures/310000/velka/kugel-ball-perle-rund.png'
+                }
+            }
+          },
+          series: [{
+                  name: 'Oliver',
+                  data: generateData(15, {
+                      min: 0,
+                      max: 90
+                  })
+              },
+              {
+                  name: 'Harry',
+                  data: generateData(15, {
+                      min: 0,
+                      max: 90
+                  })
+              },
+              {
+                  name: 'Thomas',
+                  data: generateData(15, {
+                      min: 0,
+                      max: 90
+                  })
+              },
+              {
+                  name: 'Callum',
+                  data: generateData(15, {
+                      min: 0,
+                      max: 90
+                  })
+              },
+              {
+                  name: 'Ethan',
+                  data: generateData(15, {
+                      min: 0,
+                      max: 90
+                  })
+              },
+              {
+                  name: 'Richard',
+                  data: generateData(15, {
+                      min: 0,
+                      max: 90
+                  })
+              },
+              {
+                  name: 'David',
+                  data: generateData(15, {
+                      min: 0,
+                      max: 90
+                  })
+              }
+          ],
+        }
+      }
+
+      render() {
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart options={this.state.options} series={this.state.series} type="heatmap" height="360" />
+            </div>
+            <div id="html-dist">
+            </div>
+          </div>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app');
+    ReactDOM.render(React.createElement(HeatmapChart), domContainer);
+
+  </script>
+  
+</body>
+</html>
