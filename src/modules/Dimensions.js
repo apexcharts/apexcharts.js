@@ -228,16 +228,17 @@ export default class Dimensions {
     let offY = 10
     let offX = 0
 
-    if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
-      offY = offY + w.config.plotOptions.pie.offsetY
-      offX = offX + w.config.plotOptions.pie.offsetX
-    } else if (w.config.chart.type === 'radialBar') {
-      offY = offY + w.config.plotOptions.radialBar.offsetY
-      offX = offX + w.config.plotOptions.radialBar.offsetX
+    if (cnf.chart.type === 'pie' || cnf.chart.type === 'donut') {
+      offY = offY + cnf.plotOptions.pie.offsetY
+      offX = offX + cnf.plotOptions.pie.offsetX
+    } else if (cnf.chart.type === 'radialBar') {
+      offY = offY + cnf.plotOptions.radialBar.offsetY
+      offX = offX + cnf.plotOptions.radialBar.offsetX
     }
 
-    if (!w.config.legend.show || w.config.legend.floating) {
-      gl.gridHeight = gl.gridWidth = gl.svgHeight
+    if (!cnf.legend.show || cnf.legend.floating) {
+      gl.gridHeight = gl.svgHeight - gl.goldenPadding
+      gl.gridWidth = gl.gridHeight
 
       gl.translateY = offY - 10
       gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
@@ -245,7 +246,7 @@ export default class Dimensions {
       return
     }
 
-    switch (w.config.legend.position) {
+    switch (cnf.legend.position) {
       case 'bottom':
         gl.gridHeight = gl.svgHeight - lgRect.height - gl.goldenPadding
         gl.gridWidth = gl.gridHeight
@@ -262,17 +263,15 @@ export default class Dimensions {
         break
       case 'left':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad
-        gl.gridHeight = Utils.isNumber(cnf.chart.height)
-          ? gl.svgHeight
-          : gl.gridWidth
+        gl.gridHeight =
+          cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth
         gl.translateY = offY
         gl.translateX = offX + lgRect.width + xPad
         break
       case 'right':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad - 5
-        gl.gridHeight = Utils.isNumber(cnf.chart.height)
-          ? gl.svgHeight
-          : gl.gridWidth
+        gl.gridHeight =
+          cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth
         gl.translateY = offY
         gl.translateX = offX + 10
         break
