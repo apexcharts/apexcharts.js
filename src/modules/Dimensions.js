@@ -426,7 +426,7 @@ export default class Dimensions {
   getTotalYAxisWidth() {
     let w = this.w
     let yAxisWidth = 0
-    let padding = 10
+    let padding = w.globals.yAxisScale.length > 1 ? 10 : 0
 
     const isHiddenYAxis = function(index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
