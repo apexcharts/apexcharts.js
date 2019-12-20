@@ -156,7 +156,7 @@ export default class Dimensions {
 
     if (!w.config.grid.show || w.config.chart.type === 'radar') {
       yAxisWidth = 0
-      xAxisHeight = 35
+      xAxisHeight = gl.goldenPadding
     }
 
     if (this.isSparkline) {
@@ -237,8 +237,7 @@ export default class Dimensions {
     }
 
     if (!w.config.legend.show || w.config.legend.floating) {
-      gl.gridHeight = gl.svgHeight - gl.goldenPadding
-      gl.gridWidth = gl.gridHeight
+      gl.gridHeight = gl.gridWidth = gl.svgHeight
 
       gl.translateY = offY - 10
       gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
