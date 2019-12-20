@@ -348,7 +348,7 @@ export default class BarDataLabels {
         text = ''
       }
 
-      let valIsNegative = this.barCtx.series[i][j] <= 0
+      let valIsNegative = w.globals.series[i][j] <= 0
       let position = w.config.plotOptions.bar.dataLabels.position
       if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
         if (position === 'top') {
@@ -386,8 +386,7 @@ export default class BarDataLabels {
         // Note: This issue is only seen in stacked charts
         if (this.barCtx.isHorizontal) {
           barWidth =
-            this.barCtx.series[i][j] /
-            this.barCtx.yRatio[this.barCtx.yaxisIndex]
+            w.globals.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex]
 
           // FIXED: Don't always hide the stacked negative side label
           // A negative value will result in a negative bar width
@@ -400,8 +399,7 @@ export default class BarDataLabels {
           }
         } else {
           barHeight =
-            this.barCtx.series[i][j] /
-            this.barCtx.yRatio[this.barCtx.yaxisIndex]
+            w.globals.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex]
           if (textRects.height / 1.6 > barHeight) {
             text = ''
           }
