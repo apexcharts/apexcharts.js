@@ -567,206 +567,143 @@ export default class ApexCharts {
     return c && c.chart
   }
 
-  /**
-   * Allows the user to provide data attrs in the element and the chart will render automatically when this method is called by searching for the elements containing 'data-apexcharts' attribute
-   */
-  static initOnLoad() {
-    const els = document.querySelectorAll('[data-apexcharts]')
+static initOnLoad() {
+  const els = document.querySelectorAll('[data-apexcharts]')
 
-    for (let i = 0; i < els.length; i++) {
-      const el = els[i]
-      const options = JSON.parse(els[i].getAttribute('data-options'))
-      const apexChart = new ApexCharts(el, options)
-      apexChart.render()
-    }
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i]
+    const options = JSON.parse(els[i].getAttribute('data-options'))
+    const apexChart = new ApexCharts(el, options)
+    apexChart.render()
   }
+}
 
-  /**
-   * This static method allows users to call chart methods without necessarily from the
-   * instance of the chart in case user has assigned chartID to the targeted chart.
-   * The chartID is used for mapping the instance stored in Apex._chartInstances global variable
-   *
-   * This is helpful in cases when you don't have reference of the chart instance
-   * easily and need to call the method from anywhere.
-   * For eg, in React/Vue applications when you have many parent/child components,
-   * and need easy reference to other charts for performing dynamic operations
-   *
-   * @param {string} chartID - The unique identifier which will be used to call methods
-   * on that chart instance
-   * @param {function} fn - The method name to call
-   * @param {object} opts - The parameters which are accepted in the original method will be passed here in the same order.
-   */
-  static exec(chartID, fn, ...opts) {
-    const chart = this.getChartByID(chartID)
-    if (!chart) return
+static exec(chartID, fn, ...opts) {
+  const chart = this.getChartByID(chartID)
+  if (!chart) return
 
-    // turn on the global exec flag to indicate this method was called
-    chart.w.globals.isExecCalled = true
+  chart.w.globals.isExecCalled = true
 
-    let ret = null
-    if (chart.publicMethods.indexOf(fn) !== -1) {
-      ret = chart[fn](...opts)
-    }
-    return ret
+  let ret = null
+  if (chart.publicMethods.indexOf(fn) !== -1) {
+    ret = chart[fn](...opts)
   }
+  return ret
+}
 
-  static merge(target, source) {
-    return Utils.extend(target, source)
+toggleSeries(seriesName) {
+  return this.series.toggleSeries(seriesName)
+}
+
+highlightSeriesOnLegendHover(e, targetElement) {
+  return this.series.toggleSeriesOnHover(e, targetElement)
+}
+
+showSeries(seriesName) {
+  this.series.showSeries(seriesName)
+}
+
+hideSeries(seriesName) {
+  this.series.hideSeries(seriesName)
+}
+
+resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
+  this.series.resetSeries(shouldUpdateChart, shouldResetZoom)
+}
+
+addEventListener(name, handler) {
+  this.events.addEventListener(name, handler)
+}
+
+removeEventListener(name, handler) {
+  this.events.removeEventListener(name, handler)
+}
+
+addXaxisAnnotation(opts, pushToMemory = true, context = undefined) {
+  let me = this
+  if (context) {
+    me = context
   }
+  me.annotations.addXaxisAnnotationExternal(opts, pushToMemory, me)
+}
 
-  toggleSeries(seriesName) {
-    return this.series.toggleSeries(seriesName)
+addYaxisAnnotation(opts, pushToMemory = true, context = undefined) {
+  let me = this
+  if (context) {
+    me = context
   }
+  me.annotations.addYaxisAnnotationExternal(opts, pushToMemory, me)
+}
 
-  highlightSeriesOnLegendHover(e, targetElement) {
-    return this.series.toggleSeriesOnHover(e, targetElement)
+addPointAnnotation(opts, pushToMemory = true, context = undefined) {
+  let me = this
+  if (context) {
+    me = context
   }
+  me.annotations.addPointAnnotationExternal(opts, pushToMemory, me)
+}
 
-  showSeries(seriesName) {
-    this.series.showSeries(seriesName)
+clearAnnotations(context = undefined) {
+  let me = this
+  if (context) {
+    me = context
   }
+  me.annotations.clearAnnotations(me)
+}
 
-  hideSeries(seriesName) {
-    this.series.hideSeries(seriesName)
+removeAnnotation(id, context = undefined) {
+  let me = this
+  if (context) {
+    me = context
   }
+  me.annotations.removeAnnotation(me, id)
+}
 
-  resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
-    this.series.resetSeries(shouldUpdateChart, shouldResetZoom)
-  }
+getChartArea() {
+  const el = this.w.globals.dom.baseEl.querySelector('.apexcharts-inner')
 
-  // Public method to add event listener on chart context
-  addEventListener(name, handler) {
-    this.events.addEventListener(name, handler)
-  }
+  return el
+}
 
-  // Public method to remove event listener on chart context
-  removeEventListener(name, handler) {
-    this.events.removeEventListener(name, handler)
-  }
+getSeriesTotalXRange(minX, maxX) {
+  return this.coreUtils.getSeriesTotalsXRange(minX, maxX)
+}
 
-  addXaxisAnnotation(opts, pushToMemory = true, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-    me.annotations.addXaxisAnnotationExternal(opts, pushToMemory, me)
-  }
+getHighestValueInSeries(seriesIndex = 0) {
+  const range = new Range(this.ctx)
+  return range.getMinYMaxY(seriesIndex).highestY
+}
 
-  addYaxisAnnotation(opts, pushToMemory = true, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-    me.annotations.addYaxisAnnotationExternal(opts, pushToMemory, me)
-  }
+getLowestValueInSeries(seriesIndex = 0) {
+  const range = new Range(this.ctx)
+  return range.getMinYMaxY(seriesIndex).lowestY
+}
 
-  addPointAnnotation(opts, pushToMemory = true, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-    me.annotations.addPointAnnotationExternal(opts, pushToMemory, me)
-  }
+getSeriesTotal() {
+  return this.w.globals.seriesTotals
+}
 
-  clearAnnotations(context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-    me.annotations.clearAnnotations(me)
-  }
+toggleDataPointSelection(seriesIndex, dataPointIndex) {
+  return this.updateHelpers.toggleDataPointSelection(
+    seriesIndex,
+    dataPointIndex
+  )
+}
 
-  removeAnnotation(id, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-    me.annotations.removeAnnotation(me, id)
-  }
+zoomX(min, max) {
+  this.ctx.toolbar.zoomUpdateOptions(min, max)
+}
 
-  getChartArea() {
-    const el = this.w.globals.dom.baseEl.querySelector('.apexcharts-inner')
+setLocale(localeName) {
+  this.localization.setCurrentLocaleValues(localeName)
+}
 
-    return el
-  }
+dataURI(options) {
+  const exp = new Exports(this.ctx)
+  return exp.dataURI(options)
+}
 
-  getSeriesTotalXRange(minX, maxX) {
-    return this.coreUtils.getSeriesTotalsXRange(minX, maxX)
-  }
+exportToCSV(options = {}) {
+  const exp = new
 
-  getHighestValueInSeries(seriesIndex = 0) {
-    const range = new Range(this.ctx)
-    return range.getMinYMaxY(seriesIndex).highestY
-  }
-
-  getLowestValueInSeries(seriesIndex = 0) {
-    const range = new Range(this.ctx)
-    return range.getMinYMaxY(seriesIndex).lowestY
-  }
-
-  getSeriesTotal() {
-    return this.w.globals.seriesTotals
-  }
-
-  toggleDataPointSelection(seriesIndex, dataPointIndex) {
-    return this.updateHelpers.toggleDataPointSelection(
-      seriesIndex,
-      dataPointIndex
-    )
-  }
-
-  zoomX(min, max) {
-    this.ctx.toolbar.zoomUpdateOptions(min, max)
-  }
-
-  setLocale(localeName) {
-    this.localization.setCurrentLocaleValues(localeName)
-  }
-
-  dataURI(options) {
-    const exp = new Exports(this.ctx)
-    return exp.dataURI(options)
-  }
-
-  exportToCSV(options = {}) {
-    const exp = new Exports(this.ctx)
-    return exp.exportToCSV(options)
-  }
-
-  paper() {
-    return this.w.globals.dom.Paper
-  }
-
-  _parentResizeCallback() {
-    if (
-      this.w.globals.animationEnded &&
-      this.w.config.chart.redrawOnParentResize
-    ) {
-      this._windowResize()
-    }
-  }
-
-  /**
-   * Handle window resize and re-draw the whole chart.
-   */
-  _windowResize() {
-    clearTimeout(this.w.globals.resizeTimer)
-    this.w.globals.resizeTimer = window.setTimeout(() => {
-      this.w.globals.resized = true
-      this.w.globals.dataChanged = false
-
-      // we need to redraw the whole chart on window resize (with a small delay).
-      this.ctx.update()
-    }, 150)
-  }
-
-  _windowResizeHandler() {
-    let { redrawOnWindowResize: redraw } = this.w.config.chart
-
-    if (typeof redraw === 'function') {
-      redraw = redraw()
-    }
-
-    redraw && this._windowResize()
-  }
 }
