@@ -57,8 +57,6 @@ class RangeBar extends Bar {
       let initPositions = this.barHelpers.initialPositions()
 
       y = initPositions.y
-      yDivision = initPositions.yDivision
-      barHeight = initPositions.barHeight
       zeroW = initPositions.zeroW
 
       x = initPositions.x
@@ -81,6 +79,9 @@ class RangeBar extends Bar {
         let barYPosition = null
         const params = { x, y, strokeWidth, elSeries }
 
+        yDivision = initPositions.yDivision
+        barHeight = initPositions.barHeight
+
         if (this.isHorizontal) {
           barYPosition = y + barHeight * this.visibleI
 
@@ -93,12 +94,18 @@ class RangeBar extends Bar {
           }
 
           if (this.isTimelineBar && w.config.series[i].data[j].x) {
-            const yPosition = w.globals.labels.indexOf(
-              w.config.series[i].data[j].x
-            )
+            let positions = this.detectOverlappingBars({
+              i,
+              j,
+              barYPosition,
+              srty,
+              barHeight,
+              yDivision,
+              initPositions
+            })
 
-            barYPosition =
-              srty + barHeight * this.visibleI + yDivision * yPosition
+            barHeight = positions.barHeight
+            barYPosition = positions.barYPosition
           }
 
           paths = this.drawRangeBarPaths({
@@ -160,6 +167,49 @@ class RangeBar extends Bar {
     }
 
     return ret
+  }
+
+  detectOverlappingBars({
+    i,
+    j,
+    barYPosition,
+    srty,
+    barHeight,
+    yDivision,
+    initPositions
+  }) {
+    const w = this.w
+    let overlaps = []
+    let rangeName = w.config.series[i].data[j].rangeName
+
+    const labelX = w.config.series[i].data[j].x
+    const rowIndex = w.globals.labels.indexOf(labelX)
+    const overlappedIndex = w.globals.seriesRangeBarTimeline[i].findIndex(
+      (tx) => tx.x === labelX && tx.overlaps.length > 0
+    )
+
+    barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex
+
+    if (overlappedIndex > -1) {
+      overlaps = w.globals.seriesRangeBarTimeline[i][overlappedIndex].overlaps
+
+      if (overlaps.indexOf(rangeName) > -1) {
+        barHeight = initPositions.barHeight / overlaps.length
+
+        barYPosition =
+          barHeight * this.visibleI +
+          (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
+            100 /
+            2 +
+          barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
+          yDivision * rowIndex
+      }
+    }
+
+    return {
+      barYPosition,
+      barHeight
+    }
   }
 
   drawRangeColumnPaths({

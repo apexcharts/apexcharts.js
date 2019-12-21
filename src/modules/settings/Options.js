@@ -437,9 +437,6 @@ export default class Options {
             }
           }
         },
-        rangeBar: {
-          barHeight: '70%'
-        },
         pie: {
           size: undefined,
           customScale: 1,
