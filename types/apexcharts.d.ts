@@ -550,7 +550,7 @@ type ApexPlotOptions = {
 
 type ApexFill = {
   colors?: any[]
-  opacity?: number
+  opacity?: number | number[]
   type?: string
   gradient?: {
     shade?: string
