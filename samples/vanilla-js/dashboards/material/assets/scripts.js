@@ -283,6 +283,9 @@ var optionsCircle1 = {
       enabled: false
     }
   },
+  legend: {
+    show: false
+  },
   title: {
     text: 'Bounce Rate',
     align: 'left'
@@ -295,7 +298,7 @@ chartCircle1.render();
 
 var optionsDonutTop = {
   chart: {
-    height: 333,
+    height: 299,
     type: 'donut',
   },
   plotOptions: {
@@ -413,9 +416,8 @@ chartArea.render();
 
 var optionsCircle4 = {
   chart: {
+    height: 314,
     type: 'radialBar',
-    height: 348,
-    width: 380,
   },
   colors: ['#775DD0', '#00C8E1', '#FFB900'],
   labels: ['q4'],
