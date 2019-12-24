@@ -5,3 +5,4 @@ issues/
 .idea
 .vscode
 bundle-analysis.html
+package-lock.json

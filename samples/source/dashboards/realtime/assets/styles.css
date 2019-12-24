@@ -1,0 +1,81 @@
+
+body {
+  background: #1B213B;
+  color: #777;
+  font-family: Montserrat, Arial, sans-serif;
+}
+
+.body-bg {
+  background: #F3F4FA !important;
+}
+
+h1, h2, h3, h4, h5, h6, strong {
+  font-weight: 600;
+}
+
+.box .apexcharts-xaxistooltip {
+  background: #1B213B;
+  color: #fff;
+}
+
+.content-area {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.box {
+  background-color: #262D47;
+  padding: 25px 25px;
+  border-radius: 4px;
+}
+
+.columnbox {
+  padding-right: 15px;
+}
+.radialbox {
+  max-height: 333px;
+  margin-bottom: 60px;
+}
+
+.apexcharts-legend-series tspan:nth-child(3) {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.edit-on-codepen {
+  text-align: right;
+  width: 100%;
+  padding: 0 20px 40px;
+  position: relative;
+  top: -30px;
+  cursor: pointer;
+}
+
+/* fusionexport btn CSS START */
+#fusionexport-btn {
+  min-width: 169px;
+  min-height: 38px;
+  text-align: center;
+}
+
+#fusionexport-btn .span {
+  display: inline-block;
+}
+
+#fusionexport-btn[disabled] {
+  cursor: wait;
+}
+
+
+.spinner-border {
+  display: none;
+}
+
+#fusionexport-btn[disabled] .spinner-border {
+  display: inline-block;
+}
+
+#fusionexport-btn[disabled] .btn-text {
+  display: none;
+}
+/* fusionexport btn CSS START */

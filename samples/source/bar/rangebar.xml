@@ -1,0 +1,50 @@
+<title>Range Bar Chart</title>
+
+<chart>
+<options>
+chart: {
+  type: 'rangeBar',
+  height: 350
+},
+plotOptions: {
+    bar: {
+        horizontal: true,
+    }
+},
+dataLabels: {
+  enabled: true
+}
+</options>
+
+<series>
+[{
+    data: [{
+      x: 'A',
+      y: [1, 5]
+    }, {
+      x: 'B',
+      y: [4, 6]
+    }, {
+      x: 'C',
+      y: [5, 8]
+    }, {
+      x: 'D',
+      y: [3, 11]
+    }]
+}, {
+    data: [{
+      x: 'A',
+      y: [2, 6]
+    }, {
+      x: 'B',
+      y: [1, 3]
+    }, {
+      x: 'C',
+      y: [7, 8]
+    }, {
+      x: 'D',
+      y: [5, 9]
+    }]
+}]
+</series>
+</chart>
