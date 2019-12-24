@@ -767,6 +767,16 @@ export default class Dimensions {
       }
     }
 
+    // if legend takes up all of the chart space, we need to restrict it.
+    if (
+      w.config.legend.position === 'left' ||
+      w.config.legend.position === 'right'
+    ) {
+      if (this.lgRect.width * 1.5 > w.globals.svgWidth) {
+        this.lgRect.width = w.globals.svgWidth / 1.5
+      }
+    }
+
     return this.lgRect
   }
 }
