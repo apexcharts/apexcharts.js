@@ -45,9 +45,9 @@ export default class Core {
       'rangeBar',
       // 'rangeArea',
       'candlestick',
-      'radar',
       'scatter',
       'bubble',
+      'radar',
       'heatmap'
     ]
 

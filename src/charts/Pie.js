@@ -35,7 +35,7 @@ class Pie {
 
     this.defaultSize =
       w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.gridHeight - w.globals.goldenPadding
+        ? w.globals.gridHeight
         : w.globals.gridWidth
 
     this.centerY = this.defaultSize / 2

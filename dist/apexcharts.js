@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.11.1
+ * ApexCharts v3.11.2
  * (c) 2018-2019 Juned Chhipa
  * Released under the MIT License.
  */
@@ -2224,7 +2224,7 @@
               radius: 2,
               enableShades: true,
               shadeIntensity: 0.5,
-              reverseNegativeShade: true,
+              reverseNegativeShade: false,
               distributed: false,
               colorScale: {
                 inverse: false,
@@ -2309,7 +2309,6 @@
                 }
               }
             },
-            rangeBar: {},
             pie: {
               size: undefined,
               customScale: 1,
@@ -6445,6 +6444,8 @@
           }
         }
 
+        if (opts.opacity) fillOpacity = opts.opacity;
+
         if (fillType === 'pattern') {
           patternFill = this.handlePatternFill(patternFill, fillColor, fillOpacity, defaultColor);
         }
@@ -6453,18 +6454,18 @@
           gradientFill = this.handleGradientFill(gradientFill, fillColor, fillOpacity, this.seriesIndex);
         }
 
-        if (cnf.fill.image.src.length > 0 && fillType === 'image') {
-          if (opts.seriesNumber < cnf.fill.image.src.length) {
-            this.clippedImgArea({
-              opacity: fillOpacity,
-              image: cnf.fill.image.src[opts.seriesNumber],
-              patternUnits: opts.patternUnits,
-              patternID: "pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1)
-            });
-            pathFill = "url(#pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1, ")");
-          } else {
-            pathFill = defaultColor;
-          }
+        if (fillType === 'image') {
+          var imgSrc = cnf.fill.image.src;
+          var patternID = opts.patternID ? opts.patternID : '';
+          this.clippedImgArea({
+            opacity: fillOpacity,
+            image: Array.isArray(imgSrc) ? opts.seriesNumber < imgSrc.length ? imgSrc[opts.seriesNumber] : imgSrc[0] : imgSrc,
+            width: opts.width ? opts.width : undefined,
+            height: opts.height ? opts.height : undefined,
+            patternUnits: opts.patternUnits,
+            patternID: "pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1).concat(patternID)
+          });
+          pathFill = "url(#pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1).concat(patternID, ")");
         } else if (fillType === 'gradient') {
           pathFill = gradientFill;
         } else if (fillType === 'pattern') {
@@ -7518,7 +7519,7 @@
             text = '';
           }
 
-          var valIsNegative = this.barCtx.series[i][j] <= 0;
+          var valIsNegative = w.globals.series[i][j] <= 0;
           var position = w.config.plotOptions.bar.dataLabels.position;
 
           if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
@@ -7548,7 +7549,7 @@
             // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
             // Note: This issue is only seen in stacked charts
             if (this.barCtx.isHorizontal) {
-              barWidth = this.barCtx.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex]; // FIXED: Don't always hide the stacked negative side label
+              barWidth = w.globals.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex]; // FIXED: Don't always hide the stacked negative side label
               // A negative value will result in a negative bar width
               // Only hide the text when the width is smaller (a higher negative number) than the negative bar width.
 
@@ -7556,7 +7557,7 @@
                 text = '';
               }
             } else {
-              barHeight = this.barCtx.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex];
+              barHeight = w.globals.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex];
 
               if (textRects.height / 1.6 > barHeight) {
                 text = '';
@@ -9147,11 +9148,10 @@
 
           for (var j = 0; j < heatSeries[i].length; j++) {
             var colorShadePercent = 1;
+            var shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
             var heatColorProps = this.determineHeatColor(i, j);
 
             if (w.globals.hasNegs || this.negRange) {
-              var shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
-
               if (w.config.plotOptions.heatmap.reverseNegativeShade) {
                 if (heatColorProps.percent < 0) {
                   colorShadePercent = heatColorProps.percent / 100 * (shadeIntensity * 1.25);
@@ -9170,10 +9170,21 @@
             }
 
             var color = heatColorProps.color;
+            var utils = new Utils();
 
             if (w.config.plotOptions.heatmap.enableShades) {
-              var utils = new Utils();
               color = Utils.hexToRgba(utils.shadeColor(colorShadePercent, heatColorProps.color), w.config.fill.opacity);
+            }
+
+            if (w.config.fill.type === 'image') {
+              var fill = new Fill(this.ctx);
+              color = fill.fillPath({
+                seriesNumber: i,
+                opacity: w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100,
+                patternID: Utils.randomId(),
+                width: w.config.fill.image.width ? w.config.fill.image.width : xDivision,
+                height: w.config.fill.image.height ? w.config.fill.image.height : yDivision
+              });
             }
 
             var radius = this.rectRadius;
@@ -9292,6 +9303,12 @@
         }
 
         var total = Math.abs(max) + Math.abs(min);
+
+        if (val === 0) {
+          // to avoid invalid percentage for 0 values
+          val = 0.000001;
+        }
+
         var percent = 100 * val / (total === 0 ? total - 0.000001 : total);
 
         if (heatmap.colorScale.ranges.length > 0) {
@@ -9409,7 +9426,7 @@
       this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
       var w = this.w;
       this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
-      this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.gridHeight - w.globals.goldenPadding : w.globals.gridWidth;
+      this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.gridHeight : w.globals.gridWidth;
       this.centerY = this.defaultSize / 2;
       this.centerX = w.globals.gridWidth / 2;
       this.fullAngle = 360;
@@ -10097,7 +10114,7 @@
       var w = this.w;
       this.graphics = new Graphics(this.ctx);
       this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
-      this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.svgHeight - w.globals.goldenPadding : w.globals.gridWidth;
+      this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.gridHeight + w.globals.goldenPadding * 1.5 : w.globals.gridWidth;
       this.maxValue = this.w.globals.maxY;
       this.polygons = w.config.plotOptions.radar.polygons;
       this.maxLabelWidth = 20;
@@ -10956,8 +10973,6 @@
 
           var initPositions = this.barHelpers.initialPositions();
           y = initPositions.y;
-          yDivision = initPositions.yDivision;
-          barHeight = initPositions.barHeight;
           zeroW = initPositions.zeroW;
           x = initPositions.x;
           barWidth = initPositions.barWidth;
@@ -10980,6 +10995,8 @@
               strokeWidth: strokeWidth,
               elSeries: elSeries
             };
+            yDivision = initPositions.yDivision;
+            barHeight = initPositions.barHeight;
 
             if (this.isHorizontal) {
               barYPosition = y + barHeight * this.visibleI;
@@ -10992,8 +11009,17 @@
               }
 
               if (this.isTimelineBar && w.config.series[i].data[j].x) {
-                var yPosition = w.globals.labels.indexOf(w.config.series[i].data[j].x);
-                barYPosition = srty + barHeight * this.visibleI + yDivision * yPosition;
+                var positions = this.detectOverlappingBars({
+                  i: i,
+                  j: j,
+                  barYPosition: barYPosition,
+                  srty: srty,
+                  barHeight: barHeight,
+                  yDivision: yDivision,
+                  initPositions: initPositions
+                });
+                barHeight = positions.barHeight;
+                barYPosition = positions.barYPosition;
               }
 
               paths = this.drawRangeBarPaths(_objectSpread2({
@@ -11058,14 +11084,48 @@
         return ret;
       }
     }, {
+      key: "detectOverlappingBars",
+      value: function detectOverlappingBars(_ref) {
+        var i = _ref.i,
+            j = _ref.j,
+            barYPosition = _ref.barYPosition,
+            srty = _ref.srty,
+            barHeight = _ref.barHeight,
+            yDivision = _ref.yDivision,
+            initPositions = _ref.initPositions;
+        var w = this.w;
+        var overlaps = [];
+        var rangeName = w.config.series[i].data[j].rangeName;
+        var labelX = w.config.series[i].data[j].x;
+        var rowIndex = w.globals.labels.indexOf(labelX);
+        var overlappedIndex = w.globals.seriesRangeBarTimeline[i].findIndex(function (tx) {
+          return tx.x === labelX && tx.overlaps.length > 0;
+        });
+        barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex;
+
+        if (overlappedIndex > -1) {
+          overlaps = w.globals.seriesRangeBarTimeline[i][overlappedIndex].overlaps;
+
+          if (overlaps.indexOf(rangeName) > -1) {
+            barHeight = initPositions.barHeight / overlaps.length;
+            barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
+          }
+        }
+
+        return {
+          barYPosition: barYPosition,
+          barHeight: barHeight
+        };
+      }
+    }, {
       key: "drawRangeColumnPaths",
-      value: function drawRangeColumnPaths(_ref) {
-        var indexes = _ref.indexes,
-            x = _ref.x,
-            strokeWidth = _ref.strokeWidth,
-            xDivision = _ref.xDivision,
-            barWidth = _ref.barWidth,
-            zeroH = _ref.zeroH;
+      value: function drawRangeColumnPaths(_ref2) {
+        var indexes = _ref2.indexes,
+            x = _ref2.x,
+            strokeWidth = _ref2.strokeWidth,
+            xDivision = _ref2.xDivision,
+            barWidth = _ref2.barWidth,
+            zeroH = _ref2.zeroH;
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var i = indexes.i;
@@ -11115,15 +11175,15 @@
       }
     }, {
       key: "drawRangeBarPaths",
-      value: function drawRangeBarPaths(_ref2) {
-        var indexes = _ref2.indexes,
-            y = _ref2.y,
-            y1 = _ref2.y1,
-            y2 = _ref2.y2,
-            yDivision = _ref2.yDivision,
-            barHeight = _ref2.barHeight,
-            barYPosition = _ref2.barYPosition,
-            zeroW = _ref2.zeroW;
+      value: function drawRangeBarPaths(_ref3) {
+        var indexes = _ref3.indexes,
+            y = _ref3.y,
+            y1 = _ref3.y1,
+            y2 = _ref3.y2,
+            yDivision = _ref3.yDivision,
+            barHeight = _ref3.barHeight,
+            barYPosition = _ref3.barYPosition,
+            zeroW = _ref3.zeroW;
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var x1 = zeroW + y1 / this.invertedYRatio;
@@ -11295,7 +11355,7 @@
 
         if (!w.config.grid.show || w.config.chart.type === 'radar') {
           yAxisWidth = 0;
-          xAxisHeight = 35;
+          xAxisHeight = gl.goldenPadding;
         }
 
         if (this.isSparkline) {
@@ -11363,15 +11423,15 @@
         var offY = 10;
         var offX = 0;
 
-        if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
-          offY = offY + w.config.plotOptions.pie.offsetY;
-          offX = offX + w.config.plotOptions.pie.offsetX;
-        } else if (w.config.chart.type === 'radialBar') {
-          offY = offY + w.config.plotOptions.radialBar.offsetY;
-          offX = offX + w.config.plotOptions.radialBar.offsetX;
+        if (cnf.chart.type === 'pie' || cnf.chart.type === 'donut') {
+          offY = offY + cnf.plotOptions.pie.offsetY;
+          offX = offX + cnf.plotOptions.pie.offsetX;
+        } else if (cnf.chart.type === 'radialBar') {
+          offY = offY + cnf.plotOptions.radialBar.offsetY;
+          offX = offX + cnf.plotOptions.radialBar.offsetX;
         }
 
-        if (!w.config.legend.show || w.config.legend.floating) {
+        if (!cnf.legend.show || cnf.legend.floating) {
           gl.gridHeight = gl.svgHeight - gl.goldenPadding;
           gl.gridWidth = gl.gridHeight;
           gl.translateY = offY - 10;
@@ -11379,7 +11439,7 @@
           return;
         }
 
-        switch (w.config.legend.position) {
+        switch (cnf.legend.position) {
           case 'bottom':
             gl.gridHeight = gl.svgHeight - lgRect.height - gl.goldenPadding;
             gl.gridWidth = gl.gridHeight;
@@ -11396,14 +11456,14 @@
 
           case 'left':
             gl.gridWidth = gl.svgWidth - lgRect.width - xPad;
-            gl.gridHeight = Utils.isNumber(cnf.chart.height) ? gl.svgHeight : gl.gridWidth;
+            gl.gridHeight = cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth;
             gl.translateY = offY;
             gl.translateX = offX + lgRect.width + xPad;
             break;
 
           case 'right':
             gl.gridWidth = gl.svgWidth - lgRect.width - xPad - 5;
-            gl.gridHeight = Utils.isNumber(cnf.chart.height) ? gl.svgHeight : gl.gridWidth;
+            gl.gridHeight = cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth;
             gl.translateY = offY;
             gl.translateX = offX + 10;
             break;
@@ -11531,7 +11591,7 @@
       value: function getTotalYAxisWidth() {
         var w = this.w;
         var yAxisWidth = 0;
-        var padding = 10;
+        var padding = w.globals.yAxisScale.length > 1 ? 10 : 0;
 
         var isHiddenYAxis = function isHiddenYAxis(index) {
           return w.globals.ignoreYAxisIndexes.indexOf(index) > -1;
@@ -15647,8 +15707,33 @@
 
         if (cnf.xaxis.type === 'datetime') {
           gl.seriesRangeBarTimeline.push(range.rangeUniques);
-        }
+        } // check for overlaps to avoid clashes in a timeline chart
 
+
+        gl.seriesRangeBarTimeline.forEach(function (sr, si) {
+          sr.forEach(function (sarr, sarri) {
+            sarr.y.forEach(function (arr, arri) {
+              for (var sri = 0; sri < sarr.y.length; sri++) {
+                if (arri !== sri) {
+                  var range1y1 = arr.y1;
+                  var range1y2 = arr.y2;
+                  var range2y1 = sarr.y[sri].y1;
+                  var range2y2 = sarr.y[sri].y2;
+
+                  if (range1y1 <= range2y2 && range2y1 <= range1y2) {
+                    if (sarr.overlaps.indexOf(arr.rangeName) < 0) {
+                      sarr.overlaps.push(arr.rangeName);
+                    }
+
+                    if (sarr.overlaps.indexOf(sarr.y[sri].rangeName) < 0) {
+                      sarr.overlaps.push(sarr.y[sri].rangeName);
+                    }
+                  }
+                }
+              }
+            });
+          });
+        });
         return range;
       }
     }, {
@@ -15681,7 +15766,7 @@
         }).map(function (r, index) {
           return {
             x: r.x,
-            index: index,
+            overlaps: [],
             y: []
           };
         });
@@ -15704,11 +15789,15 @@
           }
 
           var _loop = function _loop(_j3) {
+            var id = Utils.randomId();
             var x = ser[i].data[_j3].x;
             var y = {
               y1: ser[i].data[_j3].y[0],
-              y2: ser[i].data[_j3].y[1]
-            };
+              y2: ser[i].data[_j3].y[1],
+              rangeName: id
+            }; // mutating config object
+
+            ser[i].data[_j3].rangeName = id;
             var uI = uniqueKeys.findIndex(function (t) {
               return t.x === x;
             });

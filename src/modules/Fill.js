@@ -132,6 +132,7 @@ class Fill {
         fillOpacity = 0 + '.' + Utils.getOpacityFromRGBA(fillColor)
       }
     }
+    if (opts.opacity) fillOpacity = opts.opacity
 
     if (fillType === 'pattern') {
       patternFill = this.handlePatternFill(
@@ -151,18 +152,25 @@ class Fill {
       )
     }
 
-    if (cnf.fill.image.src.length > 0 && fillType === 'image') {
-      if (opts.seriesNumber < cnf.fill.image.src.length) {
-        this.clippedImgArea({
-          opacity: fillOpacity,
-          image: cnf.fill.image.src[opts.seriesNumber],
-          patternUnits: opts.patternUnits,
-          patternID: `pattern${w.globals.cuid}${opts.seriesNumber + 1}`
-        })
-        pathFill = `url(#pattern${w.globals.cuid}${opts.seriesNumber + 1})`
-      } else {
-        pathFill = defaultColor
-      }
+    if (fillType === 'image') {
+      let imgSrc = cnf.fill.image.src
+
+      let patternID = opts.patternID ? opts.patternID : ''
+      this.clippedImgArea({
+        opacity: fillOpacity,
+        image: Array.isArray(imgSrc)
+          ? opts.seriesNumber < imgSrc.length
+            ? imgSrc[opts.seriesNumber]
+            : imgSrc[0]
+          : imgSrc,
+        width: opts.width ? opts.width : undefined,
+        height: opts.height ? opts.height : undefined,
+        patternUnits: opts.patternUnits,
+        patternID: `pattern${w.globals.cuid}${opts.seriesNumber +
+          1}${patternID}`
+      })
+      pathFill = `url(#pattern${w.globals.cuid}${opts.seriesNumber +
+        1}${patternID})`
     } else if (fillType === 'gradient') {
       pathFill = gradientFill
     } else if (fillType === 'pattern') {

@@ -1,6 +1,7 @@
 import DataLabels from '../modules/DataLabels'
 import Animations from '../modules/Animations'
 import Graphics from '../modules/Graphics'
+import Fill from '../modules/Fill'
 import Utils from '../utils/Utils'
 import Filters from '../modules/Filters'
 
@@ -73,12 +74,11 @@ export default class HeatMap {
 
       for (let j = 0; j < heatSeries[i].length; j++) {
         let colorShadePercent = 1
+        let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
 
         const heatColorProps = this.determineHeatColor(i, j)
 
         if (w.globals.hasNegs || this.negRange) {
-          let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
-
           if (w.config.plotOptions.heatmap.reverseNegativeShade) {
             if (heatColorProps.percent < 0) {
               colorShadePercent =
@@ -101,13 +101,33 @@ export default class HeatMap {
         }
 
         let color = heatColorProps.color
+        let utils = new Utils()
 
         if (w.config.plotOptions.heatmap.enableShades) {
-          let utils = new Utils()
           color = Utils.hexToRgba(
             utils.shadeColor(colorShadePercent, heatColorProps.color),
             w.config.fill.opacity
           )
+        }
+
+        if (w.config.fill.type === 'image') {
+          const fill = new Fill(this.ctx)
+
+          color = fill.fillPath({
+            seriesNumber: i,
+            opacity: w.globals.hasNegs
+              ? heatColorProps.percent < 0
+                ? 1 - (1 + heatColorProps.percent / 100)
+                : shadeIntensity + heatColorProps.percent / 100
+              : heatColorProps.percent / 100,
+            patternID: Utils.randomId(),
+            width: w.config.fill.image.width
+              ? w.config.fill.image.width
+              : xDivision,
+            height: w.config.fill.image.height
+              ? w.config.fill.image.height
+              : yDivision
+          })
         }
 
         let radius = this.rectRadius
@@ -255,6 +275,12 @@ export default class HeatMap {
     }
 
     let total = Math.abs(max) + Math.abs(min)
+
+    if (val === 0) {
+      // to avoid invalid percentage for 0 values
+      val = 0.000001
+    }
+
     let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
 
     if (heatmap.colorScale.ranges.length > 0) {

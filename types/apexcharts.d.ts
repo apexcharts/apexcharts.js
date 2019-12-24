@@ -550,7 +550,7 @@ type ApexPlotOptions = {
 
 type ApexFill = {
   colors?: any[]
-  opacity?: number
+  opacity?: number | number[]
   type?: string
   gradient?: {
     shade?: string
@@ -713,7 +713,7 @@ type ApexTooltip = {
     fontFamily?: string
   }
   onDatasetHover?: {
-    highlightDAtaSeries?: boolean
+    highlightDataSeries?: boolean
   }
   x?: {
     show?: boolean

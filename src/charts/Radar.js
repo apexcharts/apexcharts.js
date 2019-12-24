@@ -34,7 +34,7 @@ class Radar {
 
     this.defaultSize =
       w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.svgHeight - w.globals.goldenPadding
+        ? w.globals.gridHeight + w.globals.goldenPadding * 1.5
         : w.globals.gridWidth
 
     this.maxValue = this.w.globals.maxY

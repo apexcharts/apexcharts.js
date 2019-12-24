@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "3.11.1",
+  "version": "3.11.2",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -89,6 +89,7 @@
   "bugs": {
     "url": "https://github.com/apexcharts/apexcharts.js/issues"
   },
+  "funding": "https://github.com/apexcharts/apexcharts.js?sponsor=1",
   "license": "MIT",
   "licenses": [
     {

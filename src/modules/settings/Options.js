@@ -351,7 +351,7 @@ export default class Options {
           radius: 2,
           enableShades: true,
           shadeIntensity: 0.5,
-          reverseNegativeShade: true,
+          reverseNegativeShade: false,
           distributed: false,
           colorScale: {
             inverse: false,
@@ -437,7 +437,6 @@ export default class Options {
             }
           }
         },
-        rangeBar: {},
         pie: {
           size: undefined,
           customScale: 1,

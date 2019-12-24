@@ -156,7 +156,7 @@ export default class Dimensions {
 
     if (!w.config.grid.show || w.config.chart.type === 'radar') {
       yAxisWidth = 0
-      xAxisHeight = 35
+      xAxisHeight = gl.goldenPadding
     }
 
     if (this.isSparkline) {
@@ -228,15 +228,15 @@ export default class Dimensions {
     let offY = 10
     let offX = 0
 
-    if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
-      offY = offY + w.config.plotOptions.pie.offsetY
-      offX = offX + w.config.plotOptions.pie.offsetX
-    } else if (w.config.chart.type === 'radialBar') {
-      offY = offY + w.config.plotOptions.radialBar.offsetY
-      offX = offX + w.config.plotOptions.radialBar.offsetX
+    if (cnf.chart.type === 'pie' || cnf.chart.type === 'donut') {
+      offY = offY + cnf.plotOptions.pie.offsetY
+      offX = offX + cnf.plotOptions.pie.offsetX
+    } else if (cnf.chart.type === 'radialBar') {
+      offY = offY + cnf.plotOptions.radialBar.offsetY
+      offX = offX + cnf.plotOptions.radialBar.offsetX
     }
 
-    if (!w.config.legend.show || w.config.legend.floating) {
+    if (!cnf.legend.show || cnf.legend.floating) {
       gl.gridHeight = gl.svgHeight - gl.goldenPadding
       gl.gridWidth = gl.gridHeight
 
@@ -246,7 +246,7 @@ export default class Dimensions {
       return
     }
 
-    switch (w.config.legend.position) {
+    switch (cnf.legend.position) {
       case 'bottom':
         gl.gridHeight = gl.svgHeight - lgRect.height - gl.goldenPadding
         gl.gridWidth = gl.gridHeight
@@ -263,17 +263,15 @@ export default class Dimensions {
         break
       case 'left':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad
-        gl.gridHeight = Utils.isNumber(cnf.chart.height)
-          ? gl.svgHeight
-          : gl.gridWidth
+        gl.gridHeight =
+          cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth
         gl.translateY = offY
         gl.translateX = offX + lgRect.width + xPad
         break
       case 'right':
         gl.gridWidth = gl.svgWidth - lgRect.width - xPad - 5
-        gl.gridHeight = Utils.isNumber(cnf.chart.height)
-          ? gl.svgHeight
-          : gl.gridWidth
+        gl.gridHeight =
+          cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth
         gl.translateY = offY
         gl.translateX = offX + 10
         break
@@ -428,7 +426,7 @@ export default class Dimensions {
   getTotalYAxisWidth() {
     let w = this.w
     let yAxisWidth = 0
-    let padding = 10
+    let padding = w.globals.yAxisScale.length > 1 ? 10 : 0
 
     const isHiddenYAxis = function(index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
@@ -766,6 +764,16 @@ export default class Dimensions {
         y: 0,
         height: 0,
         width: 0
+      }
+    }
+
+    // if legend takes up all of the chart space, we need to restrict it.
+    if (
+      w.config.legend.position === 'left' ||
+      w.config.legend.position === 'right'
+    ) {
+      if (this.lgRect.width * 1.5 > w.globals.svgWidth) {
+        this.lgRect.width = w.globals.svgWidth / 1.5
       }
     }
 
