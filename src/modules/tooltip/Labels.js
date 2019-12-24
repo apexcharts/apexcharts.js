@@ -75,41 +75,40 @@ export default class Labels {
 
       const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
-      if (shared) {
-        f = this.getFormatters(tIndex)
-
-        seriesName = this.getSeriesName({
-          fn: f.yLbTitleFormatter,
-          index: tIndex,
-          seriesIndex: i,
-          j
-        })
-        pColor = w.globals.colors[tIndex]
-
-        // for plot charts, not for pie/donuts
-        val = f.yLbFormatter(w.globals.series[tIndex][j], {
-          series: w.globals.series,
-          seriesIndex: tIndex,
-          dataPointIndex: j,
-          w
-        })
-
-        // discard 0 values in BARS
-        if (
-          (this.ttCtx.hasBars() &&
-            w.config.chart.stacked &&
-            w.globals.series[tIndex][j] === 0) ||
-          typeof w.globals.series[tIndex][j] === 'undefined'
-        ) {
-          val = undefined
+      if (w.globals.axisCharts) {
+        const generalFormatter = (index) => {
+          return f.yLbFormatter(w.globals.series[index][j], {
+            series: w.globals.series,
+            seriesIndex: index,
+            dataPointIndex: j,
+            w
+          })
         }
-      } else {
-        val = f.yLbFormatter(w.globals.series[i][j], {
-          series: w.globals.series,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        })
+        if (shared) {
+          f = this.getFormatters(tIndex)
+
+          seriesName = this.getSeriesName({
+            fn: f.yLbTitleFormatter,
+            index: tIndex,
+            seriesIndex: i,
+            j
+          })
+          pColor = w.globals.colors[tIndex]
+
+          val = generalFormatter(tIndex)
+
+          // discard 0 values in BARS
+          if (
+            (this.ttCtx.hasBars() &&
+              w.config.chart.stacked &&
+              w.globals.series[tIndex][j] === 0) ||
+            typeof w.globals.series[tIndex][j] === 'undefined'
+          ) {
+            val = undefined
+          }
+        } else {
+          val = generalFormatter(i)
+        }
       }
 
       // for pie / donuts
