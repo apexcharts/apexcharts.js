@@ -386,7 +386,8 @@ export default class BarDataLabels {
         // Note: This issue is only seen in stacked charts
         if (this.barCtx.isHorizontal) {
           barWidth =
-            w.globals.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex]
+            w.globals.series[i][j] /
+            this.barCtx.invertedYRatio[this.barCtx.yaxisIndex]
 
           // FIXED: Don't always hide the stacked negative side label
           // A negative value will result in a negative bar width
