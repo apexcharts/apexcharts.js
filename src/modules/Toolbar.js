@@ -157,6 +157,10 @@ export default class Toolbar {
       {
         name: 'exportPNG',
         title: this.localeValues.exportToPNG
+      },
+      {
+        name: 'exportCSV',
+        title: this.localeValues.exportToCSV
       }
     ]
     for (let i = 0; i < menuItems.length; i++) {
@@ -193,6 +197,8 @@ export default class Toolbar {
         m.addEventListener('click', this.downloadSVG.bind(this))
       } else if (m.classList.contains('exportPNG')) {
         m.addEventListener('click', this.downloadPNG.bind(this))
+      } else if (m.classList.contains('exportCSV')) {
+        m.addEventListener('click', this.downloadCSV.bind(this))
       }
     })
     for (let i = 0; i < this.t.customIcons.length; i++) {
@@ -391,14 +397,21 @@ export default class Toolbar {
   }
 
   downloadPNG() {
-    const downloadPNG = new Exports(this.ctx)
-    downloadPNG.exportToPng(this.ctx)
+    const exprt = new Exports(this.ctx)
+    exprt.exportToPng(this.ctx)
     this.toggleMenu()
   }
 
   downloadSVG() {
-    const downloadSVG = new Exports(this.ctx)
-    downloadSVG.exportToSVG()
+    const exprt = new Exports(this.ctx)
+    exprt.exportToSVG()
+    this.toggleMenu()
+  }
+
+  downloadCSV() {
+    const w = this.w
+    const exprt = new Exports(this.ctx)
+    exprt.exportToCSV({ series: w.config.series })
     this.toggleMenu()
   }
 
