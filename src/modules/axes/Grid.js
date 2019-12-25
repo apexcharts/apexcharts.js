@@ -75,16 +75,11 @@ class Grid {
     let elgrid = null
 
     if (gl.axisCharts) {
-      if (w.config.grid.show) {
-        // grid is drawn after xaxis and yaxis are drawn
-        elgrid = this.renderGrid()
-        gl.dom.elGraphical.add(elgrid.el)
+      // grid is drawn after xaxis and yaxis are drawn
+      elgrid = this.renderGrid()
+      gl.dom.elGraphical.add(elgrid.el)
 
-        this.drawGridArea(elgrid.el)
-      } else {
-        let elgridArea = this.drawGridArea()
-        gl.dom.elGraphical.add(elgridArea)
-      }
+      this.drawGridArea(elgrid.el)
 
       if (elgrid !== null) {
         xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
@@ -206,6 +201,11 @@ class Grid {
 
     elg.add(elgridLinesH)
     elg.add(elgridLinesV)
+
+    if (!w.config.grid.show) {
+      elgridLinesV.hide()
+      elgridLinesH.hide()
+    }
 
     let tickAmount = 8
     for (let i = 0; i < w.globals.series.length; i++) {
