@@ -11,12 +11,19 @@ body {
   position: relative;
 }
 
+.chart-box {
+  padding-left: 0;
+}
+
 #chart-year,
 #chart-quarter {
   width: 96%;
   max-width: 48%;
   box-shadow: none;
   padding-left: 0;
+  padding-top: 20px;
+  background: #fff;
+  border: 1px solid #ddd;
 }
 
 #chart-year {
@@ -261,7 +268,9 @@ function updateQuarterChart(sourceChart, destChartIDToUpdate) {
 
 <html>
 <div id="wrap">
-  <select id="model" @change="changeData" class="flat-select">
+  <select id="model" class="flat-select"
+      {% if format == 'react' %}onChange={() => this.changeData()}{% endif %}
+      {% if format == 'vue' %}@change="changeData"{% endif %}>
     <option value="iphone5">iPhone 5</option>
     <option value="iphone6">iPhone 6</option>
     <option value="iphone7">iPhone 7</option>
@@ -447,6 +456,42 @@ tooltip: {
 </series>
 </chart>
 
+<vanilla-js-script>
+chart.addEventListener('dataPointSelection', function (e, chart, opts) {
+  var quarterChartEl = document.querySelector("#chart-quarter");
+  var yearChartEl = document.querySelector("#chart-year");
+
+  if (opts.selectedDataPoints[0].length === 1) {
+    if(quarterChartEl.classList.contains("active")) {
+      updateQuarterChart(chart, 'barQuarter')
+    }
+    else {
+      yearChartEl.classList.add("chart-quarter-activated")
+      quarterChartEl.classList.add("active");
+      updateQuarterChart(chart, 'barQuarter')
+    }
+  } else {
+      updateQuarterChart(chart, 'barQuarter')
+  }
+
+  if (opts.selectedDataPoints[0].length === 0) {
+    yearChartEl.classList.remove("chart-quarter-activated")
+    quarterChartEl.classList.remove("active");
+  }
+
+})
+
+chart.addEventListener('updated', function (chart) {
+  updateQuarterChart(chart, 'barQuarter')
+})
+
+document.querySelector("#model").addEventListener("change", function (e) {
+  chart.updateSeries([{
+    data: makeData()
+  }])
+})
+</vanilla-js-script>
+
 <react-script>
 changeData() {
   Apex.exec('barYear', 'updateSeries', [{
@@ -458,7 +503,7 @@ changeData() {
 <vue-script>
 methods: {
   changeData: function() {
-    this.$refs.chartYear.updateSeries([{
+    this.$refs.chart.updateSeries([{
       data: makeData()
     }])
   }

@@ -18,7 +18,7 @@
 </series>
 </chart>
 
-<vanilla-script></vanilla-script>
+<vanilla-js-script></vanilla-js-script>
 
 <react-state></react-state>
 <react-script></react-script>

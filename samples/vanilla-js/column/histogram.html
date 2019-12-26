@@ -7,112 +7,125 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Time Series</title>
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
       max-width: 800px;
       margin: 35px auto;
     }
-
+    
     #timeline-chart .apexcharts-toolbar {
       opacity: 1;
       border: 0;
     }
-
+    
     .selection {
       opacity: 0;
     }
+  
   </style>
-</head>
-
-<body>
-
-  <div id="chart">
-    <div id="timeline-chart"></div>
-    <div class="selection">
-      Selected: <span id="selected-count">0</span>
-    </div>
-  </div>
 
 
   <script src="../../../dist/apexcharts.js"></script>
 
+
   <script>
-
-    var options = {
-      chart: {
-        type: "histogram",
-        height: 380,
-        foreColor: "#999",
-        events: {
-          dataPointSelection: function(e, chart,opts) {
-            var arraySelected = []
-            opts.selectedDataPoints.map((selectedIndex) => {
-              selectedIndex.map((s) => {
-                arraySelected.push(chart.w.globals.series[0][s])
-              })
-
-            });
-            arraySelected = arraySelected.reduce((acc, curr) => acc + curr, 0)
-                        
-            document.querySelector("#selected-count").innerHTML = arraySelected
-          }
-        }
-      },
-      plotOptions: {
-        bar: {
-          dataLabels: {
-            enabled: false
-          }
-        }
-      },
-      series: [{
-          data: [4, 3, 10, 9, 29, 19, 22]
-      }],
-      states: {
-        active: {
-          allowMultipleDataPointsSelection: true
-        }
-      },
-      xaxis: {
-        categories: [10,20,30,40,50,60,70],
-        axisBorder: {
-          show: false
-        },
-        axisTicks: {
-          show: false
-        }
-      },
-      yaxis: {
-        tickAmount: 4,
-        labels: {
-          offsetX: -5,
-          offsetY: -5
-        },
-      },
-
-      tooltip: {
-        x: {
-          format: "dd MMM yyyy"
-        },
-      },
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
     };
-
-    var chart = new ApexCharts(document.querySelector("#timeline-chart"), options);
-
-    chart.render();
-
-    
-
-     chart.addEventListener("dataPointSelection", function(e, opts) { 
-          console.log(e, opts)
-      })
-
-        
-
   </script>
+
+  
+</head>
+
+<body>
+  
+    <div id="chart">
+        <div id="chart"></div>
+        <div class="selection">
+          Selected: <span id="selected-count">0</span>
+        </div>
+      </div>
+
+    <script>
+    
+      var options = {
+        series: [{
+          data: [4, 3, 10, 9, 29, 19, 22]
+        }],
+        chart: {
+          type: "histogram",
+          height: 380,
+          foreColor: "#999",
+          events: {
+            dataPointSelection: function(e, chart,opts) {
+              var arraySelected = []
+              opts.selectedDataPoints.map(function(selectedIndex) {
+                return selectedIndex.map(function(s) {
+                  return arraySelected.push(chart.w.globals.series[0][s])
+                })
+        
+              });
+              arraySelected = arraySelected.reduce(function(acc, curr) {
+                return acc + curr;
+              } , 0)
+        
+              document.querySelector("#selected-count").innerHTML = arraySelected
+            }
+          }
+        },
+        plotOptions: {
+          bar: {
+            dataLabels: {
+              enabled: false
+            }
+          }
+        },
+        states: {
+          active: {
+            allowMultipleDataPointsSelection: true
+          }
+        },
+        xaxis: {
+          categories: [10,20,30,40,50,60,70],
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          }
+        },
+        yaxis: {
+          tickAmount: 4,
+          labels: {
+            offsetX: -5,
+            offsetY: -5
+          },
+        },
+        tooltip: {
+          x: {
+            format: "dd MMM yyyy"
+          },
+        },
+      };
+
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
+      chart.addEventListener("dataPointSelection", function(e, opts) {
+        console.log(e, opts)
+      })
+    
+    </script>
+
+  
 </body>
 
 </html>

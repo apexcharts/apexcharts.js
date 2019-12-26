@@ -48,24 +48,13 @@ function resetData(){
   // Alternatively, you can also reset the data at certain intervals to prevent creating a huge series 
   data = data.slice(data.length - 10, data.length);
 }
-
-
-// BUG: only works for vanilla-js
-window.setInterval(function () {
-  getNewSeries(lastDate, {
-    min: 10,
-    max: 90
-  })
-  chart.updateSeries([{
-    data: data
-  }])
-}, 1000)
 </script>
 </scripts>
 
 <chart>
 <options>
 chart: {
+  id: 'realtime',
   height: 350,
   type: 'line',
   animations: {
@@ -114,10 +103,55 @@ legend: {
 </series>
 </chart>
 
-<vanilla-script></vanilla-script>
+<vanilla-js-script>
+window.setInterval(function () {
+  getNewSeries(lastDate, {
+    min: 10,
+    max: 90
+  })
 
-<react-state></react-state>
-<react-script></react-script>
+  chart.updateSeries([{
+    data: data
+  }])
+}, 1000)
+</vanilla-js-script>
 
-<vue-data></vue-data>
-<vue-script></vue-script>
+<react-script>
+componentDidMount() {
+  window.setInterval(() => {
+    getNewSeries(lastDate, {
+      min: 10,
+      max: 90
+    })
+    
+    ApexCharts.exec('realtime', 'updateSeries', [{
+      data: data
+    }])
+  }, 1000)
+}
+</react-script>
+
+<vue-script>
+mounted: function () {
+  var me = this
+  window.setInterval(function () {
+    getNewSeries(lastDate, {
+      min: 10,
+      max: 90
+    })
+    
+    me.$refs.chart.updateSeries([{
+      data: data
+    }])
+  }, 1000)
+
+  // every 60 seconds, we reset the data to prevent memory leaks
+  window.setInterval(function () {
+    resetData()
+    
+    me.$refs.chart.updateSeries([{
+      data
+    }], false, true)
+  }, 60000)
+},
+</vue-script>

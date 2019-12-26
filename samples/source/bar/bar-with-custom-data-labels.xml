@@ -4,7 +4,7 @@
 <options>
 chart: {
   type: 'bar',
-  height: 350
+  height: 380
 },
 plotOptions: {
   bar: {

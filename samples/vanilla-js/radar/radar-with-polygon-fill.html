@@ -2,92 +2,104 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Radar with Polygon Fill</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Radar with Polygon Fill</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet">
+
+  <style>
+  
+    #chart {
+      max-width: 450px;
+      margin: 35px auto;
+    }
+  
+  </style>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <script src="../../../dist/apexcharts.js"></script>
 
-    <style>
-        #chart {
-            max-width: 450px;
-            margin: 35px auto;
-        }
-    </style>
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  
 </head>
 
 <body>
-    <div id="chart">
-
-    </div>
-
-
-    <script src="../../../dist/apexcharts.js"></script>
+  
+    <div id="chart"></div>
 
     <script>
-        var options = {
-            chart: {
-                height: 350,
-                type: 'radar',
-            },
-            series: [{
-                name: 'Series 1',
-                data: [20, 100, 40, 30, 50, 80, 33],
-            }],
-            labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            plotOptions: {
-                radar: {
-                    size: 140,
-                    polygons: {
-                        strokeColor: '#e9e9e9',
-                        fill: {
-                            colors: ['#f8f8f8', '#fff']
-                        }
-                    }
-                }
-            },
-            title: {
-                text: 'Radar with Polygon Fill'
-            },
-            colors: ['#FF4560'],
-            markers: {
-                size: 4,
-                colors: ['#fff'],
-                strokeColor: '#FF4560',
-                strokeWidth: 2,
-            },
-            tooltip: {
-                y: {
-                    formatter: function(val) {
-                        return val
-                    }   
-                }
-            },
-            yaxis: {
-                tickAmount: 7,
-                labels: {
-                    formatter: function(val, i) {
-                        if(i % 2 === 0) {
-                            return val
-                        } else {
-                            return ''
-                        }
-                    }
-                }
+    
+      var options = {
+        series: [{
+          name: 'Series 1',
+          data: [20, 100, 40, 30, 50, 80, 33],
+        }],
+        chart: {
+          height: 350,
+          type: 'radar',
+        },
+        labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        plotOptions: {
+          radar: {
+            size: 140,
+            polygons: {
+              strokeColor: '#e9e9e9',
+              fill: {
+                colors: ['#f8f8f8', '#fff']
+              }
             }
+          }
+        },
+        title: {
+          text: 'Radar with Polygon Fill'
+        },
+        colors: ['#FF4560'],
+        markers: {
+          size: 4,
+          colors: ['#fff'],
+          strokeColor: '#FF4560',
+          strokeWidth: 2,
+        },
+        tooltip: {
+          y: {
+            formatter: function(val) {
+              return val
+            }
+          }
+        },
+        yaxis: {
+          tickAmount: 7,
+          labels: {
+            formatter: function(val, i) {
+              if (i % 2 === 0) {
+                return val
+              } else {
+                return ''
+              }
+            }
+          }
         }
+      };
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
-       
-
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
     </script>
+
+  
 </body>
 
 </html>

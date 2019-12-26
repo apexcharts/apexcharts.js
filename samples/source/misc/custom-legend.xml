@@ -24,26 +24,6 @@
 
 <scripts>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretty-checkbox@3.0/dist/pretty-checkbox.min.css">
-
-<script>
-// check if the checkbox has any unchecked item
-checkLegends()
-
-function checkLegends() {
-  var allLegends = document.querySelectorAll(".legend input[type='checkbox']")
-
-  for(var i = 0; i < allLegends.length; i++) {
-    if(!allLegends[i].checked) {
-      chart.toggleSeries(allLegends[i].value)
-    }
-  }
-}
-
-// toggleSeries accepts a single argument which should match the series name you're trying to toggle
-function toggleSeries(checkbox) {
-  chart.toggleSeries(checkbox.value)
-}
-</script>
 </scripts>
 
 <html>
@@ -61,7 +41,7 @@ function toggleSeries(checkbox) {
         </div>
     </div>
 
-    <div class="pretty  p-svg p-smooth">
+    <div class="pretty p-svg p-smooth">
       <input type="checkbox" checked onclick="toggleSeries(this)" value="Series Area">
       <div class="state p-success">
         <svg class="svg svg-icon" viewBox="0 0 20 20">
@@ -157,3 +137,23 @@ tooltip: {
 }]
 </series>
 </chart>
+
+<vanilla-js-script>
+// check if the checkbox has any unchecked item
+checkLegends()
+
+function checkLegends() {
+  var allLegends = document.querySelectorAll(".legend input[type='checkbox']")
+
+  for(var i = 0; i < allLegends.length; i++) {
+    if(!allLegends[i].checked) {
+      chart.toggleSeries(allLegends[i].value)
+    }
+  }
+}
+
+// toggleSeries accepts a single argument which should match the series name you're trying to toggle
+function toggleSeries(checkbox) {
+  chart.toggleSeries(checkbox.value)
+}
+</vanilla-js-script>

@@ -30,7 +30,8 @@
     "lint:fix": "eslint . --fix",
     "test": "jest --testTimeout=30000",
     "unit": "jest tests/unit/",
-    "e2e": "jest tests/e2e/ --testTimeout=30000"
+    "e2e": "jest tests/e2e/ --testTimeout=30000",
+    "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
     "promise-polyfill": "8.1.0",

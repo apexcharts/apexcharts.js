@@ -1,28 +1,5 @@
 <title>Line, Column &amp; Area</title>
 
-<style>
-#chart {
-  max-width: 650px;
-  margin: 35px auto;
-}
-.apexcharts-legend {
-  overflow: hidden !important;
-  min-height: 17px;
-}
-.apexcharts-legend-marker {
-  background: none !important;
-  margin-right: 7px !important;
-}
-.apexcharts-legend-series {
-  align-items: flex-start !important;
-}
-</style>
-
-<scripts>
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/brands.css" integrity="sha384-QT2Z8ljl3UupqMtQNmPyhSPO/d5qbrzWmFxJqmY7tqoTuT2YrQLEqzvVOP2cT5XW" crossorigin="anonymous">
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/fontawesome.css" integrity="sha384-u5J7JghGz0qUrmEsWzBQkfvc8nK3fUT7DCaQzNQ+q4oEXhGSx+P2OqjWsfIRB8QT" crossorigin="anonymous">
-</scripts>
-
 <chart>
 <options>
 chart: {
@@ -39,9 +16,9 @@ plotOptions: {
     columnWidth: '50%'
   }
 },
-colors: ['#3A5794', '#A5C351', '#E14A84'],
+
 fill: {
-  opacity: [0.85,0.25,1],
+  opacity: [0.85, 0.25, 1],
   gradient: {
     inverseColors: false,
     shade: 'light',
@@ -51,14 +28,19 @@ fill: {
     stops: [0, 100, 100, 100]
   }
 },
-labels: ['01/01/2003', '02/01/2003','03/01/2003','04/01/2003','05/01/2003','06/01/2003','07/01/2003','08/01/2003','09/01/2003','10/01/2003','11/01/2003'],
+labels: ['01/01/2003', '02/01/2003', '03/01/2003', '04/01/2003', '05/01/2003', '06/01/2003', '07/01/2003',
+  '08/01/2003', '09/01/2003', '10/01/2003', '11/01/2003'
+],
 markers: {
   size: 0
 },
 xaxis: {
-  type:'datetime'
+  type: 'datetime'
 },
 yaxis: {
+  title: {
+    text: 'Points',
+  },
   min: 0
 },
 tooltip: {
@@ -66,42 +48,27 @@ tooltip: {
   intersect: false,
   y: {
     formatter: function (y) {
-      if(typeof y !== "undefined") {
-        return  y.toFixed(0) + " views";
+      if (typeof y !== "undefined") {
+        return y.toFixed(0) + " points";
       }
       return y;
+
     }
-  }
-},
-legend: {
-  labels: {
-    useSeriesColors: true
-  },
-  markers: {
-    customHTML: [
-      function() {
-        return '<span><i class="fab fa-facebook"></i></span>'
-      }, function() {
-        return '<span><i class="fab fa-vine"></i></span>'
-      }, function() {
-        return '<span><i class="fab fa-dribbble"></i></span>'
-      }
-    ]
   }
 }
 </options>
 
 <series>
 [{
-  name: 'Facebook',
+  name: 'TEAM A',
   type: 'column',
   data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
 }, {
-  name: 'Vine',
+  name: 'TEAM B',
   type: 'area',
   data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
 }, {
-  name: 'Dribbble',
+  name: 'TEAM C',
   type: 'line',
   data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
 }]

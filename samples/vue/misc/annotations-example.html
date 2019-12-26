@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Line Chart with Annotations</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet">
+
+  <style>
+  
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
+
+
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <script src="../../assets/stock-prices.js"></script>
+</head>
+
+<body>
+  
+    <div id="app">
+      <div id="chart">
+      <apexchart type="line" ref="chart" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; ref=&quot;chart&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+              type: 'bar',
+              data: series.monthDataSeries2.prices
+          }, {
+              type: 'line',
+              data: series.monthDataSeries1.prices
+          }],
+          chartOptions: {
+            chart: {
+              type: 'line',
+              id: 'chart',
+              sparkline: {
+                //  enabled: true
+              }
+            },
+            annotations: {
+              yaxis: [{
+                y: 8200,
+                borderColor: '#FEB019',
+                label: {
+                  borderColor: '#333',
+                  style: {
+                    fontSize: '15px',
+                    color: '#333',
+                    background: '#FEB019',
+                  },
+                  text: 'Y-axis annotation',
+                }
+              }],
+              xaxis: [{
+                x: new Date('23 Nov 2017').getTime(),
+                borderColor: '#00E396',
+                label: {
+                  borderColor: '#00E396',
+                  style: {
+                    fontSize: '15px',
+                    color: '#fff',
+                    background: '#00E396',
+                  },
+                  offsetY: -10,
+                  text: 'Vertical',
+                }
+              }],
+              points: [{
+                x: new Date('01 Dec 2017').getTime(),
+                y: 9025,
+                label: {
+                  borderColor: '#FF4560',
+                  offsetY: 0,
+                  style: {
+                    fontSize: '15px',
+                    color: '#fff',
+                    background: '#FF4560',
+                  },
+                  text: 'All time high',
+                }
+              }]
+            },
+            plotOptions: {
+              bar: {
+                columnWidth: '50%'
+              }
+            },
+            markers: {
+              size: 0
+            },
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              curve: 'straight'
+            },
+            legend: {
+              show: false,
+            },
+            labels: series.monthDataSeries1.dates,
+            xaxis: {
+              type: 'datetime',
+            }
+          },
+          
+          
+        },
+        mounted: function() {
+          this.$refs.chart.addYaxisAnnotation({
+            id: 'yaxis-anno',
+            y: 9000,
+            borderColor: '#FEB019',
+            label: {
+              borderColor: '#333',
+              style: {
+                fontSize: '15px',
+                color: '#333',
+                background: '#FEB019',
+              },
+              text: 'Y-axis - runtime',
+            }
+          });
+        
+          this.$refs.chart.addXaxisAnnotation({
+            id: 'xaxis-anno',
+            x: new Date('25 Nov 2017').getTime(),
+            borderColor: '#00E396',
+            label: {
+              orientation: 'vertical',
+              borderColor: '#00E396',
+              style: {
+                fontSize: '15px',
+                color: '#fff',
+                background: '#00E396',
+              },
+              offsetY: -10,
+              text: 'xaxis - runtime',
+            }
+          });
+        
+          this.$refs.chart.addPointAnnotation({
+            id: 'point-anno',
+            x: new Date('17 Nov 2017').getTime(),
+            y: 9425,
+            label: {
+              borderColor: '#FF4560',
+              offsetY: 0,
+              style: {
+                fontSize: '15px',
+                color: '#fff',
+                background: '#FF4560',
+              },
+              text: 'Point - runtime',
+            }
+          });
+        
+          this.$refs.chart.removeAnnotation('point-anno');
+        },
+      })
+    </script>
+  
+</body>
+
+</html>

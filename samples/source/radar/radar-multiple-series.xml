@@ -1,50 +1,11 @@
 <title>Basic Radar</title>
 
 <style>
-#chart, #box {
+#chart {
   max-width: 450px;
   margin: 35px auto;
 }
-button {
-  position: relative;
-  top: -75px;
-  left: 20px;
-}
 </style>
-
-<scripts>
-<script>
-function update() {
-  function randomSeries() {
-    var arr = []
-    for(var i = 0; i < 6; i++) {
-        arr.push(Math.floor(Math.random() * 100)) 
-    }
-
-    return arr
-  }
-
-  chart.updateSeries([{
-    name: 'Series 1',
-    data: randomSeries(),
-  }, {
-    name: 'Series 2',
-    data: randomSeries(),
-  }, {
-    name: 'Series 3',
-    data: randomSeries(),
-  }])
-}
-</script>
-</scripts>
-
-<html>
-<div id="box">
-  {{ charts[0] }}
-
-  <button onclick="update()">update</button>
-</div>
-</html>
 
 <chart>
 <options>
@@ -86,11 +47,3 @@ labels: ['2011', '2012', '2013', '2014', '2015', '2016']
 }]
 </series>
 </chart>
-
-<vanilla-script></vanilla-script>
-
-<react-state></react-state>
-<react-script></react-script>
-
-<vue-data></vue-data>
-<vue-script></vue-script>

@@ -416,7 +416,7 @@ fill: {
 </series>
 </chart>
 
-<vanilla-script>
+<vanilla-js-script>
 var resetCssClasses = function (activeEl) {
   var els = document.querySelectorAll("button");
   Array.prototype.forEach.call(els, function (el) {
@@ -475,73 +475,73 @@ document.querySelector("#all").addEventListener('click', function (e) {
     }
   })
 })
-</vanilla-script>
+</vanilla-js-script>
 
 <react-state>
 selection: 'one_year',
 </react-state>
 
 <react-script>
-  updateData (timeline) {
-    this.setState({
-      selection: timeline
-    })
+updateData (timeline) {
+  this.setState({
+    selection: timeline
+  })
 
-    switch (timeline) {
-      case 'one_month':
-        this.setState({
-          options: {
-            xaxis: {
-              min: new Date('28 Jan 2013').getTime(),
-              max: new Date('27 Feb 2013').getTime(),
-            }
+  switch (timeline) {
+    case 'one_month':
+      this.setState({
+        options: {
+          xaxis: {
+            min: new Date('28 Jan 2013').getTime(),
+            max: new Date('27 Feb 2013').getTime(),
           }
-        })
-        break;
-      case 'six_months':
-        this.setState({
-          options: {
-            xaxis: {
-              min: new Date('27 Sep 2012').getTime(),
-              max: new Date('27 Feb 2013').getTime(),
-            }
+        }
+      })
+      break;
+    case 'six_months':
+      this.setState({
+        options: {
+          xaxis: {
+            min: new Date('27 Sep 2012').getTime(),
+            max: new Date('27 Feb 2013').getTime(),
           }
-        })
-        break;
-      case 'one_year':
-        this.setState({
-          options: {
-            xaxis: {
-              min: new Date('27 Feb 2012').getTime(),
-              max: new Date('27 Feb 2013').getTime(),
-            }
+        }
+      })
+      break;
+    case 'one_year':
+      this.setState({
+        options: {
+          xaxis: {
+            min: new Date('27 Feb 2012').getTime(),
+            max: new Date('27 Feb 2013').getTime(),
           }
-        })
-        break;
-      case 'ytd':
-        this.setState({
-          options: {
-            xaxis: {
-              min: new Date('01 Jan 2013').getTime(),
-              max: new Date('27 Feb 2013').getTime(),
-            }
+        }
+      })
+      break;
+    case 'ytd':
+      this.setState({
+        options: {
+          xaxis: {
+            min: new Date('01 Jan 2013').getTime(),
+            max: new Date('27 Feb 2013').getTime(),
           }
-        })
-        break;
-      case 'all':
-        this.setState({
-          options: {
-            xaxis: {
-              min: undefined,
-              max: undefined,
-            }
+        }
+      })
+      break;
+    case 'all':
+      this.setState({
+        options: {
+          xaxis: {
+            min: undefined,
+            max: undefined,
           }
-        })
-        break;
-      default:
+        }
+      })
+      break;
+    default:
 
-    }
   }
+}
 </react-script>
 
 <vue-data>

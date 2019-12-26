@@ -1,7 +1,7 @@
 <title>CandleStick Chart with Bar</title>
 
 <style>
-#chart-box {
+.chart-box {
   max-width: 650px;
   margin: 35px auto;
 }
@@ -20,7 +20,7 @@
 </scripts>
 
 <html>
-<div id="chart-box">
+<div class="chart-box">
   {{ charts['candlestick'] }}
   {{ charts['bar'] }}
 </div>

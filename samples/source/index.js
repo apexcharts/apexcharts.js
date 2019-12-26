@@ -2,12 +2,13 @@ const fs = require('fs-extra')
 const nunjucks = require('nunjucks')
 const path = require('path')
 
-// BUG: support multiple items and children (<chart>)?
+const samplesDir = path.join(__dirname, '..')
+
 function extractXMLSections(data, sectionNames, xmlPath) {
   const info = {}
   for (const name of sectionNames) {
     const start = data.indexOf(`<${name}>`)
-    const varName = name.replace('-', '_')
+    const varName = name.replace(/-/g, '_')
 
     if (start > -1) {
       const end = data.indexOf(`</${name}>`)
@@ -31,7 +32,7 @@ async function parseSampleXML(xmlPath) {
     'style',
     'scripts',
     'html',
-    'vanilla-script',
+    'vanilla-js-script',
     'react-state',
     'react-script',
     'vue-data',
@@ -110,21 +111,25 @@ async function parseSampleXML(xmlPath) {
 }
 
 async function generateSampleHtml() {
-  for (const format of ['vanilla-js', 'react', 'vue']) {
-    // BUG: remove -temp
-    await fs.remove(path.join(path.join(__dirname, format + '-temp')))
+  const formats = ['vanilla-js', 'react', 'vue']
+  for (const format of formats) {
+    await fs.remove(path.join(path.join(samplesDir, format)))
   }
 
-  const sourceDir = path.join(__dirname, 'source')
+  const sourceDir = path.join(samplesDir, 'source')
   const dirNames = await fs.promises.readdir(sourceDir)
   for (const dirName of dirNames) {
+    if (dirName.includes('.')) {
+      continue
+    }
+
     const dirPath = path.join(sourceDir, dirName)
     const fileNames = await fs.promises.readdir(dirPath)
     for (const fileName of fileNames) {
       if (fileName.endsWith('.xml')) {
         const info = await parseSampleXML(path.join(dirPath, fileName))
 
-        const env = nunjucks.configure(__dirname, {
+        const env = nunjucks.configure(sourceDir, {
           autoescape: false,
           noCache: true
         })
@@ -137,7 +142,15 @@ async function generateSampleHtml() {
             .join('\n')
         })
 
-        for (const format of ['vanilla-js', 'react', 'vue']) {
+        for (const format of formats) {
+          // If any format-specific script section is present only generate html for these formats
+          if (
+            formats.some((fmt) => info[`${fmt.replace('-', '_')}_script`]) &&
+            !info[`${format.replace('-', '_')}_script`]
+          ) {
+            continue
+          }
+
           const ctx = { format }
           Object.assign(ctx, info)
 
@@ -148,12 +161,14 @@ async function generateSampleHtml() {
             const chart = info.charts[i]
             let chartHtml
 
+            const brackets = format === 'react' ? ['{', '}'] : ['"', '"']
+
             let attrs = ''
             if (chart.height) {
-              attrs += `height="${chart.height}" `
+              attrs += `height=${brackets[0]}${chart.height}${brackets[1]} `
             }
             if (chart.width) {
-              attrs += `width="${chart.width}" `
+              attrs += `width=${brackets[0]}${chart.width}${brackets[1]} `
             }
 
             if (format === 'vanilla-js') {
@@ -164,6 +179,10 @@ async function generateSampleHtml() {
                 `  <ReactApexChart options={this.state.options${chart.varName}} series={this.state.series${chart.varName}} type="${chart.type}" ${attrs}/>\n` +
                 `</div>`
             } else if (format === 'vue') {
+              if (info.vue_script.includes('.$refs')) {
+                attrs += `ref="chart${chart.varName}" `
+              }
+
               chartHtml =
                 `<div id="${chart.elemId}">\n` +
                 `  <apexchart type="${chart.type}" ${attrs}:options="chartOptions${chart.varName}" :series="series${chart.varName}"></apexchart>\n` +
@@ -179,8 +198,7 @@ async function generateSampleHtml() {
           ctx.html = env.renderString(template, { format, charts })
 
           const html = env.render('template.html', ctx)
-          // BUG: remove -temp
-          const outputDir = path.join(__dirname, format + '-temp', dirName)
+          const outputDir = path.join(samplesDir, format, dirName)
           await fs.ensureDir(outputDir)
           await fs.promises.writeFile(
             path.join(outputDir, fileName.slice(0, -3) + 'html'),
@@ -189,17 +207,17 @@ async function generateSampleHtml() {
         }
       } else {
         // Copy non-xml files without any processing
-        // BUG: remove -temp
         await fs.copy(
           path.join(dirPath, fileName),
-          path.join(__dirname, 'vanilla-js' + '-temp', dirName, fileName)
+          path.join(samplesDir, 'vanilla-js', dirName, fileName)
         )
       }
     }
   }
 }
 
-// BUG: temporary
-generateSampleHtml().catch((e) => console.log(e))
+if (process.argv.includes('generate')) {
+  generateSampleHtml().catch((e) => console.log(e))
+}
 
 module.exports = { parseSampleXML, generateSampleHtml }

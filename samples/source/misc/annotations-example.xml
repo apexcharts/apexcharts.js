@@ -8,6 +8,7 @@
 <options>
 chart: {
   type: 'line',
+  id: 'chart',
   sparkline: {
     //  enabled: true
   }
@@ -89,7 +90,7 @@ xaxis: {
 </series>
 </chart>
 
-<vanilla-script>
+<vanilla-js-script>
 // adding annotation through chart instance by calling direct method
 chart.addYaxisAnnotation({
   id: 'yaxis-anno',
@@ -137,7 +138,115 @@ chart.addPointAnnotation({
     },
     text: 'Point - runtime',
   }
-})
+});
 
-chart.removeAnnotation('point-anno')
-</vanilla-script>
+chart.removeAnnotation('point-anno');
+</vanilla-js-script>
+
+<react-script>
+componentDidMount() {
+  ApexCharts.exec('chart', 'addYaxisAnnotation', {
+    id: 'yaxis-anno',
+    y: 9000,
+    borderColor: '#FEB019',
+    label: {
+      borderColor: '#333',
+      style: {
+        fontSize: '15px',
+        color: '#333',
+        background: '#FEB019',
+      },
+      text: 'Y-axis - runtime',
+    }
+  });
+
+  ApexCharts.exec('chart', 'addXaxisAnnotation', {
+    id: 'xaxis-anno',
+    x: new Date('25 Nov 2017').getTime(),
+    borderColor: '#00E396',
+    label: {
+      orientation: 'vertical',
+      borderColor: '#00E396',
+      style: {
+        fontSize: '15px',
+        color: '#fff',
+        background: '#00E396',
+      },
+      offsetY: -10,
+      text: 'xaxis - runtime',
+    }
+  });
+
+  ApexCharts.exec('chart', 'addPointAnnotation', {
+    id: 'point-anno',
+    x: new Date('17 Nov 2017').getTime(),
+    y: 9425,
+    label: {
+      borderColor: '#FF4560',
+      offsetY: 0,
+      style: {
+        fontSize: '15px',
+        color: '#fff',
+        background: '#FF4560',
+      },
+      text: 'Point - runtime',
+    }
+  });
+
+  ApexCharts.exec('chart', 'removeAnnotation', 'point-anno');
+}
+</react-script>
+
+<vue-script>
+mounted: function() {
+  this.$refs.chart.addYaxisAnnotation({
+    id: 'yaxis-anno',
+    y: 9000,
+    borderColor: '#FEB019',
+    label: {
+      borderColor: '#333',
+      style: {
+        fontSize: '15px',
+        color: '#333',
+        background: '#FEB019',
+      },
+      text: 'Y-axis - runtime',
+    }
+  });
+
+  this.$refs.chart.addXaxisAnnotation({
+    id: 'xaxis-anno',
+    x: new Date('25 Nov 2017').getTime(),
+    borderColor: '#00E396',
+    label: {
+      orientation: 'vertical',
+      borderColor: '#00E396',
+      style: {
+        fontSize: '15px',
+        color: '#fff',
+        background: '#00E396',
+      },
+      offsetY: -10,
+      text: 'xaxis - runtime',
+    }
+  });
+
+  this.$refs.chart.addPointAnnotation({
+    id: 'point-anno',
+    x: new Date('17 Nov 2017').getTime(),
+    y: 9425,
+    label: {
+      borderColor: '#FF4560',
+      offsetY: 0,
+      style: {
+        fontSize: '15px',
+        color: '#fff',
+        background: '#FF4560',
+      },
+      text: 'Point - runtime',
+    }
+  });
+
+  this.$refs.chart.removeAnnotation('point-anno');
+},
+</vue-script>

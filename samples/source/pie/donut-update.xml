@@ -33,58 +33,39 @@ p {
 }
 </style>
 
-<scripts>
-<script>
-function appendData() {
-  var arr = chart.w.globals.series.slice()
-  arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
-  return arr;
-}
-
-function removeData() {
-  var arr = chart.w.globals.series.slice()
-  arr.pop()
-  return arr;
-}
-
-function randomize() {
-  return chart.w.globals.series.map(() => {
-      return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-  })
-}
-
-function reset() {
-  return options.series
-}
-
-document.querySelector("#randomize").addEventListener("click", function() {
-  chart.updateSeries(randomize())
-})
-
-document.querySelector("#add").addEventListener("click", function() {
-  chart.updateSeries(appendData())
-})
-
-document.querySelector("#remove").addEventListener("click", function() {
-  chart.updateSeries(removeData())
-})
-
-document.querySelector("#reset").addEventListener("click", function() {
-  chart.updateSeries(reset())
-})
-</script>
-</scripts>
-
 <html>
 <div class="chart-wrap">
   {{ charts[0] }}
 </div>
 
 <div class="actions">
-  <button id="add">+ ADD</button>
-  <button id="remove"> &dash; REMOVE</button>
-  <button id="randomize">RANDOMIZE</button>
-  <button id="reset">RESET</button>
+  <button
+      {% if format == 'vanilla-js' %}id="add"{% endif %}
+      {% if format == 'react' %}onClick={() => this.appendData()}{% endif %}
+      {% if format == 'vue' %}@click="appendData"{% endif %}>
+    + ADD
+  </button>
+  {% if format == 'react' %}&nbsp;{% endif %}
+  <button
+      {% if format == 'vanilla-js' %}id="remove"{% endif %}
+      {% if format == 'react' %}onClick={() => this.removeData()}{% endif %}
+      {% if format == 'vue' %}@click="removeData"{% endif %}>
+    - REMOVE
+  </button>
+  {% if format == 'react' %}&nbsp;{% endif %}
+  <button
+      {% if format == 'vanilla-js' %}id="randomize"{% endif %}
+      {% if format == 'react' %}onClick={() => this.randomize()}{% endif %}
+      {% if format == 'vue' %}@click="randomize"{% endif %}>
+    RANDOMIZE
+  </button>
+  {% if format == 'react' %}&nbsp;{% endif %}
+  <button
+      {% if format == 'vanilla-js' %}id="reset"{% endif %}
+      {% if format == 'react' %}onClick={() => this.reset()}{% endif %}
+      {% if format == 'vue' %}@click="reset"{% endif %}>
+    RESET
+  </button>
 </div>
 </html>
 
@@ -119,3 +100,106 @@ legend: {
 [44, 55, 13, 33]
 </series>
 </chart>
+
+<vanilla-js-script>
+function appendData() {
+  var arr = chart.w.globals.series.slice()
+  arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
+  return arr;
+}
+
+function removeData() {
+  var arr = chart.w.globals.series.slice()
+  arr.pop()
+  return arr;
+}
+
+function randomize() {
+  return chart.w.globals.series.map(function() {
+      return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+  })
+}
+
+function reset() {
+  return options.series
+}
+
+document.querySelector("#randomize").addEventListener("click", function() {
+  chart.updateSeries(randomize())
+})
+
+document.querySelector("#add").addEventListener("click", function() {
+  chart.updateSeries(appendData())
+})
+
+document.querySelector("#remove").addEventListener("click", function() {
+  chart.updateSeries(removeData())
+})
+
+document.querySelector("#reset").addEventListener("click", function() {
+  chart.updateSeries(reset())
+})
+</vanilla-js-script>
+
+<react-script>
+appendData () {
+  var arr = this.state.series.slice()
+  arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
+
+  this.setState({
+    series: arr
+  })
+}
+
+removeData() {
+  if(this.state.series.length === 1) return
+  
+  var arr = this.state.series.slice()
+  arr.pop()
+
+  this.setState({
+    series: arr
+  })
+}
+
+randomize() {
+  this.setState({
+    series: this.state.series.map(function() {
+      return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+    })
+  })
+}
+
+reset() {
+  this.setState({
+    series: [44, 55, 13, 33]
+  })
+}
+</react-script>
+
+<vue-script>
+methods: {
+  appendData: function () {
+    var arr = this.series.slice()
+    arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
+    this.series = arr
+  },
+
+  removeData: function () {
+    if(this.series.length === 1) return
+    var arr = this.series.slice()
+    arr.pop()
+    this.series = arr
+  },
+
+  randomize: function () {
+    this.series = this.series.map(function() {
+      return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+    })
+  },
+
+  reset: function () {
+    this.series = [44, 55, 13, 33]
+  }
+},
+</vue-script>
