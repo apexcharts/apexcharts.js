@@ -7,129 +7,117 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Line, Column &amp; Area</title>
 
-  
-  <link href="../../assets/styles.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/brands.css" integrity="sha384-QT2Z8ljl3UupqMtQNmPyhSPO/d5qbrzWmFxJqmY7tqoTuT2YrQLEqzvVOP2cT5XW" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/fontawesome.css" integrity="sha384-u5J7JghGz0qUrmEsWzBQkfvc8nK3fUT7DCaQzNQ+q4oEXhGSx+P2OqjWsfIRB8QT" crossorigin="anonymous">
-
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
       max-width: 650px;
       margin: 35px auto;
     }
-    .apexcharts-legend {
-      overflow: hidden !important;
-      min-height: 17px;
-    }
-    .apexcharts-legend-marker {
-      background: none !important;
-      margin-right: 7px !important;
-    }
-    .apexcharts-legend-series {
-      align-items: flex-start !important;
-    }
+  
   </style>
-</head>
-
-<body>
-  <div id="chart">
-
-  </div>
 
 
   <script src="../../../dist/apexcharts.js"></script>
 
+
   <script>
-    var options = {
-      chart: {
-        height: 350,
-        type: 'line',
-        stacked: false,
-      },
-      stroke: {
-        width: [0, 2, 5],
-        curve: 'smooth'
-      },
-      plotOptions: {
-        bar: {
-          columnWidth: '50%'
-        }
-      },
-      colors: ['#3A5794', '#A5C351', '#E14A84'],
-      series: [{
-        name: 'Facebook',
-        type: 'column',
-        data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
-      }, {
-        name: 'Vine',
-        type: 'area',
-        data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
-      }, {
-        name: 'Dribbble',
-        type: 'line',
-        data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
-      }],
-      fill: {
-        opacity: [0.85,0.25,1],
-				gradient: {
-					inverseColors: false,
-					shade: 'light',
-					type: "vertical",
-					opacityFrom: 0.85,
-					opacityTo: 0.55,
-					stops: [0, 100, 100, 100]
-				}
-      },
-      labels: ['01/01/2003', '02/01/2003','03/01/2003','04/01/2003','05/01/2003','06/01/2003','07/01/2003','08/01/2003','09/01/2003','10/01/2003','11/01/2003'],
-      markers: {
-        size: 0
-      },
-      xaxis: {
-        type:'datetime'
-      },
-      yaxis: {
-        min: 0
-      },
-      tooltip: {
-        shared: true,
-        intersect: false,
-        y: {
-          formatter: function (y) {
-            if(typeof y !== "undefined") {
-              return  y.toFixed(0) + " views";
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  
+</head>
+
+<body>
+  
+    <div id="chart"></div>
+
+    <script>
+    
+      var options = {
+        series: [{
+          name: 'TEAM A',
+          type: 'column',
+          data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
+        }, {
+          name: 'TEAM B',
+          type: 'area',
+          data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
+        }, {
+          name: 'TEAM C',
+          type: 'line',
+          data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
+        }],
+        chart: {
+          height: 350,
+          type: 'line',
+          stacked: false,
+        },
+        stroke: {
+          width: [0, 2, 5],
+          curve: 'smooth'
+        },
+        plotOptions: {
+          bar: {
+            columnWidth: '50%'
+          }
+        },
+        
+        fill: {
+          opacity: [0.85, 0.25, 1],
+          gradient: {
+            inverseColors: false,
+            shade: 'light',
+            type: "vertical",
+            opacityFrom: 0.85,
+            opacityTo: 0.55,
+            stops: [0, 100, 100, 100]
+          }
+        },
+        labels: ['01/01/2003', '02/01/2003', '03/01/2003', '04/01/2003', '05/01/2003', '06/01/2003', '07/01/2003',
+          '08/01/2003', '09/01/2003', '10/01/2003', '11/01/2003'
+        ],
+        markers: {
+          size: 0
+        },
+        xaxis: {
+          type: 'datetime'
+        },
+        yaxis: {
+          title: {
+            text: 'Points',
+          },
+          min: 0
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: function (y) {
+              if (typeof y !== "undefined") {
+                return y.toFixed(0) + " points";
+              }
+              return y;
+        
             }
-            return y;
-            
           }
         }
-      },
-      legend: {
-        labels: {
-          useSeriesColors: true
-        },
-        markers: {
-          customHTML: [
-            function() {
-              return '<span><i class="fab fa-facebook"></i></span>'
-            }, function() {
-              return '<span><i class="fab fa-vine"></i></span>'
-            }, function() {
-              return '<span><i class="fab fa-dribbble"></i></span>'
-            }
-          ]
-        }
-      }
-    }
+      };
 
-    var chart = new ApexCharts(
-      document.querySelector("#chart"),
-      options
-    );
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
+    </script>
 
-    chart.render();
-
-  </script>
+  
 </body>
 
 </html>

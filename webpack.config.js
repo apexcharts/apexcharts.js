@@ -1,4 +1,5 @@
 const path = require('path')
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer')
 
 module.exports = {
   entry: [path.resolve(__dirname, 'src/apexcharts.js')],
@@ -58,5 +59,12 @@ module.exports = {
   resolve: {
     modules: [__dirname, 'src', 'node_modules'],
     extensions: ['.js', '.json']
-  }
+  },
+  plugins: [
+    new BundleAnalyzerPlugin({
+      analyzerMode: 'static',
+      reportFilename: path.join('..', 'bundle-analysis.html'),
+      openAnalyzer: false
+    })
+  ]
 }

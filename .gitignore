@@ -4,3 +4,5 @@ issues/
 .DS_Store
 .idea
 .vscode
+bundle-analysis.html
+package-lock.json

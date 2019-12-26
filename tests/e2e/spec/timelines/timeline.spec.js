@@ -1,28 +1,13 @@
-import puppeteer from 'puppeteer'
-import { root } from '../../../../config.js'
+import { chartVisualTest } from '../utils'
 
-const APP = root + '/samples/vanilla-js/timelines/advanced.html'
-const screenshotPath = root + '/tests/e2e/snapshots/advanced-timeline.png'
+chartVisualTest('timelines', 'advanced', 'advanced-timeline', async (page) => {
+  const paths = await page.$('.apexcharts-rangebar-series')
 
-describe('Rendering Timeline Charts', () => {
-  it('should render an advanced timeline chart', async () => {
-    const browser = await puppeteer.launch()
-    const page = await browser.newPage()
-    await page.goto('file://' + APP)
+  const attrD = await paths.$$eval('path', (nodes) =>
+    nodes.map((n) => n.getAttribute('d'))
+  )
 
-    await page.waitFor(2000)
-
-    const paths = await page.$('.apexcharts-rangebar-series')
-
-    const attrD = await paths.$$eval('path', (nodes) =>
-      nodes.map((n) => n.getAttribute('d'))
-    )
-
-    attrD.forEach((d) => {
-      expect(d).toEqual(expect.not.stringContaining('NaN'))
-    })
-
-    await page.screenshot({ path: screenshotPath })
-    await browser.close()
+  attrD.forEach((d) => {
+    expect(d).toEqual(expect.not.stringContaining('NaN'))
   })
-}, 10000)
+})

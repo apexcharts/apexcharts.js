@@ -19,11 +19,7 @@ export default class Labels {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
-      if (Array.isArray(w.config.tooltip.custom)) {
-        this.handleCustomTooltip({ i, j, y1, y2, isArray: true })
-      } else {
-        this.handleCustomTooltip({ i, j, y1, y2, isArray: false })
-      }
+      this.handleCustomTooltip({ i, j, y1, y2 })
     } else {
       this.toggleActiveInactiveSeries(shared)
     }
@@ -369,13 +365,13 @@ export default class Labels {
     }
   }
 
-  handleCustomTooltip({ i, j, y1, y2, isArray }) {
+  handleCustomTooltip({ i, j, y1, y2 }) {
     const w = this.w
     const tooltipEl = this.ttCtx.getElTooltip()
     let fn = w.config.tooltip.custom
 
-    if (isArray && fn[i]) {
-      fn = w.config.tooltip.custom[i]
+    if (Array.isArray(fn) && fn[i]) {
+      fn = fn[i]
     }
 
     // override everything with a custom html tooltip and replace it

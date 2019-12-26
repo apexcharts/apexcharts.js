@@ -1,5 +1,5 @@
 dist/
-samples/
+assets/
 src/svgjs/
 src/utils/ClassListPolyfill.js
 src/utils/DetectElementResize.js

@@ -1,36 +1,21 @@
-import puppeteer from 'puppeteer'
-import { root } from '../../../../config.js'
+import { chartVisualTest } from '../utils'
 
-const APP = root + '/samples/vanilla-js/scatter/scatter-basic.html'
-const screenshotPath = root + '/tests/e2e/snapshots/scatter-basic.png'
+chartVisualTest('scatter', 'scatter-basic', 'scatter-basic', async (page) => {
+  const paths = await page.$('.apexcharts-scatter-series')
 
-describe('Rendering Scatter Charts', () => {
-  it('should render basic scatter chart', async () => {
-    const browser = await puppeteer.launch()
-    const page = await browser.newPage()
-    await page.goto('file://' + APP)
+  const attrCX = await paths.$$eval('circle', (nodes) =>
+    nodes.map((n) => n.getAttribute('cx'))
+  )
 
-    await page.waitFor(2000)
-
-    const paths = await page.$('.apexcharts-scatter-series')
-
-    const attrCX = await paths.$$eval('circle', (nodes) =>
-      nodes.map((n) => n.getAttribute('cx'))
-    )
-
-    attrCX.forEach((cx) => {
-      expect(cx).toEqual(expect.not.stringContaining('NaN'))
-    })
-
-    const attrCY = await paths.$$eval('circle', (nodes) =>
-      nodes.map((n) => n.getAttribute('cy'))
-    )
-
-    attrCY.forEach((cy) => {
-      expect(cy).toEqual(expect.not.stringContaining('NaN'))
-    })
-
-    await page.screenshot({ path: screenshotPath })
-    await browser.close()
+  attrCX.forEach((cx) => {
+    expect(cx).toEqual(expect.not.stringContaining('NaN'))
   })
-}, 10000)
+
+  const attrCY = await paths.$$eval('circle', (nodes) =>
+    nodes.map((n) => n.getAttribute('cy'))
+  )
+
+  attrCY.forEach((cy) => {
+    expect(cy).toEqual(expect.not.stringContaining('NaN'))
+  })
+})

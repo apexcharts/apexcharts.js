@@ -1,0 +1,53 @@
+<title>Gradient Donut</title>
+
+<style>
+#chart {
+  max-width: 380px;
+  margin: 35px auto;
+  padding: 0;
+}
+
+.apexcharts-legend-text tspan:nth-child(1) {
+  font-weight: lighter;
+  fill: #999;
+}
+
+.apexcharts-legend-text tspan:nth-child(3) {
+  font-weight: bold;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  width: 380,
+  type: 'donut',
+},
+dataLabels: {
+  enabled: false
+},
+fill: {
+  type: 'gradient',
+},
+legend: {
+  formatter: function(val, opts) {
+    return val + " - " + opts.w.globals.series[opts.seriesIndex]
+  }
+},
+responsive: [{
+  breakpoint: 480,
+  options: {
+    chart: {
+      width: 200
+    },
+    legend: {
+      position: 'bottom'
+    }
+  }
+}]
+</options>
+
+<series>
+[44, 55, 41, 17, 15]
+</series>
+</chart>

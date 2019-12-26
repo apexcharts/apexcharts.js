@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
@@ -8,9 +7,10 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Syncing charts</title>
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #wrapper {
       padding-top: 20px;
       padding-left: 10px;
@@ -20,159 +20,209 @@
       max-width: 650px;
       margin: 35px auto;
     }
-  </style>
-</head>
-
-<body>
-  <div id="wrapper">
-    <div id="chart-line">
-      <apexchart type=line height=160 :options="chartOptionsLine1" :series="series1" />
-    </div>
-
-    <div id="chart-line2">
-      <apexchart type=line height=160 :options="chartOptionsLine2" :series="series2" />
-    </div>
-
-    <div id="chart-area">
-      <apexchart type=area height=160 :options="chartOptionsArea" :series="series3" />
-    </div>
-  </div>
-
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="wrapper">
-      &lt;div id="chart-line">
-        &lt;apexchart type=line height=160 :options="chartOptionsLine1" :series="series1" />
-      &lt;/div>
-
-      &lt;div id="chart-line2">
-        &lt;apexchart type=line height=160 :options="chartOptionsLine2" :series="series2" />
-      &lt;/div>
-
-      &lt;div id="chart-area">
-        &lt;apexchart type=area height=160 :options="chartOptionsArea" :series="series3" />
-      &lt;/div>
-    &lt;/div>
-  </div>
   
+  </style>
+
+
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
+
   <script>
-    function generateDayWiseTimeSeries(baseval, count, yrange) {
-      var i = 0;
-      var series = [];
-      while (i < count) {
-        var x = baseval;
-        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-
-        series.push([x, y]);
-        baseval += 86400000;
-        i++;
-      }
-      return series;
-    }
-
-    // The global window.Apex variable below can be used to set common options for all charts on the page
-    Apex = {
-      dataLabels: {
-        enabled: false
-      },
-      stroke: {
-        curve: 'straight'
-      },
-      toolbar: {
-        tools: {
-          selection: false
-        }
-      },
-      markers: {
-        size: 6,
-        hover: {
-          size: 10
-        }
-      },
-      tooltip: {
-        followCursor: false,
-        theme: 'dark',
-        x: {
-          show: false
-        },
-        marker: {
-          show: false
-        },
-        y: {
-          title: {
-            formatter: function () {
-              return ''
-            }
-          }
-        }
-      },
-      grid: {
-        clipMarkers: false
-      },
-      yaxis: {
-        tickAmount: 2
-      },
-      xaxis: {
-        type: 'datetime'
-      },
-    }
-
-    new Vue({
-      el: '#wrapper',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series1: [{
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-            min: 10,
-            max: 60
-          })
-        }],
-        series2: [{
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-            min: 10,
-            max: 30
-          })
-        }],
-        series3: [{
-          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-            min: 10,
-            max: 90
-          })
-        }],
-        chartOptionsLine1: {
-          chart: {
-            id: 'fb',
-            group: 'social',
-          },
-          colors: ['#008FFB'],
-        },
-        chartOptionsLine2: {
-          chart: {
-            id: 'tw',
-            group: 'social',
-          },
-          colors: ['#546E7A'],
-
-        },
-        chartOptionsArea: {
-          chart: {
-            id: 'yt',
-            group: 'social',
-          },
-          colors: ['#00E396'],
-
-        }
-      },
-
-    })
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
   </script>
 
+  <script>
+  // The global window.Apex variable below can be used to set common options for all charts on the page
+  Apex = {
+    chart: {
+      height: 160,
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'straight'
+    },
+    toolbar: {
+      tools: {
+        selection: false
+      }
+    },
+    markers: {
+      size: 6,
+      hover: {
+        size: 10
+      }
+    },
+    tooltip: {
+      followCursor: false,
+      theme: 'dark',
+      x: {
+        show: false
+      },
+      marker: {
+        show: false
+      },
+      y: {
+        title: {
+          formatter: function() {
+            return ''
+          }
+        }
+      }
+    },
+    grid: {
+      clipMarkers: false
+    },
+    yaxis: {
+      tickAmount: 2
+    },
+    xaxis: {
+      type: 'datetime'
+    },
+  }
+  
+  /*
+    // this function will generate output in this format
+    // data = [
+        [timestamp, 23],
+        [timestamp, 33],
+        [timestamp, 12]
+        ...
+    ]
+  */
+  function generateDayWiseTimeSeries(baseval, count, yrange) {
+    var i = 0;
+    var series = [];
+    while (i < count) {
+      var x = baseval;
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+  
+      series.push([x, y]);
+      baseval += 86400000;
+      i++;
+    }
+    return series;
+  }
+  </script>
+</head>
+
+<body>
+  
+    <div id="app">
+      <div id="wrapper">
+      <div id="chart-line">
+      <apexchart type="line" height="160" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      <div id="chart-line2">
+      <apexchart type="line" height="160" :options="chartOptionsLine2" :series="seriesLine2"></apexchart>
+    </div>
+      <div id="chart-area">
+      <apexchart type="area" height="160" :options="chartOptionsArea" :series="seriesArea"></apexchart>
+    </div>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;wrapper&quot;&gt;
+        &lt;div id=&quot;chart-line&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;160&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;div id=&quot;chart-line2&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;160&quot; :options=&quot;chartOptionsLine2&quot; :series=&quot;seriesLine2&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;div id=&quot;chart-area&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; :options=&quot;chartOptionsArea&quot; :series=&quot;seriesArea&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          }],
+          chartOptions: {
+            chart: {
+              id: 'fb',
+              group: 'social',
+              type: 'line',
+              height: 160
+            },
+            colors: ['#008FFB'],
+            yaxis: {
+              labels: {
+                minWidth: 40
+              }
+            }
+          },
+          
+          seriesLine2: [{
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+              min: 10,
+              max: 30
+            })
+          }],
+          chartOptionsLine2: {
+            chart: {
+              id: 'tw',
+              group: 'social',
+              type: 'line',
+              height: 160
+            },
+            colors: ['#546E7A'],
+            yaxis: {
+              labels: {
+                minWidth: 40
+              }
+            }
+          },
+          
+          seriesArea: [{
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          }],
+          chartOptionsArea: {
+            chart: {
+              id: 'yt',
+              group: 'social',
+              type: 'area',
+              height: 160
+            },
+            colors: ['#00E396'],
+            yaxis: {
+              labels: {
+                minWidth: 40
+              }
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+  
 </body>
 
 </html>

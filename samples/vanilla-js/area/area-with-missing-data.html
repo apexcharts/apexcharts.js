@@ -2,187 +2,201 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Area with missing data</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Area with missing data</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet">
+
+  <style>
+  
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <script src="../../../dist/apexcharts.js"></script>
 
-    <style>
-        #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  
 </head>
 
 <body>
-    <div id="chart">
-
-    </div>
-
-
-    <script src="../../../dist/apexcharts.js"></script>
+  
+    <div id="chart"></div>
 
     <script>
-        var options = {
-            chart: {
-                height: 350,
-                type: 'area',
-                animations: {
-                    enabled: false
-                },
-                zoom: {
-                    enabled: false
-                },
+    
+      var options = {
+        series: [{
+          name: 'Network',
+          data: [{
+              x: 'Dec 23 2017',
+              y: null
             },
-            dataLabels: {
-                enabled: false
+            {
+              x: 'Dec 24 2017',
+              y: 44
             },
-            stroke: {
-                curve: 'straight'
+            {
+              x: 'Dec 25 2017',
+              y: 31
             },
-            series: [{
-                name: 'Network',
-                data: [{
-                        x: 'Dec 23 2017',
-                        y: null
-                    },
-                    {
-                        x: 'Dec 24 2017',
-                        y: 44
-                    },
-                    {
-                        x: 'Dec 25 2017',
-                        y: 31
-                    },
-                    {
-                        x: 'Dec 26 2017',
-                        y: 38
-                    },
-                    {
-                        x: 'Dec 27 2017',
-                        y: null
-                    },
-                    {
-                        x: 'Dec 28 2017',
-                        y: 32
-                    },
-                    {
-                        x: 'Dec 29 2017',
-                        y: 55
-                    },
-                    {
-                        x: 'Dec 30 2017',
-                        y: 51
-                    },
-                    {
-                        x: 'Dec 31 2017',
-                        y: 67
-                    },
-                    {
-                        x: 'Jan 01 2018',
-                        y: 22
-                    },
-                    {
-                        x: 'Jan 02 2018',
-                        y: 34
-                    },
-                    {
-                        x: 'Jan 03 2018',
-                        y: null
-                    },
-                    {
-                        x: 'Jan 04 2018',
-                        y: null
-                    },
-                    {
-                        x: 'Jan 05 2018',
-                        y: 11
-                    },
-                    {
-                        x: 'Jan 06 2018',
-                        y: 4
-                    },
-                    {
-                        x: 'Jan 07 2018',
-                        y: 15,
-                    },
-                    {
-                        x: 'Jan 08 2018',
-                        y: null
-                    },
-                    {
-                        x: 'Jan 09 2018',
-                        y: 9
-                    },
-                    {
-                        x: 'Jan 10 2018',
-                        y: 34
-                    },
-                    {
-                        x: 'Jan 11 2018',
-                        y: null
-                    },
-                    {
-                        x: 'Jan 12 2018',
-                        y: null
-                    },
-                    {
-                        x: 'Jan 13 2018',
-                        y: 13
-                    },
-                    {
-                        x: 'Jan 14 2018',
-                        y: null
-                    }
-                ],
-            }],
-            fill: {
-                opacity: 0.8,
-                type: 'pattern',
-                pattern: {
-                    enabled: true,
-                    style: ['verticalLines', 'horizontalLines'],
-                    width: 5,
-                    depth: 6
-                },
+            {
+              x: 'Dec 26 2017',
+              y: 38
             },
-            markers: {
-                size: 5,
-                hover: {
-                    size: 9
-                }
+            {
+              x: 'Dec 27 2017',
+              y: null
             },
-            title: {
-                text: 'Network Monitoring',
+            {
+              x: 'Dec 28 2017',
+              y: 32
             },
-            tooltip: {
-                intersect: true,
-                shared: false
+            {
+              x: 'Dec 29 2017',
+              y: 55
             },
-            theme: {
-                palette: 'palette1'
+            {
+              x: 'Dec 30 2017',
+              y: 51
             },
-            xaxis: {
-                type: 'datetime',
+            {
+              x: 'Dec 31 2017',
+              y: 67
             },
-            yaxis: {
-                title: {
-                    text: 'Bytes Received'
-                }
+            {
+              x: 'Jan 01 2018',
+              y: 22
+            },
+            {
+              x: 'Jan 02 2018',
+              y: 34
+            },
+            {
+              x: 'Jan 03 2018',
+              y: null
+            },
+            {
+              x: 'Jan 04 2018',
+              y: null
+            },
+            {
+              x: 'Jan 05 2018',
+              y: 11
+            },
+            {
+              x: 'Jan 06 2018',
+              y: 4
+            },
+            {
+              x: 'Jan 07 2018',
+              y: 15,
+            },
+            {
+              x: 'Jan 08 2018',
+              y: null
+            },
+            {
+              x: 'Jan 09 2018',
+              y: 9
+            },
+            {
+              x: 'Jan 10 2018',
+              y: 34
+            },
+            {
+              x: 'Jan 11 2018',
+              y: null
+            },
+            {
+              x: 'Jan 12 2018',
+              y: null
+            },
+            {
+              x: 'Jan 13 2018',
+              y: 13
+            },
+            {
+              x: 'Jan 14 2018',
+              y: null
             }
+          ],
+        }],
+        chart: {
+          type: 'area',
+          height: 350,
+          animations: {
+            enabled: false
+          },
+          zoom: {
+            enabled: false
+          },
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'straight'
+        },
+        fill: {
+          opacity: 0.8,
+          type: 'pattern',
+          pattern: {
+            enabled: true,
+            style: ['verticalLines', 'horizontalLines'],
+            width: 5,
+            depth: 6
+          },
+        },
+        markers: {
+          size: 5,
+          hover: {
+            size: 9
+          }
+        },
+        title: {
+          text: 'Network Monitoring',
+        },
+        tooltip: {
+          intersect: true,
+          shared: false
+        },
+        theme: {
+          palette: 'palette1'
+        },
+        xaxis: {
+          type: 'datetime',
+        },
+        yaxis: {
+          title: {
+            text: 'Bytes Received'
+          }
         }
+      };
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
     </script>
+
+  
 </body>
 
 </html>
