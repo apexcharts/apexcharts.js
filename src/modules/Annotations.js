@@ -99,7 +99,8 @@ export default class Annotations {
         x1 + anno.offsetX, // x2
         w.globals.gridHeight + anno.offsetY, // y2
         anno.borderColor, // lineColor
-        strokeDashArray //dashArray
+        strokeDashArray, //dashArray
+        anno.borderWidth
       )
       parent.appendChild(line.node)
     } else {
@@ -228,7 +229,8 @@ export default class Annotations {
         w.globals.gridWidth + anno.offsetX, // x2
         y1 + anno.offsetY, // y2
         anno.borderColor, // lineColor
-        strokeDashArray // dashArray
+        strokeDashArray, // dashArray
+        anno.borderWidth
       )
       parent.appendChild(line.node)
     } else {

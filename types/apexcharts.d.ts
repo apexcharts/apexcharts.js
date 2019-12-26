@@ -320,6 +320,7 @@ type XAxisAnnotations = {
   strokeDashArray?: number
   fillColor?: string
   borderColor?: string
+  borderWidth?: number
   opacity?: number
   offsetX?: number
   offsetY?: number
@@ -332,6 +333,7 @@ type YAxisAnnotations = {
   strokeDashArray?: number
   fillColor?: string
   borderColor?: string
+  borderWidth?: number
   opacity?: number
   offsetX?: number
   offsetY?: number
