@@ -346,9 +346,17 @@ export default class Position {
     }
 
     if (points !== null) {
-      for (let p = 0; p < points.length; p++) {
+      for (let p = 0; p < w.globals.series.length; p++) {
         let pointArr = pointsArr[p]
 
+        if (w.globals.comboCharts) {
+          // in a combo chart, if column charts are present, markers will not match with the number of series, hence this patch to push a null value in points array
+          if (typeof pointArr === 'undefined') {
+            // nodelist to array
+            points = [...points]
+            points.splice(p, 0, null)
+          }
+        }
         if (pointArr && pointArr.length) {
           let pcy = pointsArr[p][j][1]
           points[p].setAttribute('cx', cx)
