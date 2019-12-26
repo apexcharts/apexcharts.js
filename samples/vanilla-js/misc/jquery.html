@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>jQuery Ajax Example</title>
+
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+        #chart {
+            max-width: 650px;
+            margin: 35px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart">
+
+    </div>
+
+
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <script>
+        var options = {
+            chart: {
+                height: 350,
+                type: 'bar',
+            },
+            dataLabels: {
+                enabled: false
+            },
+            series: [],
+            title: {
+                text: 'Ajax Example',
+            },
+            noData: {
+              text: 'Loading...'
+            }
+        }
+
+        var chart = new ApexCharts(
+            $("#chart").get(0),
+            options
+        );
+
+        chart.render();
+
+        $.getJSON('http://my-json-server.typicode.com/apexcharts/apexcharts.js/yearly', function(response) {
+          chart.updateSeries([{
+            name: 'Sales',
+            data: response
+          }])
+        });
+
+        
+    </script>
+</body>
+
+</html>
