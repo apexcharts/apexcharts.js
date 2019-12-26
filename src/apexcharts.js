@@ -516,7 +516,11 @@ export default class ApexCharts {
         w.config = Utils.extend(w.config, options)
 
         if (overwriteInitialConfig) {
-          // restore the new config in initialConfig/initialSeries
+          // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
+          w.globals.lastXAxis = []
+          w.globals.lastYAxis = []
+
+          // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
           w.globals.initialConfig = Utils.extend({}, w.config)
           w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
         }
@@ -690,9 +694,11 @@ export default class ApexCharts {
     const w = this.w
     if (typeof options.xaxis.min !== 'undefined') {
       w.config.xaxis.min = options.xaxis.min
+      w.globals.lastXAxis.min = options.xaxis.min
     }
     if (typeof options.xaxis.max !== 'undefined') {
       w.config.xaxis.max = options.xaxis.max
+      w.globals.lastXAxis.max = options.xaxis.max
     }
   }
 
@@ -704,15 +710,20 @@ export default class ApexCharts {
   revertDefaultAxisMinMax() {
     const w = this.w
 
-    w.config.xaxis.min = this.opts.xaxis.min || (Apex.xaxis && Apex.xaxis.min)
-    w.config.xaxis.max = this.opts.xaxis.max || (Apex.xaxis && Apex.xaxis.max)
+    w.config.xaxis.min = w.globals.lastXAxis.min
+    w.config.xaxis.max = w.globals.lastXAxis.max
 
     w.config.yaxis.map((yaxe, index) => {
       if (w.globals.zoomed) {
         // user has zoomed, check the original yaxis
         if (typeof this.opts.yaxis[index] !== 'undefined') {
-          yaxe.min = this.opts.yaxis[index].min
-          yaxe.max = this.opts.yaxis[index].max
+          // yaxe.min = this.opts.yaxis[index].min
+          // yaxe.max = this.opts.yaxis[index].max
+        }
+
+        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+          yaxe.min = w.globals.lastYAxis[index].min
+          yaxe.max = w.globals.lastYAxis[index].max
         }
       }
     })
