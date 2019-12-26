@@ -1,52 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Advanced Timeline</title>
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Advanced Timeline</title>
 
-    <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
+  <link href="../../assets/styles.css" rel="stylesheet">
 
-      .apexcharts-yaxis text {
-        font-weight: bold;
-      }
-    </style>
-  </head>
+  <style>
+  
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    
+    .apexcharts-yaxis text {
+      font-weight: bold;
+    }
+  
+  </style>
 
-  <body>
-    <div id="chart">
-      <apexchart
-        type="rangeBar"
-        height="450"
-        :options="chartOptions"
-        :series="series"
-      />
+
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  
+</head>
+
+<body>
+  
+    <div id="app">
+      <div id="chart">
+      <apexchart type="rangeBar" height="450" :options="chartOptions" :series="series"></apexchart>
+    </div>
     </div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">
-      &lt;div id="chart"> &lt;apexchart type=rangeBar height=450
-      :options="chartOptions" :series="series" /> &lt;/div>
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;rangeBar&quot; height=&quot;450&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
     </div>
-
-    <script src="https://unpkg.com/vue/dist/vue.js"></script>
-    <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
     <script>
       new Vue({
-        el: '#chart',
+        el: '#app',
         components: {
-          apexchart: VueApexCharts
+          apexchart: VueApexCharts,
         },
         data: {
+          
           series: [
             {
               name: 'Bob',
@@ -65,7 +82,6 @@
                     new Date('2019-03-05').getTime()
                   ]
                 },
-                
                 {
                   x: 'Code',
                   y: [
@@ -127,7 +143,6 @@
                     new Date('2019-03-07').getTime()
                   ]
                 },
-              
                 {
                   x: 'Deployment',
                   y: [
@@ -161,11 +176,14 @@
                     new Date('2019-03-09').getTime()
                   ]
                 },
-                
               ]
             }
           ],
           chartOptions: {
+            chart: {
+              height: 450,
+              type: 'rangeBar'
+            },
             plotOptions: {
               bar: {
                 horizontal: true,
@@ -192,9 +210,14 @@
               position: 'top',
               horizontalAlign: 'left'
             }
-          }
-        }
+          },
+          
+          
+        },
+        
       })
     </script>
-  </body>
+  
+</body>
+
 </html>

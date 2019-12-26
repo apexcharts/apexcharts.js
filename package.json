@@ -30,7 +30,8 @@
     "lint:fix": "eslint . --fix",
     "test": "jest --testTimeout=30000",
     "unit": "jest tests/unit/",
-    "e2e": "jest tests/e2e/"
+    "e2e": "jest tests/e2e/ --testTimeout=30000",
+    "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
     "promise-polyfill": "8.1.0",
@@ -58,11 +59,14 @@
     "eslint-plugin-import": "2.19.1",
     "eslint-plugin-prettier": "3.1.2",
     "eslint-plugin-promise": "4.2.1",
-    "jest": "24.1.0",
-    "jest-puppeteer": "3.8.0",
+    "fs-extra": "8.1.0",
+    "jest": "24.9.0",
+    "jest-puppeteer": "4.4.0",
+    "nunjucks": "3.2.0",
+    "pixelmatch": "5.1.0",
+    "pngjs": "3.4.0",
     "prettier": "1.19.1",
-    "puppeteer": "1.19.0",
-    "puppeteer-core": "1.11.0",
+    "puppeteer": "2.0.0",
     "rollup": "1.1.0",
     "rollup-plugin-babel": "4.3.2",
     "rollup-plugin-copy-glob": "0.3.0",
@@ -78,6 +82,7 @@
     "tslint": "5.12.1",
     "typescript": "3.2.2",
     "webpack": "4.41.3",
+    "webpack-bundle-analyzer": "^3.6.0",
     "webpack-cli": "^3.3.10"
   },
   "author": {

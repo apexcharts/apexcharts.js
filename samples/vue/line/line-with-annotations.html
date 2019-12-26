@@ -5,157 +5,176 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Basic Line - Vue</title>
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <title>Line Chart with Annotations</title>
 
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
       max-width: 650px;
       margin: 35px auto;
     }
+  
   </style>
-</head>
 
-<body>
-  <div id="chart">
-    <apexchart type=line height=350 :options="chartOptions" :series="series" />
-  </div>
-
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=line height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../assets/stock-prices.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
+
   <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [{
-          data: series.monthDataSeries1.prices
-        }],
-        chartOptions: {
-          annotations: {
-            yaxis: [{
-              y: 8200,
-              borderColor: '#00E396',
-              label: {
-                borderColor: '#00E396',
-                style: {
-                  color: '#fff',
-                  background: '#00E396',
-                },
-                text: 'Support',
-              }
-            }, {
-              y: 8600,
-              y2: 9000,
-              borderColor: '#FEB019',
-              opacity: 0.1,
-              label: {
-                borderColor: '#333',
-                style: {
-                  fontSize: '10px',
-                  color: '#333',
-                  background: '#FEB019',
-                },
-                text: 'Y-axis range',
-              }
-            }],
-            xaxis: [{
-              x: new Date('23 Nov 2017').getTime(),
-              strokeDashArray: 0,
-              borderColor: '#775DD0',
-              label: {
-                borderColor: '#775DD0',
-                style: {
-                  color: '#fff',
-                  background: '#775DD0',
-                },
-                text: 'Anno Test',
-              }
-            }, {
-              x: new Date('26 Nov 2017').getTime(),
-              x2: new Date('28 Nov 2017').getTime(),
-              borderColor: '#B3F7CA',
-              opacity: 0.5,
-              label: {
-                borderColor: '#B3F7CA',
-                style: {
-                  fontSize: '10px',
-                  color: '#fff',
-                  background: '#00E396',
-                },
-                offsetY: -10,
-                text: 'X-axis range',
-              }
-            }],
-            points: [{
-              x: new Date('01 Dec 2017').getTime(),
-              y: 8607.55,
-              marker: {
-                size: 8,
-                fillColor: '#fff',
-                strokeColor: 'red',
-                radius: 2,
-                cssClass: 'apexcharts-custom-class'
-              },
-              label: {
-                borderColor: '#FF4560',
-                offsetY: 0,
-                style: {
-                  color: '#fff',
-                  background: '#FF4560',
-                },
-
-                text: 'Point Annotation',
-              }
-            }]
-          },
-          chart: {
-            height: 350,
-            type: 'line',
-            id: 'areachart-2'
-          },
-          dataLabels: {
-            enabled: false
-          },
-          stroke: {
-            curve: 'straight'
-          },
-          grid: {
-            padding: {
-              right: 30,
-              left: 20
-            }
-          },
-
-          title: {
-            text: 'Line with Annotations',
-            align: 'left'
-          },
-          labels: series.monthDataSeries1.dates,
-          xaxis: {
-            type: 'datetime',
-          },
-        },
-
-
-      },
-
-    })
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
   </script>
 
+  <script src="../../assets/stock-prices.js"></script>
+</head>
+
+<body>
+  
+    <div id="app">
+      <div id="chart">
+      <apexchart type="line" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+            data: series.monthDataSeries1.prices
+          }],
+          chartOptions: {
+            chart: {
+              height: 350,
+              type: 'line',
+              id: 'areachart-2'
+            },
+            annotations: {
+              yaxis: [{
+                y: 8200,
+                borderColor: '#00E396',
+                label: {
+                  borderColor: '#00E396',
+                  style: {
+                    color: '#fff',
+                    background: '#00E396',
+                  },
+                  text: 'Support',
+                }
+              }, {
+                y: 8600,
+                y2: 9000,
+                borderColor: '#000',
+                fillColor: '#FEB019',
+                opacity: 0.2,
+                label: {
+                  borderColor: '#333',
+                  style: {
+                    fontSize: '10px',
+                    color: '#333',
+                    background: '#FEB019',
+                  },
+                  text: 'Y-axis range',
+                }
+              }],
+              xaxis: [{
+                x: new Date('23 Nov 2017').getTime(),
+                strokeDashArray: 0,
+                borderColor: '#775DD0',
+                label: {
+                  borderColor: '#775DD0',
+                  style: {
+                    color: '#fff',
+                    background: '#775DD0',
+                  },
+                  text: 'Anno Test',
+                }
+              }, {
+                x: new Date('26 Nov 2017').getTime(),
+                x2: new Date('28 Nov 2017').getTime(),
+                fillColor: '#B3F7CA',
+                opacity: 0.4,
+                label: {
+                  borderColor: '#B3F7CA',
+                  style: {
+                    fontSize: '10px',
+                    color: '#fff',
+                    background: '#00E396',
+                  },
+                  offsetY: -10,
+                  text: 'X-axis range',
+                }
+              }],
+              points: [{
+                x: new Date('01 Dec 2017').getTime(),
+                y: 8607.55,
+                marker: {
+                  size: 8,
+                  fillColor: '#fff',
+                  strokeColor: 'red',
+                  radius: 2,
+                  cssClass: 'apexcharts-custom-class'
+                },
+                label: {
+                  borderColor: '#FF4560',
+                  offsetY: 0,
+                  style: {
+                    color: '#fff',
+                    background: '#FF4560',
+                  },
+            
+                  text: 'Point Annotation',
+                }
+              }]
+            },
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              curve: 'straight'
+            },
+            grid: {
+              padding: {
+                right: 30,
+                left: 20
+              }
+            },
+            title: {
+              text: 'Line with Annotations',
+              align: 'left'
+            },
+            labels: series.monthDataSeries1.dates,
+            xaxis: {
+              type: 'datetime',
+            },
+          },
+          
+          
+        },
+        
+      })
+    </script>
+  
 </body>
 
 </html>

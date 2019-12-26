@@ -1,87 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Controlling Colors in Timeline Chart</title>
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Controlling Colors in Timeline Chart</title>
 
-    <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
-    </style>
-  </head>
+  <link href="../../assets/styles.css" rel="stylesheet">
 
-  <body>
+  <style>
+  
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
+
+
+  <script crossorigin src="https://unpkg.com/react@16.12/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16.12/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.7.2/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+</head>
+
+<body>
+  
     <div id="app"></div>
 
     <div id="html">
-      &lt;div id=&quot;chart&quot;&gt;&#10; &lt;ReactApexChart
-      options={this.state.options} series={this.state.series}
-      type=&quot;rangeBar&quot; height=&quot;350&quot; /&gt;&#10; &lt;/div&gt;
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;rangeBar&quot; height={350} /&gt;
+&lt;/div&gt;
     </div>
 
-    <script
-      crossorigin
-      src="https://unpkg.com/react@16/umd/react.production.min.js"
-    ></script>
-    <script
-      crossorigin
-      src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"
-    ></script>
-    <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-
-    <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
     <script type="text/babel">
-      class Timeline extends React.Component {
+      class ApexChart extends React.Component {
         constructor(props) {
-          super(props)
+          super(props);
 
           this.state = {
-            options: {
-              plotOptions: {
-                bar: {
-                  horizontal: true,
-                  distributed: true,
-                  dataLabels: {
-                    hideOverflowingLabels: false
-                  }
-                }
-              },
-              dataLabels: {
-                enabled: true,
-                formatter: function(val, opts) {
-                  var label = opts.w.globals.labels[opts.dataPointIndex]
-                  var a = moment(val[0])
-                  var b = moment(val[1])
-                  var diff = b.diff(a, 'days')
-                  return label + ': ' + diff + (diff > 1 ? ' days' : ' day')
-                },
-                style: {
-                  colors: ['#f3f4f5', '#fff']
-                }
-              },
-              xaxis: {
-                type: 'datetime'
-              },
-              yaxis: {
-                show: false
-              },
-              grid: {
-                row: {
-                  colors: ['#f3f4f5', '#fff'],
-                  opacity: 1
-                }
-              }
-            },
+          
             series: [
               {
                 data: [
@@ -127,29 +102,71 @@
                   }
                 ]
               }
-            ]
-          }
+            ],
+            options: {
+              chart: {
+                height: 350,
+                type: 'rangeBar'
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  distributed: true,
+                  dataLabels: {
+                    hideOverflowingLabels: false
+                  }
+                }
+              },
+              dataLabels: {
+                enabled: true,
+                formatter: function(val, opts) {
+                  var label = opts.w.globals.labels[opts.dataPointIndex]
+                  var a = moment(val[0])
+                  var b = moment(val[1])
+                  var diff = b.diff(a, 'days')
+                  return label + ': ' + diff + (diff > 1 ? ' days' : ' day')
+                },
+                style: {
+                  colors: ['#f3f4f5', '#fff']
+                }
+              },
+              xaxis: {
+                type: 'datetime'
+              },
+              yaxis: {
+                show: false
+              },
+              grid: {
+                row: {
+                  colors: ['#f3f4f5', '#fff'],
+                  opacity: 1
+                }
+              }
+            },
+          
+          
+          };
         }
+
+      
 
         render() {
           return (
             <div>
               <div id="chart">
-                <ReactApexChart
-                  options={this.state.options}
-                  series={this.state.series}
-                  type="rangeBar"
-                  height="350"
-                />
+                <ReactApexChart options={this.state.options} series={this.state.series} type="rangeBar" height={350} />
               </div>
-              <div id="html-dist" />
+              <div id="html-dist"></div>
             </div>
-          )
+          );
         }
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(React.createElement(Timeline), domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
     </script>
-  </body>
+
+  
+</body>
+
 </html>

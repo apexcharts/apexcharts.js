@@ -7,196 +7,219 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Simple HeatMap</title>
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
-            max-width: 500px;
-            margin: 35px auto;
-        }
-    </style>
-</head>
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
 
-<body>
-  <div id="chart">
-    <apexchart type=heatmap height=450 :options="chartOptions" :series="series" />
-  </div>
-
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=heatmap height=450 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
+
   <script>
-    function generateData(count, yrange) {
-      var i = 0;
-      var series = [];
-      while (i < count) {
-        var x = (i + 1).toString();
-        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-
-        series.push({
-          x: x,
-          y: y
-        });
-        i++;
-      }
-      return series;
-    }
-
-    var data = [{
-        name: 'W1',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W2',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W3',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W4',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W5',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W6',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W7',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W8',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W9',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W10',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W11',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W12',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W13',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W14',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      },
-      {
-        name: 'W15',
-        data: generateData(8, {
-          min: 0,
-          max: 90
-        })
-      }
-    ]
-
-    data.reverse()
-
-    var colors = ["#F3B415", "#F27036", "#663F59", "#6A6E94", "#4E88B4", "#00A7C6", "#18D8D8", '#A9D794', '#46AF78',
-      '#A93F55', '#8C5E58', '#2176FF', '#33A1FD', '#7A918D', '#BAFF29'
-    ]
-
-    colors.reverse()
-
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: data,
-
-        chartOptions: {
-          dataLabels: {
-            enabled: false
-          },
-          colors: colors,
-          xaxis: {
-            type: 'category',
-            categories: ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '01:00', '01:30']
-          },
-          title: {
-            text: 'HeatMap Chart (Different color shades for each series)'
-          },
-          grid: {
-            padding: {
-              right: 20
-            }
-          }
-        }
-      },
-
-    })
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
   </script>
 
+  <script>
+  function generateData(count, yrange) {
+    var i = 0;
+    var series = [];
+    while (i < count) {
+      var x = (i + 1).toString();
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+  
+      series.push({
+        x: x,
+        y: y
+      });
+      i++;
+    }
+    return series;
+  }
+  
+  var data = [
+    {
+      name: 'W1',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W2',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W3',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W4',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W5',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W6',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W7',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W8',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W9',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W10',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W11',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W12',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W13',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W14',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    },
+    {
+      name: 'W15',
+      data: generateData(8, {
+        min: 0,
+        max: 90
+      })
+    }
+  ]
+  
+  data.reverse()
+  
+  var colors = ["#F3B415", "#F27036", "#663F59", "#6A6E94", "#4E88B4", "#00A7C6", "#18D8D8", '#A9D794','#46AF78', '#A93F55', '#8C5E58', '#2176FF', '#33A1FD', '#7A918D', '#BAFF29']
+  
+  colors.reverse()
+  </script>
+</head>
+
+<body>
+  
+    <div id="app">
+      <div id="chart">
+      <apexchart type="heatmap" height="450" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;heatmap&quot; height=&quot;450&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: data,
+          chartOptions: {
+            chart: {
+              height: 450,
+              type: 'heatmap',
+            },
+            dataLabels: {
+              enabled: false
+            },
+            colors: colors,
+            xaxis: {
+              type: 'category',
+              categories: ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '01:00', '01:30']
+            },
+            title: {
+              text: 'HeatMap Chart (Different color shades for each series)'
+            },
+            grid: {
+              padding: {
+                right: 20
+              }
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+  
 </body>
 
 </html>

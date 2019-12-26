@@ -7,164 +7,189 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>CandleStick Chart with Bar</title>
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
-    #chart-box {
-        max-width: 650px;
-        margin: 35px auto;
+  
+    .chart-box {
+      max-width: 650px;
+      margin: 35px auto;
     }
     #chart-candlestick,
     #chart-bar {
-        max-width: 640px;
+      max-width: 640px;
     }
-
+    
     #chart-bar {
-        margin-top: -50px;
+      margin-top: -50px;
     }
-    </style>
+  
+  </style>
+
+
+  <script crossorigin src="https://unpkg.com/react@16.12/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16.12/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.7.2/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <script src="../../assets/ohlc.js"></script>
 </head>
 
 <body>
-  <div id="app"></div>
   
-  <div id="html">
-          &lt;div id=&quot;chart-box&quot;&gt;&#10;            &lt;div id=&quot;chart-candlestick&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsCandlestick} series={this.state.seriesCandle} type=&quot;candlestick&quot; height=&quot;290&quot; /&gt;&#10;            &lt;/div&gt;&#10;            &lt;div id=&quot;chart-bar&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsBar} series={this.state.seriesBar} type=&quot;bar&quot; height=&quot;160&quot; /&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
-  </div>
+    <div id="app"></div>
 
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <div id="html">
+      &lt;div class=&quot;chart-box&quot;&gt;
+  &lt;div id=&quot;chart-candlestick&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;candlestick&quot; height={290} /&gt;
+&lt;/div&gt;
+  &lt;div id=&quot;chart-bar&quot;&gt;
+  &lt;ReactApexChart options={this.state.optionsBar} series={this.state.seriesBar} type=&quot;bar&quot; height={160} /&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+    </div>
 
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="../../assets/ohlc.js"></script>
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
 
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
-    class CandleStickChart extends React.Component {
-      
-      constructor(props) {
-        super(props);
-
-        this.state = {
-          seriesCandle: [{
-            data: seriesData
-          }],
-          seriesBar: [{
-            name: 'volume',
-            data: seriesDataLinear
-          }],
-          chartOptionsCandlestick: {
-            chart: {
-              id: 'candles',
-              toolbar: {
-                autoSelected: 'pan',
-                show: false
+          this.state = {
+          
+            series: [{
+              data: seriesData
+            }],
+            options: {
+              chart: {
+                type: 'candlestick',
+                height: 290,
+                id: 'candles',
+                toolbar: {
+                  autoSelected: 'pan',
+                  show: false
+                },
+                zoom: {
+                  enabled: false
+                },
               },
-              zoom: {
+              plotOptions: {
+                candlestick: {
+                  colors: {
+                    upward: '#3C90EB',
+                    downward: '#DF7D46'
+                  }
+                }
+              },
+              xaxis: {
+                type: 'datetime'
+              }
+            },
+          
+            seriesBar: [{
+              name: 'volume',
+              data: seriesDataLinear
+            }],
+            optionsBar: {
+              chart: {
+                height: 160,
+                type: 'bar',
+                brush: {
+                  enabled: true,
+                  target: 'candles'
+                },
+                selection: {
+                  enabled: true,
+                  xaxis: {
+                    min: new Date('20 Jan 2017').getTime(),
+                    max: new Date('10 Dec 2017').getTime()
+                  },
+                  fill: {
+                    color: '#ccc',
+                    opacity: 0.4
+                  },
+                  stroke: {
+                    color: '#0D47A1',
+                  }
+                },
+              },
+              dataLabels: {
                 enabled: false
               },
-            },
-            plotOptions: {
-              candlestick: {
-                colors: {
-                  upward: '#3C90EB',
-                  downward: '#DF7D46'
+              plotOptions: {
+                bar: {
+                  columnWidth: '80%',
+                  colors: {
+                    ranges: [{
+                      from: -1000,
+                      to: 0,
+                      color: '#F15B46'
+                    }, {
+                      from: 1,
+                      to: 10000,
+                      color: '#FEB019'
+                    }],
+              
+                  },
+                }
+              },
+              stroke: {
+                width: 0
+              },
+              xaxis: {
+                type: 'datetime',
+                axisBorder: {
+                  offsetX: 13
+                }
+              },
+              yaxis: {
+                labels: {
+                  show: false
                 }
               }
             },
+          
+          
+          };
+        }
 
-            xaxis: {
-              type: 'datetime'
-            }
-          },
-          chartOptionsBar: {
-            chart: {
-              height: 160,
-              type: 'bar',
-              brush: {
-                enabled: true,
-                target: 'candles'
-              },
-              selection: {
-                enabled: true,
-                xaxis: {
-                  min: new Date('20 Jan 2017').getTime(),
-                  max: new Date('10 Dec 2017').getTime()
-                },
-                fill: {
-                  color: '#ccc',
-                  opacity: 0.4
-                },
-                stroke: {
-                  color: '#0D47A1',
-                }
-              },
-            },
-            dataLabels: {
-              enabled: false
-            },
-            plotOptions: {
-              bar: {
-                columnWidth: '80%',
-                colors: {
-                  ranges: [{
-                    from: -1000,
-                    to: 0,
-                    color: '#F15B46'
-                  }, {
-                    from: 1,
-                    to: 10000,
-                    color: '#FEB019'
-                  }],
+      
 
-                },
-              }
-            },
-            stroke: {
-              width: 0
-            },
-            xaxis: {
-              type: 'datetime',
-              axisBorder: {
-                offsetX: 13
-              }
-            },
-            yaxis: {
-              labels: {
-                show: false
-              }
-            }
-          }
-        }            
+        render() {
+          return (
+            <div>
+              <div class="chart-box">
+                <div id="chart-candlestick">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="candlestick" height={290} />
+              </div>
+                <div id="chart-bar">
+                <ReactApexChart options={this.state.optionsBar} series={this.state.seriesBar} type="bar" height={160} />
+              </div>
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
+        }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="chart-box">
-              <div id="chart-candlestick">
-                <ReactApexChart options={this.state.chartOptionsCandlestick} series={this.state.seriesCandle} type="candlestick" height="290" />
-              </div>
-              <div id="chart-bar">
-                <ReactApexChart options={this.state.chartOptionsBar} series={this.state.seriesBar} type="bar" height="160" />
-              </div>
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(CandleStickChart), domContainer);
-
-  </script>
+  
 </body>
+
 </html>

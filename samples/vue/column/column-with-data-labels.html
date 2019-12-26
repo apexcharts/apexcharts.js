@@ -7,140 +7,162 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Column with Data Labels</title>
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
-</head>
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
 
-<body>
-  <div id="chart">
-    <apexchart type=bar height=350 :options="chartOptions" :series="series" />
-  </div>
-
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=bar height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
+
   <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [{
-          name: 'Inflation',
-          data: [2.3, 3.1, 4.0, 10.1, 4.0, 3.6, 3.2, 2.3, 1.4, 0.8, 0.5, 0.2]
-        }],
-        chartOptions: {
-          chart: {
-            height: 350,
-            type: 'bar',
-          },
-          plotOptions: {
-            bar: {
-              dataLabels: {
-                position: 'top', // top, center, bottom
-              },
-            }
-          },
-          dataLabels: {
-            enabled: true,
-            formatter: function (val) {
-              return val + "%";
-            },
-            offsetY: -20,
-            style: {
-              fontSize: '12px',
-              colors: ["#304758"]
-            }
-          },
-
-          xaxis: {
-            categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-            position: 'top',
-            labels: {
-              offsetY: -18,
-
-            },
-            axisBorder: {
-              show: false
-            },
-            axisTicks: {
-              show: false
-            },
-            crosshairs: {
-              fill: {
-                type: 'gradient',
-                gradient: {
-                  colorFrom: '#D8E3F0',
-                  colorTo: '#BED1E6',
-                  stops: [0, 100],
-                  opacityFrom: 0.4,
-                  opacityTo: 0.5,
-                }
-              }
-            },
-            tooltip: {
-              enabled: true,
-              offsetY: -35,
-
-            }
-          },
-          fill: {
-            gradient: {
-              shade: 'light',
-              type: "horizontal",
-              shadeIntensity: 0.25,
-              gradientToColors: undefined,
-              inverseColors: true,
-              opacityFrom: 1,
-              opacityTo: 1,
-              stops: [50, 0, 100, 100]
-            },
-          },
-          yaxis: {
-            axisBorder: {
-              show: false
-            },
-            axisTicks: {
-              show: false,
-            },
-            labels: {
-              show: false,
-              formatter: function (val) {
-                return val + "%";
-              }
-            }
-
-          },
-          title: {
-            text: 'Monthly Inflation in Argentina, 2002',
-            floating: true,
-            offsetY: 320,
-            align: 'center',
-            style: {
-              color: '#444'
-            }
-          }
-        }
-      }
-    })
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
   </script>
 
+  
+</head>
+
+<body>
+  
+    <div id="app">
+      <div id="chart">
+      <apexchart type="bar" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+            name: 'Inflation',
+            data: [2.3, 3.1, 4.0, 10.1, 4.0, 3.6, 3.2, 2.3, 1.4, 0.8, 0.5, 0.2]
+          }],
+          chartOptions: {
+            chart: {
+              height: 350,
+              type: 'bar',
+            },
+            plotOptions: {
+              bar: {
+                dataLabels: {
+                  position: 'top', // top, center, bottom
+                },
+              }
+            },
+            dataLabels: {
+              enabled: true,
+              formatter: function (val) {
+                return val + "%";
+              },
+              offsetY: -20,
+              style: {
+                fontSize: '12px',
+                colors: ["#304758"]
+              }
+            },
+            
+            xaxis: {
+              categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+              position: 'top',
+              labels: {
+                offsetY: -18,
+            
+              },
+              axisBorder: {
+                show: false
+              },
+              axisTicks: {
+                show: false
+              },
+              crosshairs: {
+                fill: {
+                  type: 'gradient',
+                  gradient: {
+                    colorFrom: '#D8E3F0',
+                    colorTo: '#BED1E6',
+                    stops: [0, 100],
+                    opacityFrom: 0.4,
+                    opacityTo: 0.5,
+                  }
+                }
+              },
+              tooltip: {
+                enabled: true,
+                offsetY: -35,
+            
+              }
+            },
+            fill: {
+              gradient: {
+                shade: 'light',
+                type: "horizontal",
+                shadeIntensity: 0.25,
+                gradientToColors: undefined,
+                inverseColors: true,
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [50, 0, 100, 100]
+              },
+            },
+            yaxis: {
+              axisBorder: {
+                show: false
+              },
+              axisTicks: {
+                show: false,
+              },
+              labels: {
+                show: false,
+                formatter: function (val) {
+                  return val + "%";
+                }
+              }
+            
+            },
+            title: {
+              text: 'Monthly Inflation in Argentina, 2002',
+              floating: true,
+              offsetY: 320,
+              align: 'center',
+              style: {
+                color: '#444'
+              }
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+  
 </body>
 
 </html>

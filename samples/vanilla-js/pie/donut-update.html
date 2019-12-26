@@ -2,141 +2,175 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Simple Pie</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Simple Pie</title>
 
-    
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
+
+  <style>
+  
+    #chart {
+      max-width: 480px;
+      margin: 35px auto;
+      padding: 0;
+    }
+    .actions {
+      top: -10px;
+      position: relative;
+      z-index: 10;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    button {
+      color: #fff;
+      background: #20b2aa;
+      padding: 5px 10px;
+      margin: 2px;
+      font-weight: bold;
+      font-size: 13px;
+      border-radius: 5px;
+    }
+    p {
+      margin: 10px 0;
+    }
+    @media only screen and (max-width: 480px) {
+      .actions {
+        margin-top: 0;
+        left: 0
+      }
+    }
+  
+  </style>
 
 
-    <style>
-        #chart {
-            max-width: 480px;
-            margin: 35px auto;
-            padding: 0;
-        }
-        .actions {
-            top: -10px;
-            position: relative;
-            z-index: 10;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        button {
-            color: #fff;
-            background: #20b2aa;
-            padding: 5px 10px;
-            margin: 2px;
-            font-weight: bold;
-            font-size: 13px;
-            border-radius: 5px;
-        }
-        
-        p {
-            margin: 10px 0;
-        }
-        @media only screen and (max-width: 480px) {
-            .actions {
-                margin-top: 0;
-                left: 0
-            }
+  <script src="../../../dist/apexcharts.js"></script>
 
-        }
-    </style>
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  
 </head>
 
 <body>
+  
     <div class="chart-wrap">
-        <div id="chart">
-
-        </div>
-    </div>
-
-    <div class="actions">
-        <button id="add">+ ADD</button>
-        <button id="remove"> &dash; REMOVE</button>
-        <button id="randomize">RANDOMIZE</button>
-        <button id="reset">RESET</button>
-    </div>
-    
-    <script src="../../../dist/apexcharts.js"></script>
+        <div id="chart"></div>
+      </div>
+      
+      <div class="actions">
+        <button
+            id="add"
+            
+            >
+          + ADD
+        </button>
+        
+        <button
+            id="remove"
+            
+            >
+          - REMOVE
+        </button>
+        
+        <button
+            id="randomize"
+            
+            >
+          RANDOMIZE
+        </button>
+        
+        <button
+            id="reset"
+            
+            >
+          RESET
+        </button>
+      </div>
 
     <script>
-        var options = {
+    
+      var options = {
+        series: [44, 55, 13, 33],
+        chart: {
+          width: 380,
+          type: 'donut',
+        },
+        dataLabels: {
+          enabled: false
+        },
+        responsive: [{
+          breakpoint: 480,
+          options: {
             chart: {
-                width: 380,
-                type: 'donut',
+              width: 200
             },
-            dataLabels: {
-                enabled: false
-            },
-            series: [44, 55, 13, 33],
-            responsive: [{
-                breakpoint: 480,
-                options: {
-                    chart: {
-                        width: 200
-                    },
-                    legend: {
-                        show: false
-                    }
-                }
-            }],
             legend: {
-                position: 'right',
-                offsetY: 0,
-                height: 230,
+              show: false
             }
+          }
+        }],
+        legend: {
+          position: 'right',
+          offsetY: 0,
+          height: 230,
         }
+      };
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render()
-
-        function appendData() {
-            var arr = chart.w.globals.series.slice()
-            arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
-            return arr;
-        }
-
-        function removeData() {
-            var arr = chart.w.globals.series.slice()
-            arr.pop()
-            return arr;
-        }
-
-        function randomize() {
-            return chart.w.globals.series.map(() => {
-                return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-            })
-        }
-
-        function reset() {
-            return options.series
-        }
-
-        document.querySelector("#randomize").addEventListener("click", function() {
-            chart.updateSeries(randomize())
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
+      function appendData() {
+        var arr = chart.w.globals.series.slice()
+        arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
+        return arr;
+      }
+      
+      function removeData() {
+        var arr = chart.w.globals.series.slice()
+        arr.pop()
+        return arr;
+      }
+      
+      function randomize() {
+        return chart.w.globals.series.map(function() {
+            return Math.floor(Math.random() * (100 - 1 + 1)) + 1
         })
-
-        document.querySelector("#add").addEventListener("click", function() {
-            chart.updateSeries(appendData())
-        })
-
-        document.querySelector("#remove").addEventListener("click", function() {
-            chart.updateSeries(removeData())
-        })
-
-        document.querySelector("#reset").addEventListener("click", function() {
-            chart.updateSeries(reset())
-        })
-
+      }
+      
+      function reset() {
+        return options.series
+      }
+      
+      document.querySelector("#randomize").addEventListener("click", function() {
+        chart.updateSeries(randomize())
+      })
+      
+      document.querySelector("#add").addEventListener("click", function() {
+        chart.updateSeries(appendData())
+      })
+      
+      document.querySelector("#remove").addEventListener("click", function() {
+        chart.updateSeries(removeData())
+      })
+      
+      document.querySelector("#reset").addEventListener("click", function() {
+        chart.updateSeries(reset())
+      })
+    
     </script>
+
+  
 </body>
 
 </html>

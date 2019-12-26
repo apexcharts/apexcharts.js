@@ -7,11 +7,10 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Scatter - Image Chart</title>
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/brands.css" integrity="sha384-QT2Z8ljl3UupqMtQNmPyhSPO/d5qbrzWmFxJqmY7tqoTuT2YrQLEqzvVOP2cT5XW" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/fontawesome.css" integrity="sha384-u5J7JghGz0qUrmEsWzBQkfvc8nK3fUT7DCaQzNQ+q4oEXhGSx+P2OqjWsfIRB8QT" crossorigin="anonymous">
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
       max-width: 650px;
       margin: 35px auto;
@@ -27,121 +26,135 @@
     .apexcharts-legend-series {
       align-items: flex-start !important;
     }
-
+  
   </style>
-</head>
-
-<body>
-  <div id="chart">
-
-  </div>
 
 
   <script src="../../../dist/apexcharts.js"></script>
 
+
   <script>
-    var options = {
-      chart: {
-        height: 350,
-        type: 'scatter',
-        animations: {
-          enabled: false,
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/brands.css" integrity="sha384-QT2Z8ljl3UupqMtQNmPyhSPO/d5qbrzWmFxJqmY7tqoTuT2YrQLEqzvVOP2cT5XW" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/fontawesome.css" integrity="sha384-u5J7JghGz0qUrmEsWzBQkfvc8nK3fUT7DCaQzNQ+q4oEXhGSx+P2OqjWsfIRB8QT" crossorigin="anonymous">
+</head>
+
+<body>
+  
+    <div id="chart"></div>
+
+    <script>
+    
+      var options = {
+        series: [{
+          name: 'Messenger',
+          data: [
+            [16.4, 5.4],
+            [21.7, 4],
+            [25.4, 3],
+            [19, 2],
+            [10.9, 1],
+            [13.6, 3.2],
+            [10.9, 7],
+            [10.9, 8.2],
+            [16.4, 4],
+            [13.6, 4.3],
+            [13.6, 12],
+            [29.9, 3],
+            [10.9, 5.2],
+            [16.4, 6.5],
+            [10.9, 8],
+            [24.5, 7.1],
+            [10.9, 7],
+            [8.1, 4.7],
+            [19, 10],
+            [27.1, 10],
+            [24.5, 8],
+            [27.1, 3],
+            [29.9, 11.5],
+            [27.1, 0.8],
+            [22.1, 2]
+          ]
+        }, {
+          name: 'Instagram',
+          data: [
+            [6.4, 5.4],
+            [11.7, 4],
+            [15.4, 3],
+            [9, 2],
+            [10.9, 11],
+            [20.9, 7],
+            [12.9, 8.2],
+            [6.4, 14],
+            [11.6, 12]
+          ]
+        }],
+        chart: {
+          height: 350,
+          type: 'scatter',
+          animations: {
+            enabled: false,
+          },
+          zoom: {
+            enabled: false,
+          },
+          toolbar: {
+            show: false
+          }
         },
-        zoom: {
-          enabled: false,
+        colors: ['#056BF6', '#D2376A'],
+        xaxis: {
+          tickAmount: 10,
+          min: 0,
+          max: 40
         },
-        toolbar: {
-          show: false
-        }
-      },
-      colors: ['#056BF6', '#D2376A'],
-      series: [{
-        name: 'Messenger',
-        data: [
-          [16.4, 5.4],
-          [21.7, 4],
-          [25.4, 3],
-          [19, 2],
-          [10.9, 1],
-          [13.6, 3.2],
-          [10.9, 7],
-          [10.9, 8.2],
-          [16.4, 4],
-          [13.6, 4.3],
-          [13.6, 12],
-          [29.9, 3],
-          [10.9, 5.2],
-          [16.4, 6.5],
-          [10.9, 8],
-          [24.5, 7.1],
-          [10.9, 7],
-          [8.1, 4.7],
-          [19, 10],
-          [27.1, 10],
-          [24.5, 8],
-          [27.1, 3],
-          [29.9, 11.5],
-          [27.1, 0.8],
-          [22.1, 2]
-        ]
-      }, {
-        name: 'Instagram',
-        data: [
-          [6.4, 5.4],
-          [11.7, 4],
-          [15.4, 3],
-          [9, 2],
-          [10.9, 11],
-          [20.9, 7],
-          [12.9, 8.2],
-          [6.4, 14],
-          [11.6, 12]
-        ]
-      }],
-      xaxis: {
-        tickAmount: 10,
-        min: 0,
-        max: 40
-      },
-      yaxis: {
-        tickAmount: 7
-      },
-      markers: {
-        size: 20
-      },
-      fill: {
-        type: 'image',
-        opacity: 1,
-        image: {
-          src: ['../../assets/images/ico-messenger.png', '../../assets/images/ico-instagram.png'],
-          width: 40,
-          height: 40
-        }
-      },
-      legend: {
-        labels: {
-          useSeriesColors: true
+        yaxis: {
+          tickAmount: 7
         },
         markers: {
-          customHTML: [
-            function() {
-              return '<span><i class="fab fa-facebook"></i></span>'
-            }, function() {
-              return '<span><i class="fab fa-instagram"></i></span>'
-            }
-          ]
+          size: 20
+        },
+        fill: {
+          type: 'image',
+          opacity: 1,
+          image: {
+            src: ['../../assets/images/ico-messenger.png', '../../assets/images/ico-instagram.png'],
+            width: 40,
+            height: 40
+          }
+        },
+        legend: {
+          labels: {
+            useSeriesColors: true
+          },
+          markers: {
+            customHTML: [
+              function() {
+                return '<span><i class="fab fa-facebook"></i></span>'
+              }, function() {
+                return '<span><i class="fab fa-instagram"></i></span>'
+              }
+            ]
+          }
         }
-      }
-    }
+      };
 
-    var chart = new ApexCharts(
-      document.querySelector("#chart"),
-      options
-    );
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
+    </script>
 
-    chart.render();
-
-  </script>
+  
 </body>
 
 </html>
