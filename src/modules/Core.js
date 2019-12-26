@@ -144,7 +144,12 @@ export default class Core {
       // if user has specified a particular type for particular series
       if (typeof ser[st].type !== 'undefined') {
         if (ser[st].type === 'column' || ser[st].type === 'bar') {
-          w.config.plotOptions.bar.horizontal = false // horizontal bars not supported in mixed charts, hence forcefully set to false
+          if (gl.series.length > 1) {
+            // horizontal bars not supported in mixed charts, hence show a warning
+            console.warn(
+              'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
+            )
+          }
           columnSeries.series.push(series)
           columnSeries.i.push(st)
           w.globals.columnSeries = columnSeries.series

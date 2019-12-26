@@ -23,9 +23,20 @@ checks:
   return-statements:
     config:
       threshold: 4
-  # similar-code:
-  #   config:
-  #     threshold: 4
-  # identical-code:
-  #   config:
-  #     threshold: 4
+exclude_patterns:
+  - 'config/'
+  - 'db/'
+  - 'dist/'
+  - 'features/'
+  - '**/node_modules/'
+  - 'script/'
+  - 'samples/'
+  - '**/samples/'
+  - '**/spec/'
+  - '**/test/'
+  - '**/tests/'
+  - 'Tests/'
+  - '**/vendor/'
+  - '**/*_test.go'
+  - '**/*.d.ts'
+  - 'src/svgjs/'

@@ -512,7 +512,11 @@ export default class Data {
       // no series to pull labels from, put a 0-10 series
       // possibly, user collapsed all series. Hence we can't work with above calc
       if (labelArr.length === 0) {
-        labelArr = [0, 10]
+        labelArr = gl.axisCharts
+          ? [0, 10]
+          : gl.series.map((gls, glsi) => {
+              return glsi + 1
+            })
         for (let i = 0; i < ser.length; i++) {
           gl.seriesX.push(labelArr)
         }

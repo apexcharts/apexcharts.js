@@ -154,7 +154,7 @@ export default class Dimensions {
     gl.xAxisHeight = this.xAxisHeight
     let translateY = 10
 
-    if (!w.config.grid.show || w.config.chart.type === 'radar') {
+    if (w.config.chart.type === 'radar' || this.isSparkline) {
       yAxisWidth = 0
       xAxisHeight = gl.goldenPadding
     }
