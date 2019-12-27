@@ -293,6 +293,7 @@ export default class ZoomPanSelection extends Toolbar {
       // change styles based on zoom or selection
       // zoom is Enabled and user has dragged, so draw blue rect
       if (w.globals.zoomEnabled && this.dragged) {
+        if (width < 0) width = 1 // fixes apexcharts.js#1168
         zoomRect.attr({
           x,
           y,
