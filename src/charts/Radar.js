@@ -38,6 +38,7 @@ class Radar {
         : w.globals.gridWidth
 
     this.maxValue = this.w.globals.maxY
+    this.minValue = this.w.globals.minY
 
     this.polygons = w.config.plotOptions.radar.polygons
 
@@ -112,7 +113,10 @@ class Radar {
       this.angleArr[i] = []
 
       s.forEach((dv, j) => {
-        this.dataRadiusOfPercent[i][j] = dv / this.maxValue
+        const range = Math.abs(this.maxValue - this.minValue)
+        dv = dv + Math.abs(this.minValue)
+        this.dataRadiusOfPercent[i][j] = dv / range
+
         this.dataRadius[i][j] = this.dataRadiusOfPercent[i][j] * this.size
         this.angleArr[i][j] = j * this.disAngle
       })
