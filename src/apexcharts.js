@@ -716,15 +716,17 @@ export default class ApexCharts {
 
     w.config.yaxis.map((yaxe, index) => {
       if (w.globals.zoomed) {
-        // user has zoomed, check the original yaxis
-        if (typeof this.opts.yaxis[index] !== 'undefined') {
-          // yaxe.min = this.opts.yaxis[index].min
-          // yaxe.max = this.opts.yaxis[index].max
-        }
+        // user has zoomed, check the last yaxis
 
         if (typeof w.globals.lastYAxis[index] !== 'undefined') {
           yaxe.min = w.globals.lastYAxis[index].min
           yaxe.max = w.globals.lastYAxis[index].max
+        }
+      } else {
+        // user hasn't zoomed, check the original yaxis
+        if (typeof this.opts.yaxis[index] !== 'undefined') {
+          yaxe.min = this.opts.yaxis[index].min
+          yaxe.max = this.opts.yaxis[index].max
         }
       }
     })
