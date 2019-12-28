@@ -65,6 +65,7 @@ export default class ApexCharts {
       : this.w.globals.cuid
 
     this.eventList = [
+      'click',
       'mousedown',
       'mousemove',
       'touchstart',
@@ -961,6 +962,19 @@ export default class ApexCharts {
 
   documentEvent(e) {
     const w = this.w
+
+    if (e.type === 'click') {
+      const target = e.target.className
+      let elMenu = w.globals.dom.baseEl.querySelector('.apexcharts-menu')
+      if (
+        elMenu &&
+        elMenu.classList.contains('open') &&
+        target !== 'apexcharts-menu-icon'
+      ) {
+        elMenu.classList.remove('open')
+      }
+    }
+
     w.globals.clientX =
       e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
     w.globals.clientY =
