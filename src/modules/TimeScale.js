@@ -21,7 +21,7 @@ class TimeScale {
     // null check when no series to show
     if (w.globals.allSeriesCollapsed) {
       w.globals.labels = []
-      w.globals.timelineLabels = []
+      w.globals.timescaleLabels = []
       return []
     }
 
@@ -235,11 +235,7 @@ class TimeScale {
       reformattedTimescaleArray
     )
 
-    if (!inverted) {
-      w.globals.timelineLabels = removedOverlappingTS.slice()
-    } else {
-      w.globals.invertedTimelineLabels = removedOverlappingTS.slice()
-    }
+    w.globals.timescaleLabels = removedOverlappingTS.slice()
 
     // at this stage, we need to re-calculate coords of the grid as timeline labels may have altered the xaxis labels coords
     // The reason we can't do this prior to this stage is because timeline labels depends on gridWidth, and as the ticks are calculated based on available gridWidth, there can be unknown number of ticks generated for different minX and maxX

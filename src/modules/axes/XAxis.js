@@ -14,9 +14,9 @@ export default class XAxis {
 
     const w = this.w
     this.xaxisLabels = w.globals.labels.slice()
-    if (w.globals.timelineLabels.length > 0) {
-      //  timeline labels are there
-      this.xaxisLabels = w.globals.timelineLabels.slice()
+    if (w.globals.timescaleLabels.length > 0 && !w.globals.isBarHorizontal) {
+      //  timeline labels are there and chart is not rangeabr timeline
+      this.xaxisLabels = w.globals.timescaleLabels.slice()
     }
 
     this.drawnLabels = []
@@ -27,11 +27,16 @@ export default class XAxis {
       this.offY = w.globals.gridHeight + 1
     }
     this.offY = this.offY + w.config.xaxis.axisBorder.offsetY
+    this.isCategoryBarHorizontal =
+      w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal
 
     this.xaxisFontSize = w.config.xaxis.labels.style.fontSize
     this.xaxisFontFamily = w.config.xaxis.labels.style.fontFamily
     this.xaxisForeColors = w.config.xaxis.labels.style.colors
     this.xaxisBorderWidth = w.config.xaxis.axisBorder.width
+    if (this.isCategoryBarHorizontal) {
+      this.xaxisBorderWidth = w.config.yaxis[0].axisBorder.width.toString()
+    }
 
     if (this.xaxisBorderWidth.indexOf('%') > -1) {
       this.xaxisBorderWidth =
@@ -89,7 +94,7 @@ export default class XAxis {
 
         let label = this.axesUtils.getLabel(
           labels,
-          w.globals.timelineLabels,
+          w.globals.timescaleLabels,
           x,
           i,
           this.drawnLabels
@@ -116,8 +121,31 @@ export default class XAxis {
             'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
 
+        if (i === 0) {
+          // check if first label is being cropped
+          const firstTextRect = graphics.getTextRects(label.text)
+
+          if (
+            w.globals.skipFirstTimelinelabel ||
+            (label.x + firstTextRect.width / 1.25 >
+              w.globals.dom.elGraphical.x() &&
+              label.x === 0)
+          ) {
+            label.text = ''
+          }
+        }
+
         if (i === labelsLen - 1) {
-          if (w.globals.skipLastTimelinelabel) {
+          // check if last label is being cropped
+
+          const lastTextRect = graphics.getTextRects(label.text)
+
+          if (
+            w.globals.skipLastTimelinelabel ||
+            lastTextRect.width / 2 + label.x >
+              w.globals.gridWidth + w.globals.x2SpaceAvailable ||
+            label.x - 0.5 > w.globals.gridWidth
+          ) {
             label.text = ''
           }
         }
@@ -283,9 +311,13 @@ export default class XAxis {
       elYaxis.add(elXaxisTitle)
     }
 
-    if (w.config.xaxis.axisBorder.show) {
+    let offX = 0
+    if (this.isCategoryBarHorizontal && w.config.yaxis[0].opposite) {
+      offX = w.globals.gridWidth
+    }
+    if (w.config.yaxis[0].axisBorder.show) {
       let elHorzLine = graphics.drawLine(
-        w.globals.padHorizontal + w.config.xaxis.axisBorder.offsetX,
+        w.globals.padHorizontal + w.config.yaxis[0].axisBorder.offsetX,
         this.offY,
         this.xaxisBorderWidth,
         this.offY,
@@ -295,9 +327,11 @@ export default class XAxis {
       )
 
       elYaxis.add(elHorzLine)
+    }
 
+    if (w.config.yaxis[0].axisTicks.show) {
       this.axesUtils.drawYAxisTicks(
-        0,
+        offX,
         labels.length,
         w.config.yaxis[0].axisBorder,
         w.config.yaxis[0].axisTicks,
@@ -314,7 +348,7 @@ export default class XAxis {
     let w = this.w
     let x2 = x1
 
-    if (x1 < 0 || x1 > w.globals.gridWidth) return
+    if (x1 < 0 || x1 - 2 > w.globals.gridWidth) return
 
     let y1 = this.offY + w.config.xaxis.axisTicks.offsetY
     let y2 = y1 + w.config.xaxis.axisTicks.height
@@ -343,7 +377,7 @@ export default class XAxis {
     const xCount = this.xaxisLabels.length
     let x1 = w.globals.padHorizontal
 
-    if (w.globals.timelineLabels.length > 0) {
+    if (w.globals.timescaleLabels.length > 0) {
       for (let i = 0; i < xCount; i++) {
         x1 = this.xaxisLabels[i].position
         xAxisTicksPositions.push(x1)

@@ -21,12 +21,9 @@ class Grid {
       w.config.xaxis.type === 'datetime' &&
       w.globals.seriesRangeBarTimeline.length
 
-    if (w.globals.timelineLabels.length > 0) {
-      //  timeline labels are there
-      this.xaxisLabels = w.globals.timelineLabels.slice()
-    }
-    if (w.globals.invertedTimelineLabels.length > 0) {
-      this.xaxisLabels = w.globals.invertedTimelineLabels.slice()
+    if (w.globals.timescaleLabels.length > 0) {
+      //  timescaleLabels labels are there
+      this.xaxisLabels = w.globals.timescaleLabels.slice()
     }
   }
 
@@ -65,8 +62,6 @@ class Grid {
   }
 
   drawGrid() {
-    let w = this.w
-
     let xAxis = new XAxis(this.ctx)
     let yaxis = new YAxis(this.ctx)
 
@@ -146,6 +141,32 @@ class Grid {
     defs.appendChild(gl.dom.elGridRectMarkerMask)
   }
 
+  _drawGridLines({ i, x1, y1, x2, y2, xCount, parent }) {
+    const w = this.w
+
+    const shouldDraw = () => {
+      if (i === 0 && w.globals.skipFirstTimelinelabel) {
+        return false
+      }
+
+      if (i === xCount - 1 && w.globals.skipLastTimelinelabel) {
+        return false
+      }
+      if (w.config.chart.type === 'radar') {
+        return false
+      }
+      return true
+    }
+
+    if (shouldDraw()) {
+      if (w.config.grid.xaxis.lines.show) {
+        this._drawGridLine({ x1, y1, x2, y2, parent })
+      }
+      let xAxis = new XAxis(this.ctx)
+      xAxis.drawXaxisTicks(x1, this.elg)
+    }
+  }
+
   _drawGridLine({ x1, y1, x2, y2, parent }) {
     const w = this.w
     let strokeDashArray = w.config.grid.strokeDashArray
@@ -163,7 +184,7 @@ class Grid {
     parent.add(line)
   }
 
-  _drawGridBandRect({ c, x1, y1, x2, y2, type, parent }) {
+  _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -180,8 +201,118 @@ class Grid {
       color,
       w.config.grid[type].opacity
     )
-    parent.add(rect)
+    this.elg.add(rect)
     rect.node.classList.add(`apexcharts-grid-${type}`)
+  }
+
+  _drawXYLines({ xCount, tickAmount }) {
+    const w = this.w
+
+    const datetimeLines = ({ xC, x1, y1, x2, y2 }) => {
+      for (let i = 0; i < xC; i++) {
+        x1 = this.xaxisLabels[i].position
+        x2 = this.xaxisLabels[i].position
+
+        this._drawGridLines({
+          i,
+          x1,
+          y1,
+          x2,
+          y2,
+          xCount,
+          parent: this.elgridLinesV
+        })
+      }
+    }
+
+    const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
+      for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
+        this._drawGridLines({
+          i,
+          x1,
+          y1,
+          x2,
+          y2,
+          xCount,
+          parent: this.elgridLinesV
+        })
+
+        x1 = x1 + w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
+        x2 = x1
+      }
+    }
+
+    // draw vertical lines
+    if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
+      let x1 = w.globals.padHorizontal
+      let y1 = 0
+      let x2
+      let y2 = w.globals.gridHeight
+
+      if (w.globals.timescaleLabels.length) {
+        datetimeLines({ xC: xCount, x1, y1, x2, y2 })
+      } else {
+        categoryLines({ xC: xCount, x1, y1, x2, y2 })
+      }
+    }
+
+    // draw horizontal lines
+    if (w.config.grid.yaxis.lines.show) {
+      let x1 = 0
+      let y1 = 0
+      let y2 = 0
+      let x2 = w.globals.gridWidth
+      let tA = tickAmount + 1
+
+      if (this.isTimelineBar) {
+        tA = w.globals.labels.length
+      }
+
+      for (let i = 0; i < tA; i++) {
+        this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesH })
+
+        y1 = y1 + w.globals.gridHeight / (this.isTimelineBar ? tA : tickAmount)
+
+        y2 = y1
+      }
+    }
+  }
+
+  _drawInvertedXYLines({ xCount }) {
+    const w = this.w
+
+    // draw vertical lines
+    if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
+      let x1 = w.globals.padHorizontal
+      let y1 = 0
+      let x2
+      let y2 = w.globals.gridHeight
+      for (let i = 0; i < xCount + 1; i++) {
+        if (w.config.grid.xaxis.lines.show) {
+          this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesV })
+        }
+
+        let xAxis = new XAxis(this.ctx)
+        xAxis.drawXaxisTicks(x1, this.elg)
+        x1 = x1 + w.globals.gridWidth / xCount + 0.3
+        x2 = x1
+      }
+    }
+
+    // draw horizontal lines
+    if (w.config.grid.yaxis.lines.show) {
+      let x1 = 0
+      let y1 = 0
+      let y2 = 0
+      let x2 = w.globals.gridWidth
+
+      for (let i = 0; i < w.globals.dataPoints + 1; i++) {
+        this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesH })
+
+        y1 = y1 + w.globals.gridHeight / w.globals.dataPoints
+        y2 = y1
+      }
+    }
   }
 
   // actual grid rendering
@@ -189,22 +320,22 @@ class Grid {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let elg = graphics.group({
+    this.elg = graphics.group({
       class: 'apexcharts-grid'
     })
-    let elgridLinesH = graphics.group({
+    this.elgridLinesH = graphics.group({
       class: 'apexcharts-gridlines-horizontal'
     })
-    let elgridLinesV = graphics.group({
+    this.elgridLinesV = graphics.group({
       class: 'apexcharts-gridlines-vertical'
     })
 
-    elg.add(elgridLinesH)
-    elg.add(elgridLinesV)
+    this.elg.add(this.elgridLinesH)
+    this.elg.add(this.elgridLinesV)
 
     if (!w.config.grid.show) {
-      elgridLinesV.hide()
-      elgridLinesH.hide()
+      this.elgridLinesV.hide()
+      this.elgridLinesH.hide()
     }
 
     let tickAmount = 8
@@ -215,149 +346,28 @@ class Grid {
       if (tickAmount > 2) break
     }
 
-    const datetimeLines = ({ xCount, x1, y1, x2, y2 }) => {
-      for (let i = 0; i < xCount; i++) {
-        x1 = this.xaxisLabels[i].position
-        x2 = this.xaxisLabels[i].position
-        if (
-          w.config.grid.xaxis.lines.show &&
-          x1 > 0 &&
-          x1 < w.globals.gridWidth
-        ) {
-          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesV })
-        }
-
-        let xAxis = new XAxis(this.ctx)
-        if (i === xCount - 1) {
-          if (!w.globals.skipLastTimelinelabel) {
-            // skip drawing last label here
-            xAxis.drawXaxisTicks(x1, elg)
-          }
-        } else {
-          xAxis.drawXaxisTicks(x1, elg)
-        }
-      }
-    }
-
-    const categoryLines = ({ xCount, x1, y1, x2, y2 }) => {
-      for (let i = 0; i < xCount; i++) {
-        let x1Count = xCount
-        if (w.globals.isXNumeric) {
-          x1Count -= 1
-        }
-
-        x1 = x1 + w.globals.gridWidth / x1Count
-        x2 = x1
-
-        // skip the last line
-        if (i === x1Count - 1) break
-
-        if (w.config.grid.xaxis.lines.show) {
-          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesV })
-        }
-
-        let xAxis = new XAxis(this.ctx)
-        xAxis.drawXaxisTicks(x1, elg)
-      }
-    }
-
     let xCount
 
     if (!w.globals.isBarHorizontal || this.isTimelineBar) {
       xCount = this.xaxisLabels.length
 
-      // draw vertical lines
-      if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
-        let x1 = w.globals.padHorizontal
-        let y1 = 0
-        let x2
-        let y2 = w.globals.gridHeight
-
-        if (
-          w.globals.timelineLabels.length ||
-          w.globals.invertedTimelineLabels.length
-        ) {
-          datetimeLines({ xCount, x1, y1, x2, y2 })
-        } else {
-          categoryLines({ xCount, x1, y1, x2, y2 })
-        }
+      if (this.isTimelineBar) {
+        tickAmount = w.globals.labels.length
       }
-
-      // draw horizontal lines
-      if (w.config.grid.yaxis.lines.show) {
-        let x1 = 0
-        let y1 = 0
-        let y2 = 0
-        let x2 = w.globals.gridWidth
-        let tA = tickAmount + 1
-
-        if (this.isTimelineBar) {
-          tA = w.globals.labels.length
-        }
-
-        for (let i = 0; i < tA; i++) {
-          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesH })
-
-          y1 =
-            y1 + w.globals.gridHeight / (this.isTimelineBar ? tA : tickAmount)
-
-          y2 = y1
-        }
-      }
+      this._drawXYLines({ xCount, tickAmount })
     } else {
       xCount = tickAmount
-
-      // draw vertical lines
-      if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
-        let x1 = w.globals.padHorizontal
-        let y1 = 0
-        let x2
-        let y2 = w.globals.gridHeight
-        for (let i = 0; i < xCount + 1; i++) {
-          x1 = x1 + w.globals.gridWidth / xCount + 0.3
-          x2 = x1
-
-          // skip the last vertical line
-          if (i === xCount - 1) break
-
-          if (w.config.grid.xaxis.lines.show) {
-            this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesV })
-          }
-
-          // skip the first vertical line
-          let xAxis = new XAxis(this.ctx)
-          xAxis.drawXaxisTicks(x1, elg)
-        }
-      }
-
-      // draw horizontal lines
-      if (w.config.grid.yaxis.lines.show) {
-        let x1 = 0
-        let y1 = 0
-        let y2 = 0
-        let x2 = w.globals.gridWidth
-
-        for (let i = 0; i < w.globals.dataPoints + 1; i++) {
-          this._drawGridLine({ x1, y1, x2, y2, parent: elgridLinesH })
-
-          y1 = y1 + w.globals.gridHeight / w.globals.dataPoints
-          y2 = y1
-        }
-      }
+      this._drawInvertedXYLines({ xCount, tickAmount })
     }
 
-    if (this.isTimelineBar) {
-      tickAmount = w.globals.labels.length
-    }
-
-    this.drawGridBands(elg, xCount, tickAmount)
+    this.drawGridBands(xCount, tickAmount)
     return {
-      el: elg,
+      el: this.elg,
       xAxisTickWidth: w.globals.gridWidth / xCount
     }
   }
 
-  drawGridBands(elg, xCount, tickAmount) {
+  drawGridBands(xCount, tickAmount) {
     const w = this.w
 
     // rows background bands
@@ -374,7 +384,14 @@ class Grid {
         if (c >= w.config.grid.row.colors.length) {
           c = 0
         }
-        this._drawGridBandRect({ c, x1, y1, x2, y2, parent: elg, type: 'row' })
+        this._drawGridBandRect({
+          c,
+          x1,
+          y1,
+          x2,
+          y2,
+          type: 'row'
+        })
 
         y1 = y1 + w.globals.gridHeight / tickAmount
       }
@@ -404,7 +421,6 @@ class Grid {
           y1,
           x2,
           y2,
-          parent: elg,
           type: 'column'
         })
 

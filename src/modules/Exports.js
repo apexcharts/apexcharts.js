@@ -127,7 +127,7 @@ class Exports {
           } else {
             cat = axesUtils.getLabel(
               w.globals.labels,
-              w.globals.timelineLabels,
+              w.globals.timescaleLabels,
               0,
               i
             ).text

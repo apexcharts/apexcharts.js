@@ -58,8 +58,7 @@ export default class Globals {
       columnSeries: null,
       labels: [], // store the text to draw on x axis
       // Don't mutate the labels, many things including tooltips depends on it!
-      timelineLabels: [], // store the timeline Labels in another variable
-      invertedTimelineLabels: [], // for rangebar timeline
+      timescaleLabels: [], // store the timescaleLabels Labels in another variable
       seriesNames: [], // same as labels, used in non axis charts
       noLabelsProvided: false, // if user didn't provide any categories/labels or x values, fallback to 1,2,3,4...
       allSeriesCollapsed: false,
@@ -130,6 +129,7 @@ export default class Globals {
       },
       shouldAnimate: true,
       skipLastTimelinelabel: false, // when last label is cropped, skip drawing it
+      skipFirstTimelinelabel: false, // when first label is cropped, skip drawing it
       delayedElements: [], // element which appear after animation has finished
       axisCharts: true, // chart type = line or area or bar
       // (refer them also as plot charts in the code)
@@ -158,6 +158,7 @@ export default class Globals {
       // format is - [[x,y],[x,y]... [x,y]]
       dataLabelsRects: [], // store the positions of datalabels to prevent collision
       lastDrawnDataLabelsIndexes: [],
+      x2SpaceAvailable: 0, // space available on the right side after grid area
       hasNullValues: false, // bool: whether series contains null values
       easing: null, // function: animation effect to apply
       zoomed: false, // whether user has zoomed or not
@@ -166,7 +167,6 @@ export default class Globals {
       yAxisScale: [],
       xAxisScale: null,
       xAxisTicksPositions: [],
-      timescaleTicks: [],
       rotateXLabels: false,
       defaultLabels: false,
       xLabelFormatter: undefined, // formatter for x axis labels

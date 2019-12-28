@@ -389,11 +389,13 @@ export default class Toolbar {
   }
 
   toggleMenu() {
-    if (this.elMenu.classList.contains('open')) {
-      this.elMenu.classList.remove('open')
-    } else {
-      this.elMenu.classList.add('open')
-    }
+    window.setTimeout(() => {
+      if (this.elMenu.classList.contains('open')) {
+        this.elMenu.classList.remove('open')
+      } else {
+        this.elMenu.classList.add('open')
+      }
+    }, 0)
   }
 
   downloadPNG() {

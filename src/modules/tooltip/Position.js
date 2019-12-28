@@ -367,7 +367,7 @@ export default class Position {
             10
           )
 
-          if (pcy !== null) {
+          if (pcy !== null && !isNaN(pcy)) {
             points[realIndex] && points[realIndex].setAttribute('r', hoverSize)
             points[realIndex] && points[realIndex].setAttribute('cy', pcy)
           } else {

@@ -37,13 +37,14 @@ export default class Options {
       },
       axisBorder: {
         show: false,
-        color: '#78909C',
+        color: '#e0e0e0',
+        width: 1,
         offsetX: 0,
         offsetY: 0
       },
       axisTicks: {
         show: false,
-        color: '#78909C',
+        color: '#e0e0e0',
         width: 6,
         offsetX: 0,
         offsetY: 0
@@ -798,7 +799,7 @@ export default class Options {
         },
         axisBorder: {
           show: true,
-          color: '#78909C',
+          color: '#e0e0e0',
           width: '100%',
           height: 1,
           offsetX: 0,
@@ -806,7 +807,7 @@ export default class Options {
         },
         axisTicks: {
           show: true,
-          color: '#78909C',
+          color: '#e0e0e0',
           height: 6,
           offsetX: 0,
           offsetY: 0

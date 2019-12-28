@@ -144,7 +144,7 @@ export default class Core {
       // if user has specified a particular type for particular series
       if (typeof ser[st].type !== 'undefined') {
         if (ser[st].type === 'column' || ser[st].type === 'bar') {
-          if (gl.series.length > 1) {
+          if (gl.series.length > 1 && cnf.plotOptions.bar.horizontal) {
             // horizontal bars not supported in mixed charts, hence show a warning
             console.warn(
               'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
@@ -345,6 +345,8 @@ export default class Core {
       transform: 'translate(' + tX + ', ' + tY + ')'
     }
     Graphics.setAttrs(gl.dom.elGraphical.node, scalingAttrs)
+
+    gl.x2SpaceAvailable = gl.svgWidth - gl.dom.elGraphical.x() - gl.gridWidth
   }
 
   // To prevent extra spacings in the bottom of the chart, we need to recalculate the height for pie/donut/radialbar charts
@@ -435,9 +437,8 @@ export default class Core {
     gl.seriesTotals = []
     gl.stackedSeriesTotals = []
     gl.labels = []
-    gl.timelineLabels = []
+    gl.timescaleLabels = []
     gl.noLabelsProvided = false
-    gl.timescaleTicks = []
     gl.resizeTimer = null
     gl.selectionResizeTimer = null
     gl.seriesXvalues = resetxyValues()
@@ -446,6 +447,9 @@ export default class Core {
     gl.pointsArray = []
     gl.dataLabelsRects = []
     gl.isXNumeric = false
+    gl.skipLastTimelinelabel = false
+    gl.skipFirstTimelinelabel = false
+    gl.x2SpaceAvailable = 0
     gl.isDataXYZ = false
     gl.maxY = -Number.MAX_VALUE
     gl.minY = Number.MIN_VALUE
@@ -504,7 +508,7 @@ export default class Core {
         w.config.xaxis.labels.formatter === undefined
       ) {
         let ts = new TimeScale(this.ctx)
-        let formattedTimeScale
+        let formattedTimeScale = []
         if (
           isFinite(w.globals.minX) &&
           isFinite(w.globals.maxX) &&
@@ -514,14 +518,13 @@ export default class Core {
             w.globals.minX,
             w.globals.maxX
           )
-          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, false)
         } else if (w.globals.isBarHorizontal) {
           formattedTimeScale = ts.calculateTimeScaleTicks(
             w.globals.minY,
             w.globals.maxY
           )
-          ts.recalcDimensionsBasedOnFormat(formattedTimeScale, true)
         }
+        ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
     }
     return xyRatios
@@ -588,7 +591,11 @@ export default class Core {
                 min: e.xaxis.min,
                 max: e.xaxis.max
               },
-              yaxis
+              yaxis: {
+                ...targetChart.w.config.yaxis[0],
+                min: yaxis[0].min,
+                max: yaxis[0].max
+              }
             },
             false,
             false,

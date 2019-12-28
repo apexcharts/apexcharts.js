@@ -18,6 +18,8 @@ export default class YAxis {
     this.axisFontFamily = w.config.xaxis.labels.style.fontFamily
 
     this.xaxisForeColors = w.config.xaxis.labels.style.colors
+    this.isCategoryBarHorizontal =
+      w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal
 
     this.xAxisoffX = 0
     if (w.config.xaxis.position === 'bottom') {
@@ -53,7 +55,7 @@ export default class YAxis {
     let tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
 
     // labelsDivider is simply svg height/number of ticks
-    let labelsDivider = w.globals.gridHeight / tickAmount + 0.1
+    let labelsDivider = w.globals.gridHeight / tickAmount
 
     // initial label position = 0;
     let l = w.globals.translateY
@@ -131,12 +133,13 @@ export default class YAxis {
     }
 
     let axisBorder = w.config.yaxis[realIndex].axisBorder
-    if (axisBorder.show) {
-      let x = 31 + axisBorder.offsetX
-      if (w.config.yaxis[realIndex].opposite) {
-        x = -31 - axisBorder.offsetX
-      }
 
+    let x = 31 + axisBorder.offsetX
+    if (w.config.yaxis[realIndex].opposite) {
+      x = -31 - axisBorder.offsetX
+    }
+
+    if (axisBorder.show) {
       let elVerticalLine = graphics.drawLine(
         x,
         w.globals.translateY + axisBorder.offsetY - 2,
@@ -146,7 +149,8 @@ export default class YAxis {
       )
 
       elYaxis.add(elVerticalLine)
-
+    }
+    if (w.config.yaxis[realIndex].axisTicks.show) {
       this.axesUtils.drawYAxisTicks(
         x,
         tickAmount,
@@ -189,10 +193,10 @@ export default class YAxis {
 
     let labels = w.globals.yAxisScale[realIndex].result.slice()
 
-    let timelineLabels = w.globals.invertedTimelineLabels
-    if (timelineLabels.length > 0) {
-      this.xaxisLabels = timelineLabels.slice()
-      labels = timelineLabels.slice()
+    let timescaleLabels = w.globals.timescaleLabels
+    if (timescaleLabels.length > 0) {
+      this.xaxisLabels = timescaleLabels.slice()
+      labels = timescaleLabels.slice()
       tickAmount = labels.length
     }
 
@@ -200,14 +204,10 @@ export default class YAxis {
       labels.reverse()
     }
 
-    const tl = timelineLabels.length
+    const tl = timescaleLabels.length
 
     if (w.config.xaxis.labels.show) {
-      for (
-        let i = tl ? 0 : tickAmount;
-        tl ? i < tl - 1 : i >= 0;
-        tl ? i++ : i--
-      ) {
+      for (let i = tl ? 0 : tickAmount; tl ? i < tl : i >= 0; tl ? i++ : i--) {
         let val = labels[i]
         val = lbFormatter(val, i)
 
@@ -216,10 +216,10 @@ export default class YAxis {
           w.globals.padHorizontal -
           (l - labelsDivider + w.config.xaxis.labels.offsetX)
 
-        if (timelineLabels.length) {
+        if (timescaleLabels.length) {
           let label = this.axesUtils.getLabel(
             labels,
-            timelineLabels,
+            timescaleLabels,
             x,
             i,
             this.drawnLabels
@@ -227,6 +227,13 @@ export default class YAxis {
           x = label.x
           val = label.text
           this.drawnLabels.push(label.text)
+
+          if (i === 0 && w.globals.skipFirstTimelinelabel) {
+            val = ''
+          }
+          if (i === labels.length - 1 && w.globals.skipLastTimelinelabel) {
+            val = ''
+          }
         }
 
         let elTick = graphics.drawText({
@@ -282,10 +289,14 @@ export default class YAxis {
 
     let axisBorder = w.config.yaxis[realIndex].axisBorder
     if (axisBorder.show) {
+      let offX = 0
+      if (this.isCategoryBarHorizontal && w.config.yaxis[0].opposite) {
+        offX = w.globals.gridWidth
+      }
       let elVerticalLine = graphics.drawLine(
-        w.globals.padHorizontal + axisBorder.offsetX,
+        w.globals.padHorizontal + axisBorder.offsetX + offX,
         1 + axisBorder.offsetY,
-        w.globals.padHorizontal + axisBorder.offsetX,
+        w.globals.padHorizontal + axisBorder.offsetX + offX,
         w.globals.gridHeight + axisBorder.offsetY,
         axisBorder.color
       )
