@@ -105,10 +105,8 @@ fill: {
   type: 'solid'
 },
 yaxis: {
+  show: false,
   tickAmount: 3,
-  labels: {
-    show: false
-  }
 },
 xaxis: {
   type: 'datetime',

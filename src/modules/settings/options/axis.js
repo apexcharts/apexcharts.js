@@ -29,14 +29,14 @@ export const optionYAxis = {
     formatter: undefined
   },
   axisBorder: {
-    show: true,
+    show: false,
     color: '#e0e0e0',
     width: 1,
     offsetX: 0,
     offsetY: 0
   },
   axisTicks: {
-    show: true,
+    show: false,
     color: '#e0e0e0',
     width: 6,
     offsetX: 0,

@@ -307,6 +307,8 @@ export default class Dimensions {
 
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
+    const isBarOpposite =
+      w.config.yaxis[0].opposite && w.globals.isBarHorizontal
 
     const isCollapsed = (i) => gl.collapsedSeriesIndices.indexOf(i) !== -1
 
@@ -359,7 +361,14 @@ export default class Dimensions {
     }
 
     cnf.yaxis.forEach((yaxe, i) => {
-      padYAxe(yaxe, i)
+      if (isBarOpposite) {
+        if (cnf.grid.padding.left < lbWidth / 2) {
+          this.xPadLeft = lbWidth / 2 + 1
+        }
+        this.xPadRight = lbWidth / 2 + 1
+      } else {
+        padYAxe(yaxe, i)
+      }
     })
   }
 
