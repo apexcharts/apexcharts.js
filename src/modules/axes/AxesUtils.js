@@ -97,9 +97,6 @@ export default class AxesUtils {
           tY = labelsDivider * i
         }
 
-        if (i === tickAmount) {
-          tY = tY + 1
-        }
         if (w.config.chart.type === 'heatmap') {
           tY = tY + labelsDivider / 2
         }

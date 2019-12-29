@@ -87,25 +87,6 @@ class Utils {
     return month % 12
   }
 
-  static addProps(obj, arr, val) {
-    if (typeof arr === 'string') {
-      arr = arr.split('.')
-    }
-
-    obj[arr[0]] = obj[arr[0]] || {}
-
-    let tmpObj = obj[arr[0]]
-
-    if (arr.length > 1) {
-      arr.shift()
-      this.addProps(tmpObj, arr, val)
-    } else {
-      obj[arr[0]] = val
-    }
-
-    return obj
-  }
-
   static clone(source) {
     if (Object.prototype.toString.call(source) === '[object Array]') {
       let cloneResult = []
@@ -320,17 +301,6 @@ class Utils {
 
   static extractNumber(s) {
     return parseFloat(s.replace(/[^\d.]*/g, ''))
-  }
-
-  static randomString(len) {
-    let text = ''
-    let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-
-    for (let i = 0; i < len; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length))
-    }
-
-    return text
   }
 
   static findAncestor(el, cls) {

@@ -287,21 +287,23 @@ export default class YAxis {
       elXaxis.add(elYaxisTitle)
     }
 
-    let axisBorder = w.config.yaxis[realIndex].axisBorder
+    let axisBorder = w.config.xaxis.axisBorder
     if (axisBorder.show) {
-      let offX = 0
-      if (this.isCategoryBarHorizontal && w.config.yaxis[0].opposite) {
-        offX = w.globals.gridWidth
+      let lineCorrection = 0
+      if (w.config.chart.type === 'bar' && w.globals.isXNumeric) {
+        lineCorrection = lineCorrection - 15
       }
-      let elVerticalLine = graphics.drawLine(
-        w.globals.padHorizontal + axisBorder.offsetX + offX,
-        1 + axisBorder.offsetY,
-        w.globals.padHorizontal + axisBorder.offsetX + offX,
-        w.globals.gridHeight + axisBorder.offsetY,
-        axisBorder.color
+      let elHorzLine = graphics.drawLine(
+        w.globals.padHorizontal + lineCorrection + axisBorder.offsetX,
+        this.xAxisoffX,
+        w.globals.gridWidth,
+        this.xAxisoffX,
+        axisBorder.color,
+        0,
+        axisBorder.height
       )
 
-      elXaxis.add(elVerticalLine)
+      elXaxis.add(elHorzLine)
     }
 
     return elXaxis

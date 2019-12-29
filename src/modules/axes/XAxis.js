@@ -99,6 +99,7 @@ export default class XAxis {
           i,
           this.drawnLabels
         )
+        // const textRect = graphics.getTextRects(label.text)
 
         this.drawnLabels.push(label.text)
 
@@ -315,18 +316,17 @@ export default class XAxis {
     if (this.isCategoryBarHorizontal && w.config.yaxis[0].opposite) {
       offX = w.globals.gridWidth
     }
-    if (w.config.yaxis[0].axisBorder.show) {
-      let elHorzLine = graphics.drawLine(
-        w.globals.padHorizontal + w.config.yaxis[0].axisBorder.offsetX,
-        this.offY,
-        this.xaxisBorderWidth,
-        this.offY,
-        this.yaxis.axisBorder.color,
-        0,
-        this.xaxisBorderHeight
+    const axisBorder = w.config.xaxis.axisBorder
+    if (axisBorder.show) {
+      let elVerticalLine = graphics.drawLine(
+        w.globals.padHorizontal + axisBorder.offsetX + offX,
+        1 + axisBorder.offsetY,
+        w.globals.padHorizontal + axisBorder.offsetX + offX,
+        w.globals.gridHeight + axisBorder.offsetY,
+        axisBorder.color
       )
 
-      elYaxis.add(elHorzLine)
+      elYaxis.add(elVerticalLine)
     }
 
     if (w.config.yaxis[0].axisTicks.show) {

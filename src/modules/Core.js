@@ -4,6 +4,7 @@ import CandleStick from '../charts/CandleStick'
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
 import HeatMap from '../charts/HeatMap'
+import Globals from '../modules/settings/Globals'
 import Pie from '../charts/Pie'
 import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
@@ -420,59 +421,12 @@ export default class Core {
     const resetxyValues = () => {
       return this.w.config.series.map((s) => [])
     }
+    const globalObj = new Globals()
 
     let gl = this.w.globals
-    gl.series = []
-    gl.seriesCandleO = []
-    gl.seriesCandleH = []
-    gl.seriesCandleL = []
-    gl.seriesCandleC = []
-    gl.seriesRangeStart = []
-    gl.seriesRangeEnd = []
-    gl.seriesRangeBarTimeline = []
-    gl.seriesPercent = []
-    gl.seriesX = []
-    gl.seriesZ = []
-    gl.seriesNames = []
-    gl.seriesTotals = []
-    gl.stackedSeriesTotals = []
-    gl.labels = []
-    gl.timescaleLabels = []
-    gl.noLabelsProvided = false
-    gl.resizeTimer = null
-    gl.selectionResizeTimer = null
+    globalObj.initGlobalVars(gl)
     gl.seriesXvalues = resetxyValues()
     gl.seriesYvalues = resetxyValues()
-    gl.delayedElements = []
-    gl.pointsArray = []
-    gl.dataLabelsRects = []
-    gl.isXNumeric = false
-    gl.skipLastTimelinelabel = false
-    gl.skipFirstTimelinelabel = false
-    gl.x2SpaceAvailable = 0
-    gl.isDataXYZ = false
-    gl.maxY = -Number.MAX_VALUE
-    gl.minY = Number.MIN_VALUE
-    gl.minYArr = []
-    gl.maxYArr = []
-    gl.maxX = -Number.MAX_VALUE
-    gl.minX = Number.MAX_VALUE
-    gl.initialmaxX = -Number.MAX_VALUE
-    gl.initialminX = Number.MAX_VALUE
-    gl.maxDate = 0
-    gl.minDate = Number.MAX_VALUE
-    gl.minZ = Number.MAX_VALUE
-    gl.maxZ = -Number.MAX_VALUE
-    gl.minXDiff = Number.MAX_VALUE
-    gl.yAxisScale = []
-    gl.xAxisScale = null
-    gl.xAxisTicksPositions = []
-    gl.yLabelsCoords = []
-    gl.yTitleCoords = []
-    gl.xRange = 0
-    gl.yRange = []
-    gl.zRange = 0
-    gl.dataPoints = 0
   }
 
   isMultipleY() {

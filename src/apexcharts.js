@@ -1,4 +1,4 @@
-import Annotations from './modules/Annotations'
+import Annotations from './modules/annotations/Annotations'
 import Animations from './modules/Animations'
 import Axes from './modules/axes/Axes'
 import Base from './modules/Base'
@@ -27,6 +27,8 @@ import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
 import Promise from 'promise-polyfill'
+import XAxis from './modules/axes/XAxis'
+import YAxis from './modules/axes/YAxis'
 
 import './svgjs/svg.js'
 import 'svg.filter.js'
@@ -317,8 +319,16 @@ export default class ApexCharts {
       me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
 
       me.grid = new Grid(me)
+      let elgrid = null
       if (w.config.grid.position === 'back') {
-        me.grid.drawGrid()
+        elgrid = me.grid.drawGrid()
+      }
+
+      let xAxis = new XAxis(this.ctx)
+      let yaxis = new YAxis(this.ctx)
+      if (elgrid !== null) {
+        xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
+        yaxis.setYAxisTextAlignments()
       }
 
       if (w.config.annotations.position === 'back') {
@@ -927,7 +937,6 @@ export default class ApexCharts {
 
     let clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
 
-    this.eventListHandlers = []
     this.eventList.forEach((event) => {
       clickableArea.addEventListener(
         event,

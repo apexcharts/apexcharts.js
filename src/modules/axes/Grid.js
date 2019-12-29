@@ -62,9 +62,6 @@ class Grid {
   }
 
   drawGrid() {
-    let xAxis = new XAxis(this.ctx)
-    let yaxis = new YAxis(this.ctx)
-
     let gl = this.w.globals
 
     let elgrid = null
@@ -75,13 +72,8 @@ class Grid {
       gl.dom.elGraphical.add(elgrid.el)
 
       this.drawGridArea(elgrid.el)
-
-      if (elgrid !== null) {
-        xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
-      }
-
-      yaxis.setYAxisTextAlignments()
     }
+    return elgrid
   }
 
   // This mask will clip off overflowing graphics from the drawable area
@@ -268,7 +260,7 @@ class Grid {
         tA = w.globals.labels.length
       }
 
-      for (let i = 0; i < tA; i++) {
+      for (let i = 0; i < tA + (this.isTimelineBar ? 1 : 0); i++) {
         this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesH })
 
         y1 = y1 + w.globals.gridHeight / (this.isTimelineBar ? tA : tickAmount)

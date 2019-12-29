@@ -363,7 +363,6 @@ export default class Tooltip {
         ttItems: opts.ttItems
       }
 
-      this.w.globals.tooltipOpts = extendedOpts
 
       let events = ['mousemove', 'mouseup', 'touchmove', 'mouseout', 'touchend']
 
