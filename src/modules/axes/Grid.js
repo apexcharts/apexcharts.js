@@ -1,7 +1,6 @@
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
-import YAxis from './YAxis'
 
 /**
  * ApexCharts Grid Class for drawing Cartesian Grid.
