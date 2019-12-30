@@ -5,20 +5,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Circle Custom Angle</title>
+  <title>Reversed Bar Chart</title>
 
   <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
   
     #chart {
-      padding: 0;
       max-width: 650px;
       margin: 35px auto;
-    }
-    
-    .apexcharts-legend text {
-      font-weight: 900;
     }
   
   </style>
@@ -51,7 +46,7 @@
 
     <div id="html">
       &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;radialBar&quot; height={390} /&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;bar&quot; height={350} /&gt;
 &lt;/div&gt;
     </div>
 
@@ -62,63 +57,59 @@
 
           this.state = {
           
-            series: [76, 67, 61, 90],
+            series: [{
+              data: [400, 430, 448, 470, 540, 580, 690]
+            }],
             options: {
               chart: {
-                height: 390,
-                type: 'radialBar',
+                type: 'bar',
+                height: 350
+              },
+              annotations: {
+                xaxis: [{
+                  x: 500,
+                  borderColor: '#00E396',
+                  label: {
+                    borderColor: '#00E396',
+                    style: {
+                      color: '#fff',
+                      background: '#00E396',
+                    },
+                    text: 'X annotation',
+                  }
+                }],
+                yaxis: [{
+                  y: 'July',
+                  y2: 'September',
+                  label: {
+                    text: 'Y annotation'
+                  }
+                }]
               },
               plotOptions: {
-                radialBar: {
-                  offsetY: 0,
-                  startAngle: 0,
-                  endAngle: 270,
-                  hollow: {
-                    margin: 5,
-                    size: '30%',
-                    background: 'transparent',
-                    image: undefined,
-                  },
-                  dataLabels: {
-                    name: {
-                      show: false,
-                    },
-                    value: {
-                      show: false,
-                    }
+                bar: {
+                  horizontal: true,
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              xaxis: {
+                categories: ['June', 'July', 'August', 'September', 'October', 'November', 'December'],
+              },
+              grid: {
+                xaxis: {
+                  lines: {
+                    show: true
                   }
                 }
               },
-              colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
-              labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
-              legend: {
-                show: true,
-                floating: true,
-                fontSize: '16px',
-                position: 'left',
-                offsetX: 160,
-                offsetY: 10,
-                labels: {
-                  useSeriesColors: true,
-                },
-                markers: {
-                  size: 0
-                },
-                formatter: function(seriesName, opts) {
-                  return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
-                },
-                itemMargin: {
-                  horizontal: 3,
+              yaxis: {
+                reversed: true,
+                axisTicks: {
+                  show: true
                 }
-              },
-              responsive: [{
-                breakpoint: 480,
-                options: {
-                  legend: {
-                      show: false
-                  }
-                }
-              }]
+              }
             },
           
           
@@ -131,7 +122,7 @@
           return (
             <div>
               <div id="chart">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height={390} />
+                <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height={350} />
               </div>
               <div id="html-dist"></div>
             </div>

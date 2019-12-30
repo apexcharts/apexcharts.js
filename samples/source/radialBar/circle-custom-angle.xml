@@ -58,7 +58,7 @@ legend: {
     return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
   },
   itemMargin: {
-    horizontal: 1,
+    horizontal: 3,
   }
 },
 responsive: [{

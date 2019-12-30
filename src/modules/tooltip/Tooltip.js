@@ -363,7 +363,6 @@ export default class Tooltip {
         ttItems: opts.ttItems
       }
 
-
       let events = ['mousemove', 'mouseup', 'touchmove', 'mouseout', 'touchend']
 
       events.map((ev) => {

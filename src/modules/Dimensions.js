@@ -321,11 +321,12 @@ export default class Dimensions {
         ]
 
         const lastLabelPosition =
-          lastTimescaleLabel.position + !gl.isMultipleYAxis ? lbWidth / 1.45 : 0
+          lastTimescaleLabel.position + lbWidth / 1.75 + this.yAxisWidthRight
+
         const firstLabelPosition =
-          firstimescaleLabel.position - !gl.isMultipleYAxis
-            ? lbWidth / 1.45 + (yaxe.opposite ? 0 : this.yAxisWidth)
-            : 0
+          firstimescaleLabel.position -
+          lbWidth / 1.75 +
+          (yaxe.opposite ? 0 : this.yAxisWidthLeft)
 
         if (lastLabelPosition > gl.gridWidth) {
           gl.skipLastTimelinelabel = true
@@ -362,7 +363,7 @@ export default class Dimensions {
 
     cnf.yaxis.forEach((yaxe, i) => {
       if (isBarOpposite) {
-        if (cnf.grid.padding.left < lbWidth / 2) {
+        if (cnf.grid.padding.left < lbWidth) {
           this.xPadLeft = lbWidth / 2 + 1
         }
         this.xPadRight = lbWidth / 2 + 1
