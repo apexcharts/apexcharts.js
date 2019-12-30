@@ -773,7 +773,7 @@ class Graphics {
             return
           }
         }
-        textObj.textContent = '...' // can't place at all
+        textObj.textContent = '' // can't place at all
       }
     }
   }

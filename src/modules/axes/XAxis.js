@@ -126,11 +126,16 @@ export default class XAxis {
           // check if first label is being cropped
           const firstTextRect = graphics.getTextRects(label.text)
 
+          const divideBy =
+            w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways
+              ? 1
+              : 2
+
           if (
             w.globals.skipFirstTimelinelabel ||
-            (label.x + firstTextRect.width / 1.25 >
+            (label.x + firstTextRect.width / divideBy >
               w.globals.dom.elGraphical.x() &&
-              label.x === 0)
+              label.x <= 0)
           ) {
             label.text = ''
           }
@@ -145,7 +150,7 @@ export default class XAxis {
             w.globals.skipLastTimelinelabel ||
             lastTextRect.width / 2 + label.x >
               w.globals.gridWidth + w.globals.x2SpaceAvailable ||
-            label.x - 0.5 > w.globals.gridWidth
+            label.x > w.globals.gridWidth
           ) {
             label.text = ''
           }
@@ -444,7 +449,7 @@ export default class XAxis {
         }
       }
     } else {
-      let width = w.globals.gridWidth / w.globals.labels.length
+      let width = w.globals.gridWidth / (w.globals.labels.length + 1)
 
       for (let xat = 0; xat < xAxisTexts.length; xat++) {
         let tSpan = xAxisTexts[xat].childNodes
