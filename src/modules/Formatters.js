@@ -24,9 +24,7 @@ class Formatters {
           let datetimeObj = new DateTime(this.ctx)
           return datetimeObj.formatDate(
             new Date(val),
-            w.config.tooltip.x.format,
-            true,
-            true
+            w.config.tooltip.x.format
           )
         }
       }

@@ -39,15 +39,8 @@ class DateTime {
     return output
   }
 
-  // https://stackoverflow.com/a/11252167/6495043
-  treatAsUtc(dateStr) {
-    let result = new Date(dateStr)
-    result.setMinutes(result.getMinutes() - result.getTimezoneOffset())
-    return result
-  }
-
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
-  formatDate(date, format, utc = true, convertToUTC = true) {
+  formatDate(date, format, utc = true) {
     const locale = this.w.globals.locale
 
     let MMMM = ['\x00', ...locale.months]
@@ -62,28 +55,24 @@ class DateTime {
       return s
     }
 
-    if (convertToUTC) {
-      date = this.treatAsUtc(date)
-    }
-
-    let y = utc ? date.getUTCFullYear() : date.getFullYear()
+    let y = date.getUTCFullYear()
     format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y)
     format = format.replace(/(^|[^\\])yy/g, '$1' + y.toString().substr(2, 2))
     format = format.replace(/(^|[^\\])y/g, '$1' + y)
 
-    let M = (utc ? date.getUTCMonth() : date.getMonth()) + 1
+    let M = date.getUTCMonth() + 1
     format = format.replace(/(^|[^\\])MMMM+/g, '$1' + MMMM[0])
     format = format.replace(/(^|[^\\])MMM/g, '$1' + MMM[0])
     format = format.replace(/(^|[^\\])MM/g, '$1' + ii(M))
     format = format.replace(/(^|[^\\])M/g, '$1' + M)
 
-    let d = utc ? date.getUTCDate() : date.getDate()
+    let d = date.getUTCDate()
     format = format.replace(/(^|[^\\])dddd+/g, '$1' + dddd[0])
     format = format.replace(/(^|[^\\])ddd/g, '$1' + ddd[0])
     format = format.replace(/(^|[^\\])dd/g, '$1' + ii(d))
     format = format.replace(/(^|[^\\])d/g, '$1' + d)
 
-    let H = utc ? date.getUTCHours() : date.getHours()
+    let H = date.getUTCHours()
     format = format.replace(/(^|[^\\])HH+/g, '$1' + ii(H))
     format = format.replace(/(^|[^\\])H/g, '$1' + H)
 
@@ -91,15 +80,15 @@ class DateTime {
     format = format.replace(/(^|[^\\])hh+/g, '$1' + ii(h))
     format = format.replace(/(^|[^\\])h/g, '$1' + h)
 
-    let m = utc ? date.getUTCMinutes() : date.getMinutes()
+    let m = date.getUTCMinutes()
     format = format.replace(/(^|[^\\])mm+/g, '$1' + ii(m))
     format = format.replace(/(^|[^\\])m/g, '$1' + m)
 
-    let s = utc ? date.getUTCSeconds() : date.getSeconds()
+    let s = date.getUTCSeconds()
     format = format.replace(/(^|[^\\])ss+/g, '$1' + ii(s))
     format = format.replace(/(^|[^\\])s/g, '$1' + s)
 
-    let f = utc ? date.getUTCMilliseconds() : date.getMilliseconds()
+    let f = date.getUTCMilliseconds()
     format = format.replace(/(^|[^\\])fff+/g, '$1' + ii(f, 3))
     f = Math.round(f / 10)
     format = format.replace(/(^|[^\\])ff/g, '$1' + ii(f))
@@ -116,15 +105,10 @@ class DateTime {
 
     let tz = -date.getTimezoneOffset()
     let K = utc || !tz ? 'Z' : tz > 0 ? '+' : '-'
-    if (!utc) {
-      tz = Math.abs(tz)
-      let tzHrs = Math.floor(tz / 60)
-      let tzMin = tz % 60
-      K += ii(tzHrs) + ':' + ii(tzMin)
-    }
+
     format = format.replace(/(^|[^\\])K/g, '$1' + K)
 
-    let day = (utc ? date.getUTCDay() : date.getDay()) + 1
+    let day = date.getUTCDay() + 1
     format = format.replace(new RegExp(dddd[0], 'g'), dddd[day])
     format = format.replace(new RegExp(ddd[0], 'g'), ddd[day])
 
@@ -146,20 +130,20 @@ class DateTime {
       maxX = w.config.xaxis.max
     }
 
-    let minYear = new Date(minX).getFullYear()
-    let maxYear = new Date(maxX).getFullYear()
+    let minYear = new Date(minX).getUTCFullYear()
+    let maxYear = new Date(maxX).getUTCFullYear()
 
-    let minMonth = new Date(minX).getMonth()
-    let maxMonth = new Date(maxX).getMonth()
+    let minMonth = new Date(minX).getUTCMonth()
+    let maxMonth = new Date(maxX).getUTCMonth()
 
-    let minDate = new Date(minX).getDate()
-    let maxDate = new Date(maxX).getDate()
+    let minDate = new Date(minX).getUTCDate()
+    let maxDate = new Date(maxX).getUTCDate()
 
-    let minHour = new Date(minX).getHours()
-    let maxHour = new Date(maxX).getHours()
+    let minHour = new Date(minX).getUTCHours()
+    let maxHour = new Date(maxX).getUTCHours()
 
-    let minMinute = new Date(minX).getMinutes()
-    let maxMinute = new Date(maxX).getMinutes()
+    let minMinute = new Date(minX).getUTCMinutes()
+    let maxMinute = new Date(maxX).getUTCMinutes()
 
     return {
       minMinute,

@@ -244,15 +244,11 @@ export default class Defaults {
               let datetimeObj = new DateTime(ctx)
               startVal = datetimeObj.formatDate(
                 new Date(start),
-                w.config.tooltip.x.format,
-                true,
-                true
+                w.config.tooltip.x.format
               )
               endVal = datetimeObj.formatDate(
                 new Date(end),
-                w.config.tooltip.x.format,
-                true,
-                true
+                w.config.tooltip.x.format
               )
             } else {
               startVal = start

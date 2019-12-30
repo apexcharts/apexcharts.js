@@ -708,7 +708,7 @@ class TimeScale {
         if (ts.unit === 'hour') customFormat = dtFormatter.hour
         if (ts.unit === 'minute') customFormat = dtFormatter.minute
 
-        value = dt.formatDate(dateString, customFormat, true, false)
+        value = dt.formatDate(dateString, customFormat)
       } else {
         value = dt.formatDate(dateString, w.config.xaxis.labels.format)
       }
