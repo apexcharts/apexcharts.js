@@ -5,7 +5,7 @@ module.exports = {
   entry: [path.resolve(__dirname, 'src/apexcharts.js')],
   output: {
     library: 'ApexCharts',
-    libraryTarget: 'amd',
+    libraryTarget: 'umd',
     umdNamedDefine: false,
     path: path.resolve(__dirname, 'dist/'),
     filename: 'apexcharts.amd.js'
@@ -17,7 +17,6 @@ module.exports = {
         enforce: 'pre',
         exclude: [
           /node_modules/,
-          path.resolve(__dirname, 'src/utils/ClassListPolyfill.js'),
           path.resolve(__dirname, 'src/utils/DetectElementResize.js'),
           path.resolve(__dirname, 'src/svgjs/svg.js'),
           path.resolve(__dirname, 'src/utils/Utils.js')

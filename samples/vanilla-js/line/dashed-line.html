@@ -1,129 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dashed Line Chart</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Dashed Line Chart</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet">
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
 
-  <style>
-  
-    #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-  
-  </style>
+    <script src="../../../dist/apexcharts.js"></script>
 
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+  </head>
 
-  <script src="../../../dist/apexcharts.js"></script>
-
-
-  <script>
-    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
-    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
-    var _seed = 42;
-    Math.random = function() {
-      _seed = _seed * 16807 % 2147483647;
-      return (_seed - 1) / 2147483646;
-    };
-  </script>
-
-  
-</head>
-
-<body>
-  
+  <body>
     <div id="chart"></div>
 
     <script>
-    
       var options = {
-        series: [{
-            name: "Session Duration",
-            data: [45, 52, 38, 24, 33, 26, 21, 20, 6, 8, 15, 10]
-          },
-          {
-            name: "Page Views",
-            data: [35, 41, 62, 42, 13, 18, 29, 37, 36, 51, 32, 35]
-          },
-          {
-            name: 'Total Visits',
-            data: [87, 57, 74, 99, 75, 38, 62, 47, 82, 56, 45, 47]
-          }
-        ],
         chart: {
-          height: 350,
           type: 'line',
-          zoom: {
-            enabled: false
-          },
+          height: 300,
+          foreColor: '#999',
+          stacked: true,
+          dropShadow: {
+            enabled: true,
+            enabledSeries: [0],
+
+            opacity: 0.06
+          }
+        },
+        colors: ['#00E396', '#0090FF'],
+        stroke: {
+          curve: 'smooth',
+          width: 3
         },
         dataLabels: {
           enabled: false
         },
-        stroke: {
-          width: [5, 7, 5],
-          curve: 'straight',
-          dashArray: [0, 8, 5]
-        },
-        title: {
-          text: 'Page Statistics',
-          align: 'left'
-        },
-        legend: {
-          tooltipHoverFormatter: function(val, opts) {
-            return val + ' - <strong>' + opts.w.globals.series[opts.seriesIndex][opts.dataPointIndex] + '</strong>'
+        series: [
+          {
+            name: 'Total Views',
+            data: generateDayWiseTimeSeries(0, 18)
           }
-        },
+        ],
         markers: {
           size: 0,
-        
+          strokeColor: '#fff',
+          strokeWidth: 3,
+          strokeOpacity: 1,
+          fillOpacity: 1,
           hover: {
-            sizeOffset: 6
+            size: 6
           }
         },
         xaxis: {
-          categories: ['01 Jan', '02 Jan', '03 Jan', '04 Jan', '05 Jan', '06 Jan', '07 Jan', '08 Jan', '09 Jan',
-            '10 Jan', '11 Jan', '12 Jan'
-          ],
+          type: 'datetime',
+          axisBorder: {
+            show: true
+          },
+          axisTicks: {
+            show: true
+          },
+          min: 1570606650000
         },
+        yaxis: {
+          tooltip: {
+            enabled: true
+          }
+        },
+        grid: {},
         tooltip: {
-          y: [{
-            title: {
-              formatter: function (val) {
-                return val + " (mins)"
-              }
-            }
-          }, {
-            title: {
-              formatter: function (val) {
-                return val + " per session"
-              }
-            }
-          }, {
-            title: {
-              formatter: function (val) {
-                return val;
-              }
-            }
-          }]
+          x: {
+            format: 'dd MMM yyyy'
+          }
         },
-        grid: {
-          borderColor: '#f1f1f1',
+        legend: {
+          position: 'top',
+          horizontalAlign: 'left'
+        },
+        fill: {
+          type: 'solid',
+          fillOpacity: 0.7
         }
-      };
+      }
 
-      var chart = new ApexCharts(document.querySelector("#chart"), options);
-      chart.render();
-    
-    
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+
+      chart.render()
+
+      function generateDayWiseTimeSeries(s, count) {
+        console.log(count)
+        var values = [[4, 3, 10, 9, 29]]
+        var i = 0
+        var series = []
+        var x = 1570606650000
+        while (i < count) {
+          series.push([x, values[s][i]])
+          x += 86400000
+          i++
+        }
+        return series
+      }
     </script>
-
-  
-</body>
-
+  </body>
 </html>

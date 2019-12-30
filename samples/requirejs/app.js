@@ -1,0 +1,1 @@
+requirejs(['app/main']);
