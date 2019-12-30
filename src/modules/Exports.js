@@ -1,4 +1,3 @@
-import Promise from 'promise-polyfill'
 import Data from '../modules/Data'
 import AxesUtils from '../modules/axes/AxesUtils'
 import Series from '../modules/Series'

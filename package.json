@@ -34,7 +34,6 @@
     "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
-    "promise-polyfill": "8.1.0",
     "svg.draggable.js": "^2.2.2",
     "svg.easing.js": "^2.0.0",
     "svg.filter.js": "^2.0.2",

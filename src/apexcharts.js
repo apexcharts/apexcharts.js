@@ -26,7 +26,6 @@ import ZoomPanSelection from './modules/ZoomPanSelection'
 import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
-import Promise from 'promise-polyfill'
 import XAxis from './modules/axes/XAxis'
 import YAxis from './modules/axes/YAxis'
 
@@ -38,7 +37,6 @@ import 'svg.select.js'
 import 'svg.resize.js'
 
 import './assets/apexcharts.css'
-import './utils/ClassListPolyfill'
 import './utils/DetectElementResize'
 
 import en from './locales/en.json'
