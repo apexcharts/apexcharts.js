@@ -66,6 +66,7 @@ export default class YAxis {
       labels.reverse()
     }
 
+    let firstLabel = ''
     if (w.config.yaxis[realIndex].labels.show) {
       for (let i = tickAmount; i >= 0; i--) {
         let val = labels[i]
@@ -89,13 +90,19 @@ export default class YAxis {
             'apexcharts-yaxis-label ' +
             w.config.yaxis[realIndex].labels.style.cssClass
         })
+        if (i === tickAmount) {
+          firstLabel = label
+        }
         elYaxisTexts.add(label)
 
-        let labelRotatingCenter = graphics.rotateAroundCenter(label.node)
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {
+          let firstabelRotatingCenter = graphics.rotateAroundCenter(
+            firstLabel.node
+          )
+          let labelRotatingCenter = graphics.rotateAroundCenter(label.node)
           label.node.setAttribute(
             'transform',
-            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
+            `rotate(${w.config.yaxis[realIndex].labels.rotate} ${firstabelRotatingCenter.x} ${labelRotatingCenter.y})`
           )
         }
         l = l + labelsDivider
