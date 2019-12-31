@@ -511,7 +511,7 @@ class Graphics {
     if (opts.shape === 'square') {
       let radius = opts.pRadius === undefined ? size / 2 : opts.pRadius
 
-      if (y === null) {
+      if (y === null || !size) {
         size = 0
         radius = 0
       }

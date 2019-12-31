@@ -137,21 +137,18 @@ export default class Marker {
     let w = this.w
     let newSize = w.config.markers.hover.size
 
-    let elPoint = null
+    let elPoint =
+      rel === 0 ? point.parentNode.firstChild : point.parentNode.lastChild
 
-    if (rel === 0) {
-      elPoint = point.parentNode.firstChild
-    } else {
-      elPoint = point.parentNode.lastChild
+    if (elPoint.getAttribute('default-marker-size') !== '0') {
+      const index = parseInt(elPoint.getAttribute('index'), 10)
+      if (newSize === undefined) {
+        newSize =
+          w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+      }
+
+      elPoint.setAttribute('r', newSize)
     }
-
-    const index = parseInt(elPoint.getAttribute('index'), 10)
-    if (newSize === undefined) {
-      newSize =
-        w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
-    }
-
-    elPoint.setAttribute('r', newSize)
   }
 
   oldPointSize(point) {
