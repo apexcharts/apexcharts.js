@@ -1,19 +1,21 @@
-define(function (require) {
-  var ApexChartsAMD = require('../../../dist/apexcharts.amd');
+define((require) => {
+  let ApexCharts = require('../../../dist/apexcharts.amd')
 
-  var ApexCharts = ApexChartsAMD.default;
-
-  var options = {
-    series: [{
-      name: 'Net Profit',
-      data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
-    }, {
-      name: 'Revenue',
-      data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
-    }, {
-      name: 'Free Cash Flow',
-      data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
-    }],
+  let options = {
+    series: [
+      {
+        name: 'Net Profit',
+        data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
+      },
+      {
+        name: 'Revenue',
+        data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
+      },
+      {
+        name: 'Free Cash Flow',
+        data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
+      }
+    ],
     chart: {
       type: 'bar',
       height: 350
@@ -23,7 +25,7 @@ define(function (require) {
         horizontal: false,
         columnWidth: '55%',
         endingShape: 'rounded'
-      },
+      }
     },
     dataLabels: {
       enabled: false
@@ -34,7 +36,17 @@ define(function (require) {
       colors: ['transparent']
     },
     xaxis: {
-      categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+      categories: [
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct'
+      ]
     },
     yaxis: {
       title: {
@@ -46,13 +58,13 @@ define(function (require) {
     },
     tooltip: {
       y: {
-        formatter: function (val) {
-          return "$ " + val + " thousands"
+        formatter(val) {
+          return '$ ' + val + ' thousands'
         }
       }
     }
-  };
+  }
 
-  var chart = new ApexCharts(document.querySelector("#chart"), options);
-  chart.render();
-});
+  let chart = new ApexCharts.default(document.querySelector('#chart'), options)
+  chart.render()
+})
