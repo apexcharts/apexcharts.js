@@ -16,7 +16,7 @@ Optional external scripts or stylesheets.
 
 ## &lt;html>
 
-Optional [nunjucks](https://mozilla.github.io/nunjucks/templating.html) template used to generate html template for various framewors. If not provided the default value is `{{ charts[0] }}`, which works for most simple single-chart samples. This template accepts two variables:
+Optional [nunjucks](https://mozilla.github.io/nunjucks/templating.html) template used to generate html template for various framewors. If not provided the default value is `{{ charts[0] }}`, which works for most simple single-chart samples. The template must render with a single root element (for e2e tests to work correctly). This template accepts two variables:
 
 - `format` - `'vanilla-js'`, `'react'` or `'vue'`
 - `charts` - an object to access format-specific chart embedding html. Charts without ids can be accessed via 0-based index, charts with id - via the corresponding attribute. See column/dynamic-loaded-chart.xml for a complex example.
@@ -64,3 +64,5 @@ Optional Vue specific code. Allows to add component methods and other top-level 
 * In order for charts to look the same for e2e testing purposes `Math.random` was overridden with a deterministic random number generator.
 
 * If one of &lt;vanilla-js-script>, &lt;react-script> or &lt;vue-script> sections is present in xml, html files will only be generated for formats with custom code. E.g. if only &lt;react-script> section is provided vanilla-js and vue format won't be generated.
+
+* Non-xml files are just copied with the same relative paths.
