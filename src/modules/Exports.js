@@ -94,7 +94,7 @@ class Exports {
 
     let columns = []
     let rows = []
-    let result = ''
+    let result = 'data:text/csv;charset=utf-8,'
 
     const dataFormat = new Data(this.ctx)
 
@@ -202,11 +202,9 @@ class Exports {
       }
     })
 
-    result = rows.join(lineDelimiter)
-    this.triggerDownload(
-      new Blob([encodeURI(result)], { type: 'text/csv;charset=utf-8;' }),
-      '.csv'
-    )
+    result += rows.join(lineDelimiter)
+
+    this.triggerDownload(encodeURI(result), '.csv')
   }
 
   triggerDownload(href, ext) {

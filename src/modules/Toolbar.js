@@ -401,20 +401,17 @@ export default class Toolbar {
   downloadPNG() {
     const exprt = new Exports(this.ctx)
     exprt.exportToPng(this.ctx)
-    this.toggleMenu()
   }
 
   downloadSVG() {
     const exprt = new Exports(this.ctx)
     exprt.exportToSVG()
-    this.toggleMenu()
   }
 
   downloadCSV() {
     const w = this.w
     const exprt = new Exports(this.ctx)
     exprt.exportToCSV({ series: w.config.series })
-    this.toggleMenu()
   }
 
   handleZoomReset(e) {

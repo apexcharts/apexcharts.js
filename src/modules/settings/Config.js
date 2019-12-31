@@ -220,12 +220,6 @@ export default class Config {
       )
     }
 
-    if (config.chart.scroller) {
-      console.warn(
-        'Scroller has been deprecated since v2.0.0. Please remove the configuration for chart.scroller'
-      )
-    }
-
     if (
       (config.chart.type === 'bar' || config.chart.type === 'rangeBar') &&
       config.plotOptions.bar.horizontal
