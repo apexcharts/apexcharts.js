@@ -11,7 +11,7 @@
 
   <style>
   
-    #chart {
+    #box {
       max-width: 800px;
       margin: 35px auto;
     }
@@ -46,7 +46,7 @@
 
 <body>
   
-    <div id="chart">
+    <div id="box">
         <div id="chart"></div>
         <div class="selection">
           Selected: <span id="selected-count">0</span>
@@ -64,7 +64,7 @@
           height: 380,
           foreColor: "#999",
           events: {
-            dataPointSelection: function(e, chart,opts) {
+            dataPointSelection: function(e, chart, opts) {
               var arraySelected = []
               opts.selectedDataPoints.map(function(selectedIndex) {
                 return selectedIndex.map(function(s) {
