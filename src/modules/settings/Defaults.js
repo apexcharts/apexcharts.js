@@ -446,7 +446,7 @@ export default class Defaults {
       },
       markers: {
         size: 6,
-        strokeWidth: 2,
+        strokeWidth: 1,
         hover: {
           sizeOffset: 2
         }

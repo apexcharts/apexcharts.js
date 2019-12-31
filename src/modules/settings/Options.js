@@ -87,6 +87,7 @@ export default class Options {
         strokeColors: '#fff',
         strokeWidth: 2,
         strokeOpacity: 0.9,
+        strokeDashArray: 0,
         fillOpacity: 1,
         shape: 'circle',
         radius: 2,
