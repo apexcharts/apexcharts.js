@@ -98,69 +98,71 @@ var sparklineData = [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51, 35, 41, 35,
 </scripts>
 
 <html>
-<div class="row">
-  <div class="col-md-4">
-    {{ charts['spark1'] }}
+<div>
+  <div class="row">
+    <div class="col-md-4">
+      {{ charts['spark1'] }}
+    </div>
+    <div class="col-md-4">
+      {{ charts['spark2'] }}
+    </div>
+    <div class="col-md-4">
+      {{ charts['spark3'] }}
+    </div>
   </div>
-  <div class="col-md-4">
-    {{ charts['spark2'] }}
-  </div>
-  <div class="col-md-4">
-    {{ charts['spark3'] }}
-  </div>
-</div>
 
-<div class="row">
-  <table>
-    <thead>
-      <th>Total Value</th>
-      <th>Percentage of Portfolio</th>
-      <th>Last 10 days</th>
-      <th>Volume</th>
-    </thead>
-    <tbody>
-      <tr>
-        <td>$32,554</td>
-        <td>15%</td>
-        <td>
-          {{ charts[1] }}
-        </td>
-        <td>
-          {{ charts[5] }}
-        </td>
-      </tr>
-      <tr>
-        <td>$23,533</td>
-        <td>7%</td>
-        <td>
-          {{ charts[2] }}
-        </td>
-        <td>
-          {{ charts[6] }}
-        </td>
-      </tr>
-      <tr>
-        <td>$54,276</td>
-        <td>9%</td>
-        <td>
-          {{ charts[3] }}
-        </td>
-        <td>
-          {{ charts[7] }}
-        </td>
-      </tr>
-      <tr>
-        <td>$11,533</td>
-        <td>2%</td>
-        <td>
-          {{ charts[4] }}
-        </td>
-        <td>
-          {{ charts[8] }}
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="row">
+    <table>
+      <thead>
+        <th>Total Value</th>
+        <th>Percentage of Portfolio</th>
+        <th>Last 10 days</th>
+        <th>Volume</th>
+      </thead>
+      <tbody>
+        <tr>
+          <td>$32,554</td>
+          <td>15%</td>
+          <td>
+            {{ charts[1] }}
+          </td>
+          <td>
+            {{ charts[5] }}
+          </td>
+        </tr>
+        <tr>
+          <td>$23,533</td>
+          <td>7%</td>
+          <td>
+            {{ charts[2] }}
+          </td>
+          <td>
+            {{ charts[6] }}
+          </td>
+        </tr>
+        <tr>
+          <td>$54,276</td>
+          <td>9%</td>
+          <td>
+            {{ charts[3] }}
+          </td>
+          <td>
+            {{ charts[7] }}
+          </td>
+        </tr>
+        <tr>
+          <td>$11,533</td>
+          <td>2%</td>
+          <td>
+            {{ charts[4] }}
+          </td>
+          <td>
+            {{ charts[8] }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 </html>
 
