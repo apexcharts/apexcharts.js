@@ -46,7 +46,9 @@ class CoreUtils {
     ) {
       let t = 0
       for (let j = 0; j < w.globals.series.length; j++) {
-        t += w.globals.series[j][i]
+        if (typeof w.globals.series[j][i] !== 'undefined') {
+          t += w.globals.series[j][i]
+        }
       }
       total.push(t)
     }
