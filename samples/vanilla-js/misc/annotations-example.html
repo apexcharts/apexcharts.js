@@ -126,38 +126,42 @@
       chart.render();
     
     
-      // adding annotation through chart instance by calling direct method
-      chart.addYaxisAnnotation({
-        id: 'yaxis-anno',
-        y: 9000,
-        borderColor: '#FEB019',
-        label: {
-          borderColor: '#333',
-          style: {
-            fontSize: '15px',
-            color: '#333',
-            background: '#FEB019',
-          },
-          text: 'Y-axis - runtime',
-        }
-      });
+      function addAnnos() {
+        // adding annotation through chart instance by calling direct method
+        chart.addYaxisAnnotation({
+          id: 'yaxis-anno',
+          y: 9000,
+          borderColor: '#FEB019',
+          label: {
+            borderColor: '#333',
+            style: {
+              fontSize: '15px',
+              color: '#333',
+              background: '#FEB019'
+            },
+            text: 'Y-axis - runtime'
+          }
+        })
       
-      chart.addXaxisAnnotation({
-        id: 'xaxis-anno',
-        x: new Date('25 Nov 2017').getTime(),
-        borderColor: '#00E396',
-        label: {
-          orientation: 'vertical',
+        chart.addXaxisAnnotation({
+          id: 'xaxis-anno',
+          x: new Date('25 Nov 2017').getTime(),
           borderColor: '#00E396',
-          style: {
-            fontSize: '15px',
-            color: '#fff',
-            background: '#00E396',
-          },
-          offsetY: -10,
-          text: 'xaxis - runtime',
-        }
-      });
+          label: {
+            orientation: 'vertical',
+            borderColor: '#00E396',
+            style: {
+              fontSize: '15px',
+              color: '#fff',
+              background: '#00E396'
+            },
+            offsetY: -10,
+            text: 'xaxis - runtime'
+          }
+        })
+      }
+      
+      addAnnos()
       
       chart.addPointAnnotation({
         id: 'point-anno',
@@ -169,13 +173,21 @@
           style: {
             fontSize: '15px',
             color: '#fff',
-            background: '#FF4560',
+            background: '#FF4560'
           },
-          text: 'Point - runtime',
+          text: 'Point - runtime'
         }
-      });
+      })
       
-      chart.removeAnnotation('point-anno');
+      // removing annotation with method name
+      chart.removeAnnotation('point-anno')
+      
+      // removing annotations with .exec() method
+      ApexCharts.exec('chart', 'removeAnnotation', 'xaxis-anno')
+      ApexCharts.exec('chart', 'removeAnnotation', 'yaxis-anno')
+      
+      // add annos again
+      // addAnnos()
     
     </script>
 

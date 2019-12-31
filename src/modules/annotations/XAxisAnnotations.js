@@ -44,6 +44,9 @@ export default class XAnnotations {
         anno.borderWidth
       )
       parent.appendChild(line.node)
+      if (anno.id) {
+        line.node.classList.add(anno.id)
+      }
     } else {
       let x2 = (anno.x2 - min) / (range / w.globals.gridWidth)
 
@@ -78,6 +81,9 @@ export default class XAnnotations {
           strokeDashArray // stokeDashArray
         )
         parent.appendChild(rect.node)
+        if (anno.id) {
+          rect.node.classList.add(anno.id)
+        }
       }
     }
     let textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight

@@ -49,6 +49,9 @@ export default class YAnnotations {
         anno.borderWidth
       )
       parent.appendChild(line.node)
+      if (anno.id) {
+        line.node.classList.add(anno.id)
+      }
     } else {
       if (this.annoCtx.invertAxis) {
         let catIndex = w.globals.labels.indexOf(anno.y2)
@@ -95,6 +98,9 @@ export default class YAnnotations {
           strokeDashArray // stokeDashArray
         )
         parent.appendChild(rect.node)
+        if (anno.id) {
+          rect.node.classList.add(anno.id)
+        }
       }
     }
     let textX = anno.label.position === 'right' ? w.globals.gridWidth : 0
