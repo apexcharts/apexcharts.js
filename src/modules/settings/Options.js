@@ -38,7 +38,17 @@ export default class Options {
         style: {
           fontSize: '12px',
           fontFamily: undefined,
+          fontWeight: 'bold',
           colors: undefined
+        },
+        background: {
+          enabled: true,
+          foreColor: '#fff',
+          borderRadius: 2,
+          padding: 4,
+          opacity: 0.9,
+          borderWidth: 1,
+          borderColor: '#fff'
         },
         dropShadow: {
           enabled: false,

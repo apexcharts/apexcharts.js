@@ -125,30 +125,28 @@ class BarStacked extends Bar {
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
-
+        const commonPathOpts = {
+          indexes: { i, j, realIndex, bc },
+          strokeWidth,
+          x,
+          y,
+          elSeries
+        }
         let paths = null
         if (this.isHorizontal) {
           paths = this.drawBarPaths({
-            indexes: { i, j, realIndex, bc },
-            barHeight,
-            strokeWidth,
+            ...commonPathOpts,
             zeroW,
-            x,
-            y,
-            yDivision,
-            elSeries
+            barHeight,
+            yDivision
           })
           barWidth = this.series[i][j] / this.invertedYRatio
         } else {
           paths = this.drawColumnPaths({
-            indexes: { i, j, realIndex, bc },
-            x,
-            y,
+            ...commonPathOpts,
             xDivision,
             barWidth,
-            zeroH,
-            strokeWidth,
-            elSeries
+            zeroH
           })
           barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
@@ -280,23 +278,19 @@ class BarStacked extends Bar {
       let bXP = zeroW
 
       if (this.prevXVal[i - 1][j] < 0) {
-        if (this.series[i][j] >= 0) {
-          bXP =
-            this.prevX[i - 1][j] +
-            prevBarW -
-            (this.isReversed ? prevBarW : 0) * 2
-        } else {
-          bXP = this.prevX[i - 1][j]
-        }
+        bXP =
+          this.series[i][j] >= 0
+            ? this.prevX[i - 1][j] +
+              prevBarW -
+              (this.isReversed ? prevBarW : 0) * 2
+            : this.prevX[i - 1][j]
       } else if (this.prevXVal[i - 1][j] >= 0) {
-        if (this.series[i][j] >= 0) {
-          bXP = this.prevX[i - 1][j]
-        } else {
-          bXP =
-            this.prevX[i - 1][j] -
-            prevBarW +
-            (this.isReversed ? prevBarW : 0) * 2
-        }
+        bXP =
+          this.series[i][j] >= 0
+            ? this.prevX[i - 1][j]
+            : this.prevX[i - 1][j] -
+              prevBarW +
+              (this.isReversed ? prevBarW : 0) * 2
       }
 
       barXPosition = bXP
@@ -434,17 +428,15 @@ class BarStacked extends Bar {
       let prevYValue = this.prevY[i - 1][j]
 
       if (this.prevYVal[i - 1][j] < 0) {
-        if (this.series[i][j] >= 0) {
-          bYP = prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
-        } else {
-          bYP = prevYValue
-        }
+        bYP =
+          this.series[i][j] >= 0
+            ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
+            : prevYValue
       } else {
-        if (this.series[i][j] >= 0) {
-          bYP = prevYValue
-        } else {
-          bYP = prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
-        }
+        bYP =
+          this.series[i][j] >= 0
+            ? prevYValue
+            : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
       }
 
       barYPosition = bYP
@@ -526,40 +518,6 @@ class BarStacked extends Bar {
       pathFrom,
       x: w.globals.isXNumeric ? x - xDivision : x,
       y
-    }
-  }
-
-  /*
-   * When user clicks on legends, the collapsed series will be filled with [0,0,0,...,0]
-   * We need to make sure, that the last series is not [0,0,0,...,0]
-   * as we need to draw shapes on the last series (for stacked bars/columns only)
-   * Hence, we are collecting all inner arrays in series which has [0,0,0...,0]
-   **/
-
-  checkZeroSeries({ series }) {
-    let w = this.w
-    for (let zs = 0; zs < series.length; zs++) {
-      let total = 0
-      for (
-        let zsj = 0;
-        zsj < series[w.globals.maxValsInArrayIndex].length;
-        zsj++
-      ) {
-        total += series[zs][zsj]
-      }
-      if (total === 0) {
-        this.zeroSerieses.push(zs)
-      }
-    }
-
-    // After getting all zeroserieses, we need to ensure whether endingshapeonSeries is not in that zeroseries array
-    for (let s = series.length - 1; s >= 0; s--) {
-      if (
-        this.zeroSerieses.indexOf(s) > -1 &&
-        s === this.endingShapeOnSeriesNumber
-      ) {
-        this.endingShapeOnSeriesNumber -= 1
-      }
     }
   }
 }

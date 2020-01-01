@@ -7,6 +7,7 @@ import Core from './modules/Core'
 import CoreUtils from './modules/CoreUtils'
 import Crosshairs from './modules/Crosshairs'
 import Data from './modules/Data'
+import DataLabels from './modules/DataLabels'
 import Defaults from './modules/settings/Defaults'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
@@ -279,6 +280,12 @@ export default class ApexCharts {
     this.grid.createGridMask()
 
     const elGraph = this.core.plotChartType(ser, xyRatios)
+
+    const dataLabels = new DataLabels(this)
+    dataLabels.bringForward()
+    if (w.config.dataLabels.background.enabled) {
+      dataLabels.dataLabelsBackground()
+    }
 
     // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
     this.core.shiftGraphPosition()

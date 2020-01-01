@@ -152,7 +152,9 @@ export default class YAxis {
         w.globals.translateY + axisBorder.offsetY - 2,
         x,
         w.globals.gridHeight + w.globals.translateY + axisBorder.offsetY + 2,
-        axisBorder.color
+        axisBorder.color,
+        0,
+        axisBorder.width
       )
 
       elYaxis.add(elVerticalLine)

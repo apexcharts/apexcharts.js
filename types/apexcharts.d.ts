@@ -686,7 +686,17 @@ type ApexDataLabels = {
   style?: {
     fontSize?: string
     fontFamily?: string
+    fontWeight?: string | number
     colors?: string[]
+  }
+  background?: {
+    enabled?: boolean
+    foreColor?: string
+    borderRadius?: number
+    padding?: number
+    opacity?: number
+    borderWidth?: number
+    borderColor?: string
   }
   dropShadow?: ApexDropShadow
   formatter?(val: number, opts?: any): string
@@ -886,6 +896,7 @@ type ApexYAxis = {
   axisBorder?: {
     show?: boolean
     color?: string
+    width?: number
     offsetX?: number
     offsetY?: number
   }

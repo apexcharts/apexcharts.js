@@ -44,12 +44,12 @@ class Radar {
 
     this.maxLabelWidth = 20
 
-    const longestLabel = w.globals.labels
+    const longestXaxisLabel = w.globals.labels
       .slice()
       .sort((a, b) => b.length - a.length)[0]
     const labelWidth = this.graphics.getTextRects(
-      longestLabel,
-      w.config.dataLabels.style.fontSize
+      longestXaxisLabel,
+      w.config.xaxis.labels.style.fontSize
     )
 
     this.size =
@@ -74,6 +74,7 @@ class Radar {
     const fill = new Fill(this.ctx)
 
     const allSeries = []
+    const dataLabels = new DataLabels(this.ctx)
 
     if (series.length) {
       this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
@@ -86,7 +87,7 @@ class Radar {
     let translateY = halfH
 
     let ret = this.graphics.group({
-      class: 'apexcharts-radar-series',
+      class: 'apexcharts-radar-series apexcharts-plot-series',
       'data:innerTranslateX': translateX,
       'data:innerTranslateY': translateY - 25,
       transform: `translate(${translateX || 0}, ${translateY || 0})`
@@ -94,6 +95,7 @@ class Radar {
 
     let dataPointsPos = []
     let elPointsMain = null
+    let elDataPointsMain = null
 
     this.yaxisLabels = this.graphics.group({
       class: 'apexcharts-yaxis'
@@ -133,6 +135,11 @@ class Radar {
       // points
       elPointsMain = this.graphics.group({
         class: 'apexcharts-series-markers-wrap hidden'
+      })
+
+      // datapoints
+      elDataPointsMain = this.graphics.group({
+        class: `apexcharts-datalabels`
       })
 
       w.globals.delayedElements.push({
@@ -227,6 +234,25 @@ class Radar {
         elPointsMain.add(elPointsWrap)
 
         elSeries.add(elPointsMain)
+
+        if (w.config.dataLabels.enabled) {
+          const dataLabelsConfig = w.config.dataLabels
+
+          dataLabels.plotDataLabelsText({
+            x: dataPointsPos[j].x,
+            y: dataPointsPos[j].y,
+            text: w.globals.series[i][j],
+            textAnchor: 'middle',
+            i,
+            j: i,
+            parent: elDataPointsMain,
+            offsetCorrection: false,
+            dataLabelsConfig: {
+              ...dataLabelsConfig
+            }
+          })
+        }
+        elSeries.add(elDataPointsMain)
       })
 
       allSeries.push(elSeries)
@@ -236,9 +262,9 @@ class Radar {
       parent: ret
     })
 
-    if (w.config.dataLabels.enabled) {
-      const dataLabels = this.drawLabels()
-      ret.add(dataLabels)
+    if (w.config.xaxis.labels.show) {
+      const xaxisTexts = this.drawXAxisTexts()
+      ret.add(xaxisTexts)
     }
 
     ret.add(this.yaxisLabels)
@@ -315,13 +341,13 @@ class Radar {
 
     if (w.config.yaxis[0].show) {
       this.yaxisLabelsTextsPos.forEach((p, i) => {
-        const yText = this.drawYAxisText(p.x, p.y, i, yaxisTexts[i])
+        const yText = this.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i])
         this.yaxisLabels.add(yText)
       })
     }
   }
 
-  drawYAxisText(x, y, i, text) {
+  drawYAxisTexts(x, y, i, text) {
     const w = this.w
 
     const yaxisConfig = w.config.yaxis[0]
@@ -340,49 +366,22 @@ class Radar {
     return yaxisLabel
   }
 
-  drawLabels() {
+  drawXAxisTexts() {
     const w = this.w
 
-    let limit = 10
-
-    let textAnchor = 'middle'
-
-    const dataLabelsConfig = w.config.dataLabels
-    let elDataLabelsWrap = this.graphics.group({
-      class: 'apexcharts-datalabels'
+    const xaxisLabelsConfig = w.config.xaxis.labels
+    let elXAxisWrap = this.graphics.group({
+      class: 'apexcharts-xaxis'
     })
 
     let polygonPos = this.getPolygonPos(this.size)
 
-    let currPosX = 0
-    let currPosY = 0
-
     w.globals.labels.forEach((label, i) => {
-      let formatter = dataLabelsConfig.formatter
+      let formatter = w.config.xaxis.labels.formatter
       let dataLabels = new DataLabels(this.ctx)
 
       if (polygonPos[i]) {
-        currPosX = polygonPos[i].x
-        currPosY = polygonPos[i].y
-
-        if (Math.abs(polygonPos[i].x) >= limit) {
-          if (polygonPos[i].x > 0) {
-            textAnchor = 'start'
-            currPosX += 10
-          } else if (polygonPos[i].x < 0) {
-            textAnchor = 'end'
-            currPosX -= 10
-          }
-        } else {
-          textAnchor = 'middle'
-        }
-        if (Math.abs(polygonPos[i].y) >= this.size - limit) {
-          if (polygonPos[i].y < 0) {
-            currPosY -= 10
-          } else if (polygonPos[i].y > 0) {
-            currPosY += 10
-          }
-        }
+        let textPos = this.getTextPos(polygonPos[i], this.size)
 
         let text = formatter(label, {
           seriesIndex: -1,
@@ -391,20 +390,27 @@ class Radar {
         })
 
         dataLabels.plotDataLabelsText({
-          x: currPosX,
-          y: currPosY,
+          x: textPos.newX,
+          y: textPos.newY,
           text,
-          textAnchor,
+          textAnchor: textPos.textAnchor,
           i,
           j: i,
-          parent: elDataLabelsWrap,
-          dataLabelsConfig,
+          parent: elXAxisWrap,
+          color: xaxisLabelsConfig.style.colors[i]
+            ? xaxisLabelsConfig.style.colors[i]
+            : '#a8a8a8',
+          dataLabelsConfig: {
+            textAnchor: textPos.textAnchor,
+            dropShadow: { enabled: false },
+            ...xaxisLabelsConfig
+          },
           offsetCorrection: false
         })
       }
     })
 
-    return elDataLabelsWrap
+    return elXAxisWrap
   }
 
   createPaths(pos, origin) {
@@ -438,6 +444,39 @@ class Radar {
       linePathsTo,
       areaPathsFrom,
       areaPathsTo
+    }
+  }
+
+  getTextPos(pos, polygonSize) {
+    let limit = 10
+    let textAnchor = 'middle'
+
+    let newX = pos.x
+    let newY = pos.y
+
+    if (Math.abs(pos.x) >= limit) {
+      if (pos.x > 0) {
+        textAnchor = 'start'
+        newX += 10
+      } else if (pos.x < 0) {
+        textAnchor = 'end'
+        newX -= 10
+      }
+    } else {
+      textAnchor = 'middle'
+    }
+    if (Math.abs(pos.y) >= polygonSize - limit) {
+      if (pos.y < 0) {
+        newY -= 10
+      } else if (pos.y > 0) {
+        newY += 10
+      }
+    }
+
+    return {
+      textAnchor,
+      newX,
+      newY
     }
   }
 

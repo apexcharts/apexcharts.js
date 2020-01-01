@@ -37,6 +37,7 @@ class Line {
 
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
+    let dataLabels = new DataLabels(this.ctx)
 
     let type = w.globals.comboCharts ? ptype : w.config.chart.type
 
@@ -81,6 +82,10 @@ class Line {
 
       let xDivision = w.globals.gridWidth / w.globals.dataPoints
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+
+      const strokeWidth = Array.isArray(w.config.stroke.width)
+        ? w.config.stroke.width[realIndex]
+        : w.config.stroke.width
 
       if (yRatio.length > 1) {
         this.yaxisIndex = realIndex
@@ -322,18 +327,12 @@ class Line {
           })
         }
 
-        let dataLabelAlign =
-          !series[i][j + 1] || series[i][j + 1] > series[i][j]
-            ? 'top'
-            : 'bottom'
-
-        let dataLabels = new DataLabels(this.ctx)
         let drawnLabels = dataLabels.drawDataLabel(
           pointsPos,
           realIndex,
           j + 1,
           null,
-          dataLabelAlign
+          strokeWidth
         )
         if (drawnLabels !== null) {
           elDataLabelsWrap.add(drawnLabels)
@@ -402,9 +401,7 @@ class Line {
             pathFrom: pathFromLine,
             pathTo: linePaths[p],
             stroke: lineFill,
-            strokeWidth: Array.isArray(w.config.stroke.width)
-              ? w.config.stroke.width[realIndex]
-              : w.config.stroke.width,
+            strokeWidth,
             strokeLineCap: w.config.stroke.lineCap,
             fill: 'none'
           })

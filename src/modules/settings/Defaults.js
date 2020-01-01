@@ -605,9 +605,8 @@ export default class Defaults {
 
     return {
       dataLabels: {
-        enabled: true,
+        enabled: false,
         style: {
-          colors: ['#a8a8a8'],
           fontSize: '11px'
         }
       },
@@ -631,6 +630,13 @@ export default class Defaults {
         show: false
       },
       xaxis: {
+        labels: {
+          formatter: (val) => val,
+          style: {
+            colors: ['#a8a8a8'],
+            fontSize: '11px'
+          }
+        },
         tooltip: {
           enabled: false
         },
