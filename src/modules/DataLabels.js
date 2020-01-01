@@ -330,7 +330,7 @@ class DataLabels {
       '.apexcharts-datalabels'
     )
     const elSeries = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-plot-series'
+      '.apexcharts-plot-series:last-child'
     )
 
     for (let i = 0; i < elDataLabelsNodes.length; i++) {
