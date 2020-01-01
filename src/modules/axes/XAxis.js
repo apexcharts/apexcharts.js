@@ -329,8 +329,7 @@ export default class XAxis {
         w.globals.padHorizontal + axisBorder.offsetX + offX,
         w.globals.gridHeight + axisBorder.offsetY,
         axisBorder.color,
-        0,
-        axisBorder.width
+        0
       )
 
       elYaxis.add(elVerticalLine)
