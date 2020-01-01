@@ -74,7 +74,9 @@
         markers: {
           size: 0
         },
-        labels: ['2011', '2012', '2013', '2014', '2015', '2016']
+        xaxis: {
+          categories: ['2011', '2012', '2013', '2014', '2015', '2016']
+        }
       };
 
       var chart = new ApexCharts(document.querySelector("#chart"), options);

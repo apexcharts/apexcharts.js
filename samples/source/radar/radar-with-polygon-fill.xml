@@ -13,7 +13,9 @@ chart: {
   height: 350,
   type: 'radar',
 },
-labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+dataLabels: {
+  enabled: true
+},
 plotOptions: {
   radar: {
     size: 140,
@@ -41,6 +43,9 @@ tooltip: {
       return val
     }
   }
+},
+xaxis: {
+  categories: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 },
 yaxis: {
   tickAmount: 7,

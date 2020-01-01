@@ -53,7 +53,9 @@
         title: {
           text: 'Basic Radar Chart'
         },
-        labels: ['January', 'February', 'March', 'April', 'May', 'June']
+        xaxis: {
+          categories: ['January', 'February', 'March', 'April', 'May', 'June']
+        }
       };
 
       var chart = new ApexCharts(document.querySelector("#chart"), options);

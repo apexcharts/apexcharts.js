@@ -36,7 +36,7 @@ grid: {
   },
 },
 markers: {
-  size: 6
+  size: 1
 },
 xaxis: {
   categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
