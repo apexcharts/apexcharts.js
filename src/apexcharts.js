@@ -708,14 +708,13 @@ export default class ApexCharts {
 
   forceXAxisUpdate(options) {
     const w = this.w
-    if (typeof options.xaxis.min !== 'undefined') {
-      w.config.xaxis.min = options.xaxis.min
-      w.globals.lastXAxis.min = options.xaxis.min
-    }
-    if (typeof options.xaxis.max !== 'undefined') {
-      w.config.xaxis.max = options.xaxis.max
-      w.globals.lastXAxis.max = options.xaxis.max
-    }
+    const minmax = ['min', 'max']
+    minmax.forEach((a) => {
+      if (typeof options.xaxis[a] !== 'undefined') {
+        w.config.xaxis[a] = options.xaxis[a]
+        w.globals.lastXAxis[a] = options.xaxis[a]
+      }
+    })
   }
 
   /**
@@ -1060,16 +1059,12 @@ export default class ApexCharts {
 
   getHighestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.ctx)
-    const minYmaxY = range.getMinYMaxY(seriesIndex)
-
-    return minYmaxY.highestY
+    return range.getMinYMaxY(seriesIndex).highestY
   }
 
   getLowestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.ctx)
-    const minYmaxY = range.getMinYMaxY(seriesIndex)
-
-    return minYmaxY.lowestY
+    return range.getMinYMaxY(seriesIndex).lowestY
   }
 
   getSeriesTotal() {
@@ -1083,19 +1078,23 @@ export default class ApexCharts {
   toggleDataPointSelection(seriesIndex, dataPointIndex) {
     const w = this.w
     let elPath = null
+    const parent = `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
 
     if (w.globals.axisCharts) {
       elPath = w.globals.dom.Paper.select(
-        `.apexcharts-series[data\\:realIndex='${seriesIndex}'] path[j='${dataPointIndex}'], .apexcharts-series[data\\:realIndex='${seriesIndex}'] circle[j='${dataPointIndex}'], .apexcharts-series[data\\:realIndex='${seriesIndex}'] rect[j='${dataPointIndex}']`
+        `${parent} path[j='${dataPointIndex}'], ${parent} circle[j='${dataPointIndex}'], ${parent} rect[j='${dataPointIndex}']`
       ).members[0]
     } else {
-      elPath = w.globals.dom.Paper.select(
-        `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
-      ).members[0]
+      // dataPointIndex will be undefined here, hence using seriesIndex
+      if (typeof dataPointIndex === 'undefined') {
+        elPath = w.globals.dom.Paper.select(
+          `${parent} path[j='${seriesIndex}']`
+        ).members[0]
 
-      if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
-        const pie = new Pie(this.ctx)
-        pie.pieClicked(seriesIndex)
+        if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
+          const pie = new Pie(this.ctx)
+          pie.pieClicked(seriesIndex)
+        }
       }
     }
 

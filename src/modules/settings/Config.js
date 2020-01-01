@@ -64,8 +64,8 @@ export default class Config {
         'radialBar'
       ]
 
-      if (chartTypes.indexOf(this.chartType) !== -1) {
-        chartDefaults = defaults[this.chartType]()
+      if (chartTypes.indexOf(opts.chart.type) !== -1) {
+        chartDefaults = defaults[opts.chart.type]()
       } else {
         chartDefaults = defaults.line()
       }

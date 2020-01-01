@@ -652,15 +652,14 @@ class Graphics {
           '.apexcharts-series circle, .apexcharts-series rect'
         ).members
 
-        elPaths.forEach((elPath) => {
-          elPath.node.setAttribute('selected', 'false')
-          filters.getDefaultFilter(elPath, i)
-        })
-
-        elCircles.forEach((circle) => {
-          circle.node.setAttribute('selected', 'false')
-          filters.getDefaultFilter(circle, i)
-        })
+        const deSelect = (els) => {
+          els.forEach((el) => {
+            el.node.setAttribute('selected', 'false')
+            filters.getDefaultFilter(el, i)
+          })
+        }
+        deSelect(elPaths)
+        deSelect(elCircles)
       }
 
       path.node.setAttribute('selected', 'true')

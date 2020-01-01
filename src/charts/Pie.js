@@ -814,8 +814,7 @@ class Pie {
     )
 
     if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
-      let pie = new Pie(this.ctx)
-      pie.printInnerLabels(
+      this.printInnerLabels(
         dataLabelsConfig,
         dataLabelsConfig.total.label,
         dataLabelsConfig.total.formatter(w)
