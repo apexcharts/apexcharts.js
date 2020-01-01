@@ -42,8 +42,6 @@ class Radar {
 
     this.polygons = w.config.plotOptions.radar.polygons
 
-    this.maxLabelWidth = 20
-
     const longestXaxisLabel = w.globals.labels
       .slice()
       .sort((a, b) => b.length - a.length)[0]
@@ -55,8 +53,11 @@ class Radar {
     this.size =
       this.defaultSize / 2.1 -
       w.config.stroke.width -
-      w.config.chart.dropShadow.blur -
-      labelWidth.width / 1.75
+      w.config.chart.dropShadow.blur
+
+    if (w.config.xaxis.labels.show) {
+      this.size = this.size - labelWidth.width / 1.75
+    }
 
     if (w.config.plotOptions.radar.size !== undefined) {
       this.size = w.config.plotOptions.radar.size
