@@ -66,79 +66,83 @@
 <body>
   
     <div id="app">
+      <div>
       <div class="chart-wrap">
-      <div id="chart">
+        <div id="chart">
       <apexchart type="donut" width="380" :options="chartOptions" :series="series"></apexchart>
     </div>
-    </div>
+      </div>
     
-    <div class="actions">
-      <button
-          
-          
-          @click="appendData">
-        + ADD
-      </button>
-      
-      <button
-          
-          
-          @click="removeData">
-        - REMOVE
-      </button>
-      
-      <button
-          
-          
-          @click="randomize">
-        RANDOMIZE
-      </button>
-      
-      <button
-          
-          
-          @click="reset">
-        RESET
-      </button>
+      <div class="actions">
+        <button
+            
+            
+            @click="appendData">
+          + ADD
+        </button>
+        
+        <button
+            
+            
+            @click="removeData">
+          - REMOVE
+        </button>
+        
+        <button
+            
+            
+            @click="randomize">
+          RANDOMIZE
+        </button>
+        
+        <button
+            
+            
+            @click="reset">
+          RESET
+        </button>
+      </div>
     </div>
     </div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">
-      &lt;div class=&quot;chart-wrap&quot;&gt;
-        &lt;div id=&quot;chart&quot;&gt;
+      &lt;div&gt;
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
         &lt;apexchart type=&quot;donut&quot; width=&quot;380&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
-      &lt;/div&gt;
+        &lt;/div&gt;
       
-      &lt;div class=&quot;actions&quot;&gt;
-        &lt;button
-            
-            
-            @click=&quot;appendData&quot;&gt;
-          + ADD
-        &lt;/button&gt;
-        
-        &lt;button
-            
-            
-            @click=&quot;removeData&quot;&gt;
-          - REMOVE
-        &lt;/button&gt;
-        
-        &lt;button
-            
-            
-            @click=&quot;randomize&quot;&gt;
-          RANDOMIZE
-        &lt;/button&gt;
-        
-        &lt;button
-            
-            
-            @click=&quot;reset&quot;&gt;
-          RESET
-        &lt;/button&gt;
+        &lt;div class=&quot;actions&quot;&gt;
+          &lt;button
+              
+              
+              @click=&quot;appendData&quot;&gt;
+            + ADD
+          &lt;/button&gt;
+          
+          &lt;button
+              
+              
+              @click=&quot;removeData&quot;&gt;
+            - REMOVE
+          &lt;/button&gt;
+          
+          &lt;button
+              
+              
+              @click=&quot;randomize&quot;&gt;
+            RANDOMIZE
+          &lt;/button&gt;
+          
+          &lt;button
+              
+              
+              @click=&quot;reset&quot;&gt;
+            RESET
+          &lt;/button&gt;
+        &lt;/div&gt;
       &lt;/div&gt;
     </div>
 

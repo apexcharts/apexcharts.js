@@ -24,8 +24,8 @@ function extractXMLSections(data, sectionNames, xmlPath) {
   return info
 }
 
-async function parseSampleXML(xmlPath) {
-  const data = await fs.promises.readFile(xmlPath, 'utf8')
+function parseSampleXML(xmlPath) {
+  const data = fs.readFileSync(xmlPath, 'utf8')
 
   const globalSections = [
     'title',
@@ -110,6 +110,31 @@ async function parseSampleXML(xmlPath) {
   return info
 }
 
+function extractSampleInfo() {
+  const samples = []
+  const sourceDir = path.join(samplesDir, 'source')
+  const dirNames = fs.readdirSync(sourceDir)
+  for (const dirName of dirNames) {
+    // Only iterate over directories
+    if (!dirName.includes('.')) {
+      const dirPath = path.join(sourceDir, dirName)
+      const fileNames = fs.readdirSync(dirPath)
+      for (const fileName of fileNames) {
+        if (fileName.endsWith('.xml')) {
+          const info = parseSampleXML(path.join(dirPath, fileName))
+          samples.push({
+            dirName,
+            fileName: fileName.slice(0, -4),
+            info
+          })
+        }
+      }
+    }
+  }
+  return samples
+}
+
+// BUG: reuse extractSampleInfo()?
 async function generateSampleHtml() {
   const formats = ['vanilla-js', 'react', 'vue']
   for (const format of formats) {
@@ -117,6 +142,19 @@ async function generateSampleHtml() {
   }
 
   const sourceDir = path.join(samplesDir, 'source')
+  const env = nunjucks.configure(sourceDir, {
+    autoescape: false,
+    noCache: true
+  })
+  env.addFilter('indent', (str, indent) => {
+    return str
+      .split('\n')
+      .map((line, index) => {
+        return index > 0 ? ' '.repeat(indent) + line : line
+      })
+      .join('\n')
+  })
+
   const dirNames = await fs.promises.readdir(sourceDir)
   for (const dirName of dirNames) {
     if (dirName.includes('.')) {
@@ -127,20 +165,7 @@ async function generateSampleHtml() {
     const fileNames = await fs.promises.readdir(dirPath)
     for (const fileName of fileNames) {
       if (fileName.endsWith('.xml')) {
-        const info = await parseSampleXML(path.join(dirPath, fileName))
-
-        const env = nunjucks.configure(sourceDir, {
-          autoescape: false,
-          noCache: true
-        })
-        env.addFilter('indent', (str, indent) => {
-          return str
-            .split('\n')
-            .map((line, index) => {
-              return index > 0 ? ' '.repeat(indent) + line : line
-            })
-            .join('\n')
-        })
+        const info = parseSampleXML(path.join(dirPath, fileName))
 
         for (const format of formats) {
           // If any format-specific script section is present only generate html for these formats
@@ -220,4 +245,4 @@ if (process.argv.includes('generate')) {
   generateSampleHtml().catch((e) => console.log(e))
 }
 
-module.exports = { parseSampleXML, generateSampleHtml }
+module.exports = { extractSampleInfo, generateSampleHtml }

@@ -1,7 +1,7 @@
 <title>Time Series</title>
 
 <style>
-#chart {
+#box {
   max-width: 800px;
   margin: 35px auto;
 }
@@ -17,7 +17,7 @@
 </style>
 
 <html>
-<div id="chart">
+<div id="box">
   {{ charts[0] }}
   <div class="selection">
     Selected: <span id="selected-count">0</span>
@@ -32,7 +32,7 @@ chart: {
   height: 380,
   foreColor: "#999",
   events: {
-    dataPointSelection: function(e, chart,opts) {
+    dataPointSelection: function(e, chart, opts) {
       var arraySelected = []
       opts.selectedDataPoints.map(function(selectedIndex) {
         return selectedIndex.map(function(s) {

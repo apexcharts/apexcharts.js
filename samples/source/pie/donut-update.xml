@@ -34,38 +34,40 @@ p {
 </style>
 
 <html>
-<div class="chart-wrap">
-  {{ charts[0] }}
-</div>
+<div>
+  <div class="chart-wrap">
+    {{ charts[0] }}
+  </div>
 
-<div class="actions">
-  <button
-      {% if format == 'vanilla-js' %}id="add"{% endif %}
-      {% if format == 'react' %}onClick={() => this.appendData()}{% endif %}
-      {% if format == 'vue' %}@click="appendData"{% endif %}>
-    + ADD
-  </button>
-  {% if format == 'react' %}&nbsp;{% endif %}
-  <button
-      {% if format == 'vanilla-js' %}id="remove"{% endif %}
-      {% if format == 'react' %}onClick={() => this.removeData()}{% endif %}
-      {% if format == 'vue' %}@click="removeData"{% endif %}>
-    - REMOVE
-  </button>
-  {% if format == 'react' %}&nbsp;{% endif %}
-  <button
-      {% if format == 'vanilla-js' %}id="randomize"{% endif %}
-      {% if format == 'react' %}onClick={() => this.randomize()}{% endif %}
-      {% if format == 'vue' %}@click="randomize"{% endif %}>
-    RANDOMIZE
-  </button>
-  {% if format == 'react' %}&nbsp;{% endif %}
-  <button
-      {% if format == 'vanilla-js' %}id="reset"{% endif %}
-      {% if format == 'react' %}onClick={() => this.reset()}{% endif %}
-      {% if format == 'vue' %}@click="reset"{% endif %}>
-    RESET
-  </button>
+  <div class="actions">
+    <button
+        {% if format == 'vanilla-js' %}id="add"{% endif %}
+        {% if format == 'react' %}onClick={() => this.appendData()}{% endif %}
+        {% if format == 'vue' %}@click="appendData"{% endif %}>
+      + ADD
+    </button>
+    {% if format == 'react' %}&nbsp;{% endif %}
+    <button
+        {% if format == 'vanilla-js' %}id="remove"{% endif %}
+        {% if format == 'react' %}onClick={() => this.removeData()}{% endif %}
+        {% if format == 'vue' %}@click="removeData"{% endif %}>
+      - REMOVE
+    </button>
+    {% if format == 'react' %}&nbsp;{% endif %}
+    <button
+        {% if format == 'vanilla-js' %}id="randomize"{% endif %}
+        {% if format == 'react' %}onClick={() => this.randomize()}{% endif %}
+        {% if format == 'vue' %}@click="randomize"{% endif %}>
+      RANDOMIZE
+    </button>
+    {% if format == 'react' %}&nbsp;{% endif %}
+    <button
+        {% if format == 'vanilla-js' %}id="reset"{% endif %}
+        {% if format == 'react' %}onClick={() => this.reset()}{% endif %}
+        {% if format == 'vue' %}@click="reset"{% endif %}>
+      RESET
+    </button>
+  </div>
 </div>
 </html>
 
@@ -142,7 +144,7 @@ document.querySelector("#reset").addEventListener("click", function() {
 </vanilla-js-script>
 
 <react-script>
-appendData () {
+appendData() {
   var arr = this.state.series.slice()
   arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
 
