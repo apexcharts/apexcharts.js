@@ -152,22 +152,51 @@ function runInParallel(items, concurrency, processor) {
   return new Promise(next)
 }
 
+function dirLastModified(dir) {
+  let time = 0
+  fs.readdirSync(dir).forEach((f) => {
+    const itemPath = path.join(dir, f)
+    const stat = fs.statSync(itemPath)
+    const timeModified = stat.isDirectory()
+      ? dirLastModified(itemPath)
+      : stat.mtime
+    time = Math.max(time, timeModified)
+  })
+  return time
+}
+
+async function prepareIstanbulBundle() {
+  const bundlePath = `${e2eSamplesDir}/apexcharts.e2e.js`
+  const timeModified = fs.existsSync(bundlePath)
+    ? fs.statSync(bundlePath).mtime.valueOf()
+    : 0
+
+  let codeModifiedTime = Math.max(
+    dirLastModified(`${rootDir}/build`),
+    dirLastModified(`${rootDir}/src`)
+  )
+
+  if (timeModified < codeModifiedTime) {
+    // Build the version of apexcharts instrumented with istanbul to record test coverage
+    const rollupConfig = getBuild({
+      entry: `${rootDir}/src/apexcharts.js`,
+      dest: bundlePath,
+      format: 'umd',
+      env: 'development',
+      istanbul: true
+    })
+    await executeBuildEntry(rollupConfig)
+  }
+}
+
 async function processSamples(command, paths) {
   const startTime = Date.now()
 
-  await fs.emptyDir(e2eSamplesDir)
+  await fs.ensureDir(e2eSamplesDir)
   await fs.emptyDir(`${rootDir}/.nyc_output`)
   await fs.emptyDir(`${e2eDir}/diffs`)
 
-  // Build istanbul instruments version of apexcharts to record test coverage
-  const rollupConfig = getBuild({
-    entry: `${rootDir}/src/apexcharts.js`,
-    dest: `${rootDir}/samples/e2e/apexcharts.e2e.js`,
-    format: 'umd',
-    env: 'development',
-    istanbul: true
-  })
-  await executeBuildEntry(rollupConfig)
+  await prepareIstanbulBundle()
 
   browser = await puppeteer.launch()
 
@@ -244,8 +273,6 @@ async function processSamples(command, paths) {
   }
 
   if (command === 'test') {
-    await fs.remove(e2eSamplesDir)
-
     const { status } = spawnSync(
       `${rootDir}/node_modules/.bin/nyc`,
       ['report', '--reporter=html'],
