@@ -1,13 +1,13 @@
 /*!
  * ApexCharts v3.11.3
- * (c) 2018-2019 Juned Chhipa
+ * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global = global || self, global.ApexCharts = factory());
-}(this, function () { 'use strict';
+}(this, (function () { 'use strict';
 
   function _typeof(obj) {
     if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
@@ -695,10 +695,6 @@
               });
               break;
             }
-
-          default:
-            // do nothing
-            break;
         }
       } // appends dropShadow to the filter object which can be chained with other filter effects
 
@@ -1515,7 +1511,7 @@
         if (opts.shape === 'square') {
           var radius = opts.pRadius === undefined ? size / 2 : opts.pRadius;
 
-          if (y === null) {
+          if (y === null || !size) {
             size = 0;
             radius = 0;
           }
@@ -1644,14 +1640,16 @@
             w.globals.selectedDataPoints = [];
             var elPaths = w.globals.dom.Paper.select('.apexcharts-series path').members;
             var elCircles = w.globals.dom.Paper.select('.apexcharts-series circle, .apexcharts-series rect').members;
-            elPaths.forEach(function (elPath) {
-              elPath.node.setAttribute('selected', 'false');
-              filters.getDefaultFilter(elPath, i);
-            });
-            elCircles.forEach(function (circle) {
-              circle.node.setAttribute('selected', 'false');
-              filters.getDefaultFilter(circle, i);
-            });
+
+            var deSelect = function deSelect(els) {
+              els.forEach(function (el) {
+                el.node.setAttribute('selected', 'false');
+                filters.getDefaultFilter(el, i);
+              });
+            };
+
+            deSelect(elPaths);
+            deSelect(elCircles);
           }
 
           path.node.setAttribute('selected', 'true');
@@ -1759,7 +1757,7 @@
               }
             }
 
-            textObj.textContent = '...'; // can't place at all
+            textObj.textContent = ''; // can't place at all
           }
         }
       }
@@ -1943,6 +1941,10 @@
           strokeDashArray, //dashArray
           anno.borderWidth);
           parent.appendChild(line.node);
+
+          if (anno.id) {
+            line.node.classList.add(anno.id);
+          }
         } else {
           var x2 = (anno.x2 - min) / (range / w.globals.gridWidth);
 
@@ -1973,6 +1975,10 @@
             strokeDashArray // stokeDashArray
             );
             parent.appendChild(rect.node);
+
+            if (anno.id) {
+              rect.node.classList.add(anno.id);
+            }
           }
         }
 
@@ -2058,6 +2064,10 @@
           strokeDashArray, // dashArray
           anno.borderWidth);
           parent.appendChild(line.node);
+
+          if (anno.id) {
+            line.node.classList.add(anno.id);
+          }
         } else {
           if (this.annoCtx.invertAxis) {
             var _catIndex = w.globals.labels.indexOf(anno.y2);
@@ -2094,6 +2104,10 @@
             strokeDashArray // stokeDashArray
             );
             parent.appendChild(rect.node);
+
+            if (anno.id) {
+              rect.node.classList.add(anno.id);
+            }
           }
         }
 
@@ -2642,21 +2656,12 @@
         var output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
         output = this.getUTCTimeStamp(output);
         return output;
-      } // https://stackoverflow.com/a/11252167/6495043
-
-    }, {
-      key: "treatAsUtc",
-      value: function treatAsUtc(dateStr) {
-        var result = new Date(dateStr);
-        result.setMinutes(result.getMinutes() - result.getTimezoneOffset());
-        return result;
       } // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
 
     }, {
       key: "formatDate",
       value: function formatDate(date, format) {
         var utc = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-        var convertToUTC = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
         var locale = this.w.globals.locale;
         var MMMM = ['\x00'].concat(_toConsumableArray(locale.months));
         var MMM = ['\x01'].concat(_toConsumableArray(locale.shortMonths));
@@ -2674,37 +2679,33 @@
           return s;
         }
 
-        if (convertToUTC) {
-          date = this.treatAsUtc(date);
-        }
-
-        var y = utc ? date.getUTCFullYear() : date.getFullYear();
+        var y = date.getUTCFullYear();
         format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y);
         format = format.replace(/(^|[^\\])yy/g, '$1' + y.toString().substr(2, 2));
         format = format.replace(/(^|[^\\])y/g, '$1' + y);
-        var M = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
+        var M = date.getUTCMonth() + 1;
         format = format.replace(/(^|[^\\])MMMM+/g, '$1' + MMMM[0]);
         format = format.replace(/(^|[^\\])MMM/g, '$1' + MMM[0]);
         format = format.replace(/(^|[^\\])MM/g, '$1' + ii(M));
         format = format.replace(/(^|[^\\])M/g, '$1' + M);
-        var d = utc ? date.getUTCDate() : date.getDate();
+        var d = date.getUTCDate();
         format = format.replace(/(^|[^\\])dddd+/g, '$1' + dddd[0]);
         format = format.replace(/(^|[^\\])ddd/g, '$1' + ddd[0]);
         format = format.replace(/(^|[^\\])dd/g, '$1' + ii(d));
         format = format.replace(/(^|[^\\])d/g, '$1' + d);
-        var H = utc ? date.getUTCHours() : date.getHours();
+        var H = date.getUTCHours();
         format = format.replace(/(^|[^\\])HH+/g, '$1' + ii(H));
         format = format.replace(/(^|[^\\])H/g, '$1' + H);
         var h = H > 12 ? H - 12 : H === 0 ? 12 : H;
         format = format.replace(/(^|[^\\])hh+/g, '$1' + ii(h));
         format = format.replace(/(^|[^\\])h/g, '$1' + h);
-        var m = utc ? date.getUTCMinutes() : date.getMinutes();
+        var m = date.getUTCMinutes();
         format = format.replace(/(^|[^\\])mm+/g, '$1' + ii(m));
         format = format.replace(/(^|[^\\])m/g, '$1' + m);
-        var s = utc ? date.getUTCSeconds() : date.getSeconds();
+        var s = date.getUTCSeconds();
         format = format.replace(/(^|[^\\])ss+/g, '$1' + ii(s));
         format = format.replace(/(^|[^\\])s/g, '$1' + s);
-        var f = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
+        var f = date.getUTCMilliseconds();
         format = format.replace(/(^|[^\\])fff+/g, '$1' + ii(f, 3));
         f = Math.round(f / 10);
         format = format.replace(/(^|[^\\])ff/g, '$1' + ii(f));
@@ -2718,16 +2719,8 @@
         format = format.replace(/(^|[^\\])t/g, '$1' + t.charAt(0));
         var tz = -date.getTimezoneOffset();
         var K = utc || !tz ? 'Z' : tz > 0 ? '+' : '-';
-
-        if (!utc) {
-          tz = Math.abs(tz);
-          var tzHrs = Math.floor(tz / 60);
-          var tzMin = tz % 60;
-          K += ii(tzHrs) + ':' + ii(tzMin);
-        }
-
         format = format.replace(/(^|[^\\])K/g, '$1' + K);
-        var day = (utc ? date.getUTCDay() : date.getDay()) + 1;
+        var day = date.getUTCDay() + 1;
         format = format.replace(new RegExp(dddd[0], 'g'), dddd[day]);
         format = format.replace(new RegExp(ddd[0], 'g'), ddd[day]);
         format = format.replace(new RegExp(MMMM[0], 'g'), MMMM[M]);
@@ -2748,16 +2741,16 @@
           maxX = w.config.xaxis.max;
         }
 
-        var minYear = new Date(minX).getFullYear();
-        var maxYear = new Date(maxX).getFullYear();
-        var minMonth = new Date(minX).getMonth();
-        var maxMonth = new Date(maxX).getMonth();
-        var minDate = new Date(minX).getDate();
-        var maxDate = new Date(maxX).getDate();
-        var minHour = new Date(minX).getHours();
-        var maxHour = new Date(maxX).getHours();
-        var minMinute = new Date(minX).getMinutes();
-        var maxMinute = new Date(maxX).getMinutes();
+        var minYear = new Date(minX).getUTCFullYear();
+        var maxYear = new Date(maxX).getUTCFullYear();
+        var minMonth = new Date(minX).getUTCMonth();
+        var maxMonth = new Date(maxX).getUTCMonth();
+        var minDate = new Date(minX).getUTCDate();
+        var maxDate = new Date(maxX).getUTCDate();
+        var minHour = new Date(minX).getUTCHours();
+        var maxHour = new Date(maxX).getUTCHours();
+        var minMinute = new Date(minX).getUTCMinutes();
+        var maxMinute = new Date(maxX).getUTCMinutes();
         return {
           minMinute: minMinute,
           maxMinute: maxMinute,
@@ -2862,7 +2855,7 @@
             // if user has not specified a custom formatter, use the default tooltip.x.format
             if (w.config.tooltip.x.formatter === undefined) {
               var datetimeObj = new DateTime(this.ctx);
-              return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format, true, true);
+              return datetimeObj.formatDate(new Date(val), w.config.tooltip.x.format);
             }
           }
         }
@@ -3206,8 +3199,9 @@
             if (_i === 0) {
               // check if first label is being cropped
               var firstTextRect = graphics.getTextRects(label.text);
+              var divideBy = w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways ? 1 : 2;
 
-              if (w.globals.skipFirstTimelinelabel || label.x + firstTextRect.width / 1.25 > w.globals.dom.elGraphical.x() && label.x === 0) {
+              if (w.globals.skipFirstTimelinelabel || label.x + firstTextRect.width / divideBy > w.globals.dom.elGraphical.x() && label.x <= 0) {
                 label.text = '';
               }
             }
@@ -3216,7 +3210,7 @@
               // check if last label is being cropped
               var lastTextRect = graphics.getTextRects(label.text);
 
-              if (w.globals.skipLastTimelinelabel || lastTextRect.width / 2 + label.x > w.globals.gridWidth + w.globals.x2SpaceAvailable || label.x - 0.5 > w.globals.gridWidth) {
+              if (w.globals.skipLastTimelinelabel || lastTextRect.width / 2 + label.x > w.globals.gridWidth + w.globals.x2SpaceAvailable || label.x > w.globals.gridWidth) {
                 label.text = '';
               }
             }
@@ -3315,7 +3309,7 @@
 
             if (w.config.yaxis[realIndex].labels.rotate !== 0) {
               var labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node);
-              elLabel.node.setAttribute('transform', "rotate(".concat(w.config.yaxis[realIndex].labels.rotate, " ").concat(labelRotatingCenter.x, " ").concat(labelRotatingCenter.y, ")"));
+              elLabel.node.setAttribute('transform', "rotate(".concat(w.config.yaxis[realIndex].labels.rotate, " 0 ").concat(labelRotatingCenter.y, ")"));
             }
 
             yPos = yPos + colHeight;
@@ -3350,7 +3344,7 @@
         var axisBorder = w.config.xaxis.axisBorder;
 
         if (axisBorder.show) {
-          var elVerticalLine = graphics.drawLine(w.globals.padHorizontal + axisBorder.offsetX + offX, 1 + axisBorder.offsetY, w.globals.padHorizontal + axisBorder.offsetX + offX, w.globals.gridHeight + axisBorder.offsetY, axisBorder.color);
+          var elVerticalLine = graphics.drawLine(w.globals.padHorizontal + axisBorder.offsetX + offX, 1 + axisBorder.offsetY, w.globals.padHorizontal + axisBorder.offsetX + offX, w.globals.gridHeight + axisBorder.offsetY, axisBorder.color, 0);
           elYaxis.add(elVerticalLine);
         }
 
@@ -3435,7 +3429,7 @@
             }
           }
         } else {
-          var width = w.globals.gridWidth / w.globals.labels.length;
+          var width = w.globals.gridWidth / (w.globals.labels.length + 1);
 
           for (var _xat = 0; _xat < xAxisTexts.length; _xat++) {
             var _tSpan = xAxisTexts[_xat].childNodes;
@@ -3537,6 +3531,8 @@
           labels.reverse();
         }
 
+        var firstLabel = '';
+
         if (w.config.yaxis[realIndex].labels.show) {
           for (var i = tickAmount; i >= 0; i--) {
             var val = labels[i];
@@ -3557,11 +3553,17 @@
               foreColor: w.config.yaxis[realIndex].labels.style.color,
               cssClass: 'apexcharts-yaxis-label ' + w.config.yaxis[realIndex].labels.style.cssClass
             });
+
+            if (i === tickAmount) {
+              firstLabel = label;
+            }
+
             elYaxisTexts.add(label);
-            var labelRotatingCenter = graphics.rotateAroundCenter(label.node);
 
             if (w.config.yaxis[realIndex].labels.rotate !== 0) {
-              label.node.setAttribute('transform', "rotate(".concat(w.config.yaxis[realIndex].labels.rotate, " ").concat(labelRotatingCenter.x, " ").concat(labelRotatingCenter.y, ")"));
+              var firstabelRotatingCenter = graphics.rotateAroundCenter(firstLabel.node);
+              var labelRotatingCenter = graphics.rotateAroundCenter(label.node);
+              label.node.setAttribute('transform', "rotate(".concat(w.config.yaxis[realIndex].labels.rotate, " ").concat(firstabelRotatingCenter.x, " ").concat(labelRotatingCenter.y, ")"));
             }
 
             l = l + labelsDivider;
@@ -3600,7 +3602,7 @@
         }
 
         if (axisBorder.show) {
-          var elVerticalLine = graphics.drawLine(x, w.globals.translateY + axisBorder.offsetY - 2, x, w.globals.gridHeight + w.globals.translateY + axisBorder.offsetY + 2, axisBorder.color);
+          var elVerticalLine = graphics.drawLine(x, w.globals.translateY + axisBorder.offsetY - 2, x, w.globals.gridHeight + w.globals.translateY + axisBorder.offsetY + 2, axisBorder.color, 0, axisBorder.width);
           elYaxis.add(elVerticalLine);
         }
 
@@ -4176,8 +4178,8 @@
               if (w.config.tooltip.x.formatter === undefined) {
                 if (w.config.xaxis.type === 'datetime') {
                   var datetimeObj = new DateTime(ctx);
-                  startVal = datetimeObj.formatDate(new Date(start), w.config.tooltip.x.format, true, true);
-                  endVal = datetimeObj.formatDate(new Date(end), w.config.tooltip.x.format, true, true);
+                  startVal = datetimeObj.formatDate(new Date(start), w.config.tooltip.x.format);
+                  endVal = datetimeObj.formatDate(new Date(end), w.config.tooltip.x.format);
                 } else {
                   startVal = start;
                   endVal = end;
@@ -4329,7 +4331,7 @@
           },
           markers: {
             size: 6,
-            strokeWidth: 2,
+            strokeWidth: 1,
             hover: {
               sizeOffset: 2
             }
@@ -4489,9 +4491,8 @@
         this.opts.yaxis[0].labels.offsetY = this.opts.yaxis[0].labels.offsetY ? this.opts.yaxis[0].labels.offsetY : 6;
         return {
           dataLabels: {
-            enabled: true,
+            enabled: false,
             style: {
-              colors: ['#a8a8a8'],
               fontSize: '11px'
             }
           },
@@ -4515,6 +4516,15 @@
             show: false
           },
           xaxis: {
+            labels: {
+              formatter: function formatter(val) {
+                return val;
+              },
+              style: {
+                colors: ['#a8a8a8'],
+                fontSize: '11px'
+              }
+            },
             tooltip: {
               enabled: false
             },
@@ -4627,7 +4637,9 @@
           var t = 0;
 
           for (var j = 0; j < w.globals.series.length; j++) {
-            t += w.globals.series[j][i];
+            if (typeof w.globals.series[j][i] !== 'undefined') {
+              t += w.globals.series[j][i];
+            }
           }
 
           total.push(t);
@@ -5700,7 +5712,17 @@
             style: {
               fontSize: '12px',
               fontFamily: undefined,
+              fontWeight: 'bold',
               colors: undefined
+            },
+            background: {
+              enabled: true,
+              foreColor: '#fff',
+              borderRadius: 2,
+              padding: 4,
+              opacity: 0.9,
+              borderWidth: 1,
+              borderColor: '#fff'
             },
             dropShadow: {
               enabled: false,
@@ -5753,6 +5775,7 @@
             strokeColors: '#fff',
             strokeWidth: 2,
             strokeOpacity: 0.9,
+            strokeDashArray: 0,
             fillOpacity: 1,
             shape: 'circle',
             radius: 2,
@@ -5881,8 +5904,8 @@
           var chartDefaults = {};
           var chartTypes = ['line', 'area', 'bar', 'candlestick', 'rangeBar', 'histogram', 'bubble', 'scatter', 'heatmap', 'pie', 'donut', 'radar', 'radialBar'];
 
-          if (chartTypes.indexOf(this.chartType) !== -1) {
-            chartDefaults = defaults[this.chartType]();
+          if (chartTypes.indexOf(opts.chart.type) !== -1) {
+            chartDefaults = defaults[opts.chart.type]();
           } else {
             chartDefaults = defaults.line();
           }
@@ -6009,10 +6032,6 @@
 
         if (config.tooltip.shared && config.tooltip.intersect) {
           throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false.');
-        }
-
-        if (config.chart.scroller) {
-          console.warn('Scroller has been deprecated since v2.0.0. Please remove the configuration for chart.scroller');
         }
 
         if ((config.chart.type === 'bar' || config.chart.type === 'rangeBar') && config.plotOptions.bar.horizontal) {
@@ -6774,16 +6793,16 @@
           });
         }
 
-        var strokeWidth = w.config.chart.type === 'bubble' ? w.config.stroke.width : m.strokeWidth;
         return {
           pSize: pSize,
           pRadius: m.radius,
-          pWidth: strokeWidth instanceof Array ? strokeWidth[seriesIndex] : strokeWidth,
+          pWidth: m.strokeWidth instanceof Array ? m.strokeWidth[seriesIndex] : m.strokeWidth,
           pointStrokeColor: pStyle.pointStrokeColor,
           pointFillColor: pStyle.pointFillColor,
           shape: m.shape instanceof Array ? m.shape[seriesIndex] : m.shape,
           class: cssClass,
           pointStrokeOpacity: m.strokeOpacity instanceof Array ? m.strokeOpacity[seriesIndex] : m.strokeOpacity,
+          pointStrokeDashArray: m.strokeDashArray instanceof Array ? m.strokeDashArray[seriesIndex] : m.strokeDashArray,
           pointFillOpacity: m.fillOpacity instanceof Array ? m.fillOpacity[seriesIndex] : m.fillOpacity,
           seriesIndex: seriesIndex
         };
@@ -6926,7 +6945,9 @@
           cy: y,
           fill: pathFillCircle,
           stroke: markerConfig.pointStrokeColor,
-          'stroke-width': markerConfig.pWidth
+          'stroke-width': markerConfig.pWidth,
+          'stroke-dasharray': markerConfig.pointStrokeDashArray,
+          'stroke-opacity': markerConfig.pointStrokeOpacity
         });
 
         if (w.config.chart.dropShadow.enabled) {
@@ -7072,9 +7093,10 @@
     }, {
       key: "drawDataLabel",
       value: function drawDataLabel(pos, i, j) {
-        var align = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 'top';
+        var _this = this;
+        var strokeWidth = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 2;
         // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
-        // all other charts like bars / heatmaps will define their own drawDataLabel routine
+        // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var dataLabelsConfig = w.config.dataLabels;
@@ -7093,11 +7115,7 @@
 
         for (var q = 0; q < pos.x.length; q++) {
           x = pos.x[q] + dataLabelsConfig.offsetX;
-          y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5;
-
-          if (align === 'bottom') {
-            y = y + w.globals.markers.size[i] * 2 + parseInt(dataLabelsConfig.style.fontSize, 10) * 1.4;
-          }
+          y = pos.y[q] + dataLabelsConfig.offsetY + strokeWidth;
 
           if (!isNaN(x)) {
             // a small hack as we have 2 points for the first val to connect it
@@ -7106,26 +7124,25 @@
             var val = w.globals.series[i][dataPointIndex];
             var text = '';
 
-            if (w.config.chart.type === 'bubble') {
-              val = w.globals.seriesZ[i][dataPointIndex];
-              text = w.config.dataLabels.formatter(val, {
-                ctx: this.ctx,
+            var getText = function getText(v) {
+              return w.config.dataLabels.formatter(v, {
+                ctx: _this.ctx,
                 seriesIndex: i,
                 dataPointIndex: dataPointIndex,
                 w: w
               });
+            };
+
+            if (w.config.chart.type === 'bubble') {
+              val = w.globals.seriesZ[i][dataPointIndex];
+              text = getText(val);
               y = pos.y[q] + w.config.dataLabels.offsetY;
               var scatter = new Scatter(this.ctx);
               var centerTextInBubbleCoords = scatter.centerTextInBubble(y, i, dataPointIndex);
               y = centerTextInBubbleCoords.y;
             } else {
               if (typeof val !== 'undefined') {
-                text = w.config.dataLabels.formatter(val, {
-                  ctx: this.ctx,
-                  seriesIndex: i,
-                  dataPointIndex: dataPointIndex,
-                  w: w
-                });
+                text = getText(val);
               }
             }
 
@@ -7157,6 +7174,7 @@
             textAnchor = opts.textAnchor,
             parent = opts.parent,
             dataLabelsConfig = opts.dataLabelsConfig,
+            color = opts.color,
             alwaysDrawDataLabel = opts.alwaysDrawDataLabel,
             offsetCorrection = opts.offsetCorrection;
 
@@ -7196,6 +7214,10 @@
           dataLabelColor = w.globals.dataLabels.style.colors[j];
         }
 
+        if (color) {
+          dataLabelColor = color;
+        }
+
         if (correctedLabels.drawnextLabel) {
           var dataLabelText = graphics.drawText({
             width: 100,
@@ -7206,7 +7228,8 @@
             textAnchor: textAnchor || dataLabelsConfig.textAnchor,
             text: text,
             fontSize: dataLabelsConfig.style.fontSize,
-            fontFamily: dataLabelsConfig.style.fontFamily
+            fontFamily: dataLabelsConfig.style.fontFamily,
+            fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
           });
           dataLabelText.attr({
             class: 'apexcharts-datalabel',
@@ -7227,6 +7250,62 @@
           }
 
           w.globals.lastDrawnDataLabelsIndexes[i].push(j);
+        }
+      }
+    }, {
+      key: "addBackgroundToDataLabel",
+      value: function addBackgroundToDataLabel(el, coords) {
+        var w = this.w;
+        var bCnf = w.config.dataLabels.background;
+        var paddingH = bCnf.padding;
+        var paddingV = bCnf.padding / 2;
+        var width = coords.width;
+        var height = coords.height;
+        var graphics = new Graphics(this.ctx);
+        var elRect = graphics.drawRect(coords.x - paddingH, coords.y - paddingV / 2, width + paddingH * 2, height + paddingV, bCnf.borderRadius, w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background, bCnf.opacity, bCnf.borderWidth, bCnf.borderColor);
+        return elRect;
+      }
+    }, {
+      key: "dataLabelsBackground",
+      value: function dataLabelsBackground() {
+        var w = this.w;
+        var chartType = w.config.chart.type;
+        if (chartType === 'bar' || chartType === 'rangeBar' || chartType === 'bubble') return;
+        var elDataLabels = w.globals.dom.baseEl.querySelectorAll('.apexcharts-datalabels text');
+
+        for (var i = 0; i < elDataLabels.length; i++) {
+          var el = elDataLabels[i];
+          var coords = el.getBBox();
+          var elRect = this.addBackgroundToDataLabel(el, coords);
+
+          if (elRect) {
+            el.parentNode.insertBefore(elRect.node, el);
+            var background = el.getAttribute('fill');
+            var shouldAnim = w.config.chart.animations.enabled && !w.globals.resized && !w.globals.dataChanged;
+
+            if (shouldAnim) {
+              elRect.animate().attr({
+                fill: background
+              });
+            } else {
+              elRect.attr({
+                fill: background
+              });
+            }
+
+            el.setAttribute('fill', w.config.dataLabels.background.foreColor);
+          }
+        }
+      }
+    }, {
+      key: "bringForward",
+      value: function bringForward() {
+        var w = this.w;
+        var elDataLabelsNodes = w.globals.dom.baseEl.querySelectorAll('.apexcharts-datalabels');
+        var elSeries = w.globals.dom.baseEl.querySelector('.apexcharts-plot-series');
+
+        for (var i = 0; i < elDataLabelsNodes.length; i++) {
+          elSeries.insertAdjacentElement('beforeEnd', elDataLabelsNodes[i]);
         }
       }
     }]);
@@ -8457,41 +8536,33 @@
 
           for (var j = 0; j < w.globals.dataPoints; j++) {
             var strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
+            var commonPathOpts = {
+              indexes: {
+                i: i,
+                j: j,
+                realIndex: realIndex,
+                bc: bc
+              },
+              strokeWidth: strokeWidth,
+              x: x,
+              y: y,
+              elSeries: elSeries
+            };
             var paths = null;
 
             if (this.isHorizontal) {
-              paths = this.drawBarPaths({
-                indexes: {
-                  i: i,
-                  j: j,
-                  realIndex: realIndex,
-                  bc: bc
-                },
-                barHeight: barHeight,
-                strokeWidth: strokeWidth,
+              paths = this.drawBarPaths(_objectSpread2({}, commonPathOpts, {
                 zeroW: zeroW,
-                x: x,
-                y: y,
-                yDivision: yDivision,
-                elSeries: elSeries
-              });
+                barHeight: barHeight,
+                yDivision: yDivision
+              }));
               barWidth = this.series[i][j] / this.invertedYRatio;
             } else {
-              paths = this.drawColumnPaths({
-                indexes: {
-                  i: i,
-                  j: j,
-                  realIndex: realIndex,
-                  bc: bc
-                },
-                x: x,
-                y: y,
+              paths = this.drawColumnPaths(_objectSpread2({}, commonPathOpts, {
                 xDivision: xDivision,
                 barWidth: barWidth,
-                zeroH: zeroH,
-                strokeWidth: strokeWidth,
-                elSeries: elSeries
-              });
+                zeroH: zeroH
+              }));
               barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex];
             }
 
@@ -8605,17 +8676,9 @@
           var bXP = zeroW;
 
           if (this.prevXVal[i - 1][j] < 0) {
-            if (this.series[i][j] >= 0) {
-              bXP = this.prevX[i - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2;
-            } else {
-              bXP = this.prevX[i - 1][j];
-            }
+            bXP = this.series[i][j] >= 0 ? this.prevX[i - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.prevX[i - 1][j];
           } else if (this.prevXVal[i - 1][j] >= 0) {
-            if (this.series[i][j] >= 0) {
-              bXP = this.prevX[i - 1][j];
-            } else {
-              bXP = this.prevX[i - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
-            }
+            bXP = this.series[i][j] >= 0 ? this.prevX[i - 1][j] : this.prevX[i - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
           }
 
           barXPosition = bXP;
@@ -8712,17 +8775,9 @@
           var prevYValue = this.prevY[i - 1][j];
 
           if (this.prevYVal[i - 1][j] < 0) {
-            if (this.series[i][j] >= 0) {
-              bYP = prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2;
-            } else {
-              bYP = prevYValue;
-            }
+            bYP = this.series[i][j] >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
           } else {
-            if (this.series[i][j] >= 0) {
-              bYP = prevYValue;
-            } else {
-              bYP = prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
-            }
+            bYP = this.series[i][j] >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
           }
 
           barYPosition = bYP;
@@ -8771,38 +8826,6 @@
           x: w.globals.isXNumeric ? x - xDivision : x,
           y: y
         };
-      }
-      /*
-       * When user clicks on legends, the collapsed series will be filled with [0,0,0,...,0]
-       * We need to make sure, that the last series is not [0,0,0,...,0]
-       * as we need to draw shapes on the last series (for stacked bars/columns only)
-       * Hence, we are collecting all inner arrays in series which has [0,0,0...,0]
-       **/
-
-    }, {
-      key: "checkZeroSeries",
-      value: function checkZeroSeries(_ref3) {
-        var series = _ref3.series;
-        var w = this.w;
-
-        for (var zs = 0; zs < series.length; zs++) {
-          var total = 0;
-
-          for (var zsj = 0; zsj < series[w.globals.maxValsInArrayIndex].length; zsj++) {
-            total += series[zs][zsj];
-          }
-
-          if (total === 0) {
-            this.zeroSerieses.push(zs);
-          }
-        } // After getting all zeroserieses, we need to ensure whether endingshapeonSeries is not in that zeroseries array
-
-
-        for (var s = series.length - 1; s >= 0; s--) {
-          if (this.zeroSerieses.indexOf(s) > -1 && s === this.endingShapeOnSeriesNumber) {
-            this.endingShapeOnSeriesNumber -= 1;
-          }
-        }
       }
     }]);
 
@@ -10104,8 +10127,7 @@
         var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
 
         if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
-          var pie = new Pie(this.ctx);
-          pie.printInnerLabels(dataLabelsConfig, dataLabelsConfig.total.label, dataLabelsConfig.total.formatter(w));
+          this.printInnerLabels(dataLabelsConfig, dataLabelsConfig.total.label, dataLabelsConfig.total.formatter(w));
         } else {
           var slices = document.querySelectorAll(".apexcharts-pie-area");
           var sliceOut = false;
@@ -10163,12 +10185,15 @@
       this.maxValue = this.w.globals.maxY;
       this.minValue = this.w.globals.minY;
       this.polygons = w.config.plotOptions.radar.polygons;
-      this.maxLabelWidth = 20;
-      var longestLabel = w.globals.labels.slice().sort(function (a, b) {
+      var longestXaxisLabel = w.globals.labels.slice().sort(function (a, b) {
         return b.length - a.length;
       })[0];
-      var labelWidth = this.graphics.getTextRects(longestLabel, w.config.dataLabels.style.fontSize);
-      this.size = this.defaultSize / 2.1 - w.config.stroke.width - w.config.chart.dropShadow.blur - labelWidth.width / 1.75;
+      var labelWidth = this.graphics.getTextRects(longestXaxisLabel, w.config.xaxis.labels.style.fontSize);
+      this.size = this.defaultSize / 2.1 - w.config.stroke.width - w.config.chart.dropShadow.blur;
+
+      if (w.config.xaxis.labels.show) {
+        this.size = this.size - labelWidth.width / 1.75;
+      }
 
       if (w.config.plotOptions.radar.size !== undefined) {
         this.size = w.config.plotOptions.radar.size;
@@ -10188,6 +10213,7 @@
         var w = this.w;
         var fill = new Fill(this.ctx);
         var allSeries = [];
+        var dataLabels = new DataLabels(this.ctx);
 
         if (series.length) {
           this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length;
@@ -10199,13 +10225,14 @@
         var translateX = halfW;
         var translateY = halfH;
         var ret = this.graphics.group({
-          class: 'apexcharts-radar-series',
+          class: 'apexcharts-radar-series apexcharts-plot-series',
           'data:innerTranslateX': translateX,
           'data:innerTranslateY': translateY - 25,
           transform: "translate(".concat(translateX || 0, ", ").concat(translateY || 0, ")")
         });
         var dataPointsPos = [];
         var elPointsMain = null;
+        var elDataPointsMain = null;
         this.yaxisLabels = this.graphics.group({
           class: 'apexcharts-yaxis'
         });
@@ -10238,6 +10265,10 @@
 
           elPointsMain = _this.graphics.group({
             class: 'apexcharts-series-markers-wrap hidden'
+          }); // datapoints
+
+          elDataPointsMain = _this.graphics.group({
+            class: "apexcharts-datalabels"
           });
           w.globals.delayedElements.push({
             el: elPointsMain.node,
@@ -10315,6 +10346,23 @@
 
             elPointsMain.add(elPointsWrap);
             elSeries.add(elPointsMain);
+
+            if (w.config.dataLabels.enabled) {
+              var dataLabelsConfig = w.config.dataLabels;
+              dataLabels.plotDataLabelsText({
+                x: dataPointsPos[j].x,
+                y: dataPointsPos[j].y,
+                text: w.globals.series[i][j],
+                textAnchor: 'middle',
+                i: i,
+                j: i,
+                parent: elDataPointsMain,
+                offsetCorrection: false,
+                dataLabelsConfig: _objectSpread2({}, dataLabelsConfig)
+              });
+            }
+
+            elSeries.add(elDataPointsMain);
           });
           allSeries.push(elSeries);
         });
@@ -10322,9 +10370,9 @@
           parent: ret
         });
 
-        if (w.config.dataLabels.enabled) {
-          var dataLabels = this.drawLabels();
-          ret.add(dataLabels);
+        if (w.config.xaxis.labels.show) {
+          var xaxisTexts = this.drawXAxisTexts();
+          ret.add(xaxisTexts);
         }
 
         ret.add(this.yaxisLabels);
@@ -10387,15 +10435,15 @@
 
         if (w.config.yaxis[0].show) {
           this.yaxisLabelsTextsPos.forEach(function (p, i) {
-            var yText = _this2.drawYAxisText(p.x, p.y, i, yaxisTexts[i]);
+            var yText = _this2.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i]);
 
             _this2.yaxisLabels.add(yText);
           });
         }
       }
     }, {
-      key: "drawYAxisText",
-      value: function drawYAxisText(x, y, i, text) {
+      key: "drawYAxisTexts",
+      value: function drawYAxisTexts(x, y, i, text) {
         var w = this.w;
         var yaxisConfig = w.config.yaxis[0];
         var formatter = w.globals.yLabelFormatters[0];
@@ -10411,47 +10459,22 @@
         return yaxisLabel;
       }
     }, {
-      key: "drawLabels",
-      value: function drawLabels() {
+      key: "drawXAxisTexts",
+      value: function drawXAxisTexts() {
         var _this3 = this;
 
         var w = this.w;
-        var limit = 10;
-        var textAnchor = 'middle';
-        var dataLabelsConfig = w.config.dataLabels;
-        var elDataLabelsWrap = this.graphics.group({
-          class: 'apexcharts-datalabels'
+        var xaxisLabelsConfig = w.config.xaxis.labels;
+        var elXAxisWrap = this.graphics.group({
+          class: 'apexcharts-xaxis'
         });
         var polygonPos = this.getPolygonPos(this.size);
-        var currPosX = 0;
-        var currPosY = 0;
         w.globals.labels.forEach(function (label, i) {
-          var formatter = dataLabelsConfig.formatter;
+          var formatter = w.config.xaxis.labels.formatter;
           var dataLabels = new DataLabels(_this3.ctx);
 
           if (polygonPos[i]) {
-            currPosX = polygonPos[i].x;
-            currPosY = polygonPos[i].y;
-
-            if (Math.abs(polygonPos[i].x) >= limit) {
-              if (polygonPos[i].x > 0) {
-                textAnchor = 'start';
-                currPosX += 10;
-              } else if (polygonPos[i].x < 0) {
-                textAnchor = 'end';
-                currPosX -= 10;
-              }
-            } else {
-              textAnchor = 'middle';
-            }
-
-            if (Math.abs(polygonPos[i].y) >= _this3.size - limit) {
-              if (polygonPos[i].y < 0) {
-                currPosY -= 10;
-              } else if (polygonPos[i].y > 0) {
-                currPosY += 10;
-              }
-            }
+            var textPos = _this3.getTextPos(polygonPos[i], _this3.size);
 
             var text = formatter(label, {
               seriesIndex: -1,
@@ -10459,19 +10482,25 @@
               w: w
             });
             dataLabels.plotDataLabelsText({
-              x: currPosX,
-              y: currPosY,
+              x: textPos.newX,
+              y: textPos.newY,
               text: text,
-              textAnchor: textAnchor,
+              textAnchor: textPos.textAnchor,
               i: i,
               j: i,
-              parent: elDataLabelsWrap,
-              dataLabelsConfig: dataLabelsConfig,
+              parent: elXAxisWrap,
+              color: xaxisLabelsConfig.style.colors[i] ? xaxisLabelsConfig.style.colors[i] : '#a8a8a8',
+              dataLabelsConfig: _objectSpread2({
+                textAnchor: textPos.textAnchor,
+                dropShadow: {
+                  enabled: false
+                }
+              }, xaxisLabelsConfig),
               offsetCorrection: false
             });
           }
         });
-        return elDataLabelsWrap;
+        return elXAxisWrap;
       }
     }, {
       key: "createPaths",
@@ -10506,6 +10535,40 @@
           linePathsTo: linePathsTo,
           areaPathsFrom: areaPathsFrom,
           areaPathsTo: areaPathsTo
+        };
+      }
+    }, {
+      key: "getTextPos",
+      value: function getTextPos(pos, polygonSize) {
+        var limit = 10;
+        var textAnchor = 'middle';
+        var newX = pos.x;
+        var newY = pos.y;
+
+        if (Math.abs(pos.x) >= limit) {
+          if (pos.x > 0) {
+            textAnchor = 'start';
+            newX += 10;
+          } else if (pos.x < 0) {
+            textAnchor = 'end';
+            newX -= 10;
+          }
+        } else {
+          textAnchor = 'middle';
+        }
+
+        if (Math.abs(pos.y) >= polygonSize - limit) {
+          if (pos.y < 0) {
+            newY -= 10;
+          } else if (pos.y > 0) {
+            newY += 10;
+          }
+        }
+
+        return {
+          textAnchor: textAnchor,
+          newX: newX,
+          newY: newY
         };
       }
     }, {
@@ -12889,6 +12952,7 @@
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var fill = new Fill(this.ctx);
+        var dataLabels = new DataLabels(this.ctx);
         var type = w.globals.comboCharts ? ptype : w.config.chart.type;
         var ret = graphics.group({
           class: "apexcharts-".concat(type, "-series apexcharts-plot-series")
@@ -12920,6 +12984,7 @@
 
           var xDivision = w.globals.gridWidth / w.globals.dataPoints;
           var realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+          var strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[realIndex] : w.config.stroke.width;
 
           if (yRatio.length > 1) {
             this.yaxisIndex = realIndex;
@@ -13126,9 +13191,7 @@
               });
             }
 
-            var dataLabelAlign = !series[i][j + 1] || series[i][j + 1] > series[i][j] ? 'top' : 'bottom';
-            var dataLabels = new DataLabels(this.ctx);
-            var drawnLabels = dataLabels.drawDataLabel(pointsPos, realIndex, j + 1, null, dataLabelAlign);
+            var drawnLabels = dataLabels.drawDataLabel(pointsPos, realIndex, j + 1, null, strokeWidth);
 
             if (drawnLabels !== null) {
               elDataLabelsWrap.add(drawnLabels);
@@ -13193,7 +13256,7 @@
                 pathFrom: pathFromLine,
                 pathTo: linePaths[_p],
                 stroke: lineFill,
-                strokeWidth: Array.isArray(w.config.stroke.width) ? w.config.stroke.width[realIndex] : w.config.stroke.width,
+                strokeWidth: strokeWidth,
                 strokeLineCap: w.config.stroke.lineCap,
                 fill: 'none'
               }));
@@ -13933,15 +13996,15 @@
   var Range$1 =
   /*#__PURE__*/
   function () {
-    function Range$$1(ctx) {
-      _classCallCheck(this, Range$$1);
+    function Range$1(ctx) {
+      _classCallCheck(this, Range$1);
 
       this.ctx = ctx;
       this.w = ctx.w;
       this.scales = new Range(ctx);
     }
 
-    _createClass(Range$$1, [{
+    _createClass(Range$1, [{
       key: "init",
       value: function init() {
         this.setYRange();
@@ -14296,7 +14359,10 @@
             seriesX.forEach(function (s, j) {
               if (j > 0) {
                 var xDiff = s - gl.seriesX[i][j - 1];
-                gl.minXDiff = Math.min(xDiff, gl.minXDiff);
+
+                if (xDiff > 0) {
+                  gl.minXDiff = Math.min(xDiff, gl.minXDiff);
+                }
               }
             });
           });
@@ -14327,7 +14393,7 @@
       }
     }]);
 
-    return Range$$1;
+    return Range$1;
   }();
 
   /**
@@ -15035,7 +15101,7 @@
             if (ts.unit === 'day') customFormat = dtFormatter.day;
             if (ts.unit === 'hour') customFormat = dtFormatter.hour;
             if (ts.unit === 'minute') customFormat = dtFormatter.minute;
-            value = dt.formatDate(dateString, customFormat, true, false);
+            value = dt.formatDate(dateString, customFormat);
           } else {
             value = dt.formatDate(dateString, w.config.xaxis.labels.format);
           }
@@ -16130,262 +16196,6 @@
     return Data;
   }();
 
-  /**
-   * @this {Promise}
-   */
-  function finallyConstructor(callback) {
-    var constructor = this.constructor;
-    return this.then(
-      function(value) {
-        return constructor.resolve(callback()).then(function() {
-          return value;
-        });
-      },
-      function(reason) {
-        return constructor.resolve(callback()).then(function() {
-          return constructor.reject(reason);
-        });
-      }
-    );
-  }
-
-  // Store setTimeout reference so promise-polyfill will be unaffected by
-  // other code modifying setTimeout (like sinon.useFakeTimers())
-  var setTimeoutFunc = setTimeout;
-
-  function noop() {}
-
-  // Polyfill for Function.prototype.bind
-  function bind(fn, thisArg) {
-    return function() {
-      fn.apply(thisArg, arguments);
-    };
-  }
-
-  /**
-   * @constructor
-   * @param {Function} fn
-   */
-  function Promise$1(fn) {
-    if (!(this instanceof Promise$1))
-      throw new TypeError('Promises must be constructed via new');
-    if (typeof fn !== 'function') throw new TypeError('not a function');
-    /** @type {!number} */
-    this._state = 0;
-    /** @type {!boolean} */
-    this._handled = false;
-    /** @type {Promise|undefined} */
-    this._value = undefined;
-    /** @type {!Array<!Function>} */
-    this._deferreds = [];
-
-    doResolve(fn, this);
-  }
-
-  function handle(self, deferred) {
-    while (self._state === 3) {
-      self = self._value;
-    }
-    if (self._state === 0) {
-      self._deferreds.push(deferred);
-      return;
-    }
-    self._handled = true;
-    Promise$1._immediateFn(function() {
-      var cb = self._state === 1 ? deferred.onFulfilled : deferred.onRejected;
-      if (cb === null) {
-        (self._state === 1 ? resolve : reject)(deferred.promise, self._value);
-        return;
-      }
-      var ret;
-      try {
-        ret = cb(self._value);
-      } catch (e) {
-        reject(deferred.promise, e);
-        return;
-      }
-      resolve(deferred.promise, ret);
-    });
-  }
-
-  function resolve(self, newValue) {
-    try {
-      // Promise Resolution Procedure: https://github.com/promises-aplus/promises-spec#the-promise-resolution-procedure
-      if (newValue === self)
-        throw new TypeError('A promise cannot be resolved with itself.');
-      if (
-        newValue &&
-        (typeof newValue === 'object' || typeof newValue === 'function')
-      ) {
-        var then = newValue.then;
-        if (newValue instanceof Promise$1) {
-          self._state = 3;
-          self._value = newValue;
-          finale(self);
-          return;
-        } else if (typeof then === 'function') {
-          doResolve(bind(then, newValue), self);
-          return;
-        }
-      }
-      self._state = 1;
-      self._value = newValue;
-      finale(self);
-    } catch (e) {
-      reject(self, e);
-    }
-  }
-
-  function reject(self, newValue) {
-    self._state = 2;
-    self._value = newValue;
-    finale(self);
-  }
-
-  function finale(self) {
-    if (self._state === 2 && self._deferreds.length === 0) {
-      Promise$1._immediateFn(function() {
-        if (!self._handled) {
-          Promise$1._unhandledRejectionFn(self._value);
-        }
-      });
-    }
-
-    for (var i = 0, len = self._deferreds.length; i < len; i++) {
-      handle(self, self._deferreds[i]);
-    }
-    self._deferreds = null;
-  }
-
-  /**
-   * @constructor
-   */
-  function Handler(onFulfilled, onRejected, promise) {
-    this.onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : null;
-    this.onRejected = typeof onRejected === 'function' ? onRejected : null;
-    this.promise = promise;
-  }
-
-  /**
-   * Take a potentially misbehaving resolver function and make sure
-   * onFulfilled and onRejected are only called once.
-   *
-   * Makes no guarantees about asynchrony.
-   */
-  function doResolve(fn, self) {
-    var done = false;
-    try {
-      fn(
-        function(value) {
-          if (done) return;
-          done = true;
-          resolve(self, value);
-        },
-        function(reason) {
-          if (done) return;
-          done = true;
-          reject(self, reason);
-        }
-      );
-    } catch (ex) {
-      if (done) return;
-      done = true;
-      reject(self, ex);
-    }
-  }
-
-  Promise$1.prototype['catch'] = function(onRejected) {
-    return this.then(null, onRejected);
-  };
-
-  Promise$1.prototype.then = function(onFulfilled, onRejected) {
-    // @ts-ignore
-    var prom = new this.constructor(noop);
-
-    handle(this, new Handler(onFulfilled, onRejected, prom));
-    return prom;
-  };
-
-  Promise$1.prototype['finally'] = finallyConstructor;
-
-  Promise$1.all = function(arr) {
-    return new Promise$1(function(resolve, reject) {
-      if (!arr || typeof arr.length === 'undefined')
-        throw new TypeError('Promise.all accepts an array');
-      var args = Array.prototype.slice.call(arr);
-      if (args.length === 0) return resolve([]);
-      var remaining = args.length;
-
-      function res(i, val) {
-        try {
-          if (val && (typeof val === 'object' || typeof val === 'function')) {
-            var then = val.then;
-            if (typeof then === 'function') {
-              then.call(
-                val,
-                function(val) {
-                  res(i, val);
-                },
-                reject
-              );
-              return;
-            }
-          }
-          args[i] = val;
-          if (--remaining === 0) {
-            resolve(args);
-          }
-        } catch (ex) {
-          reject(ex);
-        }
-      }
-
-      for (var i = 0; i < args.length; i++) {
-        res(i, args[i]);
-      }
-    });
-  };
-
-  Promise$1.resolve = function(value) {
-    if (value && typeof value === 'object' && value.constructor === Promise$1) {
-      return value;
-    }
-
-    return new Promise$1(function(resolve) {
-      resolve(value);
-    });
-  };
-
-  Promise$1.reject = function(value) {
-    return new Promise$1(function(resolve, reject) {
-      reject(value);
-    });
-  };
-
-  Promise$1.race = function(values) {
-    return new Promise$1(function(resolve, reject) {
-      for (var i = 0, len = values.length; i < len; i++) {
-        values[i].then(resolve, reject);
-      }
-    });
-  };
-
-  // Use polyfill for setImmediate for performance gains
-  Promise$1._immediateFn =
-    (typeof setImmediate === 'function' &&
-      function(fn) {
-        setImmediate(fn);
-      }) ||
-    function(fn) {
-      setTimeoutFunc(fn, 0);
-    };
-
-  Promise$1._unhandledRejectionFn = function _unhandledRejectionFn(err) {
-    if (typeof console !== 'undefined' && console) {
-      console.warn('Possible Unhandled Promise Rejection:', err); // eslint-disable-line no-console
-    }
-  };
-
   var Exports =
   /*#__PURE__*/
   function () {
@@ -16434,7 +16244,7 @@
       value: function dataURI() {
         var _this = this;
 
-        return new Promise$1(function (resolve) {
+        return new Promise(function (resolve) {
           var w = _this.w;
 
           _this.cleanup();
@@ -16492,7 +16302,7 @@
         var w = this.w;
         var columns = [];
         var rows = [];
-        var result = '';
+        var result = 'data:text/csv;charset=utf-8,';
         var dataFormat = new Data(this.ctx);
         var axesUtils = new AxesUtils(this.ctx);
 
@@ -16584,10 +16394,8 @@
             rows.push(columns.join(columnDelimiter));
           }
         });
-        result = rows.join(lineDelimiter);
-        this.triggerDownload(new Blob([encodeURI(result)], {
-          type: 'text/csv;charset=utf-8;'
-        }), '.csv');
+        result += rows.join(lineDelimiter);
+        this.triggerDownload(encodeURI(result), '.csv');
       }
     }, {
       key: "triggerDownload",
@@ -17350,8 +17158,8 @@
   var Utils$1 =
   /*#__PURE__*/
   function () {
-    function Utils$$1(tooltipContext) {
-      _classCallCheck(this, Utils$$1);
+    function Utils$1(tooltipContext) {
+      _classCallCheck(this, Utils$1);
 
       this.w = tooltipContext.w;
       this.ttCtx = tooltipContext;
@@ -17367,7 +17175,7 @@
      */
 
 
-    _createClass(Utils$$1, [{
+    _createClass(Utils$1, [{
       key: "getNearestValues",
       value: function getNearestValues(_ref) {
         var hoverArea = _ref.hoverArea,
@@ -17614,7 +17422,7 @@
       }
     }]);
 
-    return Utils$$1;
+    return Utils$1;
   }();
 
   /**
@@ -18523,21 +18331,17 @@
       value: function newPointSize(rel, point) {
         var w = this.w;
         var newSize = w.config.markers.hover.size;
-        var elPoint = null;
+        var elPoint = rel === 0 ? point.parentNode.firstChild : point.parentNode.lastChild;
 
-        if (rel === 0) {
-          elPoint = point.parentNode.firstChild;
-        } else {
-          elPoint = point.parentNode.lastChild;
+        if (elPoint.getAttribute('default-marker-size') !== '0') {
+          var index = parseInt(elPoint.getAttribute('index'), 10);
+
+          if (newSize === undefined) {
+            newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset;
+          }
+
+          elPoint.setAttribute('r', newSize);
         }
-
-        var index = parseInt(elPoint.getAttribute('index'), 10);
-
-        if (newSize === undefined) {
-          newSize = w.globals.markers.size[index] + w.config.markers.hover.sizeOffset;
-        }
-
-        elPoint.setAttribute('r', newSize);
       }
     }, {
       key: "oldPointSize",
@@ -20238,14 +20042,12 @@
       value: function downloadPNG() {
         var exprt = new Exports(this.ctx);
         exprt.exportToPng(this.ctx);
-        this.toggleMenu();
       }
     }, {
       key: "downloadSVG",
       value: function downloadSVG() {
         var exprt = new Exports(this.ctx);
         exprt.exportToSVG();
-        this.toggleMenu();
       }
     }, {
       key: "downloadCSV",
@@ -20255,7 +20057,6 @@
         exprt.exportToCSV({
           series: w.config.series
         });
-        this.toggleMenu();
       }
     }, {
       key: "handleZoomReset",
@@ -21364,18 +21165,6 @@
 
         return this;
       },
-      // Clean up any duplicate points
-      settle: function settle() {
-        // find all unique values
-        for (var i = 0, il = this.value.length, seen = []; i < il; i++) {
-          if (seen.indexOf(this.value[i]) == -1) {
-            seen.push(this.value[i]);
-          }
-        } // set new value
-
-
-        return this.value = seen;
-      },
       // Get morphed array at given position
       at: function at(pos) {
         // make sure a destination is defined
@@ -21425,107 +21214,6 @@
 
     SVG.PointArray.prototype = new SVG.Array();
     SVG.PointArray.prototype.constructor = SVG.PointArray;
-    SVG.extend(SVG.PointArray, {
-      // Convert array to string
-      toString: function toString() {
-        // convert to a poly point string
-        for (var i = 0, il = this.value.length, array = []; i < il; i++) {
-          array.push(this.value[i].join(','));
-        }
-
-        return array.join(' ');
-      },
-      // Convert array to line object
-      toLine: function toLine() {
-        return {
-          x1: this.value[0][0],
-          y1: this.value[0][1],
-          x2: this.value[1][0],
-          y2: this.value[1][1]
-        };
-      },
-      // Get morphed array at given position
-      at: function at(pos) {
-        // make sure a destination is defined
-        if (!this.destination) return this; // generate morphed point string
-
-        for (var i = 0, il = this.value.length, array = []; i < il; i++) {
-          array.push([this.value[i][0] + (this.destination[i][0] - this.value[i][0]) * pos, this.value[i][1] + (this.destination[i][1] - this.value[i][1]) * pos]);
-        }
-
-        return new SVG.PointArray(array);
-      },
-      // Parse point string and flat array
-      parse: function parse(array) {
-        var points = [];
-        array = array.valueOf(); // if it is an array
-
-        if (Array.isArray(array)) {
-          // and it is not flat, there is no need to parse it
-          if (Array.isArray(array[0])) {
-            // make sure to use a clone
-            return array.map(function (el) {
-              return el.slice();
-            });
-          } else if (array[0].x != null) {
-            // allow point objects to be passed
-            return array.map(function (el) {
-              return [el.x, el.y];
-            });
-          }
-        } else {
-          // Else, it is considered as a string
-          // parse points
-          array = array.trim().split(SVG.regex.delimiter).map(parseFloat);
-        } // validate points - https://svgwg.org/svg2-draft/shapes.html#DataTypePoints
-        // Odd number of coordinates is an error. In such cases, drop the last odd coordinate.
-
-
-        if (array.length % 2 !== 0) array.pop(); // wrap points in two-tuples and parse points as floats
-
-        for (var i = 0, len = array.length; i < len; i = i + 2) {
-          points.push([array[i], array[i + 1]]);
-        }
-
-        return points;
-      },
-      // Move point string
-      move: function move(x, y) {
-        var box = this.bbox(); // get relative offset
-
-        x -= box.x;
-        y -= box.y; // move every point
-
-        if (!isNaN(x) && !isNaN(y)) {
-          for (var i = this.value.length - 1; i >= 0; i--) {
-            this.value[i] = [this.value[i][0] + x, this.value[i][1] + y];
-          }
-        }
-
-        return this;
-      },
-      // Resize poly string
-      size: function size(width, height) {
-        var i,
-            box = this.bbox(); // recalculate position of all points according to new size
-
-        for (i = this.value.length - 1; i >= 0; i--) {
-          if (box.width) this.value[i][0] = (this.value[i][0] - box.x) * width / box.width + box.x;
-          if (box.height) this.value[i][1] = (this.value[i][1] - box.y) * height / box.height + box.y;
-        }
-
-        return this;
-      },
-      // Get bounding box of points
-      bbox: function bbox() {
-        if (!SVG.parser.draw) {
-          SVG.prepare();
-        }
-
-        SVG.parser.poly.setAttribute('points', this.toString());
-        return SVG.parser.poly.getBBox();
-      }
-    });
     var pathHandlers = {
       M: function M(c, p, p0) {
         p.x = p0.x = c[0];
@@ -21640,45 +21328,6 @@
               this.value[i][6] += x;
               this.value[i][7] += y;
             }
-          }
-        }
-
-        return this;
-      },
-      // Resize path string
-      size: function size(width, height) {
-        // get bounding box of current situation
-        var i,
-            l,
-            box = this.bbox(); // recalculate position of all points according to new size
-
-        for (i = this.value.length - 1; i >= 0; i--) {
-          l = this.value[i][0];
-
-          if (l == 'M' || l == 'L' || l == 'T') {
-            this.value[i][1] = (this.value[i][1] - box.x) * width / box.width + box.x;
-            this.value[i][2] = (this.value[i][2] - box.y) * height / box.height + box.y;
-          } else if (l == 'H') {
-            this.value[i][1] = (this.value[i][1] - box.x) * width / box.width + box.x;
-          } else if (l == 'V') {
-            this.value[i][1] = (this.value[i][1] - box.y) * height / box.height + box.y;
-          } else if (l == 'C' || l == 'S' || l == 'Q') {
-            this.value[i][1] = (this.value[i][1] - box.x) * width / box.width + box.x;
-            this.value[i][2] = (this.value[i][2] - box.y) * height / box.height + box.y;
-            this.value[i][3] = (this.value[i][3] - box.x) * width / box.width + box.x;
-            this.value[i][4] = (this.value[i][4] - box.y) * height / box.height + box.y;
-
-            if (l == 'C') {
-              this.value[i][5] = (this.value[i][5] - box.x) * width / box.width + box.x;
-              this.value[i][6] = (this.value[i][6] - box.y) * height / box.height + box.y;
-            }
-          } else if (l == 'A') {
-            // resize radii
-            this.value[i][1] = this.value[i][1] * width / box.width;
-            this.value[i][2] = this.value[i][2] * height / box.height; // move position values
-
-            this.value[i][6] = (this.value[i][6] - box.x) * width / box.width + box.x;
-            this.value[i][7] = (this.value[i][7] - box.y) * height / box.height + box.y;
           }
         }
 
@@ -21995,11 +21644,6 @@
         id: function id(_id) {
           return this.attr('id', _id);
         },
-        // Checks whether the given point inside the bounding box of the element
-        inside: function inside(x, y) {
-          var box = this.bbox();
-          return x > box.x && y > box.y && x < box.x + box.width && y < box.y + box.height;
-        },
         // Show element
         show: function show() {
           return this.style('display', '');
@@ -22246,16 +21890,6 @@
         * @param delay Duration of delay in milliseconds
         * @return this.target()
         */
-        delay: function delay(_delay) {
-          // The delay is performed by an empty situation with its duration
-          // attribute set to the duration of the delay
-          var situation = new SVG.Situation({
-            duration: _delay,
-            delay: 0,
-            ease: SVG.easing['-']
-          });
-          return this.queue(situation);
-        },
 
         /**
         * sets or returns the target of this animation
@@ -22444,21 +22078,6 @@
         atStart: function atStart() {
           return this.at(0, true);
         },
-        // set the internal animation pointer at the end position, after all the loops, and updates the visualisation
-        atEnd: function atEnd() {
-          if (this.situation.loops === true) {
-            // If in a infinite loop, we end the current iteration
-            this.situation.loops = this.situation.loop + 1;
-          }
-
-          if (typeof this.situation.loops === 'number') {
-            // If performing a finite number of loops, we go after all the loops
-            return this.at(this.situation.loops, true);
-          } else {
-            // If no loops, we just go at the end
-            return this.at(1, true);
-          }
-        },
         // set the internal animation pointer to the specified position and updates the visualisation
         // if isAbsPos is true, pos is treated as an absolute position
         at: function at(pos, isAbsPos) {
@@ -22489,55 +22108,6 @@
             return this.at(this.absPos, true);
           } else return this._speed;
         },
-        // Make loopable
-        loop: function loop(times, reverse) {
-          var c = this.last(); // store total loops
-
-          c.loops = times != null ? times : true;
-          c.loop = 0;
-          if (reverse) c.reversing = true;
-          return this;
-        },
-        // pauses the animation
-        pause: function pause() {
-          this.paused = true;
-          this.stopAnimFrame();
-          return this;
-        },
-        // unpause the animation
-        play: function play() {
-          if (!this.paused) return this;
-          this.paused = false; // We use an absolute position here so that the delay before the animation can be paused
-
-          return this.at(this.absPos, true);
-        },
-
-        /**
-        * toggle or set the direction of the animation
-        * true sets direction to backwards while false sets it to forwards
-        * @param reversed Boolean indicating whether to reverse the animation or not (default: toggle the reverse status)
-        * @return this
-        */
-        reverse: function reverse(reversed) {
-          var c = this.last();
-          if (typeof reversed === 'undefined') c.reversed = !c.reversed;else c.reversed = reversed;
-          return this;
-        },
-
-        /**
-        * returns a float from 0-1 indicating the progress of the current animation
-        * @param eased Boolean indicating whether the returned position should be eased or not
-        * @return number
-        */
-        progress: function progress(easeIt) {
-          return easeIt ? this.situation.ease(this.pos) : this.pos;
-        },
-
-        /**
-        * adds a callback function which is called when the current animation is finished
-        * @param fn Function which should be executed as callback
-        * @return number
-        */
         after: function after(fn) {
           var c = this.last(),
               wrapper = function wrapper(e) {
@@ -22575,18 +22145,6 @@
 
 
           this.target().off('allfinished.fx', wrapper).on('allfinished.fx', wrapper);
-          return this._callStart();
-        },
-        // calls on every animation step for all animations
-        duringAll: function duringAll(fn) {
-          var wrapper = function wrapper(e) {
-            fn.call(this, e.detail.pos, SVG.morph(e.detail.pos), e.detail.eased, e.detail.situation);
-          };
-
-          this.target().off('during.fx', wrapper).on('during.fx', wrapper);
-          this.afterAll(function () {
-            this.off('during.fx', wrapper);
-          });
           return this._callStart();
         },
         last: function last() {
@@ -22780,8 +22338,8 @@
         animate: function animate(o, ease, delay) {
           return (this.fx || (this.fx = new SVG.FX(this))).animate(o, ease, delay);
         },
-        delay: function delay(_delay2) {
-          return (this.fx || (this.fx = new SVG.FX(this))).delay(_delay2);
+        delay: function delay(_delay) {
+          return (this.fx || (this.fx = new SVG.FX(this))).delay(_delay);
         },
         stop: function stop(jumpToEnd, clearQueue) {
           if (this.fx) {
@@ -22793,22 +22351,6 @@
         finish: function finish() {
           if (this.fx) {
             this.fx.finish();
-          }
-
-          return this;
-        },
-        // Pause current animation
-        pause: function pause() {
-          if (this.fx) {
-            this.fx.pause();
-          }
-
-          return this;
-        },
-        // Play paused current animation
-        play: function play() {
-          if (this.fx) {
-            this.fx.play();
           }
 
           return this;
@@ -23020,28 +22562,6 @@
           b.width = Math.max(this.x + this.width, box.x + box.width) - b.x;
           b.height = Math.max(this.y + this.height, box.y + box.height) - b.y;
           return fullBox(b);
-        },
-        transform: function transform(m) {
-          var xMin = Infinity,
-              xMax = -Infinity,
-              yMin = Infinity,
-              yMax = -Infinity,
-              bbox;
-          var pts = [new SVG.Point(this.x, this.y), new SVG.Point(this.x2, this.y), new SVG.Point(this.x, this.y2), new SVG.Point(this.x2, this.y2)];
-          pts.forEach(function (p) {
-            p = p.transform(m);
-            xMin = Math.min(xMin, p.x);
-            xMax = Math.max(xMax, p.x);
-            yMin = Math.min(yMin, p.y);
-            yMax = Math.max(yMax, p.y);
-          });
-          bbox = new this.constructor();
-          bbox.x = xMin;
-          bbox.width = xMax - xMin;
-          bbox.y = yMin;
-          bbox.height = yMax - yMin;
-          fullBox(bbox);
-          return bbox;
         }
       }
     });
@@ -23063,7 +22583,7 @@
               }
 
               if (topParent != document) throw new Error('Element not in the dom');
-            } // the element is NOT in the dom, throw error
+            } else {} // the element is NOT in the dom, throw error
             // disabling the check below which fixes issue #76
             // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
             // find native bbox
@@ -23106,42 +22626,6 @@
       }
     });
     SVG.BBox.prototype.constructor = SVG.BBox;
-    SVG.extend(SVG.Element, {
-      tbox: function tbox() {
-        console.warn('Use of TBox is deprecated and mapped to RBox. Use .rbox() instead.');
-        return this.rbox(this.doc());
-      }
-    });
-    SVG.RBox = SVG.invent({
-      // Initialize
-      create: function create(element) {
-        SVG.Box.apply(this, [].slice.call(arguments));
-
-        if (element instanceof SVG.Element) {
-          SVG.Box.call(this, element.node.getBoundingClientRect());
-        }
-      },
-      inherit: SVG.Box,
-      // define Parent
-      parent: SVG.Element,
-      extend: {
-        addOffset: function addOffset() {
-          // offset by window scroll position, because getBoundingClientRect changes when window is scrolled
-          this.x += window.pageXOffset;
-          this.y += window.pageYOffset;
-          return this;
-        }
-      },
-      // Constructor
-      construct: {
-        // Get rect box
-        rbox: function rbox(el) {
-          if (el) return new SVG.RBox(this).transform(el.screenCTM().inverse());
-          return new SVG.RBox(this).addOffset();
-        }
-      }
-    });
-    SVG.RBox.prototype.constructor = SVG.RBox;
     SVG.Matrix = SVG.invent({
       // Initialize
       create: function create(source) {
@@ -23168,12 +22652,6 @@
             y: this.f,
             transformedX: (this.e * Math.cos(skewX * Math.PI / 180) + this.f * Math.sin(skewX * Math.PI / 180)) / Math.sqrt(this.a * this.a + this.b * this.b),
             transformedY: (this.f * Math.cos(skewX * Math.PI / 180) + this.e * Math.sin(-skewX * Math.PI / 180)) / Math.sqrt(this.c * this.c + this.d * this.d),
-            // skew
-            skewX: -skewX,
-            skewY: 180 / Math.PI * Math.atan2(py.y, py.x),
-            // scale
-            scaleX: Math.sqrt(this.a * this.a + this.b * this.b),
-            scaleY: Math.sqrt(this.c * this.c + this.d * this.d),
             // rotation
             rotation: skewX,
             a: this.a,
@@ -23195,21 +22673,6 @@
           this.destination = new SVG.Matrix(matrix);
           return this;
         },
-        // Get morphed matrix at a given position
-        at: function at(pos) {
-          // make sure a destination is defined
-          if (!this.destination) return this; // calculate morphed matrix at a given position
-
-          var matrix = new SVG.Matrix({
-            a: this.a + (this.destination.a - this.a) * pos,
-            b: this.b + (this.destination.b - this.b) * pos,
-            c: this.c + (this.destination.c - this.c) * pos,
-            d: this.d + (this.destination.d - this.d) * pos,
-            e: this.e + (this.destination.e - this.e) * pos,
-            f: this.f + (this.destination.f - this.f) * pos
-          });
-          return matrix;
-        },
         // Multiplies by given matrix
         multiply: function multiply(matrix) {
           return new SVG.Matrix(this.native().multiply(parseMatrix(matrix).native()));
@@ -23221,57 +22684,6 @@
         // Translate matrix
         translate: function translate(x, y) {
           return new SVG.Matrix(this.native().translate(x || 0, y || 0));
-        },
-        // Scale matrix
-        scale: function scale(x, y, cx, cy) {
-          // support uniformal scale
-          if (arguments.length == 1) {
-            y = x;
-          } else if (arguments.length == 3) {
-            cy = cx;
-            cx = y;
-            y = x;
-          }
-
-          return this.around(cx, cy, new SVG.Matrix(x, 0, 0, y, 0, 0));
-        },
-        // Rotate matrix
-        rotate: function rotate(r, cx, cy) {
-          // convert degrees to radians
-          r = SVG.utils.radians(r);
-          return this.around(cx, cy, new SVG.Matrix(Math.cos(r), Math.sin(r), -Math.sin(r), Math.cos(r), 0, 0));
-        },
-        // Flip matrix on x or y, at a given offset
-        flip: function flip(a, o) {
-          return a == 'x' ? this.scale(-1, 1, o, 0) : a == 'y' ? this.scale(1, -1, 0, o) : this.scale(-1, -1, a, o != null ? o : a);
-        },
-        // Skew
-        skew: function skew(x, y, cx, cy) {
-          // support uniformal skew
-          if (arguments.length == 1) {
-            y = x;
-          } else if (arguments.length == 3) {
-            cy = cx;
-            cx = y;
-            y = x;
-          } // convert degrees to radians
-
-
-          x = SVG.utils.radians(x);
-          y = SVG.utils.radians(y);
-          return this.around(cx, cy, new SVG.Matrix(1, Math.tan(y), Math.tan(x), 1, 0, 0));
-        },
-        // SkewX
-        skewX: function skewX(x, cx, cy) {
-          return this.skew(x, 0, cx, cy);
-        },
-        // SkewY
-        skewY: function skewY(y, cx, cy) {
-          return this.skew(0, y, cx, cy);
-        },
-        // Transform around a center point
-        around: function around(cx, cy, matrix) {
-          return this.multiply(new SVG.Matrix(1, 0, 0, 1, cx || 0, cy || 0)).multiply(matrix).multiply(new SVG.Matrix(1, 0, 0, 1, -cx || 0, -cy || 0));
         },
         // Convert to native SVGMatrix
         native: function native() {
@@ -23350,30 +22762,6 @@
           // store new destination
           this.destination = new SVG.Point(x, y);
           return this;
-        },
-        // Get morphed point at a given position
-        at: function at(pos) {
-          // make sure a destination is defined
-          if (!this.destination) return this; // calculate morphed matrix at a given position
-
-          var point = new SVG.Point({
-            x: this.x + (this.destination.x - this.x) * pos,
-            y: this.y + (this.destination.y - this.y) * pos
-          });
-          return point;
-        },
-        // Convert to native SVGPoint
-        native: function native() {
-          // create new point
-          var point = SVG.parser.native.createSVGPoint(); // update with current values
-
-          point.x = this.x;
-          point.y = this.y;
-          return point;
-        },
-        // transform point with matrix
-        transform: function transform(matrix) {
-          return new SVG.Point(this.native().matrixTransform(matrix.native()));
         }
       }
     });
@@ -23466,8 +22854,8 @@
       transform: function transform(o, relative) {
         // get target in case of the fx module, otherwise reference this
         var target = this,
-            matrix,
-            bbox; // act as a getter
+            matrix;
+   // act as a getter
 
         if (_typeof(o) !== 'object') {
           // get current matrix
@@ -23484,56 +22872,6 @@
           matrix = relative // relative
           ? matrix.multiply(new SVG.Matrix(o)) // absolute
           : new SVG.Matrix(o); // act on rotation
-        } else if (o.rotation != null) {
-          // ensure centre point
-          ensureCentre(o, target); // apply transformation
-
-          matrix = relative // relative
-          ? matrix.rotate(o.rotation, o.cx, o.cy) // absolute
-          : matrix.rotate(o.rotation - matrix.extract().rotation, o.cx, o.cy); // act on scale
-        } else if (o.scale != null || o.scaleX != null || o.scaleY != null) {
-          // ensure centre point
-          ensureCentre(o, target); // ensure scale values on both axes
-
-          o.scaleX = o.scale != null ? o.scale : o.scaleX != null ? o.scaleX : 1;
-          o.scaleY = o.scale != null ? o.scale : o.scaleY != null ? o.scaleY : 1;
-
-          if (!relative) {
-            // absolute; multiply inversed values
-            var e = matrix.extract();
-            o.scaleX = o.scaleX * 1 / e.scaleX;
-            o.scaleY = o.scaleY * 1 / e.scaleY;
-          }
-
-          matrix = matrix.scale(o.scaleX, o.scaleY, o.cx, o.cy); // act on skew
-        } else if (o.skew != null || o.skewX != null || o.skewY != null) {
-          // ensure centre point
-          ensureCentre(o, target); // ensure skew values on both axes
-
-          o.skewX = o.skew != null ? o.skew : o.skewX != null ? o.skewX : 0;
-          o.skewY = o.skew != null ? o.skew : o.skewY != null ? o.skewY : 0;
-
-          if (!relative) {
-            // absolute; reset skew values
-            var e = matrix.extract();
-            matrix = matrix.multiply(new SVG.Matrix().skew(e.skewX, e.skewY, o.cx, o.cy).inverse());
-          }
-
-          matrix = matrix.skew(o.skewX, o.skewY, o.cx, o.cy); // act on flip
-        } else if (o.flip) {
-          if (o.flip == 'x' || o.flip == 'y') {
-            o.offset = o.offset == null ? target.bbox()['c' + o.flip] : o.offset;
-          } else {
-            if (o.offset == null) {
-              bbox = target.bbox();
-              o.flip = bbox.cx;
-              o.offset = bbox.cy;
-            } else {
-              o.flip = o.offset;
-            }
-          }
-
-          matrix = new SVG.Matrix().flip(o.flip, o.offset); // act on translate
         } else if (o.x != null || o.y != null) {
           if (relative) {
             // relative
@@ -23546,67 +22884,6 @@
         }
 
         return this.attr('transform', matrix);
-      }
-    });
-    SVG.extend(SVG.FX, {
-      transform: function transform(o, relative) {
-        // get target in case of the fx module, otherwise reference this
-        var target = this.target(),
-            matrix,
-            bbox; // act as a getter
-
-        if (_typeof(o) !== 'object') {
-          // get current matrix
-          matrix = new SVG.Matrix(target).extract();
-          return typeof o === 'string' ? matrix[o] : matrix;
-        } // ensure relative flag
-
-
-        relative = !!relative || !!o.relative; // act on matrix
-
-        if (o.a != null) {
-          matrix = new SVG.Matrix(o); // act on rotation
-        } else if (o.rotation != null) {
-          // ensure centre point
-          ensureCentre(o, target); // apply transformation
-
-          matrix = new SVG.Rotate(o.rotation, o.cx, o.cy); // act on scale
-        } else if (o.scale != null || o.scaleX != null || o.scaleY != null) {
-          // ensure centre point
-          ensureCentre(o, target); // ensure scale values on both axes
-
-          o.scaleX = o.scale != null ? o.scale : o.scaleX != null ? o.scaleX : 1;
-          o.scaleY = o.scale != null ? o.scale : o.scaleY != null ? o.scaleY : 1;
-          matrix = new SVG.Scale(o.scaleX, o.scaleY, o.cx, o.cy); // act on skew
-        } else if (o.skewX != null || o.skewY != null) {
-          // ensure centre point
-          ensureCentre(o, target); // ensure skew values on both axes
-
-          o.skewX = o.skewX != null ? o.skewX : 0;
-          o.skewY = o.skewY != null ? o.skewY : 0;
-          matrix = new SVG.Skew(o.skewX, o.skewY, o.cx, o.cy); // act on flip
-        } else if (o.flip) {
-          if (o.flip == 'x' || o.flip == 'y') {
-            o.offset = o.offset == null ? target.bbox()['c' + o.flip] : o.offset;
-          } else {
-            if (o.offset == null) {
-              bbox = target.bbox();
-              o.flip = bbox.cx;
-              o.offset = bbox.cy;
-            } else {
-              o.flip = o.offset;
-            }
-          }
-
-          matrix = new SVG.Matrix().flip(o.flip, o.offset); // act on translate
-        } else if (o.x != null || o.y != null) {
-          matrix = new SVG.Translate(o.x, o.y);
-        }
-
-        if (!matrix) return this;
-        matrix.relative = relative;
-        this.last().transforms.push(matrix);
-        return this._callStart();
       }
     });
     SVG.extend(SVG.Element, {
@@ -23703,47 +22980,6 @@
       extend: {
         arguments: ['transformedX', 'transformedY'],
         method: 'translate'
-      }
-    });
-    SVG.Rotate = SVG.invent({
-      parent: SVG.Matrix,
-      inherit: SVG.Transformation,
-      create: function create(source, inversed) {
-        this.constructor.apply(this, [].slice.call(arguments));
-      },
-      extend: {
-        arguments: ['rotation', 'cx', 'cy'],
-        method: 'rotate',
-        at: function at(pos) {
-          var m = new SVG.Matrix().rotate(new SVG.Number().morph(this.rotation - (this._undo ? this._undo.rotation : 0)).at(pos), this.cx, this.cy);
-          return this.inversed ? m.inverse() : m;
-        },
-        undo: function undo(o) {
-          this._undo = o;
-          return this;
-        }
-      }
-    });
-    SVG.Scale = SVG.invent({
-      parent: SVG.Matrix,
-      inherit: SVG.Transformation,
-      create: function create(source, inversed) {
-        this.constructor.apply(this, [].slice.call(arguments));
-      },
-      extend: {
-        arguments: ['scaleX', 'scaleY', 'cx', 'cy'],
-        method: 'scale'
-      }
-    });
-    SVG.Skew = SVG.invent({
-      parent: SVG.Matrix,
-      inherit: SVG.Transformation,
-      create: function create(source, inversed) {
-        this.constructor.apply(this, [].slice.call(arguments));
-      },
-      extend: {
-        arguments: ['skewX', 'skewY', 'cx', 'cy'],
-        method: 'skew'
       }
     });
     SVG.extend(SVG.Element, {
@@ -24224,17 +23460,6 @@
           if (!this.node.parentNode || this.node.parentNode.nodeName == '#document') return null;
           return this.node.parentNode;
         },
-        // Fix for possible sub-pixel offset. See:
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=608812
-        spof: function spof() {
-          var pos = this.node.getScreenCTM();
-
-          if (pos) {
-            this.style('left', -pos.e % 1 + 'px').style('top', -pos.f % 1 + 'px');
-          }
-
-          return this;
-        },
         // Removes the doc from the DOM
         remove: function remove() {
           if (this.parent()) {
@@ -24295,49 +23520,6 @@
       previous: function previous() {
         return this.siblings()[this.position() - 1];
       },
-      // Send given element one step forward
-      forward: function forward() {
-        var i = this.position() + 1,
-            p = this.parent(); // move node one step forward
-
-        p.removeElement(this).add(this, i); // make sure defs node is always at the top
-
-        if (p instanceof SVG.Doc) {
-          p.node.appendChild(p.defs().node);
-        }
-
-        return this;
-      },
-      // Send given element one step backward
-      backward: function backward() {
-        var i = this.position();
-
-        if (i > 0) {
-          this.parent().removeElement(this).add(this, i - 1);
-        }
-
-        return this;
-      },
-      // Send given element all the way to the front
-      front: function front() {
-        var p = this.parent(); // Move node forward
-
-        p.node.appendChild(this.node); // Make sure defs node is always at the top
-
-        if (p instanceof SVG.Doc) {
-          p.node.appendChild(p.defs().node);
-        }
-
-        return this;
-      },
-      // Send given element all the way to the back
-      back: function back() {
-        if (this.position() > 0) {
-          this.parent().removeElement(this).add(this, 0);
-        }
-
-        return this;
-      },
       // Inserts a given element before the targeted element
       before: function before(element) {
         element.remove();
@@ -24351,107 +23533,6 @@
         var i = this.position();
         this.parent().add(element, i + 1);
         return this;
-      }
-    });
-    SVG.Mask = SVG.invent({
-      // Initialize node
-      create: function create() {
-        this.constructor.call(this, SVG.create('mask')); // keep references to masked elements
-
-        this.targets = [];
-      },
-      // Inherit from
-      inherit: SVG.Container,
-      // Add class methods
-      extend: {
-        // Unmask all masked elements and remove itself
-        remove: function remove() {
-          // unmask all targets
-          for (var i = this.targets.length - 1; i >= 0; i--) {
-            if (this.targets[i]) {
-              this.targets[i].unmask();
-            }
-          }
-
-          this.targets = []; // remove mask from parent
-
-          SVG.Element.prototype.remove.call(this);
-          return this;
-        }
-      },
-      // Add parent method
-      construct: {
-        // Create masking element
-        mask: function mask() {
-          return this.defs().put(new SVG.Mask());
-        }
-      }
-    });
-    SVG.extend(SVG.Element, {
-      // Distribute mask to svg element
-      maskWith: function maskWith(element) {
-        // use given mask or create a new one
-        this.masker = element instanceof SVG.Mask ? element : this.parent().mask().add(element); // store reverence on self in mask
-
-        this.masker.targets.push(this); // apply mask
-
-        return this.attr('mask', 'url("#' + this.masker.attr('id') + '")');
-      },
-      // Unmask element
-      unmask: function unmask() {
-        delete this.masker;
-        return this.attr('mask', null);
-      }
-    });
-    SVG.ClipPath = SVG.invent({
-      // Initialize node
-      create: function create() {
-        this.constructor.call(this, SVG.create('clipPath')); // keep references to clipped elements
-
-        this.targets = [];
-      },
-      // Inherit from
-      inherit: SVG.Container,
-      // Add class methods
-      extend: {
-        // Unclip all clipped elements and remove itself
-        remove: function remove() {
-          // unclip all targets
-          for (var i = this.targets.length - 1; i >= 0; i--) {
-            if (this.targets[i]) {
-              this.targets[i].unclip();
-            }
-          }
-
-          this.targets = []; // remove clipPath from parent
-
-          this.parent().removeElement(this);
-          return this;
-        }
-      },
-      // Add parent method
-      construct: {
-        // Create clipping element
-        clip: function clip() {
-          return this.defs().put(new SVG.ClipPath());
-        }
-      }
-    }); //
-
-    SVG.extend(SVG.Element, {
-      // Distribute clipPath to svg element
-      clipWith: function clipWith(element) {
-        // use given clip or create a new one
-        this.clipper = element instanceof SVG.ClipPath ? element : this.parent().clip().add(element); // store reverence on self in mask
-
-        this.clipper.targets.push(this); // apply mask
-
-        return this.attr('clip-path', 'url("#' + this.clipper.attr('id') + '")');
-      },
-      // Unclip element
-      unclip: function unclip() {
-        delete this.clipper;
-        return this.attr('clip-path', null);
       }
     });
     SVG.Gradient = SVG.invent({
@@ -24617,43 +23698,6 @@
       // Inherit from
       inherit: SVG.Element
     });
-    SVG.Bare = SVG.invent({
-      // Initialize
-      create: function create(element, inherit) {
-        // construct element
-        this.constructor.call(this, SVG.create(element)); // inherit custom methods
-
-        if (inherit) {
-          for (var method in inherit.prototype) {
-            if (typeof inherit.prototype[method] === 'function') {
-              this[method] = inherit.prototype[method];
-            }
-          }
-        }
-      },
-      // Inherit from
-      inherit: SVG.Element,
-      // Add methods
-      extend: {
-        // Insert some plain text
-        words: function words(text) {
-          // remove contents
-          while (this.node.hasChildNodes()) {
-            this.node.removeChild(this.node.lastChild);
-          } // create text node
-
-
-          this.node.appendChild(document.createTextNode(text));
-          return this;
-        }
-      }
-    });
-    SVG.extend(SVG.Parent, {
-      // Create an element that is not described by SVG.js
-      element: function element(_element, inherit) {
-        return this.put(new SVG.Bare(_element, inherit));
-      }
-    });
     SVG.Symbol = SVG.invent({
       // Initialize node
       create: 'symbol',
@@ -24674,9 +23718,9 @@
       // Add class methods
       extend: {
         // Use element as a reference
-        element: function element(_element2, file) {
+        element: function element(_element, file) {
           // Set lined element
-          return this.attr('href', (file || '') + '#' + _element2, SVG.xlink);
+          return this.attr('href', (file || '') + '#' + _element, SVG.xlink);
         }
       },
       // Add parent method
@@ -25331,110 +24375,6 @@
           return this.put(new SVG.Nested());
         }
       }
-    });
-    SVG.A = SVG.invent({
-      // Initialize node
-      create: 'a',
-      // Inherit from
-      inherit: SVG.Container,
-      // Add class methods
-      extend: {
-        // Link url
-        to: function to(url) {
-          return this.attr('href', url, SVG.xlink);
-        },
-        // Link show attribute
-        show: function show(target) {
-          return this.attr('show', target, SVG.xlink);
-        },
-        // Link target attribute
-        target: function target(_target2) {
-          return this.attr('target', _target2);
-        }
-      },
-      // Add parent method
-      construct: {
-        // Create a hyperlink element
-        link: function link(url) {
-          return this.put(new SVG.A()).to(url);
-        }
-      }
-    });
-    SVG.extend(SVG.Element, {
-      // Create a hyperlink element
-      linkTo: function linkTo(url) {
-        var link = new SVG.A();
-
-        if (typeof url === 'function') {
-          url.call(link, link);
-        } else {
-          link.to(url);
-        }
-
-        return this.parent().put(link).put(this);
-      }
-    });
-    SVG.Marker = SVG.invent({
-      // Initialize node
-      create: 'marker',
-      // Inherit from
-      inherit: SVG.Container,
-      // Add class methods
-      extend: {
-        // Set width of element
-        width: function width(_width6) {
-          return this.attr('markerWidth', _width6);
-        },
-        // Set height of element
-        height: function height(_height6) {
-          return this.attr('markerHeight', _height6);
-        },
-        // Set marker refX and refY
-        ref: function ref(x, y) {
-          return this.attr('refX', x).attr('refY', y);
-        },
-        // Update marker
-        update: function update(block) {
-          // remove all content
-          this.clear(); // invoke passed block
-
-          if (typeof block === 'function') {
-            block.call(this, this);
-          }
-
-          return this;
-        },
-        // Return the fill id
-        toString: function toString() {
-          return 'url(#' + this.id() + ')';
-        }
-      },
-      // Add parent method
-      construct: {
-        marker: function marker(width, height, block) {
-          // Create marker element in defs
-          return this.defs().marker(width, height, block);
-        }
-      }
-    });
-    SVG.extend(SVG.Defs, {
-      // Create marker
-      marker: function marker(width, height, block) {
-        // Set default viewbox to match the width and height, set ref to cx and cy and set orient to auto
-        return this.put(new SVG.Marker()).size(width, height).ref(width / 2, height / 2).viewbox(0, 0, width, height).attr('orient', 'auto').update(block);
-      }
-    });
-    SVG.extend(SVG.Line, SVG.Polyline, SVG.Polygon, SVG.Path, {
-      // Create and attach markers
-      marker: function marker(_marker, width, height, block) {
-        var attr = ['marker']; // Build attribute name
-
-        if (_marker != 'all') attr.push(_marker);
-        attr = attr.join('-'); // Set marker attribute
-
-        _marker = arguments[1] instanceof SVG.Marker ? arguments[1] : this.doc().marker(width, height, block);
-        return this.attr(attr, _marker);
-      }
     }); // Define list of available attributes for stroke and fill
 
     var sugar = {
@@ -25471,53 +24411,11 @@
       SVG.extend(SVG.Element, SVG.FX, extension);
     });
     SVG.extend(SVG.Element, SVG.FX, {
-      // Map rotation to transform
-      rotate: function rotate(d, cx, cy) {
-        return this.transform({
-          rotation: d,
-          cx: cx,
-          cy: cy
-        });
-      },
-      // Map skew to transform
-      skew: function skew(x, y, cx, cy) {
-        return arguments.length == 1 || arguments.length == 3 ? this.transform({
-          skew: x,
-          cx: y,
-          cy: cx
-        }) : this.transform({
-          skewX: x,
-          skewY: y,
-          cx: cx,
-          cy: cy
-        });
-      },
-      // Map scale to transform
-      scale: function scale(x, y, cx, cy) {
-        return arguments.length == 1 || arguments.length == 3 ? this.transform({
-          scale: x,
-          cx: y,
-          cy: cx
-        }) : this.transform({
-          scaleX: x,
-          scaleY: y,
-          cx: cx,
-          cy: cy
-        });
-      },
       // Map translate to transform
       translate: function translate(x, y) {
         return this.transform({
           x: x,
           y: y
-        });
-      },
-      // Map flip to transform
-      flip: function flip(a, o) {
-        o = typeof a === 'number' ? a : o;
-        return this.transform({
-          flip: a || 'both',
-          offset: o
         });
       },
       // Map matrix to transform
@@ -25535,17 +24433,6 @@
       // Relative move over y axis
       dy: function dy(y) {
         return this.y(new SVG.Number(y).plus(this instanceof SVG.FX ? 0 : this.y()), true);
-      },
-      // Relative move over x and y axes
-      dmove: function dmove(x, y) {
-        return this.dx(x).dy(y);
-      }
-    });
-    SVG.extend(SVG.Rect, SVG.Ellipse, SVG.Circle, SVG.Gradient, SVG.FX, {
-      // Add x and y radius
-      radius: function radius(x, y) {
-        var type = (this._target || this).type;
-        return type == 'radial' || type == 'circle' ? this.attr('r', new SVG.Number(x)) : this.rx(x).ry(y == null ? x : y);
       }
     });
     SVG.extend(SVG.Path, {
@@ -25556,18 +24443,6 @@
       // Get point at length
       pointAt: function pointAt(length) {
         return this.node.getPointAtLength(length);
-      }
-    });
-    SVG.extend(SVG.Parent, SVG.Text, SVG.Tspan, SVG.FX, {
-      // Set font
-      font: function font(a, v) {
-        if (_typeof(a) === 'object') {
-          for (v in a) {
-            this.font(v, a[v]);
-          }
-        }
-
-        return a == 'leading' ? this.leading(v) : a == 'anchor' ? this.attr('text-anchor', v) : a == 'size' || a == 'family' || a == 'weight' || a == 'stretch' || a == 'variant' || a == 'style' ? this.attr('font-' + a, v) : this.attr(a, v);
       }
     });
     SVG.Set = SVG.invent({
@@ -25890,12 +24765,6 @@
     } // Add centre point to transform object
 
 
-    function ensureCentre(o, target) {
-      o.cx = o.cx == null ? target.bbox().cx : o.cx;
-      o.cy = o.cy == null ? target.bbox().cy : o.cy;
-    } // PathArray Helpers
-
-
     function arrayToString(a) {
       for (var i = 0, il = a.length, s = ''; i < il; i++) {
         s += a[i][0];
@@ -25975,50 +24844,8 @@
     } // Create matrix array for looping
 
 
-    var abcdef = 'abcdef'.split(''); // Add CustomEvent to IE9 and IE10
-
-    if (typeof window.CustomEvent !== 'function') {
-      // Code from: https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent
-      var CustomEventPoly = function CustomEventPoly(event, options) {
-        options = options || {
-          bubbles: false,
-          cancelable: false,
-          detail: undefined
-        };
-        var e = document.createEvent('CustomEvent');
-        e.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
-        return e;
-      };
-
-      CustomEventPoly.prototype = window.Event.prototype;
-      SVG.CustomEvent = CustomEventPoly;
-    } else {
-      SVG.CustomEvent = window.CustomEvent;
-    } // requestAnimationFrame / cancelAnimationFrame Polyfill with fallback based on Paul Irish
-
-
-    (function (w) {
-      var lastTime = 0;
-      var vendors = ['moz', 'webkit'];
-
-      for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        w.requestAnimationFrame = w[vendors[x] + 'RequestAnimationFrame'];
-        w.cancelAnimationFrame = w[vendors[x] + 'CancelAnimationFrame'] || w[vendors[x] + 'CancelRequestAnimationFrame'];
-      }
-
-      w.requestAnimationFrame = w.requestAnimationFrame || function (callback) {
-        var currTime = new Date().getTime();
-        var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-        var id = w.setTimeout(function () {
-          callback(currTime + timeToCall);
-        }, timeToCall);
-        lastTime = currTime + timeToCall;
-        return id;
-      };
-
-      w.cancelAnimationFrame = w.cancelAnimationFrame || w.clearTimeout;
-    })(window);
-
+    var abcdef = 'abcdef'.split('');
+    SVG.CustomEvent = window.CustomEvent;
     return SVG;
   });
 
@@ -26718,11 +25545,11 @@
 
   // sorry for the long declaration
   // slices out one block (from M to M) and syncronize it so the types and length match
-  function handleBlock(startArr, startOffsetM, startOffsetNextM, destArr, destOffsetM, destOffsetNextM, undefined){
+  function handleBlock(startArr, startOffsetM, startOffsetNextM, destArr, destOffsetM, destOffsetNextM, undefined$1){
 
     // slice out the block we need
-    var startArrTemp = startArr.slice(startOffsetM, startOffsetNextM || undefined)
-      ,  destArrTemp =  destArr.slice( destOffsetM,  destOffsetNextM || undefined);
+    var startArrTemp = startArr.slice(startOffsetM, startOffsetNextM || undefined$1)
+      ,  destArrTemp =  destArr.slice( destOffsetM,  destOffsetNextM || undefined$1);
 
     var i = 0
       , posStart = {pos:[0,0], start:[0,0]}
@@ -28109,254 +26936,8 @@
     }
   }
 
-  var css = ".apexcharts-canvas {\n  position: relative;\n  user-select: none;\n  /* cannot give overflow: hidden as it will crop tooltips which overflow outside chart area */\n}\n\n/* scrollbar is not visible by default for legend, hence forcing the visibility */\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px;\n}\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);\n}\n.apexcharts-canvas.dark {\n  background: #343F57;\n}\n\n.apexcharts-inner {\n  position: relative;\n}\n\n.legend-mouseover-inactive {\n  transition: 0.15s ease all;\n  opacity: 0.20;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0;\n}\n\n.apexcharts-gridline, .apexcharts-text, .apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: 0.15s ease all;\n}\n.apexcharts-tooltip.light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255, 255, 255, 0.96);\n}\n.apexcharts-tooltip.dark {\n  color: #fff;\n  background: rgba(30,30,30, 0.8);\n}\n.apexcharts-tooltip * {\n  font-family: inherit;\n}\n\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-line {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px;\n}\n.apexcharts-tooltip.light .apexcharts-tooltip-title {\n  background: #ECEFF1;\n  border-bottom: 1px solid #ddd;\n}\n.apexcharts-tooltip.dark .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.7);\n  border-bottom: 1px solid #333;\n}\n\n.apexcharts-tooltip-text-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  font-weight: 600;\n  margin-left: 5px;\n}\n\n.apexcharts-tooltip-text-z-label:empty,\n.apexcharts-tooltip-text-z-value:empty {\n  display: none;\n}\n\n.apexcharts-tooltip-text-value,\n.apexcharts-tooltip-text-z-value {\n  font-weight: 600;\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 0px;\n  margin-right: 10px;\n  border-radius: 50%;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center;\n}\n\n.apexcharts-tooltip-series-group.active .apexcharts-tooltip-marker {\n  opacity: 1;\n}\n.apexcharts-tooltip-series-group.active, .apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px;\n}\n.apexcharts-tooltip-series-group-hidden {\n  opacity: 0;\n  height: 0;\n  line-height: 0;\n  padding: 0 !important;\n}\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px;\n}\n.apexcharts-tooltip-candlestick {\n  padding: 4px 8px;\n}\n.apexcharts-tooltip-candlestick > div {\n  margin: 4px 0;\n}\n.apexcharts-tooltip-candlestick span.value {\n  font-weight: bold;\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px;\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777;\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: bold;\n  display: block;\n  margin-bottom: 5px;\n}\n\n.apexcharts-xaxistooltip {\n  opacity: 0;\n  padding: 9px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #ECEFF1;\n  border: 1px solid #90A4AE;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xaxistooltip.dark {\n  background: rgba(0, 0, 0, 0.7);\n  border: 1px solid rgba(0, 0, 0, 0.5);\n  color: #fff;\n}\n\n.apexcharts-xaxistooltip:after, .apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none;\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: rgba(236, 239, 241, 0);\n  border-width: 6px;\n  margin-left: -6px;\n}\n.apexcharts-xaxistooltip:before {\n  border-color: rgba(144, 164, 174, 0);\n  border-width: 7px;\n  margin-left: -7px;\n}\n\n.apexcharts-xaxistooltip-bottom:after, .apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%;\n}\n\n.apexcharts-xaxistooltip-top:after, .apexcharts-xaxistooltip-top:before {\n  top: 100%;\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #ECEFF1;\n}\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90A4AE;\n}\n\n.apexcharts-xaxistooltip-bottom.dark:after {\n  border-bottom-color: rgba(0, 0, 0, 0.5);\n}\n.apexcharts-xaxistooltip-bottom.dark:before {\n  border-bottom-color: rgba(0, 0, 0, 0.5);\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color:#ECEFF1\n}\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90A4AE;\n}\n.apexcharts-xaxistooltip-top.dark:after {\n  border-top-color:rgba(0, 0, 0, 0.5);\n}\n.apexcharts-xaxistooltip-top.dark:before {\n  border-top-color: rgba(0, 0, 0, 0.5);\n}\n\n\n.apexcharts-xaxistooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-yaxistooltip {\n  opacity: 0;\n  padding: 4px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #ECEFF1;\n  border: 1px solid #90A4AE;\n}\n\n.apexcharts-yaxistooltip.dark {\n  background: rgba(0, 0, 0, 0.7);\n  border: 1px solid rgba(0, 0, 0, 0.5);\n  color: #fff;\n}\n\n.apexcharts-yaxistooltip:after, .apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none;\n}\n.apexcharts-yaxistooltip:after {\n  border-color: rgba(236, 239, 241, 0);\n  border-width: 6px;\n  margin-top: -6px;\n}\n.apexcharts-yaxistooltip:before {\n  border-color: rgba(144, 164, 174, 0);\n  border-width: 7px;\n  margin-top: -7px;\n}\n\n.apexcharts-yaxistooltip-left:after, .apexcharts-yaxistooltip-left:before {\n  left: 100%;\n}\n\n.apexcharts-yaxistooltip-right:after, .apexcharts-yaxistooltip-right:before {\n  right: 100%;\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90A4AE;\n}\n.apexcharts-yaxistooltip-left.dark:after {\n  border-left-color: rgba(0, 0, 0, 0.5);\n}\n.apexcharts-yaxistooltip-left.dark:before {\n  border-left-color: rgba(0, 0, 0, 0.5);\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90A4AE;\n}\n.apexcharts-yaxistooltip-right.dark:after {\n  border-right-color: rgba(0, 0, 0, 0.5);\n}\n.apexcharts-yaxistooltip-right.dark:before {\n  border-right-color: rgba(0, 0, 0, 0.5);\n}\n\n.apexcharts-yaxistooltip.active {\n  opacity: 1;\n}\n.apexcharts-yaxistooltip-hidden {\n  display: none;\n}\n\n.apexcharts-xcrosshairs, .apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xcrosshairs.active, .apexcharts-ycrosshairs.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0;\n}\n\n.apexcharts-zoom-rect {\n  pointer-events: none;\n}\n.apexcharts-selection-rect {\n  cursor: move;\n}\n\n.svg_select_points, .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden;\n}\n.svg_select_points_l, .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible;\n  fill: #888;\n}\n.apexcharts-canvas.zoomable .hovering-zoom {\n  cursor: crosshair\n}\n.apexcharts-canvas.zoomable .hovering-pan {\n  cursor: move\n}\n\n.apexcharts-xaxis,\n.apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.apexcharts-zoom-icon,\n.apexcharts-zoom-in-icon,\n.apexcharts-zoom-out-icon,\n.apexcharts-reset-zoom-icon,\n.apexcharts-pan-icon,\n.apexcharts-selection-icon,\n.apexcharts-menu-icon,\n.apexcharts-toolbar-custom-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6E8192;\n  text-align: center;\n}\n\n\n.apexcharts-zoom-icon svg,\n.apexcharts-zoom-in-icon svg,\n.apexcharts-zoom-out-icon svg,\n.apexcharts-reset-zoom-icon svg,\n.apexcharts-menu-icon svg {\n  fill: #6E8192;\n}\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(0.76)\n}\n\n.dark .apexcharts-zoom-icon svg,\n.dark .apexcharts-zoom-in-icon svg,\n.dark .apexcharts-zoom-out-icon svg,\n.dark .apexcharts-reset-zoom-icon svg,\n.dark .apexcharts-pan-icon svg,\n.dark .apexcharts-selection-icon svg,\n.dark .apexcharts-menu-icon svg,\n.dark .apexcharts-toolbar-custom-icon svg{\n  fill: #f3f4f5;\n}\n\n.apexcharts-canvas .apexcharts-zoom-icon.selected svg,\n.apexcharts-canvas .apexcharts-selection-icon.selected svg,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.selected svg {\n  fill: #008FFB;\n}\n.light .apexcharts-selection-icon:not(.selected):hover svg,\n.light .apexcharts-zoom-icon:not(.selected):hover svg,\n.light .apexcharts-zoom-in-icon:hover svg,\n.light .apexcharts-zoom-out-icon:hover svg,\n.light .apexcharts-reset-zoom-icon:hover svg,\n.light .apexcharts-menu-icon:hover svg {\n  fill: #333;\n}\n\n.apexcharts-selection-icon, .apexcharts-menu-icon {\n  position: relative;\n}\n.apexcharts-reset-zoom-icon {\n  margin-left: 5px;\n}\n.apexcharts-zoom-icon, .apexcharts-reset-zoom-icon, .apexcharts-menu-icon {\n  transform: scale(0.85);\n}\n\n.apexcharts-zoom-in-icon, .apexcharts-zoom-out-icon {\n  transform: scale(0.7)\n}\n\n.apexcharts-zoom-out-icon {\n  margin-right: 3px;\n}\n\n.apexcharts-pan-icon {\n  transform: scale(0.62);\n  position: relative;\n  left: 1px;\n  top: 0px;\n}\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6E8192;\n  stroke-width: 2;\n}\n.apexcharts-pan-icon.selected svg {\n  stroke: #008FFB;\n}\n.apexcharts-pan-icon:not(.selected):hover svg {\n  stroke: #333;\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  top: 0px;\n  right: 3px;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0px 6px 2px 6px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n}\n\n.apexcharts-toolbar svg {\n  pointer-events: none;\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: 0.15s ease all;\n  pointer-events: none;\n}\n\n.apexcharts-menu.open {\n  opacity: 1;\n  pointer-events: all;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer;\n}\n.light .apexcharts-menu-item:hover {\n  background: #eee;\n}\n.dark .apexcharts-menu {\n  background: rgba(0, 0, 0, 0.7);\n  color: #fff;\n}\n\n@media screen and (min-width: 768px) {\n  .apexcharts-toolbar {\n    /*opacity: 0;*/\n  }\n\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1;\n  }\n}\n\n.apexcharts-datalabel.hidden {\n  opacity: 0;\n}\n\n.apexcharts-pie-label,\n.apexcharts-datalabel, .apexcharts-datalabel-label, .apexcharts-datalabel-value {\n  cursor: default;\n  pointer-events: none;\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: 0.3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease;\n}\n\n.apexcharts-canvas .hidden {\n  opacity: 0;\n}\n\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,\n.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events, .apexcharts-radar-series path, .apexcharts-radar-series polygon {\n  pointer-events: none;\n}\n\n/* markers */\n\n.apexcharts-marker {\n  transition: 0.15s ease all;\n}\n\n@keyframes opaque {\n  0% {\n    opacity: 0;\n  }\n  100% {\n    opacity: 1;\n  }\n}\n\n/* Resize generated styles */\n@keyframes resizeanim {\n  from {\n    opacity: 0;\n  }\n  to {\n    opacity: 0;\n  }\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n}\n\n.resize-triggers, .resize-triggers > div, .contract-trigger:before {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden;\n}\n\n.resize-triggers > div {\n  background: #eee;\n  overflow: auto;\n}\n\n.contract-trigger:before {\n  width: 200%;\n  height: 200%;\n}\n";
+  var css = ".apexcharts-canvas {\n  position: relative;\n  user-select: none;\n  /* cannot give overflow: hidden as it will crop tooltips which overflow outside chart area */\n}\n\n/* scrollbar is not visible by default for legend, hence forcing the visibility */\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px;\n}\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);\n}\n.apexcharts-canvas.dark {\n  background: #343F57;\n}\n\n.apexcharts-inner {\n  position: relative;\n}\n\n.legend-mouseover-inactive {\n  transition: 0.15s ease all;\n  opacity: 0.20;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0;\n}\n\n.apexcharts-gridline, .apexcharts-text, .apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: 0.15s ease all;\n}\n.apexcharts-tooltip.light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255, 255, 255, 0.96);\n}\n.apexcharts-tooltip.dark {\n  color: #fff;\n  background: rgba(30,30,30, 0.8);\n}\n.apexcharts-tooltip * {\n  font-family: inherit;\n}\n\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-line {\n  pointer-events: none;\n}\n\n.apexcharts-tooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px;\n}\n.apexcharts-tooltip.light .apexcharts-tooltip-title {\n  background: #ECEFF1;\n  border-bottom: 1px solid #ddd;\n}\n.apexcharts-tooltip.dark .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.7);\n  border-bottom: 1px solid #333;\n}\n\n.apexcharts-tooltip-text-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  font-weight: 600;\n  margin-left: 5px;\n}\n\n.apexcharts-tooltip-text-z-label:empty,\n.apexcharts-tooltip-text-z-value:empty {\n  display: none;\n}\n\n.apexcharts-tooltip-text-value,\n.apexcharts-tooltip-text-z-value {\n  font-weight: 600;\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 0px;\n  margin-right: 10px;\n  border-radius: 50%;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center;\n}\n\n.apexcharts-tooltip-series-group.active .apexcharts-tooltip-marker {\n  opacity: 1;\n}\n.apexcharts-tooltip-series-group.active, .apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px;\n}\n.apexcharts-tooltip-series-group-hidden {\n  opacity: 0;\n  height: 0;\n  line-height: 0;\n  padding: 0 !important;\n}\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px;\n}\n.apexcharts-tooltip-candlestick {\n  padding: 4px 8px;\n}\n.apexcharts-tooltip-candlestick > div {\n  margin: 4px 0;\n}\n.apexcharts-tooltip-candlestick span.value {\n  font-weight: bold;\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px;\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777;\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: bold;\n  display: block;\n  margin-bottom: 5px;\n}\n\n.apexcharts-xaxistooltip {\n  opacity: 0;\n  padding: 9px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #ECEFF1;\n  border: 1px solid #90A4AE;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xaxistooltip.dark {\n  background: rgba(0, 0, 0, 0.7);\n  border: 1px solid rgba(0, 0, 0, 0.5);\n  color: #fff;\n}\n\n.apexcharts-xaxistooltip:after, .apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none;\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: rgba(236, 239, 241, 0);\n  border-width: 6px;\n  margin-left: -6px;\n}\n.apexcharts-xaxistooltip:before {\n  border-color: rgba(144, 164, 174, 0);\n  border-width: 7px;\n  margin-left: -7px;\n}\n\n.apexcharts-xaxistooltip-bottom:after, .apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%;\n}\n\n.apexcharts-xaxistooltip-top:after, .apexcharts-xaxistooltip-top:before {\n  top: 100%;\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #ECEFF1;\n}\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90A4AE;\n}\n\n.apexcharts-xaxistooltip-bottom.dark:after {\n  border-bottom-color: rgba(0, 0, 0, 0.5);\n}\n.apexcharts-xaxistooltip-bottom.dark:before {\n  border-bottom-color: rgba(0, 0, 0, 0.5);\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color:#ECEFF1\n}\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90A4AE;\n}\n.apexcharts-xaxistooltip-top.dark:after {\n  border-top-color:rgba(0, 0, 0, 0.5);\n}\n.apexcharts-xaxistooltip-top.dark:before {\n  border-top-color: rgba(0, 0, 0, 0.5);\n}\n\n\n.apexcharts-xaxistooltip.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-yaxistooltip {\n  opacity: 0;\n  padding: 4px 10px;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #ECEFF1;\n  border: 1px solid #90A4AE;\n}\n\n.apexcharts-yaxistooltip.dark {\n  background: rgba(0, 0, 0, 0.7);\n  border: 1px solid rgba(0, 0, 0, 0.5);\n  color: #fff;\n}\n\n.apexcharts-yaxistooltip:after, .apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none;\n}\n.apexcharts-yaxistooltip:after {\n  border-color: rgba(236, 239, 241, 0);\n  border-width: 6px;\n  margin-top: -6px;\n}\n.apexcharts-yaxistooltip:before {\n  border-color: rgba(144, 164, 174, 0);\n  border-width: 7px;\n  margin-top: -7px;\n}\n\n.apexcharts-yaxistooltip-left:after, .apexcharts-yaxistooltip-left:before {\n  left: 100%;\n}\n\n.apexcharts-yaxistooltip-right:after, .apexcharts-yaxistooltip-right:before {\n  right: 100%;\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90A4AE;\n}\n.apexcharts-yaxistooltip-left.dark:after {\n  border-left-color: rgba(0, 0, 0, 0.5);\n}\n.apexcharts-yaxistooltip-left.dark:before {\n  border-left-color: rgba(0, 0, 0, 0.5);\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #ECEFF1;\n}\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90A4AE;\n}\n.apexcharts-yaxistooltip-right.dark:after {\n  border-right-color: rgba(0, 0, 0, 0.5);\n}\n.apexcharts-yaxistooltip-right.dark:before {\n  border-right-color: rgba(0, 0, 0, 0.5);\n}\n\n.apexcharts-yaxistooltip.active {\n  opacity: 1;\n}\n.apexcharts-yaxistooltip-hidden {\n  display: none;\n}\n\n.apexcharts-xcrosshairs, .apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-xcrosshairs.active, .apexcharts-ycrosshairs.active {\n  opacity: 1;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0;\n}\n\n.apexcharts-zoom-rect {\n  pointer-events: none;\n}\n.apexcharts-selection-rect {\n  cursor: move;\n}\n\n.svg_select_points, .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden;\n}\n.svg_select_points_l, .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible;\n  fill: #888;\n}\n.apexcharts-canvas.zoomable .hovering-zoom {\n  cursor: crosshair\n}\n.apexcharts-canvas.zoomable .hovering-pan {\n  cursor: move\n}\n\n.apexcharts-xaxis,\n.apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.apexcharts-zoom-icon,\n.apexcharts-zoom-in-icon,\n.apexcharts-zoom-out-icon,\n.apexcharts-reset-zoom-icon,\n.apexcharts-pan-icon,\n.apexcharts-selection-icon,\n.apexcharts-menu-icon,\n.apexcharts-toolbar-custom-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6E8192;\n  text-align: center;\n}\n\n\n.apexcharts-zoom-icon svg,\n.apexcharts-zoom-in-icon svg,\n.apexcharts-zoom-out-icon svg,\n.apexcharts-reset-zoom-icon svg,\n.apexcharts-menu-icon svg {\n  fill: #6E8192;\n}\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(0.76)\n}\n\n.dark .apexcharts-zoom-icon svg,\n.dark .apexcharts-zoom-in-icon svg,\n.dark .apexcharts-zoom-out-icon svg,\n.dark .apexcharts-reset-zoom-icon svg,\n.dark .apexcharts-pan-icon svg,\n.dark .apexcharts-selection-icon svg,\n.dark .apexcharts-menu-icon svg,\n.dark .apexcharts-toolbar-custom-icon svg{\n  fill: #f3f4f5;\n}\n\n.apexcharts-canvas .apexcharts-zoom-icon.selected svg,\n.apexcharts-canvas .apexcharts-selection-icon.selected svg,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.selected svg {\n  fill: #008FFB;\n}\n.light .apexcharts-selection-icon:not(.selected):hover svg,\n.light .apexcharts-zoom-icon:not(.selected):hover svg,\n.light .apexcharts-zoom-in-icon:hover svg,\n.light .apexcharts-zoom-out-icon:hover svg,\n.light .apexcharts-reset-zoom-icon:hover svg,\n.light .apexcharts-menu-icon:hover svg {\n  fill: #333;\n}\n\n.apexcharts-selection-icon, .apexcharts-menu-icon {\n  position: relative;\n}\n.apexcharts-reset-zoom-icon {\n  margin-left: 5px;\n}\n.apexcharts-zoom-icon, .apexcharts-reset-zoom-icon, .apexcharts-menu-icon {\n  transform: scale(0.85);\n}\n\n.apexcharts-zoom-in-icon, .apexcharts-zoom-out-icon {\n  transform: scale(0.7)\n}\n\n.apexcharts-zoom-out-icon {\n  margin-right: 3px;\n}\n\n.apexcharts-pan-icon {\n  transform: scale(0.62);\n  position: relative;\n  left: 1px;\n  top: 0px;\n}\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6E8192;\n  stroke-width: 2;\n}\n.apexcharts-pan-icon.selected svg {\n  stroke: #008FFB;\n}\n.apexcharts-pan-icon:not(.selected):hover svg {\n  stroke: #333;\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  top: 0px;\n  right: 3px;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0px 6px 2px 6px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n}\n\n.apexcharts-toolbar svg {\n  pointer-events: none;\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: 0.15s ease all;\n  pointer-events: none;\n}\n\n.apexcharts-menu.open {\n  opacity: 1;\n  pointer-events: all;\n  transition: 0.15s ease all;\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer;\n}\n.light .apexcharts-menu-item:hover {\n  background: #eee;\n}\n.dark .apexcharts-menu {\n  background: rgba(0, 0, 0, 0.7);\n  color: #fff;\n}\n\n@media screen and (min-width: 768px) {\n  .apexcharts-toolbar {\n    /*opacity: 0;*/\n  }\n\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1;\n  }\n}\n\n.apexcharts-datalabel.hidden {\n  opacity: 0;\n}\n\n.apexcharts-pie-label,\n.apexcharts-datalabels, .apexcharts-datalabel, .apexcharts-datalabel-label, .apexcharts-datalabel-value {\n  cursor: default;\n  pointer-events: none;\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: 0.3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease;\n}\n\n.apexcharts-canvas .hidden {\n  opacity: 0;\n}\n\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,\n.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events, .apexcharts-radar-series path, .apexcharts-radar-series polygon {\n  pointer-events: none;\n}\n\n/* markers */\n\n.apexcharts-marker {\n  transition: 0.15s ease all;\n}\n\n@keyframes opaque {\n  0% {\n    opacity: 0;\n  }\n  100% {\n    opacity: 1;\n  }\n}\n\n/* Resize generated styles */\n@keyframes resizeanim {\n  from {\n    opacity: 0;\n  }\n  to {\n    opacity: 0;\n  }\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n}\n\n.resize-triggers, .resize-triggers > div, .contract-trigger:before {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden;\n}\n\n.resize-triggers > div {\n  background: #eee;\n  overflow: auto;\n}\n\n.contract-trigger:before {\n  width: 200%;\n  height: 200%;\n}\n";
   styleInject(css);
-
-  /*
-   * classList.js: Cross-browser full element.classList implementation.
-   * 1.2.20171210
-   *
-   * By Eli Grey, http://eligrey.com
-   * License: Dedicated to the public domain.
-   *   See https://github.com/eligrey/classList.js/blob/master/LICENSE.md
-   */
-
-  /*global self, document, DOMException */
-
-  /*! @source http://purl.eligrey.com/github/classList.js/blob/master/classList.js */
-  if ("document" in self) {
-    // Full polyfill for browsers with no classList support
-    // Including IE < Edge missing SVGElement.classList
-    if (!("classList" in document.createElement("_")) || document.createElementNS && !("classList" in document.createElementNS("http://www.w3.org/2000/svg", "g"))) {
-      (function (view) {
-
-        if (!('Element' in view)) return;
-
-        var classListProp = "classList",
-            protoProp = "prototype",
-            elemCtrProto = view.Element[protoProp],
-            objCtr = Object,
-            strTrim = String[protoProp].trim || function () {
-          return this.replace(/^\s+|\s+$/g, "");
-        },
-            arrIndexOf = Array[protoProp].indexOf || function (item) {
-          var i = 0,
-              len = this.length;
-
-          for (; i < len; i++) {
-            if (i in this && this[i] === item) {
-              return i;
-            }
-          }
-
-          return -1;
-        } // Vendors: please allow content code to instantiate DOMExceptions
-        ,
-            DOMEx = function DOMEx(type, message) {
-          this.name = type;
-          this.code = DOMException[type];
-          this.message = message;
-        },
-            checkTokenAndGetIndex = function checkTokenAndGetIndex(classList, token) {
-          if (token === "") {
-            throw new DOMEx("SYNTAX_ERR", "The token must not be empty.");
-          }
-
-          if (/\s/.test(token)) {
-            throw new DOMEx("INVALID_CHARACTER_ERR", "The token must not contain space characters.");
-          }
-
-          return arrIndexOf.call(classList, token);
-        },
-            ClassList = function ClassList(elem) {
-          var trimmedClasses = strTrim.call(elem.getAttribute("class") || ""),
-              classes = trimmedClasses ? trimmedClasses.split(/\s+/) : [],
-              i = 0,
-              len = classes.length;
-
-          for (; i < len; i++) {
-            this.push(classes[i]);
-          }
-
-          this._updateClassName = function () {
-            elem.setAttribute("class", this.toString());
-          };
-        },
-            classListProto = ClassList[protoProp] = [],
-            classListGetter = function classListGetter() {
-          return new ClassList(this);
-        }; // Most DOMException implementations don't allow calling DOMException's toString()
-        // on non-DOMExceptions. Error's toString() is sufficient here.
-
-
-        DOMEx[protoProp] = Error[protoProp];
-
-        classListProto.item = function (i) {
-          return this[i] || null;
-        };
-
-        classListProto.contains = function (token) {
-          return ~checkTokenAndGetIndex(this, token + "");
-        };
-
-        classListProto.add = function () {
-          var tokens = arguments,
-              i = 0,
-              l = tokens.length,
-              token,
-              updated = false;
-
-          do {
-            token = tokens[i] + "";
-
-            if (!~checkTokenAndGetIndex(this, token)) {
-              this.push(token);
-              updated = true;
-            }
-          } while (++i < l);
-
-          if (updated) {
-            this._updateClassName();
-          }
-        };
-
-        classListProto.remove = function () {
-          var tokens = arguments,
-              i = 0,
-              l = tokens.length,
-              token,
-              updated = false,
-              index;
-
-          do {
-            token = tokens[i] + "";
-            index = checkTokenAndGetIndex(this, token);
-
-            while (~index) {
-              this.splice(index, 1);
-              updated = true;
-              index = checkTokenAndGetIndex(this, token);
-            }
-          } while (++i < l);
-
-          if (updated) {
-            this._updateClassName();
-          }
-        };
-
-        classListProto.toggle = function (token, force) {
-          var result = this.contains(token),
-              method = result ? force !== true && "remove" : force !== false && "add";
-
-          if (method) {
-            this[method](token);
-          }
-
-          if (force === true || force === false) {
-            return force;
-          } else {
-            return !result;
-          }
-        };
-
-        classListProto.replace = function (token, replacement_token) {
-          var index = checkTokenAndGetIndex(token + "");
-
-          if (~index) {
-            this.splice(index, 1, replacement_token);
-
-            this._updateClassName();
-          }
-        };
-
-        classListProto.toString = function () {
-          return this.join(" ");
-        };
-
-        if (objCtr.defineProperty) {
-          var classListPropDesc = {
-            get: classListGetter,
-            enumerable: true,
-            configurable: true
-          };
-
-          try {
-            objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
-          } catch (ex) {
-            // IE 8 doesn't support enumerable:true
-            // adding undefined to fight this issue https://github.com/eligrey/classList.js/issues/36
-            // modernie IE8-MSW7 machine has IE8 8.0.6001.18702 and is affected
-            if (ex.number === undefined || ex.number === -0x7FF5EC54) {
-              classListPropDesc.enumerable = false;
-              objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
-            }
-          }
-        } else if (objCtr[protoProp].__defineGetter__) {
-          elemCtrProto.__defineGetter__(classListProp, classListGetter);
-        }
-      })(self);
-    } // There is full or partial native classList support, so just check if we need
-    // to normalize the add/remove and toggle APIs.
-
-
-    (function () {
-
-      var testElement = document.createElement("_");
-      testElement.classList.add("c1", "c2"); // Polyfill for IE 10/11 and Firefox <26, where classList.add and
-      // classList.remove exist but support only one argument at a time.
-
-      if (!testElement.classList.contains("c2")) {
-        var createMethod = function createMethod(method) {
-          var original = DOMTokenList.prototype[method];
-
-          DOMTokenList.prototype[method] = function (token) {
-            var i,
-                len = arguments.length;
-
-            for (i = 0; i < len; i++) {
-              token = arguments[i];
-              original.call(this, token);
-            }
-          };
-        };
-
-        createMethod('add');
-        createMethod('remove');
-      }
-
-      testElement.classList.toggle("c3", false); // Polyfill for IE 10 and Firefox <24, where classList.toggle does not
-      // support the second argument.
-
-      if (testElement.classList.contains("c3")) {
-        var _toggle = DOMTokenList.prototype.toggle;
-
-        DOMTokenList.prototype.toggle = function (token, force) {
-          if (1 in arguments && !this.contains(token) === !force) {
-            return force;
-          } else {
-            return _toggle.call(this, token);
-          }
-        };
-      } // replace() polyfill
-
-
-      if (!("replace" in document.createElement("_").classList)) {
-        DOMTokenList.prototype.replace = function (token, replacement_token) {
-          var tokens = this.toString().split(" "),
-              index = tokens.indexOf(token + "");
-
-          if (~index) {
-            tokens = tokens.slice(index);
-            this.remove.apply(this, tokens);
-            this.add(replacement_token);
-            this.add.apply(this, tokens.slice(1));
-          }
-        };
-      }
-
-      testElement = null;
-    })();
-  }
 
   /**
   * Detect Element Resize
@@ -28511,7 +27092,7 @@
         var _this = this;
 
         // main method
-        return new Promise$1(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
           // only draw chart, if element found
           if (_this.el !== null) {
             if (typeof Apex._chartInstances === 'undefined') {
@@ -28585,36 +27166,36 @@
       }
     }, {
       key: "addEventListener",
-      value: function addEventListener(name$$1, handler) {
+      value: function addEventListener(name, handler) {
         var w = this.w;
 
-        if (w.globals.events.hasOwnProperty(name$$1)) {
-          w.globals.events[name$$1].push(handler);
+        if (w.globals.events.hasOwnProperty(name)) {
+          w.globals.events[name].push(handler);
         } else {
-          w.globals.events[name$$1] = [handler];
+          w.globals.events[name] = [handler];
         }
       }
     }, {
       key: "removeEventListener",
-      value: function removeEventListener(name$$1, handler) {
+      value: function removeEventListener(name, handler) {
         var w = this.w;
 
-        if (!w.globals.events.hasOwnProperty(name$$1)) {
+        if (!w.globals.events.hasOwnProperty(name)) {
           return;
         }
 
-        var index = w.globals.events[name$$1].indexOf(handler);
+        var index = w.globals.events[name].indexOf(handler);
 
         if (index !== -1) {
-          w.globals.events[name$$1].splice(index, 1);
+          w.globals.events[name].splice(index, 1);
         }
       }
     }, {
       key: "fireEvent",
-      value: function fireEvent(name$$1, args) {
+      value: function fireEvent(name, args) {
         var w = this.w;
 
-        if (!w.globals.events.hasOwnProperty(name$$1)) {
+        if (!w.globals.events.hasOwnProperty(name)) {
           return;
         }
 
@@ -28622,7 +27203,7 @@
           args = [];
         }
 
-        var evs = w.globals.events[name$$1];
+        var evs = w.globals.events[name];
         var l = evs.length;
 
         for (var i = 0; i < l; i++) {
@@ -28696,7 +27277,14 @@
         this.dimensions.plotCoords();
         var xyRatios = this.core.xySettings();
         this.grid.createGridMask();
-        var elGraph = this.core.plotChartType(ser, xyRatios); // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
+        var elGraph = this.core.plotChartType(ser, xyRatios);
+        var dataLabels = new DataLabels(this);
+        dataLabels.bringForward();
+
+        if (w.config.dataLabels.background.enabled) {
+          dataLabels.dataLabelsBackground();
+        } // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
+
 
         this.core.shiftGraphPosition();
         var dim = {
@@ -28722,7 +27310,7 @@
         var graphData = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
         var me = this;
         var w = me.w;
-        return new Promise$1(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
           // no data to display
           if (me.el === null) {
             return reject(new Error('Not enough data to display or target element not found'));
@@ -28834,18 +27422,18 @@
 
     }, {
       key: "updateOptions",
-      value: function updateOptions(options$$1) {
+      value: function updateOptions(options) {
         var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
         var updateSyncedCharts = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
         var overwriteInitialConfig = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
         var w = this.w;
 
-        if (options$$1.series) {
+        if (options.series) {
           this.resetSeries(false);
 
-          if (options$$1.series.length && options$$1.series[0].data) {
-            options$$1.series = options$$1.series.map(function (s, i) {
+          if (options.series.length && options.series[0].data) {
+            options.series = options.series.map(function (s, i) {
               return _objectSpread2({}, w.config.series[i], {
                 name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
                 type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
@@ -28860,15 +27448,15 @@
         } // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
 
 
-        if (options$$1.xaxis) {
-          if (options$$1.xaxis.min || options$$1.xaxis.max) {
-            this.forceXAxisUpdate(options$$1);
+        if (options.xaxis) {
+          if (options.xaxis.min || options.xaxis.max) {
+            this.forceXAxisUpdate(options);
           }
           /* fixes apexcharts.js#369 and react-apexcharts#46 */
 
 
-          if (options$$1.xaxis.categories && options$$1.xaxis.categories.length && w.config.xaxis.convertedCatToNumeric) {
-            options$$1 = Defaults.convertCatToNumeric(options$$1);
+          if (options.xaxis.categories && options.xaxis.categories.length && w.config.xaxis.convertedCatToNumeric) {
+            options = Defaults.convertCatToNumeric(options);
           }
         }
 
@@ -28878,11 +27466,11 @@
         /* update theme mode#459 */
 
 
-        if (options$$1.theme) {
-          options$$1 = this.theme.updateThemeOptions(options$$1);
+        if (options.theme) {
+          options = this.theme.updateThemeOptions(options);
         }
 
-        return this._updateOptions(options$$1, redraw, animate, updateSyncedCharts, overwriteInitialConfig);
+        return this._updateOptions(options, redraw, animate, updateSyncedCharts, overwriteInitialConfig);
       }
       /**
        * private method to update Options.
@@ -28895,7 +27483,7 @@
 
     }, {
       key: "_updateOptions",
-      value: function _updateOptions(options$$1) {
+      value: function _updateOptions(options) {
         var redraw = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
         var updateSyncedCharts = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
@@ -28925,10 +27513,10 @@
             }
           }
 
-          if (options$$1 && _typeof(options$$1) === 'object') {
-            ch.config = new Config(options$$1);
-            options$$1 = CoreUtils.extendArrayProps(ch.config, options$$1);
-            w.config = Utils.extend(w.config, options$$1);
+          if (options && _typeof(options) === 'object') {
+            ch.config = new Config(options);
+            options = CoreUtils.extendArrayProps(ch.config, options);
+            w.config = Utils.extend(w.config, options);
 
             if (overwriteInitialConfig) {
               // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
@@ -28940,7 +27528,7 @@
             }
           }
 
-          return ch.update(options$$1);
+          return ch.update(options);
         });
       }
       /**
@@ -29097,13 +27685,13 @@
       }
     }, {
       key: "update",
-      value: function update(options$$1) {
+      value: function update(options) {
         var _this4 = this;
 
-        return new Promise$1(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
           _this4.clear();
 
-          var graphData = _this4.create(_this4.w.config.series, options$$1);
+          var graphData = _this4.create(_this4.w.config.series, options);
 
           if (!graphData) return resolve(_this4);
 
@@ -29123,18 +27711,15 @@
       }
     }, {
       key: "forceXAxisUpdate",
-      value: function forceXAxisUpdate(options$$1) {
+      value: function forceXAxisUpdate(options) {
         var w = this.w;
-
-        if (typeof options$$1.xaxis.min !== 'undefined') {
-          w.config.xaxis.min = options$$1.xaxis.min;
-          w.globals.lastXAxis.min = options$$1.xaxis.min;
-        }
-
-        if (typeof options$$1.xaxis.max !== 'undefined') {
-          w.config.xaxis.max = options$$1.xaxis.max;
-          w.globals.lastXAxis.max = options$$1.xaxis.max;
-        }
+        var minmax = ['min', 'max'];
+        minmax.forEach(function (a) {
+          if (typeof options.xaxis[a] !== 'undefined') {
+            w.config.xaxis[a] = options.xaxis[a];
+            w.globals.lastXAxis[a] = options.xaxis[a];
+          }
+        });
       }
       /**
        * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
@@ -29200,7 +27785,7 @@
     }, {
       key: "killSVG",
       value: function killSVG(draw) {
-        return new Promise$1(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
           draw.each(function (i, children) {
             this.removeClass('*');
             this.off();
@@ -29417,7 +28002,7 @@
 
     }, {
       key: "addText",
-      value: function addText(options$$1) {
+      value: function addText(options) {
         var pushToMemory = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
         var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
         var me = this;
@@ -29426,7 +28011,7 @@
           me = context;
         }
 
-        me.annotations.addText(options$$1, pushToMemory, me);
+        me.annotations.addText(options, pushToMemory, me);
       }
     }, {
       key: "getChartArea",
@@ -29444,16 +28029,14 @@
       value: function getHighestValueInSeries() {
         var seriesIndex = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
         var range = new Range$1(this.ctx);
-        var minYmaxY = range.getMinYMaxY(seriesIndex);
-        return minYmaxY.highestY;
+        return range.getMinYMaxY(seriesIndex).highestY;
       }
     }, {
       key: "getLowestValueInSeries",
       value: function getLowestValueInSeries() {
         var seriesIndex = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
         var range = new Range$1(this.ctx);
-        var minYmaxY = range.getMinYMaxY(seriesIndex);
-        return minYmaxY.lowestY;
+        return range.getMinYMaxY(seriesIndex).lowestY;
       }
     }, {
       key: "getSeriesTotal",
@@ -29470,15 +28053,19 @@
       value: function toggleDataPointSelection(seriesIndex, dataPointIndex) {
         var w = this.w;
         var elPath = null;
+        var parent = ".apexcharts-series[data\\:realIndex='".concat(seriesIndex, "']");
 
         if (w.globals.axisCharts) {
-          elPath = w.globals.dom.Paper.select(".apexcharts-series[data\\:realIndex='".concat(seriesIndex, "'] path[j='").concat(dataPointIndex, "'], .apexcharts-series[data\\:realIndex='").concat(seriesIndex, "'] circle[j='").concat(dataPointIndex, "'], .apexcharts-series[data\\:realIndex='").concat(seriesIndex, "'] rect[j='").concat(dataPointIndex, "']")).members[0];
+          elPath = w.globals.dom.Paper.select("".concat(parent, " path[j='").concat(dataPointIndex, "'], ").concat(parent, " circle[j='").concat(dataPointIndex, "'], ").concat(parent, " rect[j='").concat(dataPointIndex, "']")).members[0];
         } else {
-          elPath = w.globals.dom.Paper.select(".apexcharts-series[data\\:realIndex='".concat(seriesIndex, "']")).members[0];
+          // dataPointIndex will be undefined here, hence using seriesIndex
+          if (typeof dataPointIndex === 'undefined') {
+            elPath = w.globals.dom.Paper.select("".concat(parent, " path[j='").concat(seriesIndex, "']")).members[0];
 
-          if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
-            var pie = new Pie(this.ctx);
-            pie.pieClicked(seriesIndex);
+            if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
+              var pie = new Pie(this.ctx);
+              pie.pieClicked(seriesIndex);
+            }
           }
         }
 
@@ -29557,8 +28144,8 @@
 
         for (var i = 0; i < els.length; i++) {
           var el = els[i];
-          var options$$1 = JSON.parse(els[i].getAttribute('data-options'));
-          var apexChart = new ApexCharts(el, options$$1);
+          var options = JSON.parse(els[i].getAttribute('data-options'));
+          var apexChart = new ApexCharts(el, options);
           apexChart.render();
         }
       }
@@ -29619,4 +28206,4 @@
 
   return ApexCharts$1;
 
-}));
+})));

@@ -526,7 +526,7 @@
 }
 
 .apexcharts-pie-label,
-.apexcharts-datalabel, .apexcharts-datalabel-label, .apexcharts-datalabel-value {
+.apexcharts-datalabels, .apexcharts-datalabel, .apexcharts-datalabel-label, .apexcharts-datalabel-value {
   cursor: default;
   pointer-events: none;
 }
