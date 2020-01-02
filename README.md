@@ -3,12 +3,14 @@
 <p align="center">
   <a href="https://github.com/apexcharts/apexcharts.js/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen.svg" alt="License"></a>
   <a href="https://travis-ci.com/apexcharts/apexcharts.js"><img src="https://api.travis-ci.com/apexcharts/apexcharts.js.svg?branch=master" alt="build" /></a>
-  <img alt="downloads" src="https://img.shields.io/npm/dm/apexcharts.svg">
+  <img alt="downloads" src="https://img.shields.io/npm/dm/apexcharts.svg"/>
   <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="ver"></a>
   <img alt="size" src="https://badgen.net/bundlephobia/min/apexcharts?label=size">
-  <a href="https://www.jsdelivr.com/package/npm/apexcharts"><img src="https://data.jsdelivr.com/v1/package/npm/apexcharts/badge" alt="jsdelivr" /></a>
+  <a href="https://cdn.jsdelivr.net/npm/apexcharts@3.12.0/types/apexcharts.d.ts"><img src="https://badgen.net/npm/types/apexcharts"/></a>
   <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square" alt="prettier"></a>
-  <a href="https://patreon.com/junedchhipa"><img src="https://img.shields.io/badge/patrons-10-blue.svg?style=flat&logo=patreon" alt="patrons" /></a>
+  <a href="https://www.jsdelivr.com/package/npm/apexcharts"><img src="https://data.jsdelivr.com/v1/package/npm/apexcharts/badge" alt="jsdelivr" /></a>
+  <a href="https://codeclimate.com/github/apexcharts/apexcharts.js"><img src="https://badgen.net/codeclimate/maintainability/apexcharts/apexcharts.js" /></a>
+  <img src="https://badgen.net/codeclimate/tech-debt/apexcharts/apexcharts.js"/>
 </p>
 
 <p align="center">
