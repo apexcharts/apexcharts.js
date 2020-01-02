@@ -144,6 +144,31 @@ export default class Config {
     } else {
       opts.yaxis = Utils.extendArray(opts.yaxis, optionYAxis)
     }
+
+    let isLogY = false
+    opts.yaxis.forEach((y) => {
+      if (y.logarithmic) {
+        isLogY = true
+      }
+    })
+
+    // A logarithmic chart works correctly when each series has a corresponding y-axis
+    // If this is not the case, we manually create yaxis for multi-series log chart
+    if (isLogY && opts.series.length !== opts.yaxis.length) {
+      opts.yaxis = opts.series.map((s, i) => {
+        if (!s.name) {
+          opts.series[i].name = `series-${i + 1}`
+        }
+        if (opts.yaxis[i]) {
+          opts.yaxis[i].seriesName = opts.series[i].name
+          return opts.yaxis[i]
+        } else {
+          const newYaxis = Utils.extend(optionYAxis, opts.yaxis[0])
+          newYaxis.show = false
+          return newYaxis
+        }
+      })
+    }
     return opts
   }
 
