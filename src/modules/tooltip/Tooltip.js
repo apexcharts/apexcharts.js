@@ -63,7 +63,7 @@ export default class Tooltip {
 
     const tooltipEl = document.createElement('div')
     tooltipEl.classList.add('apexcharts-tooltip')
-    tooltipEl.classList.add(this.tConfig.theme)
+    tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme}`)
     w.globals.dom.elWrap.appendChild(tooltipEl)
 
     if (w.globals.axisCharts) {
@@ -531,11 +531,11 @@ export default class Tooltip {
       e.type === 'mouseup'
     ) {
       if (xcrosshairs !== null) {
-        xcrosshairs.classList.add('active')
+        xcrosshairs.classList.add('apexcharts-active')
       }
 
       if (this.ycrosshairs !== null && this.blyaxisTooltip) {
-        this.ycrosshairs.classList.add('active')
+        this.ycrosshairs.classList.add('apexcharts-active')
       }
 
       if (isStickyTooltip && !this.showOnIntersect) {
@@ -624,7 +624,7 @@ export default class Tooltip {
         }
       }
 
-      opt.tooltipEl.classList.add('active')
+      opt.tooltipEl.classList.add('apexcharts-active')
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       this.handleMouseOut(opt)
     }
@@ -640,7 +640,7 @@ export default class Tooltip {
     let seriesBound = w.globals.dom.elWrap.getBoundingClientRect()
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
-      tooltipEl.classList.add('active')
+      tooltipEl.classList.add('apexcharts-active')
 
       this.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
@@ -654,7 +654,7 @@ export default class Tooltip {
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
-      tooltipEl.classList.remove('active')
+      tooltipEl.classList.remove('apexcharts-active')
     }
   }
 
@@ -674,19 +674,19 @@ export default class Tooltip {
 
     const xcrosshairs = this.getElXCrosshairs()
 
-    opt.tooltipEl.classList.remove('active')
+    opt.tooltipEl.classList.remove('apexcharts-active')
     this.deactivateHoverFilter()
     if (w.config.chart.type !== 'bubble') {
       this.marker.resetPointsSize()
     }
     if (xcrosshairs !== null) {
-      xcrosshairs.classList.remove('active')
+      xcrosshairs.classList.remove('apexcharts-active')
     }
     if (this.ycrosshairs !== null) {
-      this.ycrosshairs.classList.remove('active')
+      this.ycrosshairs.classList.remove('apexcharts-active')
     }
     if (this.blxaxisTooltip) {
-      this.xaxisTooltip.classList.remove('active')
+      this.xaxisTooltip.classList.remove('apexcharts-active')
     }
     if (this.blyaxisTooltip) {
       if (this.yaxisTTEls === null) {
@@ -695,7 +695,7 @@ export default class Tooltip {
         )
       }
       for (let i = 0; i < this.yaxisTTEls.length; i++) {
-        this.yaxisTTEls[i].classList.remove('active')
+        this.yaxisTTEls[i].classList.remove('apexcharts-active')
       }
     }
 

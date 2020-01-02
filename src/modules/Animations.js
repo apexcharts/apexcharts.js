@@ -169,7 +169,7 @@ export default class Animations {
   showDelayedElements() {
     this.w.globals.delayedElements.forEach((d) => {
       const ele = d.el
-      ele.classList.remove('hidden')
+      ele.classList.remove('apexcharts-element-hidden')
     })
   }
 

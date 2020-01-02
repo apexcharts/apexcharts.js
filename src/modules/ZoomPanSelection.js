@@ -78,7 +78,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.preselectedSelection()
 
     this.hoverArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
-    this.hoverArea.classList.add('zoomable')
+    this.hoverArea.classList.add('apexcharts-zoomable')
 
     this.eventList.forEach((event) => {
       this.hoverArea.addEventListener(

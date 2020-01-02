@@ -306,7 +306,7 @@ class Line {
         if (!this.pointsChart) {
           let markers = new Markers(this.ctx)
           if (w.globals.dataPoints > 1) {
-            elPointsMain.node.classList.add('hidden')
+            elPointsMain.node.classList.add('apexcharts-element-hidden')
           }
 
           let elPointsWrap = markers.plotChartMarkers(

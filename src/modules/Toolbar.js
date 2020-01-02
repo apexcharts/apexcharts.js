@@ -77,7 +77,9 @@ export default class Toolbar {
         el: this.elZoom,
         icon: typeof this.t.zoom === 'string' ? this.t.zoom : icoZoom,
         title: this.localeValues.selectionZoom,
-        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-zoom-icon'
+        class: w.globals.isTouchDevice
+          ? 'apexcharts-element-hidden'
+          : 'apexcharts-zoom-icon'
       })
     }
 
@@ -87,7 +89,9 @@ export default class Toolbar {
         icon:
           typeof this.t.selection === 'string' ? this.t.selection : icoSelect,
         title: this.localeValues.selection,
-        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-selection-icon'
+        class: w.globals.isTouchDevice
+          ? 'apexcharts-element-hidden'
+          : 'apexcharts-selection-icon'
       })
     }
 
@@ -96,7 +100,9 @@ export default class Toolbar {
         el: this.elPan,
         icon: typeof this.t.pan === 'string' ? this.t.pan : icoPan,
         title: this.localeValues.pan,
-        class: w.globals.isTouchDevice ? 'hidden' : 'apexcharts-pan-icon'
+        class: w.globals.isTouchDevice
+          ? 'apexcharts-element-hidden'
+          : 'apexcharts-pan-icon'
       })
     }
 
@@ -174,11 +180,11 @@ export default class Toolbar {
     }
 
     if (w.globals.zoomEnabled) {
-      this.elZoom.classList.add('selected')
+      this.elZoom.classList.add('apexcharts-selected')
     } else if (w.globals.panEnabled) {
-      this.elPan.classList.add('selected')
+      this.elPan.classList.add('apexcharts-selected')
     } else if (w.globals.selectionEnabled) {
-      this.elSelection.classList.add('selected')
+      this.elSelection.classList.add('apexcharts-selected')
     }
 
     this.addToolbarEventListeners()
@@ -213,10 +219,10 @@ export default class Toolbar {
     this.toggleOtherControls()
     this.w.globals.selectionEnabled = !this.w.globals.selectionEnabled
 
-    if (!this.elSelection.classList.contains('selected')) {
-      this.elSelection.classList.add('selected')
+    if (!this.elSelection.classList.contains('apexcharts-selected')) {
+      this.elSelection.classList.add('apexcharts-selected')
     } else {
-      this.elSelection.classList.remove('selected')
+      this.elSelection.classList.remove('apexcharts-selected')
     }
   }
 
@@ -224,10 +230,10 @@ export default class Toolbar {
     this.toggleOtherControls()
     this.w.globals.zoomEnabled = !this.w.globals.zoomEnabled
 
-    if (!this.elZoom.classList.contains('selected')) {
-      this.elZoom.classList.add('selected')
+    if (!this.elZoom.classList.contains('apexcharts-selected')) {
+      this.elZoom.classList.add('apexcharts-selected')
     } else {
-      this.elZoom.classList.remove('selected')
+      this.elZoom.classList.remove('apexcharts-selected')
     }
   }
 
@@ -250,10 +256,10 @@ export default class Toolbar {
     this.toggleOtherControls()
     this.w.globals.zoomEnabled = true
     if (this.elZoom) {
-      this.elZoom.classList.add('selected')
+      this.elZoom.classList.add('apexcharts-selected')
     }
     if (this.elPan) {
-      this.elPan.classList.remove('selected')
+      this.elPan.classList.remove('apexcharts-selected')
     }
   }
 
@@ -262,10 +268,10 @@ export default class Toolbar {
     this.w.globals.panEnabled = true
 
     if (this.elPan) {
-      this.elPan.classList.add('selected')
+      this.elPan.classList.add('apexcharts-selected')
     }
     if (this.elZoom) {
-      this.elZoom.classList.remove('selected')
+      this.elZoom.classList.remove('apexcharts-selected')
     }
   }
 
@@ -273,10 +279,10 @@ export default class Toolbar {
     this.toggleOtherControls()
     this.w.globals.panEnabled = !this.w.globals.panEnabled
 
-    if (!this.elPan.classList.contains('selected')) {
-      this.elPan.classList.add('selected')
+    if (!this.elPan.classList.contains('apexcharts-selected')) {
+      this.elPan.classList.add('apexcharts-selected')
     } else {
-      this.elPan.classList.remove('selected')
+      this.elPan.classList.remove('apexcharts-selected')
     }
   }
 
@@ -289,13 +295,13 @@ export default class Toolbar {
     this.getToolbarIconsReference()
 
     if (this.elPan) {
-      this.elPan.classList.remove('selected')
+      this.elPan.classList.remove('apexcharts-selected')
     }
     if (this.elSelection) {
-      this.elSelection.classList.remove('selected')
+      this.elSelection.classList.remove('apexcharts-selected')
     }
     if (this.elZoom) {
-      this.elZoom.classList.remove('selected')
+      this.elZoom.classList.remove('apexcharts-selected')
     }
   }
 
@@ -390,10 +396,10 @@ export default class Toolbar {
 
   toggleMenu() {
     window.setTimeout(() => {
-      if (this.elMenu.classList.contains('open')) {
-        this.elMenu.classList.remove('open')
+      if (this.elMenu.classList.contains('apexcharts-menu-open')) {
+        this.elMenu.classList.remove('apexcharts-menu-open')
       } else {
-        this.elMenu.classList.add('open')
+        this.elMenu.classList.add('apexcharts-menu-open')
       }
     }, 0)
   }

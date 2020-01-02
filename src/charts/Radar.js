@@ -135,7 +135,7 @@ class Radar {
 
       // points
       elPointsMain = this.graphics.group({
-        class: 'apexcharts-series-markers-wrap hidden'
+        class: 'apexcharts-series-markers-wrap apexcharts-element-hidden'
       })
 
       // datapoints

@@ -80,13 +80,13 @@ class Legend {
         flex-direction: column;	
         bottom: 0;	
       }	
-      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {	
+      .apexcharts-legend.position-bottom.apexcharts-align-left, .apexcharts-legend.position-top.apexcharts-align-left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {	
         justify-content: flex-start;	
       }	
       .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {	
         justify-content: center;  	
       }	
-      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {	
+      .apexcharts-legend.position-bottom.apexcharts-align-right, .apexcharts-legend.position-top.apexcharts-align-right {	
         justify-content: flex-end;	
       }	
       .apexcharts-legend-series {	
@@ -111,10 +111,10 @@ class Legend {
         margin-right: 3px;	
       }	
       	
-      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{	
+      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{	
         display: inline-block;	
       }	
-      .apexcharts-legend-series.no-click {	
+      .apexcharts-legend-series.apexcharts-no-click {	
         cursor: auto;	
       }	
       .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {	
@@ -317,8 +317,9 @@ class Legend {
       }
 
       w.globals.dom.elLegendWrap.appendChild(elLegend)
-      w.globals.dom.elLegendWrap.classList.add(w.config.legend.horizontalAlign)
-      // w.globals.dom.elLegendWrap.classList.add(w.config.legend.verticalAlign)
+      w.globals.dom.elLegendWrap.classList.add(
+        `apexcharts-align-${w.config.legend.horizontalAlign}`
+      )
       w.globals.dom.elLegendWrap.classList.add(
         'position-' + w.config.legend.position
       )
@@ -342,7 +343,7 @@ class Legend {
       }
 
       if (!w.config.legend.onItemClick.toggleDataSeries) {
-        elLegend.classList.add('no-click')
+        elLegend.classList.add('apexcharts-no-click')
       }
     }
 

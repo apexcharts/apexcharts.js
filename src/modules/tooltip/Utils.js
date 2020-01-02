@@ -273,10 +273,10 @@ export default class Utils {
     let allTooltipSeriesGroups = ttCtx.allTooltipSeriesGroups
     for (let i = 0; i < allTooltipSeriesGroups.length; i++) {
       if (state === 'enable') {
-        allTooltipSeriesGroups[i].classList.add('active')
+        allTooltipSeriesGroups[i].classList.add('apexcharts-active')
         allTooltipSeriesGroups[i].style.display = w.config.tooltip.items.display
       } else {
-        allTooltipSeriesGroups[i].classList.remove('active')
+        allTooltipSeriesGroups[i].classList.remove('apexcharts-active')
         allTooltipSeriesGroups[i].style.display = 'none'
       }
     }

@@ -282,7 +282,7 @@ export default class Labels {
       )
 
       if (firstTooltipSeriesGroup) {
-        firstTooltipSeriesGroup.classList.add('active')
+        firstTooltipSeriesGroup.classList.add('apexcharts-active')
         firstTooltipSeriesGroup.style.display = w.config.tooltip.items.display
       }
     }

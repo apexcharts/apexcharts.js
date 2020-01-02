@@ -983,10 +983,10 @@ export default class ApexCharts {
       let elMenu = w.globals.dom.baseEl.querySelector('.apexcharts-menu')
       if (
         elMenu &&
-        elMenu.classList.contains('open') &&
+        elMenu.classList.contains('apexcharts-menu-open') &&
         target !== 'apexcharts-menu-icon'
       ) {
-        elMenu.classList.remove('open')
+        elMenu.classList.remove('apexcharts-menu-open')
       }
     }
 

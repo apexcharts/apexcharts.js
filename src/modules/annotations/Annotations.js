@@ -60,7 +60,7 @@ export default class Annotations {
             w.config.chart.type !== 'scatter' &&
             w.config.chart.type !== 'bubble'
           ) {
-            annoElArray[i].classList.add('hidden')
+            annoElArray[i].classList.add('apexcharts-element-hidden')
           }
         }
         w.globals.delayedElements.push({ el: annoElArray[i], index: 0 })

@@ -26,7 +26,9 @@ export default class Theme {
     let w = this.w
     let utils = new Utils()
 
-    w.globals.dom.elWrap.classList.add(w.config.theme.mode)
+    w.globals.dom.elWrap.classList.add(
+      `apexcharts-theme-${w.config.theme.mode}`
+    )
 
     if (w.config.colors === undefined) {
       w.globals.colors = this.predefined()

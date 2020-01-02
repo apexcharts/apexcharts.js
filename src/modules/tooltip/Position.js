@@ -59,7 +59,7 @@ export default class Position {
       xcrosshairs.setAttribute('x1', x)
       xcrosshairs.setAttribute('x2', x)
       xcrosshairs.setAttribute('y2', w.globals.gridHeight)
-      xcrosshairs.classList.add('active')
+      xcrosshairs.classList.add('apexcharts-active')
     }
 
     if (ttCtx.blxaxisTooltip) {
@@ -106,7 +106,7 @@ export default class Position {
     const ttCtx = this.ttCtx
 
     if (ttCtx.xaxisTooltip !== null) {
-      ttCtx.xaxisTooltip.classList.add('active')
+      ttCtx.xaxisTooltip.classList.add('apexcharts-active')
 
       let cy =
         ttCtx.xaxisOffY +
@@ -161,12 +161,12 @@ export default class Position {
     cy = cy - yAxisTTHeight / 2
 
     if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1) {
-      ttCtx.yaxisTTEls[index].classList.add('active')
+      ttCtx.yaxisTTEls[index].classList.add('apexcharts-active')
       ttCtx.yaxisTTEls[index].style.top = cy + 'px'
       ttCtx.yaxisTTEls[index].style.left =
         cx + w.config.yaxis[index].tooltip.offsetX + 'px'
     } else {
-      ttCtx.yaxisTTEls[index].classList.remove('active')
+      ttCtx.yaxisTTEls[index].classList.remove('apexcharts-active')
     }
   }
 
