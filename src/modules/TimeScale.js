@@ -696,8 +696,7 @@ class TimeScale {
 
       const raw = this.createRawDateString(ts, value)
 
-      // parse the whole ISO datestring
-      const dateString = new Date(Date.parse(raw))
+      const dateToFormat = dt.getUTCDate(raw)
 
       if (w.config.xaxis.labels.format === undefined) {
         let customFormat = 'dd MMM'
@@ -708,9 +707,9 @@ class TimeScale {
         if (ts.unit === 'hour') customFormat = dtFormatter.hour
         if (ts.unit === 'minute') customFormat = dtFormatter.minute
 
-        value = dt.formatDate(dateString, customFormat)
+        value = dt.formatDate(dateToFormat, customFormat)
       } else {
-        value = dt.formatDate(dateString, w.config.xaxis.labels.format)
+        value = dt.formatDate(dateToFormat, w.config.xaxis.labels.format)
       }
 
       return {

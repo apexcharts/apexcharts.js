@@ -23,7 +23,7 @@ class Formatters {
         if (w.config.tooltip.x.formatter === undefined) {
           let datetimeObj = new DateTime(this.ctx)
           return datetimeObj.formatDate(
-            new Date(val),
+            datetimeObj.getUTCDate(val),
             w.config.tooltip.x.format
           )
         }

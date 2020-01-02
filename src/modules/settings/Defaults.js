@@ -243,11 +243,11 @@ export default class Defaults {
             if (w.config.xaxis.type === 'datetime') {
               let datetimeObj = new DateTime(ctx)
               startVal = datetimeObj.formatDate(
-                new Date(start),
+                datetimeObj.getUTCDate(start),
                 w.config.tooltip.x.format
               )
               endVal = datetimeObj.formatDate(
-                new Date(end),
+                datetimeObj.getUTCDate(end),
                 w.config.tooltip.x.format
               )
             } else {

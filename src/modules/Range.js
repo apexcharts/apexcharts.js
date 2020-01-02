@@ -1,4 +1,5 @@
 import Utils from '../utils/Utils'
+import DateTime from '../utils/DateTime'
 import Scales from './Scales'
 
 /**
@@ -369,14 +370,16 @@ class Range {
     }
 
     if (gl.minX === gl.maxX) {
+      let datetimeObj = new DateTime(this.ctx)
+
       // single dataPoint
       if (cnf.xaxis.type === 'datetime') {
-        const newMinX = new Date(gl.minX)
-        newMinX.setDate(newMinX.getDate() - 2)
+        const newMinX = datetimeObj.getUTCDate(gl.minX)
+        newMinX.setUTCDate(newMinX.getDate() - 2)
         gl.minX = new Date(newMinX).getTime()
 
-        const newMaxX = new Date(gl.maxX)
-        newMaxX.setDate(newMaxX.getDate() + 2)
+        const newMaxX = datetimeObj.getUTCDate(gl.maxX)
+        newMaxX.setUTCDate(newMaxX.getDate() + 2)
         gl.maxX = new Date(newMaxX).getTime()
       } else if (
         cnf.xaxis.type === 'numeric' ||

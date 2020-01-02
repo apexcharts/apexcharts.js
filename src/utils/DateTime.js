@@ -28,6 +28,10 @@ class DateTime {
     return new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
   }
 
+  getUTCDate(timestamp) {
+    return new Date(new Date(timestamp).toUTCString())
+  }
+
   parseDate(dateStr) {
     const parsed = Date.parse(dateStr)
     if (!isNaN(parsed)) {
