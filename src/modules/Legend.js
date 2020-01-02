@@ -423,13 +423,12 @@ class Legend {
       elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px'
     }
 
-    if (elLegendWrap.style.width) {
-      elLegendWrap.style.width = parseInt(w.config.legend.width, 10) + 'px'
-    }
-
-    if (elLegendWrap.style.height) {
-      elLegendWrap.style.height = parseInt(w.config.legend.height, 10) + 'px'
-    }
+    const fixedHeigthWidth = ['width', 'height']
+    fixedHeigthWidth.forEach((hw) => {
+      if (elLegendWrap.style[hw]) {
+        elLegendWrap.style[hw] = parseInt(w.config.legend[hw], 10) + 'px'
+      }
+    })
   }
 
   legendAlignHorizontal() {

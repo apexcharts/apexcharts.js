@@ -20,6 +20,7 @@ export default class Dimensions {
     this.xAxisHeight = 0
     this.isSparkline = this.w.config.chart.sparkline.enabled
 
+    this.gridPad = this.w.config.grid.padding
     this.xPadRight = 0
     this.xPadLeft = 0
   }
@@ -45,18 +46,17 @@ export default class Dimensions {
     this.titleSubtitleOffset()
 
     // after calculating everything, apply padding set by user
-    gl.gridHeight =
-      gl.gridHeight - w.config.grid.padding.top - w.config.grid.padding.bottom
+    gl.gridHeight = gl.gridHeight - this.gridPad.top - this.gridPad.bottom
 
     gl.gridWidth =
       gl.gridWidth -
-      w.config.grid.padding.left -
-      w.config.grid.padding.right -
+      this.gridPad.left -
+      this.gridPad.right -
       this.xPadRight -
       this.xPadLeft
 
-    gl.translateX = gl.translateX + w.config.grid.padding.left + this.xPadLeft
-    gl.translateY = gl.translateY + w.config.grid.padding.top
+    gl.translateX = gl.translateX + this.gridPad.left + this.xPadLeft
+    gl.translateY = gl.translateY + this.gridPad.top
   }
 
   conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords) {
@@ -86,8 +86,6 @@ export default class Dimensions {
       this.xAxisHeight = 0
     }
 
-    this.yAxisWidth = this.getTotalYAxisWidth()
-
     let minYAxisWidth = 0
     let maxYAxisWidth = 0
     w.config.yaxis.forEach((y) => {
@@ -107,10 +105,7 @@ export default class Dimensions {
     let gl = w.globals
 
     let yaxisLabelCoords = this.getyAxisLabelsCoords()
-    let xaxisLabelCoords = this.getxAxisLabelsCoords()
-
     let yTitleCoords = this.getyAxisTitleCoords()
-    let xtitleCoords = this.getxAxisTitleCoords()
 
     w.globals.yLabelsCoords = []
     w.globals.yTitleCoords = []
@@ -125,6 +120,11 @@ export default class Dimensions {
         index
       })
     })
+
+    this.yAxisWidth = this.getTotalYAxisWidth()
+
+    let xaxisLabelCoords = this.getxAxisLabelsCoords()
+    let xtitleCoords = this.getxAxisTitleCoords()
 
     this.conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords)
 
@@ -168,26 +168,23 @@ export default class Dimensions {
 
     this.additionalPaddingXLabels(xaxisLabelCoords)
 
+    const legendTopBottom = () => {
+      gl.translateX = yAxisWidth
+      gl.gridHeight =
+        gl.svgHeight -
+        lgRect.height -
+        xAxisHeight -
+        (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
+      gl.gridWidth = gl.svgWidth - yAxisWidth
+    }
     switch (w.config.legend.position) {
       case 'bottom':
         gl.translateY = translateY
-        gl.translateX = yAxisWidth
-        gl.gridHeight =
-          gl.svgHeight -
-          lgRect.height -
-          xAxisHeight -
-          (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
-        gl.gridWidth = gl.svgWidth - yAxisWidth
+        legendTopBottom()
         break
       case 'top':
         gl.translateY = lgRect.height + translateY
-        gl.translateX = yAxisWidth
-        gl.gridHeight =
-          gl.svgHeight -
-          lgRect.height -
-          xAxisHeight -
-          (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
-        gl.gridWidth = gl.svgWidth - yAxisWidth
+        legendTopBottom()
         break
       case 'left':
         gl.translateY = translateY
@@ -222,16 +219,13 @@ export default class Dimensions {
       xPad = 20
     }
 
-    let offY = 10
-    let offX = 0
+    const type =
+      cnf.chart.type === 'pie' || cnf.chart.type === 'donut'
+        ? 'pie'
+        : 'radialBar'
 
-    if (cnf.chart.type === 'pie' || cnf.chart.type === 'donut') {
-      offY = offY + cnf.plotOptions.pie.offsetY
-      offX = offX + cnf.plotOptions.pie.offsetX
-    } else if (cnf.chart.type === 'radialBar') {
-      offY = offY + cnf.plotOptions.radialBar.offsetY
-      offX = offX + cnf.plotOptions.radialBar.offsetX
-    }
+    let offY = 10 + cnf.plotOptions[type].offsetY
+    let offX = cnf.plotOptions[type].offsetX
 
     if (!cnf.legend.show || cnf.legend.floating) {
       gl.gridHeight = gl.svgHeight - gl.goldenPadding
@@ -247,14 +241,12 @@ export default class Dimensions {
       case 'bottom':
         gl.gridHeight = gl.svgHeight - lgRect.height - gl.goldenPadding
         gl.gridWidth = gl.gridHeight
-
         gl.translateY = offY - 20
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':
         gl.gridHeight = gl.svgHeight - lgRect.height - gl.goldenPadding
         gl.gridWidth = gl.gridHeight
-
         gl.translateY = lgRect.height + offY + 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
@@ -336,12 +328,12 @@ export default class Dimensions {
         }
       } else if (xtype === 'datetime') {
         // If user has enabled DateTime, but uses own's formatter
-        if (cnf.grid.padding.right < lbWidth) {
+        if (this.gridPad.right < lbWidth) {
           gl.skipLastTimelinelabel = true
         }
       } else if (xtype !== 'datetime') {
         if (
-          cnf.grid.padding.right < lbWidth / 2 - this.yAxisWidthRight &&
+          this.gridPad.right < lbWidth / 2 - this.yAxisWidthRight &&
           !gl.rotateXLabels
         ) {
           this.xPadRight = lbWidth / 2 + 1
@@ -353,7 +345,10 @@ export default class Dimensions {
       if (isCollapsed(i)) return
 
       if (xtype !== 'datetime') {
-        if (cnf.grid.padding.left < lbWidth / 2 - this.yAxisWidthLeft) {
+        if (
+          this.gridPad.left < lbWidth / 2 - this.yAxisWidthLeft &&
+          !gl.rotateXLabels
+        ) {
           this.xPadLeft = lbWidth / 2 + 1
         }
       }
@@ -363,7 +358,7 @@ export default class Dimensions {
 
     cnf.yaxis.forEach((yaxe, i) => {
       if (isBarOpposite) {
-        if (cnf.grid.padding.left < lbWidth) {
+        if (this.gridPad.left < lbWidth) {
           this.xPadLeft = lbWidth / 2 + 1
         }
         this.xPadRight = lbWidth / 2 + 1
@@ -378,17 +373,15 @@ export default class Dimensions {
     const gl = w.globals
     let gridShrinkOffset = this.isSparkline || !w.globals.axisCharts ? 0 : 10
 
-    if (w.config.title.text !== undefined) {
-      gridShrinkOffset += w.config.title.margin
-    } else {
-      gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5
-    }
+    const titleSubtitle = ['title', 'subtitle']
 
-    if (w.config.subtitle.text !== undefined) {
-      gridShrinkOffset += w.config.subtitle.margin
-    } else {
-      gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5
-    }
+    titleSubtitle.forEach((t) => {
+      if (w.config[t].text !== undefined) {
+        gridShrinkOffset += w.config[t].margin
+      } else {
+        gridShrinkOffset += this.isSparkline || !w.globals.axisCharts ? 0 : 5
+      }
+    })
 
     const nonAxisOrMultiSeriesCharts =
       w.config.series.length > 1 ||
@@ -525,8 +518,8 @@ export default class Dimensions {
       }
     } else {
       let lgWidthForSideLegends =
-        w.config.legend.position === 'left' &&
-        w.config.legend.position === 'right' &&
+        (w.config.legend.position === 'left' ||
+          w.config.legend.position === 'right') &&
         !w.config.legend.floating
           ? this.lgRect.width
           : 0
@@ -563,7 +556,11 @@ export default class Dimensions {
 
       if (
         rect.width * xaxisLabels.length >
-          w.globals.svgWidth - lgWidthForSideLegends - this.yAxisWidth &&
+          w.globals.svgWidth -
+            lgWidthForSideLegends -
+            this.yAxisWidth -
+            this.gridPad.left -
+            this.gridPad.right &&
         w.config.xaxis.labels.rotate !== 0
       ) {
         if (!w.globals.isBarHorizontal) {
@@ -577,6 +574,7 @@ export default class Dimensions {
           )
 
           rect.height = xLabelrect.height / 1.66
+          rect.width = xLabelrect.width
         }
       } else {
         w.globals.rotateXLabels = false
