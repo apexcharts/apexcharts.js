@@ -91,7 +91,7 @@ export default class Animations {
   /*
    ** Animate radius of a circle element
    */
-  animateCircleRadius(el, from, to, speed, easing) {
+  animateCircleRadius(el, from, to, speed, easing, cb) {
     if (!from) from = 0
 
     el.attr({
@@ -100,6 +100,9 @@ export default class Animations {
       .animate(speed, easing)
       .attr({
         r: to
+      })
+      .afterAll(() => {
+        cb()
       })
   }
 
@@ -131,7 +134,7 @@ export default class Animations {
   }
 
   animatePathsGradually(params) {
-    let { el, j, pathFrom, pathTo, speed, delay } = params
+    let { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params
 
     let me = this
     let w = this.w
@@ -149,7 +152,18 @@ export default class Animations {
       delayFactor = 0
     }
 
-    me.morphSVG(el, j, pathFrom, pathTo, speed, delay * delayFactor)
+    me.morphSVG(
+      el,
+      realIndex,
+      j,
+      w.config.chart.type === 'line' && !w.globals.comboCharts
+        ? 'stroke'
+        : fill,
+      pathFrom,
+      pathTo,
+      speed,
+      delay * delayFactor
+    )
   }
 
   showDelayedElements() {
@@ -161,6 +175,8 @@ export default class Animations {
 
   animationCompleted(el) {
     const w = this.w
+    if (w.globals.animationEnded) return
+
     w.globals.animationEnded = true
 
     if (typeof w.config.chart.events.animationEnd === 'function') {
@@ -169,7 +185,7 @@ export default class Animations {
   }
 
   // SVG.js animation for morphing one path to another
-  morphSVG(el, j, pathFrom, pathTo, speed, delay) {
+  morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
     let w = this.w
 
     if (!pathFrom) {
@@ -211,8 +227,14 @@ export default class Animations {
           ) {
             this.animationCompleted(el)
           }
-        } else if (w.globals.shouldAnimate) {
-          this.animationCompleted(el)
+        } else if (fill !== 'none' && w.globals.shouldAnimate) {
+          if (
+            (!w.globals.comboCharts &&
+              realIndex === w.globals.series.length - 1) ||
+            w.globals.comboCharts
+          ) {
+            this.animationCompleted(el)
+          }
         }
 
         this.showDelayedElements()

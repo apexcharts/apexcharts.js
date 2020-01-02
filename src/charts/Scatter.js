@@ -141,7 +141,18 @@ export default class Scatter {
       if (!w.globals.resized) {
         speed = w.config.chart.animations.speed
       }
-      anim.animateCircleRadius(circle, 0, finishRadius, speed, w.globals.easing)
+      anim.animateCircleRadius(
+        circle,
+        0,
+        finishRadius,
+        speed,
+        w.globals.easing,
+        () => {
+          window.setTimeout(() => {
+            anim.animationCompleted(circle)
+          }, 100)
+        }
+      )
     }
 
     if (w.globals.dataChanged) {

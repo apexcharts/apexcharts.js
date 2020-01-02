@@ -281,8 +281,10 @@ class Graphics {
     const defaultAnimateOpts = {
       el,
       j,
+      realIndex,
       pathFrom,
       pathTo,
+      fill,
       strokeWidth
     }
 
