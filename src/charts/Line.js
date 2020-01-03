@@ -37,6 +37,7 @@ class Line {
 
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
+    let dataLabels = new DataLabels(this.ctx)
 
     let type = w.globals.comboCharts ? ptype : w.config.chart.type
 
@@ -81,6 +82,10 @@ class Line {
 
       let xDivision = w.globals.gridWidth / w.globals.dataPoints
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+
+      const strokeWidth = Array.isArray(w.config.stroke.width)
+        ? w.config.stroke.width[realIndex]
+        : w.config.stroke.width
 
       if (yRatio.length > 1) {
         this.yaxisIndex = realIndex
@@ -206,6 +211,9 @@ class Line {
           ? w.globals.dataPoints - 1
           : w.globals.dataPoints
       for (let j = 0; j < iterations; j++) {
+        const isNull =
+          typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
+
         if (w.globals.isXNumeric) {
           let sX = w.globals.seriesX[realIndex][j + 1]
           if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
@@ -231,42 +239,21 @@ class Line {
             // the first series will not have prevY values
             lineYPosition = zeroY
           }
-
-          if (
-            typeof series[i][j + 1] === 'undefined' ||
-            series[i][j + 1] === null
-          ) {
-            y =
-              lineYPosition -
-              minY / yRatio[this.yaxisIndex] +
-              (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
-          } else {
-            y =
-              lineYPosition -
-              series[i][j + 1] / yRatio[this.yaxisIndex] +
-              (this.isReversed
-                ? series[i][j + 1] / yRatio[this.yaxisIndex]
-                : 0) *
-                2
-          }
         } else {
-          if (
-            typeof series[i][j + 1] === 'undefined' ||
-            series[i][j + 1] === null
-          ) {
-            y =
-              zeroY -
-              minY / yRatio[this.yaxisIndex] +
-              (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
-          } else {
-            y =
-              zeroY -
-              series[i][j + 1] / yRatio[this.yaxisIndex] +
-              (this.isReversed
-                ? series[i][j + 1] / yRatio[this.yaxisIndex]
-                : 0) *
-                2
-          }
+          lineYPosition = zeroY
+        }
+
+        if (isNull) {
+          y =
+            lineYPosition -
+            minY / yRatio[this.yaxisIndex] +
+            (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
+        } else {
+          y =
+            lineYPosition -
+            series[i][j + 1] / yRatio[this.yaxisIndex] +
+            (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) *
+              2
         }
 
         // push current X
@@ -319,7 +306,7 @@ class Line {
         if (!this.pointsChart) {
           let markers = new Markers(this.ctx)
           if (w.globals.dataPoints > 1) {
-            elPointsMain.node.classList.add('hidden')
+            elPointsMain.node.classList.add('apexcharts-element-hidden')
           }
 
           let elPointsWrap = markers.plotChartMarkers(
@@ -340,18 +327,12 @@ class Line {
           })
         }
 
-        let dataLabelAlign =
-          !series[i][j + 1] || series[i][j + 1] > series[i][j]
-            ? 'top'
-            : 'bottom'
-
-        let dataLabels = new DataLabels(this.ctx)
         let drawnLabels = dataLabels.drawDataLabel(
           pointsPos,
           realIndex,
           j + 1,
           null,
-          dataLabelAlign
+          strokeWidth
         )
         if (drawnLabels !== null) {
           elDataLabelsWrap.add(drawnLabels)
@@ -408,7 +389,7 @@ class Line {
           // fillable lines only for lineChart
           lineFill = fill.fillPath({
             seriesNumber: realIndex,
-            i: i
+            i
           })
         } else {
           lineFill = w.globals.stroke.colors[realIndex]
@@ -420,9 +401,7 @@ class Line {
             pathFrom: pathFromLine,
             pathTo: linePaths[p],
             stroke: lineFill,
-            strokeWidth: Array.isArray(w.config.stroke.width)
-              ? w.config.stroke.width[realIndex]
-              : w.config.stroke.width,
+            strokeWidth,
             strokeLineCap: w.config.stroke.lineCap,
             fill: 'none'
           })
@@ -463,7 +442,7 @@ class Line {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    var curve = w.config.stroke.curve
+    let curve = w.config.stroke.curve
 
     if (Array.isArray(w.config.stroke.curve)) {
       if (Array.isArray(seriesIndex)) {
@@ -561,17 +540,19 @@ class Line {
     }
   }
 
-  calculatePoints({
-    series,
-    realIndex,
-    x,
-    y,
-    i,
-    j,
-    prevY,
-    categoryAxisCorrection,
-    xRatio
-  }) {
+  calculatePoints(opts) {
+    let {
+      series,
+      realIndex,
+      x,
+      y,
+      i,
+      j,
+      prevY,
+      categoryAxisCorrection,
+      xRatio
+    } = opts
+
     let w = this.w
 
     let ptX = []
@@ -621,7 +602,7 @@ class Line {
       if (
         (gpp.type === 'line' || gpp.type === 'area') &&
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex) === parseInt(realIndex)
+        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
       ) {
         if (gpp.type === 'line') {
           this.appendPathFrom = false
@@ -662,16 +643,13 @@ class Line {
           // the first series will not have prevY values
           lineYPosition = zeroY
         }
-        prevY =
-          lineYPosition -
-          series[i][0] / yRatio +
-          (this.isReversed ? series[i][0] / yRatio : 0) * 2
       } else {
-        prevY =
-          zeroY -
-          series[i][0] / yRatio +
-          (this.isReversed ? series[i][0] / yRatio : 0) * 2
+        lineYPosition = zeroY
       }
+      prevY =
+        lineYPosition -
+        series[i][0] / yRatio +
+        (this.isReversed ? series[i][0] / yRatio : 0) * 2
     } else {
       // the first value in the current series is null
       if (

@@ -34,28 +34,30 @@ class Radar {
 
     this.defaultSize =
       w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.svgHeight - 35
+        ? w.globals.gridHeight + w.globals.goldenPadding * 1.5
         : w.globals.gridWidth
 
     this.maxValue = this.w.globals.maxY
+    this.minValue = this.w.globals.minY
 
     this.polygons = w.config.plotOptions.radar.polygons
 
-    this.maxLabelWidth = 20
-
-    const longestLabel = w.globals.labels.slice().sort(function(a, b) {
-      return b.length - a.length
-    })[0]
+    const longestXaxisLabel = w.globals.labels
+      .slice()
+      .sort((a, b) => b.length - a.length)[0]
     const labelWidth = this.graphics.getTextRects(
-      longestLabel,
-      w.config.dataLabels.style.fontSize
+      longestXaxisLabel,
+      w.config.xaxis.labels.style.fontSize
     )
 
     this.size =
       this.defaultSize / 2.1 -
       w.config.stroke.width -
-      w.config.chart.dropShadow.blur -
-      labelWidth.width / 1.75
+      w.config.chart.dropShadow.blur
+
+    if (w.config.xaxis.labels.show) {
+      this.size = this.size - labelWidth.width / 1.75
+    }
 
     if (w.config.plotOptions.radar.size !== undefined) {
       this.size = w.config.plotOptions.radar.size
@@ -73,6 +75,7 @@ class Radar {
     const fill = new Fill(this.ctx)
 
     const allSeries = []
+    const dataLabels = new DataLabels(this.ctx)
 
     if (series.length) {
       this.dataPointsLen = series[w.globals.maxValsInArrayIndex].length
@@ -85,7 +88,7 @@ class Radar {
     let translateY = halfH
 
     let ret = this.graphics.group({
-      class: 'apexcharts-radar-series',
+      class: 'apexcharts-radar-series apexcharts-plot-series',
       'data:innerTranslateX': translateX,
       'data:innerTranslateY': translateY - 25,
       transform: `translate(${translateX || 0}, ${translateY || 0})`
@@ -93,6 +96,7 @@ class Radar {
 
     let dataPointsPos = []
     let elPointsMain = null
+    let elDataPointsMain = null
 
     this.yaxisLabels = this.graphics.group({
       class: 'apexcharts-yaxis'
@@ -112,7 +116,10 @@ class Radar {
       this.angleArr[i] = []
 
       s.forEach((dv, j) => {
-        this.dataRadiusOfPercent[i][j] = dv / this.maxValue
+        const range = Math.abs(this.maxValue - this.minValue)
+        dv = dv + Math.abs(this.minValue)
+        this.dataRadiusOfPercent[i][j] = dv / range
+
         this.dataRadius[i][j] = this.dataRadiusOfPercent[i][j] * this.size
         this.angleArr[i][j] = j * this.disAngle
       })
@@ -128,7 +135,12 @@ class Radar {
 
       // points
       elPointsMain = this.graphics.group({
-        class: 'apexcharts-series-markers-wrap hidden'
+        class: 'apexcharts-series-markers-wrap apexcharts-element-hidden'
+      })
+
+      // datapoints
+      elDataPointsMain = this.graphics.group({
+        class: `apexcharts-datalabels`
       })
 
       w.globals.delayedElements.push({
@@ -152,7 +164,7 @@ class Radar {
       let pathFrom = null
 
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPathFrom(i)
+        pathFrom = this.getPreviousPath(i)
       }
 
       for (let p = 0; p < paths.linePathsTo.length; p++) {
@@ -223,6 +235,25 @@ class Radar {
         elPointsMain.add(elPointsWrap)
 
         elSeries.add(elPointsMain)
+
+        if (w.config.dataLabels.enabled) {
+          const dataLabelsConfig = w.config.dataLabels
+
+          dataLabels.plotDataLabelsText({
+            x: dataPointsPos[j].x,
+            y: dataPointsPos[j].y,
+            text: w.globals.series[i][j],
+            textAnchor: 'middle',
+            i,
+            j: i,
+            parent: elDataPointsMain,
+            offsetCorrection: false,
+            dataLabelsConfig: {
+              ...dataLabelsConfig
+            }
+          })
+        }
+        elSeries.add(elDataPointsMain)
       })
 
       allSeries.push(elSeries)
@@ -232,9 +263,9 @@ class Radar {
       parent: ret
     })
 
-    if (w.config.dataLabels.enabled) {
-      const dataLabels = this.drawLabels()
-      ret.add(dataLabels)
+    if (w.config.xaxis.labels.show) {
+      const xaxisTexts = this.drawXAxisTexts()
+      ret.add(xaxisTexts)
     }
 
     ret.add(this.yaxisLabels)
@@ -255,7 +286,7 @@ class Radar {
 
     let radiusSizes = []
     let layerDis = this.size / (layers - 1)
-    for (var i = 0; i < layers; i++) {
+    for (let i = 0; i < layers; i++) {
       radiusSizes[i] = layerDis * i
     }
     radiusSizes.reverse()
@@ -311,13 +342,13 @@ class Radar {
 
     if (w.config.yaxis[0].show) {
       this.yaxisLabelsTextsPos.forEach((p, i) => {
-        const yText = this.drawYAxisText(p.x, p.y, i, yaxisTexts[i])
+        const yText = this.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i])
         this.yaxisLabels.add(yText)
       })
     }
   }
 
-  drawYAxisText(x, y, i, text) {
+  drawYAxisTexts(x, y, i, text) {
     const w = this.w
 
     const yaxisConfig = w.config.yaxis[0]
@@ -336,49 +367,22 @@ class Radar {
     return yaxisLabel
   }
 
-  drawLabels() {
+  drawXAxisTexts() {
     const w = this.w
 
-    let limit = 10
-
-    let textAnchor = 'middle'
-
-    const dataLabelsConfig = w.config.dataLabels
-    let elDataLabelsWrap = this.graphics.group({
-      class: 'apexcharts-datalabels'
+    const xaxisLabelsConfig = w.config.xaxis.labels
+    let elXAxisWrap = this.graphics.group({
+      class: 'apexcharts-xaxis'
     })
 
     let polygonPos = this.getPolygonPos(this.size)
 
-    let currPosX = 0
-    let currPosY = 0
-
     w.globals.labels.forEach((label, i) => {
-      let formatter = dataLabelsConfig.formatter
+      let formatter = w.config.xaxis.labels.formatter
       let dataLabels = new DataLabels(this.ctx)
 
       if (polygonPos[i]) {
-        currPosX = polygonPos[i].x
-        currPosY = polygonPos[i].y
-
-        if (Math.abs(polygonPos[i].x) >= limit) {
-          if (polygonPos[i].x > 0) {
-            textAnchor = 'start'
-            currPosX += 10
-          } else if (polygonPos[i].x < 0) {
-            textAnchor = 'end'
-            currPosX -= 10
-          }
-        } else {
-          textAnchor = 'middle'
-        }
-        if (Math.abs(polygonPos[i].y) >= this.size - limit) {
-          if (polygonPos[i].y < 0) {
-            currPosY -= 10
-          } else if (polygonPos[i].y > 0) {
-            currPosY += 10
-          }
-        }
+        let textPos = this.getTextPos(polygonPos[i], this.size)
 
         let text = formatter(label, {
           seriesIndex: -1,
@@ -387,20 +391,27 @@ class Radar {
         })
 
         dataLabels.plotDataLabelsText({
-          x: currPosX,
-          y: currPosY,
+          x: textPos.newX,
+          y: textPos.newY,
           text,
-          textAnchor,
-          i: i,
+          textAnchor: textPos.textAnchor,
+          i,
           j: i,
-          parent: elDataLabelsWrap,
-          dataLabelsConfig,
+          parent: elXAxisWrap,
+          color: xaxisLabelsConfig.style.colors[i]
+            ? xaxisLabelsConfig.style.colors[i]
+            : '#a8a8a8',
+          dataLabelsConfig: {
+            textAnchor: textPos.textAnchor,
+            dropShadow: { enabled: false },
+            ...xaxisLabelsConfig
+          },
           offsetCorrection: false
         })
       }
     })
 
-    return elDataLabelsWrap
+    return elXAxisWrap
   }
 
   createPaths(pos, origin) {
@@ -437,7 +448,40 @@ class Radar {
     }
   }
 
-  getPathFrom(realIndex) {
+  getTextPos(pos, polygonSize) {
+    let limit = 10
+    let textAnchor = 'middle'
+
+    let newX = pos.x
+    let newY = pos.y
+
+    if (Math.abs(pos.x) >= limit) {
+      if (pos.x > 0) {
+        textAnchor = 'start'
+        newX += 10
+      } else if (pos.x < 0) {
+        textAnchor = 'end'
+        newX -= 10
+      }
+    } else {
+      textAnchor = 'middle'
+    }
+    if (Math.abs(pos.y) >= polygonSize - limit) {
+      if (pos.y < 0) {
+        newY -= 10
+      } else if (pos.y > 0) {
+        newY += 10
+      }
+    }
+
+    return {
+      textAnchor,
+      newX,
+      newY
+    }
+  }
+
+  getPreviousPath(realIndex) {
     let w = this.w
     let pathFrom = null
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
@@ -445,7 +489,7 @@ class Radar {
 
       if (
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex) === parseInt(realIndex)
+        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
       ) {
         if (typeof w.globals.previousPaths[pp].paths[0] !== 'undefined') {
           pathFrom = w.globals.previousPaths[pp].paths[0].d
@@ -462,9 +506,9 @@ class Radar {
   ) {
     dataRadiusArr = dataRadiusArr || []
     angleArr = angleArr || []
-    var dataPointsPosArray = []
-    for (var j = 0; j < dataPointsLen; j++) {
-      var curPointPos = {}
+    let dataPointsPosArray = []
+    for (let j = 0; j < dataPointsLen; j++) {
+      let curPointPos = {}
       curPointPos.x = dataRadiusArr[j] * Math.sin(angleArr[j])
       curPointPos.y = -dataRadiusArr[j] * Math.cos(angleArr[j])
       dataPointsPosArray.push(curPointPos)
@@ -473,10 +517,10 @@ class Radar {
   }
 
   getPolygonPos(size) {
-    var dotsArray = []
-    var angle = (Math.PI * 2) / this.dataPointsLen
+    let dotsArray = []
+    let angle = (Math.PI * 2) / this.dataPointsLen
     for (let i = 0; i < this.dataPointsLen; i++) {
-      var curPos = {}
+      let curPos = {}
       curPos.x = size * Math.sin(i * angle)
       curPos.y = -size * Math.cos(i * angle)
       dotsArray.push(curPos)

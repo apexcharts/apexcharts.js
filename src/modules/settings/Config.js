@@ -2,6 +2,12 @@ import Defaults from './Defaults'
 import Utils from './../../utils/Utils'
 import CoreUtils from '../CoreUtils'
 import Options from './Options'
+import { optionYAxis } from './options/axis'
+import {
+  optionXAxisAnnotation,
+  optionYAxisAnnotation,
+  optionPointAnnotation
+} from './options/annotations'
 
 /**
  * ApexCharts Config Class for extending user options with pre-defined ApexCharts config.
@@ -42,48 +48,26 @@ export default class Config {
     let newDefaults = {}
     if (opts && typeof opts === 'object') {
       let chartDefaults = {}
-      switch (this.chartType) {
-        case 'line':
-          chartDefaults = defaults.line()
-          break
-        case 'area':
-          chartDefaults = defaults.area()
-          break
-        case 'bar':
-          chartDefaults = defaults.bar()
-          break
-        case 'candlestick':
-          chartDefaults = defaults.candlestick()
-          break
-        case 'rangeBar':
-          chartDefaults = defaults.rangeBar()
-          break
-        case 'histogram':
-          chartDefaults = defaults.bar()
-          break
-        case 'bubble':
-          chartDefaults = defaults.bubble()
-          break
-        case 'scatter':
-          chartDefaults = defaults.scatter()
-          break
-        case 'heatmap':
-          chartDefaults = defaults.heatmap()
-          break
-        case 'pie':
-          chartDefaults = defaults.pie()
-          break
-        case 'donut':
-          chartDefaults = defaults.donut()
-          break
-        case 'radar':
-          chartDefaults = defaults.radar()
-          break
-        case 'radialBar':
-          chartDefaults = defaults.radialBar()
-          break
-        default:
-          chartDefaults = defaults.line()
+      const chartTypes = [
+        'line',
+        'area',
+        'bar',
+        'candlestick',
+        'rangeBar',
+        'histogram',
+        'bubble',
+        'scatter',
+        'heatmap',
+        'pie',
+        'donut',
+        'radar',
+        'radialBar'
+      ]
+
+      if (chartTypes.indexOf(opts.chart.type) !== -1) {
+        chartDefaults = defaults[opts.chart.type]()
+      } else {
+        chartDefaults = defaults.line()
       }
 
       if (opts.chart.brush && opts.chart.brush.enabled) {
@@ -106,7 +90,8 @@ export default class Config {
           opts.chart.type === 'area' ||
           opts.chart.type === 'scatter') &&
         !combo.comboChartsHasBars &&
-        (opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric') &&
+        opts.xaxis.type !== 'datetime' &&
+        opts.xaxis.type !== 'numeric' &&
         opts.xaxis.tickPlacement !== 'between'
       ) {
         opts = Defaults.convertCatToNumeric(opts)
@@ -138,7 +123,6 @@ export default class Config {
   }
 
   extendYAxis(opts) {
-    let options = new Options()
     if (typeof opts.yaxis === 'undefined') {
       opts.yaxis = {}
     }
@@ -156,9 +140,34 @@ export default class Config {
     // user can provide either an array or object in yaxis config
     if (opts.yaxis.constructor !== Array) {
       // convert the yaxis to array if user supplied object
-      opts.yaxis = [Utils.extend(options.yAxis, opts.yaxis)]
+      opts.yaxis = [Utils.extend(optionYAxis, opts.yaxis)]
     } else {
-      opts.yaxis = Utils.extendArray(opts.yaxis, options.yAxis)
+      opts.yaxis = Utils.extendArray(opts.yaxis, optionYAxis)
+    }
+
+    let isLogY = false
+    opts.yaxis.forEach((y) => {
+      if (y.logarithmic) {
+        isLogY = true
+      }
+    })
+
+    // A logarithmic chart works correctly when each series has a corresponding y-axis
+    // If this is not the case, we manually create yaxis for multi-series log chart
+    if (isLogY && opts.series.length !== opts.yaxis.length) {
+      opts.yaxis = opts.series.map((s, i) => {
+        if (!s.name) {
+          opts.series[i].name = `series-${i + 1}`
+        }
+        if (opts.yaxis[i]) {
+          opts.yaxis[i].seriesName = opts.series[i].name
+          return opts.yaxis[i]
+        } else {
+          const newYaxis = Utils.extend(optionYAxis, opts.yaxis[0])
+          newYaxis.show = false
+          return newYaxis
+        }
+      })
     }
     return opts
   }
@@ -180,33 +189,30 @@ export default class Config {
   }
 
   extendYAxisAnnotations(opts) {
-    let options = new Options()
     opts.annotations.yaxis = Utils.extendArray(
       typeof opts.annotations.yaxis !== 'undefined'
         ? opts.annotations.yaxis
         : [],
-      options.yAxisAnnotation
+      optionYAxisAnnotation
     )
     return opts
   }
 
   extendXAxisAnnotations(opts) {
-    let options = new Options()
     opts.annotations.xaxis = Utils.extendArray(
       typeof opts.annotations.xaxis !== 'undefined'
         ? opts.annotations.xaxis
         : [],
-      options.xAxisAnnotation
+      optionXAxisAnnotation
     )
     return opts
   }
   extendPointAnnotations(opts) {
-    let options = new Options()
     opts.annotations.points = Utils.extendArray(
       typeof opts.annotations.points !== 'undefined'
         ? opts.annotations.points
         : [],
-      options.pointAnnotation
+      optionPointAnnotation
     )
     return opts
   }
@@ -236,12 +242,6 @@ export default class Config {
     if (config.tooltip.shared && config.tooltip.intersect) {
       throw new Error(
         'tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false.'
-      )
-    }
-
-    if (config.chart.scroller) {
-      console.warn(
-        'Scroller has been deprecated since v2.0.0. Please remove the configuration for chart.scroller'
       )
     }
 

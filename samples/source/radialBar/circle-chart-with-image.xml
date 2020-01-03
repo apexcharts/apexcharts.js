@@ -1,0 +1,56 @@
+<title>Circle Gauge Chart</title>
+
+<style>
+#chart {
+  padding: 0;
+  max-width: 650px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'radialBar',
+},
+plotOptions: {
+  radialBar: {
+    hollow: {
+      margin: 15,
+      size: '70%',
+      image: '../../assets/images/clock.png',
+      imageWidth: 64,
+      imageHeight: 64,
+      imageClipped: false
+    },
+    dataLabels: {
+      name: {
+        show: false,
+        color: '#fff'
+      },
+      value: {
+        show: true,
+        color: '#333',
+        offsetY: 70,
+        fontSize: '22px'
+      }
+    }
+  }
+},
+fill: {
+  type: 'image',
+  image: {
+    src: ['../../assets/images/4274635880_809a4b9d0d_z.jpg'],
+  }
+},
+stroke: {
+  lineCap: 'round'
+},
+labels: ['Volatility'],
+</options>
+
+<series>
+[67]
+</series>
+</chart>

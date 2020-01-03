@@ -9,8 +9,13 @@ import Utils from '../utils/Utils'
 export default class Theme {
   constructor(ctx) {
     this.ctx = ctx
-    this.w = ctx.w
     this.colors = []
+    this.w = ctx.w
+    const w = this.w
+
+    this.isBarDistributed =
+      w.config.plotOptions.bar.distributed &&
+      (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar')
   }
 
   init() {
@@ -21,21 +26,44 @@ export default class Theme {
     let w = this.w
     let utils = new Utils()
 
-    w.globals.dom.elWrap.classList.add(w.config.theme.mode)
+    w.globals.dom.elWrap.classList.add(
+      `apexcharts-theme-${w.config.theme.mode}`
+    )
 
     if (w.config.colors === undefined) {
       w.globals.colors = this.predefined()
     } else {
       w.globals.colors = w.config.colors
+
+      // if user provided a function in colors, we need to eval here
+      if (
+        w.globals.axisCharts &&
+        w.config.chart.type !== 'bar' &&
+        Array.isArray(w.config.colors) &&
+        w.config.colors.length > 0 &&
+        w.config.colors.length === w.config.series.length
+        // colors & series length needs same
+      ) {
+        w.globals.colors = w.config.colors.map((c, i) => {
+          return typeof c === 'function'
+            ? c({
+                value: w.globals.axisCharts
+                  ? w.globals.series[i][0]
+                    ? w.globals.series[i][0]
+                    : 0
+                  : w.globals.series[i],
+                seriesIndex: i,
+                w
+              })
+            : c
+        })
+      }
     }
 
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
       let glsCnt = w.globals.series.length
-      if (
-        w.config.plotOptions.bar.distributed &&
-        w.config.chart.type === 'bar'
-      ) {
+      if (this.isBarDistributed) {
         glsCnt = w.globals.series[0].length * w.globals.series.length
       }
 
@@ -117,8 +145,7 @@ export default class Theme {
 
     if (distributed === null) {
       distributed =
-        (w.config.chart.type === 'bar' &&
-          w.config.plotOptions.bar.distributed) ||
+        this.isBarDistributed ||
         (w.config.chart.type === 'heatmap' &&
           w.config.plotOptions.heatmap.colorScale.inverse)
     }

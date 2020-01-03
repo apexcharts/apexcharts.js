@@ -8,7 +8,7 @@ export default class AxesUtils {
   }
 
   // Based on the formatter function, get the label text and position
-  getLabel(labels, timelineLabels, x, i, drawnLabels = []) {
+  getLabel(labels, timescaleLabels, x, i, drawnLabels = []) {
     const w = this.w
     let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
     let label
@@ -28,7 +28,7 @@ export default class AxesUtils {
 
     const determineHighestUnit = (unit) => {
       let highestUnit = null
-      timelineLabels.forEach((t) => {
+      timescaleLabels.forEach((t) => {
         if (t.unit === 'month') {
           highestUnit = 'year'
         } else if (t.unit === 'day') {
@@ -42,10 +42,10 @@ export default class AxesUtils {
 
       return highestUnit === unit
     }
-    if (timelineLabels.length > 0) {
-      isBold = determineHighestUnit(timelineLabels[i].unit)
-      x = timelineLabels[i].position
-      label = timelineLabels[i].value
+    if (timescaleLabels.length > 0) {
+      isBold = determineHighestUnit(timescaleLabels[i].unit)
+      x = timescaleLabels[i].position
+      label = timescaleLabels[i].value
     } else {
       if (w.config.xaxis.type === 'datetime' && customFormatter === undefined) {
         label = ''
@@ -87,7 +87,7 @@ export default class AxesUtils {
     // initial label position = 0;
     let t = w.globals.translateY
 
-    if (axisTicks.show) {
+    if (axisTicks.show && tickAmount > 0) {
       if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width
 
       for (let i = tickAmount; i >= 0; i--) {
@@ -96,12 +96,16 @@ export default class AxesUtils {
         if (w.globals.isBarHorizontal) {
           tY = labelsDivider * i
         }
+
+        if (w.config.chart.type === 'heatmap') {
+          tY = tY + labelsDivider / 2
+        }
         let elTick = graphics.drawLine(
           x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX,
           tY + axisTicks.offsetY,
           x + axisBorder.offsetX + axisTicks.offsetX,
           tY + axisTicks.offsetY,
-          axisBorder.color
+          axisTicks.color
         )
         elYaxis.add(elTick)
         t = t + labelsDivider

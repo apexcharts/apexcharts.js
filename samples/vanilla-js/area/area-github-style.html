@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
@@ -8,10 +7,10 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Area - Github style</title>
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #wrapper {
       padding-top: 20px;
       padding-left: 10px;
@@ -22,179 +21,180 @@
       max-width: 650px;
       margin: 35px auto;
     }
-
+    
     .github-style {
       clear: both;
       font-weight: 400;
       height: 40px;
       margin-left: 6px;
     }
-
+    
     .github-style a {
       color: #0366d6;
       font-size: 18px;
     }
-
+    
     .github-style .cmeta {
       display: block;
       color: #777;
       font-weight: 400;
     }
-
+    
     .github-style .userimg {
       float: left;
       display: block;
       border-radius: 3px;
     }
-
+    
     .github-style .userdetails {
       float: left;
       margin-left: 10px;
     }
+  
   </style>
-</head>
-
-<body>
-  <div id="wrapper">
-    <div id="chart-area">
-
-    </div>
-
-    <h5 class="github-style">
-      <img class="userimg" src="https://picsum.photos/200/200/?image=1031" data-hovercard-user-id="634573" class="avatar float-left mr-2"
-        alt="" width="38" height="38" />
-      <div class="userdetails">
-        <a class="username">coder</a>
-        <span class="cmeta">
-          <span class="commits"></span> commits
-        </span>
-      </div>
-    </h5>
-
-    <div id="chart-area2">
-
-    </div>
-  </div>
-
 
 
   <script src="../../../dist/apexcharts.js"></script>
-  <script src="../../assets/github-data.js"></script>
+
 
   <script>
-    var optionsarea2 = {
-      chart: {
-        id: 'chartyear',
-        type: 'area',
-        height: 160,
-        background: '#F6F8FA',
-        toolbar: {
-          show: false,
-          autoSelected: 'pan'
-        },
-        events: {
-          mounted: function (chart) {
-            var commitsEl = document.querySelector('p span.commits');
-            var commits = chart.getSeriesTotalXRange(chart.w.globals.minX, chart.w.globals.maxX)
-
-            commitsEl.innerHTML = commits
-          },
-          updated: function (chart) {
-            var commitsEl = document.querySelector('.cmeta span.commits');
-            var commits = chart.getSeriesTotalXRange(chart.w.globals.minX, chart.w.globals.maxX)
-
-            commitsEl.innerHTML = commits
-          }
-        }
-      },
-      colors: ['#FF7F00'],
-      stroke: {
-        width: 0,
-        curve: 'smooth'
-      },
-      dataLabels: {
-        enabled: false
-      },
-      fill: {
-        opacity: 1,
-        type: 'solid'
-      },
-      series: [{
-        name: 'commits',
-        data: githubdata.series
-      }],
-      yaxis: {
-        tickAmount: 3,
-        labels: {
-          show: false
-        }
-      },
-      xaxis: {
-        type: 'datetime',
-      }
-    }
-
-    var chartarea2 = new ApexCharts(
-      document.querySelector("#chart-area2"),
-      optionsarea2
-    );
-
-    chartarea2.render();
-
-    var options = {
-      chart: {
-        height: 200,
-        type: 'area',
-        background: '#F6F8FA',
-        toolbar: {
-          autoSelected: 'selection',
-        },
-        brush: {
-          enabled: true,
-          target: 'chartyear'
-        },
-        selection: {
-          enabled: true,
-          xaxis: {
-            min: new Date('05 Jan 2014').getTime(),
-            max: new Date('04 Jan 2015').getTime()
-          }
-        },
-      },
-      colors: ['#7BD39A'],
-      dataLabels: {
-        enabled: false
-      },
-      stroke: {
-        width: 0,
-        curve: 'smooth'
-      },
-
-      series: [{
-        name: 'commits',
-        data: githubdata.series
-      }],
-      fill: {
-        opacity: 1,
-        type: 'solid'
-      },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'left'
-      },
-      xaxis: {
-        type: 'datetime'
-      },
-    }
-
-    var chart = new ApexCharts(
-      document.querySelector("#chart-area"),
-      options
-    );
-
-    chart.render();
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
   </script>
+
+  <script src="../../assets/github-data.js"></script>
+</head>
+
+<body>
+  
+    <div id="wrapper">
+        <div id="chart-months"></div>
+      
+        <h5 class="github-style">
+          <img class="userimg" src="https://picsum.photos/200/200/?image=1031" data-hovercard-user-id="634573" alt="" width="38" height="38" />
+          <div class="userdetails">
+            <a class="username">coder</a>
+            <span class="cmeta">
+              <span class="commits"></span> commits
+            </span>
+          </div>
+        </h5>
+      
+        <div id="chart-years"></div>
+      </div>
+
+    <script>
+    
+      var options = {
+        series: [{
+          name: 'commits',
+          data: githubdata.series
+        }],
+        chart: {
+          id: 'chartyear',
+          type: 'area',
+          height: 160,
+          background: '#F6F8FA',
+          toolbar: {
+            show: false,
+            autoSelected: 'pan'
+          },
+          events: {
+            mounted: function (chart) {
+              var commitsEl = document.querySelector('p span.commits');
+              var commits = chart.getSeriesTotalXRange(chart.w.globals.minX, chart.w.globals.maxX)
+        
+              commitsEl.innerHTML = commits
+            },
+            updated: function (chart) {
+              var commitsEl = document.querySelector('.cmeta span.commits');
+              var commits = chart.getSeriesTotalXRange(chart.w.globals.minX, chart.w.globals.maxX)
+        
+              commitsEl.innerHTML = commits
+            }
+          }
+        },
+        colors: ['#FF7F00'],
+        stroke: {
+          width: 0,
+          curve: 'smooth'
+        },
+        dataLabels: {
+          enabled: false
+        },
+        fill: {
+          opacity: 1,
+          type: 'solid'
+        },
+        yaxis: {
+          show: false,
+          tickAmount: 3,
+        },
+        xaxis: {
+          type: 'datetime',
+        }
+      };
+
+      var chart = new ApexCharts(document.querySelector("#chart-months"), options);
+      chart.render();
+    
+      var optionsYears = {
+        series: [{
+          name: 'commits',
+          data: githubdata.series
+        }],
+        chart: {
+          height: 200,
+          type: 'area',
+          background: '#F6F8FA',
+          toolbar: {
+            autoSelected: 'selection',
+          },
+          brush: {
+            enabled: true,
+            target: 'chartyear'
+          },
+          selection: {
+            enabled: true,
+            xaxis: {
+              min: new Date('26 Jan 2014').getTime(),
+              max: new Date('29 Mar 2015').getTime()
+            }
+          },
+        },
+        colors: ['#7BD39A'],
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          width: 0,
+          curve: 'smooth'
+        },
+        fill: {
+          opacity: 1,
+          type: 'solid'
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'left'
+        },
+        xaxis: {
+          type: 'datetime'
+        },
+      };
+
+      var chartYears = new ApexCharts(document.querySelector("#chart-years"), optionsYears);
+      chartYears.render();
+    
+    
+    </script>
+
+  
 </body>
 
 </html>
-

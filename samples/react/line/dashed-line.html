@@ -5,133 +5,160 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Dashed Line - React</title>
+  <title>Dashed Line Chart</title>
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
       max-width: 650px;
       margin: 35px auto;
     }
+  
   </style>
+
+
+  <script crossorigin src="https://unpkg.com/react@16.12/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16.12/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.7.2/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  
 </head>
 
 <body>
-  <div id="app"></div>
   
-  <div id="html">
-          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;line&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
-  </div>
+    <div id="app"></div>
 
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;line&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
 
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
 
-  <script type="text/babel">
-
-    class LineChart extends React.Component {
-      
-      constructor(props) {
-        super(props);
-
-        this.state = {
-          options: {
-            chart: {
-            zoom: {
-              enabled: false
-            },
-          },
-          dataLabels: {
-            enabled: false
-          },
-          stroke: {
-            width: [5, 7, 5],
-            curve: 'straight',
-            dashArray: [0, 8, 5]
-          },
-
-          title: {
-            text: 'Page Statistics',
-            align: 'left'
-          },
-          markers: {
-            size: 0,
-            
-            hover: {
-              sizeOffset: 6
-            }
-          },
-          xaxis: {
-            categories: ['01 Jan', '02 Jan', '03 Jan', '04 Jan', '05 Jan', '06 Jan', '07 Jan', '08 Jan', '09 Jan',
-              '10 Jan', '11 Jan', '12 Jan'
+          this.state = {
+          
+            series: [{
+                name: "Session Duration",
+                data: [45, 52, 38, 24, 33, 26, 21, 20, 6, 8, 15, 10]
+              },
+              {
+                name: "Page Views",
+                data: [35, 41, 62, 42, 13, 18, 29, 37, 36, 51, 32, 35]
+              },
+              {
+                name: 'Total Visits',
+                data: [87, 57, 74, 99, 75, 38, 62, 47, 82, 56, 45, 47]
+              }
             ],
-          },
-          tooltip: {
-            y: [{
+            options: {
+              chart: {
+                height: 350,
+                type: 'line',
+                zoom: {
+                  enabled: false
+                },
+              },
+              dataLabels: {
+                enabled: false
+              },
+              stroke: {
+                width: [5, 7, 5],
+                curve: 'straight',
+                dashArray: [0, 8, 5]
+              },
               title: {
-                formatter: function (val) {
-                  return val + " (mins)"
+                text: 'Page Statistics',
+                align: 'left'
+              },
+              legend: {
+                tooltipHoverFormatter: function(val, opts) {
+                  return val + ' - <strong>' + opts.w.globals.series[opts.seriesIndex][opts.dataPointIndex] + '</strong>'
                 }
-              }
-            }, {
-              title: {
-                formatter: function (val) {
-                  return val + " per session"
+              },
+              markers: {
+                size: 0,
+                hover: {
+                  sizeOffset: 6
                 }
+              },
+              xaxis: {
+                categories: ['01 Jan', '02 Jan', '03 Jan', '04 Jan', '05 Jan', '06 Jan', '07 Jan', '08 Jan', '09 Jan',
+                  '10 Jan', '11 Jan', '12 Jan'
+                ],
+              },
+              tooltip: {
+                y: [
+                  {
+                    title: {
+                      formatter: function (val) {
+                        return val + " (mins)"
+                      }
+                    }
+                  },
+                  {
+                    title: {
+                      formatter: function (val) {
+                        return val + " per session"
+                      }
+                    }
+                  },
+                  {
+                    title: {
+                      formatter: function (val) {
+                        return val;
+                      }
+                    }
+                  }
+                ]
+              },
+              grid: {
+                borderColor: '#f1f1f1',
               }
-            }, {
-              title: {
-                formatter: function (val) {
-                  return val;
-                }
-              }
-            }]
-          },
-          grid: {
-            borderColor: '#f1f1f1',
-          }
-          },
-          series: [{
-            name: "Session Duration",
-            data: [45, 52, 38, 24, 33, 26, 21, 20, 6, 8, 15, 10]
-          },
-          {
-            name: "Page Views",
-            data: [35, 41, 62, 42, 13, 18, 29, 37, 36, 51, 32, 35]
-          },
-          {
-            name: 'Total Visits',
-            data: [87, 57, 74, 99, 75, 38, 62, 47, 82, 56, 45, 47]
-          }
-        ],
+            },
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="line" height={350} />
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
         }
       }
 
-      render() {
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-        return (
-          <div>
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
-
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(LineChart), domContainer);
-  </script>
-
+  
 </body>
 
 </html>

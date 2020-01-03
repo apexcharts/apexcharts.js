@@ -90,7 +90,7 @@ export default class Range {
     // Build array
     let val = lb
 
-    if (NO_MIN_MAX_PROVIDED) {
+    if (NO_MIN_MAX_PROVIDED && range > 2) {
       while (1) {
         result.push(val)
         val += stepSize
@@ -178,7 +178,7 @@ export default class Range {
       }
 
       // calculate adjustment factor
-      var scale = (max - min) / (yMax - yMin)
+      let scale = (max - min) / (yMax - yMin)
 
       const logVal = Math.pow(base, min + scale * (niceNumber - min))
       return (
@@ -207,7 +207,13 @@ export default class Range {
       gl.yAxisScale[index] = []
     }
 
-    if (y.logarithmic) {
+    let diff = Math.abs(maxY - minY)
+
+    if (y.logarithmic && diff <= 5) {
+      gl.invalidLogScale = true
+    }
+
+    if (y.logarithmic && diff > 5) {
       gl.allSeriesCollapsed = false
       gl.yAxisScale[index] = this.logarithmicScale(
         index,
@@ -227,8 +233,6 @@ export default class Range {
           // fix https://github.com/apexcharts/apexcharts.js/issues/492
           gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount)
         } else {
-          let diff = Math.abs(maxY - minY)
-
           gl.yAxisScale[index] = this.niceScale(
             minY,
             maxY,
@@ -317,29 +321,21 @@ export default class Range {
     })
 
     // then, we remove duplicates from the similarScale array
-    let uniqueSimilarIndices = similarIndices.map(function(item) {
-      return item.filter((i, pos) => {
-        return item.indexOf(i) === pos
-      })
+    let uniqueSimilarIndices = similarIndices.map((item) => {
+      return item.filter((i, pos) => item.indexOf(i) === pos)
     })
 
     // sort further to remove whole duplicate arrays later
-    let sortedIndices = uniqueSimilarIndices.map((s) => {
-      return s.sort()
-    })
+    let sortedIndices = uniqueSimilarIndices.map((s) => s.sort())
 
     // remove undefined items
-    similarIndices = similarIndices.filter((s) => {
-      return !!s
-    })
+    similarIndices = similarIndices.filter((s) => !!s)
 
     let indices = sortedIndices.slice()
-    let stringIndices = indices.map((ind) => {
-      return JSON.stringify(ind)
-    })
-    indices = indices.filter((ind, p) => {
-      return stringIndices.indexOf(JSON.stringify(ind)) === p
-    })
+    let stringIndices = indices.map((ind) => JSON.stringify(ind))
+    indices = indices.filter(
+      (ind, p) => stringIndices.indexOf(JSON.stringify(ind)) === p
+    )
 
     let sameScaleMinYArr = []
     let sameScaleMaxYArr = []
@@ -435,6 +431,7 @@ export default class Range {
     if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
       // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
       // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
+      console.warn('autoScaleYaxis is not supported in a multi-yaxis chart.')
       return yaxis
     }
 
@@ -442,7 +439,7 @@ export default class Range {
 
     let isStacked = w.config.chart.stacked
 
-    yaxis.forEach((yaxe, yI) => {
+    yaxis.forEach((yaxe, yi) => {
       let firstXIndex = 0
 
       for (let xi = 0; xi < seriesX.length; xi++) {
@@ -452,8 +449,8 @@ export default class Range {
         }
       }
 
-      let initialMin = w.globals.minYArr[yI]
-      let initialMax = w.globals.maxYArr[yI]
+      let initialMin = w.globals.minYArr[yi]
+      let initialMax = w.globals.maxYArr[yi]
       let min, max
 
       let stackedSer = w.globals.stackedSeriesTotals

@@ -59,7 +59,7 @@ export default class Position {
       xcrosshairs.setAttribute('x1', x)
       xcrosshairs.setAttribute('x2', x)
       xcrosshairs.setAttribute('y2', w.globals.gridHeight)
-      xcrosshairs.classList.add('active')
+      xcrosshairs.classList.add('apexcharts-active')
     }
 
     if (ttCtx.blxaxisTooltip) {
@@ -106,7 +106,7 @@ export default class Position {
     const ttCtx = this.ttCtx
 
     if (ttCtx.xaxisTooltip !== null) {
-      ttCtx.xaxisTooltip.classList.add('active')
+      ttCtx.xaxisTooltip.classList.add('apexcharts-active')
 
       let cy =
         ttCtx.xaxisOffY +
@@ -145,7 +145,8 @@ export default class Position {
     }
 
     const ycrosshairsHiddenRectY1 = parseInt(
-      ttCtx.ycrosshairsHidden.getAttribute('y1')
+      ttCtx.ycrosshairsHidden.getAttribute('y1'),
+      10
     )
     let cy = w.globals.translateY + ycrosshairsHiddenRectY1
 
@@ -160,12 +161,12 @@ export default class Position {
     cy = cy - yAxisTTHeight / 2
 
     if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1) {
-      ttCtx.yaxisTTEls[index].classList.add('active')
+      ttCtx.yaxisTTEls[index].classList.add('apexcharts-active')
       ttCtx.yaxisTTEls[index].style.top = cy + 'px'
       ttCtx.yaxisTTEls[index].style.left =
         cx + w.config.yaxis[index].tooltip.offsetX + 'px'
     } else {
-      ttCtx.yaxisTTEls[index].classList.remove('active')
+      ttCtx.yaxisTTEls[index].classList.remove('apexcharts-active')
     }
   }
 
@@ -183,10 +184,10 @@ export default class Position {
     const tooltipEl = ttCtx.getElTooltip()
     let tooltipRect = ttCtx.tooltipRect
 
-    let pointR = r !== null ? parseInt(r) : 1
+    let pointR = r !== null ? parseFloat(r) : 1
 
-    let x = parseInt(cx) + pointR + 5
-    let y = parseInt(cy) + pointR / 2 // - tooltipRect.ttHeight / 2
+    let x = parseFloat(cx) + pointR + 5
+    let y = parseFloat(cy) + pointR / 2 // - tooltipRect.ttHeight / 2
 
     if (x > w.globals.gridWidth / 2) {
       x = x - tooltipRect.ttWidth - pointR - 15
@@ -247,7 +248,7 @@ export default class Position {
         ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`
       )
       for (let p = 0; p < allPoints.length; p++) {
-        if (parseInt(allPoints[p].getAttribute('rel')) === j) {
+        if (parseInt(allPoints[p].getAttribute('rel'), 10) === j) {
           ttCtx.marker.resetPointsSize()
           ttCtx.marker.enlargeCurrentPoint(j, allPoints[p])
         }
@@ -274,6 +275,15 @@ export default class Position {
       hoverSize =
         w.globals.markers.size[capturedSeries] +
         w.config.markers.hover.sizeOffset
+    }
+
+    if (
+      w.config.series[capturedSeries].type &&
+      (w.config.series[capturedSeries].type === 'column' ||
+        w.config.series[capturedSeries].type === 'candlestick')
+    ) {
+      // fix error mentioned in #811
+      return
     }
 
     cx = pointsArr[capturedSeries][j][0]
@@ -336,19 +346,28 @@ export default class Position {
     }
 
     if (points !== null) {
-      for (let p = 0; p < points.length; p++) {
+      for (let p = 0; p < w.globals.series.length; p++) {
         let pointArr = pointsArr[p]
 
+        if (w.globals.comboCharts) {
+          // in a combo chart, if column charts are present, markers will not match with the number of series, hence this patch to push a null value in points array
+          if (typeof pointArr === 'undefined') {
+            // nodelist to array
+            points = [...points]
+            points.splice(p, 0, null)
+          }
+        }
         if (pointArr && pointArr.length) {
           let pcy = pointsArr[p][j][1]
           points[p].setAttribute('cx', cx)
           let realIndex = parseInt(
             points[p].parentNode.parentNode.parentNode.getAttribute(
               'data:realIndex'
-            )
+            ),
+            10
           )
 
-          if (pcy !== null) {
+          if (pcy !== null && !isNaN(pcy)) {
             points[realIndex] && points[realIndex].setAttribute('r', hoverSize)
             points[realIndex] && points[realIndex].setAttribute('cy', pcy)
           } else {
@@ -370,8 +389,17 @@ export default class Position {
     const w = this.w
     const ttCtx = this.ttCtx
 
+    let barLen = w.globals.columnSeries
+      ? w.globals.columnSeries.length
+      : w.globals.series.length
+
+    const i =
+      barLen >= 2 && barLen % 2 === 0
+        ? Math.floor(barLen / 2)
+        : Math.floor(barLen / 2) + 1
+
     let jBar = w.globals.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='1'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='1'] path[j='${j}']`
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     )
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
@@ -379,7 +407,7 @@ export default class Position {
     let bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0
 
     if (w.globals.isXNumeric) {
-      bcx = bcx - bw / 2
+      bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
     } else {
       bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
       if (isNaN(bcx)) {

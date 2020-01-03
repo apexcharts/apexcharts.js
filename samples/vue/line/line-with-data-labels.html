@@ -7,112 +7,134 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Line with Data Labels</title>
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
-    #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
-</head>
-
-<body>
-  <div id="chart">
-    <apexchart type=line height=350 :options="chartOptions" :series="series" />
-  </div>
-
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=line height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
   
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
+
+
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-  <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [
-          {
-            name: "High - 2013",
-            data: [28, 29, 33, 36, 32, 32, 33]
-          },
-          {
-            name: "Low - 2013",
-            data: [12, 11, 14, 18, 17, 13, 13]
-          }
-        ],
-        chartOptions: {
-          chart: {
-            shadow: {
-              enabled: true,
-              color: '#000',
-              top: 18,
-              left: 7,
-              blur: 10,
-              opacity: 1
-            },
-            toolbar: {
-              show: false
-            }
-          },
-          colors: ['#77B6EA', '#545454'],
-          dataLabels: {
-            enabled: true,
-          },
-          stroke: {
-            curve: 'smooth'
-          },
-          title: {
-            text: 'Average High & Low Temperature',
-            align: 'left'
-          },
-          grid: {
-            borderColor: '#e7e7e7',
-            row: {
-              colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
-              opacity: 0.5
-            },
-          },
-          markers: {
-            
-            size: 6
-          },
-          xaxis: {
-            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-            title: {
-              text: 'Month'
-            }
-          },
-          yaxis: {
-            title: {
-              text: 'Temperature'
-            },
-            min: 5,
-            max: 40
-          },
-          legend: {
-            position: 'top',
-            horizontalAlign: 'right',
-            floating: true,
-            offsetY: -25,
-            offsetX: -5
-          }
-        }
-      },
 
-    })
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
   </script>
 
+  
+</head>
+
+<body>
+  
+    <div id="app">
+      <div id="chart">
+      <apexchart type="line" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [
+            {
+              name: "High - 2013",
+              data: [28, 29, 33, 36, 32, 32, 33]
+            },
+            {
+              name: "Low - 2013",
+              data: [12, 11, 14, 18, 17, 13, 13]
+            }
+          ],
+          chartOptions: {
+            chart: {
+              height: 350,
+              type: 'line',
+              shadow: {
+                enabled: true,
+                color: '#000',
+                top: 18,
+                left: 7,
+                blur: 10,
+                opacity: 1
+              },
+              toolbar: {
+                show: false
+              }
+            },
+            colors: ['#77B6EA', '#545454'],
+            dataLabels: {
+              enabled: true,
+            },
+            stroke: {
+              curve: 'smooth'
+            },
+            title: {
+              text: 'Average High & Low Temperature',
+              align: 'left'
+            },
+            grid: {
+              borderColor: '#e7e7e7',
+              row: {
+                colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
+                opacity: 0.5
+              },
+            },
+            markers: {
+              size: 1
+            },
+            xaxis: {
+              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+              title: {
+                text: 'Month'
+              }
+            },
+            yaxis: {
+              title: {
+                text: 'Temperature'
+              },
+              min: 5,
+              max: 40
+            },
+            legend: {
+              position: 'top',
+              horizontalAlign: 'right',
+              floating: true,
+              offsetY: -25,
+              offsetX: -5
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+  
 </body>
 
 </html>

@@ -1,19 +1,16 @@
-const fs = require('fs')
-const zlib = require('zlib')
-const path = require('path')
-const rollup = require('rollup')
-const terser = require('terser')
 const chalk = require('chalk')
+const fs = require('fs')
+const path = require('path')
+const zlib = require('zlib')
+const { executeBuildEntry, getAllBuilds } = require('./config')
 
 if (!fs.existsSync('dist')) {
   fs.mkdirSync('dist')
 }
 
-const builds = require('./config').getAllBuilds()
-
 // Execute build directly
-build(builds)
-  .then((r) => {
+Promise.all(getAllBuilds().map((buildConfig) => buildFromConfig(buildConfig)))
+  .then(() => {
     console.log(chalk.green('Build Completed'))
   })
   .catch((e) => {
@@ -22,67 +19,29 @@ build(builds)
   })
 
 /**
- //Run all builds from configurations received
- */
-async function build(builds) {
-  for (const key in builds) {
-    if (builds.hasOwnProperty(key)) {
-      const buildConfig = builds[key]
-      await executeBuildEntry(buildConfig)
-    }
-  }
-}
-
-/**
- * Build and compress code with Rollup and Terser from build configuration
- * @param {*} buildConfig Represent the Rollup configuration of the build
- */
-async function executeBuildEntry(buildConfig) {
-  const outputLocation = buildConfig.output
-  const { file, banner } = outputLocation
-  const isDev = /apexcharts\.js$/.test(file)
-  const buildBundle = await rollup.rollup(buildConfig)
-  const generated = await buildBundle.generate(outputLocation)
-  let code = generated.output[0].code
-  if (!isDev) {
-    const minified =
-      (banner ? banner + '\n' : '') +
-      terser.minify(code, {
-        output: {
-          ascii_only: true
-        },
-        compress: {
-          pure_funcs: ['makeMap']
-        }
-      }).code
-    return outputFile(file, minified, true)
-  }
-  return outputFile(file, code)
-}
-
-/**
  * Write build output to disk, and log its size
  * @param {string} dest Output file path
  * @param {string} content Content of the file
  * @param {boolean} testZip Should it check gzip size
  */
-async function outputFile(dest, content, testZip) {
-  await fs.promises.writeFile(dest, content)
-  if (testZip) {
-    const zipResult = zlib.gzipSync(content)
+async function buildFromConfig(config) {
+  const build = await executeBuildEntry(config)
+
+  if (!build.isDev) {
+    const zipResult = zlib.gzipSync(build.code)
     console.log(
       'Build output: ',
-      chalk.blue(path.relative(process.cwd(), dest)),
+      chalk.blue(path.relative(process.cwd(), build.path)),
       ' ',
-      chalk.green.bold(getSize(content)),
+      chalk.green.bold(getSize(build.code)),
       `| ${chalk.green.bold(getSize(zipResult))} gzipped`
     )
   } else {
     console.log(
       'Build output: ',
-      chalk.blue(path.relative(process.cwd(), dest)),
+      chalk.blue(path.relative(process.cwd(), build.path)),
       ' ',
-      chalk.green.bold(getSize(content))
+      chalk.green.bold(getSize(build.code))
     )
   }
 }

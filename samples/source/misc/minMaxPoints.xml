@@ -1,0 +1,60 @@
+<title>Min Max Points example</title>
+
+<scripts>
+<script src="../../assets/stock-prices.js"></script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: "area",
+  zoom: {
+    enabled: false
+  },
+  events: {
+    mounted: function(ctx, config) {
+      const lowest = ctx.getLowestValueInSeries(0)
+      const highest = ctx.getHighestValueInSeries(0)
+
+      ctx.addPointAnnotation({
+        x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(lowest)]).getTime(),
+        y: lowest,
+        label: {
+          text: 'Lowest: ' + lowest,
+          offsetY: 2
+        },
+        customSVG: {
+            SVG: `<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            <path d="M0 0h24v24H0z" fill="none"/>`,
+            cssClass: undefined,
+            offsetX: -10,
+            offsetY: -30
+        }
+      })
+
+      ctx.addPointAnnotation({
+        x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(highest)]).getTime(),
+        y: highest,
+        label: {
+          text: 'Highest: ' + highest,
+          offsetY: 2
+        },
+      })
+    }
+  }
+},
+dataLabels: {
+  enabled: false
+},
+stroke: {
+  curve: "straight"
+},
+</options>
+
+<series>
+[{
+  data: [344, 345, 333, 323, 322, 342, 383, 353, 323, 376]
+}]
+</series>
+</chart>

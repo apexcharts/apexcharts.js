@@ -38,7 +38,11 @@ describe('Y-axis with ultra-small values', () => {
       },
       series: [
         {
-          data: [[1553258700000, 1], [1553259000000, 2], [1553261100000, 4]]
+          data: [
+            [1553258700000, 1],
+            [1553259000000, 2],
+            [1553261100000, 4]
+          ]
         }
       ],
       xaxis: {
@@ -51,35 +55,5 @@ describe('Y-axis with ultra-small values', () => {
 
     expect(minY).toEqual(1)
     expect(maxY).toEqual(4)
-  })
-
-  it('should not apply nice scale for small range with big numbers', () => {
-    const chart = createChartWithOptions({
-      chart: {
-        type: 'line'
-      },
-      series: [
-        {
-          data: [
-            [1553258700000, 1098],
-            [1553259000000, 1099],
-            [1553261100000, 1100]
-          ]
-        }
-      ],
-      xaxis: {
-        type: 'datetime'
-      }
-    })
-
-    const yAxisScale = chart.w.globals.yAxisScale[0].result
-
-    expect(yAxisScale).toEqual([
-      1097.9,
-      1098.5875,
-      1099.275,
-      1099.9625,
-      1100.65
-    ])
   })
 })

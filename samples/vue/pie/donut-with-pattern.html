@@ -7,101 +7,135 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Donut Chart with pattern</title>
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
+  <link href="../../assets/styles.css" rel="stylesheet">
 
   <style>
+  
     #chart {
-      padding: 0;        
+      padding: 0;
       max-width: 380px;
       margin: 35px auto;
     }
+  
   </style>
-</head>
 
-
-<body>
-  <div id="chart">
-      <apexchart type=donut width=380 :options="chartOptions" :series="series" />
-  </div>
-
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=donut height=380 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
 
   <script src="https://unpkg.com/vue/dist/vue.js"></script>
   <script src="../../../dist/apexcharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
 
-  <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [44, 55, 41, 17, 15],
-        chartOptions: {
-          chart: {
-            dropShadow: {
-              enabled: true,
-              color: '#111',
-              top: -1,
-              left: 3,
-              blur: 3,
-              opacity: 0.2
-            }
-          },
-          stroke: {
-            width: 0,
-          },
-          labels: ["Comedy", "Action", "SciFi", "Drama", "Horror"],
-          dataLabels: {
-            dropShadow: {
-              blur: 3,
-              opacity: 0.8
-            }
-          },
-          fill: {
-            type: 'pattern',
-            opacity: 1,
-            pattern: {
-              enabled: true,
-              style: ['verticalLines', 'squares', 'horizontalLines', 'circles', 'slantedLines'],
-            },
-          },
-          states: {
-            hover: {
-              enabled: false
-            }
-          },
-          theme: {
-            palette: 'palette2'
-          },
-          title: {
-            text: "Favourite Movie Type"
-          },
-          responsive: [{
-            breakpoint: 480,
-            options: {
-              chart: {
-                width: 200
-              },
-              legend: {
-                position: 'bottom'
-              }
-            }
-          }]
-        }
-      },
 
-    })
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
   </script>
 
-</body>
+  
+</head>
 
+<body>
+  
+    <div id="app">
+      <div id="chart">
+      <apexchart type="donut" width="380" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;donut&quot; width=&quot;380&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [44, 55, 41, 17, 15],
+          chartOptions: {
+            chart: {
+              width: 380,
+              type: 'donut',
+              dropShadow: {
+                enabled: true,
+                color: '#111',
+                top: -1,
+                left: 3,
+                blur: 3,
+                opacity: 0.2
+              }
+            },
+            stroke: {
+              width: 0,
+            },
+            plotOptions: {
+              pie: {
+                donut: {
+                  labels: {
+                    show: true,
+                    total: {
+                      showAlways: true,
+                      show: true
+                    }
+                  }
+                }
+              }
+            },
+            labels: ["Comedy", "Action", "SciFi", "Drama", "Horror"],
+            dataLabels: {
+              dropShadow: {
+                blur: 3,
+                opacity: 0.8
+              }
+            },
+            fill: {
+            type: 'pattern',
+              opacity: 1,
+              pattern: {
+                enabled: true,
+                style: ['verticalLines', 'squares', 'horizontalLines', 'circles','slantedLines'],
+              },
+            },
+            states: {
+              hover: {
+                enabled: false
+              }
+            },
+            theme: {
+              palette: 'palette2'
+            },
+            title: {
+              text: "Favourite Movie Type"
+            },
+            responsive: [{
+              breakpoint: 480,
+              options: {
+                chart: {
+                  width: 200
+                },
+                legend: {
+                  position: 'bottom'
+                }
+              }
+            }]
+          },
+          
+          
+        },
+        
+      })
+    </script>
+  
+</body>
 
 </html>

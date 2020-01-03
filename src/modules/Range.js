@@ -1,4 +1,5 @@
 import Utils from '../utils/Utils'
+import DateTime from '../utils/DateTime'
 import Scales from './Scales'
 
 /**
@@ -27,6 +28,7 @@ class Range {
     highestY = -Number.MAX_VALUE,
     len = null
   ) {
+    const cnf = this.w.config
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
@@ -34,12 +36,11 @@ class Range {
     if (len === null) {
       len = startingIndex + 1
     }
-
     const series = gl.series
     let seriesMin = series
     let seriesMax = series
 
-    if (this.w.config.chart.type === 'candlestick') {
+    if (cnf.chart.type === 'candlestick') {
       seriesMin = gl.seriesCandleL
       seriesMax = gl.seriesCandleH
     } else if (gl.isRangeData) {
@@ -79,6 +80,14 @@ class Range {
           gl.hasNullValues = true
         }
       }
+    }
+
+    if (
+      cnf.chart.type === 'rangeBar' &&
+      gl.seriesRangeStart.length &&
+      cnf.xaxis.type === 'datetime'
+    ) {
+      minY = lowestY
     }
 
     return {
@@ -172,10 +181,13 @@ class Range {
         }
 
         gl.minY = lowestYInAllSeries - (diff * 5) / 100
-        // if (lowestYInAllSeries > 0 && gl.minY < 0) {
+
         /* fix https://github.com/apexcharts/apexcharts.js/issues/614 */
-        //  gl.minY = 0
-        // }
+        /* fix https://github.com/apexcharts/apexcharts.js/issues/968 */
+        if (lowestYInAllSeries > 0 && gl.minY < 0) {
+          gl.minY = 0
+        }
+
         /* fix https://github.com/apexcharts/apexcharts.js/issues/426 */
         gl.maxY = gl.maxY + (diff * 5) / 100
       }
@@ -358,14 +370,16 @@ class Range {
     }
 
     if (gl.minX === gl.maxX) {
+      let datetimeObj = new DateTime(this.ctx)
+
       // single dataPoint
       if (cnf.xaxis.type === 'datetime') {
-        const newMinX = new Date(gl.minX)
-        newMinX.setDate(newMinX.getDate() - 2)
+        const newMinX = datetimeObj.getUTCDate(gl.minX)
+        newMinX.setUTCDate(newMinX.getDate() - 2)
         gl.minX = new Date(newMinX).getTime()
 
-        const newMaxX = new Date(gl.maxX)
-        newMaxX.setDate(newMaxX.getDate() + 2)
+        const newMaxX = datetimeObj.getUTCDate(gl.maxX)
+        newMaxX.setUTCDate(newMaxX.getDate() + 2)
         gl.maxX = new Date(newMaxX).getTime()
       } else if (
         cnf.xaxis.type === 'numeric' ||
@@ -379,44 +393,35 @@ class Range {
     if (gl.isXNumeric) {
       // get the least x diff if numeric x axis is present
       gl.seriesX.forEach((sX, i) => {
-        sX.forEach((s, j) => {
+        if (sX.length === 1) {
+          // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
+          // fix #811
+          sX.push(
+            gl.seriesX[gl.maxValsInArrayIndex][
+              gl.seriesX[gl.maxValsInArrayIndex].length - 1
+            ]
+          )
+        }
+
+        // fix #983 (clone the array to avoid side effects)
+        const seriesX = sX.slice()
+        seriesX.sort((a, b) => a - b)
+
+        seriesX.forEach((s, j) => {
           if (j > 0) {
             let xDiff = s - gl.seriesX[i][j - 1]
-            gl.minXDiff = Math.min(xDiff, gl.minXDiff)
+            if (xDiff > 0) {
+              gl.minXDiff = Math.min(xDiff, gl.minXDiff)
+            }
           }
         })
       })
-
-      this.calcMinXDiffForTinySeries()
     }
 
     return {
       minX: gl.minX,
       maxX: gl.maxX
     }
-  }
-
-  calcMinXDiffForTinySeries() {
-    const w = this.w
-
-    let len = w.globals.labels.length
-
-    if (w.globals.labels.length === 1) {
-      w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len / 3
-    } else {
-      if (w.globals.minXDiff === Number.MAX_VALUE) {
-        // possibly a single dataPoint (fixes react-apexcharts/issue#34)
-        if (w.globals.timelineLabels.length > 0) {
-          len = w.globals.timelineLabels.length
-        }
-        if (len < 3) {
-          len = 3
-        }
-        w.globals.minXDiff = (w.globals.maxX - w.globals.minX) / len
-      }
-    }
-
-    return w.globals.minXDiff
   }
 
   setZRange() {

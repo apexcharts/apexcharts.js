@@ -46,7 +46,9 @@ class CoreUtils {
     ) {
       let t = 0
       for (let j = 0; j < w.globals.series.length; j++) {
-        t += w.globals.series[j][i]
+        if (typeof w.globals.series[j][i] !== 'undefined') {
+          t += w.globals.series[j][i]
+        }
       }
       total.push(t)
     }
@@ -58,14 +60,10 @@ class CoreUtils {
   getSeriesTotalByIndex(index = null) {
     if (index === null) {
       // non-plot chart types - pie / donut / circle
-      return this.w.config.series.reduce((acc, cur) => {
-        return acc + cur
-      }, 0)
+      return this.w.config.series.reduce((acc, cur) => acc + cur, 0)
     } else {
       // axis charts - supporting multiple series
-      return this.w.globals.series[index].reduce((acc, cur) => {
-        return acc + cur
-      }, 0)
+      return this.w.globals.series[index].reduce((acc, cur) => acc + cur, 0)
     }
   }
 
@@ -73,38 +71,28 @@ class CoreUtils {
     let r = []
     if (index === null) {
       // non-plot chart types - pie / donut / circle
-      r = this.w.config.series.filter((d) => {
-        return d !== null
-      })
+      r = this.w.config.series.filter((d) => d !== null)
     } else {
       // axis charts - supporting multiple series
-      r = this.w.globals.series[index].filter((d) => {
-        return d !== null
-      })
+      r = this.w.globals.series[index].filter((d) => d !== null)
     }
 
     return r.length === 0
   }
 
   seriesHaveSameValues(index) {
-    return this.w.globals.series[index].every((val, i, arr) => {
-      return val === arr[0]
-    })
+    return this.w.globals.series[index].every((val, i, arr) => val === arr[0])
   }
 
   // maxValsInArrayIndex is the index of series[] which has the largest number of items
   getLargestSeries() {
     const w = this.w
     w.globals.maxValsInArrayIndex = w.globals.series
-      .map(function(a) {
-        return a.length
-      })
+      .map((a) => a.length)
       .indexOf(
         Math.max.apply(
           Math,
-          w.globals.series.map(function(a) {
-            return a.length
-          })
+          w.globals.series.map((a) => a.length)
         )
       )
   }
@@ -113,7 +101,7 @@ class CoreUtils {
     const w = this.w
     let size = 0
 
-    w.globals.markers.size.forEach(function(m) {
+    w.globals.markers.size.forEach((m) => {
       size = Math.max(size, m)
     })
 
@@ -189,9 +177,7 @@ class CoreUtils {
           seriesPercent.push(percent)
         }
       } else {
-        const total = w.globals.seriesTotals.reduce((acc, val) => {
-          return acc + val
-        }, 0)
+        const total = w.globals.seriesTotals.reduce((acc, val) => acc + val, 0)
         let percent = (100 * ser) / total
         seriesPercent.push(percent)
       }
@@ -236,6 +222,10 @@ class CoreUtils {
     invertedYRatio = gl.yRange / gl.gridWidth
     invertedXRatio = gl.xRange / gl.gridHeight
     zRatio = (gl.zRange / gl.gridHeight) * 16
+
+    if (!zRatio) {
+      zRatio = 1
+    }
 
     if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
       // Negative numbers present in series
@@ -290,7 +280,7 @@ class CoreUtils {
       }
     })
 
-    return w.globals.seriesLog
+    return w.globals.invalidLogScale ? series : w.globals.seriesLog
   }
 
   getLogYRatios(yRatio) {
@@ -320,7 +310,7 @@ class CoreUtils {
       }
     })
 
-    return gl.yLogRatio
+    return gl.invalidLogScale ? yRatio.slice() : gl.yLogRatio
   }
 
   // Some config objects can be array - and we need to extend them correctly

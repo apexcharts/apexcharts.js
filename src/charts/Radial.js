@@ -22,6 +22,11 @@ class Radial extends Pie {
     this.startAngle = w.config.plotOptions.radialBar.startAngle
     this.endAngle = w.config.plotOptions.radialBar.endAngle
 
+    this.totalAngle = Math.abs(
+      w.config.plotOptions.radialBar.endAngle -
+        w.config.plotOptions.radialBar.startAngle
+    )
+
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
     this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle
 
@@ -37,7 +42,7 @@ class Radial extends Pie {
       w.config.plotOptions.radialBar.endAngle -
       w.config.plotOptions.radialBar.startAngle
 
-    this.margin = parseInt(w.config.plotOptions.radialBar.track.margin)
+    this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10)
   }
 
   draw(series) {
@@ -88,13 +93,19 @@ class Radial extends Pie {
     let totalAngle = 360
 
     if (w.config.plotOptions.radialBar.startAngle < 0) {
-      totalAngle = Math.abs(
-        w.config.plotOptions.radialBar.endAngle -
-          w.config.plotOptions.radialBar.startAngle
-      )
+      totalAngle = this.totalAngle
     }
 
-    w.globals.radialSize = size - size / (360 / (360 - totalAngle)) + 10
+    let angleRatio = (360 - totalAngle) / 360
+    w.globals.radialSize = size - size * angleRatio
+
+    if (this.radialDataLabels.value.show) {
+      let offset = Math.max(
+        this.radialDataLabels.value.offsetY,
+        this.radialDataLabels.name.offsetY
+      )
+      w.globals.radialSize += offset * angleRatio
+    }
 
     elSeries.add(elG.g)
 
@@ -156,7 +167,8 @@ class Radial extends Pie {
       let elPath = graphics.drawPath({
         d: '',
         stroke: pathFill,
-        strokeWidth: (strokeWidth * parseInt(trackConfig.strokeWidth)) / 100,
+        strokeWidth:
+          (strokeWidth * parseInt(trackConfig.strokeWidth, 10)) / 100,
         fill: 'none',
         strokeOpacity: trackConfig.opacity,
         classes: 'apexcharts-radialbar-area'
@@ -207,7 +219,7 @@ class Radial extends Pie {
       strokeWidth * opts.series.length -
       this.margin * opts.series.length -
       (strokeWidth *
-        parseInt(w.config.plotOptions.radialBar.track.strokeWidth)) /
+        parseInt(w.config.plotOptions.radialBar.track.strokeWidth, 10)) /
         100 /
         2
 
@@ -286,23 +298,19 @@ class Radial extends Pie {
       let startAngle = this.startAngle
       let prevStartAngle
 
-      const totalAngle = Math.abs(
-        w.config.plotOptions.radialBar.endAngle -
-          w.config.plotOptions.radialBar.startAngle
-      )
-
       // if data exceeds 100, make it 100
       const dataValue =
         Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100
 
-      let endAngle = Math.round(totalAngle * dataValue) + this.startAngle
+      let endAngle = Math.round(this.totalAngle * dataValue) + this.startAngle
 
       let prevEndAngle
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle
         prevEndAngle =
           Math.round(
-            (totalAngle * Utils.negToZero(w.globals.previousPaths[i])) / 100
+            (this.totalAngle * Utils.negToZero(w.globals.previousPaths[i])) /
+              100
           ) + prevStartAngle
       }
 
@@ -379,7 +387,7 @@ class Radial extends Pie {
         i,
         totalItems: 2,
         animBeginArr: this.animBeginArr,
-        dur: dur,
+        dur,
         shouldSetPrevPaths: true,
         easing: w.globals.easing
       })
@@ -412,7 +420,7 @@ class Radial extends Pie {
     const w = this.w
     let fill = new Fill(this.ctx)
 
-    let randID = (Math.random() + 1).toString(36).substring(4)
+    let randID = Utils.randomId()
     let hollowFillImg = w.config.plotOptions.radialBar.hollow.image
 
     if (w.config.plotOptions.radialBar.hollow.imageClipped) {
@@ -464,7 +472,7 @@ class Radial extends Pie {
     const w = this.w
     return (
       (opts.size *
-        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size))) /
+        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size, 10))) /
         100 /
         (opts.series.length + 1) -
       this.margin

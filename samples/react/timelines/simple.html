@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Basic Timeline Chart</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet">
+
+  <style>
+  
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
+
+
+  <script crossorigin src="https://unpkg.com/react@16.12/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16.12/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.7.2/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://unpkg.com/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  
+</head>
+
+<body>
+  
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;rangeBar&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [
+              {
+                data: [
+                  {
+                    x: 'Code',
+                    y: [
+                      new Date('2019-03-02').getTime(),
+                      new Date('2019-03-04').getTime()
+                    ]
+                  },
+                  {
+                    x: 'Test',
+                    y: [
+                      new Date('2019-03-04').getTime(),
+                      new Date('2019-03-08').getTime()
+                    ]
+                  },
+                  {
+                    x: 'Validation',
+                    y: [
+                      new Date('2019-03-08').getTime(),
+                      new Date('2019-03-12').getTime()
+                    ]
+                  },
+                  {
+                    x: 'Deployment',
+                    y: [
+                      new Date('2019-03-12').getTime(),
+                      new Date('2019-03-18').getTime()
+                    ]
+                  }
+                ]
+              }
+            ],
+            options: {
+              chart: {
+                height: 350,
+                type: 'rangeBar'
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true
+                }
+              },
+              xaxis: {
+                type: 'datetime'
+              }
+            },
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="rangeBar" height={350} />
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
+        }
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
+
+  
+</body>
+
+</html>

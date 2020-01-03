@@ -35,6 +35,9 @@ class Intersect {
         shared: false
       })
 
+      w.globals.capturedSeriesIndex = i
+      w.globals.capturedDataPointIndex = j
+
       x = cx + ttCtx.tooltipRect.ttWidth / 2 + width
       y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2
 
@@ -64,20 +67,21 @@ class Intersect {
     let i
     let j
     if (e.target.classList.contains('apexcharts-marker')) {
-      let cx = parseInt(opt.paths.getAttribute('cx'))
-      let cy = parseInt(opt.paths.getAttribute('cy'))
+      let cx = parseInt(opt.paths.getAttribute('cx'), 10)
+      let cy = parseInt(opt.paths.getAttribute('cy'), 10)
       let val = parseFloat(opt.paths.getAttribute('val'))
 
-      j = parseInt(opt.paths.getAttribute('rel'))
+      j = parseInt(opt.paths.getAttribute('rel'), 10)
       i =
         parseInt(
-          opt.paths.parentNode.parentNode.parentNode.getAttribute('rel')
+          opt.paths.parentNode.parentNode.parentNode.getAttribute('rel'),
+          10
         ) - 1
 
       if (ttCtx.intersect) {
         const el = Utils.findAncestor(opt.paths, 'apexcharts-series')
         if (el) {
-          i = parseInt(el.getAttribute('data:realIndex'))
+          i = parseInt(el.getAttribute('data:realIndex'), 10)
         }
       }
 
@@ -91,6 +95,9 @@ class Intersect {
       if (e.type === 'mouseup') {
         ttCtx.markerClick(e, i, j)
       }
+
+      w.globals.capturedSeriesIndex = i
+      w.globals.capturedDataPointIndex = j
 
       x = cx
       y = cy + w.globals.translateY - ttCtx.tooltipRect.ttHeight * 1.4
@@ -132,6 +139,9 @@ class Intersect {
     i = barXY.i
     let barHeight = barXY.barHeight
     let j = barXY.j
+
+    w.globals.capturedSeriesIndex = i
+    w.globals.capturedDataPointIndex = j
 
     if (
       (w.globals.isBarHorizontal && ttCtx.hasBars()) ||
@@ -187,18 +197,19 @@ class Intersect {
       (!w.config.tooltip.shared ||
         (w.globals.isBarHorizontal && ttCtx.hasBars()))
     ) {
+      const isReversed = w.globals.isMultipleYAxis
+        ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
+        : w.config.yaxis[0].reversed
+
       if (isReversed) {
         x = w.globals.gridWidth - x
       }
       tooltipEl.style.left = x + w.globals.translateX + 'px'
 
       const seriesIndex = parseInt(
-        opt.paths.parentNode.getAttribute('data:realIndex')
+        opt.paths.parentNode.getAttribute('data:realIndex'),
+        10
       )
-
-      const isReversed = w.globals.isMultipleYAxis
-        ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
-        : w.config.yaxis[0].reversed
 
       if (isReversed && !(w.globals.isBarHorizontal && ttCtx.hasBars())) {
         y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2
@@ -242,16 +253,19 @@ class Intersect {
       barHeight = barRect.height
       let bw = barRect.width
 
-      let cx = parseInt(bar.getAttribute('cx'))
-      let cy = parseInt(bar.getAttribute('cy'))
+      let cx = parseInt(bar.getAttribute('cx'), 10)
+      let cy = parseInt(bar.getAttribute('cy'), 10)
       barWidth = parseFloat(bar.getAttribute('barWidth'))
       const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
 
-      j = parseInt(bar.getAttribute('j'))
-      i = parseInt(bar.parentNode.getAttribute('rel')) - 1
+      j = parseInt(bar.getAttribute('j'), 10)
+      i = parseInt(bar.parentNode.getAttribute('rel'), 10) - 1
+
+      let y1 = bar.getAttribute('data-range-y1')
+      let y2 = bar.getAttribute('data-range-y2')
 
       if (w.globals.comboCharts) {
-        i = parseInt(bar.parentNode.getAttribute('data:realIndex'))
+        i = parseInt(bar.parentNode.getAttribute('data:realIndex'), 10)
       }
 
       // if (w.config.tooltip.shared) {
@@ -266,6 +280,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
+        y1: y1 ? parseInt(y1, 10) : null,
+        y2: y2 ? parseInt(y2, 10) : null,
         shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
       })
 

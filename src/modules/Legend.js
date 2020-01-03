@@ -18,6 +18,11 @@ class Legend {
 
     this.onLegendClick = this.onLegendClick.bind(this)
     this.onLegendHovered = this.onLegendHovered.bind(this)
+
+    this.isBarsDistributed =
+      this.w.config.chart.type === 'bar' &&
+      this.w.config.plotOptions.bar.distributed &&
+      this.w.config.series.length === 1
   }
 
   init() {
@@ -28,6 +33,7 @@ class Legend {
 
     const showLegendAlways =
       (cnf.legend.showForSingleSeries && gl.series.length === 1) ||
+      this.isBarsDistributed ||
       gl.series.length > 1
 
     if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
@@ -54,6 +60,75 @@ class Legend {
         this.legendAlignVertical()
       }
     }
+  }
+
+  getLegendStyles() {
+    let stylesheet = document.createElement('style')
+    stylesheet.setAttribute('type', 'text/css')
+
+    const text = `	
+    	
+      .apexcharts-legend {	
+        display: flex;	
+        overflow: auto;	
+        padding: 0 10px;	
+      }	
+      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {	
+        flex-wrap: wrap	
+      }	
+      .apexcharts-legend.position-right, .apexcharts-legend.position-left {	
+        flex-direction: column;	
+        bottom: 0;	
+      }	
+      .apexcharts-legend.position-bottom.apexcharts-align-left, .apexcharts-legend.position-top.apexcharts-align-left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {	
+        justify-content: flex-start;	
+      }	
+      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {	
+        justify-content: center;  	
+      }	
+      .apexcharts-legend.position-bottom.apexcharts-align-right, .apexcharts-legend.position-top.apexcharts-align-right {	
+        justify-content: flex-end;	
+      }	
+      .apexcharts-legend-series {	
+        cursor: pointer;	
+        line-height: normal;	
+      }	
+      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{	
+        display: flex;	
+        align-items: center;	
+      }	
+      .apexcharts-legend-text {	
+        position: relative;	
+        font-size: 14px;	
+      }	
+      .apexcharts-legend-text *, .apexcharts-legend-marker * {	
+        pointer-events: none;	
+      }	
+      .apexcharts-legend-marker {	
+        position: relative;	
+        display: inline-block;	
+        cursor: pointer;	
+        margin-right: 3px;	
+      }	
+      	
+      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{	
+        display: inline-block;	
+      }	
+      .apexcharts-legend-series.apexcharts-no-click {	
+        cursor: auto;	
+      }	
+      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {	
+        display: none !important;	
+      }	
+      .inactive-legend {	
+        opacity: 0.45;	
+      }`
+
+    let rules = document.createTextNode(text)
+
+    stylesheet.appendChild(rules)
+
+    return stylesheet
   }
 
   appendToForeignObject() {
@@ -91,13 +166,19 @@ class Legend {
           ? colorScale.name
           : colorScale.from + ' - ' + colorScale.to
       })
-      fillcolor = ranges.map((color) => {
-        return color.color
-      })
+      fillcolor = ranges.map((color) => color.color)
+    } else if (this.isBarsDistributed) {
+      legendNames = w.globals.labels.slice()
     }
     let legendFormatter = w.globals.legendFormatter
 
-    for (let i = 0; i <= legendNames.length - 1; i++) {
+    let isLegendInversed = w.config.legend.inverseOrder
+
+    for (
+      let i = isLegendInversed ? legendNames.length - 1 : 0;
+      isLegendInversed ? i >= 0 : i <= legendNames.length - 1;
+      isLegendInversed ? i-- : i++
+    ) {
       let text = legendFormatter(legendNames[i], { seriesIndex: i, w })
 
       let collapsedSeries = false
@@ -137,6 +218,15 @@ class Legend {
 
       mStyle.background = fillcolor[i]
       mStyle.color = fillcolor[i]
+
+      // override fill color with custom legend.markers.fillColors
+      if (
+        w.config.legend.markers.fillColors &&
+        w.config.legend.markers.fillColors[i]
+      ) {
+        mStyle.background = w.config.legend.markers.fillColors[i]
+      }
+
       mStyle.height = Array.isArray(mHeight)
         ? parseFloat(mHeight[i]) + 'px'
         : parseFloat(mHeight) + 'px'
@@ -193,6 +283,8 @@ class Legend {
 
       Graphics.setAttrs(elLegendText, {
         rel: i + 1,
+        i,
+        'data:default-text': encodeURIComponent(text),
         'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
 
@@ -225,16 +317,15 @@ class Legend {
       }
 
       w.globals.dom.elLegendWrap.appendChild(elLegend)
-      w.globals.dom.elLegendWrap.classList.add(w.config.legend.horizontalAlign)
-      // w.globals.dom.elLegendWrap.classList.add(w.config.legend.verticalAlign)
+      w.globals.dom.elLegendWrap.classList.add(
+        `apexcharts-align-${w.config.legend.horizontalAlign}`
+      )
       w.globals.dom.elLegendWrap.classList.add(
         'position-' + w.config.legend.position
       )
 
       elLegend.classList.add('apexcharts-legend-series')
-      elLegend.style.margin = `${w.config.legend.itemMargin.horizontal}px ${
-        w.config.legend.itemMargin.vertical
-      }px`
+      elLegend.style.margin = `${w.config.legend.itemMargin.horizontal}px ${w.config.legend.itemMargin.vertical}px`
       w.globals.dom.elLegendWrap.style.width = w.config.legend.width
         ? w.config.legend.width + 'px'
         : ''
@@ -252,12 +343,13 @@ class Legend {
       }
 
       if (!w.config.legend.onItemClick.toggleDataSeries) {
-        elLegend.classList.add('no-click')
+        elLegend.classList.add('apexcharts-no-click')
       }
     }
 
     // for now - just prevent click on heatmap legend - and allow hover only
-    const clickAllowed = w.config.chart.type !== 'heatmap'
+    const clickAllowed =
+      w.config.chart.type !== 'heatmap' && !this.isBarsDistributed
 
     if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
       w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
@@ -332,13 +424,12 @@ class Legend {
       elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px'
     }
 
-    if (elLegendWrap.style.width) {
-      elLegendWrap.style.width = parseInt(w.config.legend.width) + 'px'
-    }
-
-    if (elLegendWrap.style.height) {
-      elLegendWrap.style.height = parseInt(w.config.legend.height) + 'px'
-    }
+    const fixedHeigthWidth = ['width', 'height']
+    fixedHeigthWidth.forEach((hw) => {
+      if (elLegendWrap.style[hw]) {
+        elLegendWrap.style[hw] = parseInt(w.config.legend[hw], 10) + 'px'
+      }
+    })
   }
 
   legendAlignHorizontal() {
@@ -398,7 +489,7 @@ class Legend {
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
 
-    if (w.config.chart.type !== 'heatmap') {
+    if (w.config.chart.type !== 'heatmap' && !this.isBarsDistributed) {
       if (!e.target.classList.contains('inactive-legend') && hoverOverLegend) {
         let series = new Series(this.ctx)
         series.toggleSeriesOnHover(e, e.target)
@@ -406,7 +497,7 @@ class Legend {
     } else {
       // for heatmap handling
       if (hoverOverLegend) {
-        let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
+        let seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
         this.ctx.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
 
         let series = new Series(this.ctx)
@@ -420,7 +511,7 @@ class Legend {
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
     ) {
-      let seriesCnt = parseInt(e.target.getAttribute('rel')) - 1
+      let seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
       let isHidden = e.target.getAttribute('data:collapsed') === 'true'
 
       const legendClick = this.w.config.chart.events.legendClick
@@ -443,87 +534,6 @@ class Legend {
     }
   }
 
-  getLegendStyles() {
-    var stylesheet = document.createElement('style')
-    stylesheet.setAttribute('type', 'text/css')
-
-    const text = `
-    
-      .apexcharts-legend {
-        display: flex;
-        overflow: auto;
-        padding: 0 10px;
-      }
-
-      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {
-        flex-wrap: wrap
-      }
-      .apexcharts-legend.position-right, .apexcharts-legend.position-left {
-        flex-direction: column;
-        bottom: 0;
-      }
-
-      .apexcharts-legend.position-bottom.left, .apexcharts-legend.position-top.left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {
-        justify-content: flex-start;
-      }
-
-      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {
-        justify-content: center;  
-      }
-
-      .apexcharts-legend.position-bottom.right, .apexcharts-legend.position-top.right {
-        justify-content: flex-end;
-      }
-
-      .apexcharts-legend-series {
-        cursor: pointer;
-        line-height: normal;
-      }
-
-      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{
-        display: flex;
-        align-items: center;
-      }
-
-      .apexcharts-legend-text {
-        position: relative;
-        font-size: 14px;
-      }
-
-      .apexcharts-legend-text *, .apexcharts-legend-marker * {
-        pointer-events: none;
-      }
-
-      .apexcharts-legend-marker {
-        position: relative;
-        display: inline-block;
-        cursor: pointer;
-        margin-right: 3px;
-      }
-      
-      .apexcharts-legend.right .apexcharts-legend-series, .apexcharts-legend.left .apexcharts-legend-series{
-        display: inline-block;
-      }
-
-      .apexcharts-legend-series.no-click {
-        cursor: auto;
-      }
-
-      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {
-        display: none !important;
-      }
-
-      .inactive-legend {
-        opacity: 0.45;
-      }`
-
-    var rules = document.createTextNode(text)
-
-    stylesheet.appendChild(rules)
-
-    return stylesheet
-  }
-
   toggleDataSeries(seriesCnt, isHidden) {
     const w = this.w
     if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
@@ -540,12 +550,12 @@ class Legend {
         seriesEl = w.globals.dom.baseEl.querySelector(
           `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
         )
-        realIndex = parseInt(seriesEl.getAttribute('data:realIndex'))
+        realIndex = parseInt(seriesEl.getAttribute('data:realIndex'), 10)
       } else {
         seriesEl = w.globals.dom.baseEl.querySelector(
           `.apexcharts-series[rel='${seriesCnt + 1}']`
         )
-        realIndex = parseInt(seriesEl.getAttribute('rel')) - 1
+        realIndex = parseInt(seriesEl.getAttribute('rel'), 10) - 1
       }
 
       if (isHidden) {

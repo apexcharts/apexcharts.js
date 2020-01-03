@@ -2,169 +2,196 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Line Chart with Annotations</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Line Chart with Annotations</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet">
+
+  <style>
+  
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+  
+  </style>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <script src="../../../dist/apexcharts.js"></script>
 
-    <style>
-        #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <script src="../../assets/stock-prices.js"></script>
 </head>
 
 <body>
-    <div id="chart">
-
-    </div>
-
-
-    <script src="../../../dist/apexcharts.js"></script>
-    <script src="../../assets/stock-prices.js"></script>
+  
+    <div id="chart"></div>
 
     <script>
-       
-        var options = {
-            annotations: {
-                yaxis: [{
-                    y: 8200,
-                    borderColor: '#FEB019',
-                    label: {
-                        borderColor: '#333',
-                        style: {
-                            fontSize: '15px',
-                            color: '#333',
-                            background: '#FEB019',
-                        },
-                        text: 'Y-axis annotation',
-                    }
-                }],
-                xaxis: [{
-                    x: new Date('23 Nov 2017').getTime(),
-                    borderColor: '#00E396',
-                    label: {
-                        borderColor: '#00E396',
-                        style: {
-                            fontSize: '15px',
-                            color: '#fff',
-                            background: '#00E396',
-                        },
-                        offsetY: -10,
-                        text: 'Vertical',
-                    }
-                }],
-                points: [{
-                    x: new Date('01 Dec 2017').getTime(),
-                    y: 9025,
-                    label: {
-                        borderColor: '#FF4560',
-                        offsetY: 0,
-                        style: {
-                            fontSize: '15px',
-                            color: '#fff',
-                            background: '#FF4560',
-                        },
-                        
-                        text: 'All time high',
-                    } 
-                }]
-            },
-            chart: {
-                type: 'line',
-                sparkline: {
-                  //  enabled: true
-                }
-            },
-            plotOptions: {
-                bar: {
-                    columnWidth: '50%'
-                }
-            },
-            markers: {
-                size: 0
-            },
-            dataLabels: {
-                enabled: false
-            },
-            stroke: {
-                curve: 'straight'
-            },
-            series: [ {
-                type: 'bar',
-                data: series.monthDataSeries2.prices
-            }, {
-                type: 'line',
-                data: series.monthDataSeries1.prices
-            }],
-            legend: {
-                show: false,
-            },
-            labels: series.monthDataSeries1.dates,
-            xaxis: {
-                type: 'datetime',
-            }
-        }
-
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
-
-        // adding annotation through chart instance by calling direct method
-        chart.addYaxisAnnotation({
-            y: 9000,
+    
+      var options = {
+        series: [{
+            type: 'bar',
+            data: series.monthDataSeries2.prices
+        }, {
+            type: 'line',
+            data: series.monthDataSeries1.prices
+        }],
+        chart: {
+          type: 'line',
+          id: 'chart',
+          sparkline: {
+            //  enabled: true
+          }
+        },
+        annotations: {
+          yaxis: [{
+            y: 8200,
             borderColor: '#FEB019',
             label: {
-                borderColor: '#333',
-                style: {
-                    fontSize: '15px',
-                    color: '#333',
-                    background: '#FEB019',
-                },
-                text: 'Y-axis - runtime',
+              borderColor: '#333',
+              style: {
+                fontSize: '15px',
+                color: '#333',
+                background: '#FEB019',
+              },
+              text: 'Y-axis annotation',
             }
-        });
-
-        chart.addXaxisAnnotation({
-            x: new Date('25 Nov 2017').getTime(),
+          }],
+          xaxis: [{
+            x: new Date('23 Nov 2017').getTime(),
             borderColor: '#00E396',
             label: {
-                orientation: 'vertical',
-                borderColor: '#00E396',
-                style: {
-                    fontSize: '15px',
-                    color: '#fff',
-                    background: '#00E396',
-                },
-                offsetY: -10,
-                text: 'xaxis - runtime',
+              borderColor: '#00E396',
+              style: {
+                fontSize: '15px',
+                color: '#fff',
+                background: '#00E396',
+              },
+              offsetY: -10,
+              text: 'Vertical',
             }
-        });
-
-        chart.addPointAnnotation({
-            x: new Date('17 Nov 2017').getTime(),
-            y: 9425,
+          }],
+          points: [{
+            x: new Date('01 Dec 2017').getTime(),
+            y: 9025,
             label: {
-                borderColor: '#FF4560',
-                offsetY: 0,
-                style: {
-                    fontSize: '15px',
-                    color: '#fff',
-                    background: '#FF4560',
-                },
-                
-                text: 'Point - runtime',
-            } 
-        })
+              borderColor: '#FF4560',
+              offsetY: 0,
+              style: {
+                fontSize: '15px',
+                color: '#fff',
+                background: '#FF4560',
+              },
+              text: 'All time high',
+            }
+          }]
+        },
+        plotOptions: {
+          bar: {
+            columnWidth: '50%'
+          }
+        },
+        markers: {
+          size: 0
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'straight'
+        },
+        legend: {
+          show: false,
+        },
+        labels: series.monthDataSeries1.dates,
+        xaxis: {
+          type: 'datetime',
+        }
+      };
 
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
+      function addAnnos() {
+        // adding annotation through chart instance by calling direct method
+        chart.addYaxisAnnotation({
+          id: 'yaxis-anno',
+          y: 9000,
+          borderColor: '#FEB019',
+          label: {
+            borderColor: '#333',
+            style: {
+              fontSize: '15px',
+              color: '#333',
+              background: '#FEB019'
+            },
+            text: 'Y-axis - runtime'
+          }
+        })
+      
+        chart.addXaxisAnnotation({
+          id: 'xaxis-anno',
+          x: new Date('25 Nov 2017').getTime(),
+          borderColor: '#00E396',
+          label: {
+            orientation: 'vertical',
+            borderColor: '#00E396',
+            style: {
+              fontSize: '15px',
+              color: '#fff',
+              background: '#00E396'
+            },
+            offsetY: -10,
+            text: 'xaxis - runtime'
+          }
+        })
+      }
+      
+      addAnnos()
+      
+      chart.addPointAnnotation({
+        id: 'point-anno',
+        x: new Date('17 Nov 2017').getTime(),
+        y: 9425,
+        label: {
+          borderColor: '#FF4560',
+          offsetY: 0,
+          style: {
+            fontSize: '15px',
+            color: '#fff',
+            background: '#FF4560'
+          },
+          text: 'Point - runtime'
+        }
+      })
+      
+      // removing annotation with method name
+      chart.removeAnnotation('point-anno')
+      
+      // removing annotations with .exec() method
+      ApexCharts.exec('chart', 'removeAnnotation', 'xaxis-anno')
+      ApexCharts.exec('chart', 'removeAnnotation', 'yaxis-anno')
+      
+      // add annos again
+      // addAnnos()
+    
     </script>
+
+  
 </body>
 
 </html>

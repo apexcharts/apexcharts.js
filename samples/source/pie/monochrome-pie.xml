@@ -1,0 +1,42 @@
+<title>Monochrome Pie</title>
+
+<style>
+#chart {
+  padding: 0;
+  max-width: 380px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  width: '100%',
+  type: 'pie',
+},
+labels: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+theme: {
+  monochrome: {
+    enabled: true
+  }
+},
+title: {
+  text: "Number of leads"
+},
+responsive: [{
+  breakpoint: 480,
+  options: {
+    chart: {
+      width: 200
+    },
+    legend: {
+      position: 'bottom'
+    }
+  }
+}]
+</options>
+
+<series>
+[25, 15, 44, 55, 41, 17]
+</series>
+</chart>

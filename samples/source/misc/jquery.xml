@@ -1,0 +1,36 @@
+<title>jQuery Ajax Example</title>
+
+<scripts>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'bar',
+},
+dataLabels: {
+  enabled: false
+},
+title: {
+  text: 'Ajax Example',
+},
+noData: {
+  text: 'Loading...'
+}
+</options>
+
+<series>
+[]
+</series>
+</chart>
+
+<vanilla-js-script>
+$.getJSON('http://my-json-server.typicode.com/apexcharts/apexcharts.js/yearly', function(response) {
+  chart.updateSeries([{
+    name: 'Sales',
+    data: response
+  }])
+});
+</vanilla-js-script>

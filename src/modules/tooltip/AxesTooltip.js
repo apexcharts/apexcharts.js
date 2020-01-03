@@ -36,7 +36,7 @@ class AxesTooltip {
         ttCtx.xaxisTooltip = document.createElement('div')
         ttCtx.xaxisTooltip.setAttribute(
           'class',
-          tooltipCssClass + ' ' + w.config.tooltip.theme
+          tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
         )
 
         renderTo.appendChild(ttCtx.xaxisTooltip)
@@ -92,7 +92,7 @@ class AxesTooltip {
           ttCtx.yaxisTooltip = document.createElement('div')
           ttCtx.yaxisTooltip.setAttribute(
             'class',
-            tooltipCssClass + ' ' + w.config.tooltip.theme
+            tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
           )
 
           renderTo.appendChild(ttCtx.yaxisTooltip)
@@ -119,7 +119,7 @@ class AxesTooltip {
 
     // set xcrosshairs width
     const xcrosshairs = ttCtx.getElXCrosshairs()
-    ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width)
+    ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width, 10)
 
     if (!w.globals.comboCharts) {
       if (w.config.xaxis.crosshairs.width === 'tickWidth') {

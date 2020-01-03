@@ -2,76 +2,112 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Distributed Bar</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Distributed Bar</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet">
+
+  <style>
+  
+    #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    #chart .apexcharts-xaxis-label {
+      font-weight: bold;
+    }
+  
+  </style>
 
 
-    <link href="../../assets/styles.css" rel="stylesheet" />
+  <script src="../../../dist/apexcharts.js"></script>
 
-    <style>
-        #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-        #chart .apexcharts-xaxis-label {
-            font-weight: bold;
-        }
-    </style>
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <script>
+    var colors = [
+      '#008FFB',
+      '#00E396',
+      '#FEB019',
+      '#FF4560',
+      '#775DD0',
+      '#546E7A',
+      '#26a69a',
+      '#D10CE8'
+    ]
+  </script>
 </head>
 
 <body>
-    <div id="chart">
-
-    </div>
-
-
-    <script src="../../../dist/apexcharts.js"></script>
+  
+    <div id="chart"></div>
 
     <script>
-        var colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8'];
-        var options = {
-            chart: {
-                height: 350,
-                type: 'bar',
-                events: {
-                    click: function(chart, w, e) {
-                        console.log(chart, w, e )
-                    }
-                },
-            },
-            colors: colors,
-            plotOptions: {
-                bar: {
-                    columnWidth: '45%',
-                    distributed: true
-                }
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            series: [{
-                data: [21, 22, 10, 28, 16, 21, 13, 30]
-            }],
-            xaxis: {
-                categories: ['John', 'Joe', 'Jake', 'Amber', 'Peter', 'Mary', 'David', 'Lily'],
-                labels: {
-                    style: {
-                        colors: colors,
-                        fontSize: '14px'
-                    }
-                }
+    
+      var options = {
+        series: [{
+          data: [21, 22, 10, 28, 16, 21, 13, 30]
+        }],
+        chart: {
+          height: 350,
+          type: 'bar',
+          events: {
+            click: function(chart, w, e) {
+              console.log(chart, w, e)
             }
+          }
+        },
+        colors: colors,
+        plotOptions: {
+          bar: {
+            columnWidth: '45%',
+            distributed: true
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        legend: {
+          position: 'top'
+        },
+        xaxis: {
+          categories: [
+            'John',
+            'Joe',
+            'Jake',
+            'Amber',
+            'Peter',
+            'Mary',
+            'David',
+            'Lily'
+          ],
+          labels: {
+            style: {
+              colors: colors,
+              fontSize: '14px'
+            }
+          }
         }
+      };
 
-        var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-
-        chart.render();
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+    
+    
     </script>
+
+  
 </body>
 
 </html>

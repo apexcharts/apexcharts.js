@@ -1,10 +1,13 @@
-import Annotations from './modules/Annotations'
+import Annotations from './modules/annotations/Annotations'
 import Animations from './modules/Animations'
+import Axes from './modules/axes/Axes'
 import Base from './modules/Base'
 import Config from './modules/settings/Config'
 import Core from './modules/Core'
 import CoreUtils from './modules/CoreUtils'
 import Crosshairs from './modules/Crosshairs'
+import Data from './modules/Data'
+import DataLabels from './modules/DataLabels'
 import Defaults from './modules/settings/Defaults'
 import Dimensions from './modules/Dimensions'
 import Formatters from './modules/Formatters'
@@ -13,6 +16,7 @@ import Grid from './modules/axes/Grid'
 import Graphics from './modules/Graphics'
 import Legend from './modules/Legend'
 import Markers from './modules/Markers'
+import Pie from './charts/Pie'
 import Range from './modules/Range'
 import Responsive from './modules/Responsive'
 import Series from './modules/Series'
@@ -23,7 +27,8 @@ import ZoomPanSelection from './modules/ZoomPanSelection'
 import TitleSubtitle from './modules/TitleSubtitle'
 import Toolbar from './modules/Toolbar'
 import Options from './modules/settings/Options'
-import Promise from 'promise-polyfill'
+import XAxis from './modules/axes/XAxis'
+import YAxis from './modules/axes/YAxis'
 
 import './svgjs/svg.js'
 import 'svg.filter.js'
@@ -33,7 +38,6 @@ import 'svg.select.js'
 import 'svg.resize.js'
 
 import './assets/apexcharts.css'
-import './utils/ClassListPolyfill'
 import './utils/DetectElementResize'
 
 import en from './locales/en.json'
@@ -56,12 +60,13 @@ export default class ApexCharts {
 
     this.el = el
 
-    this.w.globals.cuid = (Math.random() + 1).toString(36).substring(4)
+    this.w.globals.cuid = Utils.randomId()
     this.w.globals.chartID = this.w.config.chart.id
       ? this.w.config.chart.id
       : this.w.globals.cuid
 
     this.eventList = [
+      'click',
       'mousedown',
       'mousemove',
       'touchstart',
@@ -134,7 +139,9 @@ export default class ApexCharts {
 
   initModules() {
     this.animations = new Animations(this)
+    this.axes = new Axes(this)
     this.core = new Core(this.el, this)
+    this.data = new Data(this)
     this.grid = new Grid(this)
     this.coreUtils = new CoreUtils(this)
     this.config = new Config({})
@@ -168,7 +175,7 @@ export default class ApexCharts {
       return
     }
 
-    var index = w.globals.events[name].indexOf(handler)
+    let index = w.globals.events[name].indexOf(handler)
     if (index !== -1) {
       w.globals.events[name].splice(index, 1)
     }
@@ -188,7 +195,7 @@ export default class ApexCharts {
     let evs = w.globals.events[name]
     let l = evs.length
 
-    for (var i = 0; i < l; i++) {
+    for (let i = 0; i < l; i++) {
       evs[i].apply(null, args)
     }
   }
@@ -230,7 +237,7 @@ export default class ApexCharts {
     this.setupEventHandlers()
 
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
-    this.core.parseData(ser)
+    this.data.parseData(ser)
 
     // this is a good time to set theme colors first
     this.theme.init()
@@ -244,7 +251,8 @@ export default class ApexCharts {
     this.titleSubtitle.draw()
 
     // legend is calculated here before coreCalculations because it affects the plottable area
-    if (!w.globals.noData) {
+    // if there is some data to show or user collapsed all series, then proceed drawing legend
+    if (!gl.noData || gl.collapsedSeries.length === gl.series.length) {
       this.legend.init()
     }
 
@@ -272,6 +280,12 @@ export default class ApexCharts {
     this.grid.createGridMask()
 
     const elGraph = this.core.plotChartType(ser, xyRatios)
+
+    const dataLabels = new DataLabels(this)
+    dataLabels.bringForward()
+    if (w.config.dataLabels.background.enabled) {
+      dataLabels.dataLabelsBackground()
+    }
 
     // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
     this.core.shiftGraphPosition()
@@ -307,11 +321,19 @@ export default class ApexCharts {
         me.series.handleNoData()
       }
       me.annotations = new Annotations(me)
-      me.core.drawAxis(w.config.chart.type, graphData.xyRatios)
+      me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
 
       me.grid = new Grid(me)
+      let elgrid = null
       if (w.config.grid.position === 'back') {
-        me.grid.drawGrid()
+        elgrid = me.grid.drawGrid()
+      }
+
+      let xAxis = new XAxis(this.ctx)
+      let yaxis = new YAxis(this.ctx)
+      if (elgrid !== null) {
+        xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
+        yaxis.setYAxisTextAlignments()
       }
 
       if (w.config.annotations.position === 'back') {
@@ -627,9 +649,7 @@ export default class ApexCharts {
           return true
         }
       })
-      .map((ch) => {
-        return this.w.config.chart.group === ch.group ? ch.chart : this
-      })
+      .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
   }
 
   /**
@@ -688,14 +708,13 @@ export default class ApexCharts {
 
   forceXAxisUpdate(options) {
     const w = this.w
-    if (typeof options.xaxis.min !== 'undefined') {
-      w.config.xaxis.min = options.xaxis.min
-      w.globals.lastXAxis.min = options.xaxis.min
-    }
-    if (typeof options.xaxis.max !== 'undefined') {
-      w.config.xaxis.max = options.xaxis.max
-      w.globals.lastXAxis.max = options.xaxis.max
-    }
+    const minmax = ['min', 'max']
+    minmax.forEach((a) => {
+      if (typeof options.xaxis[a] !== 'undefined') {
+        w.config.xaxis[a] = options.xaxis[a]
+        w.globals.lastXAxis[a] = options.xaxis[a]
+      }
+    })
   }
 
   /**
@@ -711,11 +730,17 @@ export default class ApexCharts {
 
     w.config.yaxis.map((yaxe, index) => {
       if (w.globals.zoomed) {
-        // if user has zoomed, and this function is called
-        // then we need to get the lastAxis min and max
+        // user has zoomed, check the last yaxis
+
         if (typeof w.globals.lastYAxis[index] !== 'undefined') {
           yaxe.min = w.globals.lastYAxis[index].min
           yaxe.max = w.globals.lastYAxis[index].max
+        }
+      } else {
+        // user hasn't zoomed, check the original yaxis
+        if (typeof this.opts.yaxis[index] !== 'undefined') {
+          yaxe.min = this.opts.yaxis[index].min
+          yaxe.max = this.opts.yaxis[index].max
         }
       }
     })
@@ -730,8 +755,10 @@ export default class ApexCharts {
     }
 
     this.animations = null
+    this.axes = null
     this.annotations = null
     this.core = null
+    this.data = null
     this.grid = null
     this.series = null
     this.responsive = null
@@ -848,53 +875,29 @@ export default class ApexCharts {
     // turn on the global exec flag to indicate this method was called
     chart.w.globals.isExecCalled = true
 
-    switch (fn) {
-      case 'updateOptions': {
-        return chart.updateOptions(...opts)
-      }
-      case 'updateSeries': {
-        return chart.updateSeries(...opts)
-      }
-      case 'appendData': {
-        return chart.appendData(...opts)
-      }
-      case 'appendSeries': {
-        return chart.appendSeries(...opts)
-      }
-      case 'toggleSeries': {
-        return chart.toggleSeries(...opts)
-      }
-      case 'resetSeries': {
-        return chart.resetSeries(...opts)
-      }
-      case 'toggleDataPointSelection': {
-        return chart.toggleDataPointSelection(...opts)
-      }
-      case 'dataURI': {
-        return chart.dataURI(...opts)
-      }
-      case 'addXaxisAnnotation': {
-        return chart.addXaxisAnnotation(...opts)
-      }
-      case 'addYaxisAnnotation': {
-        return chart.addYaxisAnnotation(...opts)
-      }
-      case 'addPointAnnotation': {
-        return chart.addPointAnnotation(...opts)
-      }
-      case 'addText': {
-        return chart.addText(...opts)
-      }
-      case 'clearAnnotations': {
-        return chart.clearAnnotations(...opts)
-      }
-      case 'paper': {
-        return chart.paper(...opts)
-      }
-      case 'destroy': {
-        return chart.destroy()
-      }
+    const methodNames = [
+      'updateOptions',
+      'updateSeries',
+      'appendData',
+      'appendSeries',
+      'toggleSeries',
+      'resetSeries',
+      'toggleDataPointSelection',
+      'dataURI',
+      'addXaxisAnnotation',
+      'addYaxisAnnotation',
+      'addPointAnnotation',
+      'addText',
+      'clearAnnotations',
+      'removeAnnotation',
+      'paper',
+      'destroy'
+    ]
+    let ret = null
+    if (methodNames.indexOf(fn) !== -1) {
+      ret = chart[fn](...opts)
     }
+    return ret
   }
 
   static merge(target, source) {
@@ -902,12 +905,30 @@ export default class ApexCharts {
   }
 
   toggleSeries(seriesName) {
-    const targetElement = this.series.getSeriesByName(seriesName)
-    let seriesCnt = parseInt(targetElement.getAttribute('data:realIndex'))
-    let isHidden = targetElement.classList.contains(
-      'apexcharts-series-collapsed'
+    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
+
+    this.legend.toggleDataSeries(
+      isSeriesHidden.realIndex,
+      isSeriesHidden.isHidden
     )
-    this.legend.toggleDataSeries(seriesCnt, isHidden)
+
+    return isSeriesHidden.isHidden
+  }
+
+  showSeries(seriesName) {
+    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
+
+    if (isSeriesHidden.isHidden) {
+      this.legend.toggleDataSeries(isSeriesHidden.realIndex, true)
+    }
+  }
+
+  hideSeries(seriesName) {
+    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
+
+    if (!isSeriesHidden.isHidden) {
+      this.legend.toggleDataSeries(isSeriesHidden.realIndex, false)
+    }
   }
 
   resetSeries(shouldUpdateChart = true) {
@@ -920,21 +941,27 @@ export default class ApexCharts {
 
     let clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
 
-    this.eventListHandlers = []
     this.eventList.forEach((event) => {
       clickableArea.addEventListener(
         event,
-        function(e) {
-          if (e.type === 'mousedown' && e.which === 1) {
-            // todo - provide a mousedown event too
+        (e) => {
+          const opts = Object.assign({}, w, {
+            seriesIndex: w.globals.capturedSeriesIndex,
+            dataPointIndex: w.globals.capturedDataPointIndex
+          })
+
+          if (e.type === 'mousemove' || e.type === 'touchmove') {
+            if (typeof w.config.chart.events.mouseMove === 'function') {
+              w.config.chart.events.mouseMove(e, me, opts)
+            }
           } else if (
             (e.type === 'mouseup' && e.which === 1) ||
             e.type === 'touchend'
           ) {
             if (typeof w.config.chart.events.click === 'function') {
-              w.config.chart.events.click(e, me, w)
+              w.config.chart.events.click(e, me, opts)
             }
-            me.fireEvent('click', [e, me, w])
+            me.fireEvent('click', [e, me, opts])
           }
         },
         { capture: false, passive: true }
@@ -950,6 +977,19 @@ export default class ApexCharts {
 
   documentEvent(e) {
     const w = this.w
+
+    if (e.type === 'click') {
+      const target = e.target.className
+      let elMenu = w.globals.dom.baseEl.querySelector('.apexcharts-menu')
+      if (
+        elMenu &&
+        elMenu.classList.contains('apexcharts-menu-open') &&
+        target !== 'apexcharts-menu-icon'
+      ) {
+        elMenu.classList.remove('apexcharts-menu-open')
+      }
+    }
+
     w.globals.clientX =
       e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
     w.globals.clientY =
@@ -988,6 +1028,14 @@ export default class ApexCharts {
     me.annotations.clearAnnotations(me)
   }
 
+  removeAnnotation(id, context = undefined) {
+    let me = this
+    if (context) {
+      me = context
+    }
+    me.annotations.removeAnnotation(me, id)
+  }
+
   // This method is never used internally and will be only called externally on the chart instance.
   // Hence, we need to keep all these elements in memory when the chart gets updated and redraw again
   addText(options, pushToMemory = true, context = undefined) {
@@ -1011,16 +1059,12 @@ export default class ApexCharts {
 
   getHighestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.ctx)
-    const minYmaxY = range.getMinYMaxY(seriesIndex)
-
-    return minYmaxY.highestY
+    return range.getMinYMaxY(seriesIndex).highestY
   }
 
   getLowestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.ctx)
-    const minYmaxY = range.getMinYMaxY(seriesIndex)
-
-    return minYmaxY.lowestY
+    return range.getMinYMaxY(seriesIndex).lowestY
   }
 
   getSeriesTotal() {
@@ -1034,15 +1078,24 @@ export default class ApexCharts {
   toggleDataPointSelection(seriesIndex, dataPointIndex) {
     const w = this.w
     let elPath = null
+    const parent = `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
 
     if (w.globals.axisCharts) {
       elPath = w.globals.dom.Paper.select(
-        `.apexcharts-series[data\\:realIndex='${seriesIndex}'] path[j='${dataPointIndex}'], .apexcharts-series[data\\:realIndex='${seriesIndex}'] circle[j='${dataPointIndex}'], .apexcharts-series[data\\:realIndex='${seriesIndex}'] rect[j='${dataPointIndex}']`
+        `${parent} path[j='${dataPointIndex}'], ${parent} circle[j='${dataPointIndex}'], ${parent} rect[j='${dataPointIndex}']`
       ).members[0]
     } else {
-      elPath = w.globals.dom.Paper.select(
-        `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
-      ).members[0]
+      // dataPointIndex will be undefined here, hence using seriesIndex
+      if (typeof dataPointIndex === 'undefined') {
+        elPath = w.globals.dom.Paper.select(
+          `${parent} path[j='${seriesIndex}']`
+        ).members[0]
+
+        if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
+          const pie = new Pie(this.ctx)
+          pie.pieClicked(seriesIndex)
+        }
+      }
     }
 
     if (elPath) {
@@ -1069,9 +1122,7 @@ export default class ApexCharts {
     }
 
     // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)
-    const selectedLocale = locales.filter((c) => {
-      return c.name === localeName
-    })[0]
+    const selectedLocale = locales.filter((c) => c.name === localeName)[0]
 
     if (selectedLocale) {
       // create a complete locale object by extending defaults so you don't get undefined errors.
@@ -1096,9 +1147,7 @@ export default class ApexCharts {
   }
 
   static getChartByID(chartID) {
-    const c = Apex._chartInstances.filter((ch) => {
-      return ch.id === chartID
-    })[0]
+    const c = Apex._chartInstances.filter((ch) => ch.id === chartID)[0]
     return c.chart
   }
 
