@@ -700,6 +700,8 @@ class Pie {
       }
     }
 
+    name = dataLabelsConfig.name.formatter(name, true, w)
+
     if (dataLabelsConfig.name.show) {
       let elLabel = graphics.drawText({
         x,
@@ -775,6 +777,9 @@ class Pie {
     if (!el && typeof labelsConfig.total.formatter === 'function') {
       val = labelsConfig.total.formatter(w)
     }
+
+    const isTotal = name === labelsConfig.total.label
+    name = labelsConfig.name.formatter(name, isTotal, w)
 
     if (elLabel !== null) {
       elLabel.textContent = name
