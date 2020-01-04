@@ -46,7 +46,7 @@
 
     <div id="html">
       &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;rangeBar&quot; height={350} /&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;bar&quot; height={350} /&gt;
 &lt;/div&gt;
     </div>
 
@@ -57,47 +57,71 @@
 
           this.state = {
           
-            series: [{
-                data: [{
-                  x: 'A',
-                  y: [1, 5]
-                }, {
-                  x: 'B',
-                  y: [4, 6]
-                }, {
-                  x: 'C',
-                  y: [5, 8]
-                }, {
-                  x: 'D',
-                  y: [3, 11]
-                }]
-            }, {
-                data: [{
-                  x: 'A',
-                  y: [2, 6]
-                }, {
-                  x: 'B',
-                  y: [1, 3]
-                }, {
-                  x: 'C',
-                  y: [7, 8]
-                }, {
-                  x: 'D',
-                  y: [5, 9]
-                }]
-            }],
+            series: [
+              {
+                name: 'round-1',
+                data: [
+                  {
+                    x: ['TEAM', 'A'],
+                    y: 2
+                  },
+                  {
+                    x: ['TEAM', 'B'],
+                    y: 4
+                  },
+                  {
+                    x: ['TEAM', 'C'],
+                    y: 6
+                  },
+                  {
+                    x: ['TEAM', 'D'],
+                    y: 11
+                  }
+                ]
+              },
+              {
+                name: 'round-2',
+                data: [
+                  {
+                    x: ['TEAM', 'A'],
+                    y: 4
+                  },
+                  {
+                    x: ['TEAM', 'B'],
+                    y: 1
+                  },
+                  {
+                    x: ['TEAM', 'C'],
+                    y: 9
+                  },
+                  {
+                    x: ['TEAM', 'D'],
+                    y: 3
+                  }
+                ]
+              }
+            ],
             options: {
               chart: {
-                type: 'rangeBar',
+                type: 'bar',
                 height: 350
               },
               plotOptions: {
-                  bar: {
-                      horizontal: true,
-                  }
+                bar: {
+                  horizontal: true
+                }
               },
               dataLabels: {
                 enabled: true
+              },
+              yaxis: {
+                labels: {
+                  offsetY: -6,
+                  align: 'center'
+                }
+              },
+              legend: {
+                horizontalAlign: 'center'
               }
             },
           
@@ -111,7 +135,7 @@
           return (
             <div>
               <div id="chart">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="rangeBar" height={350} />
+                <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height={350} />
               </div>
               <div id="html-dist"></div>
             </div>

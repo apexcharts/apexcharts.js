@@ -83,7 +83,7 @@ class Legend {
       .apexcharts-legend.position-bottom.apexcharts-align-left, .apexcharts-legend.position-top.apexcharts-align-left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {	
         justify-content: flex-start;	
       }	
-      .apexcharts-legend.position-bottom.center, .apexcharts-legend.position-top.center {	
+      .apexcharts-legend.position-bottom.apexcharts-align-center, .apexcharts-legend.position-top.apexcharts-align-center {	
         justify-content: center;  	
       }	
       .apexcharts-legend.position-bottom.apexcharts-align-right, .apexcharts-legend.position-top.apexcharts-align-right {	
@@ -120,7 +120,7 @@ class Legend {
       .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {	
         display: none !important;	
       }	
-      .inactive-legend {	
+      .apexcharts-inactive-legend {	
         opacity: 0.45;	
       }`
 
@@ -259,14 +259,14 @@ class Legend {
       })
 
       if (collapsedSeries || ancillaryCollapsedSeries) {
-        elMarker.classList.add('inactive-legend')
+        elMarker.classList.add('apexcharts-inactive-legend')
       }
 
       let elLegend = document.createElement('div')
 
       let elLegendText = document.createElement('span')
       elLegendText.classList.add('apexcharts-legend-text')
-      elLegendText.innerHTML = text
+      elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text
 
       let textColor = w.config.legend.labels.useSeriesColors
         ? w.globals.colors[i]
@@ -339,7 +339,7 @@ class Legend {
       })
 
       if (collapsedSeries || ancillaryCollapsedSeries) {
-        elLegend.classList.add('inactive-legend')
+        elLegend.classList.add('apexcharts-inactive-legend')
       }
 
       if (!w.config.legend.onItemClick.toggleDataSeries) {
@@ -490,7 +490,10 @@ class Legend {
       e.target.classList.contains('apexcharts-legend-marker')
 
     if (w.config.chart.type !== 'heatmap' && !this.isBarsDistributed) {
-      if (!e.target.classList.contains('inactive-legend') && hoverOverLegend) {
+      if (
+        !e.target.classList.contains('apexcharts-inactive-legend') &&
+        hoverOverLegend
+      ) {
         let series = new Series(this.ctx)
         series.toggleSeriesOnHover(e, e.target)
       }

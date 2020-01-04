@@ -63,7 +63,7 @@ export default class Dimensions {
     const w = this.w
     this.xAxisHeight =
       (xaxisLabelCoords.height + xtitleCoords.height) *
-        w.globals.LINE_HEIGHT_RATIO +
+        (w.globals.isMultiLineX ? 1.2 : w.globals.LINE_HEIGHT_RATIO) +
       15
 
     this.xAxisWidth = xaxisLabelCoords.width
@@ -526,9 +526,19 @@ export default class Dimensions {
 
       // get the longest string from the labels array and also apply label formatter
       let xlbFormatter = w.globals.xLabelFormatter
+      // prevent changing xaxisLabels to avoid issues in multi-yaxes - fix #522
+      let val = Utils.getLargestStringFromArr(xaxisLabels)
+      let valArr = val
 
-      // prevent changing xaxisLabels to avoid issues in multi-yaxies - fix #522
-      let val = xaxisLabels.reduce((a, b) => (a.length > b.length ? a : b), 0)
+      if (w.globals.isMultiLineX) {
+        // if the xaxis labels has multiline texts (array)
+        let maxArrs = xaxisLabels.map((xl, idx) => {
+          return Array.isArray(xl) ? xl.length : 1
+        })
+        let maxArrLen = Math.max(...maxArrs)
+        let maxArrIndex = maxArrs.indexOf(maxArrLen)
+        valArr = xaxisLabels[maxArrIndex]
+      }
 
       // the labels gets changed for bar charts
       if (w.globals.isBarHorizontal) {
@@ -536,11 +546,13 @@ export default class Dimensions {
           (a, b) => (a.length > b.length ? a : b),
           0
         )
+        valArr = val
       }
 
       let xFormat = new Formatters(this.ctx)
       let timestamp = val
       val = xFormat.xLabelFormat(xlbFormatter, val, timestamp)
+      valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp)
 
       let graphics = new Graphics(this.ctx)
 
@@ -548,10 +560,23 @@ export default class Dimensions {
         val,
         w.config.xaxis.labels.style.fontSize
       )
+      let xArrLabelrect = xLabelrect
+      if (val !== valArr) {
+        xArrLabelrect = graphics.getTextRects(
+          valArr,
+          w.config.xaxis.labels.style.fontSize
+        )
+      }
 
       rect = {
-        width: xLabelrect.width,
-        height: xLabelrect.height
+        width:
+          xLabelrect.width >= xArrLabelrect.width
+            ? xLabelrect.width
+            : xArrLabelrect.width,
+        height:
+          xLabelrect.height >= xArrLabelrect.height
+            ? xLabelrect.height
+            : xArrLabelrect.height
       }
 
       if (
@@ -565,16 +590,28 @@ export default class Dimensions {
       ) {
         if (!w.globals.isBarHorizontal) {
           w.globals.rotateXLabels = true
-          xLabelrect = graphics.getTextRects(
-            val,
-            w.config.xaxis.labels.style.fontSize,
-            w.config.xaxis.labels.style.fontFamily,
-            `rotate(${w.config.xaxis.labels.rotate} 0 0)`,
-            false
-          )
+          const getRotatedTextRects = (text) => {
+            return graphics.getTextRects(
+              text,
+              w.config.xaxis.labels.style.fontSize,
+              w.config.xaxis.labels.style.fontFamily,
+              `rotate(${w.config.xaxis.labels.rotate} 0 0)`,
+              false
+            )
+          }
+          xLabelrect = getRotatedTextRects(val)
+          if (val !== valArr) {
+            xArrLabelrect = getRotatedTextRects(valArr)
+          }
 
-          rect.height = xLabelrect.height / 1.66
-          rect.width = xLabelrect.width
+          rect.height =
+            (xLabelrect.height > xArrLabelrect.height
+              ? xLabelrect.height
+              : xArrLabelrect.height) / 1.5
+          rect.width =
+            xLabelrect.width > xArrLabelrect.width
+              ? xLabelrect.width
+              : xArrLabelrect.width
         }
       } else {
         w.globals.rotateXLabels = false
@@ -621,6 +658,7 @@ export default class Dimensions {
           dataPointIndex: -1,
           w
         })
+        let valArr = val
 
         // if user has specified a custom formatter, and the result is null or empty, we need to discard the formatter and take the value as it is.
         if (typeof val === 'undefined' || val.length === 0) {
@@ -633,20 +671,42 @@ export default class Dimensions {
           let barYaxisLabels = w.globals.labels.slice()
 
           //  get the longest string from the labels array and also apply label formatter to it
-          val = barYaxisLabels.reduce(
-            (a, b) => (a.length > b.length ? a : b),
-            0
-          )
+          val = Utils.getLargestStringFromArr(barYaxisLabels)
 
           val = lbFormatter(val, { seriesIndex: index, dataPointIndex: -1, w })
+          valArr = val
+
+          if (w.globals.isMultiLineX) {
+            // if the xaxis labels has multiline texts (array)
+            let maxArrs = barYaxisLabels.map((xl, idx) => {
+              return Array.isArray(xl) ? xl.length : 1
+            })
+            let maxArrLen = Math.max(...maxArrs)
+            let maxArrIndex = maxArrs.indexOf(maxArrLen)
+            valArr = barYaxisLabels[maxArrIndex]
+          }
         }
 
         let graphics = new Graphics(this.ctx)
         let rect = graphics.getTextRects(val, yaxe.labels.style.fontSize)
+        let arrLabelrect = rect
+
+        if (val !== valArr) {
+          arrLabelrect = graphics.getTextRects(
+            valArr,
+            yaxe.labels.style.fontSize
+          )
+        }
 
         ret.push({
-          width: rect.width + labelPad,
-          height: rect.height
+          width:
+            (arrLabelrect.width > rect.width
+              ? arrLabelrect.width
+              : rect.width) + labelPad,
+          height:
+            arrLabelrect.height > rect.height
+              ? arrLabelrect.height
+              : rect.height
         })
       } else {
         ret.push({

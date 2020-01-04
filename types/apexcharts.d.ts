@@ -461,7 +461,8 @@ type ApexPlotOptions = {
           fontSize?: string
           fontFamily?: string
           color?: string
-          offsetY?: number
+          offsetY?: number,
+          formatter?(val: string): string
         }
         value?: {
           show?: boolean

@@ -84,6 +84,17 @@ class CoreUtils {
     return this.w.globals.series[index].every((val, i, arr) => val === arr[0])
   }
 
+  getCategoryLabels() {
+    const w = this.w
+    let labels = w.globals.labels.slice()
+    if (w.config.xaxis.convertedCatToNumeric) {
+      labels = labels.map((i) => {
+        return w.config.xaxis.labels.formatter(i)
+      })
+    }
+
+    return labels
+  }
   // maxValsInArrayIndex is the index of series[] which has the largest number of items
   getLargestSeries() {
     const w = this.w

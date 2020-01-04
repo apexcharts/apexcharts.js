@@ -385,8 +385,6 @@ export default class Series {
         class: 'apexcharts-text-nodata'
       })
 
-      titleText.node.setAttribute('class', 'apexcharts-title-text')
-
       w.globals.dom.Paper.add(titleText)
     }
   }

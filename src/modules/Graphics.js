@@ -439,20 +439,20 @@ class Graphics {
     return g
   }
 
-  drawText(opts) {
+  drawText({
+    x,
+    y,
+    text,
+    textAnchor,
+    fontSize,
+    fontFamily,
+    fontWeight,
+    foreColor,
+    opacity,
+    cssClass = '',
+    isPlainText = true
+  }) {
     let w = this.w
-
-    let {
-      x,
-      y,
-      text,
-      textAnchor,
-      fontSize,
-      fontFamily,
-      fontWeight,
-      foreColor,
-      opacity
-    } = opts
 
     if (typeof text === 'undefined') text = ''
 
@@ -470,11 +470,13 @@ class Graphics {
     if (Array.isArray(text)) {
       elText = w.globals.dom.Paper.text((add) => {
         for (let i = 0; i < text.length; i++) {
-          add.tspan(text[i])
+          i === 0 ? add.tspan(text[i]) : add.tspan(text[i]).newLine()
         }
       })
     } else {
-      elText = w.globals.dom.Paper.plain(text)
+      elText = isPlainText
+        ? w.globals.dom.Paper.plain(text)
+        : w.globals.dom.Paper.text((add) => add.tspan(text))
     }
 
     elText.attr({
@@ -486,22 +488,13 @@ class Graphics {
       'font-family': fontFamily,
       'font-weight': fontWeight,
       fill: foreColor,
-      class: 'apexcharts-text ' + opts.cssClass ? opts.cssClass : ''
+      class: 'apexcharts-text ' + cssClass
     })
 
     elText.node.style.fontFamily = fontFamily
     elText.node.style.opacity = opacity
 
     return elText
-  }
-
-  addTspan(textEl, text, fontFamily) {
-    const tspan = textEl.tspan(text)
-
-    if (!fontFamily) {
-      fontFamily = this.w.config.chart.fontFamily
-    }
-    tspan.node.style.fontFamily = fontFamily
   }
 
   drawMarker(x, y, opts) {
@@ -763,8 +756,8 @@ class Graphics {
    * @memberof Graphics
    **/
   placeTextWithEllipsis(textObj, textString, width) {
+    if (typeof textObj.getComputedTextLength !== 'function') return
     textObj.textContent = textString
-
     if (textString.length > 0) {
       // ellipsis is needed
       if (textObj.getComputedTextLength() >= width) {

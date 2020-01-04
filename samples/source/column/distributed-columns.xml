@@ -47,23 +47,23 @@ dataLabels: {
   enabled: false
 },
 legend: {
-  position: 'top'
+  show: false
 },
 xaxis: {
   categories: [
-    'John',
-    'Joe',
-    'Jake',
+    ['John', 'Doe'],
+    ['Joe', 'Smith'],
+    ['Jake', 'Williams'],
     'Amber',
-    'Peter',
-    'Mary',
-    'David',
-    'Lily'
+    ['Peter', 'Brown'],
+    ['Mary', 'Evans'],
+    ['David', 'Wilson'],
+    ['Lily', 'Roberts'], 
   ],
   labels: {
     style: {
       colors: colors,
-      fontSize: '14px'
+      fontSize: '12px'
     }
   }
 }

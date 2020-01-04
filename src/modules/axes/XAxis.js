@@ -99,7 +99,6 @@ export default class XAxis {
           i,
           this.drawnLabels
         )
-        // const textRect = graphics.getTextRects(label.text)
 
         this.drawnLabels.push(label.text)
 
@@ -107,10 +106,13 @@ export default class XAxis {
         if (w.globals.rotateXLabels) {
           offsetYCorrection = 22
         }
-        let elTick = graphics.drawText({
+
+        label = this.axesUtils.checkForCroppedLabels(i, label, labelsLen)
+
+        let elText = graphics.drawText({
           x: label.x,
           y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
-          text: '',
+          text: label.text,
           textAnchor: 'middle',
           fontWeight: label.isBold ? 600 : 400,
           fontSize: this.xaxisFontSize,
@@ -118,51 +120,16 @@ export default class XAxis {
           foreColor: Array.isArray(this.xaxisForeColors)
             ? this.xaxisForeColors[i]
             : this.xaxisForeColors,
+          isPlainText: false,
           cssClass:
             'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
 
-        if (i === 0) {
-          // check if first label is being cropped
-          const firstTextRect = graphics.getTextRects(label.text)
-
-          const divideBy =
-            w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways
-              ? 1
-              : 2
-
-          if (
-            w.globals.skipFirstTimelinelabel ||
-            (label.x + firstTextRect.width / divideBy >
-              w.globals.dom.elGraphical.x() &&
-              label.x <= 0)
-          ) {
-            label.text = ''
-          }
-        }
-
-        if (i === labelsLen - 1) {
-          // check if last label is being cropped
-
-          const lastTextRect = graphics.getTextRects(label.text)
-
-          if (
-            w.globals.skipLastTimelinelabel ||
-            lastTextRect.width / 2 + label.x >
-              w.globals.gridWidth + w.globals.x2SpaceAvailable ||
-            label.x > w.globals.gridWidth
-          ) {
-            label.text = ''
-          }
-        }
-
-        elXaxisTexts.add(elTick)
-
-        graphics.addTspan(elTick, label.text, this.xaxisFontFamily)
+        elXaxisTexts.add(elText)
 
         let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
         elTooltipTitle.textContent = label.text
-        elTick.node.appendChild(elTooltipTitle)
+        elText.node.appendChild(elTooltipTitle)
 
         xPos = xPos + colWidth
       }
@@ -277,10 +244,15 @@ export default class XAxis {
             : ylabels.style.colors[i],
           fontSize: ylabels.style.fontSize,
           fontFamily: ylabels.style.fontFamily,
+          isPlainText: false,
           cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
         })
 
         elYaxisTexts.add(elLabel)
+
+        let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
+        elTooltipTitle.textContent = label.text
+        elLabel.node.appendChild(elTooltipTitle)
 
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {
           let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
@@ -418,7 +390,7 @@ export default class XAxis {
       '.apexcharts-yaxis-inversed text'
     )
     let xAxisTextsInversed = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-xaxis-inversed-texts-g text'
+      '.apexcharts-xaxis-inversed-texts-g text tspan'
     )
 
     if (w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways) {
@@ -441,12 +413,14 @@ export default class XAxis {
         let tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim) {
-          graphics.placeTextWithEllipsis(
-            tSpan[0],
-            tSpan[0].textContent,
-            w.config.xaxis.labels.maxHeight -
-              (w.config.legend.position === 'bottom' ? 20 : 10)
-          )
+          tSpan.forEach((ts) => {
+            graphics.placeTextWithEllipsis(
+              ts,
+              ts.textContent,
+              w.config.xaxis.labels.maxHeight -
+                (w.config.legend.position === 'bottom' ? 20 : 10)
+            )
+          })
         }
       }
     } else {
@@ -456,7 +430,9 @@ export default class XAxis {
         let tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
-          graphics.placeTextWithEllipsis(tSpan[0], tSpan[0].textContent, width)
+          tSpan.forEach((ts) => {
+            graphics.placeTextWithEllipsis(ts, ts.textContent, width)
+          })
         }
       }
     }

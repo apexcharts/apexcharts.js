@@ -1,3 +1,5 @@
+import CoreUtils from '../CoreUtils'
+
 export default class Helpers {
   constructor(annoCtx) {
     this.w = annoCtx.w
@@ -121,13 +123,10 @@ export default class Helpers {
   getStringX(x) {
     const w = this.w
     let rX = x
-    let labels = w.globals.labels.slice()
 
-    if (w.config.xaxis.convertedCatToNumeric) {
-      labels = labels.map((i) => {
-        return w.config.xaxis.labels.formatter(i)
-      })
-    }
+    const coreUtils = new CoreUtils(this.ctx)
+    let labels = coreUtils.getCategoryLabels()
+
     let catIndex = labels.indexOf(x)
     const xLabel = w.globals.dom.baseEl.querySelector(
       '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'

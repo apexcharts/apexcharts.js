@@ -34,6 +34,7 @@ export default class Globals {
     gl.skipFirstTimelinelabel = false
     gl.x2SpaceAvailable = 0
     gl.isDataXYZ = false
+    gl.isMultiLineX = false
     gl.isMultipleYAxis = false
     gl.maxY = -Number.MAX_VALUE
     gl.minY = Number.MIN_VALUE

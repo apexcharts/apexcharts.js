@@ -62,9 +62,8 @@ export default class YAxis {
     let lbFormatter = w.globals.yLabelFormatters[realIndex]
 
     let labels = w.globals.yAxisScale[realIndex].result.slice()
-    if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].reversed) {
-      labels.reverse()
-    }
+
+    labels = this.axesUtils.checkForReversedLabels(realIndex, labels)
 
     let firstLabel = ''
     if (w.config.yaxis[realIndex].labels.show) {
@@ -86,6 +85,7 @@ export default class YAxis {
           fontSize: yaxisFontSize,
           fontFamily: yaxisFontFamily,
           foreColor: w.config.yaxis[realIndex].labels.style.color,
+          isPlainText: false,
           cssClass:
             'apexcharts-yaxis-label ' +
             w.config.yaxis[realIndex].labels.style.cssClass
@@ -209,9 +209,7 @@ export default class YAxis {
       tickAmount = labels.length
     }
 
-    if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].reversed) {
-      labels.reverse()
-    }
+    labels = this.axesUtils.checkForReversedLabels(realIndex, labels)
 
     const tl = timescaleLabels.length
 
@@ -244,17 +242,17 @@ export default class YAxis {
             val = ''
           }
         }
-
         let elTick = graphics.drawText({
           x,
           y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
-          text: '',
+          text: val,
           textAnchor: 'middle',
           foreColor: Array.isArray(this.xaxisForeColors)
             ? this.xaxisForeColors[realIndex]
             : this.xaxisForeColors,
           fontSize: this.xaxisFontSize,
           fontFamily: this.xaxisFontFamily,
+          isPlainText: false,
           cssClass:
             'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
@@ -271,6 +269,39 @@ export default class YAxis {
       }
     }
 
+    this.inversedYAxisTitleText(elXaxis)
+    this.inversedYAxisBorder(elXaxis)
+
+    return elXaxis
+  }
+
+  inversedYAxisBorder(parent) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+
+    let axisBorder = w.config.xaxis.axisBorder
+    if (axisBorder.show) {
+      let lineCorrection = 0
+      if (w.config.chart.type === 'bar' && w.globals.isXNumeric) {
+        lineCorrection = lineCorrection - 15
+      }
+      let elHorzLine = graphics.drawLine(
+        w.globals.padHorizontal + lineCorrection + axisBorder.offsetX,
+        this.xAxisoffX,
+        w.globals.gridWidth,
+        this.xAxisoffX,
+        axisBorder.color,
+        0,
+        axisBorder.height
+      )
+
+      parent.add(elHorzLine)
+    }
+  }
+
+  inversedYAxisTitleText(parent) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
     if (w.config.xaxis.title.text !== undefined) {
       let elYaxisTitle = graphics.group({
         class: 'apexcharts-xaxis-title apexcharts-yaxis-title-inversed'
@@ -293,29 +324,8 @@ export default class YAxis {
 
       elYaxisTitle.add(elYAxisTitleText)
 
-      elXaxis.add(elYaxisTitle)
+      parent.add(elYaxisTitle)
     }
-
-    let axisBorder = w.config.xaxis.axisBorder
-    if (axisBorder.show) {
-      let lineCorrection = 0
-      if (w.config.chart.type === 'bar' && w.globals.isXNumeric) {
-        lineCorrection = lineCorrection - 15
-      }
-      let elHorzLine = graphics.drawLine(
-        w.globals.padHorizontal + lineCorrection + axisBorder.offsetX,
-        this.xAxisoffX,
-        w.globals.gridWidth,
-        this.xAxisoffX,
-        axisBorder.color,
-        0,
-        axisBorder.height
-      )
-
-      elXaxis.add(elHorzLine)
-    }
-
-    return elXaxis
   }
 
   yAxisTitleRotate(realIndex, yAxisOpposite) {
@@ -361,17 +371,12 @@ export default class YAxis {
 
     if (yAxisTitle !== null) {
       let titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle)
-      if (!yAxisOpposite) {
-        yAxisTitle.setAttribute(
-          'transform',
-          `rotate(-${w.config.yaxis[realIndex].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
-        )
-      } else {
-        yAxisTitle.setAttribute(
-          'transform',
-          `rotate(${w.config.yaxis[realIndex].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
-        )
-      }
+      yAxisTitle.setAttribute(
+        'transform',
+        `rotate(${yAxisOpposite ? '' : '-'}${
+          w.config.yaxis[realIndex].title.rotate
+        } ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
+      )
     }
   }
 

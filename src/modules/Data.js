@@ -122,6 +122,7 @@ export default class Data {
     for (let j = 0; j < ser[activeI].data.length; j++) {
       const isXString = typeof ser[activeI].data[j].x === 'string'
       const isXDate = !!dt.isValidDate(ser[activeI].data[j].x.toString())
+      const isXArr = Array.isArray(ser[activeI].data[j].x)
 
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
@@ -144,6 +145,10 @@ export default class Data {
             this.twoDSeriesX.push(parseFloat(ser[activeI].data[j].x))
           }
         }
+      } else if (isXArr) {
+        // a multiline label described in array format
+        this.fallbackToCategory = true
+        this.twoDSeriesX.push(ser[activeI].data[j].x)
       } else {
         // a numeric value in x property
         gl.isXNumeric = true
@@ -576,6 +581,15 @@ export default class Data {
     ) {
       // x-axis labels couldn't be detected; hence try searching every option in config
       this.handleExternalLabelsData(ser)
+    }
+
+    // check for multiline xaxis
+    const catLabels = this.coreUtils.getCategoryLabels()
+    for (let l = 0; l < catLabels.length; l++) {
+      if (Array.isArray(catLabels[l])) {
+        gl.isMultiLineX = true
+        break
+      }
     }
   }
 

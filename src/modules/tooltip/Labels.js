@@ -358,9 +358,9 @@ export default class Labels {
     }
 
     return {
-      val,
-      xVal,
-      xAxisTTVal,
+      val: Array.isArray(val) ? val.join(' ') : val,
+      xVal: Array.isArray(xVal) ? xVal.join(' ') : xVal,
+      xAxisTTVal: Array.isArray(xAxisTTVal) ? xAxisTTVal.join(' ') : xAxisTTVal,
       zVal
     }
   }

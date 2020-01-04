@@ -180,6 +180,15 @@ class Utils {
     }
   }
 
+  static getLargestStringFromArr(arr) {
+    return arr.reduce((a, b) => {
+      if (Array.isArray(b)) {
+        b = b.reduce((aa, bb) => (aa.length > bb.length ? aa : bb))
+      }
+      return a.length > b.length ? a : b
+    }, 0)
+  }
+
   // http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb#answer-12342275
   static hexToRgba(hex = '#999999', opacity = 0.6) {
     if (hex.substring(0, 1) !== '#') {

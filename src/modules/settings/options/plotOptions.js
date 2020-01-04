@@ -143,7 +143,10 @@ export const optionPlotOptions = {
           fontSize: '16px',
           fontFamily: undefined,
           color: undefined,
-          offsetY: -10
+          offsetY: -10,
+          formatter(val) {
+            return val
+          }
         },
         value: {
           show: true,

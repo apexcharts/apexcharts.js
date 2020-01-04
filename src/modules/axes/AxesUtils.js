@@ -54,13 +54,15 @@ export default class AxesUtils {
 
     if (typeof label === 'undefined') label = ''
 
-    label = label.toString()
+    label = Array.isArray(label) ? label : label.toString()
 
     if (
-      label.indexOf('NaN') === 0 ||
-      label.toLowerCase().indexOf('invalid') === 0 ||
-      label.toLowerCase().indexOf('infinity') >= 0 ||
-      (drawnLabels.indexOf(label) >= 0 && !w.config.xaxis.labels.showDuplicates)
+      !Array.isArray(label) &&
+      (label.indexOf('NaN') === 0 ||
+        label.toLowerCase().indexOf('invalid') === 0 ||
+        label.toLowerCase().indexOf('infinity') >= 0 ||
+        (drawnLabels.indexOf(label) >= 0 &&
+          !w.config.xaxis.labels.showDuplicates))
     ) {
       label = ''
     }
@@ -70,6 +72,54 @@ export default class AxesUtils {
       text: label,
       isBold
     }
+  }
+
+  checkForCroppedLabels(i, label, labelsLen) {
+    const w = this.w
+    let graphics = new Graphics(this.ctx)
+
+    if (i === 0) {
+      // check if first label is being cropped
+      const firstTextRect = graphics.getTextRects(label.text)
+
+      const divideBy =
+        w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways ? 1 : 2
+
+      if (
+        (w.globals.skipFirstTimelinelabel ||
+          (label.x + firstTextRect.width / divideBy >
+            w.globals.dom.elGraphical.x() &&
+            label.x <= 0)) &&
+        !w.config.xaxis.convertedCatToNumeric
+      ) {
+        label.text = ''
+      }
+    }
+
+    if (i === labelsLen - 1) {
+      // check if last label is being cropped
+
+      const lastTextRect = graphics.getTextRects(label.text)
+
+      if (
+        w.globals.skipLastTimelinelabel ||
+        lastTextRect.width / 2 + label.x >
+          w.globals.gridWidth + w.globals.x2SpaceAvailable ||
+        label.x > w.globals.gridWidth
+      ) {
+        label.text = ''
+      }
+    }
+
+    return label
+  }
+
+  checkForReversedLabels(i, labels) {
+    const w = this.w
+    if (w.config.yaxis[i] && w.config.yaxis[i].reversed) {
+      labels.reverse()
+    }
+    return labels
   }
 
   drawYAxisTicks(
