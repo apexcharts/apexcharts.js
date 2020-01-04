@@ -123,7 +123,11 @@ export default class Config {
   }
 
   extendYAxis(opts) {
-    if (typeof opts.yaxis === 'undefined') {
+    if (
+      typeof opts.yaxis === 'undefined' ||
+      !opts.yaxis ||
+      (Array.isArray(opts.yaxis) && opts.yaxis.length === 0)
+    ) {
       opts.yaxis = {}
     }
 
