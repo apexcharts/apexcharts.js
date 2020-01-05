@@ -45,7 +45,7 @@ export const optionPlotOptions = {
     }
   },
   radialBar: {
-    size: undefined,
+    size: undefined, // todo: deprecate in 4.0.0
     inverseOrder: false,
     startAngle: 0,
     endAngle: 360,
@@ -125,7 +125,7 @@ export const optionPlotOptions = {
     }
   },
   pie: {
-    size: undefined,
+    size: undefined, // todo: deprecate in 4.0.0
     customScale: 1,
     offsetX: 0,
     offsetY: 0,
