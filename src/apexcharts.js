@@ -1152,7 +1152,7 @@ export default class ApexCharts {
   }
 
   parentResizeCallback() {
-    if (this.w.globals.animationEnded && w.config.chart.redrawOnParentResize) {
+    if (this.w.globals.animationEnded && this.w.config.chart.redrawOnParentResize) {
       this.windowResize()
     }
   }
