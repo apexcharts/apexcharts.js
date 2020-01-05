@@ -4,9 +4,9 @@ const fs = require('fs-extra')
 const path = require('path')
 const pixelmatch = require('pixelmatch')
 const { PNG } = require('pngjs')
-const puppeteer = require('puppeteer')
+const { Cluster } = require('puppeteer-cluster')
 
-const { executeBuildEntry, getBuild } = require('../../build/config')
+const { builds, executeBuildEntry } = require('../../build/config')
 const { extractSampleInfo } = require('../../samples/source')
 
 const rootDir = path.join(path.resolve(__dirname), '..', '..')
@@ -45,7 +45,7 @@ async function processSample(page, sample, command) {
   await page.goto(`file://${htmlPath}`)
 
   // BUG: can be longer for some tests. Compare consequent screenshots to make sure it stabilized?
-  await page.waitFor(2000)
+  await page.waitFor(2200)
 
   // Check that there are no console errors
   if (consoleErrors.length > 0) {
@@ -120,38 +120,6 @@ async function processSample(page, sample, command) {
   }
 }
 
-// Runs processor(item) in parallel with a given concurrency
-function runInParallel(items, concurrency, processor) {
-  let numActive = 0
-  const iterator = items[Symbol.iterator]()
-
-  function next(resolve) {
-    if (numActive >= concurrency) return
-
-    const { value, done } = iterator.next()
-    if (done) {
-      if (numActive === 0) resolve()
-      return
-    }
-
-    numActive++
-    Promise.resolve(processor(value))
-      .catch((e) => {
-        console.log(e.message)
-        console.log(e.stack)
-        throw e
-      })
-      .finally(() => {
-        numActive--
-        next(resolve)
-      })
-
-    next(resolve)
-  }
-
-  return new Promise(next)
-}
-
 function dirLastModified(dir) {
   let time = 0
   fs.readdirSync(dir).forEach((f) => {
@@ -165,10 +133,9 @@ function dirLastModified(dir) {
   return time
 }
 
-async function prepareIstanbulBundle() {
-  const bundlePath = `${e2eSamplesDir}/apexcharts.e2e.js`
-  const timeModified = fs.existsSync(bundlePath)
-    ? fs.statSync(bundlePath).mtime.valueOf()
+async function updateBundle(config) {
+  const timeModified = fs.existsSync(config.dest)
+    ? fs.statSync(config.dest).mtime.valueOf()
     : 0
 
   let codeModifiedTime = Math.max(
@@ -177,28 +144,29 @@ async function prepareIstanbulBundle() {
   )
 
   if (timeModified < codeModifiedTime) {
-    // Build the version of apexcharts instrumented with istanbul to record test coverage
-    const rollupConfig = getBuild({
-      entry: `${rootDir}/src/apexcharts.js`,
-      dest: bundlePath,
-      format: 'umd',
-      env: 'development',
-      istanbul: true
-    })
-    await executeBuildEntry(rollupConfig)
+    await executeBuildEntry(config)
   }
 }
 
 async function processSamples(command, paths) {
   const startTime = Date.now()
 
-  await fs.ensureDir(e2eSamplesDir)
-  await fs.emptyDir(`${rootDir}/.nyc_output`)
-  await fs.emptyDir(`${e2eDir}/diffs`)
+  await updateBundle(builds['web-umd-dev'])
 
-  await prepareIstanbulBundle()
+  if (command === 'test') {
+    await fs.ensureDir(e2eSamplesDir)
+    await fs.emptyDir(`${rootDir}/.nyc_output`)
+    await fs.emptyDir(`${e2eDir}/diffs`)
 
-  browser = await puppeteer.launch()
+    // Build the version of apexcharts instrumented with istanbul to record test coverage
+    await updateBundle({
+      entry: `${rootDir}/src/apexcharts.js`,
+      dest: `${e2eSamplesDir}/apexcharts.e2e.js`,
+      format: 'umd',
+      env: 'development',
+      istanbul: true
+    })
+  }
 
   let numCompleted = 0
   const failedTests = [] // {path, error}
@@ -210,7 +178,7 @@ async function processSamples(command, paths) {
   }
   if (paths.includes('all')) {
     if (command === 'update') {
-      // BUG: clean up screenshot directory
+      fs.emptyDir(`${e2eDir}/snapshots`)
     }
   } else {
     samples = samples.filter((sample) =>
@@ -218,7 +186,12 @@ async function processSamples(command, paths) {
     )
   }
 
-  await runInParallel(samples, 5, async (sample) => {
+  const cluster = await Cluster.launch({
+    concurrency: Cluster.CONCURRENCY_PAGE,
+    maxConcurrency: 10
+  })
+
+  await cluster.task(async ({ page, data: sample }) => {
     process.stdout.clearLine()
     process.stdout.cursorTo(0)
     const percentComplete = Math.round((100 * numCompleted) / samples.length)
@@ -226,7 +199,8 @@ async function processSamples(command, paths) {
 
     // BUG: some chart are animated - need special processing. Some just need to be skipped.
 
-    const page = await browser.newPage()
+    // Make tests independent on machine timezone
+    await page.emulateTimezone('Europe/London')
 
     try {
       await processSample(page, sample, command)
@@ -236,12 +210,16 @@ async function processSamples(command, paths) {
         error: e
       })
     }
-
-    process.stdout.clearLine()
-    await page.close()
-
     numCompleted++
+    process.stdout.clearLine()
   })
+
+  for (const sample of samples) {
+    cluster.queue(sample)
+  }
+
+  await cluster.idle()
+  await cluster.close()
 
   console.log('')
 
@@ -278,8 +256,12 @@ async function processSamples(command, paths) {
       ['report', '--reporter=html'],
       { cwd: rootDir }
     )
-    if (status !== 0) {
-      throw new Error('nyc report generation failed')
+
+    if (status === 0) {
+      console.log('')
+      console.log(`Code coverage report was generated at coverage/index.html`)
+    } else {
+      throw new Error('Code coverage report failed to generate')
     }
   }
 }

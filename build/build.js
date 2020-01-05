@@ -2,14 +2,14 @@ const chalk = require('chalk')
 const fs = require('fs')
 const path = require('path')
 const zlib = require('zlib')
-const { executeBuildEntry, getAllBuilds } = require('./config')
+const { builds, executeBuildEntry } = require('./config')
 
 if (!fs.existsSync('dist')) {
   fs.mkdirSync('dist')
 }
 
 // Execute build directly
-Promise.all(getAllBuilds().map((buildConfig) => buildFromConfig(buildConfig)))
+Promise.all(Object.values(builds).map((options) => buildFromConfig(options)))
   .then(() => {
     console.log(chalk.green('Build Completed'))
   })
@@ -19,13 +19,11 @@ Promise.all(getAllBuilds().map((buildConfig) => buildFromConfig(buildConfig)))
   })
 
 /**
- * Write build output to disk, and log its size
- * @param {string} dest Output file path
- * @param {string} content Content of the file
- * @param {boolean} testZip Should it check gzip size
+ * Write build output to disk and log its size
+ * @param {*} options Build options
  */
-async function buildFromConfig(config) {
-  const build = await executeBuildEntry(config)
+async function buildFromConfig(options) {
+  const build = await executeBuildEntry(options)
 
   if (!build.isDev) {
     const zipResult = zlib.gzipSync(build.code)

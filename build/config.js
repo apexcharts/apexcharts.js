@@ -54,10 +54,10 @@ const builds = {
 }
 
 /**
- * Generate proper Rollup configuration from build definition object
- * @param {string} name Build config key
+ * Generate proper Rollup configuration from build options
+ * @param {*} opts Build options
  */
-function generateConfig(opts) {
+function rollupConfig(opts) {
   const config = {
     input: opts.entry,
     plugins: [
@@ -129,9 +129,10 @@ function generateConfig(opts) {
 
 /**
  * Build code with Rollup from build configuration
- * @param {*} config Represent the Rollup configuration of the build
+ * @param {*} options Build options
  */
-async function executeBuildEntry(config) {
+async function executeBuildEntry(options) {
+  const config = rollupConfig(options)
   const buildBundle = await rollup.rollup(config)
   const generated = await buildBundle.generate(config.output)
   await buildBundle.write(config.output)
@@ -144,9 +145,7 @@ async function executeBuildEntry(config) {
 
 // If target specified, only generate this one, otherwise return all build configurations
 if (process.env.TARGET) {
-  module.exports = generateConfig(builds[process.env.TARGET])
+  module.exports = rollupConfig(builds[process.env.TARGET])
 } else {
-  exports.getBuild = generateConfig
-  exports.executeBuildEntry = executeBuildEntry
-  exports.getAllBuilds = () => Object.values(builds).map(generateConfig)
+  module.exports = { builds, executeBuildEntry }
 }
