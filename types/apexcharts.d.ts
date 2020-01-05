@@ -133,6 +133,7 @@ type ApexChart = {
   locales?: ApexLocale[]
   defaultLocale?: string
   parentHeightOffset?: number
+  redrawOnParentResize?: boolean
   sparkline?: {
     enabled?: boolean
   }

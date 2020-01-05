@@ -47,6 +47,7 @@ export const optionChart = {
   fontFamily: 'Helvetica, Arial, sans-serif',
   height: 'auto',
   parentHeightOffset: 15,
+  redrawOnParentResize: true,
   id: undefined,
   group: undefined,
   offsetX: 0,
