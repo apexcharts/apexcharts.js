@@ -80,7 +80,9 @@ class Line {
         }
       }
 
-      let xDivision = w.globals.gridWidth / w.globals.dataPoints
+      let xDivision =
+        w.globals.gridWidth /
+        (w.globals.dataPoints - (w.config.xaxis.tickPlacement === 'on' ? 1 : 0))
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
       const strokeWidth = Array.isArray(w.config.stroke.width)

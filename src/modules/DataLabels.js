@@ -303,8 +303,11 @@ class DataLabels {
     for (let i = 0; i < elDataLabels.length; i++) {
       const el = elDataLabels[i]
       const coords = el.getBBox()
-      const elRect = this.addBackgroundToDataLabel(el, coords)
+      let elRect = null
 
+      if (coords.width && coords.height) {
+        elRect = this.addBackgroundToDataLabel(el, coords)
+      }
       if (elRect) {
         el.parentNode.insertBefore(elRect.node, el)
         const background = el.getAttribute('fill')
