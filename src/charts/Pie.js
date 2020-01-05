@@ -49,6 +49,7 @@ class Pie {
       w.config.chart.dropShadow.blur
 
     if (w.config.plotOptions.pie.size !== undefined) {
+      // TODO: deprecate this property as it causes more issues than being helpful
       w.globals.radialSize = w.config.plotOptions.pie.size
     }
 

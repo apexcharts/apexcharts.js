@@ -41,7 +41,8 @@ export default class Defaults {
   }
 
   sparkline(defaults) {
-    this.opts.yaxis[0].labels.show = false
+    this.opts.yaxis[0].show = false
+    this.opts.yaxis[0].title.text = ''
     this.opts.yaxis[0].axisBorder.show = false
     this.opts.yaxis[0].axisTicks.show = false
     this.opts.yaxis[0].floating = true

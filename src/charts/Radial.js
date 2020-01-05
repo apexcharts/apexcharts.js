@@ -66,6 +66,7 @@ class Radial extends Pie {
       w.config.chart.dropShadow.blur
 
     if (w.config.plotOptions.radialBar.size !== undefined) {
+      // TODO: deprecate this property as it causes more issues than being helpful
       size = w.config.plotOptions.radialBar.size
     }
 
