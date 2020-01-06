@@ -72,7 +72,11 @@ class Formatters {
       w.globals.xLabelFormatter = function(val) {
         if (Utils.isNumber(val)) {
           // numeric xaxis may have smaller range, so defaulting to 1 decimal
-          if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
+          if (
+            !w.config.xaxis.convertedCatToNumeric &&
+            w.config.xaxis.type === 'numeric' &&
+            w.globals.dataPoints < 50
+          ) {
             return val.toFixed(1)
           }
           if (w.globals.isBarHorizontal) {

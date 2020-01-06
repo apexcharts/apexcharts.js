@@ -225,7 +225,7 @@ export default class ApexCharts {
 
     const combo = CoreUtils.checkComboSeries(ser)
     gl.comboCharts = combo.comboCharts
-    gl.comboChartsHasBars = combo.comboChartsHasBars
+    gl.comboBarCount = combo.comboBarCount
 
     if (
       ser.length === 0 ||
@@ -370,7 +370,10 @@ export default class ApexCharts {
           me.w.globals.tooltip.drawTooltip(graphData.xyRatios)
         }
 
-        if (w.globals.axisCharts && w.globals.isXNumeric) {
+        if (
+          w.globals.axisCharts &&
+          (w.globals.isXNumeric || w.config.xaxis.convertedCatToNumeric)
+        ) {
           if (
             w.config.chart.zoom.enabled ||
             (w.config.chart.selection && w.config.chart.selection.enabled) ||
@@ -380,16 +383,8 @@ export default class ApexCharts {
               xyRatios: graphData.xyRatios
             })
           }
-        } else {
-          const tools = w.config.chart.toolbar.tools
-          tools.zoom = false
-          tools.zoomin = false
-          tools.zoomout = false
-          tools.selection = false
-          tools.pan = false
-          tools.reset = false
         }
-
+        
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
           me.toolbar.createToolbar()
         }
@@ -1152,7 +1147,10 @@ export default class ApexCharts {
   }
 
   parentResizeCallback() {
-    if (this.w.globals.animationEnded && this.w.config.chart.redrawOnParentResize) {
+    if (
+      this.w.globals.animationEnded &&
+      this.w.config.chart.redrawOnParentResize
+    ) {
       this.windowResize()
     }
   }

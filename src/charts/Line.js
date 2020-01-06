@@ -31,10 +31,7 @@ class Line {
     this.noNegatives = this.w.globals.minX === Number.MAX_VALUE
 
     this.lineHelpers = new Helpers(this)
-    this.yRatio = this.xyRatios.yRatio
-    this.zRatio = this.xyRatios.zRatio
-    this.xRatio = this.xyRatios.xRatio
-    this.baseLineY = this.xyRatios.baseLineY
+
     this.prevSeriesY = []
     this.categoryAxisCorrection = 0
     this.yaxisIndex = 0
@@ -49,6 +46,11 @@ class Line {
     })
 
     const coreUtils = new CoreUtils(this.ctx, w)
+    this.yRatio = this.xyRatios.yRatio
+    this.zRatio = this.xyRatios.zRatio
+    this.xRatio = this.xyRatios.xRatio
+    this.baseLineY = this.xyRatios.baseLineY
+
     series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 

@@ -84,14 +84,17 @@ export default class Config {
 
       opts.xaxis = opts.xaxis || window.Apex.xaxis || {}
 
-      const combo = CoreUtils.checkComboSeries(opts.series)
+      const isBarHorizontal =
+        opts.chart.type === 'bar' &&
+        opts.plotOptions &&
+        opts.plotOptions.bar &&
+        opts.plotOptions.bar.horizontal
+
       if (
-        (opts.chart.type === 'line' ||
-          opts.chart.type === 'area' ||
-          opts.chart.type === 'scatter') &&
-        !combo.comboChartsHasBars &&
+        !isBarHorizontal &&
         opts.xaxis.type !== 'datetime' &&
         opts.xaxis.type !== 'numeric' &&
+        chartDefaults.xaxis.tickPlacement !== 'between' &&
         opts.xaxis.tickPlacement !== 'between'
       ) {
         opts = Defaults.convertCatToNumeric(opts)

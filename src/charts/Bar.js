@@ -434,7 +434,7 @@ class Bar {
 
       x =
         (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
-        barWidth / 2
+        (barWidth * this.seriesLen) / 2
     }
 
     let barXPosition = x + barWidth * this.visibleI

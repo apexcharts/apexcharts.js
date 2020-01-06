@@ -11,7 +11,7 @@ export default class AxesUtils {
   getLabel(labels, timescaleLabels, x, i, drawnLabels = []) {
     const w = this.w
     let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
-    let label
+    let label = rawLabel
 
     let xlbFormatter = w.globals.xLabelFormatter
     let customFormatter = w.config.xaxis.labels.formatter
@@ -76,20 +76,17 @@ export default class AxesUtils {
 
   checkForCroppedLabels(i, label, labelsLen) {
     const w = this.w
-    let graphics = new Graphics(this.ctx)
+    // let graphics = new Graphics(this.ctx)
+
+    // const divideBy =
+    //   w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways ? 1 : 2
 
     if (i === 0) {
       // check if first label is being cropped
-      const firstTextRect = graphics.getTextRects(label.text)
-
-      const divideBy =
-        w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways ? 1 : 2
+      //const firstTextRect = graphics.getTextRects(label.text)
 
       if (
-        (w.globals.skipFirstTimelinelabel ||
-          (label.x + firstTextRect.width / divideBy >
-            w.globals.dom.elGraphical.x() &&
-            label.x <= 0)) &&
+        w.globals.skipFirstTimelinelabel &&
         !w.config.xaxis.convertedCatToNumeric
       ) {
         label.text = ''
@@ -98,14 +95,11 @@ export default class AxesUtils {
 
     if (i === labelsLen - 1) {
       // check if last label is being cropped
-
-      const lastTextRect = graphics.getTextRects(label.text)
+      // const lastTextRect = graphics.getTextRects(label.text)
 
       if (
-        w.globals.skipLastTimelinelabel ||
-        lastTextRect.width / 2 + label.x >
-          w.globals.gridWidth + w.globals.x2SpaceAvailable ||
-        label.x > w.globals.gridWidth
+        w.globals.skipLastTimelinelabel &&
+        !w.config.xaxis.convertedCatToNumeric
       ) {
         label.text = ''
       }
@@ -161,5 +155,35 @@ export default class AxesUtils {
         t = t + labelsDivider
       }
     }
+  }
+
+  getCatLabelsByTickAmount() {
+    const w = this.w
+    let labels = []
+    let min = w.globals.labels[0]
+    let max = w.globals.labels[w.globals.labels.length - 1]
+    let range = max - min
+
+    let ticks = Math.round(w.globals.gridWidth / 40)
+
+    if (range < 30) {
+      ticks = range
+    }
+
+    // console.log(ticks, 'fff')
+
+    if (ticks > 5) {
+      for (let i = min; i <= max; i++) {
+        if (i % Math.floor(max / ticks) === 0) {
+          labels.push(i)
+        }
+      }
+    } else {
+      for (let i = min; i <= max; i++) {
+        labels.push(i)
+      }
+    }
+
+    return labels
   }
 }

@@ -14,6 +14,9 @@ export default class YAnnotations {
 
     if (this.annoCtx.invertAxis) {
       let catIndex = w.globals.labels.indexOf(anno.y)
+      if (w.config.xaxis.convertedCatToNumeric) {
+        catIndex = w.globals.categoryLabels.indexOf(anno.y)
+      }
       const xLabel = w.globals.dom.baseEl.querySelector(
         '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
       )
@@ -55,6 +58,9 @@ export default class YAnnotations {
     } else {
       if (this.annoCtx.invertAxis) {
         let catIndex = w.globals.labels.indexOf(anno.y2)
+        if (w.config.xaxis.convertedCatToNumeric) {
+          catIndex = w.globals.categoryLabels.indexOf(anno.y2)
+        }
         const xLabel = w.globals.dom.baseEl.querySelector(
           '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
         )

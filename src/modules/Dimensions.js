@@ -20,6 +20,7 @@ export default class Dimensions {
     this.xAxisHeight = 0
     this.isSparkline = this.w.config.chart.sparkline.enabled
 
+    this.lgWidthForSideLegends = 0
     this.gridPad = this.w.config.grid.padding
     this.xPadRight = 0
     this.xPadLeft = 0
@@ -55,8 +56,16 @@ export default class Dimensions {
       this.xPadRight -
       this.xPadLeft
 
-    gl.translateX = gl.translateX + this.gridPad.left + this.xPadLeft
+    // Below code is for automatically padding columns in zoomable charts.
+    // Causes more issues, hence commented for now
+    // let barWidth = this.paddingForColumnsInNumericAxis(gl.gridWidth)
+
+    gl.gridWidth = gl.gridWidth //- barWidth * 2
+
+    gl.translateX = gl.translateX + this.gridPad.left + this.xPadLeft //+ barWidth
     gl.translateY = gl.translateY + this.gridPad.top
+
+    // gl.padHorizontal = 0 //this.xPadLeft
   }
 
   conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords) {
@@ -288,6 +297,70 @@ export default class Dimensions {
     })
   }
 
+  // paddingForColumnsInNumericAxis(gridWidth) {
+  //   const w = this.w
+
+  //   const type = w.config.chart.type
+  //   // const gridWidth =
+  //   //   w.globals.svgWidth -
+  //   //   this.lgWidthForSideLegends -
+  //   //   this.yAxisWidth -
+  //   //   this.gridPad.right -
+  //   //   this.gridPad.left -
+  //   //   60
+
+  //   let barWidth = 0
+  //   let seriesLen =
+  //     type === 'bar' || type === 'rangeBar' ? w.config.series.length : 1
+
+  //   if (w.globals.comboBarCount > 0) {
+  //     seriesLen = w.globals.comboBarCount
+  //   }
+  //   w.globals.collapsedSeries.forEach((c) => {
+  //     if (c.type === 'bar' || c.type === 'rangeBar') {
+  //       seriesLen = seriesLen - 1
+  //     }
+  //   })
+  //   if (w.config.chart.stacked) {
+  //     seriesLen = 1
+  //   }
+
+  //   const hasBar =
+  //     type === 'bar' || type === 'rangeBar' || w.globals.comboBarCount > 0
+
+  //   if (
+  //     hasBar &&
+  //     w.globals.isXNumeric &&
+  //     !w.globals.isBarHorizontal &&
+  //     seriesLen > 0
+  //   ) {
+  //     let xRatio = 0
+  //     let xRange = Math.abs(w.globals.initialMaxX - w.globals.initialMinX)
+
+  //     xRatio = xRange / gridWidth
+
+  //     let xDivision
+  //     // max barwidth should be equal to minXDiff to avoid overlap
+  //     if (w.globals.minXDiff && w.globals.minXDiff / xRatio > 0) {
+  //       xDivision = w.globals.minXDiff / xRatio
+  //     }
+
+  //     // barWidth = xDivision / seriesLen
+
+  //     barWidth =
+  //       ((xDivision / seriesLen) *
+  //         parseInt(w.config.plotOptions.bar.columnWidth, 10)) /
+  //       100
+
+  //     if (barWidth < 1) {
+  //       barWidth = 1
+  //     }
+
+  //     w.globals.barPadForNumericAxis = barWidth
+  //   }
+  //   return barWidth
+  // }
+
   // In certain cases, the last labels gets cropped in xaxis.
   // Hence, we add some additional padding based on the label length to avoid the last label being cropped or we don't draw it at all
   additionalPaddingXLabels(xaxisLabelCoords) {
@@ -331,7 +404,7 @@ export default class Dimensions {
         if (this.gridPad.right < lbWidth) {
           gl.skipLastTimelinelabel = true
         }
-      } else if (xtype !== 'datetime') {
+      } else if (xtype !== 'datetime' && !cnf.xaxis.convertedCatToNumeric) {
         if (
           this.gridPad.right < lbWidth / 2 - this.yAxisWidthRight &&
           !gl.rotateXLabels
@@ -517,7 +590,7 @@ export default class Dimensions {
         height: coords.height
       }
     } else {
-      let lgWidthForSideLegends =
+      this.lgWidthForSideLegends =
         (w.config.legend.position === 'left' ||
           w.config.legend.position === 'right') &&
         !w.config.legend.floating
@@ -582,7 +655,7 @@ export default class Dimensions {
       if (
         rect.width * xaxisLabels.length >
           w.globals.svgWidth -
-            lgWidthForSideLegends -
+            this.lgWidthForSideLegends -
             this.yAxisWidth -
             this.gridPad.left -
             this.gridPad.right &&

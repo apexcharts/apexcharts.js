@@ -19,6 +19,10 @@ export default class PointAnnotations {
 
     if (typeof anno.x === 'string') {
       let catIndex = w.globals.labels.indexOf(anno.x)
+
+      if (w.config.xaxis.convertedCatToNumeric) {
+        catIndex = w.globals.categoryLabels.indexOf(anno.x)
+      }
       const xLabel = w.globals.dom.baseEl.querySelector(
         '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
       )

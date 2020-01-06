@@ -10,20 +10,25 @@ class CoreUtils {
 
   static checkComboSeries(series) {
     let comboCharts = false
-    let comboChartsHasBars = false
+    let comboBarCount = 0
+
     // if user specified a type in series too, turn on comboCharts flag
     if (series.length && typeof series[0].type !== 'undefined') {
       comboCharts = true
       series.forEach((s) => {
-        if (s.type === 'bar' || s.type === 'column') {
-          comboChartsHasBars = true
+        if (
+          s.type === 'bar' ||
+          s.type === 'column' ||
+          s.type === 'candlestick'
+        ) {
+          comboBarCount++
         }
       })
     }
 
     return {
-      comboCharts,
-      comboChartsHasBars
+      comboBarCount,
+      comboCharts
     }
   }
 
@@ -228,7 +233,8 @@ class CoreUtils {
     }
 
     xRatio = gl.xRange / gl.gridWidth
-    initialXRatio = Math.abs(gl.initialmaxX - gl.initialminX) / gl.gridWidth
+
+    initialXRatio = Math.abs(gl.initialMaxX - gl.initialMinX) / gl.gridWidth
 
     invertedYRatio = gl.yRange / gl.gridWidth
     invertedXRatio = gl.xRange / gl.gridHeight

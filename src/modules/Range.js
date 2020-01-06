@@ -269,9 +269,9 @@ class Range {
           for (let j = 0; j < gl.labels[i].length; j++) {
             if (gl.labels[i][j] !== null && Utils.isNumber(gl.labels[i][j])) {
               gl.maxX = Math.max(gl.maxX, gl.labels[i][j])
-              gl.initialmaxX = Math.max(gl.maxX, gl.labels[i][j])
+              gl.initialMaxX = Math.max(gl.maxX, gl.labels[i][j])
               gl.minX = Math.min(gl.minX, gl.labels[i][j])
-              gl.initialminX = Math.min(gl.minX, gl.labels[i][j])
+              gl.initialMinX = Math.min(gl.minX, gl.labels[i][j])
             }
           }
         }
@@ -281,47 +281,44 @@ class Range {
     if (gl.noLabelsProvided) {
       if (cnf.xaxis.categories.length === 0) {
         gl.maxX = gl.labels[gl.labels.length - 1]
-        gl.initialmaxX = gl.labels[gl.labels.length - 1]
+        gl.initialMaxX = gl.labels[gl.labels.length - 1]
         gl.minX = 1
-        gl.initialminX = 1
+        gl.initialMinX = 1
       }
     }
 
     // bar chart specific
     // for numeric xaxis, we need to adjust some padding left and right for bar charts
-    if (
-      gl.comboChartsHasBars ||
-      cnf.chart.type === 'candlestick' ||
-      (cnf.chart.type === 'bar' && gl.isXNumeric)
-    ) {
-      if (cnf.xaxis.type !== 'category' || gl.isXNumeric) {
-        const t =
-          (gl.svgWidth / gl.dataPoints) *
-          (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)
+    // if (
+    //   gl.comboChartsHasBars ||
+    //   cnf.chart.type === 'candlestick' ||
+    //   (cnf.chart.type === 'bar' && gl.isXNumeric)
+    // ) {
+    //   if (cnf.xaxis.type !== 'category' || gl.isXNumeric) {
+    //     const t =
+    //       (gl.svgWidth / gl.dataPoints) *
+    //       (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)
 
-        // some padding to the left to prevent cropping of the bars
-        const minX = gl.minX - t / 2
-        gl.minX = minX
-        gl.initialminX = minX
+    //     // some padding to the left to prevent cropping of the bars
+    //     const minX = gl.minX - t / 2
+    //     gl.minX = minX
+    //     gl.initialminX = minX
 
-        // some padding to the right to prevent cropping of the bars
-        const maxX = gl.maxX + t / ((gl.series.length + 1) / gl.series.length)
-        gl.maxX = maxX
-        gl.initialmaxX = maxX
-      }
-    }
+    //     // some padding to the right to prevent cropping of the bars
+    //     const maxX = gl.maxX + t / ((gl.series.length + 1) / gl.series.length)
+    //     gl.maxX = maxX
+    //     gl.initialmaxX = maxX
+    //   }
+    // }
 
-    if (
-      (gl.isXNumeric || gl.noLabelsProvided) &&
-      (!cnf.xaxis.convertedCatToNumeric || gl.dataFormatXNumeric)
-    ) {
+    if (gl.isXNumeric || gl.noLabelsProvided || gl.dataFormatXNumeric) {
       let ticks
 
       if (cnf.xaxis.tickAmount === undefined) {
         ticks = Math.round(gl.svgWidth / 150)
 
-        // no labels provided and total number of dataPoints is less than 20
-        if (cnf.xaxis.type === 'numeric' && gl.dataPoints < 20) {
+        // no labels provided and total number of dataPoints is less than 30
+        if (cnf.xaxis.type === 'numeric' && gl.dataPoints < 30) {
           ticks = gl.dataPoints - 1
         }
 
@@ -331,9 +328,13 @@ class Range {
         }
       } else if (cnf.xaxis.tickAmount === 'dataPoints') {
         ticks = gl.series[gl.maxValsInArrayIndex].length - 1
+        if (gl.isXNumeric) {
+          ticks = gl.maxX - gl.minX - 1
+        }
       } else {
         ticks = cnf.xaxis.tickAmount
       }
+      gl.xTickAmount = ticks
 
       // override all min/max values by user defined values (x axis)
       if (cnf.xaxis.max !== undefined && typeof cnf.xaxis.max === 'number') {
@@ -349,7 +350,19 @@ class Range {
       }
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
-        gl.xAxisScale = this.scales.linearScale(gl.minX, gl.maxX, ticks)
+        if (cnf.xaxis.convertedCatToNumeric) {
+          let catScale = []
+          for (let i = gl.minX - 1; i < gl.maxX; i++) {
+            catScale.push(i + 1)
+          }
+          gl.xAxisScale = {
+            result: catScale,
+            niceMin: catScale[0],
+            niceMax: catScale[catScale.length - 1]
+          }
+        } else {
+          gl.xAxisScale = this.scales.linearScale(gl.minX, gl.maxX, ticks)
+        }
       } else {
         gl.xAxisScale = this.scales.linearScale(1, ticks, ticks)
         if (gl.noLabelsProvided && gl.labels.length > 0) {

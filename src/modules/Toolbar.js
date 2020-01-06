@@ -309,9 +309,13 @@ export default class Toolbar {
     const w = this.w
 
     const centerX = (w.globals.minX + w.globals.maxX) / 2
-    const newMinX = (w.globals.minX + centerX) / 2
-    const newMaxX = (w.globals.maxX + centerX) / 2
+    let newMinX = (w.globals.minX + centerX) / 2
+    let newMaxX = (w.globals.maxX + centerX) / 2
 
+    if (w.config.xaxis.convertedCatToNumeric) {
+      newMinX = Math.floor(newMinX)
+      newMaxX = Math.floor(newMaxX)
+    }
     if (!w.globals.disableZoomIn) {
       this.zoomUpdateOptions(newMinX, newMaxX)
     }
@@ -329,8 +333,13 @@ export default class Toolbar {
     }
 
     const centerX = (w.globals.minX + w.globals.maxX) / 2
-    const newMinX = w.globals.minX - (centerX - w.globals.minX)
-    const newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
+    let newMinX = w.globals.minX - (centerX - w.globals.minX)
+    let newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
+
+    if (w.config.xaxis.convertedCatToNumeric) {
+      newMinX = Math.floor(newMinX)
+      newMaxX = Math.floor(newMaxX)
+    }
 
     if (!w.globals.disableZoomOut) {
       this.zoomUpdateOptions(newMinX, newMaxX)
@@ -339,6 +348,18 @@ export default class Toolbar {
 
   zoomUpdateOptions(newMinX, newMaxX) {
     const w = this.w
+
+    if (w.config.xaxis.convertedCatToNumeric) {
+      // in category charts, avoid zooming out beyond min and max
+      if (newMinX < 1) {
+        newMinX = 1
+        newMaxX = w.globals.dataPoints
+      }
+
+      if (newMaxX - newMinX < 2) {
+        return
+      }
+    }
 
     let xaxis = {
       min: newMinX,
@@ -427,8 +448,8 @@ export default class Toolbar {
       let w = ch.w
 
       if (
-        w.globals.minX !== w.globals.initialminX &&
-        w.globals.maxX !== w.globals.initialmaxX
+        w.globals.minX !== w.globals.initialMinX ||
+        w.globals.maxX !== w.globals.initialMaxX
       ) {
         ch.revertDefaultAxisMinMax()
 

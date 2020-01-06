@@ -102,10 +102,29 @@ class Grid {
       `gridRectMarkerMask${gl.cuid}`
     )
 
+    // let barHalfWidth = 0
+    // if (gl.barPadForNumericAxis > 0) {
+    //   barHalfWidth = gl.barPadForNumericAxis
+    // }
+    const type = w.config.chart.type
+    const hasBar =
+      type === 'bar' || type === 'rangeBar' || w.globals.comboBarCount > 0
+
+    let barWidthLeft = 0
+    let barWidthRight = 0
+    if (hasBar && w.globals.isXNumeric && !w.globals.isBarHorizontal) {
+      barWidthLeft = w.config.grid.padding.left
+      barWidthRight = w.config.grid.padding.right
+
+      if (w.globals.zoomed) {
+        barWidthLeft = barWidthLeft / 2
+        barWidthRight = barWidthRight / 2
+      }
+    }
     gl.dom.elGridRect = graphics.drawRect(
+      -strokeSize / 2 - barWidthLeft,
       -strokeSize / 2,
-      -strokeSize / 2,
-      gl.gridWidth + strokeSize,
+      gl.gridWidth + strokeSize + barWidthRight + barWidthLeft,
       gl.gridHeight + strokeSize,
       0,
       '#fff'
@@ -243,6 +262,9 @@ class Grid {
       if (w.globals.timescaleLabels.length) {
         datetimeLines({ xC: xCount, x1, y1, x2, y2 })
       } else {
+        if (w.config.xaxis.convertedCatToNumeric) {
+          xCount = w.globals.maxX - w.globals.minX + 1
+        }
         categoryLines({ xC: xCount, x1, y1, x2, y2 })
       }
     }

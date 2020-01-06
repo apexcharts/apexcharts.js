@@ -33,17 +33,12 @@ export default class Position {
       x = (w.globals.gridWidth / tickAmount) * j
     }
 
-    if (
-      w.config.xaxis.crosshairs.width === 'tickWidth' ||
-      w.config.xaxis.crosshairs.width === 'barWidth'
-    ) {
-      if (x + ttCtx.xcrosshairsWidth > w.globals.gridWidth) {
-        x = w.globals.gridWidth - ttCtx.xcrosshairsWidth
-      }
-    } else {
-      if (j !== null) {
-        x = x + w.globals.gridWidth / tickAmount / 2
-      }
+    if (xcrosshairs !== null) {
+      xcrosshairs.setAttribute('x', x)
+      xcrosshairs.setAttribute('x1', x)
+      xcrosshairs.setAttribute('x2', x)
+      xcrosshairs.setAttribute('y2', w.globals.gridHeight)
+      xcrosshairs.classList.add('apexcharts-active')
     }
 
     if (x < 0) {
@@ -52,14 +47,6 @@ export default class Position {
 
     if (x > w.globals.gridWidth) {
       x = w.globals.gridWidth
-    }
-
-    if (xcrosshairs !== null) {
-      xcrosshairs.setAttribute('x', x)
-      xcrosshairs.setAttribute('x1', x)
-      xcrosshairs.setAttribute('x2', x)
-      xcrosshairs.setAttribute('y2', w.globals.gridHeight)
-      xcrosshairs.classList.add('apexcharts-active')
     }
 
     if (ttCtx.blxaxisTooltip) {

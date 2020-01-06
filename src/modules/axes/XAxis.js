@@ -13,10 +13,26 @@ export default class XAxis {
     this.w = ctx.w
 
     const w = this.w
+    this.axesUtils = new AxesUtils(ctx)
+
     this.xaxisLabels = w.globals.labels.slice()
     if (w.globals.timescaleLabels.length > 0 && !w.globals.isBarHorizontal) {
       //  timeline labels are there and chart is not rangeabr timeline
       this.xaxisLabels = w.globals.timescaleLabels.slice()
+    }
+    // if (w.config.xaxis.convertedCatToNumeric) {
+    // this.xaxisLabels = []
+    // let min = w.globals.minX - 1
+    // let max = w.globals.maxX
+
+    // for (let i = min; i < max; i++) {
+    //   this.xaxisLabels.push(i + 1)
+    // }
+
+    // this.xaxisLabels = this.axesUtils.getCatLabelsByTickAmount()
+    // }
+    if (w.config.xaxis.tickAmount === 'dataPoints') {
+      this.xaxisLabels = this.axesUtils.getCatLabelsByTickAmount()
     }
 
     this.drawnLabels = []
@@ -49,7 +65,6 @@ export default class XAxis {
     // For bars, we will only consider single y xais,
     // as we are not providing multiple yaxis for bar charts
     this.yaxis = w.config.yaxis[0]
-    this.axesUtils = new AxesUtils(ctx)
   }
 
   drawXaxis() {

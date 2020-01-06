@@ -396,6 +396,8 @@ export default class Data {
       }
 
       if (this.isMultiFormat()) {
+        cnf.xaxis.convertedCatToNumeric = false
+
         if (this.isFormat2DArray()) {
           this.handleFormat2DArray(ser, i)
         } else if (this.isFormatXY()) {
@@ -499,7 +501,6 @@ export default class Data {
       let labelArr = []
 
       if (gl.axisCharts) {
-        // for axis charts, we get the longest series and create labels from it
         if (gl.series.length > 0) {
           for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
             labelArr.push(i + 1)
@@ -530,6 +531,12 @@ export default class Data {
 
       // Finally, pass the labelArr in gl.labels which will be printed on x-axis
       gl.labels = labelArr
+
+      if (cnf.xaxis.convertedCatToNumeric) {
+        gl.categoryLabels = labelArr.map((l) => {
+          return cnf.xaxis.labels.formatter(l)
+        })
+      }
 
       // Turn on this global flag to indicate no labels were provided by user
       gl.noLabelsProvided = true

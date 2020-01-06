@@ -23,6 +23,7 @@ export default class Globals {
     gl.seriesYvalues = [] // we will need this when deciding which series
     // user hovered on
     gl.labels = []
+    gl.categoryLabels = []
     gl.timescaleLabels = []
     gl.noLabelsProvided = false
     gl.resizeTimer = null
@@ -43,8 +44,8 @@ export default class Globals {
     gl.maxYArr = []
     gl.maxX = -Number.MAX_VALUE
     gl.minX = Number.MAX_VALUE
-    gl.initialmaxX = -Number.MAX_VALUE
-    gl.initialminX = Number.MAX_VALUE
+    gl.initialMaxX = -Number.MAX_VALUE
+    gl.initialMinX = Number.MAX_VALUE
     gl.maxDate = 0
     gl.minDate = Number.MAX_VALUE
     gl.minZ = Number.MAX_VALUE
@@ -55,10 +56,13 @@ export default class Globals {
     gl.xAxisTicksPositions = []
     gl.yLabelsCoords = []
     gl.yTitleCoords = []
+    // gl.barPadForNumericAxis = 0
+    gl.padHorizontal = 0
     gl.xRange = 0
     gl.yRange = []
     gl.zRange = 0
     gl.dataPoints = 0
+    gl.xTickAmount = 0
   }
 
   globalVars(config) {
@@ -125,7 +129,6 @@ export default class Globals {
       invalidLogScale: false, // if a user enabled log scale but the data provided is not valid to generate a log scale, turn on this flag
       ignoreYAxisIndexes: [], // when series are being collapsed in multiple y axes, ignore certain index
       yAxisSameScaleIndices: [],
-      padHorizontal: 0,
       maxValsInArrayIndex: 0,
       radialSize: 0,
       zoomEnabled:
@@ -159,13 +162,11 @@ export default class Globals {
       delayedElements: [], // element which appear after animation has finished
       axisCharts: true, // chart type = line or area or bar
       // (refer them also as plot charts in the code)
-      isXNumeric: false, // bool: data was provided in a {[x,y], [x,y]} pattern
       isDataXYZ: false, // bool: data was provided in a {[x,y,z]} pattern
       resized: false, // bool: user has resized
       resizeTimer: null, // timeout function to make a small delay before
       // drawing when user resized
       comboCharts: false, // bool: whether it's a combination of line/column
-      comboChartsHasBars: false, // bool: whether it's a combination of line/column
       dataChanged: false, // bool: has data changed dynamically
       previousPaths: [], // array: when data is changed, it will animate from
       // previous paths

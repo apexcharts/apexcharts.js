@@ -96,6 +96,9 @@ export default class Defaults {
         stacked: false,
         animations: {
           easing: 'swing'
+        },
+        zoom: {
+          enabled: false
         }
       },
       plotOptions: {
@@ -130,6 +133,7 @@ export default class Defaults {
         tooltip: {
           enabled: false
         },
+        tickPlacement: 'between',
         crosshairs: {
           width: 'barWidth',
           position: 'back',
@@ -198,6 +202,11 @@ export default class Defaults {
 
   rangeBar() {
     return {
+      chart: {
+        zoom: {
+          enabled: false
+        }
+      },
       stroke: {
         width: 0
       },
@@ -281,6 +290,7 @@ export default class Defaults {
         }
       },
       xaxis: {
+        tickPlacement: 'between',
         tooltip: {
           enabled: false
         },
@@ -386,8 +396,7 @@ export default class Defaults {
         return val
       }
     opts.chart = opts.chart || {}
-    opts.chart.zoom =
-      opts.chart.zoom || (window.Apex.chart && window.Apex.chart.zoom) || {}
+
     const defaultFormatter = opts.xaxis.labels.formatter
     const labels =
       opts.xaxis.categories && opts.xaxis.categories.length
@@ -396,13 +405,13 @@ export default class Defaults {
 
     if (labels && labels.length) {
       opts.xaxis.labels.formatter = function(val) {
-        return defaultFormatter(labels[val - 1])
+        return defaultFormatter(labels[Math.floor(val) - 1])
       }
     }
 
     opts.xaxis.categories = []
     opts.labels = []
-    opts.chart.zoom.enabled = opts.chart.zoom.enabled || false
+    opts.xaxis.tickAmount = 'dataPoints'
 
     return opts
   }
@@ -502,6 +511,9 @@ export default class Defaults {
   pie() {
     return {
       chart: {
+        zoom: {
+          enabled: false
+        },
         toolbar: {
           show: false
         }
@@ -555,6 +567,9 @@ export default class Defaults {
   donut() {
     return {
       chart: {
+        zoom: {
+          enabled: false
+        },
         toolbar: {
           show: false
         }
@@ -605,6 +620,11 @@ export default class Defaults {
       : 6
 
     return {
+      chart: {
+        zoom: {
+          enabled: false
+        }
+      },
       dataLabels: {
         enabled: false,
         style: {

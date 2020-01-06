@@ -507,6 +507,19 @@ export default class ZoomPanSelection extends Toolbar {
           w.globals.lastYAxis = Utils.clone(w.config.yaxis)
         }
 
+        if (w.config.xaxis.convertedCatToNumeric) {
+          xLowestValue = Math.floor(xLowestValue)
+          xHighestValue = Math.floor(xHighestValue)
+
+          if (xLowestValue < 1) {
+            xLowestValue = 1
+            xHighestValue = w.globals.dataPoints
+          }
+
+          if (xHighestValue - xLowestValue < 2) {
+            xHighestValue = xLowestValue + 1
+          }
+        }
         let xaxis = {
           min: xLowestValue,
           max: xHighestValue
@@ -619,6 +632,11 @@ export default class ZoomPanSelection extends Toolbar {
   panScrolled(moveDirection, xLowestValue, xHighestValue) {
     const w = this.w
 
+    if (w.config.xaxis.convertedCatToNumeric) {
+      // TODO: currently panning in categories is not working correctly
+      return
+    }
+
     const xyRatios = this.xyRatios
     let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
@@ -635,8 +653,8 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     if (
-      xLowestValue < w.globals.initialminX ||
-      xHighestValue > w.globals.initialmaxX
+      xLowestValue < w.globals.initialMinX ||
+      xHighestValue > w.globals.initialMaxX
     ) {
       xLowestValue = w.globals.minX
       xHighestValue = w.globals.maxX
