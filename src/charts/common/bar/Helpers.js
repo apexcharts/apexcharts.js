@@ -12,7 +12,7 @@ export default class Helpers {
     this.barCtx.series = series
     this.barCtx.totalItems = 0
     this.barCtx.seriesLen = 0
-    this.barCtx.visibleI = -1
+    this.barCtx.visibleI = -1 // visible Series
     this.barCtx.visibleItems = 1 // number of visible bars after user zoomed in/out
 
     for (let sl = 0; sl < series.length; sl++) {

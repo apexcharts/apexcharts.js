@@ -1,5 +1,5 @@
 import DateTime from '../utils/DateTime'
-import Dimensions from './Dimensions'
+import Dimensions from './dimensions/Dimensions'
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 /**
@@ -435,17 +435,8 @@ class TimeScale {
     numberOfDays
   }) {
     const dt = new DateTime(this.ctx)
-
     let unit = 'day'
-
-    let remainingHours = 24 - firstVal.minHour
-    let yrCounter = 0
-
-    // calculate the first tick position
-    let firstTickPosition = remainingHours * hoursWidthOnXAxis
-    let firstTickValue = firstVal.minDate + 1
-
-    let val = firstTickValue
+    let date = firstTickValue
 
     const changeMonth = (dateVal, month, year) => {
       let monthdays = dt.determineDaysOfMonths(month + 1, year)
@@ -461,8 +452,25 @@ class TimeScale {
       return month
     }
 
-    let date = firstTickValue
+
+    let remainingHours = 24 - firstVal.minHour
+    let yrCounter = 0
+
+    // calculate the first tick position
+    let firstTickPosition = remainingHours * hoursWidthOnXAxis
+    let firstTickValue = firstVal.minDate + 1
+
+    let val = firstTickValue
     let month = changeMonth(date, currentMonth, currentYear)
+
+    if (firstVal.minHour === 0 && firstVal.minDate === 1) {
+      // the first value is the first day of month
+      firstTickPosition = 0
+      val = Utils.monthMod(firstVal.minMonth)
+      unit = 'month'
+      date = firstVal.minDate
+      numberOfDays++
+    }
 
     // push the first tick in the array
     this.timeScaleArray.push({

@@ -9,7 +9,7 @@ import Pie from '../charts/Pie'
 import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
-import Legend from './Legend'
+import Legend from './legend/Legend'
 import Line from '../charts/Line'
 import Graphics from './Graphics'
 import Range from './Range'
@@ -363,7 +363,8 @@ export default class Core {
       w.config.legend.position === 'top' ||
       w.config.legend.position === 'bottom'
     ) {
-      legendHeight = new Legend(this.ctx).getLegendBBox().clwh + 10
+      legendHeight =
+        new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10
     }
 
     let radialEl = w.globals.dom.baseEl.querySelector(

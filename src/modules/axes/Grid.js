@@ -103,9 +103,7 @@ class Grid {
     )
 
     // let barHalfWidth = 0
-    // if (gl.barPadForNumericAxis > 0) {
-    //   barHalfWidth = gl.barPadForNumericAxis
-    // }
+
     const type = w.config.chart.type
     const hasBar =
       type === 'bar' || type === 'rangeBar' || w.globals.comboBarCount > 0
@@ -115,6 +113,11 @@ class Grid {
     if (hasBar && w.globals.isXNumeric && !w.globals.isBarHorizontal) {
       barWidthLeft = w.config.grid.padding.left
       barWidthRight = w.config.grid.padding.right
+
+      if (gl.barPadForNumericAxis > barWidthLeft) {
+        barWidthLeft = gl.barPadForNumericAxis
+        barWidthRight = gl.barPadForNumericAxis
+      }
 
       if (w.globals.zoomed) {
         barWidthLeft = barWidthLeft / 2

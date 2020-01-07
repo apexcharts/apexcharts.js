@@ -170,8 +170,6 @@ export default class AxesUtils {
       ticks = range
     }
 
-    // console.log(ticks, 'fff')
-
     if (ticks > 5) {
       for (let i = min; i <= max; i++) {
         if (i % Math.floor(max / ticks) === 0) {

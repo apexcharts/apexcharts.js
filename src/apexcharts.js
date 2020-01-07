@@ -9,12 +9,12 @@ import Crosshairs from './modules/Crosshairs'
 import Data from './modules/Data'
 import DataLabels from './modules/DataLabels'
 import Defaults from './modules/settings/Defaults'
-import Dimensions from './modules/Dimensions'
+import Dimensions from './modules/dimensions/Dimensions'
 import Formatters from './modules/Formatters'
 import Exports from './modules/Exports'
 import Grid from './modules/axes/Grid'
 import Graphics from './modules/Graphics'
-import Legend from './modules/Legend'
+import Legend from './modules/legend/Legend'
 import Markers from './modules/Markers'
 import Pie from './charts/Pie'
 import Range from './modules/Range'
@@ -119,13 +119,13 @@ export default class ApexCharts {
         if (!graphData) return resolve(this)
         this.mount(graphData)
           .then(() => {
-            resolve(graphData)
 
             if (typeof this.w.config.chart.events.mounted === 'function') {
               this.w.config.chart.events.mounted(this, this.w)
             }
 
             this.fireEvent('mounted', [this, this.w])
+            resolve(graphData)
           })
           .catch((e) => {
             reject(e)
@@ -902,7 +902,7 @@ export default class ApexCharts {
   toggleSeries(seriesName) {
     let isSeriesHidden = this.series.isSeriesHidden(seriesName)
 
-    this.legend.toggleDataSeries(
+    this.legend.legendHelpers.toggleDataSeries(
       isSeriesHidden.realIndex,
       isSeriesHidden.isHidden
     )
@@ -914,7 +914,7 @@ export default class ApexCharts {
     let isSeriesHidden = this.series.isSeriesHidden(seriesName)
 
     if (isSeriesHidden.isHidden) {
-      this.legend.toggleDataSeries(isSeriesHidden.realIndex, true)
+      this.legend.legendHelpers.toggleDataSeries(isSeriesHidden.realIndex, true)
     }
   }
 
@@ -922,7 +922,10 @@ export default class ApexCharts {
     let isSeriesHidden = this.series.isSeriesHidden(seriesName)
 
     if (!isSeriesHidden.isHidden) {
-      this.legend.toggleDataSeries(isSeriesHidden.realIndex, false)
+      this.legend.legendHelpers.toggleDataSeries(
+        isSeriesHidden.realIndex,
+        false
+      )
     }
   }
 

@@ -27,6 +27,7 @@ export default class PointAnnotations {
         '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
       )
 
+      if (!xLabel) return
       const xPos = parseFloat(xLabel.getAttribute('x'))
 
       x = xPos

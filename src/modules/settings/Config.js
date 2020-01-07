@@ -94,6 +94,7 @@ export default class Config {
         !isBarHorizontal &&
         opts.xaxis.type !== 'datetime' &&
         opts.xaxis.type !== 'numeric' &&
+        chartDefaults.xaxis &&
         chartDefaults.xaxis.tickPlacement !== 'between' &&
         opts.xaxis.tickPlacement !== 'between'
       ) {
