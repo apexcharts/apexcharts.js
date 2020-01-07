@@ -412,7 +412,7 @@ export default class Data {
         gl.labels.push(this.twoDSeriesX)
         gl.seriesX.push(this.twoDSeriesX)
 
-        if (!this.fallbackToCategory) {
+        if (i === this.activeSeriesIndex && !this.fallbackToCategory) {
           gl.isXNumeric = true
         }
       } else {
