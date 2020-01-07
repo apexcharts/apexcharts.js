@@ -234,14 +234,12 @@ export default class DimXAxis {
           lbWidth / 1.75 +
           this.dCtx.yAxisWidthRight
 
-        console.log(lastLabelPosition, 'lastLabelPosition', w.globals.gridWidth)
         const firstLabelPosition =
           firstimescaleLabel.position -
           lbWidth / 1.75 +
           (yaxe.opposite ? 0 : this.dCtx.yAxisWidthLeft)
 
         if (lastLabelPosition > gl.gridWidth) {
-          console.log('uaahahahah')
           gl.skipLastTimelinelabel = true
         }
         if (firstLabelPosition < 0) {

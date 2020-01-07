@@ -31,6 +31,7 @@ declare class ApexCharts {
   resetSeries(): void
   toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): any
   destroy(): void
+  setLocale(localeName: string): void
   paper(): void
   addXaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void
   addYaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void
