@@ -33,43 +33,64 @@ class Formatters {
     return fn(val, timestamp)
   }
 
+
+  defaultGeneralFormatter (val)  {
+    if (Array.isArray(val)) {
+      return val.map((v) => {
+        return v
+      })
+    } else {
+      return val
+    }
+  }
+
+  defaultYFormatter(v, i) {
+    let w = this.w
+
+    if (Utils.isNumber(v)) {
+      if (w.globals.yValueDecimal !== 0) {
+        v = v.toFixed(
+          yaxe.decimalsInFloat !== undefined
+            ? yaxe.decimalsInFloat
+            : w.globals.yValueDecimal
+        )
+      } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 10) {
+        v = v.toFixed(1)
+      } else {
+        v = v.toFixed(0)
+      }
+    }
+    return v
+  }
+
   setLabelFormatters() {
     let w = this.w
 
-    const defaultFormatter = (val) => {
-      if (Array.isArray(val)) {
-        return val.map((v) => {
-          return v
-        })
-      } else {
-        return val
-      }
-    }
-    w.globals.xLabelFormatter = function(val) {
-      return defaultFormatter(val)
+    w.globals.xLabelFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
     }
 
-    w.globals.xaxisTooltipFormatter = function(val) {
-      return defaultFormatter(val)
+    w.globals.xaxisTooltipFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
     }
 
-    w.globals.ttKeyFormatter = function(val) {
-      return defaultFormatter(val)
+    w.globals.ttKeyFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
     }
 
-    w.globals.ttZFormatter = function(val) {
+    w.globals.ttZFormatter = (val) => {
       return val
     }
 
-    w.globals.legendFormatter = function(val) {
-      return defaultFormatter(val)
+    w.globals.legendFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
     }
 
     // formatter function will always overwrite format property
     if (w.config.xaxis.labels.formatter !== undefined) {
       w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
     } else {
-      w.globals.xLabelFormatter = function(val) {
+      w.globals.xLabelFormatter = (val) => {
         if (Utils.isNumber(val)) {
           // numeric xaxis may have smaller range, so defaulting to 1 decimal
           if (
@@ -123,32 +144,15 @@ class Formatters {
       if (yaxe.labels.formatter !== undefined) {
         w.globals.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
-        w.globals.yLabelFormatters[i] = function(val) {
+        w.globals.yLabelFormatters[i] = (val) => {
           if (!w.globals.xyCharts) return val
-
-          const vf = (v) => {
-            if (Utils.isNumber(v)) {
-              if (w.globals.yValueDecimal !== 0) {
-                v = v.toFixed(
-                  yaxe.decimalsInFloat !== undefined
-                    ? yaxe.decimalsInFloat
-                    : w.globals.yValueDecimal
-                )
-              } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 10) {
-                v = v.toFixed(1)
-              } else {
-                v = v.toFixed(0)
-              }
-            }
-            return v
-          }
 
           if (Array.isArray(val)) {
             return val.map((v) => {
-              return vf(v)
+              return this.defaultYFormatter(v, i)
             })
           } else {
-            return vf(val)
+            return this.defaultYFormatter(val, i)
           }
         }
       }
