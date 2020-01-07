@@ -4,7 +4,7 @@ import { createChart } from './utils/utils.js'
 
 describe('Parse Data', () => {
   it('should parse data for cartesian charts', () => {
-    const chart = createChart('line', seriesxy)
+    const chart = createChart('line', seriesxy, 'datetime')
     chart.w.globals.series = []
     chart.w.globals.seriesX = []
     chart.w.globals.labels = []

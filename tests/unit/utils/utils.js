@@ -1,10 +1,13 @@
 import ApexCharts from '../../../dist/apexcharts.js'
 
-export function createChart(type, series) {
+export function createChart(type, series, xtype = 'category') {
   document.body.innerHTML = '<div id="chart" />'
 
   const chart = new ApexCharts(document.querySelector('#chart'), {
     chart: {
+      type
+    },
+    xaxis: {
       type
     },
     series
