@@ -93,6 +93,7 @@ export const optionXAxis = {
     offsetY: 0,
     format: undefined,
     formatter: undefined, // custom formatter function which will override format
+    datetimeUTC: true,
     datetimeFormatter: {
       year: 'yyyy',
       month: "MMM 'yy",

@@ -387,12 +387,17 @@ class Range {
 
       // single dataPoint
       if (cnf.xaxis.type === 'datetime') {
-        const newMinX = datetimeObj.getUTCDate(gl.minX)
-        newMinX.setUTCDate(newMinX.getDate() - 2)
+        const utc = cnf.xaxis.labels.datetimeUTC
+        const newMinX = datetimeObj.getDate(gl.minX)
+        utc
+          ? newMinX.setUTCDate(newMinX.getDate() - 2)
+          : newMinX.setDate(newMinX.getDate() - 2)
         gl.minX = new Date(newMinX).getTime()
 
-        const newMaxX = datetimeObj.getUTCDate(gl.maxX)
-        newMaxX.setUTCDate(newMaxX.getDate() + 2)
+        const newMaxX = datetimeObj.getDate(gl.maxX)
+        utc
+          ? newMaxX.setUTCDate(newMaxX.getDate() + 2)
+          : newMaxX.setDate(newMaxX.getDate() + 2)
         gl.maxX = new Date(newMaxX).getTime()
       } else if (
         cnf.xaxis.type === 'numeric' ||

@@ -21,31 +21,40 @@ class DateTime {
     return !isNaN(this.parseDate(date))
   }
 
-  getUTCTimeStamp(dateStr) {
+  getTimeStamp(dateStr) {
     if (!Date.parse(dateStr)) {
       return dateStr
     }
-    return new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
+    const utc = this.w.config.xaxis.labels.datetimeUTC
+    return !utc
+      ? new Date(dateStr).getTime()
+      : new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
   }
 
-  getUTCDate(timestamp) {
-    return new Date(new Date(timestamp).toUTCString())
+  getDate(timestamp) {
+    const utc = this.w.config.xaxis.labels.datetimeUTC
+
+    return utc
+      ? new Date(new Date(timestamp).toUTCString())
+      : new Date(timestamp)
   }
 
   parseDate(dateStr) {
     const parsed = Date.parse(dateStr)
     if (!isNaN(parsed)) {
-      return this.getUTCTimeStamp(dateStr)
+      return this.getTimeStamp(dateStr)
     }
 
     let output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
-    output = this.getUTCTimeStamp(output)
+    output = this.getTimeStamp(output)
     return output
   }
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
-  formatDate(date, format, utc = true) {
+  formatDate(date, format) {
     const locale = this.w.globals.locale
+
+    const utc = this.w.config.xaxis.labels.datetimeUTC
 
     let MMMM = ['\x00', ...locale.months]
     let MMM = ['\x01', ...locale.shortMonths]
@@ -59,24 +68,24 @@ class DateTime {
       return s
     }
 
-    let y = date.getUTCFullYear()
+    let y = utc ? date.getUTCFullYear() : date.getFullYear()
     format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y)
     format = format.replace(/(^|[^\\])yy/g, '$1' + y.toString().substr(2, 2))
     format = format.replace(/(^|[^\\])y/g, '$1' + y)
 
-    let M = date.getUTCMonth() + 1
+    let M = (utc ? date.getUTCMonth() : date.getMonth()) + 1
     format = format.replace(/(^|[^\\])MMMM+/g, '$1' + MMMM[0])
     format = format.replace(/(^|[^\\])MMM/g, '$1' + MMM[0])
     format = format.replace(/(^|[^\\])MM/g, '$1' + ii(M))
     format = format.replace(/(^|[^\\])M/g, '$1' + M)
 
-    let d = date.getUTCDate()
+    let d = utc ? date.getUTCDate() : date.getDate()
     format = format.replace(/(^|[^\\])dddd+/g, '$1' + dddd[0])
     format = format.replace(/(^|[^\\])ddd/g, '$1' + ddd[0])
     format = format.replace(/(^|[^\\])dd/g, '$1' + ii(d))
     format = format.replace(/(^|[^\\])d/g, '$1' + d)
 
-    let H = date.getUTCHours()
+    let H = utc ? date.getUTCHours() : date.getHours()
     format = format.replace(/(^|[^\\])HH+/g, '$1' + ii(H))
     format = format.replace(/(^|[^\\])H/g, '$1' + H)
 
@@ -84,15 +93,15 @@ class DateTime {
     format = format.replace(/(^|[^\\])hh+/g, '$1' + ii(h))
     format = format.replace(/(^|[^\\])h/g, '$1' + h)
 
-    let m = date.getUTCMinutes()
+    let m = utc ? date.getUTCMinutes() : date.getMinutes()
     format = format.replace(/(^|[^\\])mm+/g, '$1' + ii(m))
     format = format.replace(/(^|[^\\])m/g, '$1' + m)
 
-    let s = date.getUTCSeconds()
+    let s = utc ? date.getUTCSeconds() : date.getSeconds()
     format = format.replace(/(^|[^\\])ss+/g, '$1' + ii(s))
     format = format.replace(/(^|[^\\])s/g, '$1' + s)
 
-    let f = date.getUTCMilliseconds()
+    let f = utc ? date.getUTCMilliseconds() : date.getMilliseconds()
     format = format.replace(/(^|[^\\])fff+/g, '$1' + ii(f, 3))
     f = Math.round(f / 10)
     format = format.replace(/(^|[^\\])ff/g, '$1' + ii(f))
@@ -110,9 +119,16 @@ class DateTime {
     let tz = -date.getTimezoneOffset()
     let K = utc || !tz ? 'Z' : tz > 0 ? '+' : '-'
 
+    if (!utc) {
+      tz = Math.abs(tz)
+      let tzHrs = Math.floor(tz / 60)
+      let tzMin = tz % 60
+      K += ii(tzHrs) + ':' + ii(tzMin)
+    }
+
     format = format.replace(/(^|[^\\])K/g, '$1' + K)
 
-    let day = date.getUTCDay() + 1
+    let day = (utc ? date.getUTCDay() : date.getDay()) + 1
     format = format.replace(new RegExp(dddd[0], 'g'), dddd[day])
     format = format.replace(new RegExp(ddd[0], 'g'), ddd[day])
 
@@ -124,7 +140,7 @@ class DateTime {
     return format
   }
 
-  getTimeUnitsfromTimestamp(minX, maxX) {
+  getTimeUnitsfromTimestamp(minX, maxX, utc) {
     let w = this.w
 
     if (w.config.xaxis.min !== undefined) {
@@ -134,32 +150,23 @@ class DateTime {
       maxX = w.config.xaxis.max
     }
 
-    let minYear = new Date(minX).getUTCFullYear()
-    let maxYear = new Date(maxX).getUTCFullYear()
+    const tsMin = this.getDate(minX)
+    const tsMax = this.getDate(maxX)
 
-    let minMonth = new Date(minX).getUTCMonth()
-    let maxMonth = new Date(maxX).getUTCMonth()
-
-    let minDate = new Date(minX).getUTCDate()
-    let maxDate = new Date(maxX).getUTCDate()
-
-    let minHour = new Date(minX).getUTCHours()
-    let maxHour = new Date(maxX).getUTCHours()
-
-    let minMinute = new Date(minX).getUTCMinutes()
-    let maxMinute = new Date(maxX).getUTCMinutes()
+    const minD = this.formatDate(tsMin, 'yyyy MM dd HH mm').split(' ')
+    const maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm').split(' ')
 
     return {
-      minMinute,
-      maxMinute,
-      minHour,
-      maxHour,
-      minDate,
-      maxDate,
-      minMonth,
-      maxMonth,
-      minYear,
-      maxYear
+      minMinute: parseInt(minD[4], 10),
+      maxMinute: parseInt(maxD[4], 10),
+      minHour: parseInt(minD[3], 10),
+      maxHour: parseInt(maxD[3], 10),
+      minDate: parseInt(minD[2], 10),
+      maxDate: parseInt(maxD[2], 10),
+      minMonth: parseInt(minD[1], 10) - 1,
+      maxMonth: parseInt(maxD[1], 10) - 1,
+      minYear: parseInt(minD[0], 10),
+      maxYear: parseInt(maxD[0], 10)
     }
   }
 

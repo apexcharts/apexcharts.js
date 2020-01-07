@@ -23,7 +23,7 @@ class Formatters {
         if (w.config.tooltip.x.formatter === undefined) {
           let datetimeObj = new DateTime(this.ctx)
           return datetimeObj.formatDate(
-            datetimeObj.getUTCDate(val),
+            datetimeObj.getDate(val),
             w.config.tooltip.x.format
           )
         }
@@ -33,8 +33,7 @@ class Formatters {
     return fn(val, timestamp)
   }
 
-
-  defaultGeneralFormatter (val)  {
+  defaultGeneralFormatter(val) {
     if (Array.isArray(val)) {
       return val.map((v) => {
         return v
@@ -44,7 +43,7 @@ class Formatters {
     }
   }
 
-  defaultYFormatter(v, i) {
+  defaultYFormatter(v, yaxe, i) {
     let w = this.w
 
     if (Utils.isNumber(v)) {
@@ -149,10 +148,10 @@ class Formatters {
 
           if (Array.isArray(val)) {
             return val.map((v) => {
-              return this.defaultYFormatter(v, i)
+              return this.defaultYFormatter(v, yaxe, i)
             })
           } else {
-            return this.defaultYFormatter(val, i)
+            return this.defaultYFormatter(val, yaxe, i)
           }
         }
       }

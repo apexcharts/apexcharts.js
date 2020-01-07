@@ -1,7 +1,7 @@
 /**
  * ApexCharts Options for setting the initial configuration of ApexCharts
  **/
-import { optionYAxis, optionXAxis } from './options/axis'
+import { optionYAxis, optionXAxis } from './options/axes'
 import {
   optionXAxisAnnotation,
   optionYAxisAnnotation,

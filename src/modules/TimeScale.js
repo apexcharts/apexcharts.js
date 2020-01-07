@@ -13,6 +13,7 @@ class TimeScale {
     this.ctx = ctx
     this.w = ctx.w
     this.timeScaleArray = []
+    this.utc = this.w.config.xaxis.labels.datetimeUTC
   }
 
   calculateTimeScaleTicks(minX, maxX) {
@@ -39,7 +40,7 @@ class TimeScale {
       w.globals.disableZoomOut = true
     }
 
-    const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX)
+    const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX, this.utc)
 
     const daysWidthOnXAxis = w.globals.gridWidth / daysDiff
     const hoursWidthOnXAxis = daysWidthOnXAxis / 24
@@ -436,6 +437,7 @@ class TimeScale {
   }) {
     const dt = new DateTime(this.ctx)
     let unit = 'day'
+    let firstTickValue = firstVal.minDate + 1
     let date = firstTickValue
 
     const changeMonth = (dateVal, month, year) => {
@@ -452,13 +454,11 @@ class TimeScale {
       return month
     }
 
-
     let remainingHours = 24 - firstVal.minHour
     let yrCounter = 0
 
     // calculate the first tick position
     let firstTickPosition = remainingHours * hoursWidthOnXAxis
-    let firstTickValue = firstVal.minDate + 1
 
     let val = firstTickValue
     let month = changeMonth(date, currentMonth, currentYear)
@@ -704,7 +704,7 @@ class TimeScale {
 
       const raw = this.createRawDateString(ts, value)
 
-      const dateToFormat = dt.getUTCDate(raw)
+      const dateToFormat = dt.getDate(raw)
 
       if (w.config.xaxis.labels.format === undefined) {
         let customFormat = 'dd MMM'

@@ -1,8 +1,7 @@
 import Defaults from './Defaults'
 import Utils from './../../utils/Utils'
-import CoreUtils from '../CoreUtils'
 import Options from './Options'
-import { optionYAxis } from './options/axis'
+import { optionYAxis } from './options/axes'
 import {
   optionXAxisAnnotation,
   optionYAxisAnnotation,
