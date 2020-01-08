@@ -454,7 +454,7 @@ class Line {
 
     if (!this.pointsChart) {
       let markers = new Markers(this.ctx)
-      if (w.globals.dataPoints > 1) {
+      if (w.globals.series[i].length > 1) {
         this.elPointsMain.node.classList.add('apexcharts-element-hidden')
       }
 
