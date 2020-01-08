@@ -90,6 +90,11 @@ class Range {
       minY = lowestY
     }
 
+    // all negative values in a bar chart, hence make the max to 0
+    if (cnf.chart.type === 'bar' && minY < 0 && maxY < 0) {
+      maxY = 0
+    }
+
     return {
       minY,
       maxY,
