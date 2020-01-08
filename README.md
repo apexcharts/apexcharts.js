@@ -202,7 +202,8 @@ apexcharts/
 If you need to make it work with IE11, you need to include these polyfills before including ApexCharts
 
 - [promise-polyfill](https://github.com/taylorhakes/promise-polyfill)
-- [classlist](https://github.com/eligrey/classList.js/)
+- [classlist.js](https://github.com/eligrey/classList.js/)
+- [blob.js](https://github.com/eligrey/Blob.js)
 
 ## Development
 
