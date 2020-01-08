@@ -687,10 +687,11 @@ class TimeScale {
 
     // unit is minute
     raw +=
-      ts.unit === 'minute'
-        ? ':' + ('0' + value).slice(-2) + ':00.000Z'
-        : ':00:00.000Z'
+      ts.unit === 'minute' ? ':' + ('0' + value).slice(-2) + ':00' : ':00:00'
 
+    if (this.utc) {
+      raw += '.000Z'
+    }
     return raw
   }
 
