@@ -386,7 +386,7 @@ export default class BarDataLabels {
         // Note: This issue is only seen in stacked charts
         if (this.barCtx.isHorizontal) {
           barWidth =
-            w.globals.series[i][j] /
+            Math.abs(w.globals.series[i][j]) /
             this.barCtx.invertedYRatio[this.barCtx.yaxisIndex]
 
           // FIXED: Don't always hide the stacked negative side label
@@ -400,7 +400,8 @@ export default class BarDataLabels {
           }
         } else {
           barHeight =
-            w.globals.series[i][j] / this.barCtx.yRatio[this.barCtx.yaxisIndex]
+            Math.abs(w.globals.series[i][j]) /
+            this.barCtx.yRatio[this.barCtx.yaxisIndex]
           if (textRects.height / 1.6 > barHeight) {
             text = ''
           }
