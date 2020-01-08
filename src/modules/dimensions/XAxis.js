@@ -212,7 +212,15 @@ export default class DimXAxis {
     const gl = w.globals
     const cnf = w.config
     const xtype = cnf.xaxis.type
-    const lbWidth = xaxisLabelCoords.width
+
+    const predictedGridWidth =
+      gl.svgWidth -
+      this.dCtx.lgWidthForSideLegends -
+      this.dCtx.yAxisWidth -
+      this.dCtx.gridPad.left -
+      this.dCtx.gridPad.right
+
+    let lbWidth = xaxisLabelCoords.width
 
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
@@ -247,18 +255,18 @@ export default class DimXAxis {
         }
       } else if (xtype === 'datetime') {
         // If user has enabled DateTime, but uses own's formatter
-        if (this.dCtx.gridPad.right < lbWidth) {
+        if (this.dCtx.gridPad.right < lbWidth && !gl.rotateXLabels) {
           gl.skipLastTimelinelabel = true
         }
       } else if (xtype !== 'datetime') {
+        if (w.globals.convertedCatToNumeric) {
+          lbWidth = predictedGridWidth / gl.label.length
+        }
         if (
           this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight &&
           !gl.rotateXLabels
         ) {
-          if (w.globals.convertedCatToNumeric) {
-          } else {
-            this.dCtx.xPadRight = lbWidth / 2 + 1
-          }
+          this.dCtx.xPadRight = lbWidth / 2 + 1
         }
       }
     }

@@ -89,14 +89,13 @@ export default class Config {
         opts.plotOptions.bar &&
         opts.plotOptions.bar.horizontal
 
-      if (
-        !isBarHorizontal &&
-        opts.xaxis.type !== 'datetime' &&
-        opts.xaxis.type !== 'numeric' &&
-        chartDefaults.xaxis &&
-        chartDefaults.xaxis.tickPlacement !== 'between' &&
-        opts.xaxis.tickPlacement !== 'between'
-      ) {
+      const notNumericXAxis =
+        opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
+
+      let tickPlacement = opts.xaxis.tickPlacement
+        ? opts.xaxis.tickPlacement
+        : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement
+      if (!isBarHorizontal && notNumericXAxis && tickPlacement !== 'between') {
         opts = Defaults.convertCatToNumeric(opts)
       }
       if (

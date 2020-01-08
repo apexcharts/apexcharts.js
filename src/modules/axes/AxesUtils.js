@@ -76,15 +76,9 @@ export default class AxesUtils {
 
   checkForCroppedLabels(i, label, labelsLen) {
     const w = this.w
-    // let graphics = new Graphics(this.ctx)
-
-    // const divideBy =
-    //   w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways ? 1 : 2
 
     if (i === 0) {
       // check if first label is being cropped
-      //const firstTextRect = graphics.getTextRects(label.text)
-
       if (
         w.globals.skipFirstTimelinelabel &&
         !w.config.xaxis.convertedCatToNumeric
@@ -95,8 +89,6 @@ export default class AxesUtils {
 
     if (i === labelsLen - 1) {
       // check if last label is being cropped
-      // const lastTextRect = graphics.getTextRects(label.text)
-
       if (
         w.globals.skipLastTimelinelabel &&
         !w.config.xaxis.convertedCatToNumeric

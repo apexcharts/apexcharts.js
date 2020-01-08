@@ -19,19 +19,7 @@ export default class XAxis {
     if (w.globals.timescaleLabels.length > 0 && !w.globals.isBarHorizontal) {
       //  timeline labels are there and chart is not rangeabr timeline
       this.xaxisLabels = w.globals.timescaleLabels.slice()
-    }
-    // if (w.config.xaxis.convertedCatToNumeric) {
-    // this.xaxisLabels = []
-    // let min = w.globals.minX - 1
-    // let max = w.globals.maxX
-
-    // for (let i = min; i < max; i++) {
-    //   this.xaxisLabels.push(i + 1)
-    // }
-
-    // this.xaxisLabels = this.axesUtils.getCatLabelsByTickAmount()
-    // }
-    if (w.config.xaxis.tickAmount === 'dataPoints') {
+    } else if (w.globals.isXNumeric) {
       this.xaxisLabels = this.axesUtils.getCatLabelsByTickAmount()
     }
 
