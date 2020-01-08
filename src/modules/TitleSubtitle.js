@@ -28,7 +28,7 @@ export default class TitleSubtitle {
     }
 
     x = x + tsConfig.offsetX
-    y = y + parseInt(tsConfig.style.fontSize, 10) + 2
+    y = y + parseInt(tsConfig.style.fontSize, 10) + tsConfig.margin / 2
 
     if (tsConfig.text !== undefined) {
       let graphics = new Graphics(this.ctx)
