@@ -283,6 +283,7 @@ class Pie {
           ((endAngle - startAngle) / this.fullAngle) *
           w.config.chart.animations.speed
 
+        if (dur === 0) dur = 1
         this.animDur = dur + this.animDur
         this.animBeginArr.push(this.animDur)
       } else {
