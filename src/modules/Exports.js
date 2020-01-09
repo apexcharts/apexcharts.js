@@ -23,10 +23,12 @@ class Exports {
       '.apexcharts-ycrosshairs'
     )
     if (xcrosshairs) {
+      xcrosshairs.setAttribute('x', -500)
       xcrosshairs.setAttribute('x1', -500)
       xcrosshairs.setAttribute('x2', -500)
     }
     if (ycrosshairs) {
+      ycrosshairs.setAttribute('y', -100)
       ycrosshairs.setAttribute('y1', -100)
       ycrosshairs.setAttribute('y2', -100)
     }

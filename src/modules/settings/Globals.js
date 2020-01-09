@@ -56,7 +56,7 @@ export default class Globals {
     gl.xAxisTicksPositions = []
     gl.yLabelsCoords = []
     gl.yTitleCoords = []
-    // gl.barPadForNumericAxis = 0
+    gl.barPadForNumericAxis = 0
     gl.padHorizontal = 0
     gl.xRange = 0
     gl.yRange = []

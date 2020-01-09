@@ -1,6 +1,7 @@
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
+import AxesUtils from './AxesUtils'
 
 /**
  * ApexCharts Grid Class for drawing Cartesian Grid.
@@ -15,6 +16,7 @@ class Grid {
 
     const w = this.w
     this.xaxisLabels = w.globals.labels.slice()
+    this.axesUtils = new AxesUtils(ctx)
 
     this.isTimelineBar =
       w.config.xaxis.type === 'datetime' &&
@@ -26,7 +28,7 @@ class Grid {
     }
   }
 
-  // .when using sparklines or when showing no grid, we need to have a grid area which is reused at many places for other calculations as well
+  // when using sparklines or when showing no grid, we need to have a grid area which is reused at many places for other calculations as well
   drawGridArea(elGrid = null) {
     let w = this.w
 
@@ -118,16 +120,11 @@ class Grid {
         barWidthLeft = gl.barPadForNumericAxis
         barWidthRight = gl.barPadForNumericAxis
       }
-
-      if (w.globals.zoomed) {
-        barWidthLeft = barWidthLeft / 2
-        barWidthRight = barWidthRight / 2
-      }
     }
     gl.dom.elGridRect = graphics.drawRect(
-      -strokeSize / 2 - barWidthLeft,
+      -strokeSize / 2 - barWidthLeft - 2,
       -strokeSize / 2,
-      gl.gridWidth + strokeSize + barWidthRight + barWidthLeft,
+      gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
       gl.gridHeight + strokeSize,
       0,
       '#fff'
@@ -265,8 +262,8 @@ class Grid {
       if (w.globals.timescaleLabels.length) {
         datetimeLines({ xC: xCount, x1, y1, x2, y2 })
       } else {
-        if (w.config.xaxis.convertedCatToNumeric) {
-          xCount = w.globals.maxX - w.globals.minX + 1
+        if (w.globals.isXNumeric) {
+          xCount = w.globals.xAxisScale.result.length
         }
         categoryLines({ xC: xCount, x1, y1, x2, y2 })
       }

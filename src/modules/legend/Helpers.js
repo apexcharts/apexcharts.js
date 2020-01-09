@@ -231,7 +231,7 @@ export default class Helpers {
     }
 
     w.globals.allSeriesCollapsed =
-      w.globals.collapsedSeries.length === w.globals.series.length
+      w.globals.collapsedSeries.length === w.config.series.length
 
     this.lgCtx.ctx._updateSeries(
       w.config.series,

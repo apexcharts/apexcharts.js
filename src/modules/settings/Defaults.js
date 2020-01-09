@@ -393,7 +393,7 @@ export default class Defaults {
     opts.xaxis.labels.formatter =
       opts.xaxis.labels.formatter ||
       function(val) {
-        return val
+        return Utils.isNumber(val) ? Math.floor(val) : val
       }
     opts.chart = opts.chart || {}
 

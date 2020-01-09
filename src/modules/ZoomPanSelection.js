@@ -37,6 +37,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.startY = 0
     this.endY = 0
     this.dragY = 0
+    this.moveDirection = 'none'
   }
 
   init({ xyRatios }) {
@@ -201,6 +202,9 @@ export default class ZoomPanSelection extends Toolbar {
         }
       }
 
+      if (w.globals.panEnabled) {
+        me.delayedPanScrolled()
+      }
       if (w.globals.zoomEnabled) {
         me.hideSelectionRect(this.selectionRect)
       }
@@ -597,8 +601,6 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     let me = context
 
-    let moveDirection
-
     // check to make sure there is data to compare against
     if (typeof w.globals.lastClientPosition.x !== 'undefined') {
       // get the change from last position to this position
@@ -607,13 +609,13 @@ export default class ZoomPanSelection extends Toolbar {
 
       // check which direction had the highest amplitude and then figure out direction by checking if the value is greater or less than zero
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
-        moveDirection = 'left'
+        this.moveDirection = 'left'
       } else if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0) {
-        moveDirection = 'right'
+        this.moveDirection = 'right'
       } else if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY > 0) {
-        moveDirection = 'up'
+        this.moveDirection = 'up'
       } else if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY < 0) {
-        moveDirection = 'down'
+        this.moveDirection = 'down'
       }
     }
 
@@ -624,28 +626,51 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     let xLowestValue = w.globals.minX
+
     let xHighestValue = w.globals.maxX
 
-    me.panScrolled(moveDirection, xLowestValue, xHighestValue)
+    // on a category, we don't pan continuosly as it causes bugs
+    if (w.config.xaxis.convertedCatToNumeric) {
+      me.panScrolled(xLowestValue, xHighestValue)
+    }
   }
 
-  panScrolled(moveDirection, xLowestValue, xHighestValue) {
+  delayedPanScrolled() {
     const w = this.w
 
-    if (w.config.xaxis.convertedCatToNumeric) {
-      // TODO: currently panning in categories is not working correctly
-      return
+    let newMinX = w.globals.minX
+    let newMaxX = w.globals.maxX
+    const centerX = (w.globals.minX + w.globals.maxX) / 2
+
+    if (this.moveDirection === 'left') {
+      newMinX = w.globals.minX - centerX
+      newMaxX = w.globals.maxX - centerX
+    } else if (this.moveDirection === 'right') {
+      newMinX = w.globals.minX + centerX
+      newMaxX = w.globals.maxX + centerX
     }
+
+    newMinX = Math.floor(newMinX)
+    newMaxX = Math.floor(newMaxX)
+    this.updateScrolledChart(
+      { xaxis: { min: newMinX, max: newMaxX } },
+      newMinX,
+      newMaxX
+    )
+  }
+
+  panScrolled(xLowestValue, xHighestValue) {
+    const w = this.w
 
     const xyRatios = this.xyRatios
     let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
-    if (moveDirection === 'left') {
+    if (this.moveDirection === 'left') {
       xLowestValue =
         w.globals.minX + (w.globals.gridWidth / 15) * xyRatios.xRatio
       xHighestValue =
         w.globals.maxX + (w.globals.gridWidth / 15) * xyRatios.xRatio
-    } else if (moveDirection === 'right') {
+    } else if (this.moveDirection === 'right') {
       xLowestValue =
         w.globals.minX - (w.globals.gridWidth / 15) * xyRatios.xRatio
       xHighestValue =
@@ -684,6 +709,13 @@ export default class ZoomPanSelection extends Toolbar {
       // fix issue #650
       options.yaxis = yaxis
     }
+
+    this.updateScrolledChart(options, xLowestValue, xHighestValue)
+  }
+
+  updateScrolledChart(options, xLowestValue, xHighestValue) {
+    const w = this.w
+
     this.ctx._updateOptions(options, false, false)
 
     if (typeof w.config.chart.events.scrolled === 'function') {

@@ -185,26 +185,28 @@ export default class Data {
 
     // check for overlaps to avoid clashes in a timeline chart
     gl.seriesRangeBarTimeline.forEach((sr, si) => {
-      sr.forEach((sarr, sarri) => {
-        sarr.y.forEach((arr, arri) => {
-          for (let sri = 0; sri < sarr.y.length; sri++) {
-            if (arri !== sri) {
-              const range1y1 = arr.y1
-              const range1y2 = arr.y2
-              const range2y1 = sarr.y[sri].y1
-              const range2y2 = sarr.y[sri].y2
-              if (range1y1 <= range2y2 && range2y1 <= range1y2) {
-                if (sarr.overlaps.indexOf(arr.rangeName) < 0) {
-                  sarr.overlaps.push(arr.rangeName)
-                }
-                if (sarr.overlaps.indexOf(sarr.y[sri].rangeName) < 0) {
-                  sarr.overlaps.push(sarr.y[sri].rangeName)
+      if (sr) {
+        sr.forEach((sarr, sarri) => {
+          sarr.y.forEach((arr, arri) => {
+            for (let sri = 0; sri < sarr.y.length; sri++) {
+              if (arri !== sri) {
+                const range1y1 = arr.y1
+                const range1y2 = arr.y2
+                const range2y1 = sarr.y[sri].y1
+                const range2y2 = sarr.y[sri].y2
+                if (range1y1 <= range2y2 && range2y1 <= range1y2) {
+                  if (sarr.overlaps.indexOf(arr.rangeName) < 0) {
+                    sarr.overlaps.push(arr.rangeName)
+                  }
+                  if (sarr.overlaps.indexOf(sarr.y[sri].rangeName) < 0) {
+                    sarr.overlaps.push(sarr.y[sri].rangeName)
+                  }
                 }
               }
             }
-          }
+          })
         })
-      })
+      }
     })
 
     return range
@@ -591,7 +593,7 @@ export default class Data {
     }
 
     // check for multiline xaxis
-    const catLabels = this.coreUtils.getCategoryLabels()
+    const catLabels = this.coreUtils.getCategoryLabels(gl.labels)
     for (let l = 0; l < catLabels.length; l++) {
       if (Array.isArray(catLabels[l])) {
         gl.isMultiLineX = true

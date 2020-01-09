@@ -8,12 +8,9 @@ export default class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale(yMin, yMax, diff, index = 0, ticks = 10) {
+  niceScale(yMin, yMax, diff, index = 0, ticks = 10, NO_MIN_MAX_PROVIDED) {
     const w = this.w
-    const NO_MIN_MAX_PROVIDED =
-      (this.w.config.yaxis[index].max === undefined &&
-        this.w.config.yaxis[index].min === undefined) ||
-      this.w.config.yaxis[index].forceNiceScale
+
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
       (!Utils.isNumber(yMin) && !Utils.isNumber(yMax)) ||
@@ -29,7 +26,7 @@ export default class Range {
     if (yMin > yMax) {
       // if somehow due to some wrong config, user sent max less than min,
       // adjust the min/max again
-      console.warn('yaxis.min cannot be greater than yaxis.max')
+      console.warn('axis.min cannot be greater than axis.max')
       yMax = yMin + 0.1
     } else if (yMin === yMax) {
       // If yMin and yMax are identical, then
@@ -233,17 +230,41 @@ export default class Range {
           // fix https://github.com/apexcharts/apexcharts.js/issues/492
           gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount)
         } else {
+          const noMinMaxProvided =
+            (cnf.yaxis[index].max === undefined &&
+              cnf.yaxis[index].min === undefined) ||
+            cnf.yaxis[index].forceNiceScale
           gl.yAxisScale[index] = this.niceScale(
             minY,
             maxY,
             diff,
             index,
             // fix https://github.com/apexcharts/apexcharts.js/issues/397
-            y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5
+            y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
+            noMinMaxProvided
           )
         }
       }
     }
+  }
+
+  setXScale(minX, maxX) {
+    const w = this.w
+    const gl = w.globals
+    const x = w.config.xaxis
+    let diff = Math.abs(maxX - minX)
+    if (maxX === -Number.MAX_VALUE || !Utils.isNumber(maxX)) {
+      // no data in the chart. Either all series collapsed or user passed a blank array
+      gl.xAxisScale = this.linearScale(0, 5, 5)
+    } else {
+      gl.xAxisScale = this.niceScale(
+        minX,
+        maxX,
+        diff,
+        x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5
+      )
+    }
+    return gl.xAxisScale
   }
 
   setMultipleYScales() {

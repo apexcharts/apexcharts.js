@@ -292,30 +292,6 @@ class Range {
       }
     }
 
-    // bar chart specific
-    // for numeric xaxis, we need to adjust some padding left and right for bar charts
-    // if (
-    //   gl.comboChartsHasBars ||
-    //   cnf.chart.type === 'candlestick' ||
-    //   (cnf.chart.type === 'bar' && gl.isXNumeric)
-    // ) {
-    //   if (cnf.xaxis.type !== 'category' || gl.isXNumeric) {
-    //     const t =
-    //       (gl.svgWidth / gl.dataPoints) *
-    //       (Math.abs(gl.maxX - gl.minX) / gl.svgWidth)
-
-    //     // some padding to the left to prevent cropping of the bars
-    //     const minX = gl.minX - t / 2
-    //     gl.minX = minX
-    //     gl.initialminX = minX
-
-    //     // some padding to the right to prevent cropping of the bars
-    //     const maxX = gl.maxX + t / ((gl.series.length + 1) / gl.series.length)
-    //     gl.maxX = maxX
-    //     gl.initialmaxX = maxX
-    //   }
-    // }
-
     if (gl.isXNumeric || gl.noLabelsProvided || gl.dataFormatXNumeric) {
       let ticks
 
@@ -332,7 +308,9 @@ class Range {
           ticks = gl.dataPoints - 1
         }
       } else if (cnf.xaxis.tickAmount === 'dataPoints') {
-        ticks = gl.series[gl.maxValsInArrayIndex].length - 1
+        if (gl.series.length > 1) {
+          ticks = gl.series[gl.maxValsInArrayIndex].length - 1
+        }
         if (gl.isXNumeric) {
           ticks = gl.maxX - gl.minX - 1
         }
@@ -366,7 +344,7 @@ class Range {
             niceMax: catScale[catScale.length - 1]
           }
         } else {
-          gl.xAxisScale = this.scales.linearScale(gl.minX, gl.maxX, ticks)
+          gl.xAxisScale = this.scales.setXScale(gl.minX, gl.maxX)
         }
       } else {
         gl.xAxisScale = this.scales.linearScale(1, ticks, ticks)

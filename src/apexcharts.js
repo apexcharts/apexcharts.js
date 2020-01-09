@@ -119,7 +119,6 @@ export default class ApexCharts {
         if (!graphData) return resolve(this)
         this.mount(graphData)
           .then(() => {
-
             if (typeof this.w.config.chart.events.mounted === 'function') {
               this.w.config.chart.events.mounted(this, this.w)
             }
@@ -320,7 +319,6 @@ export default class ApexCharts {
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
       }
-      me.annotations = new Annotations(me)
       me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
 
       me.grid = new Grid(me)
@@ -336,6 +334,7 @@ export default class ApexCharts {
         yaxis.setYAxisTextAlignments()
       }
 
+      me.annotations = new Annotations(me)
       if (w.config.annotations.position === 'back') {
         me.annotations.drawAnnotations()
       }
@@ -384,7 +383,7 @@ export default class ApexCharts {
             })
           }
         }
-        
+
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
           me.toolbar.createToolbar()
         }

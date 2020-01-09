@@ -61,16 +61,12 @@ export default class Dimensions {
       this.xPadRight -
       this.xPadLeft
 
-    // Below code is for automatically padding columns in zoomable charts.
-    // Causes more issues, hence commented for now
     let barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth)
 
     gl.gridWidth = gl.gridWidth - barWidth * 2
 
     gl.translateX = gl.translateX + this.gridPad.left + this.xPadLeft + barWidth
     gl.translateY = gl.translateY + this.gridPad.top
-
-    // gl.padHorizontal = 0 //this.xPadLeft
   }
 
   setDimensionsForAxisCharts() {
@@ -247,7 +243,7 @@ export default class Dimensions {
     this.xAxisHeight =
       (xaxisLabelCoords.height + xtitleCoords.height) *
         (w.globals.isMultiLineX ? 1.2 : w.globals.LINE_HEIGHT_RATIO) +
-      15
+      (w.globals.rotateXLabels ? 22 : 10)
 
     this.xAxisWidth = xaxisLabelCoords.width
 

@@ -30,6 +30,7 @@ class Bar {
 
     if (this.xyRatios !== null) {
       this.xRatio = xyRatios.xRatio
+      this.initialXRatio = xyRatios.initialXRatio
       this.yRatio = xyRatios.yRatio
       this.invertedXRatio = xyRatios.invertedXRatio
       this.invertedYRatio = xyRatios.invertedYRatio

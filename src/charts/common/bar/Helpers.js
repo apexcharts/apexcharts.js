@@ -74,6 +74,9 @@ export default class Helpers {
     } else {
       // width divided into equal parts
       xDivision = w.globals.gridWidth / this.barCtx.visibleItems
+      if (w.config.xaxis.convertedCatToNumeric) {
+        xDivision = w.globals.gridWidth / w.globals.dataPoints
+      }
       barWidth =
         ((xDivision / this.barCtx.seriesLen) *
           parseInt(this.barCtx.barOptions.columnWidth, 10)) /
@@ -81,8 +84,12 @@ export default class Helpers {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        if (w.globals.minXDiff && w.globals.minXDiff / this.barCtx.xRatio > 0) {
-          xDivision = w.globals.minXDiff / this.barCtx.xRatio
+        let xRatio = this.barCtx.xRatio
+        if (w.config.xaxis.convertedCatToNumeric) {
+          xRatio = this.barCtx.initialXRatio
+        }
+        if (w.globals.minXDiff && w.globals.minXDiff / xRatio > 0) {
+          xDivision = w.globals.minXDiff / xRatio
         }
         barWidth =
           ((xDivision / this.barCtx.seriesLen) *

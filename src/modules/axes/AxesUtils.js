@@ -148,32 +148,4 @@ export default class AxesUtils {
       }
     }
   }
-
-  getCatLabelsByTickAmount() {
-    const w = this.w
-    let labels = []
-    let min = w.globals.labels[0]
-    let max = w.globals.labels[w.globals.labels.length - 1]
-    let range = max - min
-
-    let ticks = Math.round(w.globals.gridWidth / 40)
-
-    if (range < 30) {
-      ticks = range
-    }
-
-    if (ticks > 5) {
-      for (let i = min; i <= max; i++) {
-        if (i % Math.floor(max / ticks) === 0) {
-          labels.push(i)
-        }
-      }
-    } else {
-      for (let i = min; i <= max; i++) {
-        labels.push(i)
-      }
-    }
-
-    return labels
-  }
 }

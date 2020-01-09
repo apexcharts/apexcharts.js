@@ -143,7 +143,7 @@
               },
               events: {
                 mounted: function (chart) {
-                  var commitsEl = document.querySelector('p span.commits');
+                  var commitsEl = document.querySelector('.cmeta span.commits');
                   var commits = chart.getSeriesTotalXRange(chart.w.globals.minX, chart.w.globals.maxX)
             
                   commitsEl.innerHTML = commits

@@ -23,14 +23,8 @@ export default class PointAnnotations {
       if (w.config.xaxis.convertedCatToNumeric) {
         catIndex = w.globals.categoryLabels.indexOf(anno.x)
       }
-      const xLabel = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
-      )
 
-      if (!xLabel) return
-      const xPos = parseFloat(xLabel.getAttribute('x'))
-
-      x = xPos
+      x = this.annoCtx.helpers.getStringX(anno.x)
 
       let annoY = anno.y
       if (anno.y === null) {

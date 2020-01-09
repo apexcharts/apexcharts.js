@@ -19,8 +19,6 @@ export default class XAxis {
     if (w.globals.timescaleLabels.length > 0 && !w.globals.isBarHorizontal) {
       //  timeline labels are there and chart is not rangeabr timeline
       this.xaxisLabels = w.globals.timescaleLabels.slice()
-    } else if (w.globals.isXNumeric) {
-      this.xaxisLabels = this.axesUtils.getCatLabelsByTickAmount()
     }
 
     this.drawnLabels = []
@@ -112,6 +110,12 @@ export default class XAxis {
 
         label = this.axesUtils.checkForCroppedLabels(i, label, labelsLen)
 
+        const getCatForeColor = () => {
+          return w.config.xaxis.convertedCatToNumeric
+            ? this.xaxisForeColors[w.globals.minX + i - 1]
+            : this.xaxisForeColors[i]
+        }
+
         let elText = graphics.drawText({
           x: label.x,
           y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
@@ -121,7 +125,7 @@ export default class XAxis {
           fontSize: this.xaxisFontSize,
           fontFamily: this.xaxisFontFamily,
           foreColor: Array.isArray(this.xaxisForeColors)
-            ? this.xaxisForeColors[i]
+            ? getCatForeColor()
             : this.xaxisForeColors,
           isPlainText: false,
           cssClass:

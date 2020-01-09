@@ -45,8 +45,6 @@ export default class DimGrid {
         xDivision = w.globals.minXDiff / xRatio
       }
 
-      // barWidth = xDivision / seriesLen
-
       barWidth =
         ((xDivision / seriesLen) *
           parseInt(w.config.plotOptions.bar.columnWidth, 10)) /
@@ -56,9 +54,9 @@ export default class DimGrid {
         barWidth = 1
       }
 
-      barWidth = barWidth / 1.5
+      barWidth = barWidth / (seriesLen > 1 ? 1 : 1.5)
 
-      w.globals.barPadForNumericAxis = barWidth
+      w.globals.barPadForNumericAxis = barWidth * 1.5
     }
     return barWidth
   }

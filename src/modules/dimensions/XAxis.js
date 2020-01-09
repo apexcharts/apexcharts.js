@@ -17,6 +17,9 @@ export default class DimXAxis {
     let w = this.w
 
     let xaxisLabels = w.globals.labels.slice()
+    if (w.config.xaxis.convertedCatToNumeric && xaxisLabels.length === 0) {
+      xaxisLabels = w.config.xaxis.defaultCategories
+    }
 
     let rect
 
@@ -26,6 +29,7 @@ export default class DimXAxis {
         width: coords.width,
         height: coords.height
       }
+      w.globals.rotateXLabels = false
     } else {
       this.dCtx.lgWidthForSideLegends =
         (w.config.legend.position === 'left' ||
@@ -64,8 +68,16 @@ export default class DimXAxis {
       val = xFormat.xLabelFormat(xlbFormatter, val, timestamp)
       valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp)
 
-      let graphics = new Graphics(this.dCtx.ctx)
+      if (
+        w.config.xaxis.convertedCatToNumeric &&
+        typeof val === 'undefined' &&
+        w.globals.collapsedSeries.length === w.config.series.length
+      ) {
+        val = '1'
+        valArr = val
+      }
 
+      let graphics = new Graphics(this.dCtx.ctx)
       let xLabelrect = graphics.getTextRects(
         val,
         w.config.xaxis.labels.style.fontSize
