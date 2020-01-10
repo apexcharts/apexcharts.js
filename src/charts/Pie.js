@@ -570,12 +570,7 @@ class Pie {
 
     if (angle === 360) return
 
-    elPath
-      .plot(path)
-      .animate(1)
-      .plot(pathFrom)
-      .animate(100)
-      .plot(path)
+    elPath.plot(path)
   }
 
   getChangedPath(prevStartAngle, prevEndAngle) {
@@ -702,7 +697,13 @@ class Pie {
       }
     }
 
-    name = dataLabelsConfig.name.formatter(name, true, w)
+    if (name) {
+      name = dataLabelsConfig.name.formatter(
+        name,
+        dataLabelsConfig.total.show,
+        w
+      )
+    }
 
     if (dataLabelsConfig.name.show) {
       let elLabel = graphics.drawText({
