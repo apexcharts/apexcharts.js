@@ -91,7 +91,7 @@ class CoreUtils {
 
   getCategoryLabels(labels) {
     const w = this.w
-    let catLabels = []
+    let catLabels = labels.slice()
     if (w.config.xaxis.convertedCatToNumeric) {
       catLabels = labels.map((i) => {
         return w.config.xaxis.labels.formatter(i - w.globals.minX + 1)

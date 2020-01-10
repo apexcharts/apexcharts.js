@@ -125,8 +125,13 @@ export default class Helpers {
     let rX = x
 
     const coreUtils = new CoreUtils(this.annoCtx.ctx)
+    let labels = w.globals.labels
+
     // w.globals.labels is changed at this point for xaxis.convertedCatToNumeric, hence passing is as param instead of directly getting in the getCategoryLabels function
-    let labels = coreUtils.getCategoryLabels(w.globals.labels)
+
+    if (w.config.xaxis.convertedCatToNumeric) {
+      labels = coreUtils.getCategoryLabels(w.globals.labels)
+    }
 
     let catIndex = labels.indexOf(x)
     const xLabel = w.globals.dom.baseEl.querySelector(
