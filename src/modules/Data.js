@@ -352,6 +352,10 @@ export default class Data {
     const xlabels =
       cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
 
+    if (cnf.xaxis.type === 'datetime') {
+      cnf.xaxis.convertedCatToNumeric = false
+    }
+
     const handleDates = () => {
       for (let j = 0; j < xlabels.length; j++) {
         if (typeof xlabels[j] === 'string') {
@@ -454,6 +458,7 @@ export default class Data {
   parseDataNonAxisCharts(ser) {
     const gl = this.w.globals
     const cnf = this.w.config
+    cnf.xaxis.convertedCatToNumeric = false
 
     gl.series = ser.slice()
     gl.seriesNames = cnf.labels.slice()

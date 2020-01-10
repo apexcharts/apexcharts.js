@@ -1,12 +1,6 @@
 import Defaults from './Defaults'
 import Utils from './../../utils/Utils'
 import Options from './Options'
-import { optionYAxis } from './options/axes'
-import {
-  optionXAxisAnnotation,
-  optionYAxisAnnotation,
-  optionPointAnnotation
-} from './options/annotations'
 
 /**
  * ApexCharts Config Class for extending user options with pre-defined ApexCharts config.
@@ -137,6 +131,8 @@ export default class Config {
   }
 
   extendYAxis(opts) {
+    let options = new Options()
+
     if (
       typeof opts.yaxis === 'undefined' ||
       !opts.yaxis ||
@@ -158,9 +154,9 @@ export default class Config {
     // user can provide either an array or object in yaxis config
     if (opts.yaxis.constructor !== Array) {
       // convert the yaxis to array if user supplied object
-      opts.yaxis = [Utils.extend(optionYAxis, opts.yaxis)]
+      opts.yaxis = [Utils.extend(options.yAxis, opts.yaxis)]
     } else {
-      opts.yaxis = Utils.extendArray(opts.yaxis, optionYAxis)
+      opts.yaxis = Utils.extendArray(opts.yaxis, options.yAxis)
     }
 
     let isLogY = false
@@ -181,7 +177,7 @@ export default class Config {
           opts.yaxis[i].seriesName = opts.series[i].name
           return opts.yaxis[i]
         } else {
-          const newYaxis = Utils.extend(optionYAxis, opts.yaxis[0])
+          const newYaxis = Utils.extend(options.yAxis, opts.yaxis[0])
           newYaxis.show = false
           return newYaxis
         }
@@ -207,30 +203,36 @@ export default class Config {
   }
 
   extendYAxisAnnotations(opts) {
+    let options = new Options()
+
     opts.annotations.yaxis = Utils.extendArray(
       typeof opts.annotations.yaxis !== 'undefined'
         ? opts.annotations.yaxis
         : [],
-      optionYAxisAnnotation
+      options.yAxisAnnotation
     )
     return opts
   }
 
   extendXAxisAnnotations(opts) {
+    let options = new Options()
+
     opts.annotations.xaxis = Utils.extendArray(
       typeof opts.annotations.xaxis !== 'undefined'
         ? opts.annotations.xaxis
         : [],
-      optionXAxisAnnotation
+      options.xAxisAnnotation
     )
     return opts
   }
   extendPointAnnotations(opts) {
+    let options = new Options()
+
     opts.annotations.points = Utils.extendArray(
       typeof opts.annotations.points !== 'undefined'
         ? opts.annotations.points
         : [],
-      optionPointAnnotation
+      options.pointAnnotation
     )
     return opts
   }

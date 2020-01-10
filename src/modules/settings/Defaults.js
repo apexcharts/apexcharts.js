@@ -96,9 +96,6 @@ export default class Defaults {
         stacked: false,
         animations: {
           easing: 'swing'
-        },
-        zoom: {
-          enabled: false
         }
       },
       plotOptions: {
@@ -202,11 +199,6 @@ export default class Defaults {
 
   rangeBar() {
     return {
-      chart: {
-        zoom: {
-          enabled: false
-        }
-      },
       stroke: {
         width: 0
       },
@@ -467,10 +459,7 @@ export default class Defaults {
   heatmap() {
     return {
       chart: {
-        stacked: false,
-        zoom: {
-          enabled: false
-        }
+        stacked: false
       },
       fill: {
         opacity: 1
@@ -511,9 +500,6 @@ export default class Defaults {
   pie() {
     return {
       chart: {
-        zoom: {
-          enabled: false
-        },
         toolbar: {
           show: false
         }
@@ -567,9 +553,6 @@ export default class Defaults {
   donut() {
     return {
       chart: {
-        zoom: {
-          enabled: false
-        },
         toolbar: {
           show: false
         }
@@ -620,11 +603,6 @@ export default class Defaults {
       : 6
 
     return {
-      chart: {
-        zoom: {
-          enabled: false
-        }
-      },
       dataLabels: {
         enabled: false,
         style: {

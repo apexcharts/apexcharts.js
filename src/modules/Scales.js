@@ -11,6 +11,10 @@ export default class Range {
   niceScale(yMin, yMax, diff, index = 0, ticks = 10, NO_MIN_MAX_PROVIDED) {
     const w = this.w
 
+    if (ticks === 'dataPoints') {
+      ticks = w.globals.dataPoints - 1
+    }
+
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
       (!Utils.isNumber(yMin) && !Utils.isNumber(yMax)) ||

@@ -4,11 +4,7 @@ import Helpers from './Helpers'
 import XAxisAnnotations from './XAxisAnnotations'
 import YAxisAnnotations from './YAxisAnnotations'
 import PointsAnnotations from './PointsAnnotations'
-import {
-  optionXAxisAnnotation,
-  optionYAxisAnnotation,
-  optionPointAnnotation
-} from '../settings/options/annotations'
+import Options from './../settings/Options'
 
 /**
  * ApexCharts Annotations Class for drawing lines/rects on both xaxis and yaxis.
@@ -246,13 +242,14 @@ export default class Annotations {
     )
     const index = parent.childNodes.length + 1
 
+    const options = new Options()
     const axesAnno = Object.assign(
       {},
       type === 'xaxis'
-        ? optionXAxisAnnotation
+        ? options.xAxisAnnotation
         : type === 'yaxis'
-        ? optionYAxisAnnotation
-        : optionPointAnnotation
+        ? options.yAxisAnnotation
+        : options.pointAnnotation
     )
 
     const anno = Utils.extend(axesAnno, params)

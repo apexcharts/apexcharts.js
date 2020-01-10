@@ -382,6 +382,14 @@ export default class ApexCharts {
               xyRatios: graphData.xyRatios
             })
           }
+        } else {
+          const tools = w.config.chart.toolbar.tools
+          tools.zoom = false
+          tools.zoomin = false
+          tools.zoomout = false
+          tools.selection = false
+          tools.pan = false
+          tools.reset = false
         }
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
