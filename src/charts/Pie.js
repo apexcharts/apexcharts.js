@@ -534,8 +534,6 @@ class Pie {
       `.apexcharts-${w.config.chart.type.toLowerCase()}-slice-${i}`
     ).members[0]
 
-    let pathFrom = elPath.attr('d')
-
     if (elPath.attr('data:pieClicked') === 'true') {
       elPath.attr({
         'data:pieClicked': 'false'
