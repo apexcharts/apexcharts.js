@@ -97,7 +97,7 @@ export const optionPlotOptions = {
         color: undefined,
         offsetY: 0,
         formatter(val) {
-          return val + '%'
+          return val
         }
       },
       value: {

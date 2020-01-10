@@ -84,10 +84,17 @@ export default class Config {
       opts.xaxis = opts.xaxis || window.Apex.xaxis || {}
 
       const isBarHorizontal =
-        opts.chart.type === 'bar' &&
+        this.chartType === 'bar' &&
         opts.plotOptions &&
         opts.plotOptions.bar &&
         opts.plotOptions.bar.horizontal
+
+      const unsupportedZoom =
+        this.chartType === 'pie' ||
+        this.chartType === 'donut' ||
+        this.chartType === 'radar' ||
+        this.chartType === 'radialBar' ||
+        this.chartType === 'heatmap'
 
       const notNumericXAxis =
         opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
@@ -95,7 +102,12 @@ export default class Config {
       let tickPlacement = opts.xaxis.tickPlacement
         ? opts.xaxis.tickPlacement
         : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement
-      if (!isBarHorizontal && notNumericXAxis && tickPlacement !== 'between') {
+      if (
+        !isBarHorizontal &&
+        !unsupportedZoom &&
+        notNumericXAxis &&
+        tickPlacement !== 'between'
+      ) {
         opts = Defaults.convertCatToNumeric(opts)
       }
       if (

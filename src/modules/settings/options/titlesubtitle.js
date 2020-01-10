@@ -1,7 +1,7 @@
 export const optionTitle = {
   text: undefined,
   align: 'left',
-  margin: 10,
+  margin: 5,
   offsetX: 0,
   offsetY: 0,
   floating: false,
@@ -15,7 +15,7 @@ export const optionTitle = {
 export const optionSubtitle = {
   text: undefined,
   align: 'left',
-  margin: 10,
+  margin: 5,
   offsetX: 0,
   offsetY: 30,
   floating: false,
