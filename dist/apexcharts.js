@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.13.0
+ * ApexCharts v3.13.1
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -5568,7 +5568,7 @@
           color: undefined,
           offsetY: 0,
           formatter: function formatter(val) {
-            return val + '%';
+            return val;
           }
         },
         value: {
@@ -5800,7 +5800,7 @@
   var optionTitle = {
     text: undefined,
     align: 'left',
-    margin: 10,
+    margin: 5,
     offsetX: 0,
     offsetY: 0,
     floating: false,
@@ -5813,7 +5813,7 @@
   var optionSubtitle = {
     text: undefined,
     align: 'left',
-    margin: 10,
+    margin: 5,
     offsetX: 0,
     offsetY: 30,
     floating: false,
@@ -6068,11 +6068,12 @@
           this.checkForDarkTheme(opts); // check locally passed options
 
           opts.xaxis = opts.xaxis || window.Apex.xaxis || {};
-          var isBarHorizontal = opts.chart.type === 'bar' && opts.plotOptions && opts.plotOptions.bar && opts.plotOptions.bar.horizontal;
+          var isBarHorizontal = this.chartType === 'bar' && opts.plotOptions && opts.plotOptions.bar && opts.plotOptions.bar.horizontal;
+          var unsupportedZoom = this.chartType === 'pie' || this.chartType === 'donut' || this.chartType === 'radar' || this.chartType === 'radialBar' || this.chartType === 'heatmap';
           var notNumericXAxis = opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric';
           var tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
 
-          if (!isBarHorizontal && notNumericXAxis && tickPlacement !== 'between') {
+          if (!isBarHorizontal && !unsupportedZoom && notNumericXAxis && tickPlacement !== 'between') {
             opts = Defaults.convertCatToNumeric(opts);
           }
 
@@ -10095,7 +10096,6 @@
         var path;
         var size = me.w.globals.radialSize + (w.config.plotOptions.pie.expandOnClick ? 4 : 0);
         var elPath = w.globals.dom.Paper.select(".apexcharts-".concat(w.config.chart.type.toLowerCase(), "-slice-").concat(i)).members[0];
-        var pathFrom = elPath.attr('d');
 
         if (elPath.attr('data:pieClicked') === 'true') {
           elPath.attr({
@@ -10127,7 +10127,7 @@
           size: size
         });
         if (angle === 360) return;
-        elPath.plot(path).animate(1).plot(pathFrom).animate(100).plot(path);
+        elPath.plot(path);
       }
     }, {
       key: "getChangedPath",
@@ -10220,7 +10220,9 @@
           }
         }
 
-        name = dataLabelsConfig.name.formatter(name, true, w);
+        if (name) {
+          name = dataLabelsConfig.name.formatter(name, dataLabelsConfig.total.show, w);
+        }
 
         if (dataLabelsConfig.name.show) {
           var elLabel = graphics.drawText({
