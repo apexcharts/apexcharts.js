@@ -785,6 +785,7 @@ export default class Options {
       xaxis: {
         type: 'category',
         categories: [],
+        convertedCatToNumeric: false, // internal property which should not be altered outside
         offsetX: 0,
         offsetY: 0,
         labels: {

@@ -271,8 +271,8 @@ export default class DimXAxis {
           gl.skipLastTimelinelabel = true
         }
       } else if (xtype !== 'datetime') {
-        if (w.globals.convertedCatToNumeric) {
-          lbWidth = predictedGridWidth / gl.label.length
+        if (w.config.xaxis.convertedCatToNumeric) {
+          lbWidth = predictedGridWidth / gl.labels.length
         }
         if (
           this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight &&

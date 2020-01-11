@@ -209,6 +209,11 @@ export default class ApexCharts {
 
     this.responsive.checkResponsiveConfig(opts)
 
+    if (w.config.xaxis.convertedCatToNumeric) {
+      const defaults = new Defaults(w.config)
+      defaults.convertCatToNumericXaxis(w.config)
+    }
+
     if (this.el === null) {
       gl.animationEnded = true
       return null
@@ -458,18 +463,7 @@ export default class ApexCharts {
     }
     // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
     if (options.xaxis) {
-      if (options.xaxis.min || options.xaxis.max) {
-        this.forceXAxisUpdate(options)
-      }
-
-      /* fixes apexcharts.js#369 and react-apexcharts#46 */
-      if (
-        options.xaxis.categories &&
-        options.xaxis.categories.length &&
-        w.config.xaxis.convertedCatToNumeric
-      ) {
-        options = Defaults.convertCatToNumeric(options)
-      }
+      options = this.forceXAxisUpdate(options)
     }
     if (w.globals.collapsedSeriesIndices.length > 0) {
       this.clearPreviousPaths()
@@ -717,6 +711,16 @@ export default class ApexCharts {
         w.globals.lastXAxis[a] = options.xaxis[a]
       }
     })
+
+    if (options.xaxis.categories && options.xaxis.categories.length) {
+      w.config.xaxis.categories = options.xaxis.categories
+    }
+
+    if (w.config.xaxis.convertedCatToNumeric) {
+      const defaults = new Defaults(options)
+      options = defaults.convertCatToNumericXaxis(options)
+    }
+    return options
   }
 
   /**

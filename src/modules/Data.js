@@ -352,10 +352,6 @@ export default class Data {
     const xlabels =
       cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
 
-    if (cnf.xaxis.type === 'datetime') {
-      cnf.xaxis.convertedCatToNumeric = false
-    }
-
     const handleDates = () => {
       for (let j = 0; j < xlabels.length; j++) {
         if (typeof xlabels[j] === 'string') {
@@ -402,6 +398,8 @@ export default class Data {
       }
 
       if (this.isMultiFormat()) {
+        // TODO: the following needs to be modified because a series in xy format can also have categories and it can be converted to numeric axis.
+        // This is the reason why range column charts currently don't support zooming in categories because range column charts provide series in xy format
         cnf.xaxis.convertedCatToNumeric = false
 
         if (this.isFormat2DArray()) {
@@ -458,7 +456,6 @@ export default class Data {
   parseDataNonAxisCharts(ser) {
     const gl = this.w.globals
     const cnf = this.w.config
-    cnf.xaxis.convertedCatToNumeric = false
 
     gl.series = ser.slice()
     gl.seriesNames = cnf.labels.slice()

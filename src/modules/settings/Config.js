@@ -77,6 +77,10 @@ export default class Config {
 
       opts.xaxis = opts.xaxis || window.Apex.xaxis || {}
 
+      // an important boolean needs to be set here
+      // otherwise all the charts will have this flag set to true window.Apex.xaxis is set globally
+      opts.xaxis.convertedCatToNumeric = false
+
       const isBarHorizontal =
         this.chartType === 'bar' &&
         opts.plotOptions &&
@@ -102,7 +106,7 @@ export default class Config {
         notNumericXAxis &&
         tickPlacement !== 'between'
       ) {
-        opts = Defaults.convertCatToNumeric(opts)
+        opts = defaults.convertCatToNumeric(opts)
       }
       if (
         (opts.chart.sparkline && opts.chart.sparkline.enabled) ||
