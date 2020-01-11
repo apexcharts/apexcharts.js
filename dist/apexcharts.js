@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.13.2
+ * ApexCharts v3.14.0
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -3535,6 +3535,8 @@
           xaxis: {
             type: 'category',
             categories: [],
+            convertedCatToNumeric: false,
+            // internal property which should not be altered outside
             offsetX: 0,
             offsetY: 0,
             labels: {
@@ -5685,6 +5687,36 @@
       } // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
 
     }, {
+      key: "convertCatToNumeric",
+      value: function convertCatToNumeric(opts) {
+        opts.xaxis.convertedCatToNumeric = true;
+        return opts;
+      }
+    }, {
+      key: "convertCatToNumericXaxis",
+      value: function convertCatToNumericXaxis(opts) {
+        opts.xaxis.type = 'numeric';
+        opts.xaxis.labels = opts.xaxis.labels || {};
+
+        opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function (val) {
+          return Utils.isNumber(val) ? Math.floor(val) : val;
+        };
+
+        var defaultFormatter = opts.xaxis.labels.formatter;
+        var labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels;
+
+        if (labels && labels.length) {
+          opts.xaxis.labels.formatter = function (val) {
+            return defaultFormatter(labels[Math.floor(val) - 1]);
+          };
+        }
+
+        opts.xaxis.categories = [];
+        opts.labels = [];
+        opts.xaxis.tickAmount = 'dataPoints';
+        return opts;
+      }
+    }, {
       key: "bubble",
       value: function bubble() {
         return {
@@ -5967,32 +5999,6 @@
           }
         };
       }
-    }], [{
-      key: "convertCatToNumeric",
-      value: function convertCatToNumeric(opts) {
-        opts.xaxis.type = 'numeric';
-        opts.xaxis.convertedCatToNumeric = true;
-        opts.xaxis.labels = opts.xaxis.labels || {};
-
-        opts.xaxis.labels.formatter = opts.xaxis.labels.formatter || function (val) {
-          return Utils.isNumber(val) ? Math.floor(val) : val;
-        };
-
-        opts.chart = opts.chart || {};
-        var defaultFormatter = opts.xaxis.labels.formatter;
-        var labels = opts.xaxis.categories && opts.xaxis.categories.length ? opts.xaxis.categories : opts.labels;
-
-        if (labels && labels.length) {
-          opts.xaxis.labels.formatter = function (val) {
-            return defaultFormatter(labels[Math.floor(val) - 1]);
-          };
-        }
-
-        opts.xaxis.categories = [];
-        opts.labels = [];
-        opts.xaxis.tickAmount = 'dataPoints';
-        return opts;
-      }
     }]);
 
     return Defaults;
@@ -6061,14 +6067,17 @@
 
           this.checkForDarkTheme(opts); // check locally passed options
 
-          opts.xaxis = opts.xaxis || window.Apex.xaxis || {};
+          opts.xaxis = opts.xaxis || window.Apex.xaxis || {}; // an important boolean needs to be set here
+          // otherwise all the charts will have this flag set to true window.Apex.xaxis is set globally
+
+          opts.xaxis.convertedCatToNumeric = false;
           var isBarHorizontal = this.chartType === 'bar' && opts.plotOptions && opts.plotOptions.bar && opts.plotOptions.bar.horizontal;
           var unsupportedZoom = this.chartType === 'pie' || this.chartType === 'donut' || this.chartType === 'radar' || this.chartType === 'radialBar' || this.chartType === 'heatmap';
           var notNumericXAxis = opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric';
           var tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
 
           if (!isBarHorizontal && !unsupportedZoom && notNumericXAxis && tickPlacement !== 'between') {
-            opts = Defaults.convertCatToNumeric(opts);
+            opts = defaults.convertCatToNumeric(opts);
           }
 
           if (opts.chart.sparkline && opts.chart.sparkline.enabled || window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled) {
@@ -11827,8 +11836,8 @@
               gl.skipLastTimelinelabel = true;
             }
           } else if (xtype !== 'datetime') {
-            if (w.globals.convertedCatToNumeric) {
-              lbWidth = predictedGridWidth / gl.label.length;
+            if (w.config.xaxis.convertedCatToNumeric) {
+              lbWidth = predictedGridWidth / gl.labels.length;
             }
 
             if (_this.dCtx.gridPad.right < lbWidth / 2 - _this.dCtx.yAxisWidthRight && !gl.rotateXLabels) {
@@ -16561,10 +16570,6 @@
         var dt = new DateTime(ctx);
         var xlabels = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice();
 
-        if (cnf.xaxis.type === 'datetime') {
-          cnf.xaxis.convertedCatToNumeric = false;
-        }
-
         var handleDates = function handleDates() {
           for (var j = 0; j < xlabels.length; j++) {
             if (typeof xlabels[j] === 'string') {
@@ -16603,6 +16608,8 @@
           }
 
           if (this.isMultiFormat()) {
+            // TODO: the following needs to be modified because a series in xy format can also have categories and it can be converted to numeric axis.
+            // This is the reason why range column charts currently don't support zooming in categories because range column charts provide series in xy format
             cnf.xaxis.convertedCatToNumeric = false;
 
             if (this.isFormat2DArray()) {
@@ -16661,7 +16668,6 @@
       value: function parseDataNonAxisCharts(ser) {
         var gl = this.w.globals;
         var cnf = this.w.config;
-        cnf.xaxis.convertedCatToNumeric = false;
         gl.series = ser.slice();
         gl.seriesNames = cnf.labels.slice();
 
@@ -27322,6 +27328,11 @@
         gl.animationEnded = false;
         this.responsive.checkResponsiveConfig(opts);
 
+        if (w.config.xaxis.convertedCatToNumeric) {
+          var defaults = new Defaults(w.config);
+          defaults.convertCatToNumericXaxis(w.config);
+        }
+
         if (this.el === null) {
           gl.animationEnded = true;
           return null;
@@ -27552,15 +27563,7 @@
 
 
         if (options.xaxis) {
-          if (options.xaxis.min || options.xaxis.max) {
-            this.forceXAxisUpdate(options);
-          }
-          /* fixes apexcharts.js#369 and react-apexcharts#46 */
-
-
-          if (options.xaxis.categories && options.xaxis.categories.length && w.config.xaxis.convertedCatToNumeric) {
-            options = Defaults.convertCatToNumeric(options);
-          }
+          options = this.forceXAxisUpdate(options);
         }
 
         if (w.globals.collapsedSeriesIndices.length > 0) {
@@ -27823,6 +27826,17 @@
             w.globals.lastXAxis[a] = options.xaxis[a];
           }
         });
+
+        if (options.xaxis.categories && options.xaxis.categories.length) {
+          w.config.xaxis.categories = options.xaxis.categories;
+        }
+
+        if (w.config.xaxis.convertedCatToNumeric) {
+          var defaults = new Defaults(options);
+          options = defaults.convertCatToNumericXaxis(options);
+        }
+
+        return options;
       }
       /**
        * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
