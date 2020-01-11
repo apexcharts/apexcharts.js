@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Basic Column - Grouped</title>
+    <title>Thumbnails</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -12,6 +12,18 @@
       #chart {
         max-width: 650px;
         margin: 35px auto;
+      }
+      .flex-grid {
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        text-align: center;
+      }
+
+      .flex-grid .flex-col-one-of-three {
+        flex-basis: 33.33%;
+        max-width: 33.33%;
       }
     </style>
 
@@ -30,10 +42,7 @@
 
   <body>
     <div class="flex-grid">
-      <a
-        href="<?php echo get_permalink($permalinks[0]); ?>"
-        class="$permalinks[0]"
-      >
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-line"></div>
@@ -42,11 +51,8 @@
             LINE
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[1]); ?>"
-        class="$permalinks[1]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-area"></div>
@@ -55,11 +61,8 @@
             AREA
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[2]); ?>"
-        class="$permalinks[2]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-column"></div>
@@ -68,11 +71,8 @@
             COLUMN
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[3]); ?>"
-        class="$permalinks[3]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-bar"></div>
@@ -81,11 +81,8 @@
             BAR
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[4]); ?>"
-        class="$permalinks[4]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-mixed"></div>
@@ -94,11 +91,8 @@
             MIXED
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[5]); ?>"
-        class="$permalinks[5]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-timeline"></div>
@@ -107,11 +101,8 @@
             TIMELINE
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[6]); ?>"
-        class="$permalinks[6]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-candlestick"></div>
@@ -120,11 +111,8 @@
             CANDLESTICK
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[7]); ?>"
-        class="$permalinks[7]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-bubble"></div>
@@ -133,11 +121,8 @@
             BUBBLE
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[8]); ?>"
-        class="$permalinks[8]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-scatter"></div>
@@ -146,11 +131,8 @@
             SCATTER
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[9]); ?>"
-        class="$permalinks[9]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-heatmap"></div>
@@ -159,11 +141,8 @@
             HEATMAP
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[10]); ?>"
-        class="$permalinks[10]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-donut"></div>
@@ -172,11 +151,8 @@
             PIE
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[11]); ?>"
-        class="$permalinks[11]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-radialbar"></div>
@@ -185,11 +161,8 @@
             RADIALBAR
           </div>
         </div>
-      </a>
-      <a
-        href="<?php echo get_permalink($permalinks[12]); ?>"
-        class="$permalinks[12]"
-      >
+      </div>
+      <div class="flex-col-one-of-three">
         <div class="demo-thumb thumbnail dropshadow">
           <div class="demo-thumb-chart">
             <div class="demo-thumb-chart-radar"></div>
@@ -198,25 +171,7 @@
             RADAR
           </div>
         </div>
-      </a>
-      <!-- <a
-        href="<?php echo get_permalink(1228); ?>"
-        class="flex-col-two-of-three col-sm-full <?php echo $isDemoMainPage === false ? 'hide' : '' ?>"
-      >
-        <div class="demo-thumb thumbnail dropshadow">
-          <div class="demo-thumb-chart demo-thumb-dashboard">
-            <img
-              class="img-responsive"
-              style="top: 0; height: 100%;"
-              src="<?php echo get_template_directory_uri(); ?>/img/demo-thumbnails/demo-dashboard.png"
-              alt="Apexcharts Dashboard Templates"
-            />
-          </div>
-          <div class="demo-thumb-text">
-            DASHBOARDS
-          </div>
-        </div>
-      </a> -->
+      </div>
     </div>
 
     <script>
@@ -245,7 +200,7 @@
       window.Apex = {
         chart: {
           height: 188,
-          // stacked: true,
+          stacked: true,
           animations: {
             enabled: false
           },
@@ -287,7 +242,8 @@
           labels: {
             show: false
           }
-        }
+        },
+        labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
       }
 
       var optionsLine = {
@@ -413,7 +369,6 @@
       var optionsMixed = {
         chart: {
           type: 'line',
-          id: 'mixed',
           stacked: false
         },
         stroke: {
@@ -449,21 +404,21 @@
           size: 0
         },
         xaxis: {
-          type: 'datetime',
-          categories: [
-            '01/01/2003',
-            '02/01/2003',
-            '03/01/2003',
-            '04/01/2003',
-            '05/01/2003',
-            '06/01/2003',
-            '07/01/2003',
-            '08/01/2003',
-            '09/01/2003',
-            '10/01/2003',
-            '11/01/2003'
-          ]
-        }
+          type: 'datetime'
+        },
+        labels: [
+          '01/01/2003',
+          '02/01/2003',
+          '03/01/2003',
+          '04/01/2003',
+          '05/01/2003',
+          '06/01/2003',
+          '07/01/2003',
+          '08/01/2003',
+          '09/01/2003',
+          '10/01/2003',
+          '11/01/2003'
+        ]
       }
 
       var chartMixed = new ApexCharts(
@@ -799,7 +754,7 @@
         markers: {
           size: 0
         },
-        labels: [1, 2, 3, 4, 5, 6]
+        labels: ['1', '2', '3', '4', '5', '6']
       }
 
       var chartRadar = new ApexCharts(
