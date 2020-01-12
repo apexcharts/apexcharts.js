@@ -353,20 +353,20 @@ export default class Defaults {
     return Utils.extend(defaults, ret)
   }
 
-  stacked100() {
-    this.opts.dataLabels = this.opts.dataLabels || {}
-    this.opts.dataLabels.formatter = this.opts.dataLabels.formatter || undefined
-    const existingDataLabelFormatter = this.opts.dataLabels.formatter
+  stacked100(opts) {
+    opts.dataLabels = opts.dataLabels || {}
+    opts.dataLabels.formatter = opts.dataLabels.formatter || undefined
+    const existingDataLabelFormatter = opts.dataLabels.formatter
 
-    this.opts.yaxis.forEach((yaxe, index) => {
-      this.opts.yaxis[index].min = 0
-      this.opts.yaxis[index].max = 100
+    opts.yaxis.forEach((yaxe, index) => {
+      opts.yaxis[index].min = 0
+      opts.yaxis[index].max = 100
     })
 
-    const isBar = this.opts.chart.type === 'bar'
+    const isBar = opts.chart.type === 'bar'
 
     if (isBar) {
-      this.opts.dataLabels.formatter =
+      opts.dataLabels.formatter =
         existingDataLabelFormatter ||
         function(val) {
           if (typeof val === 'number') {
@@ -375,6 +375,7 @@ export default class Defaults {
           return val
         }
     }
+    return opts
   }
 
   // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area

@@ -68,7 +68,7 @@ export default class Config {
       }
 
       if (opts.chart.stacked && opts.chart.stackType === '100%') {
-        defaults.stacked100()
+        opts = defaults.stacked100(opts)
       }
 
       // If user has specified a dark theme, make the tooltip dark too

@@ -465,6 +465,9 @@ export default class ApexCharts {
     if (options.xaxis) {
       options = this.forceXAxisUpdate(options)
     }
+    if (options.yaxis) {
+      options = this.forceYAxisUpdate(options)
+    }
     if (w.globals.collapsedSeriesIndices.length > 0) {
       this.clearPreviousPaths()
     }
@@ -719,6 +722,22 @@ export default class ApexCharts {
     if (w.config.xaxis.convertedCatToNumeric) {
       const defaults = new Defaults(options)
       options = defaults.convertCatToNumericXaxis(options)
+    }
+    return options
+  }
+
+  forceYAxisUpdate(options) {
+    const w = this.w
+    if (w.config.chart.stacked && w.config.chart.stackType === '100%') {
+      if (Array.isArray(options.yaxis)) {
+        options.yaxis.forEach((yaxe, index) => {
+          options.yaxis[index].min = 0
+          options.yaxis[index].max = 100
+        })
+      } else {
+        options.yaxis.min = 0
+        options.yaxis.max = 100
+      }
     }
     return options
   }
