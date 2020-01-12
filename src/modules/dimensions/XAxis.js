@@ -18,7 +18,7 @@ export default class DimXAxis {
 
     let xaxisLabels = w.globals.labels.slice()
     if (w.config.xaxis.convertedCatToNumeric && xaxisLabels.length === 0) {
-      xaxisLabels = w.config.xaxis.defaultCategories
+      xaxisLabels = w.globals.categoryLabels
     }
 
     let rect
@@ -272,7 +272,10 @@ export default class DimXAxis {
         }
       } else if (xtype !== 'datetime') {
         if (w.config.xaxis.convertedCatToNumeric) {
-          lbWidth = predictedGridWidth / gl.labels.length
+          lbWidth = Math.min(
+            predictedGridWidth / gl.categoryLabels.length,
+            lbWidth
+          )
         }
         if (
           this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight &&
@@ -289,7 +292,8 @@ export default class DimXAxis {
       if (xtype !== 'datetime') {
         if (
           this.dCtx.gridPad.left < lbWidth / 2 - this.dCtx.yAxisWidthLeft &&
-          !gl.rotateXLabels
+          !gl.rotateXLabels &&
+          !cnf.xaxis.labels.trim
         ) {
           this.dCtx.xPadLeft = lbWidth / 2 + 1
         }

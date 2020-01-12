@@ -65,7 +65,11 @@ export default class Dimensions {
 
     gl.gridWidth = gl.gridWidth - barWidth * 2
 
-    gl.translateX = gl.translateX + this.gridPad.left + this.xPadLeft + barWidth
+    gl.translateX =
+      gl.translateX +
+      this.gridPad.left +
+      this.xPadLeft +
+      (barWidth > 0 ? barWidth + 4 : 0)
     gl.translateY = gl.translateY + this.gridPad.top
   }
 

@@ -12,7 +12,7 @@ export default class Config {
     this.opts = opts
   }
 
-  init() {
+  init({ responsiveOverride }) {
     let opts = this.opts
     let options = new Options()
     let defaults = new Defaults(opts)
@@ -79,7 +79,9 @@ export default class Config {
 
       // an important boolean needs to be set here
       // otherwise all the charts will have this flag set to true window.Apex.xaxis is set globally
-      opts.xaxis.convertedCatToNumeric = false
+      if (!responsiveOverride) {
+        opts.xaxis.convertedCatToNumeric = false
+      }
 
       const isBarHorizontal =
         this.chartType === 'bar' &&

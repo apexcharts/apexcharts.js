@@ -143,7 +143,6 @@ export default class ApexCharts {
     this.data = new Data(this)
     this.grid = new Grid(this)
     this.coreUtils = new CoreUtils(this)
-    this.config = new Config({})
     this.crosshairs = new Crosshairs(this)
     this.options = new Options()
     this.responsive = new Responsive(this)

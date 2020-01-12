@@ -124,16 +124,12 @@ export default class Helpers {
     const w = this.w
     let rX = x
 
-    const coreUtils = new CoreUtils(this.annoCtx.ctx)
-    let labels = w.globals.labels
-
-    // w.globals.labels is changed at this point for xaxis.convertedCatToNumeric, hence passing is as param instead of directly getting in the getCategoryLabels function
-
     if (w.config.xaxis.convertedCatToNumeric) {
-      labels = coreUtils.getCategoryLabels(w.globals.labels)
+      x = w.globals.categoryLabels.indexOf(x) + 1
     }
 
-    let catIndex = labels.indexOf(x)
+    let catIndex = w.globals.labels.indexOf(x)
+
     const xLabel = w.globals.dom.baseEl.querySelector(
       '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
     )

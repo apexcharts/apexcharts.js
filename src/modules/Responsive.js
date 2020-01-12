@@ -66,7 +66,7 @@ export default class Responsive {
   }
 
   overrideResponsiveOptions(newOptions) {
-    let newConfig = new Config(newOptions).init()
+    let newConfig = new Config(newOptions).init({ responsiveOverride: true })
     this.w.config = newConfig
   }
 }

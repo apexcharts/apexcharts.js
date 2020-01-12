@@ -633,8 +633,8 @@ export default class Options {
           onClick: undefined
         },
         itemMargin: {
-          horizontal: 0,
-          vertical: 5
+          horizontal: 5,
+          vertical: 0
         },
         onItemClick: {
           toggleDataSeries: true
