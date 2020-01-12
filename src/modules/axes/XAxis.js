@@ -241,9 +241,13 @@ export default class XAxis {
           w
         })
 
+        let multiY = 0
+        if (Array.isArray(label)) {
+          multiY = (label.length / 2) * parseInt(ylabels.style.fontSize, 10)
+        }
         let elLabel = graphics.drawText({
           x: ylabels.offsetX - 15,
-          y: yPos + colHeight + ylabels.offsetY,
+          y: yPos + colHeight + ylabels.offsetY - multiY,
           text: label,
           textAnchor: this.yaxis.opposite ? 'start' : 'end',
           foreColor: ylabels.style.color
