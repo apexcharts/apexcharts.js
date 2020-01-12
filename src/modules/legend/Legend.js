@@ -239,7 +239,7 @@ class Legend {
       )
 
       elLegend.classList.add('apexcharts-legend-series')
-      elLegend.style.margin = `${w.config.legend.itemMargin.horizontal}px ${w.config.legend.itemMargin.vertical}px`
+      elLegend.style.margin = `${w.config.legend.itemMargin.vertical}px ${w.config.legend.itemMargin.horizontal}px`
       w.globals.dom.elLegendWrap.style.width = w.config.legend.width
         ? w.config.legend.width + 'px'
         : ''
