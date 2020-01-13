@@ -102,13 +102,14 @@ export default class DimXAxis {
       }
 
       if (
-        rect.width * xaxisLabels.length >
+        (rect.width * xaxisLabels.length >
           w.globals.svgWidth -
             this.dCtx.lgWidthForSideLegends -
             this.dCtx.yAxisWidth -
             this.dCtx.gridPad.left -
             this.dCtx.gridPad.right &&
-        w.config.xaxis.labels.rotate !== 0
+          w.config.xaxis.labels.rotate !== 0) ||
+        w.config.xaxis.labels.rotateAlways
       ) {
         if (!w.globals.isBarHorizontal) {
           w.globals.rotateXLabels = true
@@ -225,12 +226,12 @@ export default class DimXAxis {
     const cnf = w.config
     const xtype = cnf.xaxis.type
 
-    const predictedGridWidth =
-      gl.svgWidth -
-      this.dCtx.lgWidthForSideLegends -
-      this.dCtx.yAxisWidth -
-      this.dCtx.gridPad.left -
-      this.dCtx.gridPad.right
+    // const predictedGridWidth =
+    //   gl.svgWidth -
+    //   this.dCtx.lgWidthForSideLegends -
+    //   this.dCtx.yAxisWidth -
+    //   this.dCtx.gridPad.left -
+    //   this.dCtx.gridPad.right
 
     let lbWidth = xaxisLabelCoords.width
 
@@ -271,15 +272,11 @@ export default class DimXAxis {
           gl.skipLastTimelinelabel = true
         }
       } else if (xtype !== 'datetime') {
-        if (w.config.xaxis.convertedCatToNumeric) {
-          lbWidth = Math.min(
-            predictedGridWidth / gl.categoryLabels.length,
-            lbWidth
-          )
-        }
         if (
           this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight &&
-          !gl.rotateXLabels
+          !gl.rotateXLabels &&
+          (w.config.xaxis.tickPlacement !== 'between' ||
+            w.globals.isBarHorizontal)
         ) {
           this.dCtx.xPadRight = lbWidth / 2 + 1
         }
@@ -288,7 +285,6 @@ export default class DimXAxis {
 
     const padYAxe = (yaxe, i) => {
       if (isCollapsed(i)) return
-
       if (xtype !== 'datetime') {
         if (
           this.dCtx.gridPad.left < lbWidth / 2 - this.dCtx.yAxisWidthLeft &&

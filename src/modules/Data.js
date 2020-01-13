@@ -2,6 +2,7 @@ import CoreUtils from './CoreUtils'
 import DateTime from './../utils/DateTime'
 import Series from './Series'
 import Utils from '../utils/Utils'
+import Defaults from './settings/Defaults'
 
 export default class Data {
   constructor(ctx) {
@@ -126,7 +127,7 @@ export default class Data {
 
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
-        if (isXString) {
+        if (isXString || cnf.xaxis.convertedCatToNumeric) {
           if (cnf.xaxis.type === 'datetime' && !gl.isRangeData) {
             this.twoDSeriesX.push(dt.parseDate(ser[activeI].data[j].x))
           } else {
@@ -398,10 +399,6 @@ export default class Data {
       }
 
       if (this.isMultiFormat()) {
-        // TODO: the following needs to be modified because a series in xy format can also have categories and it can be converted to numeric axis.
-        // This is the reason why range column charts currently don't support zooming in categories because range column charts provide series in xy format
-        cnf.xaxis.convertedCatToNumeric = false
-
         if (this.isFormat2DArray()) {
           this.handleFormat2DArray(ser, i)
         } else if (this.isFormatXY()) {
@@ -500,51 +497,64 @@ export default class Data {
           (elem, pos, arr) => arr.indexOf(elem) === pos
         )
       }
-    } else {
-      // user didn't provided any labels, fallback to 1-2-3-4-5
-      let labelArr = []
-
-      if (gl.axisCharts) {
-        if (gl.series.length > 0) {
-          for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-            labelArr.push(i + 1)
-          }
-        }
-
-        // create gl.seriesX as it will be used in calculations of x positions
-        for (let i = 0; i < ser.length; i++) {
-          gl.seriesX.push(labelArr)
-        }
-
-        // turn on the isXNumeric flag to allow minX and maxX to function properly
-        gl.isXNumeric = true
-      }
-
-      // no series to pull labels from, put a 0-10 series
-      // possibly, user collapsed all series. Hence we can't work with above calc
-      if (labelArr.length === 0) {
-        labelArr = gl.axisCharts
-          ? [0, 10]
-          : gl.series.map((gls, glsi) => {
-              return glsi + 1
-            })
-        for (let i = 0; i < ser.length; i++) {
-          gl.seriesX.push(labelArr)
-        }
-      }
-
-      // Finally, pass the labelArr in gl.labels which will be printed on x-axis
-      gl.labels = labelArr
 
       if (cnf.xaxis.convertedCatToNumeric) {
-        gl.categoryLabels = labelArr.map((l) => {
-          return cnf.xaxis.labels.formatter(l)
-        })
+        const defaults = new Defaults(cnf)
+        defaults.convertCatToNumericXaxis(cnf, this.ctx, gl.seriesX[0])
+        this._generateExternalLabels(ser)
+      }
+    } else {
+      this._generateExternalLabels(ser)
+    }
+  }
+
+  _generateExternalLabels(ser) {
+    const gl = this.w.globals
+    const cnf = this.w.config
+    // user didn't provided any labels, fallback to 1-2-3-4-5
+    let labelArr = []
+
+    if (gl.axisCharts) {
+      if (gl.series.length > 0) {
+        for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+          labelArr.push(i + 1)
+        }
       }
 
-      // Turn on this global flag to indicate no labels were provided by user
-      gl.noLabelsProvided = true
+      gl.seriesX = []
+      // create gl.seriesX as it will be used in calculations of x positions
+      for (let i = 0; i < ser.length; i++) {
+        gl.seriesX.push(labelArr)
+      }
+
+      // turn on the isXNumeric flag to allow minX and maxX to function properly
+      gl.isXNumeric = true
     }
+
+    // no series to pull labels from, put a 0-10 series
+    // possibly, user collapsed all series. Hence we can't work with above calc
+    if (labelArr.length === 0) {
+      labelArr = gl.axisCharts
+        ? [0, 10]
+        : gl.series.map((gls, glsi) => {
+            return glsi + 1
+          })
+      for (let i = 0; i < ser.length; i++) {
+        gl.seriesX.push(labelArr)
+      }
+    }
+
+    // Finally, pass the labelArr in gl.labels which will be printed on x-axis
+    gl.labels = labelArr
+
+    if (cnf.xaxis.convertedCatToNumeric) {
+      gl.categoryLabels = labelArr.map((l) => {
+        return cnf.xaxis.labels.formatter(l)
+      })
+    }
+
+    // Turn on this global flag to indicate no labels were provided by user
+    gl.noLabelsProvided = true
   }
 
   // Segregate user provided data into appropriate vars

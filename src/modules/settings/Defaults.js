@@ -385,7 +385,7 @@ export default class Defaults {
     return opts
   }
 
-  convertCatToNumericXaxis(opts) {
+  convertCatToNumericXaxis(opts, ctx, cats) {
     opts.xaxis.type = 'numeric'
     opts.xaxis.labels = opts.xaxis.labels || {}
     opts.xaxis.labels.formatter =
@@ -395,14 +395,22 @@ export default class Defaults {
       }
 
     const defaultFormatter = opts.xaxis.labels.formatter
-    const labels =
+    let labels =
       opts.xaxis.categories && opts.xaxis.categories.length
         ? opts.xaxis.categories
         : opts.labels
 
+    if (cats && cats.length) {
+      labels = cats.map((c) => {
+        return c.toString()
+      })
+    }
+
     if (labels && labels.length) {
       opts.xaxis.labels.formatter = function(val) {
-        return defaultFormatter(labels[Math.floor(val) - 1])
+        return Utils.isNumber(val)
+          ? defaultFormatter(labels[Math.floor(val) - 1])
+          : defaultFormatter(val)
       }
     }
 

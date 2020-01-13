@@ -54,9 +54,9 @@ export default class DimGrid {
         barWidth = 1
       }
 
-      barWidth = barWidth / (seriesLen > 1 ? 1 : 1.5) + 10
+      barWidth = barWidth / (seriesLen > 1 ? 1 : 1.5) + 5
 
-      w.globals.barPadForNumericAxis = barWidth - 5
+      w.globals.barPadForNumericAxis = barWidth
     }
     return barWidth
   }

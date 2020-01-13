@@ -210,7 +210,7 @@ export default class ApexCharts {
 
     if (w.config.xaxis.convertedCatToNumeric) {
       const defaults = new Defaults(w.config)
-      defaults.convertCatToNumericXaxis(w.config)
+      defaults.convertCatToNumericXaxis(w.config, this.ctx)
     }
 
     if (this.el === null) {
@@ -720,7 +720,7 @@ export default class ApexCharts {
 
     if (w.config.xaxis.convertedCatToNumeric) {
       const defaults = new Defaults(options)
-      options = defaults.convertCatToNumericXaxis(options)
+      options = defaults.convertCatToNumericXaxis(options, this.ctx)
     }
     return options
   }

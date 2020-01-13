@@ -8,7 +8,7 @@ export default class AxesUtils {
   }
 
   // Based on the formatter function, get the label text and position
-  getLabel(labels, timescaleLabels, x, i, drawnLabels = []) {
+  getLabel(labels, timescaleLabels, x, i, drawnLabels = [], fontSize = '12px') {
     const w = this.w
     let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
     let label = rawLabel
@@ -56,6 +56,20 @@ export default class AxesUtils {
 
     label = Array.isArray(label) ? label : label.toString()
 
+    let graphics = new Graphics(this.ctx)
+    let textRect = {}
+    if (w.globals.rotateXLabels) {
+      textRect = graphics.getTextRects(
+        label,
+        parseInt(fontSize, 10),
+        null,
+        `rotate(${w.config.xaxis.labels.rotate} 0 0)`,
+        false
+      )
+    } else {
+      textRect = graphics.getTextRects(label, parseInt(fontSize, 10))
+    }
+
     if (
       !Array.isArray(label) &&
       (label.indexOf('NaN') === 0 ||
@@ -70,28 +84,39 @@ export default class AxesUtils {
     return {
       x,
       text: label,
+      textRect,
       isBold
     }
   }
 
-  checkForCroppedLabels(i, label, labelsLen) {
+  checkForOverflowingLabels(
+    i,
+    label,
+    labelsLen,
+    drawnLabels,
+    drawnLabelsRects
+  ) {
     const w = this.w
 
     if (i === 0) {
-      // check if first label is being cropped
-      if (
-        w.globals.skipFirstTimelinelabel &&
-        !w.config.xaxis.convertedCatToNumeric
-      ) {
+      // check if first label is being truncated
+      if (w.globals.skipFirstTimelinelabel) {
         label.text = ''
       }
     }
 
     if (i === labelsLen - 1) {
-      // check if last label is being cropped
+      // check if last label is being truncated
+      if (w.globals.skipLastTimelinelabel) {
+        label.text = ''
+      }
+    }
+
+    if (w.config.xaxis.labels.hideOverlappingLabels && drawnLabels.length > 0) {
+      const prev = drawnLabelsRects[drawnLabelsRects.length - 1]
       if (
-        w.globals.skipLastTimelinelabel &&
-        !w.config.xaxis.convertedCatToNumeric
+        label.x <
+        prev.textRect.width / (w.globals.rotateXLabels ? 1.6 : 1.1) + prev.x
       ) {
         label.text = ''
       }

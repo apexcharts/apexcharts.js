@@ -229,7 +229,8 @@ export default class YAxis {
             timescaleLabels,
             x,
             i,
-            this.drawnLabels
+            this.drawnLabels,
+            this.xaxisFontSize
           )
           x = label.x
           val = label.text

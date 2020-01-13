@@ -22,6 +22,7 @@ export default class XAxis {
     }
 
     this.drawnLabels = []
+    this.drawnLabelsRects = []
 
     if (w.config.xaxis.position === 'top') {
       this.offY = 0
@@ -98,17 +99,22 @@ export default class XAxis {
           w.globals.timescaleLabels,
           x,
           i,
-          this.drawnLabels
+          this.drawnLabels,
+          this.xaxisFontSize
         )
-
-        this.drawnLabels.push(label.text)
 
         let offsetYCorrection = 28
         if (w.globals.rotateXLabels) {
           offsetYCorrection = 22
         }
 
-        label = this.axesUtils.checkForCroppedLabels(i, label, labelsLen)
+        label = this.axesUtils.checkForOverflowingLabels(
+          i,
+          label,
+          labelsLen,
+          this.drawnLabels,
+          this.drawnLabelsRects
+        )
 
         const getCatForeColor = () => {
           return w.config.xaxis.convertedCatToNumeric
@@ -137,7 +143,10 @@ export default class XAxis {
         let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
         elTooltipTitle.textContent = label.text
         elText.node.appendChild(elTooltipTitle)
-
+        if (label.text !== '') {
+          this.drawnLabels.push(label.text)
+          this.drawnLabelsRects.push(label)
+        }
         xPos = xPos + colWidth
       }
     }

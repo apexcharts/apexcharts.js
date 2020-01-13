@@ -83,33 +83,8 @@ export default class Config {
         opts.xaxis.convertedCatToNumeric = false
       }
 
-      const isBarHorizontal =
-        this.chartType === 'bar' &&
-        opts.plotOptions &&
-        opts.plotOptions.bar &&
-        opts.plotOptions.bar.horizontal
+      opts = this.checkForCatToNumericXAxis(this.chartType, chartDefaults, opts)
 
-      const unsupportedZoom =
-        this.chartType === 'pie' ||
-        this.chartType === 'donut' ||
-        this.chartType === 'radar' ||
-        this.chartType === 'radialBar' ||
-        this.chartType === 'heatmap'
-
-      const notNumericXAxis =
-        opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
-
-      let tickPlacement = opts.xaxis.tickPlacement
-        ? opts.xaxis.tickPlacement
-        : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement
-      if (
-        !isBarHorizontal &&
-        !unsupportedZoom &&
-        notNumericXAxis &&
-        tickPlacement !== 'between'
-      ) {
-        opts = defaults.convertCatToNumeric(opts)
-      }
       if (
         (opts.chart.sparkline && opts.chart.sparkline.enabled) ||
         (window.Apex.chart &&
@@ -134,6 +109,40 @@ export default class Config {
     config = this.handleUserInputErrors(config)
 
     return config
+  }
+
+  checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
+    let defaults = new Defaults(opts)
+
+    const isBarHorizontal =
+      chartType === 'bar' &&
+      opts.plotOptions &&
+      opts.plotOptions.bar &&
+      opts.plotOptions.bar.horizontal
+
+    const unsupportedZoom =
+      chartType === 'pie' ||
+      chartType === 'donut' ||
+      chartType === 'radar' ||
+      chartType === 'radialBar' ||
+      chartType === 'heatmap'
+
+    const notNumericXAxis =
+      opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
+
+    let tickPlacement = opts.xaxis.tickPlacement
+      ? opts.xaxis.tickPlacement
+      : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement
+    if (
+      !isBarHorizontal &&
+      !unsupportedZoom &&
+      notNumericXAxis &&
+      tickPlacement !== 'between'
+    ) {
+      opts = defaults.convertCatToNumeric(opts)
+    }
+
+    return opts
   }
 
   extendYAxis(opts) {

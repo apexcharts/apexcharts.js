@@ -355,7 +355,7 @@ class Legend {
         subtitleRect.height +
         w.config.title.margin +
         w.config.subtitle.margin -
-        15
+        10
     }
 
     this.setLegendWrapXY(offsetX, offsetY)
