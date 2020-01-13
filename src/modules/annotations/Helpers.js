@@ -1,5 +1,3 @@
-import CoreUtils from '../CoreUtils'
-
 export default class Helpers {
   constructor(annoCtx) {
     this.w = annoCtx.w
