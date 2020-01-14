@@ -9,35 +9,8 @@ export default class YAnnotations {
 
     let strokeDashArray = anno.strokeDashArray
 
-    let y1
+    let y1 = this._getY1Y2('y1', anno)
     let y2
-
-    if (this.annoCtx.invertAxis) {
-      let catIndex = w.globals.labels.indexOf(anno.y)
-      if (w.config.xaxis.convertedCatToNumeric) {
-        catIndex = w.globals.categoryLabels.indexOf(anno.y)
-      }
-      const xLabel = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
-      )
-      if (xLabel) {
-        y1 = parseFloat(xLabel.getAttribute('y'))
-      }
-    } else {
-      y1 =
-        w.globals.gridHeight -
-        (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-
-      if (
-        w.config.yaxis[anno.yAxisIndex] &&
-        w.config.yaxis[anno.yAxisIndex].reversed
-      ) {
-        y1 =
-          (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-      }
-    }
 
     const text = anno.label.text
 
@@ -56,33 +29,7 @@ export default class YAnnotations {
         line.node.classList.add(anno.id)
       }
     } else {
-      if (this.annoCtx.invertAxis) {
-        let catIndex = w.globals.labels.indexOf(anno.y2)
-        if (w.config.xaxis.convertedCatToNumeric) {
-          catIndex = w.globals.categoryLabels.indexOf(anno.y2)
-        }
-        const xLabel = w.globals.dom.baseEl.querySelector(
-          '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
-        )
-
-        if (xLabel) {
-          y2 = parseFloat(xLabel.getAttribute('y'))
-        }
-      } else {
-        y2 =
-          w.globals.gridHeight -
-          (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) /
-            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-
-        if (
-          w.config.yaxis[anno.yAxisIndex] &&
-          w.config.yaxis[anno.yAxisIndex].reversed
-        ) {
-          y2 =
-            (anno.y2 - w.globals.minYArr[anno.yAxisIndex]) /
-            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-        }
-      }
+      y2 = this._getY1Y2('y2', anno)
 
       if (y2 > y1) {
         let temp = y1
@@ -129,6 +76,41 @@ export default class YAnnotations {
     })
 
     parent.appendChild(elText.node)
+  }
+
+  _getY1Y2(type, anno) {
+    let y = type === 'y1' ? anno.y : anno.y2
+    let yP
+
+    const w = this.w
+    if (this.annoCtx.invertAxis) {
+      let catIndex = w.globals.labels.indexOf(y)
+      if (w.config.xaxis.convertedCatToNumeric) {
+        catIndex = w.globals.categoryLabels.indexOf(y)
+      }
+      const xLabel = w.globals.dom.baseEl.querySelector(
+        '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+      )
+      if (xLabel) {
+        yP = parseFloat(xLabel.getAttribute('y'))
+      }
+    } else {
+      yP =
+        w.globals.gridHeight -
+        (y - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+
+      if (
+        w.config.yaxis[anno.yAxisIndex] &&
+        w.config.yaxis[anno.yAxisIndex].reversed
+      ) {
+        yP =
+          (y - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      }
+    }
+
+    return yP
   }
 
   drawYAxisAnnotations() {
