@@ -441,18 +441,7 @@ export default class ApexCharts {
       this.resetSeries(false)
       if (options.series.length && options.series[0].data) {
         options.series = options.series.map((s, i) => {
-          return {
-            ...w.config.series[i],
-            name: s.name
-              ? s.name
-              : w.config.series[i] && w.config.series[i].name,
-            type: s.type
-              ? s.type
-              : w.config.series[i] && w.config.series[i].type,
-            data: s.data
-              ? s.data
-              : w.config.series[i] && w.config.series[i].data
-          }
+          return this._extendSeries(s, i)
         })
       }
 
@@ -594,12 +583,7 @@ export default class ApexCharts {
     // axis charts
     if (w.globals.axisCharts) {
       existingSeries = newSeries.map((s, i) => {
-        return {
-          ...w.config.series[i],
-          name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
-          type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
-          data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
-        }
+        return this._extendSeries(s, i)
       })
 
       if (existingSeries.length === 0) {
@@ -619,6 +603,16 @@ export default class ApexCharts {
     }
 
     return this.update()
+  }
+
+  _extendSeries(s, i) {
+    const w = this.w
+    return {
+      ...w.config.series[i],
+      name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
+      type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
+      data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
+    }
   }
 
   /**
