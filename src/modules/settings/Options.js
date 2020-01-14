@@ -561,7 +561,7 @@ export default class Options {
           height: undefined // optional
         },
         pattern: {
-          style: 'sqaures', // String | Array of Strings
+          style: 'squares', // String | Array of Strings
           width: 6,
           height: 6,
           strokeWidth: 2

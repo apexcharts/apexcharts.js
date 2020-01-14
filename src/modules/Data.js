@@ -122,8 +122,9 @@ export default class Data {
     // get seriesX
     for (let j = 0; j < ser[activeI].data.length; j++) {
       const isXString = typeof ser[activeI].data[j].x === 'string'
-      const isXDate = !!dt.isValidDate(ser[activeI].data[j].x.toString())
       const isXArr = Array.isArray(ser[activeI].data[j].x)
+      const isXDate =
+        !isXArr && !!dt.isValidDate(ser[activeI].data[j].x.toString())
 
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
