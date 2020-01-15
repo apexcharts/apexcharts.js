@@ -203,7 +203,8 @@ If you need to make it work with IE11, you need to include these polyfills befor
 
 - [promise-polyfill](https://github.com/taylorhakes/promise-polyfill)
 - [classlist.js](https://github.com/eligrey/classList.js/)
-- [blob.js](https://github.com/eligrey/Blob.js)
+- [blob.js](https://github.com/eligrey/Blob.js) - You will need this only if you require PNG export in IE11
+- [findIndex](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findIndex#Polyfill) - You will need this only if you require timeline/rangebar charts
 
 ## Development
 
