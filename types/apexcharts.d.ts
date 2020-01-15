@@ -615,7 +615,7 @@ type ApexLegend = {
     offsetX?: number
     offsetY?: number
     radius?: number
-    customHTML?(): string
+    customHTML?(): any
     onClick?(): void
   }
   itemMargin?: {
