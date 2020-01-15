@@ -40,17 +40,11 @@ chart: {
     enabled: false
   },
 },
-plotOptions: {
-  line: {
-    curve: 'smooth',
-  }
-},
 dataLabels: {
   enabled: false
 },
 markers: {
   size: 0,
-  style: 'full',
 },
 fill: {
   type: 'gradient',

@@ -3725,7 +3725,22 @@
   var abcdef = 'abcdef'.split('')
 
  
-  SVG.CustomEvent = window.CustomEvent
+  // Add CustomEvent to IE9 and IE10	
+  if (typeof window.CustomEvent !== 'function') {
+  // Code from: https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent	
+    var CustomEventPoly = function (event, options) {	
+      options = options || { bubbles: false, cancelable: false, detail: undefined }	
+      var e = document.createEvent('CustomEvent')	
+      e.initCustomEvent(event, options.bubbles, options.cancelable, options.detail)	
+      return e	
+    }	
+
+    CustomEventPoly.prototype = window.Event.prototype	
+
+    SVG.CustomEvent = CustomEventPoly	
+  } else {	
+    SVG.CustomEvent = window.CustomEvent	
+  }
 
   return SVG
 }))
