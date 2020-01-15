@@ -338,7 +338,7 @@ class DataLabels {
 
     for (let i = 0; i < elDataLabelsNodes.length; i++) {
       if (elSeries) {
-        elSeries.insertAdjacentElement('beforeEnd', elDataLabelsNodes[i])
+        elSeries.insertBefore(elDataLabelsNodes[i], elSeries.nextSibling)
       }
     }
   }
