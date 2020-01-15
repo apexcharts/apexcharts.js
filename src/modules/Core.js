@@ -505,7 +505,7 @@ export default class Core {
         targetChart.w.globals.brushSource = this.ctx
 
         let updateSourceChart = () => {
-          this.ctx._updateOptions(
+          this.ctx.updateHelpers._updateOptions(
             {
               chart: {
                 selection: {
@@ -540,7 +540,7 @@ export default class Core {
             const scale = new Scales(targetChart)
             yaxis = scale.autoScaleY(targetChart, yaxis, e)
           }
-          targetChart._updateOptions(
+          targetChart.ctx.updateHelpers._updateOptions(
             {
               xaxis: {
                 min: e.xaxis.min,

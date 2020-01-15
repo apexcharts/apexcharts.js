@@ -175,7 +175,7 @@ export default class Annotations {
         strokeDashArray
       )
 
-      elText.before(elRect)
+      parentNode.insertBefore(elRect.node, elText.node)
     }
 
     if (pushToMemory) {

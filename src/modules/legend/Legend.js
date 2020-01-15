@@ -399,7 +399,7 @@ class Legend {
       // for heatmap handling
       if (hoverOverLegend) {
         let seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
-        this.ctx.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
+        this.ctx.events.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
 
         let series = new Series(this.ctx)
         series.highlightRangeInSeries(e, e.target)
@@ -420,7 +420,7 @@ class Legend {
         legendClick(this.ctx, seriesCnt, this.w)
       }
 
-      this.ctx.fireEvent('legendClick', [this.ctx, seriesCnt, this.w])
+      this.ctx.events.fireEvent('legendClick', [this.ctx, seriesCnt, this.w])
 
       const markerClick = this.w.config.legend.markers.onClick
       if (
@@ -428,7 +428,11 @@ class Legend {
         e.target.classList.contains('apexcharts-legend-marker')
       ) {
         markerClick(this.ctx, seriesCnt, this.w)
-        this.ctx.fireEvent('legendMarkerClick', [this.ctx, seriesCnt, this.w])
+        this.ctx.events.fireEvent('legendMarkerClick', [
+          this.ctx,
+          seriesCnt,
+          this.w
+        ])
       }
 
       this.legendHelpers.toggleDataSeries(seriesCnt, isHidden)

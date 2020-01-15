@@ -233,7 +233,7 @@ export default class Helpers {
     w.globals.allSeriesCollapsed =
       w.globals.collapsedSeries.length === w.config.series.length
 
-    this.lgCtx.ctx._updateSeries(
+    this.lgCtx.ctx.updateHelpers._updateSeries(
       w.config.series,
       w.config.chart.animations.dynamicAnimation.enabled
     )
@@ -256,7 +256,7 @@ export default class Helpers {
             seriesIndices.splice(c, 1)
             w.globals.risingSeries.push(realIndex)
           }
-          this.lgCtx.ctx._updateSeries(
+          this.lgCtx.ctx.updateHelpers._updateSeries(
             w.config.series,
             w.config.chart.animations.dynamicAnimation.enabled
           )

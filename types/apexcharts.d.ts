@@ -259,7 +259,7 @@ type ApexTitleSubtitle = {
  * and y is a number
  */
 type ApexAxisChartSeries = {
-  name: string
+  name?: string
   type?: string
   data:
     | number[]
@@ -508,11 +508,11 @@ type ApexPlotOptions = {
       size?: string
       background?: string
       image?: string
-      width?: number
-      height?: number
-      offsetX?: number
-      offsetY?: number
-      clipped?: boolean
+      imageWidth?: number
+      imageHeight?: number
+      imageOffsetX?: number
+      imageOffsetY?: number
+      imageClipped?: boolean
       position?: 'front' | 'back'
       dropShadow?: ApexDropShadow
     }
@@ -568,7 +568,7 @@ type ApexFill = {
     stops?: number[]
   }
   image?: {
-    src?: string[]
+    src?: string | string[]
     width?: number
     height?: number
   }
@@ -643,7 +643,7 @@ type ApexDiscretePoint = {
 }
 
 type ApexMarkers = {
-  size?: number
+  size?: number | number[]
   colors?: string[]
   strokeColors?: string | string[]
   strokeWidth?: number | number[]
@@ -682,7 +682,7 @@ type ApexNoData = {
  */
 type ApexDataLabels = {
   enabled?: boolean
-  enabledOnSeries?: undefined | boolean
+  enabledOnSeries?: undefined | number[]
   textAnchor?: 'start' | 'middle' | 'end'
   offsetX?: number
   offsetY?: number

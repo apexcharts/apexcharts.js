@@ -566,7 +566,7 @@ class Graphics {
         w
       })
     }
-    this.ctx.fireEvent('dataPointMouseEnter', [
+    this.ctx.events.fireEvent('dataPointMouseEnter', [
       e,
       this.ctx,
       { seriesIndex: i, dataPointIndex: j, w }
@@ -603,7 +603,7 @@ class Graphics {
         w
       })
     }
-    this.ctx.fireEvent('dataPointMouseLeave', [
+    this.ctx.events.fireEvent('dataPointMouseLeave', [
       e,
       this.ctx,
       { seriesIndex: i, dataPointIndex: j, w }
@@ -687,7 +687,7 @@ class Graphics {
     }
 
     if (e) {
-      this.ctx.fireEvent('dataPointSelection', [
+      this.ctx.events.fireEvent('dataPointSelection', [
         e,
         this.ctx,
         {
@@ -767,7 +767,7 @@ class Graphics {
             return
           }
         }
-        textObj.textContent = '' // can't place at all
+        textObj.textContent = '.' // can't place at all
       }
     }
   }

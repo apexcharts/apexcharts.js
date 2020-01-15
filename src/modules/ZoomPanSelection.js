@@ -560,7 +560,7 @@ export default class ZoomPanSelection extends Toolbar {
           // fix issue #650
           options.yaxis = yaxis
         }
-        me.ctx._updateOptions(
+        me.ctx.updateHelpers._updateOptions(
           options,
           false,
           me.w.config.chart.animations.dynamicAnimation.enabled
@@ -716,7 +716,7 @@ export default class ZoomPanSelection extends Toolbar {
   updateScrolledChart(options, xLowestValue, xHighestValue) {
     const w = this.w
 
-    this.ctx._updateOptions(options, false, false)
+    this.ctx.updateHelpers._updateOptions(options, false, false)
 
     if (typeof w.config.chart.events.scrolled === 'function') {
       w.config.chart.events.scrolled(this.ctx, {

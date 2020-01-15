@@ -79,7 +79,7 @@ plotOptions: {
     },
 
     dataLabels: {
-      showOn: 'always',
+      show: true,
       name: {
         offsetY: -10,
         show: true,

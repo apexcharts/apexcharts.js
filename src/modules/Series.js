@@ -47,6 +47,39 @@ export default class Series {
     iterateOnAllCollapsedSeries(w.globals.ancillaryCollapsedSeries)
   }
 
+  toggleSeries(seriesName) {
+    let isSeriesHidden = this.isSeriesHidden(seriesName)
+
+    this.ctx.legend.legendHelpers.toggleDataSeries(
+      isSeriesHidden.realIndex,
+      isSeriesHidden.isHidden
+    )
+
+    return isSeriesHidden.isHidden
+  }
+
+  showSeries(seriesName) {
+    let isSeriesHidden = this.isSeriesHidden(seriesName)
+
+    if (isSeriesHidden.isHidden) {
+      this.ctx.legend.legendHelpers.toggleDataSeries(
+        isSeriesHidden.realIndex,
+        true
+      )
+    }
+  }
+
+  hideSeries(seriesName) {
+    let isSeriesHidden = this.isSeriesHidden(seriesName)
+
+    if (!isSeriesHidden.isHidden) {
+      this.ctx.legend.legendHelpers.toggleDataSeries(
+        isSeriesHidden.realIndex,
+        false
+      )
+    }
+  }
+
   resetSeries(shouldUpdateChart = true) {
     const w = this.w
 
@@ -60,7 +93,7 @@ export default class Series {
     w.globals.previousPaths = []
 
     if (shouldUpdateChart) {
-      this.ctx._updateSeries(
+      this.ctx.updateHelpers._updateSeries(
         series,
         w.config.chart.animations.dynamicAnimation.enabled
       )
@@ -339,6 +372,14 @@ export default class Series {
       // for non-axis charts (i.e., circular charts, pathFrom is not usable. We need whole series)
       w.globals.previousPaths = w.globals.series
     }
+  }
+
+  clearPreviousPaths() {
+    const w = this.w
+    w.globals.previousPaths = []
+    w.globals.allSeriesCollapsed = false
+    w.globals.collapsedSeries = []
+    w.globals.collapsedSeriesIndices = []
   }
 
   handleNoData() {

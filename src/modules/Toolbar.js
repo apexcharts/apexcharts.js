@@ -391,7 +391,7 @@ export default class Toolbar {
 
     this.w.globals.zoomed = true
 
-    this.ctx._updateOptions(
+    this.ctx.updateHelpers._updateOptions(
       options,
       false,
       this.w.config.chart.animations.dynamicAnimation.enabled
@@ -451,7 +451,7 @@ export default class Toolbar {
         w.globals.minX !== w.globals.initialMinX ||
         w.globals.maxX !== w.globals.initialMaxX
       ) {
-        ch.revertDefaultAxisMinMax()
+        ch.updateHelpers.revertDefaultAxisMinMax()
 
         if (typeof w.config.chart.events.zoomed === 'function') {
           this.zoomCallback({
@@ -462,7 +462,7 @@ export default class Toolbar {
 
         w.globals.zoomed = false
 
-        ch._updateSeries(
+        ch.updateHelpers._updateSeries(
           w.globals.initialSeries,
           w.config.chart.animations.dynamicAnimation.enabled
         )

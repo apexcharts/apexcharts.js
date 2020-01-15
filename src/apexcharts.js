@@ -1,49 +1,17 @@
 import Annotations from './modules/annotations/Annotations'
-import Animations from './modules/Animations'
-import Axes from './modules/axes/Axes'
 import Base from './modules/Base'
-import Config from './modules/settings/Config'
-import Core from './modules/Core'
 import CoreUtils from './modules/CoreUtils'
-import Crosshairs from './modules/Crosshairs'
-import Data from './modules/Data'
 import DataLabels from './modules/DataLabels'
 import Defaults from './modules/settings/Defaults'
-import Dimensions from './modules/dimensions/Dimensions'
-import Formatters from './modules/Formatters'
 import Exports from './modules/Exports'
 import Grid from './modules/axes/Grid'
-import Graphics from './modules/Graphics'
-import Legend from './modules/legend/Legend'
 import Markers from './modules/Markers'
-import Pie from './charts/Pie'
 import Range from './modules/Range'
-import Responsive from './modules/Responsive'
-import Series from './modules/Series'
-import Theme from './modules/Theme'
-import Tooltip from './modules/tooltip/Tooltip'
 import Utils from './utils/Utils'
-import ZoomPanSelection from './modules/ZoomPanSelection'
-import TitleSubtitle from './modules/TitleSubtitle'
-import Toolbar from './modules/Toolbar'
-import Options from './modules/settings/Options'
 import XAxis from './modules/axes/XAxis'
 import YAxis from './modules/axes/YAxis'
-
-import './svgjs/svg.js'
-import 'svg.filter.js'
-import 'svg.pathmorphing.js'
-import 'svg.draggable.js'
-import 'svg.select.js'
-import 'svg.resize.js'
-
-import './assets/apexcharts.css'
-import './utils/DetectElementResize'
-
-import en from './locales/en.json'
-
-// global Apex object which user can use to override chart's defaults globally
-window.Apex = {}
+import InitCtxVariables from './modules/helpers/InitCtxVariables'
+import Destroy from './modules/helpers/Destroy'
 
 /**
  *
@@ -65,21 +33,10 @@ export default class ApexCharts {
       ? this.w.config.chart.id
       : this.w.globals.cuid
 
-    this.eventList = [
-      'click',
-      'mousedown',
-      'mousemove',
-      'touchstart',
-      'touchmove',
-      'mouseup',
-      'touchend'
-    ]
-
-    this.initModules()
+    const initCtx = new InitCtxVariables(this)
+    initCtx.initModules()
 
     this.create = Utils.bind(this.create, this)
-    this.documentEvent = Utils.bind(this.documentEvent, this)
-    this.windowResizeHandler = this.windowResize.bind(this)
   }
 
   /**
@@ -108,11 +65,11 @@ export default class ApexCharts {
           beforeMount(this, this.w)
         }
 
-        this.fireEvent('beforeMount', [this, this.w])
-        window.addEventListener('resize', this.windowResizeHandler)
+        this.events.fireEvent('beforeMount', [this, this.w])
+        window.addEventListener('resize', this.events.windowResizeHandler)
         window.addResizeListener(
           this.el.parentNode,
-          this.parentResizeCallback.bind(this)
+          this.events.parentResizeCallback.bind(this.events)
         )
 
         let graphData = this.create(this.w.config.series, {})
@@ -123,7 +80,7 @@ export default class ApexCharts {
               this.w.config.chart.events.mounted(this, this.w)
             }
 
-            this.fireEvent('mounted', [this, this.w])
+            this.events.fireEvent('mounted', [this, this.w])
             resolve(graphData)
           })
           .catch((e) => {
@@ -136,71 +93,11 @@ export default class ApexCharts {
     })
   }
 
-  initModules() {
-    this.animations = new Animations(this)
-    this.axes = new Axes(this)
-    this.core = new Core(this.el, this)
-    this.data = new Data(this)
-    this.grid = new Grid(this)
-    this.coreUtils = new CoreUtils(this)
-    this.crosshairs = new Crosshairs(this)
-    this.options = new Options()
-    this.responsive = new Responsive(this)
-    this.series = new Series(this)
-    this.theme = new Theme(this)
-    this.formatters = new Formatters(this)
-    this.titleSubtitle = new TitleSubtitle(this)
-    this.legend = new Legend(this)
-    this.toolbar = new Toolbar(this)
-    this.dimensions = new Dimensions(this)
-    this.zoomPanSelection = new ZoomPanSelection(this)
-    this.w.globals.tooltip = new Tooltip(this)
-  }
-
-  addEventListener(name, handler) {
-    const w = this.w
-
-    if (w.globals.events.hasOwnProperty(name)) {
-      w.globals.events[name].push(handler)
-    } else {
-      w.globals.events[name] = [handler]
-    }
-  }
-
-  removeEventListener(name, handler) {
-    const w = this.w
-    if (!w.globals.events.hasOwnProperty(name)) {
-      return
-    }
-
-    let index = w.globals.events[name].indexOf(handler)
-    if (index !== -1) {
-      w.globals.events[name].splice(index, 1)
-    }
-  }
-
-  fireEvent(name, args) {
-    const w = this.w
-
-    if (!w.globals.events.hasOwnProperty(name)) {
-      return
-    }
-
-    if (!args || !args.length) {
-      args = []
-    }
-
-    let evs = w.globals.events[name]
-    let l = evs.length
-
-    for (let i = 0; i < l; i++) {
-      evs[i].apply(null, args)
-    }
-  }
-
   create(ser, opts) {
     let w = this.w
-    this.initModules()
+
+    const initCtx = new InitCtxVariables(this)
+    initCtx.initModules()
     let gl = this.w.globals
 
     gl.noData = false
@@ -237,7 +134,7 @@ export default class ApexCharts {
       this.series.handleNoData()
     }
 
-    this.setupEventHandlers()
+    this.events.setupEventHandlers()
 
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
     this.data.parseData(ser)
@@ -388,12 +285,17 @@ export default class ApexCharts {
           }
         } else {
           const tools = w.config.chart.toolbar.tools
-          tools.zoom = false
-          tools.zoomin = false
-          tools.zoomout = false
-          tools.selection = false
-          tools.pan = false
-          tools.reset = false
+          let toolsArr = [
+            'zoom',
+            'zoomin',
+            'zoomout',
+            'selection',
+            'pan',
+            'reset'
+          ]
+          toolsArr.forEach((t) => {
+            tools[t] = false
+          })
         }
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
@@ -414,12 +316,26 @@ export default class ApexCharts {
     })
   }
 
-  clearPreviousPaths() {
-    const w = this.w
-    w.globals.previousPaths = []
-    w.globals.allSeriesCollapsed = false
-    w.globals.collapsedSeries = []
-    w.globals.collapsedSeriesIndices = []
+  /**
+   * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
+   */
+  destroy() {
+    // remove the chart's instance from the global Apex._chartInstances
+    const chartID = this.w.config.chart.id
+    if (chartID) {
+      Apex._chartInstances.forEach((c, i) => {
+        if (c.id === chartID) {
+          Apex._chartInstances.splice(i, 1)
+        }
+      })
+    }
+    window.removeEventListener('resize', this.events.windowResizeHandler)
+
+    window.removeResizeListener(
+      this.el.parentNode,
+      this.events.parentResizeCallback.bind(this.events)
+    )
+    new Destroy(this.ctx).clear()
   }
 
   /**
@@ -438,32 +354,32 @@ export default class ApexCharts {
   ) {
     const w = this.w
     if (options.series) {
-      this.resetSeries(false)
+      this.series.resetSeries(false)
       if (options.series.length && options.series[0].data) {
         options.series = options.series.map((s, i) => {
-          return this._extendSeries(s, i)
+          return this.updateHelpers._extendSeries(s, i)
         })
       }
 
       // user updated the series via updateOptions() function.
       // Hence, we need to reset axis min/max to avoid zooming issues
-      this.revertDefaultAxisMinMax()
+      this.updateHelpers.revertDefaultAxisMinMax()
     }
     // user has set x-axis min/max externally - hence we need to forcefully set the xaxis min/max
     if (options.xaxis) {
-      options = this.forceXAxisUpdate(options)
+      options = this.updateHelpers.forceXAxisUpdate(options)
     }
     if (options.yaxis) {
-      options = this.forceYAxisUpdate(options)
+      options = this.updateHelpers.forceYAxisUpdate(options)
     }
     if (w.globals.collapsedSeriesIndices.length > 0) {
-      this.clearPreviousPaths()
+      this.series.clearPreviousPaths()
     }
     /* update theme mode#459 */
     if (options.theme) {
       options = this.theme.updateThemeOptions(options)
     }
-    return this._updateOptions(
+    return this.updateHelpers._updateOptions(
       options,
       redraw,
       animate,
@@ -473,75 +389,18 @@ export default class ApexCharts {
   }
 
   /**
-   * private method to update Options.
-   *
-   * @param {object} options - A new config object can be passed which will be merged with the existing config object
-   * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
-   * @param {boolean} animate - should animate or not on updating Options
-   * @param {boolean} overwriteInitialConfig - should update the initial config or not
-   */
-  _updateOptions(
-    options,
-    redraw = false,
-    animate = true,
-    updateSyncedCharts = true,
-    overwriteInitialConfig = false
-  ) {
-    let charts = [this]
-    if (updateSyncedCharts) {
-      charts = this.getSyncedCharts()
-    }
-
-    if (this.w.globals.isExecCalled) {
-      // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
-      charts = [this]
-      this.w.globals.isExecCalled = false
-    }
-
-    charts.forEach((ch) => {
-      let w = ch.w
-
-      w.globals.shouldAnimate = animate
-
-      if (!redraw) {
-        w.globals.resized = true
-        w.globals.dataChanged = true
-
-        if (animate) {
-          ch.series.getPreviousPaths()
-        }
-      }
-
-      if (options && typeof options === 'object') {
-        ch.config = new Config(options)
-        options = CoreUtils.extendArrayProps(ch.config, options)
-
-        w.config = Utils.extend(w.config, options)
-
-        if (overwriteInitialConfig) {
-          // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
-          w.globals.lastXAxis = []
-          w.globals.lastYAxis = []
-
-          // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
-          w.globals.initialConfig = Utils.extend({}, w.config)
-          w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
-        }
-      }
-
-      return ch.update(options)
-    })
-  }
-
-  /**
    * Allows users to update Series after the chart has rendered.
    *
    * @param {array} series - New series which will override the existing
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
-    this.resetSeries(false)
-    this.revertDefaultAxisMinMax()
-    return this._updateSeries(newSeries, animate, overwriteInitialSeries)
+    this.series.resetSeries(false)
+    this.updateHelpers.revertDefaultAxisMinMax()
+    return this.updateHelpers._updateSeries(
+      newSeries,
+      animate,
+      overwriteInitialSeries
+    )
   }
 
   /**
@@ -552,96 +411,13 @@ export default class ApexCharts {
   appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
     const newSeries = this.w.config.series.slice()
     newSeries.push(newSerie)
-    this.resetSeries(false)
-    this.revertDefaultAxisMinMax()
-    return this._updateSeries(newSeries, animate, overwriteInitialSeries)
-  }
-
-  /**
-   * Private method to update Series.
-   *
-   * @param {array} series - New series which will override the existing
-   */
-  _updateSeries(newSeries, animate, overwriteInitialSeries = false) {
-    const w = this.w
-
-    this.w.globals.shouldAnimate = animate
-
-    w.globals.dataChanged = true
-
-    // if user has collapsed some series with legend, we need to clear those
-    if (w.globals.allSeriesCollapsed) {
-      w.globals.allSeriesCollapsed = false
-    }
-
-    if (animate) {
-      this.series.getPreviousPaths()
-    }
-
-    let existingSeries
-
-    // axis charts
-    if (w.globals.axisCharts) {
-      existingSeries = newSeries.map((s, i) => {
-        return this._extendSeries(s, i)
-      })
-
-      if (existingSeries.length === 0) {
-        existingSeries = [{ data: [] }]
-      }
-      w.config.series = existingSeries
-    } else {
-      // non-axis chart (pie/radialbar)
-      w.config.series = newSeries.slice()
-    }
-
-    if (overwriteInitialSeries) {
-      w.globals.initialConfig.series = JSON.parse(
-        JSON.stringify(w.config.series)
-      )
-      w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
-    }
-
-    return this.update()
-  }
-
-  _extendSeries(s, i) {
-    const w = this.w
-    return {
-      ...w.config.series[i],
-      name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
-      type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
-      data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
-    }
-  }
-
-  /**
-   * Get all charts in the same "group" (including the instance which is called upon) to sync them when user zooms in/out or pan.
-   */
-  getSyncedCharts() {
-    const chartGroups = this.getGroupedCharts()
-    let allCharts = [this]
-    if (chartGroups.length) {
-      allCharts = []
-      chartGroups.forEach((ch) => {
-        allCharts.push(ch)
-      })
-    }
-
-    return allCharts
-  }
-
-  /**
-   * Get charts in the same "group" (excluding the instance which is called upon) to perform operations on the other charts of the same group (eg., tooltip hovering)
-   */
-  getGroupedCharts() {
-    return Apex._chartInstances
-      .filter((ch) => {
-        if (ch.group) {
-          return true
-        }
-      })
-      .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
+    this.series.resetSeries(false)
+    this.updateHelpers.revertDefaultAxisMinMax()
+    return this.updateHelpers._updateSeries(
+      newSeries,
+      animate,
+      overwriteInitialSeries
+    )
   }
 
   /**
@@ -677,7 +453,7 @@ export default class ApexCharts {
 
   update(options) {
     return new Promise((resolve, reject) => {
-      this.clear()
+      new Destroy(this.ctx).clear()
 
       const graphData = this.create(this.w.config.series, options)
       if (!graphData) return resolve(this)
@@ -686,7 +462,7 @@ export default class ApexCharts {
           if (typeof this.w.config.chart.events.updated === 'function') {
             this.w.config.chart.events.updated(this, this.w)
           }
-          this.fireEvent('updated', [this, this.w])
+          this.events.fireEvent('updated', [this, this.w])
 
           this.w.globals.isDirty = true
 
@@ -698,163 +474,38 @@ export default class ApexCharts {
     })
   }
 
-  forceXAxisUpdate(options) {
-    const w = this.w
-    const minmax = ['min', 'max']
-    minmax.forEach((a) => {
-      if (typeof options.xaxis[a] !== 'undefined') {
-        w.config.xaxis[a] = options.xaxis[a]
-        w.globals.lastXAxis[a] = options.xaxis[a]
-      }
-    })
-
-    if (options.xaxis.categories && options.xaxis.categories.length) {
-      w.config.xaxis.categories = options.xaxis.categories
-    }
-
-    if (w.config.xaxis.convertedCatToNumeric) {
-      const defaults = new Defaults(options)
-      options = defaults.convertCatToNumericXaxis(options, this.ctx)
-    }
-    return options
-  }
-
-  forceYAxisUpdate(options) {
-    const w = this.w
-    if (w.config.chart.stacked && w.config.chart.stackType === '100%') {
-      if (Array.isArray(options.yaxis)) {
-        options.yaxis.forEach((yaxe, index) => {
-          options.yaxis[index].min = 0
-          options.yaxis[index].max = 100
-        })
-      } else {
-        options.yaxis.min = 0
-        options.yaxis.max = 100
-      }
-    }
-    return options
-  }
-
   /**
-   * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
-   * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
-   * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
+   * Get all charts in the same "group" (including the instance which is called upon) to sync them when user zooms in/out or pan.
    */
-  revertDefaultAxisMinMax() {
-    const w = this.w
-
-    w.config.xaxis.min = w.globals.lastXAxis.min
-    w.config.xaxis.max = w.globals.lastXAxis.max
-
-    w.config.yaxis.map((yaxe, index) => {
-      if (w.globals.zoomed) {
-        // user has zoomed, check the last yaxis
-
-        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
-          yaxe.min = w.globals.lastYAxis[index].min
-          yaxe.max = w.globals.lastYAxis[index].max
-        }
-      } else {
-        // user hasn't zoomed, check the original yaxis
-        if (typeof this.opts.yaxis[index] !== 'undefined') {
-          yaxe.min = this.opts.yaxis[index].min
-          yaxe.max = this.opts.yaxis[index].max
-        }
-      }
-    })
-  }
-
-  clear() {
-    if (this.zoomPanSelection) {
-      this.zoomPanSelection.destroy()
-    }
-    if (this.toolbar) {
-      this.toolbar.destroy()
-    }
-
-    this.animations = null
-    this.axes = null
-    this.annotations = null
-    this.core = null
-    this.data = null
-    this.grid = null
-    this.series = null
-    this.responsive = null
-    this.theme = null
-    this.formatters = null
-    this.titleSubtitle = null
-    this.legend = null
-    this.dimensions = null
-    this.options = null
-    this.crosshairs = null
-    this.zoomPanSelection = null
-    this.toolbar = null
-    this.w.globals.tooltip = null
-    this.clearDomElements()
-  }
-
-  killSVG(draw) {
-    return new Promise((resolve, reject) => {
-      draw.each(function(i, children) {
-        this.removeClass('*')
-        this.off()
-        this.stop()
-      }, true)
-      draw.ungroup()
-      draw.clear()
-      resolve('done')
-    })
-  }
-
-  clearDomElements() {
-    // detach document event
-    this.eventList.forEach((event) => {
-      document.removeEventListener(event, this.documentEvent)
-    })
-
-    const domEls = this.w.globals.dom
-
-    if (this.el !== null) {
-      // remove all child elements - resetting the whole chart
-      while (this.el.firstChild) {
-        this.el.removeChild(this.el.firstChild)
-      }
-    }
-
-    this.killSVG(domEls.Paper)
-    domEls.Paper.remove()
-
-    domEls.elWrap = null
-    domEls.elGraphical = null
-    domEls.elLegendWrap = null
-    domEls.baseEl = null
-    domEls.elGridRect = null
-    domEls.elGridRectMask = null
-    domEls.elGridRectMarkerMask = null
-    domEls.elDefs = null
-  }
-
-  /**
-   * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
-   */
-  destroy() {
-    this.clear()
-
-    // remove the chart's instance from the global Apex._chartInstances
-    const chartID = this.w.config.chart.id
-    if (chartID) {
-      Apex._chartInstances.forEach((c, i) => {
-        if (c.id === chartID) {
-          Apex._chartInstances.splice(i, 1)
-        }
+  getSyncedCharts() {
+    const chartGroups = this.getGroupedCharts()
+    let allCharts = [this]
+    if (chartGroups.length) {
+      allCharts = []
+      chartGroups.forEach((ch) => {
+        allCharts.push(ch)
       })
     }
-    window.removeEventListener('resize', this.windowResizeHandler)
 
-    window.removeResizeListener(
-      this.el.parentNode,
-      this.parentResizeCallback.bind(this)
-    )
+    return allCharts
+  }
+
+  /**
+   * Get charts in the same "group" (excluding the instance which is called upon) to perform operations on the other charts of the same group (eg., tooltip hovering)
+   */
+  getGroupedCharts() {
+    return Apex._chartInstances
+      .filter((ch) => {
+        if (ch.group) {
+          return true
+        }
+      })
+      .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
+  }
+
+  static getChartByID(chartID) {
+    const c = Apex._chartInstances.filter((ch) => ch.id === chartID)[0]
+    return c.chart
   }
 
   /**
@@ -893,29 +544,8 @@ export default class ApexCharts {
     // turn on the global exec flag to indicate this method was called
     chart.w.globals.isExecCalled = true
 
-    const methodNames = [
-      'updateOptions',
-      'updateSeries',
-      'appendData',
-      'appendSeries',
-      'toggleSeries',
-      'showSeries',
-      'hideSeries',
-      'setLocale',
-      'resetSeries',
-      'toggleDataPointSelection',
-      'dataURI',
-      'addXaxisAnnotation',
-      'addYaxisAnnotation',
-      'addPointAnnotation',
-      'addText',
-      'clearAnnotations',
-      'removeAnnotation',
-      'paper',
-      'destroy'
-    ]
     let ret = null
-    if (methodNames.indexOf(fn) !== -1) {
+    if (this.publicMethods.indexOf(fn) !== -1) {
       ret = chart[fn](...opts)
     }
     return ret
@@ -926,98 +556,19 @@ export default class ApexCharts {
   }
 
   toggleSeries(seriesName) {
-    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
-
-    this.legend.legendHelpers.toggleDataSeries(
-      isSeriesHidden.realIndex,
-      isSeriesHidden.isHidden
-    )
-
-    return isSeriesHidden.isHidden
+    return this.series.toggleSeries(seriesName)
   }
 
   showSeries(seriesName) {
-    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
-
-    if (isSeriesHidden.isHidden) {
-      this.legend.legendHelpers.toggleDataSeries(isSeriesHidden.realIndex, true)
-    }
+    this.series.showSeries(seriesName)
   }
 
   hideSeries(seriesName) {
-    let isSeriesHidden = this.series.isSeriesHidden(seriesName)
-
-    if (!isSeriesHidden.isHidden) {
-      this.legend.legendHelpers.toggleDataSeries(
-        isSeriesHidden.realIndex,
-        false
-      )
-    }
+    this.series.hideSeries(seriesName)
   }
 
   resetSeries(shouldUpdateChart = true) {
     this.series.resetSeries(shouldUpdateChart)
-  }
-
-  setupEventHandlers() {
-    const w = this.w
-    const me = this
-
-    let clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
-
-    this.eventList.forEach((event) => {
-      clickableArea.addEventListener(
-        event,
-        (e) => {
-          const opts = Object.assign({}, w, {
-            seriesIndex: w.globals.capturedSeriesIndex,
-            dataPointIndex: w.globals.capturedDataPointIndex
-          })
-
-          if (e.type === 'mousemove' || e.type === 'touchmove') {
-            if (typeof w.config.chart.events.mouseMove === 'function') {
-              w.config.chart.events.mouseMove(e, me, opts)
-            }
-          } else if (
-            (e.type === 'mouseup' && e.which === 1) ||
-            e.type === 'touchend'
-          ) {
-            if (typeof w.config.chart.events.click === 'function') {
-              w.config.chart.events.click(e, me, opts)
-            }
-            me.fireEvent('click', [e, me, opts])
-          }
-        },
-        { capture: false, passive: true }
-      )
-    })
-
-    this.eventList.forEach((event) => {
-      document.addEventListener(event, this.documentEvent)
-    })
-
-    this.core.setupBrushHandler()
-  }
-
-  documentEvent(e) {
-    const w = this.w
-
-    if (e.type === 'click') {
-      const target = e.target.className
-      let elMenu = w.globals.dom.baseEl.querySelector('.apexcharts-menu')
-      if (
-        elMenu &&
-        elMenu.classList.contains('apexcharts-menu-open') &&
-        target !== 'apexcharts-menu-icon'
-      ) {
-        elMenu.classList.remove('apexcharts-menu-open')
-      }
-    }
-
-    w.globals.clientX =
-      e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
-    w.globals.clientY =
-      e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
   }
 
   addXaxisAnnotation(opts, pushToMemory = true, context = undefined) {
@@ -1095,70 +646,15 @@ export default class ApexCharts {
     return this.w.globals.seriesTotals
   }
 
-  setLocale(localeName) {
-    this.setCurrentLocaleValues(localeName)
-  }
-
   toggleDataPointSelection(seriesIndex, dataPointIndex) {
-    const w = this.w
-    let elPath = null
-    const parent = `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
-
-    if (w.globals.axisCharts) {
-      elPath = w.globals.dom.Paper.select(
-        `${parent} path[j='${dataPointIndex}'], ${parent} circle[j='${dataPointIndex}'], ${parent} rect[j='${dataPointIndex}']`
-      ).members[0]
-    } else {
-      // dataPointIndex will be undefined here, hence using seriesIndex
-      if (typeof dataPointIndex === 'undefined') {
-        elPath = w.globals.dom.Paper.select(
-          `${parent} path[j='${seriesIndex}']`
-        ).members[0]
-
-        if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
-          const pie = new Pie(this.ctx)
-          pie.pieClicked(seriesIndex)
-        }
-      }
-    }
-
-    if (elPath) {
-      const graphics = new Graphics(this.ctx)
-      graphics.pathMouseDown(elPath, null)
-    } else {
-      console.warn('toggleDataPointSelection: Element not found')
-    }
-
-    return elPath.node ? elPath.node : null
+    return this.updateHelpers.toggleDataPointSelection(
+      seriesIndex,
+      dataPointIndex
+    )
   }
 
-  setCurrentLocaleValues(localeName) {
-    let locales = this.w.config.chart.locales
-
-    // check if user has specified locales in global Apex variable
-    // if yes - then extend those with local chart's locale
-    if (
-      window.Apex.chart &&
-      window.Apex.chart.locales &&
-      window.Apex.chart.locales.length > 0
-    ) {
-      locales = this.w.config.chart.locales.concat(window.Apex.chart.locales)
-    }
-
-    // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)
-    const selectedLocale = locales.filter((c) => c.name === localeName)[0]
-
-    if (selectedLocale) {
-      // create a complete locale object by extending defaults so you don't get undefined errors.
-      let ret = Utils.extend(en, selectedLocale)
-
-      // store these locale options in global var for ease access
-      this.w.globals.locale = ret.options
-    } else {
-      throw new Error(
-        'Wrong locale name provided. Please make sure you set the correct locale name in options'
-      )
-    }
+  setLocale(localeName) {
+    this.localization.setCurrentLocaleValues(localeName)
   }
 
   dataURI() {
@@ -1168,33 +664,5 @@ export default class ApexCharts {
 
   paper() {
     return this.w.globals.dom.Paper
-  }
-
-  static getChartByID(chartID) {
-    const c = Apex._chartInstances.filter((ch) => ch.id === chartID)[0]
-    return c.chart
-  }
-
-  parentResizeCallback() {
-    if (
-      this.w.globals.animationEnded &&
-      this.w.config.chart.redrawOnParentResize
-    ) {
-      this.windowResize()
-    }
-  }
-
-  /**
-   * Handle window resize and re-draw the whole chart.
-   */
-  windowResize() {
-    clearTimeout(this.w.globals.resizeTimer)
-    this.w.globals.resizeTimer = window.setTimeout(() => {
-      this.w.globals.resized = true
-      this.w.globals.dataChanged = false
-
-      // we need to redraw the whole chart on window resize (with a small delay).
-      this.update()
-    }, 150)
   }
 }

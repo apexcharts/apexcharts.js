@@ -192,7 +192,6 @@ title: {
   offsetX: 0,
   style: {
     fontSize: '24px',
-    cssClass: 'apexcharts-yaxis-title'
   }
 },
 subtitle: {
@@ -200,7 +199,6 @@ subtitle: {
   offsetX: 0,
   style: {
     fontSize: '14px',
-    cssClass: 'apexcharts-yaxis-title'
   }
 }
 </options>
@@ -239,7 +237,6 @@ title: {
   offsetX: 0,
   style: {
     fontSize: '24px',
-    cssClass: 'apexcharts-yaxis-title'
   }
 },
 subtitle: {
@@ -247,7 +244,6 @@ subtitle: {
   offsetX: 0,
   style: {
     fontSize: '14px',
-    cssClass: 'apexcharts-yaxis-title'
   }
 }
 </options>
@@ -289,7 +285,6 @@ title: {
   offsetX: 0,
   style: {
     fontSize: '24px',
-    cssClass: 'apexcharts-yaxis-title'
   }
 },
 subtitle: {
@@ -297,7 +292,6 @@ subtitle: {
   offsetX: 0,
   style: {
     fontSize: '14px',
-    cssClass: 'apexcharts-yaxis-title'
   }
 }
 </options>

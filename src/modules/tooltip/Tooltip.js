@@ -744,7 +744,7 @@ export default class Tooltip {
         w
       })
     }
-    this.ctx.fireEvent('markerClick', [
+    this.ctx.events.fireEvent('markerClick', [
       e,
       this.ctx,
       { seriesIndex, dataPointIndex, w }
