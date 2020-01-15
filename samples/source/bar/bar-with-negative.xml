@@ -25,7 +25,9 @@ stroke: {
 
 grid: {
   xaxis: {
-    showLines: false
+    lines: {
+      show: false
+    }
   }
 },
 yaxis: {
