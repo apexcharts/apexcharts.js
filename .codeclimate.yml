@@ -40,3 +40,4 @@ exclude_patterns:
   - '**/*_test.go'
   - '**/*.d.ts'
   - 'src/svgjs/'
+  - 'src/modules/settings/Options.js'
