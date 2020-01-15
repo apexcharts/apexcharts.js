@@ -603,7 +603,7 @@ type ApexLegend = {
   tooltipHoverFormatter?(legendName: string, opts?: any): string
   textAnchor?: string
   labels?: {
-    color?: string | string[]
+    colors?: string | string[]
     useSeriesColors?: boolean
   }
   markers?: {
