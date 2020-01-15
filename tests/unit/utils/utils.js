@@ -8,7 +8,7 @@ export function createChart(type, series, xtype = 'category') {
       type
     },
     xaxis: {
-      type
+      type: xtype
     },
     series
   })
