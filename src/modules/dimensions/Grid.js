@@ -37,6 +37,10 @@ export default class DimGrid {
       let xRatio = 0
       let xRange = Math.abs(w.globals.initialMaxX - w.globals.initialMinX)
 
+      if (xRange <= 3) {
+        xRange = 3
+      }
+
       xRatio = xRange / gridWidth
 
       let xDivision

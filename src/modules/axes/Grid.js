@@ -237,6 +237,10 @@ class Grid {
 
     const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
       for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
+        if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
+          // single datapoint
+          x1 = w.globals.gridWidth / 2
+        }
         this._drawGridLines({
           i,
           x1,

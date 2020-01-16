@@ -387,7 +387,9 @@ class Range {
         (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)
       ) {
         gl.minX = gl.minX - 2
+        gl.initialMinX = gl.minX
         gl.maxX = gl.maxX + 2
+        gl.initialMaxX = gl.maxX
       }
     }
 
@@ -416,6 +418,9 @@ class Range {
             }
           }
         })
+        if (gl.dataPoints === 1 && gl.minXDiff === Number.MAX_VALUE) {
+          gl.minXDiff = 0.5
+        }
       })
     }
 
