@@ -648,7 +648,7 @@ class Graphics {
         ).members
 
         const deSelect = (els) => {
-          els.forEach((el) => {
+          Array.prototype.forEach.call(els, (el) => {
             el.node.setAttribute('selected', 'false')
             filters.getDefaultFilter(el, i)
           })

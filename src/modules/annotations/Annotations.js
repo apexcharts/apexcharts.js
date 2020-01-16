@@ -95,7 +95,7 @@ export default class Annotations {
     annos = Utils.listToArray(annos)
 
     // delete the DOM elements
-    annos.forEach((a) => {
+    Array.prototype.forEach.call(annos, (a) => {
       while (a.firstChild) {
         a.removeChild(a.firstChild)
       }
@@ -113,7 +113,7 @@ export default class Annotations {
         }
       })
 
-      annos.forEach((a) => {
+      Array.prototype.forEach.call(annos, (a) => {
         a.parentElement.removeChild(a)
       })
     }

@@ -443,7 +443,7 @@ export default class XAxis {
         let tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim) {
-          tSpan.forEach((ts) => {
+          Array.prototype.forEach.call(tSpan, (ts) => {
             graphics.placeTextWithEllipsis(
               ts,
               ts.textContent,
@@ -460,7 +460,7 @@ export default class XAxis {
         let tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
-          tSpan.forEach((ts) => {
+          Array.prototype.forEach.call(tSpan, (ts) => {
             graphics.placeTextWithEllipsis(ts, ts.textContent, width)
           })
         }
