@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.15.0
+ * ApexCharts v3.15.1
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -1659,7 +1659,7 @@
             var elCircles = w.globals.dom.Paper.select('.apexcharts-series circle, .apexcharts-series rect').members;
 
             var deSelect = function deSelect(els) {
-              els.forEach(function (el) {
+              Array.prototype.forEach.call(els, function (el) {
                 el.node.setAttribute('selected', 'false');
                 filters.getDefaultFilter(el, i);
               });
@@ -3373,7 +3373,7 @@
         });
         annos = Utils.listToArray(annos); // delete the DOM elements
 
-        annos.forEach(function (a) {
+        Array.prototype.forEach.call(annos, function (a) {
           while (a.firstChild) {
             a.removeChild(a.firstChild);
           }
@@ -3391,7 +3391,7 @@
               w.globals.memory.methodsToExec.splice(i, 1);
             }
           });
-          annos.forEach(function (a) {
+          Array.prototype.forEach.call(annos, function (a) {
             a.parentElement.removeChild(a);
           });
         }
@@ -8035,7 +8035,8 @@
         }
 
         if (w.globals.isXNumeric) {
-          colWidth = w.globals.gridWidth / (labels.length - 1);
+          var len = labels.length > 1 ? labels.length - 1 : labels.length;
+          colWidth = w.globals.gridWidth / len;
           xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX;
         } else {
           colWidth = w.globals.gridWidth / labels.length;
@@ -8047,6 +8048,11 @@
         if (w.config.xaxis.labels.show) {
           var _loop = function _loop(_i) {
             var x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX;
+
+            if (_i === 0 && labelsLen === 1 && colWidth / 2 === xPos && w.globals.dataPoints === 1) {
+              // single datapoint
+              x = w.globals.gridWidth / 2;
+            }
 
             var label = _this.axesUtils.getLabel(labels, w.globals.timescaleLabels, x, _i, _this.drawnLabels, _this.xaxisFontSize);
 
@@ -8304,7 +8310,7 @@
             var tSpan = xAxisTexts[xat].childNodes;
 
             if (w.config.xaxis.labels.trim) {
-              tSpan.forEach(function (ts) {
+              Array.prototype.forEach.call(tSpan, function (ts) {
                 graphics.placeTextWithEllipsis(ts, ts.textContent, w.config.xaxis.labels.maxHeight - (w.config.legend.position === 'bottom' ? 20 : 10));
               });
             }
@@ -8317,7 +8323,7 @@
               var _tSpan = xAxisTexts[_xat].childNodes;
 
               if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
-                _tSpan.forEach(function (ts) {
+                Array.prototype.forEach.call(_tSpan, function (ts) {
                   graphics.placeTextWithEllipsis(ts, ts.textContent, width);
                 });
               }
@@ -8577,6 +8583,11 @@
               y2 = _ref6.y2;
 
           for (var i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
+            if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
+              // single datapoint
+              x1 = w.globals.gridWidth / 2;
+            }
+
             _this._drawGridLines({
               i: i,
               x1: x1,
@@ -8938,7 +8949,7 @@
             result.push(v);
           }
 
-          if (result[result.length - 2] >= yMax) {
+          if (result[result.length - 1] >= yMax) {
             result.pop();
           }
 
@@ -9063,7 +9074,7 @@
           // no data in the chart. Either all series collapsed or user passed a blank array
           gl.xAxisScale = this.linearScale(0, 5, 5);
         } else {
-          gl.xAxisScale = this.niceScale(minX, maxX, diff, x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5);
+          gl.xAxisScale = this.niceScale(minX, maxX, diff, 0, x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5);
         }
 
         return gl.xAxisScale;
@@ -9695,7 +9706,9 @@
             gl.maxX = new Date(newMaxX).getTime();
           } else if (cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided) {
             gl.minX = gl.minX - 2;
+            gl.initialMinX = gl.minX;
             gl.maxX = gl.maxX + 2;
+            gl.initialMaxX = gl.maxX;
           }
         }
 
@@ -9722,6 +9735,10 @@
                 }
               }
             });
+
+            if (gl.dataPoints === 1 && gl.minXDiff === Number.MAX_VALUE) {
+              gl.minXDiff = 0.5;
+            }
           });
         }
 
@@ -10178,7 +10195,6 @@
       this.ctx = ctx;
       this.w = ctx.w;
       this.documentEvent = Utils.bind(this.documentEvent, this);
-      this.windowResizeHandler = this.windowResize.bind(this);
     }
 
     _createClass(Events, [{
@@ -10279,30 +10295,6 @@
 
         w.globals.clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
         w.globals.clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-      }
-    }, {
-      key: "parentResizeCallback",
-      value: function parentResizeCallback() {
-        if (this.w.globals.animationEnded && this.w.config.chart.redrawOnParentResize) {
-          this.windowResize();
-        }
-      }
-      /**
-       * Handle window resize and re-draw the whole chart.
-       */
-
-    }, {
-      key: "windowResize",
-      value: function windowResize() {
-        var _this2 = this;
-
-        clearTimeout(this.w.globals.resizeTimer);
-        this.w.globals.resizeTimer = window.setTimeout(function () {
-          _this2.w.globals.resized = true;
-          _this2.w.globals.dataChanged = false; // we need to redraw the whole chart on window resize (with a small delay).
-
-          _this2.ctx.update();
-        }, 150);
       }
     }]);
 
@@ -10991,7 +10983,7 @@
           val = xFormat.xLabelFormat(xlbFormatter, val, timestamp);
           valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp);
 
-          if (w.config.xaxis.convertedCatToNumeric && typeof val === 'undefined' && w.globals.collapsedSeries.length === w.config.series.length) {
+          if (w.config.xaxis.convertedCatToNumeric && typeof val === 'undefined') {
             val = '1';
             valArr = val;
           }
@@ -11382,6 +11374,11 @@
         if (hasBar && w.globals.isXNumeric && !w.globals.isBarHorizontal && seriesLen > 0) {
           var xRatio = 0;
           var xRange = Math.abs(w.globals.initialMaxX - w.globals.initialMinX);
+
+          if (xRange <= 3) {
+            xRange = w.globals.dataPoints;
+          }
+
           xRatio = xRange / gridWidth;
           var xDivision; // max barwidth should be equal to minXDiff to avoid overlap
 
@@ -27749,6 +27746,17 @@
 
         if (this.ctx.toolbar) {
           this.ctx.toolbar.destroy();
+        } // remove the chart's instance from the global Apex._chartInstances
+
+
+        var chartID = this.w.config.chart.id;
+
+        if (chartID) {
+          Apex._chartInstances.forEach(function (c, i) {
+            if (c.id === chartID) {
+              Apex._chartInstances.splice(i, 1);
+            }
+          });
         }
 
         this.ctx.animations = null;
@@ -27842,6 +27850,7 @@
       var initCtx = new InitCtxVariables(this);
       initCtx.initModules();
       this.create = Utils.bind(this.create, this);
+      this.windowResizeHandler = this._windowResize.bind(this);
     }
     /**
      * The primary method user will call to render the chart.
@@ -27880,8 +27889,8 @@
 
             _this.events.fireEvent('beforeMount', [_this, _this.w]);
 
-            window.addEventListener('resize', _this.events.windowResizeHandler);
-            window.addResizeListener(_this.el.parentNode, _this.events.parentResizeCallback.bind(_this.events));
+            window.addEventListener('resize', _this.windowResizeHandler);
+            window.addResizeListener(_this.el.parentNode, _this._parentResizeCallback.bind(_this));
 
             var graphData = _this.create(_this.w.config.series, {});
 
@@ -28108,19 +28117,8 @@
     }, {
       key: "destroy",
       value: function destroy() {
-        // remove the chart's instance from the global Apex._chartInstances
-        var chartID = this.w.config.chart.id;
-
-        if (chartID) {
-          Apex._chartInstances.forEach(function (c, i) {
-            if (c.id === chartID) {
-              Apex._chartInstances.splice(i, 1);
-            }
-          });
-        }
-
-        window.removeEventListener('resize', this.events.windowResizeHandler);
-        window.removeResizeListener(this.el.parentNode, this.events.parentResizeCallback.bind(this.events));
+        window.removeEventListener('resize', this.windowResizeHandler);
+        window.removeResizeListener(this.el.parentNode, this._parentResizeCallback.bind(this));
         new Destroy(this.ctx).clear();
       }
       /**
@@ -28452,6 +28450,31 @@
       key: "paper",
       value: function paper() {
         return this.w.globals.dom.Paper;
+      }
+    }, {
+      key: "_parentResizeCallback",
+      value: function _parentResizeCallback() {
+        if (this.w.globals.animationEnded && this.w.config.chart.redrawOnParentResize) {
+          this._windowResize();
+        }
+      }
+      /**
+       * Handle window resize and re-draw the whole chart.
+       */
+
+    }, {
+      key: "_windowResize",
+      value: function _windowResize() {
+        var _this6 = this;
+
+        console.log('here');
+        clearTimeout(this.w.globals.resizeTimer);
+        this.w.globals.resizeTimer = window.setTimeout(function () {
+          _this6.w.globals.resized = true;
+          _this6.w.globals.dataChanged = false; // we need to redraw the whole chart on window resize (with a small delay).
+
+          _this6.ctx.update();
+        }, 150);
       }
     }], [{
       key: "getChartByID",

@@ -14,8 +14,8 @@ chart: {
   },
   events: {
     mounted: function(ctx, config) {
-      const lowest = ctx.getLowestValueInSeries(0)
-      const highest = ctx.getHighestValueInSeries(0)
+      var lowest = ctx.getLowestValueInSeries(0)
+      var highest = ctx.getHighestValueInSeries(0)
 
       ctx.addPointAnnotation({
         x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(lowest)]).getTime(),

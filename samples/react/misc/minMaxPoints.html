@@ -17,6 +17,21 @@
       
     </style>
 
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
     
     <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
@@ -68,8 +83,8 @@
                 },
                 events: {
                   mounted: function(ctx, config) {
-                    const lowest = ctx.getLowestValueInSeries(0)
-                    const highest = ctx.getHighestValueInSeries(0)
+                    var lowest = ctx.getLowestValueInSeries(0)
+                    var highest = ctx.getHighestValueInSeries(0)
               
                     ctx.addPointAnnotation({
                       x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(lowest)]).getTime(),

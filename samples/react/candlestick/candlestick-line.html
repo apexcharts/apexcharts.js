@@ -17,6 +17,21 @@
       
     </style>
 
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
     
     <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
@@ -337,10 +352,10 @@
                 custom: [function({seriesIndex, dataPointIndex, w}) {
                   return w.globals.series[seriesIndex][dataPointIndex]
                 }, function({ seriesIndex, dataPointIndex, w }) {
-                  const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
-                  const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
-                  const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
-                  const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex]
+                  var o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
+                  var h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
+                  var l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
+                  var c = w.globals.seriesCandleC[seriesIndex][dataPointIndex]
                   return (
                     '<div class="apexcharts-tooltip-candlestick">' +
                     '<div>Open: <span class="value">' +
