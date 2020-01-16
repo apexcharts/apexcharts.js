@@ -131,6 +131,7 @@ type ApexChart = {
     target?: string
   }
   id?: string
+  group?: string
   locales?: ApexLocale[]
   defaultLocale?: string
   parentHeightOffset?: number
@@ -150,6 +151,11 @@ type ApexChart = {
       zoomout?: boolean | string
       pan?: boolean | string
       reset?: boolean | string
+      customIcons?: {
+        icon?: string
+        title?: string
+        index?: number
+      }[]
     }
     autoSelected?: 'zoom' | 'selection' | 'pan'
   }
@@ -710,6 +716,13 @@ type ApexResponsive = {
   options?: any
 }
 
+type ApexTooltipY = {
+  title?: {
+    formatter?(seriesName: string): string
+  }
+  formatter?(val: number, opts?: any): string
+}
+
 /**
  * Chart Tooltip options
  * See https://apexcharts.com/docs/options/tooltip/
@@ -736,12 +749,7 @@ type ApexTooltip = {
     format?: string
     formatter?(val: number): string
   }
-  y?: {
-    title?: {
-      formatter?(seriesName: string): string
-    }
-    formatter?(val: number, opts?: any): string
-  }
+  y?: ApexTooltipY | ApexTooltipY[]
   z?: {
     title?: string
     formatter?(val: number): string
