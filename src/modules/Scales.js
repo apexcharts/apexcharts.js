@@ -115,7 +115,7 @@ export default class Range {
         result.push(v)
       }
 
-      if (result[result.length - 2] >= yMax) {
+      if (result[result.length - 1] >= yMax) {
         result.pop()
       }
 
@@ -265,6 +265,7 @@ export default class Range {
         minX,
         maxX,
         diff,
+        0,
         x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5
       )
     }

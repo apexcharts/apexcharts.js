@@ -38,7 +38,7 @@ export default class DimGrid {
       let xRange = Math.abs(w.globals.initialMaxX - w.globals.initialMinX)
 
       if (xRange <= 3) {
-        xRange = 3
+        xRange = w.globals.dataPoints
       }
 
       xRatio = xRange / gridWidth
