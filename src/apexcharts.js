@@ -327,6 +327,15 @@ export default class ApexCharts {
       this.el.parentNode,
       this._parentResizeCallback.bind(this)
     )
+    // remove the chart's instance from the global Apex._chartInstances
+    const chartID = this.w.config.chart.id
+    if (chartID) {
+      Apex._chartInstances.forEach((c, i) => {
+        if (c.id === chartID) {
+          Apex._chartInstances.splice(i, 1)
+        }
+      })
+    }
     new Destroy(this.ctx).clear()
   }
 
@@ -671,7 +680,6 @@ export default class ApexCharts {
    * Handle window resize and re-draw the whole chart.
    */
   _windowResize() {
-    console.log('here')
     clearTimeout(this.w.globals.resizeTimer)
     this.w.globals.resizeTimer = window.setTimeout(() => {
       this.w.globals.resized = true
