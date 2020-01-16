@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Sparklines</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Sparklines</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet">
-
-  <style>
-  
-    .row {
+    <style>
+      
+        .row {
       overflow: hidden;
       max-width: 890px;
       margin: 30px auto;
@@ -66,24 +65,24 @@
         width: 100%;
       }
     }
-  
-  </style>
+      
+    </style>
 
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
 
-  <script src="../../../dist/apexcharts.js"></script>
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
-
-  <script>
-    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
-    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
-    var _seed = 42;
-    Math.random = function() {
-      _seed = _seed * 16807 % 2147483647;
-      return (_seed - 1) / 2147483646;
-    };
-  </script>
-
-  <script>
+    <script>
   window.Apex = {
     stroke: {
       width: 3
@@ -119,11 +118,10 @@
   // data for the sparklines that appear below header area
   var sparklineData = [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51, 35, 41, 35, 27, 93, 53, 61, 27, 54, 43, 19, 46];
   </script>
-</head>
+  </head>
 
-<body>
-  
-    <div>
+  <body>
+     <div>
         <div class="row">
           <div class="col-md-4">
             <div id="chart-spark1"></div>
@@ -191,12 +189,12 @@
       </div>
 
     <script>
-    
-      var options = {
-        series: [{
+      
+        var options = {
+          series: [{
           data: randomizeArray(sparklineData)
         }],
-        chart: {
+          chart: {
           type: 'area',
           height: 160,
           sparkline: {
@@ -227,16 +225,16 @@
             fontSize: '14px',
           }
         }
-      };
+        };
 
-      var chart = new ApexCharts(document.querySelector("#chart-spark1"), options);
-      chart.render();
-    
-      var optionsSpark2 = {
-        series: [{
+        var chart = new ApexCharts(document.querySelector("#chart-spark1"), options);
+        chart.render();
+      
+        var optionsSpark2 = {
+          series: [{
           data: randomizeArray(sparklineData)
         }],
-        chart: {
+          chart: {
           type: 'area',
           height: 160,
           sparkline: {
@@ -267,16 +265,16 @@
             fontSize: '14px',
           }
         }
-      };
+        };
 
-      var chartSpark2 = new ApexCharts(document.querySelector("#chart-spark2"), optionsSpark2);
-      chartSpark2.render();
-    
-      var optionsSpark3 = {
-        series: [{
+        var chartSpark2 = new ApexCharts(document.querySelector("#chart-spark2"), optionsSpark2);
+        chartSpark2.render();
+      
+        var optionsSpark3 = {
+          series: [{
           data: randomizeArray(sparklineData)
         }],
-        chart: {
+          chart: {
           type: 'area',
           height: 160,
           sparkline: {
@@ -311,16 +309,16 @@
             fontSize: '14px',
           }
         }
-      };
+        };
 
-      var chartSpark3 = new ApexCharts(document.querySelector("#chart-spark3"), optionsSpark3);
-      chartSpark3.render();
-    
-      var options1 = {
-        series: [{
+        var chartSpark3 = new ApexCharts(document.querySelector("#chart-spark3"), optionsSpark3);
+        chartSpark3.render();
+      
+        var options1 = {
+          series: [{
           data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
         }],
-        chart: {
+          chart: {
           type: 'line',
           width: 100,
           height: 35,
@@ -346,16 +344,16 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart1 = new ApexCharts(document.querySelector("#chart-1"), options1);
-      chart1.render();
-    
-      var options2 = {
-        series: [{
+        var chart1 = new ApexCharts(document.querySelector("#chart-1"), options1);
+        chart1.render();
+      
+        var options2 = {
+          series: [{
           data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14]
         }],
-        chart: {
+          chart: {
           type: 'line',
           width: 100,
           height: 35,
@@ -381,16 +379,16 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart2 = new ApexCharts(document.querySelector("#chart-2"), options2);
-      chart2.render();
-    
-      var options3 = {
-        series: [{
+        var chart2 = new ApexCharts(document.querySelector("#chart-2"), options2);
+        chart2.render();
+      
+        var options3 = {
+          series: [{
           data: [47, 45, 74, 14, 56, 74, 14, 11, 7, 39, 82]
         }],
-        chart: {
+          chart: {
           type: 'line',
           width: 100,
           height: 35,
@@ -416,16 +414,16 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart3 = new ApexCharts(document.querySelector("#chart-3"), options3);
-      chart3.render();
-    
-      var options4 = {
-        series: [{
+        var chart3 = new ApexCharts(document.querySelector("#chart-3"), options3);
+        chart3.render();
+      
+        var options4 = {
+          series: [{
           data: [15, 75, 47, 65, 14, 2, 41, 54, 4, 27, 15]
         }],
-        chart: {
+          chart: {
           type: 'line',
           width: 100,
           height: 35,
@@ -451,16 +449,16 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart4 = new ApexCharts(document.querySelector("#chart-4"), options4);
-      chart4.render();
-    
-      var options5 = {
-        series: [{
+        var chart4 = new ApexCharts(document.querySelector("#chart-4"), options4);
+        chart4.render();
+      
+        var options5 = {
+          series: [{
           data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
         }],
-        chart: {
+          chart: {
           type: 'bar',
           width: 100,
           height: 35,
@@ -497,16 +495,16 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart5 = new ApexCharts(document.querySelector("#chart-5"), options5);
-      chart5.render();
-    
-      var options6 = {
-        series: [{
+        var chart5 = new ApexCharts(document.querySelector("#chart-5"), options5);
+        chart5.render();
+      
+        var options6 = {
+          series: [{
           data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14]
         }],
-        chart: {
+          chart: {
           type: 'bar',
           width: 100,
           height: 35,
@@ -543,16 +541,16 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart6 = new ApexCharts(document.querySelector("#chart-6"), options6);
-      chart6.render();
-    
-      var options7 = {
-        series: [{
+        var chart6 = new ApexCharts(document.querySelector("#chart-6"), options6);
+        chart6.render();
+      
+        var options7 = {
+          series: [{
           data: [47, 45, 74, 14, 56, 74, 14, 11, 7, 39, 82]
         }],
-        chart: {
+          chart: {
           type: 'bar',
           width: 100,
           height: 35,
@@ -589,16 +587,16 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart7 = new ApexCharts(document.querySelector("#chart-7"), options7);
-      chart7.render();
-    
-      var options8 = {
-        series: [{
+        var chart7 = new ApexCharts(document.querySelector("#chart-7"), options7);
+        chart7.render();
+      
+        var options8 = {
+          series: [{
           data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
         }],
-        chart: {
+          chart: {
           type: 'bar',
           width: 100,
           height: 35,
@@ -635,15 +633,14 @@
             show: false
           }
         }
-      };
+        };
 
-      var chart8 = new ApexCharts(document.querySelector("#chart-8"), options8);
-      chart8.render();
-    
-    
+        var chart8 = new ApexCharts(document.querySelector("#chart-8"), options8);
+        chart8.render();
+      
+      
     </script>
 
-  
-</body>
-
+    
+  </body>
 </html>

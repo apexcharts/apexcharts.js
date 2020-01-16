@@ -1,49 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Axios Example</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Axios Example</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet">
-
-  <style>
-  
-    #chart {
+    <style>
+      
+        #chart {
       max-width: 650px;
       margin: 35px auto;
     }
-  
-  </style>
+      
+    </style>
 
-
-  <script src="../../../dist/apexcharts.js"></script>
-
-
-  <script>
-    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
-    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
-    var _seed = 42;
-    Math.random = function() {
-      _seed = _seed * 16807 % 2147483647;
-      return (_seed - 1) / 2147483646;
-    };
-  </script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
-</head>
-
-<body>
-  
-    <div id="chart"></div>
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
 
     <script>
-    
-      var options = {
-        series: [],
-        chart: {
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [],
+          chart: {
           height: 350,
           type: 'bar',
         },
@@ -64,13 +62,13 @@
             rotateAlways: true
           }
         }
-      };
+        };
 
-      var chart = new ApexCharts(document.querySelector("#chart"), options);
-      chart.render();
-    
-    
-      axios({
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+        axios({
         method: 'GET',
         url: 'http://my-json-server.typicode.com/apexcharts/apexcharts.js/yearly',
       }).then(function(response) {
@@ -79,10 +77,9 @@
           data: response.data
         }])
       })
-    
+      
     </script>
 
-  
-</body>
-
+    
+  </body>
 </html>

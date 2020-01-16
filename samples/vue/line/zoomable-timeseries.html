@@ -1,40 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Zoomable TimeSeries</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Zoomable TimeSeries</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet">
-
-  <style>
-  
-    #chart {
+    <style>
+      
+        #chart {
       max-width: 650px;
       margin: 35px auto;
     }
-  
-  </style>
+      
+    </style>
 
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
 
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
-
-  <script>
-    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
-    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
-    var _seed = 42;
-    Math.random = function() {
-      _seed = _seed * 16807 % 2147483647;
-      return (_seed - 1) / 2147483646;
-    };
-  </script>
-
-  <script src="../../assets/irregular-data-series.js"></script>
+    <script src="../../assets/irregular-data-series.js"></script>
   <script>
   var ts2 = 1484418600000;
   var dates = [];
@@ -45,10 +44,10 @@
     dates.push(innerArr)
   }
   </script>
-</head>
+  </head>
 
-<body>
-  
+  <body>
+    
     <div id="app">
       <div id="chart">
       <apexchart type="area" height="350" :options="chartOptions" :series="series"></apexchart>
@@ -136,7 +135,6 @@
         
       })
     </script>
-  
-</body>
-
+    
+  </body>
 </html>

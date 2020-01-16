@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Sparklines</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Sparklines</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet">
-
-  <style>
-  
-    .row {
+    <style>
+      
+        .row {
       overflow: hidden;
       max-width: 890px;
       margin: 30px auto;
@@ -66,26 +65,26 @@
         width: 100%;
       }
     }
-  
-  </style>
+      
+    </style>
 
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
 
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
-
-  <script>
-    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
-    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
-    var _seed = 42;
-    Math.random = function() {
-      _seed = _seed * 16807 % 2147483647;
-      return (_seed - 1) / 2147483646;
-    };
-  </script>
-
-  <script>
+    <script>
   window.Apex = {
     stroke: {
       width: 3
@@ -121,10 +120,10 @@
   // data for the sparklines that appear below header area
   var sparklineData = [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51, 35, 41, 35, 27, 93, 53, 61, 27, 54, 43, 19, 46];
   </script>
-</head>
+  </head>
 
-<body>
-  
+  <body>
+    
     <div id="app">
       <div>
       <div class="row">
@@ -736,7 +735,6 @@
         
       })
     </script>
-  
-</body>
-
+    
+  </body>
 </html>
