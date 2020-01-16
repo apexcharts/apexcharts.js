@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.15.1
+ * ApexCharts v3.15.2
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -27746,17 +27746,6 @@
 
         if (this.ctx.toolbar) {
           this.ctx.toolbar.destroy();
-        } // remove the chart's instance from the global Apex._chartInstances
-
-
-        var chartID = this.w.config.chart.id;
-
-        if (chartID) {
-          Apex._chartInstances.forEach(function (c, i) {
-            if (c.id === chartID) {
-              Apex._chartInstances.splice(i, 1);
-            }
-          });
         }
 
         this.ctx.animations = null;
@@ -28118,7 +28107,18 @@
       key: "destroy",
       value: function destroy() {
         window.removeEventListener('resize', this.windowResizeHandler);
-        window.removeResizeListener(this.el.parentNode, this._parentResizeCallback.bind(this));
+        window.removeResizeListener(this.el.parentNode, this._parentResizeCallback.bind(this)); // remove the chart's instance from the global Apex._chartInstances
+
+        var chartID = this.w.config.chart.id;
+
+        if (chartID) {
+          Apex._chartInstances.forEach(function (c, i) {
+            if (c.id === chartID) {
+              Apex._chartInstances.splice(i, 1);
+            }
+          });
+        }
+
         new Destroy(this.ctx).clear();
       }
       /**
@@ -28467,7 +28467,6 @@
       value: function _windowResize() {
         var _this6 = this;
 
-        console.log('here');
         clearTimeout(this.w.globals.resizeTimer);
         this.w.globals.resizeTimer = window.setTimeout(function () {
           _this6.w.globals.resized = true;
@@ -28526,7 +28525,7 @@
         chart.w.globals.isExecCalled = true;
         var ret = null;
 
-        if (this.publicMethods.indexOf(fn) !== -1) {
+        if (chart.publicMethods.indexOf(fn) !== -1) {
           for (var _len = arguments.length, opts = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
             opts[_key - 2] = arguments[_key];
           }
