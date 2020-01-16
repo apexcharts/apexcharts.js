@@ -37,6 +37,7 @@ export default class ApexCharts {
     initCtx.initModules()
 
     this.create = Utils.bind(this.create, this)
+    this.windowResizeHandler = this._windowResize.bind(this)
   }
 
   /**
@@ -66,10 +67,10 @@ export default class ApexCharts {
         }
 
         this.events.fireEvent('beforeMount', [this, this.w])
-        window.addEventListener('resize', this.events.windowResizeHandler)
+        window.addEventListener('resize', this.windowResizeHandler)
         window.addResizeListener(
           this.el.parentNode,
-          this.events.parentResizeCallback.bind(this.events)
+          this._parentResizeCallback.bind(this)
         )
 
         let graphData = this.create(this.w.config.series, {})
@@ -320,20 +321,11 @@ export default class ApexCharts {
    * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
    */
   destroy() {
-    // remove the chart's instance from the global Apex._chartInstances
-    const chartID = this.w.config.chart.id
-    if (chartID) {
-      Apex._chartInstances.forEach((c, i) => {
-        if (c.id === chartID) {
-          Apex._chartInstances.splice(i, 1)
-        }
-      })
-    }
-    window.removeEventListener('resize', this.events.windowResizeHandler)
+    window.removeEventListener('resize', this.windowResizeHandler)
 
     window.removeResizeListener(
       this.el.parentNode,
-      this.events.parentResizeCallback.bind(this.events)
+      this._parentResizeCallback.bind(this)
     )
     new Destroy(this.ctx).clear()
   }
@@ -664,5 +656,29 @@ export default class ApexCharts {
 
   paper() {
     return this.w.globals.dom.Paper
+  }
+
+  _parentResizeCallback() {
+    if (
+      this.w.globals.animationEnded &&
+      this.w.config.chart.redrawOnParentResize
+    ) {
+      this._windowResize()
+    }
+  }
+
+  /**
+   * Handle window resize and re-draw the whole chart.
+   */
+  _windowResize() {
+    console.log('here')
+    clearTimeout(this.w.globals.resizeTimer)
+    this.w.globals.resizeTimer = window.setTimeout(() => {
+      this.w.globals.resized = true
+      this.w.globals.dataChanged = false
+
+      // we need to redraw the whole chart on window resize (with a small delay).
+      this.ctx.update()
+    }, 150)
   }
 }

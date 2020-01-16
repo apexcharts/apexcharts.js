@@ -6,7 +6,6 @@ export default class Events {
     this.w = ctx.w
 
     this.documentEvent = Utils.bind(this.documentEvent, this)
-    this.windowResizeHandler = this.windowResize.bind(this)
   }
 
   addEventListener(name, handler) {
@@ -109,28 +108,5 @@ export default class Events {
       e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
     w.globals.clientY =
       e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
-  }
-
-  parentResizeCallback() {
-    if (
-      this.w.globals.animationEnded &&
-      this.w.config.chart.redrawOnParentResize
-    ) {
-      this.windowResize()
-    }
-  }
-
-  /**
-   * Handle window resize and re-draw the whole chart.
-   */
-  windowResize() {
-    clearTimeout(this.w.globals.resizeTimer)
-    this.w.globals.resizeTimer = window.setTimeout(() => {
-      this.w.globals.resized = true
-      this.w.globals.dataChanged = false
-
-      // we need to redraw the whole chart on window resize (with a small delay).
-      this.ctx.update()
-    }, 150)
   }
 }
