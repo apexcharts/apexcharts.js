@@ -546,7 +546,7 @@ export default class ApexCharts {
     chart.w.globals.isExecCalled = true
 
     let ret = null
-    if (this.publicMethods.indexOf(fn) !== -1) {
+    if (chart.publicMethods.indexOf(fn) !== -1) {
       ret = chart[fn](...opts)
     }
     return ret
