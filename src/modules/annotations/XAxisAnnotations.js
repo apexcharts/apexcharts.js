@@ -80,6 +80,7 @@ export default class XAnnotations {
           anno.borderColor, // strokeColor
           strokeDashArray // stokeDashArray
         )
+        rect.node.classList.add('apexcharts-annotation-rect')
         parent.appendChild(rect.node)
         if (anno.id) {
           rect.node.classList.add(anno.id)

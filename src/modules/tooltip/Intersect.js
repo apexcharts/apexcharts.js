@@ -144,7 +144,7 @@ class Intersect {
     w.globals.capturedDataPointIndex = j
 
     if (
-      (w.globals.isBarHorizontal && ttCtx.hasBars()) ||
+      (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()) ||
       !w.config.tooltip.shared
     ) {
       x = barXY.x
@@ -195,7 +195,7 @@ class Intersect {
     if (
       !ttCtx.fixedTooltip &&
       (!w.config.tooltip.shared ||
-        (w.globals.isBarHorizontal && ttCtx.hasBars()))
+        (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()))
     ) {
       const isReversed = w.globals.isMultipleYAxis
         ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
@@ -211,7 +211,10 @@ class Intersect {
         10
       )
 
-      if (isReversed && !(w.globals.isBarHorizontal && ttCtx.hasBars())) {
+      if (
+        isReversed &&
+        !(w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars())
+      ) {
         y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2
       }
       if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {

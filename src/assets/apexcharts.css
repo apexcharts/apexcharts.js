@@ -32,7 +32,7 @@
   opacity: 0;
 }
 
-.apexcharts-gridline, .apexcharts-text {
+.apexcharts-gridline, .apexcharts-text, .apexcharts-annotation-rect {
   pointer-events: none;
 }
 
@@ -365,10 +365,6 @@
   cursor: move
 }
 
-.apexcharts-xaxis,
-.apexcharts-yaxis {
-  pointer-events: none;
-}
 
 .apexcharts-zoom-icon,
 .apexcharts-zoomin-icon,

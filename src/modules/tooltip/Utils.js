@@ -22,7 +22,7 @@ export default class Utils {
    * - hoverArea = the rect on which user hovers
    * - elGrid = dimensions of the hover rect (it can be different than hoverarea)
    */
-  getNearestValues({ hoverArea, elGrid, clientX, clientY, hasBars }) {
+  getNearestValues({ hoverArea, elGrid, clientX, clientY }) {
     let w = this.w
 
     const hoverWidth = w.globals.gridWidth
@@ -31,7 +31,8 @@ export default class Utils {
 
     const seriesBound = elGrid.getBoundingClientRect()
 
-    if ((hasBars && w.globals.comboCharts) || hasBars) {
+    const hasBars = this.hasBars()
+    if (w.globals.comboCharts || hasBars) {
       xDivisor = hoverWidth / w.globals.dataPoints
     }
 
@@ -258,6 +259,45 @@ export default class Utils {
     const totalHeight = bars.reduce((acc, bar) => acc + bar.getBBox().height, 0)
 
     return totalHeight
+  }
+
+  getElMarkers() {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      ' .apexcharts-series-markers'
+    )
+  }
+
+  getAllMarkers() {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-series-markers .apexcharts-marker'
+    )
+  }
+
+  hasMarkers() {
+    const markers = this.getElMarkers()
+    return markers.length > 0
+  }
+
+  getElBars() {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-rangebar-series'
+    )
+  }
+
+  hasBars() {
+    const bars = this.getElBars()
+    return bars.length > 0
+  }
+
+  getHoverMarkerSize(index) {
+    const w = this.w
+    let hoverSize = w.config.markers.hover.size
+
+    if (hoverSize === undefined) {
+      hoverSize =
+        w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+    }
+    return hoverSize
   }
 
   toggleAllTooltipSeriesGroups(state) {

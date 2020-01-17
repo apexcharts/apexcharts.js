@@ -103,9 +103,12 @@ class Radar {
     })
 
     series.forEach((s, i) => {
+      let longestSeries = s.length === w.globals.dataPoints
+
       // el to which series will be drawn
       let elSeries = this.graphics.group().attr({
         class: `apexcharts-series`,
+        'data:longestSeries': longestSeries,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         rel: i + 1,
         'data:realIndex': i

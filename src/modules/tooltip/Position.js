@@ -256,19 +256,10 @@ export default class Position {
 
     let pointsArr = w.globals.pointsArray
 
-    let hoverSize = w.config.markers.hover.size
+    let hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(capturedSeries)
 
-    if (hoverSize === undefined) {
-      hoverSize =
-        w.globals.markers.size[capturedSeries] +
-        w.config.markers.hover.sizeOffset
-    }
-
-    if (
-      w.config.series[capturedSeries].type &&
-      (w.config.series[capturedSeries].type === 'column' ||
-        w.config.series[capturedSeries].type === 'candlestick')
-    ) {
+    const serType = w.config.series[capturedSeries].type
+    if (serType && (serType === 'column' || serType === 'candlestick')) {
       // fix error mentioned in #811
       return
     }
@@ -310,11 +301,7 @@ export default class Position {
     let series = new Series(this.ctx)
     activeSeries = series.getActiveConfigSeriesIndex(true)
 
-    let hoverSize = w.config.markers.hover.size
-    if (hoverSize === undefined) {
-      hoverSize =
-        w.globals.markers.size[activeSeries] + w.config.markers.hover.sizeOffset
-    }
+    let hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(activeSeries)
 
     if (pointsArr[activeSeries]) {
       cx = pointsArr[activeSeries][j][0]
@@ -322,7 +309,7 @@ export default class Position {
     }
 
     let points = null
-    const allPoints = ttCtx.getAllMarkers()
+    const allPoints = ttCtx.tooltipUtil.getAllMarkers()
 
     if (allPoints !== null) {
       points = allPoints

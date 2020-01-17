@@ -167,30 +167,27 @@ class Range {
       }
     }
 
-    cnf.yaxis.map((yaxe, index) => {
+    cnf.yaxis.forEach((yaxe, index) => {
       // override all min/max values by user defined values (y axis)
-      const minmax = [
-        {
-          type: 'min',
-          yArr: gl.minYArr,
-          y: gl.minY
-        },
-        {
-          type: 'max',
-          yArr: gl.maxYArr,
-          y: gl.maxY
+      if (yaxe.max !== undefined) {
+        if (typeof yaxe.max === 'number') {
+          gl.maxYArr[index] = yaxe.max
+        } else if (typeof yaxe.max === 'function') {
+          gl.maxYArr[index] = yaxe.max(gl.maxY)
         }
-      ]
-      minmax.forEach((m) => {
-        if (yaxe[m.type] !== undefined) {
-          if (typeof yaxe[m.type] === 'number') {
-            m.yArr[index] = yaxe[m.type]
-          } else if (typeof yaxe[m.type] === 'function') {
-            m.yArr[index] = yaxe[m.type](m.y)
-          }
-          m.y = m.yArr[index]
+
+        // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
+        gl.maxY = gl.maxYArr[index]
+      }
+      if (yaxe.min !== undefined) {
+        if (typeof yaxe.min === 'number') {
+          gl.minYArr[index] = yaxe.min
+        } else if (typeof yaxe.min === 'function') {
+          gl.minYArr[index] = yaxe.min(gl.minY)
         }
-      })
+        // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
+        gl.minY = gl.minYArr[index]
+      }
     })
 
     // for horizontal bar charts, we need to check xaxis min/max as user may have specified there

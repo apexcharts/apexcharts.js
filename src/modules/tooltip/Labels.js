@@ -95,7 +95,7 @@ export default class Labels {
 
           // discard 0 values in BARS
           if (
-            (this.ttCtx.hasBars() &&
+            (this.tooltipUtil.hasBars() &&
               w.config.chart.stacked &&
               w.globals.series[tIndex][j] === 0) ||
             typeof w.globals.series[tIndex][j] === 'undefined'
