@@ -308,7 +308,7 @@ export default class Position {
     let pointsArr = w.globals.pointsArray
 
     let series = new Series(this.ctx)
-    activeSeries = series.getActiveSeriesIndex()
+    activeSeries = series.getActiveConfigSeriesIndex(true)
 
     let hoverSize = w.config.markers.hover.size
     if (hoverSize === undefined) {

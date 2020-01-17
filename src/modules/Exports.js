@@ -124,7 +124,7 @@ class Exports {
           if (w.globals.isBarHorizontal) {
             let lbFormatter = w.globals.yLabelFormatters[0]
             let sr = new Series(this.ctx)
-            let activeSeries = sr.getActiveSeriesIndex()
+            let activeSeries = sr.getActiveConfigSeriesIndex()
 
             cat = lbFormatter(w.globals.labels[i], {
               seriesIndex: activeSeries,

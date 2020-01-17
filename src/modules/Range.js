@@ -355,7 +355,7 @@ class Range {
     // minZ, maxZ starts here
     let gl = this.w.globals
 
-    if (gl.isDataXYZ) return
+    if (!gl.isDataXYZ) return
     for (let i = 0; i < gl.series.length; i++) {
       if (typeof gl.seriesZ[i] !== 'undefined') {
         for (let j = 0; j < gl.seriesZ[i].length; j++) {
