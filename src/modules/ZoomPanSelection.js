@@ -117,10 +117,10 @@ export default class ZoomPanSelection extends Toolbar {
 
     if (e.shiftKey) {
       this.shiftWasPressed = true
-      toolbar.enablePanning()
+      toolbar.enableZoomPanFromToolbar('pan')
     } else {
       if (this.shiftWasPressed) {
-        toolbar.enableZooming()
+        toolbar.enableZoomPanFromToolbar('zoom')
         this.shiftWasPressed = false
       }
     }

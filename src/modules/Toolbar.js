@@ -22,78 +22,77 @@ export default class Toolbar {
     this.w = ctx.w
 
     this.ev = this.w.config.chart.events
+    this.selectedClass = 'apexcharts-selected'
 
     this.localeValues = this.w.globals.locale.toolbar
   }
 
   createToolbar() {
     let w = this.w
-    const elToolbarWrap = document.createElement('div')
+
+    const createDiv = () => {
+      return document.createElement('div')
+    }
+    const elToolbarWrap = createDiv()
     elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
     w.globals.dom.elWrap.appendChild(elToolbarWrap)
 
-    this.elZoom = document.createElement('div')
-    this.elZoomIn = document.createElement('div')
-    this.elZoomOut = document.createElement('div')
-    this.elPan = document.createElement('div')
-    this.elSelection = document.createElement('div')
-    this.elZoomReset = document.createElement('div')
-    this.elMenuIcon = document.createElement('div')
-    this.elMenu = document.createElement('div')
+    this.elZoom = createDiv()
+    this.elZoomIn = createDiv()
+    this.elZoomOut = createDiv()
+    this.elPan = createDiv()
+    this.elSelection = createDiv()
+    this.elZoomReset = createDiv()
+    this.elMenuIcon = createDiv()
+    this.elMenu = createDiv()
     this.elCustomIcons = []
 
     this.t = w.config.chart.toolbar.tools
 
     if (Array.isArray(this.t.customIcons)) {
       for (let i = 0; i < this.t.customIcons.length; i++) {
-        this.elCustomIcons.push(document.createElement('div'))
+        this.elCustomIcons.push(createDiv())
       }
     }
 
-    this.elMenuItems = []
-
     let toolbarControls = []
 
-    if (this.t.zoomin && w.config.chart.zoom.enabled) {
-      toolbarControls.push({
-        el: this.elZoomIn,
-        icon: typeof this.t.zoomin === 'string' ? this.t.zoomin : icoZoomIn,
-        title: this.localeValues.zoomIn,
-        class: 'apexcharts-zoom-in-icon'
-      })
+    const appendZoomControl = (type, el, ico) => {
+      const tool = type.toLowerCase()
+      if (this.t[tool] && w.config.chart.zoom.enabled) {
+        toolbarControls.push({
+          el,
+          icon: typeof this.t[tool] === 'string' ? this.t[tool] : ico,
+          title: this.localeValues[type],
+          class: `apexcharts-${tool}-icon`
+        })
+      }
     }
 
-    if (this.t.zoomout && w.config.chart.zoom.enabled) {
-      toolbarControls.push({
-        el: this.elZoomOut,
-        icon: typeof this.t.zoomout === 'string' ? this.t.zoomout : icoZoomOut,
-        title: this.localeValues.zoomOut,
-        class: 'apexcharts-zoom-out-icon'
-      })
-    }
+    appendZoomControl('zoomIn', this.elZoomIn, icoZoomIn)
+    appendZoomControl('zoomOut', this.elZoomOut, icoZoomOut)
 
-    if (this.t.zoom && w.config.chart.zoom.enabled) {
-      toolbarControls.push({
-        el: this.elZoom,
-        icon: typeof this.t.zoom === 'string' ? this.t.zoom : icoZoom,
-        title: this.localeValues.selectionZoom,
-        class: w.globals.isTouchDevice
-          ? 'apexcharts-element-hidden'
-          : 'apexcharts-zoom-icon'
-      })
+    const zoomSelectionCtrls = (z) => {
+      if (this.t[z] && w.config.chart[z].enabled) {
+        toolbarControls.push({
+          el: z === 'zoom' ? this.elZoom : this.elSelection,
+          icon:
+            typeof this.t[z] === 'string'
+              ? this.t[z]
+              : z === 'zoom'
+              ? icoZoom
+              : icoSelect,
+          title: this.localeValues[
+            z === 'zoom' ? 'selectionZoom' : 'selection'
+          ],
+          class: w.globals.isTouchDevice
+            ? 'apexcharts-element-hidden'
+            : `apexcharts-${z}-icon`
+        })
+      }
     }
-
-    if (this.t.selection && w.config.chart.selection.enabled) {
-      toolbarControls.push({
-        el: this.elSelection,
-        icon:
-          typeof this.t.selection === 'string' ? this.t.selection : icoSelect,
-        title: this.localeValues.selection,
-        class: w.globals.isTouchDevice
-          ? 'apexcharts-element-hidden'
-          : 'apexcharts-selection-icon'
-      })
-    }
+    zoomSelectionCtrls('zoom')
+    zoomSelectionCtrls('selection')
 
     if (this.t.pan && w.config.chart.zoom.enabled) {
       toolbarControls.push({
@@ -106,14 +105,8 @@ export default class Toolbar {
       })
     }
 
-    if (this.t.reset && w.config.chart.zoom.enabled) {
-      toolbarControls.push({
-        el: this.elZoomReset,
-        icon: typeof this.t.reset === 'string' ? this.t.reset : icoReset,
-        title: this.localeValues.reset,
-        class: 'apexcharts-reset-zoom-icon'
-      })
-    }
+    appendZoomControl('reset', this.elZoomReset, icoReset)
+
     if (this.t.download) {
       toolbarControls.push({
         el: this.elMenuIcon,
@@ -149,7 +142,22 @@ export default class Toolbar {
       elToolbarWrap.appendChild(toolbarControls[i].el)
     }
 
-    elToolbarWrap.appendChild(this.elMenu)
+    this._createHamburgerMenu(elToolbarWrap)
+
+    if (w.globals.zoomEnabled) {
+      this.elZoom.classList.add(this.selectedClass)
+    } else if (w.globals.panEnabled) {
+      this.elPan.classList.add(this.selectedClass)
+    } else if (w.globals.selectionEnabled) {
+      this.elSelection.classList.add(this.selectedClass)
+    }
+
+    this.addToolbarEventListeners()
+  }
+
+  _createHamburgerMenu(parent) {
+    this.elMenuItems = []
+    parent.appendChild(this.elMenu)
 
     Graphics.setAttrs(this.elMenu, {
       class: 'apexcharts-menu'
@@ -178,33 +186,29 @@ export default class Toolbar {
       })
       this.elMenu.appendChild(this.elMenuItems[i])
     }
-
-    if (w.globals.zoomEnabled) {
-      this.elZoom.classList.add('apexcharts-selected')
-    } else if (w.globals.panEnabled) {
-      this.elPan.classList.add('apexcharts-selected')
-    } else if (w.globals.selectionEnabled) {
-      this.elSelection.classList.add('apexcharts-selected')
-    }
-
-    this.addToolbarEventListeners()
   }
 
   addToolbarEventListeners() {
     this.elZoomReset.addEventListener('click', this.handleZoomReset.bind(this))
-    this.elSelection.addEventListener('click', this.toggleSelection.bind(this))
-    this.elZoom.addEventListener('click', this.toggleZooming.bind(this))
+    this.elSelection.addEventListener(
+      'click',
+      this.toggleZoomSelection.bind(this, 'selection')
+    )
+    this.elZoom.addEventListener(
+      'click',
+      this.toggleZoomSelection.bind(this, 'zoom')
+    )
     this.elZoomIn.addEventListener('click', this.handleZoomIn.bind(this))
     this.elZoomOut.addEventListener('click', this.handleZoomOut.bind(this))
     this.elPan.addEventListener('click', this.togglePanning.bind(this))
     this.elMenuIcon.addEventListener('click', this.toggleMenu.bind(this))
     this.elMenuItems.forEach((m) => {
       if (m.classList.contains('exportSVG')) {
-        m.addEventListener('click', this.downloadSVG.bind(this))
+        m.addEventListener('click', this.handleDownload.bind(this, 'svg'))
       } else if (m.classList.contains('exportPNG')) {
-        m.addEventListener('click', this.downloadPNG.bind(this))
+        m.addEventListener('click', this.handleDownload.bind(this, 'png'))
       } else if (m.classList.contains('exportCSV')) {
-        m.addEventListener('click', this.downloadCSV.bind(this))
+        m.addEventListener('click', this.handleDownload.bind(this, 'csv'))
       }
     })
     for (let i = 0; i < this.t.customIcons.length; i++) {
@@ -215,25 +219,18 @@ export default class Toolbar {
     }
   }
 
-  toggleSelection() {
+  toggleZoomSelection(type) {
     this.toggleOtherControls()
-    this.w.globals.selectionEnabled = !this.w.globals.selectionEnabled
 
-    if (!this.elSelection.classList.contains('apexcharts-selected')) {
-      this.elSelection.classList.add('apexcharts-selected')
+    let el = type === 'selection' ? this.elSelection : this.elZoom
+    let enabledType = type === 'selection' ? 'selectionEnabled' : 'zoomEnabled'
+
+    this.w.globals[enabledType] = !this.w.globals[enabledType]
+
+    if (!el.classList.contains(this.selectedClass)) {
+      el.classList.add(this.selectedClass)
     } else {
-      this.elSelection.classList.remove('apexcharts-selected')
-    }
-  }
-
-  toggleZooming() {
-    this.toggleOtherControls()
-    this.w.globals.zoomEnabled = !this.w.globals.zoomEnabled
-
-    if (!this.elZoom.classList.contains('apexcharts-selected')) {
-      this.elZoom.classList.add('apexcharts-selected')
-    } else {
-      this.elZoom.classList.remove('apexcharts-selected')
+      el.classList.remove(this.selectedClass)
     }
   }
 
@@ -252,26 +249,20 @@ export default class Toolbar {
     }
   }
 
-  enableZooming() {
+  enableZoomPanFromToolbar(type) {
     this.toggleOtherControls()
-    this.w.globals.zoomEnabled = true
-    if (this.elZoom) {
-      this.elZoom.classList.add('apexcharts-selected')
-    }
-    if (this.elPan) {
-      this.elPan.classList.remove('apexcharts-selected')
-    }
-  }
 
-  enablePanning() {
-    this.toggleOtherControls()
-    this.w.globals.panEnabled = true
+    type === 'pan'
+      ? (this.w.globals.panEnabled = true)
+      : (this.w.globals.zoomEnabled = true)
 
-    if (this.elPan) {
-      this.elPan.classList.add('apexcharts-selected')
+    const el = type === 'pan' ? this.elPan : this.elZoom
+    const el2 = type === 'pan' ? this.elZoom : this.elPan
+    if (el) {
+      el.classList.add(this.selectedClass)
     }
-    if (this.elZoom) {
-      this.elZoom.classList.remove('apexcharts-selected')
+    if (el2) {
+      el2.classList.remove(this.selectedClass)
     }
   }
 
@@ -279,10 +270,10 @@ export default class Toolbar {
     this.toggleOtherControls()
     this.w.globals.panEnabled = !this.w.globals.panEnabled
 
-    if (!this.elPan.classList.contains('apexcharts-selected')) {
-      this.elPan.classList.add('apexcharts-selected')
+    if (!this.elPan.classList.contains(this.selectedClass)) {
+      this.elPan.classList.add(this.selectedClass)
     } else {
-      this.elPan.classList.remove('apexcharts-selected')
+      this.elPan.classList.remove(this.selectedClass)
     }
   }
 
@@ -294,15 +285,12 @@ export default class Toolbar {
 
     this.getToolbarIconsReference()
 
-    if (this.elPan) {
-      this.elPan.classList.remove('apexcharts-selected')
-    }
-    if (this.elSelection) {
-      this.elSelection.classList.remove('apexcharts-selected')
-    }
-    if (this.elZoom) {
-      this.elZoom.classList.remove('apexcharts-selected')
-    }
+    const toggleEls = [this.elPan, this.elSelection, this.elZoom]
+    toggleEls.forEach((el) => {
+      if (el) {
+        el.classList.remove(this.selectedClass)
+      }
+    })
   }
 
   handleZoomIn() {
@@ -312,12 +300,10 @@ export default class Toolbar {
     let newMinX = (w.globals.minX + centerX) / 2
     let newMaxX = (w.globals.maxX + centerX) / 2
 
-    if (w.config.xaxis.convertedCatToNumeric) {
-      newMinX = Math.floor(newMinX)
-      newMaxX = Math.floor(newMaxX)
-    }
+    const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
+
     if (!w.globals.disableZoomIn) {
-      this.zoomUpdateOptions(newMinX, newMaxX)
+      this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX)
     }
   }
 
@@ -336,13 +322,18 @@ export default class Toolbar {
     let newMinX = w.globals.minX - (centerX - w.globals.minX)
     let newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
 
-    if (w.config.xaxis.convertedCatToNumeric) {
-      newMinX = Math.floor(newMinX)
-      newMaxX = Math.floor(newMaxX)
-    }
+    const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
     if (!w.globals.disableZoomOut) {
-      this.zoomUpdateOptions(newMinX, newMaxX)
+      this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX)
+    }
+  }
+
+  _getNewMinXMaxX(newMinX, newMaxX) {
+    const shouldFloor = this.w.config.xaxis.convertedCatToNumeric
+    return {
+      minX: shouldFloor ? Math.floor(newMinX) : newMinX,
+      maxX: shouldFloor ? Math.floor(newMaxX) : newMaxX
     }
   }
 
@@ -425,20 +416,20 @@ export default class Toolbar {
     }, 0)
   }
 
-  downloadPNG() {
-    const exprt = new Exports(this.ctx)
-    exprt.exportToPng(this.ctx)
-  }
-
-  downloadSVG() {
-    const exprt = new Exports(this.ctx)
-    exprt.exportToSVG()
-  }
-
-  downloadCSV() {
+  handleDownload(type) {
     const w = this.w
     const exprt = new Exports(this.ctx)
-    exprt.exportToCSV({ series: w.config.series })
+    switch (type) {
+      case 'svg':
+        exprt.exportToSVG(this.ctx)
+        break
+      case 'png':
+        exprt.exportToPng(this.ctx)
+        break
+      case 'csv':
+        exprt.exportToCSV({ series: w.config.series })
+        break
+    }
   }
 
   handleZoomReset(e) {
