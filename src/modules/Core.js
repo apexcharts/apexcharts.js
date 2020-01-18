@@ -455,9 +455,6 @@ export default class Core {
         crosshairs.drawYCrosshairs()
       }
 
-      const coreUtils = new CoreUtils(this.ctx)
-      xyRatios = coreUtils.getCalculatedRatios()
-
       if (
         w.config.xaxis.type === 'datetime' &&
         w.config.xaxis.labels.formatter === undefined
@@ -481,6 +478,9 @@ export default class Core {
         }
         ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
+
+      const coreUtils = new CoreUtils(this.ctx)
+      xyRatios = coreUtils.getCalculatedRatios()
     }
     return xyRatios
   }
