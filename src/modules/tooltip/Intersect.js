@@ -129,7 +129,6 @@ class Intersect {
     let bx = 0
     let x = 0
     let y = 0
-    // let bW = 0
     let i = 0
     let strokeWidth
     let barXY = this.getBarTooltipXY({
@@ -152,7 +151,6 @@ class Intersect {
       strokeWidth = Array.isArray(w.config.stroke.width)
         ? w.config.stroke.width[i]
         : w.config.stroke.width
-      // bW = barXY.barWidth
       bx = x
     } else {
       if (!w.globals.comboCharts && !w.config.tooltip.shared) {
@@ -165,11 +163,10 @@ class Intersect {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
     }
 
-    // x exceeds gridWidth
     if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
       x = x - ttCtx.tooltipRect.ttWidth
     } else if (x < 0) {
-      x = x + ttCtx.tooltipRect.ttWidth
+      x = 0
     }
 
     if (ttCtx.w.config.tooltip.followCursor) {
@@ -202,7 +199,10 @@ class Intersect {
         : w.config.yaxis[0].reversed
 
       if (isReversed) {
-        x = w.globals.gridWidth - x
+        x = x - ttCtx.tooltipRect.ttWidth
+        if (x < 0) {
+          x = 0
+        }
       }
       tooltipEl.style.left = x + w.globals.translateX + 'px'
 

@@ -87,7 +87,7 @@ export default class XAnnotations {
         }
       }
     }
-    let textY = anno.label.position === 'top' ? -3 : w.globals.gridHeight
+    let textY = anno.label.position === 'top' ? 4 : w.globals.gridHeight
 
     let textRects = this.annoCtx.graphics.getTextRects(
       text,
@@ -99,9 +99,11 @@ export default class XAnnotations {
       y:
         textY +
         anno.label.offsetY -
-        (anno.label.position === 'top'
-          ? textRects.width / 2 - 12
-          : -textRects.width / 2),
+        (anno.label.orientation === 'vertical'
+          ? anno.label.position === 'top'
+            ? textRects.width / 2 - 12
+            : -textRects.width / 2
+          : 0),
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,

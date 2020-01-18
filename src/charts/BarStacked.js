@@ -134,7 +134,7 @@ class BarStacked extends Bar {
         }
         let paths = null
         if (this.isHorizontal) {
-          paths = this.drawBarPaths({
+          paths = this.drawStackedBarPaths({
             ...commonPathOpts,
             zeroW,
             barHeight,
@@ -142,7 +142,7 @@ class BarStacked extends Bar {
           })
           barWidth = this.series[i][j] / this.invertedYRatio
         } else {
-          paths = this.drawColumnPaths({
+          paths = this.drawStackedColumnPaths({
             ...commonPathOpts,
             xDivision,
             barWidth,
@@ -251,7 +251,7 @@ class BarStacked extends Bar {
     }
   }
 
-  drawBarPaths({
+  drawStackedBarPaths({
     indexes,
     barHeight,
     strokeWidth,
@@ -388,7 +388,7 @@ class BarStacked extends Bar {
     }
   }
 
-  drawColumnPaths({
+  drawStackedColumnPaths({
     indexes,
     x,
     y,

@@ -440,7 +440,7 @@ export default class YAxis {
 
     let xLeft = 0
     let xRight = 0
-    let leftOffsetX = 21
+    let leftOffsetX = 18
     let rightOffsetX = 1
 
     if (w.config.yaxis.length > 1) {

@@ -257,32 +257,44 @@ export default class BarDataLabels {
 
     let valIsNegative = this.barCtx.series[i][j] <= 0
 
+    let newX = x
     if (this.barCtx.isReversed) {
-      x = x + barWidth
+      newX = x + barWidth
+      x = w.globals.gridWidth - barWidth
     }
 
     switch (barDataLabelsConfig.position) {
       case 'center':
         if (valIsNegative) {
-          dataLabelsX = x - barWidth / 2 - offX
+          dataLabelsX = newX - barWidth / 2 - offX
         } else {
-          dataLabelsX = x - barWidth / 2 + offX
+          dataLabelsX = newX - barWidth / 2 + offX
         }
         break
       case 'bottom':
         if (valIsNegative) {
           dataLabelsX =
-            x - barWidth - strokeWidth - Math.round(textRects.width / 2) - offX
+            newX -
+            barWidth -
+            strokeWidth -
+            Math.round(textRects.width / 2) -
+            offX
         } else {
           dataLabelsX =
-            x - barWidth + strokeWidth + Math.round(textRects.width / 2) + offX
+            newX -
+            barWidth +
+            strokeWidth +
+            Math.round(textRects.width / 2) +
+            offX
         }
         break
       case 'top':
         if (valIsNegative) {
-          dataLabelsX = x - strokeWidth + Math.round(textRects.width / 2) - offX
+          dataLabelsX =
+            newX - strokeWidth + Math.round(textRects.width / 2) - offX
         } else {
-          dataLabelsX = x - strokeWidth - Math.round(textRects.width / 2) + offX
+          dataLabelsX =
+            newX - strokeWidth - Math.round(textRects.width / 2) + offX
         }
         break
     }

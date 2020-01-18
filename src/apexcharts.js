@@ -572,6 +572,16 @@ export default class ApexCharts {
     this.series.resetSeries(shouldUpdateChart)
   }
 
+  // Public method to add event listener on chart context
+  addEventListener(name, handler) {
+    this.events.addEventListener(name, handler)
+  }
+
+  // Public method to remove event listener on chart context
+  removeEventListener(name, handler) {
+    this.events.removeEventListener(name, handler)
+  }
+
   addXaxisAnnotation(opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {

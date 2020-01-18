@@ -244,7 +244,7 @@ type ApexTitleSubtitle = {
   margin?: number
   offsetX?: number
   offsetY?: number
-  floating?: number
+  floating?: boolean
   style?: {
     fontSize?: string
     fontFamily?: string
@@ -269,7 +269,7 @@ type ApexAxisChartSeries = {
   type?: string
   data:
     | number[]
-    | { x: any; y: any }[]
+    | { x: any; y: any, fillColor?: string, strokeColor?: string }[]
     | [number, number][]
     | [number, number[]][]
 }[]
@@ -323,8 +323,8 @@ type AnnotationStyle = {
 }
 
 type XAxisAnnotations = {
-  x?: number | string
-  x2?: null | number
+  x?: null | number | string
+  x2?: null | number | string
   strokeDashArray?: number
   fillColor?: string
   borderColor?: string
@@ -336,8 +336,8 @@ type XAxisAnnotations = {
 }
 
 type YAxisAnnotations = {
-  y?: null | number
-  y2?: null | number
+  y?: null | number | string
+  y2?: null | number | string
   strokeDashArray?: number
   fillColor?: string
   borderColor?: string
@@ -747,7 +747,7 @@ type ApexTooltip = {
   x?: {
     show?: boolean
     format?: string
-    formatter?(val: number): string
+    formatter?(val: number, opts?: any): string
   }
   y?: ApexTooltipY | ApexTooltipY[]
   z?: {
@@ -775,7 +775,7 @@ type ApexTooltip = {
  */
 type ApexXAxis = {
   type?: 'category' | 'datetime' | 'numeric'
-  categories?: string[] | number[]
+  categories?: any;
   labels?: {
     show?: boolean
     rotate?: number
@@ -819,6 +819,7 @@ type ApexXAxis = {
     offsetX?: number
     offsetY?: number
   }
+  tickPlacement?: string
   tickAmount?: number | 'dataPoints'
   min?: number
   max?: number
