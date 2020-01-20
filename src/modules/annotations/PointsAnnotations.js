@@ -88,7 +88,7 @@ export default class PointAnnotations {
       }
     }
 
-    if (x < 0 || !Utils.isNumber(x) || x > w.globals.gridWidth) return
+    if (!Utils.isNumber(x)) return
 
     let optsPoints = {
       pSize: anno.marker.size,
@@ -157,6 +157,7 @@ export default class PointAnnotations {
     w.config.annotations.points.map((anno, index) => {
       this.addPointAnnotation(anno, elg.node, index)
     })
+    elg.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     return elg
   }

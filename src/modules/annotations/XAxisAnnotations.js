@@ -34,7 +34,7 @@ export default class XAnnotations {
 
     let strokeDashArray = anno.strokeDashArray
 
-    if (x1 < 0 || !Utils.isNumber(x1) || x1 > w.globals.gridWidth) return
+    if (!Utils.isNumber(x1)) return
 
     if (anno.x2 === null) {
       let line = this.annoCtx.graphics.drawLine(
@@ -137,6 +137,7 @@ export default class XAnnotations {
     w.config.annotations.xaxis.map((anno, index) => {
       this.addXaxisAnnotation(anno, elg.node, index)
     })
+    elg.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     return elg
   }
