@@ -201,9 +201,9 @@ apexcharts/
 
 If you need to make it work with IE11, you need to include these polyfills before including ApexCharts
 
-- [promise-polyfill](https://github.com/taylorhakes/promise-polyfill)
-- [classlist.js](https://github.com/eligrey/classList.js/)
-- [findIndex](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findIndex#Polyfill) - You will need this only if you require timeline/rangebar charts
+- [promise-polyfill](https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js)
+- [classlist.js](https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill)
+- [findIndex](https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn) - You will need this only if you require timeline/rangebar charts
 
 ## Development
 
