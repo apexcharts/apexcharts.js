@@ -826,7 +826,9 @@ class Pie {
         dataLabelsConfig.total.formatter(w)
       )
     } else {
-      const slices = document.querySelectorAll(`.apexcharts-pie-area`)
+      const slices = w.globals.dom.baseEl.querySelectorAll(
+        `.apexcharts-pie-area`
+      )
       let sliceOut = false
 
       Array.prototype.forEach.call(slices, (s) => {
