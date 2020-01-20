@@ -122,7 +122,10 @@ export default class Helpers {
     const w = this.w
     let rX = x
 
-    if (w.config.xaxis.convertedCatToNumeric) {
+    if (
+      w.config.xaxis.convertedCatToNumeric &&
+      w.globals.categoryLabels.length
+    ) {
       x = w.globals.categoryLabels.indexOf(x) + 1
     }
 

@@ -304,7 +304,7 @@ class Range {
       }
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
-        if (cnf.xaxis.convertedCatToNumeric) {
+        if (cnf.xaxis.convertedCatToNumeric && !gl.dataFormatXNumeric) {
           let catScale = []
           for (let i = gl.minX - 1; i < gl.maxX; i++) {
             catScale.push(i + 1)

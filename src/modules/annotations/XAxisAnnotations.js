@@ -24,7 +24,8 @@ export default class XAnnotations {
     if (
       (w.config.xaxis.type === 'category' ||
         w.config.xaxis.convertedCatToNumeric) &&
-      !this.invertAxis
+      !this.invertAxis &&
+      !w.globals.dataFormatXNumeric
     ) {
       x1 = this.annoCtx.helpers.getStringX(anno.x)
     }
@@ -56,7 +57,8 @@ export default class XAnnotations {
       if (
         (w.config.xaxis.type === 'category' ||
           w.config.xaxis.convertedCatToNumeric) &&
-        !this.invertAxis
+        !this.invertAxis &&
+        !w.globals.dataFormatXNumeric
       ) {
         x2 = this.annoCtx.helpers.getStringX(anno.x2)
       }
