@@ -124,6 +124,7 @@ export default class YAnnotations {
     w.config.annotations.yaxis.map((anno, index) => {
       this.addYaxisAnnotation(anno, elg.node, index)
     })
+    elg.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     return elg
   }
