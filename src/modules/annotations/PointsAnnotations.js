@@ -1,3 +1,5 @@
+import Utils from '../../utils/Utils'
+
 export default class PointAnnotations {
   constructor(annoCtx) {
     this.w = annoCtx.w
@@ -86,7 +88,7 @@ export default class PointAnnotations {
       }
     }
 
-    if (x < 0 || x > w.globals.gridWidth) return
+    if (x < 0 || !Utils.isNumber(x) || x > w.globals.gridWidth) return
 
     let optsPoints = {
       pSize: anno.marker.size,

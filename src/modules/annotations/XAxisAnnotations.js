@@ -1,3 +1,5 @@
+import Utils from '../../utils/Utils'
+
 export default class XAnnotations {
   constructor(annoCtx) {
     this.w = annoCtx.w
@@ -32,7 +34,7 @@ export default class XAnnotations {
 
     let strokeDashArray = anno.strokeDashArray
 
-    if (x1 < 0 || x1 > w.globals.gridWidth) return
+    if (x1 < 0 || !Utils.isNumber(x1) || x1 > w.globals.gridWidth) return
 
     if (anno.x2 === null) {
       let line = this.annoCtx.graphics.drawLine(
