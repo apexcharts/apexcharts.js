@@ -227,13 +227,23 @@ export default class Defaults {
           let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
           let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
           let ylabel = w.globals.labels[dataPointIndex]
+          let seriesName = w.config.series[seriesIndex].name
+          const yLbFormatter = w.config.tooltip.y.formatter
+          const yLbTitleFormatter = w.config.tooltip.y.title.formatter
+          if (typeof yLbTitleFormatter === 'function') {
+            seriesName = yLbTitleFormatter(seriesName)
+          }
 
           if (y1 && y2) {
             start = y1
             end = y2
 
             if (w.config.series[seriesIndex].data[dataPointIndex].x) {
-              ylabel = w.config.series[seriesIndex].data[dataPointIndex].x
+              ylabel = w.config.series[seriesIndex].data[dataPointIndex].x + ':'
+            }
+
+            if (typeof yLbFormatter === 'function') {
+              ylabel = yLbFormatter(ylabel)
             }
           }
 
@@ -266,13 +276,11 @@ export default class Defaults {
             '<div> <span class="series-name" style="color: ' +
             color +
             '">' +
-            (w.config.series[seriesIndex].name
-              ? w.config.series[seriesIndex].name
-              : '') +
+            (seriesName ? seriesName : '') +
             '</span></div>' +
             '<div> <span class="category">' +
             ylabel +
-            ': </span> <span class="value start-value">' +
+            ' </span> <span class="value start-value">' +
             startVal +
             '</span> <span class="separator">-</span> <span class="value end-value">' +
             endVal +
