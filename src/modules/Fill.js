@@ -110,6 +110,7 @@ class Fill {
     if (typeof fillColor === 'function') {
       fillColor = fillColor({
         seriesIndex: this.seriesIndex,
+        dataPointIndex: opts.dataPointIndex,
         value: opts.value,
         w
       })

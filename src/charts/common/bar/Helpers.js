@@ -150,6 +150,7 @@ export default class Helpers {
       seriesNumber: this.barCtx.barOptions.distributed
         ? seriesNumber
         : realIndex,
+      dataPointIndex: j,
       color: fillColor,
       value: series[i][j]
     })

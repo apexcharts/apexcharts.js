@@ -13,6 +13,7 @@ export default class Theme {
     this.w = ctx.w
     const w = this.w
 
+    this.isColorFn = false
     this.isBarDistributed =
       w.config.plotOptions.bar.distributed &&
       (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar')
@@ -45,17 +46,20 @@ export default class Theme {
         // colors & series length needs same
       ) {
         w.globals.colors = w.config.colors.map((c, i) => {
-          return typeof c === 'function'
-            ? c({
-                value: w.globals.axisCharts
+          if (typeof c === 'function') {
+            this.isColorFn = true
+            return c({
+              value: w.globals.axisCharts
+                ? w.globals.series[i][0]
                   ? w.globals.series[i][0]
-                    ? w.globals.series[i][0]
-                    : 0
-                  : w.globals.series[i],
-                seriesIndex: i,
-                w
-              })
-            : c
+                  : 0
+                : w.globals.series[i],
+              seriesIndex: i,
+              dataPointIndex: i,
+              w
+            })
+          }
+          return c
         })
       }
     }
@@ -94,7 +98,7 @@ export default class Theme {
 
     // The Border colors
     if (w.config.stroke.colors === undefined) {
-      w.globals.stroke.colors = defaultColors
+      w.globals.stroke.colors = this.isColorFn ? w.config.colors : defaultColors
     } else {
       w.globals.stroke.colors = w.config.stroke.colors
     }
@@ -102,7 +106,7 @@ export default class Theme {
 
     // The FILL colors
     if (w.config.fill.colors === undefined) {
-      w.globals.fill.colors = defaultColors
+      w.globals.fill.colors = this.isColorFn ? w.config.colors : defaultColors
     } else {
       w.globals.fill.colors = w.config.fill.colors
     }

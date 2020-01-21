@@ -115,6 +115,7 @@ export default class HeatMap {
 
           color = fill.fillPath({
             seriesNumber: i,
+            dataPointIndex: j,
             opacity: w.globals.hasNegs
               ? heatColorProps.percent < 0
                 ? 1 - (1 + heatColorProps.percent / 100)

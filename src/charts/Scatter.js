@@ -110,6 +110,7 @@ export default class Scatter {
 
     let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex,
+      dataPointIndex,
       patternUnits: 'objectBoundingBox',
       value: w.globals.series[realIndex][j]
     })

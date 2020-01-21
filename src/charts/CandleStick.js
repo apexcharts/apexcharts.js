@@ -109,6 +109,7 @@ class CandleStick extends Bar {
 
         let pathFill = fill.fillPath({
           seriesNumber: realIndex,
+          dataPointIndex: j,
           color,
           value: series[i][j]
         })
