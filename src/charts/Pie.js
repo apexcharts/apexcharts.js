@@ -819,24 +819,36 @@ class Pie {
       '.apexcharts-datalabels-group'
     )
 
-    if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
-      this.printInnerLabels(
-        dataLabelsConfig,
-        dataLabelsConfig.total.label,
-        dataLabelsConfig.total.formatter(w)
-      )
-    } else {
-      const slices = w.globals.dom.baseEl.querySelectorAll(
-        `.apexcharts-pie-area`
-      )
-      let sliceOut = false
+    let sliceOut = false
+    const slices = w.globals.dom.baseEl.querySelectorAll(`.apexcharts-pie-area`)
 
+    const selectSlice = ({ makeSliceOut, printLabel }) => {
       Array.prototype.forEach.call(slices, (s) => {
         if (s.getAttribute('data:pieClicked') === 'true') {
-          sliceOut = true
-          this.printDataLabelsInner(s, dataLabelsConfig)
+          if (makeSliceOut) {
+            sliceOut = true
+          }
+          if (printLabel) {
+            this.printDataLabelsInner(s, dataLabelsConfig)
+          }
         }
       })
+    }
+
+    selectSlice({ makeSliceOut: true, printLabel: false })
+
+    if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
+      if (sliceOut && !dataLabelsConfig.total.showAlways) {
+        selectSlice({ makeSliceOut: false, printLabel: true })
+      } else {
+        this.printInnerLabels(
+          dataLabelsConfig,
+          dataLabelsConfig.total.label,
+          dataLabelsConfig.total.formatter(w)
+        )
+      }
+    } else {
+      selectSlice({ makeSliceOut: false, printLabel: true })
 
       if (!sliceOut) {
         if (
