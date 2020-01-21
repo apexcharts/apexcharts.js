@@ -183,7 +183,11 @@ export default class Config {
 
     // A logarithmic chart works correctly when each series has a corresponding y-axis
     // If this is not the case, we manually create yaxis for multi-series log chart
-    if (isLogY && opts.series.length !== opts.yaxis.length) {
+    if (
+      isLogY &&
+      opts.series.length !== opts.yaxis.length &&
+      opts.series.length
+    ) {
       opts.yaxis = opts.series.map((s, i) => {
         if (!s.name) {
           opts.series[i].name = `series-${i + 1}`
@@ -197,6 +201,16 @@ export default class Config {
           return newYaxis
         }
       })
+    }
+
+    if (
+      isLogY &&
+      opts.series.length > 1 &&
+      opts.series.length !== opts.yaxis.length
+    ) {
+      console.warn(
+        'A multi-series logarithmic chart should have equal number of series and y-axes. Please make sure to equalize both.'
+      )
     }
     return opts
   }
