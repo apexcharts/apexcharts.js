@@ -55,6 +55,12 @@ export default class UpdateHelpers {
         ch.config = new Config(options)
         options = CoreUtils.extendArrayProps(ch.config, options)
 
+        // fixes #914, #623
+        if (ch.w.globals.chartID !== this.ctx.w.globals.chartID) {
+          // don't overwrite series of synchronized charts
+          delete options.series
+        }
+
         w.config = Utils.extend(w.config, options)
 
         if (overwriteInitialConfig) {
