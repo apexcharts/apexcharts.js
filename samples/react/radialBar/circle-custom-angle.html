@@ -1,126 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Circle Custom Angle</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Circle Custom Angle</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-            padding: 0;        
-            max-width: 650px;
-            margin: 35px auto;
-        }
-
-        .apexcharts-legend text {
-            font-weight: 900;
-        }
-    </style>
-</head>
-
-<body>
-  <div id="app"></div>
-  
-  <div id="html">
-          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;radialBar&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
-  </div>
-
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
-    class RadialChart extends React.Component {
+    <style>
       
-      constructor(props) {
-        super(props);
+        #chart {
+      padding: 0;
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    
+    .apexcharts-legend text {
+      font-weight: 900;
+    }
+      
+    </style>
 
-        this.state = {
-          options: {
-            plotOptions: {
-              radialBar: {
-                offsetY: -10,
-                startAngle: 0,
-                endAngle: 270,
-                hollow: {
-                  margin: 5,
-                  size: '30%',
-                  background: 'transparent',
-                  image: undefined,
-                },
-                dataLabels: {
-                  name: {
-                    show: false,
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;radialBar&quot; height={390} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [76, 67, 61, 90],
+            options: {
+              chart: {
+                height: 390,
+                type: 'radialBar',
+              },
+              plotOptions: {
+                radialBar: {
+                  offsetY: 0,
+                  startAngle: 0,
+                  endAngle: 270,
+                  hollow: {
+                    margin: 5,
+                    size: '30%',
+                    background: 'transparent',
+                    image: undefined,
                   },
-                  value: {
-                    show: false,
+                  dataLabels: {
+                    name: {
+                      show: false,
+                    },
+                    value: {
+                      show: false,
+                    }
                   }
                 }
-              }
-            },
-            colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
-            labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
-            legend: {
-              show: true,
-              floating: true,
-              fontSize: '16px',
-              position: 'left',
-              offsetX: 160,
-              offsetY: 10,
-              labels: {
+              },
+              colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
+              labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
+              legend: {
+                show: true,
+                floating: true,
+                fontSize: '16px',
+                position: 'left',
+                offsetX: 160,
+                offsetY: 10,
+                labels: {
                   useSeriesColors: true,
-              },
-              markers: {
+                },
+                markers: {
                   size: 0
-              },
-              formatter: function(seriesName, opts) {
+                },
+                formatter: function(seriesName, opts) {
                   return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
+                },
+                itemMargin: {
+                  horizontal: 3,
+                }
               },
-              itemMargin: {
-                  horizontal: 1,
-              }
-            },
-            responsive: [{
+              responsive: [{
                 breakpoint: 480,
                 options: {
-                    legend: {
-                        show: false
-                    }
+                  legend: {
+                      show: false
+                  }
                 }
-            }]
-          },
-          series: [76, 67, 61, 90],
+              }]
+            },
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height={390} />
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
         }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="radialBar" height="350" />
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(RadialChart), domContainer);
-
-  </script>
-</body>
+    
+  </body>
 </html>

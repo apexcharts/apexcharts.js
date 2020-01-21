@@ -1,107 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Bar Chart with Images</title>
 
-    
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
+      
         #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-
-        #apexcharts-canvas {
-            margin: 0 auto;
-        }
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    
+    #apexcharts-canvas {
+      margin: 0 auto;
+    }
+      
     </style>
-</head>
 
-<body>
-    <div id="chart">
-
-    </div>
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
     
     <script src="../../../dist/apexcharts.js"></script>
+    
 
     <script>
-        var labels = Array.apply(null, {length: 39}).map(function(el, index){
-            return index + 1;
-        });
-
-        var options = {
-            chart: {
-                height: 410,
-                type: 'bar',
-                animations: {
-                    enabled: false
-                }
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: true,
-                    barHeight: '100%',
-                    
-                },
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            stroke: {
-                colors: ["#fff"],
-                width: 0.2
-            },
-            series: [{
-                name: 'coins',
-                data: [2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9, 12, 12, 11, 12, 13, 14, 16, 14, 15, 17, 19, 21]
-            }],
-            labels: labels,
-            yaxis: {
-                axisBorder: {
-                    show: false
-                },
-                axisTicks: {
-                    show: false
-                },
-                labels: {
-                    show: false
-                },
-                title: {
-                    text: 'Weight',
-                },
-            },
-            grid: {
-                position: 'back'
-            },
-            title: {
-                text: 'Paths filled by clipped image',
-                align: 'right',
-                offsetY: 30
-            },
-            fill: {
-                type: 'image',
-                opacity: 0.87,
-				image: {
-                    src: ['../../assets/images/4274635880_809a4b9d0d_z.jpg'],
-                    width: 466, 
-                    height: 406
-				}
-			},
-        }
-
-       var chart = new ApexCharts(
-            document.querySelector("#chart"),
-            options
-        );
-        
-        chart.render();
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
     </script>
-</body>
 
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [{
+          name: 'coins',
+          data: [2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9, 12, 12,
+            11, 12, 13, 14, 16, 14, 15, 17, 19, 21
+          ]
+        }],
+          chart: {
+          type: 'bar',
+          height: 410,
+          animations: {
+            enabled: false
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            barHeight: '100%',
+        
+          },
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        stroke: {
+          colors: ["#fff"],
+          width: 0.2
+        },
+        labels: Array.apply(null, {length: 39}).map(function(el, index){
+          return index + 1;
+        }),
+        yaxis: {
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          labels: {
+            show: false
+          },
+          title: {
+            text: 'Weight',
+          },
+        },
+        grid: {
+          position: 'back'
+        },
+        title: {
+          text: 'Paths filled by clipped image',
+          align: 'right',
+          offsetY: 30
+        },
+        fill: {
+          type: 'image',
+          opacity: 0.87,
+          image: {
+            src: ['../../assets/images/4274635880_809a4b9d0d_z.jpg'],
+            width: 466,
+            height: 406
+          }
+        },
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
+
+    
+  </body>
 </html>

@@ -1,24 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Circle Concept 2</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Circle Concept 2</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #card {
+    <style>
+      
+        #card {
       background: #fff;
       max-width: 650px;
       margin: 35px auto;
       padding: 0px;
       text-align: center;
     }
-
+    
     h2 {
       font-size: 18px;
       margin-bottom: 0;
@@ -29,7 +28,7 @@
       margin-top: 0;
       color: #333;
     }
-
+    
     .footer {
       position: absolute;
       bottom: 16px;
@@ -38,109 +37,134 @@
       font-size: 14px;
       text-align: center
     }
-  </style>
-</head>
+      
+    </style>
 
-<body>
-  <div id="card">
-    <div id="chart">
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-    </div>
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
 
-  </div>
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
+    
+  </head>
 
-  <script src="../../../dist/apexcharts.js"></script>
+  <body>
+     <div id="card">
+        <div id="chart"></div>
+      </div>
 
-  <script>
-    var options = {
-      chart: {
-        height: 350,
-        type: 'radialBar',
-        toolbar: {
-          show: true
-        }
-      },
-      plotOptions: {
-        radialBar: {
-          startAngle: -135,
-          endAngle: 225,
-           hollow: {
-            margin: 0,
-            size: '70%',
-            background: '#fff',
-            image: undefined,
-            imageOffsetX: 0,
-            imageOffsetY: 0,
-            position: 'front',
-            dropShadow: {
-              enabled: true,
-              top: 3,
-              left: 0,
-              blur: 4,
-              opacity: 0.24
-            }
-          },
-          track: {
-            background: '#fff',
-            strokeWidth: '67%',
-            margin: 0, // margin is in pixels
-            dropShadow: {
-              enabled: true,
-              top: -3,
-              left: 0,
-              blur: 4,
-              opacity: 0.35
-            }
-          },
-
-          dataLabels: {
-            showOn: 'always',
-            name: {
-              offsetY: -10,
-              show: true,
-              color: '#888',
-              fontSize: '17px'
+    <script>
+      
+        var options = {
+          series: [75],
+          chart: {
+          height: 350,
+          type: 'radialBar',
+          toolbar: {
+            show: true
+          }
+        },
+        plotOptions: {
+          radialBar: {
+            startAngle: -135,
+            endAngle: 225,
+             hollow: {
+              margin: 0,
+              size: '70%',
+              background: '#fff',
+              image: undefined,
+              imageOffsetX: 0,
+              imageOffsetY: 0,
+              position: 'front',
+              dropShadow: {
+                enabled: true,
+                top: 3,
+                left: 0,
+                blur: 4,
+                opacity: 0.24
+              }
             },
-            value: {
-              formatter: function(val) {
-                return parseInt(val);
-              },
-              color: '#111',
-              fontSize: '36px',
+            track: {
+              background: '#fff',
+              strokeWidth: '67%',
+              margin: 0, // margin is in pixels
+              dropShadow: {
+                enabled: true,
+                top: -3,
+                left: 0,
+                blur: 4,
+                opacity: 0.35
+              }
+            },
+        
+            dataLabels: {
               show: true,
+              name: {
+                offsetY: -10,
+                show: true,
+                color: '#888',
+                fontSize: '17px'
+              },
+              value: {
+                formatter: function(val) {
+                  return parseInt(val);
+                },
+                color: '#111',
+                fontSize: '36px',
+                show: true,
+              }
             }
           }
-        }
-      },
-      fill: {
-        type: 'gradient',
-        gradient: {
-          shade: 'dark',
-          type: 'horizontal',
-          shadeIntensity: 0.5,
-          gradientToColors: ['#ABE5A1'],
-          inverseColors: true,
-          opacityFrom: 1,
-          opacityTo: 1,
-          stops: [0, 100]
-        }
-      },
-      series: [75],
-      stroke: {
-        lineCap: 'round'
-      },
-      labels: ['Percent'],
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'dark',
+            type: 'horizontal',
+            shadeIntensity: 0.5,
+            gradientToColors: ['#ABE5A1'],
+            inverseColors: true,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 100]
+          }
+        },
+        stroke: {
+          lineCap: 'round'
+        },
+        labels: ['Percent'],
+        };
 
-    }
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
 
-    var chart = new ApexCharts(
-      document.querySelector("#chart"),
-      options
-    );
-
-    chart.render();
-  </script>
-</body>
-
+    
+  </body>
 </html>

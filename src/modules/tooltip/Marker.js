@@ -26,7 +26,10 @@ export default class Marker {
     let elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series')
 
     for (let i = 0; i < elsSeries.length; i++) {
-      let seriesIndex = parseInt(elsSeries[i].getAttribute('data:realIndex'))
+      let seriesIndex = parseInt(
+        elsSeries[i].getAttribute('data:realIndex'),
+        10
+      )
 
       let pointsMain = w.globals.dom.baseEl.querySelector(
         `.apexcharts-series[data\\:realIndex='${seriesIndex}'] .apexcharts-series-markers-wrap`
@@ -113,7 +116,7 @@ export default class Marker {
           w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
       }
 
-      if (col === parseInt(rel)) {
+      if (col === parseInt(rel, 10)) {
         me.newPointSize(col, points[p])
 
         let cx = points[p].getAttribute('cx')
@@ -134,25 +137,22 @@ export default class Marker {
     let w = this.w
     let newSize = w.config.markers.hover.size
 
-    let elPoint = null
+    let elPoint =
+      rel === 0 ? point.parentNode.firstChild : point.parentNode.lastChild
 
-    if (rel === 0) {
-      elPoint = point.parentNode.firstChild
-    } else {
-      elPoint = point.parentNode.lastChild
+    if (elPoint.getAttribute('default-marker-size') !== '0') {
+      const index = parseInt(elPoint.getAttribute('index'), 10)
+      if (newSize === undefined) {
+        newSize =
+          w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+      }
+
+      elPoint.setAttribute('r', newSize)
     }
-
-    const index = parseInt(elPoint.getAttribute('index'))
-    if (newSize === undefined) {
-      newSize =
-        w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
-    }
-
-    elPoint.setAttribute('r', newSize)
   }
 
   oldPointSize(point) {
-    const size = parseInt(point.getAttribute('default-marker-size'))
+    const size = parseFloat(point.getAttribute('default-marker-size'))
     point.setAttribute('r', size)
   }
 
@@ -164,7 +164,7 @@ export default class Marker {
     )
 
     for (let p = 0; p < points.length; p++) {
-      const size = parseInt(points[p].getAttribute('default-marker-size'))
+      const size = parseFloat(points[p].getAttribute('default-marker-size'))
       if (Utils.isNumber(size)) {
         points[p].setAttribute('r', size)
       } else {

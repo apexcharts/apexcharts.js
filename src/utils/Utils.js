@@ -87,25 +87,6 @@ class Utils {
     return month % 12
   }
 
-  static addProps(obj, arr, val) {
-    if (typeof arr === 'string') {
-      arr = arr.split('.')
-    }
-
-    obj[arr[0]] = obj[arr[0]] || {}
-
-    var tmpObj = obj[arr[0]]
-
-    if (arr.length > 1) {
-      arr.shift()
-      this.addProps(tmpObj, arr, val)
-    } else {
-      obj[arr[0]] = val
-    }
-
-    return obj
-  }
-
   static clone(source) {
     if (Object.prototype.toString.call(source) === '[object Array]') {
       let cloneResult = []
@@ -143,9 +124,13 @@ class Utils {
     return parseFloat(val)
   }
 
+  static randomId() {
+    return (new Date() % 9e6).toString(16)
+  }
+
   static noExponents(val) {
     let data = String(val).split(/[eE]/)
-    if (data.length == 1) return data[0]
+    if (data.length === 1) return data[0]
 
     let z = '',
       sign = val < 0 ? '-' : '',
@@ -155,7 +140,7 @@ class Utils {
     if (mag < 0) {
       z = sign + '0.'
       while (mag++) z += '0'
-      return z + str.replace(/^\-/, '')
+      return z + str.replace(/^-/, '')
     }
     mag -= str.length
     while (mag--) z += '0'
@@ -193,6 +178,15 @@ class Utils {
       x: rect.x,
       y: rect.y
     }
+  }
+
+  static getLargestStringFromArr(arr) {
+    return arr.reduce((a, b) => {
+      if (Array.isArray(b)) {
+        b = b.reduce((aa, bb) => (aa.length > bb.length ? aa : bb))
+      }
+      return a.length > b.length ? a : b
+    }, 0)
   }
 
   // http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb#answer-12342275
@@ -233,12 +227,12 @@ class Utils {
   }
 
   shadeRGBColor(percent, color) {
-    var f = color.split(','),
+    let f = color.split(','),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,
-      R = parseInt(f[0].slice(4)),
-      G = parseInt(f[1]),
-      B = parseInt(f[2])
+      R = parseInt(f[0].slice(4), 10),
+      G = parseInt(f[1], 10),
+      B = parseInt(f[2], 10)
     return (
       'rgb(' +
       (Math.round((t - R) * p) + R) +
@@ -251,7 +245,7 @@ class Utils {
   }
 
   shadeHexColor(percent, color) {
-    var f = parseInt(color.slice(1), 16),
+    let f = parseInt(color.slice(1), 16),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,
       R = f >> 16,
@@ -293,7 +287,7 @@ class Utils {
   static escapeString(str, escapeWith = 'x') {
     let newStr = str.toString().slice()
     newStr = newStr.replace(
-      /[` ~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,
+      /[` ~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\/]/gi,
       escapeWith
     )
     return newStr
@@ -305,7 +299,7 @@ class Utils {
 
   static moveIndexInArray(arr, old_index, new_index) {
     if (new_index >= arr.length) {
-      var k = new_index - arr.length + 1
+      let k = new_index - arr.length + 1
       while (k--) {
         arr.push(undefined)
       }
@@ -315,18 +309,7 @@ class Utils {
   }
 
   static extractNumber(s) {
-    return parseFloat(s.replace(/[^\d\.]*/g, ''))
-  }
-
-  static randomString(len) {
-    let text = ''
-    let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-
-    for (let i = 0; i < len; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length))
-    }
-
-    return text
+    return parseFloat(s.replace(/[^\d.]*/g, ''))
   }
 
   static findAncestor(el, cls) {

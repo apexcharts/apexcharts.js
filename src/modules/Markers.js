@@ -30,9 +30,7 @@ export default class Markers {
         }
       }
     } else {
-      w.globals.markers.size = w.config.series.map((s) => {
-        return w.config.markers.size
-      })
+      w.globals.markers.size = w.config.series.map((s) => w.config.markers.size)
     }
   }
 
@@ -81,7 +79,7 @@ export default class Markers {
 
         if (shouldMarkerDraw) {
           if (Utils.isNumber(p.y[q])) {
-            PointClasses += ` w${(Math.random() + 1).toString(36).substring(4)}`
+            PointClasses += ` w${Utils.randomId()}`
           } else {
             PointClasses = 'apexcharts-nullpoint'
           }
@@ -134,10 +132,12 @@ export default class Markers {
     let pStyle = this.getMarkerStyle(seriesIndex)
     let pSize = w.globals.markers.size[seriesIndex]
 
+    const m = w.config.markers
+
     // discrete markers is an option where user can specify a particular marker with different size and color
 
-    if (dataPointIndex !== null && w.config.markers.discrete.length) {
-      w.config.markers.discrete.map((marker) => {
+    if (dataPointIndex !== null && m.discrete.length) {
+      m.discrete.map((marker) => {
         if (
           marker.seriesIndex === seriesIndex &&
           marker.dataPointIndex === dataPointIndex
@@ -151,17 +151,27 @@ export default class Markers {
 
     return {
       pSize,
-      pRadius: w.config.markers.radius,
-      pWidth: w.config.markers.strokeWidth,
+      pRadius: m.radius,
+      pWidth:
+        m.strokeWidth instanceof Array
+          ? m.strokeWidth[seriesIndex]
+          : m.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
-      shape:
-        w.config.markers.shape instanceof Array
-          ? w.config.markers.shape[seriesIndex]
-          : w.config.markers.shape,
+      shape: m.shape instanceof Array ? m.shape[seriesIndex] : m.shape,
       class: cssClass,
-      pointStrokeOpacity: w.config.markers.strokeOpacity,
-      pointFillOpacity: w.config.markers.fillOpacity,
+      pointStrokeOpacity:
+        m.strokeOpacity instanceof Array
+          ? m.strokeOpacity[seriesIndex]
+          : m.strokeOpacity,
+      pointStrokeDashArray:
+        m.strokeDashArray instanceof Array
+          ? m.strokeDashArray[seriesIndex]
+          : m.strokeDashArray,
+      pointFillOpacity:
+        m.fillOpacity instanceof Array
+          ? m.fillOpacity[seriesIndex]
+          : m.fillOpacity,
       seriesIndex
     }
   }

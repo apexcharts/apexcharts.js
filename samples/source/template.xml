@@ -1,0 +1,27 @@
+<title></title>
+
+<style></style>
+
+<scripts></scripts>
+
+<html></html>
+
+<chart>
+<id></id>
+
+<options></options>
+
+<series>
+[{
+  data: []
+}]
+</series>
+</chart>
+
+<vanilla-js-script></vanilla-js-script>
+
+<react-state></react-state>
+<react-script></react-script>
+
+<vue-data></vue-data>
+<vue-script></vue-script>

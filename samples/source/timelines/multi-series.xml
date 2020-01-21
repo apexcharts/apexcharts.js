@@ -1,0 +1,91 @@
+<title>Multi-series Timeline</title>
+
+<scripts>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'rangeBar'
+},
+plotOptions: {
+  bar: {
+    horizontal: true
+  }
+},
+dataLabels: {
+  enabled: true,
+  formatter: function(val) {
+    var a = moment(val[0])
+    var b = moment(val[1])
+    var diff = b.diff(a, 'days')
+    return diff + (diff > 1 ? ' days' : ' day')
+  }
+},
+xaxis: {
+  type: 'datetime'
+},
+legend: {
+  position: 'top'
+}
+</options>
+
+<series>
+[
+  {
+    name: 'Bob',
+    data: [
+      {
+        x: 'Design',
+        y: [
+          new Date('2019-03-05').getTime(),
+          new Date('2019-03-08').getTime()
+        ]
+      },
+      {
+        x: 'Code',
+        y: [
+          new Date('2019-03-08').getTime(),
+          new Date('2019-03-11').getTime()
+        ]
+      },
+      {
+        x: 'Test',
+        y: [
+          new Date('2019-03-11').getTime(),
+          new Date('2019-03-16').getTime()
+        ]
+      }
+    ]
+  },
+  {
+    name: 'Joe',
+    data: [
+      {
+        x: 'Design',
+        y: [
+          new Date('2019-03-02').getTime(),
+          new Date('2019-03-05').getTime()
+        ]
+      },
+      {
+        x: 'Code',
+        y: [
+          new Date('2019-03-06').getTime(),
+          new Date('2019-03-09').getTime()
+        ]
+      },
+      {
+        x: 'Test',
+        y: [
+          new Date('2019-03-10').getTime(),
+          new Date('2019-03-19').getTime()
+        ]
+      }
+    ]
+  }
+]
+</series>
+</chart>

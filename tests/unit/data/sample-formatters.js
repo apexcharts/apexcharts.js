@@ -5,7 +5,7 @@ module.exports = {
         text: 'Points'
       },
       labels: {
-        formatter: function(val) {
+        formatter(val) {
           return val.toFixed(2)
         }
       }
@@ -13,12 +13,12 @@ module.exports = {
     tooltip: {
       y: [
         {
-          formatter: function(y) {
+          formatter(y) {
             return y.toFixed(0) + ' points'
           }
         },
         {
-          formatter: function(y) {
+          formatter(y) {
             return y.toFixed(0) + ' points'
           }
         }
@@ -28,7 +28,7 @@ module.exports = {
   case2: {
     tooltip: {
       y: {
-        formatter: function(y) {
+        formatter(y) {
           return y.toFixed(0) + ' points'
         }
       }

@@ -37,13 +37,14 @@ export default class Options {
       },
       axisBorder: {
         show: false,
-        color: '#78909C',
+        color: '#e0e0e0',
+        width: 1,
         offsetX: 0,
         offsetY: 0
       },
       axisTicks: {
         show: false,
-        color: '#78909C',
+        color: '#e0e0e0',
         width: 6,
         offsetX: 0,
         offsetY: 0
@@ -71,74 +72,6 @@ export default class Options {
           color: '#b6b6b6',
           width: 1,
           dashArray: 0
-        }
-      }
-    }
-
-    this.xAxisAnnotation = {
-      x: 0,
-      x2: null,
-      strokeDashArray: 1,
-      fillColor: '#c2c2c2',
-      borderColor: '#c2c2c2',
-      opacity: 0.3,
-      offsetX: 0,
-      offsetY: 0,
-      label: {
-        borderColor: '#c2c2c2',
-        borderWidth: 1,
-        text: undefined,
-        textAnchor: 'middle',
-        orientation: 'vertical',
-        position: 'top',
-        offsetX: 0,
-        offsetY: 0,
-        style: {
-          background: '#fff',
-          color: undefined,
-          fontSize: '11px',
-          fontFamily: undefined,
-          cssClass: '',
-          padding: {
-            left: 5,
-            right: 5,
-            top: 2,
-            bottom: 2
-          }
-        }
-      }
-    }
-
-    this.yAxisAnnotation = {
-      y: 0,
-      y2: null,
-      strokeDashArray: 1,
-      fillColor: '#c2c2c2',
-      borderColor: '#c2c2c2',
-      opacity: 0.3,
-      offsetX: 0,
-      offsetY: 0,
-      yAxisIndex: 0,
-      label: {
-        borderColor: '#c2c2c2',
-        borderWidth: 1,
-        text: undefined,
-        textAnchor: 'end',
-        position: 'right',
-        offsetX: 0,
-        offsetY: -3,
-        style: {
-          background: '#fff',
-          color: undefined,
-          fontSize: '11px',
-          fontFamily: undefined,
-          cssClass: '',
-          padding: {
-            left: 5,
-            right: 5,
-            top: 0,
-            bottom: 2
-          }
         }
       }
     }
@@ -175,7 +108,7 @@ export default class Options {
           padding: {
             left: 5,
             right: 5,
-            top: 0,
+            top: 2,
             bottom: 2
           }
         }
@@ -187,8 +120,77 @@ export default class Options {
         offsetY: 0
       }
     }
-  }
 
+    this.yAxisAnnotation = {
+      y: 0,
+      y2: null,
+      strokeDashArray: 1,
+      fillColor: '#c2c2c2',
+      borderColor: '#c2c2c2',
+      borderWidth: 1,
+      opacity: 0.3,
+      offsetX: 0,
+      offsetY: 0,
+      yAxisIndex: 0,
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'end',
+        position: 'right',
+        offsetX: 0,
+        offsetY: -3,
+        style: {
+          background: '#fff',
+          color: undefined,
+          fontSize: '11px',
+          fontFamily: undefined,
+          cssClass: '',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 2,
+            bottom: 2
+          }
+        }
+      }
+    }
+
+    this.xAxisAnnotation = {
+      x: 0,
+      x2: null,
+      strokeDashArray: 1,
+      fillColor: '#c2c2c2',
+      borderColor: '#c2c2c2',
+      borderWidth: 1,
+      opacity: 0.3,
+      offsetX: 0,
+      offsetY: 0,
+      label: {
+        borderColor: '#c2c2c2',
+        borderWidth: 1,
+        text: undefined,
+        textAnchor: 'middle',
+        orientation: 'vertical',
+        position: 'top',
+        offsetX: 0,
+        offsetY: 0,
+        style: {
+          background: '#fff',
+          color: undefined,
+          fontSize: '11px',
+          fontFamily: undefined,
+          cssClass: '',
+          padding: {
+            left: 5,
+            right: 5,
+            top: 2,
+            bottom: 2
+          }
+        }
+      }
+    }
+  }
   init() {
     return {
       annotations: {
@@ -244,6 +246,7 @@ export default class Options {
         fontFamily: 'Helvetica, Arial, sans-serif',
         height: 'auto',
         parentHeightOffset: 15,
+        redrawOnParentResize: true,
         id: undefined,
         group: undefined,
         offsetX: 0,
@@ -327,11 +330,16 @@ export default class Options {
             backgroundBarOpacity: 1
           },
           dataLabels: {
+            position: 'top', // top, center, bottom
             maxItems: 100,
             hideOverflowingLabels: true,
-            position: 'top' // top, center, bottom
+            orientation: 'horizontal'
             // TODO: provide stackedLabels for stacked charts which gives additions of values
           }
+        },
+        bubble: {
+          minBubbleRadius: undefined,
+          maxBubbleRadius: undefined
         },
         candlestick: {
           colors: {
@@ -346,7 +354,7 @@ export default class Options {
           radius: 2,
           enableShades: true,
           shadeIntensity: 0.5,
-          reverseNegativeShade: true,
+          reverseNegativeShade: false,
           distributed: false,
           colorScale: {
             inverse: false,
@@ -356,7 +364,7 @@ export default class Options {
           }
         },
         radialBar: {
-          size: undefined,
+          size: undefined, // todo: deprecate in 4.0.0
           inverseOrder: false,
           startAngle: 0,
           endAngle: 360,
@@ -406,7 +414,10 @@ export default class Options {
               fontSize: '16px',
               fontFamily: undefined,
               color: undefined,
-              offsetY: 0
+              offsetY: 0,
+              formatter(val) {
+                return val
+              }
             },
             value: {
               show: true,
@@ -414,7 +425,7 @@ export default class Options {
               fontFamily: undefined,
               color: undefined,
               offsetY: 16,
-              formatter: function(val) {
+              formatter(val) {
                 return val + '%'
               }
             },
@@ -422,11 +433,9 @@ export default class Options {
               show: false,
               label: 'Total',
               color: undefined,
-              formatter: function(w) {
+              formatter(w) {
                 return (
-                  w.globals.seriesTotals.reduce((a, b) => {
-                    return a + b
-                  }, 0) /
+                  w.globals.seriesTotals.reduce((a, b) => a + b, 0) /
                     w.globals.series.length +
                   '%'
                 )
@@ -434,9 +443,8 @@ export default class Options {
             }
           }
         },
-        rangeBar: {},
         pie: {
-          size: undefined,
+          size: undefined, // todo: deprecate in 4.0.0
           customScale: 1,
           offsetX: 0,
           offsetY: 0,
@@ -457,7 +465,10 @@ export default class Options {
                 fontSize: '16px',
                 fontFamily: undefined,
                 color: undefined,
-                offsetY: -10
+                offsetY: -10,
+                formatter(val) {
+                  return val
+                }
               },
               value: {
                 show: true,
@@ -465,18 +476,17 @@ export default class Options {
                 fontFamily: undefined,
                 color: undefined,
                 offsetY: 10,
-                formatter: function(val) {
+                formatter(val) {
                   return val
                 }
               },
               total: {
                 show: false,
+                showAlways: false,
                 label: 'Total',
                 color: undefined,
-                formatter: function(w) {
-                  return w.globals.seriesTotals.reduce((a, b) => {
-                    return a + b
-                  }, 0)
+                formatter(w) {
+                  return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
                 }
               }
             }
@@ -500,7 +510,7 @@ export default class Options {
       dataLabels: {
         enabled: true,
         enabledOnSeries: undefined,
-        formatter: function(val) {
+        formatter(val) {
           return val !== null ? val : ''
         },
         textAnchor: 'middle',
@@ -509,7 +519,17 @@ export default class Options {
         style: {
           fontSize: '12px',
           fontFamily: undefined,
+          fontWeight: 'bold',
           colors: undefined
+        },
+        background: {
+          enabled: true,
+          foreColor: '#fff',
+          borderRadius: 2,
+          padding: 4,
+          opacity: 0.9,
+          borderWidth: 1,
+          borderColor: '#fff'
         },
         dropShadow: {
           enabled: false,
@@ -541,7 +561,7 @@ export default class Options {
           height: undefined // optional
         },
         pattern: {
-          style: 'sqaures', // String | Array of Strings
+          style: 'squares', // String | Array of Strings
           width: 6,
           height: 6,
           strokeWidth: 2
@@ -554,14 +574,12 @@ export default class Options {
         position: 'back',
         xaxis: {
           lines: {
-            show: false,
-            animate: false
+            show: false
           }
         },
         yaxis: {
           lines: {
-            show: true,
-            animate: false
+            show: true
           }
         },
         row: {
@@ -606,6 +624,7 @@ export default class Options {
           width: 12,
           height: 12,
           strokeWidth: 0,
+          fillColors: undefined,
           strokeColor: '#fff',
           radius: 12,
           customHTML: undefined,
@@ -614,8 +633,8 @@ export default class Options {
           onClick: undefined
         },
         itemMargin: {
-          horizontal: 0,
-          vertical: 5
+          horizontal: 5,
+          vertical: 0
         },
         onItemClick: {
           toggleDataSeries: true
@@ -632,6 +651,7 @@ export default class Options {
         strokeColors: '#fff',
         strokeWidth: 2,
         strokeOpacity: 0.9,
+        strokeDashArray: 0,
         fillOpacity: 1,
         shape: 'circle',
         radius: 2,
@@ -682,7 +702,7 @@ export default class Options {
       title: {
         text: undefined,
         align: 'left',
-        margin: 10,
+        margin: 5,
         offsetX: 0,
         offsetY: 0,
         floating: false,
@@ -695,7 +715,7 @@ export default class Options {
       subtitle: {
         text: undefined,
         align: 'left',
-        margin: 10,
+        margin: 5,
         offsetX: 0,
         offsetY: 30,
         floating: false,
@@ -739,7 +759,7 @@ export default class Options {
         y: {
           formatter: undefined,
           title: {
-            formatter: function(seriesName) {
+            formatter(seriesName) {
               return seriesName
             }
           }
@@ -749,7 +769,8 @@ export default class Options {
           title: 'Size: '
         },
         marker: {
-          show: true
+          show: true,
+          fillColors: undefined
         },
         items: {
           display: 'flex'
@@ -764,6 +785,7 @@ export default class Options {
       xaxis: {
         type: 'category',
         categories: [],
+        convertedCatToNumeric: false, // internal property which should not be altered outside
         offsetX: 0,
         offsetY: 0,
         labels: {
@@ -785,6 +807,7 @@ export default class Options {
           offsetY: 0,
           format: undefined,
           formatter: undefined, // custom formatter function which will override format
+          datetimeUTC: true,
           datetimeFormatter: {
             year: 'yyyy',
             month: "MMM 'yy",
@@ -795,7 +818,7 @@ export default class Options {
         },
         axisBorder: {
           show: true,
-          color: '#78909C',
+          color: '#e0e0e0',
           width: '100%',
           height: 1,
           offsetX: 0,
@@ -803,7 +826,7 @@ export default class Options {
         },
         axisTicks: {
           show: true,
-          color: '#78909C',
+          color: '#e0e0e0',
           height: 6,
           offsetX: 0,
           offsetY: 0

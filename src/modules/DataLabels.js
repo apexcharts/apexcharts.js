@@ -73,9 +73,9 @@ class DataLabels {
     }
   }
 
-  drawDataLabel(pos, i, j, z = null, align = 'top') {
+  drawDataLabel(pos, i, j, z = null, strokeWidth = 2) {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
-    // all other charts like bars / heatmaps will define their own drawDataLabel routine
+    // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
@@ -98,14 +98,7 @@ class DataLabels {
 
     for (let q = 0; q < pos.x.length; q++) {
       x = pos.x[q] + dataLabelsConfig.offsetX
-      y = pos.y[q] + dataLabelsConfig.offsetY - w.globals.markers.size[i] - 5
-
-      if (align === 'bottom') {
-        y =
-          y +
-          w.globals.markers.size[i] * 2 +
-          parseInt(dataLabelsConfig.style.fontSize) * 1.4
-      }
+      y = pos.y[q] + dataLabelsConfig.offsetY + strokeWidth
 
       if (!isNaN(x)) {
         // a small hack as we have 2 points for the first val to connect it
@@ -116,8 +109,19 @@ class DataLabels {
 
         let text = ''
 
+        const getText = (v) => {
+          return w.config.dataLabels.formatter(v, {
+            ctx: this.ctx,
+            seriesIndex: i,
+            dataPointIndex,
+            w
+          })
+        }
+
         if (w.config.chart.type === 'bubble') {
-          text = w.globals.seriesZ[i][dataPointIndex]
+          val = w.globals.seriesZ[i][dataPointIndex]
+          text = getText(val)
+
           y = pos.y[q] + w.config.dataLabels.offsetY
           const scatter = new Scatter(this.ctx)
           let centerTextInBubbleCoords = scatter.centerTextInBubble(
@@ -128,12 +132,7 @@ class DataLabels {
           y = centerTextInBubbleCoords.y
         } else {
           if (typeof val !== 'undefined') {
-            text = w.config.dataLabels.formatter(val, {
-              ctx: this.ctx,
-              seriesIndex: i,
-              dataPointIndex: dataPointIndex,
-              w
-            })
+            text = getText(val)
           }
         }
 
@@ -165,6 +164,7 @@ class DataLabels {
       textAnchor,
       parent,
       dataLabelsConfig,
+      color,
       alwaysDrawDataLabel,
       offsetCorrection
     } = opts
@@ -176,8 +176,8 @@ class DataLabels {
     }
 
     let correctedLabels = {
-      x: x,
-      y: y,
+      x,
+      y,
       drawnextLabel: true
     }
 
@@ -189,7 +189,7 @@ class DataLabels {
         i,
         j,
         alwaysDrawDataLabel,
-        parseInt(dataLabelsConfig.style.fontSize)
+        parseInt(dataLabelsConfig.style.fontSize, 10)
       )
     }
 
@@ -210,17 +210,29 @@ class DataLabels {
       }
     }
 
+    let dataLabelColor = w.globals.dataLabels.style.colors[i]
+    if (
+      (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
+      w.config.plotOptions.bar.distributed
+    ) {
+      dataLabelColor = w.globals.dataLabels.style.colors[j]
+    }
+    if (color) {
+      dataLabelColor = color
+    }
+
     if (correctedLabels.drawnextLabel) {
       let dataLabelText = graphics.drawText({
         width: 100,
-        height: parseInt(dataLabelsConfig.style.fontSize),
-        x: x,
-        y: y,
-        foreColor: w.globals.dataLabels.style.colors[i],
+        height: parseInt(dataLabelsConfig.style.fontSize, 10),
+        x,
+        y,
+        foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
-        text: text,
+        text,
         fontSize: dataLabelsConfig.style.fontSize,
-        fontFamily: dataLabelsConfig.style.fontFamily
+        fontFamily: dataLabelsConfig.style.fontFamily,
+        fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
       })
 
       dataLabelText.attr({
@@ -242,6 +254,92 @@ class DataLabels {
       }
 
       w.globals.lastDrawnDataLabelsIndexes[i].push(j)
+    }
+  }
+
+  addBackgroundToDataLabel(el, coords) {
+    const w = this.w
+
+    const bCnf = w.config.dataLabels.background
+
+    const paddingH = bCnf.padding
+    const paddingV = bCnf.padding / 2
+
+    const width = coords.width
+    const height = coords.height
+    const graphics = new Graphics(this.ctx)
+    const elRect = graphics.drawRect(
+      coords.x - paddingH,
+      coords.y - paddingV / 2,
+      width + paddingH * 2,
+      height + paddingV,
+      bCnf.borderRadius,
+      w.config.chart.background === 'transparent'
+        ? '#fff'
+        : w.config.chart.background,
+      bCnf.opacity,
+      bCnf.borderWidth,
+      bCnf.borderColor
+    )
+
+    return elRect
+  }
+
+  dataLabelsBackground() {
+    const w = this.w
+
+    const chartType = w.config.chart.type
+    if (
+      chartType === 'bar' ||
+      chartType === 'rangeBar' ||
+      chartType === 'bubble'
+    )
+      return
+
+    const elDataLabels = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-datalabels text'
+    )
+
+    for (let i = 0; i < elDataLabels.length; i++) {
+      const el = elDataLabels[i]
+      const coords = el.getBBox()
+      let elRect = null
+
+      if (coords.width && coords.height) {
+        elRect = this.addBackgroundToDataLabel(el, coords)
+      }
+      if (elRect) {
+        el.parentNode.insertBefore(elRect.node, el)
+        const background = el.getAttribute('fill')
+
+        const shouldAnim =
+          w.config.chart.animations.enabled &&
+          !w.globals.resized &&
+          !w.globals.dataChanged
+
+        if (shouldAnim) {
+          elRect.animate().attr({ fill: background })
+        } else {
+          elRect.attr({ fill: background })
+        }
+        el.setAttribute('fill', w.config.dataLabels.background.foreColor)
+      }
+    }
+  }
+
+  bringForward() {
+    const w = this.w
+    const elDataLabelsNodes = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-datalabels'
+    )
+    const elSeries = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-plot-series:last-child'
+    )
+
+    for (let i = 0; i < elDataLabelsNodes.length; i++) {
+      if (elSeries) {
+        elSeries.insertBefore(elDataLabelsNodes[i], elSeries.nextSibling)
+      }
     }
   }
 }

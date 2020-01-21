@@ -1,174 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>TimeSeries With Irregular Data</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>TimeSeries With Irregular Data</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-        max-width: 650px;
-        margin: 35px auto;
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
     }
+      
     </style>
-</head>
 
-<body>
-  <div id="app"></div>
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-  <div id="html">
-          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
-  </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    
 
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
-  <script src="../../../dist/apexcharts.js"></script>
+    <!-- fake data taken from https://www.metricsgraphicsjs.org/data/fake_users2.json -->
   <script src="../../assets/irregular-data-series.js"></script>
-
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+  
+  <script>
     var ts1 = 1388534400000;
     var ts2 = 1388620800000;
     var ts3 = 1389052800000;
-
-    var dataSet = [[], [], []]
-
-    for (var i = 0; i < 12; i++) {
-      ts1 = ts1 + 86400000;
-      var innerArr = [ts1, dataSeries[2][i].value];
-      dataSet[0].push(innerArr)
+  
+    var dataSet = [[],[],[]];
+  
+    for(var i=0; i<12; i++) {
+        ts1 = ts1 + 86400000;
+        var innerArr = [ts1, dataSeries[2][i].value];
+        dataSet[0].push(innerArr)
     }
-    for (var i = 0; i < 18; i++) {
-      ts2 = ts2 + 86400000;
-      var innerArr = [ts2, dataSeries[1][i].value];
-      dataSet[1].push(innerArr)
+    for(var i=0; i<18; i++) {
+        ts2 = ts2 + 86400000;
+        var innerArr = [ts2, dataSeries[1][i].value];
+        dataSet[1].push(innerArr)
     }
-    for (var i = 0; i < 12; i++) {
-      ts3 = ts3 + 86400000;
-      var innerArr = [ts3, dataSeries[0][i].value];
-      dataSet[2].push(innerArr)
+    for(var i=0; i<12; i++) {
+        ts3 = ts3 + 86400000;
+        var innerArr = [ts3, dataSeries[0][i].value];
+        dataSet[2].push(innerArr)
     }
+  </script>
+  </head>
 
-    class AreaChart extends React.Component {
-      
-      constructor(props) {
-        super(props);
+  <body>
+    
+    <div id="app"></div>
 
-        this.state = {
-          options: {
-            chart: {
-              stacked: false,
-              zoom: {
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [{
+              name: 'PRODUCT A',
+              data: dataSet[0]
+            }, {
+              name: 'PRODUCT B',
+              data: dataSet[1]
+            }, {
+              name: 'PRODUCT C',
+              data: dataSet[2]
+            }],
+            options: {
+              chart: {
+                type: 'area',
+                stacked: false,
+                height: 350,
+                zoom: {
+                  enabled: false
+                },
+              },
+              dataLabels: {
                 enabled: false
               },
-            },
-            plotOptions: {
-              line: {
-                curve: 'smooth',
-              }
-            },
-            dataLabels: {
-              enabled: false
-            },
-
-            markers: {
-              size: 0,
-              style: 'full',
-            },
-            fill: {
-              type: 'gradient',
-              gradient: {
-                shadeIntensity: 1,
-                inverseColors: false,
-                opacityFrom: 0.45,
-                opacityTo: 0.05,
-                stops: [20, 100, 100, 100]
+              markers: {
+                size: 0,
               },
-            },
-            yaxis: {
-              labels: {
-                style: {
-                  color: '#8e8da4',
+              fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    inverseColors: false,
+                    opacityFrom: 0.45,
+                    opacityTo: 0.05,
+                    stops: [20, 100, 100, 100]
+                  },
+              },
+              yaxis: {
+                labels: {
+                    style: {
+                        color: '#8e8da4',
+                    },
+                    offsetX: 0,
+                    formatter: function(val) {
+                      return (val / 1000000).toFixed(2);
+                    },
                 },
-                offsetX: 0,
-                formatter: function (val) {
-                  return (val / 1000000).toFixed(2);
+                axisBorder: {
+                    show: false,
                 },
-              },
-              axisBorder: {
-                show: false,
-              },
-              axisTicks: {
-                show: false
-              }
-            },
-            xaxis: {
-              type: 'datetime',
-              tickAmount: 8,
-              min: new Date("01/01/2014").getTime(),
-              max: new Date("01/20/2014").getTime(),
-              labels: {
-                rotate: -15,
-                rotateAlways: true,
-                formatter: function (val, timestamp) {
-                  return moment(new Date(timestamp)).format("DD MMM YYYY")
+                axisTicks: {
+                    show: false
                 }
+              },
+              xaxis: {
+                type: 'datetime',
+                tickAmount: 8,
+                min: new Date("01/01/2014").getTime(),
+                max: new Date("01/20/2014").getTime(),
+                labels: {
+                    rotate: -15,
+                    rotateAlways: true,
+                    formatter: function(val, timestamp) {
+                      return moment(new Date(timestamp)).format("DD MMM YYYY")
+                  }
+                }
+              },
+              title: {
+                text: 'Irregular Data in Time Series',
+                align: 'left',
+                offsetX: 14
+              },
+              tooltip: {
+                shared: true
+              },
+              legend: {
+                position: 'top',
+                horizontalAlign: 'right',
+                offsetX: -10
               }
             },
-            title: {
-              text: 'Irregular Data in Time Series',
-              align: 'left',
-              offsetX: 14
-            },
-            tooltip: {
-              shared: true
-            },
-            legend: {
-              position: 'top',
-              horizontalAlign: 'right',
-              offsetX: -10
-            }
-          },
-          series: [{
-            name: 'PRODUCT A',
-            data: dataSet[0]
-          }, {
-            name: 'PRODUCT B',
-            data: dataSet[1]
-          }, {
-            name: 'PRODUCT C',
-            data: dataSet[2]
-          }],
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="area" height={350} />
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
         }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="area" height="350" />
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(AreaChart), domContainer);
-
-  </script>
-</body>
+    
+  </body>
 </html>

@@ -1,25 +1,27 @@
 import ApexCharts from '../../../dist/apexcharts.js'
 
-module.exports = {
-  createChart: function(type, series) {
-    document.body.innerHTML = '<div id="chart" />'
+export function createChart(type, series, xtype = 'category') {
+  document.body.innerHTML = '<div id="chart" />'
 
-    const chart = new ApexCharts(document.querySelector('#chart'), {
-      chart: {
-        type
-      },
-      series
-    })
-    chart.render()
+  const chart = new ApexCharts(document.querySelector('#chart'), {
+    chart: {
+      type
+    },
+    xaxis: {
+      type: xtype
+    },
+    series
+  })
+  chart.render()
 
-    return chart
-  },
-  createChartWithOptions: function(options) {
-    document.body.innerHTML = '<div id="chart" />'
+  return chart
+}
 
-    const chart = new ApexCharts(document.querySelector('#chart'), options)
-    chart.render()
+export function createChartWithOptions(options) {
+  document.body.innerHTML = '<div id="chart" />'
 
-    return chart
-  }
+  const chart = new ApexCharts(document.querySelector('#chart'), options)
+  chart.render()
+
+  return chart
 }

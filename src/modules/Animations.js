@@ -40,22 +40,25 @@ export default class Animations {
       }
       case 'swing': {
         easing = (pos) => {
-          var s = 1.70158
-          return (pos -= 1) * pos * ((s + 1) * pos + s) + 1
+          let s = 1.70158
+          let ret = (pos -= 1) * pos * ((s + 1) * pos + s) + 1
+          return ret
         }
         break
       }
       case 'bounce': {
         easing = (pos) => {
+          let ret = ''
           if (pos < 1 / 2.75) {
-            return 7.5625 * pos * pos
+            ret = 7.5625 * pos * pos
           } else if (pos < 2 / 2.75) {
-            return 7.5625 * (pos -= 1.5 / 2.75) * pos + 0.75
+            ret = 7.5625 * (pos -= 1.5 / 2.75) * pos + 0.75
           } else if (pos < 2.5 / 2.75) {
-            return 7.5625 * (pos -= 2.25 / 2.75) * pos + 0.9375
+            ret = 7.5625 * (pos -= 2.25 / 2.75) * pos + 0.9375
           } else {
-            return 7.5625 * (pos -= 2.625 / 2.75) * pos + 0.984375
+            ret = 7.5625 * (pos -= 2.625 / 2.75) * pos + 0.984375
           }
+          return ret
         }
         break
       }
@@ -88,7 +91,7 @@ export default class Animations {
   /*
    ** Animate radius of a circle element
    */
-  animateCircleRadius(el, from, to, speed, easing) {
+  animateCircleRadius(el, from, to, speed, easing, cb) {
     if (!from) from = 0
 
     el.attr({
@@ -97,6 +100,9 @@ export default class Animations {
       .animate(speed, easing)
       .attr({
         r: to
+      })
+      .afterAll(() => {
+        cb()
       })
   }
 
@@ -124,13 +130,11 @@ export default class Animations {
     el.attr(from)
       .animate(speed)
       .attr(to)
-      .afterAll(function() {
-        fn()
-      })
+      .afterAll(() => fn())
   }
 
   animatePathsGradually(params) {
-    let { el, j, pathFrom, pathTo, speed, delay, strokeWidth } = params
+    let { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params
 
     let me = this
     let w = this.w
@@ -150,11 +154,14 @@ export default class Animations {
 
     me.morphSVG(
       el,
+      realIndex,
       j,
+      w.config.chart.type === 'line' && !w.globals.comboCharts
+        ? 'stroke'
+        : fill,
       pathFrom,
       pathTo,
       speed,
-      strokeWidth,
       delay * delayFactor
     )
   }
@@ -162,21 +169,23 @@ export default class Animations {
   showDelayedElements() {
     this.w.globals.delayedElements.forEach((d) => {
       const ele = d.el
-      ele.classList.remove('hidden')
+      ele.classList.remove('apexcharts-element-hidden')
     })
   }
 
-  animationCompleted() {
+  animationCompleted(el) {
     const w = this.w
+    if (w.globals.animationEnded) return
+
     w.globals.animationEnded = true
 
     if (typeof w.config.chart.events.animationEnd === 'function') {
-      w.config.chart.events.animationEnd(this.ctx, w)
+      w.config.chart.events.animationEnd(this.ctx, { el, w })
     }
   }
 
   // SVG.js animation for morphing one path to another
-  morphSVG(el, j, pathFrom, pathTo, speed, strokeWidth, delay) {
+  morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
     let w = this.w
 
     if (!pathFrom) {
@@ -216,10 +225,16 @@ export default class Animations {
             j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 &&
             w.globals.shouldAnimate
           ) {
-            this.animationCompleted()
+            this.animationCompleted(el)
           }
-        } else if (w.globals.shouldAnimate) {
-          this.animationCompleted()
+        } else if (fill !== 'none' && w.globals.shouldAnimate) {
+          if (
+            (!w.globals.comboCharts &&
+              realIndex === w.globals.series.length - 1) ||
+            w.globals.comboCharts
+          ) {
+            this.animationCompleted(el)
+          }
         }
 
         this.showDelayedElements()

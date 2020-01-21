@@ -63,7 +63,7 @@ export default class Tooltip {
 
     const tooltipEl = document.createElement('div')
     tooltipEl.classList.add('apexcharts-tooltip')
-    tooltipEl.classList.add(this.tConfig.theme)
+    tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme}`)
     w.globals.dom.elWrap.appendChild(tooltipEl)
 
     if (w.globals.axisCharts) {
@@ -78,10 +78,11 @@ export default class Tooltip {
 
     // we forcefully set intersect true for these conditions
     if (
-      (w.globals.comboCharts && !this.tConfig.shared) ||
-      (this.tConfig.intersect && !this.tConfig.shared) ||
-      ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
-        !this.tConfig.shared)
+      (w.globals.comboCharts ||
+        this.tConfig.intersect ||
+        w.config.chart.type === 'bar' ||
+        w.config.chart.type === 'rangeBar') &&
+      !this.tConfig.shared
     ) {
       this.showOnIntersect = true
     }
@@ -201,6 +202,13 @@ export default class Tooltip {
       type === 'rangeBar'
     )
 
+    const chartWithmarkers =
+      type === 'area' ||
+      type === 'line' ||
+      type === 'scatter' ||
+      type === 'bubble' ||
+      type === 'radar'
+
     let hoverArea = w.globals.dom.Paper.node
 
     const elGrid = this.getElGrid()
@@ -213,8 +221,8 @@ export default class Tooltip {
 
     let seriesHoverParams = {
       hoverArea,
-      elGrid: elGrid,
-      tooltipEl: tooltipEl,
+      elGrid,
+      tooltipEl,
       tooltipY,
       tooltipX,
       ttItems: this.ttItems
@@ -223,12 +231,7 @@ export default class Tooltip {
     let points
 
     if (w.globals.axisCharts) {
-      if (
-        type === 'area' ||
-        type === 'line' ||
-        type === 'scatter' ||
-        type === 'bubble'
-      ) {
+      if (chartWithmarkers) {
         points = w.globals.dom.baseEl.querySelectorAll(
           ".apexcharts-series[data\\:longestSeries='true'] .apexcharts-marker"
         )
@@ -239,10 +242,6 @@ export default class Tooltip {
       } else if (type === 'heatmap') {
         points = w.globals.dom.baseEl.querySelectorAll(
           '.apexcharts-series .apexcharts-heatmap'
-        )
-      } else if (type === 'radar') {
-        points = w.globals.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-marker'
         )
       }
 
@@ -257,19 +256,15 @@ export default class Tooltip {
     const validSharedChartTypes =
       (w.globals.xyCharts && !this.showOnIntersect) ||
       (w.globals.comboCharts && !this.showOnIntersect) ||
-      (commonBar && this.hasBars() && this.tConfig.shared)
+      (commonBar && this.tooltipUtil.hasBars() && this.tConfig.shared)
 
     if (validSharedChartTypes) {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
-    } else if (commonBar && !w.globals.comboCharts) {
-      this.addBarsEventListeners(seriesHoverParams)
     } else if (
-      type === 'bubble' ||
-      type === 'scatter' ||
-      type === 'radar' ||
-      (this.showOnIntersect && (type === 'area' || type === 'line'))
+      (commonBar && !w.globals.comboCharts) ||
+      (chartWithmarkers && this.showOnIntersect)
     ) {
-      this.addPointsEventsListeners(seriesHoverParams)
+      this.addDatapointEventsListeners(seriesHoverParams)
     } else if (!w.globals.axisCharts || type === 'heatmap') {
       let seriesAll = w.globals.dom.baseEl.querySelectorAll(
         '.apexcharts-series'
@@ -278,25 +273,17 @@ export default class Tooltip {
     }
 
     if (this.showOnIntersect) {
-      let linePoints = w.globals.dom.baseEl.querySelectorAll(
-        '.apexcharts-line-series .apexcharts-marker'
+      let lineAreaPoints = w.globals.dom.baseEl.querySelectorAll(
+        '.apexcharts-line-series .apexcharts-marker, .apexcharts-area-series .apexcharts-marker'
       )
-      if (linePoints.length > 0) {
+      if (lineAreaPoints.length > 0) {
         // if we find any lineSeries, addEventListeners for them
-        this.addPathsEventListeners(linePoints, seriesHoverParams)
-      }
-
-      let areaPoints = w.globals.dom.baseEl.querySelectorAll(
-        '.apexcharts-area-series .apexcharts-marker'
-      )
-      if (areaPoints.length > 0) {
-        // if we find any areaSeries, addEventListeners for them
-        this.addPathsEventListeners(areaPoints, seriesHoverParams)
+        this.addPathsEventListeners(lineAreaPoints, seriesHoverParams)
       }
 
       // combo charts may have bars, so add event listeners here too
-      if (this.hasBars() && !this.tConfig.shared) {
-        this.addBarsEventListeners(seriesHoverParams)
+      if (this.tooltipUtil.hasBars() && !this.tConfig.shared) {
+        this.addDatapointEventsListeners(seriesHoverParams)
       }
     }
   }
@@ -313,11 +300,12 @@ export default class Tooltip {
     let x = this.tConfig.fixed.offsetX
     let y = this.tConfig.fixed.offsetY
 
-    if (this.tConfig.fixed.position.toLowerCase().indexOf('right') > -1) {
+    const fixed = this.tConfig.fixed.position.toLowerCase()
+
+    if (fixed.indexOf('right') > -1) {
       x = x + w.globals.svgWidth - ttWidth + 10
     }
-
-    if (this.tConfig.fixed.position.toLowerCase().indexOf('bottom') > -1) {
+    if (fixed.indexOf('bottom') > -1) {
       y = y + w.globals.svgHeight - ttHeight - 10
     }
 
@@ -332,21 +320,12 @@ export default class Tooltip {
     }
   }
 
-  addPointsEventsListeners(seriesHoverParams) {
+  addDatapointEventsListeners(seriesHoverParams) {
     let w = this.w
     let points = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-series-markers .apexcharts-marker'
+      '.apexcharts-series-markers .apexcharts-marker, .apexcharts-bar-area, .apexcharts-candlestick-area, .apexcharts-rangebar-area'
     )
     this.addPathsEventListeners(points, seriesHoverParams)
-  }
-
-  addBarsEventListeners(seriesHoverParams) {
-    let w = this.w
-    let bars = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-area, .apexcharts-candlestick-area, .apexcharts-rangebar-area'
-    )
-
-    this.addPathsEventListeners(bars, seriesHoverParams)
   }
 
   addPathsEventListeners(paths, opts) {
@@ -362,8 +341,6 @@ export default class Tooltip {
         hoverArea: opts.hoverArea,
         ttItems: opts.ttItems
       }
-
-      this.w.globals.tooltipOpts = extendedOpts
 
       let events = ['mousemove', 'mouseup', 'touchmove', 'mouseout', 'touchend']
 
@@ -403,7 +380,7 @@ export default class Tooltip {
 
         const newOpts = {
           paths: opt.paths,
-          tooltipEl: tooltipEl,
+          tooltipEl,
           tooltipY: opt.tooltipY,
           tooltipX: opt.tooltipX,
           elGrid: opt.elGrid,
@@ -448,7 +425,11 @@ export default class Tooltip {
     ttCtx.e = e
 
     // highlight the current hovered bars
-    if (ttCtx.hasBars() && !w.globals.comboCharts && !ttCtx.isBarShared) {
+    if (
+      ttCtx.tooltipUtil.hasBars() &&
+      !w.globals.comboCharts &&
+      !ttCtx.isBarShared
+    ) {
       if (this.tConfig.onDatasetHover.highlightDataSeries) {
         let series = new Series(chartCtx)
         series.toggleSeriesOnHover(e, e.target.parentNode)
@@ -478,9 +459,7 @@ export default class Tooltip {
   // tooltip handling for line/area/bar/columns/scatter
   axisChartsTooltips({ e, opt }) {
     let w = this.w
-    let j, x, y
-
-    let capj = null
+    let x, y
 
     let seriesBound = opt.elGrid.getBoundingClientRect()
 
@@ -505,7 +484,7 @@ export default class Tooltip {
       Array.isArray(this.tConfig.enabledOnSeries) &&
       !w.config.tooltip.shared
     ) {
-      const index = parseInt(opt.paths.getAttribute('index'))
+      const index = parseInt(opt.paths.getAttribute('index'), 10)
       if (this.tConfig.enabledOnSeries.indexOf(index) < 0) {
         this.handleMouseOut(opt)
         return
@@ -518,11 +497,12 @@ export default class Tooltip {
     let isStickyTooltip =
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
-        (!w.globals.isBarHorizontal && this.hasBars()) &&
+        !w.globals.isBarHorizontal &&
+        this.tooltipUtil.hasBars() &&
         this.tConfig.shared) ||
-      (w.globals.comboCharts && this.hasBars)
+      (w.globals.comboCharts && this.tooltipUtil.hasBars())
 
-    if (w.globals.isBarHorizontal && this.hasBars()) {
+    if (w.globals.isBarHorizontal && this.tooltipUtil.hasBars()) {
       isStickyTooltip = false
     }
 
@@ -532,60 +512,15 @@ export default class Tooltip {
       e.type === 'mouseup'
     ) {
       if (xcrosshairs !== null) {
-        xcrosshairs.classList.add('active')
+        xcrosshairs.classList.add('apexcharts-active')
       }
 
       if (this.ycrosshairs !== null && this.blyaxisTooltip) {
-        this.ycrosshairs.classList.add('active')
+        this.ycrosshairs.classList.add('apexcharts-active')
       }
 
       if (isStickyTooltip && !this.showOnIntersect) {
-        capj = this.tooltipUtil.getNearestValues({
-          context: this,
-          hoverArea: opt.hoverArea,
-          elGrid: opt.elGrid,
-          clientX,
-          clientY,
-          hasBars: this.hasBars
-        })
-
-        j = capj.j
-        let capturedSeries = capj.capturedSeries
-
-        if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth) {
-          this.handleMouseOut(opt)
-          return
-        }
-
-        if (capturedSeries !== null) {
-          let ignoreNull = w.globals.series[capturedSeries][j] === null
-          if (ignoreNull) {
-            this.handleMouseOut(opt)
-            return
-          }
-
-          if (typeof w.globals.series[capturedSeries][j] !== 'undefined') {
-            if (
-              this.tConfig.shared &&
-              this.tooltipUtil.isXoverlap(j) &&
-              this.tooltipUtil.isInitialSeriesSameLen()
-            ) {
-              this.create(e, this, capturedSeries, j, opt.ttItems)
-            } else {
-              this.create(e, this, capturedSeries, j, opt.ttItems, false)
-            }
-          } else {
-            if (this.tooltipUtil.isXoverlap(j)) {
-              this.create(e, this, 0, j, opt.ttItems)
-            }
-          }
-        } else {
-          // couldn't capture any series. check if shared X is same,
-          // if yes, draw a grouped tooltip
-          if (this.tooltipUtil.isXoverlap(j)) {
-            this.create(e, this, 0, j, opt.ttItems)
-          }
-        }
+        this.handleStickyTooltip(e, clientX, clientY, opt)
       } else {
         if (w.config.chart.type === 'heatmap') {
           let markerXY = this.intersect.handleHeatTooltip({
@@ -600,14 +535,14 @@ export default class Tooltip {
           tooltipEl.style.left = x + 'px'
           tooltipEl.style.top = y + 'px'
         } else {
-          if (this.hasBars) {
+          if (this.tooltipUtil.hasBars()) {
             this.intersect.handleBarTooltip({
               e,
               opt
             })
           }
 
-          if (this.hasMarkers) {
+          if (this.tooltipUtil.hasMarkers()) {
             // intersect - line/area/scatter/bubble
             this.intersect.handleMarkerTooltip({
               e,
@@ -625,7 +560,7 @@ export default class Tooltip {
         }
       }
 
-      opt.tooltipEl.classList.add('active')
+      opt.tooltipEl.classList.add('apexcharts-active')
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       this.handleMouseOut(opt)
     }
@@ -641,11 +576,11 @@ export default class Tooltip {
     let seriesBound = w.globals.dom.elWrap.getBoundingClientRect()
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
-      tooltipEl.classList.add('active')
+      tooltipEl.classList.add('apexcharts-active')
 
       this.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
-        i: parseInt(rel) - 1,
+        i: parseInt(rel, 10) - 1,
         shared: false
       })
 
@@ -655,7 +590,61 @@ export default class Tooltip {
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
-      tooltipEl.classList.remove('active')
+      tooltipEl.classList.remove('apexcharts-active')
+    }
+  }
+
+  handleStickyTooltip(e, clientX, clientY, opt) {
+    const w = this.w
+    let capj = this.tooltipUtil.getNearestValues({
+      context: this,
+      hoverArea: opt.hoverArea,
+      elGrid: opt.elGrid,
+      clientX,
+      clientY
+    })
+
+    let j = capj.j
+    let capturedSeries = capj.capturedSeries
+
+    if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth) {
+      this.handleMouseOut(opt)
+      return
+    }
+
+    if (capturedSeries !== null) {
+      this.handleStickyCapturedSeries(e, capturedSeries, opt, j)
+    } else {
+      // couldn't capture any series. check if shared X is same,
+      // if yes, draw a grouped tooltip
+      if (this.tooltipUtil.isXoverlap(j)) {
+        this.create(e, this, 0, j, opt.ttItems)
+      }
+    }
+  }
+
+  handleStickyCapturedSeries(e, capturedSeries, opt, j) {
+    const w = this.w
+    let ignoreNull = w.globals.series[capturedSeries][j] === null
+    if (ignoreNull) {
+      this.handleMouseOut(opt)
+      return
+    }
+
+    if (typeof w.globals.series[capturedSeries][j] !== 'undefined') {
+      if (
+        this.tConfig.shared &&
+        this.tooltipUtil.isXoverlap(j) &&
+        this.tooltipUtil.isInitialSeriesSameLen()
+      ) {
+        this.create(e, this, capturedSeries, j, opt.ttItems)
+      } else {
+        this.create(e, this, capturedSeries, j, opt.ttItems, false)
+      }
+    } else {
+      if (this.tooltipUtil.isXoverlap(j)) {
+        this.create(e, this, 0, j, opt.ttItems)
+      }
     }
   }
 
@@ -675,19 +664,19 @@ export default class Tooltip {
 
     const xcrosshairs = this.getElXCrosshairs()
 
-    opt.tooltipEl.classList.remove('active')
+    opt.tooltipEl.classList.remove('apexcharts-active')
     this.deactivateHoverFilter()
     if (w.config.chart.type !== 'bubble') {
       this.marker.resetPointsSize()
     }
     if (xcrosshairs !== null) {
-      xcrosshairs.classList.remove('active')
+      xcrosshairs.classList.remove('apexcharts-active')
     }
     if (this.ycrosshairs !== null) {
-      this.ycrosshairs.classList.remove('active')
+      this.ycrosshairs.classList.remove('apexcharts-active')
     }
     if (this.blxaxisTooltip) {
-      this.xaxisTooltip.classList.remove('active')
+      this.xaxisTooltip.classList.remove('apexcharts-active')
     }
     if (this.blyaxisTooltip) {
       if (this.yaxisTTEls === null) {
@@ -696,44 +685,16 @@ export default class Tooltip {
         )
       }
       for (let i = 0; i < this.yaxisTTEls.length; i++) {
-        this.yaxisTTEls[i].classList.remove('active')
+        this.yaxisTTEls[i].classList.remove('apexcharts-active')
       }
     }
 
     if (w.config.legend.tooltipHoverFormatter) {
       this.legendLabels.forEach((l) => {
         const defaultText = l.getAttribute('data:default-text')
-        l.innerHTML = defaultText
+        l.innerHTML = decodeURIComponent(defaultText)
       })
     }
-  }
-
-  getElMarkers() {
-    return this.w.globals.dom.baseEl.querySelectorAll(
-      ' .apexcharts-series-markers'
-    )
-  }
-
-  getAllMarkers() {
-    return this.w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-series-markers .apexcharts-marker'
-    )
-  }
-
-  hasMarkers() {
-    const markers = this.getElMarkers()
-    return markers.length > 0
-  }
-
-  getElBars() {
-    return this.w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-rangebar-series'
-    )
-  }
-
-  hasBars() {
-    const bars = this.getElBars()
-    return bars.length > 0
   }
 
   markerClick(e, seriesIndex, dataPointIndex) {
@@ -745,7 +706,7 @@ export default class Tooltip {
         w
       })
     }
-    this.ctx.fireEvent('markerClick', [
+    this.ctx.events.fireEvent('markerClick', [
       e,
       this.ctx,
       { seriesIndex, dataPointIndex, w }
@@ -762,9 +723,9 @@ export default class Tooltip {
 
     if (shared === null) shared = this.tConfig.shared
 
-    const hasMarkers = this.hasMarkers()
+    const hasMarkers = this.tooltipUtil.hasMarkers()
 
-    const bars = this.getElBars()
+    const bars = this.tooltipUtil.getElBars()
 
     if (w.config.legend.tooltipHoverFormatter) {
       let legendFormatter = w.config.legend.tooltipHoverFormatter
@@ -774,14 +735,16 @@ export default class Tooltip {
       // reset all legend values first
       els.forEach((l) => {
         const legendName = l.getAttribute('data:default-text')
-        l.innerHTML = legendName
+        l.innerHTML = decodeURIComponent(legendName)
       })
 
       // for irregular time series
       for (let i = 0; i < els.length; i++) {
         const l = els[i]
-        const lsIndex = parseInt(l.getAttribute('i'))
-        const legendName = l.getAttribute('data:default-text')
+        const lsIndex = parseInt(l.getAttribute('i'), 10)
+        const legendName = decodeURIComponent(
+          l.getAttribute('data:default-text')
+        )
 
         let text = legendFormatter(legendName, {
           seriesIndex: shared ? lsIndex : capturedSeries,
@@ -819,7 +782,7 @@ export default class Tooltip {
         }
       }
 
-      if (this.hasBars()) {
+      if (this.tooltipUtil.hasBars()) {
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars)
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
@@ -846,7 +809,7 @@ export default class Tooltip {
         j
       })
 
-      if (this.hasBars()) {
+      if (this.tooltipUtil.hasBars()) {
         ttCtx.tooltipPosition.moveStickyTooltipOverBars(j)
       }
 

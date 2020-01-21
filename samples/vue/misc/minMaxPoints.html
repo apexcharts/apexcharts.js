@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Min Max Points example</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../assets/stock-prices.js"></script>
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="area" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+            data: [344, 345, 333, 323, 322, 342, 383, 353, 323, 376]
+          }],
+          chartOptions: {
+            chart: {
+              height: 350,
+              type: "area",
+              zoom: {
+                enabled: false
+              },
+              events: {
+                mounted: function(ctx, config) {
+                  var lowest = ctx.getLowestValueInSeries(0)
+                  var highest = ctx.getHighestValueInSeries(0)
+            
+                  ctx.addPointAnnotation({
+                    x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(lowest)]).getTime(),
+                    y: lowest,
+                    label: {
+                      text: 'Lowest: ' + lowest,
+                      offsetY: 2
+                    },
+                    customSVG: {
+                        SVG: `<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                        <path d="M0 0h24v24H0z" fill="none"/>`,
+                        cssClass: undefined,
+                        offsetX: -10,
+                        offsetY: -30
+                    }
+                  })
+            
+                  ctx.addPointAnnotation({
+                    x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(highest)]).getTime(),
+                    y: highest,
+                    label: {
+                      text: 'Highest: ' + highest,
+                      offsetY: 2
+                    },
+                  })
+                }
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              curve: "straight"
+            },
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>

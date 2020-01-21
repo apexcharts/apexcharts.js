@@ -28,7 +28,7 @@ describe('Y-axis with ultra-small values', () => {
     const maxY = chart.w.globals.maxY
 
     expect(minY.toFixed(6)).toEqual('0.003760')
-    expect(maxY.toFixed(6)).toEqual('0.003807')
+    expect(maxY.toFixed(6)).toEqual('0.003799')
   })
 
   it('should not apply nice scale for small values', () => {
@@ -38,7 +38,11 @@ describe('Y-axis with ultra-small values', () => {
       },
       series: [
         {
-          data: [[1553258700000, 1], [1553259000000, 2], [1553261100000, 4]]
+          data: [
+            [1553258700000, 1],
+            [1553259000000, 2],
+            [1553261100000, 4]
+          ]
         }
       ],
       xaxis: {

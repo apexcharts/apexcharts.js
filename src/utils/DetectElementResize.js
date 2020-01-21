@@ -8,8 +8,6 @@
 **/
 
 (function () {
-  var stylesCreated = false
-  
   function resetTriggers (element) {
     var triggers = element.__resizeTriggers__,
       expand = triggers.firstElementChild,
@@ -43,27 +41,6 @@
     })
   }
 
-  function createStyles () {
-    if (!stylesCreated) {
-      // opacity:0 works around a chrome bug https://code.google.com/p/chromium/issues/detail?id=286360
-      var css = (animationKeyframes || '') +
-					'.resize-triggers { ' + (animationStyle || '') + 'visibility: hidden; opacity: 0; } ' +
-					'.resize-triggers, .resize-triggers > div, .contract-trigger:before { content: \" \"; display: block; position: absolute; top: 0; left: 0; height: 100%; width: 100%; overflow: hidden; } .resize-triggers > div { background: #eee; overflow: auto; } .contract-trigger:before { width: 200%; height: 200%; }',
-        head = document.head || document.getElementsByTagName('head')[0],
-        style = document.createElement('style')
-
-      style.type = 'text/css'
-      if (style.styleSheet) {
-        style.styleSheet.cssText = css
-      } else {
-        style.appendChild(document.createTextNode(css))
-      }
-
-      head.appendChild(style)
-      stylesCreated = true
-    }
-  }
-
   var requestFrame = (function () {
     var raf = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame ||
               function (fn) { return window.setTimeout(fn, 20) }
@@ -78,11 +55,9 @@
 
   /* Detect CSS Animations support to detect element display/re-attach */
   var animation = false,
-    keyframeprefix = '',
     animationstartevent = 'animationstart',
     domPrefixes = 'Webkit Moz O ms'.split(' '),
-    startEvents = 'webkitAnimationStart animationstart oAnimationStart MSAnimationStart'.split(' '),
-    pfx = ''
+    startEvents = 'webkitAnimationStart animationstart oAnimationStart MSAnimationStart'.split(' ')
   {
     var elm = document.createElement('fakeelement')
     if (elm.style.animationName !== undefined) { animation = true }
@@ -90,8 +65,6 @@
     if (animation === false) {
       for (var i = 0; i < domPrefixes.length; i++) {
         if (elm.style[ domPrefixes[i] + 'AnimationName' ] !== undefined) {
-          pfx = domPrefixes[ i ]
-          keyframeprefix = '-' + pfx.toLowerCase() + '-'
           animationstartevent = startEvents[ i ]
           break
         }
@@ -100,14 +73,11 @@
   }
 
   var animationName = 'resizeanim'
-  var animationKeyframes = '@' + keyframeprefix + 'keyframes ' + animationName + ' { from { opacity: 0; } to { opacity: 0; } } '
-  var animationStyle = keyframeprefix + 'animation: 1ms ' + animationName + '; '
-
 
   window.addResizeListener = function (element, fn) {
     if (!element.__resizeTriggers__) {
       if (getComputedStyle(element).position == 'static') element.style.position = 'relative'
-      createStyles()
+
       element.__resizeLast__ = {}
       element.__resizeListeners__ = [];
       (element.__resizeTriggers__ = document.createElement('div')).className = 'resize-triggers'
@@ -123,16 +93,16 @@
       })
     }
     element.__resizeListeners__.push(fn)
-  
+
   }
 
   window.removeResizeListener = function (element, fn) {
     if (element) {
-      element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1)  
+      element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1)
       if (!element.__resizeListeners__.length) {
         element.removeEventListener('scroll', scrollListener)
-        element.__resizeTriggers__ = !element.removeChild(element.__resizeTriggers__)        
+        element.__resizeTriggers__ = !element.removeChild(element.__resizeTriggers__)
       }
-    }    
+    }
   }
 })()

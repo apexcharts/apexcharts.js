@@ -15,11 +15,11 @@ export default class Labels {
     this.tooltipUtil = new Utils(tooltipContext)
   }
 
-  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null }) {
+  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2 }) {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
-      this.handleCustomTooltip({ i, j })
+      this.handleCustomTooltip({ i, j, y1, y2 })
     } else {
       this.toggleActiveInactiveSeries(shared)
     }
@@ -69,42 +69,42 @@ export default class Labels {
         j
       })
 
-      if (shared) {
-        const tIndex = w.config.tooltip.inverseOrder ? inverset : t
-        f = this.getFormatters(tIndex)
+      const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
-        seriesName = this.getSeriesName({
-          fn: f.yLbTitleFormatter,
-          index: tIndex,
-          seriesIndex: i,
-          j
-        })
-        pColor = w.globals.colors[tIndex]
-
-        // for plot charts, not for pie/donuts
-        val = f.yLbFormatter(w.globals.series[tIndex][j], {
-          series: w.globals.series,
-          seriesIndex: tIndex,
-          dataPointIndex: j,
-          w
-        })
-
-        // discard 0 values in BARS
-        if (
-          (this.ttCtx.hasBars() &&
-            w.config.chart.stacked &&
-            w.globals.series[tIndex][j] === 0) ||
-          typeof w.globals.series[tIndex][j] === 'undefined'
-        ) {
-          val = undefined
+      if (w.globals.axisCharts) {
+        const generalFormatter = (index) => {
+          return f.yLbFormatter(w.globals.series[index][j], {
+            series: w.globals.series,
+            seriesIndex: index,
+            dataPointIndex: j,
+            w
+          })
         }
-      } else {
-        val = f.yLbFormatter(w.globals.series[i][j], {
-          series: w.globals.series,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        })
+        if (shared) {
+          f = this.getFormatters(tIndex)
+
+          seriesName = this.getSeriesName({
+            fn: f.yLbTitleFormatter,
+            index: tIndex,
+            seriesIndex: i,
+            j
+          })
+          pColor = w.globals.colors[tIndex]
+
+          val = generalFormatter(tIndex)
+
+          // discard 0 values in BARS
+          if (
+            (this.tooltipUtil.hasBars() &&
+              w.config.chart.stacked &&
+              w.globals.series[tIndex][j] === 0) ||
+            typeof w.globals.series[tIndex][j] === 'undefined'
+          ) {
+            val = undefined
+          }
+        } else {
+          val = generalFormatter(i)
+        }
       }
 
       // for pie / donuts
@@ -113,7 +113,8 @@ export default class Labels {
       }
 
       this.DOMHandling({
-        t,
+        i,
+        t: tIndex,
         ttItems,
         values: {
           val,
@@ -177,13 +178,13 @@ export default class Labels {
     const w = this.w
     return fn(String(w.globals.seriesNames[index]), {
       series: w.globals.series,
-      seriesIndex: seriesIndex,
+      seriesIndex,
       dataPointIndex: j,
       w
     })
   }
 
-  DOMHandling({ t, ttItems, values, seriesName, shared, pColor }) {
+  DOMHandling({ i, t, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -226,6 +227,13 @@ export default class Labels {
       ttItemsChildren[0] &&
       ttItemsChildren[0].classList.contains('apexcharts-tooltip-marker')
     ) {
+      if (
+        w.config.tooltip.marker.fillColors &&
+        Array.isArray(w.config.tooltip.marker.fillColors)
+      ) {
+        pColor = w.config.tooltip.marker.fillColors[i]
+      }
+
       ttItemsChildren[0].style.backgroundColor = pColor
     }
 
@@ -241,7 +249,7 @@ export default class Labels {
       const ttZVal = ttItems[t].querySelector(
         '.apexcharts-tooltip-text-z-value'
       )
-      ttZVal.innerHTML = zVal
+      ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : ''
     }
 
     if (shared && ttItemsChildren[0]) {
@@ -274,7 +282,7 @@ export default class Labels {
       )
 
       if (firstTooltipSeriesGroup) {
-        firstTooltipSeriesGroup.classList.add('active')
+        firstTooltipSeriesGroup.classList.add('apexcharts-active')
         firstTooltipSeriesGroup.style.display = w.config.tooltip.items.display
       }
     }
@@ -350,23 +358,30 @@ export default class Labels {
     }
 
     return {
-      val,
-      xVal,
-      xAxisTTVal,
+      val: Array.isArray(val) ? val.join(' ') : val,
+      xVal: Array.isArray(xVal) ? xVal.join(' ') : xVal,
+      xAxisTTVal: Array.isArray(xAxisTTVal) ? xAxisTTVal.join(' ') : xAxisTTVal,
       zVal
     }
   }
 
-  handleCustomTooltip({ i, j }) {
+  handleCustomTooltip({ i, j, y1, y2 }) {
     const w = this.w
     const tooltipEl = this.ttCtx.getElTooltip()
+    let fn = w.config.tooltip.custom
+
+    if (Array.isArray(fn) && fn[i]) {
+      fn = fn[i]
+    }
 
     // override everything with a custom html tooltip and replace it
-    tooltipEl.innerHTML = w.config.tooltip.custom({
+    tooltipEl.innerHTML = fn({
       ctx: this.ctx,
       series: w.globals.series,
       seriesIndex: i,
       dataPointIndex: j,
+      y1,
+      y2,
       w
     })
   }

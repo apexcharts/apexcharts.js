@@ -1,111 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Circle Custom Angle</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Circle Custom Angle</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-            max-width: 650px;
-            margin: 35px auto;
-            padding: 0;        
-        }
-
-        .apexcharts-legend text {
-            font-weight: 900;
-        }
+    <style>
+      
+        #chart {
+      padding: 0;
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    
+    .apexcharts-legend text {
+      font-weight: 900;
+    }
+      
     </style>
-</head>
 
-<body>
-  <div id="chart">
-    <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
-  </div>
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
-  
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
 
-  <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [76, 67, 61, 90],
-        chartOptions: {
-          plotOptions: {
-            radialBar: {
-              offsetY: -10,
-              startAngle: 0,
-              endAngle: 270,
-              hollow: {
-                margin: 5,
-                size: '30%',
-                background: 'transparent',
-                image: undefined,
-              },
-              dataLabels: {
-                name: {
-                  show: false,
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
+    
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="radialBar" height="390" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;radialBar&quot; height=&quot;390&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [76, 67, 61, 90],
+          chartOptions: {
+            chart: {
+              height: 390,
+              type: 'radialBar',
+            },
+            plotOptions: {
+              radialBar: {
+                offsetY: 0,
+                startAngle: 0,
+                endAngle: 270,
+                hollow: {
+                  margin: 5,
+                  size: '30%',
+                  background: 'transparent',
+                  image: undefined,
                 },
-                value: {
-                  show: false,
+                dataLabels: {
+                  name: {
+                    show: false,
+                  },
+                  value: {
+                    show: false,
+                  }
                 }
               }
-            }
-          },
-          colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
-          labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
-          legend: {
-            show: true,
-            floating: true,
-            fontSize: '16px',
-            position: 'left',
-            offsetX: 160,
-            offsetY: 10,
-            labels: {
+            },
+            colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
+            labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
+            legend: {
+              show: true,
+              floating: true,
+              fontSize: '16px',
+              position: 'left',
+              offsetX: 160,
+              offsetY: 10,
+              labels: {
                 useSeriesColors: true,
-            },
-            markers: {
+              },
+              markers: {
                 size: 0
-            },
-            formatter: function(seriesName, opts) {
+              },
+              formatter: function(seriesName, opts) {
                 return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
+              },
+              itemMargin: {
+                horizontal: 3,
+              }
             },
-            itemMargin: {
-                horizontal: 1,
-            }
-          },
-          responsive: [{
+            responsive: [{
               breakpoint: 480,
               options: {
-                  legend: {
-                      show: false
-                  }
+                legend: {
+                    show: false
+                }
               }
-          }]
-        }
-      },
-
-    })
-  </script>
-
-</body>
-
+            }]
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
 </html>

@@ -1,5 +1,4 @@
 import Bar from './Bar'
-import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
 
@@ -13,7 +12,6 @@ class RangeBar extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
-    let fill = new Fill(this.ctx)
 
     this.rangeBarOptions = this.w.config.plotOptions.rangeBar
 
@@ -21,23 +19,19 @@ class RangeBar extends Bar {
     this.seriesRangeStart = w.globals.seriesRangeStart
     this.seriesRangeEnd = w.globals.seriesRangeEnd
 
-    this.initVariables(series)
+    this.barHelpers.initVariables(series)
 
     let ret = graphics.group({
       class: 'apexcharts-rangebar-series apexcharts-plot-series'
     })
 
-    for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathTo, pathFrom
+    for (let i = 0; i < series.length; i++) {
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
         yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
         zeroH, // zeroH is the baseline where 0 meets y axis
         zeroW // zeroW is the baseline where 0 meets x axis
-
-      let yArrj = [] // hold y values of current iterating series
-      let xArrj = [] // hold x values of current iterating series
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
@@ -53,7 +47,6 @@ class RangeBar extends Bar {
         this.visibleI = this.visibleI + 1
       }
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -61,11 +54,9 @@ class RangeBar extends Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions()
+      let initPositions = this.barHelpers.initialPositions()
 
       y = initPositions.y
-      yDivision = initPositions.yDivision
-      barHeight = initPositions.barHeight
       zeroW = initPositions.zeroW
 
       x = initPositions.x
@@ -73,98 +64,98 @@ class RangeBar extends Bar {
       xDivision = initPositions.xDivision
       zeroH = initPositions.zeroH
 
-      xArrj.push(x + barWidth / 2)
-
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels'
       })
 
-      for (
-        let j = 0, tj = w.globals.dataPoints;
-        j < w.globals.dataPoints;
-        j++, tj--
-      ) {
-        if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
-          this.isNullValue = true
-        } else {
-          this.isNullValue = false
-        }
-        if (w.config.stroke.show) {
-          if (this.isNullValue) {
-            strokeWidth = 0
-          } else {
-            strokeWidth = Array.isArray(this.strokeWidth)
-              ? this.strokeWidth[realIndex]
-              : this.strokeWidth
-          }
-        }
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+
+        const y1 = this.seriesRangeStart[i][j]
+        const y2 = this.seriesRangeEnd[i][j]
 
         let paths = null
+        let barYPosition = null
+        const params = { x, y, strokeWidth, elSeries }
+
+        yDivision = initPositions.yDivision
+        barHeight = initPositions.barHeight
+
         if (this.isHorizontal) {
+          barYPosition = y + barHeight * this.visibleI
+
+          let srty = (yDivision - barHeight * this.seriesLen) / 2
+
+          if (typeof w.config.series[i].data[j] === 'undefined') {
+            // no data exists for further indexes, hence we need to get out the innr loop.
+            // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
+            break
+          }
+
+          if (this.isTimelineBar && w.config.series[i].data[j].x) {
+            let positions = this.detectOverlappingBars({
+              i,
+              j,
+              barYPosition,
+              srty,
+              barHeight,
+              yDivision,
+              initPositions
+            })
+
+            barHeight = positions.barHeight
+            barYPosition = positions.barYPosition
+          }
+
           paths = this.drawRangeBarPaths({
-            indexes: { i, j, realIndex, bc },
+            indexes: { i, j, realIndex },
             barHeight,
-            strokeWidth,
-            pathTo,
-            pathFrom,
+            barYPosition,
             zeroW,
-            x,
-            y,
             yDivision,
-            elSeries
+            y1,
+            y2,
+            ...params
           })
 
           barWidth = paths.barWidth
         } else {
           paths = this.drawRangeColumnPaths({
-            indexes: { i, j, realIndex, bc },
-            x,
-            y,
-            xDivision,
-            pathTo,
-            pathFrom,
-            barWidth,
+            indexes: { i, j, realIndex },
             zeroH,
-            strokeWidth,
-            elSeries
+            barWidth,
+            xDivision,
+            ...params
           })
 
           barHeight = paths.barHeight
         }
 
-        pathTo = paths.pathTo
-        pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
 
-        // push current X
-        if (j > 0) {
-          xArrj.push(x + barWidth / 2)
-        }
-
-        yArrj.push(y)
-
-        let pathFill = fill.fillPath({
-          seriesNumber: realIndex
-        })
+        let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
         let lineFill = w.globals.stroke.colors[realIndex]
 
-        elSeries = this.renderSeries({
+        this.renderSeries({
           realIndex,
           pathFill,
           lineFill,
           j,
           i,
-          pathFrom,
-          pathTo,
-          strokeWidth,
-          elSeries,
           x,
           y,
+          y1,
+          y2,
+          pathFrom: paths.pathFrom,
+          pathTo: paths.pathTo,
+          strokeWidth,
+          elSeries,
           series,
           barHeight,
+          barYPosition,
           barWidth,
           elDataLabelsWrap,
           visibleSeries: this.visibleI,
@@ -172,24 +163,60 @@ class RangeBar extends Bar {
         })
       }
 
-      // push all x val arrays into main xArr
-      w.globals.seriesXvalues[realIndex] = xArrj
-      w.globals.seriesYvalues[realIndex] = yArrj
-
       ret.add(elSeries)
     }
 
     return ret
   }
 
+  detectOverlappingBars({
+    i,
+    j,
+    barYPosition,
+    srty,
+    barHeight,
+    yDivision,
+    initPositions
+  }) {
+    const w = this.w
+    let overlaps = []
+    let rangeName = w.config.series[i].data[j].rangeName
+
+    const labelX = w.config.series[i].data[j].x
+    const rowIndex = w.globals.labels.indexOf(labelX)
+    const overlappedIndex = w.globals.seriesRangeBarTimeline[i].findIndex(
+      (tx) => tx.x === labelX && tx.overlaps.length > 0
+    )
+
+    barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex
+
+    if (overlappedIndex > -1) {
+      overlaps = w.globals.seriesRangeBarTimeline[i][overlappedIndex].overlaps
+
+      if (overlaps.indexOf(rangeName) > -1) {
+        barHeight = initPositions.barHeight / overlaps.length
+
+        barYPosition =
+          barHeight * this.visibleI +
+          (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
+            100 /
+            2 +
+          barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
+          yDivision * rowIndex
+      }
+    }
+
+    return {
+      barYPosition,
+      barHeight
+    }
+  }
+
   drawRangeColumnPaths({
     indexes,
     x,
-    y,
     strokeWidth,
     xDivision,
-    pathTo,
-    pathFrom,
     barWidth,
     zeroH
   }) {
@@ -225,10 +252,10 @@ class RangeBar extends Bar {
     }
     const barHeight = Math.abs(y2 - y1)
 
-    pathTo = graphics.move(barXPosition, zeroH)
-    pathFrom = graphics.move(barXPosition, y1)
+    let pathTo = graphics.move(barXPosition, zeroH)
+    let pathFrom = graphics.move(barXPosition, y1)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
+      pathFrom = this.getPreviousPath(realIndex, j, true)
     }
 
     pathTo =
@@ -261,45 +288,24 @@ class RangeBar extends Bar {
 
   drawRangeBarPaths({
     indexes,
-    x,
     y,
+    y1,
+    y2,
     yDivision,
-    pathTo,
-    pathFrom,
     barHeight,
+    barYPosition,
     zeroW
   }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let i = indexes.i
-    let j = indexes.j
+    const x1 = zeroW + y1 / this.invertedYRatio
+    const x2 = zeroW + y2 / this.invertedYRatio
 
-    let realIndex = indexes.realIndex
-
-    let x1 = zeroW
-    let x2 = zeroW
-
-    if (w.globals.isXNumeric) {
-      y =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
-        barHeight
-    }
-
-    let barYPosition = y + barHeight * this.visibleI
-
-    if (
-      typeof this.series[i][j] !== 'undefined' &&
-      this.series[i][j] !== null
-    ) {
-      x1 = zeroW + this.seriesRangeStart[i][j] / this.invertedYRatio
-      x2 = zeroW + this.seriesRangeEnd[i][j] / this.invertedYRatio
-    }
-
-    pathTo = graphics.move(zeroW, barYPosition)
-    pathFrom = graphics.move(zeroW, barYPosition)
+    let pathTo = graphics.move(zeroW, barYPosition)
+    let pathFrom = graphics.move(x1, barYPosition)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j)
+      pathFrom = this.getPreviousPath(indexes.realIndex, indexes.j)
     }
 
     const barWidth = Math.abs(x2 - x1)
@@ -327,8 +333,7 @@ class RangeBar extends Bar {
       pathFrom,
       barWidth,
       x: x2,
-      y,
-      barYPosition
+      y
     }
   }
 

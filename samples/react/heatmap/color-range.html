@@ -1,189 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Range HeatMap</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Range HeatMap</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
-</head>
-
-<body>
-  <div id="app"></div>
-  
-  <div id="html">
-          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;heatmap&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
-  </div>
-
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
-    function generateData(count, yrange) {
-      var i = 0;
-      var series = [];
-      while (i < count) {
-        var x = (i + 1).toString();
-        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-
-        series.push({
-          x: x,
-          y: y
-        });
-        i++;
-      }
-      return series;
-    }
-
-    class HeatmapChart extends React.Component {
+    <style>
       
-      constructor(props) {
-        super(props);
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
 
-        this.state = {
-          options: {
-            plotOptions: {
-              heatmap: {
-                shadeIntensity: 0.5,
-                colorScale: {
-                  ranges: [{
-                      from: -30,
-                      to: 5,
-                      name: 'low',
-                      color: '#00A100'
-                    },
-                    {
-                      from: 6,
-                      to: 20,
-                      name: 'medium',
-                      color: '#128FD9'
-                    },
-                    {
-                      from: 21,
-                      to: 45,
-                      name: 'high',
-                      color: '#FFB200'
-                    },
-                    {
-                      from: 46,
-                      to: 55,
-                      name: 'extreme',
-                      color: '#FF0000'
-                    }
-                  ]
-                }
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+  function generateData(count, yrange) {
+    var i = 0;
+    var series = [];
+    while (i < count) {
+      var x = (i + 1).toString();
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+  
+      series.push({
+        x: x,
+        y: y
+      });
+      i++;
+    }
+    return series;
+  }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;heatmap&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [{
+                name: 'Jan',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'Feb',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'Mar',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'Apr',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'May',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'Jun',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'Jul',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'Aug',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
+              },
+              {
+                name: 'Sep',
+                data: generateData(20, {
+                  min: -30,
+                  max: 55
+                })
               }
+            ],
+            options: {
+              chart: {
+                height: 350,
+                type: 'heatmap',
+              },
+              plotOptions: {
+                heatmap: {
+                  shadeIntensity: 0.5,
+              
+                  colorScale: {
+                    ranges: [{
+                        from: -30,
+                        to: 5,
+                        name: 'low',
+                        color: '#00A100'
+                      },
+                      {
+                        from: 6,
+                        to: 20,
+                        name: 'medium',
+                        color: '#128FD9'
+                      },
+                      {
+                        from: 21,
+                        to: 45,
+                        name: 'high',
+                        color: '#FFB200'
+                      },
+                      {
+                        from: 46,
+                        to: 55,
+                        name: 'extreme',
+                        color: '#FF0000'
+                      }
+                    ]
+                  }
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              title: {
+                text: 'HeatMap Chart with Color Range'
+              },
             },
-            dataLabels: {
-              enabled: false
-            },
-            title: {
-              text: 'HeatMap Chart with Color Range'
-            }
-          },
-          series: [
-            {
-              name: 'Jan',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'Feb',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'Mar',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'Apr',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'May',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'Jun',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'Jul',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'Aug',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            },
-            {
-              name: 'Sep',
-              data: generateData(20, {
-                min: -30,
-                max: 55
-              })
-            }
-          ],
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="heatmap" height={350} />
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
         }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="heatmap" height="350" />
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(HeatmapChart), domContainer);
-
-  </script>
-  
-</body>
-
+    
+  </body>
 </html>
