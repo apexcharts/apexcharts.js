@@ -201,7 +201,8 @@ export default class Dimensions {
     let offX = cnf.plotOptions[type].offsetX
 
     if (!cnf.legend.show || cnf.legend.floating) {
-      gl.gridHeight = gl.svgHeight - gl.goldenPadding
+      gl.gridHeight =
+        gl.svgHeight - cnf.grid.padding.left + cnf.grid.padding.right
       gl.gridWidth = gl.gridHeight
 
       gl.translateY = offY - 10
