@@ -125,7 +125,7 @@ class Utils {
   }
 
   static randomId() {
-    return (Math.random() + 1).toString(36).substring(4)
+    return (new Date() % 9e6).toString(16)
   }
 
   static noExponents(val) {
