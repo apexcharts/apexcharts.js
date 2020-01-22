@@ -105,7 +105,7 @@ type ApexChart = {
   offsetX?: number
   offsetY?: number
   dropShadow?: ApexDropShadow & {
-    enabledOnSeries?: number[]
+    enabledOnSeries?: undefined | number[]
     color?: string | string[]
   }
   events?: {
@@ -729,7 +729,7 @@ type ApexTooltipY = {
  */
 type ApexTooltip = {
   enabled?: boolean
-  enabledOnSeries?: undefined | boolean
+  enabledOnSeries?: undefined | number[]
   shared?: boolean
   followCursor?: boolean
   intersect?: boolean

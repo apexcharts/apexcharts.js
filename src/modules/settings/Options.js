@@ -218,7 +218,7 @@ export default class Options {
         defaultLocale: 'en',
         dropShadow: {
           enabled: false,
-          enabledSeries: undefined,
+          enabledOnSeries: undefined,
           top: 2,
           left: 2,
           blur: 4,
