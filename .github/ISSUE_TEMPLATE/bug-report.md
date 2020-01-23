@@ -6,7 +6,7 @@ about: 🐞 Report a bug that you found
 
 # Bug report
 
-> **For support questions, please use [ApexCharts Forums](https://apexcharts.com/forums/) or [stackoverflow](https://stackoverflow.com/questions/tagged/apexcharts) with the tag apexcharts**.
+> **For support questions, please use [ApexCharts Forums](https://apexcharts.com/forums/)**.
 
 ## Codepen
 
