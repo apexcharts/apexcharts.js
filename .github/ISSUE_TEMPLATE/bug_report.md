@@ -1,12 +1,3 @@
----
-name: Bug report
-about: Report a bug that you found.
-title: ''
-labels: ''
-assignees: ''
-
----
-
 ## Codepen
 
 Modify [this codepen](https://codepen.io/apexcharts/pen/bxzgZJ) to demonstrate the problem clearly, just fork it and paste the resulting codepen in your issue. Please make sure this is a **minimal example**, containing only the minimum necessary code to help us troubleshoot your problem. Issues/bug reports without reproducible example will be given least priority, so make sure you include one.
@@ -20,3 +11,7 @@ If you are using react-apexcharts, and want to create a demo in React environmen
 - What is the behavior you expect?
 - What is happening instead?
 - What error message are you getting?
+
+____
+
+Note: We recently launched **ApexCharts Forum** to manage issues and requests more efficiently. Please post your questions on one of the forums of ApexCharts - https://apexcharts.com/forums/
