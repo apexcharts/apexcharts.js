@@ -1,4 +1,5 @@
 import Utils from './../utils/Utils'
+import Graphics from './Graphics'
 
 /**
  * ApexCharts Filters Class for setting hover/active states on the paths.
@@ -16,9 +17,6 @@ class Filters {
     const w = this.w
     el.unfilter(true)
 
-    let filter = new window.SVG.Filter()
-    filter.size('120%', '180%', '-5%', '-40%')
-
     if (w.config.states.normal.filter !== 'none') {
       this.applyFilter(
         el,
@@ -31,6 +29,7 @@ class Filters {
         this.dropShadow(el, w.config.chart.dropShadow, i)
       }
     }
+    this._scaleFilterSize(el.node)
   }
 
   addNormalFilter(el, i) {
@@ -52,7 +51,6 @@ class Filters {
     el.unfilter(true)
 
     let filter = new window.SVG.Filter()
-    filter.size('120%', '180%', '-5%', '-40%')
 
     el.filter((add) => {
       const shadowAttr = w.config.chart.dropShadow
@@ -66,6 +64,8 @@ class Filters {
       })
     })
     el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
+
+    this._scaleFilterSize(el.filterer.node)
   }
 
   // appends dropShadow to the filter object which can be chained with other filter effects
@@ -80,7 +80,6 @@ class Filters {
     el.unfilter(true)
 
     let filter = new window.SVG.Filter()
-    filter.size('120%', '180%', '-5%', '-40%')
 
     el.filter((add) => {
       const shadowAttr = w.config.chart.dropShadow
@@ -94,6 +93,7 @@ class Filters {
       })
     })
     el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
+    this._scaleFilterSize(el.filterer.node)
   }
 
   applyFilter(el, i, filter, intensity = 0.5) {
@@ -148,9 +148,6 @@ class Filters {
 
     color = Array.isArray(color) ? color[i] : color
 
-    let filter = new window.SVG.Filter()
-    filter.size('120%', '180%', '-5%', '-40%')
-
     el.filter((add) => {
       let shadowBlur = null
       if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
@@ -176,6 +173,8 @@ class Filters {
       el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
     }
 
+    this._scaleFilterSize(el.filterer.node)
+
     return el
   }
 
@@ -192,6 +191,15 @@ class Filters {
         }
       }
     }
+  }
+
+  _scaleFilterSize(el) {
+    Graphics.setAttrs(el, {
+      width: '200%',
+      height: '200%',
+      x: '-50%',
+      y: '-50%'
+    })
   }
 }
 
