@@ -17,6 +17,9 @@ class Filters {
     const w = this.w
     el.unfilter(true)
 
+    let filter = new window.SVG.Filter()
+    filter.size('120%', '180%', '-5%', '-40%')
+
     if (w.config.states.normal.filter !== 'none') {
       this.applyFilter(
         el,
@@ -29,7 +32,6 @@ class Filters {
         this.dropShadow(el, w.config.chart.dropShadow, i)
       }
     }
-    this._scaleFilterSize(el.node)
   }
 
   addNormalFilter(el, i) {
