@@ -36,16 +36,13 @@ export default class Destroy {
   }
 
   killSVG(draw) {
-    return new Promise((resolve, reject) => {
-      draw.each(function(i, children) {
-        this.removeClass('*')
-        this.off()
-        this.stop()
-      }, true)
-      draw.ungroup()
-      draw.clear()
-      resolve('done')
-    })
+    draw.each(function(i, children) {
+      this.removeClass('*')
+      this.off()
+      this.stop()
+    }, true)
+    draw.ungroup()
+    draw.clear()
   }
 
   clearDomElements() {
