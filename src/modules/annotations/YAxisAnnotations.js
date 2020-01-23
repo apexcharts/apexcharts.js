@@ -37,24 +37,22 @@ export default class YAnnotations {
         y2 = temp
       }
 
-      if (text) {
-        let rect = this.annoCtx.graphics.drawRect(
-          0 + anno.offsetX, // x1
-          y2 + anno.offsetY, // y1
-          w.globals.gridWidth + anno.offsetX, // x2
-          y1 - y2, // y2
-          0, // radius
-          anno.fillColor, // color
-          anno.opacity, // opacity,
-          1, // strokeWidth
-          anno.borderColor, // strokeColor
-          strokeDashArray // stokeDashArray
-        )
-        rect.node.classList.add('apexcharts-annotation-rect')
-        parent.appendChild(rect.node)
-        if (anno.id) {
-          rect.node.classList.add(anno.id)
-        }
+      let rect = this.annoCtx.graphics.drawRect(
+        0 + anno.offsetX, // x1
+        y2 + anno.offsetY, // y1
+        w.globals.gridWidth + anno.offsetX, // x2
+        y1 - y2, // y2
+        0, // radius
+        anno.fillColor, // color
+        anno.opacity, // opacity,
+        1, // strokeWidth
+        anno.borderColor, // strokeColor
+        strokeDashArray // stokeDashArray
+      )
+      rect.node.classList.add('apexcharts-annotation-rect')
+      parent.appendChild(rect.node)
+      if (anno.id) {
+        rect.node.classList.add(anno.id)
       }
     }
     let textX = anno.label.position === 'right' ? w.globals.gridWidth : 0
