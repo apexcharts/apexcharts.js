@@ -289,7 +289,7 @@ var optionsLine = {
       toggleDataSeries: false
     },
     position: 'top',
-    offsetY: -33,
+    offsetY: -28,
     offsetX: 60
   },
 }
