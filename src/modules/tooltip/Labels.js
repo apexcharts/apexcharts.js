@@ -115,6 +115,7 @@ export default class Labels {
       this.DOMHandling({
         i,
         t: tIndex,
+        j,
         ttItems,
         values: {
           val,
@@ -184,7 +185,7 @@ export default class Labels {
     })
   }
 
-  DOMHandling({ i, t, ttItems, values, seriesName, shared, pColor }) {
+  DOMHandling({ i, t, j, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -263,6 +264,27 @@ export default class Labels {
       } else {
         ttItemsChildren[0].parentNode.style.display =
           w.config.tooltip.items.display
+      }
+
+      if (w.globals.stackedSeriesTotals[j] === 0) {
+        // shared tooltip and all values are null, so we need to hide the x value too
+        let allYZeroForJ = true
+        for (let si = 1; si < w.globals.seriesYvalues.length; si++) {
+          if (
+            w.globals.seriesYvalues[si][j] !==
+            w.globals.seriesYvalues[si - 1][j]
+          ) {
+            allYZeroForJ = false
+          }
+        }
+
+        if (allYZeroForJ) {
+          ttCtx.tooltipTitle.style.display = 'none'
+        } else {
+          ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
+        }
+      } else {
+        ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
       }
     }
   }
