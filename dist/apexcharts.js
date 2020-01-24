@@ -1997,19 +1997,20 @@
             x2 = temp;
           }
 
-          var rect = this.annoCtx.graphics.drawRect(x1 + anno.offsetX, // x1
-          0 + anno.offsetY, // y1
-          x2 - x1, // x2
-          w.globals.gridHeight + anno.offsetY, // y2
-          0, // radius
-          anno.fillColor, // color
-          anno.opacity, // opacity,
-          1, // strokeWidth
-          anno.borderColor, // strokeColor
-          strokeDashArray // stokeDashArray
-          );
-          rect.node.classList.add('apexcharts-annotation-rect');
-          parent.appendChild(rect.node);
+          if (text) {
+            var rect = this.annoCtx.graphics.drawRect(x1 + anno.offsetX, // x1
+            0 + anno.offsetY, // y1
+            x2 - x1, // x2
+            w.globals.gridHeight + anno.offsetY, // y2
+            0, // radius
+            anno.fillColor, // color
+            anno.opacity, // opacity,
+            1, // strokeWidth
+            anno.borderColor, // strokeColor
+            strokeDashArray // stokeDashArray
+            );
+            rect.node.classList.add('apexcharts-annotation-rect');
+            parent.appendChild(rect.node);
 
           if (anno.id) {
             rect.node.classList.add(anno.id);
@@ -2098,19 +2099,20 @@
             y2 = temp;
           }
 
-          var rect = this.annoCtx.graphics.drawRect(0 + anno.offsetX, // x1
-          y2 + anno.offsetY, // y1
-          w.globals.gridWidth + anno.offsetX, // x2
-          y1 - y2, // y2
-          0, // radius
-          anno.fillColor, // color
-          anno.opacity, // opacity,
-          1, // strokeWidth
-          anno.borderColor, // strokeColor
-          strokeDashArray // stokeDashArray
-          );
-          rect.node.classList.add('apexcharts-annotation-rect');
-          parent.appendChild(rect.node);
+          if (text) {
+            var rect = this.annoCtx.graphics.drawRect(0 + anno.offsetX, // x1
+            y2 + anno.offsetY, // y1
+            w.globals.gridWidth + anno.offsetX, // x2
+            y1 - y2, // y2
+            0, // radius
+            anno.fillColor, // color
+            anno.opacity, // opacity,
+            1, // strokeWidth
+            anno.borderColor, // strokeColor
+            strokeDashArray // stokeDashArray
+            );
+            rect.node.classList.add('apexcharts-annotation-rect');
+            parent.appendChild(rect.node);
 
           if (anno.id) {
             rect.node.classList.add(anno.id);
@@ -15518,8 +15520,6 @@
 
         if (isNaN(y)) {
           y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight;
-        } else if (y < 0) {
-          y = 0;
         }
 
         if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
