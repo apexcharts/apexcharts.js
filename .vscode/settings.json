@@ -1,9 +1,8 @@
 {
-  // Temporary until prettier and eslint are correctly setup
-  "editor.formatOnSave": true,
   "linter_codeclimate.enabled": false,
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/node_modules/**": true
-  }
+  },
+  "editor.formatOnSave": true
 }
