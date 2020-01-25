@@ -42,17 +42,10 @@ export default class DimXAxis {
       let xlbFormatter = w.globals.xLabelFormatter
       // prevent changing xaxisLabels to avoid issues in multi-yaxes - fix #522
       let val = Utils.getLargestStringFromArr(xaxisLabels)
-      let valArr = val
-
-      if (w.globals.isMultiLineX) {
-        // if the xaxis labels has multiline texts (array)
-        let maxArrs = xaxisLabels.map((xl, idx) => {
-          return Array.isArray(xl) ? xl.length : 1
-        })
-        let maxArrLen = Math.max(...maxArrs)
-        let maxArrIndex = maxArrs.indexOf(maxArrLen)
-        valArr = xaxisLabels[maxArrIndex]
-      }
+      let valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
+        val,
+        xaxisLabels
+      )
 
       // the labels gets changed for bar charts
       if (w.globals.isBarHorizontal) {

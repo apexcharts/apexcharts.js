@@ -96,21 +96,15 @@ export default class Theme {
     // if user specfied less colors than no. of series, push the same colors again
     this.pushExtraColors(w.globals.colors)
 
-    // The Border colors
-    if (w.config.stroke.colors === undefined) {
-      w.globals.stroke.colors = this.isColorFn ? w.config.colors : defaultColors
-    } else {
-      w.globals.stroke.colors = w.config.stroke.colors
-    }
-    this.pushExtraColors(w.globals.stroke.colors)
-
-    // The FILL colors
-    if (w.config.fill.colors === undefined) {
-      w.globals.fill.colors = this.isColorFn ? w.config.colors : defaultColors
-    } else {
-      w.globals.fill.colors = w.config.fill.colors
-    }
-    this.pushExtraColors(w.globals.fill.colors)
+    const colorTypes = ['fill', 'stroke']
+    colorTypes.forEach((c) => {
+      if (w.config[c].colors === undefined) {
+        w.globals[c].colors = this.isColorFn ? w.config.colors : defaultColors
+      } else {
+        w.globals[c].colors = w.config[c].colors
+      }
+      this.pushExtraColors(w.globals[c].colors)
+    })
 
     if (w.config.dataLabels.style.colors === undefined) {
       w.globals.dataLabels.style.colors = defaultColors

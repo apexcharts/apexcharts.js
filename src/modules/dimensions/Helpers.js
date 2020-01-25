@@ -71,4 +71,20 @@ export default class Helpers {
 
     return lgRect
   }
+
+  getLargestStringFromMultiArr(val, arr) {
+    const w = this.w
+    let valArr = val
+    if (w.globals.isMultiLineX) {
+      // if the xaxis labels has multiline texts (array)
+      let maxArrs = arr.map((xl, idx) => {
+        return Array.isArray(xl) ? xl.length : 1
+      })
+      let maxArrLen = Math.max(...maxArrs)
+      let maxArrIndex = maxArrs.indexOf(maxArrLen)
+      valArr = arr[maxArrIndex]
+    }
+
+    return valArr
+  }
 }

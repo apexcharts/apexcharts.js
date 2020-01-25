@@ -16,7 +16,6 @@ dataLabels: {
 },
 yaxis: {
   labels: {
-    offsetY: -6,
     align: 'center'
   }
 },
