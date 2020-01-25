@@ -196,7 +196,14 @@ class Filters {
   }
 
   _scaleFilterSize(el) {
-    Graphics.setAttrs(el, {
+    const setAttributes = (attrs) => {
+      for (let key in attrs) {
+        if (attrs.hasOwnProperty(key)) {
+          el.setAttribute(key, attrs[key])
+        }
+      }
+    }
+    setAttributes({
       width: '200%',
       height: '200%',
       x: '-50%',
