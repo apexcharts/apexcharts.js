@@ -450,7 +450,6 @@ type ApexPlotOptions = {
     }
   }
   pie?: {
-    size?: number
     customScale?: number
     offsetX?: number
     offsetY?: number
@@ -503,7 +502,6 @@ type ApexPlotOptions = {
     }
   }
   radialBar?: {
-    size?: number
     inverseOrder?: boolean
     startAngle?: number
     endAngle?: number

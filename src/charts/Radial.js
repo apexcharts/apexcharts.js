@@ -60,16 +60,10 @@ class Radial extends Pie {
     let centerY = this.defaultSize / 2
     let centerX = w.globals.gridWidth / 2
 
-    let size =
-      this.defaultSize / 2.05 -
-      w.config.stroke.width -
-      w.config.chart.dropShadow.blur
-
-    if (w.config.plotOptions.radialBar.size !== undefined) {
-      // TODO: deprecate this property as it causes more issues than being helpful
-      size = w.config.plotOptions.radialBar.size
+    let size = this.defaultSize / 2.05
+    if (!w.config.chart.sparkline.enabled) {
+      size = size - w.config.stroke.width - w.config.chart.dropShadow.blur
     }
-
     let colorArr = w.globals.fill.colors
 
     if (w.config.plotOptions.radialBar.track.show) {

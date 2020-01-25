@@ -253,7 +253,7 @@ export default class Labels {
       ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : ''
     }
 
-    if (shared && ttItemsChildren[0]) {
+    if (shared && ttItemsChildren[0] && ttCtx.tooltipTitle) {
       // hide when no Val or series collapsed
       if (
         typeof val === 'undefined' ||
