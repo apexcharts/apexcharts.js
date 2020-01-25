@@ -1,5 +1,4 @@
 import Utils from './../utils/Utils'
-import Graphics from './Graphics'
 
 /**
  * ApexCharts Filters Class for setting hover/active states on the paths.
