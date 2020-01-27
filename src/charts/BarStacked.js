@@ -88,7 +88,8 @@ class BarStacked extends Bar {
 
       // eldatalabels
       let elDataLabelsWrap = this.graphics.group({
-        class: 'apexcharts-datalabels'
+        class: 'apexcharts-datalabels',
+        'data:realIndex': realIndex
       })
 
       let barHeight = 0

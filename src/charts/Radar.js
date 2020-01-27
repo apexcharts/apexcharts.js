@@ -141,7 +141,8 @@ class Radar {
 
       // datapoints
       elDataPointsMain = this.graphics.group({
-        class: `apexcharts-datalabels`
+        class: `apexcharts-datalabels`,
+        'data:realIndex': i
       })
 
       w.globals.delayedElements.push({
