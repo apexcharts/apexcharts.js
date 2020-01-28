@@ -369,7 +369,18 @@ export default class Core {
         new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10
     }
 
+    let radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar')
+
     let chartInnerDimensions = w.globals.radialSize * 2.05
+
+    if (radialEl && !w.config.chart.sparkline.enabled) {
+      let elRadialRect = Utils.getBoundingClientRect(radialEl)
+      chartInnerDimensions = elRadialRect.bottom
+
+      let maxHeight = elRadialRect.bottom - elRadialRect.top
+
+      chartInnerDimensions = Math.max(w.globals.radialSize * 2.05, maxHeight)
+    }
 
     let newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY
 
