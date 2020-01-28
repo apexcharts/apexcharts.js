@@ -285,10 +285,9 @@ export default class Range {
       let index = i
       cnf.series.forEach((s, si) => {
         // if seriesName matches and that series is not collapsed, we use that scale
-        if (
-          s.name === yaxe.seriesName &&
-          gl.collapsedSeriesIndices.indexOf(si) === -1
-        ) {
+        // fix issue #1215
+        // proceed even if si is in gl.collapsedSeriesIndices
+        if (s.name === yaxe.seriesName) {
           index = si
 
           if (i !== si) {
@@ -416,7 +415,10 @@ export default class Range {
           maxY = 0
 
           s.forEach((ind, k) => {
-            maxY += ind.value
+            // fix incorrectly adjust y scale issue #1215
+            if (ind.value !== -Number.MAX_VALUE) {
+              maxY += ind.value
+            }
             if (minY !== Number.MIN_VALUE) {
               minY += sameScaleMinYArr[si][k].value
             }
