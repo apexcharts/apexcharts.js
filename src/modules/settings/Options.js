@@ -710,6 +710,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '14px',
+          fontWeight: 'bold',
           fontFamily: undefined,
           color: undefined
         }
@@ -723,6 +724,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '12px',
+          fontWeight: 'normal',
           fontFamily: undefined,
           color: undefined
         }
