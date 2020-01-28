@@ -619,7 +619,9 @@ export default class Data {
     const w = this.w
     w.globals.ignoreYAxisIndexes = w.globals.collapsedSeries.map(
       (collapsed, i) => {
-        if (this.w.globals.isMultipleYAxis) {
+        // fix issue #1215
+        // if stacked, not returning collapsed.index to preserve yaxis
+        if (this.w.globals.isMultipleYAxis && !w.config.chart.stacked) {
           return collapsed.index
         }
       }
