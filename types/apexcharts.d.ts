@@ -482,6 +482,8 @@ type ApexPlotOptions = {
         total?: {
           show?: boolean
           showAlways?: boolean
+          fontFamily?: string
+          fontSize?: string
           label?: string
           color?: string
           formatter?(w: any): string
@@ -551,6 +553,8 @@ type ApexPlotOptions = {
         show?: boolean
         label?: string
         color?: string
+        fontFamily?: string
+        fontSize?: string
         formatter?(opts: any): string
       }
     }

@@ -431,6 +431,8 @@ export default class Options {
             total: {
               show: false,
               label: 'Total',
+              fontSize: '16px',
+              fontFamily: undefined,
               color: undefined,
               formatter(w) {
                 return (
@@ -482,6 +484,8 @@ export default class Options {
                 show: false,
                 showAlways: false,
                 label: 'Total',
+                fontSize: '16px',
+                fontFamily: undefined,
                 color: undefined,
                 formatter(w) {
                   return w.globals.seriesTotals.reduce((a, b) => a + b, 0)

@@ -665,6 +665,8 @@ class Pie {
     } else {
       labelColor = dataLabelsConfig.name.color
     }
+    let labelFontSize = dataLabelsConfig.name.fontSize
+    let labelFontFamily = dataLabelsConfig.name.fontFamily
 
     if (dataLabelsConfig.value.color === undefined) {
       valueColor = w.config.chart.foreColor
@@ -678,6 +680,8 @@ class Pie {
 
     if (showTotal) {
       labelColor = dataLabelsConfig.total.color
+      labelFontSize = dataLabelsConfig.total.fontSize
+      labelFontFamily = dataLabelsConfig.total.fontFamily
       name = dataLabelsConfig.total.label
       val = dataLabelsConfig.total.formatter(w)
     } else {
@@ -702,8 +706,8 @@ class Pie {
         text: name,
         textAnchor: 'middle',
         foreColor: labelColor,
-        fontSize: dataLabelsConfig.name.fontSize,
-        fontFamily: dataLabelsConfig.name.fontFamily
+        fontSize: labelFontSize,
+        fontFamily: labelFontFamily
       })
       elLabel.node.classList.add('apexcharts-datalabel-label')
       g.add(elLabel)
