@@ -50,6 +50,8 @@ export default class YAnnotations {
         strokeDashArray // stokeDashArray
       )
       rect.node.classList.add('apexcharts-annotation-rect')
+      rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
+
       parent.appendChild(rect.node)
       if (anno.id) {
         rect.node.classList.add(anno.id)
@@ -122,7 +124,6 @@ export default class YAnnotations {
     w.config.annotations.yaxis.map((anno, index) => {
       this.addYaxisAnnotation(anno, elg.node, index)
     })
-    elg.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     return elg
   }

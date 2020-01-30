@@ -84,6 +84,7 @@ export default class XAnnotations {
         strokeDashArray // stokeDashArray
       )
       rect.node.classList.add('apexcharts-annotation-rect')
+      rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
       parent.appendChild(rect.node)
       if (anno.id) {
         rect.node.classList.add(anno.id)
@@ -135,7 +136,6 @@ export default class XAnnotations {
     w.config.annotations.xaxis.map((anno, index) => {
       this.addXaxisAnnotation(anno, elg.node, index)
     })
-    elg.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     return elg
   }

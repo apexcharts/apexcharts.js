@@ -157,7 +157,6 @@ export default class PointAnnotations {
     w.config.annotations.points.map((anno, index) => {
       this.addPointAnnotation(anno, elg.node, index)
     })
-    elg.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     return elg
   }
