@@ -264,15 +264,17 @@ type ApexTitleSubtitle = {
  * Sections 2.1 and 3.1: data can be a list of tuples of two numbers
  * Sections 2.2 and 3.2: data can be a list of objects where x is a string
  * and y is a number
+ * And according to the demos, data can contain null.
+ * https://apexcharts.com/javascript-chart-demos/line-charts/null-values/
  */
 type ApexAxisChartSeries = {
   name?: string
   type?: string
   data:
-    | number[]
+    | (number | null)[]
     | { x: any; y: any, fillColor?: string, strokeColor?: string }[]
-    | [number, number][]
-    | [number, number[]][]
+    | [number, (number | null)][]
+    | [number, (number | null)[]][]
 }[]
 
 type ApexNonAxisChartSeries = number[]
