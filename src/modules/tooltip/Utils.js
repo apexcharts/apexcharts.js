@@ -109,9 +109,9 @@ export default class Utils {
 
     w.globals.capturedSeriesIndex =
       capturedSeries === null ? -1 : capturedSeries
-    w.globals.capturedDataPointIndex = j === null ? -1 : j
 
     if (!j || j < 1) j = 0
+    w.globals.capturedDataPointIndex = j
 
     return {
       capturedSeries,

@@ -23,6 +23,10 @@
   position: relative;
 }
 
+.apexcharts-text tspan {
+  font-family: inherit;
+}
+
 .legend-mouseover-inactive {
   transition: 0.15s ease all;
   opacity: 0.20;

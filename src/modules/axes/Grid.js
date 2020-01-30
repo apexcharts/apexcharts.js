@@ -355,7 +355,9 @@ class Grid {
       this.elgridLinesH.hide()
     }
 
-    let tickAmount = 8
+    let tickAmount = w.globals.yAxisScale.length
+      ? w.globals.yAxisScale[0].result.length - 1
+      : 5
     for (let i = 0; i < w.globals.series.length; i++) {
       if (typeof w.globals.yAxisScale[i] !== 'undefined') {
         tickAmount = w.globals.yAxisScale[i].result.length - 1
