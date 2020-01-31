@@ -166,7 +166,7 @@ export default class Series {
       }
     }
 
-    const selectedActive = function(range) {
+    const removeInactiveClassFromHoveredRange = (range) => {
       for (let i = 0; i < allHeatMapElements.length; i++) {
         const val = parseInt(allHeatMapElements[i].getAttribute('val'), 10)
         if (val >= range.from && val <= range.to) {
@@ -178,13 +178,12 @@ export default class Series {
     if (e.type === 'mousemove') {
       let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
       activeInactive('add')
-      activeInactive('remove')
 
       const range = w.config.plotOptions.heatmap.colorScale.ranges[seriesCnt]
 
-      selectedActive(range)
+      removeInactiveClassFromHoveredRange(range)
     } else if (e.type === 'mouseout') {
-      activeInactive('add')
+      activeInactive('remove')
     }
   }
 
