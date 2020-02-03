@@ -23,6 +23,10 @@
   position: relative;
 }
 
+.apexcharts-text tspan {
+  font-family: inherit;
+}
+
 .legend-mouseover-inactive {
   transition: 0.15s ease all;
   opacity: 0.20;
@@ -32,7 +36,7 @@
   opacity: 0;
 }
 
-.apexcharts-gridline, .apexcharts-text, .apexcharts-annotation-rect {
+.apexcharts-gridline, .apexcharts-annotation-rect {
   pointer-events: none;
 }
 
