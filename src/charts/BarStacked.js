@@ -124,16 +124,6 @@ class BarStacked extends Bar {
       // this.xArrj.push(x + barWidth / 2)
       // }
 
-      // fix issue #1215;
-      // where all stack bar disappear after collapsing the first series
-      // sol: if only 1 arr in this.prevY(this.prevY.length === 1) and all are NaN
-      if (this.prevY.length === 1 && this.prevY[0].every((val) => isNaN(val))) {
-        // make this.prevY[0] all zeroH
-        this.prevY[0] = this.prevY[0].map((val) => zeroH)
-        // make this.prevYF[0] all 0
-        this.prevYF[0] = this.prevYF[0].map((val) => 0)
-      }
-
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
         const commonPathOpts = {
@@ -426,9 +416,7 @@ class BarStacked extends Bar {
 
     let prevBarH = 0
     for (let k = 0; k < this.prevYF.length; k++) {
-      // fix issue #1215
-      // in case where this.prevYF[k][j] is NaN, use 0 instead
-      prevBarH = prevBarH + (!isNaN(this.prevYF[k][j]) ? this.prevYF[k][j] : 0)
+      prevBarH = prevBarH + this.prevYF[k][j]
     }
 
     if (
@@ -438,50 +426,21 @@ class BarStacked extends Bar {
         w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])
     ) {
       let bYP
-      let prevYValue
-      const p = Math.min(this.yRatio.length - 1, i + 1)
-      if (this.prevY[i - 1] !== undefined) {
-        for (let ii = 1; ii < p; ii++) {
-          if (!isNaN(this.prevY[i - ii][j])) {
-            // find the previous available value to give prevYValue
-            prevYValue = this.prevY[i - ii][j]
-            // if found it, break the loop
-            break
-          }
-        }
-      }
+      let prevYValue = this.prevY[i - 1][j]
 
-      for (let ii = 1; ii < p; ii++) {
-        // find the previous available value(non-NaN) to give bYP
-        if (this.prevYVal[i - ii][j] < 0) {
-          bYP =
-            this.series[i][j] >= 0
-              ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
-              : prevYValue
-          // found it? break the loop
-          break
-        } else if (this.prevYVal[i - ii][j] >= 0) {
-          bYP =
-            this.series[i][j] >= 0
-              ? prevYValue
-              : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
-          // found it? break the loop
-          break
-        }
-      }
-
-      // if this.prevYF[0] is all 0 resulted from line #486
-      // AND every arr starting from the second only contains NaN
-      if (
-        this.prevYF[0].every((val) => val === 0) &&
-        this.prevYF.slice(1, i).every((arr) => arr.every((val) => isNaN(val)))
-      ) {
-        // Use the same calc way as line #485
-        barYPosition = w.globals.gridHeight - zeroH
+      if (this.prevYVal[i - 1][j] < 0) {
+        bYP =
+          this.series[i][j] >= 0
+            ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
+            : prevYValue
       } else {
-        // Nothing special
-        barYPosition = bYP
+        bYP =
+          this.series[i][j] >= 0
+            ? prevYValue
+            : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
       }
+
+      barYPosition = bYP
     } else {
       // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
       barYPosition = w.globals.gridHeight - zeroH
