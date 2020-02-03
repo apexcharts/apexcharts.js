@@ -28,7 +28,7 @@ describe('Y-axis with ultra-small values', () => {
     const maxY = chart.w.globals.maxY
 
     expect(minY.toFixed(6)).toEqual('0.003760')
-    expect(maxY.toFixed(6)).toEqual('0.003799')
+    expect(maxY.toFixed(6)).toEqual('0.003807')
   })
 
   it('should not apply nice scale for small values', () => {

@@ -115,7 +115,7 @@ export default class Range {
         result.push(v)
       }
 
-      if (result[result.length - 1] >= yMax) {
+      if (result[result.length - 2] >= yMax) {
         result.pop()
       }
 
