@@ -54,7 +54,8 @@ export default class Annotations {
           // fixes apexcharts/apexcharts.js#685
           if (
             w.config.chart.type !== 'scatter' &&
-            w.config.chart.type !== 'bubble'
+            w.config.chart.type !== 'bubble' &&
+            w.globals.dataPoints > 1
           ) {
             annoElArray[i].classList.add('apexcharts-element-hidden')
           }
