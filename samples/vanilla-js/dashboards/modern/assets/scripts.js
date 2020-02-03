@@ -367,7 +367,7 @@ var optionsArea = {
     },
     labels: {
       style: {
-        color: '#78909c'
+        colors: '#78909c'
       }
     }
   },
@@ -420,7 +420,7 @@ var optionsBar = {
     },
     labels: {
       style: {
-        color: '#78909c'
+        colors: '#78909c'
       }
     }
   },

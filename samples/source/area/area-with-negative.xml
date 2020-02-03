@@ -35,7 +35,7 @@ yaxis: {
 
   labels: {
     style: {
-      color: '#8e8da4',
+      colors: '#8e8da4',
     },
     offsetY: -7,
     offsetX: 0,
