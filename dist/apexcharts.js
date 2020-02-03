@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.15.4
+ * ApexCharts v3.15.5
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -17800,8 +17800,6 @@
     _createClass(BarStacked, [{
       key: "draw",
       value: function draw(series, seriesIndex) {
-        var _this = this;
-
         var w = this.w;
         this.graphics = new Graphics(this.ctx);
         this.bar = new Bar(this.ctx, this.xyRatios);
@@ -17852,7 +17850,7 @@
         var x = 0;
         var y = 0;
 
-        var _loop = function _loop(i, bc) {
+        for (var i = 0, bc = 0; i < series.length; i++, bc++) {
           var xDivision = void 0; // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
 
           var yDivision = void 0; // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
@@ -17865,30 +17863,26 @@
           var yArrValues = [];
           var realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
 
-          if (_this.yRatio.length > 1) {
-            _this.yaxisIndex = realIndex;
+          if (this.yRatio.length > 1) {
+            this.yaxisIndex = realIndex;
           }
 
-          _this.isReversed = w.config.yaxis[_this.yaxisIndex] && w.config.yaxis[_this.yaxisIndex].reversed; // el to which series will be drawn
+          this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed; // el to which series will be drawn
 
-          var elSeries = _this.graphics.group({
+          var elSeries = this.graphics.group({
             class: "apexcharts-series",
             seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
             rel: i + 1,
             'data:realIndex': realIndex
           }); // eldatalabels
 
-
-          var elDataLabelsWrap = _this.graphics.group({
+          var elDataLabelsWrap = this.graphics.group({
             class: 'apexcharts-datalabels',
             'data:realIndex': realIndex
           });
-
           var barHeight = 0;
           var barWidth = 0;
-
-          var initPositions = _this.initialPositions(x, y, xDivision, yDivision, zeroH, zeroW);
-
+          var initPositions = this.initialPositions(x, y, xDivision, yDivision, zeroH, zeroW);
           y = initPositions.y;
           barHeight = initPositions.barHeight;
           yDivision = initPositions.yDivision;
@@ -17897,34 +17891,17 @@
           barWidth = initPositions.barWidth;
           xDivision = initPositions.xDivision;
           zeroH = initPositions.zeroH;
-          _this.yArrj = [];
-          _this.yArrjF = [];
-          _this.yArrjVal = [];
-          _this.xArrj = [];
-          _this.xArrjF = [];
-          _this.xArrjVal = []; // if (!this.horizontal) {
+          this.yArrj = [];
+          this.yArrjF = [];
+          this.yArrjVal = [];
+          this.xArrj = [];
+          this.xArrjF = [];
+          this.xArrjVal = []; // if (!this.horizontal) {
           // this.xArrj.push(x + barWidth / 2)
           // }
-          // fix issue #1215;
-          // where all stack bar disappear after collapsing the first series
-          // sol: if only 1 arr in this.prevY(this.prevY.length === 1) and all are NaN
-
-          if (_this.prevY.length === 1 && _this.prevY[0].every(function (val) {
-            return isNaN(val);
-          })) {
-            // make this.prevY[0] all zeroH
-            _this.prevY[0] = _this.prevY[0].map(function (val) {
-              return zeroH;
-            }); // make this.prevYF[0] all 0
-
-            _this.prevYF[0] = _this.prevYF[0].map(function (val) {
-              return 0;
-            });
-          }
 
           for (var j = 0; j < w.globals.dataPoints; j++) {
-            var strokeWidth = _this.barHelpers.getStrokeWidth(i, j, realIndex);
-
+            var strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
             var commonPathOpts = {
               indexes: {
                 i: i,
@@ -17939,30 +17916,28 @@
             };
             var paths = null;
 
-            if (_this.isHorizontal) {
-              paths = _this.drawStackedBarPaths(_objectSpread2({}, commonPathOpts, {
+            if (this.isHorizontal) {
+              paths = this.drawStackedBarPaths(_objectSpread2({}, commonPathOpts, {
                 zeroW: zeroW,
                 barHeight: barHeight,
                 yDivision: yDivision
               }));
-              barWidth = _this.series[i][j] / _this.invertedYRatio;
+              barWidth = this.series[i][j] / this.invertedYRatio;
             } else {
-              paths = _this.drawStackedColumnPaths(_objectSpread2({}, commonPathOpts, {
+              paths = this.drawStackedColumnPaths(_objectSpread2({}, commonPathOpts, {
                 xDivision: xDivision,
                 barWidth: barWidth,
                 zeroH: zeroH
               }));
-              barHeight = _this.series[i][j] / _this.yRatio[_this.yaxisIndex];
+              barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex];
             }
 
             y = paths.y;
             x = paths.x;
             xArrValues.push(x);
             yArrValues.push(y);
-
-            var pathFill = _this.barHelpers.getPathFillColor(series, i, j, realIndex);
-
-            elSeries = _this.renderSeries({
+            var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
+            elSeries = this.renderSeries({
               realIndex: realIndex,
               pathFill: pathFill,
               j: j,
@@ -17986,23 +17961,13 @@
           w.globals.seriesXvalues[realIndex] = xArrValues;
           w.globals.seriesYvalues[realIndex] = yArrValues; // push all current y values array to main PrevY Array
 
-          _this.prevY.push(_this.yArrj);
-
-          _this.prevYF.push(_this.yArrjF);
-
-          _this.prevYVal.push(_this.yArrjVal);
-
-          _this.prevX.push(_this.xArrj);
-
-          _this.prevXF.push(_this.xArrjF);
-
-          _this.prevXVal.push(_this.xArrjVal);
-
+          this.prevY.push(this.yArrj);
+          this.prevYF.push(this.yArrjF);
+          this.prevYVal.push(this.yArrjVal);
+          this.prevX.push(this.xArrj);
+          this.prevXF.push(this.xArrjF);
+          this.prevXVal.push(this.xArrjVal);
           ret.add(elSeries);
-        };
-
-        for (var i = 0, bc = 0; i < series.length; i++, bc++) {
-          _loop(i, bc);
         }
 
         return ret;
@@ -18168,55 +18133,20 @@
         var prevBarH = 0;
 
         for (var k = 0; k < this.prevYF.length; k++) {
-          // fix issue #1215
-          // in case where this.prevYF[k][j] is NaN, use 0 instead
-          prevBarH = prevBarH + (!isNaN(this.prevYF[k][j]) ? this.prevYF[k][j] : 0);
+          prevBarH = prevBarH + this.prevYF[k][j];
         }
 
         if (i > 0 && !w.globals.isXNumeric || i > 0 && w.globals.isXNumeric && w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j]) {
           var bYP;
-          var prevYValue;
-          var p = Math.min(this.yRatio.length - 1, i + 1);
+          var prevYValue = this.prevY[i - 1][j];
 
-          if (this.prevY[i - 1] !== undefined) {
-            for (var ii = 1; ii < p; ii++) {
-              if (!isNaN(this.prevY[i - ii][j])) {
-                // find the previous available value to give prevYValue
-                prevYValue = this.prevY[i - ii][j]; // if found it, break the loop
-
-                break;
-              }
-            }
-          }
-
-          for (var _ii = 1; _ii < p; _ii++) {
-            // find the previous available value(non-NaN) to give bYP
-            if (this.prevYVal[i - _ii][j] < 0) {
-              bYP = this.series[i][j] >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue; // found it? break the loop
-
-              break;
-            } else if (this.prevYVal[i - _ii][j] >= 0) {
-              bYP = this.series[i][j] >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2; // found it? break the loop
-
-              break;
-            }
-          } // if this.prevYF[0] is all 0 resulted from line #486
-          // AND every arr starting from the second only contains NaN
-
-
-          if (this.prevYF[0].every(function (val) {
-            return val === 0;
-          }) && this.prevYF.slice(1, i).every(function (arr) {
-            return arr.every(function (val) {
-              return isNaN(val);
-            });
-          })) {
-            // Use the same calc way as line #485
-            barYPosition = w.globals.gridHeight - zeroH;
+          if (this.prevYVal[i - 1][j] < 0) {
+            bYP = this.series[i][j] >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
           } else {
-            // Nothing special
-            barYPosition = bYP;
+            bYP = this.series[i][j] >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
           }
+
+          barYPosition = bYP;
         } else {
           // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
           barYPosition = w.globals.gridHeight - zeroH;
