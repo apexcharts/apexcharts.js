@@ -1,12 +1,18 @@
----
-name: Feature Request
+---	
+
+name: Feature Request	
 about: New features you would like to have in ApexCharts
 
 ---
 
+**Is your feature request related to a problem? Please describe.**	
+A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]	
 
-# Feature request
+**Describe the solution you'd like**	
+A clear and concise description of what you want to happen.	
 
-We have recently launched ApexCharts Forums for managing issues and requests more efficiently.
+**Describe alternatives you've considered**	
+A clear and concise description of any alternative solutions or features you've considered.	
 
-Please post new requests to the Feature Requests forum of ApexCharts - https://apexcharts.com/forums/feature-requests/
+**Additional context**	
+Add any other context or screenshots about the feature request here.
