@@ -131,6 +131,7 @@ export default class PointAnnotations {
 
     parent.appendChild(elText.node)
 
+    // TODO: deprecate this as we will use custom
     if (anno.customSVG.SVG) {
       let g = this.annoCtx.graphics.group({
         class:
@@ -144,6 +145,24 @@ export default class PointAnnotations {
 
       g.node.innerHTML = anno.customSVG.SVG
       parent.appendChild(g.node)
+    }
+
+    if (anno.image.path) {
+      let imgWidth = anno.image.width ? anno.image.width : 20
+      let imgHeight = anno.image.height ? anno.image.height : 20
+
+      this.annoCtx.addImage(
+        {
+          x: x + anno.image.offsetX - imgWidth / 2,
+          y: y + anno.image.offsetY - imgHeight / 2,
+          width: imgWidth,
+          height: imgHeight,
+          path: anno.image.path,
+          appendTo: parent
+        },
+        false,
+        this.annoCtx.ctx
+      )
     }
   }
 

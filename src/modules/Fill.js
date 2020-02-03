@@ -62,7 +62,7 @@ class Fill {
     let elImage = document.createElementNS(w.globals.SVGNS, 'image')
     elPattern.appendChild(elImage)
 
-    elImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', fillImg)
+    elImage.setAttributeNS(window.SVG.xlink, 'href', fillImg)
 
     Graphics.setAttrs(elImage, {
       x: 0,

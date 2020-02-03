@@ -32,6 +32,7 @@ export default class Globals {
     gl.pointsArray = []
     gl.dataLabelsRects = []
     gl.isXNumeric = false
+    gl.xaxisLabelsCount = 0
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
     gl.x2SpaceAvailable = 0

@@ -39,6 +39,7 @@ declare class ApexCharts {
   removeAnnotation(id: string, options?: any): void
   clearAnnotations(options?: any): void
   addText(options: any, pushToMemory?: boolean, context?: any): void
+  addImage(options: any, pushToMemory?: boolean, context?: any): void
   dataURI(): Promise<void>
   static exec(chartID: string, fn: string, options?: any): any
   static initOnLoad(): void
@@ -369,6 +370,13 @@ type PointAnnotations = {
     cssClass?: string
   }
   label?: AnnotationLabel
+  image?: {
+    path?: string
+    width?: number
+    height?: number
+    offsetX?: number
+    offsetY?: number
+  }
 }
 
 /**
@@ -904,7 +912,7 @@ type ApexYAxis = {
     align?: 'left' | 'center' | 'right'
     padding?: number
     style?: {
-      color?: string
+      colors?: string
       fontSize?: string
       fontFamily?: string
       cssClass?: string

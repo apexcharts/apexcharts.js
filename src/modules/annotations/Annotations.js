@@ -190,6 +190,35 @@ export default class Annotations {
     return context
   }
 
+  addImage(params, pushToMemory, context) {
+    const {
+      path,
+      x = 0,
+      y = 0,
+      width = 20,
+      height = 20,
+      appendTo = context.w.globals.dom.Paper.node
+    } = params
+
+    const me = context
+    const w = me.w
+
+    let img = context.w.globals.dom.Paper.image(path)
+    img.size(width, height).move(x, y)
+
+    appendTo.appendChild(img.node)
+    if (pushToMemory) {
+      w.globals.memory.methodsToExec.push({
+        context: me,
+        method: me.addImage,
+        label: 'addImage',
+        params
+      })
+    }
+
+    return context
+  }
+
   // The addXaxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method
   addXaxisAnnotationExternal(params, pushToMemory, context) {
     this.addAnnotationExternal({

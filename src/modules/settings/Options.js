@@ -114,8 +114,16 @@ export default class Options {
         }
       },
       customSVG: {
+        // this will be deprecated in the next major version as it is going to be replaced with a better alternative below
         SVG: undefined,
         cssClass: undefined,
+        offsetX: 0,
+        offsetY: 0
+      },
+      image: {
+        path: undefined,
+        width: 20,
+        height: 20,
         offsetX: 0,
         offsetY: 0
       }

@@ -132,6 +132,9 @@ export default class XAxis {
             : this.xaxisForeColors[i]
         }
 
+        if (label.text) {
+          w.globals.xaxisLabelsCount++
+        }
         let elText = graphics.drawText({
           x: label.x,
           y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
@@ -269,9 +272,9 @@ export default class XAxis {
           y: yPos + colHeight + ylabels.offsetY - multiY,
           text: label,
           textAnchor: this.yaxis.opposite ? 'start' : 'end',
-          foreColor: ylabels.style.color
-            ? ylabels.style.color
-            : ylabels.style.colors[i],
+          foreColor: Array.isArray(ylabels.style.colors)
+            ? ylabels.style.colors[i]
+            : ylabels.style.colors,
           fontSize: ylabels.style.fontSize,
           fontFamily: ylabels.style.fontFamily,
           isPlainText: false,

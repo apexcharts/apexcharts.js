@@ -623,7 +623,7 @@ export default class ApexCharts {
   }
 
   // This method is never used internally and will be only called externally on the chart instance.
-  // Hence, we need to keep all these elements in memory when the chart gets updated and redraw again
+  // We need to keep all these elements in memory when the chart gets updated and redraw again
   addText(options, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
@@ -631,6 +631,15 @@ export default class ApexCharts {
     }
 
     me.annotations.addText(options, pushToMemory, me)
+  }
+
+  addImage(options, pushToMemory = true, context = undefined) {
+    let me = this
+    if (context) {
+      me = context
+    }
+
+    me.annotations.addImage(options, pushToMemory, me)
   }
 
   getChartArea() {

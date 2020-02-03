@@ -460,7 +460,7 @@ class Graphics {
       textAnchor = 'start'
     }
 
-    if (!foreColor) {
+    if (!foreColor || !foreColor.length) {
       foreColor = w.config.chart.foreColor
     }
     fontFamily = fontFamily || w.config.chart.fontFamily

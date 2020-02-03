@@ -269,6 +269,10 @@ class Grid {
         if (w.globals.isXNumeric) {
           xCount = w.globals.xAxisScale.result.length
         }
+        if (w.config.xaxis.convertedCatToNumeric) {
+          // in case of a convertedCatToNumeric, some labels might be skipped due to hideOverLapping labels, hence use this var to get the visible ticks
+          xCount = w.globals.xaxisLabelsCount
+        }
         categoryLines({ xC: xCount, x1, y1, x2, y2 })
       }
     }

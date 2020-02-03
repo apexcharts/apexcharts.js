@@ -424,7 +424,7 @@ export default class Defaults {
 
     opts.xaxis.categories = []
     opts.labels = []
-    opts.xaxis.tickAmount = 'dataPoints'
+    opts.xaxis.tickAmount = opts.xaxis.tickAmount || 'dataPoints'
     return opts
   }
 

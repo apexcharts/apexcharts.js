@@ -33,8 +33,9 @@ export default class YAxis {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let yaxisFontSize = w.config.yaxis[realIndex].labels.style.fontSize
-    let yaxisFontFamily = w.config.yaxis[realIndex].labels.style.fontFamily
+    const yaxisStyle = w.config.yaxis[realIndex].labels.style
+    let yaxisFontSize = yaxisStyle.fontSize
+    let yaxisFontFamily = yaxisStyle.fontFamily
 
     let elYaxis = graphics.group({
       class: 'apexcharts-yaxis',
@@ -77,6 +78,12 @@ export default class YAxis {
           xPad = xPad * -1
         }
 
+        const getForeColor = () => {
+          return Array.isArray(yaxisStyle.colors)
+            ? yaxisStyle.colors[i]
+            : yaxisStyle.colors
+        }
+
         let label = graphics.drawText({
           x: xPad,
           y: l + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY + 1,
@@ -84,11 +91,9 @@ export default class YAxis {
           textAnchor: w.config.yaxis[realIndex].opposite ? 'start' : 'end',
           fontSize: yaxisFontSize,
           fontFamily: yaxisFontFamily,
-          foreColor: w.config.yaxis[realIndex].labels.style.color,
+          foreColor: getForeColor(),
           isPlainText: false,
-          cssClass:
-            'apexcharts-yaxis-label ' +
-            w.config.yaxis[realIndex].labels.style.cssClass
+          cssClass: 'apexcharts-yaxis-label ' + yaxisStyle.cssClass
         })
         if (i === tickAmount) {
           firstLabel = label

@@ -56,6 +56,7 @@ export default class InitCtxVariables {
       'addYaxisAnnotation',
       'addPointAnnotation',
       'addText',
+      'addImage',
       'clearAnnotations',
       'removeAnnotation',
       'paper',
