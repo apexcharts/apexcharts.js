@@ -439,7 +439,7 @@ class BarStacked extends Bar {
     ) {
       let bYP
       let prevYValue
-      const p = Math.min(this.yRatio.length - 1, i + 1)
+      const p = Math.min(this.yRatio.length + 1, i + 1)
       if (this.prevY[i - 1] !== undefined) {
         for (let ii = 1; ii < p; ii++) {
           if (!isNaN(this.prevY[i - ii][j])) {
