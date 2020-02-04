@@ -426,37 +426,7 @@ class BarStacked extends Bar {
         w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])
     ) {
       let bYP
-      let prevYValue
-      const p = Math.min(this.yRatio.length + 1, i + 1)
-      if (this.prevY[i - 1] !== undefined) {
-        for (let ii = 1; ii < p; ii++) {
-          if (!isNaN(this.prevY[i - ii][j])) {
-            // find the previous available value to give prevYValue
-            prevYValue = this.prevY[i - ii][j]
-            // if found it, break the loop
-            break
-          }
-        }
-      }
-
-      for (let ii = 1; ii < p; ii++) {
-        // find the previous available value(non-NaN) to give bYP
-        if (this.prevYVal[i - ii][j] < 0) {
-          bYP =
-            this.series[i][j] >= 0
-              ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
-              : prevYValue
-          // found it? break the loop
-          break
-        } else if (this.prevYVal[i - ii][j] >= 0) {
-          bYP =
-            this.series[i][j] >= 0
-              ? prevYValue
-              : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
-          // found it? break the loop
-          break
-        }
-      }
+      let prevYValue = this.prevY[i - 1][j]
 
       if (this.prevYVal[i - 1][j] < 0) {
         bYP =
