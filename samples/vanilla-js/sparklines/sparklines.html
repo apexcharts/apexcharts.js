@@ -400,34 +400,22 @@
         chart2.render();
       
         var options3 = {
-          series: [{
-          data: [47, 45, 74, 14, 56, 74, 14, 11, 7, 39, 82]
-        }],
+          series: [43, 32, 12, 9],
           chart: {
-          type: 'line',
-          width: 100,
-          height: 35,
+          type: 'pie',
+          width: 40,
+          height: 40,
           sparkline: {
             enabled: true
           }
+        },
+        stroke: {
+          width: 1
         },
         tooltip: {
           fixed: {
             enabled: false
           },
-          x: {
-            show: false
-          },
-          y: {
-            title: {
-              formatter: function (seriesName) {
-                return ''
-              }
-            }
-          },
-          marker: {
-            show: false
-          }
         }
         };
 
@@ -435,34 +423,22 @@
         chart3.render();
       
         var options4 = {
-          series: [{
-          data: [15, 75, 47, 65, 14, 2, 41, 54, 4, 27, 15]
-        }],
+          series: [43, 32, 12, 9],
           chart: {
-          type: 'line',
-          width: 100,
-          height: 35,
+          type: 'donut',
+          width: 40,
+          height: 40,
           sparkline: {
             enabled: true
           }
+        },
+        stroke: {
+          width: 1
         },
         tooltip: {
           fixed: {
             enabled: false
           },
-          x: {
-            show: false
-          },
-          y: {
-            title: {
-              formatter: function (seriesName) {
-                return ''
-              }
-            }
-          },
-          marker: {
-            show: false
-          }
         }
         };
 
@@ -562,44 +538,30 @@
         chart6.render();
       
         var options7 = {
-          series: [{
-          data: [47, 45, 74, 14, 56, 74, 14, 11, 7, 39, 82]
-        }],
+          series: [45],
           chart: {
-          type: 'bar',
-          width: 100,
-          height: 35,
+          type: 'radialBar',
+          width: 50,
+          height: 50,
           sparkline: {
             enabled: true
           }
         },
+        dataLabels: {
+          enabled: false
+        },
         plotOptions: {
-          bar: {
-            columnWidth: '80%'
-          }
-        },
-        labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-        xaxis: {
-          crosshairs: {
-            width: 1
-          },
-        },
-        tooltip: {
-          fixed: {
-            enabled: false
-          },
-          x: {
-            show: false
-          },
-          y: {
-            title: {
-              formatter: function (seriesName) {
-                return ''
-              }
+          radialBar: {
+            hollow: {
+              margin: 0,
+              size: '50%'
+            },
+            track: {
+              margin: 0
+            },
+            dataLabels: {
+              show: false
             }
-          },
-          marker: {
-            show: false
           }
         }
         };
@@ -608,44 +570,30 @@
         chart7.render();
       
         var options8 = {
-          series: [{
-          data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
-        }],
+          series: [53, 67],
           chart: {
-          type: 'bar',
-          width: 100,
-          height: 35,
+          type: 'radialBar',
+          width: 40,
+          height: 40,
           sparkline: {
             enabled: true
           }
         },
+        dataLabels: {
+          enabled: false
+        },
         plotOptions: {
-          bar: {
-            columnWidth: '80%'
-          }
-        },
-        labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-        xaxis: {
-          crosshairs: {
-            width: 1
-          },
-        },
-        tooltip: {
-          fixed: {
-            enabled: false
-          },
-          x: {
-            show: false
-          },
-          y: {
-            title: {
-              formatter: function (seriesName) {
-                return ''
-              }
+          radialBar: {
+            hollow: {
+              margin: 0,
+              size: '50%'
+            },
+            track: {
+              margin: 1
+            },
+            dataLabels: {
+              show: false
             }
-          },
-          marker: {
-            show: false
           }
         }
         };

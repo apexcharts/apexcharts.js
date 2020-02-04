@@ -218,7 +218,7 @@ export default class Options {
         defaultLocale: 'en',
         dropShadow: {
           enabled: false,
-          enabledSeries: undefined,
+          enabledOnSeries: undefined,
           top: 2,
           left: 2,
           blur: 4,
@@ -364,7 +364,6 @@ export default class Options {
           }
         },
         radialBar: {
-          size: undefined, // todo: deprecate in 4.0.0
           inverseOrder: false,
           startAngle: 0,
           endAngle: 360,
@@ -444,7 +443,6 @@ export default class Options {
           }
         },
         pie: {
-          size: undefined, // todo: deprecate in 4.0.0
           customScale: 1,
           offsetX: 0,
           offsetY: 0,

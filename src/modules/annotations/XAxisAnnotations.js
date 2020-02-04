@@ -71,24 +71,22 @@ export default class XAnnotations {
         x2 = temp
       }
 
-      if (text) {
-        let rect = this.annoCtx.graphics.drawRect(
-          x1 + anno.offsetX, // x1
-          0 + anno.offsetY, // y1
-          x2 - x1, // x2
-          w.globals.gridHeight + anno.offsetY, // y2
-          0, // radius
-          anno.fillColor, // color
-          anno.opacity, // opacity,
-          1, // strokeWidth
-          anno.borderColor, // strokeColor
-          strokeDashArray // stokeDashArray
-        )
-        rect.node.classList.add('apexcharts-annotation-rect')
-        parent.appendChild(rect.node)
-        if (anno.id) {
-          rect.node.classList.add(anno.id)
-        }
+      let rect = this.annoCtx.graphics.drawRect(
+        x1 + anno.offsetX, // x1
+        0 + anno.offsetY, // y1
+        x2 - x1, // x2
+        w.globals.gridHeight + anno.offsetY, // y2
+        0, // radius
+        anno.fillColor, // color
+        anno.opacity, // opacity,
+        1, // strokeWidth
+        anno.borderColor, // strokeColor
+        strokeDashArray // stokeDashArray
+      )
+      rect.node.classList.add('apexcharts-annotation-rect')
+      parent.appendChild(rect.node)
+      if (anno.id) {
+        rect.node.classList.add(anno.id)
       }
     }
     let textY = anno.label.position === 'top' ? 4 : w.globals.gridHeight

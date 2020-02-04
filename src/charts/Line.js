@@ -187,7 +187,8 @@ class Line {
 
     // eldatalabels
     this.elDataLabelsWrap = graphics.group({
-      class: 'apexcharts-datalabels'
+      class: 'apexcharts-datalabels',
+      'data:realIndex': realIndex
     })
 
     let longestSeries = series[i].length === w.globals.dataPoints

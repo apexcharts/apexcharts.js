@@ -1,11 +1,12 @@
 ---
-name: Bug report
-about: Report a bug that you found.
-title: ''
-labels: ''
-assignees: ''
+name: Bug Report
+about: 🐞 Report a bug that you found
 
 ---
+
+# Bug report
+
+> For support questions, please use ApexCharts Forums - https://apexcharts.com/forums/.
 
 ## Codepen
 
@@ -20,3 +21,4 @@ If you are using react-apexcharts, and want to create a demo in React environmen
 - What is the behavior you expect?
 - What is happening instead?
 - What error message are you getting?
+

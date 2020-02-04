@@ -201,12 +201,12 @@
               <td>9%</td>
               <td>
                 <div id="chart-3">
-      <apexchart type="line" height="35" width="100" :options="chartOptions3" :series="series3"></apexchart>
+      <apexchart type="pie" height="40" width="40" :options="chartOptions3" :series="series3"></apexchart>
     </div>
               </td>
               <td>
                 <div id="chart-7">
-      <apexchart type="bar" height="35" width="100" :options="chartOptions7" :series="series7"></apexchart>
+      <apexchart type="radialBar" height="50" width="50" :options="chartOptions7" :series="series7"></apexchart>
     </div>
               </td>
             </tr>
@@ -215,12 +215,12 @@
               <td>2%</td>
               <td>
                 <div id="chart-4">
-      <apexchart type="line" height="35" width="100" :options="chartOptions4" :series="series4"></apexchart>
+      <apexchart type="donut" height="40" width="40" :options="chartOptions4" :series="series4"></apexchart>
     </div>
               </td>
               <td>
                 <div id="chart-8">
-      <apexchart type="bar" height="35" width="100" :options="chartOptions8" :series="series8"></apexchart>
+      <apexchart type="radialBar" height="40" width="40" :options="chartOptions8" :series="series8"></apexchart>
     </div>
               </td>
             </tr>
@@ -293,12 +293,12 @@
                 &lt;td&gt;9%&lt;/td&gt;
                 &lt;td&gt;
                   &lt;div id=&quot;chart-3&quot;&gt;
-        &lt;apexchart type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions3&quot; :series=&quot;series3&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;pie&quot; height=&quot;40&quot; width=&quot;40&quot; :options=&quot;chartOptions3&quot; :series=&quot;series3&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
                 &lt;/td&gt;
                 &lt;td&gt;
                   &lt;div id=&quot;chart-7&quot;&gt;
-        &lt;apexchart type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions7&quot; :series=&quot;series7&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;radialBar&quot; height=&quot;50&quot; width=&quot;50&quot; :options=&quot;chartOptions7&quot; :series=&quot;series7&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
                 &lt;/td&gt;
               &lt;/tr&gt;
@@ -307,12 +307,12 @@
                 &lt;td&gt;2%&lt;/td&gt;
                 &lt;td&gt;
                   &lt;div id=&quot;chart-4&quot;&gt;
-        &lt;apexchart type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions4&quot; :series=&quot;series4&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;donut&quot; height=&quot;40&quot; width=&quot;40&quot; :options=&quot;chartOptions4&quot; :series=&quot;series4&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
                 &lt;/td&gt;
                 &lt;td&gt;
                   &lt;div id=&quot;chart-8&quot;&gt;
-        &lt;apexchart type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions8&quot; :series=&quot;series8&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;radialBar&quot; height=&quot;40&quot; width=&quot;40&quot; :options=&quot;chartOptions8&quot; :series=&quot;series8&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
                 &lt;/td&gt;
               &lt;/tr&gt;
@@ -509,67 +509,43 @@
             }
           },
           
-          series3: [{
-            data: [47, 45, 74, 14, 56, 74, 14, 11, 7, 39, 82]
-          }],
+          series3: [43, 32, 12, 9],
           chartOptions3: {
             chart: {
-              type: 'line',
-              width: 100,
-              height: 35,
+              type: 'pie',
+              width: 40,
+              height: 40,
               sparkline: {
                 enabled: true
               }
+            },
+            stroke: {
+              width: 1
             },
             tooltip: {
               fixed: {
                 enabled: false
               },
-              x: {
-                show: false
-              },
-              y: {
-                title: {
-                  formatter: function (seriesName) {
-                    return ''
-                  }
-                }
-              },
-              marker: {
-                show: false
-              }
             }
           },
           
-          series4: [{
-            data: [15, 75, 47, 65, 14, 2, 41, 54, 4, 27, 15]
-          }],
+          series4: [43, 32, 12, 9],
           chartOptions4: {
             chart: {
-              type: 'line',
-              width: 100,
-              height: 35,
+              type: 'donut',
+              width: 40,
+              height: 40,
               sparkline: {
                 enabled: true
               }
+            },
+            stroke: {
+              width: 1
             },
             tooltip: {
               fixed: {
                 enabled: false
               },
-              x: {
-                show: false
-              },
-              y: {
-                title: {
-                  formatter: function (seriesName) {
-                    return ''
-                  }
-                }
-              },
-              marker: {
-                show: false
-              }
             }
           },
           
@@ -659,88 +635,60 @@
             }
           },
           
-          series7: [{
-            data: [47, 45, 74, 14, 56, 74, 14, 11, 7, 39, 82]
-          }],
+          series7: [45],
           chartOptions7: {
             chart: {
-              type: 'bar',
-              width: 100,
-              height: 35,
+              type: 'radialBar',
+              width: 50,
+              height: 50,
               sparkline: {
                 enabled: true
               }
             },
+            dataLabels: {
+              enabled: false
+            },
             plotOptions: {
-              bar: {
-                columnWidth: '80%'
-              }
-            },
-            labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-            xaxis: {
-              crosshairs: {
-                width: 1
-              },
-            },
-            tooltip: {
-              fixed: {
-                enabled: false
-              },
-              x: {
-                show: false
-              },
-              y: {
-                title: {
-                  formatter: function (seriesName) {
-                    return ''
-                  }
+              radialBar: {
+                hollow: {
+                  margin: 0,
+                  size: '50%'
+                },
+                track: {
+                  margin: 0
+                },
+                dataLabels: {
+                  show: false
                 }
-              },
-              marker: {
-                show: false
               }
             }
           },
           
-          series8: [{
-            data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
-          }],
+          series8: [53, 67],
           chartOptions8: {
             chart: {
-              type: 'bar',
-              width: 100,
-              height: 35,
+              type: 'radialBar',
+              width: 40,
+              height: 40,
               sparkline: {
                 enabled: true
               }
             },
+            dataLabels: {
+              enabled: false
+            },
             plotOptions: {
-              bar: {
-                columnWidth: '80%'
-              }
-            },
-            labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-            xaxis: {
-              crosshairs: {
-                width: 1
-              },
-            },
-            tooltip: {
-              fixed: {
-                enabled: false
-              },
-              x: {
-                show: false
-              },
-              y: {
-                title: {
-                  formatter: function (seriesName) {
-                    return ''
-                  }
+              radialBar: {
+                hollow: {
+                  margin: 0,
+                  size: '50%'
+                },
+                track: {
+                  margin: 1
+                },
+                dataLabels: {
+                  show: false
                 }
-              },
-              marker: {
-                show: false
               }
             }
           },

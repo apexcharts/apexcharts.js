@@ -1,4 +1,4 @@
-<title>Monochrome Pie</title>
+<title>Monochrome Pie with multiline labels</title>
 
 <style>
 #chart {
@@ -20,20 +20,25 @@ theme: {
     enabled: true
   }
 },
+plotOptions: {
+  pie: {
+    dataLabels: {
+      offset: -5
+    }
+  }
+},
 title: {
   text: "Number of leads"
 },
-responsive: [{
-  breakpoint: 480,
-  options: {
-    chart: {
-      width: 200
-    },
-    legend: {
-      position: 'bottom'
-    }
+dataLabels: {
+  formatter(val, opts) {
+    const name = opts.w.globals.labels[opts.seriesIndex]
+    return [name, val.toFixed(1) + '%']
   }
-}]
+},
+legend: {
+  show: false
+}
 </options>
 
 <series>

@@ -357,45 +357,21 @@ export default class Core {
     const gl = w.globals
 
     let legendHeight = 0
-    let offY = 20
+    let offY = w.config.chart.sparkline.enabled ? 0 : 15
 
     if (
-      w.config.legend.position === 'top' ||
-      w.config.legend.position === 'bottom'
+      (w.config.legend.position === 'top' ||
+        w.config.legend.position === 'bottom') &&
+      w.config.legend.show &&
+      !w.config.legend.floating
     ) {
       legendHeight =
         new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10
     }
 
-    let radialEl = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-radialbar .apexcharts-tracks'
-    )
+    let chartInnerDimensions = w.globals.radialSize * 2.05
 
-    let radialElDataLabels = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-radialbar .apexcharts-datalabels-group'
-    )
-
-    let chartInnerDimensions = w.globals.radialSize * 2
-
-    if (radialEl) {
-      let elRadialRect = Utils.getBoundingClientRect(radialEl)
-      chartInnerDimensions = elRadialRect.bottom
-
-      if (radialElDataLabels) {
-        let elRadialDataLalelsRect = Utils.getBoundingClientRect(
-          radialElDataLabels
-        )
-
-        let maxHeight =
-          Math.max(elRadialRect.bottom, elRadialDataLalelsRect.bottom) -
-          elRadialRect.top +
-          elRadialDataLalelsRect.height
-
-        chartInnerDimensions = Math.max(w.globals.radialSize * 2, maxHeight)
-      }
-    }
-
-    const newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY
+    let newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY
 
     if (gl.dom.elLegendForeign) {
       gl.dom.elLegendForeign.setAttribute('height', newHeight)

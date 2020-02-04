@@ -66,7 +66,8 @@ class RangeBar extends Bar {
 
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-datalabels'
+        class: 'apexcharts-datalabels',
+        'data:realIndex': realIndex
       })
 
       for (let j = 0; j < w.globals.dataPoints; j++) {

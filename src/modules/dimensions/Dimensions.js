@@ -197,7 +197,7 @@ export default class Dimensions {
         ? 'pie'
         : 'radialBar'
 
-    let offY = 10 + cnf.plotOptions[type].offsetY
+    let offY = cnf.plotOptions[type].offsetY
     let offX = cnf.plotOptions[type].offsetX
 
     if (!cnf.legend.show || cnf.legend.floating) {
@@ -205,7 +205,7 @@ export default class Dimensions {
         gl.svgHeight - cnf.grid.padding.left + cnf.grid.padding.right
       gl.gridWidth = gl.gridHeight
 
-      gl.translateY = offY - 10
+      gl.translateY = offY
       gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
 
       return
@@ -215,7 +215,7 @@ export default class Dimensions {
       case 'bottom':
         gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding
         gl.gridWidth = gl.gridHeight
-        gl.translateY = offY - 20
+        gl.translateY = offY - 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':

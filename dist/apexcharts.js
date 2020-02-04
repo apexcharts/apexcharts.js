@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.15.2
+ * ApexCharts v3.15.3
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -627,7 +627,6 @@
 
         el.unfilter(true);
         var filter = new window.SVG.Filter();
-        filter.size('120%', '180%', '-5%', '-40%');
         el.filter(function (add) {
           var shadowAttr = w.config.chart.dropShadow;
 
@@ -646,6 +645,8 @@
           });
         });
         el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
+
+        this._scaleFilterSize(el.filterer.node);
       } // appends dropShadow to the filter object which can be chained with other filter effects
 
     }, {
@@ -662,7 +663,6 @@
 
         el.unfilter(true);
         var filter = new window.SVG.Filter();
-        filter.size('120%', '180%', '-5%', '-40%');
         el.filter(function (add) {
           var shadowAttr = w.config.chart.dropShadow;
 
@@ -680,6 +680,8 @@
           });
         });
         el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
+
+        this._scaleFilterSize(el.filterer.node);
       }
     }, {
       key: "applyFilter",
@@ -743,8 +745,6 @@
         }
 
         color = Array.isArray(color) ? color[i] : color;
-        var filter = new window.SVG.Filter();
-        filter.size('120%', '180%', '-5%', '-40%');
         el.filter(function (add) {
           var shadowBlur = null;
 
@@ -761,6 +761,8 @@
         if (!noUserSpaceOnUse) {
           el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse');
         }
+
+        this._scaleFilterSize(el.filterer.node);
 
         return el;
       }
@@ -779,6 +781,24 @@
             }
           }
         }
+      }
+    }, {
+      key: "_scaleFilterSize",
+      value: function _scaleFilterSize(el) {
+        var setAttributes = function setAttributes(attrs) {
+          for (var key in attrs) {
+            if (attrs.hasOwnProperty(key)) {
+              el.setAttribute(key, attrs[key]);
+            }
+          }
+        };
+
+        setAttributes({
+          width: '200%',
+          height: '200%',
+          x: '-50%',
+          y: '-50%'
+        });
       }
     }]);
 
@@ -1300,7 +1320,7 @@
           filters.getDefaultFilter(el, realIndex);
         } else {
           if (w.config.chart.dropShadow.enabled && drawShadow) {
-            if (!w.config.chart.dropShadow.enabledSeries || w.config.chart.dropShadow.enabledSeries && w.config.chart.dropShadow.enabledSeries.indexOf(realIndex) !== -1) {
+            if (!w.config.chart.dropShadow.enabledOnSeries || w.config.chart.dropShadow.enabledOnSeries && w.config.chart.dropShadow.enabledOnSeries.indexOf(realIndex) !== -1) {
               var shadow = w.config.chart.dropShadow;
               filters.dropShadow(el, shadow, realIndex);
             }
@@ -1977,24 +1997,22 @@
             x2 = temp;
           }
 
-          if (text) {
-            var rect = this.annoCtx.graphics.drawRect(x1 + anno.offsetX, // x1
-            0 + anno.offsetY, // y1
-            x2 - x1, // x2
-            w.globals.gridHeight + anno.offsetY, // y2
-            0, // radius
-            anno.fillColor, // color
-            anno.opacity, // opacity,
-            1, // strokeWidth
-            anno.borderColor, // strokeColor
-            strokeDashArray // stokeDashArray
-            );
-            rect.node.classList.add('apexcharts-annotation-rect');
-            parent.appendChild(rect.node);
+          var rect = this.annoCtx.graphics.drawRect(x1 + anno.offsetX, // x1
+          0 + anno.offsetY, // y1
+          x2 - x1, // x2
+          w.globals.gridHeight + anno.offsetY, // y2
+          0, // radius
+          anno.fillColor, // color
+          anno.opacity, // opacity,
+          1, // strokeWidth
+          anno.borderColor, // strokeColor
+          strokeDashArray // stokeDashArray
+          );
+          rect.node.classList.add('apexcharts-annotation-rect');
+          parent.appendChild(rect.node);
 
-            if (anno.id) {
-              rect.node.classList.add(anno.id);
-            }
+          if (anno.id) {
+            rect.node.classList.add(anno.id);
           }
         }
 
@@ -2080,24 +2098,22 @@
             y2 = temp;
           }
 
-          if (text) {
-            var rect = this.annoCtx.graphics.drawRect(0 + anno.offsetX, // x1
-            y2 + anno.offsetY, // y1
-            w.globals.gridWidth + anno.offsetX, // x2
-            y1 - y2, // y2
-            0, // radius
-            anno.fillColor, // color
-            anno.opacity, // opacity,
-            1, // strokeWidth
-            anno.borderColor, // strokeColor
-            strokeDashArray // stokeDashArray
-            );
-            rect.node.classList.add('apexcharts-annotation-rect');
-            parent.appendChild(rect.node);
+          var rect = this.annoCtx.graphics.drawRect(0 + anno.offsetX, // x1
+          y2 + anno.offsetY, // y1
+          w.globals.gridWidth + anno.offsetX, // x2
+          y1 - y2, // y2
+          0, // radius
+          anno.fillColor, // color
+          anno.opacity, // opacity,
+          1, // strokeWidth
+          anno.borderColor, // strokeColor
+          strokeDashArray // stokeDashArray
+          );
+          rect.node.classList.add('apexcharts-annotation-rect');
+          parent.appendChild(rect.node);
 
-            if (anno.id) {
-              rect.node.classList.add(anno.id);
-            }
+          if (anno.id) {
+            rect.node.classList.add(anno.id);
           }
         }
 
@@ -2565,7 +2581,7 @@
             defaultLocale: 'en',
             dropShadow: {
               enabled: false,
-              enabledSeries: undefined,
+              enabledOnSeries: undefined,
               top: 2,
               left: 2,
               blur: 4,
@@ -2715,8 +2731,6 @@
               }
             },
             radialBar: {
-              size: undefined,
-              // todo: deprecate in 4.0.0
               inverseOrder: false,
               startAngle: 0,
               endAngle: 360,
@@ -2795,8 +2809,6 @@
               }
             },
             pie: {
-              size: undefined,
-              // todo: deprecate in 4.0.0
               customScale: 1,
               offsetX: 0,
               offsetY: 0,
@@ -11611,13 +11623,13 @@
         }
 
         var type = cnf.chart.type === 'pie' || cnf.chart.type === 'donut' ? 'pie' : 'radialBar';
-        var offY = 10 + cnf.plotOptions[type].offsetY;
+        var offY = cnf.plotOptions[type].offsetY;
         var offX = cnf.plotOptions[type].offsetX;
 
         if (!cnf.legend.show || cnf.legend.floating) {
           gl.gridHeight = gl.svgHeight - cnf.grid.padding.left + cnf.grid.padding.right;
           gl.gridWidth = gl.gridHeight;
-          gl.translateY = offY - 10;
+          gl.translateY = offY;
           gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
           return;
         }
@@ -11626,7 +11638,7 @@
           case 'bottom':
             gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding;
             gl.gridWidth = gl.gridHeight;
-            gl.translateY = offY - 20;
+            gl.translateY = offY - 10;
             gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
             break;
 
@@ -11719,13 +11731,7 @@
       this.centerY = this.defaultSize / 2;
       this.centerX = w.globals.gridWidth / 2;
       this.fullAngle = 360;
-      w.globals.radialSize = this.defaultSize / 2.05 - w.config.stroke.width - w.config.chart.dropShadow.blur;
-
-      if (w.config.plotOptions.pie.size !== undefined) {
-        // TODO: deprecate this property as it causes more issues than being helpful
-        w.globals.radialSize = w.config.plotOptions.pie.size;
-      }
-
+      w.globals.radialSize = this.defaultSize / 2.05 - w.config.stroke.width - (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0);
       this.donutSize = w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size, 10) / 100;
       this.sliceLabels = [];
       this.prevSectorAngleArr = []; // for dynamic animations
@@ -11807,11 +11813,7 @@
           elG.add(s);
         });
         elSeries.attr({
-          transform: "translate(".concat(translateX, ", ").concat(translateY - 5, ") scale(").concat(scaleSize, ")")
-        });
-        ret.attr({
-          'data:innerTranslateX': translateX,
-          'data:innerTranslateY': translateY - 25
+          transform: "translate(".concat(translateX, ", ").concat(translateY, ") scale(").concat(scaleSize, ")")
         });
         elSeries.add(elG);
         ret.add(elSeries);
@@ -11926,6 +11928,7 @@
               animateStartingPos: true,
               i: i,
               animBeginArr: this.animBeginArr,
+              shouldSetPrevPaths: true,
               dur: w.config.chart.animations.dynamicAnimation.speed
             });
           } else {
@@ -12053,16 +12056,18 @@
         var fromAngle = fromStartAngle - toStartAngle;
 
         if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
-          // to avoid flickering, set prev path first and then we will animate from there
-          path = me.getPiePath({
-            me: me,
-            startAngle: startAngle,
-            angle: prevAngle,
-            size: size
-          });
-          el.attr({
-            d: path
-          });
+          // to avoid flicker when updating, set prev path first and then animate from there
+          if (opts.prevEndAngle) {
+            path = me.getPiePath({
+              me: me,
+              startAngle: opts.prevStartAngle,
+              angle: opts.prevEndAngle - opts.prevStartAngle,
+              size: size
+            });
+            el.attr({
+              d: path
+            });
+          }
         }
 
         if (opts.dur !== 0) {
@@ -14528,6 +14533,7 @@
           _this.DOMHandling({
             i: i,
             t: tIndex,
+            j: j,
             ttItems: ttItems,
             values: {
               val: val,
@@ -14608,6 +14614,7 @@
       value: function DOMHandling(_ref4) {
         var i = _ref4.i,
             t = _ref4.t,
+            j = _ref4.j,
             ttItems = _ref4.ttItems,
             values = _ref4.values,
             seriesName = _ref4.seriesName,
@@ -14673,12 +14680,31 @@
           ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : '';
         }
 
-        if (shared && ttItemsChildren[0]) {
+        if (shared && ttItemsChildren[0] && ttCtx.tooltipTitle) {
           // hide when no Val or series collapsed
           if (typeof val === 'undefined' || val === null || w.globals.collapsedSeriesIndices.indexOf(t) > -1) {
             ttItemsChildren[0].parentNode.style.display = 'none';
           } else {
             ttItemsChildren[0].parentNode.style.display = w.config.tooltip.items.display;
+          }
+
+          if (w.globals.stackedSeriesTotals[j] === 0) {
+            // shared tooltip and all values are null, so we need to hide the x value too
+            var allYZeroForJ = true;
+
+            for (var si = 1; si < w.globals.seriesYvalues.length; si++) {
+              if (w.globals.seriesYvalues[si][j] !== w.globals.seriesYvalues[si - 1][j]) {
+                allYZeroForJ = false;
+              }
+            }
+
+            if (allYZeroForJ) {
+              ttCtx.tooltipTitle.style.display = 'none';
+            } else {
+              ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display;
+            }
+          } else {
+            ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display;
           }
         }
       }
@@ -15492,6 +15518,8 @@
 
         if (isNaN(y)) {
           y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight;
+        } else if (y < 0) {
+          y = 0;
         }
 
         if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
@@ -18691,8 +18719,6 @@
         var translateY = halfH;
         var ret = this.graphics.group({
           class: 'apexcharts-radar-series apexcharts-plot-series',
-          'data:innerTranslateX': translateX,
-          'data:innerTranslateY': translateY - 25,
           transform: "translate(".concat(translateX || 0, ", ").concat(translateY || 0, ")")
         });
         var dataPointsPos = [];
@@ -19140,11 +19166,10 @@
         var elSeries = graphics.group();
         var centerY = this.defaultSize / 2;
         var centerX = w.globals.gridWidth / 2;
-        var size = this.defaultSize / 2.05 - w.config.stroke.width - w.config.chart.dropShadow.blur;
+        var size = this.defaultSize / 2.05;
 
-        if (w.config.plotOptions.radialBar.size !== undefined) {
-          // TODO: deprecate this property as it causes more issues than being helpful
-          size = w.config.plotOptions.radialBar.size;
+        if (!w.config.chart.sparkline.enabled) {
+          size = size - w.config.stroke.width - w.config.chart.dropShadow.blur;
         }
 
         var colorArr = w.globals.fill.colors;
@@ -21578,27 +21603,13 @@
         var w = this.w;
         var gl = w.globals;
         var legendHeight = 0;
-        var offY = 20;
+        var offY = w.config.chart.sparkline.enabled ? 0 : 15;
 
-        if (w.config.legend.position === 'top' || w.config.legend.position === 'bottom') {
+        if ((w.config.legend.position === 'top' || w.config.legend.position === 'bottom') && w.config.legend.show && !w.config.legend.floating) {
           legendHeight = new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10;
         }
 
-        var radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar .apexcharts-tracks');
-        var radialElDataLabels = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar .apexcharts-datalabels-group');
-        var chartInnerDimensions = w.globals.radialSize * 2;
-
-        if (radialEl) {
-          var elRadialRect = Utils.getBoundingClientRect(radialEl);
-          chartInnerDimensions = elRadialRect.bottom;
-
-          if (radialElDataLabels) {
-            var elRadialDataLalelsRect = Utils.getBoundingClientRect(radialElDataLabels);
-            var maxHeight = Math.max(elRadialRect.bottom, elRadialDataLalelsRect.bottom) - elRadialRect.top + elRadialDataLalelsRect.height;
-            chartInnerDimensions = Math.max(w.globals.radialSize * 2, maxHeight);
-          }
-        }
-
+        var chartInnerDimensions = w.globals.radialSize * 2.05;
         var newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY;
 
         if (gl.dom.elLegendForeign) {
@@ -27789,16 +27800,13 @@
     }, {
       key: "killSVG",
       value: function killSVG(draw) {
-        return new Promise(function (resolve, reject) {
-          draw.each(function (i, children) {
-            this.removeClass('*');
-            this.off();
-            this.stop();
-          }, true);
-          draw.ungroup();
-          draw.clear();
-          resolve('done');
-        });
+        draw.each(function (i, children) {
+          this.removeClass('*');
+          this.off();
+          this.stop();
+        }, true);
+        draw.ungroup();
+        draw.clear();
       }
     }, {
       key: "clearDomElements",

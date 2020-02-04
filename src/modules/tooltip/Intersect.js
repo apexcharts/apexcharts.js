@@ -161,6 +161,8 @@ class Intersect {
     // y is NaN, make it touch the bottom of grid area
     if (isNaN(y)) {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
+    } else if (y < 0) {
+      y = 0
     }
 
     if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {

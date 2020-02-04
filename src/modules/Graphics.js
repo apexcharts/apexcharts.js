@@ -257,9 +257,9 @@ class Graphics {
     } else {
       if (w.config.chart.dropShadow.enabled && drawShadow) {
         if (
-          !w.config.chart.dropShadow.enabledSeries ||
-          (w.config.chart.dropShadow.enabledSeries &&
-            w.config.chart.dropShadow.enabledSeries.indexOf(realIndex) !== -1)
+          !w.config.chart.dropShadow.enabledOnSeries ||
+          (w.config.chart.dropShadow.enabledOnSeries &&
+            w.config.chart.dropShadow.enabledOnSeries.indexOf(realIndex) !== -1)
         ) {
           const shadow = w.config.chart.dropShadow
           filters.dropShadow(el, shadow, realIndex)

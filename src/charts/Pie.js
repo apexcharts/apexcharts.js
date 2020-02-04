@@ -46,12 +46,7 @@ class Pie {
     w.globals.radialSize =
       this.defaultSize / 2.05 -
       w.config.stroke.width -
-      w.config.chart.dropShadow.blur
-
-    if (w.config.plotOptions.pie.size !== undefined) {
-      // TODO: deprecate this property as it causes more issues than being helpful
-      w.globals.radialSize = w.config.plotOptions.pie.size
-    }
+      (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0)
 
     this.donutSize =
       (w.globals.radialSize *
@@ -147,13 +142,7 @@ class Pie {
     })
 
     elSeries.attr({
-      transform: `translate(${translateX}, ${translateY -
-        5}) scale(${scaleSize})`
-    })
-
-    ret.attr({
-      'data:innerTranslateX': translateX,
-      'data:innerTranslateY': translateY - 25
+      transform: `translate(${translateX}, ${translateY}) scale(${scaleSize})`
     })
 
     elSeries.add(elG)
@@ -300,6 +289,7 @@ class Pie {
           animateStartingPos: true,
           i,
           animBeginArr: this.animBeginArr,
+          shouldSetPrevPaths: true,
           dur: w.config.chart.animations.dynamicAnimation.speed
         })
       } else {
@@ -455,14 +445,16 @@ class Pie {
     let fromAngle = fromStartAngle - toStartAngle
 
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
-      // to avoid flickering, set prev path first and then we will animate from there
-      path = me.getPiePath({
-        me,
-        startAngle,
-        angle: prevAngle,
-        size
-      })
-      el.attr({ d: path })
+      // to avoid flicker when updating, set prev path first and then animate from there
+      if (opts.prevEndAngle) {
+        path = me.getPiePath({
+          me,
+          startAngle: opts.prevStartAngle,
+          angle: opts.prevEndAngle - opts.prevStartAngle,
+          size
+        })
+        el.attr({ d: path })
+      }
     }
 
     if (opts.dur !== 0) {

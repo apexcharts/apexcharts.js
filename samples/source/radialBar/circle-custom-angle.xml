@@ -47,7 +47,7 @@ legend: {
   fontSize: '16px',
   position: 'left',
   offsetX: 160,
-  offsetY: 10,
+  offsetY: 15,
   labels: {
     useSeriesColors: true,
   },
@@ -58,7 +58,7 @@ legend: {
     return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
   },
   itemMargin: {
-    horizontal: 3,
+    vertical: 3
   }
 },
 responsive: [{

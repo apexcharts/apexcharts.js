@@ -259,10 +259,11 @@ chartBar.render();
 var optionsCircle1 = {
   chart: {
     type: 'radialBar',
-    height: 294,
+    height: 266,
     zoom: {
       enabled: false
     },
+    offsetY: 20
   },
   colors: ['#E91E63'],
   plotOptions: {
@@ -298,12 +299,13 @@ chartCircle1.render();
 
 var optionsDonutTop = {
   chart: {
-    height: 299,
+    height: 265,
     type: 'donut',
+    offsetY: 20
   },
   plotOptions: {
     pie: {
-      customScale: 0.76,
+      customScale: 0.86,
       donut: {
         size: '72%',
       },
@@ -396,6 +398,9 @@ var optionsArea = {
       left: 0,
       right: 0
     }
+  },
+  yaxis: {
+    show: false
   },
   labels: ['01/15/2002', '01/16/2002', '01/17/2002', '01/18/2002', '01/19/2002', '01/20/2002', '01/21/2002', '01/22/2002', '01/23/2002'],
   xaxis: {

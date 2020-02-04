@@ -50,17 +50,10 @@ export default class DimYAxis {
           val = Utils.getLargestStringFromArr(barYaxisLabels)
 
           val = lbFormatter(val, { seriesIndex: index, dataPointIndex: -1, w })
-          valArr = val
-
-          if (w.globals.isMultiLineX) {
-            // if the xaxis labels has multiline texts (array)
-            let maxArrs = barYaxisLabels.map((xl, idx) => {
-              return Array.isArray(xl) ? xl.length : 1
-            })
-            let maxArrLen = Math.max(...maxArrs)
-            let maxArrIndex = maxArrs.indexOf(maxArrLen)
-            valArr = barYaxisLabels[maxArrIndex]
-          }
+          valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
+            val,
+            barYaxisLabels
+          )
         }
 
         let graphics = new Graphics(this.dCtx.ctx)

@@ -89,8 +89,6 @@ class Radar {
 
     let ret = this.graphics.group({
       class: 'apexcharts-radar-series apexcharts-plot-series',
-      'data:innerTranslateX': translateX,
-      'data:innerTranslateY': translateY - 25,
       transform: `translate(${translateX || 0}, ${translateY || 0})`
     })
 
@@ -143,7 +141,8 @@ class Radar {
 
       // datapoints
       elDataPointsMain = this.graphics.group({
-        class: `apexcharts-datalabels`
+        class: `apexcharts-datalabels`,
+        'data:realIndex': i
       })
 
       w.globals.delayedElements.push({
