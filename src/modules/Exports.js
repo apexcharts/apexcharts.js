@@ -155,13 +155,9 @@ class Exports {
     }
 
     const handleAxisRowsColumns = (s, sI) => {
-      rows.push(s.name)
-
-      columns = []
-      columns.push('x')
-      columns.push('y')
-
-      rows.push(columns.join(columnDelimiter))
+      if (columns.length) {
+        rows.push(columns.join(columnDelimiter))
+      }
 
       if (s.data && s.data.length) {
         for (let i = 0; i < s.data.length; i++) {
@@ -176,8 +172,14 @@ class Exports {
             }
           }
 
-          columns.push(cat)
-          columns.push(w.globals.series[sI][i])
+          if (sI === 0) {
+            columns.push(cat)
+
+            for (let ci = 0; ci < w.globals.series.length; ci++) {
+              columns.push(w.globals.series[ci][i])
+            }
+          }
+
           if (
             w.config.chart.type === 'candlestick' ||
             (s.type && s.type === 'candlestick')
@@ -193,11 +195,25 @@ class Exports {
             columns.push(w.globals.seriesRangeStart[sI][i])
             columns.push(w.globals.seriesRangeEnd[sI][i])
           }
-          rows.push(columns.join(columnDelimiter))
+
+          if (columns.length) {
+            rows.push(columns.join(columnDelimiter))
+          }
         }
       }
     }
 
+    columns.push('category')
+    series.map((s, sI) => {
+      if (w.globals.axisCharts) {
+        columns.push(s.name ? s.name : `series-${sI}`)
+      }
+    })
+
+    if (!w.globals.axisCharts) {
+      columns.push('value')
+      rows.push(columns.join(columnDelimiter))
+    }
     series.map((s, sI) => {
       if (w.globals.axisCharts) {
         handleAxisRowsColumns(s, sI)
