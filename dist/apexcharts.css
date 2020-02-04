@@ -32,7 +32,7 @@
   opacity: 0;
 }
 
-.apexcharts-gridline, .apexcharts-text, .apexcharts-annotation-rect {
+.apexcharts-gridline, .apexcharts-annotation-rect {
   pointer-events: none;
 }
 
