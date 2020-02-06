@@ -30,6 +30,7 @@ export default class Options {
         style: {
           colors: [],
           fontSize: '11px',
+          fontWeight: 400,
           fontFamily: undefined,
           cssClass: ''
         },
@@ -57,6 +58,7 @@ export default class Options {
         style: {
           color: undefined,
           fontSize: '11px',
+          fontWeight: 900,
           fontFamily: undefined,
           cssClass: ''
         }
@@ -812,6 +814,7 @@ export default class Options {
           style: {
             colors: [],
             fontSize: '12px',
+            fontWeight: 400,
             fontFamily: undefined,
             cssClass: ''
           },
@@ -857,6 +860,7 @@ export default class Options {
           style: {
             color: undefined,
             fontSize: '12px',
+            fontWeight: 900,
             fontFamily: undefined,
             cssClass: ''
           }

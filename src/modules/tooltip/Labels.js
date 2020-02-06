@@ -19,7 +19,7 @@ export default class Labels {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
-      this.handleCustomTooltip({ i, j, y1, y2 })
+      this.handleCustomTooltip({ i, j, y1, y2, w })
     } else {
       this.toggleActiveInactiveSeries(shared)
     }
@@ -387,8 +387,7 @@ export default class Labels {
     }
   }
 
-  handleCustomTooltip({ i, j, y1, y2 }) {
-    const w = this.w
+  handleCustomTooltip({ i, j, y1, y2, w }) {
     const tooltipEl = this.ttCtx.getElTooltip()
     let fn = w.config.tooltip.custom
 

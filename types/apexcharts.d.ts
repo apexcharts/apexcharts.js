@@ -802,6 +802,7 @@ type ApexXAxis = {
       colors?: string | string[]
       fontSize?: string
       fontFamily?: string
+      fontWeight?: string | number
       cssClass?: string
     }
     offsetX?: number
@@ -846,6 +847,7 @@ type ApexXAxis = {
     style?: {
       color?: string
       fontFamily?: string
+      fontWeight?: string | number
       fontSize?: string
       cssClass?: string
     }
@@ -914,6 +916,7 @@ type ApexYAxis = {
     style?: {
       colors?: string
       fontSize?: string
+      fontWeight?: string | number
       fontFamily?: string
       cssClass?: string
     }
@@ -941,6 +944,7 @@ type ApexYAxis = {
     style?: {
       color?: string
       fontSize?: string
+      fontWeight?: string | number
       fontFamily?: string
       cssClass?: string
     }

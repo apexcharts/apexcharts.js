@@ -180,6 +180,7 @@ export default class XAxis {
         textAnchor: 'middle',
         fontSize: w.config.xaxis.title.style.fontSize,
         fontFamily: w.config.xaxis.title.style.fontFamily,
+        fontWeight: w.config.xaxis.title.style.fontWeight,
         foreColor: w.config.xaxis.title.style.color,
         cssClass:
           'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
@@ -311,6 +312,7 @@ export default class XAxis {
         textAnchor: 'middle',
         foreColor: w.config.yaxis[0].title.style.color,
         fontSize: w.config.yaxis[0].title.style.fontSize,
+        fontWeight: w.config.yaxis[0].title.style.fontWeight,
         fontFamily: w.config.yaxis[0].title.style.fontFamily,
         cssClass:
           'apexcharts-yaxis-title-text ' +

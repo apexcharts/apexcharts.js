@@ -556,10 +556,6 @@ export default class Defaults {
           stops: [0, 100, 100]
         }
       },
-      padding: {
-        right: 0,
-        left: 0
-      },
       tooltip: {
         theme: 'dark',
         fillSeriesColor: true
@@ -602,10 +598,6 @@ export default class Defaults {
           opacityTo: 1,
           stops: [70, 98, 100]
         }
-      },
-      padding: {
-        right: 0,
-        left: 0
       },
       tooltip: {
         theme: 'dark',
@@ -689,10 +681,6 @@ export default class Defaults {
           opacityTo: 1,
           stops: [70, 98, 100]
         }
-      },
-      padding: {
-        right: 0,
-        left: 0
       },
       legend: {
         show: false,
