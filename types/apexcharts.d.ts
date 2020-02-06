@@ -808,7 +808,7 @@ type ApexXAxis = {
     offsetX?: number
     offsetY?: number
     format?: string
-    formatter?(value: string, timestamp?: number): string
+    formatter?(value: string, timestamp?: number): string | string[]
     datetimeUTC?: boolean
     datetimeFormatter?: {
       year?: string
