@@ -7,6 +7,10 @@ export default class DimGrid {
   gridPadForColumnsInNumericAxis(gridWidth) {
     const w = this.w
 
+    if (w.globals.noData) {
+      return 0
+    }
+
     const type = w.config.chart.type
 
     let barWidth = 0
