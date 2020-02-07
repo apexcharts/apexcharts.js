@@ -118,7 +118,7 @@ export default class AxesUtils {
         label.x <
         prev.textRect.width /
           (w.globals.rotateXLabels
-            ? Math.abs(w.config.xaxis.labels.rotate) / 12
+            ? Math.abs(w.config.xaxis.labels.rotate) / 20
             : 1.01) +
           prev.x
       ) {
