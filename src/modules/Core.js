@@ -358,6 +358,7 @@ export default class Core {
 
     let legendHeight = 0
     let offY = w.config.chart.sparkline.enabled ? 0 : 15
+    offY = offY + w.config.grid.padding.bottom
 
     if (
       (w.config.legend.position === 'top' ||
@@ -523,7 +524,11 @@ export default class Core {
         targets.forEach((target) => {
           let targetChart = ApexCharts.getChartByID(target)
           let yaxis = Utils.clone(w.config.yaxis)
-          if (w.config.chart.brush.autoScaleYaxis) {
+
+          if (
+            w.config.chart.brush.autoScaleYaxis &&
+            targetChart.w.globals.series.length === 1
+          ) {
             const scale = new Scales(targetChart)
             yaxis = scale.autoScaleY(targetChart, yaxis, e)
           }
