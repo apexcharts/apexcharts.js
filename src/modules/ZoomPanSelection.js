@@ -200,11 +200,12 @@ export default class ZoomPanSelection extends Toolbar {
             zoomtype
           })
         }
+
+        if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
+          me.delayedPanScrolled()
+        }
       }
 
-      if (w.globals.panEnabled) {
-        me.delayedPanScrolled()
-      }
       if (w.globals.zoomEnabled) {
         me.hideSelectionRect(this.selectionRect)
       }
@@ -630,7 +631,7 @@ export default class ZoomPanSelection extends Toolbar {
     let xHighestValue = w.globals.maxX
 
     // on a category, we don't pan continuosly as it causes bugs
-    if (w.config.xaxis.convertedCatToNumeric) {
+    if (!w.config.xaxis.convertedCatToNumeric) {
       me.panScrolled(xLowestValue, xHighestValue)
     }
   }
@@ -640,14 +641,14 @@ export default class ZoomPanSelection extends Toolbar {
 
     let newMinX = w.globals.minX
     let newMaxX = w.globals.maxX
-    const centerX = (w.globals.minX + w.globals.maxX) / 2
+    const centerX = (w.globals.maxX - w.globals.minX) / 2
 
     if (this.moveDirection === 'left') {
-      newMinX = w.globals.minX - centerX
-      newMaxX = w.globals.maxX - centerX
-    } else if (this.moveDirection === 'right') {
       newMinX = w.globals.minX + centerX
       newMaxX = w.globals.maxX + centerX
+    } else if (this.moveDirection === 'right') {
+      newMinX = w.globals.minX - centerX
+      newMaxX = w.globals.maxX - centerX
     }
 
     newMinX = Math.floor(newMinX)
