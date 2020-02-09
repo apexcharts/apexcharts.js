@@ -129,6 +129,8 @@ class Pie {
         cx: this.centerX,
         cy: this.centerY,
         fill: w.config.plotOptions.pie.donut.background
+          ? w.config.plotOptions.pie.donut.background
+          : 'transparent'
       })
 
       elSeries.add(circle)
@@ -335,6 +337,7 @@ class Pie {
             textAnchor: 'middle',
             fontSize: w.config.dataLabels.style.fontSize,
             fontFamily: w.config.dataLabels.style.fontFamily,
+            fontWeight: w.config.dataLabels.style.fontWeight,
             foreColor
           })
 
@@ -667,6 +670,7 @@ class Pie {
     }
     let labelFontSize = dataLabelsConfig.name.fontSize
     let labelFontFamily = dataLabelsConfig.name.fontFamily
+    let labelFontWeight = dataLabelsConfig.value.fontWeight
 
     if (dataLabelsConfig.value.color === undefined) {
       valueColor = w.config.chart.foreColor
@@ -682,6 +686,7 @@ class Pie {
       labelColor = dataLabelsConfig.total.color
       labelFontSize = dataLabelsConfig.total.fontSize
       labelFontFamily = dataLabelsConfig.total.fontFamily
+      labelFontWeight = dataLabelsConfig.total.fontWeight
       name = dataLabelsConfig.total.label
       val = dataLabelsConfig.total.formatter(w)
     } else {
@@ -707,6 +712,7 @@ class Pie {
         textAnchor: 'middle',
         foreColor: labelColor,
         fontSize: labelFontSize,
+        fontWeight: labelFontWeight,
         fontFamily: labelFontFamily
       })
       elLabel.node.classList.add('apexcharts-datalabel-label')
@@ -724,6 +730,7 @@ class Pie {
         text: val,
         textAnchor: 'middle',
         foreColor: valueColor,
+        fontWeight: dataLabelsConfig.value.fontWeight,
         fontSize: dataLabelsConfig.value.fontSize,
         fontFamily: dataLabelsConfig.value.fontFamily
       })

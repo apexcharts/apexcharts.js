@@ -106,6 +106,7 @@ export default class Options {
           color: undefined,
           fontSize: '11px',
           fontFamily: undefined,
+          fontWeight: 400,
           cssClass: '',
           padding: {
             left: 5,
@@ -155,6 +156,7 @@ export default class Options {
           color: undefined,
           fontSize: '11px',
           fontFamily: undefined,
+          fontWeight: 400,
           cssClass: '',
           padding: {
             left: 5,
@@ -190,6 +192,7 @@ export default class Options {
           color: undefined,
           fontSize: '11px',
           fontFamily: undefined,
+          fontWeight: 400,
           cssClass: '',
           padding: {
             left: 5,
@@ -422,6 +425,7 @@ export default class Options {
               show: true,
               fontSize: '16px',
               fontFamily: undefined,
+              fontWeight: 600,
               color: undefined,
               offsetY: 0,
               formatter(val) {
@@ -432,6 +436,7 @@ export default class Options {
               show: true,
               fontSize: '14px',
               fontFamily: undefined,
+              fontWeight: 400,
               color: undefined,
               offsetY: 16,
               formatter(val) {
@@ -442,6 +447,7 @@ export default class Options {
               show: false,
               label: 'Total',
               fontSize: '16px',
+              fontWeight: 600,
               fontFamily: undefined,
               color: undefined,
               formatter(w) {
@@ -474,6 +480,7 @@ export default class Options {
                 show: true,
                 fontSize: '16px',
                 fontFamily: undefined,
+                fontWeight: 600,
                 color: undefined,
                 offsetY: -10,
                 formatter(val) {
@@ -484,6 +491,7 @@ export default class Options {
                 show: true,
                 fontSize: '20px',
                 fontFamily: undefined,
+                fontWeight: 400,
                 color: undefined,
                 offsetY: 10,
                 formatter(val) {
@@ -495,6 +503,7 @@ export default class Options {
                 showAlways: false,
                 label: 'Total',
                 fontSize: '16px',
+                fontWeight: 400,
                 fontFamily: undefined,
                 color: undefined,
                 formatter(w) {
@@ -531,7 +540,7 @@ export default class Options {
         style: {
           fontSize: '12px',
           fontFamily: undefined,
-          fontWeight: 'bold',
+          fontWeight: 600,
           colors: undefined
         },
         background: {
@@ -622,6 +631,7 @@ export default class Options {
         inverseOrder: false,
         fontSize: '12px',
         fontFamily: undefined,
+        fontWeight: 400,
         width: undefined,
         height: undefined,
         formatter: undefined,
@@ -720,7 +730,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '14px',
-          fontWeight: 'bold',
+          fontWeight: 900,
           fontFamily: undefined,
           color: undefined
         }
@@ -734,7 +744,7 @@ export default class Options {
         floating: false,
         style: {
           fontSize: '12px',
-          fontWeight: 'normal',
+          fontWeight: 400,
           fontFamily: undefined,
           color: undefined
         }

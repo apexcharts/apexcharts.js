@@ -316,6 +316,7 @@ type AnnotationStyle = {
   background?: string
   color?: string
   fontFamily?: string
+  fontWeight?: string | number
   fontSize?: string
   cssClass?: string
   padding?: {
@@ -478,6 +479,7 @@ type ApexPlotOptions = {
           show?: boolean
           fontSize?: string
           fontFamily?: string
+          fontWeight?: string | number
           color?: string
           offsetY?: number,
           formatter?(val: string): string
@@ -486,6 +488,7 @@ type ApexPlotOptions = {
           show?: boolean
           fontSize?: string
           fontFamily?: string
+          fontWeight?: string | number
           color?: string
           offsetY?: number
           formatter?(val: string): string
@@ -494,6 +497,7 @@ type ApexPlotOptions = {
           show?: boolean
           showAlways?: boolean
           fontFamily?: string
+          fontWeight?: string | number
           fontSize?: string
           label?: string
           color?: string
@@ -548,6 +552,7 @@ type ApexPlotOptions = {
       name?: {
         show?: boolean
         fontFamily?: string
+        fontWeight?: string | number
         fontSize?: string
         color?: string
         offsetY?: number
@@ -556,6 +561,7 @@ type ApexPlotOptions = {
         show?: boolean
         fontFamily?: string
         fontSize?: string
+        fontWeight?: string | number
         color?: string
         offsetY?: number
         formatter?(val: number): string
@@ -565,6 +571,7 @@ type ApexPlotOptions = {
         label?: string
         color?: string
         fontFamily?: string
+        fontWeight?: string | number
         fontSize?: string
         formatter?(opts: any): string
       }
@@ -614,6 +621,7 @@ type ApexLegend = {
   horizontalAlign?: 'left' | 'center' | 'right'
   fontSize?: string
   fontFamily?: string
+  fontWeight?: string | number
   width?: number
   height?: number
   offsetX?: number

@@ -228,7 +228,7 @@ class Radial extends Pie {
       size: hollowRadius,
       centerX: opts.centerX,
       centerY: opts.centerY,
-      fill: hollowFillID
+      fill: hollowFillID ? hollowFillID : 'transparent'
     })
 
     if (w.config.plotOptions.radialBar.hollow.dropShadow.enabled) {
