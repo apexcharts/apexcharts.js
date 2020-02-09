@@ -54,6 +54,7 @@ export default class Helpers {
         display: inline-block;	
         cursor: pointer;	
         margin-right: 3px;	
+        border-style: solid;
       }	
       	
       .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{	

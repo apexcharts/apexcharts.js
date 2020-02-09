@@ -69,7 +69,7 @@ export default class Helpers {
       }
     }
 
-    return lgRect
+    return this.dCtx.lgRect
   }
 
   getLargestStringFromMultiArr(val, arr) {
