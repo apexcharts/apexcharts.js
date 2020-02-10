@@ -149,9 +149,9 @@ export default class Animations {
       w.config.chart.animations.dynamicAnimation.enabled &&
       w.globals.dataChanged
     ) {
-      delayFactor = 0
+      // disabled due to this bug - https://github.com/apexcharts/vue-apexcharts/issues/75
+      // delayFactor = 0
     }
-
     me.morphSVG(
       el,
       realIndex,
@@ -202,11 +202,9 @@ export default class Animations {
       pathFrom.indexOf('NaN') > -1
     ) {
       pathFrom = `M 0 ${w.globals.gridHeight}`
-      speed = 1
     }
     if (pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
       pathTo = `M 0 ${w.globals.gridHeight}`
-      speed = 1
     }
     if (!w.globals.shouldAnimate) {
       speed = 1

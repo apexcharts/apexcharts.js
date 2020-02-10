@@ -285,14 +285,14 @@ class Graphics {
       pathFrom,
       pathTo,
       fill,
-      strokeWidth
+      strokeWidth,
+      delay: animationDelay
     }
 
     if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
       anim.animatePathsGradually({
         ...defaultAnimateOpts,
-        speed: initialSpeed,
-        delay: animationDelay
+        speed: initialSpeed
       })
     } else {
       if (w.globals.resized || !w.globals.dataChanged) {
