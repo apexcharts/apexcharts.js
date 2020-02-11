@@ -1,6 +1,7 @@
 import Data from '../modules/Data'
 import AxesUtils from '../modules/axes/AxesUtils'
 import Series from '../modules/Series'
+import Utils from '../utils/Utils'
 
 class Exports {
   constructor(ctx) {
@@ -8,8 +9,33 @@ class Exports {
     this.w = ctx.w
   }
 
+  fixSvgStringForIe11(svgData) {
+    // IE11 generates broken SVG that we have to fix by using regex
+    if (!Utils.isIE11()) {
+      // not IE11 - noop
+      return svgData
+    }
+
+    // replace second occurence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
+    var nXmlnsSeen = 0;
+    var result = svgData.replace(/xmlns="http:\/\/www.w3.org\/2000\/svg"/g, function (match) {
+      nXmlnsSeen++
+      return nXmlnsSeen === 2
+        ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs"'
+        : match
+    })
+
+    // remove the invalid empty namespace declarations
+    result = result.replace(/xmlns:NS\d+=""/g, "")
+    // remove these broken namespaces from attributes
+    result = result.replace(/NS\d+:(\w+:\w+=")/g, "$1")
+
+    return result
+  }
+
   getSvgString() {
-    return this.w.globals.dom.Paper.svg()
+    const svgString = this.w.globals.dom.Paper.svg()
+    return this.fixSvgStringForIe11(svgString)
   }
 
   cleanup() {
@@ -66,24 +92,40 @@ class Exports {
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      let DOMURL = window.URL || window.webkitURL || window
-
-      let img = new Image()
-      img.crossOrigin = 'anonymous'
-
       const svgData = this.getSvgString()
-      const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
 
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0)
-        DOMURL.revokeObjectURL(svgUrl)
+      if (window.canvg && Utils.isIE11()) {
+        // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
+        // without ignoreClear we lose our background color; without ignoreDimensions some grid lines become invisible
+        let v = window.canvg.Canvg.fromString(ctx, svgData, { ignoreClear: true, ignoreDimensions: true })
+        // render the svg to canvas
+        v.start()
 
-        let imgURI = canvas.toDataURL('image/png')
+        let blob = canvas.msToBlob()
+        // dispose - missing this will cause a memory leak
+        v.stop();
 
-        resolve(imgURI)
+        resolve({ blob })
+      } else {
+        const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
+        let img = new Image()
+        img.crossOrigin = 'anonymous'
+
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0)
+
+          if (canvas.msToBlob) {
+            // IE and Edge can't navigate to data urls, so we return the blob instead
+            let blob = canvas.msToBlob()
+            resolve({ blob })
+          } else {
+            let imgURI = canvas.toDataURL('image/png')
+            resolve({ imgURI })
+          }
+        }
+
+        img.src = svgUrl
       }
-
-      img.src = svgUrl
     })
   }
 
@@ -92,8 +134,12 @@ class Exports {
   }
 
   exportToPng() {
-    this.dataURI().then((imgURI) => {
-      this.triggerDownload(imgURI, '.png')
+    this.dataURI().then(({ imgURI, blob }) => {
+      if (blob) {
+        navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
+      } else {
+        this.triggerDownload(imgURI, '.png')
+      }
     })
   }
 
