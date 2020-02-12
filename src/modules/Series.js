@@ -82,7 +82,7 @@ export default class Series {
     }
   }
 
-  resetSeries(shouldUpdateChart = true) {
+  resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
     const w = this.w
 
     let series = w.globals.initialSeries.slice()
@@ -95,8 +95,10 @@ export default class Series {
     w.globals.previousPaths = []
 
     if (shouldUpdateChart) {
-      w.globals.zoomed = false
-      this.ctx.updateHelpers.revertDefaultAxisMinMax()
+      if (shouldResetZoom) {
+        w.globals.zoomed = false
+        this.ctx.updateHelpers.revertDefaultAxisMinMax()
+      }
       this.ctx.updateHelpers._updateSeries(
         series,
         w.config.chart.animations.dynamicAnimation.enabled
