@@ -89,7 +89,7 @@ export default class Helpers {
           this.lineCtx.appendPathFrom = false
           pathFromArea = w.globals.previousPaths[pp].paths[0].d
 
-          if (w.config.stroke.show) {
+          if (w.config.stroke.show && w.globals.previousPaths[pp].paths[1]) {
             pathFromLine = w.globals.previousPaths[pp].paths[1].d
           }
         }

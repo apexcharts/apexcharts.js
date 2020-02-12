@@ -17,18 +17,21 @@ class Exports {
     }
 
     // replace second occurence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
-    var nXmlnsSeen = 0;
-    var result = svgData.replace(/xmlns="http:\/\/www.w3.org\/2000\/svg"/g, function (match) {
-      nXmlnsSeen++
-      return nXmlnsSeen === 2
-        ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs"'
-        : match
-    })
+    let nXmlnsSeen = 0
+    let result = svgData.replace(
+      /xmlns="http:\/\/www.w3.org\/2000\/svg"/g,
+      (match) => {
+        nXmlnsSeen++
+        return nXmlnsSeen === 2
+          ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs"'
+          : match
+      }
+    )
 
     // remove the invalid empty namespace declarations
-    result = result.replace(/xmlns:NS\d+=""/g, "")
+    result = result.replace(/xmlns:NS\d+=""/g, '')
     // remove these broken namespaces from attributes
-    result = result.replace(/NS\d+:(\w+:\w+=")/g, "$1")
+    result = result.replace(/NS\d+:(\w+:\w+=")/g, '$1')
 
     return result
   }
@@ -97,13 +100,16 @@ class Exports {
       if (window.canvg && Utils.isIE11()) {
         // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
         // without ignoreClear we lose our background color; without ignoreDimensions some grid lines become invisible
-        let v = window.canvg.Canvg.fromString(ctx, svgData, { ignoreClear: true, ignoreDimensions: true })
+        let v = window.canvg.Canvg.fromString(ctx, svgData, {
+          ignoreClear: true,
+          ignoreDimensions: true
+        })
         // render the svg to canvas
         v.start()
 
         let blob = canvas.msToBlob()
         // dispose - missing this will cause a memory leak
-        v.stop();
+        v.stop()
 
         resolve({ blob })
       } else {

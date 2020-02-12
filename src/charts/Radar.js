@@ -50,10 +50,10 @@ class Radar {
       w.config.xaxis.labels.style.fontSize
     )
 
+    this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
+
     this.size =
-      this.defaultSize / 2.1 -
-      w.config.stroke.width -
-      w.config.chart.dropShadow.blur
+      this.defaultSize / 2.1 - this.strokeWidth - w.config.chart.dropShadow.blur
 
     if (w.config.xaxis.labels.show) {
       this.size = this.size - labelWidth.width / 1.75
@@ -174,9 +174,9 @@ class Radar {
           ...defaultRenderedPathOptions,
           pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
           pathTo: paths.linePathsTo[p],
-          strokeWidth: Array.isArray(w.config.stroke.width)
-            ? w.config.stroke.width[i]
-            : w.config.stroke.width,
+          strokeWidth: Array.isArray(this.strokeWidth)
+            ? this.strokeWidth[i]
+            : this.strokeWidth,
           fill: 'none',
           drawShadow: false
         })

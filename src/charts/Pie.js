@@ -217,7 +217,7 @@ class Pie {
           this.lineColorArr instanceof Array
             ? this.lineColorArr[i]
             : this.lineColorArr,
-        strokeWidth: this.strokeWidth,
+        strokeWidth: 0,
         fill: pathFill,
         fillOpacity: w.config.fill.opacity,
         classes: `apexcharts-pie-area apexcharts-${w.config.chart.type}-slice-${i}`
@@ -467,9 +467,11 @@ class Pie {
             w.config.chart.type === 'pie' ||
             w.config.chart.type === 'donut'
           ) {
-            this.animate(300).attr({
-              'stroke-width': w.config.stroke.width
-            })
+            this.animate(w.config.chart.animations.dynamicAnimation.speed).attr(
+              {
+                'stroke-width': me.strokeWidth
+              }
+            )
           }
 
           if (opts.i === w.config.series.length - 1) {
@@ -513,7 +515,8 @@ class Pie {
       el.node.setAttribute('data:pathOrig', path)
 
       el.attr({
-        d: path
+        d: path,
+        'stroke-width': me.strokeWidth
       })
     }
   }

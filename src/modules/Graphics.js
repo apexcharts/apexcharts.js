@@ -412,7 +412,7 @@ class Graphics {
       } else if (style === 'horizontal') {
         g.from(0, 1).to(1, 1)
       } else if (style === 'diagonal2') {
-        g.from(0, 1).to(2, 2)
+        g.from(1, 0).to(0, 1)
       }
     } else {
       let offx = w.globals.gridWidth / 2

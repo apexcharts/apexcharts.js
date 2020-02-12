@@ -23,7 +23,9 @@ export default class HeatMap {
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
 
     this.rectRadius = this.w.config.plotOptions.heatmap.radius
-    this.strokeWidth = this.w.config.stroke.width
+    this.strokeWidth = this.w.config.stroke.show
+      ? this.w.config.stroke.width
+      : 0
   }
 
   draw(series) {
