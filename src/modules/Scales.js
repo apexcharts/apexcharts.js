@@ -4,16 +4,17 @@ export default class Range {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
-
-    this.isBarHorizontal = !!(
-      this.w.config.chart.type === 'bar' &&
-      this.w.config.plotOptions.bar.horizontal
-    )
   }
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale(yMin, yMax, index = 0, ticks = 10) {
+  niceScale(yMin, yMax, diff, index = 0, ticks = 10, NO_MIN_MAX_PROVIDED) {
+    const w = this.w
+
+    if (ticks === 'dataPoints') {
+      ticks = w.globals.dataPoints - 1
+    }
+
     if (
       (yMin === Number.MIN_VALUE && yMax === 0) ||
       (!Utils.isNumber(yMin) && !Utils.isNumber(yMax)) ||
@@ -29,14 +30,14 @@ export default class Range {
     if (yMin > yMax) {
       // if somehow due to some wrong config, user sent max less than min,
       // adjust the min/max again
-      console.warn('yaxis.min cannot be greater than yaxis.max')
+      console.warn('axis.min cannot be greater than axis.max')
       yMax = yMin + 0.1
     } else if (yMin === yMax) {
       // If yMin and yMax are identical, then
       // adjust the yMin and yMax values to actually
       // make a graph. Also avoids division by zero errors.
-      yMin = yMin === 0 ? 0 : yMin - 0.1 // some small value
-      yMax = yMax === 0 ? 2 : yMax + 0.1 // some small value
+      yMin = yMin === 0 ? 0 : yMin - 0.5 // some small value
+      yMax = yMax === 0 ? 2 : yMax + 0.5 // some small value
     }
 
     // Calculate Min amd Max graphical labels and graph
@@ -50,7 +51,19 @@ export default class Range {
     let result = []
 
     // Determine Range
-    let range = yMax - yMin
+    let range = Math.abs(yMax - yMin)
+
+    if (
+      range < 1 &&
+      NO_MIN_MAX_PROVIDED &&
+      (w.config.chart.type === 'candlestick' ||
+        w.config.series[index].type === 'candlestick' ||
+        w.globals.isRangeData)
+    ) {
+      /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
+      yMax = yMax * 1.01
+    }
+
     let tiks = ticks + 1
     // Adjust ticks if needed
     if (tiks < 2) {
@@ -65,7 +78,10 @@ export default class Range {
 
     let mag = Math.floor(Utils.log10(tempStep))
     let magPow = Math.pow(10, mag)
-    let magMsd = parseInt(tempStep / magPow)
+    let magMsd = Math.round(tempStep / magPow)
+    if (magMsd < 1) {
+      magMsd = 1
+    }
     let stepSize = magMsd * magPow
 
     // build Y label array.
@@ -74,20 +90,16 @@ export default class Range {
     let ub = stepSize * Math.ceil(yMax / stepSize)
     // Build array
     let val = lb
-    while (1) {
-      result.push(val)
-      val += stepSize
-      if (val > ub) {
-        break
-      }
-    }
 
-    // TODO: need to remove this condition below which makes this function tightly coupled with w.
-    if (
-      (this.w.config.yaxis[index].max === undefined &&
-        this.w.config.yaxis[index].min === undefined) ||
-      this.w.config.yaxis[index].forceNiceScale
-    ) {
+    if (NO_MIN_MAX_PROVIDED && range > 2) {
+      while (1) {
+        result.push(val)
+        val += stepSize
+        if (val > ub) {
+          break
+        }
+      }
+
       return {
         result,
         niceMin: result[0],
@@ -98,9 +110,13 @@ export default class Range {
       let v = yMin
       result.push(v)
       let valuesDivider = Math.abs(yMax - yMin) / ticks
-      for (let i = 0; i <= ticks - 1; i++) {
+      for (let i = 0; i <= ticks; i++) {
         v = v + valuesDivider
         result.push(v)
+      }
+
+      if (result[result.length - 2] >= yMax) {
+        result.pop()
       }
 
       return {
@@ -163,7 +179,7 @@ export default class Range {
       }
 
       // calculate adjustment factor
-      var scale = (max - min) / (yMax - yMin)
+      let scale = (max - min) / (yMax - yMin)
 
       const logVal = Math.pow(base, min + scale * (niceNumber - min))
       return (
@@ -186,13 +202,19 @@ export default class Range {
     const gl = this.w.globals
     const cnf = this.w.config
 
-    let y = this.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index]
+    let y = gl.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index]
 
     if (typeof gl.yAxisScale[index] === 'undefined') {
       gl.yAxisScale[index] = []
     }
 
-    if (y.logarithmic) {
+    let diff = Math.abs(maxY - minY)
+
+    if (y.logarithmic && diff <= 5) {
+      gl.invalidLogScale = true
+    }
+
+    if (y.logarithmic && diff > 5) {
       gl.allSeriesCollapsed = false
       gl.yAxisScale[index] = this.logarithmicScale(
         index,
@@ -208,16 +230,46 @@ export default class Range {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
 
-        gl.yAxisScale[index] = this.niceScale(
-          minY,
-          maxY,
-          index,
-          // fix https://github.com/apexcharts/apexcharts.js/issues/397
-          y.tickAmount ? y.tickAmount : maxY < 5 && maxY > 1 ? maxY + 1 : 5
-        )
-        //
+        if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
+          // fix https://github.com/apexcharts/apexcharts.js/issues/492
+          gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount)
+        } else {
+          const noMinMaxProvided =
+            (cnf.yaxis[index].max === undefined &&
+              cnf.yaxis[index].min === undefined) ||
+            cnf.yaxis[index].forceNiceScale
+          gl.yAxisScale[index] = this.niceScale(
+            minY,
+            maxY,
+            diff,
+            index,
+            // fix https://github.com/apexcharts/apexcharts.js/issues/397
+            y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
+            noMinMaxProvided
+          )
+        }
       }
     }
+  }
+
+  setXScale(minX, maxX) {
+    const w = this.w
+    const gl = w.globals
+    const x = w.config.xaxis
+    let diff = Math.abs(maxX - minX)
+    if (maxX === -Number.MAX_VALUE || !Utils.isNumber(maxX)) {
+      // no data in the chart. Either all series collapsed or user passed a blank array
+      gl.xAxisScale = this.linearScale(0, 5, 5)
+    } else {
+      gl.xAxisScale = this.niceScale(
+        minX,
+        maxX,
+        diff,
+        0,
+        x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5
+      )
+    }
+    return gl.xAxisScale
   }
 
   setMultipleYScales() {
@@ -233,10 +285,9 @@ export default class Range {
       let index = i
       cnf.series.forEach((s, si) => {
         // if seriesName matches and that series is not collapsed, we use that scale
-        if (
-          s.name === yaxe.seriesName &&
-          gl.collapsedSeriesIndices.indexOf(si) === -1
-        ) {
+        // fix issue #1215
+        // proceed even if si is in gl.collapsedSeriesIndices
+        if (s.name === yaxe.seriesName) {
           index = si
 
           if (i !== si) {
@@ -282,6 +333,8 @@ export default class Range {
       return a.filter((value) => b.indexOf(value) !== -1)
     }
 
+    gl.yAxisSameScaleIndices = similarIndices
+
     similarIndices.forEach((si, i) => {
       similarIndices.forEach((sj, j) => {
         if (i !== j) {
@@ -293,29 +346,21 @@ export default class Range {
     })
 
     // then, we remove duplicates from the similarScale array
-    let uniqueSimilarIndices = similarIndices.map(function(item) {
-      return item.filter((i, pos) => {
-        return item.indexOf(i) === pos
-      })
+    let uniqueSimilarIndices = similarIndices.map((item) => {
+      return item.filter((i, pos) => item.indexOf(i) === pos)
     })
 
     // sort further to remove whole duplicate arrays later
-    let sortedIndices = uniqueSimilarIndices.map((s) => {
-      return s.sort()
-    })
+    let sortedIndices = uniqueSimilarIndices.map((s) => s.sort())
 
     // remove undefined items
-    similarIndices = similarIndices.filter((s) => {
-      return !!s
-    })
+    similarIndices = similarIndices.filter((s) => !!s)
 
     let indices = sortedIndices.slice()
-    let stringIndices = indices.map((ind) => {
-      return JSON.stringify(ind)
-    })
-    indices = indices.filter((ind, p) => {
-      return stringIndices.indexOf(JSON.stringify(ind)) === p
-    })
+    let stringIndices = indices.map((ind) => JSON.stringify(ind))
+    indices = indices.filter(
+      (ind, p) => stringIndices.indexOf(JSON.stringify(ind)) === p
+    )
 
     let sameScaleMinYArr = []
     let sameScaleMaxYArr = []
@@ -365,6 +410,21 @@ export default class Range {
         let minY = sameScaleMin[si]
         let maxY = sameScaleMax[si]
 
+        if (cnf.chart.stacked) {
+          // for stacked charts, we need to add the values
+          maxY = 0
+
+          s.forEach((ind, k) => {
+            // fix incorrectly adjust y scale issue #1215
+            if (ind.value !== -Number.MAX_VALUE) {
+              maxY += ind.value
+            }
+            if (minY !== Number.MIN_VALUE) {
+              minY += sameScaleMinYArr[si][k].value
+            }
+          })
+        }
+
         s.forEach((ind, k) => {
           if (s[k].key === i) {
             if (cnf.yaxis[i].min !== undefined) {
@@ -389,34 +449,96 @@ export default class Range {
     })
   }
 
-  autoScaleY(ctx, e) {
+  autoScaleY(ctx, yaxis, e) {
     if (!ctx) {
       ctx = this
     }
 
-    let ret = []
+    const w = ctx.w
 
-    ctx.w.config.series.forEach((serie) => {
-      let min, max
-      let first = serie.data.find((x) => x[0] >= e.xaxis.min)
-      let firstValue = first[1]
-      max = min = firstValue
-      serie.data.forEach((data) => {
-        if (data[0] <= e.xaxis.max && data[0] >= e.xaxis.min) {
-          if (data[1] > max && data[1] !== null) max = data[1]
-          if (data[1] < min && data[1] !== null) min = data[1]
+    if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
+      // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
+      // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
+      console.warn('autoScaleYaxis is not supported in a multi-yaxis chart.')
+      return yaxis
+    }
+
+    const seriesX = w.globals.seriesX[0]
+
+    let isStacked = w.config.chart.stacked
+
+    yaxis.forEach((yaxe, yi) => {
+      let firstXIndex = 0
+
+      for (let xi = 0; xi < seriesX.length; xi++) {
+        if (seriesX[xi] >= e.xaxis.min) {
+          firstXIndex = xi
+          break
         }
-      })
+      }
 
-      min *= 0.95
-      max *= 1.05
+      let initialMin = w.globals.minYArr[yi]
+      let initialMax = w.globals.maxYArr[yi]
+      let min, max
 
-      ret.push({
-        min,
-        max
+      let stackedSer = w.globals.stackedSeriesTotals
+
+      w.globals.series.forEach((serie, sI) => {
+        let firstValue = serie[firstXIndex]
+
+        if (isStacked) {
+          firstValue = stackedSer[firstXIndex]
+          min = max = firstValue
+
+          stackedSer.forEach((y, yI) => {
+            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+              if (y > max && y !== null) max = y
+              if (serie[yI] < min && serie[yI] !== null) min = serie[yI]
+            }
+          })
+        } else {
+          min = max = firstValue
+
+          serie.forEach((y, yI) => {
+            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+              let valMin = y
+              let valMax = y
+              w.globals.series.forEach((wS, wSI) => {
+                if (y !== null) {
+                  valMin = Math.min(wS[yI], valMin)
+                  valMax = Math.max(wS[yI], valMax)
+                }
+              })
+              if (valMax > max && valMax !== null) max = valMax
+              if (valMin < min && valMin !== null) min = valMin
+            }
+          })
+        }
+
+        if (min === undefined && max === undefined) {
+          min = initialMin
+          max = initialMax
+        }
+        min *= min < 0 ? 1.1 : 0.9
+        max *= max < 0 ? 0.9 : 1.1
+
+        if (max < 0 && max < initialMax) {
+          max = initialMax
+        }
+        if (min < 0 && min > initialMin) {
+          min = initialMin
+        }
+
+        if (yaxis.length > 1) {
+          yaxis[sI].min = yaxe.min === undefined ? min : yaxe.min
+          yaxis[sI].max = yaxe.max === undefined ? max : yaxe.max
+        } else {
+          yaxis[0].min = yaxe.min === undefined ? min : yaxe.min
+          yaxis[0].max = yaxe.max === undefined ? max : yaxe.max
+        }
       })
     })
 
-    return ret
+    return yaxis
   }
 }

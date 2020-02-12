@@ -1,18 +1,16 @@
 <!DOCTYPE html>
-
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Syncing charts</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Syncing charts</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #wrapper {
+    <style>
+      
+        #wrapper {
       padding-top: 20px;
       padding-left: 10px;
       background: #fff;
@@ -21,185 +19,198 @@
       max-width: 650px;
       margin: 35px auto;
     }
-  </style>
-</head>
+      
+    </style>
 
-<body>
-  <div id="wrapper">
-    <div id="chart-line">
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-    </div>
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
 
-    <div id="chart-line2">
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
-    </div>
-
-    <div id="chart-area">
-
-      </div>
-  </div>
-
-
-
-  <script src="../../../dist/apexcharts.js"></script>
-
-  <script>
-
-    // The global window.Apex variable below can be used to set common options for all charts on the page
-    Apex = {
-      chart: {
-        height: 160,
+    <script>
+  // The global window.Apex variable below can be used to set common options for all charts on the page
+  Apex = {
+    chart: {
+      height: 160,
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'straight'
+    },
+    toolbar: {
+      tools: {
+        selection: false
+      }
+    },
+    markers: {
+      size: 6,
+      hover: {
+        size: 10
+      }
+    },
+    tooltip: {
+      followCursor: false,
+      theme: 'dark',
+      x: {
+        show: false
       },
-      dataLabels: {
-        enabled: false
+      marker: {
+        show: false
       },
-      stroke: {
-        curve: 'straight'
-      },
-      toolbar: {
-        tools: {
-          selection: false
-        }
-      },
-      markers: {
-        size: 6,
-        hover: {
-          size: 10
-        }
-      },
-      tooltip: {
-        followCursor: false,
-        theme: 'dark',
-        x: {
-          show: false
-        },
-        marker: {
-          show: false
-        },
-        y: {
-          title: {
-            formatter: function() {
-              return ''
-            }
+      y: {
+        title: {
+          formatter: function() {
+            return ''
           }
         }
-      },
-      grid: {
-        clipMarkers: false
-      },
-      yaxis: {
-        tickAmount: 2
-      },
-      xaxis: {
-        type: 'datetime'
-      },
-    }
-
-    var optionsLine1 = {
-      chart: {
-        id: 'fb',
-        group: 'social',
-        type: 'line',
-      },
-      colors: ['#008FFB'],
-      series: [{
-        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-          min: 10,
-          max: 60
-        })
-      }],
-      yaxis: {
-        labels: {
-          minWidth: 40
-        }
       }
+    },
+    grid: {
+      clipMarkers: false
+    },
+    yaxis: {
+      tickAmount: 2
+    },
+    xaxis: {
+      type: 'datetime'
+    },
+  }
+  
+  /*
+    // this function will generate output in this format
+    // data = [
+        [timestamp, 23],
+        [timestamp, 33],
+        [timestamp, 12]
+        ...
+    ]
+  */
+  function generateDayWiseTimeSeries(baseval, count, yrange) {
+    var i = 0;
+    var series = [];
+    while (i < count) {
+      var x = baseval;
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+  
+      series.push([x, y]);
+      baseval += 86400000;
+      i++;
     }
-
-    var chartLine1 = new ApexCharts(
-      document.querySelector("#chart-line"),
-      optionsLine1
-    );
-
-    chartLine1.render();
-
-    var optionsline2 = {
-      chart: {
-        id: 'tw',
-        group: 'social',
-        type: 'line',
-      },
-      colors: ['#546E7A'],
-      series: [{
-        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-          min: 10,
-          max: 30
-        })
-      }],
-      yaxis: {
-        labels: {
-          minWidth: 40
-        }
-      }
-    }
-
-    var chartline2 = new ApexCharts(
-      document.querySelector("#chart-line2"),
-      optionsline2
-    );
-
-    chartline2.render();
-
-
-    var optionsArea = {
-      chart: {
-        id: 'yt',
-        group: 'social',
-        type: 'area'        
-      },
-      colors: ['#00E396'],
-      series: [{
-        data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-          min: 10,
-          max: 60
-        })
-      }],
-      yaxis: {
-        labels: {
-          minWidth: 40
-        }
-      }
-    }
-
-    var chartArea = new ApexCharts(
-      document.querySelector("#chart-area"),
-      optionsArea
-    );
-
-    chartArea.render();
-
-    /*
-      // this function will generate output in this format
-      // data = [
-          [timestamp, 23],
-          [timestamp, 33],
-          [timestamp, 12]
-          ...
-      ]
-    */
-    function generateDayWiseTimeSeries(baseval, count, yrange) {
-      var i = 0;
-      var series = [];
-      while (i < count) {
-        var x = baseval;
-        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-
-        series.push([x, y]);
-        baseval += 86400000;
-        i++;
-      }
-      return series;
-    }
+    return series;
+  }
   </script>
-</body>
+  </head>
 
+  <body>
+     <div id="wrapper">
+        <div id="chart-line"></div>
+        <div id="chart-line2"></div>
+        <div id="chart-area"></div>
+      </div>
+
+    <script>
+      
+        var options = {
+          series: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 60
+          })
+        }],
+          chart: {
+          id: 'fb',
+          group: 'social',
+          type: 'line',
+          height: 160
+        },
+        colors: ['#008FFB'],
+        yaxis: {
+          labels: {
+            minWidth: 40
+          }
+        }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart-line"), options);
+        chart.render();
+      
+        var optionsLine2 = {
+          series: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 30
+          })
+        }],
+          chart: {
+          id: 'tw',
+          group: 'social',
+          type: 'line',
+          height: 160
+        },
+        colors: ['#546E7A'],
+        yaxis: {
+          labels: {
+            minWidth: 40
+          }
+        }
+        };
+
+        var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsLine2);
+        chartLine2.render();
+      
+        var optionsArea = {
+          series: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 60
+          })
+        }],
+          chart: {
+          id: 'yt',
+          group: 'social',
+          type: 'area',
+          height: 160
+        },
+        colors: ['#00E396'],
+        yaxis: {
+          labels: {
+            minWidth: 40
+          }
+        }
+        };
+
+        var chartArea = new ApexCharts(document.querySelector("#chart-area"), optionsArea);
+        chartArea.render();
+      
+      
+    </script>
+
+    
+  </body>
 </html>

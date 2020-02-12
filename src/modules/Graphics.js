@@ -25,10 +25,10 @@ class Graphics {
   ) {
     let w = this.w
     let line = w.globals.dom.Paper.line().attr({
-      x1: x1,
-      y1: y1,
-      x2: x2,
-      y2: y2,
+      x1,
+      y1,
+      x2,
+      y2,
       stroke: lineColor,
       'stroke-dasharray': dashArray,
       'stroke-width': strokeWidth
@@ -60,7 +60,7 @@ class Graphics {
       rx: radius,
       ry: radius,
       fill: color,
-      opacity: opacity,
+      opacity,
       'stroke-width': strokeWidth !== null ? strokeWidth : 0,
       stroke: strokeColor !== null ? strokeColor : 'none',
       'stroke-dasharray': strokeDashArray
@@ -72,8 +72,8 @@ class Graphics {
   drawPolygon(polygonString, stroke = '#e1e1e1', fill = 'none') {
     const w = this.w
     const polygon = w.globals.dom.Paper.polygon(polygonString).attr({
-      fill: fill,
-      stroke: stroke
+      fill,
+      stroke
     })
 
     return polygon
@@ -110,9 +110,9 @@ class Graphics {
       d = `M 0 ${w.globals.gridHeight}`
     }
     let p = w.globals.dom.Paper.path(d).attr({
-      fill: fill,
+      fill,
       'fill-opacity': fillOpacity,
-      stroke: stroke,
+      stroke,
       'stroke-opacity': strokeOpacity,
       'stroke-linecap': strokeLinecap,
       'stroke-width': strokeWidth,
@@ -186,7 +186,6 @@ class Graphics {
    * @return {object} svg.js path object
    **/
   renderPaths({
-    i,
     j,
     realIndex,
     pathFrom,
@@ -199,9 +198,9 @@ class Graphics {
     initialSpeed,
     dataChangeSpeed,
     className,
-    id,
     shouldClipToGrid = true,
-    bindEventsOnPaths = true
+    bindEventsOnPaths = true,
+    drawShadow = true
   }) {
     let w = this.w
     const filters = new Filters(this.ctx)
@@ -221,7 +220,7 @@ class Graphics {
       d = pathFrom
     } else {
       d = pathTo
-      this.w.globals.animationEnded = true
+      w.globals.animationEnded = true
     }
 
     let strokeDashArrayOpt = w.config.stroke.dashArray
@@ -243,7 +242,6 @@ class Graphics {
       strokeDashArray
     })
 
-    el.attr('id', `${id}-${i}`)
     el.attr('index', realIndex)
 
     if (shouldClipToGrid) {
@@ -255,20 +253,16 @@ class Graphics {
     // const defaultFilter = el.filterer
 
     if (w.config.states.normal.filter.type !== 'none') {
-      filters.getDefaultFilter(
-        el,
-        w.config.states.normal.filter.type,
-        w.config.states.normal.filter.value
-      )
+      filters.getDefaultFilter(el, realIndex)
     } else {
-      if (w.config.chart.dropShadow.enabled) {
+      if (w.config.chart.dropShadow.enabled && drawShadow) {
         if (
-          !w.config.chart.dropShadow.enabledSeries ||
-          (w.config.chart.dropShadow.enabledSeries &&
-            w.config.chart.dropShadow.enabledSeries.indexOf(realIndex) !== -1)
+          !w.config.chart.dropShadow.enabledOnSeries ||
+          (w.config.chart.dropShadow.enabledOnSeries &&
+            w.config.chart.dropShadow.enabledOnSeries.indexOf(realIndex) !== -1)
         ) {
           const shadow = w.config.chart.dropShadow
-          filters.dropShadow(el, shadow)
+          filters.dropShadow(el, shadow, realIndex)
         }
       }
     }
@@ -285,18 +279,20 @@ class Graphics {
     })
 
     const defaultAnimateOpts = {
-      el: el,
+      el,
       j,
-      pathFrom: pathFrom,
-      pathTo: pathTo,
-      strokeWidth
+      realIndex,
+      pathFrom,
+      pathTo,
+      fill,
+      strokeWidth,
+      delay: animationDelay
     }
 
     if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
       anim.animatePathsGradually({
         ...defaultAnimateOpts,
-        speed: initialSpeed,
-        delay: animationDelay
+        speed: initialSpeed
       })
     } else {
       if (w.globals.resized || !w.globals.dataChanged) {
@@ -324,7 +320,7 @@ class Graphics {
   ) {
     let w = this.w
 
-    let p = w.globals.dom.Paper.pattern(width, height, function(add) {
+    let p = w.globals.dom.Paper.pattern(width, height, (add) => {
       if (style === 'horizontalLines') {
         add
           .line(0, 0, height, 0)
@@ -389,9 +385,7 @@ class Graphics {
     )
 
     if (colorStops === null || colorStops.length === 0) {
-      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function(
-        stop
-      ) {
+      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', (stop) => {
         stop.at(stop1, gfrom, opacityFrom)
         stop.at(stop2, gto, opacityTo)
         stop.at(stop3, gto, opacityTo)
@@ -400,11 +394,11 @@ class Graphics {
         }
       })
     } else {
-      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function(
-        stop
-      ) {
-        let stops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops
-        stops.forEach((s) => {
+      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', (stop) => {
+        let gradientStops = Array.isArray(colorStops[i])
+          ? colorStops[i]
+          : colorStops
+        gradientStops.forEach((s) => {
           stop.at(s.offset / 100, s.color, s.opacity)
         })
       })
@@ -418,7 +412,7 @@ class Graphics {
       } else if (style === 'horizontal') {
         g.from(0, 1).to(1, 1)
       } else if (style === 'diagonal2') {
-        g.from(0, 1).to(2, 2)
+        g.from(1, 0).to(0, 1)
       }
     } else {
       let offx = w.globals.gridWidth / 2
@@ -445,64 +439,62 @@ class Graphics {
     return g
   }
 
-  drawText(opts) {
+  drawText({
+    x,
+    y,
+    text,
+    textAnchor,
+    fontSize,
+    fontFamily,
+    fontWeight,
+    foreColor,
+    opacity,
+    cssClass = '',
+    isPlainText = true
+  }) {
     let w = this.w
 
-    let {
-      x,
-      y,
-      text,
-      textAnchor,
-      fontSize,
-      fontFamily,
-      foreColor,
-      opacity
-    } = opts
+    if (typeof text === 'undefined') text = ''
 
     if (!textAnchor) {
       textAnchor = 'start'
     }
 
-    if (!foreColor) {
+    if (!foreColor || !foreColor.length) {
       foreColor = w.config.chart.foreColor
     }
     fontFamily = fontFamily || w.config.chart.fontFamily
+    fontWeight = fontWeight || 'regular'
 
     let elText
     if (Array.isArray(text)) {
       elText = w.globals.dom.Paper.text((add) => {
         for (let i = 0; i < text.length; i++) {
-          add.tspan(text[i])
+          i === 0 ? add.tspan(text[i]) : add.tspan(text[i]).newLine()
         }
       })
     } else {
-      elText = w.globals.dom.Paper.plain(text)
+      elText = isPlainText
+        ? w.globals.dom.Paper.plain(text)
+        : w.globals.dom.Paper.text((add) => add.tspan(text))
     }
 
     elText.attr({
-      x: x,
-      y: y,
+      x,
+      y,
       'text-anchor': textAnchor,
-      'dominant-baseline': 'central',
+      'dominant-baseline': 'auto',
       'font-size': fontSize,
       'font-family': fontFamily,
+      'font-weight': fontWeight,
       fill: foreColor,
-      class: 'apexcharts-text ' + opts.cssClass ? opts.cssClass : ''
+      class: 'apexcharts-text ' + cssClass
     })
 
     elText.node.style.fontFamily = fontFamily
     elText.node.style.opacity = opacity
 
     return elText
-  }
-
-  addTspan(textEl, text, fontFamily) {
-    const tspan = textEl.tspan(text)
-
-    if (!fontFamily) {
-      fontFamily = this.w.config.chart.fontFamily
-    }
-    tspan.node.style.fontFamily = fontFamily
   }
 
   drawMarker(x, y, opts) {
@@ -514,7 +506,7 @@ class Graphics {
     if (opts.shape === 'square') {
       let radius = opts.pRadius === undefined ? size / 2 : opts.pRadius
 
-      if (y === null) {
+      if (y === null || !size) {
         size = 0
         radius = 0
       }
@@ -537,7 +529,7 @@ class Graphics {
       })
 
       elPoint = p
-    } else if (opts.shape === 'circle') {
+    } else if (opts.shape === 'circle' || !opts.shape) {
       if (!Utils.isNumber(y)) {
         size = 0
         y = 0
@@ -564,8 +556,8 @@ class Graphics {
     let w = this.w
     const filters = new Filters(this.ctx)
 
-    const i = parseInt(path.node.getAttribute('index'))
-    const j = parseInt(path.node.getAttribute('j'))
+    const i = parseInt(path.node.getAttribute('index'), 10)
+    const j = parseInt(path.node.getAttribute('j'), 10)
 
     if (typeof w.config.chart.events.dataPointMouseEnter === 'function') {
       w.config.chart.events.dataPointMouseEnter(e, this.ctx, {
@@ -574,7 +566,7 @@ class Graphics {
         w
       })
     }
-    this.ctx.fireEvent('dataPointMouseEnter', [
+    this.ctx.events.fireEvent('dataPointMouseEnter', [
       e,
       this.ctx,
       { seriesIndex: i, dataPointIndex: j, w }
@@ -592,7 +584,7 @@ class Graphics {
         !w.globals.isTouchDevice
       ) {
         let hoverFilter = w.config.states.hover.filter
-        filters.applyFilter(path, hoverFilter.type, hoverFilter.value)
+        filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
       }
     }
   }
@@ -601,8 +593,8 @@ class Graphics {
     let w = this.w
     const filters = new Filters(this.ctx)
 
-    const i = parseInt(path.node.getAttribute('index'))
-    const j = parseInt(path.node.getAttribute('j'))
+    const i = parseInt(path.node.getAttribute('index'), 10)
+    const j = parseInt(path.node.getAttribute('j'), 10)
 
     if (typeof w.config.chart.events.dataPointMouseLeave === 'function') {
       w.config.chart.events.dataPointMouseLeave(e, this.ctx, {
@@ -611,7 +603,7 @@ class Graphics {
         w
       })
     }
-    this.ctx.fireEvent('dataPointMouseLeave', [
+    this.ctx.events.fireEvent('dataPointMouseLeave', [
       e,
       this.ctx,
       { seriesIndex: i, dataPointIndex: j, w }
@@ -624,7 +616,7 @@ class Graphics {
     }
 
     if (w.config.states.hover.filter.type !== 'none') {
-      filters.getDefaultFilter(path)
+      filters.getDefaultFilter(path, i)
     }
   }
 
@@ -632,15 +624,15 @@ class Graphics {
     let w = this.w
     const filters = new Filters(this.ctx)
 
-    const i = parseInt(path.node.getAttribute('index'))
-    const j = parseInt(path.node.getAttribute('j'))
+    const i = parseInt(path.node.getAttribute('index'), 10)
+    const j = parseInt(path.node.getAttribute('j'), 10)
 
     let selected = 'false'
     if (path.node.getAttribute('selected') === 'true') {
       path.node.setAttribute('selected', 'false')
 
       if (w.globals.selectedDataPoints[i].indexOf(j) > -1) {
-        var index = w.globals.selectedDataPoints[i].indexOf(j)
+        let index = w.globals.selectedDataPoints[i].indexOf(j)
         w.globals.selectedDataPoints[i].splice(index, 1)
       }
     } else {
@@ -655,15 +647,14 @@ class Graphics {
           '.apexcharts-series circle, .apexcharts-series rect'
         ).members
 
-        elPaths.forEach((elPath) => {
-          elPath.node.setAttribute('selected', 'false')
-          filters.getDefaultFilter(elPath)
-        })
-
-        elCircles.forEach((circle) => {
-          circle.node.setAttribute('selected', 'false')
-          filters.getDefaultFilter(circle)
-        })
+        const deSelect = (els) => {
+          Array.prototype.forEach.call(els, (el) => {
+            el.node.setAttribute('selected', 'false')
+            filters.getDefaultFilter(el, i)
+          })
+        }
+        deSelect(elPaths)
+        deSelect(elCircles)
       }
 
       path.node.setAttribute('selected', 'true')
@@ -678,11 +669,11 @@ class Graphics {
     if (selected === 'true') {
       let activeFilter = w.config.states.active.filter
       if (activeFilter !== 'none') {
-        filters.applyFilter(path, activeFilter.type, activeFilter.value)
+        filters.applyFilter(path, i, activeFilter.type, activeFilter.value)
       }
     } else {
       if (w.config.states.active.filter.type !== 'none') {
-        filters.getDefaultFilter(path)
+        filters.getDefaultFilter(path, i)
       }
     }
 
@@ -694,20 +685,19 @@ class Graphics {
         w
       })
     }
-    this.ctx.fireEvent('dataPointSelection', [
-      e,
-      this.ctx,
-      {
-        selectedDataPoints: w.globals.selectedDataPoints,
-        seriesIndex: i,
-        dataPointIndex: j,
-        w
-      }
-    ])
 
-    // if (this.w.config.chart.selection.selectedPoints !== undefined) {
-    //   this.w.config.chart.selection.selectedPoints(w.globals.selectedDataPoints)
-    // }
+    if (e) {
+      this.ctx.events.fireEvent('dataPointSelection', [
+        e,
+        this.ctx,
+        {
+          selectedDataPoints: w.globals.selectedDataPoints,
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        }
+      ])
+    }
   }
 
   rotateAroundCenter(el) {
@@ -734,10 +724,10 @@ class Graphics {
     let virtualText = this.drawText({
       x: -200,
       y: -200,
-      text: text,
+      text,
       textAnchor: 'start',
-      fontSize: fontSize,
-      fontFamily: fontFamily,
+      fontSize,
+      fontFamily,
       foreColor: '#fff',
       opacity: 0
     })
@@ -766,18 +756,18 @@ class Graphics {
    * @memberof Graphics
    **/
   placeTextWithEllipsis(textObj, textString, width) {
+    if (typeof textObj.getComputedTextLength !== 'function') return
     textObj.textContent = textString
-
     if (textString.length > 0) {
       // ellipsis is needed
-      if (textObj.getSubStringLength(0, textString.length) >= width) {
+      if (textObj.getComputedTextLength() >= width / 0.8) {
         for (let x = textString.length - 3; x > 0; x -= 3) {
-          if (textObj.getSubStringLength(0, x) <= width) {
+          if (textObj.getSubStringLength(0, x) <= width / 0.8) {
             textObj.textContent = textString.substring(0, x) + '...'
             return
           }
         }
-        textObj.textContent = '...' // can't place at all
+        textObj.textContent = '.' // can't place at all
       }
     }
   }

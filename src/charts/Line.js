@@ -5,6 +5,7 @@ import DataLabels from '../modules/DataLabels'
 import Markers from '../modules/Markers'
 import Scatter from './Scatter'
 import Utils from '../utils/Utils'
+import Helpers from './common/line/Helpers'
 
 /**
  * ApexCharts Line Class responsible for drawing Line / Area Charts.
@@ -29,141 +30,68 @@ class Line {
 
     this.noNegatives = this.w.globals.minX === Number.MAX_VALUE
 
+    this.lineHelpers = new Helpers(this)
+
+    this.prevSeriesY = []
+    this.categoryAxisCorrection = 0
     this.yaxisIndex = 0
   }
 
   draw(series, ptype, seriesIndex) {
     let w = this.w
-
     let graphics = new Graphics(this.ctx)
-    let fill = new Fill(this.ctx)
-
     let type = w.globals.comboCharts ? ptype : w.config.chart.type
-
     let ret = graphics.group({
       class: `apexcharts-${type}-series apexcharts-plot-series`
     })
 
     const coreUtils = new CoreUtils(this.ctx, w)
+    this.yRatio = this.xyRatios.yRatio
+    this.zRatio = this.xyRatios.zRatio
+    this.xRatio = this.xyRatios.xRatio
+    this.baseLineY = this.xyRatios.baseLineY
+
     series = coreUtils.getLogSeries(series)
-
-    let yRatio = this.xyRatios.yRatio
-
-    yRatio = coreUtils.getLogYRatios(yRatio)
-
-    let zRatio = this.xyRatios.zRatio
-    let xRatio = this.xyRatios.xRatio
-    let baseLineY = this.xyRatios.baseLineY
+    this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
     // push all series in an array, so we can draw in reverse order (for stacked charts)
     let allSeries = []
 
-    let prevSeriesY = []
-
-    let categoryAxisCorrection = 0
-
     for (let i = 0; i < series.length; i++) {
-      // width divided into equal parts
+      series = this.lineHelpers.sameValueSeriesFix(i, series)
 
-      if (
-        type === 'line' &&
-        (w.config.fill.type === 'gradient' ||
-          w.config.fill.type[i] === 'gradient')
-      ) {
-        // a small adjustment to allow gradient line to draw correctly for all same values
-        /* #fix https://github.com/apexcharts/apexcharts.js/issues/358 */
-        if (coreUtils.seriesHaveSameValues(i)) {
-          let gSeries = series[i].slice()
-          gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 0.000001
-          series[i] = gSeries
-        }
-      }
-
-      let xDivision = w.globals.gridWidth / w.globals.dataPoints
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
-      if (yRatio.length > 1) {
-        this.yaxisIndex = realIndex
-      }
-
-      this.isReversed =
-        w.config.yaxis[this.yaxisIndex] &&
-        w.config.yaxis[this.yaxisIndex].reversed
+      this._initSerieVariables(series, i, realIndex)
 
       let yArrj = [] // hold y values of current iterating series
       let xArrj = [] // hold x values of current iterating series
 
-      // zeroY is the 0 value in y series which can be used in negative charts
-      let zeroY =
-        w.globals.gridHeight -
-        baseLineY[this.yaxisIndex] -
-        (this.isReversed ? w.globals.gridHeight : 0) +
-        (this.isReversed ? baseLineY[this.yaxisIndex] * 2 : 0)
-
-      let areaBottomY = zeroY
-      if (zeroY > w.globals.gridHeight) {
-        areaBottomY = w.globals.gridHeight
-      }
-
-      categoryAxisCorrection = xDivision / 2
-
-      let x = w.globals.padHorizontal + categoryAxisCorrection
+      let x = w.globals.padHorizontal + this.categoryAxisCorrection
       let y = 1
-      if (w.globals.isXNumeric) {
-        x = (w.globals.seriesX[realIndex][0] - w.globals.minX) / xRatio
-      }
-
-      xArrj.push(x)
-
-      let linePath, areaPath, pathFromLine, pathFromArea
 
       let linePaths = []
       let areaPaths = []
 
-      // el to which series will be drawn
-      let elSeries = graphics.group({
-        class: `apexcharts-series ${Utils.escapeString(
-          w.globals.seriesNames[realIndex]
-        )}`
-      })
+      this.ctx.series.addCollapsedClassToSeries(this.elSeries, realIndex)
 
-      // points
-      let elPointsMain = graphics.group({
-        class: 'apexcharts-series-markers-wrap'
-      })
+      if (w.globals.isXNumeric && w.globals.seriesX.length > 0) {
+        x = (w.globals.seriesX[realIndex][0] - w.globals.minX) / this.xRatio
+      }
 
-      // eldatalabels
-      let elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-datalabels'
-      })
-
-      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
-
-      let longestSeries = series[i].length === w.globals.dataPoints
-      elSeries.attr({
-        'data:longestSeries': longestSeries,
-        rel: i + 1,
-        'data:realIndex': realIndex
-      })
-
-      this.appendPathFrom = true
+      xArrj.push(x)
 
       let pX = x
       let pY
-
       let prevX = pX
-      let prevY = zeroY // w.globals.svgHeight;
-
+      let prevY = this.zeroY
       let lineYPosition = 0
 
       // the first value in the current series is not null or undefined
-      let firstPrevY = this.determineFirstPrevY({
+      let firstPrevY = this.lineHelpers.determineFirstPrevY({
         i,
         series,
-        yRatio: yRatio[this.yaxisIndex],
-        zeroY,
         prevY,
-        prevSeriesY,
         lineYPosition
       })
       prevY = firstPrevY.prevY
@@ -171,259 +99,37 @@ class Line {
       yArrj.push(prevY)
       pY = prevY
 
-      if (series[i][0] === null) {
-        // when the first value itself is null, we need to move the pointer to a location where a null value is not found
-        for (let s = 0; s < series[i].length; s++) {
-          if (series[i][s] !== null) {
-            prevX = xDivision * s
-            prevY = zeroY - series[i][s] / yRatio[this.yaxisIndex]
-            linePath = graphics.move(prevX, prevY)
-            areaPath = graphics.move(prevX, areaBottomY)
-            break
-          }
-        }
-      } else {
-        linePath = graphics.move(prevX, prevY)
-        areaPath =
-          graphics.move(prevX, areaBottomY) + graphics.line(prevX, prevY)
-      }
-
-      pathFromLine = graphics.move(-1, zeroY) + graphics.line(-1, zeroY)
-      pathFromArea = graphics.move(-1, zeroY) + graphics.line(-1, zeroY)
-
-      if (w.globals.previousPaths.length > 0) {
-        const pathFrom = this.checkPreviousPaths({
-          pathFromLine,
-          pathFromArea,
-          realIndex
-        })
-        pathFromLine = pathFrom.pathFromLine
-        pathFromArea = pathFrom.pathFromArea
-      }
-
-      const iterations =
-        w.globals.dataPoints > 1
-          ? w.globals.dataPoints - 1
-          : w.globals.dataPoints
-      for (let j = 0; j < iterations; j++) {
-        if (w.globals.isXNumeric) {
-          let sX = w.globals.seriesX[realIndex][j + 1]
-          if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
-            /* fix #374 */
-            sX = w.globals.seriesX[realIndex][iterations - 1]
-          }
-          x = (sX - w.globals.minX) / xRatio
-        } else {
-          x = x + xDivision
-        }
-
-        const minY = Utils.isNumber(w.globals.minYArr[realIndex])
-          ? w.globals.minYArr[realIndex]
-          : w.globals.minY
-
-        if (w.config.chart.stacked) {
-          if (
-            i > 0 &&
-            w.globals.collapsedSeries.length < w.config.series.length - 1
-          ) {
-            lineYPosition = prevSeriesY[i - 1][j + 1]
-          } else {
-            // the first series will not have prevY values
-            lineYPosition = zeroY
-          }
-
-          if (
-            typeof series[i][j + 1] === 'undefined' ||
-            series[i][j + 1] === null
-          ) {
-            y =
-              lineYPosition -
-              minY / yRatio[this.yaxisIndex] +
-              (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
-          } else {
-            y =
-              lineYPosition -
-              series[i][j + 1] / yRatio[this.yaxisIndex] +
-              (this.isReversed
-                ? series[i][j + 1] / yRatio[this.yaxisIndex]
-                : 0) *
-                2
-          }
-        } else {
-          if (
-            typeof series[i][j + 1] === 'undefined' ||
-            series[i][j + 1] === null
-          ) {
-            y =
-              zeroY -
-              minY / yRatio[this.yaxisIndex] +
-              (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
-          } else {
-            y =
-              zeroY -
-              series[i][j + 1] / yRatio[this.yaxisIndex] +
-              (this.isReversed
-                ? series[i][j + 1] / yRatio[this.yaxisIndex]
-                : 0) *
-                2
-          }
-        }
-
-        // push current X
-        xArrj.push(x)
-
-        // push current Y that will be used as next series's bottom position
-        yArrj.push(y)
-
-        let calculatedPaths = this.createPaths({
-          series,
-          i,
-          j,
-          x,
-          y,
-          xDivision,
-          pX,
-          pY,
-          areaBottomY,
-          linePath,
-          areaPath,
-          linePaths,
-          areaPaths
-        })
-
-        areaPaths = calculatedPaths.areaPaths
-        linePaths = calculatedPaths.linePaths
-        pX = calculatedPaths.pX
-        pY = calculatedPaths.pY
-        areaPath = calculatedPaths.areaPath
-        linePath = calculatedPaths.linePath
-
-        if (this.appendPathFrom) {
-          pathFromLine = pathFromLine + graphics.line(x, zeroY)
-          pathFromArea = pathFromArea + graphics.line(x, zeroY)
-        }
-
-        let pointsPos = this.calculatePoints({
-          series,
-          x,
-          y,
-          realIndex,
-          i,
-          j,
-          prevY,
-          categoryAxisCorrection,
-          xRatio
-        })
-
-        if (!this.pointsChart) {
-          let markers = new Markers(this.ctx)
-          if (w.globals.dataPoints > 1) {
-            elPointsMain.node.classList.add('hidden')
-          }
-
-          let elPointsWrap = markers.plotChartMarkers(
-            pointsPos,
-            realIndex,
-            j + 1
-          )
-          if (elPointsWrap !== null) {
-            elPointsMain.add(elPointsWrap)
-          }
-        } else {
-          // scatter / bubble chart points creation
-          this.scatter.draw(elSeries, j, {
-            realIndex,
-            pointsPos,
-            zRatio,
-            elParent: elPointsMain
-          })
-        }
-
-        let dataLabels = new DataLabels(this.ctx)
-        let drawnLabels = dataLabels.drawDataLabel(pointsPos, realIndex, j + 1)
-        if (drawnLabels !== null) {
-          elDataLabelsWrap.add(drawnLabels)
-        }
-      }
-
-      // push all current y values array to main PrevY Array
-      prevSeriesY.push(yArrj)
-
-      // push all x val arrays into main xArr
-      w.globals.seriesXvalues[realIndex] = xArrj
-      w.globals.seriesYvalues[realIndex] = yArrj
-
-      // these elements will be shown after area path animation completes
-      if (!this.pointsChart) {
-        w.globals.delayedElements.push({
-          el: elPointsMain.node,
-          index: realIndex
-        })
-      }
-
-      const defaultRenderedPathOptions = {
+      let pathsFrom = this._calculatePathsFrom({
+        series,
         i,
         realIndex,
-        animationDelay: i,
-        initialSpeed: w.config.chart.animations.speed,
-        dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-        className: `apexcharts-${type}`,
-        id: `apexcharts-${type}`
-      }
+        prevX,
+        prevY
+      })
 
-      if (type === 'area') {
-        let pathFill = fill.fillPath({
-          seriesNumber: realIndex
-        })
+      let paths = this._iterateOverDataPoints({
+        series,
+        realIndex,
+        i,
+        x,
+        y,
+        pX,
+        pY,
+        pathsFrom,
+        linePaths,
+        areaPaths,
+        seriesIndex,
+        lineYPosition,
+        xArrj,
+        yArrj
+      })
 
-        for (let p = 0; p < areaPaths.length; p++) {
-          let renderedPath = graphics.renderPaths({
-            ...defaultRenderedPathOptions,
-            pathFrom: pathFromArea,
-            pathTo: areaPaths[p],
-            stroke: 'none',
-            strokeWidth: 0,
-            strokeLineCap: null,
-            fill: pathFill
-          })
+      this._handlePaths({ type, realIndex, i, paths })
 
-          elSeries.add(renderedPath)
-        }
-      }
+      this.elSeries.add(this.elPointsMain)
+      this.elSeries.add(this.elDataLabelsWrap)
 
-      if (w.config.stroke.show && !this.pointsChart) {
-        let lineFill = null
-        if (type === 'line') {
-          // fillable lines only for lineChart
-          lineFill = fill.fillPath({
-            seriesNumber: realIndex,
-            i: i
-          })
-        } else {
-          lineFill = w.globals.stroke.colors[realIndex]
-        }
-
-        for (let p = 0; p < linePaths.length; p++) {
-          let renderedPath = graphics.renderPaths({
-            ...defaultRenderedPathOptions,
-            pathFrom: pathFromLine,
-            pathTo: linePaths[p],
-            stroke: lineFill,
-            strokeWidth: Array.isArray(w.config.stroke.width)
-              ? w.config.stroke.width[realIndex]
-              : w.config.stroke.width,
-            strokeLineCap: w.config.stroke.lineCap,
-            fill: 'none'
-          })
-
-          elSeries.add(renderedPath)
-        }
-      }
-
-      elSeries.add(elPointsMain)
-      elSeries.add(elDataLabelsWrap)
-
-      allSeries.push(elSeries)
+      allSeries.push(this.elSeries)
     }
 
     for (let s = allSeries.length; s > 0; s--) {
@@ -433,27 +139,380 @@ class Line {
     return ret
   }
 
-  createPaths({
+  _initSerieVariables(series, i, realIndex) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+
+    // width divided into equal parts
+    this.xDivision =
+      w.globals.gridWidth /
+      (w.globals.dataPoints - (w.config.xaxis.tickPlacement === 'on' ? 1 : 0))
+
+    this.strokeWidth = Array.isArray(w.config.stroke.width)
+      ? w.config.stroke.width[realIndex]
+      : w.config.stroke.width
+
+    if (this.yRatio.length > 1) {
+      this.yaxisIndex = realIndex
+    }
+
+    this.isReversed =
+      w.config.yaxis[this.yaxisIndex] &&
+      w.config.yaxis[this.yaxisIndex].reversed
+
+    // zeroY is the 0 value in y series which can be used in negative charts
+    this.zeroY =
+      w.globals.gridHeight -
+      this.baseLineY[this.yaxisIndex] -
+      (this.isReversed ? w.globals.gridHeight : 0) +
+      (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
+
+    this.areaBottomY = this.zeroY
+    if (this.zeroY > w.globals.gridHeight) {
+      this.areaBottomY = w.globals.gridHeight
+    }
+
+    this.categoryAxisCorrection = this.xDivision / 2
+
+    // el to which series will be drawn
+    this.elSeries = graphics.group({
+      class: `apexcharts-series`,
+      seriesName: Utils.escapeString(w.globals.seriesNames[realIndex])
+    })
+
+    // points
+    this.elPointsMain = graphics.group({
+      class: 'apexcharts-series-markers-wrap'
+    })
+
+    // eldatalabels
+    this.elDataLabelsWrap = graphics.group({
+      class: 'apexcharts-datalabels',
+      'data:realIndex': realIndex
+    })
+
+    let longestSeries = series[i].length === w.globals.dataPoints
+    this.elSeries.attr({
+      'data:longestSeries': longestSeries,
+      rel: i + 1,
+      'data:realIndex': realIndex
+    })
+
+    this.appendPathFrom = true
+  }
+
+  _calculatePathsFrom({ series, i, realIndex, prevX, prevY }) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+    let linePath, areaPath, pathFromLine, pathFromArea
+
+    if (series[i][0] === null) {
+      // when the first value itself is null, we need to move the pointer to a location where a null value is not found
+      for (let s = 0; s < series[i].length; s++) {
+        if (series[i][s] !== null) {
+          prevX = this.xDivision * s
+          prevY = this.zeroY - series[i][s] / this.yRatio[this.yaxisIndex]
+          linePath = graphics.move(prevX, prevY)
+          areaPath = graphics.move(prevX, this.areaBottomY)
+          break
+        }
+      }
+    } else {
+      linePath = graphics.move(prevX, prevY)
+      areaPath =
+        graphics.move(prevX, this.areaBottomY) + graphics.line(prevX, prevY)
+    }
+
+    pathFromLine = graphics.move(-1, this.zeroY) + graphics.line(-1, this.zeroY)
+    pathFromArea = graphics.move(-1, this.zeroY) + graphics.line(-1, this.zeroY)
+
+    if (w.globals.previousPaths.length > 0) {
+      const pathFrom = this.lineHelpers.checkPreviousPaths({
+        pathFromLine,
+        pathFromArea,
+        realIndex
+      })
+      pathFromLine = pathFrom.pathFromLine
+      pathFromArea = pathFrom.pathFromArea
+    }
+
+    return {
+      prevX,
+      prevY,
+      linePath,
+      areaPath,
+      pathFromLine,
+      pathFromArea
+    }
+  }
+
+  _handlePaths({ type, realIndex, i, paths }) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+    const fill = new Fill(this.ctx)
+
+    // push all current y values array to main PrevY Array
+    this.prevSeriesY.push(paths.yArrj)
+
+    // push all x val arrays into main xArr
+    w.globals.seriesXvalues[realIndex] = paths.xArrj
+    w.globals.seriesYvalues[realIndex] = paths.yArrj
+
+    // these elements will be shown after area path animation completes
+    if (!this.pointsChart) {
+      w.globals.delayedElements.push({
+        el: this.elPointsMain.node,
+        index: realIndex
+      })
+    }
+
+    const defaultRenderedPathOptions = {
+      i,
+      realIndex,
+      animationDelay: i,
+      initialSpeed: w.config.chart.animations.speed,
+      dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+      className: `apexcharts-${type}`
+    }
+
+    if (type === 'area') {
+      let pathFill = fill.fillPath({
+        seriesNumber: realIndex
+      })
+
+      for (let p = 0; p < paths.areaPaths.length; p++) {
+        let renderedPath = graphics.renderPaths({
+          ...defaultRenderedPathOptions,
+          pathFrom: paths.pathFromArea,
+          pathTo: paths.areaPaths[p],
+          stroke: 'none',
+          strokeWidth: 0,
+          strokeLineCap: null,
+          fill: pathFill
+        })
+
+        this.elSeries.add(renderedPath)
+      }
+    }
+
+    if (w.config.stroke.show && !this.pointsChart) {
+      let lineFill = null
+      if (type === 'line') {
+        // fillable lines only for lineChart
+        lineFill = fill.fillPath({
+          seriesNumber: realIndex,
+          i
+        })
+      } else {
+        lineFill = w.globals.stroke.colors[realIndex]
+      }
+
+      for (let p = 0; p < paths.linePaths.length; p++) {
+        let renderedPath = graphics.renderPaths({
+          ...defaultRenderedPathOptions,
+          pathFrom: paths.pathFromLine,
+          pathTo: paths.linePaths[p],
+          stroke: lineFill,
+          strokeWidth: this.strokeWidth,
+          strokeLineCap: w.config.stroke.lineCap,
+          fill: 'none'
+        })
+
+        this.elSeries.add(renderedPath)
+      }
+    }
+  }
+
+  _iterateOverDataPoints({
+    series,
+    realIndex,
+    i,
+    x,
+    y,
+    pX,
+    pY,
+    pathsFrom,
+    linePaths,
+    areaPaths,
+    seriesIndex,
+    lineYPosition,
+    xArrj,
+    yArrj
+  }) {
+    const w = this.w
+    let graphics = new Graphics(this.ctx)
+    let yRatio = this.yRatio
+    let { prevY, linePath, areaPath, pathFromLine, pathFromArea } = pathsFrom
+
+    const minY = Utils.isNumber(w.globals.minYArr[realIndex])
+      ? w.globals.minYArr[realIndex]
+      : w.globals.minY
+
+    const iterations =
+      w.globals.dataPoints > 1 ? w.globals.dataPoints - 1 : w.globals.dataPoints
+
+    for (let j = 0; j < iterations; j++) {
+      const isNull =
+        typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
+
+      if (w.globals.isXNumeric) {
+        let sX = w.globals.seriesX[realIndex][j + 1]
+        if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
+          /* fix #374 */
+          sX = w.globals.seriesX[realIndex][iterations - 1]
+        }
+        x = (sX - w.globals.minX) / this.xRatio
+      } else {
+        x = x + this.xDivision
+      }
+
+      if (w.config.chart.stacked) {
+        if (
+          i > 0 &&
+          w.globals.collapsedSeries.length < w.config.series.length - 1
+        ) {
+          lineYPosition = this.prevSeriesY[i - 1][j + 1]
+        } else {
+          // the first series will not have prevY values
+          lineYPosition = this.zeroY
+        }
+      } else {
+        lineYPosition = this.zeroY
+      }
+
+      if (isNull) {
+        y =
+          lineYPosition -
+          minY / yRatio[this.yaxisIndex] +
+          (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
+      } else {
+        y =
+          lineYPosition -
+          series[i][j + 1] / yRatio[this.yaxisIndex] +
+          (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2
+      }
+
+      // push current X
+      xArrj.push(x)
+
+      // push current Y that will be used as next series's bottom position
+      yArrj.push(y)
+
+      let calculatedPaths = this._createPaths({
+        series,
+        i,
+        realIndex,
+        j,
+        x,
+        y,
+        pX,
+        pY,
+        linePath,
+        areaPath,
+        linePaths,
+        areaPaths,
+        seriesIndex
+      })
+
+      areaPaths = calculatedPaths.areaPaths
+      linePaths = calculatedPaths.linePaths
+      pX = calculatedPaths.pX
+      pY = calculatedPaths.pY
+      areaPath = calculatedPaths.areaPath
+      linePath = calculatedPaths.linePath
+
+      if (this.appendPathFrom) {
+        pathFromLine = pathFromLine + graphics.line(x, this.zeroY)
+        pathFromArea = pathFromArea + graphics.line(x, this.zeroY)
+      }
+
+      this._handleMarkersAndLabels({ series, x, y, prevY, i, j, realIndex })
+    }
+
+    return {
+      yArrj,
+      xArrj,
+      pathFromArea,
+      areaPaths,
+      pathFromLine,
+      linePaths
+    }
+  }
+
+  _handleMarkersAndLabels({ series, x, y, prevY, i, j, realIndex }) {
+    const w = this.w
+    let dataLabels = new DataLabels(this.ctx)
+
+    let pointsPos = this.lineHelpers.calculatePoints({
+      series,
+      x,
+      y,
+      realIndex,
+      i,
+      j,
+      prevY
+    })
+
+    if (!this.pointsChart) {
+      let markers = new Markers(this.ctx)
+      if (w.globals.series[i].length > 1) {
+        this.elPointsMain.node.classList.add('apexcharts-element-hidden')
+      }
+
+      let elPointsWrap = markers.plotChartMarkers(pointsPos, realIndex, j + 1)
+      if (elPointsWrap !== null) {
+        this.elPointsMain.add(elPointsWrap)
+      }
+    } else {
+      // scatter / bubble chart points creation
+      this.scatter.draw(this.elSeries, j, {
+        realIndex,
+        pointsPos,
+        zRatio: this.zRatio,
+        elParent: this.elPointsMain
+      })
+    }
+
+    let drawnLabels = dataLabels.drawDataLabel(
+      pointsPos,
+      realIndex,
+      j + 1,
+      null,
+      this.strokeWidth
+    )
+    if (drawnLabels !== null) {
+      this.elDataLabelsWrap.add(drawnLabels)
+    }
+  }
+
+  _createPaths({
     series,
     i,
+    realIndex,
     j,
     x,
     y,
     pX,
     pY,
-    xDivision,
-    areaBottomY,
     linePath,
     areaPath,
     linePaths,
-    areaPaths
+    areaPaths,
+    seriesIndex
   }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    const curve = Array.isArray(w.config.stroke.curve)
-      ? w.config.stroke.curve[i]
-      : w.config.stroke.curve
+    let curve = w.config.stroke.curve
+    const areaBottomY = this.areaBottomY
+
+    if (Array.isArray(w.config.stroke.curve)) {
+      if (Array.isArray(seriesIndex)) {
+        curve = w.config.stroke.curve[seriesIndex[i]]
+      } else {
+        curve = w.config.stroke.curve[i]
+      }
+    }
 
     // logic of smooth curve derived from chartist
     // CREDITS: https://gionkunz.github.io/chartist-js/
@@ -504,10 +563,15 @@ class Line {
     } else {
       if (series[i][j + 1] === null) {
         linePath = linePath + graphics.move(x, y)
+
+        const numericOrCatX = w.globals.isXNumeric
+          ? (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio
+          : x - this.xDivision
         areaPath =
           areaPath +
-          graphics.line(x - xDivision, areaBottomY) +
-          graphics.move(x, y)
+          graphics.line(numericOrCatX, areaBottomY) +
+          graphics.move(x, y) +
+          'z'
       }
       if (series[i][j] === null) {
         linePath = linePath + graphics.move(x, y)
@@ -540,141 +604,6 @@ class Line {
       pY,
       linePath,
       areaPath
-    }
-  }
-
-  calculatePoints({
-    series,
-    realIndex,
-    x,
-    y,
-    i,
-    j,
-    prevY,
-    categoryAxisCorrection,
-    xRatio
-  }) {
-    let w = this.w
-
-    let ptX = []
-    let ptY = []
-
-    if (j === 0) {
-      let xPT1st = categoryAxisCorrection + w.config.markers.offsetX
-      // the first point for line series
-      // we need to check whether it's not a time series, because a time series may
-      // start from the middle of the x axis
-      if (w.globals.isXNumeric) {
-        xPT1st =
-          (w.globals.seriesX[realIndex][0] - w.globals.minX) / xRatio +
-          w.config.markers.offsetX
-      }
-
-      // push 2 points for the first data values
-      ptX.push(xPT1st)
-      ptY.push(
-        Utils.isNumber(series[i][0]) ? prevY + w.config.markers.offsetY : null
-      )
-      ptX.push(x + w.config.markers.offsetX)
-      ptY.push(
-        Utils.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null
-      )
-    } else {
-      ptX.push(x + w.config.markers.offsetX)
-      ptY.push(
-        Utils.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null
-      )
-    }
-
-    let pointsPos = {
-      x: ptX,
-      y: ptY
-    }
-
-    return pointsPos
-  }
-
-  checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
-    let w = this.w
-
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      let gpp = w.globals.previousPaths[pp]
-
-      if (
-        (gpp.type === 'line' || gpp.type === 'area') &&
-        gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex) === parseInt(realIndex)
-      ) {
-        if (gpp.type === 'line') {
-          this.appendPathFrom = false
-          pathFromLine = w.globals.previousPaths[pp].paths[0].d
-        } else if (gpp.type === 'area') {
-          this.appendPathFrom = false
-          pathFromArea = w.globals.previousPaths[pp].paths[0].d
-
-          if (w.config.stroke.show) {
-            pathFromLine = w.globals.previousPaths[pp].paths[1].d
-          }
-        }
-      }
-    }
-
-    return {
-      pathFromLine,
-      pathFromArea
-    }
-  }
-
-  determineFirstPrevY({
-    i,
-    series,
-    yRatio,
-    zeroY,
-    prevY,
-    prevSeriesY,
-    lineYPosition
-  }) {
-    let w = this.w
-    if (typeof series[i][0] !== 'undefined') {
-      if (w.config.chart.stacked) {
-        if (i > 0) {
-          // 1st y value of previous series
-          lineYPosition = prevSeriesY[i - 1][0]
-        } else {
-          // the first series will not have prevY values
-          lineYPosition = zeroY
-        }
-        prevY =
-          lineYPosition -
-          series[i][0] / yRatio +
-          (this.isReversed ? series[i][0] / yRatio : 0) * 2
-      } else {
-        prevY =
-          zeroY -
-          series[i][0] / yRatio +
-          (this.isReversed ? series[i][0] / yRatio : 0) * 2
-      }
-    } else {
-      // the first value in the current series is null
-      if (
-        w.config.chart.stacked &&
-        i > 0 &&
-        typeof series[i][0] === 'undefined'
-      ) {
-        // check for undefined value (undefined value will occur when we clear the series while user clicks on legend to hide serieses)
-        for (let s = i - 1; s >= 0; s--) {
-          // for loop to get to 1st previous value until we get it
-          if (series[s][0] !== null && typeof series[s][0] !== 'undefined') {
-            lineYPosition = prevSeriesY[s][0]
-            prevY = lineYPosition
-            break
-          }
-        }
-      }
-    }
-    return {
-      prevY,
-      lineYPosition
     }
   }
 }

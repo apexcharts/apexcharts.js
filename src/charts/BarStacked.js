@@ -1,6 +1,5 @@
 import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
-import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
 
@@ -16,22 +15,19 @@ class BarStacked extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     this.graphics = new Graphics(this.ctx)
-    this.fill = new Fill(this.ctx)
     this.bar = new Bar(this.ctx, this.xyRatios)
 
     const coreUtils = new CoreUtils(this.ctx, w)
-    this.series = coreUtils.getLogSeries(series)
-    series = this.series
+    series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.series = series
-
-    this.initVariables(series)
+    this.barHelpers.initVariables(series)
 
     if (w.config.chart.stackType === '100%') {
-      this.series = w.globals.seriesPercent.slice()
-      series = this.series
+      series = w.globals.seriesPercent.slice()
     }
+
+    this.series = series
 
     this.totalItems = 0
 
@@ -59,13 +55,10 @@ class BarStacked extends Bar {
       class: 'apexcharts-bar-series apexcharts-plot-series'
     })
 
-    ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
-
     let x = 0
     let y = 0
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathTo, pathFrom
       let xDivision // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
       let yDivision // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
       let zeroH // zeroH is the baseline where 0 meets y axis
@@ -86,9 +79,8 @@ class BarStacked extends Bar {
 
       // el to which series will be drawn
       let elSeries = this.graphics.group({
-        class: `apexcharts-series ${Utils.escapeString(
-          w.globals.seriesNames[realIndex]
-        )}`,
+        class: `apexcharts-series`,
+        seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
 
         rel: i + 1,
         'data:realIndex': realIndex
@@ -96,10 +88,10 @@ class BarStacked extends Bar {
 
       // eldatalabels
       let elDataLabelsWrap = this.graphics.group({
-        class: 'apexcharts-datalabels'
+        class: 'apexcharts-datalabels',
+        'data:realIndex': realIndex
       })
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -132,79 +124,59 @@ class BarStacked extends Bar {
       // this.xArrj.push(x + barWidth / 2)
       // }
 
-      for (let j = 0; j < w.globals.dataPoints; j++) {
-        if (w.config.stroke.show) {
-          if (this.isNullValue) {
-            strokeWidth = 0
-          } else {
-            strokeWidth = Array.isArray(this.strokeWidth)
-              ? this.strokeWidth[realIndex]
-              : this.strokeWidth
-          }
-        }
+      // fix issue #1215;
+      // where all stack bar disappear after collapsing the first series
+      // sol: if only 1 arr in this.prevY(this.prevY.length === 1) and all are NaN
+      if (this.prevY.length === 1 && this.prevY[0].every((val) => isNaN(val))) {
+        // make this.prevY[0] all zeroH
+        this.prevY[0] = this.prevY[0].map((val) => zeroH)
+        // make this.prevYF[0] all 0
+        this.prevYF[0] = this.prevYF[0].map((val) => 0)
+      }
 
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
+        const commonPathOpts = {
+          indexes: { i, j, realIndex, bc },
+          strokeWidth,
+          x,
+          y,
+          elSeries
+        }
         let paths = null
         if (this.isHorizontal) {
-          paths = this.drawBarPaths({
-            indexes: { i, j, realIndex, bc },
-            barHeight,
-            strokeWidth,
-            pathTo,
-            pathFrom,
+          paths = this.drawStackedBarPaths({
+            ...commonPathOpts,
             zeroW,
-            x,
-            y,
-            yDivision,
-            elSeries
+            barHeight,
+            yDivision
           })
+          barWidth = this.series[i][j] / this.invertedYRatio
         } else {
-          paths = this.drawColumnPaths({
-            indexes: { i, j, realIndex, bc },
-            x,
-            y,
+          paths = this.drawStackedColumnPaths({
+            ...commonPathOpts,
             xDivision,
-            pathTo,
-            pathFrom,
             barWidth,
-            zeroH,
-            strokeWidth,
-            elSeries
+            zeroH
           })
+          barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
 
-        pathTo = paths.pathTo
-        pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
 
         xArrValues.push(x)
         yArrValues.push(y)
 
-        let seriesNumber = w.config.plotOptions.bar.distributed ? j : i
-
-        let fillColor = null
-
-        if (this.barOptions.colors.ranges.length > 0) {
-          const colorRange = this.barOptions.colors.ranges
-          colorRange.map((range, index) => {
-            if (series[i][j] >= range.from && series[i][j] <= range.to) {
-              fillColor = range.color
-            }
-          })
-        }
-
-        let pathFill = this.fill.fillPath({
-          seriesNumber: this.barOptions.distributed ? seriesNumber : realIndex,
-          color: fillColor
-        })
+        let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
         elSeries = this.renderSeries({
           realIndex,
           pathFill,
           j,
           i,
-          pathFrom,
-          pathTo,
+          pathFrom: paths.pathFrom,
+          pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
           x,
@@ -246,7 +218,7 @@ class BarStacked extends Bar {
       barHeight = yDivision
 
       barHeight =
-        (barHeight * parseInt(w.config.plotOptions.bar.barHeight)) / 100
+        (barHeight * parseInt(w.config.plotOptions.bar.barHeight, 10)) / 100
 
       zeroW =
         this.baseLineInvertedY +
@@ -263,12 +235,11 @@ class BarStacked extends Bar {
       barWidth = xDivision
 
       if (w.globals.isXNumeric) {
-        // max barwidth should be equal to minXDiff to avoid overlap
-        xDivision = this.minXDiff / this.xRatio
-        barWidth = (xDivision * parseInt(this.barOptions.columnWidth)) / 100
+        xDivision = w.globals.minXDiff / this.xRatio
+        barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
       } else {
         barWidth =
-          (barWidth * parseInt(w.config.plotOptions.bar.columnWidth)) / 100
+          (barWidth * parseInt(w.config.plotOptions.bar.columnWidth, 10)) / 100
       }
 
       zeroH =
@@ -291,12 +262,10 @@ class BarStacked extends Bar {
     }
   }
 
-  drawBarPaths({
+  drawStackedBarPaths({
     indexes,
     barHeight,
     strokeWidth,
-    pathTo,
-    pathFrom,
     zeroW,
     x,
     y,
@@ -320,23 +289,19 @@ class BarStacked extends Bar {
       let bXP = zeroW
 
       if (this.prevXVal[i - 1][j] < 0) {
-        if (this.series[i][j] >= 0) {
-          bXP =
-            this.prevX[i - 1][j] +
-            prevBarW -
-            (this.isReversed ? prevBarW : 0) * 2
-        } else {
-          bXP = this.prevX[i - 1][j]
-        }
+        bXP =
+          this.series[i][j] >= 0
+            ? this.prevX[i - 1][j] +
+              prevBarW -
+              (this.isReversed ? prevBarW : 0) * 2
+            : this.prevX[i - 1][j]
       } else if (this.prevXVal[i - 1][j] >= 0) {
-        if (this.series[i][j] >= 0) {
-          bXP = this.prevX[i - 1][j]
-        } else {
-          bXP =
-            this.prevX[i - 1][j] -
-            prevBarW +
-            (this.isReversed ? prevBarW : 0) * 2
-        }
+        bXP =
+          this.series[i][j] >= 0
+            ? this.prevX[i - 1][j]
+            : this.prevX[i - 1][j] -
+              prevBarW +
+              (this.isReversed ? prevBarW : 0) * 2
       }
 
       barXPosition = bXP
@@ -354,21 +319,44 @@ class BarStacked extends Bar {
         (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
     }
 
-    this.xArrj.push(x)
-    this.xArrjF.push(Math.abs(barXPosition - x))
+    let endingShapeOpts = {
+      barHeight,
+      strokeWidth,
+      invertedYRatio: this.invertedYRatio,
+      barYPosition,
+      x
+    }
+    let endingShape = this.barHelpers.getBarEndingShape(
+      w,
+      endingShapeOpts,
+      this.series,
+      i,
+      j
+    )
+
+    if (this.series.length > 1 && i !== this.endingShapeOnSeriesNumber) {
+      // revert back to flat shape if not last series
+      endingShape.path = this.graphics.line(
+        endingShape.newX,
+        barYPosition + barHeight - strokeWidth
+      )
+    }
+
+    this.xArrj.push(endingShape.newX)
+    this.xArrjF.push(Math.abs(barXPosition - endingShape.newX))
     this.xArrjVal.push(this.series[i][j])
 
-    pathTo = this.graphics.move(barXPosition, barYPosition)
-    pathFrom = this.graphics.move(barXPosition, barYPosition)
+    let pathTo = this.graphics.move(barXPosition, barYPosition)
+    let pathFrom = this.graphics.move(barXPosition, barYPosition)
 
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.bar.getPathFrom(realIndex, j, false)
+      pathFrom = this.bar.getPreviousPath(realIndex, j, false)
     }
 
     pathTo =
       pathTo +
-      this.graphics.line(x, barYPosition) +
-      this.graphics.line(x, barYPosition + barHeight - strokeWidth) +
+      this.graphics.line(endingShape.newX, barYPosition) +
+      endingShape.path +
       this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) +
       this.graphics.line(barXPosition, barYPosition)
     pathFrom =
@@ -411,13 +399,11 @@ class BarStacked extends Bar {
     }
   }
 
-  drawColumnPaths({
+  drawStackedColumnPaths({
     indexes,
     x,
     y,
     xDivision,
-    pathTo,
-    pathFrom,
     barWidth,
     zeroH,
     strokeWidth,
@@ -440,7 +426,9 @@ class BarStacked extends Bar {
 
     let prevBarH = 0
     for (let k = 0; k < this.prevYF.length; k++) {
-      prevBarH = prevBarH + this.prevYF[k][j]
+      // fix issue #1215
+      // in case where this.prevYF[k][j] is NaN, use 0 instead
+      prevBarH = prevBarH + (!isNaN(this.prevYF[k][j]) ? this.prevYF[k][j] : 0)
     }
 
     if (
@@ -450,23 +438,50 @@ class BarStacked extends Bar {
         w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])
     ) {
       let bYP
-      let prevYValue = this.prevY[i - 1][j]
-
-      if (this.prevYVal[i - 1][j] < 0) {
-        if (this.series[i][j] >= 0) {
-          bYP = prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
-        } else {
-          bYP = prevYValue
-        }
-      } else {
-        if (this.series[i][j] >= 0) {
-          bYP = prevYValue
-        } else {
-          bYP = prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
+      let prevYValue
+      const p = Math.min(this.yRatio.length + 1, i + 1)
+      if (this.prevY[i - 1] !== undefined) {
+        for (let ii = 1; ii < p; ii++) {
+          if (!isNaN(this.prevY[i - ii][j])) {
+            // find the previous available value to give prevYValue
+            prevYValue = this.prevY[i - ii][j]
+            // if found it, break the loop
+            break
+          }
         }
       }
 
-      barYPosition = bYP
+      for (let ii = 1; ii < p; ii++) {
+        // find the previous available value(non-NaN) to give bYP
+        if (this.prevYVal[i - ii][j] < 0) {
+          bYP =
+            this.series[i][j] >= 0
+              ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
+              : prevYValue
+          // found it? break the loop
+          break
+        } else if (this.prevYVal[i - ii][j] >= 0) {
+          bYP =
+            this.series[i][j] >= 0
+              ? prevYValue
+              : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
+          // found it? break the loop
+          break
+        }
+      }
+
+      // if this.prevYF[0] is all 0 resulted from line #486
+      // AND every arr starting from the second only contains NaN
+      if (
+        this.prevYF[0].every((val) => val === 0) &&
+        this.prevYF.slice(1, i).every((arr) => arr.every((val) => isNaN(val)))
+      ) {
+        // Use the same calc way as line #485
+        barYPosition = w.globals.gridHeight - zeroH
+      } else {
+        // Nothing special
+        barYPosition = bYP
+      }
     } else {
       // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
       barYPosition = w.globals.gridHeight - zeroH
@@ -478,29 +493,44 @@ class BarStacked extends Bar {
       (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) *
         2
 
-    this.yArrj.push(y)
-    this.yArrjF.push(Math.abs(barYPosition - y))
+    let endingShapeOpts = {
+      barWidth,
+      strokeWidth,
+      yRatio: this.yRatio[this.yaxisIndex],
+      barXPosition,
+      y
+    }
+    let endingShape = this.barHelpers.getBarEndingShape(
+      w,
+      endingShapeOpts,
+      this.series,
+      i,
+      j
+    )
+
+    this.yArrj.push(endingShape.newY)
+    this.yArrjF.push(Math.abs(barYPosition - endingShape.newY))
     this.yArrjVal.push(this.series[i][j])
 
-    pathTo = this.graphics.move(barXPosition, barYPosition)
-    pathFrom = this.graphics.move(barXPosition, barYPosition)
+    let pathTo = this.graphics.move(barXPosition, barYPosition)
+    let pathFrom = this.graphics.move(barXPosition, barYPosition)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.bar.getPathFrom(realIndex, j, false)
+      pathFrom = this.bar.getPreviousPath(realIndex, j, false)
     }
 
     pathTo =
       pathTo +
-      this.graphics.line(barXPosition, y) +
-      this.graphics.line(barXPosition + barWidth - strokeWidth, y) +
+      this.graphics.line(barXPosition, endingShape.newY) +
+      endingShape.path +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition, barYPosition)
+      this.graphics.line(barXPosition - strokeWidth / 2, barYPosition)
     pathFrom =
       pathFrom +
       this.graphics.line(barXPosition, barYPosition) +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
       this.graphics.line(barXPosition + barWidth - strokeWidth, barYPosition) +
-      this.graphics.line(barXPosition, barYPosition)
+      this.graphics.line(barXPosition - strokeWidth / 2, barYPosition)
 
     if (
       w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 &&

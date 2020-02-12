@@ -11,6 +11,8 @@ export default class Series {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
+
+    this.legendInactiveClass = 'legend-mouseover-inactive'
   }
 
   getAllSeriesEls() {
@@ -19,16 +21,84 @@ export default class Series {
 
   getSeriesByName(seriesName) {
     return this.w.globals.dom.baseEl.querySelector(
-      `.apexcharts-series.${Utils.escapeString(seriesName)}`
+      `[seriesName='${Utils.escapeString(seriesName)}']`
     )
+  }
+
+  isSeriesHidden(seriesName) {
+    const targetElement = this.getSeriesByName(seriesName)
+    let realIndex = parseInt(targetElement.getAttribute('data:realIndex'), 10)
+    let isHidden = targetElement.classList.contains(
+      'apexcharts-series-collapsed'
+    )
+
+    return { isHidden, realIndex }
   }
 
   addCollapsedClassToSeries(elSeries, index) {
     const w = this.w
-    for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
-      if (w.globals.collapsedSeries[cs].index === index) {
-        elSeries.node.classList.add('apexcharts-series-collapsed')
+    function iterateOnAllCollapsedSeries(series) {
+      for (let cs = 0; cs < series.length; cs++) {
+        if (series[cs].index === index) {
+          elSeries.node.classList.add('apexcharts-series-collapsed')
+        }
       }
+    }
+
+    iterateOnAllCollapsedSeries(w.globals.collapsedSeries)
+    iterateOnAllCollapsedSeries(w.globals.ancillaryCollapsedSeries)
+  }
+
+  toggleSeries(seriesName) {
+    let isSeriesHidden = this.isSeriesHidden(seriesName)
+
+    this.ctx.legend.legendHelpers.toggleDataSeries(
+      isSeriesHidden.realIndex,
+      isSeriesHidden.isHidden
+    )
+
+    return isSeriesHidden.isHidden
+  }
+
+  showSeries(seriesName) {
+    let isSeriesHidden = this.isSeriesHidden(seriesName)
+
+    if (isSeriesHidden.isHidden) {
+      this.ctx.legend.legendHelpers.toggleDataSeries(
+        isSeriesHidden.realIndex,
+        true
+      )
+    }
+  }
+
+  hideSeries(seriesName) {
+    let isSeriesHidden = this.isSeriesHidden(seriesName)
+
+    if (!isSeriesHidden.isHidden) {
+      this.ctx.legend.legendHelpers.toggleDataSeries(
+        isSeriesHidden.realIndex,
+        false
+      )
+    }
+  }
+
+  resetSeries(shouldUpdateChart = true) {
+    const w = this.w
+
+    let series = w.globals.initialSeries.slice()
+    w.config.series = series
+
+    w.globals.collapsedSeries = []
+    w.globals.ancillaryCollapsedSeries = []
+    w.globals.collapsedSeriesIndices = []
+    w.globals.ancillaryCollapsedSeriesIndices = []
+    w.globals.previousPaths = []
+
+    if (shouldUpdateChart) {
+      this.ctx.updateHelpers._updateSeries(
+        series,
+        w.config.chart.animations.dynamicAnimation.enabled
+      )
     }
   }
 
@@ -36,17 +106,21 @@ export default class Series {
     const w = this.w
 
     let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
-      `.apexcharts-series`
+      `.apexcharts-series, .apexcharts-datalabels`
     )
 
     if (e.type === 'mousemove') {
-      let seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1
+      let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
       let seriesEl = null
+      let dataLabelEl = null
       if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
         if (w.globals.axisCharts) {
           seriesEl = w.globals.dom.baseEl.querySelector(
             `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
+          )
+          dataLabelEl = w.globals.dom.baseEl.querySelector(
+            `.apexcharts-datalabels[data\\:realIndex='${seriesCnt}']`
           )
         } else {
           seriesEl = w.globals.dom.baseEl.querySelector(
@@ -60,19 +134,22 @@ export default class Series {
       }
 
       for (let se = 0; se < allSeriesEls.length; se++) {
-        allSeriesEls[se].classList.add('legend-mouseover-inactive')
+        allSeriesEls[se].classList.add(this.legendInactiveClass)
       }
 
       if (seriesEl !== null) {
         if (!w.globals.axisCharts) {
-          seriesEl.parentNode.classList.remove('legend-mouseover-inactive')
+          seriesEl.parentNode.classList.remove(this.legendInactiveClass)
         }
+        seriesEl.classList.remove(this.legendInactiveClass)
 
-        seriesEl.classList.remove('legend-mouseover-inactive')
+        if (dataLabelEl !== null) {
+          dataLabelEl.classList.remove(this.legendInactiveClass)
+        }
       }
     } else if (e.type === 'mouseout') {
       for (let se = 0; se < allSeriesEls.length; se++) {
-        allSeriesEls[se].classList.remove('legend-mouseover-inactive')
+        allSeriesEls[se].classList.remove(this.legendInactiveClass)
       }
     }
   }
@@ -83,80 +160,47 @@ export default class Series {
       '.apexcharts-heatmap-rect'
     )
 
-    const allActive = function() {
+    const activeInactive = (action) => {
       for (let i = 0; i < allHeatMapElements.length; i++) {
-        allHeatMapElements[i].classList.remove('legend-mouseover-inactive')
-      }
-    }
-    const allInactive = function() {
-      for (let i = 0; i < allHeatMapElements.length; i++) {
-        allHeatMapElements[i].classList.add('legend-mouseover-inactive')
+        allHeatMapElements[i].classList[action](this.legendInactiveClass)
       }
     }
 
-    const selectedActive = function(range) {
+    const removeInactiveClassFromHoveredRange = (range) => {
       for (let i = 0; i < allHeatMapElements.length; i++) {
-        const val = parseInt(allHeatMapElements[i].getAttribute('val'))
+        const val = parseInt(allHeatMapElements[i].getAttribute('val'), 10)
         if (val >= range.from && val <= range.to) {
-          allHeatMapElements[i].classList.remove('legend-mouseover-inactive')
+          allHeatMapElements[i].classList.remove(this.legendInactiveClass)
         }
       }
     }
 
     if (e.type === 'mousemove') {
-      let seriesCnt = parseInt(targetElement.getAttribute('rel')) - 1
-      allActive()
-      allInactive()
+      let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
+      activeInactive('add')
 
       const range = w.config.plotOptions.heatmap.colorScale.ranges[seriesCnt]
 
-      selectedActive(range)
+      removeInactiveClassFromHoveredRange(range)
     } else if (e.type === 'mouseout') {
-      allActive()
+      activeInactive('remove')
     }
   }
 
-  getActiveSeriesIndex() {
-    const w = this.w
-    let activeIndex = 0
-
-    if (w.globals.series.length > 1) {
-      // active series flag is required to know if user has not deactivated via legend click
-      let firstActiveSeriesIndex = w.globals.series.map((series, index) => {
-        if (
-          series.length > 0 &&
-          (w.config.series[index].type !== 'bar' &&
-            w.config.series[index].type !== 'column')
-        ) {
-          return index
-        } else {
-          return -1
-        }
-      })
-
-      for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
-        if (firstActiveSeriesIndex[a] !== -1) {
-          activeIndex = firstActiveSeriesIndex[a]
-          break
-        }
-      }
-    }
-
-    return activeIndex
-  }
-
-  getActiveConfigSeriesIndex() {
+  getActiveConfigSeriesIndex(ignoreBars = false) {
     const w = this.w
     let activeIndex = 0
 
     if (w.config.series.length > 1) {
       // active series flag is required to know if user has not deactivated via legend click
       let firstActiveSeriesIndex = w.config.series.map((series, index) => {
-        if (series.data && series.data.length > 0) {
-          return index
-        } else {
-          return -1
+        let hasBars = false
+        if (ignoreBars) {
+          hasBars =
+            w.config.series[index].type === 'bar' ||
+            w.config.series[index].type === 'column'
         }
+        return series.data && series.data.length > 0 && !hasBars ? index : -1
       })
 
       for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
@@ -195,93 +239,22 @@ export default class Series {
       w.globals.previousPaths.push(dArr)
     }
 
-    let linePaths = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-line-series .apexcharts-series'
-    )
-    if (linePaths.length > 0) {
-      for (let p = linePaths.length - 1; p >= 0; p--) {
-        pushPaths(linePaths, p, 'line')
-      }
+    const getPaths = (chartType) => {
+      return w.globals.dom.baseEl.querySelectorAll(
+        `.apexcharts-${chartType}-series .apexcharts-series`
+      )
     }
 
-    let areapaths = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-area-series .apexcharts-series'
-    )
-
-    if (areapaths.length > 0) {
-      for (let i = areapaths.length - 1; i >= 0; i--) {
-        pushPaths(areapaths, i, 'area')
+    const chartTypes = ['line', 'area', 'bar', 'candlestick', 'radar']
+    chartTypes.forEach((type) => {
+      const paths = getPaths(type)
+      for (let p = 0; p < paths.length; p++) {
+        pushPaths(paths, p, type)
       }
-    }
+    })
 
-    let barPaths = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-series .apexcharts-series'
-    )
-    if (barPaths.length > 0) {
-      for (let p = 0; p < barPaths.length; p++) {
-        pushPaths(barPaths, p, 'bar')
-      }
-    }
-
-    let candlestickPaths = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-candlestick-series .apexcharts-series'
-    )
-    if (candlestickPaths.length > 0) {
-      for (let p = 0; p < candlestickPaths.length; p++) {
-        pushPaths(candlestickPaths, p, 'candlestick')
-      }
-    }
-
-    let radarPaths = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-radar-series .apexcharts-series'
-    )
-    if (radarPaths.length > 0) {
-      for (let p = 0; p < radarPaths.length; p++) {
-        pushPaths(radarPaths, p, 'radar')
-      }
-    }
-
-    let bubblepaths = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bubble-series .apexcharts-series'
-    )
-    if (bubblepaths.length > 0) {
-      for (let s = 0; s < bubblepaths.length; s++) {
-        let seriesEls = w.globals.dom.baseEl.querySelectorAll(
-          `.apexcharts-bubble-series .apexcharts-series[data\\:realIndex='${s}'] circle`
-        )
-        let dArr = []
-
-        for (let i = 0; i < seriesEls.length; i++) {
-          dArr.push({
-            x: seriesEls[i].getAttribute('cx'),
-            y: seriesEls[i].getAttribute('cy'),
-            r: seriesEls[i].getAttribute('r')
-          })
-        }
-        w.globals.previousPaths.push(dArr)
-      }
-    }
-
-    let scatterpaths = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-scatter-series .apexcharts-series'
-    )
-    if (scatterpaths.length > 0) {
-      for (let s = 0; s < scatterpaths.length; s++) {
-        let seriesEls = w.globals.dom.baseEl.querySelectorAll(
-          `.apexcharts-scatter-series .apexcharts-series[data\\:realIndex='${s}'] circle`
-        )
-        let dArr = []
-
-        for (let i = 0; i < seriesEls.length; i++) {
-          dArr.push({
-            x: seriesEls[i].getAttribute('cx'),
-            y: seriesEls[i].getAttribute('cy'),
-            r: seriesEls[i].getAttribute('r')
-          })
-        }
-        w.globals.previousPaths.push(dArr)
-      }
-    }
+    this.handlePrevBubbleScatterPaths('bubble')
+    this.handlePrevBubbleScatterPaths('scatter')
 
     let heatmapColors = w.globals.dom.baseEl.querySelectorAll(
       '.apexcharts-heatmap .apexcharts-series'
@@ -308,6 +281,38 @@ export default class Series {
       // for non-axis charts (i.e., circular charts, pathFrom is not usable. We need whole series)
       w.globals.previousPaths = w.globals.series
     }
+  }
+
+  handlePrevBubbleScatterPaths(type) {
+    const w = this.w
+    let paths = w.globals.dom.baseEl.querySelectorAll(
+      `.apexcharts-${type}-series .apexcharts-series`
+    )
+    if (paths.length > 0) {
+      for (let s = 0; s < paths.length; s++) {
+        let seriesEls = w.globals.dom.baseEl.querySelectorAll(
+          `.apexcharts-${type}-series .apexcharts-series[data\\:realIndex='${s}'] circle`
+        )
+        let dArr = []
+
+        for (let i = 0; i < seriesEls.length; i++) {
+          dArr.push({
+            x: seriesEls[i].getAttribute('cx'),
+            y: seriesEls[i].getAttribute('cy'),
+            r: seriesEls[i].getAttribute('r')
+          })
+        }
+        w.globals.previousPaths.push(dArr)
+      }
+    }
+  }
+
+  clearPreviousPaths() {
+    const w = this.w
+    w.globals.previousPaths = []
+    w.globals.allSeriesCollapsed = false
+    w.globals.collapsedSeries = []
+    w.globals.collapsedSeriesIndices = []
   }
 
   handleNoData() {
@@ -339,22 +344,20 @@ export default class Series {
     }
 
     x = x + noDataOpts.offsetX
-    y = y + parseInt(noDataOpts.style.fontSize) + 2
+    y = y + parseInt(noDataOpts.style.fontSize, 10) + 2 + noDataOpts.offsetY
 
     if (noDataOpts.text !== undefined && noDataOpts.text !== '') {
       let titleText = graphics.drawText({
-        x: x,
-        y: y,
+        x,
+        y,
         text: noDataOpts.text,
-        textAnchor: textAnchor,
+        textAnchor,
         fontSize: noDataOpts.style.fontSize,
         fontFamily: noDataOpts.style.fontFamily,
         foreColor: noDataOpts.style.color,
         opacity: 1,
         class: 'apexcharts-text-nodata'
       })
-
-      titleText.node.setAttribute('class', 'apexcharts-title-text')
 
       w.globals.dom.Paper.add(titleText)
     }
@@ -395,13 +398,9 @@ export default class Series {
   filteredSeriesX() {
     const w = this.w
 
-    const filteredSeriesX = w.globals.seriesX.map((ser, index) => {
-      if (ser.length > 0) {
-        return ser
-      } else {
-        return []
-      }
-    })
+    const filteredSeriesX = w.globals.seriesX.map((ser) =>
+      ser.length > 0 ? ser : []
+    )
 
     return filteredSeriesX
   }

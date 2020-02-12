@@ -8,8 +8,6 @@ import Utils from '../utils/Utils'
  * ApexCharts CandleStick Class responsible for drawing both Stacked Columns and Bars.
  *
  * @module CandleStick
- * The whole calculation for stacked bar/column is different from normal bar/column,
- * hence it makes sense to derive a new class for it extending most of the props of Parent Bar
  **/
 
 class CandleStick extends Bar {
@@ -21,20 +19,17 @@ class CandleStick extends Bar {
     this.candlestickOptions = this.w.config.plotOptions.candlestick
 
     const coreUtils = new CoreUtils(this.ctx, w)
-    this.series = coreUtils.getLogSeries(series)
-    series = this.series
+    series = coreUtils.getLogSeries(series)
+    this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
-    this.initVariables(series)
+    this.barHelpers.initVariables(series)
 
     let ret = graphics.group({
       class: 'apexcharts-candlestick-series apexcharts-plot-series'
     })
 
-    ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
-
-    for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let pathTo, pathFrom
+    for (let i = 0; i < series.length; i++) {
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -47,10 +42,8 @@ class CandleStick extends Bar {
 
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series ${Utils.escapeString(
-          w.globals.seriesNames[realIndex]
-        )}`,
-
+        class: `apexcharts-series`,
+        seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
         rel: i + 1,
         'data:realIndex': realIndex
       })
@@ -59,7 +52,6 @@ class CandleStick extends Bar {
         this.visibleI = this.visibleI + 1
       }
 
-      let strokeWidth = 0
       let barHeight = 0
       let barWidth = 0
 
@@ -67,7 +59,7 @@ class CandleStick extends Bar {
         this.yaxisIndex = realIndex
       }
 
-      let initPositions = this.initialPositions()
+      let initPositions = this.barHelpers.initialPositions()
 
       y = initPositions.y
       barHeight = initPositions.barHeight
@@ -81,28 +73,12 @@ class CandleStick extends Bar {
 
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-datalabels'
+        class: 'apexcharts-datalabels',
+        'data:realIndex': realIndex
       })
 
-      for (
-        let j = 0, tj = w.globals.dataPoints;
-        j < w.globals.dataPoints;
-        j++, tj--
-      ) {
-        if (typeof this.series[i][j] === 'undefined' || series[i][j] === null) {
-          this.isNullValue = true
-        } else {
-          this.isNullValue = false
-        }
-        if (w.config.stroke.show) {
-          if (this.isNullValue) {
-            strokeWidth = 0
-          } else {
-            strokeWidth = Array.isArray(this.strokeWidth)
-              ? this.strokeWidth[realIndex]
-              : this.strokeWidth
-          }
-        }
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
         let color
 
@@ -110,22 +86,17 @@ class CandleStick extends Bar {
           indexes: {
             i,
             j,
-            realIndex,
-            bc
+            realIndex
           },
           x,
           y,
           xDivision,
-          pathTo,
-          pathFrom,
           barWidth,
           zeroH,
           strokeWidth,
           elSeries
         })
 
-        pathTo = paths.pathTo
-        pathFrom = paths.pathFrom
         y = paths.y
         x = paths.x
         color = paths.color
@@ -139,21 +110,23 @@ class CandleStick extends Bar {
 
         let pathFill = fill.fillPath({
           seriesNumber: realIndex,
-          color
+          dataPointIndex: j,
+          color,
+          value: series[i][j]
         })
 
         let lineFill = this.candlestickOptions.wick.useFillColor
           ? color
           : undefined
 
-        elSeries = this.renderSeries({
+        this.renderSeries({
           realIndex,
           pathFill,
           lineFill,
           j,
           i,
-          pathFrom,
-          pathTo,
+          pathFrom: paths.pathFrom,
+          pathTo: paths.pathTo,
           strokeWidth,
           elSeries,
           x,
@@ -182,8 +155,6 @@ class CandleStick extends Bar {
     x,
     y,
     xDivision,
-    pathTo,
-    pathFrom,
     barWidth,
     zeroH,
     strokeWidth
@@ -214,16 +185,11 @@ class CandleStick extends Bar {
 
     if (w.globals.isXNumeric) {
       x =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
+        (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio -
+        barWidth / 2
     }
 
     let barXPosition = x + barWidth * this.visibleI
-
-    pathTo = graphics.move(barXPosition, zeroH)
-    pathFrom = graphics.move(barXPosition, zeroH)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPathFrom(realIndex, j, true)
-    }
 
     if (
       typeof this.series[i][j] === 'undefined' ||
@@ -235,6 +201,12 @@ class CandleStick extends Bar {
       y2 = zeroH - y2 / yRatio
       l1 = zeroH - ohlc.h / yRatio
       l2 = zeroH - ohlc.l / yRatio
+    }
+
+    let pathTo = graphics.move(barXPosition, zeroH)
+    let pathFrom = graphics.move(barXPosition, y1)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPreviousPath(realIndex, j, true)
     }
 
     pathTo =
@@ -249,6 +221,8 @@ class CandleStick extends Bar {
       graphics.line(barXPosition + barWidth / 2, y1) +
       graphics.line(barXPosition, y1) +
       graphics.line(barXPosition, y2 - strokeWidth / 2)
+
+    pathFrom = pathFrom + graphics.move(barXPosition, y1)
 
     if (!w.globals.isXNumeric) {
       x = x + xDivision

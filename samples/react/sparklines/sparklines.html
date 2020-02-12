@@ -1,411 +1,717 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Sparklines</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Sparklines</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    .row {
+    <style>
+      
+        .row {
       overflow: hidden;
       max-width: 890px;
       margin: 30px auto;
       display: flex;
     }
-
+    
     .col-md-4 {
       width: 33.33%;
       padding: 0 25px;
     }
-
+    
     table {
       width: 100%;
     }
-
+    
     tbody tr {
       border-top: 1px solid #e7e7e7;
     }
-
+    
     th {
       font-weight: bold;
       font-family: Helvetica;
       padding-bottom: 20px;
     }
-
-    td,
-    th {
+    td, th {
       width: 25%;
       text-align: center;
       height: 65px;
     }
-
+    
     td div {
       margin: 0 auto;
     }
-
+    
     .left {
       float: left;
     }
-
+    
     .right {
       float: right;
     }
-
+    
     @media only screen and (max-width: 480px) {
-
-      th:first-child,
-      td:first-child {
+      th:first-child, td:first-child {
         display: none;
       }
-
       .row {
         display: block;
       }
-
       .col-md-4 {
         padding: 0;
         width: 100%;
       }
     }
-  </style>
-</head>
-
-<body>
-  <div id="app"></div>
-  
-  <div id="html">
-          &lt;div id=&quot;sparklines&quot;&gt;&#10;            &lt;div className=&quot;row&quot;&gt;&#10;              &lt;div className=&quot;col-md-4&quot;&gt;&#10;                &lt;div id=&quot;spark1&quot;&gt;&#10;                  &lt;ReactApexChart options={this.state.chartOptionsTopSpark1} series={this.state.seriesTopSpark1} type=&quot;area&quot; height=&quot;160&quot; /&gt;&#10;                &lt;/div&gt;&#10;              &lt;/div&gt;&#10;              &lt;div className=&quot;col-md-4&quot;&gt;&#10;                &lt;div id=&quot;spark2&quot;&gt;&#10;                  &lt;ReactApexChart options={this.state.chartOptionsTopSpark2} series={this.state.seriesTopSpark2} type=&quot;area&quot; height=&quot;160&quot; /&gt;&#10;                &lt;/div&gt;&#10;              &lt;/div&gt;&#10;              &lt;div className=&quot;col-md-4&quot;&gt;&#10;                &lt;div id=&quot;spark3&quot;&gt;&#10;                  &lt;ReactApexChart options={this.state.chartOptionsTopSpark3} series={this.state.seriesTopSpark3} type=&quot;area&quot; height=&quot;160&quot; /&gt;&#10;                &lt;/div&gt;&#10;              &lt;/div&gt;&#10;            &lt;/div&gt;&#10;&#10;            &lt;div className=&quot;row&quot;&gt;&#10;              &lt;table&gt;&#10;                &lt;thead&gt;&#10;                  &lt;th&gt;Total Value&lt;/th&gt;&#10;                  &lt;th&gt;Percentage of Portfolio&lt;/th&gt;&#10;                  &lt;th&gt;Last 10 days&lt;/th&gt;&#10;                  &lt;th&gt;Volume&lt;/th&gt;&#10;                &lt;/thead&gt;&#10;                &lt;tbody&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$32,554&lt;/td&gt;&#10;                    &lt;td&gt;15%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart1&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart5&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$23,533&lt;/td&gt;&#10;                    &lt;td&gt;7%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart2&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart6&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$54,276&lt;/td&gt;&#10;                    &lt;td&gt;9%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart3&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart7&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                  &lt;tr&gt;&#10;                    &lt;td&gt;$11,533&lt;/td&gt;&#10;                    &lt;td&gt;2%&lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart4&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark4} type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                    &lt;td&gt;&#10;                      &lt;div id=&quot;chart8&quot;&gt;&#10;                        &lt;ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; /&gt;&#10;                      &lt;/div&gt;&#10;                    &lt;/td&gt;&#10;                  &lt;/tr&gt;&#10;                &lt;/tbody&gt;&#10;              &lt;/table&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
-  </div>
-
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
-    window.Apex = {
-      stroke: {
-        width: 3
-      },
-      markers: {
-        size: 0
-      },
-      tooltip: {
-        fixed: {
-          enabled: true,
-        }
-      }
-    };
-
-    var randomizeArray = function (arg) {
-      var array = arg.slice();
-      var currentIndex = array.length,
-        temporaryValue, randomIndex;
-
-      while (0 !== currentIndex) {
-
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex -= 1;
-
-        temporaryValue = array[currentIndex];
-        array[currentIndex] = array[randomIndex];
-        array[randomIndex] = temporaryValue;
-      }
-
-      return array;
-    }
-
-    // data for the sparklines that appear below header area
-    var sparklineData = [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51, 35, 41, 35, 27, 93, 53, 61, 27, 54, 43, 19, 46];
-    
-    class SparklinesCharts extends React.Component {
       
-      constructor(props) {
-        super(props);
+    </style>
 
-        this.state = {
-          seriesTopSpark1: [{
-            data: randomizeArray(sparklineData)
-          }],
-          seriesTopSpark2: [{
-            data: randomizeArray(sparklineData)
-          }],
-          seriesTopSpark3: [{
-            data: randomizeArray(sparklineData)
-          }],
-          seriesSpark1: [{
-            data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
-          }],
-          seriesSpark2: [{
-            data: [47, 45, 74, 14, 56, 74, 14, 11, 7, 39, 82]
-          }],
-          seriesSpark3: [{
-            data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14]
-          }],
-          seriesSpark4: [{
-            data: [15, 75, 47, 65, 14, 2, 41, 54, 4, 27, 15]
-          }],
-          chartOptionsTopSpark1: {
-            chart: {
-              sparkline: {
-                enabled: true
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+  window.Apex = {
+    stroke: {
+      width: 3
+    },
+    markers: {
+      size: 0
+    },
+    tooltip: {
+      fixed: {
+        enabled: true,
+      }
+    }
+  };
+  
+  var randomizeArray = function (arg) {
+    var array = arg.slice();
+    var currentIndex = array.length,
+      temporaryValue, randomIndex;
+  
+    while (0 !== currentIndex) {
+  
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+  
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+  
+    return array;
+  }
+  
+  // data for the sparklines that appear below header area
+  var sparklineData = [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51, 35, 41, 35, 27, 93, 53, 61, 27, 54, 43, 19, 46];
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div&gt;
+  &lt;div class=&quot;row&quot;&gt;
+    &lt;div class=&quot;col-md-4&quot;&gt;
+      &lt;div id=&quot;chart-spark1&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height={160} /&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;col-md-4&quot;&gt;
+      &lt;div id=&quot;chart-spark2&quot;&gt;
+  &lt;ReactApexChart options={this.state.optionsSpark2} series={this.state.seriesSpark2} type=&quot;area&quot; height={160} /&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;col-md-4&quot;&gt;
+      &lt;div id=&quot;chart-spark3&quot;&gt;
+  &lt;ReactApexChart options={this.state.optionsSpark3} series={this.state.seriesSpark3} type=&quot;area&quot; height={160} /&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;row&quot;&gt;
+    &lt;table&gt;
+      &lt;thead&gt;
+        &lt;th&gt;Total Value&lt;/th&gt;
+        &lt;th&gt;Percentage of Portfolio&lt;/th&gt;
+        &lt;th&gt;Last 10 days&lt;/th&gt;
+        &lt;th&gt;Volume&lt;/th&gt;
+      &lt;/thead&gt;
+      &lt;tbody&gt;
+        &lt;tr&gt;
+          &lt;td&gt;$32,554&lt;/td&gt;
+          &lt;td&gt;15%&lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-1&quot;&gt;
+  &lt;ReactApexChart options={this.state.options1} series={this.state.series1} type=&quot;line&quot; height={35} width={100} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-5&quot;&gt;
+  &lt;ReactApexChart options={this.state.options5} series={this.state.series5} type=&quot;bar&quot; height={35} width={100} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;td&gt;$23,533&lt;/td&gt;
+          &lt;td&gt;7%&lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-2&quot;&gt;
+  &lt;ReactApexChart options={this.state.options2} series={this.state.series2} type=&quot;line&quot; height={35} width={100} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-6&quot;&gt;
+  &lt;ReactApexChart options={this.state.options6} series={this.state.series6} type=&quot;bar&quot; height={35} width={100} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;td&gt;$54,276&lt;/td&gt;
+          &lt;td&gt;9%&lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-3&quot;&gt;
+  &lt;ReactApexChart options={this.state.options3} series={this.state.series3} type=&quot;pie&quot; height={40} width={40} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-7&quot;&gt;
+  &lt;ReactApexChart options={this.state.options7} series={this.state.series7} type=&quot;radialBar&quot; height={50} width={50} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;td&gt;$11,533&lt;/td&gt;
+          &lt;td&gt;2%&lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-4&quot;&gt;
+  &lt;ReactApexChart options={this.state.options4} series={this.state.series4} type=&quot;donut&quot; height={40} width={40} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+          &lt;td&gt;
+            &lt;div id=&quot;chart-8&quot;&gt;
+  &lt;ReactApexChart options={this.state.options8} series={this.state.series8} type=&quot;radialBar&quot; height={40} width={40} /&gt;
+&lt;/div&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+      &lt;/tbody&gt;
+    &lt;/table&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [{
+              data: randomizeArray(sparklineData)
+            }],
+            options: {
+              chart: {
+                type: 'area',
+                height: 160,
+                sparkline: {
+                  enabled: true
+                },
               },
-            },
-            colors: ['#DCE6EC'],
-            stroke: {
-              curve: 'straight'
-            },
-            fill: {
-              opacity: 0.3,
-            },
-            xaxis: {
-              crosshairs: {
-                width: 1
+              stroke: {
+                curve: 'straight'
               },
-            },
-            yaxis: {
-              min: 0
-            },
-            title: {
-              text: '$135,965',
-              offsetX: 0,
-              style: {
-                fontSize: '24px',
-                cssClass: 'apexcharts-yaxis-title'
-              }
-            },
-            subtitle: {
-              text: 'Profits',
-              offsetX: 0,
-              style: {
-                fontSize: '14px',
-                cssClass: 'apexcharts-yaxis-title'
-              }
-            }
-          },
-          chartOptionsTopSpark2: {
-            chart: {
-              sparkline: {
-                enabled: true
+              fill: {
+                opacity: 0.3,
               },
-            },
-            stroke: {
-              curve: 'straight'
-            },
-            fill: {
-              opacity: 0.3
-            },
-            xaxis: {
-              crosshairs: {
-                width: 1
+              yaxis: {
+                min: 0
               },
-            },
-            yaxis: {
-              min: 0
-            },
-            title: {
-              text: '$235,312',
-              offsetX: 0,
-              style: {
-                fontSize: '24px',
-                cssClass: 'apexcharts-yaxis-title'
-              }
-            },
-            subtitle: {
-              text: 'Expenses',
-              offsetX: 0,
-              style: {
-                fontSize: '14px',
-                cssClass: 'apexcharts-yaxis-title'
-              }
-            }
-          },
-          chartOptionsTopSpark3: {
-            chart: {
-              sparkline: {
-                enabled: true
-              },
-            },
-            stroke: {
-              curve: 'straight'
-            },
-            fill: {
-              opacity: 0.3,
-            },
-            xaxis: {
-              crosshairs: {
-                width: 1
-              },
-            },
-            yaxis: {
-              min: 0
-            },
-            title: {
-              text: '$424,652',
-              offsetX: 0,
-              style: {
-                fontSize: '24px',
-                cssClass: 'apexcharts-yaxis-title'
-              }
-            },
-            subtitle: {
-              text: 'Sales',
-              offsetX: 0,
-              style: {
-                fontSize: '14px',
-                cssClass: 'apexcharts-yaxis-title'
-              }
-            }
-          },
-          chartOptionsSparkLine: {
-            chart: {
-              height: 35,
-              sparkline: {
-                enabled: true
-              }
-            },
-            plotOptions: {
-              bar: {
-                columnWidth: '80%'
-              }
-            },
-            xaxis: {
-              crosshairs: {
-                width: 1
-              },
-            },
-            tooltip: {
-              fixed: {
-                enabled: false
-              },
-              x: {
-                show: false
-              },
-              y: {
-                title: {
-                  formatter: function (seriesName) {
-                    return ''
-                  }
+              colors: ['#DCE6EC'],
+              title: {
+                text: '$424,652',
+                offsetX: 0,
+                style: {
+                  fontSize: '24px',
                 }
               },
-              marker: {
-                show: false
+              subtitle: {
+                text: 'Sales',
+                offsetX: 0,
+                style: {
+                  fontSize: '14px',
+                }
               }
-            }
-          }
+            },
+          
+            seriesSpark2: [{
+              data: randomizeArray(sparklineData)
+            }],
+            optionsSpark2: {
+              chart: {
+                type: 'area',
+                height: 160,
+                sparkline: {
+                  enabled: true
+                },
+              },
+              stroke: {
+                curve: 'straight'
+              },
+              fill: {
+                opacity: 0.3,
+              },
+              yaxis: {
+                min: 0
+              },
+              colors: ['#DCE6EC'],
+              title: {
+                text: '$235,312',
+                offsetX: 0,
+                style: {
+                  fontSize: '24px',
+                }
+              },
+              subtitle: {
+                text: 'Expenses',
+                offsetX: 0,
+                style: {
+                  fontSize: '14px',
+                }
+              }
+            },
+          
+            seriesSpark3: [{
+              data: randomizeArray(sparklineData)
+            }],
+            optionsSpark3: {
+              chart: {
+                type: 'area',
+                height: 160,
+                sparkline: {
+                  enabled: true
+                },
+              },
+              stroke: {
+                curve: 'straight'
+              },
+              fill: {
+                opacity: 0.3
+              },
+              xaxis: {
+                crosshairs: {
+                  width: 1
+                },
+              },
+              yaxis: {
+                min: 0
+              },
+              title: {
+                text: '$135,965',
+                offsetX: 0,
+                style: {
+                  fontSize: '24px',
+                }
+              },
+              subtitle: {
+                text: 'Profits',
+                offsetX: 0,
+                style: {
+                  fontSize: '14px',
+                }
+              }
+            },
+          
+            series1: [{
+              data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
+            }],
+            options1: {
+              chart: {
+                type: 'line',
+                width: 100,
+                height: 35,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              tooltip: {
+                fixed: {
+                  enabled: false
+                },
+                x: {
+                  show: false
+                },
+                y: {
+                  title: {
+                    formatter: function (seriesName) {
+                      return ''
+                    }
+                  }
+                },
+                marker: {
+                  show: false
+                }
+              }
+            },
+          
+            series2: [{
+              data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14]
+            }],
+            options2: {
+              chart: {
+                type: 'line',
+                width: 100,
+                height: 35,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              tooltip: {
+                fixed: {
+                  enabled: false
+                },
+                x: {
+                  show: false
+                },
+                y: {
+                  title: {
+                    formatter: function (seriesName) {
+                      return ''
+                    }
+                  }
+                },
+                marker: {
+                  show: false
+                }
+              }
+            },
+          
+            series3: [43, 32, 12, 9],
+            options3: {
+              chart: {
+                type: 'pie',
+                width: 40,
+                height: 40,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              stroke: {
+                width: 1
+              },
+              tooltip: {
+                fixed: {
+                  enabled: false
+                },
+              }
+            },
+          
+            series4: [43, 32, 12, 9],
+            options4: {
+              chart: {
+                type: 'donut',
+                width: 40,
+                height: 40,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              stroke: {
+                width: 1
+              },
+              tooltip: {
+                fixed: {
+                  enabled: false
+                },
+              }
+            },
+          
+            series5: [{
+              data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
+            }],
+            options5: {
+              chart: {
+                type: 'bar',
+                width: 100,
+                height: 35,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              plotOptions: {
+                bar: {
+                  columnWidth: '80%'
+                }
+              },
+              labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+              xaxis: {
+                crosshairs: {
+                  width: 1
+                },
+              },
+              tooltip: {
+                fixed: {
+                  enabled: false
+                },
+                x: {
+                  show: false
+                },
+                y: {
+                  title: {
+                    formatter: function (seriesName) {
+                      return ''
+                    }
+                  }
+                },
+                marker: {
+                  show: false
+                }
+              }
+            },
+          
+            series6: [{
+              data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14]
+            }],
+            options6: {
+              chart: {
+                type: 'bar',
+                width: 100,
+                height: 35,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              plotOptions: {
+                bar: {
+                  columnWidth: '80%'
+                }
+              },
+              labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+              xaxis: {
+                crosshairs: {
+                  width: 1
+                },
+              },
+              tooltip: {
+                fixed: {
+                  enabled: false
+                },
+                x: {
+                  show: false
+                },
+                y: {
+                  title: {
+                    formatter: function (seriesName) {
+                      return ''
+                    }
+                  }
+                },
+                marker: {
+                  show: false
+                }
+              }
+            },
+          
+            series7: [45],
+            options7: {
+              chart: {
+                type: 'radialBar',
+                width: 50,
+                height: 50,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              plotOptions: {
+                radialBar: {
+                  hollow: {
+                    margin: 0,
+                    size: '50%'
+                  },
+                  track: {
+                    margin: 0
+                  },
+                  dataLabels: {
+                    show: false
+                  }
+                }
+              }
+            },
+          
+            series8: [53, 67],
+            options8: {
+              chart: {
+                type: 'radialBar',
+                width: 40,
+                height: 40,
+                sparkline: {
+                  enabled: true
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              plotOptions: {
+                radialBar: {
+                  hollow: {
+                    margin: 0,
+                    size: '50%'
+                  },
+                  track: {
+                    margin: 1
+                  },
+                  dataLabels: {
+                    show: false
+                  }
+                }
+              }
+            },
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div id="chart-spark1">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="area" height={160} />
+              </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div id="chart-spark2">
+                <ReactApexChart options={this.state.optionsSpark2} series={this.state.seriesSpark2} type="area" height={160} />
+              </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div id="chart-spark3">
+                <ReactApexChart options={this.state.optionsSpark3} series={this.state.seriesSpark3} type="area" height={160} />
+              </div>
+                  </div>
+                </div>
+              
+                <div class="row">
+                  <table>
+                    <thead>
+                      <th>Total Value</th>
+                      <th>Percentage of Portfolio</th>
+                      <th>Last 10 days</th>
+                      <th>Volume</th>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>$32,554</td>
+                        <td>15%</td>
+                        <td>
+                          <div id="chart-1">
+                <ReactApexChart options={this.state.options1} series={this.state.series1} type="line" height={35} width={100} />
+              </div>
+                        </td>
+                        <td>
+                          <div id="chart-5">
+                <ReactApexChart options={this.state.options5} series={this.state.series5} type="bar" height={35} width={100} />
+              </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>$23,533</td>
+                        <td>7%</td>
+                        <td>
+                          <div id="chart-2">
+                <ReactApexChart options={this.state.options2} series={this.state.series2} type="line" height={35} width={100} />
+              </div>
+                        </td>
+                        <td>
+                          <div id="chart-6">
+                <ReactApexChart options={this.state.options6} series={this.state.series6} type="bar" height={35} width={100} />
+              </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>$54,276</td>
+                        <td>9%</td>
+                        <td>
+                          <div id="chart-3">
+                <ReactApexChart options={this.state.options3} series={this.state.series3} type="pie" height={40} width={40} />
+              </div>
+                        </td>
+                        <td>
+                          <div id="chart-7">
+                <ReactApexChart options={this.state.options7} series={this.state.series7} type="radialBar" height={50} width={50} />
+              </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>$11,533</td>
+                        <td>2%</td>
+                        <td>
+                          <div id="chart-4">
+                <ReactApexChart options={this.state.options4} series={this.state.series4} type="donut" height={40} width={40} />
+              </div>
+                        </td>
+                        <td>
+                          <div id="chart-8">
+                <ReactApexChart options={this.state.options8} series={this.state.series8} type="radialBar" height={40} width={40} />
+              </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
         }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="sparklines">
-              <div className="row">
-                <div className="col-md-4">
-                  <div id="spark1">
-                    <ReactApexChart options={this.state.chartOptionsTopSpark1} series={this.state.seriesTopSpark1} type="area" height="160" />
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <div id="spark2">
-                    <ReactApexChart options={this.state.chartOptionsTopSpark2} series={this.state.seriesTopSpark2} type="area" height="160" />
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <div id="spark3">
-                    <ReactApexChart options={this.state.chartOptionsTopSpark3} series={this.state.seriesTopSpark3} type="area" height="160" />
-                  </div>
-                </div>
-              </div>
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-              <div className="row">
-                <table>
-                  <thead>
-                    <th>Total Value</th>
-                    <th>Percentage of Portfolio</th>
-                    <th>Last 10 days</th>
-                    <th>Volume</th>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>$32,554</td>
-                      <td>15%</td>
-                      <td>
-                        <div id="chart1">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type="line" height="35" width="100" />
-                        </div>
-                      </td>
-                      <td>
-                        <div id="chart5">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark1} type="bar" height="35" width="100" />
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>$23,533</td>
-                      <td>7%</td>
-                      <td>
-                        <div id="chart2">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type="line" height="35" width="100" />
-                        </div>
-                      </td>
-                      <td>
-                        <div id="chart6">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark2} type="bar" height="35" width="100" />
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>$54,276</td>
-                      <td>9%</td>
-                      <td>
-                        <div id="chart3">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="line" height="35" width="100" />
-                        </div>
-                      </td>
-                      <td>
-                        <div id="chart7">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="bar" height="35" width="100" />
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>$11,533</td>
-                      <td>2%</td>
-                      <td>
-                        <div id="chart4">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark4} type="line" height="35" width="100" />
-                        </div>
-                      </td>
-                      <td>
-                        <div id="chart8">
-                          <ReactApexChart options={this.state.chartOptionsSparkLine} series={this.state.seriesSpark3} type="bar" height="35" width="100" />
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
-
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(SparklinesCharts), domContainer);
-
-  </script>
-</body>
+    
+  </body>
 </html>

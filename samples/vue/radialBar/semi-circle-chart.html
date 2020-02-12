@@ -1,93 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Semi Circle Chart</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Semi Circle Chart</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-            max-width: 450px;
-            margin: 35px auto;
-        }
+    <style>
+      
+        #chart {
+      padding: 0;
+      max-width: 450px;
+      margin: 35px auto;
+    }
+      
     </style>
-</head>
 
-<body>
-  <div id="chart">
-    <apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
-  </div>
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=radialBar height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
-  
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
 
-  <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [76],
-        chartOptions: {
-          plotOptions: {
-            radialBar: {
-              startAngle: -90,
-              endAngle: 90,
-              track: {
-                background: "#e7e7e7",
-                strokeWidth: '97%',
-                margin: 5, // margin is in pixels
-                shadow: {
-                  enabled: true,
-                  top: 2,
-                  left: 0,
-                  color: '#999',
-                  opacity: 1,
-                  blur: 2
-                }
-              },
-              dataLabels: {
-                name: {
-                  show: false
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="radialBar" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;radialBar&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [76],
+          chartOptions: {
+            chart: {
+              type: 'radialBar',
+              offsetY: -20
+            },
+            plotOptions: {
+              radialBar: {
+                startAngle: -90,
+                endAngle: 90,
+                track: {
+                  background: "#e7e7e7",
+                  strokeWidth: '97%',
+                  margin: 5, // margin is in pixels
+                  dropShadow: {
+                    enabled: true,
+                    top: 2,
+                    left: 0,
+                    color: '#999',
+                    opacity: 1,
+                    blur: 2
+                  }
                 },
-                value: {
-                  offsetY: 15,
-                  fontSize: '22px'
+                dataLabels: {
+                  name: {
+                    show: false
+                  },
+                  value: {
+                    offsetY: -2,
+                    fontSize: '22px'
+                  }
                 }
               }
-            }
-          },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shade: 'light',
-              shadeIntensity: 0.4,
-              inverseColors: false,
-              opacityFrom: 1,
-              opacityTo: 1,
-              stops: [0, 50, 53, 91]
             },
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shade: 'light',
+                shadeIntensity: 0.4,
+                inverseColors: false,
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [0, 50, 53, 91]
+              },
+            },
+            labels: ['Average Results'],
           },
-          labels: ['Average Results'],
-        }
-      },
-
-    })
-  </script>
-
-</body>
-
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
 </html>

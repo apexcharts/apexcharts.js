@@ -14,50 +14,107 @@ class Formatters {
     this.tooltipKeyFormat = 'dd MMM'
   }
 
-  xLabelFormat(fn, val) {
+  xLabelFormat(fn, val, timestamp) {
     let w = this.w
 
     if (w.config.xaxis.type === 'datetime') {
-      // if user has not specified a custom formatter, use the default tooltip.x.format
-      if (w.config.tooltip.x.formatter === undefined) {
-        let datetimeObj = new DateTime(this.ctx)
-        return datetimeObj.formatDate(
-          new Date(val),
-          w.config.tooltip.x.format,
-          true,
-          true
-        )
+      if (w.config.xaxis.labels.formatter === undefined) {
+        // if user has not specified a custom formatter, use the default tooltip.x.format
+        if (w.config.tooltip.x.formatter === undefined) {
+          let datetimeObj = new DateTime(this.ctx)
+          return datetimeObj.formatDate(
+            datetimeObj.getDate(val),
+            w.config.tooltip.x.format
+          )
+        }
       }
     }
 
-    return fn(val)
+    return fn(val, timestamp)
+  }
+
+  defaultGeneralFormatter(val) {
+    if (Array.isArray(val)) {
+      return val.map((v) => {
+        return v
+      })
+    } else {
+      return val
+    }
+  }
+
+  defaultYFormatter(v, yaxe, i) {
+    let w = this.w
+
+    if (Utils.isNumber(v)) {
+      if (w.globals.yValueDecimal !== 0) {
+        v = v.toFixed(
+          yaxe.decimalsInFloat !== undefined
+            ? yaxe.decimalsInFloat
+            : w.globals.yValueDecimal
+        )
+      } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 10) {
+        v = v.toFixed(1)
+      } else {
+        v = v.toFixed(0)
+      }
+    }
+    return v
   }
 
   setLabelFormatters() {
     let w = this.w
 
-    w.globals.xLabelFormatter = function(val) {
+    w.globals.xLabelFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
+    }
+
+    w.globals.xaxisTooltipFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
+    }
+
+    w.globals.ttKeyFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
+    }
+
+    w.globals.ttZFormatter = (val) => {
       return val
     }
 
-    w.globals.xaxisTooltipFormatter = function(val) {
-      return val
+    w.globals.legendFormatter = (val) => {
+      return this.defaultGeneralFormatter(val)
     }
 
-    w.globals.ttKeyFormatter = function(val) {
-      return val
-    }
-
-    w.globals.ttZFormatter = function(val) {
-      return val
-    }
-
-    w.globals.legendFormatter = function(val) {
-      return val
+    // formatter function will always overwrite format property
+    if (w.config.xaxis.labels.formatter !== undefined) {
+      w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
+    } else {
+      w.globals.xLabelFormatter = (val) => {
+        if (Utils.isNumber(val)) {
+          // numeric xaxis may have smaller range, so defaulting to 1 decimal
+          if (
+            !w.config.xaxis.convertedCatToNumeric &&
+            w.config.xaxis.type === 'numeric' &&
+            w.globals.dataPoints < 50
+          ) {
+            return val.toFixed(1)
+          }
+          if (w.globals.isBarHorizontal) {
+            const range = w.globals.maxY - w.globals.minYArr
+            if (range < 4) {
+              return val.toFixed(1)
+            }
+          }
+          return val.toFixed(0)
+        }
+        return val
+      }
     }
 
     if (typeof w.config.tooltip.x.formatter === 'function') {
       w.globals.ttKeyFormatter = w.config.tooltip.x.formatter
+    } else {
+      w.globals.ttKeyFormatter = w.globals.xLabelFormatter
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {
@@ -82,38 +139,20 @@ class Formatters {
     }
 
     // formatter function will always overwrite format property
-    if (w.config.xaxis.labels.formatter !== undefined) {
-      w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
-    } else {
-      w.globals.xLabelFormatter = function(val) {
-        if (Utils.isNumber(val)) {
-          // numeric xaxis may have smaller range, so defaulting to 1 decimal
-          if (w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
-            return val.toFixed(1)
-          }
-          return val.toFixed(0)
-        }
-        return val
-      }
-    }
-
-    // formatter function will always overwrite format property
     w.config.yaxis.forEach((yaxe, i) => {
       if (yaxe.labels.formatter !== undefined) {
         w.globals.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
-        w.globals.yLabelFormatters[i] = function(val) {
-          if (Utils.isNumber(val)) {
-            if (
-              w.globals.yValueDecimal !== 0 ||
-              w.globals.maxY - w.globals.minY < 3
-            ) {
-              return val.toFixed(yaxe.decimalsInFloat)
-            } else {
-              return val.toFixed(0)
-            }
+        w.globals.yLabelFormatters[i] = (val) => {
+          if (!w.globals.xyCharts) return val
+
+          if (Array.isArray(val)) {
+            return val.map((v) => {
+              return this.defaultYFormatter(v, yaxe, i)
+            })
+          } else {
+            return this.defaultYFormatter(val, yaxe, i)
           }
-          return val
         }
       }
     })
@@ -127,9 +166,10 @@ class Formatters {
       w.globals.yAxisScale[0].result = w.globals.seriesNames.slice()
 
       //  get the longest string from the labels array and also apply label formatter to it
-      let longest = w.globals.seriesNames.reduce(function(a, b) {
-        return a.length > b.length ? a : b
-      }, 0)
+      let longest = w.globals.seriesNames.reduce(
+        (a, b) => (a.length > b.length ? a : b),
+        0
+      )
       w.globals.yAxisScale[0].niceMax = longest
       w.globals.yAxisScale[0].niceMin = longest
     }

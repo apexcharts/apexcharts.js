@@ -1,6 +1,7 @@
 import DataLabels from '../modules/DataLabels'
 import Animations from '../modules/Animations'
 import Graphics from '../modules/Graphics'
+import Fill from '../modules/Fill'
 import Utils from '../utils/Utils'
 import Filters from '../modules/Filters'
 
@@ -17,10 +18,14 @@ export default class HeatMap {
     this.xRatio = xyRatios.xRatio
     this.yRatio = xyRatios.yRatio
 
+    this.negRange = false
+
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
 
     this.rectRadius = this.w.config.plotOptions.heatmap.radius
-    this.strokeWidth = this.w.config.stroke.width
+    this.strokeWidth = this.w.config.stroke.show
+      ? this.w.config.stroke.width
+      : 0
   }
 
   draw(series) {
@@ -40,6 +45,8 @@ export default class HeatMap {
     let y1 = 0
     let rev = false
 
+    this.checkColorRange()
+
     let heatSeries = series.slice()
     if (w.config.yaxis[0].reversed) {
       rev = true
@@ -53,9 +60,8 @@ export default class HeatMap {
     ) {
       // el to which series will be drawn
       let elSeries = graphics.group({
-        class: `apexcharts-series apexcharts-heatmap-series ${Utils.escapeString(
-          w.globals.seriesNames[i]
-        )}`,
+        class: `apexcharts-series apexcharts-heatmap-series`,
+        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         rel: i + 1,
         'data:realIndex': i
       })
@@ -63,37 +69,68 @@ export default class HeatMap {
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
         const filters = new Filters(this.ctx)
-        filters.dropShadow(elSeries, shadow)
+        filters.dropShadow(elSeries, shadow, i)
       }
 
       let x1 = 0
 
       for (let j = 0; j < heatSeries[i].length; j++) {
         let colorShadePercent = 1
+        let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
 
         const heatColorProps = this.determineHeatColor(i, j)
 
-        if (w.globals.hasNegs) {
-          let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
-          if (heatColorProps.percent < 0) {
-            colorShadePercent =
-              1 - (1 + heatColorProps.percent / 100) * shadeIntensity
+        if (w.globals.hasNegs || this.negRange) {
+          if (w.config.plotOptions.heatmap.reverseNegativeShade) {
+            if (heatColorProps.percent < 0) {
+              colorShadePercent =
+                (heatColorProps.percent / 100) * (shadeIntensity * 1.25)
+            } else {
+              colorShadePercent =
+                (1 - heatColorProps.percent / 100) * (shadeIntensity * 1.25)
+            }
           } else {
-            colorShadePercent =
-              (1 - heatColorProps.percent / 100) * shadeIntensity
+            if (heatColorProps.percent < 0) {
+              colorShadePercent =
+                1 - (1 + heatColorProps.percent / 100) * shadeIntensity
+            } else {
+              colorShadePercent =
+                (1 - heatColorProps.percent / 100) * shadeIntensity
+            }
           }
         } else {
           colorShadePercent = 1 - heatColorProps.percent / 100
         }
 
         let color = heatColorProps.color
+        let utils = new Utils()
 
         if (w.config.plotOptions.heatmap.enableShades) {
-          let utils = new Utils()
           color = Utils.hexToRgba(
             utils.shadeColor(colorShadePercent, heatColorProps.color),
             w.config.fill.opacity
           )
+        }
+
+        if (w.config.fill.type === 'image') {
+          const fill = new Fill(this.ctx)
+
+          color = fill.fillPath({
+            seriesNumber: i,
+            dataPointIndex: j,
+            opacity: w.globals.hasNegs
+              ? heatColorProps.percent < 0
+                ? 1 - (1 + heatColorProps.percent / 100)
+                : shadeIntensity + heatColorProps.percent / 100
+              : heatColorProps.percent / 100,
+            patternID: Utils.randomId(),
+            width: w.config.fill.image.width
+              ? w.config.fill.image.width
+              : xDivision,
+            height: w.config.fill.image.height
+              ? w.config.fill.image.height
+              : yDivision
+          })
         }
 
         let radius = this.rectRadius
@@ -115,7 +152,7 @@ export default class HeatMap {
           val: heatSeries[i][j],
           'stroke-width': this.strokeWidth,
           stroke: w.globals.stroke.colors[0],
-          color: color
+          color
         })
 
         rect.node.addEventListener(
@@ -197,10 +234,25 @@ export default class HeatMap {
     return ret
   }
 
+  checkColorRange() {
+    const w = this.w
+
+    let heatmap = w.config.plotOptions.heatmap
+
+    if (heatmap.colorScale.ranges.length > 0) {
+      heatmap.colorScale.ranges.map((range, index) => {
+        if (range.from < 0) {
+          this.negRange = true
+        }
+      })
+    }
+  }
+
   determineHeatColor(i, j) {
     const w = this.w
 
-    const val = w.globals.series[i][j]
+    let val = w.globals.series[i][j]
+
     let heatmap = w.config.plotOptions.heatmap
 
     let seriesNumber = heatmap.colorScale.inverse ? j : i
@@ -226,6 +278,12 @@ export default class HeatMap {
     }
 
     let total = Math.abs(max) + Math.abs(min)
+
+    if (val === 0) {
+      // to avoid invalid percentage for 0 values
+      val = 0.000001
+    }
+
     let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
 
     if (heatmap.colorScale.ranges.length > 0) {
@@ -235,8 +293,8 @@ export default class HeatMap {
           color = range.color
           min = range.from
           max = range.to
-          total = Math.abs(max) + Math.abs(min)
-          percent = (100 * val) / total
+          let rTotal = Math.abs(max) + Math.abs(min)
+          percent = (100 * val) / (rTotal === 0 ? rTotal - 0.000001 : rTotal)
         }
       })
     }
@@ -271,7 +329,7 @@ export default class HeatMap {
       let dataLabelsY =
         y +
         rectHeight / 2 +
-        parseInt(dataLabelsConfig.style.fontSize) / 3 +
+        parseFloat(dataLabelsConfig.style.fontSize) / 3 +
         offY
 
       let text = formatter(w.globals.series[i][j], {
@@ -311,7 +369,7 @@ export default class HeatMap {
       },
       speed,
       () => {
-        this.w.globals.animationEnded = true
+        animations.animationCompleted(el)
       }
     )
   }

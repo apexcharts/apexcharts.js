@@ -22,6 +22,11 @@ class Radial extends Pie {
     this.startAngle = w.config.plotOptions.radialBar.startAngle
     this.endAngle = w.config.plotOptions.radialBar.endAngle
 
+    this.totalAngle = Math.abs(
+      w.config.plotOptions.radialBar.endAngle -
+        w.config.plotOptions.radialBar.startAngle
+    )
+
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
     this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle
 
@@ -37,7 +42,7 @@ class Radial extends Pie {
       w.config.plotOptions.radialBar.endAngle -
       w.config.plotOptions.radialBar.startAngle
 
-    this.margin = parseInt(w.config.plotOptions.radialBar.track.margin)
+    this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10)
   }
 
   draw(series) {
@@ -48,20 +53,17 @@ class Radial extends Pie {
       class: 'apexcharts-radialbar'
     })
 
+    if (w.globals.noData) return ret
+
     let elSeries = graphics.group()
 
     let centerY = this.defaultSize / 2
     let centerX = w.globals.gridWidth / 2
 
-    let size =
-      this.defaultSize / 2.05 -
-      w.config.stroke.width -
-      w.config.chart.dropShadow.blur
-
-    if (w.config.plotOptions.radialBar.size !== undefined) {
-      size = w.config.plotOptions.radialBar.size
+    let size = this.defaultSize / 2.05
+    if (!w.config.chart.sparkline.enabled) {
+      size = size - w.config.stroke.width - w.config.chart.dropShadow.blur
     }
-
     let colorArr = w.globals.fill.colors
 
     if (w.config.plotOptions.radialBar.track.show) {
@@ -83,6 +85,23 @@ class Radial extends Pie {
       series
     })
 
+    let totalAngle = 360
+
+    if (w.config.plotOptions.radialBar.startAngle < 0) {
+      totalAngle = this.totalAngle
+    }
+
+    let angleRatio = (360 - totalAngle) / 360
+    w.globals.radialSize = size - size * angleRatio
+
+    if (this.radialDataLabels.value.show) {
+      let offset = Math.max(
+        this.radialDataLabels.value.offsetY,
+        this.radialDataLabels.name.offsetY
+      )
+      w.globals.radialSize += offset * angleRatio
+    }
+
     elSeries.add(elG.g)
 
     if (w.config.plotOptions.radialBar.hollow.position === 'front') {
@@ -101,7 +120,9 @@ class Radial extends Pie {
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
-    let g = graphics.group()
+    let g = graphics.group({
+      class: 'apexcharts-tracks'
+    })
 
     let filters = new Filters(this.ctx)
     let fill = new Fill(this.ctx)
@@ -117,7 +138,6 @@ class Radial extends Pie {
       g.add(elRadialBarTrack)
 
       elRadialBarTrack.attr({
-        id: 'apexcharts-track-' + i,
         rel: i + 1
       })
 
@@ -142,7 +162,8 @@ class Radial extends Pie {
       let elPath = graphics.drawPath({
         d: '',
         stroke: pathFill,
-        strokeWidth: (strokeWidth * parseInt(trackConfig.strokeWidth)) / 100,
+        strokeWidth:
+          (strokeWidth * parseInt(trackConfig.strokeWidth, 10)) / 100,
         fill: 'none',
         strokeOpacity: trackConfig.opacity,
         classes: 'apexcharts-radialbar-area'
@@ -157,8 +178,7 @@ class Radial extends Pie {
 
       elPath.attr('id', 'apexcharts-radialbarTrack-' + i)
 
-      let pie = new Pie(this.ctx)
-      pie.animatePaths(elPath, {
+      this.animatePaths(elPath, {
         centerX: opts.centerX,
         centerY: opts.centerY,
         endAngle,
@@ -194,7 +214,7 @@ class Radial extends Pie {
       strokeWidth * opts.series.length -
       this.margin * opts.series.length -
       (strokeWidth *
-        parseInt(w.config.plotOptions.radialBar.track.strokeWidth)) /
+        parseInt(w.config.plotOptions.radialBar.track.strokeWidth, 10)) /
         100 /
         2
 
@@ -208,7 +228,7 @@ class Radial extends Pie {
       size: hollowRadius,
       centerX: opts.centerX,
       centerY: opts.centerY,
-      fill: hollowFillID
+      fill: hollowFillID ? hollowFillID : 'transparent'
     })
 
     if (w.config.plotOptions.radialBar.hollow.dropShadow.enabled) {
@@ -221,11 +241,10 @@ class Radial extends Pie {
       shown = 0
     }
 
-    let pie = new Pie(this.ctx)
     let dataLabels = null
 
     if (this.radialDataLabels.show) {
-      dataLabels = pie.renderInnerDataLabels(this.radialDataLabels, {
+      dataLabels = this.renderInnerDataLabels(this.radialDataLabels, {
         hollowSize,
         centerX: opts.centerX,
         centerY: opts.centerY,
@@ -251,15 +270,14 @@ class Radial extends Pie {
       reverseLoop ? i-- : i++
     ) {
       let elRadialBarArc = graphics.group({
-        class: `apexcharts-series apexcharts-radial-series ${Utils.escapeString(
-          w.globals.seriesNames[i]
-        )}`
+        class: `apexcharts-series apexcharts-radial-series`,
+        seriesName: Utils.escapeString(w.globals.seriesNames[i])
       })
       g.add(elRadialBarArc)
 
       elRadialBarArc.attr({
-        id: 'apexcharts-series-' + i,
-        rel: i + 1
+        rel: i + 1,
+        'data:realIndex': i
       })
 
       this.ctx.series.addCollapsedClassToSeries(elRadialBarArc, i)
@@ -268,29 +286,26 @@ class Radial extends Pie {
 
       let pathFill = fill.fillPath({
         seriesNumber: i,
-        size: opts.size
+        size: opts.size,
+        value: opts.series[i]
       })
 
       let startAngle = this.startAngle
       let prevStartAngle
 
-      const totalAngle = Math.abs(
-        w.config.plotOptions.radialBar.endAngle -
-          w.config.plotOptions.radialBar.startAngle
-      )
-
       // if data exceeds 100, make it 100
       const dataValue =
         Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100
 
-      let endAngle = Math.round(totalAngle * dataValue) + this.startAngle
+      let endAngle = Math.round(this.totalAngle * dataValue) + this.startAngle
 
       let prevEndAngle
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle
         prevEndAngle =
           Math.round(
-            (totalAngle * Utils.negToZero(w.globals.previousPaths[i])) / 100
+            (this.totalAngle * Utils.negToZero(w.globals.previousPaths[i])) /
+              100
           ) + prevStartAngle
       }
 
@@ -316,7 +331,7 @@ class Radial extends Pie {
         strokeWidth,
         fill: 'none',
         fillOpacity: w.config.fill.opacity,
-        classes: 'apexcharts-radialbar-area',
+        classes: 'apexcharts-radialbar-area apexcharts-radialbar-slice-' + i,
         strokeDashArray: dashArray
       })
 
@@ -327,23 +342,20 @@ class Radial extends Pie {
 
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
-        filters.dropShadow(elPath, shadow)
+        filters.dropShadow(elPath, shadow, i)
       }
 
       this.addListeners(elPath, this.radialDataLabels)
 
-      let pie = new Pie(this.ctx)
-
       elRadialBarArc.add(elPath)
 
       elPath.attr({
-        id: 'apexcharts-radialbar-slice-' + i,
         index: 0,
         j: i
       })
 
       let dur = 0
-      if (pie.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+      if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
         dur = ((endAngle - startAngle) / 360) * w.config.chart.animations.speed
 
         this.animDur = dur / (opts.series.length * 1.2) + this.animDur
@@ -359,7 +371,7 @@ class Radial extends Pie {
         this.animBeginArr.push(this.animDur)
       }
 
-      pie.animatePaths(elPath, {
+      this.animatePaths(elPath, {
         centerX: opts.centerX,
         centerY: opts.centerY,
         endAngle,
@@ -370,7 +382,7 @@ class Radial extends Pie {
         i,
         totalItems: 2,
         animBeginArr: this.animBeginArr,
-        dur: dur,
+        dur,
         shouldSetPrevPaths: true,
         easing: w.globals.easing
       })
@@ -403,7 +415,7 @@ class Radial extends Pie {
     const w = this.w
     let fill = new Fill(this.ctx)
 
-    let randID = (Math.random() + 1).toString(36).substring(4)
+    let randID = Utils.randomId()
     let hollowFillImg = w.config.plotOptions.radialBar.hollow.image
 
     if (w.config.plotOptions.radialBar.hollow.imageClipped) {
@@ -455,7 +467,7 @@ class Radial extends Pie {
     const w = this.w
     return (
       (opts.size *
-        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size))) /
+        (100 - parseInt(w.config.plotOptions.radialBar.hollow.size, 10))) /
         100 /
         (opts.series.length + 1) -
       this.margin

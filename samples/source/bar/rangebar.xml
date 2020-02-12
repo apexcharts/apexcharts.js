@@ -1,0 +1,73 @@
+<title>Range Bar Chart</title>
+
+<chart>
+<options>
+chart: {
+  type: 'bar',
+  height: 350
+},
+plotOptions: {
+  bar: {
+    horizontal: true
+  }
+},
+dataLabels: {
+  enabled: true
+},
+yaxis: {
+  labels: {
+    align: 'center'
+  }
+},
+legend: {
+  horizontalAlign: 'center'
+}
+</options>
+
+<series>
+[
+  {
+    name: 'round-1',
+    data: [
+      {
+        x: ['TEAM', 'A'],
+        y: 2
+      },
+      {
+        x: ['TEAM', 'B'],
+        y: 4
+      },
+      {
+        x: ['TEAM', 'C'],
+        y: 6
+      },
+      {
+        x: ['TEAM', 'D'],
+        y: 11
+      }
+    ]
+  },
+  {
+    name: 'round-2',
+    data: [
+      {
+        x: ['TEAM', 'A'],
+        y: 4
+      },
+      {
+        x: ['TEAM', 'B'],
+        y: 1
+      },
+      {
+        x: ['TEAM', 'C'],
+        y: 9
+      },
+      {
+        x: ['TEAM', 'D'],
+        y: 3
+      }
+    ]
+  }
+]  
+</series>
+</chart>

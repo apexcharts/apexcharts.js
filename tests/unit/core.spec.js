@@ -1,16 +1,16 @@
-import Core from '../../src/modules/Core.js'
+import Data from '../../src/modules/Data.js'
 import seriesxy from './data/seriesxy.js'
 import { createChart } from './utils/utils.js'
 
 describe('Parse Data', () => {
   it('should parse data for cartesian charts', () => {
-    const chart = createChart('line', seriesxy)
+    const chart = createChart('line', seriesxy, 'datetime')
     chart.w.globals.series = []
     chart.w.globals.seriesX = []
     chart.w.globals.labels = []
 
-    const core = new Core(document.querySelector('#chart'), chart)
-    const w = core.parseDataAxisCharts(seriesxy, seriesxy, chart)
+    const data = new Data(chart)
+    const w = data.parseDataAxisCharts(seriesxy, seriesxy, chart)
 
     expect(w.globals.series).toEqual([[300, 230, 210]])
     expect(w.globals.seriesX).toEqual([
@@ -28,8 +28,8 @@ describe('Parse Data', () => {
     chart.w.globals.series = []
     chart.w.globals.seriesNames = []
 
-    const core = new Core(document.querySelector('#chart'), chart)
-    const w = core.parseDataNonAxisCharts(series)
+    const data = new Data(chart)
+    const w = data.parseDataNonAxisCharts(series)
 
     expect(w.globals.series).toEqual([30, 23, 12, 43])
     expect(w.globals.seriesNames).toEqual([

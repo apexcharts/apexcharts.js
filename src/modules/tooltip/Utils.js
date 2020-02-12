@@ -1,3 +1,5 @@
+import Utilities from '../../utils/Utils'
+
 /**
  * ApexCharts Tooltip.Utils Class to support Tooltip functionality.
  *
@@ -20,7 +22,7 @@ export default class Utils {
    * - hoverArea = the rect on which user hovers
    * - elGrid = dimensions of the hover rect (it can be different than hoverarea)
    */
-  getNearestValues({ hoverArea, elGrid, clientX, clientY, hasBars }) {
+  getNearestValues({ hoverArea, elGrid, clientX, clientY }) {
     let w = this.w
 
     const hoverWidth = w.globals.gridWidth
@@ -29,20 +31,21 @@ export default class Utils {
 
     const seriesBound = elGrid.getBoundingClientRect()
 
-    if ((hasBars && w.globals.comboCharts) || hasBars) {
+    const hasBars = this.hasBars()
+    if (w.globals.comboCharts || hasBars) {
       xDivisor = hoverWidth / w.globals.dataPoints
     }
 
     let hoverX = clientX - seriesBound.left
     let hoverY = clientY - seriesBound.top
 
-    const inRect =
+    const notInRect =
       hoverX < 0 ||
       hoverY < 0 ||
       hoverX > w.globals.gridWidth ||
       hoverY > w.globals.gridHeight
 
-    if (inRect) {
+    if (notInRect) {
       hoverArea.classList.remove('hovering-zoom')
       hoverArea.classList.remove('hovering-pan')
     } else {
@@ -76,15 +79,11 @@ export default class Utils {
     }
 
     seriesXValArr = seriesXValArr.map((seriesXVal) => {
-      return seriesXVal.filter((s) => {
-        return s
-      })
+      return seriesXVal.filter((s) => s)
     })
 
     seriesYValArr = w.globals.seriesYvalues.map((seriesYVal) => {
-      return seriesYVal.filter((s) => {
-        return s
-      })
+      return seriesYVal.filter((s) => Utilities.isNumber(s))
     })
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
@@ -108,7 +107,11 @@ export default class Utils {
       }
     }
 
+    w.globals.capturedSeriesIndex =
+      capturedSeries === null ? -1 : capturedSeries
+
     if (!j || j < 1) j = 0
+    w.globals.capturedDataPointIndex = j
 
     return {
       capturedSeries,
@@ -164,11 +167,7 @@ export default class Utils {
     const coreUtils = new CoreUtils(this.ctx)
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
-      if (xarr.length > 0) {
-        return index
-      } else {
-        return -1
-      }
+      return xarr.length > 0 ? index : -1
     })
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
@@ -176,7 +175,8 @@ export default class Utils {
 
       if (
         firstActiveSeriesIndex[a] !== -1 &&
-        (total !== 0 && !coreUtils.seriesHaveSameValues(a))
+        total !== 0 &&
+        !coreUtils.seriesHaveSameValues(a)
       ) {
         activeIndex = firstActiveSeriesIndex[a]
         break
@@ -195,7 +195,6 @@ export default class Utils {
       let newdiff = Math.abs(val - arr[i])
       if (newdiff < diff) {
         diff = newdiff
-        curr = arr[i]
         currIndex = i
       }
     }
@@ -218,9 +217,7 @@ export default class Utils {
     let w = this.w
     let xSameForAllSeriesJArr = []
 
-    const seriesX = w.globals.seriesX.filter((s) => {
-      return typeof s[0] !== 'undefined'
-    })
+    const seriesX = w.globals.seriesX.filter((s) => typeof s[0] !== 'undefined')
 
     if (seriesX.length > 0) {
       for (let i = 0; i < seriesX.length - 1; i++) {
@@ -242,7 +239,7 @@ export default class Utils {
     return false
   }
 
-  isinitialSeriesSameLen() {
+  isInitialSeriesSameLen() {
     let sameLen = true
 
     const initialSeries = this.w.globals.initialSeries
@@ -259,11 +256,48 @@ export default class Utils {
 
   getBarsHeight(allbars) {
     let bars = [...allbars]
-    const totalHeight = bars.reduce((acc, bar) => {
-      return acc + bar.getBBox().height
-    }, 0)
+    const totalHeight = bars.reduce((acc, bar) => acc + bar.getBBox().height, 0)
 
     return totalHeight
+  }
+
+  getElMarkers() {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      ' .apexcharts-series-markers'
+    )
+  }
+
+  getAllMarkers() {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-series-markers .apexcharts-marker'
+    )
+  }
+
+  hasMarkers() {
+    const markers = this.getElMarkers()
+    return markers.length > 0
+  }
+
+  getElBars() {
+    return this.w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-rangebar-series'
+    )
+  }
+
+  hasBars() {
+    const bars = this.getElBars()
+    return bars.length > 0
+  }
+
+  getHoverMarkerSize(index) {
+    const w = this.w
+    let hoverSize = w.config.markers.hover.size
+
+    if (hoverSize === undefined) {
+      hoverSize =
+        w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
+    }
+    return hoverSize
   }
 
   toggleAllTooltipSeriesGroups(state) {
@@ -279,10 +313,10 @@ export default class Utils {
     let allTooltipSeriesGroups = ttCtx.allTooltipSeriesGroups
     for (let i = 0; i < allTooltipSeriesGroups.length; i++) {
       if (state === 'enable') {
-        allTooltipSeriesGroups[i].classList.add('active')
+        allTooltipSeriesGroups[i].classList.add('apexcharts-active')
         allTooltipSeriesGroups[i].style.display = w.config.tooltip.items.display
       } else {
-        allTooltipSeriesGroups[i].classList.remove('active')
+        allTooltipSeriesGroups[i].classList.remove('apexcharts-active')
         allTooltipSeriesGroups[i].style.display = 'none'
       }
     }

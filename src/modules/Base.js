@@ -12,7 +12,7 @@ export default class Base {
   }
 
   init() {
-    const config = new Config(this.opts).init()
+    const config = new Config(this.opts).init({ responsiveOverride: false })
     const globals = new Globals().init(config)
 
     const w = {

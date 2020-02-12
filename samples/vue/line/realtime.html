@@ -1,133 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dynamic Updating Line Chart</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Dynamic Updating Line Chart</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
-</head>
 
-<body>
-  <div id="chart">
-    <apexchart ref="realtimeChart" type=line height=350 :options="chartOptions" :series="series" />
-  </div>
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart ref="realtimeChart" type=line height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
 
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
-
-  <script>
-    var lastDate = 0;
-    var data = []
-
-    function getDayWiseTimeSeries(baseval, count, yrange) {
-      var i = 0;
-      while (i < count) {
-        var x = baseval;
-        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-
-        data.push({
-          x,
-          y
-        });
-        lastDate = baseval
-        baseval += 86400000;
-        i++;
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
       }
-    }
+    </script>
 
-    getDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-      min: 10,
-      max: 90
-    })
-
-    function getNewSeries(baseval, yrange) {
-      var newDate = baseval + 86400000;
-      lastDate = newDate
+    <script>
+  var lastDate = 0;
+  var data = []
+  var TICKINTERVAL = 86400000
+  let XAXISRANGE = 777600000
+  function getDayWiseTimeSeries(baseval, count, yrange) {
+    var i = 0;
+    while (i < count) {
+      var x = baseval;
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+  
       data.push({
-        x: newDate,
-        y: Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
-      })
+        x, y
+      });
+      lastDate = baseval
+      baseval += TICKINTERVAL;
+      i++;
     }
-
-    function resetData() {
-      data = data.slice(data.length - 10, data.length);
+  }
+  
+  getDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+    min: 10,
+    max: 90
+  })
+  
+  function getNewSeries(baseval, yrange) {
+    var newDate = baseval + TICKINTERVAL;
+    lastDate = newDate
+  
+    for(var i = 0; i< data.length - 10; i++) {
+      // IMPORTANT
+      // we reset the x and y of the data which is out of drawing area
+      // to prevent memory leaks
+      data[i].x = newDate - XAXISRANGE - TICKINTERVAL
+      data[i].y = 0
     }
+  
+    data.push({
+      x: newDate,
+      y: Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+    })
+  }
+  
+  function resetData(){
+    // Alternatively, you can also reset the data at certain intervals to prevent creating a huge series 
+    data = data.slice(data.length - 10, data.length);
+  }
+  </script>
+  </head>
 
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [{
-          data: data.slice()
-        }],
-        chartOptions: {
-          chart: {
-            animations: {
-              enabled: true,
-              easing: 'linear',
-              dynamicAnimation: {
-                speed: 2000
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="line" height="350" ref="chart" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;350&quot; ref=&quot;chart&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+            data: data.slice()
+          }],
+          chartOptions: {
+            chart: {
+              id: 'realtime',
+              height: 350,
+              type: 'line',
+              animations: {
+                enabled: true,
+                easing: 'linear',
+                dynamicAnimation: {
+                  speed: 1000
+                }
+              },
+              toolbar: {
+                show: false
+              },
+              zoom: {
+                enabled: false
               }
             },
-            toolbar: {
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              curve: 'smooth'
+            },
+            title: {
+              text: 'Dynamic Updating Chart',
+              align: 'left'
+            },
+            markers: {
+              size: 0
+            },
+            xaxis: {
+              type: 'datetime',
+              range: XAXISRANGE,
+            },
+            yaxis: {
+              max: 100
+            },
+            legend: {
               show: false
             },
-            zoom: {
-              enabled: false
-            }
           },
-          dataLabels: {
-            enabled: false
-          },
-          stroke: {
-            curve: 'smooth'
-          },
-
-          title: {
-            text: 'Dynamic Updating Chart',
-            align: 'left'
-          },
-          markers: {
-            size: 0
-          },
-          xaxis: {
-            type: 'datetime',
-            range: 777600000,
-          },
-          yaxis: {
-            max: 100
-          },
-          legend: {
-            show: false
-          }
-        }
-      },
-      mounted: function () {
-        this.intervals()
-      },
-      methods: {
-        intervals: function () {
+          
+          
+        },
+        mounted: function () {
           var me = this
           window.setInterval(function () {
             getNewSeries(lastDate, {
@@ -135,23 +178,22 @@
               max: 90
             })
             
-            me.$refs.realtimeChart.updateSeries([{
+            me.$refs.chart.updateSeries([{
               data: data
             }])
-          }, 2000)
-
-          // every 60 seconds, we reset the data 
+          }, 1000)
+        
+          // every 60 seconds, we reset the data to prevent memory leaks
           window.setInterval(function () {
             resetData()
-            me.$refs.realtimeChart.updateSeries([{
+            
+            me.$refs.chart.updateSeries([{
               data
             }], false, true)
           }, 60000)
-        }
-      }
-    })
-  </script>
-
-</body>
-
+        },
+      })
+    </script>
+    
+  </body>
 </html>

@@ -1,136 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Bar Chart with Pattern Fill</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Bar Chart with Pattern Fill</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
-    </style>
-</head>
-
-<body>
-  <div id="app"></div>
-  
-  <div id="html">
-          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;bar&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
-  </div>
-
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
-    class BarChart extends React.Component {
+    <style>
       
-      constructor(props) {
-        super(props);
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
 
-        this.state = {
-          options: {
-            chart: {
-              stacked: true,
-              shadow: {
-                enabled: true,
-                blur: 1,
-                opacity: 0.5
-              }
-            },
-            plotOptions: {
-              bar: {
-                horizontal: true,
-                barHeight: '60%',
-              },
-            },
-            dataLabels: {
-              enabled: false
-            },
-            stroke: {
-              width: 2,
-            },
-            title: {
-              text: 'Compare Sales Strategy'
-            },
-            xaxis: {
-              categories: [2008, 2009, 2010, 2011, 2012, 2013, 2014],
-            },
-            yaxis: {
-              title: {
-                text: undefined
-              },
-            },
-            tooltip: {
-              shared: false,
-              y: {
-                formatter: function (val) {
-                  return val + "K"
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;bar&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [{
+              name: 'Marine Sprite',
+              data: [44, 55, 41, 37, 22, 43, 21]
+            }, {
+              name: 'Striking Calf',
+              data: [53, 32, 33, 52, 13, 43, 32]
+            }, {
+              name: 'Tank Picture',
+              data: [12, 17, 11, 9, 15, 11, 20]
+            }, {
+              name: 'Bucket Slope',
+              data: [9, 7, 5, 8, 6, 9, 4]
+            }],
+            options: {
+              chart: {
+                type: 'bar',
+                height: 350,
+                stacked: true,
+                dropShadow: {
+                  enabled: true,
+                  blur: 1,
+                  opacity: 0.25
                 }
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  barHeight: '60%',
+                },
+              },
+              dataLabels: {
+                enabled: false
+              },
+              stroke: {
+                width: 2,
+              },
+              title: {
+                text: 'Compare Sales Strategy'
+              },
+              xaxis: {
+                categories: [2008, 2009, 2010, 2011, 2012, 2013, 2014],
+              },
+              yaxis: {
+                title: {
+                  text: undefined
+                },
+              },
+              tooltip: {
+                shared: false,
+                y: {
+                  formatter: function (val) {
+                    return val + "K"
+                  }
+                }
+              },
+              fill: {
+                type: 'pattern',
+                opacity: 1,
+                pattern: {
+                  style: ['circles', 'slantedLines', 'verticalLines', 'horizontalLines'], // string or array of strings
+              
+                }
+              },
+              states: {
+                hover: {
+                  filter: 'none'
+                }
+              },
+              legend: {
+                position: 'right',
+                offsetY: 40
               }
             },
-            fill: {
-              type: 'pattern',
-              opacity: 1,
-              pattern: {
-                style: ['circles', 'slantedLines', 'verticalLines', 'horizontalLines'],
-              }
-            },
-            states: {
-              hover: {
-                filter: 'none'
-              }
-            },
-            legend: {
-              position: 'right',
-              offsetY: 40
-            }
-          },
-          series: [{
-            name: 'Marine Sprite',
-            data: [44, 55, 41, 37, 22, 43, 21]
-          }, {
-            name: 'Striking Calf',
-            data: [53, 32, 33, 52, 13, 43, 32]
-          }, {
-            name: 'Tank Picture',
-            data: [12, 17, 11, 9, 15, 11, 20]
-          }, {
-            name: 'Bucket Slope',
-            data: [9, 7, 5, 8, 6, 9, 4]
-          }],
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height={350} />
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
         }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height="350" />
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(BarChart), domContainer);
-
-  </script>
-</body>
+    
+  </body>
 </html>

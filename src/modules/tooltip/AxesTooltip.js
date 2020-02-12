@@ -34,7 +34,10 @@ class AxesTooltip {
 
       if (xaxisTooltip === null) {
         ttCtx.xaxisTooltip = document.createElement('div')
-        ttCtx.xaxisTooltip.setAttribute('class', tooltipCssClass)
+        ttCtx.xaxisTooltip.setAttribute(
+          'class',
+          tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
+        )
 
         renderTo.appendChild(ttCtx.xaxisTooltip)
 
@@ -64,9 +67,19 @@ class AxesTooltip {
         w.config.yaxis[i].opposite || w.config.yaxis[i].crosshairs.opposite
 
       ttCtx.yaxisOffX = isRight ? w.globals.gridWidth + 1 : 1
-      const tooltipCssClass = isRight
+      let tooltipCssClass = isRight
         ? `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-right`
         : `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-left`
+
+      w.globals.yAxisSameScaleIndices.map((samescales, ssi) => {
+        samescales.map((s, si) => {
+          if (si === i) {
+            tooltipCssClass += w.config.yaxis[si].show
+              ? ` `
+              : ` apexcharts-yaxistooltip-hidden`
+          }
+        })
+      })
 
       let renderTo = w.globals.dom.elWrap
 
@@ -77,7 +90,10 @@ class AxesTooltip {
 
         if (yaxisTooltip === null) {
           ttCtx.yaxisTooltip = document.createElement('div')
-          ttCtx.yaxisTooltip.setAttribute('class', tooltipCssClass)
+          ttCtx.yaxisTooltip.setAttribute(
+            'class',
+            tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
+          )
 
           renderTo.appendChild(ttCtx.yaxisTooltip)
 
@@ -103,7 +119,7 @@ class AxesTooltip {
 
     // set xcrosshairs width
     const xcrosshairs = ttCtx.getElXCrosshairs()
-    ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width)
+    ttCtx.xcrosshairsWidth = parseInt(w.config.xaxis.crosshairs.width, 10)
 
     if (!w.globals.comboCharts) {
       if (w.config.xaxis.crosshairs.width === 'tickWidth') {
@@ -131,7 +147,7 @@ class AxesTooltip {
       }
     }
 
-    if (w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal) {
+    if (w.globals.isBarHorizontal) {
       ttCtx.xcrosshairsWidth = 0
     }
     if (xcrosshairs !== null && ttCtx.xcrosshairsWidth > 0) {

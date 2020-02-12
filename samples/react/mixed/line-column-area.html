@@ -1,132 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Line, Column &amp; Area</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Line, Column &amp; Area</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
+    <style>
+      
+        #chart {
       max-width: 650px;
       margin: 35px auto;
     }
-  </style>
-</head>
-
-<body>
-  <div id="app"></div>
-  
-  <div id="html">
-          &lt;div id=&quot;chart&quot;&gt;&#10;            &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;line&quot; height=&quot;350&quot; /&gt;&#10;          &lt;/div&gt;
-  </div>
-
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
-    class MixedChart extends React.Component {
       
-      constructor(props) {
-        super(props);
+    </style>
 
-        this.state = {
-          options: {
-            chart: {
-              stacked: false,
-            },
-            stroke: {
-              width: [0, 2, 5],
-              curve: 'smooth'
-            },
-            plotOptions: {
-              bar: {
-                columnWidth: '50%'
-              }
-            },
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-            fill: {
-              opacity: [0.85, 0.25, 1],
-              gradient: {
-                inverseColors: false,
-                shade: 'light',
-                type: "vertical",
-                opacityFrom: 0.85,
-                opacityTo: 0.55,
-                stops: [0, 100, 100, 100]
-              }
-            },
-            labels: ['01/01/2003', '02/01/2003', '03/01/2003', '04/01/2003', '05/01/2003', '06/01/2003', '07/01/2003', '08/01/2003', '09/01/2003', '10/01/2003', '11/01/2003'
-            ],
-            markers: {
-              size: 0
-            },
-            xaxis: {
-              type: 'datetime'
-            },
-            yaxis: {
-              title: {
-                text: 'Points',
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;line&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [{
+              name: 'TEAM A',
+              type: 'column',
+              data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
+            }, {
+              name: 'TEAM B',
+              type: 'area',
+              data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
+            }, {
+              name: 'TEAM C',
+              type: 'line',
+              data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
+            }],
+            options: {
+              chart: {
+                height: 350,
+                type: 'line',
+                stacked: false,
               },
-              min: 0
-            },
-            tooltip: {
-              shared: true,
-              intersect: false,
-              y: {
-                formatter: function (y) {
-                  if (typeof y !== "undefined") {
-                    return y.toFixed(0) + " points";
+              stroke: {
+                width: [0, 2, 5],
+                curve: 'smooth'
+              },
+              plotOptions: {
+                bar: {
+                  columnWidth: '50%'
+                }
+              },
+              
+              fill: {
+                opacity: [0.85, 0.25, 1],
+                gradient: {
+                  inverseColors: false,
+                  shade: 'light',
+                  type: "vertical",
+                  opacityFrom: 0.85,
+                  opacityTo: 0.55,
+                  stops: [0, 100, 100, 100]
+                }
+              },
+              labels: ['01/01/2003', '02/01/2003', '03/01/2003', '04/01/2003', '05/01/2003', '06/01/2003', '07/01/2003',
+                '08/01/2003', '09/01/2003', '10/01/2003', '11/01/2003'
+              ],
+              markers: {
+                size: 0
+              },
+              xaxis: {
+                type: 'datetime'
+              },
+              yaxis: {
+                title: {
+                  text: 'Points',
+                },
+                min: 0
+              },
+              tooltip: {
+                shared: true,
+                intersect: false,
+                y: {
+                  formatter: function (y) {
+                    if (typeof y !== "undefined") {
+                      return y.toFixed(0) + " points";
+                    }
+                    return y;
+              
                   }
-                  return y;
                 }
               }
-            }
-          },
-          series: [{
-            name: 'TEAM A',
-            type: 'column',
-            data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
-          }, {
-            name: 'TEAM B',
-            type: 'area',
-            data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
-          }, {
-            name: 'TEAM C',
-            type: 'line',
-            data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
-          }],
+            },
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="chart">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="line" height={350} />
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
         }
       }
 
-      render() {
-        return (
-          <div>
-            <div id="chart">
-              <ReactApexChart options={this.state.options} series={this.state.series} type="line" height="350" />
-            </div>
-            <div id="html-dist">
-            </div>
-          </div>
-        );
-      }
-    }
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-    const domContainer = document.querySelector('#app');
-    ReactDOM.render(React.createElement(MixedChart), domContainer);
-
-  </script>
-</body>
-
+    
+  </body>
 </html>

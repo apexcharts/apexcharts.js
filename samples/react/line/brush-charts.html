@@ -1,169 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Brush charts</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Brush Chart - React</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-  <link href="../../assets/styles.css" rel="stylesheet" />
-  
-  <style>
-    #chart1, #chart2 {
-    max-width: 650px;
-    margin: 35px auto;
-  }
-
-    #chart2 {
-    position: relative;
-    margin-top: -70px;
-    margin-bottom: 0px;
-  }
-
-  #app {
-    padding-top: 20px;
-    padding-left: 10px;
-    background: #fff;
-    border: 1px solid #ddd;
-    box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
-    max-width: 650px;
-    margin: 35px auto;
-  }
-</style>
-</head>
-
-<body>
-  <div id="app"></div>
-  
-  <div id="html">
-          &lt;div id=&quot;charts&quot;&gt;&#10;            &lt;div id=&quot;chart1&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsArea} series={this.state.series} type=&quot;line&quot; height=&quot;230&quot; /&gt;&#10;            &lt;/div&gt;&#10;            &lt;div id=&quot;chart2&quot;&gt;&#10;              &lt;ReactApexChart options={this.state.chartOptionsBrush} series={this.state.series} type=&quot;area&quot; height=&quot;130&quot; /&gt;&#10;            &lt;/div&gt;&#10;          &lt;/div&gt;
-  </div>
-
-  <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.6.2/prop-types.min.js">
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://unpkg.com/react-apexcharts@1.1.0/dist/react-apexcharts.iife.min.js"></script>
-
-  <script type="text/babel">
-
-    class LineChart extends React.Component {
+    <style>
+      
+        #wrapper {
+      padding-top: 20px;
+      padding-left: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+      max-width: 650px;
+      margin: 35px auto;
+    }
     
-    constructor(props) {
-      super(props);
+    #chart-line {
+      position: relative;
+      margin-top: -40px;
+    }
+      
+    </style>
 
-      this.state = {
-        chartOptionsArea: {
-          chart: {
-            id: 'chartArea',
-            toolbar: {
-              autoSelected: 'pan',
-              show: false
-            }
-          },
-          colors: ['#546E7A'],
-          stroke: {
-            width: 3
-          },
-          dataLabels: {
-            enabled: false
-          },
-          fill: {
-            opacity: 1,
-          },
-          markers: {
-            size: 0
-          },
-          xaxis: {
-            type: 'datetime'
-          }
-        },
-        chartOptionsBrush: {
-          chart: {
-            id: 'chartBrush',
-            brush: {
-              target: 'chartArea',
-              enabled: true
-            },
-            selection: {
-              enabled: true,
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+  /*
+    // this function will generate output in this format
+    // data = [
+        [timestamp, 23],
+        [timestamp, 33],
+        [timestamp, 12]
+        ...
+    ]
+  */
+  function generateDayWiseTimeSeries(baseval, count, yrange) {
+    var i = 0;
+    var series = [];
+    while (i < count) {
+      var x = baseval;
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+  
+      series.push([x, y]);
+      baseval += 86400000;
+      i++;
+    }
+    return series;
+  }
+  
+  var data = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
+    min: 30,
+    max: 90
+  })
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;wrapper&quot;&gt;
+  &lt;div id=&quot;chart-line2&quot;&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;line&quot; height={230} /&gt;
+&lt;/div&gt;
+  &lt;div id=&quot;chart-line&quot;&gt;
+  &lt;ReactApexChart options={this.state.optionsLine} series={this.state.seriesLine} type=&quot;area&quot; height={130} /&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      class ApexChart extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+          
+            series: [{
+              data: data
+            }],
+            options: {
+              chart: {
+                id: 'chart2',
+                type: 'line',
+                height: 230,
+                toolbar: {
+                  autoSelected: 'pan',
+                  show: false
+                }
+              },
+              colors: ['#546E7A'],
+              stroke: {
+                width: 3
+              },
+              dataLabels: {
+                enabled: false
+              },
+              fill: {
+                opacity: 1,
+              },
+              markers: {
+                size: 0
+              },
               xaxis: {
-                min: new Date('19 Jun 2017').getTime(),
-                max: new Date('14 Aug 2017').getTime()
+                type: 'datetime'
               }
             },
-          },
-          colors: ['#008FFB'],
-          fill: {
-            type: 'gradient',
-            gradient: {
-              opacityFrom: 0.91,
-              opacityTo: 0.1,
-            }
-          },
-          xaxis: {
-            type: 'datetime',
-            tooltip: {
-              enabled: false
-            }
-          },
-          yaxis: {
-            tickAmount: 2
-          }
-      },
-      series: [{
-          data: this.generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
-            min: 30,
-            max: 90
-          })
-        }], 
+          
+            seriesLine: [{
+              data: data
+            }],
+            optionsLine: {
+              chart: {
+                id: 'chart1',
+                height: 130,
+                type: 'area',
+                brush:{
+                  target: 'chart2',
+                  enabled: true
+                },
+                selection: {
+                  enabled: true,
+                  xaxis: {
+                    min: new Date('19 Jun 2017').getTime(),
+                    max: new Date('14 Aug 2017').getTime()
+                  }
+                },
+              },
+              colors: ['#008FFB'],
+              fill: {
+                type: 'gradient',
+                gradient: {
+                  opacityFrom: 0.91,
+                  opacityTo: 0.1,
+                }
+              },
+              xaxis: {
+                type: 'datetime',
+                tooltip: {
+                  enabled: false
+                }
+              },
+              yaxis: {
+                tickAmount: 2
+              }
+            },
+          
+          
+          };
+        }
+
+      
+
+        render() {
+          return (
+            <div>
+              <div id="wrapper">
+                <div id="chart-line2">
+                <ReactApexChart options={this.state.options} series={this.state.series} type="line" height={230} />
+              </div>
+                <div id="chart-line">
+                <ReactApexChart options={this.state.optionsLine} series={this.state.seriesLine} type="area" height={130} />
+              </div>
+              </div>
+              <div id="html-dist"></div>
+            </div>
+          );
+        }
       }
 
-    }
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(React.createElement(ApexChart), domContainer);
+    </script>
 
-    generateDayWiseTimeSeries (baseval, count, yrange) {
-      var i = 0;
-      var series = [];
-      while (i < count) {
-        var x = baseval;
-        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-
-        series.push([x, y]);
-        baseval += 86400000;
-        i++;
-      }
-
-      return series;
-    }
-
-    render() {
-
-      return (
-        <div>
-          <div id="charts">
-            <div id="chart1">
-              <ReactApexChart options={this.state.chartOptionsArea} series={this.state.series} type="line" height="230" />
-            </div>
-            <div id="chart2">
-              <ReactApexChart options={this.state.chartOptionsBrush} series={this.state.series} type="area" height="130" />
-            </div>
-          </div>
-          <div id="html-dist">
-          </div>
-        </div>
-      );
-    }
-  }
-
-  const domContainer = document.querySelector('#app');
-  ReactDOM.render(React.createElement(LineChart), domContainer);
-
-</script>
-
-</body>
-
+    
+  </body>
 </html>

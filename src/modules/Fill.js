@@ -20,8 +20,8 @@ class Fill {
     let w = this.w
     let cnf = w.config
 
-    let svgW = parseInt(w.globals.gridWidth)
-    let svgH = parseInt(w.globals.gridHeight)
+    let svgW = parseInt(w.globals.gridWidth, 10)
+    let svgH = parseInt(w.globals.gridHeight, 10)
 
     let size = svgW > svgH ? svgW : svgH
 
@@ -62,7 +62,7 @@ class Fill {
     let elImage = document.createElementNS(w.globals.SVGNS, 'image')
     elPattern.appendChild(elImage)
 
-    elImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', fillImg)
+    elImage.setAttributeNS(window.SVG.xlink, 'href', fillImg)
 
     Graphics.setAttrs(elImage, {
       x: 0,
@@ -81,7 +81,8 @@ class Fill {
     const w = this.w
 
     if (
-      (w.config.chart.type === 'bar' && w.config.plotOptions.bar.distributed) ||
+      ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
+        w.config.plotOptions.bar.distributed) ||
       w.config.chart.type === 'heatmap'
     ) {
       this.seriesIndex = opts.seriesNumber
@@ -105,6 +106,15 @@ class Fill {
 
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
+
+    if (typeof fillColor === 'function') {
+      fillColor = fillColor({
+        seriesIndex: this.seriesIndex,
+        dataPointIndex: opts.dataPointIndex,
+        value: opts.value,
+        w
+      })
+    }
     let fillType = this.getFillType(this.seriesIndex)
     let fillOpacity = Array.isArray(cnf.fill.opacity)
       ? cnf.fill.opacity[this.seriesIndex]
@@ -120,10 +130,10 @@ class Fill {
       defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
     } else {
       if (fillColor.indexOf('rgba') > -1) {
-        fillOpacity =
-          0 + '.' + Utils.getOpacityFromRGBA(fillColors[this.seriesIndex])
+        fillOpacity = 0 + '.' + Utils.getOpacityFromRGBA(fillColor)
       }
     }
+    if (opts.opacity) fillOpacity = opts.opacity
 
     if (fillType === 'pattern') {
       patternFill = this.handlePatternFill(
@@ -143,18 +153,25 @@ class Fill {
       )
     }
 
-    if (cnf.fill.image.src.length > 0 && fillType === 'image') {
-      if (opts.seriesNumber < cnf.fill.image.src.length) {
-        this.clippedImgArea({
-          opacity: fillOpacity,
-          image: cnf.fill.image.src[opts.seriesNumber],
-          patternUnits: opts.patternUnits,
-          patternID: `pattern${w.globals.cuid}${opts.seriesNumber + 1}`
-        })
-        pathFill = `url(#pattern${w.globals.cuid}${opts.seriesNumber + 1})`
-      } else {
-        pathFill = defaultColor
-      }
+    if (fillType === 'image') {
+      let imgSrc = cnf.fill.image.src
+
+      let patternID = opts.patternID ? opts.patternID : ''
+      this.clippedImgArea({
+        opacity: fillOpacity,
+        image: Array.isArray(imgSrc)
+          ? opts.seriesNumber < imgSrc.length
+            ? imgSrc[opts.seriesNumber]
+            : imgSrc[0]
+          : imgSrc,
+        width: opts.width ? opts.width : undefined,
+        height: opts.height ? opts.height : undefined,
+        patternUnits: opts.patternUnits,
+        patternID: `pattern${w.globals.cuid}${opts.seriesNumber +
+          1}${patternID}`
+      })
+      pathFill = `url(#pattern${w.globals.cuid}${opts.seriesNumber +
+        1}${patternID})`
     } else if (fillType === 'gradient') {
       pathFill = gradientFill
     } else if (fillType === 'pattern') {

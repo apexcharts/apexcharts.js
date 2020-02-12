@@ -1,286 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Area with Negative - Stacked</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Area with Negative - Stacked</title>
+    <link href="../../assets/styles.css" rel="stylesheet" />
 
-
-  <link href="../../assets/styles.css" rel="stylesheet" />
-
-  <style>
-    #chart {
-            max-width: 650px;
-            margin: 35px auto;
-        }
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
-</head>
 
-<body>
-  <div id="chart">
-    <apexchart type=area height=350 :options="chartOptions" :series="series" />
-  </div>
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
 
-  <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-  <div id="html">
-    &lt;div id="chart">
-      &lt;apexchart type=area height=350 :options="chartOptions" :series="series" />
-    &lt;/div>
-  </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
 
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="../../../dist/apexcharts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function() {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
 
-  <script>
-    new Vue({
-      el: '#chart',
-      components: {
-        apexchart: VueApexCharts,
-      },
-      data: {
-        series: [{
-          name: 'north',
-          data: [{
-              x: 1996,
-              y: 322
-            },
-            {
-              x: 1997,
-              y: 324
-            },
-            {
-              x: 1998,
-              y: 329
-            },
-            {
-              x: 1999,
-              y: 342
-            },
-            {
-              x: 2000,
-              y: 348
-            },
-            {
-              x: 2001,
-              y: 334
-            },
-            {
-              x: 2002,
-              y: 325
-            },
-            {
-              x: 2003,
-              y: 316
-            },
-            {
-              x: 2004,
-              y: 318
-            },
-            {
-              x: 2005,
-              y: 330
-            },
-            {
-              x: 2006,
-              y: 355
-            },
-            {
-              x: 2007,
-              y: 366
-            },
-            {
-              x: 2008,
-              y: 337
-            },
-            {
-              x: 2009,
-              y: 352
-            },
-            {
-              x: 2010,
-              y: 377
-            },
-            {
-              x: 2011,
-              y: 383
-            },
-            {
-              x: 2012,
-              y: 344
-            },
-            {
-              x: 2013,
-              y: 366
-            },
-            {
-              x: 2014,
-              y: 389
-            },
-            {
-              x: 2015,
-              y: 334
-            }
-          ]
-        }, {
-          name: 'south',
-          data: [
+    
+  </head>
 
-            {
-              x: 1996,
-              y: 162
-            },
-            {
-              x: 1997,
-              y: 90
-            },
-            {
-              x: 1998,
-              y: 50
-            },
-            {
-              x: 1999,
-              y: 77
-            },
-            {
-              x: 2000,
-              y: 35
-            },
-            {
-              x: 2001,
-              y: -45
-            },
-            {
-              x: 2002,
-              y: -88
-            },
-            {
-              x: 2003,
-              y: -120
-            },
-            {
-              x: 2004,
-              y: -156
-            },
-            {
-              x: 2005,
-              y: -123
-            },
-            {
-              x: 2006,
-              y: -88
-            },
-            {
-              x: 2007,
-              y: -66
-            },
-            {
-              x: 2008,
-              y: -45
-            },
-            {
-              x: 2009,
-              y: -29
-            },
-            {
-              x: 2010,
-              y: -45
-            },
-            {
-              x: 2011,
-              y: -88
-            },
-            {
-              x: 2012,
-              y: -132
-            },
-            {
-              x: 2013,
-              y: -146
-            },
-            {
-              x: 2014,
-              y: -169
-            },
-            {
-              x: 2015,
-              y: -184
-            }
-          ]
-        }],
-        chartOptions: {
-          dataLabels: {
-            enabled: false
-          },
-          stroke: {
-            curve: 'straight'
-          },
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="area" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
 
-          title: {
-            text: 'Area with Negative Values',
-            align: 'left',
-            style: {
-              fontSize: '14px'
-            }
-          },
-          xaxis: {
-            type: 'datetime',
-            axisBorder: {
-              show: false
-            },
-            axisTicks: {
-              show: false
-            }
-          },
-          yaxis: {
-            tickAmount: 4,
-            floating: false,
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
 
-            labels: {
-              style: {
-                color: '#8e8da4',
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+            name: 'north',
+            data: [{
+                x: 1996,
+                y: 322
               },
-              offsetY: -7,
-              offsetX: 0,
+              {
+                x: 1997,
+                y: 324
+              },
+              {
+                x: 1998,
+                y: 329
+              },
+              {
+                x: 1999,
+                y: 342
+              },
+              {
+                x: 2000,
+                y: 348
+              },
+              {
+                x: 2001,
+                y: 334
+              },
+              {
+                x: 2002,
+                y: 325
+              },
+              {
+                x: 2003,
+                y: 316
+              },
+              {
+                x: 2004,
+                y: 318
+              },
+              {
+                x: 2005,
+                y: 330
+              },
+              {
+                x: 2006,
+                y: 355
+              },
+              {
+                x: 2007,
+                y: 366
+              },
+              {
+                x: 2008,
+                y: 337
+              },
+              {
+                x: 2009,
+                y: 352
+              },
+              {
+                x: 2010,
+                y: 377
+              },
+              {
+                x: 2011,
+                y: 383
+              },
+              {
+                x: 2012,
+                y: 344
+              },
+              {
+                x: 2013,
+                y: 366
+              },
+              {
+                x: 2014,
+                y: 389
+              },
+              {
+                x: 2015,
+                y: 334
+              }
+            ]
+          }, {
+            name: 'south',
+            data: [
+              {
+                x: 1996,
+                y: 162
+              },
+              {
+                x: 1997,
+                y: 90
+              },
+              {
+                x: 1998,
+                y: 50
+              },
+              {
+                x: 1999,
+                y: 77
+              },
+              {
+                x: 2000,
+                y: 35
+              },
+              {
+                x: 2001,
+                y: -45
+              },
+              {
+                x: 2002,
+                y: -88
+              },
+              {
+                x: 2003,
+                y: -120
+              },
+              {
+                x: 2004,
+                y: -156
+              },
+              {
+                x: 2005,
+                y: -123
+              },
+              {
+                x: 2006,
+                y: -88
+              },
+              {
+                x: 2007,
+                y: -66
+              },
+              {
+                x: 2008,
+                y: -45
+              },
+              {
+                x: 2009,
+                y: -29
+              },
+              {
+                x: 2010,
+                y: -45
+              },
+              {
+                x: 2011,
+                y: -88
+              },
+              {
+                x: 2012,
+                y: -132
+              },
+              {
+                x: 2013,
+                y: -146
+              },
+              {
+                x: 2014,
+                y: -169
+              },
+              {
+                x: 2015,
+                y: -184
+              }
+            ]
+          }],
+          chartOptions: {
+            chart: {
+              type: 'area',
+              height: 350
             },
-            axisBorder: {
-              show: false,
+            dataLabels: {
+              enabled: false
             },
-            axisTicks: {
-              show: false
-            }
-          },
-          fill: {
-            opacity: 0.5
-          },
-          tooltip: {
-            x: {
-              format: "yyyy",
+            stroke: {
+              curve: 'straight'
             },
-            fixed: {
-              enabled: false,
-              position: 'topRight'
-            }
-          },
-          grid: {
-            yaxis: {
-              lines: {
-                offsetX: -30
+            
+            title: {
+              text: 'Area with Negative Values',
+              align: 'left',
+              style: {
+                fontSize: '14px'
               }
             },
-            padding: {
-              left: 20
+            xaxis: {
+              type: 'datetime',
+              axisBorder: {
+                show: false
+              },
+              axisTicks: {
+                show: false
+              }
+            },
+            yaxis: {
+              tickAmount: 4,
+              floating: false,
+            
+              labels: {
+                style: {
+                  colors: '#8e8da4',
+                },
+                offsetY: -7,
+                offsetX: 0,
+              },
+              axisBorder: {
+                show: false,
+              },
+              axisTicks: {
+                show: false
+              }
+            },
+            fill: {
+              opacity: 0.5
+            },
+            tooltip: {
+              x: {
+                format: "yyyy",
+              },
+              fixed: {
+                enabled: false,
+                position: 'topRight'
+              }
+            },
+            grid: {
+              yaxis: {
+                lines: {
+                  offsetX: -30
+                }
+              },
+              padding: {
+                left: 20
+              }
             }
           },
-        }
-
-      }
-
-    })
-  </script>
-
-</body>
-
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
 </html>

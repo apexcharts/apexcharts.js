@@ -18,9 +18,6 @@ export default class Scatter {
     this.dynamicAnim =
       this.initialAnim &&
       this.w.config.chart.animations.dynamicAnimation.enabled
-
-    // this array will help in centering the label in bubbles
-    this.radiusSizes = []
   }
 
   draw(elSeries, j, opts) {
@@ -34,9 +31,7 @@ export default class Scatter {
     let elPointsMain = opts.elParent
 
     let elPointsWrap = graphics.group({
-      class: `apexcharts-series-markers apexcharts-series-${
-        w.config.chart.type
-      }`
+      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
     })
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
@@ -56,10 +51,15 @@ export default class Scatter {
         if (zRatio !== Infinity) {
           // means we have a bubble
           finishRadius = w.globals.seriesZ[realIndex][dataPointIndex] / zRatio
-          if (typeof this.radiusSizes[realIndex] === 'undefined') {
-            this.radiusSizes.push([])
+
+          const bubble = w.config.plotOptions.bubble
+          if (bubble.minBubbleRadius && finishRadius < bubble.minBubbleRadius) {
+            finishRadius = bubble.minBubbleRadius
           }
-          this.radiusSizes[realIndex].push(finishRadius)
+
+          if (bubble.maxBubbleRadius && finishRadius > bubble.maxBubbleRadius) {
+            finishRadius = bubble.maxBubbleRadius
+          }
         }
 
         if (!w.config.chart.animations.enabled) {
@@ -72,7 +72,6 @@ export default class Scatter {
         radius = radius || 0
 
         if (
-          (x === 0 && y === 0) ||
           y === null ||
           typeof w.globals.series[realIndex][dataPointIndex] === 'undefined'
         ) {
@@ -100,31 +99,42 @@ export default class Scatter {
   drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j) {
     const w = this.w
 
+    let i = realIndex
     let anim = new Animations(this.ctx)
     let filters = new Filters(this.ctx)
     let fill = new Fill(this.ctx)
+    let markers = new Markers(this.ctx)
     const graphics = new Graphics(this.ctx)
+
+    const markerConfig = markers.getMarkerConfig('apexcharts-marker', i)
 
     let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex,
-      patternUnits: 'objectBoundingBox'
+      dataPointIndex,
+      patternUnits: 'objectBoundingBox',
+      value: w.globals.series[realIndex][j]
     })
     let circle = graphics.drawCircle(radius)
+
+    if (w.config.series[i].data[dataPointIndex]) {
+      if (w.config.series[i].data[dataPointIndex].fillColor) {
+        pathFillCircle = w.config.series[i].data[dataPointIndex].fillColor
+      }
+    }
 
     circle.attr({
       cx: x,
       cy: y,
-      fill: pathFillCircle
+      fill: pathFillCircle,
+      stroke: markerConfig.pointStrokeColor,
+      'stroke-width': markerConfig.pWidth,
+      'stroke-dasharray': markerConfig.pointStrokeDashArray,
+      'stroke-opacity': markerConfig.pointStrokeOpacity
     })
 
     if (w.config.chart.dropShadow.enabled) {
-      filters.dropShadow(circle, {
-        top: w.config.chart.dropShadow.top,
-        left: w.config.chart.dropShadow.left,
-        blur: w.config.chart.dropShadow.blur,
-        color: w.config.chart.dropShadow.color,
-        opacity: w.config.chart.dropShadow.opacity
-      })
+      const dropShadow = w.config.chart.dropShadow
+      filters.dropShadow(circle, dropShadow, realIndex)
     }
 
     if (this.initialAnim && !w.globals.dataChanged) {
@@ -132,7 +142,18 @@ export default class Scatter {
       if (!w.globals.resized) {
         speed = w.config.chart.animations.speed
       }
-      anim.animateCircleRadius(circle, 0, finishRadius, speed, w.globals.easing)
+      anim.animateCircleRadius(
+        circle,
+        0,
+        finishRadius,
+        speed,
+        w.globals.easing,
+        () => {
+          window.setTimeout(() => {
+            anim.animationCompleted(circle)
+          }, 100)
+        }
+      )
     }
 
     if (w.globals.dataChanged) {
@@ -192,7 +213,6 @@ export default class Scatter {
       'default-marker-size': finishRadius
     })
 
-    const markers = new Markers(this.ctx)
     filters.setSelectionFilter(circle, realIndex, dataPointIndex)
     markers.addEvents(circle)
 
@@ -203,7 +223,7 @@ export default class Scatter {
 
   centerTextInBubble(y) {
     let w = this.w
-    y = y + parseInt(w.config.dataLabels.style.fontSize) / 4
+    y = y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4
 
     return {
       y
