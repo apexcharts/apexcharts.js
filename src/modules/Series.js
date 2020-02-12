@@ -95,6 +95,8 @@ export default class Series {
     w.globals.previousPaths = []
 
     if (shouldUpdateChart) {
+      w.globals.zoomed = false
+      this.ctx.updateHelpers.revertDefaultAxisMinMax()
       this.ctx.updateHelpers._updateSeries(
         series,
         w.config.chart.animations.dynamicAnimation.enabled
