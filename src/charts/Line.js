@@ -31,6 +31,7 @@ class Line {
     this.noNegatives = this.w.globals.minX === Number.MAX_VALUE
 
     this.lineHelpers = new Helpers(this)
+    this.markers = new Markers(this.ctx)
 
     this.prevSeriesY = []
     this.categoryAxisCorrection = 0
@@ -398,6 +399,16 @@ class Line {
       // push current Y that will be used as next series's bottom position
       yArrj.push(y)
 
+      let pointsPos = this.lineHelpers.calculatePoints({
+        series,
+        x,
+        y,
+        realIndex,
+        i,
+        j,
+        prevY
+      })
+
       let calculatedPaths = this._createPaths({
         series,
         i,
@@ -426,7 +437,18 @@ class Line {
         pathFromArea = pathFromArea + graphics.line(x, this.zeroY)
       }
 
-      this._handleMarkersAndLabels({ series, x, y, prevY, i, j, realIndex })
+      this.handleNullDataPoints(series, pointsPos, i, j, realIndex)
+
+      this._handleMarkersAndLabels({
+        pointsPos,
+        series,
+        x,
+        y,
+        prevY,
+        i,
+        j,
+        realIndex
+      })
     }
 
     return {
@@ -439,27 +461,20 @@ class Line {
     }
   }
 
-  _handleMarkersAndLabels({ series, x, y, prevY, i, j, realIndex }) {
+  _handleMarkersAndLabels({ pointsPos, series, x, y, prevY, i, j, realIndex }) {
     const w = this.w
     let dataLabels = new DataLabels(this.ctx)
 
-    let pointsPos = this.lineHelpers.calculatePoints({
-      series,
-      x,
-      y,
-      realIndex,
-      i,
-      j,
-      prevY
-    })
-
     if (!this.pointsChart) {
-      let markers = new Markers(this.ctx)
       if (w.globals.series[i].length > 1) {
         this.elPointsMain.node.classList.add('apexcharts-element-hidden')
       }
 
-      let elPointsWrap = markers.plotChartMarkers(pointsPos, realIndex, j + 1)
+      let elPointsWrap = this.markers.plotChartMarkers(
+        pointsPos,
+        realIndex,
+        j + 1
+      )
       if (elPointsWrap !== null) {
         this.elPointsMain.add(elPointsWrap)
       }
@@ -604,6 +619,23 @@ class Line {
       pY,
       linePath,
       areaPath
+    }
+  }
+
+  handleNullDataPoints(series, pointsPos, i, j, realIndex) {
+    const w = this.w
+    if (series[i][j] === null && w.config.markers.showNullDataPoints) {
+      // fixes apexcharts.js#1282, #1252
+      let elPointsWrap = this.markers.plotChartMarkers(
+        pointsPos,
+        realIndex,
+        j + 1,
+        this.strokeWidth - w.config.markers.strokeWidth / 2,
+        true
+      )
+      if (elPointsWrap !== null) {
+        this.elPointsMain.add(elPointsWrap)
+      }
     }
   }
 }

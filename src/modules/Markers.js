@@ -34,7 +34,7 @@ export default class Markers {
     }
   }
 
-  plotChartMarkers(pointsPos, seriesIndex, j) {
+  plotChartMarkers(pointsPos, seriesIndex, j, pSize, alwaysDrawMarker = false) {
     let w = this.w
 
     let i = seriesIndex
@@ -45,9 +45,9 @@ export default class Markers {
 
     let point
 
-    if (w.globals.markers.size[seriesIndex] > 0) {
+    if (w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker) {
       elPointsWrap = graphics.group({
-        class: 'apexcharts-series-markers'
+        class: alwaysDrawMarker ? '' : 'apexcharts-series-markers'
       })
 
       elPointsWrap.attr(
@@ -77,7 +77,7 @@ export default class Markers {
           ? w.globals.markers.size[seriesIndex] > 0
           : w.config.markers.size > 0
 
-        if (shouldMarkerDraw) {
+        if (shouldMarkerDraw || alwaysDrawMarker) {
           if (Utils.isNumber(p.y[q])) {
             PointClasses += ` w${Utils.randomId()}`
           } else {
@@ -100,6 +100,9 @@ export default class Markers {
             }
           }
 
+          if (pSize) {
+            opts.pSize = pSize
+          }
           point = graphics.drawMarker(p.x[q], p.y[q], opts)
 
           point.attr('rel', dataPointIndex)

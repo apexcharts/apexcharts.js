@@ -681,6 +681,7 @@ export default class Options {
         offsetY: 0,
         onClick: undefined,
         onDblClick: undefined,
+        showNullDataPoints: true,
         hover: {
           size: undefined,
           sizeOffset: 3
