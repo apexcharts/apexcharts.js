@@ -164,7 +164,7 @@ export default class UpdateHelpers {
       graphics.pathMouseDown(elPath, null)
     } else {
       console.warn('toggleDataPointSelection: Element not found')
-      return null;
+      return null
     }
 
     return elPath.node ? elPath.node : null

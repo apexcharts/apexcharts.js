@@ -10,7 +10,7 @@ const svgo = require('rollup-plugin-svgo')
 const strip = require('@rollup/plugin-strip')
 const { terser } = require('rollup-plugin-terser')
 
-const version = process.env.VERSION || require('../package.json').version
+const version = require('../package.json').version
 
 const resolvePath = (p) => path.resolve(__dirname, '../', p)
 
