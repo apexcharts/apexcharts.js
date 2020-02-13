@@ -101,7 +101,7 @@ export default class Theme {
       if (w.config[c].colors === undefined) {
         w.globals[c].colors = this.isColorFn ? w.config.colors : defaultColors
       } else {
-        w.globals[c].colors = w.config[c].colors
+        w.globals[c].colors = w.config[c].colors.slice()
       }
       this.pushExtraColors(w.globals[c].colors)
     })
@@ -109,7 +109,7 @@ export default class Theme {
     if (w.config.dataLabels.style.colors === undefined) {
       w.globals.dataLabels.style.colors = defaultColors
     } else {
-      w.globals.dataLabels.style.colors = w.config.dataLabels.style.colors
+      w.globals.dataLabels.style.colors = w.config.dataLabels.style.colors.slice()
     }
     this.pushExtraColors(w.globals.dataLabels.style.colors, 50)
 

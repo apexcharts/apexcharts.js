@@ -122,7 +122,7 @@ class DataLabels {
           val = w.globals.seriesZ[i][dataPointIndex]
           text = getText(val)
 
-          y = pos.y[q] + w.config.dataLabels.offsetY
+          y = pos.y[q]
           const scatter = new Scatter(this.ctx)
           let centerTextInBubbleCoords = scatter.centerTextInBubble(
             y,
@@ -225,8 +225,8 @@ class DataLabels {
       let dataLabelText = graphics.drawText({
         width: 100,
         height: parseInt(dataLabelsConfig.style.fontSize, 10),
-        x,
-        y,
+        x: x + dataLabelsConfig.offsetX,
+        y: y + dataLabelsConfig.offsetY,
         foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text,

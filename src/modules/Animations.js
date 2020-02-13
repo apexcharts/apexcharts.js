@@ -147,10 +147,11 @@ export default class Animations {
 
     if (
       w.config.chart.animations.dynamicAnimation.enabled &&
-      w.globals.dataChanged
+      w.globals.dataChanged &&
+      w.config.chart.type !== 'bar'
     ) {
       // disabled due to this bug - https://github.com/apexcharts/vue-apexcharts/issues/75
-      // delayFactor = 0
+      delayFactor = 0
     }
     me.morphSVG(
       el,
