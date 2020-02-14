@@ -84,8 +84,8 @@ class Radar {
 
     let halfW = w.globals.gridWidth / 2
     let halfH = w.globals.gridHeight / 2
-    let translateX = halfW
-    let translateY = halfH
+    let translateX = halfW + w.config.plotOptions.radar.offsetX
+    let translateY = halfH + w.config.plotOptions.radar.offsetY
 
     let ret = this.graphics.group({
       class: 'apexcharts-radar-series apexcharts-plot-series',

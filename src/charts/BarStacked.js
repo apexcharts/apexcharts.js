@@ -367,27 +367,13 @@ class BarStacked extends Bar {
       this.graphics.line(barXPosition, barYPosition + barHeight - strokeWidth) +
       this.graphics.line(barXPosition, barYPosition)
 
-    if (
-      w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 &&
-      i === 0
-    ) {
-      if (bc >= w.config.plotOptions.bar.colors.backgroundBarColors.length) {
-        bc = 0
-      }
-
-      let bcolor = w.config.plotOptions.bar.colors.backgroundBarColors[bc]
-      let rect = this.graphics.drawRect(
-        0,
-        barYPosition,
-        w.globals.gridWidth,
-        barHeight,
-        0,
-        bcolor,
-        w.config.plotOptions.bar.colors.backgroundBarOpacity
-      )
-      elSeries.add(rect)
-      rect.node.classList.add('apexcharts-backgroundBar')
-    }
+    this.barHelpers.barBackground({
+      bc,
+      i,
+      y1: barYPosition,
+      y2: barHeight,
+      elSeries
+    })
 
     y = y + yDivision
 
@@ -469,6 +455,8 @@ class BarStacked extends Bar {
           break
         }
       }
+
+      if (typeof bYP === 'undefined') bYP = w.globals.gridHeight
 
       // if this.prevYF[0] is all 0 resulted from line #486
       // AND every arr starting from the second only contains NaN

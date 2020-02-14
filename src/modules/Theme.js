@@ -118,8 +118,7 @@ export default class Theme {
         w.config.theme.mode === 'dark' ? '#202D48' : '#fff'
       ]
     } else {
-      w.globals.radarPolygons.fill.colors =
-        w.config.plotOptions.radar.polygons.fill.colors
+      w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors.slice()
     }
     this.pushExtraColors(w.globals.radarPolygons.fill.colors, 20)
 
@@ -127,7 +126,7 @@ export default class Theme {
     if (w.config.markers.colors === undefined) {
       w.globals.markers.colors = defaultColors
     } else {
-      w.globals.markers.colors = w.config.markers.colors
+      w.globals.markers.colors = w.config.markers.colors.slice()
     }
     this.pushExtraColors(w.globals.markers.colors)
   }

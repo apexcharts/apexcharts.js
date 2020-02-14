@@ -550,7 +550,15 @@ export default class Options {
           padding: 4,
           opacity: 0.9,
           borderWidth: 1,
-          borderColor: '#fff'
+          borderColor: '#fff',
+          dropShadow: {
+            enabled: false,
+            top: 1,
+            left: 1,
+            blur: 1,
+            color: '#000',
+            opacity: 0.45
+          }
         },
         dropShadow: {
           enabled: false,

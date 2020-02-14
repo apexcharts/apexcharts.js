@@ -180,6 +180,33 @@ export default class Helpers {
     return strokeWidth
   }
 
+  barBackground({ bc, i, y1, y2, elSeries }) {
+    const w = this.w
+    const graphics = new Graphics(this.barCtx.ctx)
+
+    if (
+      this.barCtx.barOptions.colors.backgroundBarColors.length > 0 &&
+      i === 0
+    ) {
+      if (bc >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
+        bc = 0
+      }
+
+      let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[bc]
+      let rect = graphics.drawRect(
+        0,
+        y1,
+        w.globals.gridWidth,
+        y2,
+        0,
+        bcolor,
+        this.barCtx.barOptions.colors.backgroundBarOpacity
+      )
+      elSeries.add(rect)
+      rect.node.classList.add('apexcharts-backgroundBar')
+    }
+  }
+
   /** getBarEndingShape draws the various shapes on top of bars/columns
    * @memberof Bar
    * @param {object} w - chart context

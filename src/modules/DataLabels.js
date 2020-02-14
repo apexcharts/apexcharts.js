@@ -282,19 +282,18 @@ class DataLabels {
       bCnf.borderColor
     )
 
+    if (bCnf.dropShadow.enabled) {
+      const filters = new Filters(this.ctx)
+      filters.dropShadow(elRect, bCnf.dropShadow)
+    }
+
     return elRect
   }
 
   dataLabelsBackground() {
     const w = this.w
 
-    const chartType = w.config.chart.type
-    if (
-      chartType === 'bar' ||
-      chartType === 'rangeBar' ||
-      chartType === 'bubble'
-    )
-      return
+    if (w.config.chart.type === 'bubble') return
 
     const elDataLabels = w.globals.dom.baseEl.querySelectorAll(
       '.apexcharts-datalabels text'

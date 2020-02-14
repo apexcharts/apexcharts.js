@@ -382,24 +382,14 @@ class Bar {
       y = y + yDivision
     }
 
-    if (this.barOptions.colors.backgroundBarColors.length > 0 && i === 0) {
-      if (bc >= this.barOptions.colors.backgroundBarColors.length) {
-        bc = 0
-      }
+    this.barHelpers.barBackground({
+      bc,
+      i,
+      y1: barYPosition - barHeight * this.visibleI,
+      y2: barHeight * this.seriesLen,
+      elSeries
+    })
 
-      let bcolor = this.barOptions.colors.backgroundBarColors[bc]
-      let rect = graphics.drawRect(
-        0,
-        barYPosition - barHeight * this.visibleI,
-        w.globals.gridWidth,
-        barHeight * this.seriesLen,
-        0,
-        bcolor,
-        this.barOptions.colors.backgroundBarOpacity
-      )
-      elSeries.add(rect)
-      rect.node.classList.add('apexcharts-backgroundBar')
-    }
     return {
       pathTo,
       pathFrom,
@@ -502,9 +492,9 @@ class Bar {
       }
       let bcolor = this.barOptions.colors.backgroundBarColors[bc]
       let rect = graphics.drawRect(
-        barXPosition - barWidth * this.visibleI,
+        barXPosition - strokeWidth / 2 - barWidth * this.visibleI,
         0,
-        barWidth * this.seriesLen,
+        barWidth * this.seriesLen + strokeWidth / 2,
         w.globals.gridHeight,
         0,
         bcolor,

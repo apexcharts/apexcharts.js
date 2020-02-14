@@ -77,6 +77,7 @@ type ApexDropShadow = {
   left?: number
   blur?: number
   opacity?: number
+  color?: string
 }
 
 /**
@@ -727,6 +728,7 @@ type ApexDataLabels = {
     opacity?: number
     borderWidth?: number
     borderColor?: string
+    dropShadow: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
   formatter?(val: number, opts?: any): string
