@@ -36,6 +36,7 @@ export default class YAxis {
     const yaxisStyle = w.config.yaxis[realIndex].labels.style
     let yaxisFontSize = yaxisStyle.fontSize
     let yaxisFontFamily = yaxisStyle.fontFamily
+    let yaxisFontWeight = yaxisStyle.fontWeight
 
     let elYaxis = graphics.group({
       class: 'apexcharts-yaxis',
@@ -91,6 +92,7 @@ export default class YAxis {
           textAnchor: w.config.yaxis[realIndex].opposite ? 'start' : 'end',
           fontSize: yaxisFontSize,
           fontFamily: yaxisFontFamily,
+          fontWeight: yaxisFontWeight,
           foreColor: getForeColor(),
           isPlainText: false,
           cssClass: 'apexcharts-yaxis-label ' + yaxisStyle.cssClass

@@ -198,9 +198,11 @@ export default class Position {
         tooltipRect.ttHeight / 2
     }
 
-    const newPositions = this.positionChecks(tooltipRect, x, y)
-    x = newPositions.x
-    y = newPositions.y
+    if (!w.config.tooltip.followCursor) {
+      const newPositions = this.positionChecks(tooltipRect, x, y)
+      x = newPositions.x
+      y = newPositions.y
+    }
 
     if (!isNaN(x)) {
       x = x + w.globals.translateX
@@ -212,7 +214,7 @@ export default class Position {
 
   positionChecks(tooltipRect, x, y) {
     const w = this.w
-    if (tooltipRect.ttHeight + y > w.globals.gridHeight) {
+    if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
       y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
     }
 

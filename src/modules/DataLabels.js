@@ -202,8 +202,8 @@ class DataLabels {
 
     if (correctedLabels.textRects) {
       if (
-        x + correctedLabels.textRects.width < 10 ||
-        x > w.globals.gridWidth + 10
+        x + correctedLabels.textRects.width < -20 ||
+        x > w.globals.gridWidth + 20
       ) {
         // datalabels fall outside drawing area, so draw a blank label
         text = ''

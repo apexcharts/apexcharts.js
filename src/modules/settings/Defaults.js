@@ -108,6 +108,9 @@ export default class Defaults {
       dataLabels: {
         style: {
           colors: ['#fff']
+        },
+        background: {
+          enabled: false
         }
       },
       stroke: {
@@ -215,6 +218,9 @@ export default class Defaults {
           const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
           const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
           return end - start
+        },
+        background: {
+          enabled: false
         },
         style: {
           colors: ['#fff']
