@@ -130,6 +130,7 @@ export default class Annotations {
       foreColor,
       fontSize,
       fontFamily,
+      fontWeight,
       cssClass,
       backgroundColor,
       borderWidth,
@@ -153,6 +154,7 @@ export default class Annotations {
       text,
       textAnchor: textAnchor || 'start',
       fontSize: fontSize || '12px',
+      fontWeight: fontWeight || 'regular',
       fontFamily: fontFamily || w.config.chart.fontFamily,
       foreColor: foreColor || w.config.chart.foreColor,
       cssClass: 'apexcharts-text ' + cssClass ? cssClass : ''

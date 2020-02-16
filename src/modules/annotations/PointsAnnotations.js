@@ -119,6 +119,7 @@ export default class PointAnnotations {
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
       fontFamily: anno.label.style.fontFamily,
+      fontWeight: anno.label.style.fontWeight,
       foreColor: anno.label.style.color,
       cssClass: `apexcharts-point-annotation-label ${
         anno.label.style.cssClass

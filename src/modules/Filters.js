@@ -35,7 +35,13 @@ class Filters {
 
   addNormalFilter(el, i) {
     const w = this.w
-    if (w.config.chart.dropShadow.enabled) {
+
+    // revert shadow if it was there
+    // but, ignore marker as marker don't have dropshadow yet
+    if (
+      w.config.chart.dropShadow.enabled &&
+      !el.node.classList.contains('apexcharts-marker')
+    ) {
       this.dropShadow(el, w.config.chart.dropShadow, i)
     }
   }

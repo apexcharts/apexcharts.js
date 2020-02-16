@@ -492,8 +492,7 @@ class Line {
       pointsPos,
       realIndex,
       j + 1,
-      null,
-      this.strokeWidth
+      null
     )
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels)

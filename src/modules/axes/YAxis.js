@@ -261,6 +261,7 @@ export default class YAxis {
             : this.xaxisForeColors,
           fontSize: this.xaxisFontSize,
           fontFamily: this.xaxisFontFamily,
+          fontWeight: w.config.xaxis.labels.style.fontWeight,
           isPlainText: false,
           cssClass:
             'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass

@@ -111,6 +111,7 @@ export default class XAnnotations {
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
       fontFamily: anno.label.style.fontFamily,
+      fontWeight: anno.label.style.fontWeight,
       foreColor: anno.label.style.color,
       cssClass: `apexcharts-xaxis-annotation-label ${
         anno.label.style.cssClass

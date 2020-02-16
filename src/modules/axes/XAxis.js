@@ -278,6 +278,7 @@ export default class XAxis {
             : ylabels.style.colors,
           fontSize: ylabels.style.fontSize,
           fontFamily: ylabels.style.fontFamily,
+          fontWeight: ylabels.style.fontWeight,
           isPlainText: false,
           cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
         })
