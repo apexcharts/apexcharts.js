@@ -204,6 +204,7 @@ export default class HeatMap {
           y: y1,
           i,
           j,
+          heatColorProps,
           series: heatSeries,
           rectHeight: yDivision,
           rectWidth: xDivision
@@ -258,6 +259,7 @@ export default class HeatMap {
     let seriesNumber = heatmap.colorScale.inverse ? j : i
 
     let color = w.globals.colors[seriesNumber]
+    let foreColor = null
     let min = Math.min(...w.globals.series[i])
     let max = Math.max(...w.globals.series[i])
 
@@ -291,6 +293,7 @@ export default class HeatMap {
       colorRange.map((range, index) => {
         if (val >= range.from && val <= range.to) {
           color = range.color
+          foreColor = range.foreColor ? range.foreColor : null
           min = range.from
           max = range.to
           let rTotal = Math.abs(max) + Math.abs(min)
@@ -301,11 +304,21 @@ export default class HeatMap {
 
     return {
       color,
+      foreColor,
       percent
     }
   }
 
-  calculateHeatmapDataLabels({ x, y, i, j, series, rectHeight, rectWidth }) {
+  calculateHeatmapDataLabels({
+    x,
+    y,
+    i,
+    j,
+    heatColorProps,
+    series,
+    rectHeight,
+    rectWidth
+  }) {
     let w = this.w
     // let graphics = new Graphics(this.ctx)
     let dataLabelsConfig = w.config.dataLabels
@@ -343,6 +356,7 @@ export default class HeatMap {
         text,
         i,
         j,
+        color: heatColorProps.foreColor,
         parent: elDataLabelsWrap,
         dataLabelsConfig
       })

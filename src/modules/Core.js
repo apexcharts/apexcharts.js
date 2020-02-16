@@ -357,7 +357,7 @@ export default class Core {
     const gl = w.globals
 
     let legendHeight = 0
-    let offY = w.config.chart.sparkline.enabled ? 0 : 15
+    let offY = w.config.chart.sparkline.enabled ? 1 : 15
     offY = offY + w.config.grid.padding.bottom
 
     if (
