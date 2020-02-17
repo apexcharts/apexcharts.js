@@ -160,6 +160,12 @@ class TimeScale {
       let shouldNotPrint = false // should skip these values
 
       switch (this.tickInterval) {
+        case 'years':
+          // make years label denser
+          if (ts.unit === 'year') {
+            shouldNotSkipUnit = true
+          }
+          break
         case 'half_year':
           modulo = 7
           if (ts.unit === 'year') {
