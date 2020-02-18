@@ -281,11 +281,6 @@ export default class HeatMap {
 
     let total = Math.abs(max) + Math.abs(min)
 
-    if (val === 0) {
-      // to avoid invalid percentage for 0 values
-      val = 0.000001
-    }
-
     let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
 
     if (heatmap.colorScale.ranges.length > 0) {
