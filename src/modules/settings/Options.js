@@ -299,6 +299,8 @@ export default class Options {
         stackType: 'normal',
         toolbar: {
           show: true,
+          offsetX: 0,
+          offsetY: 0,
           tools: {
             download: true,
             selection: true,

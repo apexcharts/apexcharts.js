@@ -35,6 +35,8 @@ export default class Toolbar {
     }
     const elToolbarWrap = createDiv()
     elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
+    elToolbarWrap.style.top = w.config.chart.toolbar.offsetY + 'px'
+    elToolbarWrap.style.right = -w.config.chart.toolbar.offsetX + 3 + 'px'
     w.globals.dom.elWrap.appendChild(elToolbarWrap)
 
     this.elZoom = createDiv()

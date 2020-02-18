@@ -145,6 +145,8 @@ type ApexChart = {
   stackType?: 'normal' | '100%'
   toolbar?: {
     show?: boolean
+    offsetX?: number
+    offsetY?: number
     tools?: {
       download?: boolean | string
       selection?: boolean | string
