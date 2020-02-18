@@ -241,13 +241,17 @@ export default class DimXAxis {
 
         const lastLabelPosition =
           lastTimescaleLabel.position +
-          lbWidth / 1.75 +
+          lbWidth / 1.75 -
+          // replace + with - ;
+          // allow the last label to intersect with the right y axis
           this.dCtx.yAxisWidthRight
 
         const firstLabelPosition =
           firstimescaleLabel.position -
           lbWidth / 1.75 +
-          (yaxe.opposite ? 0 : this.dCtx.yAxisWidthLeft)
+          // remove conditional since the first label is always at the very left
+          // allow the first label to intersect with the left y axes
+          this.dCtx.yAxisWidthLeft
 
         if (lastLabelPosition > gl.gridWidth) {
           gl.skipLastTimelinelabel = true
