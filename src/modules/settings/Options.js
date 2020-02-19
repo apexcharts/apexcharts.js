@@ -203,6 +203,42 @@ export default class Options {
         }
       }
     }
+
+    this.text = {
+      text: '',
+      textAnchor: 'start',
+      offsetX: 0,
+      offsetY: null,
+      borderColor: '#c2c2c2',
+      borderRadius: 0,
+      borderWidth: 0,
+      style: {
+        background: 'transparent',
+        color: undefined,
+        fontSize: '13px',
+        fontFamily: undefined,
+        fontWeight: 400,
+        cssClass: '',
+        padding: {
+          left: 4,
+          right: 4,
+          top: 2,
+          bottom: 2
+        }
+      }
+    }
+
+    this.rect = {
+      offsetX: 0,
+      offsetY: 0,
+      width: 50,
+      height: 50,
+      backgroundColor: '#fff',
+      opacity: 1,
+      borderWidth: 0,
+      borderRadius: 4,
+      borderColor: '#ccc'
+    }
   }
   init() {
     return {
@@ -210,7 +246,9 @@ export default class Options {
         position: 'front',
         yaxis: [this.yAxisAnnotation],
         xaxis: [this.xAxisAnnotation],
-        points: [this.pointAnnotation]
+        points: [this.pointAnnotation],
+        texts: [this.text],
+        rects: [this.rect]
       },
       chart: {
         animations: {

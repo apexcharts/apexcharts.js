@@ -193,6 +193,51 @@ export default class Annotations {
     return context
   }
 
+  addRect(params, pushToMemory, context) {
+    const {
+      x,
+      y,
+      width,
+      height,
+      appendTo = '.apexcharts-inner',
+      backgroundColor,
+      opacity,
+      borderWidth,
+      radius,
+      borderColor
+    } = params
+
+    const me = context
+    const w = me.w
+
+    const parentNode = w.globals.dom.baseEl.querySelector(appendTo)
+
+    const elRect = this.graphics.drawRect(
+      x,
+      y,
+      width,
+      height,
+      radius,
+      backgroundColor,
+      opacity,
+      borderWidth,
+      borderColor
+    )
+
+    parentNode.appendChild(elRect.node)
+
+    if (pushToMemory) {
+      w.globals.memory.methodsToExec.push({
+        context: me,
+        method: me.addRect,
+        label: 'addRect',
+        params
+      })
+    }
+
+    return context
+  }
+
   addImage(params, pushToMemory, context) {
     const {
       path,

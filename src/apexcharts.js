@@ -224,9 +224,9 @@ export default class ApexCharts {
       me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
 
       me.grid = new Grid(me)
-      let elgrid = null
-      if (w.config.grid.position === 'back') {
-        elgrid = me.grid.drawGrid()
+      let elgrid = me.grid.drawGrid()
+      if (w.config.grid.position === 'back' && elgrid) {
+        w.globals.dom.elGraphical.add(elgrid.el)
       }
 
       let xAxis = new XAxis(this.ctx)
@@ -249,8 +249,8 @@ export default class ApexCharts {
         w.globals.dom.elGraphical.add(graphData.elGraph)
       }
 
-      if (w.config.grid.position === 'front') {
-        me.grid.drawGrid()
+      if (w.config.grid.position === 'front' && elgrid) {
+        w.globals.dom.elGraphical.add(elgrid.el)
       }
 
       if (w.config.xaxis.crosshairs.position === 'front') {
@@ -640,6 +640,15 @@ export default class ApexCharts {
     }
 
     me.annotations.addImage(options, pushToMemory, me)
+  }
+
+  addRect(options, pushToMemory = true, context = undefined) {
+    let me = this
+    if (context) {
+      me = context
+    }
+
+    me.annotations.addRect(options, pushToMemory, me)
   }
 
   getChartArea() {

@@ -70,7 +70,6 @@ class Grid {
     if (gl.axisCharts) {
       // grid is drawn after xaxis and yaxis are drawn
       elgrid = this.renderGrid()
-      gl.dom.elGraphical.add(elgrid.el)
 
       this.drawGridArea(elgrid.el)
     }
