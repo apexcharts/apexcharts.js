@@ -355,7 +355,7 @@ export default class ApexCharts {
   ) {
     const w = this.w
     if (options.series) {
-      this.series.resetSeries(false)
+      this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
         options.series = options.series.map((s, i) => {
           return this.updateHelpers._extendSeries(s, i)
