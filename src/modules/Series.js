@@ -82,17 +82,20 @@ export default class Series {
     }
   }
 
-  resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
+  resetSeries(shouldUpdateChart = true, shouldResetZoom = true, shouldResetCollapsed = true) {
     const w = this.w
 
     let series = w.globals.initialSeries.slice()
     w.config.series = series
 
-    w.globals.collapsedSeries = []
-    w.globals.ancillaryCollapsedSeries = []
-    w.globals.collapsedSeriesIndices = []
-    w.globals.ancillaryCollapsedSeriesIndices = []
     w.globals.previousPaths = []
+
+    if (shouldResetCollapsed) {
+      w.globals.collapsedSeries = []
+      w.globals.ancillaryCollapsedSeries = []
+      w.globals.collapsedSeriesIndices = []
+      w.globals.ancillaryCollapsedSeriesIndices = []
+    }
 
     if (shouldUpdateChart) {
       if (shouldResetZoom) {
@@ -315,8 +318,6 @@ export default class Series {
     const w = this.w
     w.globals.previousPaths = []
     w.globals.allSeriesCollapsed = false
-    w.globals.collapsedSeries = []
-    w.globals.collapsedSeriesIndices = []
   }
 
   handleNoData() {
