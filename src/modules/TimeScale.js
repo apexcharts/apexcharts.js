@@ -742,12 +742,25 @@ class TimeScale {
 
   removeOverlappingTS(arr) {
     const graphics = new Graphics(this.ctx)
+
+    let equalLabelLengthFlag = false // These labels got same length?
+    let constantLabelWidth // If true, what is the constant length to use
+    if (
+      arr.length > 0 && // check arr length
+      arr[0].value && // check arr[0] contains value
+      arr.every((lb) => lb.value.length === arr[0].value.length) // check every arr label value is the same as the first one
+    ) {
+      equalLabelLengthFlag = true // These labels got same length
+      constantLabelWidth = graphics.getTextRects(arr[0].value).width // The constant label width to use
+    }
+
     let lastDrawnIndex = 0
 
     let filteredArray = arr.map((item, index) => {
       if (index > 0 && this.w.config.xaxis.labels.hideOverlappingLabels) {
-        const prevLabelWidth = graphics.getTextRects(arr[lastDrawnIndex].value)
-          .width
+        const prevLabelWidth = !equalLabelLengthFlag // if vary in label length
+          ? graphics.getTextRects(arr[lastDrawnIndex].value).width // get individual length
+          : constantLabelWidth // else: use constant length
         const prevPos = arr[lastDrawnIndex].position
         const pos = item.position
 
