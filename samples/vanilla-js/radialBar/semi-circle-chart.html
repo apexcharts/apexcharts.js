@@ -59,7 +59,10 @@
           series: [76],
           chart: {
           type: 'radialBar',
-          offsetY: -20
+          offsetY: -20,
+          sparkline: {
+            enabled: true
+          }
         },
         plotOptions: {
           radialBar: {
@@ -87,6 +90,11 @@
                 fontSize: '22px'
               }
             }
+          }
+        },
+        grid: {
+          padding: {
+            top: -10
           }
         },
         fill: {

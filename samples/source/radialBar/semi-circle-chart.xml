@@ -12,7 +12,10 @@
 <options>
 chart: {
   type: 'radialBar',
-  offsetY: -20
+  offsetY: -20,
+  sparkline: {
+    enabled: true
+  }
 },
 plotOptions: {
   radialBar: {
@@ -40,6 +43,11 @@ plotOptions: {
         fontSize: '22px'
       }
     }
+  }
+},
+grid: {
+  padding: {
+    top: -10
   }
 },
 fill: {
