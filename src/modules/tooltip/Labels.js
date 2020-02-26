@@ -266,26 +266,28 @@ export default class Labels {
           w.config.tooltip.items.display
       }
 
-      if (w.globals.stackedSeriesTotals[j] === 0) {
-        // shared tooltip and all values are null, so we need to hide the x value too
-        let allYZeroForJ = true
-        for (let si = 1; si < w.globals.seriesYvalues.length; si++) {
-          if (
-            w.globals.seriesYvalues[si][j] !==
-            w.globals.seriesYvalues[si - 1][j]
-          ) {
-            allYZeroForJ = false
-          }
-        }
+      // TODO: issue #1240 needs to be looked at again. commenting it because this also hides single series values with 0 in it (shared tooltip)
 
-        if (allYZeroForJ) {
-          ttCtx.tooltipTitle.style.display = 'none'
-        } else {
-          ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
-        }
-      } else {
-        ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
-      }
+      // if (w.globals.stackedSeriesTotals[j] === 0) {
+      //   // shared tooltip and all values are null, so we need to hide the x value too
+      //   let allYZeroForJ = false
+      //   for (let si = 1; si < w.globals.seriesYvalues.length; si++) {
+      //     if (
+      //       w.globals.seriesYvalues[si][j] ===
+      //       w.globals.seriesYvalues[si - 1][j]
+      //     ) {
+      //       allYZeroForJ = true
+      //     }
+      //   }
+
+      //   if (allYZeroForJ) {
+      //     ttCtx.tooltipTitle.style.display = 'none'
+      //   } else {
+      //     ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
+      //   }
+      // } else {
+      //   ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
+      // }
     }
   }
 
