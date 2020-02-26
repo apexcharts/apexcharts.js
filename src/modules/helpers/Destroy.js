@@ -65,6 +65,7 @@ export default class Destroy {
 
     domEls.elWrap = null
     domEls.elGraphical = null
+    domEls.elRects = null
     domEls.elLegendWrap = null
     domEls.baseEl = null
     domEls.elGridRect = null

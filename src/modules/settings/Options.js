@@ -205,33 +205,29 @@ export default class Options {
     }
 
     this.text = {
+      x: 0,
+      y: 0,
       text: '',
       textAnchor: 'start',
-      offsetX: 0,
-      offsetY: null,
+      foreColor: undefined,
+      fontSize: '13px',
+      fontFamily: undefined,
+      fontWeight: 400,
+      backgroundColor: 'transparent',
       borderColor: '#c2c2c2',
       borderRadius: 0,
       borderWidth: 0,
-      style: {
-        background: 'transparent',
-        color: undefined,
-        fontSize: '13px',
-        fontFamily: undefined,
-        fontWeight: 400,
-        cssClass: '',
-        padding: {
-          left: 4,
-          right: 4,
-          top: 2,
-          bottom: 2
-        }
-      }
+      paddingLeft: 4,
+      paddingRight: 4,
+      paddingTop: 2,
+      paddingBottom: 2
     }
 
     this.rect = {
-      offsetX: 0,
-      offsetY: 0,
-      width: 50,
+      x: 0,
+      y: 0,
+      rotate: 0,
+      width: '100%', // accepts percentage as well as fixed numbers
       height: 50,
       backgroundColor: '#fff',
       opacity: 1,
@@ -244,11 +240,12 @@ export default class Options {
     return {
       annotations: {
         position: 'front',
+        rectsPosition: 'back',
         yaxis: [this.yAxisAnnotation],
         xaxis: [this.xAxisAnnotation],
         points: [this.pointAnnotation],
-        texts: [this.text],
-        rects: [this.rect]
+        texts: [],
+        rects: []
       },
       chart: {
         animations: {

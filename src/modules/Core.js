@@ -97,13 +97,16 @@ export default class Core {
       class: 'apexcharts-inner apexcharts-graphical'
     })
 
+    gl.dom.elRects = gl.dom.Paper.group().attr({
+      class: 'apexcharts-annotations-rects'
+    })
+
     gl.dom.elDefs = gl.dom.Paper.defs()
 
     gl.dom.elLegendWrap = document.createElement('div')
     gl.dom.elLegendWrap.classList.add('apexcharts-legend')
     gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)
-
-    // gl.dom.Paper.add(gl.dom.elLegendWrap)
+    gl.dom.Paper.add(gl.dom.elRects)
     gl.dom.Paper.add(gl.dom.elGraphical)
     gl.dom.elGraphical.add(gl.dom.elDefs)
   }

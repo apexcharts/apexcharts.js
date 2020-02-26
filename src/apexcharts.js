@@ -225,6 +225,12 @@ export default class ApexCharts {
 
       me.grid = new Grid(me)
       let elgrid = me.grid.drawGrid()
+
+      me.annotations = new Annotations(me)
+      if (w.config.annotations.rectsPosition === 'back') {
+        me.annotations.drawRects()
+      }
+
       if (w.config.grid.position === 'back' && elgrid) {
         w.globals.dom.elGraphical.add(elgrid.el)
       }
@@ -236,9 +242,9 @@ export default class ApexCharts {
         yaxis.setYAxisTextAlignments()
       }
 
-      me.annotations = new Annotations(me)
       if (w.config.annotations.position === 'back') {
         me.annotations.drawAnnotations()
+        me.annotations.drawTexts()
       }
 
       if (graphData.elGraph instanceof Array) {
@@ -261,8 +267,13 @@ export default class ApexCharts {
         me.crosshairs.drawYCrosshairs()
       }
 
+      if (w.config.annotations.rectsPosition === 'front') {
+        me.annotations.drawRects()
+      }
+
       if (w.config.annotations.position === 'front') {
         me.annotations.drawAnnotations()
+        me.annotations.drawTexts()
       }
 
       if (!w.globals.noData) {

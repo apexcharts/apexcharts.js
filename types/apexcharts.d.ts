@@ -40,6 +40,7 @@ declare class ApexCharts {
   clearAnnotations(options?: any): void
   addText(options: any, pushToMemory?: boolean, context?: any): void
   addImage(options: any, pushToMemory?: boolean, context?: any): void
+  addRect(options: any, pushToMemory?: boolean, context?: any): void
   dataURI(): Promise<void>
   static exec(chartID: string, fn: string, options?: any): any
   static initOnLoad(): void
@@ -298,9 +299,12 @@ type ApexStroke = {
 
 type ApexAnnotations = {
   position?: string
+  rectsPosition?: string
   yaxis?: YAxisAnnotations[]
   xaxis?: XAxisAnnotations[]
   points?: PointAnnotations[]
+  rects?: RectAnnotations[]
+  texts?: TextAnnotations[]
 }
 
 type AnnotationLabel = {
@@ -383,6 +387,38 @@ type PointAnnotations = {
   }
 }
 
+type RectAnnotations = {
+  x?: number
+  y?: number
+  rotate?: number
+  width?: number | string
+  height?: number
+  backgroundColor?: string
+  opacity?: number
+  borderWidth?: number
+  borderRadius?: number
+  borderColor?: string
+}
+
+type TextAnnotations = {
+  x?: number
+  y?: number
+  text?: string
+  textAnchor?: string
+  foreColor?: string
+  fontSize?: string | number
+  fontFamily?: undefined | string
+  fontWeight?: string | number
+  backgroundColor?: string
+  borderColor?: string
+  borderRadius?: number
+  borderWidth?: number
+  paddingLeft?: number
+  paddingRight?: number
+  paddingTop?: number
+  paddingBottom?: number
+}
+
 /**
  * Options for localization.
  * See https://apexcharts.com/docs/options/chart/locales
@@ -457,6 +493,7 @@ type ApexPlotOptions = {
         from?: number
         to?: number
         color?: string
+        foreColor?: string
         name?: string
       }[]
       inverse?: boolean
@@ -685,6 +722,7 @@ type ApexMarkers = {
   radius?: number
   offsetX?: number
   offsetY?: number
+  showNullDataPoints?: boolean
   onClick?(e?: any): void
   onDblClick?(e?: any): void
   hover?: {

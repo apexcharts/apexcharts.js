@@ -68,6 +68,22 @@ export default class Annotations {
     }
   }
 
+  drawRects() {
+    const w = this.w
+
+    w.config.annotations.rects.map((r) => {
+      this.addRect(r, false)
+    })
+  }
+
+  drawTexts() {
+    const w = this.w
+
+    w.config.annotations.texts.map((t) => {
+      this.addText(t)
+    })
+  }
+
   addXaxisAnnotation(anno, parent, index) {
     this.xAxisAnnotations.addXaxisAnnotation(anno, parent, index)
   }
@@ -126,7 +142,7 @@ export default class Annotations {
       y,
       text,
       textAnchor,
-      appendTo = '.apexcharts-inner',
+      appendTo = '.apexcharts-svg',
       foreColor,
       fontSize,
       fontFamily,
@@ -135,7 +151,7 @@ export default class Annotations {
       backgroundColor,
       borderWidth,
       strokeDashArray,
-      radius,
+      borderRadius,
       borderColor,
       paddingLeft = 4,
       paddingRight = 4,
@@ -143,7 +159,11 @@ export default class Annotations {
       paddingTop = 2
     } = params
 
-    const me = context
+    let me = this
+
+    if (context) {
+      me = context
+    }
     const w = me.w
 
     const parentNode = w.globals.dom.baseEl.querySelector(appendTo)
@@ -170,8 +190,8 @@ export default class Annotations {
         textRect.y - paddingTop,
         textRect.width + paddingLeft + paddingRight,
         textRect.height + paddingBottom + paddingTop,
-        radius,
-        backgroundColor,
+        borderRadius,
+        backgroundColor ? backgroundColor : 'transparent',
         1,
         borderWidth,
         borderColor,
@@ -193,38 +213,52 @@ export default class Annotations {
     return context
   }
 
-  addRect(params, pushToMemory, context) {
-    const {
-      x,
-      y,
-      width,
-      height,
-      appendTo = '.apexcharts-inner',
-      backgroundColor,
-      opacity,
-      borderWidth,
-      radius,
-      borderColor
-    } = params
+  addRect(params, pushToMemory = true, context = undefined) {
+    const opts = {
+      x: params.x || 0,
+      y: params.y || 0,
+      width: params.width || '100%',
+      height: params.height || 0,
+      rotate: params.rotate || 0,
+      backgroundColor: params.backgroundColor || 'transparent',
+      opacity: params.opacity || 1,
+      borderWidth: params.borderWidth || 0,
+      borderRadius: params.borderRadius || 0,
+      borderColor: params.borderColor || 0
+    }
 
-    const me = context
+    let me = this
+    if (context) {
+      me = context
+    }
     const w = me.w
 
-    const parentNode = w.globals.dom.baseEl.querySelector(appendTo)
+    if (String(opts.width).indexOf('%') > -1) {
+      opts.width =
+        (parseInt(opts.width, 10) * parseInt(w.globals.svgWidth, 10)) / 100
+    }
 
-    const elRect = this.graphics.drawRect(
-      x,
-      y,
-      width,
-      height,
-      radius,
-      backgroundColor,
-      opacity,
-      borderWidth,
-      borderColor
+    const elRect = me.graphics.drawRect(
+      opts.x,
+      opts.y,
+      opts.width,
+      opts.height,
+      opts.borderRadius,
+      opts.backgroundColor,
+      opts.opacity,
+      opts.borderWidth,
+      opts.borderColor
     )
 
-    parentNode.appendChild(elRect.node)
+    w.globals.dom.elRects.add(elRect)
+
+    if (opts.rotate) {
+      const rotateXY = me.graphics.rotateAroundCenter(elRect.node)
+
+      elRect.attr({
+        transform: `translate(${rotateXY.x} ${rotateXY.y}) rotate(${opts.rotate})`
+      })
+    }
 
     if (pushToMemory) {
       w.globals.memory.methodsToExec.push({

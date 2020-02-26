@@ -82,7 +82,11 @@ export default class Series {
     }
   }
 
-  resetSeries(shouldUpdateChart = true, shouldResetZoom = true, shouldResetCollapsed = true) {
+  resetSeries(
+    shouldUpdateChart = true,
+    shouldResetZoom = true,
+    shouldResetCollapsed = true
+  ) {
     const w = this.w
 
     let series = w.globals.initialSeries.slice()
