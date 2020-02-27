@@ -218,13 +218,13 @@ export default class Annotations {
       x: params.x || 0,
       y: params.y || 0,
       width: params.width || '100%',
-      height: params.height || 0,
+      height: params.height || 50,
       rotate: params.rotate || 0,
-      backgroundColor: params.backgroundColor || 'transparent',
+      backgroundColor: params.backgroundColor || '#fff',
       opacity: params.opacity || 1,
       borderWidth: params.borderWidth || 0,
-      borderRadius: params.borderRadius || 0,
-      borderColor: params.borderColor || 0
+      borderRadius: params.borderRadius || 4,
+      borderColor: params.borderColor || '#c2c2c2'
     }
 
     let me = this

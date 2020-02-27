@@ -233,7 +233,7 @@ export default class Options {
       opacity: 1,
       borderWidth: 0,
       borderRadius: 4,
-      borderColor: '#ccc'
+      borderColor: '#c2c2c2'
     }
   }
   init() {
