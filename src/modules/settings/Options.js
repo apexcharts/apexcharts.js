@@ -863,7 +863,7 @@ export default class Options {
           rotate: -45,
           rotateAlways: false,
           hideOverlappingLabels: true,
-          trim: true,
+          trim: false,
           minHeight: undefined,
           maxHeight: 120,
           showDuplicates: true,
