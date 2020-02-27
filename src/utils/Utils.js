@@ -245,7 +245,6 @@ class Utils {
   }
 
   shadeHexColor(percent, color) {
-    if (percent < 0) percent = 0
     let f = parseInt(color.slice(1), 16),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,
