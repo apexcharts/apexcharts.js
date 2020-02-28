@@ -239,6 +239,7 @@ class Grid {
         if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
           // single datapoint
           x1 = w.globals.gridWidth / 2
+          x2 = x1
         }
         this._drawGridLines({
           i,
