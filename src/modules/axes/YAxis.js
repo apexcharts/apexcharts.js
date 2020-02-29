@@ -253,7 +253,13 @@ export default class YAxis {
         }
         let elTick = graphics.drawText({
           x,
-          y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30,
+          y:
+            this.xAxisoffX +
+            w.config.xaxis.labels.offsetY +
+            30 -
+            (w.config.xaxis.position === 'top'
+              ? w.globals.xAxisHeight + w.config.xaxis.axisTicks.height - 2
+              : 0),
           text: val,
           textAnchor: 'middle',
           foreColor: Array.isArray(this.xaxisForeColors)

@@ -137,7 +137,13 @@ export default class XAxis {
         }
         let elText = graphics.drawText({
           x: label.x,
-          y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection,
+          y:
+            this.offY +
+            w.config.xaxis.labels.offsetY +
+            offsetYCorrection -
+            (w.config.xaxis.position === 'top'
+              ? w.globals.xAxisHeight + w.config.xaxis.axisTicks.height - 2
+              : 0),
           text: label.text,
           textAnchor: 'middle',
           fontWeight: label.isBold ? 600 : 400,
@@ -366,6 +372,9 @@ export default class XAxis {
 
     let y1 = this.offY + w.config.xaxis.axisTicks.offsetY
     let y2 = y1 + w.config.xaxis.axisTicks.height
+    if (w.config.xaxis.position === 'top') {
+      y2 = y1 - w.config.xaxis.axisTicks.height
+    }
 
     if (w.config.xaxis.axisTicks.show) {
       let graphics = new Graphics(this.ctx)

@@ -28,10 +28,6 @@ dataLabels: {
 xaxis: {
   categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
   position: 'top',
-  labels: {
-    offsetY: -18,
-
-  },
   axisBorder: {
     show: false
   },
@@ -52,8 +48,6 @@ xaxis: {
   },
   tooltip: {
     enabled: true,
-    offsetY: -35,
-
   }
 },
 yaxis: {
@@ -74,7 +68,7 @@ yaxis: {
 title: {
   text: 'Monthly Inflation in Argentina, 2002',
   floating: true,
-  offsetY: 320,
+  offsetY: 330,
   align: 'center',
   style: {
     color: '#444'

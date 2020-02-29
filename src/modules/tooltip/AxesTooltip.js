@@ -20,7 +20,9 @@ class AxesTooltip {
 
     const isBottom = w.config.xaxis.position === 'bottom'
 
-    ttCtx.xaxisOffY = isBottom ? w.globals.gridHeight + 1 : 1
+    ttCtx.xaxisOffY = isBottom
+      ? w.globals.gridHeight + 1
+      : -w.globals.xAxisHeight - w.config.xaxis.axisTicks.height + 3
     const tooltipCssClass = isBottom
       ? 'apexcharts-xaxistooltip apexcharts-xaxistooltip-bottom'
       : 'apexcharts-xaxistooltip apexcharts-xaxistooltip-top'

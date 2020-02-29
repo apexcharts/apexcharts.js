@@ -5,6 +5,7 @@ import Axes from '../axes/Axes'
 import CoreUtils from '../CoreUtils'
 import Crosshairs from '../Crosshairs'
 import Grid from '../axes/Grid'
+import Exports from '../Exports'
 import Options from '../settings/Options'
 import Responsive from '../Responsive'
 import Series from '../Series'
@@ -81,6 +82,7 @@ export default class InitCtxVariables {
     this.ctx.coreUtils = new CoreUtils(this.ctx)
     this.ctx.crosshairs = new Crosshairs(this.ctx)
     this.ctx.events = new Events(this.ctx)
+    this.ctx.exports = new Exports(this.ctx)
     this.ctx.localization = new Localization(this.ctx)
     this.ctx.options = new Options()
     this.ctx.responsive = new Responsive(this.ctx)

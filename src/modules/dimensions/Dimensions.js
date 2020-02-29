@@ -150,6 +150,10 @@ export default class Dimensions {
         (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
       gl.gridWidth = gl.svgWidth - yAxisWidth
     }
+
+    if (w.config.xaxis.position === 'top')
+      translateY = gl.xAxisHeight - w.config.xaxis.axisTicks.height - 5
+
     switch (w.config.legend.position) {
       case 'bottom':
         gl.translateY = translateY
@@ -174,6 +178,8 @@ export default class Dimensions {
       default:
         throw new Error('Legend position not supported')
     }
+
+    console.log(gl.translateY, 'after')
 
     this.dimGrid.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
 
