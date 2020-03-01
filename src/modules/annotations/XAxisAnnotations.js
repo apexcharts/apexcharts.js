@@ -36,7 +36,7 @@ export default class XAnnotations {
 
     if (!Utils.isNumber(x1)) return
 
-    if (anno.x2 === null) {
+    if (anno.x2 === null || typeof anno.x2 === 'undefined') {
       let line = this.annoCtx.graphics.drawLine(
         x1 + anno.offsetX, // x1
         0 + anno.offsetY, // y1

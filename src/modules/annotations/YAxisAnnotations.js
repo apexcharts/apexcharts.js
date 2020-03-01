@@ -14,7 +14,7 @@ export default class YAnnotations {
 
     const text = anno.label.text
 
-    if (anno.y2 === null) {
+    if (anno.y2 === null || typeof anno.y2 === 'undefined') {
       let line = this.annoCtx.graphics.drawLine(
         0 + anno.offsetX, // x1
         y1 + anno.offsetY, // y1

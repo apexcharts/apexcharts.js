@@ -860,7 +860,7 @@ export default class Options {
         offsetY: 0,
         labels: {
           show: true,
-          rotate: -45,
+          rotate: -25,
           rotateAlways: false,
           hideOverlappingLabels: true,
           trim: false,

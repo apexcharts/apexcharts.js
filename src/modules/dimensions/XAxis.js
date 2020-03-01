@@ -61,7 +61,10 @@ export default class DimXAxis {
       val = xFormat.xLabelFormat(xlbFormatter, val, timestamp)
       valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp)
 
-      if (w.config.xaxis.convertedCatToNumeric && typeof val === 'undefined') {
+      if (
+        (w.config.xaxis.convertedCatToNumeric && typeof val === 'undefined') ||
+        val.trim() === ''
+      ) {
         val = '1'
         valArr = val
       }

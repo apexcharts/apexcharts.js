@@ -179,8 +179,6 @@ export default class Dimensions {
         throw new Error('Legend position not supported')
     }
 
-    console.log(gl.translateY, 'after')
-
     this.dimGrid.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
 
     // after drawing everything, set the Y axis positions
