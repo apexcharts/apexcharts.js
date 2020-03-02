@@ -146,7 +146,9 @@ export default class XAxis {
               : 0),
           text: label.text,
           textAnchor: 'middle',
-          fontWeight: label.isBold ? 600 : 400,
+          fontWeight: label.isBold
+            ? 600
+            : w.config.xaxis.labels.style.fontWeight,
           fontSize: this.xaxisFontSize,
           fontFamily: this.xaxisFontFamily,
           foreColor: Array.isArray(this.xaxisForeColors)

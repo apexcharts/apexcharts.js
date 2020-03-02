@@ -63,7 +63,7 @@ export default class DimXAxis {
 
       if (
         (w.config.xaxis.convertedCatToNumeric && typeof val === 'undefined') ||
-        val.trim() === ''
+        String(val).trim() === ''
       ) {
         val = '1'
         valArr = val
