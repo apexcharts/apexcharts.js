@@ -106,6 +106,7 @@ export default class HeatMap {
         let utils = new Utils()
 
         if (w.config.plotOptions.heatmap.enableShades) {
+          if (colorShadePercent < 0) colorShadePercent = 0
           color = Utils.hexToRgba(
             utils.shadeColor(colorShadePercent, heatColorProps.color),
             w.config.fill.opacity
