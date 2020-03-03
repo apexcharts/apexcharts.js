@@ -623,7 +623,10 @@ class Line {
 
   handleNullDataPoints(series, pointsPos, i, j, realIndex) {
     const w = this.w
-    if (series[i][j] === null && w.config.markers.showNullDataPoints) {
+    if (
+      (series[i][j] === null && w.config.markers.showNullDataPoints) ||
+      series.length === 1
+    ) {
       // fixes apexcharts.js#1282, #1252
       let elPointsWrap = this.markers.plotChartMarkers(
         pointsPos,

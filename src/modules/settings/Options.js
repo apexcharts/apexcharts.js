@@ -223,10 +223,10 @@ export default class Options {
       paddingBottom: 2
     }
 
-    this.rect = {
+    this.shape = {
       x: 0,
       y: 0,
-      rotate: 0,
+      type: 'rect',
       width: '100%', // accepts percentage as well as fixed numbers
       height: 50,
       backgroundColor: '#fff',
@@ -240,12 +240,12 @@ export default class Options {
     return {
       annotations: {
         position: 'front',
-        rectsPosition: 'back',
         yaxis: [this.yAxisAnnotation],
         xaxis: [this.xAxisAnnotation],
         points: [this.pointAnnotation],
         texts: [],
-        rects: []
+        images: [],
+        shapes: []
       },
       chart: {
         animations: {

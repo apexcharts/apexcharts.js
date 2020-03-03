@@ -152,18 +152,14 @@ export default class PointAnnotations {
       let imgWidth = anno.image.width ? anno.image.width : 20
       let imgHeight = anno.image.height ? anno.image.height : 20
 
-      this.annoCtx.addImage(
-        {
-          x: x + anno.image.offsetX - imgWidth / 2,
-          y: y + anno.image.offsetY - imgHeight / 2,
-          width: imgWidth,
-          height: imgHeight,
-          path: anno.image.path,
-          appendTo: parent
-        },
-        false,
-        this.annoCtx.ctx
-      )
+      this.annoCtx.addImage({
+        x: x + anno.image.offsetX - imgWidth / 2,
+        y: y + anno.image.offsetY - imgHeight / 2,
+        width: imgWidth,
+        height: imgHeight,
+        path: anno.image.path,
+        appendTo: parent
+      })
     }
   }
 

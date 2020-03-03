@@ -33,7 +33,7 @@ export default class Annotations {
     this.xDivision = this.w.globals.gridWidth / this.w.globals.dataPoints
   }
 
-  drawAnnotations() {
+  drawAxesAnnotations() {
     const w = this.w
     if (w.globals.axisCharts) {
       let yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations()
@@ -68,19 +68,27 @@ export default class Annotations {
     }
   }
 
-  drawRects() {
+  drawShapeAnnos() {
     const w = this.w
 
-    w.config.annotations.rects.map((r) => {
-      this.addRect(r, false)
+    w.config.annotations.shapes.map((s, index) => {
+      this.addShape(s, index)
     })
   }
 
-  drawTexts() {
+  drawImageAnnos() {
     const w = this.w
 
-    w.config.annotations.texts.map((t) => {
-      this.addText(t)
+    w.config.annotations.images.map((s, index) => {
+      this.addImage(s, index)
+    })
+  }
+
+  drawTextAnnos() {
+    const w = this.w
+
+    w.config.annotations.texts.map((t, index) => {
+      this.addText(t, index)
     })
   }
 
@@ -96,53 +104,12 @@ export default class Annotations {
     this.pointsAnnotations.addPointAnnotation(anno, parent, index)
   }
 
-  clearAnnotations(ctx) {
-    const w = ctx.w
-    let annos = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations'
-    )
-
-    // annotations added externally should be cleared out too
-    w.globals.memory.methodsToExec.map((m, i) => {
-      if (m.label === 'addText' || m.label === 'addAnnotation') {
-        w.globals.memory.methodsToExec.splice(i, 1)
-      }
-    })
-
-    annos = Utils.listToArray(annos)
-
-    // delete the DOM elements
-    Array.prototype.forEach.call(annos, (a) => {
-      while (a.firstChild) {
-        a.removeChild(a.firstChild)
-      }
-    })
-  }
-
-  removeAnnotation(ctx, id) {
-    const w = ctx.w
-    let annos = w.globals.dom.baseEl.querySelectorAll(`.${id}`)
-
-    if (annos) {
-      w.globals.memory.methodsToExec.map((m, i) => {
-        if (m.id === id) {
-          w.globals.memory.methodsToExec.splice(i, 1)
-        }
-      })
-
-      Array.prototype.forEach.call(annos, (a) => {
-        a.parentElement.removeChild(a)
-      })
-    }
-  }
-
-  addText(params, pushToMemory, context) {
+  addText(params, index) {
     const {
       x,
       y,
       text,
       textAnchor,
-      appendTo = '.apexcharts-svg',
       foreColor,
       fontSize,
       fontFamily,
@@ -159,14 +126,7 @@ export default class Annotations {
       paddingTop = 2
     } = params
 
-    let me = this
-
-    if (context) {
-      me = context
-    }
-    const w = me.w
-
-    const parentNode = w.globals.dom.baseEl.querySelector(appendTo)
+    const w = this.w
 
     let elText = this.graphics.drawText({
       x,
@@ -180,9 +140,13 @@ export default class Annotations {
       cssClass: 'apexcharts-text ' + cssClass ? cssClass : ''
     })
 
-    parentNode.appendChild(elText.node)
+    w.globals.dom.elAnnotations.add(elText)
 
     const textRect = elText.bbox()
+
+    if (params.draggable) {
+      this.helpers.makeAnnotationDraggable(elText, 'texts', index)
+    }
 
     if (text) {
       const elRect = this.graphics.drawRect(
@@ -198,28 +162,18 @@ export default class Annotations {
         strokeDashArray
       )
 
-      parentNode.insertBefore(elRect.node, elText.node)
+      w.globals.dom.elAnnotations.node.insertBefore(elRect.node, elText.node)
     }
-
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addText,
-        label: 'addText',
-        params
-      })
-    }
-
-    return context
   }
 
-  addRect(params, pushToMemory = true, context = undefined) {
+  addShape(params, index) {
     const opts = {
+      type: params.type,
       x: params.x || 0,
       y: params.y || 0,
       width: params.width || '100%',
       height: params.height || 50,
-      rotate: params.rotate || 0,
+      circleRadius: params.radius || 25,
       backgroundColor: params.backgroundColor || '#fff',
       opacity: params.opacity || 1,
       borderWidth: params.borderWidth || 0,
@@ -227,78 +181,65 @@ export default class Annotations {
       borderColor: params.borderColor || '#c2c2c2'
     }
 
-    let me = this
-    if (context) {
-      me = context
-    }
-    const w = me.w
+    const w = this.w
 
     if (String(opts.width).indexOf('%') > -1) {
       opts.width =
         (parseInt(opts.width, 10) * parseInt(w.globals.svgWidth, 10)) / 100
     }
 
-    const elRect = me.graphics.drawRect(
-      opts.x,
-      opts.y,
-      opts.width,
-      opts.height,
-      opts.borderRadius,
-      opts.backgroundColor,
-      opts.opacity,
-      opts.borderWidth,
-      opts.borderColor
-    )
-
-    w.globals.dom.elRects.add(elRect)
-
-    if (opts.rotate) {
-      const rotateXY = me.graphics.rotateAroundCenter(elRect.node)
-
-      elRect.attr({
-        transform: `translate(${rotateXY.x} ${rotateXY.y}) rotate(${opts.rotate})`
+    let elShape = null
+    if (opts.type === 'circle') {
+      elShape = this.graphics.drawCircle(opts.circleRadius, {
+        fill: opts.backgroundColor,
+        stroke: opts.borderColor,
+        'stroke-width': opts.borderWidth,
+        opacity: opts.opacity,
+        cx: opts.x,
+        cy: opts.y
       })
+    } else {
+      elShape = this.graphics.drawRect(
+        opts.x,
+        opts.y,
+        opts.width,
+        opts.height,
+        opts.borderRadius,
+        opts.backgroundColor,
+        opts.opacity,
+        opts.borderWidth,
+        opts.borderColor
+      )
     }
 
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addRect,
-        label: 'addRect',
-        params
-      })
+    if (params.draggable) {
+      this.helpers.makeAnnotationDraggable(elShape, 'shapes', index)
+      elShape.node.classList.add('apexcharts-resizable-element')
     }
 
-    return context
+    w.globals.dom.elAnnotations.add(elShape)
   }
 
-  addImage(params, pushToMemory, context) {
+  addImage(params, index) {
+    const w = this.w
+
     const {
       path,
       x = 0,
       y = 0,
       width = 20,
       height = 20,
-      appendTo = context.w.globals.dom.Paper.node
+      appendTo = w.globals.dom.elAnnotations.node
     } = params
 
-    const me = context
-    const w = me.w
-
-    let img = context.w.globals.dom.Paper.image(path)
+    let img = w.globals.dom.Paper.image(path)
     img.size(width, height).move(x, y)
 
     appendTo.appendChild(img.node)
-    if (pushToMemory) {
-      w.globals.memory.methodsToExec.push({
-        context: me,
-        method: me.addImage,
-        label: 'addImage',
-        params
-      })
+    if (params.draggable) {
+      this.helpers.makeAnnotationDraggable(img, 'images', index)
+      img.node.classList.add('apexcharts-resizable-element')
     }
-
-    return context
   }
 
   // The addXaxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method
@@ -397,5 +338,45 @@ export default class Annotations {
     }
 
     return context
+  }
+
+  clearAnnotations(ctx) {
+    const w = ctx.w
+    let annos = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations'
+    )
+
+    // annotations added externally should be cleared out too
+    w.globals.memory.methodsToExec.map((m, i) => {
+      if (m.label === 'addText' || m.label === 'addAnnotation') {
+        w.globals.memory.methodsToExec.splice(i, 1)
+      }
+    })
+
+    annos = Utils.listToArray(annos)
+
+    // delete the DOM elements
+    Array.prototype.forEach.call(annos, (a) => {
+      while (a.firstChild) {
+        a.removeChild(a.firstChild)
+      }
+    })
+  }
+
+  removeAnnotation(ctx, id) {
+    const w = ctx.w
+    let annos = w.globals.dom.baseEl.querySelectorAll(`.${id}`)
+
+    if (annos) {
+      w.globals.memory.methodsToExec.map((m, i) => {
+        if (m.id === id) {
+          w.globals.memory.methodsToExec.splice(i, 1)
+        }
+      })
+
+      Array.prototype.forEach.call(annos, (a) => {
+        a.parentElement.removeChild(a)
+      })
+    }
   }
 }

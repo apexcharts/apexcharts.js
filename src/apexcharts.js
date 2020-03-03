@@ -227,9 +227,9 @@ export default class ApexCharts {
       let elgrid = me.grid.drawGrid()
 
       me.annotations = new Annotations(me)
-      if (w.config.annotations.rectsPosition === 'back') {
-        me.annotations.drawRects()
-      }
+      me.annotations.drawShapeAnnos()
+      me.annotations.drawImageAnnos()
+      me.annotations.drawTextAnnos()
 
       if (w.config.grid.position === 'back' && elgrid) {
         w.globals.dom.elGraphical.add(elgrid.el)
@@ -243,8 +243,8 @@ export default class ApexCharts {
       }
 
       if (w.config.annotations.position === 'back') {
-        me.annotations.drawAnnotations()
-        me.annotations.drawTexts()
+        w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
+        me.annotations.drawAxesAnnotations()
       }
 
       if (graphData.elGraph instanceof Array) {
@@ -267,13 +267,9 @@ export default class ApexCharts {
         me.crosshairs.drawYCrosshairs()
       }
 
-      if (w.config.annotations.rectsPosition === 'front') {
-        me.annotations.drawRects()
-      }
-
       if (w.config.annotations.position === 'front') {
-        me.annotations.drawAnnotations()
-        me.annotations.drawTexts()
+        w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
+        me.annotations.drawAxesAnnotations()
       }
 
       if (!w.globals.noData) {
@@ -631,35 +627,6 @@ export default class ApexCharts {
       me = context
     }
     me.annotations.removeAnnotation(me, id)
-  }
-
-  // This method is never used internally and will be only called externally on the chart instance.
-  // We need to keep all these elements in memory when the chart gets updated and redraw again
-  addText(options, pushToMemory = true, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-
-    me.annotations.addText(options, pushToMemory, me)
-  }
-
-  addImage(options, pushToMemory = true, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-
-    me.annotations.addImage(options, pushToMemory, me)
-  }
-
-  addRect(options, pushToMemory = true, context = undefined) {
-    let me = this
-    if (context) {
-      me = context
-    }
-
-    me.annotations.addRect(options, pushToMemory, me)
   }
 
   getChartArea() {

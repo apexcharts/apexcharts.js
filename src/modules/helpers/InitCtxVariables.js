@@ -5,6 +5,7 @@ import Axes from '../axes/Axes'
 import CoreUtils from '../CoreUtils'
 import Crosshairs from '../Crosshairs'
 import Grid from '../axes/Grid'
+import Graphics from '../Graphics'
 import Exports from '../Exports'
 import Options from '../settings/Options'
 import Responsive from '../Responsive'
@@ -56,8 +57,6 @@ export default class InitCtxVariables {
       'addXaxisAnnotation',
       'addYaxisAnnotation',
       'addPointAnnotation',
-      'addText',
-      'addImage',
       'clearAnnotations',
       'removeAnnotation',
       'paper',
@@ -79,6 +78,7 @@ export default class InitCtxVariables {
     this.ctx.core = new Core(this.ctx.el, this.ctx)
     this.ctx.data = new Data(this.ctx)
     this.ctx.grid = new Grid(this.ctx)
+    this.ctx.graphics = new Graphics(this.ctx)
     this.ctx.coreUtils = new CoreUtils(this.ctx)
     this.ctx.crosshairs = new Crosshairs(this.ctx)
     this.ctx.events = new Events(this.ctx)

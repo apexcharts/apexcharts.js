@@ -38,9 +38,6 @@ declare class ApexCharts {
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void
   removeAnnotation(id: string, options?: any): void
   clearAnnotations(options?: any): void
-  addText(options: any, pushToMemory?: boolean, context?: any): void
-  addImage(options: any, pushToMemory?: boolean, context?: any): void
-  addRect(options: any, pushToMemory?: boolean, context?: any): void
   dataURI(): Promise<void>
   static exec(chartID: string, fn: string, options?: any): any
   static initOnLoad(): void
@@ -299,12 +296,12 @@ type ApexStroke = {
 
 type ApexAnnotations = {
   position?: string
-  rectsPosition?: string
   yaxis?: YAxisAnnotations[]
   xaxis?: XAxisAnnotations[]
   points?: PointAnnotations[]
-  rects?: RectAnnotations[]
+  shapes?: ShapeAnnotations[]
   texts?: TextAnnotations[]
+  images?: ImageAnnotations[]
 }
 
 type AnnotationLabel = {
@@ -387,10 +384,10 @@ type PointAnnotations = {
   }
 }
 
-type RectAnnotations = {
+type ShapeAnnotations = {
   x?: number
   y?: number
-  rotate?: number
+  type?: string
   width?: number | string
   height?: number
   backgroundColor?: string
@@ -417,6 +414,14 @@ type TextAnnotations = {
   paddingRight?: number
   paddingTop?: number
   paddingBottom?: number
+}
+
+type ImageAnnotations = {
+  path?: string
+  x?: number,
+  y?: number,
+  width?: number,
+  height?: number,
 }
 
 /**

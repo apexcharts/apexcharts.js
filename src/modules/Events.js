@@ -91,9 +91,9 @@ export default class Events {
 
   documentEvent(e) {
     const w = this.w
+    const target = e.target.className
 
     if (e.type === 'click') {
-      const target = e.target.className
       let elMenu = w.globals.dom.baseEl.querySelector('.apexcharts-menu')
       if (
         elMenu &&
@@ -102,6 +102,22 @@ export default class Events {
       ) {
         elMenu.classList.remove('apexcharts-menu-open')
       }
+    }
+
+    if (e.type === 'mousedown') {
+      const elAnnos = w.globals.dom.Paper.select(
+        '.apexcharts-resizable-element'
+      ).members
+
+      Array.prototype.forEach.call(elAnnos, (el) => {
+        // any shape annotations that might have selected by user for resizing, should be deselected
+        if (
+          !e.target.classList.contains('apexcharts-resizable-element') &&
+          !e.target.classList.contains('svg_select_points')
+        ) {
+          el.selectize(false)
+        }
+      })
     }
 
     w.globals.clientX =
