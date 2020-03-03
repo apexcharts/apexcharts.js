@@ -211,6 +211,7 @@ class Grid {
       w.config.grid[type].opacity
     )
     this.elg.add(rect)
+    rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
     rect.node.classList.add(`apexcharts-grid-${type}`)
   }
 

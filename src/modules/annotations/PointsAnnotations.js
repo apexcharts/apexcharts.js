@@ -96,7 +96,7 @@ export default class PointAnnotations {
       pointFillColor: anno.marker.fillColor,
       pointStrokeColor: anno.marker.strokeColor,
       shape: anno.marker.shape,
-      radius: anno.marker.radius,
+      pRadius: anno.marker.radius,
       class: `apexcharts-point-annotation-marker ${anno.marker.cssClass} ${
         anno.id ? anno.id : ''
       }`
