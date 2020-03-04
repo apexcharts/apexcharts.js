@@ -40,12 +40,16 @@
     "svg.filter.js": "^2.0.2",
     "svg.pathmorphing.js": "^0.1.3",
     "svg.resize.js": "^1.4.3",
-    "svg.select.js": "^2.1.2"
+    "svg.select.js": "^3.0.1"
   },
   "devDependencies": {
     "@babel/core": "7.7.7",
     "@babel/plugin-proposal-class-properties": "7.7.4",
     "@babel/preset-env": "7.7.7",
+    "@rollup/plugin-json": "4.0.1",
+    "@rollup/plugin-node-resolve": "6.0.0",
+    "@rollup/plugin-replace": "2.3.0",
+    "@rollup/plugin-strip": "1.3.1",
     "babel-eslint": "10.0.3",
     "babel-jest": "24.9.0",
     "babel-loader": "8.0.6",
@@ -67,10 +71,6 @@
     "prettier": "1.19.1",
     "puppeteer": "2.0.0",
     "puppeteer-cluster": "0.18.0",
-    "@rollup/plugin-json": "4.0.1",
-    "@rollup/plugin-node-resolve": "6.0.0",
-    "@rollup/plugin-replace": "2.3.0",
-    "@rollup/plugin-strip": "1.3.1",
     "rollup": "1.27.14",
     "rollup-plugin-babel": "4.3.3",
     "rollup-plugin-copy-glob": "0.3.1",
