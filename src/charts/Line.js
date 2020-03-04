@@ -625,7 +625,7 @@ class Line {
     const w = this.w
     if (
       (series[i][j] === null && w.config.markers.showNullDataPoints) ||
-      series.length === 1
+      series[i].length === 1
     ) {
       // fixes apexcharts.js#1282, #1252
       let elPointsWrap = this.markers.plotChartMarkers(

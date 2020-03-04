@@ -2,6 +2,7 @@ import Events from '../Events'
 import Localization from './Localization'
 import Animations from '../Animations'
 import Axes from '../axes/Axes'
+import Config from '../settings/Config'
 import CoreUtils from '../CoreUtils'
 import Crosshairs from '../Crosshairs'
 import Grid from '../axes/Grid'
@@ -76,6 +77,7 @@ export default class InitCtxVariables {
     this.ctx.animations = new Animations(this.ctx)
     this.ctx.axes = new Axes(this.ctx)
     this.ctx.core = new Core(this.ctx.el, this.ctx)
+    this.ctx.config = new Config({})
     this.ctx.data = new Data(this.ctx)
     this.ctx.grid = new Grid(this.ctx)
     this.ctx.graphics = new Graphics(this.ctx)

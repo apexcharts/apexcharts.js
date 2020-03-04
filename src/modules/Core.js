@@ -44,7 +44,6 @@ export default class Core {
       'area',
       'bar',
       'rangeBar',
-      // 'rangeArea',
       'candlestick',
       'scatter',
       'bubble',
@@ -57,7 +56,6 @@ export default class Core {
       'area',
       'bar',
       'rangeBar',
-      // 'rangeArea',
       'candlestick',
       'scatter',
       'bubble'

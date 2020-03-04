@@ -141,7 +141,9 @@ export default class Helpers {
     el.node.addEventListener('mousedown', (e) => {
       e.stopPropagation()
       el.selectize({
-        points: ['lt', 'rt', 'rb', 'lb']
+        pointSize: 8,
+        rotationPoint: false,
+        pointType: 'rect'
       })
 
       el.resize().on('resizedone', (re) => {

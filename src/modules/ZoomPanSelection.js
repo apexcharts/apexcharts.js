@@ -225,7 +225,11 @@ export default class ZoomPanSelection extends Toolbar {
     const rectDim = this.selectionRect.node.getBoundingClientRect()
     if (rectDim.width > 0 && rectDim.height > 0) {
       this.slDraggableRect
-        .selectize()
+        .selectize({
+          points: 'l, r',
+          pointSize: 8,
+          pointType: 'rect'
+        })
         .resize({
           constraint: {
             minX: 0,
