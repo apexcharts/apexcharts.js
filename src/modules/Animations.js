@@ -197,15 +197,24 @@ export default class Animations {
       pathTo = el.attr('pathTo')
     }
 
+    const disableAnimationForCorrupPath = (path) => {
+      if (w.config.chart.type === 'radar') {
+        // radar chart drops the path to bottom and hence a corrup path looks ugly
+        // therefore, disable animation for such a case
+        speed = 1
+      }
+      return `M 0 ${w.globals.gridHeight}`
+    }
+
     if (
       !pathFrom ||
       pathFrom.indexOf('undefined') > -1 ||
       pathFrom.indexOf('NaN') > -1
     ) {
-      pathFrom = `M 0 ${w.globals.gridHeight}`
+      pathFrom = disableAnimationForCorrupPath()
     }
     if (pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
-      pathTo = `M 0 ${w.globals.gridHeight}`
+      pathTo = disableAnimationForCorrupPath()
     }
     if (!w.globals.shouldAnimate) {
       speed = 1
