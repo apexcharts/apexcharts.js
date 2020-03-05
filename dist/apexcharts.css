@@ -376,18 +376,28 @@
   cursor: move;
 }
 
-.svg_select_points,
-.svg_select_points_rot {
+.svg_select_boundingRect, .svg_select_points_rot {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+.apexcharts-selection-rect + g .svg_select_boundingRect,
+.apexcharts-selection-rect + g .svg_select_points_rot {
   opacity: 0;
   visibility: hidden;
 }
 
-.svg_select_points_l,
-.svg_select_points_r {
+.apexcharts-selection-rect + g .svg_select_points_l,
+.apexcharts-selection-rect + g .svg_select_points_r {
   cursor: ew-resize;
   opacity: 1;
   visibility: visible;
-  fill: #888;
+}
+
+.svg_select_points {
+  fill: #efefef;
+  stroke: #333;
+  rx: 2;
 }
 
 .apexcharts-canvas.apexcharts-zoomable .hovering-zoom {
@@ -587,7 +597,6 @@
 .apexcharts-line,
 .apexcharts-zoom-rect,
 .apexcharts-toolbar svg,
-.apexcharts-annotations-rects,
 .apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,
 .apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,
 .apexcharts-radar-series path,
