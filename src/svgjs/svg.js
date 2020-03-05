@@ -68,7 +68,7 @@
 
   // Method for extending objects
   SVG.extend = function () {
-    var modules, methods, key, i
+    var modules, methods
 
     // Get list of modules
     modules = [].slice.call(arguments)
@@ -76,9 +76,9 @@
     // Get object with extensions
     methods = modules.pop()
 
-    for (i = modules.length - 1; i >= 0; i--) {
+    for (var i = modules.length - 1; i >= 0; i--) {
       if (modules[i]) {
-        for (key in methods) { modules[i].prototype[key] = methods[key] }
+        for (var key in methods) { modules[i].prototype[key] = methods[key] }
       }
     }
 
@@ -224,22 +224,20 @@
   SVG.utils = {
   // Map function
     map: function (array, block) {
-      var i,
-        il = array.length,
+      var il = array.length,
         result = []
 
-      for (i = 0; i < il; i++) { result.push(block(array[i])) }
+      for (var i = 0; i < il; i++) { result.push(block(array[i])) }
 
       return result
     },
 
     // Filter function
     filter: function (array, block) {
-      var i,
-        il = array.length,
+      var il = array.length,
         result = []
 
-      for (i = 0; i < il; i++) {
+      for (var i = 0; i < il; i++) {
         if (block(array[i])) { result.push(array[i]) }
       }
 
@@ -523,13 +521,13 @@
       var sourceArray = this.value,
         destinationArray = this.destination.value,
         array = [], pathArray = new SVG.PathArray(),
-        i, il, j, jl
+        il, jl
 
       // Animate has specified in the SVG spec
       // See: https://www.w3.org/TR/SVG11/paths.html#PathElement
-      for (i = 0, il = sourceArray.length; i < il; i++) {
+      for (var i = 0, il = sourceArray.length; i < il; i++) {
         array[i] = [sourceArray[i][0]]
-        for (j = 1, jl = sourceArray[i].length; j < jl; j++) {
+        for (var j = 1, jl = sourceArray[i].length; j < jl; j++) {
           array[i][j] = sourceArray[i][j] + (destinationArray[i][j] - sourceArray[i][j]) * pos
         }
         // For the two flags of the elliptical arc command, the SVG spec say:
@@ -1172,12 +1170,12 @@
       // updates all animations to the current state of the element
       // this is important when one property could be changed from another property
       initAnimations: function () {
-        var i, j, source
+        var source
         var s = this.situation
 
         if (s.init) return this
 
-        for (i in s.animations) {
+        for (var i in s.animations) {
           source = this.target()[i]()
 
           if (!Array.isArray(source)) {
@@ -1192,7 +1190,7 @@
           //  source.concat = source.concat(s.animations[i].slice(source.length, s.animations[i].length))
           // }
 
-          for (j = source.length; j--;) {
+          for (var j = source.length; j--;) {
           // The condition is because some methods return a normal number instead
           // of a SVG.Number
             if (s.animations[i][j] instanceof SVG.Number) { source[j] = new SVG.Number(source[j]) }
@@ -1201,11 +1199,11 @@
           }
         }
 
-        for (i in s.attrs) {
+        for (var i in s.attrs) {
           s.attrs[i] = new SVG.MorphObj(this.target().attr(i), s.attrs[i])
         }
 
-        for (i in s.styles) {
+        for (var i in s.styles) {
           s.styles[i] = new SVG.MorphObj(this.target().style(i), s.styles[i])
         }
 
@@ -1403,10 +1401,10 @@
 
       // calculates the step for every property and calls block with it
       eachAt: function () {
-        var i, len, at, self = this, target = this.target(), s = this.situation
+        var len, at, self = this, target = this.target(), s = this.situation
 
         // apply animations which can be called trough a method
-        for (i in s.animations) {
+        for (var i in s.animations) {
           at = [].concat(s.animations[i]).map(function (el) {
             return typeof el !== 'string' && el.at ? el.at(s.ease(self.pos), self.pos) : el
           })
@@ -1415,7 +1413,7 @@
         }
 
         // apply animation which has to be applied with attr()
-        for (i in s.attrs) {
+        for (var i in s.attrs) {
           at = [i].concat(s.attrs[i]).map(function (el) {
             return typeof el !== 'string' && el.at ? el.at(s.ease(self.pos), self.pos) : el
           })
@@ -1424,7 +1422,7 @@
         }
 
         // apply animation which has to be applied with style()
-        for (i in s.styles) {
+        for (var i in s.styles) {
           at = [i].concat(s.styles[i]).map(function (el) {
             return typeof el !== 'string' && el.at ? el.at(s.ease(self.pos), self.pos) : el
           })
@@ -1436,7 +1434,7 @@
         if (s.transforms.length) {
         // get initial initialTransformation
           at = s.initialTransformation
-          for (i = 0, len = s.transforms.length; i < len; i++) {
+          for (var i = 0, len = s.transforms.length; i < len; i++) {
           // get next transformation in chain
             var a = s.transforms[i]
 
@@ -1651,7 +1649,7 @@
   SVG.Matrix = SVG.invent({
   // Initialize
     create: function (source) {
-      var i, base = arrayToMatrix([1, 0, 0, 1, 0, 0])
+      var base = arrayToMatrix([1, 0, 0, 1, 0, 0])
 
       // ensure source as object
       source = source instanceof SVG.Element
@@ -1666,7 +1664,7 @@
                 ? source : base
 
       // merge source
-      for (i = abcdef.length - 1; i >= 0; --i) {
+      for (var i = abcdef.length - 1; i >= 0; --i) {
         this[abcdef[i]] = source[abcdef[i]] != null
           ? source[abcdef[i]] : base[abcdef[i]]
       }
@@ -1828,12 +1826,12 @@
       // get an object of attributes
         a = {}
         v = this.node.attributes
-        for (n = v.length - 1; n >= 0; n--) { a[v[n].nodeName] = SVG.regex.isNumber.test(v[n].nodeValue) ? parseFloat(v[n].nodeValue) : v[n].nodeValue }
+        for (var n = v.length - 1; n >= 0; n--) { a[v[n].nodeName] = SVG.regex.isNumber.test(v[n].nodeValue) ? parseFloat(v[n].nodeValue) : v[n].nodeValue }
 
         return a
       } else if (typeof a === 'object') {
       // apply every attribute individually if an object is passed
-        for (v in a) this.attr(v, a[v])
+        for (var v_ in a) this.attr(v_, a[v_])
       } else if (v === null) {
         // remove value
         this.node.removeAttribute(a)
@@ -2017,7 +2015,7 @@
       } else if (arguments.length < 2) {
       // apply every style individually if an object is passed
         if (typeof s === 'object') {
-          for (v in s) this.style(v, s[v])
+          for (var v_ in s) this.style(v_, s[v_])
         } else if (SVG.regex.isCss.test(s)) {
         // parse css string
           s = s.split(/\s*;\s*/)
@@ -2090,10 +2088,10 @@
       },
       // Iterates over all children and invokes a given block
       each: function (block, deep) {
-        var i, il,
+        var il,
           children = this.children()
 
-        for (i = 0, il = children.length; i < il; i++) {
+        for (var i = 0, il = children.length; i < il; i++) {
           if (children[i] instanceof SVG.Element) { block.apply(children[i], [i, children]) }
 
           if (deep && (children[i] instanceof SVG.Container)) { children[i].each(block, deep) }
@@ -2243,29 +2241,29 @@
     } else if (ns && ev) {
     // remove all listeners for a namespaced event
       if (SVG.listeners[index][ev] && SVG.listeners[index][ev][ns]) {
-        for (listener in SVG.listeners[index][ev][ns]) { SVG.off(node, [ev, ns].join('.'), listener) }
+        for (var listener_ in SVG.listeners[index][ev][ns]) { SVG.off(node, [ev, ns].join('.'), listener_) }
 
         delete SVG.listeners[index][ev][ns]
       }
     } else if (ns) {
     // remove all listeners for a specific namespace
-      for (event in SVG.listeners[index]) {
-        for (namespace in SVG.listeners[index][event]) {
+      for (var event_ in SVG.listeners[index]) {
+        for (var namespace in SVG.listeners[index][event_]) {
           if (ns === namespace) {
-            SVG.off(node, [event, ns].join('.'))
+            SVG.off(node, [event_, ns].join('.'))
           }
         }
       }
     } else if (ev) {
     // remove all listeners for the event
       if (SVG.listeners[index][ev]) {
-        for (namespace in SVG.listeners[index][ev]) { SVG.off(node, [ev, namespace].join('.')) }
+        for (var namespace in SVG.listeners[index][ev]) { SVG.off(node, [ev, namespace].join('.')) }
 
         delete SVG.listeners[index][ev]
       }
     } else {
     // remove all listeners on a given node
-      for (event in SVG.listeners[index]) { SVG.off(node, event) }
+      for (var event_ in SVG.listeners[index]) { SVG.off(node, event_) }
 
       delete SVG.listeners[index]
       delete SVG.handlerMap[index]
@@ -3309,14 +3307,14 @@
 
 // Add sugar for fill and stroke
 ;['fill', 'stroke'].forEach(function (m) {
-    var i, extension = {}
+    var extension = {}
 
     extension[m] = function (o) {
       if (typeof o === 'undefined') { return this }
       if (typeof o === 'string' || SVG.Color.isRgb(o) || (o && typeof o.fill === 'function')) { this.attr(m, o) } else
       // set all attributes from sugar.fill and sugar.stroke list
       {
-        for (i = sugar[m].length - 1; i >= 0; i--) {
+        for (var i = sugar[m].length - 1; i >= 0; i--) {
           if (o[sugar[m][i]] != null) { this.attr(sugar.prefix(m, sugar[m][i]), o[sugar[m][i]]) }
         }
       }
@@ -3376,9 +3374,9 @@
     extend: {
     // Add element to set
       add: function () {
-        var i, il, elements = [].slice.call(arguments)
+        var il, elements = [].slice.call(arguments)
 
-        for (i = 0, il = elements.length; i < il; i++) { this.members.push(elements[i]) }
+        for (var i = 0, il = elements.length; i < il; i++) { this.members.push(elements[i]) }
 
         return this
       },
@@ -3455,8 +3453,7 @@
 
   // Alias methods
   SVG.Set.inherit = function () {
-    var m,
-      methods = []
+    var methods = []
 
     // gather shape methods
     for (var m in SVG.Shape.prototype) {
@@ -3500,7 +3497,7 @@
     remember: function (k, v) {
     // remember every item in an object individually
       if (typeof arguments[0] === 'object') {
-        for (var v in k) { this.remember(v, k[v]) }
+        for (var v_ in k) { this.remember(v_, k[v_]) }
       }
 
       // retrieve memory
