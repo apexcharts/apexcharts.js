@@ -212,8 +212,9 @@ class DataLabels {
 
     let dataLabelColor = w.globals.dataLabels.style.colors[i]
     if (
-      (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
-      w.config.plotOptions.bar.distributed
+      ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
+        w.config.plotOptions.bar.distributed) ||
+      w.config.dataLabels.distributed
     ) {
       dataLabelColor = w.globals.dataLabels.style.colors[j]
     }

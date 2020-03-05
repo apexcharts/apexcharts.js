@@ -572,6 +572,7 @@ export default class Options {
           return val !== null ? val : ''
         },
         textAnchor: 'middle',
+        distributed: false,
         offsetX: 0,
         offsetY: 0,
         style: {

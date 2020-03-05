@@ -757,6 +757,7 @@ type ApexDataLabels = {
   enabled?: boolean
   enabledOnSeries?: undefined | number[]
   textAnchor?: 'start' | 'middle' | 'end'
+  distributed?: boolean
   offsetX?: number
   offsetY?: number
   style?: {
