@@ -29,7 +29,7 @@ chart: {
 plotOptions: {
   heatmap: {
     shadeIntensity: 0.5,
-
+    radius: 0,
     colorScale: {
       ranges: [{
           from: -30,
@@ -61,6 +61,9 @@ plotOptions: {
 },
 dataLabels: {
   enabled: false
+},
+stroke: {
+  width: 0
 },
 title: {
   text: 'HeatMap Chart with Color Range'
