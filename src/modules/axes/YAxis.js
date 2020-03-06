@@ -324,11 +324,12 @@ export default class YAxis {
       })
 
       let elYAxisTitleText = graphics.drawText({
-        x: w.globals.gridWidth / 2,
+        x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
         y:
           this.xAxisoffX +
           parseFloat(this.xaxisFontSize) +
           parseFloat(w.config.xaxis.title.style.fontSize) +
+          w.config.xaxis.title.offsetY +
           20,
         text: w.config.xaxis.title.text,
         textAnchor: 'middle',
