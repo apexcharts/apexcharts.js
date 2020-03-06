@@ -63,12 +63,11 @@ class Grid {
   }
 
   drawGrid() {
-    const w = this.w
     let gl = this.w.globals
 
     let elgrid = null
 
-    if (gl.axisCharts && w.config.chart.type !== 'radar') {
+    if (gl.axisCharts) {
       // grid is drawn after xaxis and yaxis are drawn
       elgrid = this.renderGrid()
 
