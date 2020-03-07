@@ -536,7 +536,7 @@ export default class Data {
     // possibly, user collapsed all series. Hence we can't work with above calc
     if (labelArr.length === 0) {
       labelArr = gl.axisCharts
-        ? [0, 10]
+        ? []
         : gl.series.map((gls, glsi) => {
             return glsi + 1
           })

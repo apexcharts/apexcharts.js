@@ -1,3 +1,5 @@
+import AxesUtils from '../axes/AxesUtils'
+
 export default class DimGrid {
   constructor(dCtx) {
     this.w = dCtx.w
@@ -118,11 +120,13 @@ export default class DimGrid {
 
   setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords) {
     let w = this.w
+    const axesUtils = new AxesUtils(this.dCtx.ctx)
+
     w.config.yaxis.map((yaxe, index) => {
       if (
         w.globals.ignoreYAxisIndexes.indexOf(index) === -1 &&
-        !w.config.yaxis[index].floating &&
-        w.config.yaxis[index].show
+        !yaxe.floating &&
+        !axesUtils.isYAxisHidden(index)
       ) {
         if (yaxe.opposite) {
           w.globals.translateX =

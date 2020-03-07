@@ -950,6 +950,7 @@ type ApexXAxis = {
 type ApexYAxis = {
   show?: boolean
   showAlways?: boolean
+  showForNullSeries?: boolean
   seriesName?: string
   opposite?: boolean
   reversed?: boolean

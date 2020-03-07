@@ -8,6 +8,7 @@ export default class Options {
     this.yAxis = {
       show: true,
       showAlways: false,
+      showForNullSeries: false,
       seriesName: undefined,
       opposite: false,
       reversed: false,
@@ -861,7 +862,7 @@ export default class Options {
         offsetY: 0,
         labels: {
           show: true,
-          rotate: -25,
+          rotate: -45,
           rotateAlways: false,
           hideOverlappingLabels: true,
           trim: false,

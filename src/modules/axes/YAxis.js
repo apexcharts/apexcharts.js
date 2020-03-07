@@ -44,7 +44,7 @@ export default class YAxis {
       transform: 'translate(' + w.globals.translateYAxisX[realIndex] + ', 0)'
     })
 
-    if (!w.config.yaxis[realIndex].show) {
+    if (this.axesUtils.isYAxisHidden(realIndex)) {
       return elYaxis
     }
 

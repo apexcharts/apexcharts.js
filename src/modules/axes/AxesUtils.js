@@ -1,5 +1,6 @@
 import Formatters from '../Formatters'
 import Graphics from '../Graphics'
+import CoreUtils from '../CoreUtils'
 
 export default class AxesUtils {
   constructor(ctx) {
@@ -135,6 +136,17 @@ export default class AxesUtils {
       labels.reverse()
     }
     return labels
+  }
+
+  isYAxisHidden(index) {
+    const w = this.w
+    const coreUtils = new CoreUtils(this.ctx)
+
+    return (
+      !w.config.yaxis[index].show ||
+      (!w.config.yaxis[index].showForNullSeries &&
+        coreUtils.isSeriesNull(index))
+    )
   }
 
   drawYAxisTicks(

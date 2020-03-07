@@ -80,16 +80,16 @@ export default class XAxis {
       labels.push(this.xaxisLabels[i])
     }
 
+    let labelsLen = labels.length
+
     if (w.globals.isXNumeric) {
-      let len = labels.length > 1 ? labels.length - 1 : labels.length
+      let len = labelsLen > 1 ? labelsLen - 1 : labelsLen
       colWidth = w.globals.gridWidth / len
       xPos = xPos + colWidth / 2 + w.config.xaxis.labels.offsetX
     } else {
       colWidth = w.globals.gridWidth / labels.length
       xPos = xPos + colWidth + w.config.xaxis.labels.offsetX
     }
-
-    let labelsLen = labels.length
 
     if (w.config.xaxis.labels.show) {
       for (let i = 0; i <= labelsLen - 1; i++) {

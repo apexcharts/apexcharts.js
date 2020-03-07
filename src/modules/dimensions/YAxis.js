@@ -1,5 +1,6 @@
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
+import AxesUtils from '../axes/AxesUtils'
 
 export default class DimYAxis {
   constructor(dCtx) {
@@ -19,10 +20,11 @@ export default class DimYAxis {
     let height = 0
     let ret = []
     let labelPad = 10
+    const axesUtils = new AxesUtils(this.dCtx.ctx)
 
     w.config.yaxis.map((yaxe, index) => {
       if (
-        yaxe.show &&
+        !axesUtils.isYAxisHidden(index) &&
         yaxe.labels.show &&
         w.globals.yAxisScale[index].result.length
       ) {
@@ -129,6 +131,7 @@ export default class DimYAxis {
     let yAxisWidthLeft = 0
     let yAxisWidthRight = 0
     let padding = w.globals.yAxisScale.length > 1 ? 10 : 0
+    const axesUtils = new AxesUtils(this.dCtx.ctx)
 
     const isHiddenYAxis = function(index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
@@ -144,7 +147,7 @@ export default class DimYAxis {
           width = width - coord.width - padding
         }
       } else {
-        width = floating || !w.config.yaxis[index].show ? 0 : 5
+        width = floating || axesUtils.isYAxisHidden(index) ? 0 : 5
       }
 
       w.config.yaxis[index].opposite
