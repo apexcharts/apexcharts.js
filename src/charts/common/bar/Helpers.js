@@ -207,63 +207,195 @@ export default class Helpers {
     }
   }
 
-  /** getBarEndingShape draws the various shapes on top of bars/columns
+  getColumnPaths({
+    barWidth,
+    barXPosition,
+    yRatio,
+    y1,
+    y2,
+    strokeWidth,
+    series,
+    i,
+    j,
+    w
+  }) {
+    const graphics = new Graphics(this.barCtx.ctx)
+
+    let roundedShapeOpts = {
+      barWidth,
+      strokeWidth,
+      yRatio,
+      barXPosition,
+      y1,
+      y2
+    }
+    let roundedShape = this.getRoundedBars(w, roundedShapeOpts, series, i, j)
+
+    const x1 = barXPosition
+    const x2 = barXPosition + barWidth
+
+    let pathTo = graphics.move(x1, roundedShape.y1)
+    let pathFrom = graphics.move(x1, roundedShape.y1)
+
+    pathTo =
+      pathTo +
+      graphics.line(x1, roundedShape.y2) +
+      roundedShape.endingPath +
+      graphics.line(x2 - strokeWidth, roundedShape.y2) +
+      graphics.line(x2 - strokeWidth, roundedShape.y1) +
+      roundedShape.startingPath
+
+    pathFrom =
+      pathFrom +
+      graphics.line(x1, y1) +
+      graphics.line(x2 - strokeWidth, y1) +
+      graphics.line(x2 - strokeWidth, y1) +
+      graphics.line(x2 - strokeWidth, y1) +
+      graphics.line(x1 - strokeWidth / 2, y1)
+
+    return {
+      pathTo,
+      pathFrom
+    }
+  }
+
+  getBarpaths({
+    barYPosition,
+    barHeight,
+    x1,
+    x2,
+    strokeWidth,
+    series,
+    i,
+    j,
+    w
+  }) {
+    const graphics = new Graphics(this.barCtx.ctx)
+
+    let roundedShapeOpts = {
+      barHeight,
+      strokeWidth,
+      barYPosition,
+      x2,
+      x1
+    }
+
+    let roundedShape = this.getRoundedBars(w, roundedShapeOpts, series, i, j)
+
+    let pathTo = graphics.move(roundedShape.x1, barYPosition)
+    let pathFrom = graphics.move(roundedShape.x1, barYPosition)
+
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(i, j, false)
+    }
+
+    const y1 = barYPosition
+    const y2 = barYPosition + barHeight
+
+    pathTo =
+      pathTo +
+      graphics.line(roundedShape.x2, y1) +
+      roundedShape.endingPath +
+      graphics.line(roundedShape.x2, y2 - strokeWidth) +
+      graphics.line(roundedShape.x1, y2 - strokeWidth) +
+      roundedShape.startingPath
+
+    pathFrom =
+      pathFrom +
+      graphics.line(x1, y1) +
+      graphics.line(x1, y2 - strokeWidth) +
+      graphics.line(x1, y2 - strokeWidth) +
+      graphics.line(x1, y2 - strokeWidth) +
+      graphics.line(x1, y1)
+
+    return {
+      pathTo,
+      pathFrom
+    }
+  }
+
+  /** getRoundedBars draws border radius for bars/columns
    * @memberof Bar
    * @param {object} w - chart context
    * @param {object} opts - consists several properties like barHeight/barWidth
    * @param {array} series - global primary series
    * @param {int} i - current iterating series's index
    * @param {int} j - series's j of i
-   * @return {object} path - ending shape whether round/arrow
-   *         ending_p_from - similar to pathFrom
-   *         newY - which is calculated from existing y and new shape's top
+   * @return {object} endingPath - ending shape path string
+   *         startingPath - starting shape path string
+   *         newY/newX - which is calculated from existing x/y based on rounded border
    **/
-  getBarEndingShape(w, opts, series, i, j) {
+  getRoundedBars(w, opts, series, i, j) {
     let graphics = new Graphics(this.barCtx.ctx)
 
     if (this.barCtx.isHorizontal) {
       let endingShape = null
-      let endingShapeFrom = ''
-      let x = opts.x
+      let startingShape = ''
+      let x2 = opts.x2
+      let x1 = opts.x1
 
       if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
         let inverse = series[i][j] < 0
         let eX = opts.barHeight / 2 - opts.strokeWidth
         if (inverse) eX = -opts.barHeight / 2 - opts.strokeWidth
 
-        if (!w.config.chart.stacked) {
-          if (this.barCtx.barOptions.endingShape === 'rounded') {
-            x = opts.x - eX / 2
-          }
+        if (eX > Math.abs(x2 - x1)) {
+          eX = Math.abs(x2 - x1)
+        }
+
+        if (this.barCtx.barOptions.endingShape === 'rounded') {
+          x2 = opts.x2 - eX / 2
+        }
+        if (this.barCtx.barOptions.startingShape === 'rounded') {
+          x1 = opts.x1 + eX / 2
         }
 
         switch (this.barCtx.barOptions.endingShape) {
           case 'flat':
             endingShape = graphics.line(
-              x,
+              x2,
               opts.barYPosition + opts.barHeight - opts.strokeWidth
             )
             break
 
           case 'rounded':
             endingShape = graphics.quadraticCurve(
-              x + eX,
+              x2 + eX,
               opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2,
-              x,
+              x2,
               opts.barYPosition + opts.barHeight - opts.strokeWidth
+            )
+            break
+        }
+        switch (this.barCtx.barOptions.startingShape) {
+          case 'flat':
+            startingShape = graphics.line(
+              x1,
+              opts.barYPosition + opts.barHeight - opts.strokeWidth
+            )
+            break
+
+          case 'rounded':
+            startingShape = graphics.quadraticCurve(
+              x1 - eX,
+              opts.barYPosition + opts.barHeight / 2,
+              x1,
+              opts.barYPosition
             )
             break
         }
       }
       return {
-        path: endingShape,
-        ending_p_from: endingShapeFrom,
-        newX: x
+        endingPath: endingShape,
+        startingPath: startingShape,
+        x2,
+        x1
       }
     } else {
       let endingShape = null
-      let endingShapeFrom = ''
-      let y = opts.y
+      let startingShape = ''
+      let y2 = opts.y2
+      let y1 = opts.y1
 
       if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
         let inverse = series[i][j] < 0
@@ -271,37 +403,60 @@ export default class Helpers {
         let eY = opts.barWidth / 2 - opts.strokeWidth
 
         if (inverse) eY = -opts.barWidth / 2 - opts.strokeWidth
+        if (eY > Math.abs(y2 - y1)) {
+          eY = Math.abs(y2 - y1)
+        }
 
-        if (!w.config.chart.stacked) {
+        if (this.barCtx.barOptions.endingShape === 'rounded') {
           // the shape exceeds the chart height, hence reduce y
-          if (this.barCtx.barOptions.endingShape === 'rounded') {
-            y = y + eY / 2
-          }
+          y2 = y2 + eY / 2
+        }
+        if (this.barCtx.barOptions.startingShape === 'rounded') {
+          y1 = y1 - eY / 2
         }
 
         switch (this.barCtx.barOptions.endingShape) {
           case 'flat':
             endingShape = graphics.line(
               opts.barXPosition + opts.barWidth - opts.strokeWidth,
-              y
+              y2
             )
             break
 
           case 'rounded':
             endingShape = graphics.quadraticCurve(
               opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
-              y - eY,
+              y2 - eY,
               opts.barXPosition + opts.barWidth - opts.strokeWidth,
-              y
+              y2
+            )
+            break
+        }
+
+        switch (this.barCtx.barOptions.startingShape) {
+          case 'flat':
+            startingShape = graphics.line(
+              opts.barXPosition + opts.barWidth - opts.strokeWidth,
+              y1
+            )
+            break
+
+          case 'rounded':
+            startingShape = graphics.quadraticCurve(
+              opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
+              y1 + eY,
+              opts.barXPosition,
+              y1
             )
             break
         }
       }
 
       return {
-        path: endingShape,
-        ending_p_from: endingShapeFrom,
-        newY: y
+        endingPath: endingShape,
+        startingPath: startingShape,
+        y2,
+        y1
       }
     }
   }

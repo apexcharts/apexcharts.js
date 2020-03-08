@@ -145,7 +145,8 @@ export default class AxesUtils {
     return (
       !w.config.yaxis[index].show ||
       (!w.config.yaxis[index].showForNullSeries &&
-        coreUtils.isSeriesNull(index))
+        coreUtils.isSeriesNull(index) &&
+        !w.globals.collapsedSeriesIndices.indexOf(index) === -1)
     )
   }
 

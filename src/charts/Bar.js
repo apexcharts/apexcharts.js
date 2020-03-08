@@ -314,11 +314,9 @@ class Bar {
     elSeries
   }) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     let i = indexes.i
     let j = indexes.j
-    let realIndex = indexes.realIndex
     let bc = indexes.bc
 
     if (w.globals.isXNumeric) {
@@ -328,13 +326,6 @@ class Bar {
     }
 
     let barYPosition = y + barHeight * this.visibleI
-
-    let pathTo = graphics.move(zeroW, barYPosition)
-
-    let pathFrom = graphics.move(zeroW, barYPosition)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j)
-    }
 
     if (
       typeof this.series[i][j] === 'undefined' ||
@@ -348,35 +339,17 @@ class Bar {
         (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
     }
 
-    let endingShapeOpts = {
-      barHeight,
-      strokeWidth,
+    const paths = this.barHelpers.getBarpaths({
       barYPosition,
-      x,
-      zeroW
-    }
-    let endingShape = this.barHelpers.getBarEndingShape(
-      w,
-      endingShapeOpts,
-      this.series,
+      barHeight,
+      x1: zeroW,
+      x2: x,
+      strokeWidth,
+      series: this.series,
       i,
-      j
-    )
-
-    pathTo =
-      pathTo +
-      graphics.line(endingShape.newX, barYPosition) +
-      endingShape.path +
-      graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
-      graphics.line(zeroW, barYPosition)
-
-    pathFrom =
-      pathFrom +
-      graphics.line(zeroW, barYPosition) +
-      endingShape.ending_p_from +
-      graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
-      graphics.line(zeroW, barYPosition + barHeight - strokeWidth) +
-      graphics.line(zeroW, barYPosition)
+      j,
+      w
+    })
 
     if (!w.globals.isXNumeric) {
       y = y + yDivision
@@ -391,8 +364,8 @@ class Bar {
     })
 
     return {
-      pathTo,
-      pathFrom,
+      pathTo: paths.pathTo,
+      pathFrom: paths.pathFrom,
       x,
       y,
       barYPosition
@@ -414,8 +387,6 @@ class Bar {
 
     let i = indexes.i
     let j = indexes.j
-
-    let realIndex = indexes.realIndex
     let bc = indexes.bc
 
     if (w.globals.isXNumeric) {
@@ -430,13 +401,6 @@ class Bar {
     }
 
     let barXPosition = x + barWidth * this.visibleI
-
-    let pathTo = graphics.move(barXPosition, zeroH)
-
-    let pathFrom = graphics.move(barXPosition, zeroH)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j)
-    }
 
     if (
       typeof this.series[i][j] === 'undefined' ||
@@ -453,34 +417,17 @@ class Bar {
           2
     }
 
-    let endingShapeOpts = {
-      barWidth,
-      strokeWidth,
+    const paths = this.barHelpers.getColumnPaths({
       barXPosition,
-      y,
-      zeroH
-    }
-    let endingShape = this.barHelpers.getBarEndingShape(
-      w,
-      endingShapeOpts,
-      this.series,
+      barWidth,
+      y1: zeroH,
+      y2: y,
+      strokeWidth,
+      series: this.series,
       i,
-      j
-    )
-
-    pathTo =
-      pathTo +
-      graphics.line(barXPosition, endingShape.newY) +
-      endingShape.path +
-      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
-      graphics.line(barXPosition - strokeWidth / 2, zeroH)
-    pathFrom =
-      pathFrom +
-      graphics.line(barXPosition, zeroH) +
-      endingShape.ending_p_from +
-      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
-      graphics.line(barXPosition + barWidth - strokeWidth, zeroH) +
-      graphics.line(barXPosition - strokeWidth / 2, zeroH)
+      j,
+      w
+    })
 
     if (!w.globals.isXNumeric) {
       x = x + xDivision
@@ -505,8 +452,8 @@ class Bar {
     }
 
     return {
-      pathTo,
-      pathFrom,
+      pathTo: paths.pathTo,
+      pathFrom: paths.pathFrom,
       x,
       y,
       barXPosition
