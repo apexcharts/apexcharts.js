@@ -90,7 +90,7 @@ export default class HeatMap {
                 (1 - heatColorProps.percent / 100) * (shadeIntensity * 1.25)
             }
           } else {
-            if (heatColorProps.percent < 0) {
+            if (heatColorProps.percent <= 0) {
               colorShadePercent =
                 1 - (1 + heatColorProps.percent / 100) * shadeIntensity
             } else {
@@ -152,7 +152,9 @@ export default class HeatMap {
           j,
           val: heatSeries[i][j],
           'stroke-width': this.strokeWidth,
-          stroke: w.globals.stroke.colors[0],
+          stroke: w.config.plotOptions.heatmap.useFillColorAsStroke
+            ? color
+            : w.globals.stroke.colors[0],
           color
         })
 
@@ -243,7 +245,7 @@ export default class HeatMap {
 
     if (heatmap.colorScale.ranges.length > 0) {
       heatmap.colorScale.ranges.map((range, index) => {
-        if (range.from < 0) {
+        if (range.from <= 0) {
           this.negRange = true
         }
       })

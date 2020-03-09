@@ -114,7 +114,8 @@ export default class Defaults {
         }
       },
       stroke: {
-        width: 0
+        width: 0,
+        lineCap: 'square'
       },
       fill: {
         opacity: 0.85
@@ -203,7 +204,8 @@ export default class Defaults {
   rangeBar() {
     return {
       stroke: {
-        width: 0
+        width: 0,
+        lineCap: 'square'
       },
       plotOptions: {
         bar: {

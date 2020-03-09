@@ -221,7 +221,7 @@ export default class Helpers {
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
 
-    let roundedShapeOpts = {
+    let shapeOpts = {
       barWidth,
       strokeWidth,
       yRatio,
@@ -229,21 +229,26 @@ export default class Helpers {
       y1,
       y2
     }
-    let roundedShape = this.getRoundedBars(w, roundedShapeOpts, series, i, j)
+    let newPath = this.getRoundedBars(w, shapeOpts, series, i, j)
 
     const x1 = barXPosition
     const x2 = barXPosition + barWidth
 
-    let pathTo = graphics.move(x1, roundedShape.y1)
-    let pathFrom = graphics.move(x1, roundedShape.y1)
+    let pathTo = graphics.move(x1, newPath.y1)
+    let pathFrom = graphics.move(x1, newPath.y1)
+
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(i, j, false)
+    }
 
     pathTo =
       pathTo +
-      graphics.line(x1, roundedShape.y2) +
-      roundedShape.endingPath +
-      graphics.line(x2 - strokeWidth, roundedShape.y2) +
-      graphics.line(x2 - strokeWidth, roundedShape.y1) +
-      roundedShape.startingPath
+      graphics.line(x1, newPath.y2) +
+      newPath.endingPath +
+      graphics.line(x2 - strokeWidth, newPath.y2) +
+      graphics.line(x2 - strokeWidth, newPath.y1) +
+      newPath.startingPath +
+      'z'
 
     pathFrom =
       pathFrom +
@@ -251,7 +256,7 @@ export default class Helpers {
       graphics.line(x2 - strokeWidth, y1) +
       graphics.line(x2 - strokeWidth, y1) +
       graphics.line(x2 - strokeWidth, y1) +
-      graphics.line(x1 - strokeWidth / 2, y1)
+      graphics.line(x1, y1)
 
     return {
       pathTo,
@@ -272,7 +277,7 @@ export default class Helpers {
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
 
-    let roundedShapeOpts = {
+    let shapeOpts = {
       barHeight,
       strokeWidth,
       barYPosition,
@@ -280,10 +285,10 @@ export default class Helpers {
       x1
     }
 
-    let roundedShape = this.getRoundedBars(w, roundedShapeOpts, series, i, j)
+    let newPath = this.getRoundedBars(w, shapeOpts, series, i, j)
 
-    let pathTo = graphics.move(roundedShape.x1, barYPosition)
-    let pathFrom = graphics.move(roundedShape.x1, barYPosition)
+    let pathTo = graphics.move(newPath.x1, barYPosition)
+    let pathFrom = graphics.move(newPath.x1, barYPosition)
 
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(i, j, false)
@@ -294,11 +299,12 @@ export default class Helpers {
 
     pathTo =
       pathTo +
-      graphics.line(roundedShape.x2, y1) +
-      roundedShape.endingPath +
-      graphics.line(roundedShape.x2, y2 - strokeWidth) +
-      graphics.line(roundedShape.x1, y2 - strokeWidth) +
-      roundedShape.startingPath
+      graphics.line(newPath.x2, y1) +
+      newPath.endingPath +
+      graphics.line(newPath.x2, y2 - strokeWidth) +
+      graphics.line(newPath.x1, y2 - strokeWidth) +
+      newPath.startingPath +
+      'z'
 
     pathFrom =
       pathFrom +
