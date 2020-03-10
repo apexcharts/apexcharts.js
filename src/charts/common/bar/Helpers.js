@@ -224,6 +224,8 @@ export default class Helpers {
     w
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
+    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth
+    if (!strokeWidth) strokeWidth = 0
 
     let shapeOpts = {
       barWidth,
@@ -280,6 +282,8 @@ export default class Helpers {
     w
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
+    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth
+    if (!strokeWidth) strokeWidth = 0
 
     let shapeOpts = {
       barHeight,
@@ -338,6 +342,11 @@ export default class Helpers {
   getRoundedBars(w, opts, series, i, j) {
     let graphics = new Graphics(this.barCtx.ctx)
 
+    let strokeWidth = Array.isArray(opts.strokeWidth)
+      ? opts.strokeWidth[i]
+      : opts.strokeWidth
+
+    if (!strokeWidth) strokeWidth = 0
     if (this.barCtx.isHorizontal) {
       let endingShape = null
       let startingShape = ''
@@ -346,8 +355,8 @@ export default class Helpers {
 
       if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
         let inverse = series[i][j] < 0
-        let eX = opts.barHeight / 2 - opts.strokeWidth
-        if (inverse) eX = -opts.barHeight / 2 - opts.strokeWidth
+        let eX = opts.barHeight / 2 - strokeWidth
+        if (inverse) eX = -opts.barHeight / 2 - strokeWidth
 
         if (eX > Math.abs(x2 - x1)) {
           eX = Math.abs(x2 - x1)
@@ -364,16 +373,16 @@ export default class Helpers {
           case 'flat':
             endingShape = graphics.line(
               x2,
-              opts.barYPosition + opts.barHeight - opts.strokeWidth
+              opts.barYPosition + opts.barHeight - strokeWidth
             )
             break
 
           case 'rounded':
             endingShape = graphics.quadraticCurve(
               x2 + eX,
-              opts.barYPosition + (opts.barHeight - opts.strokeWidth) / 2,
+              opts.barYPosition + (opts.barHeight - strokeWidth) / 2,
               x2,
-              opts.barYPosition + opts.barHeight - opts.strokeWidth
+              opts.barYPosition + opts.barHeight - strokeWidth
             )
             break
         }
@@ -381,7 +390,7 @@ export default class Helpers {
           case 'flat':
             startingShape = graphics.line(
               x1,
-              opts.barYPosition + opts.barHeight - opts.strokeWidth
+              opts.barYPosition + opts.barHeight - strokeWidth
             )
             break
 
@@ -410,9 +419,9 @@ export default class Helpers {
       if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
         let inverse = series[i][j] < 0
 
-        let eY = opts.barWidth / 2 - opts.strokeWidth
+        let eY = opts.barWidth / 2 - strokeWidth
 
-        if (inverse) eY = -opts.barWidth / 2 - opts.strokeWidth
+        if (inverse) eY = -opts.barWidth / 2 - strokeWidth
         if (eY > Math.abs(y2 - y1)) {
           eY = Math.abs(y2 - y1)
         }
@@ -428,16 +437,16 @@ export default class Helpers {
         switch (this.barCtx.barOptions.endingShape) {
           case 'flat':
             endingShape = graphics.line(
-              opts.barXPosition + opts.barWidth - opts.strokeWidth,
+              opts.barXPosition + opts.barWidth - strokeWidth,
               y2
             )
             break
 
           case 'rounded':
             endingShape = graphics.quadraticCurve(
-              opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
+              opts.barXPosition + (opts.barWidth - strokeWidth) / 2,
               y2 - eY,
-              opts.barXPosition + opts.barWidth - opts.strokeWidth,
+              opts.barXPosition + opts.barWidth - strokeWidth,
               y2
             )
             break
@@ -446,14 +455,14 @@ export default class Helpers {
         switch (this.barCtx.barOptions.startingShape) {
           case 'flat':
             startingShape = graphics.line(
-              opts.barXPosition + opts.barWidth - opts.strokeWidth,
+              opts.barXPosition + opts.barWidth - strokeWidth,
               y1
             )
             break
 
           case 'rounded':
             startingShape = graphics.quadraticCurve(
-              opts.barXPosition + (opts.barWidth - opts.strokeWidth) / 2,
+              opts.barXPosition + (opts.barWidth - strokeWidth) / 2,
               y1 + eY,
               opts.barXPosition,
               y1
