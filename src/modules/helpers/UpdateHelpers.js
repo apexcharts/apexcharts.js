@@ -90,11 +90,6 @@ export default class UpdateHelpers {
 
     w.globals.dataChanged = true
 
-    // if user has collapsed some series with legend, we need to clear those
-    if (w.globals.allSeriesCollapsed) {
-      w.globals.allSeriesCollapsed = false
-    }
-
     if (animate) {
       this.ctx.series.getPreviousPaths()
     }

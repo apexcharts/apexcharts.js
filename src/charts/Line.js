@@ -183,7 +183,8 @@ class Line {
 
     // points
     this.elPointsMain = graphics.group({
-      class: 'apexcharts-series-markers-wrap'
+      class: 'apexcharts-series-markers-wrap',
+      'data:realIndex': realIndex
     })
 
     // eldatalabels

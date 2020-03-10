@@ -9,7 +9,7 @@ export default class DimGrid {
   gridPadForColumnsInNumericAxis(gridWidth) {
     const w = this.w
 
-    if (w.globals.noData) {
+    if (w.globals.noData || w.globals.allSeriesCollapsed) {
       return 0
     }
 

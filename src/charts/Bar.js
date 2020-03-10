@@ -433,23 +433,13 @@ class Bar {
       x = x + xDivision
     }
 
-    if (this.barOptions.colors.backgroundBarColors.length > 0 && i === 0) {
-      if (bc >= this.barOptions.colors.backgroundBarColors.length) {
-        bc = 0
-      }
-      let bcolor = this.barOptions.colors.backgroundBarColors[bc]
-      let rect = graphics.drawRect(
-        barXPosition - strokeWidth / 2 - barWidth * this.visibleI,
-        0,
-        barWidth * this.seriesLen + strokeWidth / 2,
-        w.globals.gridHeight,
-        0,
-        bcolor,
-        this.barOptions.colors.backgroundBarOpacity
-      )
-      elSeries.add(rect)
-      rect.node.classList.add('apexcharts-backgroundBar')
-    }
+    this.barHelpers.barBackground({
+      bc,
+      i,
+      x1: barXPosition - strokeWidth / 2 - barWidth * this.visibleI,
+      x2: barWidth * this.seriesLen + strokeWidth / 2,
+      elSeries
+    })
 
     return {
       pathTo: paths.pathTo,

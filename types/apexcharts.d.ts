@@ -455,6 +455,7 @@ type ApexPlotOptions = {
   bar?: {
     horizontal?: boolean
     endingShape?: 'flat' | 'rounded'
+    startingShape?: 'flat' | 'rounded'
     columnWidth?: string
     barHeight?: string
     distributed?: boolean
@@ -466,6 +467,7 @@ type ApexPlotOptions = {
       }[]
       backgroundBarColors?: string[]
       backgroundBarOpacity?: number
+      backgroundBarRadius?: number
     }
     dataLabels?: {
       maxItems?: number
@@ -493,6 +495,7 @@ type ApexPlotOptions = {
     shadeIntensity?: number
     reverseNegativeShade?: boolean
     distributed?: boolean
+    useFillColorAsStroke?: boolean
     colorScale?: {
       ranges?: {
         from?: number

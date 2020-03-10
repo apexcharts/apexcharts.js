@@ -379,7 +379,8 @@ export default class Options {
           colors: {
             ranges: [],
             backgroundBarColors: [],
-            backgroundBarOpacity: 1
+            backgroundBarOpacity: 1,
+            backgroundBarRadius: 20
           },
           dataLabels: {
             position: 'top', // top, center, bottom
@@ -408,6 +409,7 @@ export default class Options {
           shadeIntensity: 0.5,
           reverseNegativeShade: false,
           distributed: false,
+          useFillColorAsStroke: true,
           colorScale: {
             inverse: false,
             ranges: [],

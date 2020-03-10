@@ -464,26 +464,13 @@ class BarStacked extends Bar {
       w
     })
 
-    if (
-      w.config.plotOptions.bar.colors.backgroundBarColors.length > 0 &&
-      i === 0
-    ) {
-      if (bc >= w.config.plotOptions.bar.colors.backgroundBarColors.length) {
-        bc = 0
-      }
-      let bcolor = w.config.plotOptions.bar.colors.backgroundBarColors[bc]
-      let rect = this.graphics.drawRect(
-        barXPosition,
-        0,
-        barWidth,
-        w.globals.gridHeight,
-        0,
-        bcolor,
-        w.config.plotOptions.bar.colors.backgroundBarOpacity
-      )
-      elSeries.add(rect)
-      rect.node.classList.add('apexcharts-backgroundBar')
-    }
+    this.barHelpers.barBackground({
+      bc,
+      i,
+      x1: barXPosition,
+      x2: barWidth,
+      elSeries
+    })
 
     x = x + xDivision
 

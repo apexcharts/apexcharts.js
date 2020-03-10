@@ -1,5 +1,6 @@
 import Fill from '../../../modules/Fill'
 import Graphics from '../../../modules/Graphics'
+import Series from '../../../modules/Series'
 
 export default class Helpers {
   constructor(barCtx) {
@@ -180,13 +181,16 @@ export default class Helpers {
     return strokeWidth
   }
 
-  barBackground({ bc, i, y1, y2, elSeries }) {
+  barBackground({ bc, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w
     const graphics = new Graphics(this.barCtx.ctx)
 
+    const sr = new Series(this.barCtx.ctx)
+    let activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+
     if (
       this.barCtx.barOptions.colors.backgroundBarColors.length > 0 &&
-      i === 0
+      activeSeriesIndex === i
     ) {
       if (bc >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
         bc = 0
@@ -194,11 +198,11 @@ export default class Helpers {
 
       let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[bc]
       let rect = graphics.drawRect(
-        0,
-        y1,
-        w.globals.gridWidth,
-        y2,
-        0,
+        typeof x1 !== 'undefined' ? x1 : 0,
+        typeof y1 !== 'undefined' ? y1 : 0,
+        typeof x2 !== 'undefined' ? x2 : w.globals.gridWidth,
+        typeof y2 !== 'undefined' ? y2 : w.globals.gridHeight,
+        this.barCtx.barOptions.colors.backgroundBarRadius,
         bcolor,
         this.barCtx.barOptions.colors.backgroundBarOpacity
       )
