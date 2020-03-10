@@ -25,14 +25,17 @@ export default class Marker {
 
     let elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series')
 
-    for (let i = 0; i < elsSeries.length; i++) {
-      let seriesIndex = parseInt(
-        elsSeries[i].getAttribute('data:realIndex'),
-        10
-      )
+    elsSeries = [...elsSeries]
+    elsSeries.sort((a, b) => {
+      return Number(b.getAttribute('data:realIndex')) <
+        Number(a.getAttribute('data:realIndex'))
+        ? 0
+        : -1
+    })
 
-      let pointsMain = w.globals.dom.baseEl.querySelector(
-        `.apexcharts-series[data\\:realIndex='${seriesIndex}'] .apexcharts-series-markers-wrap`
+    for (let i = 0; i < elsSeries.length; i++) {
+      let pointsMain = elsSeries[i].querySelector(
+        `.apexcharts-series-markers-wrap`
       )
 
       if (pointsMain !== null) {
@@ -50,7 +53,7 @@ export default class Marker {
           PointClasses += ' no-pointer-events'
         }
 
-        let elPointOptions = marker.getMarkerConfig(PointClasses, seriesIndex)
+        let elPointOptions = marker.getMarkerConfig(PointClasses, i)
 
         point = graphics.drawMarker(0, 0, elPointOptions)
 

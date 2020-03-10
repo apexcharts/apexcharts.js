@@ -268,9 +268,26 @@ export default class Utils {
   }
 
   getAllMarkers() {
-    return this.w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-series-markers .apexcharts-marker'
+    // first get all marker parents. This parent class contains series-index
+    // which helps to sort the markers as they are dynamic
+    let markersWraps = this.w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-series-markers-wrap'
     )
+
+    markersWraps = [...markersWraps]
+    markersWraps.sort((a, b) => {
+      return Number(b.getAttribute('data:realIndex')) <
+        Number(a.getAttribute('data:realIndex'))
+        ? 0
+        : -1
+    })
+
+    let markers = []
+    markersWraps.forEach((m) => {
+      markers.push(m.querySelector('.apexcharts-marker'))
+    })
+
+    return markers
   }
 
   hasMarkers() {
