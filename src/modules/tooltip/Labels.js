@@ -92,16 +92,6 @@ export default class Labels {
           pColor = w.globals.colors[tIndex]
 
           val = generalFormatter(tIndex)
-
-          // discard 0 values in BARS
-          if (
-            (this.tooltipUtil.hasBars() &&
-              w.config.chart.stacked &&
-              w.globals.series[tIndex][j] === 0) ||
-            typeof w.globals.series[tIndex][j] === 'undefined'
-          ) {
-            val = undefined
-          }
         } else {
           val = generalFormatter(i)
         }
