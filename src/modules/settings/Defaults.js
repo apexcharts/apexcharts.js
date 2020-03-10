@@ -238,8 +238,15 @@ export default class Defaults {
           let seriesName = w.config.series[seriesIndex].name
           const yLbFormatter = w.config.tooltip.y.formatter
           const yLbTitleFormatter = w.config.tooltip.y.title.formatter
+
+          const opts = {
+            w,
+            seriesIndex,
+            dataPointIndex
+          }
+
           if (typeof yLbTitleFormatter === 'function') {
-            seriesName = yLbTitleFormatter(seriesName)
+            seriesName = yLbTitleFormatter(seriesName, opts)
           }
 
           if (y1 && y2) {
@@ -251,7 +258,7 @@ export default class Defaults {
             }
 
             if (typeof yLbFormatter === 'function') {
-              ylabel = yLbFormatter(ylabel)
+              ylabel = yLbFormatter(ylabel, opts)
             }
           }
 
