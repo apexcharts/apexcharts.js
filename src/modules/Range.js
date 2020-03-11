@@ -341,6 +341,10 @@ class Range {
       }
     }
 
+    if (gl.isBarHorizontal && gl.labels.length) {
+      gl.xTickAmount = gl.labels.length
+    }
+
     // single dataPoint
     this._handleSingleDataPoint()
 

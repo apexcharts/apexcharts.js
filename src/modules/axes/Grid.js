@@ -360,14 +360,14 @@ class Grid {
       this.elgridLinesH.hide()
     }
 
-    let tickAmount = w.globals.yAxisScale.length
+    let yTickAmount = w.globals.yAxisScale.length
       ? w.globals.yAxisScale[0].result.length - 1
       : 5
     for (let i = 0; i < w.globals.series.length; i++) {
       if (typeof w.globals.yAxisScale[i] !== 'undefined') {
-        tickAmount = w.globals.yAxisScale[i].result.length - 1
+        yTickAmount = w.globals.yAxisScale[i].result.length - 1
       }
-      if (tickAmount > 2) break
+      if (yTickAmount > 2) break
     }
 
     let xCount
@@ -376,15 +376,18 @@ class Grid {
       xCount = this.xaxisLabels.length
 
       if (this.isTimelineBar) {
-        tickAmount = w.globals.labels.length
+        yTickAmount = w.globals.labels.length
       }
-      this._drawXYLines({ xCount, tickAmount })
+      this._drawXYLines({ xCount, tickAmount: yTickAmount })
     } else {
-      xCount = tickAmount
-      this._drawInvertedXYLines({ xCount, tickAmount })
+      xCount = yTickAmount
+
+      // for horizontal bar chart, get the xaxis tickamount
+      yTickAmount = w.globals.xTickAmount
+      this._drawInvertedXYLines({ xCount, tickAmount: yTickAmount })
     }
 
-    this.drawGridBands(xCount, tickAmount)
+    this.drawGridBands(xCount, yTickAmount)
     return {
       el: this.elg,
       xAxisTickWidth: w.globals.gridWidth / xCount
@@ -427,8 +430,9 @@ class Grid {
       w.config.grid.column.colors.length > 0
     ) {
       const xc =
-        w.config.xaxis.type === 'category' ||
-        w.config.xaxis.convertedCatToNumeric
+        !w.globals.isBarHorizontal &&
+        (w.config.xaxis.type === 'category' ||
+          w.config.xaxis.convertedCatToNumeric)
           ? xCount - 1
           : xCount
       let x1 = w.globals.padHorizontal
