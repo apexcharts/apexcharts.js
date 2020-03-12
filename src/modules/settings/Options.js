@@ -411,7 +411,7 @@ export default class Options {
           shadeIntensity: 0.5,
           reverseNegativeShade: false,
           distributed: false,
-          useFillColorAsStroke: true,
+          useFillColorAsStroke: false,
           colorScale: {
             inverse: false,
             ranges: [],
