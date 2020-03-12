@@ -8,7 +8,7 @@ export default class Options {
     this.yAxis = {
       show: true,
       showAlways: false,
-      showForNullSeries: false,
+      showForNullSeries: true,
       seriesName: undefined,
       opposite: false,
       reversed: false,
@@ -214,6 +214,7 @@ export default class Options {
       fontSize: '13px',
       fontFamily: undefined,
       fontWeight: 400,
+      appendTo: '.apexcharts-annotations',
       backgroundColor: 'transparent',
       borderColor: '#c2c2c2',
       borderRadius: 0,
@@ -230,6 +231,7 @@ export default class Options {
       type: 'rect',
       width: '100%', // accepts percentage as well as fixed numbers
       height: 50,
+      appendTo: '.apexcharts-annotations',
       backgroundColor: '#fff',
       opacity: 1,
       borderWidth: 0,
