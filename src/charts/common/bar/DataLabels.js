@@ -255,7 +255,7 @@ export default class BarDataLabels {
       offY -
       3
 
-    let valIsNegative = this.barCtx.series[i][j] <= 0
+    let valIsNegative = this.barCtx.series[i][j] < 0
 
     let newX = x
     if (this.barCtx.isReversed) {
