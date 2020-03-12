@@ -120,6 +120,7 @@ export default class Annotations {
       strokeDashArray,
       borderRadius,
       borderColor,
+      appendTo = '.apexcharts-annotations',
       paddingLeft = 4,
       paddingRight = 4,
       paddingBottom = 2,
@@ -140,7 +141,10 @@ export default class Annotations {
       cssClass: 'apexcharts-text ' + cssClass ? cssClass : ''
     })
 
-    w.globals.dom.elAnnotations.add(elText)
+    const parent = w.globals.dom.baseEl.querySelector(appendTo)
+    if (parent) {
+      parent.appendChild(elText.node)
+    }
 
     const textRect = elText.bbox()
 
@@ -162,7 +166,7 @@ export default class Annotations {
         strokeDashArray
       )
 
-      w.globals.dom.elAnnotations.node.insertBefore(elRect.node, elText.node)
+      parent.insertBefore(elRect.node, elText.node)
     }
   }
 
@@ -178,7 +182,8 @@ export default class Annotations {
       opacity: params.opacity || 1,
       borderWidth: params.borderWidth || 0,
       borderRadius: params.borderRadius || 4,
-      borderColor: params.borderColor || '#c2c2c2'
+      borderColor: params.borderColor || '#c2c2c2',
+      appendTo: params.appendTo || '.apexcharts-annotations'
     }
 
     const w = this.w
@@ -212,12 +217,16 @@ export default class Annotations {
       )
     }
 
+    const parent = w.globals.dom.baseEl.querySelector(opts.appendTo)
+
+    if (parent) {
+      parent.appendChild(elShape.node)
+    }
+
     if (params.draggable) {
       this.helpers.makeAnnotationDraggable(elShape, 'shapes', index)
       elShape.node.classList.add('apexcharts-resizable-element')
     }
-
-    w.globals.dom.elAnnotations.add(elShape)
   }
 
   addImage(params, index) {
@@ -229,13 +238,17 @@ export default class Annotations {
       y = 0,
       width = 20,
       height = 20,
-      appendTo = w.globals.dom.elAnnotations.node
+      appendTo = '.apexcharts-annotations'
     } = params
 
     let img = w.globals.dom.Paper.image(path)
     img.size(width, height).move(x, y)
 
-    appendTo.appendChild(img.node)
+    const parent = w.globals.dom.baseEl.querySelector(appendTo)
+    if (parent) {
+      parent.appendChild(img.node)
+    }
+
     if (params.draggable) {
       this.helpers.makeAnnotationDraggable(img, 'images', index)
       img.node.classList.add('apexcharts-resizable-element')
