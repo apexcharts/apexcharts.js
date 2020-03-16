@@ -173,10 +173,10 @@ class Utils {
       right: rect.right,
       bottom: rect.bottom,
       left: rect.left,
-      width: rect.width,
-      height: rect.height,
-      x: rect.x,
-      y: rect.y
+      width: element.clientWidth,
+      height: element.clientHeight,
+      x: rect.left,
+      y: rect.top
     }
   }
 
