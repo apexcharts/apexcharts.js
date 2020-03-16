@@ -419,7 +419,7 @@ class TimeScale {
       } else {
         unit = 'month'
       }
-      let year = currentYear + Math.floor(month / 12) + yrCounter
+      let year = this._getYear(currentYear, month, yrCounter)
 
       pos = dt.determineDaysOfMonths(month, year) * daysWidthOnXAxis + pos
       let monthVal = month === 0 ? year : month
@@ -483,7 +483,7 @@ class TimeScale {
       position: firstTickPosition,
       value: val,
       unit,
-      year: currentYear,
+      year: this._getYear(currentYear, month, yrCounter),
       month: Utils.monthMod(month),
       day: date
     })
@@ -496,10 +496,10 @@ class TimeScale {
       month = changeMonth(
         date,
         month,
-        currentYear + Math.floor(month / 12) + yrCounter
+        this._getYear(currentYear, month, yrCounter)
       )
 
-      let year = currentYear + Math.floor(month / 12) + yrCounter
+      let year = this._getYear(currentYear, month, yrCounter)
 
       pos = 24 * hoursWidthOnXAxis + pos
       let value = date === 1 ? Utils.monthMod(month) : date
@@ -589,7 +589,7 @@ class TimeScale {
         month = changeMonth(date, month)
       }
 
-      let year = currentYear + Math.floor(month / 12) + yrCounter
+      let year = this._getYear(currentYear, month, yrCounter)
       pos =
         hour === 0 && i === 0
           ? remainingMins * minutesWidthOnXAxis
@@ -664,7 +664,7 @@ class TimeScale {
         hour,
         minute,
         day: date,
-        year: currentYear + Math.floor(month / 12) + yrCounter,
+        year: this._getYear(currentYear, month, yrCounter),
         month: Utils.monthMod(month)
       })
 
@@ -778,6 +778,10 @@ class TimeScale {
     filteredArray = filteredArray.filter((f) => f !== null)
 
     return filteredArray
+  }
+
+  _getYear(currentYear, month, yrCounter) {
+    return currentYear + Math.floor(month / 12) + yrCounter
   }
 }
 

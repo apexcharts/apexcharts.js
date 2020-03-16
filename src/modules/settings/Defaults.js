@@ -158,6 +158,9 @@ export default class Defaults {
         width: 1,
         colors: ['#333']
       },
+      fill: {
+        opacity: 1
+      },
       dataLabels: {
         enabled: false
       },
