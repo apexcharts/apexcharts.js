@@ -545,7 +545,9 @@ class Pie {
       return
     } else {
       // reset all elems
-      let allEls = w.globals.dom.baseEl.querySelectorAll('.apexcharts-pie-area')
+      let allEls = w.globals.dom.baseEl.getElementsByClassName(
+        'apexcharts-pie-area'
+      )
       Array.prototype.forEach.call(allEls, (pieSlice) => {
         pieSlice.setAttribute('data:pieClicked', 'false')
         let origPath = pieSlice.getAttribute('data:pathOrig')
@@ -826,7 +828,9 @@ class Pie {
     )
 
     let sliceOut = false
-    const slices = w.globals.dom.baseEl.querySelectorAll(`.apexcharts-pie-area`)
+    const slices = w.globals.dom.baseEl.getElementsByClassName(
+      `apexcharts-pie-area`
+    )
 
     const selectSlice = ({ makeSliceOut, printLabel }) => {
       Array.prototype.forEach.call(slices, (s) => {

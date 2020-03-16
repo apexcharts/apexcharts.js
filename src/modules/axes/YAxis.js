@@ -502,7 +502,7 @@ export default class YAxis {
   setYAxisTextAlignments() {
     const w = this.w
 
-    let yaxis = w.globals.dom.baseEl.querySelectorAll(`.apexcharts-yaxis`)
+    let yaxis = w.globals.dom.baseEl.getElementsByClassName(`apexcharts-yaxis`)
     yaxis = Utils.listToArray(yaxis)
     yaxis.forEach((y, index) => {
       const yaxe = w.config.yaxis[index]

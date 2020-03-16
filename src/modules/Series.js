@@ -16,7 +16,7 @@ export default class Series {
   }
 
   getAllSeriesEls() {
-    return this.w.globals.dom.baseEl.querySelectorAll(`.apexcharts-series`)
+    return this.w.globals.dom.baseEl.getElementsByClassName(`apexcharts-series`)
   }
 
   getSeriesByName(seriesName) {
@@ -116,8 +116,8 @@ export default class Series {
   toggleSeriesOnHover(e, targetElement) {
     const w = this.w
 
-    let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
-      `.apexcharts-series, .apexcharts-datalabels`
+    let allSeriesEls = w.globals.dom.baseEl.getElementsByClassName(
+      `apexcharts-series apexcharts-datalabels`
     )
 
     if (e.type === 'mousemove') {
@@ -167,8 +167,8 @@ export default class Series {
 
   highlightRangeInSeries(e, targetElement) {
     const w = this.w
-    const allHeatMapElements = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-heatmap-rect'
+    const allHeatMapElements = w.globals.dom.baseEl.getElementsByClassName(
+      'apexcharts-heatmap-rect'
     )
 
     const activeInactive = (action) => {

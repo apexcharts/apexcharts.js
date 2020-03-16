@@ -45,14 +45,14 @@ class Exports {
     const w = this.w
 
     // hide some elements to avoid printing them on exported svg
-    const xcrosshairs = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-xcrosshairs'
+    const xcrosshairs = w.globals.dom.baseEl.getElementsByClassName(
+      'apexcharts-xcrosshairs'
     )
-    const ycrosshairs = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-ycrosshairs'
+    const ycrosshairs = w.globals.dom.baseEl.getElementsByClassName(
+      'apexcharts-ycrosshairs'
     )
-    const zoomSelectionRects = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-zoom-rect, .apexcharts-selection-rect'
+    const zoomSelectionRects = w.globals.dom.baseEl.getElementsByClassName(
+      'apexcharts-zoom-rect apexcharts-selection-rect'
     )
     Array.prototype.forEach.call(zoomSelectionRects, (z) => {
       z.setAttribute('width', 0)
