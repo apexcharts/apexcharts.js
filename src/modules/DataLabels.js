@@ -222,12 +222,23 @@ class DataLabels {
       dataLabelColor = color
     }
 
+    let offX = dataLabelsConfig.offsetX
+    let offY = dataLabelsConfig.offsetY
+
+    if (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') {
+      // for certain chart types, we handle offsets while calculating datalabels pos
+      // why? because bars/column may have negative values and based on that
+      // offsets becomes reversed
+      offX = 0
+      offY = 0
+    }
+
     if (correctedLabels.drawnextLabel) {
       let dataLabelText = graphics.drawText({
         width: 100,
         height: parseInt(dataLabelsConfig.style.fontSize, 10),
-        x: x + dataLabelsConfig.offsetX,
-        y: y + dataLabelsConfig.offsetY,
+        x: x + offX,
+        y: y + offY,
         foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text,

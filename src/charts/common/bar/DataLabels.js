@@ -138,6 +138,7 @@ export default class BarDataLabels {
     } = opts
 
     let dataLabelsX
+    barHeight = Math.abs(barHeight)
 
     let vertical =
       w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
@@ -157,7 +158,7 @@ export default class BarDataLabels {
         dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX
     }
 
-    let valIsNegative = this.barCtx.series[i][j] <= 0
+    let valIsNegative = this.barCtx.series[i][j] < 0
 
     if (this.barCtx.isReversed) {
       y = y - barHeight
@@ -247,6 +248,8 @@ export default class BarDataLabels {
 
     let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
 
+    barWidth = Math.abs(barWidth)
+
     let dataLabelsY =
       bcy -
       (this.barCtx.isTimelineBar ? 0 : dataPointsDividedHeight) +
@@ -274,7 +277,7 @@ export default class BarDataLabels {
       case 'bottom':
         if (valIsNegative) {
           dataLabelsX =
-            newX -
+            newX +
             barWidth -
             strokeWidth -
             Math.round(textRects.width / 2) -
