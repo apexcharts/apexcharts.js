@@ -58,14 +58,14 @@ class Exports {
       z.setAttribute('width', 0)
     })
     if (xcrosshairs) {
-      xcrosshairs.setAttribute('x', -500)
-      xcrosshairs.setAttribute('x1', -500)
-      xcrosshairs.setAttribute('x2', -500)
+      xcrosshairs[0].setAttribute('x', -500)
+      xcrosshairs[0].setAttribute('x1', -500)
+      xcrosshairs[0].setAttribute('x2', -500)
     }
     if (ycrosshairs) {
-      ycrosshairs.setAttribute('y', -100)
-      ycrosshairs.setAttribute('y1', -100)
-      ycrosshairs.setAttribute('y2', -100)
+      ycrosshairs[0].setAttribute('y', -100)
+      ycrosshairs[0].setAttribute('y1', -100)
+      ycrosshairs[0].setAttribute('y2', -100)
     }
   }
 
