@@ -382,7 +382,7 @@ export default class Options {
             ranges: [],
             backgroundBarColors: [],
             backgroundBarOpacity: 1,
-            backgroundBarRadius: 20
+            backgroundBarRadius: 0
           },
           dataLabels: {
             position: 'top', // top, center, bottom
