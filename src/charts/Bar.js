@@ -383,7 +383,6 @@ class Bar {
     elSeries
   }) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     let i = indexes.i
     let j = indexes.j
