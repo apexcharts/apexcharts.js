@@ -211,7 +211,7 @@ export default class Labels {
     }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-value')
     if (ttYVal) {
-      ttYVal.innerHTML = val
+      ttYVal.innerHTML = typeof val !== 'undefined' ? val : ''
     }
 
     if (
@@ -243,7 +243,7 @@ export default class Labels {
       ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : ''
     }
 
-    if (shared && ttItemsChildren[0] && ttCtx.tooltipTitle) {
+    if (shared && ttItemsChildren[0]) {
       // hide when no Val or series collapsed
       if (
         typeof val === 'undefined' ||
