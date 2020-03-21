@@ -373,7 +373,19 @@ class Line {
           i > 0 &&
           w.globals.collapsedSeries.length < w.config.series.length - 1
         ) {
-          lineYPosition = this.prevSeriesY[i - 1][j + 1]
+          // a collapsed series in a stacked bar chart may provide wrong result for the next series, hence find the prevIndex of prev series which is not collapsed - fixes apexcharts.js#1372
+          const prevIndex = (pi) => {
+            let pii = pi
+            for (let cpi = 0; cpi < w.globals.series.length; cpi++) {
+              if (w.globals.collapsedSeriesIndices.indexOf(pi) > -1) {
+                pii--
+                break
+              }
+            }
+
+            return pii >= 0 ? pii : 0
+          }
+          lineYPosition = this.prevSeriesY[prevIndex(i - 1)][j + 1]
         } else {
           // the first series will not have prevY values
           lineYPosition = this.zeroY
