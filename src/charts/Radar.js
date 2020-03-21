@@ -238,13 +238,19 @@ class Radar {
 
         elSeries.add(elPointsMain)
 
-        if (w.config.dataLabels.enabled) {
-          const dataLabelsConfig = w.config.dataLabels
+        const dataLabelsConfig = w.config.dataLabels
+
+        if (dataLabelsConfig.enabled) {
+          let text = dataLabelsConfig.formatter(w.globals.series[i][j], {
+            seriesIndex: i,
+            dataPointIndex: j,
+            w
+          })
 
           dataLabels.plotDataLabelsText({
             x: dataPointsPos[j].x,
             y: dataPointsPos[j].y,
-            text: w.globals.series[i][j],
+            text,
             textAnchor: 'middle',
             i,
             j: i,
