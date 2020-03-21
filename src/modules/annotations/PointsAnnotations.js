@@ -158,7 +158,7 @@ export default class PointAnnotations {
         width: imgWidth,
         height: imgHeight,
         path: anno.image.path,
-        appendTo: parent
+        appendTo: '.apexcharts-point-annotations'
       })
     }
   }
