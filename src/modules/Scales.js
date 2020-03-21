@@ -519,8 +519,8 @@ export default class Range {
           min = initialMin
           max = initialMax
         }
-        min *= min < 0 ? 1.1 : 0.9
-        max *= max < 0 ? 0.9 : 1.1
+        min = min < 0 ? Math.pow(min, 1.005) : Math.pow(min, 0.995)
+        max = max < 0 ? Math.pow(max, 0.995) : Math.pow(max, 1.005)
 
         if (max < 0 && max < initialMax) {
           max = initialMax
