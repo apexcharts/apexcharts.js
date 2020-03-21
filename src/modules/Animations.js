@@ -179,6 +179,7 @@ export default class Animations {
     if (w.globals.animationEnded) return
 
     w.globals.animationEnded = true
+    this.showDelayedElements()
 
     if (typeof w.config.chart.events.animationEnd === 'function') {
       w.config.chart.events.animationEnd(this.ctx, { el, w })
