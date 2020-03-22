@@ -59,12 +59,14 @@ class Graphics {
       height: y2 > 0 ? y2 : 0,
       rx: radius,
       ry: radius,
-      fill: color,
       opacity,
       'stroke-width': strokeWidth !== null ? strokeWidth : 0,
       stroke: strokeColor !== null ? strokeColor : 'none',
       'stroke-dasharray': strokeDashArray
     })
+
+    // fix apexcharts.js#1410
+    rect.node.setAttribute('fill', color)
 
     return rect
   }
