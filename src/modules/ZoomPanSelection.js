@@ -508,6 +508,7 @@ export default class ZoomPanSelection extends Toolbar {
     ) {
       if (w.globals.zoomEnabled) {
         let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
+        let xaxis = Utils.clone(w.globals.initialConfig.xaxis)
 
         w.globals.zoomed = true
 
@@ -532,9 +533,12 @@ export default class ZoomPanSelection extends Toolbar {
             xHighestValue = xLowestValue + 1
           }
         }
-        let xaxis = {
-          min: xLowestValue,
-          max: xHighestValue
+
+        if (zoomtype === 'xy' || zoomtype === 'x') {
+          xaxis = {
+            min: xLowestValue,
+            max: xHighestValue
+          }
         }
 
         if (zoomtype === 'xy' || zoomtype === 'y') {

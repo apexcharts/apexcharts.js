@@ -445,26 +445,21 @@ export default class Toolbar {
     charts.forEach((ch) => {
       let w = ch.w
 
-      if (
-        w.globals.minX !== w.globals.initialMinX ||
-        w.globals.maxX !== w.globals.initialMaxX
-      ) {
-        ch.updateHelpers.revertDefaultAxisMinMax()
+      ch.updateHelpers.revertDefaultAxisMinMax()
 
-        if (typeof w.config.chart.events.zoomed === 'function') {
-          this.zoomCallback({
-            min: w.config.xaxis.min,
-            max: w.config.xaxis.max
-          })
-        }
-
-        w.globals.zoomed = false
-
-        ch.updateHelpers._updateSeries(
-          w.globals.initialSeries,
-          w.config.chart.animations.dynamicAnimation.enabled
-        )
+      if (typeof w.config.chart.events.zoomed === 'function') {
+        this.zoomCallback({
+          min: w.config.xaxis.min,
+          max: w.config.xaxis.max
+        })
       }
+
+      w.globals.zoomed = false
+
+      ch.updateHelpers._updateSeries(
+        w.globals.initialSeries,
+        w.config.chart.animations.dynamicAnimation.enabled
+      )
     })
   }
 
