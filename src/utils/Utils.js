@@ -208,10 +208,7 @@ class Utils {
   }
 
   static getOpacityFromRGBA(rgba) {
-    rgba = rgba.match(
-      /^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i
-    )
-    return rgba[3]
+    return parseFloat(rgba.replace(/^.*,(.+)\)/, '$1'))
   }
 
   static rgb2hex(rgb) {

@@ -568,10 +568,8 @@ export default class Defaults {
       fill: {
         opacity: 1,
         gradient: {
-          shade: 'dark',
-          shadeIntensity: 0.35,
-          inverseColors: false,
-          stops: [0, 100, 100]
+          shade: 'light',
+          stops: [0, 100]
         }
       },
       tooltip: {
@@ -608,13 +606,11 @@ export default class Defaults {
       fill: {
         opacity: 1,
         gradient: {
-          shade: 'dark',
-          shadeIntensity: 0.4,
-          inverseColors: false,
-          type: 'vertical',
+          shade: 'light',
+          shadeIntensity: 0.35,
+          stops: [80, 100],
           opacityFrom: 1,
-          opacityTo: 1,
-          stops: [70, 98, 100]
+          opacityTo: 1
         }
       },
       tooltip: {
