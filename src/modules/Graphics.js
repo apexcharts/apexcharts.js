@@ -365,8 +365,13 @@ class Graphics {
     let w = this.w
     let g
 
-    gfrom = Utils.hexToRgba(gfrom, opacityFrom)
-    gto = Utils.hexToRgba(gto, opacityTo)
+    if (gfrom.length < 9 && gfrom.indexOf('#') === 0) {
+      // if the hex contains alpha and is of 9 digit, skip the opacity
+      gfrom = Utils.hexToRgba(gfrom, opacityFrom)
+    }
+    if (gto.length < 9 && gto.indexOf('#') === 0) {
+      gto = Utils.hexToRgba(gto, opacityTo)
+    }
 
     let stop1 = 0
     let stop2 = 1

@@ -127,7 +127,10 @@ class Fill {
     }
 
     if (fillColor.indexOf('rgb') === -1) {
-      defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
+      if (fillColor.length < 9) {
+        // if the hex contains alpha and is of 9 digit, skip the opacity
+        defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
+      }
     } else {
       if (fillColor.indexOf('rgba') > -1) {
         fillOpacity = Utils.getOpacityFromRGBA(fillColor)
