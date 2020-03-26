@@ -346,6 +346,7 @@ class Bar {
       x2: x,
       strokeWidth,
       series: this.series,
+      realIndex: indexes.realIndex,
       i,
       j,
       w
@@ -423,6 +424,7 @@ class Bar {
       y2: y,
       strokeWidth,
       series: this.series,
+      realIndex: indexes.realIndex,
       i,
       j,
       w

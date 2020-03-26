@@ -329,6 +329,7 @@ class BarStacked extends Bar {
       x2: x,
       strokeWidth,
       series: this.series,
+      realIndex: indexes.realIndex,
       i,
       j,
       w
@@ -459,6 +460,7 @@ class BarStacked extends Bar {
       yRatio: this.yRatio[this.yaxisIndex],
       strokeWidth: this.strokeWidth,
       series: this.series,
+      realIndex: indexes.realIndex,
       i,
       j,
       w

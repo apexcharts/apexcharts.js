@@ -219,12 +219,15 @@ export default class Helpers {
     y2,
     strokeWidth,
     series,
+    realIndex,
     i,
     j,
     w
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
-    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth
+    strokeWidth = Array.isArray(strokeWidth)
+      ? strokeWidth[realIndex]
+      : strokeWidth
     if (!strokeWidth) strokeWidth = 0
 
     let shapeOpts = {
@@ -244,7 +247,7 @@ export default class Helpers {
     let pathFrom = graphics.move(x1, newPath.y1)
 
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(i, j, false)
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
     }
 
     pathTo =
@@ -277,12 +280,15 @@ export default class Helpers {
     x2,
     strokeWidth,
     series,
+    realIndex,
     i,
     j,
     w
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
-    strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth
+    strokeWidth = Array.isArray(strokeWidth)
+      ? strokeWidth[realIndex]
+      : strokeWidth
     if (!strokeWidth) strokeWidth = 0
 
     let shapeOpts = {
@@ -299,7 +305,7 @@ export default class Helpers {
     let pathFrom = graphics.move(newPath.x1, barYPosition)
 
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(i, j, false)
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
     }
 
     const y1 = barYPosition
