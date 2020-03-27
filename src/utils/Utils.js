@@ -264,12 +264,15 @@ class Utils {
   // beautiful color shading blending code
   // http://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
   shadeColor(p, color) {
-    if (color.length > 7) return this.shadeRGBColor(p, color)
-    else return this.shadeHexColor(p, color)
+    if (Utils.isColorHex(color)) {
+      return this.shadeHexColor(p, color)
+    } else {
+      return this.shadeRGBColor(p, color)
+    }
   }
 
   static isColorHex(color) {
-    return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(color)
+    return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)|(^#[0-9A-F]{8}$)/i.test(color)
   }
 
   static polarToCartesian(centerX, centerY, radius, angleInDegrees) {
