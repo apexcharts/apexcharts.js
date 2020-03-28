@@ -37,15 +37,10 @@ export default class Theme {
       w.globals.colors = w.config.colors
 
       // if user provided a function in colors, we need to eval here
-      if (
-        w.globals.axisCharts &&
-        w.config.chart.type !== 'bar' &&
-        Array.isArray(w.config.colors) &&
-        w.config.colors.length > 0 &&
-        w.config.colors.length === w.config.series.length
-        // colors & series length needs same
-      ) {
-        w.globals.colors = w.config.colors.map((c, i) => {
+      if (Array.isArray(w.config.colors) && w.config.colors.length > 0) {
+        w.globals.colors = w.config.series.map((s, i) => {
+          let c = w.config.colors[i]
+          if (!c) c = w.config.colors[0]
           if (typeof c === 'function') {
             this.isColorFn = true
             return c({
@@ -63,6 +58,8 @@ export default class Theme {
         })
       }
     }
+
+    console.log(w.globals.colors, 'ssss')
 
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
