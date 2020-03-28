@@ -116,8 +116,8 @@ export default class Series {
   toggleSeriesOnHover(e, targetElement) {
     const w = this.w
 
-    let allSeriesEls = w.globals.dom.baseEl.getElementsByClassName(
-      `apexcharts-series apexcharts-datalabels`
+    let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
+      `.apexcharts-series, .apexcharts-datalabels`
     )
 
     if (e.type === 'mousemove') {

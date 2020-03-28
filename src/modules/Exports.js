@@ -51,8 +51,8 @@ class Exports {
     const ycrosshairs = w.globals.dom.baseEl.getElementsByClassName(
       'apexcharts-ycrosshairs'
     )
-    const zoomSelectionRects = w.globals.dom.baseEl.getElementsByClassName(
-      'apexcharts-zoom-rect apexcharts-selection-rect'
+    const zoomSelectionRects = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-zoom-rect, .apexcharts-selection-rect'
     )
     Array.prototype.forEach.call(zoomSelectionRects, (z) => {
       z.setAttribute('width', 0)
