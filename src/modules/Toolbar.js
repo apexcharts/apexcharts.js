@@ -347,6 +347,11 @@ export default class Toolbar {
   zoomUpdateOptions(newMinX, newMaxX) {
     const w = this.w
 
+    if (newMinX === undefined && newMaxX === undefined) {
+      this.handleZoomReset()
+      return
+    }
+
     if (w.config.xaxis.convertedCatToNumeric) {
       // in category charts, avoid zooming out beyond min and max
       if (newMinX < 1) {
@@ -444,6 +449,10 @@ export default class Toolbar {
 
     charts.forEach((ch) => {
       let w = ch.w
+
+      // forget lastXAxis min/max as reset button isn't resetting the x-axis completely if zoomX is called before
+      w.globals.lastXAxis.min = undefined
+      w.globals.lastXAxis.max = undefined
 
       ch.updateHelpers.revertDefaultAxisMinMax()
 

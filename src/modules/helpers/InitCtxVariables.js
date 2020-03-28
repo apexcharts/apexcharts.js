@@ -53,6 +53,7 @@ export default class InitCtxVariables {
       'hideSeries',
       'setLocale',
       'resetSeries',
+      'zoomX',
       'toggleDataPointSelection',
       'dataURI',
       'addXaxisAnnotation',

@@ -59,8 +59,6 @@ export default class Theme {
       }
     }
 
-    console.log(w.globals.colors, 'ssss')
-
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
       let glsCnt = w.globals.series.length

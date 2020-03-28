@@ -29,6 +29,7 @@ declare class ApexCharts {
   showSeries(seriesName: string): void
   hideSeries(seriesName: string): void
   resetSeries(): void
+  zoomX(min: number, max: number): void
   toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): any
   destroy(): void
   setLocale(localeName: string): void

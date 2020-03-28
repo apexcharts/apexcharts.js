@@ -575,8 +575,8 @@ export default class ApexCharts {
     this.series.hideSeries(seriesName)
   }
 
-  resetSeries(shouldUpdateChart = true) {
-    this.series.resetSeries(shouldUpdateChart)
+  resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
+    this.series.resetSeries(shouldUpdateChart, shouldResetZoom)
   }
 
   // Public method to add event listener on chart context
@@ -658,6 +658,10 @@ export default class ApexCharts {
       seriesIndex,
       dataPointIndex
     )
+  }
+
+  zoomX(min, max) {
+    this.ctx.toolbar.zoomUpdateOptions(min, max)
   }
 
   setLocale(localeName) {
