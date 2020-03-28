@@ -55,6 +55,11 @@
   transition: 0.15s ease all;
 }
 
+.apexcharts-tooltip.apexcharts-active {
+  opacity: 1;
+  transition: 0.15s ease all;
+}
+
 .apexcharts-tooltip.apexcharts-theme-light {
   border: 1px solid #e3e3e3;
   background: rgba(255, 255, 255, 0.96);
@@ -69,10 +74,6 @@
   font-family: inherit;
 }
 
-.apexcharts-tooltip.apexcharts-active {
-  opacity: 1;
-  transition: 0.15s ease all;
-}
 
 .apexcharts-tooltip-title {
   padding: 6px;
