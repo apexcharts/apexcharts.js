@@ -1,4 +1,5 @@
 import Utils from '../../utils/Utils'
+import CoreUtils from '../CoreUtils'
 
 export default class PointAnnotations {
   constructor(annoCtx) {
@@ -19,6 +20,8 @@ export default class PointAnnotations {
       )
     }
 
+    let annoY = parseFloat(anno.y)
+
     if (typeof anno.x === 'string') {
       let catIndex = w.globals.labels.indexOf(anno.x)
 
@@ -28,64 +31,37 @@ export default class PointAnnotations {
 
       x = this.annoCtx.helpers.getStringX(anno.x)
 
-      let annoY = anno.y
       if (anno.y === null) {
         annoY = w.globals.series[anno.seriesIndex][catIndex]
       }
-      y =
-        w.globals.gridHeight -
-        (annoY - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseFloat(anno.label.style.fontSize) -
-        anno.marker.size
-
-      pointY =
-        w.globals.gridHeight -
-        (annoY - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-
-      if (
-        w.config.yaxis[anno.yAxisIndex] &&
-        w.config.yaxis[anno.yAxisIndex].reversed
-      ) {
-        y =
-          (annoY - w.globals.minYArr[anno.yAxisIndex]) /
-            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) +
-          parseFloat(anno.label.style.fontSize) +
-          anno.marker.size
-
-        pointY =
-          (annoY - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-      }
     } else {
       x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
-      y =
-        w.globals.gridHeight -
-        (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-        parseFloat(anno.label.style.fontSize) -
-        anno.marker.size
+    }
+    let yPos
+    if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
+      const coreUtils = new CoreUtils(this.annoCtx.ctx)
+      annoY = coreUtils.getLogVal(annoY, anno.yAxisIndex)
+      yPos = annoY / w.globals.yLogRatio[anno.yAxisIndex]
+    } else {
+      yPos =
+        (annoY - w.globals.minYArr[anno.yAxisIndex]) /
+        (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+    }
 
-      pointY =
-        w.globals.gridHeight -
-        (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+    y =
+      w.globals.gridHeight -
+      yPos -
+      parseFloat(anno.label.style.fontSize) -
+      anno.marker.size
 
-      if (
-        w.config.yaxis[anno.yAxisIndex] &&
-        w.config.yaxis[anno.yAxisIndex].reversed
-      ) {
-        y =
-          (parseFloat(anno.y) - w.globals.minYArr[anno.yAxisIndex]) /
-            (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight) -
-          parseFloat(anno.label.style.fontSize) -
-          anno.marker.size
+    pointY = w.globals.gridHeight - yPos
 
-        pointY =
-          (anno.y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-      }
+    if (
+      w.config.yaxis[anno.yAxisIndex] &&
+      w.config.yaxis[anno.yAxisIndex].reversed
+    ) {
+      y = yPos + parseFloat(anno.label.style.fontSize) + anno.marker.size
+      pointY = yPos
     }
 
     if (!Utils.isNumber(x)) return

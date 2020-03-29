@@ -286,11 +286,7 @@ class CoreUtils {
         return s.map((d) => {
           if (d === null) return null
 
-          const logVal =
-            (Math.log(d) - Math.log(w.globals.minYArr[i])) /
-            (Math.log(w.globals.maxYArr[i]) - Math.log(w.globals.minYArr[i]))
-
-          return logVal
+          return this.getLogVal(d, i)
         })
       } else {
         return s
@@ -298,6 +294,15 @@ class CoreUtils {
     })
 
     return w.globals.invalidLogScale ? series : w.globals.seriesLog
+  }
+
+  getLogVal(d, yIndex) {
+    const w = this.w
+    return (
+      (Math.log(d) - Math.log(w.globals.minYArr[yIndex])) /
+      (Math.log(w.globals.maxYArr[yIndex]) -
+        Math.log(w.globals.minYArr[yIndex]))
+    )
   }
 
   getLogYRatios(yRatio) {

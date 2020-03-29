@@ -1,3 +1,5 @@
+import CoreUtils from '../CoreUtils'
+
 export default class YAnnotations {
   constructor(annoCtx) {
     this.w = annoCtx.w
@@ -97,18 +99,23 @@ export default class YAnnotations {
         yP = parseFloat(xLabel.getAttribute('y'))
       }
     } else {
-      yP =
-        w.globals.gridHeight -
-        (y - w.globals.minYArr[anno.yAxisIndex]) /
+      let yPos
+      if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
+        const coreUtils = new CoreUtils(this.annoCtx.ctx)
+        y = coreUtils.getLogVal(y, anno.yAxisIndex)
+        yPos = y / w.globals.yLogRatio[anno.yAxisIndex]
+      } else {
+        yPos =
+          (y - w.globals.minYArr[anno.yAxisIndex]) /
           (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      }
+      yP = w.globals.gridHeight - yPos
 
       if (
         w.config.yaxis[anno.yAxisIndex] &&
         w.config.yaxis[anno.yAxisIndex].reversed
       ) {
-        yP =
-          (y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+        yP = yPos
       }
     }
 

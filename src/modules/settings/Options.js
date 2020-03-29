@@ -101,7 +101,7 @@ export default class Options {
         text: undefined,
         textAnchor: 'middle',
         offsetX: 0,
-        offsetY: -15,
+        offsetY: 0,
         style: {
           background: '#fff',
           color: undefined,
