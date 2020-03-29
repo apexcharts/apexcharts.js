@@ -53,7 +53,7 @@ export default class UpdateHelpers {
 
       if (options && typeof options === 'object') {
         ch.config = new Config(options)
-        options = CoreUtils.extendArrayProps(ch.config, options)
+        options = CoreUtils.extendArrayProps(ch.config, options, w)
 
         // fixes #914, #623
         if (ch.w.globals.chartID !== this.ctx.w.globals.chartID) {

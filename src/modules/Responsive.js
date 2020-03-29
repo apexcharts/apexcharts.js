@@ -39,7 +39,8 @@ export default class Responsive {
       if (width > largestBreakpoint) {
         let options = CoreUtils.extendArrayProps(
           config,
-          w.globals.initialConfig
+          w.globals.initialConfig,
+          w
         )
         newOptions = Utils.extend(options, newOptions)
         newOptions = Utils.extend(w.config, newOptions)
@@ -47,7 +48,7 @@ export default class Responsive {
       } else {
         for (let i = 0; i < res.length; i++) {
           if (width < res[i].breakpoint) {
-            newOptions = CoreUtils.extendArrayProps(config, res[i].options)
+            newOptions = CoreUtils.extendArrayProps(config, res[i].options, w)
             newOptions = Utils.extend(w.config, newOptions)
             this.overrideResponsiveOptions(newOptions)
           }
@@ -56,7 +57,7 @@ export default class Responsive {
     }
 
     if (opts) {
-      let options = CoreUtils.extendArrayProps(config, opts)
+      let options = CoreUtils.extendArrayProps(config, opts, w)
       options = Utils.extend(w.config, options)
       options = Utils.extend(options, opts)
       iterateResponsiveOptions(options)
