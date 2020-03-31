@@ -1,6 +1,7 @@
 import Bar from './Bar'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
+import DateTime from '../utils/DateTime'
 
 /**
  * ApexCharts RangeBar Class responsible for drawing Range/Timeline Bars.
@@ -326,6 +327,83 @@ class RangeBar extends Bar {
       start: w.globals.seriesRangeStart[i][j],
       end: w.globals.seriesRangeEnd[i][j]
     }
+  }
+
+  getTooltipValues({ ctx, seriesIndex, dataPointIndex, y1, y2, w }) {
+    let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
+    let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+    let ylabel = w.globals.labels[dataPointIndex]
+    let seriesName = w.config.series[seriesIndex].name
+    const yLbFormatter = w.config.tooltip.y.formatter
+    const yLbTitleFormatter = w.config.tooltip.y.title.formatter
+
+    const opts = {
+      w,
+      seriesIndex,
+      dataPointIndex
+    }
+
+    if (typeof yLbTitleFormatter === 'function') {
+      seriesName = yLbTitleFormatter(seriesName, opts)
+    }
+
+    if (y1 && y2) {
+      start = y1
+      end = y2
+
+      if (w.config.series[seriesIndex].data[dataPointIndex].x) {
+        ylabel = w.config.series[seriesIndex].data[dataPointIndex].x + ':'
+      }
+
+      if (typeof yLbFormatter === 'function') {
+        ylabel = yLbFormatter(ylabel, opts)
+      }
+    }
+
+    let startVal = ''
+    let endVal = ''
+
+    const color = w.globals.colors[seriesIndex]
+    if (w.config.tooltip.x.formatter === undefined) {
+      if (w.config.xaxis.type === 'datetime') {
+        let datetimeObj = new DateTime(ctx)
+        startVal = datetimeObj.formatDate(
+          datetimeObj.getDate(start),
+          w.config.tooltip.x.format
+        )
+        endVal = datetimeObj.formatDate(
+          datetimeObj.getDate(end),
+          w.config.tooltip.x.format
+        )
+      } else {
+        startVal = start
+        endVal = end
+      }
+    } else {
+      startVal = w.config.tooltip.x.formatter(start)
+      endVal = w.config.tooltip.x.formatter(end)
+    }
+
+    return { start, end, startVal, endVal, ylabel, color, seriesName }
+  }
+
+  buildCustomTooltipHTML({ color, seriesName, ylabel, start, end }) {
+    return (
+      '<div class="apexcharts-tooltip-rangebar">' +
+      '<div> <span class="series-name" style="color: ' +
+      color +
+      '">' +
+      (seriesName ? seriesName : '') +
+      '</span></div>' +
+      '<div> <span class="category">' +
+      ylabel +
+      ' </span> <span class="value start-value">' +
+      start +
+      '</span> <span class="separator">-</span> <span class="value end-value">' +
+      end +
+      '</span></div>' +
+      '</div>'
+    )
   }
 }
 

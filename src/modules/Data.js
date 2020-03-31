@@ -149,7 +149,9 @@ export default class Data {
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
         if (isXString || cnf.xaxis.convertedCatToNumeric) {
-          if (cnf.xaxis.type === 'datetime' && !gl.isRangeData) {
+          const isRangeColumn = gl.isBarHorizontal && gl.isRangeData
+
+          if (cnf.xaxis.type === 'datetime' && !isRangeColumn) {
             this.twoDSeriesX.push(dt.parseDate(ser[activeI].data[j].x))
           } else {
             // a category and not a numeric x value
