@@ -99,6 +99,7 @@ type ApexChart = {
     | 'heatmap'
     | 'candlestick'
     | 'radar'
+    | 'polarArea'
     | 'rangeBar'
   foreColor?: string
   fontFamily?: string
@@ -553,6 +554,12 @@ type ApexPlotOptions = {
           formatter?(w: any): string
         }
       }
+    }
+  }
+  polarArea?: {
+    rings?: {
+      strokeWidth?: number
+      strokeColor?: string
     }
   }
   radar?: {

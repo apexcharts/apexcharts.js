@@ -147,7 +147,11 @@ export default class UpdateHelpers {
           `${parent} path[j='${seriesIndex}']`
         ).members[0]
 
-        if (w.config.chart.type === 'pie' || w.config.chart.type === 'donut') {
+        if (
+          w.config.chart.type === 'pie' ||
+          w.config.chart.type === 'polarArea' ||
+          w.config.chart.type === 'donut'
+        ) {
           const pie = new Pie(this.ctx)
           pie.pieClicked(seriesIndex)
         }

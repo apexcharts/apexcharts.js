@@ -8,7 +8,7 @@ export default class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale(yMin, yMax, diff, index = 0, ticks = 10, NO_MIN_MAX_PROVIDED) {
+  niceScale(yMin, yMax, ticks = 10, index = 0, NO_MIN_MAX_PROVIDED) {
     const w = this.w
 
     if (ticks === 'dataPoints') {
@@ -241,10 +241,9 @@ export default class Range {
           gl.yAxisScale[index] = this.niceScale(
             minY,
             maxY,
-            diff,
+            y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
             index,
             // fix https://github.com/apexcharts/apexcharts.js/issues/397
-            y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
             noMinMaxProvided
           )
         }
@@ -264,9 +263,8 @@ export default class Range {
       gl.xAxisScale = this.niceScale(
         minX,
         maxX,
-        diff,
-        0,
-        x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5
+        x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
+        0
       )
     }
     return gl.xAxisScale

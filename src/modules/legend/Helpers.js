@@ -160,7 +160,7 @@ export default class Helpers {
       )
 
       const type = w.config.chart.type
-      if (type === 'pie' || type === 'donut') {
+      if (type === 'pie' || type === 'polarArea' || type === 'donut') {
         let dataLabels = w.config.plotOptions.pie.donut.labels
 
         const graphics = new Graphics(this.lgCtx.ctx)

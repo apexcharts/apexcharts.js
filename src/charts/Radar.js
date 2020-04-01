@@ -4,6 +4,7 @@ import Markers from '../modules/Markers'
 import DataLabels from '../modules/DataLabels'
 import Filters from '../modules/Filters'
 import Utils from '../utils/Utils'
+import Helpers from './common/circle/Helpers'
 
 /**
  * ApexCharts Radar Class for Spider/Radar Charts.
@@ -288,6 +289,7 @@ class Radar {
   drawPolygons(opts) {
     const w = this.w
     const { parent } = opts
+    const helpers = new Helpers(this.ctx)
 
     const yaxisTexts = w.globals.yAxisScale[0].result.reverse()
     const layers = yaxisTexts.length
@@ -350,29 +352,10 @@ class Radar {
 
     if (w.config.yaxis[0].show) {
       this.yaxisLabelsTextsPos.forEach((p, i) => {
-        const yText = this.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i])
+        const yText = helpers.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i])
         this.yaxisLabels.add(yText)
       })
     }
-  }
-
-  drawYAxisTexts(x, y, i, text) {
-    const w = this.w
-
-    const yaxisConfig = w.config.yaxis[0]
-    const formatter = w.globals.yLabelFormatters[0]
-
-    const yaxisLabel = this.graphics.drawText({
-      x: x + yaxisConfig.labels.offsetX,
-      y: y + yaxisConfig.labels.offsetY,
-      text: formatter(text, i),
-      textAnchor: 'middle',
-      fontSize: yaxisConfig.labels.style.fontSize,
-      fontFamily: yaxisConfig.labels.style.fontFamily,
-      foreColor: yaxisConfig.labels.style.color
-    })
-
-    return yaxisLabel
   }
 
   drawXAxisTexts() {

@@ -253,6 +253,7 @@ export default class Core {
           break
         case 'pie':
         case 'donut':
+        case 'polarArea':
           elGraph = pie.draw(gl.series)
           break
         case 'radialBar':

@@ -599,6 +599,40 @@ export default class Defaults {
     }
   }
 
+  polarArea() {
+    this.opts.yaxis[0].tickAmount = this.opts.yaxis[0].tickAmount
+      ? this.opts.yaxis[0].tickAmount
+      : 6
+
+    return {
+      chart: {
+        toolbar: {
+          show: false
+        }
+      },
+      dataLabels: {
+        formatter(val) {
+          return val.toFixed(1) + '%'
+        },
+        enabled: false
+      },
+      stroke: {
+        show: true,
+        width: 2
+      },
+      fill: {
+        opacity: 0.7
+      },
+      tooltip: {
+        theme: 'dark',
+        fillSeriesColor: true
+      },
+      legend: {
+        position: 'right'
+      }
+    }
+  }
+
   radar() {
     this.opts.yaxis[0].labels.offsetY = this.opts.yaxis[0].labels.offsetY
       ? this.opts.yaxis[0].labels.offsetY

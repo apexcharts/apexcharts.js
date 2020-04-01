@@ -52,6 +52,7 @@ export default class Config {
         'scatter',
         'heatmap',
         'pie',
+        'polarArea',
         'donut',
         'radar',
         'radialBar'
@@ -122,6 +123,7 @@ export default class Config {
 
     const unsupportedZoom =
       chartType === 'pie' ||
+      chartType === 'polarArea' ||
       chartType === 'donut' ||
       chartType === 'radar' ||
       chartType === 'radialBar' ||

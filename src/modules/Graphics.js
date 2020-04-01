@@ -388,6 +388,7 @@ class Graphics {
     let radial = !!(
       w.config.chart.type === 'donut' ||
       w.config.chart.type === 'pie' ||
+      w.config.chart.type === 'polarArea' ||
       w.config.chart.type === 'bubble'
     )
 

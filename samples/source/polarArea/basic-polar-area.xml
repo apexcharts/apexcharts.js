@@ -1,0 +1,32 @@
+<title>Simple PolarArea</title>
+
+<style>
+#chart {
+  max-width: 380px;
+  margin: 35px auto;
+  padding: 0;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  type: 'polarArea',
+},
+responsive: [{
+  breakpoint: 480,
+  options: {
+    chart: {
+      width: 200
+    },
+    legend: {
+      position: 'bottom'
+    }
+  }
+}]
+</options>
+
+<series>
+[14, 25, 21, 17, 15, 20]
+</series>
+</chart>

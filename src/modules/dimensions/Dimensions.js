@@ -197,7 +197,9 @@ export default class Dimensions {
     }
 
     const type =
-      cnf.chart.type === 'pie' || cnf.chart.type === 'donut'
+      cnf.chart.type === 'pie' ||
+      cnf.chart.type === 'polarArea' ||
+      cnf.chart.type === 'donut'
         ? 'pie'
         : 'radialBar'
 
