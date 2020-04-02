@@ -556,6 +556,9 @@ export default class Options {
             }
           }
         },
+        rangeBar: {
+          allowOverlap: true
+        },
         polarArea: {
           rings: {
             strokeWidth: 1,

@@ -192,7 +192,7 @@ class RangeBar extends Bar {
 
     barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex
 
-    if (overlappedIndex > -1) {
+    if (overlappedIndex > -1 && !w.config.plotOptions.rangeBar.allowOverlap) {
       overlaps = w.globals.seriesRangeBarTimeline[i][overlappedIndex].overlaps
 
       if (overlaps.indexOf(rangeName) > -1) {
