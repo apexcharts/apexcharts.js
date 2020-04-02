@@ -57,12 +57,12 @@ class Exports {
     Array.prototype.forEach.call(zoomSelectionRects, (z) => {
       z.setAttribute('width', 0)
     })
-    if (xcrosshairs) {
+    if (xcrosshairs && xcrosshairs[0]) {
       xcrosshairs[0].setAttribute('x', -500)
       xcrosshairs[0].setAttribute('x1', -500)
       xcrosshairs[0].setAttribute('x2', -500)
     }
-    if (ycrosshairs) {
+    if (ycrosshairs && ycrosshairs[0]) {
       ycrosshairs[0].setAttribute('y', -100)
       ycrosshairs[0].setAttribute('y1', -100)
       ycrosshairs[0].setAttribute('y2', -100)
