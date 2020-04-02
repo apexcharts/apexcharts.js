@@ -85,6 +85,7 @@ class Range {
     if (
       cnf.chart.type === 'rangeBar' &&
       gl.seriesRangeStart.length &&
+      gl.isBarHorizontal &&
       cnf.xaxis.type === 'datetime'
     ) {
       minY = lowestY
@@ -146,7 +147,8 @@ class Range {
     if (
       cnf.chart.type === 'line' ||
       cnf.chart.type === 'area' ||
-      cnf.chart.type === 'candlestick'
+      cnf.chart.type === 'candlestick' ||
+      (cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal)
     ) {
       if (
         gl.minY === Number.MIN_VALUE &&
