@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Polar Area - Style 2</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      padding: 0;
+      max-width: 380px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [42, 47, 52, 58, 65],
+          chart: {
+          width: 380,
+          type: 'polarArea'
+        },
+        labels: ['Rose A', 'Rose B', 'Rose C', 'Rose D', 'Rose E'],
+        fill: {
+          opacity: 1
+        },
+        stroke: {
+          width: 1,
+          colors: undefined
+        },
+        yaxis: {
+          show: false
+        },
+        legend: {
+          position: 'bottom'
+        },
+        plotOptions: {
+          polarArea: {
+            rings: {
+              strokeWidth: 0
+            }
+          }
+        },
+        theme: {
+          monochrome: {
+            enabled: true,
+            shadeTo: 'light',
+            shadeIntensity: 0.6
+          }
+        }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
+
+    
+  </body>
+</html>

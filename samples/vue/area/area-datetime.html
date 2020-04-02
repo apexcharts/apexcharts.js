@@ -62,16 +62,6 @@
     <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
     
 
-    <script>
-      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
-      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
-      var _seed = 42
-      Math.random = function() {
-        _seed = (_seed * 16807) % 2147483647
-        return (_seed - 1) / 2147483646
-      }
-    </script>
-
     
   </head>
 
@@ -113,7 +103,7 @@
       </div>
     
       <div id="chart-timeline">
-      <apexchart type="area" height="350" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="area" height="350" ref="chart" :options="chartOptions" :series="series"></apexchart>
     </div>
     </div>
     </div>
@@ -155,7 +145,7 @@
         &lt;/div&gt;
       
         &lt;div id=&quot;chart-timeline&quot;&gt;
-        &lt;apexchart type=&quot;area&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;350&quot; ref=&quot;chart&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
       &lt;/div&gt;
     </div>
@@ -449,8 +439,12 @@
           }],
           chartOptions: {
             chart: {
+              id: 'area-datetime',
               type: 'area',
-              height: 350
+              height: 350,
+              zoom: {
+                autoScaleYaxis: true
+              }
             },
             annotations: {
               yaxis: [{
@@ -510,52 +504,41 @@
           selection: 'one_year',
         },
         methods: {
-          updateData: function (timeline) {
-            this.selection = timeline;
+          updateData: function(timeline) {
+            this.selection = timeline
         
             switch (timeline) {
               case 'one_month':
-                this.chartOptions = {
-                  xaxis: {
-                    min: new Date('28 Jan 2013').getTime(),
-                    max: new Date('27 Feb 2013').getTime(),
-                  }
-                }
-                break;
+                this.$refs.chart.zoomX(
+                  new Date('28 Jan 2013').getTime(),
+                  new Date('27 Feb 2013').getTime()
+                )
+                break
               case 'six_months':
-                this.chartOptions = {
-                  xaxis: {
-                    min: new Date('27 Sep 2012').getTime(),
-                    max: new Date('27 Feb 2013').getTime(),
-                  }
-                }
-                break;
+                this.$refs.chart.zoomX(
+                  new Date('27 Sep 2012').getTime(),
+                  new Date('27 Feb 2013').getTime()
+                )
+                break
               case 'one_year':
-                this.chartOptions = {
-                  xaxis: {
-                    min: new Date('27 Feb 2012').getTime(),
-                    max: new Date('27 Feb 2013').getTime(),
-                  }
-                }
-                break;
+                this.$refs.chart.zoomX(
+                  new Date('27 Feb 2012').getTime(),
+                  new Date('27 Feb 2013').getTime()
+                )
+                break
               case 'ytd':
-                this.chartOptions = {
-                  xaxis: {
-                    min: new Date('01 Jan 2013').getTime(),
-                    max: new Date('27 Feb 2013').getTime(),
-                  }
-                }
-                break;
+                this.$refs.chart.zoomX(
+                  new Date('01 Jan 2013').getTime(),
+                  new Date('27 Feb 2013').getTime()
+                )
+                break
               case 'all':
-                this.chartOptions = {
-                  xaxis: {
-                    min: undefined,
-                    max: undefined,
-                  }
-                }
-                break;
+                this.$refs.chart.zoomX(
+                  new Date('23 Jan 2012').getTime(),
+                  new Date('27 Feb 2013').getTime()
+                )
+                break
               default:
-        
             }
           }
         }

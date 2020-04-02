@@ -75,8 +75,12 @@
 
 <options>
 chart: {
+  id: 'area-datetime',
   type: 'area',
-  height: 350
+  height: 350,
+  zoom: {
+    autoScaleYaxis: true
+  }
 },
 annotations: {
   yaxis: [{
@@ -417,63 +421,63 @@ fill: {
 </chart>
 
 <vanilla-js-script>
-var resetCssClasses = function (activeEl) {
-  var els = document.querySelectorAll("button");
-  Array.prototype.forEach.call(els, function (el) {
-    el.classList.remove('active');
-  });
+var resetCssClasses = function(activeEl) {
+  var els = document.querySelectorAll('button')
+  Array.prototype.forEach.call(els, function(el) {
+    el.classList.remove('active')
+  })
 
   activeEl.target.classList.add('active')
 }
 
-document.querySelector("#one_month").addEventListener('click', function (e) {
-  resetCssClasses(e)
-  chart.updateOptions({
-    xaxis: {
-      min: new Date('28 Jan 2013').getTime(),
-      max: new Date('27 Feb 2013').getTime(),
-    }
+document
+  .querySelector('#one_month')
+  .addEventListener('click', function(e) {
+    resetCssClasses(e)
+
+    chart.zoomX(
+      new Date('28 Jan 2013').getTime(),
+      new Date('27 Feb 2013').getTime()
+    )
   })
+
+document
+  .querySelector('#six_months')
+  .addEventListener('click', function(e) {
+    resetCssClasses(e)
+
+    chart.zoomX(
+      new Date('27 Sep 2012').getTime(),
+      new Date('27 Feb 2013').getTime()
+    )
+  })
+
+document
+  .querySelector('#one_year')
+  .addEventListener('click', function(e) {
+    resetCssClasses(e)
+    chart.zoomX(
+      new Date('27 Feb 2012').getTime(),
+      new Date('27 Feb 2013').getTime()
+    )
+  })
+
+document.querySelector('#ytd').addEventListener('click', function(e) {
+  resetCssClasses(e)
+
+  chart.zoomX(
+    new Date('01 Jan 2013').getTime(),
+    new Date('27 Feb 2013').getTime()
+  )
 })
 
-document.querySelector("#six_months").addEventListener('click', function (e) {
+document.querySelector('#all').addEventListener('click', function(e) {
   resetCssClasses(e)
-  chart.updateOptions({
-    xaxis: {
-      min: new Date('27 Sep 2012').getTime(),
-      max: new Date('27 Feb 2013').getTime(),
-    }
-  })
-})
 
-document.querySelector("#one_year").addEventListener('click', function (e) {
-  resetCssClasses(e)
-  chart.updateOptions({
-    xaxis: {
-      min: new Date('27 Feb 2012').getTime(),
-      max: new Date('27 Feb 2013').getTime(),
-    }
-  })
-})
-
-document.querySelector("#ytd").addEventListener('click', function (e) {
-  resetCssClasses(e)
-  chart.updateOptions({
-    xaxis: {
-      min: new Date('01 Jan 2013').getTime(),
-      max: new Date('27 Feb 2013').getTime(),
-    }
-  })
-})
-
-document.querySelector("#all").addEventListener('click', function (e) {
-  resetCssClasses(e)
-  chart.updateOptions({
-    xaxis: {
-      min: undefined,
-      max: undefined,
-    }
-  })
+  chart.zoomX(
+    new Date('23 Jan 2012').getTime(),
+    new Date('27 Feb 2013').getTime()
+  )
 })
 </vanilla-js-script>
 
@@ -482,66 +486,56 @@ selection: 'one_year',
 </react-state>
 
 <react-script>
-updateData (timeline) {
+updateData(timeline) {
   this.setState({
     selection: timeline
   })
 
   switch (timeline) {
     case 'one_month':
-      this.setState({
-        options: {
-          xaxis: {
-            min: new Date('28 Jan 2013').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-      })
-      break;
+      ApexCharts.exec(
+        'area-datetime',
+        'zoomX',
+        new Date('28 Jan 2013').getTime(),
+        new Date('27 Feb 2013').getTime()
+      )
+      break
     case 'six_months':
-      this.setState({
-        options: {
-          xaxis: {
-            min: new Date('27 Sep 2012').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-      })
-      break;
+      ApexCharts.exec(
+        'area-datetime',
+        'zoomX',
+        new Date('27 Sep 2012').getTime(),
+        new Date('27 Feb 2013').getTime()
+      )
+      break
     case 'one_year':
-      this.setState({
-        options: {
-          xaxis: {
-            min: new Date('27 Feb 2012').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-      })
-      break;
+      ApexCharts.exec(
+        'area-datetime',
+        'zoomX',
+        new Date('27 Feb 2012').getTime(),
+        new Date('27 Feb 2013').getTime()
+      )
+      break
     case 'ytd':
-      this.setState({
-        options: {
-          xaxis: {
-            min: new Date('01 Jan 2013').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-      })
-      break;
+      ApexCharts.exec(
+        'area-datetime',
+        'zoomX',
+        new Date('01 Jan 2013').getTime(),
+        new Date('27 Feb 2013').getTime()
+      )
+      break
     case 'all':
-      this.setState({
-        options: {
-          xaxis: {
-            min: undefined,
-            max: undefined,
-          }
-        }
-      })
-      break;
+      ApexCharts.exec(
+        'area-datetime',
+        'zoomX',
+        new Date('23 Jan 2012').getTime(),
+        new Date('27 Feb 2013').getTime()
+      )
+      break
     default:
-
   }
 }
+
 </react-script>
 
 <vue-data>
@@ -550,52 +544,41 @@ selection: 'one_year',
 
 <vue-script>
 methods: {
-  updateData: function (timeline) {
-    this.selection = timeline;
+  updateData: function(timeline) {
+    this.selection = timeline
 
     switch (timeline) {
       case 'one_month':
-        this.chartOptions = {
-          xaxis: {
-            min: new Date('28 Jan 2013').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-        break;
+        this.$refs.chart.zoomX(
+          new Date('28 Jan 2013').getTime(),
+          new Date('27 Feb 2013').getTime()
+        )
+        break
       case 'six_months':
-        this.chartOptions = {
-          xaxis: {
-            min: new Date('27 Sep 2012').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-        break;
+        this.$refs.chart.zoomX(
+          new Date('27 Sep 2012').getTime(),
+          new Date('27 Feb 2013').getTime()
+        )
+        break
       case 'one_year':
-        this.chartOptions = {
-          xaxis: {
-            min: new Date('27 Feb 2012').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-        break;
+        this.$refs.chart.zoomX(
+          new Date('27 Feb 2012').getTime(),
+          new Date('27 Feb 2013').getTime()
+        )
+        break
       case 'ytd':
-        this.chartOptions = {
-          xaxis: {
-            min: new Date('01 Jan 2013').getTime(),
-            max: new Date('27 Feb 2013').getTime(),
-          }
-        }
-        break;
+        this.$refs.chart.zoomX(
+          new Date('01 Jan 2013').getTime(),
+          new Date('27 Feb 2013').getTime()
+        )
+        break
       case 'all':
-        this.chartOptions = {
-          xaxis: {
-            min: undefined,
-            max: undefined,
-          }
-        }
-        break;
+        this.$refs.chart.zoomX(
+          new Date('23 Jan 2012').getTime(),
+          new Date('27 Feb 2013').getTime()
+        )
+        break
       default:
-
     }
   }
 }

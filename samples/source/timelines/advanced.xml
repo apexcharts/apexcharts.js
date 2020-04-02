@@ -1,4 +1,4 @@
-<title>Advanced Timeline</title>
+<title>Advanced Overlapping Timeline</title>
 
 <style>
 #chart {
@@ -26,18 +26,12 @@ plotOptions: {
 xaxis: {
   type: 'datetime'
 },
+stroke: {
+  width: 1
+},
 fill: {
-  type: 'gradient',
-  gradient: {
-    shade: 'light',
-    type: 'vertical',
-    shadeIntensity: 0.25,
-    gradientToColors: undefined,
-    inverseColors: true,
-    opacityFrom: 1,
-    opacityTo: 1,
-    stops: [50, 0, 100, 100]
-  }
+  type: 'solid',
+  opacity: 0.6
 },
 legend: {
   position: 'top',
