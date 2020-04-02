@@ -207,7 +207,7 @@ class Exports {
     }
 
     const handleAxisRowsColumns = (s, sI) => {
-      if (columns.length) {
+      if (columns.length && sI === 0) {
         rows.push(columns.join(columnDelimiter))
       }
 
