@@ -378,6 +378,7 @@ export default class Options {
           distributed: false,
           startingShape: 'flat',
           endingShape: 'flat',
+          rangeBarOverlap: true,
           colors: {
             ranges: [],
             backgroundBarColors: [],
@@ -556,9 +557,7 @@ export default class Options {
             }
           }
         },
-        rangeBar: {
-          allowOverlap: true
-        },
+
         polarArea: {
           rings: {
             strokeWidth: 1,
