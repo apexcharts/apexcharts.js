@@ -71,11 +71,17 @@ class Graphics {
     return rect
   }
 
-  drawPolygon(polygonString, stroke = '#e1e1e1', fill = 'none') {
+  drawPolygon(
+    polygonString,
+    stroke = '#e1e1e1',
+    strokeWidth = 1,
+    fill = 'none'
+  ) {
     const w = this.w
     const polygon = w.globals.dom.Paper.polygon(polygonString).attr({
       fill,
-      stroke
+      stroke,
+      'stroke-width': strokeWidth
     })
 
     return polygon
