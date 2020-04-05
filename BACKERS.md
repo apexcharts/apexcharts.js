@@ -20,3 +20,5 @@ Backer on | Name
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=10458746" target="_blank">Xavier Trabet</a>
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=16515478" target="_blank">JoeyJoejoe Shabadoo</a>
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=21350037" target="_blank">Richard Klingler</a>
+<img src="https://avatars1.githubusercontent.com/u/382382?s=460&u=452cb1323a0ee2585d2eca4656baf17aa842edd2&v=4" width="16" height="16" /> | <a href="https://github.com/JohnRomanski" target="_blank">John Romanski</a>
+
