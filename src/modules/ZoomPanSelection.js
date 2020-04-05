@@ -290,7 +290,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
-  drawSelectionRect({ x, y, width, height, translateX, translateY }) {
+  drawSelectionRect({ x, y, width, height, translateX = 0, translateY = 0 }) {
     const w = this.w
     const zoomRect = this.zoomRect
     const selectionRect = this.selectionRect
@@ -429,6 +429,20 @@ export default class ZoomPanSelection extends Toolbar {
     if (type === 'resizing') {
       timerInterval = 30
     }
+
+    // update selection when selection rect is dragged
+    const getSelAttr = (attr) => {
+      return parseFloat(selRect.node.getAttribute(attr))
+    }
+    const draggedProps = {
+      x: getSelAttr('x'),
+      y: getSelAttr('y'),
+      width: getSelAttr('width'),
+      height: getSelAttr('height')
+    }
+    w.globals.selection = draggedProps
+    // update selection ends
+
     if (
       typeof w.config.chart.events.selection === 'function' &&
       w.globals.selectionEnabled
