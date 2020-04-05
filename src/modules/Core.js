@@ -474,6 +474,24 @@ export default class Core {
     return xyRatios
   }
 
+  updateSourceChart(targetChart) {
+    this.ctx.w.globals.selection = undefined
+    this.ctx.updateHelpers._updateOptions(
+      {
+        chart: {
+          selection: {
+            xaxis: {
+              min: targetChart.w.globals.minX,
+              max: targetChart.w.globals.maxX
+            }
+          }
+        }
+      },
+      false,
+      false
+    )
+  }
+
   setupBrushHandler() {
     const w = this.w
 
@@ -493,30 +511,14 @@ export default class Core {
         let targetChart = ApexCharts.getChartByID(target)
         targetChart.w.globals.brushSource = this.ctx
 
-        let updateSourceChart = () => {
-          this.ctx.updateHelpers._updateOptions(
-            {
-              chart: {
-                selection: {
-                  xaxis: {
-                    min: targetChart.w.globals.minX,
-                    max: targetChart.w.globals.maxX
-                  }
-                }
-              }
-            },
-            false,
-            false
-          )
-        }
         if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
           targetChart.w.config.chart.events.zoomed = () => {
-            updateSourceChart()
+            this.updateSourceChart(targetChart)
           }
         }
         if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
           targetChart.w.config.chart.events.scrolled = () => {
-            updateSourceChart()
+            this.updateSourceChart(targetChart)
           }
         }
       })
