@@ -37,7 +37,11 @@ export default class Theme {
       w.globals.colors = w.config.colors
 
       // if user provided a function in colors, we need to eval here
-      if (Array.isArray(w.config.colors) && w.config.colors.length > 0) {
+      if (
+        Array.isArray(w.config.colors) &&
+        w.config.colors.length > 0 &&
+        typeof w.config.colors[0] === 'function'
+      ) {
         w.globals.colors = w.config.series.map((s, i) => {
           let c = w.config.colors[i]
           if (!c) c = w.config.colors[0]
