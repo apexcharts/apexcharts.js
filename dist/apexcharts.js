@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.18.0
+ * ApexCharts v3.18.1
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -12707,7 +12707,7 @@
         } else {
           w.globals.colors = w.config.colors; // if user provided a function in colors, we need to eval here
 
-          if (Array.isArray(w.config.colors) && w.config.colors.length > 0) {
+          if (Array.isArray(w.config.colors) && w.config.colors.length > 0 && typeof w.config.colors[0] === 'function') {
             w.globals.colors = w.config.series.map(function (s, i) {
               var c = w.config.colors[i];
               if (!c) c = w.config.colors[0];
@@ -15874,8 +15874,10 @@
             y = _ref2.y,
             width = _ref2.width,
             height = _ref2.height,
-            translateX = _ref2.translateX,
-            translateY = _ref2.translateY;
+            _ref2$translateX = _ref2.translateX,
+            translateX = _ref2$translateX === void 0 ? 0 : _ref2$translateX,
+            _ref2$translateY = _ref2.translateY,
+            translateY = _ref2$translateY === void 0 ? 0 : _ref2$translateY;
         var w = this.w;
         var zoomRect = this.zoomRect;
         var selectionRect = this.selectionRect;
@@ -16014,7 +16016,20 @@
 
         if (type === 'resizing') {
           timerInterval = 30;
-        }
+        } // update selection when selection rect is dragged
+
+
+        var getSelAttr = function getSelAttr(attr) {
+          return parseFloat(selRect.node.getAttribute(attr));
+        };
+
+        var draggedProps = {
+          x: getSelAttr('x'),
+          y: getSelAttr('y'),
+          width: getSelAttr('width'),
+          height: getSelAttr('height')
+        };
+        w.globals.selection = draggedProps; // update selection ends
 
         if (typeof w.config.chart.events.selection === 'function' && w.globals.selectionEnabled) {
           // a small debouncer is required when resizing to avoid freezing the chart
@@ -22559,6 +22574,22 @@
         return xyRatios;
       }
     }, {
+      key: "updateSourceChart",
+      value: function updateSourceChart(targetChart) {
+        this.ctx.w.globals.selection = undefined;
+
+        this.ctx.updateHelpers._updateOptions({
+          chart: {
+            selection: {
+              xaxis: {
+                min: targetChart.w.globals.minX,
+                max: targetChart.w.globals.maxX
+              }
+            }
+          }
+        }, false, false);
+      }
+    }, {
       key: "setupBrushHandler",
       value: function setupBrushHandler() {
         var _this2 = this;
@@ -22578,28 +22609,15 @@
             var targetChart = ApexCharts.getChartByID(target);
             targetChart.w.globals.brushSource = _this2.ctx;
 
-            var updateSourceChart = function updateSourceChart() {
-              _this2.ctx.updateHelpers._updateOptions({
-                chart: {
-                  selection: {
-                    xaxis: {
-                      min: targetChart.w.globals.minX,
-                      max: targetChart.w.globals.maxX
-                    }
-                  }
-                }
-              }, false, false);
-            };
-
             if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
               targetChart.w.config.chart.events.zoomed = function () {
-                updateSourceChart();
+                _this2.updateSourceChart(targetChart);
               };
             }
 
             if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
               targetChart.w.config.chart.events.scrolled = function () {
-                updateSourceChart();
+                _this2.updateSourceChart(targetChart);
               };
             }
           });

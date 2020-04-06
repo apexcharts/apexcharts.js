@@ -18,7 +18,7 @@ dataLabels: {
   formatter: function (val) {
     return val + "%";
   },
-  offsetY: -10,
+  offsetY: -20,
   style: {
     fontSize: '12px',
     colors: ["#304758"]
