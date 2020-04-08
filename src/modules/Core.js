@@ -184,7 +184,7 @@ export default class Core {
 
     let line = new Line(this.ctx, xyRatios)
     let candlestick = new CandleStick(this.ctx, xyRatios)
-    let pie = new Pie(this.ctx)
+    this.ctx.pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
     let rangeBar = new RangeBar(this.ctx, xyRatios)
     let radar = new Radar(this.ctx)
@@ -254,7 +254,7 @@ export default class Core {
         case 'pie':
         case 'donut':
         case 'polarArea':
-          elGraph = pie.draw(gl.series)
+          elGraph = this.ctx.pie.draw(gl.series)
           break
         case 'radialBar':
           elGraph = radialBar.draw(gl.series)

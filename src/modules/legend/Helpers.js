@@ -1,4 +1,3 @@
-import Pie from '../../charts/Pie'
 import Graphics from '../Graphics'
 
 export default class Helpers {
@@ -164,9 +163,11 @@ export default class Helpers {
         let dataLabels = w.config.plotOptions.pie.donut.labels
 
         const graphics = new Graphics(this.lgCtx.ctx)
-        const pie = new Pie(this.lgCtx.ctx)
         graphics.pathMouseDown(seriesEl.members[0], null)
-        pie.printDataLabelsInner(seriesEl.members[0].node, dataLabels)
+        this.lgCtx.ctx.pie.printDataLabelsInner(
+          seriesEl.members[0].node,
+          dataLabels
+        )
       }
 
       seriesEl.fire('click')

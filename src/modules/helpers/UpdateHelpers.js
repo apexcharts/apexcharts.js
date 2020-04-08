@@ -2,7 +2,6 @@ import Defaults from '../settings/Defaults'
 import Config from '../settings/Config'
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
-import Pie from '../../charts/Pie'
 import Utils from '../../utils/Utils'
 
 export default class UpdateHelpers {
@@ -152,8 +151,7 @@ export default class UpdateHelpers {
           w.config.chart.type === 'polarArea' ||
           w.config.chart.type === 'donut'
         ) {
-          const pie = new Pie(this.ctx)
-          pie.pieClicked(seriesIndex)
+          this.ctx.pie.pieClicked(seriesIndex)
         }
       }
     }
