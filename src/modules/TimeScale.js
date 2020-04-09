@@ -300,7 +300,7 @@ class TimeScale {
 
     let unit = 'year'
 
-    if (firstVal.minDate > 1 && firstVal.minMonth > 0) {
+    if (firstVal.minDate > 1 || firstVal.minMonth > 0) {
       let remainingDays = dt.determineRemainingDaysOfYear(
         firstVal.minYear,
         firstVal.minMonth,
