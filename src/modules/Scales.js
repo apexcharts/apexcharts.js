@@ -152,44 +152,14 @@ export default class Range {
     }
   }
 
-  logarithmicScale(index, yMin, yMax, ticks) {
-    if (yMin < 0 || yMin === Number.MIN_VALUE) yMin = 0.01
+  logarithmicScale(yMax) {
+    let logs = []
 
-    const base = 10
+    let ticks = Math.ceil(Math.log10(yMax)) + 1; // Get powers of 10 up to our max, and then one more
 
-    let min = Math.log(yMin) / Math.log(base)
-    let max = Math.log(yMax) / Math.log(base)
-
-    let range = Math.abs(yMax - yMin)
-
-    let step = range / ticks
-
-    let result = []
-    let v = yMin
-
-    while (ticks >= 0) {
-      result.push(v)
-      v = v + step
-      ticks -= 1
+    for(let i = 0; i < ticks; i++) {
+      logs.push(Math.pow(10, i))
     }
-
-    const logs = result.map((niceNumber, i) => {
-      if (niceNumber <= 0) {
-        niceNumber = 0.01
-      }
-
-      // calculate adjustment factor
-      let scale = (max - min) / (yMax - yMin)
-
-      const logVal = Math.pow(base, min + scale * (niceNumber - min))
-      return (
-        Math.round(logVal / Utils.roundToBase(logVal, base)) *
-        Utils.roundToBase(logVal, base)
-      )
-    })
-
-    // Math.floor may have rounded the value to 0, revert back to 1
-    if (logs[0] === 0) logs[0] = 1
 
     return {
       result: logs,
@@ -216,12 +186,7 @@ export default class Range {
 
     if (y.logarithmic && diff > 5) {
       gl.allSeriesCollapsed = false
-      gl.yAxisScale[index] = this.logarithmicScale(
-        index,
-        minY,
-        maxY,
-        y.tickAmount ? y.tickAmount : Math.floor(Math.log10(maxY))
-      )
+      gl.yAxisScale[index] = this.logarithmicScale(maxY)
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
         // no data in the chart. Either all series collapsed or user passed a blank array
