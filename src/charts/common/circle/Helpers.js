@@ -20,7 +20,9 @@ export default class CircularChartsHelpers {
       textAnchor: 'middle',
       fontSize: yaxisConfig.labels.style.fontSize,
       fontFamily: yaxisConfig.labels.style.fontFamily,
-      foreColor: yaxisConfig.labels.style.color
+      foreColor: Array.isArray(yaxisConfig.labels.style.colors)
+        ? yaxisConfig.labels.style.colors[i]
+        : yaxisConfig.labels.style.colors
     })
 
     return yaxisLabel
