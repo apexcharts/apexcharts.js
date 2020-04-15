@@ -75,7 +75,8 @@ export default class Position {
         y1: cy,
         y2: cy
       })
-
+    }
+    if (ttCtx.ycrosshairsHidden !== null) {
       Graphics.setAttrs(ttCtx.ycrosshairsHidden, {
         y1: cy,
         y2: cy
