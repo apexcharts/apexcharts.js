@@ -465,8 +465,14 @@ export default class Toolbar {
 
       w.globals.zoomed = false
 
+      // if user has some series collapsed before hitting zoom reset button,
+      // those series should stay collapsed
+      let series = this.ctx.series.emptyCollapsedSeries(
+        Utils.clone(w.globals.initialSeries)
+      )
+
       ch.updateHelpers._updateSeries(
-        w.globals.initialSeries,
+        series,
         w.config.chart.animations.dynamicAnimation.enabled
       )
     })

@@ -1,4 +1,5 @@
 import Graphics from '../Graphics'
+import Utils from '../../utils/Utils'
 
 export default class Helpers {
   constructor(lgCtx) {
@@ -176,6 +177,8 @@ export default class Helpers {
 
   hideSeries({ seriesEl, realIndex }) {
     const w = this.w
+    const series = Utils.clone(w.config.series)
+
     if (w.globals.axisCharts) {
       let shouldNotHideYAxis = false
 
@@ -188,7 +191,7 @@ export default class Helpers {
         if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
           w.globals.ancillaryCollapsedSeries.push({
             index: realIndex,
-            data: w.config.series[realIndex].data.slice(),
+            data: series[realIndex].data.slice(),
             type: seriesEl.parentNode.className.baseVal.split('-')[1]
           })
           w.globals.ancillaryCollapsedSeriesIndices.push(realIndex)
@@ -198,7 +201,7 @@ export default class Helpers {
       if (!shouldNotHideYAxis) {
         w.globals.collapsedSeries.push({
           index: realIndex,
-          data: w.config.series[realIndex].data.slice(),
+          data: series[realIndex].data.slice(),
           type: seriesEl.parentNode.className.baseVal.split('-')[1]
         })
         w.globals.collapsedSeriesIndices.push(realIndex)
@@ -208,15 +211,14 @@ export default class Helpers {
         w.globals.risingSeries.splice(removeIndexOfRising, 1)
       }
 
-      // TODO: AVOID mutating the user's config object below
-      w.config.series[realIndex].data = []
+      series[realIndex].data = []
     } else {
       w.globals.collapsedSeries.push({
         index: realIndex,
-        data: w.config.series[realIndex]
+        data: series[realIndex]
       })
       w.globals.collapsedSeriesIndices.push(realIndex)
-      w.config.series[realIndex] = 0
+      series[realIndex] = 0
     }
 
     let seriesChildren = seriesEl.childNodes
@@ -236,7 +238,7 @@ export default class Helpers {
       w.globals.collapsedSeries.length === w.config.series.length
 
     this.lgCtx.ctx.updateHelpers._updateSeries(
-      w.config.series,
+      series,
       w.config.chart.animations.dynamicAnimation.enabled
     )
   }

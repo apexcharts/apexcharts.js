@@ -89,8 +89,7 @@ export default class Series {
   ) {
     const w = this.w
 
-    let series = w.globals.initialSeries.slice()
-    w.config.series = series
+    let series = Utils.clone(w.globals.initialSeries)
 
     w.globals.previousPaths = []
 
@@ -99,7 +98,11 @@ export default class Series {
       w.globals.ancillaryCollapsedSeries = []
       w.globals.collapsedSeriesIndices = []
       w.globals.ancillaryCollapsedSeriesIndices = []
+    } else {
+      series = this.emptyCollapsedSeries(series)
     }
+
+    w.config.series = series
 
     if (shouldUpdateChart) {
       if (shouldResetZoom) {
@@ -113,6 +116,15 @@ export default class Series {
     }
   }
 
+  emptyCollapsedSeries(series) {
+    const w = this.w
+    for (let i = 0; i < series.length; i++) {
+      if (w.globals.collapsedSeriesIndices.indexOf(i) > -1) {
+        series[i].data = []
+      }
+    }
+    return series
+  }
   toggleSeriesOnHover(e, targetElement) {
     const w = this.w
 
