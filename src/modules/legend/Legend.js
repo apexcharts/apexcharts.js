@@ -161,7 +161,9 @@ class Legend {
 
       if (w.config.legend.markers.customHTML) {
         if (Array.isArray(w.config.legend.markers.customHTML)) {
-          elMarker.innerHTML = w.config.legend.markers.customHTML[i]()
+          if (w.config.legend.markers.customHTML[i]) {
+            elMarker.innerHTML = w.config.legend.markers.customHTML[i]()
+          }
         } else {
           elMarker.innerHTML = w.config.legend.markers.customHTML()
         }
