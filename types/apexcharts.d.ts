@@ -160,7 +160,7 @@ type ApexChart = {
         title?: string
         index?: number
         class?: string
-        click?(e: any, chart?: any, options?: any): any
+        click?(chart?: any, options?: any, e?: any): any
       }[]
     }
     autoSelected?: 'zoom' | 'selection' | 'pan'
