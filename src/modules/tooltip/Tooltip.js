@@ -53,8 +53,9 @@ export default class Tooltip {
     let w = this.w
     this.xyRatios = xyRatios
     this.blxaxisTooltip = w.config.xaxis.tooltip.enabled && w.globals.axisCharts
-    this.blyaxisTooltip =
-      w.config.yaxis[0].tooltip.enabled && w.globals.axisCharts
+    this.yaxisTooltips = w.config.yaxis.map((y, i) => {
+      return y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false
+    })
     this.allTooltipSeriesGroups = []
 
     if (!w.globals.axisCharts) {
@@ -515,7 +516,10 @@ export default class Tooltip {
         xcrosshairs.classList.add('apexcharts-active')
       }
 
-      if (this.ycrosshairs !== null && this.blyaxisTooltip) {
+      const hasYAxisTooltip = this.yaxisTooltips.filter((b) => {
+        return b === true
+      })
+      if (this.ycrosshairs !== null && hasYAxisTooltip.length) {
         this.ycrosshairs.classList.add('apexcharts-active')
       }
 
@@ -554,7 +558,7 @@ export default class Tooltip {
         }
       }
 
-      if (this.blyaxisTooltip) {
+      if (this.yaxisTooltips.length) {
         for (let yt = 0; yt < w.config.yaxis.length; yt++) {
           this.axesTooltip.drawYaxisTooltipText(yt, clientY, this.xyRatios)
         }
@@ -678,7 +682,7 @@ export default class Tooltip {
     if (this.blxaxisTooltip) {
       this.xaxisTooltip.classList.remove('apexcharts-active')
     }
-    if (this.blyaxisTooltip) {
+    if (this.yaxisTooltips.length) {
       if (this.yaxisTTEls === null) {
         this.yaxisTTEls = w.globals.dom.baseEl.querySelectorAll(
           '.apexcharts-yaxistooltip'
