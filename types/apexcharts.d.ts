@@ -159,6 +159,8 @@ type ApexChart = {
         icon?: string
         title?: string
         index?: number
+        class?: string
+        click?(e: any, chart?: any, options?: any): any
       }[]
     }
     autoSelected?: 'zoom' | 'selection' | 'pan'
