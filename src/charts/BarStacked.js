@@ -81,10 +81,10 @@ class BarStacked extends Bar {
       let elSeries = this.graphics.group({
         class: `apexcharts-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
-
         rel: i + 1,
         'data:realIndex': realIndex
       })
+      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
 
       // eldatalabels
       let elDataLabelsWrap = this.graphics.group({

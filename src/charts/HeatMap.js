@@ -65,6 +65,7 @@ export default class HeatMap {
         rel: i + 1,
         'data:realIndex': i
       })
+      this.ctx.series.addCollapsedClassToSeries(elSeries, i)
 
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
