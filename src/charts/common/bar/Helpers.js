@@ -89,9 +89,14 @@ export default class Helpers {
         if (w.config.xaxis.convertedCatToNumeric) {
           xRatio = this.barCtx.initialXRatio
         }
-        if (w.globals.minXDiff && w.globals.minXDiff / xRatio > 0) {
+        if (
+          w.globals.minXDiff &&
+          w.globals.minXDiff !== 0.5 &&
+          w.globals.minXDiff / xRatio > 0
+        ) {
           xDivision = w.globals.minXDiff / xRatio
         }
+
         barWidth =
           ((xDivision / this.barCtx.seriesLen) *
             parseInt(this.barCtx.barOptions.columnWidth, 10)) /

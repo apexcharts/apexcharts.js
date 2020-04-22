@@ -65,8 +65,13 @@ export default class BarDataLabels {
       height: 0
     }
     if (w.config.dataLabels.enabled) {
+      const longestStr =
+        String(w.globals.minY).length > String(w.globals.maxY).length
+          ? w.globals.minY
+          : w.globals.maxY
+
       textRects = graphics.getTextRects(
-        w.globals.yLabelFormatters[0](w.globals.maxY),
+        w.globals.yLabelFormatters[0](longestStr),
         parseFloat(dataLabelsConfig.style.fontSize)
       )
     }
@@ -160,7 +165,9 @@ export default class BarDataLabels {
 
     let valIsNegative = this.barCtx.series[i][j] < 0
 
+    let newY = y
     if (this.barCtx.isReversed) {
+      newY = y - barHeight + (valIsNegative ? barHeight * 2 : 0)
       y = y - barHeight
     }
 
@@ -168,46 +175,47 @@ export default class BarDataLabels {
       case 'center':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight / 2 + offY
+            dataLabelsY = newY + barHeight / 2 + offY
           } else {
-            dataLabelsY = y + barHeight / 2 - offY
+            dataLabelsY = newY + barHeight / 2 - offY
           }
         } else {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
+            dataLabelsY = newY - barHeight / 2 + textRects.height / 2 + offY
           } else {
-            dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
+            dataLabelsY = newY + barHeight / 2 + textRects.height / 2 - offY
           }
         }
         break
       case 'bottom':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight + offY
+            dataLabelsY = newY + barHeight + offY
           } else {
-            dataLabelsY = y + barHeight - offY
+            dataLabelsY = newY + barHeight - offY
           }
         } else {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
+            dataLabelsY =
+              newY - barHeight + textRects.height + strokeWidth + offY
           } else {
             dataLabelsY =
-              y + barHeight - textRects.height / 2 + strokeWidth - offY
+              newY + barHeight - textRects.height / 2 + strokeWidth - offY
           }
         }
         break
       case 'top':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = y + offY
+            dataLabelsY = newY + offY
           } else {
-            dataLabelsY = y - offY
+            dataLabelsY = newY - offY
           }
         } else {
           if (valIsNegative) {
-            dataLabelsY = y - textRects.height / 2 - offY
+            dataLabelsY = newY - textRects.height / 2 - offY
           } else {
-            dataLabelsY = y + textRects.height + offY
+            dataLabelsY = newY + textRects.height + offY
           }
         }
         break
@@ -262,14 +270,14 @@ export default class BarDataLabels {
 
     let newX = x
     if (this.barCtx.isReversed) {
-      newX = x + barWidth
+      newX = x + barWidth - (valIsNegative ? barWidth * 2 : 0)
       x = w.globals.gridWidth - barWidth
     }
 
     switch (barDataLabelsConfig.position) {
       case 'center':
         if (valIsNegative) {
-          dataLabelsX = newX - barWidth / 2 - offX
+          dataLabelsX = newX + barWidth / 2 - offX
         } else {
           dataLabelsX = newX - barWidth / 2 + offX
         }
