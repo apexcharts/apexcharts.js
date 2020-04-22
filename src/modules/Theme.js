@@ -114,7 +114,7 @@ export default class Theme {
 
     if (w.config.plotOptions.radar.polygons.fill.colors === undefined) {
       w.globals.radarPolygons.fill.colors = [
-        w.config.theme.mode === 'dark' ? '#202D48' : '#fff'
+        w.config.theme.mode === 'dark' ? '#424242' : '#fff'
       ]
     } else {
       w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors.slice()
