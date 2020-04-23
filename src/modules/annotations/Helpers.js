@@ -68,7 +68,7 @@ export default class Helpers {
     const x1 = coords.left - elGridRect.left - pleft
     const y1 = coords.top - elGridRect.top - ptop
     const elRect = this.annoCtx.graphics.drawRect(
-      x1,
+      x1 - w.globals.barPadForNumericAxis,
       y1,
       coords.width + pleft + pright,
       coords.height + ptop + pbottom,

@@ -443,7 +443,7 @@ export default class ApexCharts {
     let newSeries = me.w.config.series.slice()
 
     for (let i = 0; i < newSeries.length; i++) {
-      if (typeof newData[i] !== 'undefined') {
+      if (newData[i] !== null && typeof newData[i] !== 'undefined') {
         for (let j = 0; j < newData[i].data.length; j++) {
           newSeries[i].data.push(newData[i].data[j])
         }

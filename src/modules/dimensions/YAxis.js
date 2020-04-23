@@ -23,15 +23,20 @@ export default class DimYAxis {
     const axesUtils = new AxesUtils(this.dCtx.ctx)
 
     w.config.yaxis.map((yaxe, index) => {
+      const yS = w.globals.yAxisScale[index]
       if (
         !axesUtils.isYAxisHidden(index) &&
         yaxe.labels.show &&
-        w.globals.yAxisScale[index].result.length
+        yS.result.length
       ) {
         let lbFormatter = w.globals.yLabelFormatters[index]
+        const longestStr =
+          String(yS.niceMin).length > String(yS.niceMax).length
+            ? yS.niceMin
+            : yS.niceMax
 
         // the second parameter -1 is the index of tick which user can use in the formatter
-        let val = lbFormatter(w.globals.yAxisScale[index].niceMax, {
+        let val = lbFormatter(longestStr, {
           seriesIndex: index,
           dataPointIndex: -1,
           w
@@ -40,7 +45,7 @@ export default class DimYAxis {
 
         // if user has specified a custom formatter, and the result is null or empty, we need to discard the formatter and take the value as it is.
         if (typeof val === 'undefined' || val.length === 0) {
-          val = w.globals.yAxisScale[index].niceMax
+          val = longestStr
         }
 
         if (w.globals.isBarHorizontal) {

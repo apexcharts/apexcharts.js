@@ -178,13 +178,19 @@ class Grid {
 
   _drawGridLine({ x1, y1, x2, y2, parent }) {
     const w = this.w
+
+    const isHorzLine = parent.node.classList.contains(
+      'apexcharts-gridlines-horizontal'
+    )
+
     let strokeDashArray = w.config.grid.strokeDashArray
+    const offX = w.globals.barPadForNumericAxis
 
     const graphics = new Graphics(this)
     let line = graphics.drawLine(
-      x1,
+      x1 - (isHorzLine ? offX : 0),
       y1,
-      x2,
+      x2 + (isHorzLine ? offX : 0),
       y2,
       w.config.grid.borderColor,
       strokeDashArray
@@ -196,15 +202,16 @@ class Grid {
   _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
+    const offX = w.globals.barPadForNumericAxis
 
     if (type === 'column' && w.config.xaxis.type === 'datetime') return
 
     const color = w.config.grid[type].colors[c]
 
     let rect = graphics.drawRect(
-      x1,
+      x1 - (type === 'row' ? offX : 0),
       y1,
-      x2,
+      x2 + (type === 'row' ? offX * 2 : 0),
       y2,
       0,
       color,

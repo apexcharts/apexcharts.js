@@ -91,12 +91,13 @@ class Crosshairs {
     let graphics = new Graphics(this.ctx)
 
     let crosshair = w.config.yaxis[0].crosshairs
+    const offX = w.globals.barPadForNumericAxis
 
     if (w.config.yaxis[0].crosshairs.show) {
       let ycrosshairs = graphics.drawLine(
+        -offX,
         0,
-        0,
-        w.globals.gridWidth,
+        w.globals.gridWidth + offX,
         0,
         crosshair.stroke.color,
         crosshair.stroke.dashArray,
@@ -111,9 +112,9 @@ class Crosshairs {
 
     // draw an invisible crosshair to help in positioning the yaxis tooltip
     let ycrosshairsHidden = graphics.drawLine(
+      -offX,
       0,
-      0,
-      w.globals.gridWidth,
+      w.globals.gridWidth + offX,
       0,
       crosshair.stroke.color,
       0,

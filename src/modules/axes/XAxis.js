@@ -200,16 +200,11 @@ export default class XAxis {
     }
 
     if (w.config.xaxis.axisBorder.show) {
-      let lineCorrection = 0
-      if (w.config.chart.type === 'bar' && w.globals.isXNumeric) {
-        lineCorrection = lineCorrection - 15
-      }
+      const offX = w.globals.barPadForNumericAxis
       let elHorzLine = graphics.drawLine(
-        w.globals.padHorizontal +
-          lineCorrection +
-          w.config.xaxis.axisBorder.offsetX,
+        w.globals.padHorizontal + w.config.xaxis.axisBorder.offsetX - offX,
         this.offY,
-        this.xaxisBorderWidth,
+        this.xaxisBorderWidth + offX,
         this.offY,
         w.config.xaxis.axisBorder.color,
         0,
