@@ -309,6 +309,7 @@ type ApexAnnotations = {
 type AnnotationLabel = {
   borderColor?: string
   borderWidth?: number
+  borderRadius?: number
   text?: string
   textAnchor?: string
   offsetX?: number

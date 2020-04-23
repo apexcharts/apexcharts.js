@@ -72,7 +72,7 @@ export default class Helpers {
       y1,
       coords.width + pleft + pright,
       coords.height + ptop + pbottom,
-      0,
+      anno.label.borderRadius,
       anno.label.style.background,
       1,
       anno.label.borderWidth,

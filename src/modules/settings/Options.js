@@ -98,6 +98,7 @@ export default class Options {
       label: {
         borderColor: '#c2c2c2',
         borderWidth: 1,
+        borderRadius: 2,
         text: undefined,
         textAnchor: 'middle',
         offsetX: 0,
@@ -147,6 +148,7 @@ export default class Options {
       label: {
         borderColor: '#c2c2c2',
         borderWidth: 1,
+        borderRadius: 2,
         text: undefined,
         textAnchor: 'end',
         position: 'right',
@@ -182,6 +184,7 @@ export default class Options {
       label: {
         borderColor: '#c2c2c2',
         borderWidth: 1,
+        borderRadius: 2,
         text: undefined,
         textAnchor: 'middle',
         orientation: 'vertical',
