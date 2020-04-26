@@ -128,10 +128,9 @@ export default class ApexCharts {
     gl.comboCharts = combo.comboCharts
     gl.comboBarCount = combo.comboBarCount
 
-    if (
-      ser.length === 0 ||
-      (ser.length === 1 && ser[0].data && ser[0].data.length === 0)
-    ) {
+    const allSeriesAreEmpty = ser.every(s => s.data && s.data.length === 0)
+
+    if (ser.length === 0 || allSeriesAreEmpty) {
       this.series.handleNoData()
     }
 
@@ -153,7 +152,11 @@ export default class ApexCharts {
 
     // legend is calculated here before coreCalculations because it affects the plottable area
     // if there is some data to show or user collapsed all series, then proceed drawing legend
-    if (!gl.noData || gl.collapsedSeries.length === gl.series.length) {
+    if (
+      !gl.noData ||
+      gl.collapsedSeries.length === gl.series.length ||
+      w.config.legend.showForSingleSeries
+    ) {
       this.legend.init()
     }
 
