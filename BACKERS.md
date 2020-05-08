@@ -2,7 +2,7 @@
 
 ## Our Backers and supporters
 
-Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](patreon.com/junedchhipa)!
+Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](https://www.patreon.com/junedchhipa)!
 
 
 ### Backers
