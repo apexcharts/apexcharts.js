@@ -361,6 +361,11 @@ export default class ApexCharts {
     overwriteInitialConfig = true
   ) {
     const w = this.w
+
+    // when called externally, clear some global variables
+    // fixes apexcharts.js#1488
+    w.globals.selection = undefined
+
     if (options.series) {
       this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {

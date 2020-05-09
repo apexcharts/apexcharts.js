@@ -133,6 +133,7 @@ export default class Globals {
       yAxisSameScaleIndices: [],
       maxValsInArrayIndex: 0,
       radialSize: 0,
+      selection: undefined,
       zoomEnabled:
         config.chart.toolbar.autoSelected === 'zoom' &&
         config.chart.toolbar.tools.zoom &&
