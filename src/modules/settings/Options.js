@@ -511,6 +511,7 @@ export default class Options {
           customScale: 1,
           offsetX: 0,
           offsetY: 0,
+          startAngle: 0,
           expandOnClick: true,
           dataLabels: {
             // These are the percentage values which are displayed on slice
