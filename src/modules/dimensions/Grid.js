@@ -139,6 +139,11 @@ export default class DimGrid {
             parseInt(w.config.yaxis[index].labels.style.fontSize, 10) / 1.2 -
             12
         }
+
+        // fixes apexcharts.js#1599
+        if (w.globals.translateX < 2) {
+          w.globals.translateX = 2
+        }
       }
     })
   }
