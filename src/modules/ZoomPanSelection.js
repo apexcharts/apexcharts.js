@@ -115,12 +115,14 @@ export default class ZoomPanSelection extends Toolbar {
       ? w.config.chart.zoom.type
       : w.config.chart.selection.type
 
+    const autoSelected = w.config.chart.toolbar.autoSelected
+
     if (e.shiftKey) {
       this.shiftWasPressed = true
-      toolbar.enableZoomPanFromToolbar('pan')
+      toolbar.enableZoomPanFromToolbar(autoSelected === 'pan' ? 'zoom' : 'pan')
     } else {
       if (this.shiftWasPressed) {
-        toolbar.enableZoomPanFromToolbar('zoom')
+        toolbar.enableZoomPanFromToolbar(autoSelected)
         this.shiftWasPressed = false
       }
     }
@@ -356,11 +358,11 @@ export default class ZoomPanSelection extends Toolbar {
 
     let startX = me.startX - 1
     let startY = me.startY
+    let inversedX = false
+    let inversedY = false
 
     let selectionWidth = me.clientX - gridRectDim.left - startX
     let selectionHeight = me.clientY - gridRectDim.top - startY
-    let translateX = 0
-    let translateY = 0
 
     let selectionRect = {}
 
@@ -374,42 +376,36 @@ export default class ZoomPanSelection extends Toolbar {
 
     // inverse selection X
     if (startX > me.clientX - gridRectDim.left) {
+      inversedX = true
       selectionWidth = Math.abs(selectionWidth)
-      translateX = -selectionWidth
     }
 
     // inverse selection Y
     if (startY > me.clientY - gridRectDim.top) {
+      inversedY = true
       selectionHeight = Math.abs(selectionHeight)
-      translateY = -selectionHeight
     }
 
     if (zoomtype === 'x') {
       selectionRect = {
-        x: startX,
+        x: inversedX ? startX - selectionWidth : startX,
         y: 0,
         width: selectionWidth,
-        height: w.globals.gridHeight,
-        translateX,
-        translateY: 0
+        height: w.globals.gridHeight
       }
     } else if (zoomtype === 'y') {
       selectionRect = {
         x: 0,
-        y: startY,
+        y: inversedY ? startY - selectionHeight : startY,
         width: w.globals.gridWidth,
-        height: selectionHeight,
-        translateX: 0,
-        translateY
+        height: selectionHeight
       }
     } else {
       selectionRect = {
-        x: startX,
-        y: startY,
+        x: inversedX ? startX - selectionWidth : startX,
+        y: inversedY ? startY - selectionHeight : startY,
         width: selectionWidth,
-        height: selectionHeight,
-        translateX,
-        translateY
+        height: selectionHeight
       }
     }
 
