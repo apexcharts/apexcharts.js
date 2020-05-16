@@ -128,7 +128,7 @@ export default class ApexCharts {
     gl.comboCharts = combo.comboCharts
     gl.comboBarCount = combo.comboBarCount
 
-    const allSeriesAreEmpty = ser.every(s => s.data && s.data.length === 0)
+    const allSeriesAreEmpty = ser.every((s) => s.data && s.data.length === 0)
 
     if (ser.length === 0 || allSeriesAreEmpty) {
       this.series.handleNoData()
