@@ -347,8 +347,6 @@ export default class Core {
       transform: 'translate(' + tX + ', ' + tY + ')'
     }
     Graphics.setAttrs(gl.dom.elGraphical.node, scalingAttrs)
-
-    gl.x2SpaceAvailable = gl.svgWidth - gl.dom.elGraphical.x() - gl.gridWidth
   }
 
   // To prevent extra spacings in the bottom of the chart, we need to recalculate the height for pie/donut/radialbar charts

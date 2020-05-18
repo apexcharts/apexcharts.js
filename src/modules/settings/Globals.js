@@ -35,7 +35,6 @@ export default class Globals {
     gl.xaxisLabelsCount = 0
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
-    gl.x2SpaceAvailable = 0
     gl.isDataXYZ = false
     gl.isMultiLineX = false
     gl.isMultipleYAxis = false
@@ -178,7 +177,6 @@ export default class Globals {
       // format is - [[x,y],[x,y]... [x,y]]
       dataLabelsRects: [], // store the positions of datalabels to prevent collision
       lastDrawnDataLabelsIndexes: [],
-      x2SpaceAvailable: 0, // space available on the right side after grid area
       hasNullValues: false, // bool: whether series contains null values
       easing: null, // function: animation effect to apply
       zoomed: false, // whether user has zoomed or not
