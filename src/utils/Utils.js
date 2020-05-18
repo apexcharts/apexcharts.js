@@ -94,6 +94,9 @@ class Utils {
         cloneResult[i] = this.clone(source[i])
       }
       return cloneResult
+    } else if (Object.prototype.toString.call(source) === '[object Null]') {
+      // fixes an issue where null values were converted to {}
+      return null
     } else if (typeof source === 'object') {
       let cloneResult = {}
       for (let prop in source) {
