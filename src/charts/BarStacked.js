@@ -234,7 +234,8 @@ class BarStacked extends Bar {
 
       barWidth = xDivision
 
-      if (w.globals.isXNumeric) {
+      if (w.globals.isXNumeric && w.globals.dataPoints > 1) {
+        // the check (w.globals.dataPoints > 1) fixes apexcharts.js #1617
         xDivision = w.globals.minXDiff / this.xRatio
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
       } else {

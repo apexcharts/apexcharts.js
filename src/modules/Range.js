@@ -432,6 +432,7 @@ class Range {
           }
         })
         if (gl.dataPoints === 1 && gl.minXDiff === Number.MAX_VALUE) {
+          // fixes apexcharts.js #1221
           gl.minXDiff = 0.5
         }
       })
