@@ -32,11 +32,15 @@ export default class Utils {
     const seriesBound = elGrid.getBoundingClientRect()
 
     const hasBars = this.hasBars()
-    if (w.globals.comboCharts || hasBars) {
+
+    if (
+      (w.globals.comboCharts || hasBars) &&
+      !w.config.xaxis.convertedCatToNumeric
+    ) {
       xDivisor = hoverWidth / w.globals.dataPoints
     }
 
-    let hoverX = clientX - seriesBound.left
+    let hoverX = clientX - seriesBound.left - w.globals.barPadForNumericAxis
     let hoverY = clientY - seriesBound.top
 
     const notInRect =
@@ -60,7 +64,7 @@ export default class Utils {
 
     let j = Math.round(hoverX / xDivisor)
 
-    if (hasBars) {
+    if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
       j = Math.ceil(hoverX / xDivisor)
       j = j - 1
     }
