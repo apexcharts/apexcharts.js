@@ -217,9 +217,8 @@ class Pie {
       startAngle = endAngle
       prevStartAngle = prevEndAngle
 
-      endAngle = (startAngle + sectorAngleArr[i]) % this.fullAngle
-      prevEndAngle =
-        (prevStartAngle + this.prevSectorAngleArr[i]) % this.fullAngle
+      endAngle = startAngle + sectorAngleArr[i]
+      prevEndAngle = prevStartAngle + this.prevSectorAngleArr[i]
 
       const angle =
         endAngle < startAngle
