@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.19.1
+ * ApexCharts v3.19.2
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -19071,13 +19071,13 @@
 
       this.ctx = ctx;
       this.w = ctx.w;
+      var w = this.w;
       this.chartType = this.w.config.chart.type;
       this.initialAnim = this.w.config.chart.animations.enabled;
       this.dynamicAnim = this.initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
       this.animBeginArr = [0];
       this.animDur = 0;
       this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
-      var w = this.w;
       this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
       this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.gridHeight : w.globals.gridWidth;
       this.centerY = this.defaultSize / 2;
@@ -20329,7 +20329,6 @@
       if (!_this.trackStartAngle) _this.trackStartAngle = _this.startAngle;
       if (!_this.trackEndAngle) _this.trackEndAngle = _this.endAngle;
       if (_this.endAngle === 360) _this.endAngle = 359.99;
-      _this.fullAngle = 360 - w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle;
       _this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10);
       return _this;
     }
