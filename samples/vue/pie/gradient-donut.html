@@ -80,6 +80,11 @@
               width: 380,
               type: 'donut',
             },
+            plotOptions: {
+              pie: {
+                startAngle: -45
+              }
+            },
             dataLabels: {
               enabled: false
             },
@@ -90,6 +95,9 @@
               formatter: function(val, opts) {
                 return val + " - " + opts.w.globals.series[opts.seriesIndex]
               }
+            },
+            title: {
+              text: 'Gradient Donut with custom Start-angle'
             },
             responsive: [{
               breakpoint: 480,
