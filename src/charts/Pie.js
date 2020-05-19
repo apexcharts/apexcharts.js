@@ -14,6 +14,7 @@ class Pie {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
+    const w = this.w
 
     this.chartType = this.w.config.chart.type
 
@@ -26,8 +27,6 @@ class Pie {
     this.animDur = 0
 
     this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels
-
-    const w = this.w
 
     this.lineColorArr =
       w.globals.stroke.colors !== undefined
