@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.19.0
+ * ApexCharts v3.19.1
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -308,6 +308,9 @@
           }
 
           return cloneResult;
+        } else if (Object.prototype.toString.call(source) === '[object Null]') {
+          // fixes an issue where null values were converted to {}
+          return null;
         } else if (_typeof(source) === 'object') {
           var _cloneResult = {};
 
@@ -3331,6 +3334,7 @@
               customScale: 1,
               offsetX: 0,
               offsetY: 0,
+              startAngle: 0,
               expandOnClick: true,
               dataLabels: {
                 // These are the percentage values which are displayed on slice
@@ -3531,7 +3535,7 @@
             formatter: undefined,
             tooltipHoverFormatter: undefined,
             offsetX: -20,
-            offsetY: 0,
+            offsetY: 4,
             labels: {
               colors: undefined,
               useSeriesColors: false
@@ -3550,7 +3554,7 @@
             },
             itemMargin: {
               horizontal: 5,
-              vertical: 0
+              vertical: 2
             },
             onItemClick: {
               toggleDataSeries: true
@@ -8499,7 +8503,6 @@
         gl.xaxisLabelsCount = 0;
         gl.skipLastTimelinelabel = false;
         gl.skipFirstTimelinelabel = false;
-        gl.x2SpaceAvailable = 0;
         gl.isDataXYZ = false;
         gl.isMultiLineX = false;
         gl.isMultipleYAxis = false;
@@ -8615,6 +8618,7 @@
           yAxisSameScaleIndices: [],
           maxValsInArrayIndex: 0,
           radialSize: 0,
+          selection: undefined,
           zoomEnabled: config.chart.toolbar.autoSelected === 'zoom' && config.chart.toolbar.tools.zoom && config.chart.zoom.enabled,
           panEnabled: config.chart.toolbar.autoSelected === 'pan' && config.chart.toolbar.tools.pan,
           selectionEnabled: config.chart.toolbar.autoSelected === 'selection' && config.chart.toolbar.tools.selection,
@@ -8672,8 +8676,6 @@
           dataLabelsRects: [],
           // store the positions of datalabels to prevent collision
           lastDrawnDataLabelsIndexes: [],
-          x2SpaceAvailable: 0,
-          // space available on the right side after grid area
           hasNullValues: false,
           // bool: whether series contains null values
           easing: null,
@@ -11838,6 +11840,7 @@
             });
 
             if (gl.dataPoints === 1 && gl.minXDiff === Number.MAX_VALUE) {
+              // fixes apexcharts.js #1221
               gl.minXDiff = 0.5;
             }
           });
@@ -13568,6 +13571,11 @@
           if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1 && !yaxe.floating && !axesUtils.isYAxisHidden(index)) {
             if (yaxe.opposite) {
               w.globals.translateX = w.globals.translateX - (yaxisLabelCoords[index].width + yTitleCoords[index].width) - parseInt(w.config.yaxis[index].labels.style.fontSize, 10) / 1.2 - 12;
+            } // fixes apexcharts.js#1599
+
+
+            if (w.globals.translateX < 2) {
+              w.globals.translateX = 2;
             }
           }
         });
@@ -14953,13 +14961,14 @@
         var me = this;
         var toolbar = this.ctx.toolbar;
         var zoomtype = w.globals.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
+        var autoSelected = w.config.chart.toolbar.autoSelected;
 
         if (e.shiftKey) {
           this.shiftWasPressed = true;
-          toolbar.enableZoomPanFromToolbar('pan');
+          toolbar.enableZoomPanFromToolbar(autoSelected === 'pan' ? 'zoom' : 'pan');
         } else {
           if (this.shiftWasPressed) {
-            toolbar.enableZoomPanFromToolbar('zoom');
+            toolbar.enableZoomPanFromToolbar(autoSelected);
             this.shiftWasPressed = false;
           }
         }
@@ -15171,10 +15180,10 @@
         var gridRectDim = this.gridRect.getBoundingClientRect();
         var startX = me.startX - 1;
         var startY = me.startY;
+        var inversedX = false;
+        var inversedY = false;
         var selectionWidth = me.clientX - gridRectDim.left - startX;
         var selectionHeight = me.clientY - gridRectDim.top - startY;
-        var translateX = 0;
-        var translateY = 0;
         var selectionRect = {};
 
         if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
@@ -15187,42 +15196,36 @@
 
 
         if (startX > me.clientX - gridRectDim.left) {
+          inversedX = true;
           selectionWidth = Math.abs(selectionWidth);
-          translateX = -selectionWidth;
         } // inverse selection Y
 
 
         if (startY > me.clientY - gridRectDim.top) {
+          inversedY = true;
           selectionHeight = Math.abs(selectionHeight);
-          translateY = -selectionHeight;
         }
 
         if (zoomtype === 'x') {
           selectionRect = {
-            x: startX,
+            x: inversedX ? startX - selectionWidth : startX,
             y: 0,
             width: selectionWidth,
-            height: w.globals.gridHeight,
-            translateX: translateX,
-            translateY: 0
+            height: w.globals.gridHeight
           };
         } else if (zoomtype === 'y') {
           selectionRect = {
             x: 0,
-            y: startY,
+            y: inversedY ? startY - selectionHeight : startY,
             width: w.globals.gridWidth,
-            height: selectionHeight,
-            translateX: 0,
-            translateY: translateY
+            height: selectionHeight
           };
         } else {
           selectionRect = {
-            x: startX,
-            y: startY,
+            x: inversedX ? startX - selectionWidth : startX,
+            y: inversedY ? startY - selectionHeight : startY,
             width: selectionWidth,
-            height: selectionHeight,
-            translateX: translateX,
-            translateY: translateY
+            height: selectionHeight
           };
         }
 
@@ -15572,11 +15575,11 @@
         var seriesBound = elGrid.getBoundingClientRect();
         var hasBars = this.hasBars();
 
-        if (w.globals.comboCharts || hasBars) {
+        if ((w.globals.comboCharts || hasBars) && !w.config.xaxis.convertedCatToNumeric) {
           xDivisor = hoverWidth / w.globals.dataPoints;
         }
 
-        var hoverX = clientX - seriesBound.left;
+        var hoverX = clientX - seriesBound.left - w.globals.barPadForNumericAxis;
         var hoverY = clientY - seriesBound.top;
         var notInRect = hoverX < 0 || hoverY < 0 || hoverX > w.globals.gridWidth || hoverY > w.globals.gridHeight;
 
@@ -15595,7 +15598,7 @@
 
         var j = Math.round(hoverX / xDivisor);
 
-        if (hasBars) {
+        if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
           j = Math.ceil(hoverX / xDivisor);
           j = j - 1;
         }
@@ -18267,7 +18270,8 @@
           xDivision = w.globals.gridWidth / w.globals.dataPoints;
           barWidth = xDivision;
 
-          if (w.globals.isXNumeric) {
+          if (w.globals.isXNumeric && w.globals.dataPoints > 1) {
+            // the check (w.globals.dataPoints > 1) fixes apexcharts.js #1617
             xDivision = w.globals.minXDiff / this.xRatio;
             barWidth = xDivision * parseInt(this.barOptions.columnWidth, 10) / 100;
           } else {
@@ -19210,10 +19214,11 @@
         var g = graphics.group({
           class: 'apexcharts-slices'
         });
-        var startAngle = 0;
-        var prevStartAngle = 0;
-        var endAngle = 0;
-        var prevEndAngle = 0;
+        var initialAngle = w.config.plotOptions.pie.startAngle % this.fullAngle;
+        var startAngle = initialAngle;
+        var prevStartAngle = initialAngle;
+        var endAngle = initialAngle;
+        var prevEndAngle = initialAngle;
         this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0;
 
         for (var i = 0; i < sectorAngleArr.length; i++) {
@@ -19228,7 +19233,7 @@
           prevStartAngle = prevEndAngle;
           endAngle = startAngle + sectorAngleArr[i];
           prevEndAngle = prevStartAngle + this.prevSectorAngleArr[i];
-          var angle = endAngle - startAngle;
+          var angle = endAngle < startAngle ? this.fullAngle + endAngle - startAngle : endAngle - startAngle;
           var pathFill = fill.fillPath({
             seriesNumber: i,
             size: this.sliceSizes[i],
@@ -19267,9 +19272,9 @@
           };
 
           if (this.chartType === 'pie' || this.chartType === 'polarArea') {
-            labelPosition = Utils.polarToCartesian(this.centerX, this.centerY, w.globals.radialSize / 1.25 + w.config.plotOptions.pie.dataLabels.offset, startAngle + (endAngle - startAngle) / 2);
+            labelPosition = Utils.polarToCartesian(this.centerX, this.centerY, w.globals.radialSize / 1.25 + w.config.plotOptions.pie.dataLabels.offset, (startAngle + angle / 2) % this.fullAngle);
           } else if (this.chartType === 'donut') {
-            labelPosition = Utils.polarToCartesian(this.centerX, this.centerY, (w.globals.radialSize + this.donutSize) / 2 + w.config.plotOptions.pie.dataLabels.offset, startAngle + (endAngle - startAngle) / 2);
+            labelPosition = Utils.polarToCartesian(this.centerX, this.centerY, (w.globals.radialSize + this.donutSize) / 2 + w.config.plotOptions.pie.dataLabels.offset, (startAngle + angle / 2) % this.fullAngle);
           }
 
           elPieArc.add(elPath); // Animation code starts
@@ -19277,7 +19282,7 @@
           var dur = 0;
 
           if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-            dur = (endAngle - startAngle) / this.fullAngle * w.config.chart.animations.speed;
+            dur = angle / this.fullAngle * w.config.chart.animations.speed;
             if (dur === 0) dur = 1;
             this.animDur = dur + this.animDur;
             this.animBeginArr.push(this.animDur);
@@ -19318,7 +19323,7 @@
           if (w.config.dataLabels.enabled) {
             var xPos = labelPosition.x;
             var yPos = labelPosition.y;
-            var text = 100 * (endAngle - startAngle) / 360 + '%';
+            var text = 100 * angle / this.fullAngle + '%';
 
             if (angle !== 0 && w.config.plotOptions.pie.dataLabels.minAngleToShowLabel < sectorAngleArr[i]) {
               var formatter = w.config.dataLabels.formatter;
@@ -19382,14 +19387,14 @@
       value: function animatePaths(el, opts) {
         var w = this.w;
         var me = this;
-        var angle = opts.endAngle - opts.startAngle;
+        var angle = opts.endAngle < opts.startAngle ? this.fullAngle + opts.endAngle - opts.startAngle : opts.endAngle - opts.startAngle;
         var prevAngle = angle;
         var fromStartAngle = opts.startAngle;
         var toStartAngle = opts.startAngle;
 
         if (opts.prevStartAngle !== undefined && opts.prevEndAngle !== undefined) {
           fromStartAngle = opts.prevEndAngle;
-          prevAngle = opts.prevEndAngle - opts.prevStartAngle;
+          prevAngle = opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle;
         }
 
         if (opts.i === w.config.series.length - 1) {
@@ -19421,7 +19426,7 @@
 
         var currAngle = angle;
         var startAngle = toStartAngle;
-        var fromAngle = fromStartAngle - toStartAngle;
+        var fromAngle = fromStartAngle < toStartAngle ? this.fullAngle + fromStartAngle - toStartAngle : fromStartAngle - toStartAngle;
 
         if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
           // to avoid flicker when updating, set prev path first and then animate from there
@@ -19429,7 +19434,7 @@
             path = me.getPiePath({
               me: me,
               startAngle: opts.prevStartAngle,
-              angle: opts.prevEndAngle - opts.prevStartAngle,
+              angle: opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle,
               size: size
             });
             el.attr({
@@ -19554,8 +19559,13 @@
         var path;
         var startDeg = startAngle;
         var startRadians = Math.PI * (startDeg - 90) / 180;
-        var endDeg = angle + startAngle;
-        if (Math.ceil(endDeg) >= 360) endDeg = 359.99;
+        var endDeg = angle + startAngle; // prevent overlap
+
+        if (Math.ceil(endDeg) >= this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle) {
+          endDeg = this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle - 0.01;
+        }
+
+        if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle;
         var endRadians = Math.PI * (endDeg - 90) / 180;
         var x1 = me.centerX + size * Math.cos(startRadians);
         var y1 = me.centerY + size * Math.sin(startRadians);
@@ -22508,7 +22518,6 @@
           transform: 'translate(' + tX + ', ' + tY + ')'
         };
         Graphics.setAttrs(gl.dom.elGraphical.node, scalingAttrs);
-        gl.x2SpaceAvailable = gl.svgWidth - gl.dom.elGraphical.x() - gl.gridWidth;
       } // To prevent extra spacings in the bottom of the chart, we need to recalculate the height for pie/donut/radialbar charts
 
     }, {
@@ -22678,15 +22687,19 @@
                 yaxis = scale.autoScaleY(targetChart, yaxis, e);
               }
 
+              var multipleYaxis = targetChart.w.config.yaxis.reduce(function (acc, curr, index) {
+                return [].concat(_toConsumableArray(acc), [_objectSpread2({}, targetChart.w.config.yaxis[index], {
+                  min: yaxis[0].min,
+                  max: yaxis[0].max
+                })]);
+              }, []);
+
               targetChart.ctx.updateHelpers._updateOptions({
                 xaxis: {
                   min: e.xaxis.min,
                   max: e.xaxis.max
                 },
-                yaxis: _objectSpread2({}, targetChart.w.config.yaxis[0], {
-                  min: yaxis[0].min,
-                  max: yaxis[0].max
-                })
+                yaxis: multipleYaxis
               }, false, false, false, false);
             });
           };
@@ -28981,8 +28994,11 @@
         var combo = CoreUtils.checkComboSeries(ser);
         gl.comboCharts = combo.comboCharts;
         gl.comboBarCount = combo.comboBarCount;
+        var allSeriesAreEmpty = ser.every(function (s) {
+          return s.data && s.data.length === 0;
+        });
 
-        if (ser.length === 0 || ser.length === 1 && ser[0].data && ser[0].data.length === 0) {
+        if (ser.length === 0 || allSeriesAreEmpty) {
           this.series.handleNoData();
         }
 
@@ -28999,7 +29015,7 @@
         this.titleSubtitle.draw(); // legend is calculated here before coreCalculations because it affects the plottable area
         // if there is some data to show or user collapsed all series, then proceed drawing legend
 
-        if (!gl.noData || gl.collapsedSeries.length === gl.series.length) {
+        if (!gl.noData || gl.collapsedSeries.length === gl.series.length || w.config.legend.showForSingleSeries) {
           this.legend.init();
         } // check whether in multiple series, all series share the same X
 
@@ -29190,7 +29206,10 @@
         var animate = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
         var updateSyncedCharts = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
         var overwriteInitialConfig = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
-        var w = this.w;
+        var w = this.w; // when called externally, clear some global variables
+        // fixes apexcharts.js#1488
+
+        w.globals.selection = undefined;
 
         if (options.series) {
           this.series.resetSeries(false, true, false);
