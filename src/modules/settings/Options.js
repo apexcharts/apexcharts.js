@@ -702,7 +702,7 @@ export default class Options {
         formatter: undefined,
         tooltipHoverFormatter: undefined,
         offsetX: -20,
-        offsetY: 0,
+        offsetY: 4,
         labels: {
           colors: undefined,
           useSeriesColors: false
@@ -721,7 +721,7 @@ export default class Options {
         },
         itemMargin: {
           horizontal: 5,
-          vertical: 0
+          vertical: 2
         },
         onItemClick: {
           toggleDataSeries: true
