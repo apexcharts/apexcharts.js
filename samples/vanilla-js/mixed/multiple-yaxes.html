@@ -9,18 +9,20 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
-      .apexcharts-tooltip-title {
-        display: none;
-      }
-      #chart .apexcharts-tooltip {
-        display: flex;
-        border: 0;
-        box-shadow: none;
-      }
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    .apexcharts-tooltip-title {
+      display: none;
+    }
+    #chart .apexcharts-tooltip {
+      display: flex;
+      border: 0;
+      box-shadow: none;
+    }
+      
     </style>
 
     <script>
@@ -38,32 +40,33 @@
         )
     </script>
 
+    
     <script src="../../../dist/apexcharts.js"></script>
+    
+
+    
   </head>
 
   <body>
-    <div id="chart"></div>
+     <div id="chart"></div>
 
     <script>
-      var options = {
-        series: [
-          {
-            name: 'Income',
-            type: 'column',
-            data: [1.4, 2, 2.5, 1.5, 2.5, 2.8, 3.8, 4.6]
-          },
-          {
-            name: 'Cashflow',
-            type: 'column',
-            data: [1.1, 3, 3.1, 4, 4.1, 4.9, 6.5, 8.5]
-          },
-          {
-            name: 'Revenue',
-            type: 'line',
-            data: [20, 29, 37, 36, 44, 45, 50, 58]
-          }
-        ],
-        chart: {
+      
+        var options = {
+          series: [{
+          name: 'Income',
+          type: 'column',
+          data: [1.4, 2, 2.5, 1.5, 2.5, 2.8, 3.8, 4.6]
+        }, {
+          name: 'Cashflow',
+          type: 'column',
+          data: [1.1, 3, 3.1, 4, 4.1, 4.9, 6.5, 8.5]
+        }, {
+          name: 'Revenue',
+          type: 'line',
+          data: [20, 29, 37, 36, 44, 45, 50, 58]
+        }],
+          chart: {
           height: 350,
           type: 'line',
           stacked: false
@@ -80,12 +83,12 @@
           offsetX: 110
         },
         xaxis: {
-          categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016]
+          categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016],
         },
         yaxis: [
           {
             axisTicks: {
-              show: true
+              show: true,
             },
             axisBorder: {
               show: true,
@@ -93,13 +96,13 @@
             },
             labels: {
               style: {
-                colors: '#008FFB'
+                colors: '#008FFB',
               }
             },
             title: {
-              text: 'Income (thousand crores)',
+              text: "Income (thousand crores)",
               style: {
-                color: '#008FFB'
+                color: '#008FFB',
               }
             },
             tooltip: {
@@ -110,7 +113,7 @@
             seriesName: 'Income',
             opposite: true,
             axisTicks: {
-              show: true
+              show: true,
             },
             axisBorder: {
               show: true,
@@ -118,24 +121,21 @@
             },
             labels: {
               style: {
-                colors: '#00E396'
+                colors: '#00E396',
               }
             },
             title: {
-              text: 'Operating Cashflow (thousand crores)',
+              text: "Operating Cashflow (thousand crores)",
               style: {
-                color: '#00E396'
+                color: '#00E396',
               }
             },
-            tooltip: {
-              enabled: false
-            }
           },
           {
             seriesName: 'Revenue',
             opposite: true,
             axisTicks: {
-              show: true
+              show: true,
             },
             axisBorder: {
               show: true,
@@ -143,19 +143,16 @@
             },
             labels: {
               style: {
-                colors: '#FEB019'
-              }
+                colors: '#FEB019',
+              },
             },
             title: {
-              text: 'Revenue (thousand crores)',
+              text: "Revenue (thousand crores)",
               style: {
-                color: '#FEB019'
+                color: '#FEB019',
               }
-            },
-            tooltip: {
-              enabled: true
             }
-          }
+          },
         ],
         tooltip: {
           fixed: {
@@ -163,16 +160,20 @@
             position: 'topLeft', // topRight, topLeft, bottomRight, bottomLeft
             offsetY: 30,
             offsetX: 60
-          }
+          },
         },
         legend: {
           horizontalAlign: 'left',
           offsetX: 40
         }
-      }
+        };
 
-      var chart = new ApexCharts(document.querySelector('#chart'), options)
-      chart.render()
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
     </script>
+
+    
   </body>
 </html>
