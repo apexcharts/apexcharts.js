@@ -163,6 +163,14 @@ type ApexChart = {
         click?(chart?: any, options?: any, e?: any): any
       }[]
     }
+    export?: {
+      csv?: {
+        filename?: undefined | string
+        columnDelimiter?: string
+        headerCategory?: string
+        headerValue?: string
+      }
+    }
     autoSelected?: 'zoom' | 'selection' | 'pan'
   }
   zoom?: {

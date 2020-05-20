@@ -453,7 +453,10 @@ export default class Toolbar {
         exprt.exportToPng(this.ctx)
         break
       case 'csv':
-        exprt.exportToCSV({ series: w.config.series })
+        exprt.exportToCSV({
+          series: w.config.series,
+          columnDelimiter: w.config.chart.toolbar.export.csv.columnDelimiter
+        })
         break
     }
   }

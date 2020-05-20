@@ -352,6 +352,14 @@ export default class Options {
             reset: true,
             customIcons: []
           },
+          export: {
+            csv: {
+              filename: undefined,
+              columnDelimiter: ',',
+              headerCategory: 'category',
+              headerValue: 'value'
+            }
+          },
           autoSelected: 'zoom' // accepts -> zoom, pan, selection
         },
         type: 'line',

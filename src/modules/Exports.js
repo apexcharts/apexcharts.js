@@ -136,7 +136,7 @@ class Exports {
   }
 
   exportToSVG() {
-    this.triggerDownload(this.svgUrl(), '.svg')
+    this.triggerDownload(this.svgUrl(), null, '.svg')
   }
 
   exportToPng() {
@@ -144,12 +144,12 @@ class Exports {
       if (blob) {
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
       } else {
-        this.triggerDownload(imgURI, '.png')
+        this.triggerDownload(imgURI, null, '.png')
       }
     })
   }
 
-  exportToCSV({ series, columnDelimiter = ',', lineDelimiter = '\n' }) {
+  exportToCSV({ series, columnDelimiter, lineDelimiter = '\n' }) {
     const w = this.w
 
     let columns = []
@@ -255,7 +255,7 @@ class Exports {
       }
     }
 
-    columns.push('category')
+    columns.push(w.config.chart.toolbar.export.csv.headerCategory)
     series.map((s, sI) => {
       if (w.globals.axisCharts) {
         columns.push(s.name ? s.name : `series-${sI}`)
@@ -263,7 +263,7 @@ class Exports {
     })
 
     if (!w.globals.axisCharts) {
-      columns.push('value')
+      columns.push(w.config.chart.toolbar.export.csv.headerValue)
       rows.push(columns.join(columnDelimiter))
     }
     series.map((s, sI) => {
@@ -280,13 +280,17 @@ class Exports {
 
     result += rows.join(lineDelimiter)
 
-    this.triggerDownload(encodeURI(result), '.csv')
+    this.triggerDownload(
+      encodeURI(result),
+      w.config.chart.toolbar.export.csv.filename,
+      '.csv'
+    )
   }
 
-  triggerDownload(href, ext) {
+  triggerDownload(href, filename, ext) {
     const downloadLink = document.createElement('a')
     downloadLink.href = href
-    downloadLink.download = this.w.globals.chartID + ext
+    downloadLink.download = (filename ? filename : this.w.globals.chartID) + ext
     document.body.appendChild(downloadLink)
     downloadLink.click()
     document.body.removeChild(downloadLink)
