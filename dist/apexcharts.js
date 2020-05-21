@@ -127,6 +127,19 @@
     return _setPrototypeOf(o, p);
   }
 
+  function _isNativeReflectConstruct() {
+    if (typeof Reflect === "undefined" || !Reflect.construct) return false;
+    if (Reflect.construct.sham) return false;
+    if (typeof Proxy === "function") return true;
+
+    try {
+      Date.prototype.toString.call(Reflect.construct(Date, [], function () {}));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function _assertThisInitialized(self) {
     if (self === void 0) {
       throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
@@ -143,24 +156,56 @@
     return _assertThisInitialized(self);
   }
 
+  function _createSuper(Derived) {
+    var hasNativeReflectConstruct = _isNativeReflectConstruct();
+
+    return function () {
+      var Super = _getPrototypeOf(Derived),
+          result;
+
+      if (hasNativeReflectConstruct) {
+        var NewTarget = _getPrototypeOf(this).constructor;
+
+        result = Reflect.construct(Super, arguments, NewTarget);
+      } else {
+        result = Super.apply(this, arguments);
+      }
+
+      return _possibleConstructorReturn(this, result);
+    };
+  }
+
   function _toConsumableArray(arr) {
-    return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread();
+    return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread();
   }
 
   function _arrayWithoutHoles(arr) {
-    if (Array.isArray(arr)) {
-      for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
-
-      return arr2;
-    }
+    if (Array.isArray(arr)) return _arrayLikeToArray(arr);
   }
 
   function _iterableToArray(iter) {
-    if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter);
+    if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter);
+  }
+
+  function _unsupportedIterableToArray(o, minLen) {
+    if (!o) return;
+    if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+    var n = Object.prototype.toString.call(o).slice(8, -1);
+    if (n === "Object" && o.constructor) n = o.constructor.name;
+    if (n === "Map" || n === "Set") return Array.from(o);
+    if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+  }
+
+  function _arrayLikeToArray(arr, len) {
+    if (len == null || len > arr.length) len = arr.length;
+
+    for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+
+    return arr2;
   }
 
   function _nonIterableSpread() {
-    throw new TypeError("Invalid attempt to spread non-iterable instance");
+    throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
   /*
@@ -1363,7 +1408,7 @@
         };
 
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-          anim.animatePathsGradually(_objectSpread2({}, defaultAnimateOpts, {
+          anim.animatePathsGradually(_objectSpread2(_objectSpread2({}, defaultAnimateOpts), {}, {
             speed: initialSpeed
           }));
         } else {
@@ -1373,7 +1418,7 @@
         }
 
         if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
-          anim.animatePathsGradually(_objectSpread2({}, defaultAnimateOpts, {
+          anim.animatePathsGradually(_objectSpread2(_objectSpread2({}, defaultAnimateOpts), {}, {
             speed: dataChangeSpeed
           }));
         }
@@ -3171,6 +3216,14 @@
                 pan: true,
                 reset: true,
                 customIcons: []
+              },
+              export: {
+                csv: {
+                  filename: undefined,
+                  columnDelimiter: ',',
+                  headerCategory: 'category',
+                  headerValue: 'value'
+                }
               },
               autoSelected: 'zoom' // accepts -> zoom, pan, selection
 
@@ -6538,14 +6591,14 @@
             };
 
             if (this.isHorizontal) {
-              paths = this.drawBarPaths(_objectSpread2({}, pathsParams, {
+              paths = this.drawBarPaths(_objectSpread2(_objectSpread2({}, pathsParams), {}, {
                 barHeight: barHeight,
                 zeroW: zeroW,
                 yDivision: yDivision
               }));
               barWidth = this.series[i][j] / this.invertedYRatio;
             } else {
-              paths = this.drawColumnPaths(_objectSpread2({}, pathsParams, {
+              paths = this.drawColumnPaths(_objectSpread2(_objectSpread2({}, pathsParams), {}, {
                 xDivision: xDivision,
                 barWidth: barWidth,
                 zeroH: zeroH
@@ -7068,10 +7121,12 @@
   var RangeBar = /*#__PURE__*/function (_Bar) {
     _inherits(RangeBar, _Bar);
 
+    var _super = _createSuper(RangeBar);
+
     function RangeBar() {
       _classCallCheck(this, RangeBar);
 
-      return _possibleConstructorReturn(this, _getPrototypeOf(RangeBar).apply(this, arguments));
+      return _super.apply(this, arguments);
     }
 
     _createClass(RangeBar, [{
@@ -9135,7 +9190,7 @@
               }
             } else {
               // user provided timestamps
-              if (String(xlabels[j]).length !== 13) {
+              if (xlabels[j] < 1) {
                 throw new Error('Please provide a valid JavaScript timestamp');
               } else {
                 _this.twoDSeriesX.push(xlabels[j]);
@@ -9863,7 +9918,7 @@
     }, {
       key: "exportToSVG",
       value: function exportToSVG() {
-        this.triggerDownload(this.svgUrl(), '.svg');
+        this.triggerDownload(this.svgUrl(), null, '.svg');
       }
     }, {
       key: "exportToPng",
@@ -9877,7 +9932,7 @@
           if (blob) {
             navigator.msSaveOrOpenBlob(blob, _this2.w.globals.chartID + '.png');
           } else {
-            _this2.triggerDownload(imgURI, '.png');
+            _this2.triggerDownload(imgURI, null, '.png');
           }
         });
       }
@@ -9887,8 +9942,7 @@
         var _this3 = this;
 
         var series = _ref2.series,
-            _ref2$columnDelimiter = _ref2.columnDelimiter,
-            columnDelimiter = _ref2$columnDelimiter === void 0 ? ',' : _ref2$columnDelimiter,
+            columnDelimiter = _ref2.columnDelimiter,
             _ref2$lineDelimiter = _ref2.lineDelimiter,
             lineDelimiter = _ref2$lineDelimiter === void 0 ? '\n' : _ref2$lineDelimiter;
         var w = this.w;
@@ -9981,7 +10035,7 @@
           }
         };
 
-        columns.push('category');
+        columns.push(w.config.chart.toolbar.export.csv.headerCategory);
         series.map(function (s, sI) {
           if (w.globals.axisCharts) {
             columns.push(s.name ? s.name : "series-".concat(sI));
@@ -9989,7 +10043,7 @@
         });
 
         if (!w.globals.axisCharts) {
-          columns.push('value');
+          columns.push(w.config.chart.toolbar.export.csv.headerValue);
           rows.push(columns.join(columnDelimiter));
         }
 
@@ -10004,14 +10058,14 @@
           }
         });
         result += rows.join(lineDelimiter);
-        this.triggerDownload(encodeURI(result), '.csv');
+        this.triggerDownload(encodeURI(result), w.config.chart.toolbar.export.csv.filename, '.csv');
       }
     }, {
       key: "triggerDownload",
-      value: function triggerDownload(href, ext) {
+      value: function triggerDownload(href, filename, ext) {
         var downloadLink = document.createElement('a');
         downloadLink.href = href;
-        downloadLink.download = this.w.globals.chartID + ext;
+        downloadLink.download = (filename ? filename : this.w.globals.chartID) + ext;
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -14818,7 +14872,8 @@
 
           case 'csv':
             exprt.exportToCSV({
-              series: w.config.series
+              series: w.config.series,
+              columnDelimiter: w.config.chart.toolbar.export.csv.columnDelimiter
             });
             break;
         }
@@ -14874,12 +14929,14 @@
   var ZoomPanSelection = /*#__PURE__*/function (_Toolbar) {
     _inherits(ZoomPanSelection, _Toolbar);
 
+    var _super = _createSuper(ZoomPanSelection);
+
     function ZoomPanSelection(ctx) {
       var _this;
 
       _classCallCheck(this, ZoomPanSelection);
 
-      _this = _possibleConstructorReturn(this, _getPrototypeOf(ZoomPanSelection).call(this, ctx));
+      _this = _super.call(this, ctx);
       _this.ctx = ctx;
       _this.w = ctx.w;
       _this.dragged = false;
@@ -18033,10 +18090,12 @@
   var BarStacked = /*#__PURE__*/function (_Bar) {
     _inherits(BarStacked, _Bar);
 
+    var _super = _createSuper(BarStacked);
+
     function BarStacked() {
       _classCallCheck(this, BarStacked);
 
-      return _possibleConstructorReturn(this, _getPrototypeOf(BarStacked).apply(this, arguments));
+      return _super.apply(this, arguments);
     }
 
     _createClass(BarStacked, [{
@@ -18184,14 +18243,14 @@
             var paths = null;
 
             if (_this.isHorizontal) {
-              paths = _this.drawStackedBarPaths(_objectSpread2({}, commonPathOpts, {
+              paths = _this.drawStackedBarPaths(_objectSpread2(_objectSpread2({}, commonPathOpts), {}, {
                 zeroW: zeroW,
                 barHeight: barHeight,
                 yDivision: yDivision
               }));
               barWidth = _this.series[i][j] / _this.invertedYRatio;
             } else {
-              paths = _this.drawStackedColumnPaths(_objectSpread2({}, commonPathOpts, {
+              paths = _this.drawStackedColumnPaths(_objectSpread2(_objectSpread2({}, commonPathOpts), {}, {
                 xDivision: xDivision,
                 barWidth: barWidth,
                 zeroH: zeroH
@@ -18496,10 +18555,12 @@
   var CandleStick = /*#__PURE__*/function (_Bar) {
     _inherits(CandleStick, _Bar);
 
+    var _super = _createSuper(CandleStick);
+
     function CandleStick() {
       _classCallCheck(this, CandleStick);
 
-      return _possibleConstructorReturn(this, _getPrototypeOf(CandleStick).apply(this, arguments));
+      return _super.apply(this, arguments);
     }
 
     _createClass(CandleStick, [{
@@ -19978,7 +20039,7 @@
           }
 
           for (var p = 0; p < paths.linePathsTo.length; p++) {
-            var renderedLinePath = _this.graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
+            var renderedLinePath = _this.graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
               pathTo: paths.linePathsTo[p],
               strokeWidth: Array.isArray(_this.strokeWidth) ? _this.strokeWidth[i] : _this.strokeWidth,
@@ -19991,7 +20052,7 @@
               seriesNumber: i
             });
 
-            var renderedAreaPath = _this.graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
+            var renderedAreaPath = _this.graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
               pathTo: paths.areaPathsTo[p],
               strokeWidth: 0,
@@ -20309,12 +20370,14 @@
   var Radial = /*#__PURE__*/function (_Pie) {
     _inherits(Radial, _Pie);
 
+    var _super = _createSuper(Radial);
+
     function Radial(ctx) {
       var _this;
 
       _classCallCheck(this, Radial);
 
-      _this = _possibleConstructorReturn(this, _getPrototypeOf(Radial).call(this, ctx));
+      _this = _super.call(this, ctx);
       _this.ctx = ctx;
       _this.w = ctx.w;
       _this.animBeginArr = [0];
@@ -21093,7 +21156,7 @@
           });
 
           for (var p = 0; p < paths.areaPaths.length; p++) {
-            var renderedPath = graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
+            var renderedPath = graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: paths.pathFromArea,
               pathTo: paths.areaPaths[p],
               stroke: 'none',
@@ -21119,7 +21182,7 @@
           }
 
           for (var _p = 0; _p < paths.linePaths.length; _p++) {
-            var _renderedPath = graphics.renderPaths(_objectSpread2({}, defaultRenderedPathOptions, {
+            var _renderedPath = graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: paths.pathFromLine,
               pathTo: paths.linePaths[_p],
               stroke: lineFill,
@@ -21561,16 +21624,16 @@
           };
 
           if (ts.unit === 'month') {
-            return _objectSpread2({}, defaultReturn, {
+            return _objectSpread2(_objectSpread2({}, defaultReturn), {}, {
               day: 1,
               value: ts.value + 1
             });
           } else if (ts.unit === 'day' || ts.unit === 'hour') {
-            return _objectSpread2({}, defaultReturn, {
+            return _objectSpread2(_objectSpread2({}, defaultReturn), {}, {
               value: ts.value
             });
           } else if (ts.unit === 'minute') {
-            return _objectSpread2({}, defaultReturn, {
+            return _objectSpread2(_objectSpread2({}, defaultReturn), {}, {
               value: ts.value,
               minute: ts.value
             });
@@ -22687,7 +22750,7 @@
               }
 
               var multipleYaxis = targetChart.w.config.yaxis.reduce(function (acc, curr, index) {
-                return [].concat(_toConsumableArray(acc), [_objectSpread2({}, targetChart.w.config.yaxis[index], {
+                return [].concat(_toConsumableArray(acc), [_objectSpread2(_objectSpread2({}, targetChart.w.config.yaxis[index]), {}, {
                   min: yaxis[0].min,
                   max: yaxis[0].max
                 })]);
@@ -22834,7 +22897,7 @@
       key: "_extendSeries",
       value: function _extendSeries(s, i) {
         var w = this.w;
-        return _objectSpread2({}, w.config.series[i], {
+        return _objectSpread2(_objectSpread2({}, w.config.series[i]), {}, {
           name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
           type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
           data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
@@ -26804,7 +26867,7 @@
               that.put(new SVG.MergeNode(this));
           });
         }
-        else{
+        else {
           //if the first argument is an array use it
           if(Array.isArray(arguments[0]))
             children = arguments[0];
@@ -27079,7 +27142,7 @@
           // when the last block had no bounding box we simply take the first M we got
           if(bbox.height == 0 || bbox.width == 0){
             startOffsetM =  startArr.push(startArr[0]) - 1;
-          }else{
+          }else {
             // we take the middle of the bbox instead when we got one
             startOffsetM = startArr.push( ['M', bbox.x + bbox.width/2, bbox.y + bbox.height/2 ] ) - 1;
           }
@@ -27091,7 +27154,7 @@
 
           if(bbox.height == 0 || bbox.width == 0){
             destOffsetM =  destArr.push(destArr[0]) - 1;
-          }else{
+          }else {
             destOffsetM =  destArr.push( ['M', bbox.x + bbox.width/2, bbox.y + bbox.height/2 ] ) - 1;
           }
         }
