@@ -390,7 +390,7 @@ export default class Data {
           }
         } else {
           // user provided timestamps
-          if (String(xlabels[j]).length !== 13) {
+          if (String(xlabels[j]).length !== 12 || String(xlabels[j]).length !== 13) {
             throw new Error('Please provide a valid JavaScript timestamp')
           } else {
             this.twoDSeriesX.push(xlabels[j])
