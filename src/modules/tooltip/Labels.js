@@ -207,7 +207,7 @@ export default class Labels {
 
     const ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label')
     if (ttYLabel) {
-      ttYLabel.innerHTML = seriesName ? seriesName + ': ' : ''
+      ttYLabel.innerHTML = seriesName ? seriesName : ''
     }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-value')
     if (ttYVal) {

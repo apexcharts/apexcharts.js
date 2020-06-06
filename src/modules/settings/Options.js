@@ -858,7 +858,7 @@ export default class Options {
           formatter: undefined,
           title: {
             formatter(seriesName) {
-              return seriesName
+              return seriesName + ': '
             }
           }
         },
