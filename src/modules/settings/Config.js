@@ -278,6 +278,10 @@ export default class Config {
         opts.chart.foreColor = '#f6f7f8'
       }
 
+      if (!opts.chart.background) {
+        opts.chart.background = '#424242'
+      }
+
       if (!opts.theme.palette) {
         opts.theme.palette = 'palette4'
       }
