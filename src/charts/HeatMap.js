@@ -108,10 +108,17 @@ export default class HeatMap {
 
         if (w.config.plotOptions.heatmap.enableShades) {
           if (colorShadePercent < 0) colorShadePercent = 0
-          color = Utils.hexToRgba(
-            utils.shadeColor(colorShadePercent, heatColorProps.color),
-            w.config.fill.opacity
-          )
+          if (this.w.config.theme.mode === 'dark') {
+            color = Utils.hexToRgba(
+              utils.shadeColor(colorShadePercent * -1, heatColorProps.color),
+              w.config.fill.opacity
+            )  
+          } else {
+            color = Utils.hexToRgba(
+              utils.shadeColor(colorShadePercent, heatColorProps.color),
+              w.config.fill.opacity
+            )  
+          }
         }
 
         if (w.config.fill.type === 'image') {
