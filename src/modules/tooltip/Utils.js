@@ -177,11 +177,7 @@ export default class Utils {
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
       const total = coreUtils.getSeriesTotalByIndex(a)
 
-      if (
-        firstActiveSeriesIndex[a] !== -1 &&
-        total !== 0 &&
-        !coreUtils.seriesHaveSameValues(a)
-      ) {
+      if (firstActiveSeriesIndex[a] !== -1 && total !== 0) {
         activeIndex = firstActiveSeriesIndex[a]
         break
       }
