@@ -400,6 +400,11 @@ type PointAnnotations = {
 type ShapeAnnotations = {
   x?: number
   y?: number
+  x1?: number
+  y1?: number
+  lineColor?: string
+  dashArray?: number
+  strokeWidth?: number
   type?: string
   width?: number | string
   height?: number
