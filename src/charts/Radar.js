@@ -43,21 +43,13 @@ class Radar {
 
     this.polygons = w.config.plotOptions.radar.polygons
 
-    const longestXaxisLabel = w.globals.labels
-      .slice()
-      .sort((a, b) => b.length - a.length)[0]
-    const labelWidth = this.graphics.getTextRects(
-      longestXaxisLabel,
-      w.config.xaxis.labels.style.fontSize
-    )
-
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
 
     this.size =
       this.defaultSize / 2.1 - this.strokeWidth - w.config.chart.dropShadow.blur
 
     if (w.config.xaxis.labels.show) {
-      this.size = this.size - labelWidth.width / 1.75
+      this.size = this.size - w.globals.xAxisLabelsWidth / 1.75
     }
 
     if (w.config.plotOptions.radar.size !== undefined) {

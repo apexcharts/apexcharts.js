@@ -192,6 +192,7 @@ export default class Globals {
       ttZFormatter: undefined,
       LINE_HEIGHT_RATIO: 1.618,
       xAxisLabelsHeight: 0,
+      xAxisLabelsWidth: 0,
       yAxisLabelsWidth: 0,
       scaleX: 1,
       scaleY: 1,
