@@ -222,7 +222,7 @@ export default class Labels {
         w.config.tooltip.marker.fillColors &&
         Array.isArray(w.config.tooltip.marker.fillColors)
       ) {
-        pColor = w.config.tooltip.marker.fillColors[i]
+        pColor = w.config.tooltip.marker.fillColors[t]
       }
 
       ttItemsChildren[0].style.backgroundColor = pColor
