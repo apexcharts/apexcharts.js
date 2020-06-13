@@ -169,7 +169,10 @@ class Line {
       (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
 
     this.areaBottomY = this.zeroY
-    if (this.zeroY > w.globals.gridHeight) {
+    if (
+      this.zeroY > w.globals.gridHeight ||
+      w.config.plotOptions.area.fillTo === 'end'
+    ) {
       this.areaBottomY = w.globals.gridHeight
     }
 

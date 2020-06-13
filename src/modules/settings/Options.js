@@ -382,6 +382,9 @@ export default class Options {
         }
       },
       plotOptions: {
+        area: {
+          fillTo: 'origin'
+        },
         bar: {
           horizontal: false,
           columnWidth: '70%', // should be in percent 0 - 100

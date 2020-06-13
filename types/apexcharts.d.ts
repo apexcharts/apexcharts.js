@@ -465,6 +465,9 @@ type ApexLocale = {
  * See https://apexcharts.com/docs/options/plotoptions/bar/
  */
 type ApexPlotOptions = {
+  area?: {
+    fillTo?: 'origin' | 'end'
+  }
   bar?: {
     horizontal?: boolean
     endingShape?: 'flat' | 'rounded'
