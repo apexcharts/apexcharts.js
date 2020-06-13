@@ -186,7 +186,7 @@ export default class Helpers {
     return strokeWidth
   }
 
-  barBackground({ bc, i, x1, x2, y1, y2, elSeries }) {
+  barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w
     const graphics = new Graphics(this.barCtx.ctx)
 
@@ -197,11 +197,11 @@ export default class Helpers {
       this.barCtx.barOptions.colors.backgroundBarColors.length > 0 &&
       activeSeriesIndex === i
     ) {
-      if (bc >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-        bc = 0
+      if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
+        j -= this.barCtx.barOptions.colors.backgroundBarColors.length
       }
 
-      let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[bc]
+      let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j]
       let rect = graphics.drawRect(
         typeof x1 !== 'undefined' ? x1 : 0,
         typeof y1 !== 'undefined' ? y1 : 0,

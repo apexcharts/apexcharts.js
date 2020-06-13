@@ -337,7 +337,7 @@ class BarStacked extends Bar {
     })
 
     this.barHelpers.barBackground({
-      bc,
+      j,
       i,
       y1: barYPosition,
       y2: barHeight,
@@ -469,6 +469,7 @@ class BarStacked extends Bar {
 
     this.barHelpers.barBackground({
       bc,
+      j,
       i,
       x1: barXPosition,
       x2: barWidth,
