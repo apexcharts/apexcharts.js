@@ -352,6 +352,9 @@ class Pie {
           }
           let foreColor = w.globals.dataLabels.style.colors[i]
 
+          const elPieLabelWrap = graphics.group({
+            class: `apexcharts-datalabels`
+          })
           let elPieLabel = graphics.drawText({
             x: xPos,
             y: yPos,
@@ -363,6 +366,7 @@ class Pie {
             foreColor
           })
 
+          elPieLabelWrap.add(elPieLabel)
           if (w.config.dataLabels.dropShadow.enabled) {
             const textShadow = w.config.dataLabels.dropShadow
             filters.dropShadow(elPieLabel, textShadow)
@@ -378,7 +382,7 @@ class Pie {
               w.config.chart.animations.speed / 940 + 's'
           }
 
-          this.sliceLabels.push(elPieLabel)
+          this.sliceLabels.push(elPieLabelWrap)
         }
       }
     }
