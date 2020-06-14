@@ -156,6 +156,9 @@ class Exports {
     let rows = []
     let result = 'data:text/csv;charset=utf-8,'
 
+    const isTimeStamp = (num) => {
+      return w.config.xaxis.type === 'datetime' && String(num).length >= 10
+    }
     const dataFormat = new Data(this.ctx)
 
     const axesUtils = new AxesUtils(this.ctx)
@@ -225,7 +228,11 @@ class Exports {
           }
 
           if (sI === 0) {
-            columns.push(cat)
+            columns.push(
+              isTimeStamp(cat)
+                ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
+                : cat
+            )
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
               columns.push(w.globals.series[ci][i])

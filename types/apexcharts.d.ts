@@ -169,6 +169,7 @@ type ApexChart = {
         columnDelimiter?: string
         headerCategory?: string
         headerValue?: string
+        dateFormatter?(timestamp?: number): any
       }
     }
     autoSelected?: 'zoom' | 'selection' | 'pan'

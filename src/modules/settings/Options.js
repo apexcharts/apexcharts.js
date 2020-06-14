@@ -357,7 +357,10 @@ export default class Options {
               filename: undefined,
               columnDelimiter: ',',
               headerCategory: 'category',
-              headerValue: 'value'
+              headerValue: 'value',
+              dateFormatter(timestamp) {
+                return new Date(timestamp).toDateString()
+              }
             }
           },
           autoSelected: 'zoom' // accepts -> zoom, pan, selection
