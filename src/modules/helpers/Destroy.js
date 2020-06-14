@@ -46,6 +46,10 @@ export default class Destroy {
   }
 
   clearDomElements() {
+    // fixes apexcharts.js#1654
+    this.w.globals.dom.Paper.node.parentNode.parentNode.style.minHeight =
+      'unset'
+
     // detach document event
     this.ctx.eventList.forEach((event) => {
       document.removeEventListener(event, this.ctx.events.documentEvent)
