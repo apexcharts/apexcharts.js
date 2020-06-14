@@ -534,6 +534,9 @@ export default class Defaults {
         style: {
           colors: ['#fff']
         },
+        background: {
+          enabled: false
+        },
         dropShadow: {
           enabled: true
         }
@@ -571,6 +574,9 @@ export default class Defaults {
         },
         style: {
           colors: ['#fff']
+        },
+        background: {
+          enabled: false
         },
         dropShadow: {
           enabled: true
