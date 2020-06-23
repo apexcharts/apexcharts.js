@@ -79,6 +79,7 @@ Useful links to wrappers other than the popular frameworks mentioned above
 - [apexcharter](https://github.com/dreamRs/apexcharter) - Htmlwidget for ApexCharts
 - [apexcharts.rb](https://github.com/styd/apexcharts.rb) - Ruby wrapper for ApexCharts
 - [blazor-apexcharts](https://github.com/joadan/Blazor-ApexCharts) - Blazor wrapper for ApexCharts [demo](https://joadan.github.io/Blazor-ApexCharts/)
+- [java-apexcharts](https://github.com/ie3-institute/java-apexcharts) - A very basic wrapper implementation in java (still under development, contributions welcome)
 
 ## Usage
 
