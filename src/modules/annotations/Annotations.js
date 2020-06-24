@@ -175,6 +175,11 @@ export default class Annotations {
       type: params.type,
       x: params.x || 0,
       y: params.y || 0,
+      x1: params.x1 || 0,
+      y1: params.y1 || 0,
+      lineColor: params.lineColor || '#a8a8a8',
+      dashArray: params.dashArray || 0,
+      strokeWidth: params.strokeWidth || null,
       width: params.width || '100%',
       height: params.height || 50,
       circleRadius: params.radius || 25,
@@ -194,27 +199,40 @@ export default class Annotations {
     }
 
     let elShape = null
-    if (opts.type === 'circle') {
-      elShape = this.graphics.drawCircle(opts.circleRadius, {
-        fill: opts.backgroundColor,
-        stroke: opts.borderColor,
-        'stroke-width': opts.borderWidth,
-        opacity: opts.opacity,
-        cx: opts.x,
-        cy: opts.y
-      })
-    } else {
-      elShape = this.graphics.drawRect(
-        opts.x,
-        opts.y,
-        opts.width,
-        opts.height,
-        opts.borderRadius,
-        opts.backgroundColor,
-        opts.opacity,
-        opts.borderWidth,
-        opts.borderColor
-      )
+    switch (opts.type) {
+      case 'circle':
+        elShape = this.graphics.drawCircle(opts.circleRadius, {
+          fill: opts.backgroundColor,
+          stroke: opts.borderColor,
+          'stroke-width': opts.borderWidth,
+          opacity: opts.opacity,
+          cx: opts.x,
+          cy: opts.y
+        })
+        break
+      case 'line':
+        elShape = this.graphics.drawLine(
+          opts.x,
+          opts.y,
+          opts.x1,
+          opts.y1,
+          opts.lineColor,
+          opts.dashArray,
+          opts.strokeWidth
+        )
+        break
+      default:
+        elShape = this.graphics.drawRect(
+          opts.x,
+          opts.y,
+          opts.width,
+          opts.height,
+          opts.borderRadius,
+          opts.backgroundColor,
+          opts.opacity,
+          opts.borderWidth,
+          opts.borderColor
+        )
     }
 
     const parent = w.globals.dom.baseEl.querySelector(opts.appendTo)
