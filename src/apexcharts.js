@@ -459,9 +459,7 @@ export default class ApexCharts {
     }
     me.w.config.series = newSeries
     if (overwriteInitialSeries) {
-      me.w.globals.initialSeries = JSON.parse(
-        JSON.stringify(me.w.config.series)
-      )
+      me.w.globals.initialSeries = Utils.clone(me.w.config.series)
     }
 
     return this.update()

@@ -212,6 +212,8 @@ export default class Globals {
 
     globals.initialConfig = Utils.extend({}, config)
     globals.initialSeries = Utils.clone(config.series)
+
+    // Cloning using below method will not deep clone. Hence, should be replaced
     globals.lastXAxis = JSON.parse(JSON.stringify(globals.initialConfig.xaxis))
     globals.lastYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis))
     return globals

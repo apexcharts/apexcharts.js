@@ -69,7 +69,7 @@ export default class UpdateHelpers {
 
           // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
           w.globals.initialConfig = Utils.extend({}, w.config)
-          w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
+          w.globals.initialSeries = Utils.clone(w.config.series)
         }
       }
 
@@ -111,10 +111,7 @@ export default class UpdateHelpers {
     }
 
     if (overwriteInitialSeries) {
-      w.globals.initialConfig.series = JSON.parse(
-        JSON.stringify(w.config.series)
-      )
-      w.globals.initialSeries = JSON.parse(JSON.stringify(w.config.series))
+      w.globals.initialSeries = Utils.clone(w.config.series)
     }
 
     return this.ctx.update()
