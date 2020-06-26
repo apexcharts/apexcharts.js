@@ -278,7 +278,6 @@ class BarStacked extends Bar {
     let barXPosition
     let i = indexes.i
     let j = indexes.j
-    let bc = indexes.bc
 
     let prevBarW = 0
     for (let k = 0; k < this.prevXF.length; k++) {

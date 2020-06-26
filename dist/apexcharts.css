@@ -18,9 +18,6 @@
   -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5);
 }
 
-.apexcharts-canvas.apexcharts-theme-dark {
-  background: #424242;
-}
 
 .apexcharts-inner {
   position: relative;

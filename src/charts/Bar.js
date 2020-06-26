@@ -317,7 +317,6 @@ class Bar {
 
     let i = indexes.i
     let j = indexes.j
-    let bc = indexes.bc
 
     if (w.globals.isXNumeric) {
       y =
