@@ -112,12 +112,12 @@ export default class HeatMap {
             color = Utils.hexToRgba(
               utils.shadeColor(colorShadePercent * -1, heatColorProps.color),
               w.config.fill.opacity
-            )  
+            )
           } else {
             color = Utils.hexToRgba(
               utils.shadeColor(colorShadePercent, heatColorProps.color),
               w.config.fill.opacity
-            )  
+            )
           }
         }
 
