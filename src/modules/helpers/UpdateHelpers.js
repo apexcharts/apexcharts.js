@@ -64,8 +64,10 @@ export default class UpdateHelpers {
 
         if (overwriteInitialConfig) {
           // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
-          w.globals.lastXAxis = []
-          w.globals.lastYAxis = []
+          w.globals.lastXAxis = options.xaxis ?
+            JSON.parse(JSON.stringify(options.xaxis)) : []
+          w.globals.lastYAxis = options.yaxis ?
+            JSON.parse(JSON.stringify(options.yaxis)) : []
 
           // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
           w.globals.initialConfig = Utils.extend({}, w.config)
@@ -167,6 +169,7 @@ export default class UpdateHelpers {
   forceXAxisUpdate(options) {
     const w = this.w
     const minmax = ['min', 'max']
+
     minmax.forEach((a) => {
       if (typeof options.xaxis[a] !== 'undefined') {
         w.config.xaxis[a] = options.xaxis[a]
