@@ -340,9 +340,10 @@ class DataLabels {
 
   bringForward() {
     const w = this.w
-    const elDataLabelsNodes = w.globals.dom.baseEl.getElementsByClassName(
-      'apexcharts-datalabels'
+    const elDataLabelsNodes = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-datalabels'
     )
+
     const elSeries = w.globals.dom.baseEl.querySelector(
       '.apexcharts-plot-series:last-child'
     )
