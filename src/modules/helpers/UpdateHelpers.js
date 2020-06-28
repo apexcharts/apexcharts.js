@@ -64,10 +64,8 @@ export default class UpdateHelpers {
 
         if (overwriteInitialConfig) {
           // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
-          w.globals.lastXAxis = options.xaxis ?
-            JSON.parse(JSON.stringify(options.xaxis)) : []
-          w.globals.lastYAxis = options.yaxis ?
-            JSON.parse(JSON.stringify(options.yaxis)) : []
+          w.globals.lastXAxis = options.xaxis ? Utils.clone(options.xaxis) : []
+          w.globals.lastYAxis = options.yaxis ? Utils.clone(options.yaxis) : []
 
           // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
           w.globals.initialConfig = Utils.extend({}, w.config)
@@ -215,20 +213,30 @@ export default class UpdateHelpers {
     w.config.xaxis.min = w.globals.lastXAxis.min
     w.config.xaxis.max = w.globals.lastXAxis.max
 
+    const getLastYAxis = (index) => {
+      if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+        w.config.yaxis[index].min = w.globals.lastYAxis[index].min
+        w.config.yaxis[index].max = w.globals.lastYAxis[index].max
+      }
+    }
+
     w.config.yaxis.map((yaxe, index) => {
       if (w.globals.zoomed) {
         // user has zoomed, check the last yaxis
-
-        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
-          yaxe.min = w.globals.lastYAxis[index].min
-          yaxe.max = w.globals.lastYAxis[index].max
-        }
+        getLastYAxis(index)
       } else {
-        // user hasn't zoomed, check the original yaxis
-        if (typeof this.ctx.opts.yaxis[index] !== 'undefined') {
-          yaxe.min = this.ctx.opts.yaxis[index].min
-          yaxe.max = this.ctx.opts.yaxis[index].max
+        // user hasn't zoomed, check the last yaxis first
+        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+          getLastYAxis(index)
         }
+        else {
+          // if last y-axis don't exist, check the original yaxis
+          if (typeof this.ctx.opts.yaxis[index] !== 'undefined') {
+            yaxe.min = this.ctx.opts.yaxis[index].min
+            yaxe.max = this.ctx.opts.yaxis[index].max
+          }
+        }
+        
       }
     })
   }

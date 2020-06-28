@@ -522,14 +522,6 @@ export default class ZoomPanSelection extends Toolbar {
 
         w.globals.zoomed = true
 
-        // before zooming in/out, store the last yaxis and xaxis range, so that when user hits the RESET button, we get the original range
-        // also - make sure user is not already zoomed in/out - otherwise we will store zoomed values in lastAxis
-        // DEAD code - the below condition will never run now as zoomed is made false above
-        if (!w.globals.zoomed) {
-          w.globals.lastXAxis = Utils.clone(w.config.xaxis)
-          w.globals.lastYAxis = Utils.clone(w.config.yaxis)
-        }
-
         if (w.config.xaxis.convertedCatToNumeric) {
           xLowestValue = Math.floor(xLowestValue)
           xHighestValue = Math.floor(xHighestValue)
