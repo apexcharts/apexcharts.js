@@ -228,15 +228,13 @@ export default class UpdateHelpers {
         // user hasn't zoomed, check the last yaxis first
         if (typeof w.globals.lastYAxis[index] !== 'undefined') {
           getLastYAxis(index)
-        }
-        else {
+        } else {
           // if last y-axis don't exist, check the original yaxis
           if (typeof this.ctx.opts.yaxis[index] !== 'undefined') {
             yaxe.min = this.ctx.opts.yaxis[index].min
             yaxe.max = this.ctx.opts.yaxis[index].max
           }
         }
-        
       }
     })
   }
