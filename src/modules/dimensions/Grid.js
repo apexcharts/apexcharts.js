@@ -92,16 +92,11 @@ export default class DimGrid {
       }
     })
 
-    const nonAxisOrMultiSeriesCharts =
-      w.config.series.length > 1 ||
-      !w.globals.axisCharts ||
-      w.config.legend.showForSingleSeries
-
     if (
       w.config.legend.show &&
       w.config.legend.position === 'bottom' &&
       !w.config.legend.floating &&
-      nonAxisOrMultiSeriesCharts
+      !w.globals.axisCharts
     ) {
       gridShrinkOffset += 10
     }
