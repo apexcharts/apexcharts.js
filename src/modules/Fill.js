@@ -107,6 +107,11 @@ class Fill {
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
 
+    //override fillcolor if user inputted color with data
+    if (w.globals.seriesColors[this.seriesIndex] !== undefined) {
+      fillColor = w.globals.seriesColors[this.seriesIndex]
+    }
+
     if (typeof fillColor === 'function') {
       fillColor = fillColor({
         seriesIndex: this.seriesIndex,
@@ -261,8 +266,8 @@ class Fill {
           ? cnf.stroke.width[this.seriesIndex]
           : cnf.stroke.width
         : Array.isArray(cnf.fill.pattern.strokeWidth)
-        ? cnf.fill.pattern.strokeWidth[this.seriesIndex]
-        : cnf.fill.pattern.strokeWidth
+          ? cnf.fill.pattern.strokeWidth[this.seriesIndex]
+          : cnf.fill.pattern.strokeWidth
     let patternLineColor = fillColor
 
     if (cnf.fill.pattern.style instanceof Array) {
@@ -305,8 +310,8 @@ class Fill {
       cnf.fill.gradient.opacityFrom === undefined
         ? fillOpacity
         : Array.isArray(cnf.fill.gradient.opacityFrom)
-        ? cnf.fill.gradient.opacityFrom[i]
-        : cnf.fill.gradient.opacityFrom
+          ? cnf.fill.gradient.opacityFrom[i]
+          : cnf.fill.gradient.opacityFrom
 
     if (gradientFrom.indexOf('rgba') > -1) {
       opacityFrom = Utils.getOpacityFromRGBA(gradientFrom)
@@ -315,8 +320,8 @@ class Fill {
       cnf.fill.gradient.opacityTo === undefined
         ? fillOpacity
         : Array.isArray(cnf.fill.gradient.opacityTo)
-        ? cnf.fill.gradient.opacityTo[i]
-        : cnf.fill.gradient.opacityTo
+          ? cnf.fill.gradient.opacityTo[i]
+          : cnf.fill.gradient.opacityTo
 
     if (
       cnf.fill.gradient.gradientToColors === undefined ||

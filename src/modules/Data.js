@@ -464,6 +464,13 @@ export default class Data {
       } else {
         gl.seriesNames.push('series-' + parseInt(i + 1, 10))
       }
+
+      // overrided default color if user inputs color with series data
+      if (ser[i].color !== undefined) {
+        gl.seriesColors.push(ser[i].color)
+      } else {
+        gl.seriesColors.push(undefined)
+      }
     }
 
     return this.w
@@ -556,8 +563,8 @@ export default class Data {
       labelArr = gl.axisCharts
         ? []
         : gl.series.map((gls, glsi) => {
-            return glsi + 1
-          })
+          return glsi + 1
+        })
       for (let i = 0; i < ser.length; i++) {
         gl.seriesX.push(labelArr)
       }
