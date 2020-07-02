@@ -26,12 +26,15 @@ export default class Marker {
     let elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series')
 
     elsSeries = [...elsSeries]
-    elsSeries.sort((a, b) => {
-      return (
-        parseFloat(a.getAttribute('data:realIndex')) -
-        parseFloat(b.getAttribute('data:realIndex'))
-      )
-    })
+
+    if (w.config.chart.stacked) {
+      elsSeries.sort((a, b) => {
+        return (
+          parseFloat(a.getAttribute('data:realIndex')) -
+          parseFloat(b.getAttribute('data:realIndex'))
+        )
+      })
+    }
 
     for (let i = 0; i < elsSeries.length; i++) {
       let pointsMain = elsSeries[i].querySelector(
