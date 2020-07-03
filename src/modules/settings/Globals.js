@@ -16,6 +16,7 @@ export default class Globals {
     gl.seriesNames = []
     gl.seriesTotals = []
     gl.seriesLog = []
+    gl.seriesColors = []
     gl.stackedSeriesTotals = []
     gl.seriesXvalues = [] // we will need this in tooltip (it's x position)
     // when we will have unequal x values, we will need
