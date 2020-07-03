@@ -462,7 +462,8 @@ export default class ApexCharts {
       me.w.globals.initialSeries = Utils.clone(me.w.config.series)
     }
 
-    return this.update()
+    // call update with existing series to set the series forcefully avoiding reset on resize
+    return this.update({ series: this.w.config.series })
   }
 
   update(options) {
@@ -703,7 +704,8 @@ export default class ApexCharts {
       this.w.globals.dataChanged = false
 
       // we need to redraw the whole chart on window resize (with a small delay).
-      this.ctx.update()
+      // call update with existing series to set the series forcefully avoiding reset on resize
+      this.ctx.update({ series: this.w.config.series })
     }, 150)
   }
 }
