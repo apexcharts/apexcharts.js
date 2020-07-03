@@ -561,7 +561,7 @@ export default class ZoomPanSelection extends Toolbar {
           let beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis)
           if (beforeZoomRange) {
             xaxis = beforeZoomRange.xaxis ? beforeZoomRange.xaxis : xaxis
-            yaxis = beforeZoomRange.yaxis ? beforeZoomRange.yaxe : yaxis
+            yaxis = beforeZoomRange.yaxis ? beforeZoomRange.yaxis : yaxis
           }
         }
 
