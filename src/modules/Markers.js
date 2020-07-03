@@ -90,13 +90,15 @@ export default class Markers {
             dataPointIndex
           )
 
-          if (w.config.series[i].data[j]) {
-            if (w.config.series[i].data[j].fillColor) {
-              opts.pointFillColor = w.config.series[i].data[j].fillColor
+          if (w.config.series[i].data[dataPointIndex]) {
+            if (w.config.series[i].data[dataPointIndex].fillColor) {
+              opts.pointFillColor =
+                w.config.series[i].data[dataPointIndex].fillColor
             }
 
-            if (w.config.series[i].data[j].strokeColor) {
-              opts.pointStrokeColor = w.config.series[i].data[j].strokeColor
+            if (w.config.series[i].data[dataPointIndex].strokeColor) {
+              opts.pointStrokeColor =
+                w.config.series[i].data[dataPointIndex].strokeColor
             }
           }
 
