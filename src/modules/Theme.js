@@ -63,6 +63,13 @@ export default class Theme {
       }
     }
 
+    // user defined colors in series aray
+    w.globals.seriesColors.map((c, i) => {
+      if (c) {
+        w.globals.colors[i] = c
+      }
+    })
+
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
       let glsCnt = w.globals.series.length

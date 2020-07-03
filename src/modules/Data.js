@@ -563,8 +563,8 @@ export default class Data {
       labelArr = gl.axisCharts
         ? []
         : gl.series.map((gls, glsi) => {
-          return glsi + 1
-        })
+            return glsi + 1
+          })
       for (let i = 0; i < ser.length; i++) {
         gl.seriesX.push(labelArr)
       }

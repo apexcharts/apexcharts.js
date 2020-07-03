@@ -120,11 +120,14 @@ export default class UpdateHelpers {
 
   _extendSeries(s, i) {
     const w = this.w
+    const ser = w.config.series[i]
+
     return {
       ...w.config.series[i],
-      name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
-      type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
-      data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
+      name: s.name ? s.name : ser && ser.name,
+      color: s.color ? s.color : ser && ser.color,
+      type: s.type ? s.type : ser && ser.type,
+      data: s.data ? s.data : ser && ser.data
     }
   }
 
