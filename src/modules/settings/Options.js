@@ -53,7 +53,7 @@ export default class Options {
       },
       title: {
         text: undefined,
-        rotate: 90,
+        rotate: -90,
         offsetY: 0,
         offsetX: 0,
         style: {

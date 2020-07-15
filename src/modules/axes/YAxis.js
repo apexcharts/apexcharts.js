@@ -391,8 +391,10 @@ export default class YAxis {
       let titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle)
       yAxisTitle.setAttribute(
         'transform',
-        `rotate(${yAxisOpposite ? '' : '-'}${
-          w.config.yaxis[realIndex].title.rotate
+        `rotate(${
+          yAxisOpposite
+            ? w.config.yaxis[realIndex].title.rotate * -1
+            : w.config.yaxis[realIndex].title.rotate
         } ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
       )
     }
