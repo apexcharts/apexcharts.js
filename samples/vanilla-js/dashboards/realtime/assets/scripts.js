@@ -87,11 +87,7 @@ var optionsColumn = {
     height: 350,
     type: 'bar',
     animations: {
-      enabled: true,
-      easing: 'linear',
-      dynamicAnimation: {
-        speed: 1000
-      }
+      enabled: false
     },
     events: {
       animationEnd: function (chartCtx, opts) {
@@ -544,7 +540,7 @@ window.setInterval(function () {
   chartColumn.updateSeries([{
     data: [...chartColumn.w.config.series[0].data,
       [
-        chartColumn.w.globals.maxX + 210000,
+        chartColumn.w.globals.maxX + 300000,
         getRandom()
       ]
     ]
