@@ -29,13 +29,6 @@ const builds = {
     env: 'production',
     banner
   },
-  'web-esm': {
-    entry: resolvePath('src/apexcharts.js'),
-    dest: resolvePath('dist/apexcharts.esm.js'),
-    format: 'es',
-    env: 'production',
-    banner
-  },
   'web-umd-dev': {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist/apexcharts.js'),

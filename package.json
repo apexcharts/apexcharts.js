@@ -20,7 +20,6 @@
   "scripts": {
     "dev": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "dev:cjs": "rollup -w -c build/config.js --environment TARGET:web-cjs",
-    "dev:esm": "rollup -w -c build/config.js --environment TARGET:web-esm",
     "bundle": "node build/build.js",
     "build": "npm run bundle && webpack -p",
     "build:umd": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
