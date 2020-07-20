@@ -162,7 +162,9 @@ export default class XAxis {
         elXaxisTexts.add(elText)
 
         let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
-        elTooltipTitle.textContent = label.text
+        elTooltipTitle.textContent = Array.isArray(label.text)
+          ? label.text.join(' ')
+          : label.text
         elText.node.appendChild(elTooltipTitle)
         if (label.text !== '') {
           this.drawnLabels.push(label.text)
