@@ -811,7 +811,7 @@ type ApexDataLabels = {
     dropShadow: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
-  formatter?(val: number, opts?: any): string
+  formatter?(val: number, opts?: any): string | number
 }
 
 type ApexResponsive = {
