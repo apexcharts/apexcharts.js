@@ -1082,7 +1082,7 @@
           pathFrom = disableAnimationForCorrupPath();
         }
 
-        if (pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
+        if (!pathTo || pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
           pathTo = disableAnimationForCorrupPath();
         }
 
@@ -2920,7 +2920,7 @@
         },
         title: {
           text: undefined,
-          rotate: 90,
+          rotate: -90,
           offsetY: 0,
           offsetX: 0,
           style: {
@@ -4378,7 +4378,11 @@
         var patternFill, gradientFill;
         this.seriesIndex = this.getSeriesIndex(opts);
         var fillColors = this.getFillColors();
-        var fillColor = fillColors[this.seriesIndex];
+        var fillColor = fillColors[this.seriesIndex]; //override fillcolor if user inputted color with data
+
+        if (w.globals.seriesColors[this.seriesIndex] !== undefined) {
+          fillColor = w.globals.seriesColors[this.seriesIndex];
+        }
 
         if (typeof fillColor === 'function') {
           fillColor = fillColor({
@@ -4658,13 +4662,13 @@
 
               var opts = this.getMarkerConfig(PointClasses, seriesIndex, dataPointIndex);
 
-              if (w.config.series[i].data[j]) {
-                if (w.config.series[i].data[j].fillColor) {
-                  opts.pointFillColor = w.config.series[i].data[j].fillColor;
+              if (w.config.series[i].data[dataPointIndex]) {
+                if (w.config.series[i].data[dataPointIndex].fillColor) {
+                  opts.pointFillColor = w.config.series[i].data[dataPointIndex].fillColor;
                 }
 
-                if (w.config.series[i].data[j].strokeColor) {
-                  opts.pointStrokeColor = w.config.series[i].data[j].strokeColor;
+                if (w.config.series[i].data[dataPointIndex].strokeColor) {
+                  opts.pointStrokeColor = w.config.series[i].data[dataPointIndex].strokeColor;
                 }
               }
 
@@ -5238,7 +5242,7 @@
       key: "bringForward",
       value: function bringForward() {
         var w = this.w;
-        var elDataLabelsNodes = w.globals.dom.baseEl.getElementsByClassName('apexcharts-datalabels');
+        var elDataLabelsNodes = w.globals.dom.baseEl.querySelectorAll('.apexcharts-datalabels');
         var elSeries = w.globals.dom.baseEl.querySelector('.apexcharts-plot-series:last-child');
 
         for (var i = 0; i < elDataLabelsNodes.length; i++) {
@@ -7543,7 +7547,8 @@
           chart: {
             animations: {
               easing: 'swing'
-            }
+            },
+            spanNullValues: false
           },
           dataLabels: {
             enabled: false
@@ -7817,6 +7822,9 @@
       key: "area",
       value: function area() {
         return {
+          chart: {
+            spanNullValues: false
+          },
           stroke: {
             width: 4
           },
@@ -8563,6 +8571,7 @@
         gl.seriesNames = [];
         gl.seriesTotals = [];
         gl.seriesLog = [];
+        gl.seriesColors = [];
         gl.stackedSeriesTotals = [];
         gl.seriesXvalues = []; // we will need this in tooltip (it's x position)
         // when we will have unequal x values, we will need
@@ -8798,10 +8807,9 @@
         var globals = this.globalVars(config);
         this.initGlobalVars(globals);
         globals.initialConfig = Utils.extend({}, config);
-        globals.initialSeries = Utils.clone(config.series); // Cloning using below method will not deep clone. Hence, should be replaced
-
-        globals.lastXAxis = JSON.parse(JSON.stringify(globals.initialConfig.xaxis));
-        globals.lastYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis));
+        globals.initialSeries = Utils.clone(config.series);
+        globals.lastXAxis = Utils.clone(globals.initialConfig.xaxis);
+        globals.lastYAxis = Utils.clone(globals.initialConfig.yaxis);
         return globals;
       }
     }]);
@@ -9285,6 +9293,13 @@
             gl.seriesNames.push(ser[i].name);
           } else {
             gl.seriesNames.push('series-' + parseInt(i + 1, 10));
+          } // overrided default color if user inputs color with series data
+
+
+          if (ser[i].color !== undefined) {
+            gl.seriesColors.push(ser[i].color);
+          } else {
+            gl.seriesColors.push(undefined);
           }
         }
 
@@ -10234,7 +10249,7 @@
             });
             elXaxisTexts.add(elText);
             var elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title');
-            elTooltipTitle.textContent = label.text;
+            elTooltipTitle.textContent = Array.isArray(label.text) ? label.text.join(' ') : label.text;
             elText.node.appendChild(elTooltipTitle);
 
             if (label.text !== '') {
@@ -10636,7 +10651,7 @@
             return false;
           }
 
-          if (i === xCount - 1 && w.globals.skipLastTimelinelabel) {
+          if (i === xCount - 1 && w.globals.skipLastTimelinelabel && !w.config.xaxis.labels.formatter) {
             return false;
           }
 
@@ -10911,6 +10926,10 @@
 
           if (this.isTimelineBar) {
             yTickAmount = w.globals.labels.length;
+
+            if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
+              xCount = w.config.xaxis.tickAmount;
+            }
           }
 
           this._drawXYLines({
@@ -12270,7 +12289,7 @@
 
         if (yAxisTitle !== null) {
           var titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle);
-          yAxisTitle.setAttribute('transform', "rotate(".concat(yAxisOpposite ? '' : '-').concat(w.config.yaxis[realIndex].title.rotate, " ").concat(titleRotatingCenter.x, " ").concat(titleRotatingCenter.y, ")"));
+          yAxisTitle.setAttribute('transform', "rotate(".concat(yAxisOpposite ? w.config.yaxis[realIndex].title.rotate * -1 : w.config.yaxis[realIndex].title.rotate, " ").concat(titleRotatingCenter.x, " ").concat(titleRotatingCenter.y, ")"));
         }
       }
     }, {
@@ -12833,7 +12852,14 @@
               return c;
             });
           }
-        }
+        } // user defined colors in series aray
+
+
+        w.globals.seriesColors.map(function (c, i) {
+          if (c) {
+            w.globals.colors[i] = c;
+          }
+        });
 
         if (w.config.theme.monochrome.enabled) {
           var monoArr = [];
@@ -13634,9 +13660,8 @@
             gridShrinkOffset += _this.dCtx.isSparkline || !w.globals.axisCharts ? 0 : 5;
           }
         });
-        var nonAxisOrMultiSeriesCharts = w.config.series.length > 1 || !w.globals.axisCharts || w.config.legend.showForSingleSeries;
 
-        if (w.config.legend.show && w.config.legend.position === 'bottom' && !w.config.legend.floating && nonAxisOrMultiSeriesCharts) {
+        if (w.config.legend.show && w.config.legend.position === 'bottom' && !w.config.legend.floating && !w.globals.axisCharts) {
           gridShrinkOffset += 10;
         }
 
@@ -14248,6 +14273,12 @@
 
           if (w.config.legend.markers.fillColors && w.config.legend.markers.fillColors[i]) {
             mStyle.background = w.config.legend.markers.fillColors[i];
+          } // override with data color
+
+
+          if (w.globals.seriesColors[i] !== undefined) {
+            mStyle.background = w.globals.seriesColors[i];
+            mStyle.color = w.globals.seriesColors[i];
           }
 
           mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px';
@@ -15429,14 +15460,7 @@
           if (w.globals.zoomEnabled) {
             var yaxis = Utils.clone(w.globals.initialConfig.yaxis);
             var xaxis = Utils.clone(w.globals.initialConfig.xaxis);
-            w.globals.zoomed = true; // before zooming in/out, store the last yaxis and xaxis range, so that when user hits the RESET button, we get the original range
-            // also - make sure user is not already zoomed in/out - otherwise we will store zoomed values in lastAxis
-            // DEAD code - the below condition will never run now as zoomed is made false above
-
-            if (!w.globals.zoomed) {
-              w.globals.lastXAxis = Utils.clone(w.config.xaxis);
-              w.globals.lastYAxis = Utils.clone(w.config.yaxis);
-            }
+            w.globals.zoomed = true;
 
             if (w.config.xaxis.convertedCatToNumeric) {
               xLowestValue = Math.floor(xLowestValue);
@@ -15478,7 +15502,7 @@
 
               if (beforeZoomRange) {
                 xaxis = beforeZoomRange.xaxis ? beforeZoomRange.xaxis : xaxis;
-                yaxis = beforeZoomRange.yaxis ? beforeZoomRange.yaxe : yaxis;
+                yaxis = beforeZoomRange.yaxis ? beforeZoomRange.yaxis : yaxis;
               }
             }
 
@@ -15653,6 +15677,12 @@
     return ZoomPanSelection;
   }(Toolbar);
 
+  /**
+   * ApexCharts Tooltip.Utils Class to support Tooltip functionality.
+   *
+   * @module Tooltip.Utils
+   **/
+
   var Utils$1 = /*#__PURE__*/function () {
     function Utils$1(tooltipContext) {
       _classCallCheck(this, Utils$1);
@@ -15798,15 +15828,12 @@
       key: "getFirstActiveXArray",
       value: function getFirstActiveXArray(Xarrays) {
         var activeIndex = 0;
-        var coreUtils = new CoreUtils(this.ctx);
         var firstActiveSeriesIndex = Xarrays.map(function (xarr, index) {
           return xarr.length > 0 ? index : -1;
         });
 
         for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
-          var total = coreUtils.getSeriesTotalByIndex(a);
-
-          if (firstActiveSeriesIndex[a] !== -1 && total !== 0) {
+          if (firstActiveSeriesIndex[a] !== -1) {
             activeIndex = firstActiveSeriesIndex[a];
             break;
           }
@@ -16778,9 +16805,12 @@
         var marker = new Markers(this.ctx);
         var elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series');
         elsSeries = _toConsumableArray(elsSeries);
-        elsSeries.sort(function (a, b) {
-          return parseFloat(a.getAttribute('data:realIndex')) - parseFloat(b.getAttribute('data:realIndex'));
-        });
+
+        if (w.config.chart.stacked) {
+          elsSeries.sort(function (a, b) {
+            return parseFloat(a.getAttribute('data:realIndex')) - parseFloat(b.getAttribute('data:realIndex'));
+          });
+        }
 
         for (var i = 0; i < elsSeries.length; i++) {
           var pointsMain = elsSeries[i].querySelector(".apexcharts-series-markers-wrap");
@@ -21073,8 +21103,14 @@
           allSeries.push(this.elSeries);
         }
 
-        for (var s = allSeries.length; s > 0; s--) {
-          ret.add(allSeries[s - 1]);
+        if (w.config.chart.stacked) {
+          for (var s = allSeries.length; s > 0; s--) {
+            ret.add(allSeries[s - 1]);
+          }
+        } else {
+          for (var _s = 0; _s < allSeries.length; _s++) {
+            ret.add(allSeries[_s]);
+          }
         }
 
         return ret;
@@ -21497,13 +21533,13 @@
             }
           }
         } else {
-          if (series[i][j + 1] === null) {
+          if (series[i][j + 1] === null && !w.config.chart.spanNullValues) {
             linePath = linePath + graphics.move(x, y);
             var numericOrCatX = w.globals.isXNumeric ? (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio : x - this.xDivision;
             areaPath = areaPath + graphics.line(numericOrCatX, areaBottomY) + graphics.move(x, y) + 'z';
           }
 
-          if (series[i][j] === null) {
+          if (series[i][j] === null && !w.config.chart.spanNullValues) {
             linePath = linePath + graphics.move(x, y);
             areaPath = areaPath + graphics.move(x, areaBottomY);
           }
@@ -21511,7 +21547,7 @@
           if (curve === 'stepline') {
             linePath = linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
             areaPath = areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
-          } else if (curve === 'straight') {
+          } else if (curve === 'straight' && series[i][j + 1] !== null) {
             linePath = linePath + graphics.line(x, y);
             areaPath = areaPath + graphics.line(x, y);
           }
@@ -22893,8 +22929,8 @@
 
             if (overwriteInitialConfig) {
               // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
-              w.globals.lastXAxis = options.xaxis ? JSON.parse(JSON.stringify(options.xaxis)) : [];
-              w.globals.lastYAxis = options.yaxis ? JSON.parse(JSON.stringify(options.yaxis)) : []; // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
+              w.globals.lastXAxis = options.xaxis ? Utils.clone(options.xaxis) : [];
+              w.globals.lastYAxis = options.yaxis ? Utils.clone(options.yaxis) : []; // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
 
               w.globals.initialConfig = Utils.extend({}, w.config);
               w.globals.initialSeries = Utils.clone(w.config.series);
@@ -22947,16 +22983,20 @@
           w.globals.initialSeries = Utils.clone(w.config.series);
         }
 
-        return this.ctx.update();
+        return this.ctx.update({
+          series: newSeries
+        });
       }
     }, {
       key: "_extendSeries",
       value: function _extendSeries(s, i) {
         var w = this.w;
+        var ser = w.config.series[i];
         return _objectSpread2(_objectSpread2({}, w.config.series[i]), {}, {
-          name: s.name ? s.name : w.config.series[i] && w.config.series[i].name,
-          type: s.type ? s.type : w.config.series[i] && w.config.series[i].type,
-          data: s.data ? s.data : w.config.series[i] && w.config.series[i].data
+          name: s.name ? s.name : ser && ser.name,
+          color: s.color ? s.color : ser && ser.color,
+          type: s.type ? s.type : ser && ser.type,
+          data: s.data ? s.data : ser && ser.data
         });
       }
     }, {
@@ -23045,18 +23085,28 @@
         var w = this.w;
         w.config.xaxis.min = w.globals.lastXAxis.min;
         w.config.xaxis.max = w.globals.lastXAxis.max;
+
+        var getLastYAxis = function getLastYAxis(index) {
+          if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+            w.config.yaxis[index].min = w.globals.lastYAxis[index].min;
+            w.config.yaxis[index].max = w.globals.lastYAxis[index].max;
+          }
+        };
+
         w.config.yaxis.map(function (yaxe, index) {
           if (w.globals.zoomed) {
             // user has zoomed, check the last yaxis
-            if (typeof w.globals.lastYAxis[index] !== 'undefined') {
-              yaxe.min = w.globals.lastYAxis[index].min;
-              yaxe.max = w.globals.lastYAxis[index].max;
-            }
+            getLastYAxis(index);
           } else {
-            // user hasn't zoomed, check the original yaxis
-            if (typeof _this3.ctx.opts.yaxis[index] !== 'undefined') {
-              yaxe.min = _this3.ctx.opts.yaxis[index].min;
-              yaxe.max = _this3.ctx.opts.yaxis[index].max;
+            // user hasn't zoomed, check the last yaxis first
+            if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+              getLastYAxis(index);
+            } else {
+              // if last y-axis don't exist, check the original yaxis
+              if (typeof _this3.ctx.opts.yaxis[index] !== 'undefined') {
+                yaxe.min = _this3.ctx.opts.yaxis[index].min;
+                yaxe.max = _this3.ctx.opts.yaxis[index].max;
+              }
             }
           }
         });
@@ -28969,8 +29019,12 @@
       value: function clearDomElements() {
         var _this = this;
 
-        // fixes apexcharts.js#1654
-        this.w.globals.dom.Paper.node.parentNode.parentNode.style.minHeight = 'unset'; // detach document event
+        var elSVG = this.w.globals.dom.Paper.node; // fixes apexcharts.js#1654 & vue-apexcharts#256
+
+        if (elSVG.parentNode && elSVG.parentNode.parentNode) {
+          elSVG.parentNode.parentNode.style.minHeight = 'unset';
+        } // detach document event
+
 
         this.ctx.eventList.forEach(function (event) {
           document.removeEventListener(event, _this.ctx.events.documentEvent);
@@ -29426,9 +29480,12 @@
 
         if (overwriteInitialSeries) {
           me.w.globals.initialSeries = Utils.clone(me.w.config.series);
-        }
+        } // call update with existing series to set the series forcefully avoiding reset on resize
 
-        return this.update();
+
+        return this.update({
+          series: this.w.config.series
+        });
       }
     }, {
       key: "update",
@@ -29665,8 +29722,11 @@
         this.w.globals.resizeTimer = window.setTimeout(function () {
           _this6.w.globals.resized = true;
           _this6.w.globals.dataChanged = false; // we need to redraw the whole chart on window resize (with a small delay).
+          // call update with existing series to set the series forcefully avoiding reset on resize
 
-          _this6.ctx.update();
+          _this6.ctx.update({
+            series: _this6.w.config.series
+          });
         }, 150);
       }
     }], [{

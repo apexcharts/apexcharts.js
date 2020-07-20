@@ -597,7 +597,7 @@ class Line {
         }
       }
     } else {
-      if (series[i][j + 1] === null) {
+      if (series[i][j + 1] === null && !w.config.chart.spanNullValues) {
         linePath = linePath + graphics.move(x, y)
 
         const numericOrCatX = w.globals.isXNumeric
@@ -609,7 +609,7 @@ class Line {
           graphics.move(x, y) +
           'z'
       }
-      if (series[i][j] === null) {
+      if (series[i][j] === null && !w.config.chart.spanNullValues) {
         linePath = linePath + graphics.move(x, y)
         areaPath = areaPath + graphics.move(x, areaBottomY)
       }
@@ -619,7 +619,7 @@ class Line {
           linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
         areaPath =
           areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
-      } else if (curve === 'straight') {
+      } else if (curve === 'straight' && series[i][j + 1] !== null) {
         linePath = linePath + graphics.line(x, y)
         areaPath = areaPath + graphics.line(x, y)
       }
