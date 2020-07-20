@@ -158,7 +158,11 @@ class Grid {
         return false
       }
 
-      if (i === xCount - 1 && w.globals.skipLastTimelinelabel) {
+      if (
+        i === xCount - 1 &&
+        w.globals.skipLastTimelinelabel &&
+        !w.config.xaxis.labels.formatter
+      ) {
         return false
       }
       if (w.config.chart.type === 'radar') {
@@ -384,6 +388,9 @@ class Grid {
 
       if (this.isTimelineBar) {
         yTickAmount = w.globals.labels.length
+        if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
+          xCount = w.config.xaxis.tickAmount
+        }
       }
       this._drawXYLines({ xCount, tickAmount: yTickAmount })
     } else {
