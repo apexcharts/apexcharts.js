@@ -88,7 +88,7 @@ class DataLabels {
 
     let elDataLabelsWrap = null
 
-    if (!dataLabelsConfig.enabled || pos.x instanceof Array !== true) {
+    if (!dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
       return elDataLabelsWrap
     }
 

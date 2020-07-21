@@ -36,7 +36,7 @@ export default class Scatter {
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
 
-    if (pointsPos.x instanceof Array) {
+    if (Array.isArray(pointsPos.x)) {
       for (let q = 0; q < pointsPos.x.length; q++) {
         let dataPointIndex = j + 1
         let shouldDraw = true

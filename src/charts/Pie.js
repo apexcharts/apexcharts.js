@@ -234,10 +234,9 @@ class Pie {
 
       let elPath = graphics.drawPath({
         d: path,
-        stroke:
-          this.lineColorArr instanceof Array
-            ? this.lineColorArr[i]
-            : this.lineColorArr,
+        stroke: Array.isArray(this.lineColorArr)
+          ? this.lineColorArr[i]
+          : this.lineColorArr,
         strokeWidth: 0,
         fill: pathFill,
         fillOpacity: w.config.fill.opacity,

@@ -56,7 +56,7 @@ export default class Markers {
       )
     }
 
-    if (p.x instanceof Array) {
+    if (Array.isArray(p.x)) {
       for (let q = 0; q < p.x.length; q++) {
         let dataPointIndex = j
 
@@ -157,26 +157,22 @@ export default class Markers {
     return {
       pSize,
       pRadius: m.radius,
-      pWidth:
-        m.strokeWidth instanceof Array
-          ? m.strokeWidth[seriesIndex]
-          : m.strokeWidth,
+      pWidth: Array.isArray(m.strokeWidth)
+        ? m.strokeWidth[seriesIndex]
+        : m.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
-      shape: m.shape instanceof Array ? m.shape[seriesIndex] : m.shape,
+      shape: Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape,
       class: cssClass,
-      pointStrokeOpacity:
-        m.strokeOpacity instanceof Array
-          ? m.strokeOpacity[seriesIndex]
-          : m.strokeOpacity,
-      pointStrokeDashArray:
-        m.strokeDashArray instanceof Array
-          ? m.strokeDashArray[seriesIndex]
-          : m.strokeDashArray,
-      pointFillOpacity:
-        m.fillOpacity instanceof Array
-          ? m.fillOpacity[seriesIndex]
-          : m.fillOpacity,
+      pointStrokeOpacity: Array.isArray(m.strokeOpacity)
+        ? m.strokeOpacity[seriesIndex]
+        : m.strokeOpacity,
+      pointStrokeDashArray: Array.isArray(m.strokeDashArray)
+        ? m.strokeDashArray[seriesIndex]
+        : m.strokeDashArray,
+      pointFillOpacity: Array.isArray(m.fillOpacity)
+        ? m.fillOpacity[seriesIndex]
+        : m.fillOpacity,
       seriesIndex
     }
   }
@@ -216,9 +212,10 @@ export default class Markers {
     let strokeColors =
       w.config.markers.strokeColor || w.config.markers.strokeColors
 
-    let pointStrokeColor =
-      strokeColors instanceof Array ? strokeColors[seriesIndex] : strokeColors
-    let pointFillColor = colors instanceof Array ? colors[seriesIndex] : colors
+    let pointStrokeColor = Array.isArray(strokeColors)
+      ? strokeColors[seriesIndex]
+      : strokeColors
+    let pointFillColor = Array.isArray(colors) ? colors[seriesIndex] : colors
 
     return {
       pointStrokeColor,
