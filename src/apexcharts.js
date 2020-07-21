@@ -250,7 +250,7 @@ export default class ApexCharts {
         me.annotations.drawAxesAnnotations()
       }
 
-      if (graphData.elGraph instanceof Array) {
+      if (Array.isArray(graphData.elGraph)) {
         for (let g = 0; g < graphData.elGraph.length; g++) {
           w.globals.dom.elGraphical.add(graphData.elGraph[g])
         }
