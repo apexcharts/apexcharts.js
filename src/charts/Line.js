@@ -372,7 +372,11 @@ class Line {
           /* fix #374 */
           sX = w.globals.seriesX[realIndex][iterations - 1]
         }
-        x = (sX - w.globals.minX) / this.xRatio
+        if (isNull && w.config.chart.spanNullValues) {
+          x = x
+        } else {
+          x = (sX - w.globals.minX) / this.xRatio
+        }
       } else {
         x = x + this.xDivision
       }
@@ -403,7 +407,12 @@ class Line {
         lineYPosition = this.zeroY
       }
 
-      if (isNull) {
+      if (isNull && w.config.chart.spanNullValues) {
+        y =
+          lineYPosition -
+          series[i][j] / yRatio[this.yaxisIndex] +
+          (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2
+      } else if (isNull && !w.config.chart.spanNullValues) {
         y =
           lineYPosition -
           minY / yRatio[this.yaxisIndex] +
@@ -553,34 +562,49 @@ class Line {
     // logic of smooth curve derived from chartist
     // CREDITS: https://gionkunz.github.io/chartist-js/
     if (curve === 'smooth') {
-      let length = (x - pX) * 0.35
-      if (w.globals.hasNullValues) {
-        if (series[i][j] !== null) {
-          if (series[i][j + 1] !== null) {
-            linePath =
-              graphics.move(pX, pY) +
-              graphics.curve(pX + length, pY, x - length, y, x + 1, y)
-            areaPath =
-              graphics.move(pX + 1, pY) +
-              graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
-              graphics.line(x, areaBottomY) +
-              graphics.line(pX, areaBottomY) +
-              'z'
-          } else {
-            linePath = graphics.move(pX, pY)
-            areaPath = graphics.move(pX, pY) + 'z'
-          }
-        }
+      if (series[i][j + 1] === null && !w.config.chart.spanNullValues) {
+        linePath = linePath + graphics.move(x, y)
 
-        linePaths.push(linePath)
-        areaPaths.push(areaPath)
-      } else {
-        linePath =
-          linePath + graphics.curve(pX + length, pY, x - length, y, x, y)
+        const numericOrCatX = w.globals.isXNumeric
+          ? (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio
+          : x - this.xDivision
         areaPath =
-          areaPath + graphics.curve(pX + length, pY, x - length, y, x, y)
+          areaPath +
+          graphics.line(numericOrCatX, areaBottomY) +
+          graphics.move(x, y) +
+          'z'
+      }
+      if (series[i][j] === null && !w.config.chart.spanNullValues) {
+        linePath = linePath + graphics.move(x, y)
+        areaPath = areaPath + graphics.move(x, y)
       }
 
+      let length = (x - pX) * 0.35
+      if (series[i][j + 1] !== null && w.config.chart.spanNullValues) {
+        linePath =
+          linePath +
+          graphics.move(pX, pY) +
+          graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+        areaPath =
+          areaPath +
+          graphics.move(pX + 1, pY) +
+          graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
+          graphics.line(x, areaBottomY) +
+          graphics.line(pX, areaBottomY) +
+          'z'
+      } else if (series[i][j] !== null && series[i][j + 1] !== null) {
+        linePath =
+          linePath +
+          graphics.move(pX, pY) +
+          graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+        areaPath =
+          areaPath +
+          graphics.move(pX + 1, pY) +
+          graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
+          graphics.line(x, areaBottomY) +
+          graphics.line(pX, areaBottomY) +
+          'z'
+      }
       pX = x
       pY = y
 
@@ -591,10 +615,8 @@ class Line {
           graphics.curve(pX, pY, x, y, x, areaBottomY) +
           graphics.move(x, y) +
           'z'
-        if (!w.globals.hasNullValues) {
-          linePaths.push(linePath)
-          areaPaths.push(areaPath)
-        }
+        linePaths.push(linePath)
+        areaPaths.push(areaPath)
       }
     } else {
       if (series[i][j + 1] === null && !w.config.chart.spanNullValues) {
@@ -619,9 +641,11 @@ class Line {
           linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
         areaPath =
           areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
-      } else if (curve === 'straight' && series[i][j + 1] !== null) {
-        linePath = linePath + graphics.line(x, y)
-        areaPath = areaPath + graphics.line(x, y)
+      } else if (curve === 'straight') {
+        if (series[i][j + 1] !== null) {
+          linePath = linePath + graphics.line(x, y)
+          areaPath = areaPath + graphics.line(x, y)
+        }
       }
 
       if (j === series[i].length - 2) {

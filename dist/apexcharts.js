@@ -21327,7 +21327,11 @@
               sX = w.globals.seriesX[realIndex][iterations - 1];
             }
 
-            x = (sX - w.globals.minX) / this.xRatio;
+            if (isNull && w.config.chart.spanNullValues) {
+              x = x;
+            } else {
+              x = (sX - w.globals.minX) / this.xRatio;
+            }
           } else {
             x = x + this.xDivision;
           }
@@ -21357,7 +21361,9 @@
             lineYPosition = this.zeroY;
           }
 
-          if (isNull) {
+          if (isNull && w.config.chart.spanNullValues) {
+            y = lineYPosition - series[i][j] / yRatio[this.yaxisIndex] + (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2;
+          } else if (isNull && !w.config.chart.spanNullValues) {
             y = lineYPosition - minY / yRatio[this.yaxisIndex] + (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2;
           } else {
             y = lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex] + (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2;
@@ -21500,24 +21506,25 @@
 
 
         if (curve === 'smooth') {
+          if (series[i][j + 1] === null && !w.config.chart.spanNullValues) {
+            linePath = linePath + graphics.move(x, y);
+            var numericOrCatX = w.globals.isXNumeric ? (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio : x - this.xDivision;
+            areaPath = areaPath + graphics.line(numericOrCatX, areaBottomY) + graphics.move(x, y) + 'z';
+          }
+
+          if (series[i][j] === null && !w.config.chart.spanNullValues) {
+            linePath = linePath + graphics.move(x, y);
+            areaPath = areaPath + graphics.move(x, y);
+          }
+
           var length = (x - pX) * 0.35;
 
-          if (w.globals.hasNullValues) {
-            if (series[i][j] !== null) {
-              if (series[i][j + 1] !== null) {
-                linePath = graphics.move(pX, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y);
-                areaPath = graphics.move(pX + 1, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y) + graphics.line(x, areaBottomY) + graphics.line(pX, areaBottomY) + 'z';
-              } else {
-                linePath = graphics.move(pX, pY);
-                areaPath = graphics.move(pX, pY) + 'z';
-              }
-            }
-
-            linePaths.push(linePath);
-            areaPaths.push(areaPath);
-          } else {
-            linePath = linePath + graphics.curve(pX + length, pY, x - length, y, x, y);
-            areaPath = areaPath + graphics.curve(pX + length, pY, x - length, y, x, y);
+          if (series[i][j + 1] !== null && w.config.chart.spanNullValues) {
+            linePath = linePath + graphics.move(pX, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y);
+            areaPath = areaPath + graphics.move(pX + 1, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y) + graphics.line(x, areaBottomY) + graphics.line(pX, areaBottomY) + 'z';
+          } else if (series[i][j] !== null && series[i][j + 1] !== null) {
+            linePath = linePath + graphics.move(pX, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y);
+            areaPath = areaPath + graphics.move(pX + 1, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y) + graphics.line(x, areaBottomY) + graphics.line(pX, areaBottomY) + 'z';
           }
 
           pX = x;
@@ -21526,17 +21533,16 @@
           if (j === series[i].length - 2) {
             // last loop, close path
             areaPath = areaPath + graphics.curve(pX, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z';
-
-            if (!w.globals.hasNullValues) {
-              linePaths.push(linePath);
-              areaPaths.push(areaPath);
-            }
+            linePaths.push(linePath);
+            areaPaths.push(areaPath);
           }
         } else {
           if (series[i][j + 1] === null && !w.config.chart.spanNullValues) {
             linePath = linePath + graphics.move(x, y);
-            var numericOrCatX = w.globals.isXNumeric ? (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio : x - this.xDivision;
-            areaPath = areaPath + graphics.line(numericOrCatX, areaBottomY) + graphics.move(x, y) + 'z';
+
+            var _numericOrCatX = w.globals.isXNumeric ? (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio : x - this.xDivision;
+
+            areaPath = areaPath + graphics.line(_numericOrCatX, areaBottomY) + graphics.move(x, y) + 'z';
           }
 
           if (series[i][j] === null && !w.config.chart.spanNullValues) {
@@ -21547,9 +21553,11 @@
           if (curve === 'stepline') {
             linePath = linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
             areaPath = areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
-          } else if (curve === 'straight' && series[i][j + 1] !== null) {
-            linePath = linePath + graphics.line(x, y);
-            areaPath = areaPath + graphics.line(x, y);
+          } else if (curve === 'straight') {
+            if (series[i][j + 1] !== null) {
+              linePath = linePath + graphics.line(x, y);
+              areaPath = areaPath + graphics.line(x, y);
+            }
           }
 
           if (j === series[i].length - 2) {
@@ -24607,10 +24615,10 @@
               }
 
               if (topParent != document) throw new Error('Element not in the dom');
-            } else {// the element is NOT in the dom, throw error
-              // disabling the check below which fixes issue #76
-              // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
-            } // find native bbox
+            } else {} // the element is NOT in the dom, throw error
+            // disabling the check below which fixes issue #76
+            // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
+            // find native bbox
 
 
             box = element.node.getBBox();
