@@ -711,7 +711,11 @@ class TimeScale {
 
       const raw = this.createRawDateString(ts, value)
 
-      const dateToFormat = dt.getDate(raw)
+      let dateToFormat = dt.getDate(dt.parseDate(raw))
+      if (!this.utc) {
+        // Fixes #1726, #1544, #1485, #1255
+        dateToFormat = dt.getDate(dt.parseDateWithTimezone(raw))
+      }
 
       if (w.config.xaxis.labels.format === undefined) {
         let customFormat = 'dd MMM'
