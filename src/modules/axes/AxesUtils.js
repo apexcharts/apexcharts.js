@@ -77,7 +77,9 @@ export default class AxesUtils {
         label.toLowerCase().indexOf('invalid') === 0 ||
         label.toLowerCase().indexOf('infinity') >= 0 ||
         (drawnLabels.indexOf(label) >= 0 &&
-          !w.config.xaxis.labels.showDuplicates))
+          !w.config.xaxis.labels.showDuplicates &&
+          this.ctx.timeScale.tickInterval !== 'hours' &&
+          this.ctx.timeScale.tickInterval !== 'minutes'))
     ) {
       label = ''
     }

@@ -446,24 +446,24 @@ export default class Core {
         w.config.xaxis.type === 'datetime' &&
         w.config.xaxis.labels.formatter === undefined
       ) {
-        let ts = new TimeScale(this.ctx)
+        this.ctx.timeScale = new TimeScale(this.ctx)
         let formattedTimeScale = []
         if (
           isFinite(w.globals.minX) &&
           isFinite(w.globals.maxX) &&
           !w.globals.isBarHorizontal
         ) {
-          formattedTimeScale = ts.calculateTimeScaleTicks(
+          formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minX,
             w.globals.maxX
           )
         } else if (w.globals.isBarHorizontal) {
-          formattedTimeScale = ts.calculateTimeScaleTicks(
+          formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minY,
             w.globals.maxY
           )
         }
-        ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
+        this.ctx.timeScale.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
 
       const coreUtils = new CoreUtils(this.ctx)
