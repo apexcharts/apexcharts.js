@@ -78,7 +78,9 @@ export default class ZoomPanSelection extends Toolbar {
     }
     this.preselectedSelection()
 
-    this.hoverArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
+    this.hoverArea = w.globals.dom.baseEl.querySelector(
+      `${w.globals.chartClass} .apexcharts-svg`
+    )
     this.hoverArea.classList.add('apexcharts-zoomable')
 
     this.eventList.forEach((event) => {
@@ -127,8 +129,11 @@ export default class ZoomPanSelection extends Toolbar {
       }
     }
 
+    const tc = e.target.classList
     const falsePositives =
-      e.target.classList.contains('apexcharts-selection-rect') ||
+      tc.contains('apexcharts-selection-rect') ||
+      tc.contains('apexcharts-legend-marker') ||
+      tc.contains('apexcharts-legend-text') ||
       e.target.parentNode.classList.contains('apexcharts-toolbar')
 
     if (falsePositives) return
