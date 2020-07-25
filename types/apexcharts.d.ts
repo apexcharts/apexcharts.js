@@ -312,7 +312,6 @@ type ApexAnnotations = {
   yaxis?: YAxisAnnotations[]
   xaxis?: XAxisAnnotations[]
   points?: PointAnnotations[]
-  shapes?: ShapeAnnotations[]
   texts?: TextAnnotations[]
   images?: ImageAnnotations[]
 }
@@ -398,23 +397,6 @@ type PointAnnotations = {
   }
 }
 
-type ShapeAnnotations = {
-  x?: number
-  y?: number
-  x1?: number
-  y1?: number
-  lineColor?: string
-  dashArray?: number
-  strokeWidth?: number
-  type?: string
-  width?: number | string
-  height?: number
-  backgroundColor?: string
-  opacity?: number
-  borderWidth?: number
-  borderRadius?: number
-  borderColor?: string
-}
 
 type TextAnnotations = {
   x?: number

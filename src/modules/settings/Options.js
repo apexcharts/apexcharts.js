@@ -227,20 +227,6 @@ export default class Options {
       paddingTop: 2,
       paddingBottom: 2
     }
-
-    this.shape = {
-      x: 0,
-      y: 0,
-      type: 'rect',
-      width: '100%', // accepts percentage as well as fixed numbers
-      height: 50,
-      appendTo: '.apexcharts-annotations',
-      backgroundColor: '#fff',
-      opacity: 1,
-      borderWidth: 0,
-      borderRadius: 4,
-      borderColor: '#c2c2c2'
-    }
   }
   init() {
     return {

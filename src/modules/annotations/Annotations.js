@@ -68,14 +68,6 @@ export default class Annotations {
     }
   }
 
-  drawShapeAnnos() {
-    const w = this.w
-
-    w.config.annotations.shapes.map((s, index) => {
-      this.addShape(s, index)
-    })
-  }
-
   drawImageAnnos() {
     const w = this.w
 
@@ -148,10 +140,6 @@ export default class Annotations {
 
     const textRect = elText.bbox()
 
-    if (params.draggable) {
-      this.helpers.makeAnnotationDraggable(elText, 'texts', index)
-    }
-
     if (text) {
       const elRect = this.graphics.drawRect(
         textRect.x - paddingLeft,
@@ -167,83 +155,6 @@ export default class Annotations {
       )
 
       parent.insertBefore(elRect.node, elText.node)
-    }
-  }
-
-  addShape(params, index) {
-    const opts = {
-      type: params.type,
-      x: params.x || 0,
-      y: params.y || 0,
-      x1: params.x1 || 0,
-      y1: params.y1 || 0,
-      lineColor: params.lineColor || '#a8a8a8',
-      dashArray: params.dashArray || 0,
-      strokeWidth: params.strokeWidth || null,
-      width: params.width || '100%',
-      height: params.height || 50,
-      circleRadius: params.radius || 25,
-      backgroundColor: params.backgroundColor || '#fff',
-      opacity: params.opacity || 1,
-      borderWidth: params.borderWidth || 0,
-      borderRadius: params.borderRadius || 4,
-      borderColor: params.borderColor || '#c2c2c2',
-      appendTo: params.appendTo || '.apexcharts-annotations'
-    }
-
-    const w = this.w
-
-    if (String(opts.width).indexOf('%') > -1) {
-      opts.width =
-        (parseInt(opts.width, 10) * parseInt(w.globals.svgWidth, 10)) / 100
-    }
-
-    let elShape = null
-    switch (opts.type) {
-      case 'circle':
-        elShape = this.graphics.drawCircle(opts.circleRadius, {
-          fill: opts.backgroundColor,
-          stroke: opts.borderColor,
-          'stroke-width': opts.borderWidth,
-          opacity: opts.opacity,
-          cx: opts.x,
-          cy: opts.y
-        })
-        break
-      case 'line':
-        elShape = this.graphics.drawLine(
-          opts.x,
-          opts.y,
-          opts.x1,
-          opts.y1,
-          opts.lineColor,
-          opts.dashArray,
-          opts.strokeWidth
-        )
-        break
-      default:
-        elShape = this.graphics.drawRect(
-          opts.x,
-          opts.y,
-          opts.width,
-          opts.height,
-          opts.borderRadius,
-          opts.backgroundColor,
-          opts.opacity,
-          opts.borderWidth,
-          opts.borderColor
-        )
-    }
-
-    const parent = w.globals.dom.baseEl.querySelector(opts.appendTo)
-
-    if (parent) {
-      parent.appendChild(elShape.node)
-    }
-
-    if (params.draggable) {
-      this.helpers.makeAnnotationDraggable(elShape, 'shapes', index)
-      elShape.node.classList.add('apexcharts-resizable-element')
     }
   }
 
@@ -265,11 +176,6 @@ export default class Annotations {
     const parent = w.globals.dom.baseEl.querySelector(appendTo)
     if (parent) {
       parent.appendChild(img.node)
-    }
-
-    if (params.draggable) {
-      this.helpers.makeAnnotationDraggable(img, 'images', index)
-      img.node.classList.add('apexcharts-resizable-element')
     }
   }
 

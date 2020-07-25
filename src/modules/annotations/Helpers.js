@@ -118,47 +118,6 @@ export default class Helpers {
     })
   }
 
-  makeAnnotationDraggable(el, annoType, index) {
-    const w = this.w
-    const anno = w.config.annotations[annoType][index]
-
-    // in the draggable annotations, we will mutate the original config
-    // object and store the values directly there
-    el.draggable().on('dragend', (de) => {
-      const x = de.target.getAttribute('x')
-      const y = de.target.getAttribute('y')
-      const cx = de.target.getAttribute('cx')
-      const cy = de.target.getAttribute('cy')
-      anno.x = x
-      anno.y = y
-
-      if (cx && cy) {
-        anno.x = cx
-        anno.y = cy
-      }
-    })
-
-    el.node.addEventListener('mousedown', (e) => {
-      e.stopPropagation()
-      el.selectize({
-        pointSize: 8,
-        rotationPoint: false,
-        pointType: 'rect'
-      })
-
-      el.resize().on('resizedone', (re) => {
-        const width = re.target.getAttribute('width')
-        const height = re.target.getAttribute('height')
-        const r = re.target.getAttribute('r')
-        anno.width = width
-        anno.height = height
-        if (r) {
-          anno.radius = r
-        }
-      })
-    })
-  }
-
   getStringX(x) {
     const w = this.w
     let rX = x

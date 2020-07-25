@@ -230,7 +230,6 @@ export default class ApexCharts {
       let elgrid = me.grid.drawGrid()
 
       me.annotations = new Annotations(me)
-      me.annotations.drawShapeAnnos()
       me.annotations.drawImageAnnos()
       me.annotations.drawTextAnnos()
 

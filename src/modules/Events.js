@@ -104,22 +104,6 @@ export default class Events {
       }
     }
 
-    if (e.type === 'mousedown') {
-      const elAnnos = w.globals.dom.Paper.select(
-        '.apexcharts-resizable-element'
-      ).members
-
-      Array.prototype.forEach.call(elAnnos, (el) => {
-        // any shape annotations that might have selected by user for resizing, should be deselected
-        if (
-          !e.target.classList.contains('apexcharts-resizable-element') &&
-          !e.target.classList.contains('svg_select_points')
-        ) {
-          el.selectize(false)
-        }
-      })
-    }
-
     w.globals.clientX =
       e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
     w.globals.clientY =
