@@ -18,7 +18,9 @@ Backer on | Name
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=15111755" target="_blank">Pierre Aguilar</a>
 <img src="https://c10.patreonusercontent.com/3/eyJ3IjoyMDB9/patreon-media/p/user/11313403/3f4cbd5acdc24f309482cfbf23bfcd81/1.jpe?token-time=2145916800&token-hash=sCMYDL4SDg2xLm64lAWWrM_IyTT6nln8ecgBqvThZeA%3D" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=11313403" target="_blank">Gergo Santha</a>
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=10458746" target="_blank">Xavier Trabet</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=16515478" target="_blank">JoeyJoejoe Shabadoo</a>
 <img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=21350037" target="_blank">Richard Klingler</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=34559848" target="_blank">codenoid</a>
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=9758306" target="_blank">
+Christopher Bartling</a>
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=39489027" target="_blank">
+Andrew Pyle</a>
 
