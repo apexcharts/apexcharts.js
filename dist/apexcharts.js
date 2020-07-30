@@ -9175,7 +9175,7 @@
             }
           }
         } else if (format === 'xy') {
-          if (ser[i].data[0].y.length !== 4) {
+          if (ser[i].data[0] && ser[i].data[0].y.length !== 4) {
             throw new Error(err);
           }
 
