@@ -367,6 +367,7 @@ export default class Options {
         },
         type: 'line',
         width: '100%',
+        widthExcludeAxes: false,
         zoom: {
           enabled: true,
           type: 'x',
@@ -514,7 +515,7 @@ export default class Options {
               formatter(w) {
                 return (
                   w.globals.seriesTotals.reduce((a, b) => a + b, 0) /
-                    w.globals.series.length +
+                  w.globals.series.length +
                   '%'
                 )
               }
