@@ -52,9 +52,12 @@ export default class Destroy {
       elSVG.parentNode.parentNode.style.minHeight = 'unset'
     }
 
-    // detach document event
+    // detach root event
     this.ctx.eventList.forEach((event) => {
-      document.removeEventListener(event, this.ctx.events.documentEvent)
+      this.w.globals.dom.baseEl.removeEventListener(
+        event,
+        this.ctx.events.documentEvent
+      )
     })
 
     const domEls = this.w.globals.dom
