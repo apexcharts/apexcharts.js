@@ -398,11 +398,11 @@
   rx: 2;
 }
 
-.apexcharts-canvas.apexcharts-zoomable .hovering-zoom {
+.apexcharts-svg.apexcharts-zoomable.hovering-zoom {
   cursor: crosshair
 }
 
-.apexcharts-canvas.apexcharts-zoomable .hovering-pan {
+.apexcharts-svg.apexcharts-zoomable.hovering-pan {
   cursor: move
 }
 
