@@ -25,6 +25,7 @@ declare class ApexCharts {
     newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries,
     animate?: boolean
   ): void
+  appendData(newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries): void
   toggleSeries(seriesName: string): any
   showSeries(seriesName: string): void
   hideSeries(seriesName: string): void
