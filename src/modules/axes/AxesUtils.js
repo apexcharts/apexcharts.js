@@ -71,15 +71,18 @@ export default class AxesUtils {
       textRect = graphics.getTextRects(label, parseInt(fontSize, 10))
     }
 
+    const timeScaleHoursMinutes =
+      !w.config.xaxis.labels.showDuplicates &&
+      this.ctx.timeScale &&
+      this.ctx.timeScale.tickInterval !== 'hours' &&
+      this.ctx.timeScale.tickInterval !== 'minutes'
+
     if (
       !Array.isArray(label) &&
       (label.indexOf('NaN') === 0 ||
         label.toLowerCase().indexOf('invalid') === 0 ||
         label.toLowerCase().indexOf('infinity') >= 0 ||
-        (drawnLabels.indexOf(label) >= 0 &&
-          !w.config.xaxis.labels.showDuplicates &&
-          this.ctx.timeScale.tickInterval !== 'hours' &&
-          this.ctx.timeScale.tickInterval !== 'minutes'))
+        (drawnLabels.indexOf(label) >= 0 && timeScaleHoursMinutes))
     ) {
       label = ''
     }
