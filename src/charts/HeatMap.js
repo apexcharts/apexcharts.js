@@ -113,6 +113,8 @@ export default class HeatMap {
               utils.shadeColor(colorShadePercent * -1, heatColorProps.color),
               w.config.fill.opacity
             )
+          } else if (this.w.config.theme.mode === 'transparent') {
+            color = Utils.hexToRgba(heatColorProps.color, colorShadePercent)
           } else {
             color = Utils.hexToRgba(
               utils.shadeColor(colorShadePercent, heatColorProps.color),
