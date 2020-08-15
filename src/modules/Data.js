@@ -316,6 +316,8 @@ export default class Data {
   }
 
   handleCandleStickDataFormat(format, ser, i) {
+    const w = this.w
+
     const serO = []
     const serH = []
     const serL = []
@@ -348,7 +350,13 @@ export default class Data {
         }
       }
     } else if (format === 'xy') {
-      if (ser[i].data[0].y.length !== 4) {
+      if (
+        (!w.globals.comboCharts && ser[i].data[0].y.length !== 4) ||
+        (w.globals.comboCharts &&
+          ser[i].type === 'candlestick' &&
+          ser[i].data.length &&
+          ser[i].data[0].y.length !== 4)
+      ) {
         throw new Error(err)
       }
       for (let j = 0; j < ser[i].data.length; j++) {
