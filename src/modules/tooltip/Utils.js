@@ -39,8 +39,10 @@ export default class Utils {
       xDivisor = hoverWidth / w.globals.dataPoints
     }
 
-    let hoverX = clientX - seriesBound.left - w.globals.barPadForNumericAxis
-    let hoverY = clientY - seriesBound.top
+    let hoverX =
+      (clientX - seriesBound.left - w.globals.barPadForNumericAxis) /
+      w.config.chart.scale
+    let hoverY = (clientY - seriesBound.top) / w.config.chart.scale
 
     const notInRect =
       hoverX < 0 ||
