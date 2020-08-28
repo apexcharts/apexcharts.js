@@ -133,6 +133,7 @@ export default class Tooltip {
     for (let i = 0; i < ttItemsCnt; i++) {
       let gTxt = document.createElement('div')
       gTxt.classList.add('apexcharts-tooltip-series-group')
+      gTxt.style.order = w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1
       if (
         this.tConfig.shared &&
         this.tConfig.enabledOnSeries &&
