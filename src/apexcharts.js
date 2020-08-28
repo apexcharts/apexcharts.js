@@ -30,7 +30,7 @@ export default class ApexCharts {
 
     this.w.globals.cuid = Utils.randomId()
     this.w.globals.chartID = this.w.config.chart.id
-      ? this.w.config.chart.id
+      ? Utils.escapeString(this.w.config.chart.id)
       : this.w.globals.cuid
 
     const initCtx = new InitCtxVariables(this)
@@ -340,7 +340,7 @@ export default class ApexCharts {
     const chartID = this.w.config.chart.id
     if (chartID) {
       Apex._chartInstances.forEach((c, i) => {
-        if (c.id === chartID) {
+        if (c.id === Utils.escapeString(chartID)) {
           Apex._chartInstances.splice(i, 1)
         }
       })
@@ -517,8 +517,9 @@ export default class ApexCharts {
       .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
   }
 
-  static getChartByID(chartID) {
-    const c = Apex._chartInstances.filter((ch) => ch.id === chartID)[0]
+  static getChartByID(id) {
+    const chartId = Utils.escapeString(id)
+    const c = Apex._chartInstances.filter((ch) => ch.id === chartId)[0]
     return c && c.chart
   }
 

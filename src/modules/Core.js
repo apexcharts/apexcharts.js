@@ -69,7 +69,7 @@ export default class Core {
       (cnf.chart.type === 'bar' || cnf.chart.type === 'rangeBar') &&
       cnf.plotOptions.bar.horizontal
 
-    gl.chartClass = '.apexcharts' + gl.cuid
+    gl.chartClass = '.apexcharts' + gl.chartID
 
     gl.dom.baseEl = this.el
 
