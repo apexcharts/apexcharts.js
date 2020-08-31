@@ -118,13 +118,26 @@ export default class XAxis {
           offsetYCorrection = 22
         }
 
-        label = this.axesUtils.checkForOverflowingLabels(
-          i,
-          label,
-          labelsLen,
-          this.drawnLabels,
-          this.drawnLabelsRects
-        )
+        const isCategoryTickAmounts =
+          typeof w.config.xaxis.tickAmount !== 'undefined' &&
+          w.config.xaxis.tickAmount !== 'dataPoints' &&
+          w.config.xaxis.type !== 'datetime'
+
+        if (isCategoryTickAmounts) {
+          label = this.axesUtils.checkLabelBasedOnTickamount(
+            i,
+            label,
+            labelsLen
+          )
+        } else {
+          label = this.axesUtils.checkForOverflowingLabels(
+            i,
+            label,
+            labelsLen,
+            this.drawnLabels,
+            this.drawnLabelsRects
+          )
+        }
 
         const getCatForeColor = () => {
           return w.config.xaxis.convertedCatToNumeric
@@ -269,6 +282,14 @@ export default class XAxis {
           w
         })
 
+        const yColors = this.axesUtils.getYAxisForeColor(
+          ylabels.style.colors,
+          realIndex
+        )
+        const getForeColor = () => {
+          return Array.isArray(yColors) ? yColors[i] : yColors
+        }
+
         let multiY = 0
         if (Array.isArray(label)) {
           multiY = (label.length / 2) * parseInt(ylabels.style.fontSize, 10)
@@ -278,9 +299,7 @@ export default class XAxis {
           y: yPos + colHeight + ylabels.offsetY - multiY,
           text: label,
           textAnchor: this.yaxis.opposite ? 'start' : 'end',
-          foreColor: Array.isArray(ylabels.style.colors)
-            ? ylabels.style.colors[i]
-            : ylabels.style.colors,
+          foreColor: getForeColor(),
           fontSize: ylabels.style.fontSize,
           fontFamily: ylabels.style.fontFamily,
           fontWeight: ylabels.style.fontWeight,

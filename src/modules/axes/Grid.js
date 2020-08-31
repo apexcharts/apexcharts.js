@@ -247,24 +247,48 @@ class Grid {
     }
 
     const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
-      for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
-        if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
-          // single datapoint
-          x1 = w.globals.gridWidth / 2
+      if (
+        typeof w.config.xaxis.tickAmount !== 'undefined' &&
+        w.config.xaxis.tickAmount !== 'dataPoints'
+      ) {
+        // user has specified tickamount in a category x-axis chart
+        const visibleLabels = w.globals.dom.baseEl.querySelectorAll(
+          '.apexcharts-text.apexcharts-xaxis-label tspan:not(:empty)'
+        )
+
+        visibleLabels.forEach((d, i) => {
+          const textRect = d.getBBox()
+
+          this._drawGridLines({
+            i,
+            x1: textRect.x + textRect.width / 2,
+            y1,
+            x2: textRect.x + textRect.width / 2,
+            y2,
+            xCount,
+            parent: this.elgridLinesV
+          })
+        })
+      } else {
+        for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
+          if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
+            // single datapoint
+            x1 = w.globals.gridWidth / 2
+            x2 = x1
+          }
+          this._drawGridLines({
+            i,
+            x1,
+            y1,
+            x2,
+            y2,
+            xCount,
+            parent: this.elgridLinesV
+          })
+
+          x1 = x1 + w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
           x2 = x1
         }
-        this._drawGridLines({
-          i,
-          x1,
-          y1,
-          x2,
-          y2,
-          xCount,
-          parent: this.elgridLinesV
-        })
-
-        x1 = x1 + w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
-        x2 = x1
       }
     }
 

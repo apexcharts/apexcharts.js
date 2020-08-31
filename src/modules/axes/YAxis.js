@@ -79,10 +79,12 @@ export default class YAxis {
           xPad = xPad * -1
         }
 
+        const yColors = this.axesUtils.getYAxisForeColor(
+          yaxisStyle.colors,
+          realIndex
+        )
         const getForeColor = () => {
-          return Array.isArray(yaxisStyle.colors)
-            ? yaxisStyle.colors[i]
-            : yaxisStyle.colors
+          return Array.isArray(yColors) ? yColors[i] : yColors
         }
 
         let label = graphics.drawText({

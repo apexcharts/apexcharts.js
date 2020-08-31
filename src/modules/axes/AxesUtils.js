@@ -95,6 +95,24 @@ export default class AxesUtils {
     }
   }
 
+  checkLabelBasedOnTickamount(i, label, labelsLen) {
+    const w = this.w
+
+    let ticks = w.config.xaxis.tickAmount
+    if (ticks === 'dataPoints') ticks = Math.round(w.globals.gridWidth / 120)
+
+    if (ticks > labelsLen) return label
+    let tickMultiple = Math.round(labelsLen / (ticks + 1))
+
+    if (i % tickMultiple === 0) {
+      return label
+    } else {
+      label.text = ''
+    }
+
+    return label
+  }
+
   checkForOverflowingLabels(
     i,
     label,
@@ -153,6 +171,20 @@ export default class AxesUtils {
         coreUtils.isSeriesNull(index) &&
         w.globals.collapsedSeriesIndices.indexOf(index) === -1)
     )
+  }
+
+  // get the label color for y-axis
+  // realIndex is the actual series index, while i is the tick Index
+  getYAxisForeColor(yColors, realIndex) {
+    const w = this.w
+    if (Array.isArray(yColors) && w.globals.yAxisScale[realIndex]) {
+      this.ctx.theme.pushExtraColors(
+        yColors,
+        w.globals.yAxisScale[realIndex].result.length,
+        false
+      )
+    }
+    return yColors
   }
 
   drawYAxisTicks(

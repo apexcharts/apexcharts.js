@@ -53,14 +53,11 @@ export default class Destroy {
     }
 
     // detach root event
-    const baseEl = this.w.globals.dom.baseEl;
+    const baseEl = this.w.globals.dom.baseEl
     if (baseEl) {
       // see https://github.com/apexcharts/vue-apexcharts/issues/275
       this.ctx.eventList.forEach((event) => {
-        baseEl.removeEventListener(
-          event,
-          this.ctx.events.documentEvent
-        )
+        baseEl.removeEventListener(event, this.ctx.events.documentEvent)
       })
     }
 
