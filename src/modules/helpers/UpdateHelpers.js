@@ -113,9 +113,7 @@ export default class UpdateHelpers {
     if (overwriteInitialSeries) {
       w.globals.initialSeries = Utils.clone(w.config.series)
     }
-    return this.ctx.update({
-      series: newSeries
-    })
+    return this.ctx.update()
   }
 
   _extendSeries(s, i) {
