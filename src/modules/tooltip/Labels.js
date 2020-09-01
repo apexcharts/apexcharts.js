@@ -15,7 +15,7 @@ export default class Labels {
     this.tooltipUtil = new Utils(tooltipContext)
   }
 
-  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2 }) {
+  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2, e }) {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
@@ -34,7 +34,8 @@ export default class Labels {
       j,
       values,
       ttItems,
-      shared
+      shared,
+      e
     })
 
     // Re-calculate tooltip dimensions now that we have drawn the text
@@ -44,7 +45,7 @@ export default class Labels {
     this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height
   }
 
-  printLabels({ i, j, values, ttItems, shared }) {
+  printLabels({ i, j, values, ttItems, shared, e }) {
     const w = this.w
     let val
     const { xVal, zVal, xAxisTTVal } = values
@@ -93,6 +94,9 @@ export default class Labels {
 
           val = generalFormatter(tIndex)
         } else {
+          if (e && e.target && e.target.getAttribute('fill')) {
+            pColor = e.target.getAttribute('fill')
+          }
           val = generalFormatter(i)
         }
       }

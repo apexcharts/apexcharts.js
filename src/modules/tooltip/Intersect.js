@@ -32,7 +32,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
-        shared: false
+        shared: false,
+        e
       })
 
       w.globals.capturedSeriesIndex = i
@@ -89,7 +90,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
-        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
+        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
+        e
       })
 
       if (e.type === 'mouseup') {
@@ -287,7 +289,8 @@ class Intersect {
         j,
         y1: y1 ? parseInt(y1, 10) : null,
         y2: y2 ? parseInt(y2, 10) : null,
-        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
+        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
+        e
       })
 
       if (w.config.tooltip.followCursor) {
