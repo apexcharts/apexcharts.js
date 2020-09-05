@@ -4,7 +4,7 @@ export default class Destroy {
     this.w = ctx.w
   }
 
-  clear() {
+  clear({ isUpdating }) {
     if (this.ctx.zoomPanSelection) {
       this.ctx.zoomPanSelection.destroy()
     }
@@ -32,7 +32,7 @@ export default class Destroy {
     this.ctx.toolbar = null
     this.ctx.localization = null
     this.ctx.w.globals.tooltip = null
-    this.clearDomElements()
+    this.clearDomElements({ isUpdating })
   }
 
   killSVG(draw) {
@@ -45,10 +45,10 @@ export default class Destroy {
     draw.clear()
   }
 
-  clearDomElements() {
+  clearDomElements({ isUpdating }) {
     const elSVG = this.w.globals.dom.Paper.node
     // fixes apexcharts.js#1654 & vue-apexcharts#256
-    if (elSVG.parentNode && elSVG.parentNode.parentNode) {
+    if (elSVG.parentNode && elSVG.parentNode.parentNode && !isUpdating) {
       elSVG.parentNode.parentNode.style.minHeight = 'unset'
     }
 
