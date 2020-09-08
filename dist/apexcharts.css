@@ -46,6 +46,8 @@
   pointer-events: none;
   position: absolute;
   top: 20px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   white-space: nowrap;
   z-index: 12;
