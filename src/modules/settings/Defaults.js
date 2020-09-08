@@ -17,7 +17,8 @@ export default class Defaults {
       chart: {
         animations: {
           easing: 'swing'
-        }
+        },
+        spanNullValues: false
       },
       dataLabels: {
         enabled: false
@@ -299,6 +300,9 @@ export default class Defaults {
 
   area() {
     return {
+      chart: {
+        spanNullValues: false
+      },
       stroke: {
         width: 4
       },

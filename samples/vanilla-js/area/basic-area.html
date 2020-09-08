@@ -9,60 +9,60 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+
     </style>
 
     <script>
       window.Promise ||
         document.write(
           '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
-        )
+            )
       window.Promise ||
         document.write(
           '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
-        )
+            )
       window.Promise ||
         document.write(
           '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
-        )
-    </script>
+            )
+          </script>
 
-    
-    <script src="../../../dist/apexcharts.js"></script>
-    
 
-    <script src="../../assets/stock-prices.js"></script>
+          <script src="../../../dist/apexcharts.js"></script>
+
+
+          <script src="../../assets/stock-prices.js"></script>
   </head>
 
   <body>
-     <div id="chart"></div>
+    <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [{
+
+      var options = {
+        series: [{
           name: "STOCK ABC",
           data: series.monthDataSeries1.prices
         }],
-          chart: {
+        chart: {
           type: 'area',
+          spanNullValues: false,
           height: 350,
           zoom: {
             enabled: false
           }
         },
+        stroke: {
+          curve: 'smooth',
+        },
         dataLabels: {
           enabled: false
         },
-        stroke: {
-          curve: 'straight'
-        },
-        
         title: {
           text: 'Fundamental Analysis of Stocks',
           align: 'left'
@@ -81,14 +81,14 @@
         legend: {
           horizontalAlign: 'left'
         }
-        };
+      };
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector("#chart"), options);
+      chart.render();
+
+
     </script>
 
-    
+
   </body>
 </html>
