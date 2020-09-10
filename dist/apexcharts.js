@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.20.1
+ * ApexCharts v3.20.2
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -14288,7 +14288,7 @@
           w.globals.dom.elLegendWrap.style.height = w.config.legend.height ? w.config.legend.height + 'px' : '';
           Graphics.setAttrs(elLegend, {
             rel: i + 1,
-            seriesName: Utils.escapeString(w.globals.seriesNames[i]),
+            seriesName: Utils.escapeString(legendNames[i]),
             'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
           });
 
