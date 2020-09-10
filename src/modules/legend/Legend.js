@@ -258,7 +258,7 @@ class Legend {
 
       Graphics.setAttrs(elLegend, {
         rel: i + 1,
-        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
+        seriesName: Utils.escapeString(legendNames[i]),
         'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
       })
 
