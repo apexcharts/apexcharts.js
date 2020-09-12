@@ -511,6 +511,25 @@ export default class Defaults {
     }
   }
 
+  treemap() {
+    return {
+      chart: {
+        zoom: {
+          enabled: false
+        }
+      },
+      dataLabels: {
+        style: {
+          fontWeight: 400,
+          colors: ['#fff']
+        }
+      },
+      legend: {
+        show: false
+      }
+    }
+  }
+
   pie() {
     return {
       chart: {

@@ -423,6 +423,13 @@ export default class Options {
             max: undefined
           }
         },
+        treemap: {
+          distributed: true,
+          enabledShades: true,
+          dataLabels: {
+            maxFontSize: 20
+          }
+        },
         radialBar: {
           inverseOrder: false,
           startAngle: 0,

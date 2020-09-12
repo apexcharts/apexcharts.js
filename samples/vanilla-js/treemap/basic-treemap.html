@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Basic Treemap Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    <script src="../../../dist/apexcharts.js"></script>
+  </head>
+
+  <body>
+    <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Desktops',
+            data: [
+              {
+                x: 'ABC',
+                y: 60,
+                fillColor: 'red'
+              },
+              {
+                x: 'DEF',
+                y: 60,
+                fillColor: 'green'
+              },
+              {
+                x: 'XYZ',
+                y: 40,
+                fillColor: 'blue'
+              }
+            ]
+          },
+          {
+            name: 'dsfsdf',
+            data: [
+              {
+                x: 'ABCD',
+                y: 30,
+                fillColor: 'yellow'
+              },
+              {
+                x: 'DEFG',
+                y: 20,
+                fillColor: 'pink'
+              },
+              {
+                x: 'WXYZ',
+                y: 5,
+                fillColor: 'orange'
+              }
+            ]
+          }
+        ],
+        chart: {
+          height: 350,
+          type: 'treemap'
+        }
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+  </body>
+</html>
