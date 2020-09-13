@@ -83,7 +83,8 @@ class Fill {
     if (
       ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
         w.config.plotOptions.bar.distributed) ||
-      w.config.chart.type === 'heatmap'
+      w.config.chart.type === 'heatmap' ||
+      w.config.chart.type === 'treemap'
     ) {
       this.seriesIndex = opts.seriesNumber
     } else {
@@ -125,11 +126,11 @@ class Fill {
       ? cnf.fill.opacity[this.seriesIndex]
       : cnf.fill.opacity
 
-    let defaultColor = fillColor
-
     if (opts.color) {
       fillColor = opts.color
     }
+
+    let defaultColor = fillColor
 
     if (fillColor.indexOf('rgb') === -1) {
       if (fillColor.length < 9) {

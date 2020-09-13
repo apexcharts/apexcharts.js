@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Basic Treemap Chart</title>
+    <title>Multi-dimensional Treemap Chart</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -35,6 +35,7 @@
 
   <body>
     <div id="chart"></div>
+    <button onclick="updateChart()">Update</button>
 
     <script>
       var options = {
@@ -44,50 +45,114 @@
             data: [
               {
                 x: 'ABC',
-                y: 60,
-                fillColor: 'red'
+                y: 10
               },
               {
                 x: 'DEF',
-                y: 60,
-                fillColor: 'green'
+                y: 60
               },
               {
                 x: 'XYZ',
-                y: 40,
-                fillColor: 'blue'
+                y: 41
               }
             ]
           },
           {
-            name: 'dsfsdf',
+            name: 'Mobile',
             data: [
               {
                 x: 'ABCD',
-                y: 30,
-                fillColor: 'yellow'
+                y: 10
               },
               {
                 x: 'DEFG',
-                y: 20,
-                fillColor: 'pink'
+                y: 20
               },
               {
                 x: 'WXYZ',
-                y: 5,
-                fillColor: 'orange'
+                y: 51
+              },
+              {
+                x: 'PQR',
+                y: 30
+              },
+              {
+                x: 'MNO',
+                y: 20
+              },
+              {
+                x: 'CDE',
+                y: 30
               }
             ]
           }
         ],
+        legend: {
+          show: false
+        },
         chart: {
           height: 350,
           type: 'treemap'
+        },
+        title: {
+          text: 'Multi-dimensional Treemap',
+          align: 'center'
         }
       }
 
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
+
+      function updateChart() {
+        chart.updateSeries([
+          {
+            name: 'Desktops',
+            data: [
+              {
+                x: 'ABC',
+                y: 10
+              },
+              {
+                x: 'DEF',
+                y: 20
+              },
+              {
+                x: 'XYZ',
+                y: 40
+              }
+            ]
+          },
+          {
+            name: 'Mobile',
+            data: [
+              {
+                x: 'ABCD',
+                y: 30
+              },
+              {
+                x: 'DEFG',
+                y: 20
+              },
+              {
+                x: 'WXYZ',
+                y: 5
+              },
+              {
+                x: 'PQR',
+                y: 30
+              },
+              {
+                x: 'MNO',
+                y: 20
+              },
+              {
+                x: 'CDE',
+                y: 30
+              }
+            ]
+          }
+        ])
+      }
     </script>
   </body>
 </html>

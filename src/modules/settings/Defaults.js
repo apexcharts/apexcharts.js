@@ -520,12 +520,34 @@ export default class Defaults {
       },
       dataLabels: {
         style: {
-          fontWeight: 400,
+          fontSize: 14,
+          fontWeight: 600,
           colors: ['#fff']
         }
       },
+      stroke: {
+        show: true,
+        width: 2,
+        colors: ['#fff']
+      },
       legend: {
         show: false
+      },
+      fill: {
+        gradient: {
+          stops: [0, 100]
+        }
+      },
+      tooltip: {
+        followCursor: true,
+        x: {
+          show: false
+        }
+      },
+      xaxis: {
+        tooltip: {
+          enabled: false
+        }
       }
     }
   }

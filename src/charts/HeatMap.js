@@ -3,6 +3,7 @@ import Animations from '../modules/Animations'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'
 import Utils from '../utils/Utils'
+import Helpers from './common/treemap/Helpers'
 import Filters from '../modules/Filters'
 
 /**
@@ -22,6 +23,7 @@ export default class HeatMap {
 
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
 
+    this.helpers = new Helpers(ctx)
     this.rectRadius = this.w.config.plotOptions.heatmap.radius
     this.strokeWidth = this.w.config.stroke.show
       ? this.w.config.stroke.width
@@ -74,52 +76,17 @@ export default class HeatMap {
       }
 
       let x1 = 0
+      let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
 
       for (let j = 0; j < heatSeries[i].length; j++) {
-        let colorShadePercent = 1
-        let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
-
-        const heatColorProps = this.determineHeatColor(i, j)
-
-        if (w.globals.hasNegs || this.negRange) {
-          if (w.config.plotOptions.heatmap.reverseNegativeShade) {
-            if (heatColorProps.percent < 0) {
-              colorShadePercent =
-                (heatColorProps.percent / 100) * (shadeIntensity * 1.25)
-            } else {
-              colorShadePercent =
-                (1 - heatColorProps.percent / 100) * (shadeIntensity * 1.25)
-            }
-          } else {
-            if (heatColorProps.percent <= 0) {
-              colorShadePercent =
-                1 - (1 + heatColorProps.percent / 100) * shadeIntensity
-            } else {
-              colorShadePercent =
-                (1 - heatColorProps.percent / 100) * shadeIntensity
-            }
-          }
-        } else {
-          colorShadePercent = 1 - heatColorProps.percent / 100
-        }
-
-        let color = heatColorProps.color
-        let utils = new Utils()
-
-        if (w.config.plotOptions.heatmap.enableShades) {
-          if (colorShadePercent < 0) colorShadePercent = 0
-          if (this.w.config.theme.mode === 'dark') {
-            color = Utils.hexToRgba(
-              utils.shadeColor(colorShadePercent * -1, heatColorProps.color),
-              w.config.fill.opacity
-            )
-          } else {
-            color = Utils.hexToRgba(
-              utils.shadeColor(colorShadePercent, heatColorProps.color),
-              w.config.fill.opacity
-            )
-          }
-        }
+        let heatColor = this.helpers.getShadeColor(
+          w.config.chart.type,
+          i,
+          j,
+          this.negRange
+        )
+        let color = heatColor.color
+        let heatColorProps = heatColor.colorProps
 
         if (w.config.fill.type === 'image') {
           const fill = new Fill(this.ctx)
@@ -321,12 +288,10 @@ export default class HeatMap {
     i,
     j,
     heatColorProps,
-    series,
     rectHeight,
     rectWidth
   }) {
     let w = this.w
-    // let graphics = new Graphics(this.ctx)
     let dataLabelsConfig = w.config.dataLabels
 
     const graphics = new Graphics(this.ctx)

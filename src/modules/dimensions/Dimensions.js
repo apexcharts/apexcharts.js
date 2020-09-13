@@ -135,8 +135,11 @@ export default class Dimensions {
         height: 0,
         width: 0
       }
-      xAxisHeight = 0
+    }
+
+    if (this.isSparkline || w.config.chart.type === 'treemap') {
       yAxisWidth = 0
+      xAxisHeight = 0
       translateY = 0
     }
 
@@ -148,7 +151,11 @@ export default class Dimensions {
         gl.svgHeight -
         this.lgRect.height -
         xAxisHeight -
-        (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
+        (!this.isSparkline && w.config.chart.type !== 'treemap'
+          ? w.globals.rotateXLabels
+            ? 10
+            : 15
+          : 0)
       gl.gridWidth = gl.svgWidth - yAxisWidth
     }
 

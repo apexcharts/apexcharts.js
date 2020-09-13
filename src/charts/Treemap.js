@@ -1,6 +1,8 @@
 import '../libs/Treemap-squared'
 import Graphics from '../modules/Graphics'
 import Animations from '../modules/Animations'
+import Fill from '../modules/Fill'
+import Helpers from './common/treemap/Helpers'
 
 import Utils from '../utils/Utils'
 
@@ -14,12 +16,17 @@ export default class TreemapChart {
     this.ctx = ctx
     this.w = ctx.w
 
+    this.strokeWidth = this.w.config.stroke.width
+    this.helpers = new Helpers(ctx)
+    this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
+
     this.labels = []
   }
 
   draw(series) {
     let w = this.w
     const graphics = new Graphics(this.ctx)
+    const fill = new Fill(this.ctx)
 
     let ret = graphics.group({
       class: 'apexcharts-treemap'
@@ -36,8 +43,6 @@ export default class TreemapChart {
         this.labels[i].push(l.x)
       })
     })
-
-    console.log(this.labels)
 
     const nodes = window.TreemapSquared.generate(
       ser,
@@ -62,37 +67,96 @@ export default class TreemapChart {
         const y1 = r[1]
         const x2 = r[2]
         const y2 = r[3]
-        let rect = graphics.drawRect(x1, y1, x2 - x1, y2 - y1)
-        rect.attr({
+        let elRect = graphics.drawRect(
+          x1,
+          y1,
+          x2 - x1,
+          y2 - y1,
+          0,
+          '#fff',
+          1,
+          this.strokeWidth,
+          w.config.plotOptions.treemap.useFillColorAsStroke
+            ? color
+            : w.globals.stroke.colors[i]
+        )
+        elRect.attr({
           cx: x1,
-          cy: y1
+          cy: y1,
+          i,
+          j,
+          width: x2 - x1,
+          height: y2 - y1
         })
 
-        rect.node.classList.add('apexcharts-treemap-rect')
+        let heatColor = this.helpers.getShadeColor(w.config.chart.type, i, j)
+        let color = heatColor.color
 
-        rect.attr({
-          fill: w.config.series[i].data[j].fillColor
+        if (
+          typeof w.config.series[i].data[j] !== 'undefined' &&
+          w.config.series[i].data[j].fillColor
+        ) {
+          color = w.config.series[i].data[j].fillColor
+        }
+        let pathFill = fill.fillPath({
+          color,
+          seriesNumber: i,
+          dataPointIndex: j
         })
 
-        rect.node.addEventListener(
+        elRect.node.classList.add('apexcharts-treemap-rect')
+
+        elRect.attr({
+          fill: pathFill
+        })
+
+        elRect.node.addEventListener(
           'mouseenter',
-          graphics.pathMouseEnter.bind(this, rect)
+          graphics.pathMouseEnter.bind(this, elRect)
         )
-        rect.node.addEventListener(
+        elRect.node.addEventListener(
           'mouseleave',
-          graphics.pathMouseLeave.bind(this, rect)
+          graphics.pathMouseLeave.bind(this, elRect)
         )
-        rect.node.addEventListener(
+        elRect.node.addEventListener(
           'mousedown',
-          graphics.pathMouseDown.bind(this, rect)
+          graphics.pathMouseDown.bind(this, elRect)
         )
+
+        let fromRect = {
+          x: x1 + (x2 - x1) / 2,
+          y: y1 + (y2 - y1) / 2,
+          width: 0,
+          height: 0
+        }
+        let toRect = {
+          x: x1,
+          y: y1,
+          width: x2 - x1,
+          height: y2 - y1
+        }
 
         if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
           let speed = 1
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed
           }
-          this.animateTreemap(rect, x1, y1, x2 - x1, y2 - y1, speed)
+          this.animateTreemap(elRect, fromRect, toRect, speed)
+        }
+        if (w.globals.dataChanged) {
+          let speed = 1
+          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
+            speed = this.dynamicAnim.speed
+
+            if (
+              w.globals.previousPaths[i][j] &&
+              w.globals.previousPaths[i][j].rect
+            ) {
+              fromRect = w.globals.previousPaths[i][j].rect
+            }
+
+            this.animateTreemap(elRect, fromRect, toRect, speed)
+          }
         }
 
         const fontSize = this.getFontSize(r)
@@ -108,7 +172,7 @@ export default class TreemapChart {
         )
         elDataLabelWrap.add(dataLabel)
 
-        elSeries.add(rect)
+        elSeries.add(elRect)
         elSeries.add(elDataLabelWrap)
       })
 
@@ -167,7 +231,7 @@ export default class TreemapChart {
       let arearoot = Math.pow(area, 0.5)
       return Math.min(
         arearoot / averagelabelsize,
-        w.config.plotOptions.treemap.dataLabels.maxFontSize
+        parseInt(w.config.dataLabels.style.fontSize, 10)
       )
     }
 
@@ -183,7 +247,7 @@ export default class TreemapChart {
     const graphics = new Graphics(this.ctx)
     let elText = graphics.drawText({
       x: (x1 + x2) / 2,
-      y: (y1 + y2) / 2,
+      y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
       text,
       textAnchor: 'middle',
       foreColor: w.globals.dataLabels.style.colors[i],
@@ -208,36 +272,26 @@ export default class TreemapChart {
     return elText
   }
 
-  animateTreemap(el, x, y, width, height, speed) {
+  animateTreemap(el, fromRect, toRect, speed) {
     const animations = new Animations(this.ctx)
     animations.animateRect(
       el,
       {
-        x: x + width / 2,
-        y: y + height / 2,
-        width: 0,
-        height: 0
+        x: fromRect.x,
+        y: fromRect.y,
+        width: fromRect.width,
+        height: fromRect.height
       },
       {
-        x,
-        y,
-        width,
-        height
+        x: toRect.x,
+        y: toRect.y,
+        width: toRect.width,
+        height: toRect.height
       },
       speed,
       () => {
         animations.animationCompleted(el)
       }
     )
-  }
-
-  animateRectColor(el, colorFrom, colorTo, speed) {
-    el.attr({
-      fill: colorFrom
-    })
-      .animate(speed)
-      .attr({
-        fill: colorTo
-      })
   }
 }

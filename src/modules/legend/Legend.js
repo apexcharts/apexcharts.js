@@ -273,7 +273,9 @@ class Legend {
 
     // for now - just prevent click on heatmap legend - and allow hover only
     const clickAllowed =
-      w.config.chart.type !== 'heatmap' && !this.isBarsDistributed
+      w.config.chart.type !== 'treemap' &&
+      w.config.chart.type !== 'heatmap' &&
+      !this.isBarsDistributed
 
     if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
       w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)

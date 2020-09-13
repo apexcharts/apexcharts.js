@@ -70,6 +70,15 @@ export default class Labels {
         j
       })
 
+      if (w.config.chart.type === 'treemap') {
+        seriesName = f.yLbTitleFormatter(String(w.config.series[i].data[j].x), {
+          series: w.globals.series,
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        })
+      }
+
       const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
       if (w.globals.axisCharts) {
@@ -327,7 +336,7 @@ export default class Labels {
     if (j === null) {
       val = w.globals.series[i]
     } else {
-      if (w.globals.isXNumeric) {
+      if (w.globals.isXNumeric && w.config.chart.type !== 'treemap') {
         xVal = filteredSeriesX[i][j]
         if (filteredSeriesX[i].length === 0) {
           // a series (possibly the first one) might be collapsed, so get the next active index
