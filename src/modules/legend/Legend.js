@@ -132,6 +132,7 @@ class Legend {
 
       mStyle.background = fillcolor[i]
       mStyle.color = fillcolor[i]
+      mStyle.setProperty('background', fillcolor[i], 'important');
 
       // override fill color with custom legend.markers.fillColors
       if (
