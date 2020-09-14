@@ -425,7 +425,7 @@ export default class Options {
         },
         treemap: {
           enableShades: true,
-          shadeIntensity: 0.7,
+          shadeIntensity: 0.5,
           distributed: false,
           useFillColorAsStroke: false,
           colorScale: {

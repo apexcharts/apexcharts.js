@@ -143,7 +143,9 @@ export default class Dimensions {
       translateY = 0
     }
 
-    this.dimXAxis.additionalPaddingXLabels(xaxisLabelCoords)
+    if (w.config.xaxis.show) {
+      this.dimXAxis.additionalPaddingXLabels(xaxisLabelCoords)
+    }
 
     const legendTopBottom = () => {
       gl.translateX = yAxisWidth

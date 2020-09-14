@@ -544,7 +544,16 @@ export default class Defaults {
           show: false
         }
       },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0
+        }
+      },
       xaxis: {
+        crosshairs: {
+          show: false
+        },
         tooltip: {
           enabled: false
         }
