@@ -34,8 +34,13 @@ export default class TreemapChart {
 
     let ser = []
     series.forEach((s) => {
-      ser.push(s)
+      let d = s.map((v) => {
+        return Math.abs(v)
+      })
+      ser.push(d)
     })
+
+    this.negRange = this.helpers.checkColorRange()
 
     w.config.series.forEach((s, i) => {
       s.data.forEach((l) => {
@@ -89,7 +94,12 @@ export default class TreemapChart {
           height: y2 - y1
         })
 
-        let heatColor = this.helpers.getShadeColor(w.config.chart.type, i, j)
+        let heatColor = this.helpers.getShadeColor(
+          w.config.chart.type,
+          i,
+          j,
+          this.negRange
+        )
         let color = heatColor.color
 
         if (

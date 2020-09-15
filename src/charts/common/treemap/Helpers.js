@@ -6,6 +6,22 @@ export default class TreemapHelpers {
     this.w = ctx.w
   }
 
+  checkColorRange() {
+    const w = this.w
+
+    let negRange = false
+    let chartOpts = w.config.plotOptions[w.config.chart.type]
+
+    if (chartOpts.colorScale.ranges.length > 0) {
+      chartOpts.colorScale.ranges.map((range, index) => {
+        if (range.from <= 0) {
+          negRange = true
+        }
+      })
+    }
+    return negRange
+  }
+
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w
 

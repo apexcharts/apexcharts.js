@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Simple Treemap Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        padding-right: 10px;
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    <script src="../../../dist/apexcharts.js"></script>
+  </head>
+
+  <body>
+    <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            data: [
+              {
+                x: 'INTC',
+                y: 1.2
+              },
+              {
+                x: 'GS',
+                y: 0.4
+              },
+              {
+                x: 'CVX',
+                y: -1.4
+              },
+              {
+                x: 'GE',
+                y: 2.7
+              },
+              {
+                x: 'CAT',
+                y: -0.3
+              },
+              {
+                x: 'RTX',
+                y: 5.1
+              },
+              {
+                x: 'CSCO',
+                y: -2.3
+              },
+              {
+                x: 'JNJ',
+                y: 2.1
+              },
+              {
+                x: 'PG',
+                y: 0.3
+              },
+              {
+                x: 'TRV',
+                y: 0.12
+              },
+              {
+                x: 'MMM',
+                y: -2.31
+              },
+              {
+                x: 'NKE',
+                y: 3.98
+              },
+              {
+                x: 'IYT',
+                y: 1.67
+              }
+            ]
+          }
+        ],
+        legend: {
+          show: false
+        },
+        chart: {
+          height: 350,
+          type: 'treemap'
+        },
+        title: {
+          text: 'Basic Treemap'
+        },
+
+        plotOptions: {
+          treemap: {
+            enableShades: true,
+            shadeIntensity: 0.5,
+            reverseNegativeShade: true,
+            colorScale: {
+              ranges: [
+                {
+                  from: -6,
+                  to: 0,
+                  color: '#CD363A'
+                },
+                {
+                  from: 0.001,
+                  to: 6,
+                  color: '#52B12C'
+                }
+              ]
+            }
+          }
+        }
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+  </body>
+</html>

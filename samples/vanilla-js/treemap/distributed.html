@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Multi-dimensional Treemap Chart</title>
+    <title>Distibuted Treemap Chart</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -35,54 +35,63 @@
 
   <body>
     <div id="chart"></div>
-    <button onclick="updateChart()">Update</button>
 
     <script>
       var options = {
         series: [
           {
-            name: 'Desktops',
             data: [
               {
-                x: 'ABC',
+                x: 'New Delhi',
+                y: 218
+              },
+              {
+                x: 'Kolkata',
+                y: 149
+              },
+              {
+                x: 'Mumbai',
+                y: 184
+              },
+              {
+                x: 'Ahmedabad',
+                y: 55
+              },
+              {
+                x: 'Bangaluru',
+                y: 84
+              },
+              {
+                x: 'Pune',
+                y: 31
+              },
+              {
+                x: 'Chennai',
+                y: 70
+              },
+              {
+                x: 'Jaipur',
                 y: 30
               },
               {
-                x: 'DEF',
-                y: 60
+                x: 'Surat',
+                y: 44
               },
               {
-                x: 'XYZ',
-                y: 41
-              }
-            ]
-          },
-          {
-            name: 'Mobile',
-            data: [
-              {
-                x: 'ABCD',
-                y: 10
+                x: 'Hyderabad',
+                y: 68
               },
               {
-                x: 'DEFG',
-                y: 20
+                x: 'Lucknow',
+                y: 28
               },
               {
-                x: 'WXYZ',
-                y: 51
+                x: 'Indore',
+                y: 19
               },
               {
-                x: 'PQR',
-                y: 30
-              },
-              {
-                x: 'MNO',
-                y: 20
-              },
-              {
-                x: 'CDE',
-                y: 30
+                x: 'Kanpur',
+                y: 29
               }
             ]
           }
@@ -95,64 +104,33 @@
           type: 'treemap'
         },
         title: {
-          text: 'Multi-dimensional Treemap',
+          text: 'Distibuted Treemap (different color for each cell)',
           align: 'center'
+        },
+        colors: [
+          '#3B93A5',
+          '#F7B844',
+          '#ADD8C7',
+          '#EC3C65',
+          '#CDD7B6',
+          '#C1F666',
+          '#D43F97',
+          '#1E5D8C',
+          '#421243',
+          '#7F94B0',
+          '#EF6537',
+          '#C0ADDB'
+        ],
+        plotOptions: {
+          treemap: {
+            distributed: true,
+            enableShades: false
+          }
         }
       }
 
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
-
-      function updateChart() {
-        chart.updateSeries([
-          {
-            name: 'Desktops',
-            data: [
-              {
-                x: 'ABC',
-                y: 19
-              },
-              {
-                x: 'DEF',
-                y: 20
-              },
-              {
-                x: 'XYZ',
-                y: 40
-              }
-            ]
-          },
-          {
-            name: 'Mobile',
-            data: [
-              {
-                x: 'ABCD',
-                y: 30
-              },
-              {
-                x: 'DEFG',
-                y: 20
-              },
-              {
-                x: 'WXYZ',
-                y: 5
-              },
-              {
-                x: 'PQR',
-                y: 30
-              },
-              {
-                x: 'MNO',
-                y: 20
-              },
-              {
-                x: 'CDE',
-                y: 30
-              }
-            ]
-          }
-        ])
-      }
     </script>
   </body>
 </html>

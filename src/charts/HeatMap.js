@@ -19,8 +19,6 @@ export default class HeatMap {
     this.xRatio = xyRatios.xRatio
     this.yRatio = xyRatios.yRatio
 
-    this.negRange = false
-
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
 
     this.helpers = new Helpers(ctx)
@@ -47,7 +45,7 @@ export default class HeatMap {
     let y1 = 0
     let rev = false
 
-    this.checkColorRange()
+    this.negRange = this.helpers.checkColorRange()
 
     let heatSeries = series.slice()
     if (w.config.yaxis[0].reversed) {
@@ -211,20 +209,6 @@ export default class HeatMap {
     w.config.yaxis[0].labels.offsetY = -(divisor / 2)
 
     return ret
-  }
-
-  checkColorRange() {
-    const w = this.w
-
-    let heatmap = w.config.plotOptions.heatmap
-
-    if (heatmap.colorScale.ranges.length > 0) {
-      heatmap.colorScale.ranges.map((range, index) => {
-        if (range.from <= 0) {
-          this.negRange = true
-        }
-      })
-    }
   }
 
   determineHeatColor(i, j) {
