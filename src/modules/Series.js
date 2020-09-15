@@ -21,7 +21,9 @@ export default class Series {
 
   getSeriesByName(seriesName) {
     return this.w.globals.dom.baseEl.querySelector(
-      `[seriesName='${Utils.escapeString(seriesName)}']`
+      `.apexcharts-inner .apexcharts-series[seriesName='${Utils.escapeString(
+        seriesName
+      )}']`
     )
   }
 
