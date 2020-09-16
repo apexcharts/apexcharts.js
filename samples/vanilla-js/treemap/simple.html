@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Simple Treemap Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    <script src="../../../dist/apexcharts.js"></script>
+  </head>
+
+  <body>
+    <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            data: [
+              {
+                x: 'New Delhi',
+                y: 218
+              },
+              {
+                x: 'Kolkata',
+                y: 149
+              },
+              {
+                x: 'Mumbai',
+                y: 184
+              },
+              {
+                x: 'Ahmedabad',
+                y: 55
+              },
+              {
+                x: 'Bangaluru',
+                y: 84
+              },
+              {
+                x: 'Pune',
+                y: 31
+              },
+              {
+                x: 'Chennai',
+                y: 70
+              },
+              {
+                x: 'Jaipur',
+                y: 30
+              },
+              {
+                x: 'Surat',
+                y: 44
+              },
+              {
+                x: 'Hyderabad',
+                y: 68
+              },
+              {
+                x: 'Lucknow',
+                y: 28
+              },
+              {
+                x: 'Indore',
+                y: 19
+              },
+              {
+                x: 'Kanpur',
+                y: 29
+              }
+            ]
+          }
+        ],
+        legend: {
+          show: false
+        },
+        chart: {
+          height: 350,
+          type: 'treemap'
+        },
+        title: {
+          text: 'Basic Treemap'
+        },
+
+        plotOptions: {}
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+  </body>
+</html>

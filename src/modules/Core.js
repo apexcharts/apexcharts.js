@@ -11,6 +11,7 @@ import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
 import Legend from './legend/Legend'
 import Line from '../charts/Line'
+import Treemap from '../charts/Treemap'
 import Graphics from './Graphics'
 import Range from './Range'
 import Utils from '../utils/Utils'
@@ -48,7 +49,8 @@ export default class Core {
       'scatter',
       'bubble',
       'radar',
-      'heatmap'
+      'heatmap',
+      'treemap'
     ]
 
     let xyChartsArrTypes = [
@@ -250,6 +252,10 @@ export default class Core {
         case 'heatmap':
           let heatmap = new HeatMap(this.ctx, xyRatios)
           elGraph = heatmap.draw(gl.series)
+          break
+        case 'treemap':
+          let treemap = new Treemap(this.ctx, xyRatios)
+          elGraph = treemap.draw(gl.series)
           break
         case 'pie':
         case 'donut':

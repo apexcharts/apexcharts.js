@@ -162,6 +162,7 @@ class DataLabels {
       j,
       text,
       textAnchor,
+      fontSize,
       parent,
       dataLabelsConfig,
       color,
@@ -242,7 +243,7 @@ class DataLabels {
         foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text,
-        fontSize: dataLabelsConfig.style.fontSize,
+        fontSize: fontSize || dataLabelsConfig.style.fontSize,
         fontFamily: dataLabelsConfig.style.fontFamily,
         fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
       })

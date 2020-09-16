@@ -423,6 +423,18 @@ export default class Options {
             max: undefined
           }
         },
+        treemap: {
+          enableShades: true,
+          shadeIntensity: 0.5,
+          distributed: false,
+          useFillColorAsStroke: false,
+          colorScale: {
+            inverse: false,
+            ranges: [],
+            min: undefined,
+            max: undefined
+          }
+        },
         radialBar: {
           inverseOrder: false,
           startAngle: 0,
@@ -776,14 +788,14 @@ export default class Options {
         hover: {
           filter: {
             type: 'lighten',
-            value: 0.15
+            value: 0.1
           }
         },
         active: {
           allowMultipleDataPointsSelection: false,
           filter: {
             type: 'darken',
-            value: 0.65
+            value: 0.5
           }
         }
       },

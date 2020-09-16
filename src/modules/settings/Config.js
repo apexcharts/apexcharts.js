@@ -51,6 +51,7 @@ export default class Config {
         'bubble',
         'scatter',
         'heatmap',
+        'treemap',
         'pie',
         'polarArea',
         'donut',

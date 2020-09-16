@@ -118,6 +118,11 @@ export default class ApexCharts {
 
     this.core.setupElements()
 
+    if (w.config.chart.type === 'treemap') {
+      w.config.grid.show = false
+      w.config.yaxis[0].show = false
+    }
+
     if (gl.svgWidth === 0) {
       // if the element is hidden, skip drawing
       gl.animationEnded = true
@@ -224,7 +229,9 @@ export default class ApexCharts {
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
       }
-      me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
+      if (w.config.chart.type !== 'treemap') {
+        me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
+      }
 
       me.grid = new Grid(me)
       let elgrid = me.grid.drawGrid()

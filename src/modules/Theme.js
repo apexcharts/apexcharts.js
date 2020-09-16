@@ -14,6 +14,11 @@ export default class Theme {
     const w = this.w
 
     this.isColorFn = false
+    this.isHeatmapDistributed =
+      (w.config.chart.type === 'treemap' &&
+        w.config.plotOptions.treemap.distributed) ||
+      (w.config.chart.type === 'heatmap' &&
+        w.config.plotOptions.heatmap.distributed)
     this.isBarDistributed =
       w.config.plotOptions.bar.distributed &&
       (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar')
@@ -73,7 +78,7 @@ export default class Theme {
     if (w.config.theme.monochrome.enabled) {
       let monoArr = []
       let glsCnt = w.globals.series.length
-      if (this.isBarDistributed) {
+      if (this.isBarDistributed || this.isHeatmapDistributed) {
         glsCnt = w.globals.series[0].length * w.globals.series.length
       }
 
@@ -149,12 +154,15 @@ export default class Theme {
     if (distributed === null) {
       distributed =
         this.isBarDistributed ||
+        this.isHeatmapDistributed ||
         (w.config.chart.type === 'heatmap' &&
           w.config.plotOptions.heatmap.colorScale.inverse)
     }
 
     if (distributed) {
-      len = w.globals.series[0].length * w.globals.series.length
+      len =
+        w.globals.series[w.globals.maxValsInArrayIndex].length *
+        w.globals.series.length
     }
 
     if (colorSeries.length < len) {

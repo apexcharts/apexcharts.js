@@ -281,20 +281,30 @@ export default class Series {
     this.handlePrevBubbleScatterPaths('bubble')
     this.handlePrevBubbleScatterPaths('scatter')
 
-    let heatmapColors = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-heatmap .apexcharts-series'
+    let heatTreeSeries = w.globals.dom.baseEl.querySelectorAll(
+      `.apexcharts-${w.config.chart.type} .apexcharts-series`
     )
 
-    if (heatmapColors.length > 0) {
-      for (let h = 0; h < heatmapColors.length; h++) {
+    if (heatTreeSeries.length > 0) {
+      for (let h = 0; h < heatTreeSeries.length; h++) {
         let seriesEls = w.globals.dom.baseEl.querySelectorAll(
-          `.apexcharts-heatmap .apexcharts-series[data\\:realIndex='${h}'] rect`
+          `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h}'] rect`
         )
 
         let dArr = []
 
         for (let i = 0; i < seriesEls.length; i++) {
+          const getAttr = (x) => {
+            return seriesEls[i].getAttribute(x)
+          }
+          const rect = {
+            x: parseFloat(getAttr('x')),
+            y: parseFloat(getAttr('y')),
+            width: parseFloat(getAttr('width')),
+            height: parseFloat(getAttr('height'))
+          }
           dArr.push({
+            rect,
             color: seriesEls[i].getAttribute('color')
           })
         }
