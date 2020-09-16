@@ -1,4 +1,3 @@
-import DataLabels from '../modules/DataLabels'
 import Animations from '../modules/Animations'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'
@@ -131,18 +130,7 @@ export default class HeatMap {
           color
         })
 
-        rect.node.addEventListener(
-          'mouseenter',
-          graphics.pathMouseEnter.bind(this, rect)
-        )
-        rect.node.addEventListener(
-          'mouseleave',
-          graphics.pathMouseLeave.bind(this, rect)
-        )
-        rect.node.addEventListener(
-          'mousedown',
-          graphics.pathMouseDown.bind(this, rect)
-        )
+        this.helpers.addListeners(rect)
 
         if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
           let speed = 1
@@ -175,15 +163,22 @@ export default class HeatMap {
           }
         }
 
-        let dataLabels = this.calculateHeatmapDataLabels({
-          x: x1,
-          y: y1,
+        let formatter = w.config.dataLabels.formatter
+        let formattedText = formatter(w.globals.series[i][j], {
+          value: w.globals.series[i][j],
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        })
+
+        let dataLabels = this.helpers.calculateDataLabels({
+          text: formattedText,
+          x: x1 + xDivision / 2,
+          y: y1 + yDivision / 2,
           i,
           j,
-          heatColorProps,
-          series: heatSeries,
-          rectHeight: yDivision,
-          rectWidth: xDivision
+          colorProps: heatColorProps,
+          series: heatSeries
         })
         if (dataLabels !== null) {
           elSeries.add(dataLabels)
@@ -209,115 +204,6 @@ export default class HeatMap {
     w.config.yaxis[0].labels.offsetY = -(divisor / 2)
 
     return ret
-  }
-
-  determineHeatColor(i, j) {
-    const w = this.w
-
-    let val = w.globals.series[i][j]
-
-    let heatmap = w.config.plotOptions.heatmap
-
-    let seriesNumber = heatmap.colorScale.inverse ? j : i
-
-    let color = w.globals.colors[seriesNumber]
-    let foreColor = null
-    let min = Math.min(...w.globals.series[i])
-    let max = Math.max(...w.globals.series[i])
-
-    if (!heatmap.distributed) {
-      min = w.globals.minY
-      max = w.globals.maxY
-    }
-
-    if (typeof heatmap.colorScale.min !== 'undefined') {
-      min =
-        heatmap.colorScale.min < w.globals.minY
-          ? heatmap.colorScale.min
-          : w.globals.minY
-      max =
-        heatmap.colorScale.max > w.globals.maxY
-          ? heatmap.colorScale.max
-          : w.globals.maxY
-    }
-
-    let total = Math.abs(max) + Math.abs(min)
-
-    let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
-
-    if (heatmap.colorScale.ranges.length > 0) {
-      const colorRange = heatmap.colorScale.ranges
-      colorRange.map((range, index) => {
-        if (val >= range.from && val <= range.to) {
-          color = range.color
-          foreColor = range.foreColor ? range.foreColor : null
-          min = range.from
-          max = range.to
-          let rTotal = Math.abs(max) + Math.abs(min)
-          percent = (100 * val) / (rTotal === 0 ? rTotal - 0.000001 : rTotal)
-        }
-      })
-    }
-
-    return {
-      color,
-      foreColor,
-      percent
-    }
-  }
-
-  calculateHeatmapDataLabels({
-    x,
-    y,
-    i,
-    j,
-    heatColorProps,
-    rectHeight,
-    rectWidth
-  }) {
-    let w = this.w
-    let dataLabelsConfig = w.config.dataLabels
-
-    const graphics = new Graphics(this.ctx)
-
-    let dataLabels = new DataLabels(this.ctx)
-    let formatter = dataLabelsConfig.formatter
-
-    let elDataLabelsWrap = null
-
-    if (dataLabelsConfig.enabled) {
-      elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-data-labels'
-      })
-
-      const offX = dataLabelsConfig.offsetX
-      const offY = dataLabelsConfig.offsetY
-
-      let dataLabelsX = x + rectWidth / 2 + offX
-      let dataLabelsY =
-        y +
-        rectHeight / 2 +
-        parseFloat(dataLabelsConfig.style.fontSize) / 3 +
-        offY
-
-      let text = formatter(w.globals.series[i][j], {
-        seriesIndex: i,
-        dataPointIndex: j,
-        w
-      })
-      dataLabels.plotDataLabelsText({
-        x: dataLabelsX,
-        y: dataLabelsY,
-        text,
-        i,
-        j,
-        color: heatColorProps.foreColor,
-        parent: elDataLabelsWrap,
-        dataLabelsConfig
-      })
-    }
-
-    return elDataLabelsWrap
   }
 
   animateHeatMap(el, x, y, width, height, speed) {

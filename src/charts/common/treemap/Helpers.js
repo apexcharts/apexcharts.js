@@ -1,4 +1,6 @@
 import Utils from '../../../utils/Utils'
+import Graphics from '../../../modules/Graphics'
+import DataLabels from '../../../modules/DataLabels'
 
 export default class TreemapHelpers {
   constructor(ctx) {
@@ -131,5 +133,59 @@ export default class TreemapHelpers {
       foreColor,
       percent
     }
+  }
+
+  calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
+    let w = this.w
+    let dataLabelsConfig = w.config.dataLabels
+
+    const graphics = new Graphics(this.ctx)
+
+    let dataLabels = new DataLabels(this.ctx)
+
+    let elDataLabelsWrap = null
+
+    if (dataLabelsConfig.enabled) {
+      elDataLabelsWrap = graphics.group({
+        class: 'apexcharts-data-labels'
+      })
+
+      const offX = dataLabelsConfig.offsetX
+      const offY = dataLabelsConfig.offsetY
+
+      let dataLabelsX = x + offX
+      let dataLabelsY =
+        y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY
+
+      dataLabels.plotDataLabelsText({
+        x: dataLabelsX,
+        y: dataLabelsY,
+        text,
+        i,
+        j,
+        color: colorProps.foreColor,
+        parent: elDataLabelsWrap,
+        fontSize,
+        dataLabelsConfig
+      })
+    }
+
+    return elDataLabelsWrap
+  }
+
+  addListeners(elRect) {
+    const graphics = new Graphics(this.ctx)
+    elRect.node.addEventListener(
+      'mouseenter',
+      graphics.pathMouseEnter.bind(this, elRect)
+    )
+    elRect.node.addEventListener(
+      'mouseleave',
+      graphics.pathMouseLeave.bind(this, elRect)
+    )
+    elRect.node.addEventListener(
+      'mousedown',
+      graphics.pathMouseDown.bind(this, elRect)
+    )
   }
 }

@@ -107,7 +107,13 @@
         title: {
           text: 'Basic Treemap'
         },
-
+        dataLabels: {
+          enabled: true,
+          formatter: function(text, op) {
+            return [text, op.value]
+          },
+          offsetY: -3
+        },
         plotOptions: {
           treemap: {
             enableShades: true,

@@ -94,13 +94,13 @@ export default class TreemapChart {
           height: y2 - y1
         })
 
-        let heatColor = this.helpers.getShadeColor(
+        let colorProps = this.helpers.getShadeColor(
           w.config.chart.type,
           i,
           j,
           this.negRange
         )
-        let color = heatColor.color
+        let color = colorProps.color
 
         if (
           typeof w.config.series[i].data[j] !== 'undefined' &&
@@ -120,18 +120,7 @@ export default class TreemapChart {
           fill: pathFill
         })
 
-        elRect.node.addEventListener(
-          'mouseenter',
-          graphics.pathMouseEnter.bind(this, elRect)
-        )
-        elRect.node.addEventListener(
-          'mouseleave',
-          graphics.pathMouseLeave.bind(this, elRect)
-        )
-        elRect.node.addEventListener(
-          'mousedown',
-          graphics.pathMouseDown.bind(this, elRect)
-        )
+        this.helpers.addListeners(elRect)
 
         let fromRect = {
           x: x1 + (x2 - x1) / 2,
@@ -171,20 +160,30 @@ export default class TreemapChart {
 
         const fontSize = this.getFontSize(r)
 
-        const dataLabel = this.drawDataLabel(
-          x1,
-          y1,
-          x2,
-          y2,
+        let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
+          value: w.globals.series[i][j],
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        })
+        let dataLabels = this.helpers.calculateDataLabels({
+          text: formattedText,
+          x: (x1 + x2) / 2,
+          y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
           i,
-          this.labels[i][j],
-          fontSize
-        )
-        elDataLabelWrap.add(dataLabel)
-
+          j,
+          colorProps,
+          fontSize,
+          series
+        })
+        this.rotateToFitLabel(dataLabels, formattedText, x1, y1, x2, y2)
         elSeries.add(elRect)
-        elSeries.add(elDataLabelWrap)
+
+        if (dataLabels !== null) {
+          elSeries.add(dataLabels)
+        }
       })
+      elSeries.add(elDataLabelWrap)
 
       ret.add(elSeries)
     })
@@ -251,35 +250,18 @@ export default class TreemapChart {
     )
   }
 
-  drawDataLabel(x1, y1, x2, y2, i, text, fontSize) {
-    const w = this.w
-    const dataLabelsConfig = w.config.dataLabels.style
+  rotateToFitLabel(elText, text, x1, y1, x2, y2) {
     const graphics = new Graphics(this.ctx)
-    let elText = graphics.drawText({
-      x: (x1 + x2) / 2,
-      y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
-      text,
-      textAnchor: 'middle',
-      foreColor: w.globals.dataLabels.style.colors[i],
-      fontFamily: dataLabelsConfig.fontFamily,
-      fontWeight: dataLabelsConfig.fontWeight,
-      fontSize
-    })
-
-    let textRect = elText.node.getBBox()
-
-    // if the label fits better sideways then rotate it
-    if (textRect.width > x2 - x1 && textRect.width <= y2 - y1) {
+    const textRect = graphics.getTextRects(text)
+    //if the label fits better sideways then rotate it
+    if (textRect.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
       let labelRotatingCenter = graphics.rotateAroundCenter(elText.node)
-      elText.attr({
-        transform: 'rotate(-90)'
-      })
+
       elText.node.setAttribute(
         'transform',
         `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
       )
     }
-    return elText
   }
 
   animateTreemap(el, fromRect, toRect, speed) {
