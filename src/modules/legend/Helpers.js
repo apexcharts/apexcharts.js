@@ -109,7 +109,7 @@ export default class Helpers {
     elForeign.appendChild(gl.dom.elLegendWrap)
     elForeign.appendChild(this.getLegendStyles())
 
-    gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node)
+    gl.dom.elGraphical.node.insertAdjacentElement('afterend', elForeign)
   }
 
   toggleDataSeries(seriesCnt, isHidden) {
