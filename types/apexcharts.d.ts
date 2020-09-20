@@ -102,6 +102,7 @@ type ApexChart = {
     | 'radar'
     | 'polarArea'
     | 'rangeBar'
+    | 'treemap'
   foreColor?: string
   fontFamily?: string
   background?: string
