@@ -468,7 +468,7 @@ export default class ZoomPanSelection extends Toolbar {
           w.globals.yAxisScale[0].niceMax -
           (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0]
 
-        w.config.chart.events.selection(this.ctx, {
+        const xyAxis = {
           xaxis: {
             min: minX,
             max: maxX
@@ -477,7 +477,15 @@ export default class ZoomPanSelection extends Toolbar {
             min: minY,
             max: maxY
           }
-        })
+        }
+        w.config.chart.events.selection(this.ctx, xyAxis)
+
+        if (
+          w.config.chart.brush.enabled &&
+          w.config.chart.events.brushScrolled !== undefined
+        ) {
+          w.config.chart.events.brushScrolled(this.ctx, xyAxis)
+        }
       }, timerInterval)
     }
   }

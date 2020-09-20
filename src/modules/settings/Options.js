@@ -280,7 +280,8 @@ export default class Options {
           dataPointMouseLeave: undefined,
           beforeZoom: undefined,
           zoomed: undefined,
-          scrolled: undefined
+          scrolled: undefined,
+          brushScrolled: undefined
         },
         foreColor: '#373d3f',
         fontFamily: 'Helvetica, Arial, sans-serif',
