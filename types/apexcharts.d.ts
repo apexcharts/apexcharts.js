@@ -127,6 +127,7 @@ type ApexChart = {
     beforeZoom?(chart: any, options?: any): void
     zoomed?(chart: any, options?: any): void
     scrolled?(chart: any, options?: any): void
+    brushScrolled?(chart: any, options?: any): void
   }
   brush?: {
     enabled?: boolean
@@ -286,6 +287,7 @@ type ApexTitleSubtitle = {
 type ApexAxisChartSeries = {
   name?: string
   type?: string
+  color?: string
   data:
     | (number | null)[]
     | { x: any; y: any, fillColor?: string, strokeColor?: string }[]
@@ -514,6 +516,24 @@ type ApexPlotOptions = {
       min?: number
       max?: number
     }
+  }
+  treemap?: {
+    enableShades?: boolean
+    shadeIntensity?: number
+    distributed?: boolean
+    useFillColorAsStroke?: boolean
+    colorScale?: {
+      inverse?: boolean
+      ranges?: {
+        from?: number
+        to?: number
+        color?: string
+        foreColor?: string
+        name?: string
+      }[];
+      min?: number
+      max?: number
+    };
   }
   pie?: {
     startAngle?: number
