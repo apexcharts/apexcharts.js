@@ -109,7 +109,9 @@ export default class Helpers {
     elForeign.appendChild(gl.dom.elLegendWrap)
     elForeign.appendChild(this.getLegendStyles())
 
-    gl.dom.elGraphical.node.insertAdjacentElement('afterend', elForeign)
+    //gl.dom.elGraphical.node.insertAdjacentElement('afterend', elForeign)
+    // the above line causes issue #1907
+    gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node)
   }
 
   toggleDataSeries(seriesCnt, isHidden) {
