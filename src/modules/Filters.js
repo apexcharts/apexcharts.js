@@ -51,10 +51,6 @@ class Filters {
     const w = this.w
     const { intensity } = attrs
 
-    if (Utils.isFirefox()) {
-      return
-    }
-
     el.unfilter(true)
 
     let filter = new window.SVG.Filter()
@@ -79,10 +75,6 @@ class Filters {
   addDarkenFilter(el, i, attrs) {
     const w = this.w
     const { intensity } = attrs
-
-    if (Utils.isFirefox()) {
-      return
-    }
 
     el.unfilter(true)
 
@@ -158,7 +150,7 @@ class Filters {
     el.filter((add) => {
       let shadowBlur = null
       if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
-        // safari/firefox has some alternative way to use this filter
+        // safari/firefox/IE have some alternative way to use this filter
         shadowBlur = add
           .flood(color, opacity)
           .composite(add.sourceAlpha, 'in')
