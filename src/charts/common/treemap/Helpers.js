@@ -50,8 +50,11 @@ export default class TreemapHelpers {
         }
       }
     } else {
-      colorShadePercent =
-        (1 - colorProps.percent / 100) * (shadeIntensity * 1.25)
+      colorShadePercent = 1 - colorProps.percent / 100
+      if (chartType === 'treemap') {
+        colorShadePercent =
+          (1 - colorProps.percent / 100) * (shadeIntensity * 1.25)
+      }
     }
 
     let color = colorProps.color
