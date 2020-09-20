@@ -504,71 +504,74 @@ export default class Core {
       return
     }
 
-    // if user has not defined a custom function for selection - we handle the brush chart
-    // otherwise we leave it to the user to define the functionality for selection
-    if (typeof w.config.chart.events.selection !== 'function') {
-      let targets = w.config.chart.brush.targets || [
-        w.config.chart.brush.target
-      ]
-      // retro compatibility with single target option
+    // Keep user custom selection function
+    let customSelectionFunc = () => {}
+    if (typeof w.config.chart.events.selection === 'function') {
+      customSelectionFunc = w.config.chart.events.selection
+    }
+
+    let targets = w.config.chart.brush.targets || [
+      w.config.chart.brush.target
+    ]
+    // retro compatibility with single target option
+    targets.forEach((target) => {
+      let targetChart = ApexCharts.getChartByID(target)
+      targetChart.w.globals.brushSource = this.ctx
+
+      if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
+        targetChart.w.config.chart.events.zoomed = () => {
+          this.updateSourceChart(targetChart)
+        }
+      }
+      if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
+        targetChart.w.config.chart.events.scrolled = () => {
+          this.updateSourceChart(targetChart)
+        }
+      }
+    })
+
+    w.config.chart.events.selection = (chart, e) => {
       targets.forEach((target) => {
         let targetChart = ApexCharts.getChartByID(target)
-        targetChart.w.globals.brushSource = this.ctx
+        let yaxis = Utils.clone(w.config.yaxis)
 
-        if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
-          targetChart.w.config.chart.events.zoomed = () => {
-            this.updateSourceChart(targetChart)
-          }
+        if (
+          w.config.chart.brush.autoScaleYaxis &&
+          targetChart.w.globals.series.length === 1
+        ) {
+          const scale = new Scales(targetChart)
+          yaxis = scale.autoScaleY(targetChart, yaxis, e)
         }
-        if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
-          targetChart.w.config.chart.events.scrolled = () => {
-            this.updateSourceChart(targetChart)
-          }
-        }
+
+        const multipleYaxis = targetChart.w.config.yaxis.reduce(
+          (acc, curr, index) => {
+            return [
+              ...acc,
+              {
+                ...targetChart.w.config.yaxis[index],
+                min: yaxis[0].min,
+                max: yaxis[0].max
+              }
+            ]
+          },
+          []
+        )
+
+        targetChart.ctx.updateHelpers._updateOptions(
+          {
+            xaxis: {
+              min: e.xaxis.min,
+              max: e.xaxis.max
+            },
+            yaxis: multipleYaxis
+          },
+          false,
+          false,
+          false,
+          false
+        )
       })
-
-      w.config.chart.events.selection = (chart, e) => {
-        targets.forEach((target) => {
-          let targetChart = ApexCharts.getChartByID(target)
-          let yaxis = Utils.clone(w.config.yaxis)
-
-          if (
-            w.config.chart.brush.autoScaleYaxis &&
-            targetChart.w.globals.series.length === 1
-          ) {
-            const scale = new Scales(targetChart)
-            yaxis = scale.autoScaleY(targetChart, yaxis, e)
-          }
-
-          const multipleYaxis = targetChart.w.config.yaxis.reduce(
-            (acc, curr, index) => {
-              return [
-                ...acc,
-                {
-                  ...targetChart.w.config.yaxis[index],
-                  min: yaxis[0].min,
-                  max: yaxis[0].max
-                }
-              ]
-            },
-            []
-          )
-
-          targetChart.ctx.updateHelpers._updateOptions(
-            {
-              xaxis: {
-                min: e.xaxis.min,
-                max: e.xaxis.max
-              },
-              yaxis: multipleYaxis
-            },
-            false,
-            false,
-            false,
-            false
-          )
-        })
-      }
+      customSelectionFunc(chart, e)
     }
   }
 }
