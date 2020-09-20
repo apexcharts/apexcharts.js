@@ -511,7 +511,7 @@ export default class YAxis {
     yaxis.forEach((y, index) => {
       const yaxe = w.config.yaxis[index]
       // proceed only if user has specified alignment
-      if (yaxe.labels.align !== undefined) {
+      if (yaxe && yaxe.labels.align !== undefined) {
         const yAxisInner = w.globals.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
         )
