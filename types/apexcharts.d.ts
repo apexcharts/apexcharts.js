@@ -522,6 +522,7 @@ type ApexPlotOptions = {
     enableShades?: boolean
     shadeIntensity?: number
     distributed?: boolean
+    reverseNegativeShade?: boolean
     useFillColorAsStroke?: boolean
     colorScale?: {
       inverse?: boolean

@@ -132,14 +132,17 @@
               type: 'treemap'
             },
             title: {
-              text: 'Basic Treemap'
+              text: 'Treemap with Color scale'
             },
             dataLabels: {
               enabled: true,
+              style: {
+                fontSize: '12px',
+              },
               formatter: function(text, op) {
                 return [text, op.value]
               },
-              offsetY: -3
+              offsetY: -4
             },
             plotOptions: {
               treemap: {
