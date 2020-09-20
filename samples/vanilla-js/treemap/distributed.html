@@ -4,15 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Distibuted Treemap Chart</title>
+    <title>Distributed Treemap</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      padding-right: 10px;
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
 
     <script>
@@ -30,15 +33,20 @@
         )
     </script>
 
+    
     <script src="../../../dist/apexcharts.js"></script>
+    
+
+    
   </head>
 
   <body>
-    <div id="chart"></div>
+     <div id="chart"></div>
 
     <script>
-      var options = {
-        series: [
+      
+        var options = {
+          series: [
           {
             data: [
               {
@@ -96,7 +104,7 @@
             ]
           }
         ],
-        legend: {
+          legend: {
           show: false
         },
         chart: {
@@ -127,10 +135,14 @@
             enableShades: false
           }
         }
-      }
+        };
 
-      var chart = new ApexCharts(document.querySelector('#chart'), options)
-      chart.render()
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
     </script>
+
+    
   </body>
 </html>

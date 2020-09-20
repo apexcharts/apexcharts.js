@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Multi-dimensional Treemap</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      padding-right: 10px;
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="treemap" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;treemap&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [
+            {
+              name: 'Desktops',
+              data: [
+                {
+                  x: 'ABC',
+                  y: 10
+                },
+                {
+                  x: 'DEF',
+                  y: 60
+                },
+                {
+                  x: 'XYZ',
+                  y: 41
+                }
+              ]
+            },
+            {
+              name: 'Mobile',
+              data: [
+                {
+                  x: 'ABCD',
+                  y: 10
+                },
+                {
+                  x: 'DEFG',
+                  y: 20
+                },
+                {
+                  x: 'WXYZ',
+                  y: 51
+                },
+                {
+                  x: 'PQR',
+                  y: 30
+                },
+                {
+                  x: 'MNO',
+                  y: 20
+                },
+                {
+                  x: 'CDE',
+                  y: 30
+                }
+              ]
+            }
+          ],
+          chartOptions: {
+            legend: {
+              show: false
+            },
+            chart: {
+              height: 350,
+              type: 'treemap'
+            },
+            title: {
+              text: 'Multi-dimensional Treemap',
+              align: 'center'
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>

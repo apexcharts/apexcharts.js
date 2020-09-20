@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Distributed Treemap</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      padding-right: 10px;
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="treemap" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;treemap&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [
+            {
+              data: [
+                {
+                  x: 'New Delhi',
+                  y: 218
+                },
+                {
+                  x: 'Kolkata',
+                  y: 149
+                },
+                {
+                  x: 'Mumbai',
+                  y: 184
+                },
+                {
+                  x: 'Ahmedabad',
+                  y: 55
+                },
+                {
+                  x: 'Bangaluru',
+                  y: 84
+                },
+                {
+                  x: 'Pune',
+                  y: 31
+                },
+                {
+                  x: 'Chennai',
+                  y: 70
+                },
+                {
+                  x: 'Jaipur',
+                  y: 30
+                },
+                {
+                  x: 'Surat',
+                  y: 44
+                },
+                {
+                  x: 'Hyderabad',
+                  y: 68
+                },
+                {
+                  x: 'Lucknow',
+                  y: 28
+                },
+                {
+                  x: 'Indore',
+                  y: 19
+                },
+                {
+                  x: 'Kanpur',
+                  y: 29
+                }
+              ]
+            }
+          ],
+          chartOptions: {
+            legend: {
+              show: false
+            },
+            chart: {
+              height: 350,
+              type: 'treemap'
+            },
+            title: {
+              text: 'Distibuted Treemap (different color for each cell)',
+              align: 'center'
+            },
+            colors: [
+              '#3B93A5',
+              '#F7B844',
+              '#ADD8C7',
+              '#EC3C65',
+              '#CDD7B6',
+              '#C1F666',
+              '#D43F97',
+              '#1E5D8C',
+              '#421243',
+              '#7F94B0',
+              '#EF6537',
+              '#C0ADDB'
+            ],
+            plotOptions: {
+              treemap: {
+                distributed: true,
+                enableShades: false
+              }
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>

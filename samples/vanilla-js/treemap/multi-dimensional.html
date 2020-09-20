@@ -4,15 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Multi-dimensional Treemap Chart</title>
+    <title>Multi-dimensional Treemap</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      padding-right: 10px;
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
 
     <script>
@@ -30,16 +33,20 @@
         )
     </script>
 
+    
     <script src="../../../dist/apexcharts.js"></script>
+    
+
+    
   </head>
 
   <body>
-    <div id="chart"></div>
-    <button onclick="updateChart()">Update</button>
+     <div id="chart"></div>
 
     <script>
-      var options = {
-        series: [
+      
+        var options = {
+          series: [
           {
             name: 'Desktops',
             data: [
@@ -87,7 +94,7 @@
             ]
           }
         ],
-        legend: {
+          legend: {
           show: false
         },
         chart: {
@@ -98,61 +105,14 @@
           text: 'Multi-dimensional Treemap',
           align: 'center'
         }
-      }
+        };
 
-      var chart = new ApexCharts(document.querySelector('#chart'), options)
-      chart.render()
-
-      function updateChart() {
-        chart.updateSeries([
-          {
-            name: 'Desktops',
-            data: [
-              {
-                x: 'ABC',
-                y: 19
-              },
-              {
-                x: 'DEF',
-                y: 20
-              },
-              {
-                x: 'XYZ',
-                y: 40
-              }
-            ]
-          },
-          {
-            name: 'Mobile',
-            data: [
-              {
-                x: 'ABCD',
-                y: 30
-              },
-              {
-                x: 'DEFG',
-                y: 20
-              },
-              {
-                x: 'WXYZ',
-                y: 5
-              },
-              {
-                x: 'PQR',
-                y: 30
-              },
-              {
-                x: 'MNO',
-                y: 20
-              },
-              {
-                x: 'CDE',
-                y: 30
-              }
-            ]
-          }
-        ])
-      }
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
     </script>
+
+    
   </body>
 </html>
