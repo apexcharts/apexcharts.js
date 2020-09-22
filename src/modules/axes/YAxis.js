@@ -338,6 +338,7 @@ export default class YAxis {
         fontSize: w.config.xaxis.title.style.fontSize,
         fontFamily: w.config.xaxis.title.style.fontFamily,
         fontWeight: w.config.xaxis.title.style.fontWeight,
+        foreColor: w.config.xaxis.title.style.color,
         cssClass:
           'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
       })
