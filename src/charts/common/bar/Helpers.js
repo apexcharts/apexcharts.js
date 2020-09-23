@@ -52,10 +52,15 @@ export default class Helpers {
       dataPoints = w.globals.labels.length
     }
 
+    let seriesLen = this.barCtx.seriesLen
+    if (w.config.plotOptions.bar.rangeBarGroupRows) {
+      seriesLen = 1
+    }
+
     if (this.barCtx.isHorizontal) {
       // height divided into equal parts
       yDivision = w.globals.gridHeight / dataPoints
-      barHeight = yDivision / this.barCtx.seriesLen
+      barHeight = yDivision / seriesLen
 
       if (w.globals.isXNumeric) {
         yDivision = w.globals.gridHeight / this.barCtx.totalItems
