@@ -383,6 +383,7 @@ export default class Options {
           startingShape: 'flat',
           endingShape: 'flat',
           rangeBarOverlap: true,
+          rangeBarGroupRows: false,
           colors: {
             ranges: [],
             backgroundBarColors: [],
