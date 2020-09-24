@@ -383,9 +383,11 @@ class Radar {
           i,
           j: i,
           parent: elXAxisWrap,
-          color: xaxisLabelsConfig.style.colors[i]
-            ? xaxisLabelsConfig.style.colors[i]
-            : '#a8a8a8',
+          color:
+            Array.isArray(xaxisLabelsConfig.style.colors) &&
+            xaxisLabelsConfig.style.colors[i]
+              ? xaxisLabelsConfig.style.colors[i]
+              : '#a8a8a8',
           dataLabelsConfig: {
             textAnchor: textPos.textAnchor,
             dropShadow: { enabled: false },
