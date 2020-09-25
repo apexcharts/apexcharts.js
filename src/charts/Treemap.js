@@ -176,7 +176,9 @@ export default class TreemapChart {
           fontSize,
           series
         })
-        this.rotateToFitLabel(dataLabels, formattedText, x1, y1, x2, y2)
+        if (w.config.dataLabels.enabled && dataLabels) {
+          this.rotateToFitLabel(dataLabels, formattedText, x1, y1, x2, y2)
+        }
         elSeries.add(elRect)
 
         if (dataLabels !== null) {
