@@ -3,6 +3,7 @@ import Graphics from '../modules/Graphics'
 import Animations from '../modules/Animations'
 import Fill from '../modules/Fill'
 import Helpers from './common/treemap/Helpers'
+import Filters from '../modules/Filters'
 
 import Utils from '../utils/Utils'
 
@@ -62,6 +63,12 @@ export default class TreemapChart {
         rel: i + 1,
         'data:realIndex': i
       })
+
+      if (w.config.chart.dropShadow.enabled) {
+        const shadow = w.config.chart.dropShadow
+        const filters = new Filters(this.ctx)
+        filters.dropShadow(ret, shadow, i)
+      }
 
       let elDataLabelWrap = graphics.group({
         class: 'apexcharts-data-labels'

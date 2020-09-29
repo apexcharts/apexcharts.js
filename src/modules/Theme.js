@@ -159,7 +159,7 @@ export default class Theme {
           w.config.plotOptions.heatmap.colorScale.inverse)
     }
 
-    if (distributed) {
+    if (distributed && w.globals.series.length) {
       len =
         w.globals.series[w.globals.maxValsInArrayIndex].length *
         w.globals.series.length
