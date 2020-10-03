@@ -143,7 +143,7 @@ export default class Dimensions {
       translateY = 0
     }
 
-    if (w.config.xaxis.show) {
+    if (!this.isSparkline) {
       this.dimXAxis.additionalPaddingXLabels(xaxisLabelCoords)
     }
 
