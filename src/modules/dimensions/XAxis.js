@@ -258,7 +258,7 @@ export default class DimXAxis {
           // allow the first label to intersect with the left y axes
           this.dCtx.yAxisWidthLeft
 
-        if (lastLabelPosition > gl.gridWidth) {
+        if (lastLabelPosition > gl.svgWidth - gl.translateX) {
           gl.skipLastTimelinelabel = true
         }
         if (firstLabelPosition < 0) {
