@@ -208,17 +208,27 @@ export default class UpdateHelpers {
    * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
    * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
    * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
+   * The function also accepts an object {xaxis, yaxis} which when present is set as the new xaxis/yaxis
    */
-  revertDefaultAxisMinMax() {
+  revertDefaultAxisMinMax(opts) {
     const w = this.w
 
-    w.config.xaxis.min = w.globals.lastXAxis.min
-    w.config.xaxis.max = w.globals.lastXAxis.max
+    let xaxis = w.globals.lastXAxis
+    let yaxis = w.globals.lastYAxis
+
+    if (opts && opts.xaxis) {
+      xaxis = opts.xaxis
+    }
+    if (opts && opts.yaxis) {
+      yaxis = opts.yaxis
+    }
+    w.config.xaxis.min = xaxis.min
+    w.config.xaxis.max = xaxis.max
 
     const getLastYAxis = (index) => {
-      if (typeof w.globals.lastYAxis[index] !== 'undefined') {
-        w.config.yaxis[index].min = w.globals.lastYAxis[index].min
-        w.config.yaxis[index].max = w.globals.lastYAxis[index].max
+      if (typeof yaxis[index] !== 'undefined') {
+        w.config.yaxis[index].min = yaxis[index].min
+        w.config.yaxis[index].max = yaxis[index].max
       }
     }
 
@@ -228,7 +238,7 @@ export default class UpdateHelpers {
         getLastYAxis(index)
       } else {
         // user hasn't zoomed, check the last yaxis first
-        if (typeof w.globals.lastYAxis[index] !== 'undefined') {
+        if (typeof yaxis[index] !== 'undefined') {
           getLastYAxis(index)
         } else {
           // if last y-axis don't exist, check the original yaxis

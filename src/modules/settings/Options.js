@@ -279,6 +279,7 @@ export default class Options {
           dataPointMouseEnter: undefined,
           dataPointMouseLeave: undefined,
           beforeZoom: undefined,
+          beforeResetZoom: undefined,
           zoomed: undefined,
           scrolled: undefined,
           brushScrolled: undefined

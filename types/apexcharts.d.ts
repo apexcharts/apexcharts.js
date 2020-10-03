@@ -126,6 +126,7 @@ type ApexChart = {
     dataPointMouseEnter?(e: any, chart?: any, options?: any): void
     dataPointMouseLeave?(e: any, chart?: any, options?: any): void
     beforeZoom?(chart: any, options?: any): void
+    beforeResetZoom?(chart: any, options?: any): void
     zoomed?(chart: any, options?: any): void
     scrolled?(chart: any, options?: any): void
     brushScrolled?(chart: any, options?: any): void

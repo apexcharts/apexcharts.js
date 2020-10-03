@@ -473,6 +473,17 @@ export default class Toolbar {
 
       ch.updateHelpers.revertDefaultAxisMinMax()
 
+      if (typeof w.config.chart.events.beforeResetZoom === 'function') {
+        // here, user get an option to control xaxis and yaxis when resetZoom is called
+        // at this point, whatever is returned from w.config.chart.events.beforeResetZoom
+        // is set as the new xaxis/yaxis min/max
+        const resetZoomRange = w.config.chart.events.beforeResetZoom(ch, w)
+
+        if (resetZoomRange) {
+          ch.updateHelpers.revertDefaultAxisMinMax(resetZoomRange)
+        }
+      }
+
       if (typeof w.config.chart.events.zoomed === 'function') {
         ch.ctx.toolbar.zoomCallback({
           min: w.config.xaxis.min,
