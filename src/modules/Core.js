@@ -188,7 +188,7 @@ export default class Core {
     let candlestick = new CandleStick(this.ctx, xyRatios)
     this.ctx.pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
-    let rangeBar = new RangeBar(this.ctx, xyRatios)
+    this.ctx.rangeBar = new RangeBar(this.ctx, xyRatios)
     let radar = new Radar(this.ctx)
     let elGraph = []
 
@@ -247,7 +247,7 @@ export default class Core {
           elGraph = candleStick.draw(gl.series)
           break
         case 'rangeBar':
-          elGraph = rangeBar.draw(gl.series)
+          elGraph = this.ctx.rangeBar.draw(gl.series)
           break
         case 'heatmap':
           let heatmap = new HeatMap(this.ctx, xyRatios)
