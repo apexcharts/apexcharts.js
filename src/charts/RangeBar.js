@@ -210,8 +210,8 @@ class RangeBar extends Bar {
         barYPosition =
           barHeight * this.visibleI +
           (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
-          100 /
-          2 +
+            100 /
+            2 +
           barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
           yDivision * rowIndex
       }
