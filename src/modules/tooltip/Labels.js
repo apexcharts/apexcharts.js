@@ -1,4 +1,5 @@
 import Formatters from '../Formatters'
+import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
 
 /**
@@ -358,7 +359,12 @@ export default class Labels {
       xVal = xFormat.xLabelFormat(
         w.globals.ttKeyFormatter,
         bufferXVal,
-        bufferXVal
+        bufferXVal,
+        {
+          i: undefined,
+          dateFormatter: new DateTime(this.ctx).formatDate,
+          w: this.w
+        }
       )
     } else {
       if (!w.globals.isBarHorizontal) {

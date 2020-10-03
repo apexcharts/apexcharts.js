@@ -1,6 +1,7 @@
 import Formatters from '../Formatters'
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
+import DateTime from '../../utils/DateTime'
 
 export default class DimXAxis {
   constructor(dCtx) {
@@ -58,8 +59,16 @@ export default class DimXAxis {
 
       let xFormat = new Formatters(this.dCtx.ctx)
       let timestamp = val
-      val = xFormat.xLabelFormat(xlbFormatter, val, timestamp)
-      valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp)
+      val = xFormat.xLabelFormat(xlbFormatter, val, timestamp, {
+        i: undefined,
+        dateFormatter: new DateTime(this.dCtx.ctx).formatDate,
+        w
+      })
+      valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp, {
+        i: undefined,
+        dateFormatter: new DateTime(this.dCtx.ctx).formatDate,
+        w
+      })
 
       if (
         (w.config.xaxis.convertedCatToNumeric && typeof val === 'undefined') ||
@@ -217,13 +226,6 @@ export default class DimXAxis {
     const gl = w.globals
     const cnf = w.config
     const xtype = cnf.xaxis.type
-
-    // const predictedGridWidth =
-    //   gl.svgWidth -
-    //   this.dCtx.lgWidthForSideLegends -
-    //   this.dCtx.yAxisWidth -
-    //   this.dCtx.gridPad.left -
-    //   this.dCtx.gridPad.right
 
     let lbWidth = xaxisLabelCoords.width
 

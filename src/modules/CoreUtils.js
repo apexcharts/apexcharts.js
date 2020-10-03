@@ -1,3 +1,5 @@
+import DateTime from '../utils/DateTime'
+
 /*
  ** Util functions which are dependent on ApexCharts instance
  */
@@ -93,11 +95,14 @@ class CoreUtils {
     const w = this.w
     let catLabels = labels.slice()
     if (w.config.xaxis.convertedCatToNumeric) {
-      catLabels = labels.map((i) => {
-        return w.config.xaxis.labels.formatter(i - w.globals.minX + 1)
+      catLabels = labels.map((i, li) => {
+        return w.config.xaxis.labels.formatter(i - w.globals.minX + 1, {
+          i: li,
+          dateFormatter: new DateTime(this.ctx).formatDate,
+          w
+        })
       })
     }
-
     return catLabels
   }
   // maxValsInArrayIndex is the index of series[] which has the largest number of items

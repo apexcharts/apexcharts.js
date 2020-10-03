@@ -1,6 +1,7 @@
 import Formatters from '../Formatters'
 import Graphics from '../Graphics'
 import CoreUtils from '../CoreUtils'
+import DateTime from '../../utils/DateTime'
 
 export default class AxesUtils {
   constructor(ctx) {
@@ -21,10 +22,18 @@ export default class AxesUtils {
 
     let xFormat = new Formatters(this.ctx)
     let timestamp = rawLabel
-    label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp)
+    label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp, {
+      i,
+      dateFormatter: new DateTime(this.ctx).formatDate,
+      w
+    })
 
     if (customFormatter !== undefined) {
-      label = customFormatter(rawLabel, labels[i], i)
+      label = customFormatter(rawLabel, labels[i], {
+        i,
+        dateFormatter: new DateTime(this.ctx).formatDate,
+        w
+      })
     }
 
     const determineHighestUnit = (unit) => {
