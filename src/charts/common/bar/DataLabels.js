@@ -408,10 +408,6 @@ export default class BarDataLabels {
         // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
         // Note: This issue is only seen in stacked charts
         if (this.barCtx.isHorizontal) {
-          barWidth =
-            Math.abs(w.globals.series[i][j]) /
-            this.barCtx.invertedYRatio[this.barCtx.yaxisIndex]
-
           // FIXED: Don't always hide the stacked negative side label
           // A negative value will result in a negative bar width
           // Only hide the text when the width is smaller (a higher negative number) than the negative bar width.
@@ -422,9 +418,6 @@ export default class BarDataLabels {
             text = ''
           }
         } else {
-          barHeight =
-            Math.abs(w.globals.series[i][j]) /
-            this.barCtx.yRatio[this.barCtx.yaxisIndex]
           if (textRects.height / 1.6 > barHeight) {
             text = ''
           }
