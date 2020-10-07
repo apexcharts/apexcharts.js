@@ -10,6 +10,10 @@ export default class Range {
   // This routine creates the Y axis values for a graph.
   niceScale(yMin, yMax, ticks = 10, index = 0, NO_MIN_MAX_PROVIDED) {
     const w = this.w
+    // Determine Range
+    let range = Math.abs(yMax - yMin)
+
+    ticks = this._adjustTicksForSmallRange(ticks, index, range)
 
     if (ticks === 'dataPoints') {
       ticks = w.globals.dataPoints - 1
@@ -49,9 +53,6 @@ export default class Range {
     // Output will be an array of the Y axis values that
     // encompass the Y values.
     let result = []
-
-    // Determine Range
-    let range = Math.abs(yMax - yMin)
 
     if (
       range < 1 &&
@@ -127,8 +128,10 @@ export default class Range {
     }
   }
 
-  linearScale(yMin, yMax, ticks = 10) {
+  linearScale(yMin, yMax, ticks = 10, index) {
     let range = Math.abs(yMax - yMin)
+
+    ticks = this._adjustTicksForSmallRange(ticks, index, range)
 
     let step = range / ticks
     if (ticks === Number.MAX_VALUE) {
@@ -198,6 +201,23 @@ export default class Range {
     }
   }
 
+  _adjustTicksForSmallRange(ticks, index, range) {
+    let newTicks = ticks
+    if (
+      typeof index !== 'undefined' &&
+      this.w.config.yaxis[index].labels.formatter
+    ) {
+      const formattedVal = this.w.config.yaxis[index].labels.formatter(1)
+      if (
+        Utils.isNumber(Number(formattedVal)) &&
+        !Utils.isFloat(formattedVal)
+      ) {
+        newTicks = Math.ceil(range)
+      }
+    }
+    return newTicks < ticks ? newTicks : ticks
+  }
+
   setYScaleForIndex(index, minY, maxY) {
     const gl = this.w.globals
     const cnf = this.w.config
@@ -232,7 +252,12 @@ export default class Range {
 
         if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
           // fix https://github.com/apexcharts/apexcharts.js/issues/492
-          gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount)
+          gl.yAxisScale[index] = this.linearScale(
+            minY,
+            maxY,
+            y.tickAmount,
+            index
+          )
         } else {
           const noMinMaxProvided =
             (cnf.yaxis[index].max === undefined &&
