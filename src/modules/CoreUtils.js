@@ -96,11 +96,7 @@ class CoreUtils {
     let catLabels = labels.slice()
     if (w.config.xaxis.convertedCatToNumeric) {
       catLabels = labels.map((i, li) => {
-        return w.config.xaxis.labels.formatter(i - w.globals.minX + 1, {
-          i: li,
-          dateFormatter: new DateTime(this.ctx).formatDate,
-          w
-        })
+        return w.config.xaxis.labels.formatter(i - w.globals.minX + 1)
       })
     }
     return catLabels
