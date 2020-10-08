@@ -469,6 +469,7 @@ type ApexPlotOptions = {
     barHeight?: string
     distributed?: boolean
     rangeBarOverlap?: boolean
+    rangeBarGroupRows?: boolean
     colors?: {
       ranges?: {
         from?: number
