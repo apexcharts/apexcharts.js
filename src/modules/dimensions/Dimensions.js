@@ -230,13 +230,13 @@ export default class Dimensions {
     switch (cnf.legend.position) {
       case 'bottom':
         gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding
-        gl.gridWidth = gl.gridHeight
+        gl.gridWidth = gl.svgWidth
         gl.translateY = offY - 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':
         gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding
-        gl.gridWidth = gl.gridHeight
+        gl.gridWidth = gl.svgWidth
         gl.translateY = this.lgRect.height + offY + 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break

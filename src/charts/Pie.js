@@ -33,10 +33,7 @@ class Pie {
         ? w.globals.stroke.colors
         : w.globals.colors
 
-    this.defaultSize =
-      w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.gridHeight
-        : w.globals.gridWidth
+    this.defaultSize = Math.min(w.globals.gridWidth, w.globals.gridHeight)
 
     this.centerY = this.defaultSize / 2
     this.centerX = w.globals.gridWidth / 2
