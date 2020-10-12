@@ -65,7 +65,7 @@ export default class BarDataLabels {
       height: 0
     }
     if (w.config.dataLabels.enabled) {
-      const yLabel = String(this.barCtx.series[i][j]);
+      const yLabel = this.barCtx.series[i][j]
 
       textRects = graphics.getTextRects(
         w.globals.yLabelFormatters[0](yLabel),
