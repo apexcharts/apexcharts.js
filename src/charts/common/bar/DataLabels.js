@@ -65,13 +65,10 @@ export default class BarDataLabels {
       height: 0
     }
     if (w.config.dataLabels.enabled) {
-      const longestStr =
-        String(w.globals.minY).length > String(w.globals.maxY).length
-          ? w.globals.minY
-          : w.globals.maxY
+      const yLabel = this.barCtx.series[i][j]
 
       textRects = graphics.getTextRects(
-        w.globals.yLabelFormatters[0](longestStr),
+        w.globals.yLabelFormatters[0](yLabel),
         parseFloat(dataLabelsConfig.style.fontSize)
       )
     }
@@ -279,7 +276,10 @@ export default class BarDataLabels {
         if (valIsNegative) {
           dataLabelsX = newX + barWidth / 2 - offX
         } else {
-          dataLabelsX = newX - barWidth / 2 + offX
+          dataLabelsX = Math.max(
+            textRects.width / 2,
+            newX - barWidth / 2
+          ) + offX
         }
         break
       case 'bottom':
