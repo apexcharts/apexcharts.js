@@ -45,14 +45,17 @@ class TimeScale {
     const daysWidthOnXAxis = w.globals.gridWidth / daysDiff
     const hoursWidthOnXAxis = daysWidthOnXAxis / 24
     const minutesWidthOnXAxis = hoursWidthOnXAxis / 60
+    const secondsWidthOnXAxis = minutesWidthOnXAxis / 60
 
     let numberOfHours = Math.floor(daysDiff * 24)
     let numberOfMinutes = Math.floor(daysDiff * 24 * 60)
+    let numberOfSeconds = Math.floor(daysDiff * 24 * 60 * 60)
     let numberOfDays = Math.floor(daysDiff)
     let numberOfMonths = Math.floor(daysDiff / 30)
     let numberOfYears = Math.floor(daysDiff / 365)
 
     const firstVal = {
+      minSecond: timeIntervals.minSecond,
       minMinute: timeIntervals.minMinute,
       minHour: timeIntervals.minHour,
       minDate: timeIntervals.minDate,
@@ -60,6 +63,7 @@ class TimeScale {
       minYear: timeIntervals.minYear
     }
 
+    let currentSecond = firstVal.minSecond
     let currentMinute = firstVal.minMinute
     let currentHour = firstVal.minHour
     let currentMonthDate = firstVal.minDate
@@ -69,6 +73,7 @@ class TimeScale {
 
     const params = {
       firstVal,
+      currentSecond,
       currentMinute,
       currentHour,
       currentMonthDate,
@@ -78,6 +83,8 @@ class TimeScale {
       daysWidthOnXAxis,
       hoursWidthOnXAxis,
       minutesWidthOnXAxis,
+      secondsWidthOnXAxis,
+      numberOfSeconds,
       numberOfMinutes,
       numberOfHours,
       numberOfDays,
@@ -546,7 +553,8 @@ class TimeScale {
       return month
     }
 
-    let remainingMins = 60 - firstVal.minMinute
+    // factor in minSeconds as well
+    let remainingMins = 60 - (firstVal.minMinute + firstVal.minSecond / 60.0)
 
     let firstTickPosition = remainingMins * minutesWidthOnXAxis
     let firstTickValue = firstVal.minHour + 1
@@ -611,20 +619,22 @@ class TimeScale {
 
   generateMinuteScale({
     firstVal,
+    currentSecond,
     currentMinute,
     currentHour,
     currentDate,
     currentMonth,
     currentYear,
     minutesWidthOnXAxis,
+    secondsWidthOnXAxis,
     numberOfMinutes
   }) {
     let yrCounter = 0
     let unit = 'minute'
 
-    let remainingMins = currentMinute - firstVal.minMinute
+    let remainingSecs = 60 - firstVal.minSecond
 
-    let firstTickPosition = minutesWidthOnXAxis - remainingMins
+    let firstTickPosition = remainingSecs * secondsWidthOnXAxis
     let firstTickValue = firstVal.minMinute + 1
     let minute = firstTickValue + 1
 
