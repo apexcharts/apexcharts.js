@@ -2263,11 +2263,9 @@
 
         var tsMin = this.getDate(minX);
         var tsMax = this.getDate(maxX);
-        var minD = this.formatDate(tsMin, 'yyyy MM dd HH mm ss').split(' ');
-        var maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm ss').split(' ');
+        var minD = this.formatDate(tsMin, 'yyyy MM dd HH mm').split(' ');
+        var maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm').split(' ');
         return {
-          minSecond: parseInt(minD[5], 10),
-          maxSecond: parseInt(maxD[5], 10),
           minMinute: parseInt(minD[4], 10),
           maxMinute: parseInt(maxD[4], 10),
           minHour: parseInt(minD[3], 10),
@@ -2433,12 +2431,18 @@
     }, {
       key: "getCategoryLabels",
       value: function getCategoryLabels(labels) {
+        var _this = this;
+
         var w = this.w;
         var catLabels = labels.slice();
 
         if (w.config.xaxis.convertedCatToNumeric) {
           catLabels = labels.map(function (i, li) {
-            return w.config.xaxis.labels.formatter(i - w.globals.minX + 1);
+            return w.config.xaxis.labels.formatter(i - w.globals.minX + 1, {
+              i: li,
+              dateFormatter: new DateTime(_this.ctx).formatDate,
+              w: w
+            });
           });
         }
 
@@ -2624,14 +2628,14 @@
     }, {
       key: "getLogSeries",
       value: function getLogSeries(series) {
-        var _this = this;
+        var _this2 = this;
 
         var w = this.w;
         w.globals.seriesLog = series.map(function (s, i) {
           if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
             return s.map(function (d) {
               if (d === null) return null;
-              return _this.getLogVal(d, i);
+              return _this2.getLogVal(d, i);
             });
           } else {
             return s;
@@ -2648,13 +2652,13 @@
     }, {
       key: "getLogYRatios",
       value: function getLogYRatios(yRatio) {
-        var _this2 = this;
+        var _this3 = this;
 
         var w = this.w;
         var gl = this.w.globals;
         gl.yLogRatio = yRatio.slice();
         gl.logYRange = gl.yRange.map(function (yRange, i) {
-          if (w.config.yaxis[i] && _this2.w.config.yaxis[i].logarithmic) {
+          if (w.config.yaxis[i] && _this3.w.config.yaxis[i].logarithmic) {
             var maxY = -Number.MAX_VALUE;
             var minY = Number.MIN_VALUE;
             var range = 1;
@@ -3485,7 +3489,6 @@
               enableShades: true,
               shadeIntensity: 0.5,
               distributed: false,
-              reverseNegativeShade: false,
               useFillColorAsStroke: false,
               colorScale: {
                 inverse: false,
@@ -5428,8 +5431,8 @@
         };
 
         if (w.config.dataLabels.enabled) {
-          var yLabel = this.barCtx.series[i][j];
-          textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](yLabel), parseFloat(dataLabelsConfig.style.fontSize));
+          var longestStr = String(w.globals.minY).length > String(w.globals.maxY).length ? w.globals.minY : w.globals.maxY;
+          textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](longestStr), parseFloat(dataLabelsConfig.style.fontSize));
         }
 
         var params = {
@@ -5619,7 +5622,7 @@
             if (valIsNegative) {
               dataLabelsX = newX + barWidth / 2 - offX;
             } else {
-              dataLabelsX = Math.max(textRects.width / 2, newX - barWidth / 2) + offX;
+              dataLabelsX = newX - barWidth / 2 + offX;
             }
 
             break;
@@ -9502,7 +9505,7 @@
         if (Utils.isNumber(v)) {
           if (w.globals.yValueDecimal !== 0) {
             v = v.toFixed(yaxe.decimalsInFloat !== undefined ? yaxe.decimalsInFloat : w.globals.yValueDecimal);
-          } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 5) {
+          } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 10) {
             v = v.toFixed(1);
           } else {
             v = v.toFixed(0);
@@ -11073,10 +11076,7 @@
         var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
         var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
         var NO_MIN_MAX_PROVIDED = arguments.length > 4 ? arguments[4] : undefined;
-        var w = this.w; // Determine Range
-
-        var range = Math.abs(yMax - yMin);
-        ticks = this._adjustTicksForSmallRange(ticks, index, range);
+        var w = this.w;
 
         if (ticks === 'dataPoints') {
           ticks = w.globals.dataPoints - 1;
@@ -11112,7 +11112,9 @@
         // encompass the Y values.
 
 
-        var result = [];
+        var result = []; // Determine Range
+
+        var range = Math.abs(yMax - yMin);
 
         if (range < 1 && NO_MIN_MAX_PROVIDED && (w.config.chart.type === 'candlestick' || w.config.series[index].type === 'candlestick' || w.globals.isRangeData)) {
           /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
@@ -11187,9 +11189,7 @@
       key: "linearScale",
       value: function linearScale(yMin, yMax) {
         var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
-        var index = arguments.length > 3 ? arguments[3] : undefined;
         var range = Math.abs(yMax - yMin);
-        ticks = this._adjustTicksForSmallRange(ticks, index, range);
         var step = range / ticks;
 
         if (ticks === Number.MAX_VALUE) {
@@ -11249,21 +11249,6 @@
         };
       }
     }, {
-      key: "_adjustTicksForSmallRange",
-      value: function _adjustTicksForSmallRange(ticks, index, range) {
-        var newTicks = ticks;
-
-        if (typeof index !== 'undefined' && this.w.config.yaxis[index].labels.formatter) {
-          var formattedVal = this.w.config.yaxis[index].labels.formatter(1);
-
-          if (Utils.isNumber(Number(formattedVal)) && !Utils.isFloat(formattedVal)) {
-            newTicks = Math.ceil(range);
-          }
-        }
-
-        return newTicks < ticks ? newTicks : ticks;
-      }
-    }, {
       key: "setYScaleForIndex",
       value: function setYScaleForIndex(index, minY, maxY) {
         var gl = this.w.globals;
@@ -11293,7 +11278,7 @@
 
             if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
               // fix https://github.com/apexcharts/apexcharts.js/issues/492
-              gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount, index);
+              gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount);
             } else {
               var noMinMaxProvided = cnf.yaxis[index].max === undefined && cnf.yaxis[index].min === undefined || cnf.yaxis[index].forceNiceScale;
               gl.yAxisScale[index] = this.niceScale(minY, maxY, y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, index, // fix https://github.com/apexcharts/apexcharts.js/issues/397
@@ -13948,14 +13933,14 @@
         switch (cnf.legend.position) {
           case 'bottom':
             gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding;
-            gl.gridWidth = gl.svgWidth;
+            gl.gridWidth = gl.gridHeight;
             gl.translateY = offY - 10;
             gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
             break;
 
           case 'top':
             gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding;
-            gl.gridWidth = gl.svgWidth;
+            gl.gridWidth = gl.gridHeight;
             gl.translateY = this.lgRect.height + offY + 10;
             gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
             break;
@@ -19392,7 +19377,7 @@
       this.animDur = 0;
       this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
       this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
-      this.defaultSize = Math.min(w.globals.gridWidth, w.globals.gridHeight);
+      this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.gridHeight : w.globals.gridWidth;
       this.centerY = this.defaultSize / 2;
       this.centerX = w.globals.gridWidth / 2;
       this.fullAngle = 360;
@@ -22308,22 +22293,18 @@
         var daysWidthOnXAxis = w.globals.gridWidth / daysDiff;
         var hoursWidthOnXAxis = daysWidthOnXAxis / 24;
         var minutesWidthOnXAxis = hoursWidthOnXAxis / 60;
-        var secondsWidthOnXAxis = minutesWidthOnXAxis / 60;
         var numberOfHours = Math.floor(daysDiff * 24);
         var numberOfMinutes = Math.floor(daysDiff * 24 * 60);
-        var numberOfSeconds = Math.floor(daysDiff * 24 * 60 * 60);
         var numberOfDays = Math.floor(daysDiff);
         var numberOfMonths = Math.floor(daysDiff / 30);
         var numberOfYears = Math.floor(daysDiff / 365);
         var firstVal = {
-          minSecond: timeIntervals.minSecond,
           minMinute: timeIntervals.minMinute,
           minHour: timeIntervals.minHour,
           minDate: timeIntervals.minDate,
           minMonth: timeIntervals.minMonth,
           minYear: timeIntervals.minYear
         };
-        var currentSecond = firstVal.minSecond;
         var currentMinute = firstVal.minMinute;
         var currentHour = firstVal.minHour;
         var currentMonthDate = firstVal.minDate;
@@ -22332,7 +22313,6 @@
         var currentYear = firstVal.minYear;
         var params = {
           firstVal: firstVal,
-          currentSecond: currentSecond,
           currentMinute: currentMinute,
           currentHour: currentHour,
           currentMonthDate: currentMonthDate,
@@ -22342,8 +22322,6 @@
           daysWidthOnXAxis: daysWidthOnXAxis,
           hoursWidthOnXAxis: hoursWidthOnXAxis,
           minutesWidthOnXAxis: minutesWidthOnXAxis,
-          secondsWidthOnXAxis: secondsWidthOnXAxis,
-          numberOfSeconds: numberOfSeconds,
           numberOfMinutes: numberOfMinutes,
           numberOfHours: numberOfHours,
           numberOfDays: numberOfDays,
@@ -22836,10 +22814,9 @@
           }
 
           return month;
-        }; // factor in minSeconds as well
+        };
 
-
-        var remainingMins = 60 - (firstVal.minMinute + firstVal.minSecond / 60.0);
+        var remainingMins = 60 - firstVal.minMinute;
         var firstTickPosition = remainingMins * minutesWidthOnXAxis;
         var firstTickValue = firstVal.minHour + 1;
         var hour = firstTickValue + 1;
@@ -22896,19 +22873,17 @@
       key: "generateMinuteScale",
       value: function generateMinuteScale(_ref5) {
         var firstVal = _ref5.firstVal,
-            currentSecond = _ref5.currentSecond,
             currentMinute = _ref5.currentMinute,
             currentHour = _ref5.currentHour,
             currentDate = _ref5.currentDate,
             currentMonth = _ref5.currentMonth,
             currentYear = _ref5.currentYear,
             minutesWidthOnXAxis = _ref5.minutesWidthOnXAxis,
-            secondsWidthOnXAxis = _ref5.secondsWidthOnXAxis,
             numberOfMinutes = _ref5.numberOfMinutes;
         var yrCounter = 0;
         var unit = 'minute';
-        var remainingSecs = 60 - firstVal.minSecond;
-        var firstTickPosition = remainingSecs * secondsWidthOnXAxis;
+        var remainingMins = currentMinute - firstVal.minMinute;
+        var firstTickPosition = minutesWidthOnXAxis - remainingMins;
         var firstTickValue = firstVal.minMinute + 1;
         var minute = firstTickValue + 1;
         var date = currentDate;
@@ -25312,10 +25287,10 @@
               }
 
               if (topParent != document) throw new Error('Element not in the dom');
-            } else {// the element is NOT in the dom, throw error
-              // disabling the check below which fixes issue #76
-              // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
-            } // find native bbox
+            } else {} // the element is NOT in the dom, throw error
+            // disabling the check below which fixes issue #76
+            // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
+            // find native bbox
 
 
             box = element.node.getBBox();
