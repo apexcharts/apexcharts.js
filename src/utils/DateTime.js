@@ -159,10 +159,12 @@ class DateTime {
     const tsMin = this.getDate(minX)
     const tsMax = this.getDate(maxX)
 
-    const minD = this.formatDate(tsMin, 'yyyy MM dd HH mm').split(' ')
-    const maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm').split(' ')
+    const minD = this.formatDate(tsMin, 'yyyy MM dd HH mm ss').split(' ')
+    const maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm ss').split(' ')
 
     return {
+      minSecond: parseInt(minD[5], 10),
+      maxSecond: parseInt(maxD[5], 10),
       minMinute: parseInt(minD[4], 10),
       maxMinute: parseInt(maxD[4], 10),
       minHour: parseInt(minD[3], 10),
