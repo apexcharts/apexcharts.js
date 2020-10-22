@@ -377,7 +377,7 @@ export default class Labels {
       xVal = w.globals.ttKeyFormatter(bufferXVal, customFormatterOpts)
     }
 
-    if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[0].length > 0) {
+    if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[i].length > 0) {
       zVal = zFormatter(w.globals.seriesZ[i][j], w)
     }
 
