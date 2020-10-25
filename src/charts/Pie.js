@@ -89,6 +89,11 @@ class Pie {
       this.maxY = Math.max(this.maxY, m)
     })
 
+    // override maxY if user provided in config
+    if (w.config.yaxis[0].max) {
+      this.maxY = w.config.yaxis[0].max
+    }
+
     if (this.chartType === 'polarArea') {
       this.drawPolarElements()
     }
@@ -702,15 +707,12 @@ class Pie {
     const gCircles = graphics.group()
     const gYAxis = graphics.group()
 
-    const noMinMaxProvided =
-      w.config.yaxis[0].max === undefined && w.config.yaxis[0].min === undefined
-
     const yScale = scale.niceScale(
       0,
       Math.ceil(this.maxY),
       w.config.yaxis[0].tickAmount,
       0,
-      noMinMaxProvided
+      true
     )
 
     const yTexts = yScale.result.reverse()
