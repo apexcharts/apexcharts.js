@@ -37,7 +37,14 @@ export default class ApexCharts {
     initCtx.initModules()
 
     this.create = Utils.bind(this.create, this)
-    this.windowResizeHandler = this._windowResize.bind(this)
+
+    let width = window.innerWidth
+    this.windowResizeHandler = () => {
+      if (width !== window.innerWidth) {
+        width = window.innerWidth
+        this._windowResize.call(this)
+      }
+    }
   }
 
   /**
