@@ -1,12 +1,12 @@
 /*!
- * ApexCharts v3.22.0
+ * ApexCharts v3.22.1
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
-  (global = global || self, global.ApexCharts = factory());
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.ApexCharts = factory());
 }(this, (function () { 'use strict';
 
   function _typeof(obj) {
@@ -2111,241 +2111,9 @@
     return XAnnotations;
   }();
 
-  /**
-   * DateTime Class to manipulate datetime values.
-   *
-   * @module DateTime
-   **/
-
-  var DateTime = /*#__PURE__*/function () {
-    function DateTime(ctx) {
-      _classCallCheck(this, DateTime);
-
-      this.ctx = ctx;
-      this.w = ctx.w;
-      this.months31 = [1, 3, 5, 7, 8, 10, 12];
-      this.months30 = [2, 4, 6, 9, 11];
-      this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    }
-
-    _createClass(DateTime, [{
-      key: "isValidDate",
-      value: function isValidDate(date) {
-        return !isNaN(this.parseDate(date));
-      }
-    }, {
-      key: "getTimeStamp",
-      value: function getTimeStamp(dateStr) {
-        if (!Date.parse(dateStr)) {
-          return dateStr;
-        }
-
-        var utc = this.w.config.xaxis.labels.datetimeUTC;
-        return !utc ? new Date(dateStr).getTime() : new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime();
-      }
-    }, {
-      key: "getDate",
-      value: function getDate(timestamp) {
-        var utc = this.w.config.xaxis.labels.datetimeUTC;
-        return utc ? new Date(new Date(timestamp).toUTCString()) : new Date(timestamp);
-      }
-    }, {
-      key: "parseDate",
-      value: function parseDate(dateStr) {
-        var parsed = Date.parse(dateStr);
-
-        if (!isNaN(parsed)) {
-          return this.getTimeStamp(dateStr);
-        }
-
-        var output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
-        output = this.getTimeStamp(output);
-        return output;
-      } // This fixes the difference of x-axis labels between chrome/safari
-      // Fixes #1726, #1544, #1485, #1255
-
-    }, {
-      key: "parseDateWithTimezone",
-      value: function parseDateWithTimezone(dateStr) {
-        return Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
-      } // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
-
-    }, {
-      key: "formatDate",
-      value: function formatDate(date, format) {
-        var locale = this.w.globals.locale;
-        var utc = this.w.config.xaxis.labels.datetimeUTC;
-        var MMMM = ['\x00'].concat(_toConsumableArray(locale.months));
-        var MMM = ['\x01'].concat(_toConsumableArray(locale.shortMonths));
-        var dddd = ['\x02'].concat(_toConsumableArray(locale.days));
-        var ddd = ['\x03'].concat(_toConsumableArray(locale.shortDays));
-
-        function ii(i, len) {
-          var s = i + '';
-          len = len || 2;
-
-          while (s.length < len) {
-            s = '0' + s;
-          }
-
-          return s;
-        }
-
-        var y = utc ? date.getUTCFullYear() : date.getFullYear();
-        format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y);
-        format = format.replace(/(^|[^\\])yy/g, '$1' + y.toString().substr(2, 2));
-        format = format.replace(/(^|[^\\])y/g, '$1' + y);
-        var M = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
-        format = format.replace(/(^|[^\\])MMMM+/g, '$1' + MMMM[0]);
-        format = format.replace(/(^|[^\\])MMM/g, '$1' + MMM[0]);
-        format = format.replace(/(^|[^\\])MM/g, '$1' + ii(M));
-        format = format.replace(/(^|[^\\])M/g, '$1' + M);
-        var d = utc ? date.getUTCDate() : date.getDate();
-        format = format.replace(/(^|[^\\])dddd+/g, '$1' + dddd[0]);
-        format = format.replace(/(^|[^\\])ddd/g, '$1' + ddd[0]);
-        format = format.replace(/(^|[^\\])dd/g, '$1' + ii(d));
-        format = format.replace(/(^|[^\\])d/g, '$1' + d);
-        var H = utc ? date.getUTCHours() : date.getHours();
-        format = format.replace(/(^|[^\\])HH+/g, '$1' + ii(H));
-        format = format.replace(/(^|[^\\])H/g, '$1' + H);
-        var h = H > 12 ? H - 12 : H === 0 ? 12 : H;
-        format = format.replace(/(^|[^\\])hh+/g, '$1' + ii(h));
-        format = format.replace(/(^|[^\\])h/g, '$1' + h);
-        var m = utc ? date.getUTCMinutes() : date.getMinutes();
-        format = format.replace(/(^|[^\\])mm+/g, '$1' + ii(m));
-        format = format.replace(/(^|[^\\])m/g, '$1' + m);
-        var s = utc ? date.getUTCSeconds() : date.getSeconds();
-        format = format.replace(/(^|[^\\])ss+/g, '$1' + ii(s));
-        format = format.replace(/(^|[^\\])s/g, '$1' + s);
-        var f = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
-        format = format.replace(/(^|[^\\])fff+/g, '$1' + ii(f, 3));
-        f = Math.round(f / 10);
-        format = format.replace(/(^|[^\\])ff/g, '$1' + ii(f));
-        f = Math.round(f / 10);
-        format = format.replace(/(^|[^\\])f/g, '$1' + f);
-        var T = H < 12 ? 'AM' : 'PM';
-        format = format.replace(/(^|[^\\])TT+/g, '$1' + T);
-        format = format.replace(/(^|[^\\])T/g, '$1' + T.charAt(0));
-        var t = T.toLowerCase();
-        format = format.replace(/(^|[^\\])tt+/g, '$1' + t);
-        format = format.replace(/(^|[^\\])t/g, '$1' + t.charAt(0));
-        var tz = -date.getTimezoneOffset();
-        var K = utc || !tz ? 'Z' : tz > 0 ? '+' : '-';
-
-        if (!utc) {
-          tz = Math.abs(tz);
-          var tzHrs = Math.floor(tz / 60);
-          var tzMin = tz % 60;
-          K += ii(tzHrs) + ':' + ii(tzMin);
-        }
-
-        format = format.replace(/(^|[^\\])K/g, '$1' + K);
-        var day = (utc ? date.getUTCDay() : date.getDay()) + 1;
-        format = format.replace(new RegExp(dddd[0], 'g'), dddd[day]);
-        format = format.replace(new RegExp(ddd[0], 'g'), ddd[day]);
-        format = format.replace(new RegExp(MMMM[0], 'g'), MMMM[M]);
-        format = format.replace(new RegExp(MMM[0], 'g'), MMM[M]);
-        format = format.replace(/\\(.)/g, '$1');
-        return format;
-      }
-    }, {
-      key: "getTimeUnitsfromTimestamp",
-      value: function getTimeUnitsfromTimestamp(minX, maxX, utc) {
-        var w = this.w;
-
-        if (w.config.xaxis.min !== undefined) {
-          minX = w.config.xaxis.min;
-        }
-
-        if (w.config.xaxis.max !== undefined) {
-          maxX = w.config.xaxis.max;
-        }
-
-        var tsMin = this.getDate(minX);
-        var tsMax = this.getDate(maxX);
-        var minD = this.formatDate(tsMin, 'yyyy MM dd HH mm').split(' ');
-        var maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm').split(' ');
-        return {
-          minMinute: parseInt(minD[4], 10),
-          maxMinute: parseInt(maxD[4], 10),
-          minHour: parseInt(minD[3], 10),
-          maxHour: parseInt(maxD[3], 10),
-          minDate: parseInt(minD[2], 10),
-          maxDate: parseInt(maxD[2], 10),
-          minMonth: parseInt(minD[1], 10) - 1,
-          maxMonth: parseInt(maxD[1], 10) - 1,
-          minYear: parseInt(minD[0], 10),
-          maxYear: parseInt(maxD[0], 10)
-        };
-      }
-    }, {
-      key: "isLeapYear",
-      value: function isLeapYear(year) {
-        return year % 4 === 0 && year % 100 !== 0 || year % 400 === 0;
-      }
-    }, {
-      key: "calculcateLastDaysOfMonth",
-      value: function calculcateLastDaysOfMonth(month, year, subtract) {
-        var days = this.determineDaysOfMonths(month, year); // whatever days we get, subtract the number of days asked
-
-        return days - subtract;
-      }
-    }, {
-      key: "determineDaysOfYear",
-      value: function determineDaysOfYear(year) {
-        var days = 365;
-
-        if (this.isLeapYear(year)) {
-          days = 366;
-        }
-
-        return days;
-      }
-    }, {
-      key: "determineRemainingDaysOfYear",
-      value: function determineRemainingDaysOfYear(year, month, date) {
-        var dayOfYear = this.daysCntOfYear[month] + date;
-        if (month > 1 && this.isLeapYear()) dayOfYear++;
-        return dayOfYear;
-      }
-    }, {
-      key: "determineDaysOfMonths",
-      value: function determineDaysOfMonths(month, year) {
-        var days = 30;
-        month = Utils.monthMod(month);
-
-        switch (true) {
-          case this.months30.indexOf(month) > -1:
-            if (month === 2) {
-              if (this.isLeapYear(year)) {
-                days = 29;
-              } else {
-                days = 28;
-              }
-            }
-
-            break;
-
-          case this.months31.indexOf(month) > -1:
-            days = 31;
-            break;
-
-          default:
-            days = 31;
-            break;
-        }
-
-        return days;
-      }
-    }]);
-
-    return DateTime;
-  }();
-
   /*
    ** Util functions which are dependent on ApexCharts instance
    */
-
   var CoreUtils = /*#__PURE__*/function () {
     function CoreUtils(ctx) {
       _classCallCheck(this, CoreUtils);
@@ -2431,18 +2199,12 @@
     }, {
       key: "getCategoryLabels",
       value: function getCategoryLabels(labels) {
-        var _this = this;
-
         var w = this.w;
         var catLabels = labels.slice();
 
         if (w.config.xaxis.convertedCatToNumeric) {
           catLabels = labels.map(function (i, li) {
-            return w.config.xaxis.labels.formatter(i - w.globals.minX + 1, {
-              i: li,
-              dateFormatter: new DateTime(_this.ctx).formatDate,
-              w: w
-            });
+            return w.config.xaxis.labels.formatter(i - w.globals.minX + 1);
           });
         }
 
@@ -2628,14 +2390,14 @@
     }, {
       key: "getLogSeries",
       value: function getLogSeries(series) {
-        var _this2 = this;
+        var _this = this;
 
         var w = this.w;
         w.globals.seriesLog = series.map(function (s, i) {
           if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
             return s.map(function (d) {
               if (d === null) return null;
-              return _this2.getLogVal(d, i);
+              return _this.getLogVal(d, i);
             });
           } else {
             return s;
@@ -2652,13 +2414,13 @@
     }, {
       key: "getLogYRatios",
       value: function getLogYRatios(yRatio) {
-        var _this3 = this;
+        var _this2 = this;
 
         var w = this.w;
         var gl = this.w.globals;
         gl.yLogRatio = yRatio.slice();
         gl.logYRange = gl.yRange.map(function (yRange, i) {
-          if (w.config.yaxis[i] && _this3.w.config.yaxis[i].logarithmic) {
+          if (w.config.yaxis[i] && _this2.w.config.yaxis[i].logarithmic) {
             var maxY = -Number.MAX_VALUE;
             var minY = Number.MIN_VALUE;
             var range = 1;
@@ -2748,7 +2510,7 @@
         if (anno.y2 === null || typeof anno.y2 === 'undefined') {
           var line = this.annoCtx.graphics.drawLine(0 + anno.offsetX, // x1
           y1 + anno.offsetY, // y1
-          w.globals.gridWidth + anno.offsetX, // x2
+          this._getYAxisAnnotationWidth(anno), // x2
           y1 + anno.offsetY, // y2
           anno.borderColor, // lineColor
           strokeDashArray, // dashArray
@@ -2769,7 +2531,7 @@
 
           var rect = this.annoCtx.graphics.drawRect(0 + anno.offsetX, // x1
           y2 + anno.offsetY, // y1
-          w.globals.gridWidth + anno.offsetX, // x2
+          this._getYAxisAnnotationWidth(anno), // x2
           y1 - y2, // y2
           0, // radius
           anno.fillColor, // color
@@ -2842,6 +2604,21 @@
         }
 
         return yP;
+      }
+    }, {
+      key: "_getYAxisAnnotationWidth",
+      value: function _getYAxisAnnotationWidth(anno) {
+        // issue apexcharts.js#2009
+        var w = this.w;
+        var width = w.globals.gridWidth;
+
+        if (anno.width.indexOf('%') > -1) {
+          width = w.globals.gridWidth * parseInt(anno.width, 10) / 100;
+        } else {
+          width = parseInt(anno.width, 10);
+        }
+
+        return width + anno.offsetX;
       }
     }, {
       key: "drawYAxisAnnotations",
@@ -3197,6 +2974,7 @@
         opacity: 0.3,
         offsetX: 0,
         offsetY: 0,
+        width: '100%',
         yAxisIndex: 0,
         label: {
           borderColor: '#c2c2c2',
@@ -3344,6 +3122,7 @@
             height: 'auto',
             parentHeightOffset: 15,
             redrawOnParentResize: true,
+            redrawOnWindowResize: true,
             id: undefined,
             group: undefined,
             offsetX: 0,
@@ -3489,6 +3268,7 @@
               enableShades: true,
               shadeIntensity: 0.5,
               distributed: false,
+              reverseNegativeShade: false,
               useFillColorAsStroke: false,
               colorScale: {
                 inverse: false,
@@ -5431,8 +5211,8 @@
         };
 
         if (w.config.dataLabels.enabled) {
-          var longestStr = String(w.globals.minY).length > String(w.globals.maxY).length ? w.globals.minY : w.globals.maxY;
-          textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](longestStr), parseFloat(dataLabelsConfig.style.fontSize));
+          var yLabel = this.barCtx.series[i][j];
+          textRects = graphics.getTextRects(w.globals.yLabelFormatters[0](yLabel), parseFloat(dataLabelsConfig.style.fontSize));
         }
 
         var params = {
@@ -5622,7 +5402,7 @@
             if (valIsNegative) {
               dataLabelsX = newX + barWidth / 2 - offX;
             } else {
-              dataLabelsX = newX - barWidth / 2 + offX;
+              dataLabelsX = Math.max(textRects.width / 2, newX - barWidth / 2) + offX;
             }
 
             break;
@@ -7039,6 +6819,239 @@
     }]);
 
     return Bar;
+  }();
+
+  /**
+   * DateTime Class to manipulate datetime values.
+   *
+   * @module DateTime
+   **/
+
+  var DateTime = /*#__PURE__*/function () {
+    function DateTime(ctx) {
+      _classCallCheck(this, DateTime);
+
+      this.ctx = ctx;
+      this.w = ctx.w;
+      this.months31 = [1, 3, 5, 7, 8, 10, 12];
+      this.months30 = [2, 4, 6, 9, 11];
+      this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    }
+
+    _createClass(DateTime, [{
+      key: "isValidDate",
+      value: function isValidDate(date) {
+        return !isNaN(this.parseDate(date));
+      }
+    }, {
+      key: "getTimeStamp",
+      value: function getTimeStamp(dateStr) {
+        if (!Date.parse(dateStr)) {
+          return dateStr;
+        }
+
+        var utc = this.w.config.xaxis.labels.datetimeUTC;
+        return !utc ? new Date(dateStr).getTime() : new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime();
+      }
+    }, {
+      key: "getDate",
+      value: function getDate(timestamp) {
+        var utc = this.w.config.xaxis.labels.datetimeUTC;
+        return utc ? new Date(new Date(timestamp).toUTCString()) : new Date(timestamp);
+      }
+    }, {
+      key: "parseDate",
+      value: function parseDate(dateStr) {
+        var parsed = Date.parse(dateStr);
+
+        if (!isNaN(parsed)) {
+          return this.getTimeStamp(dateStr);
+        }
+
+        var output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
+        output = this.getTimeStamp(output);
+        return output;
+      } // This fixes the difference of x-axis labels between chrome/safari
+      // Fixes #1726, #1544, #1485, #1255
+
+    }, {
+      key: "parseDateWithTimezone",
+      value: function parseDateWithTimezone(dateStr) {
+        return Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '));
+      } // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
+
+    }, {
+      key: "formatDate",
+      value: function formatDate(date, format) {
+        var locale = this.w.globals.locale;
+        var utc = this.w.config.xaxis.labels.datetimeUTC;
+        var MMMM = ['\x00'].concat(_toConsumableArray(locale.months));
+        var MMM = ['\x01'].concat(_toConsumableArray(locale.shortMonths));
+        var dddd = ['\x02'].concat(_toConsumableArray(locale.days));
+        var ddd = ['\x03'].concat(_toConsumableArray(locale.shortDays));
+
+        function ii(i, len) {
+          var s = i + '';
+          len = len || 2;
+
+          while (s.length < len) {
+            s = '0' + s;
+          }
+
+          return s;
+        }
+
+        var y = utc ? date.getUTCFullYear() : date.getFullYear();
+        format = format.replace(/(^|[^\\])yyyy+/g, '$1' + y);
+        format = format.replace(/(^|[^\\])yy/g, '$1' + y.toString().substr(2, 2));
+        format = format.replace(/(^|[^\\])y/g, '$1' + y);
+        var M = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
+        format = format.replace(/(^|[^\\])MMMM+/g, '$1' + MMMM[0]);
+        format = format.replace(/(^|[^\\])MMM/g, '$1' + MMM[0]);
+        format = format.replace(/(^|[^\\])MM/g, '$1' + ii(M));
+        format = format.replace(/(^|[^\\])M/g, '$1' + M);
+        var d = utc ? date.getUTCDate() : date.getDate();
+        format = format.replace(/(^|[^\\])dddd+/g, '$1' + dddd[0]);
+        format = format.replace(/(^|[^\\])ddd/g, '$1' + ddd[0]);
+        format = format.replace(/(^|[^\\])dd/g, '$1' + ii(d));
+        format = format.replace(/(^|[^\\])d/g, '$1' + d);
+        var H = utc ? date.getUTCHours() : date.getHours();
+        format = format.replace(/(^|[^\\])HH+/g, '$1' + ii(H));
+        format = format.replace(/(^|[^\\])H/g, '$1' + H);
+        var h = H > 12 ? H - 12 : H === 0 ? 12 : H;
+        format = format.replace(/(^|[^\\])hh+/g, '$1' + ii(h));
+        format = format.replace(/(^|[^\\])h/g, '$1' + h);
+        var m = utc ? date.getUTCMinutes() : date.getMinutes();
+        format = format.replace(/(^|[^\\])mm+/g, '$1' + ii(m));
+        format = format.replace(/(^|[^\\])m/g, '$1' + m);
+        var s = utc ? date.getUTCSeconds() : date.getSeconds();
+        format = format.replace(/(^|[^\\])ss+/g, '$1' + ii(s));
+        format = format.replace(/(^|[^\\])s/g, '$1' + s);
+        var f = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
+        format = format.replace(/(^|[^\\])fff+/g, '$1' + ii(f, 3));
+        f = Math.round(f / 10);
+        format = format.replace(/(^|[^\\])ff/g, '$1' + ii(f));
+        f = Math.round(f / 10);
+        format = format.replace(/(^|[^\\])f/g, '$1' + f);
+        var T = H < 12 ? 'AM' : 'PM';
+        format = format.replace(/(^|[^\\])TT+/g, '$1' + T);
+        format = format.replace(/(^|[^\\])T/g, '$1' + T.charAt(0));
+        var t = T.toLowerCase();
+        format = format.replace(/(^|[^\\])tt+/g, '$1' + t);
+        format = format.replace(/(^|[^\\])t/g, '$1' + t.charAt(0));
+        var tz = -date.getTimezoneOffset();
+        var K = utc || !tz ? 'Z' : tz > 0 ? '+' : '-';
+
+        if (!utc) {
+          tz = Math.abs(tz);
+          var tzHrs = Math.floor(tz / 60);
+          var tzMin = tz % 60;
+          K += ii(tzHrs) + ':' + ii(tzMin);
+        }
+
+        format = format.replace(/(^|[^\\])K/g, '$1' + K);
+        var day = (utc ? date.getUTCDay() : date.getDay()) + 1;
+        format = format.replace(new RegExp(dddd[0], 'g'), dddd[day]);
+        format = format.replace(new RegExp(ddd[0], 'g'), ddd[day]);
+        format = format.replace(new RegExp(MMMM[0], 'g'), MMMM[M]);
+        format = format.replace(new RegExp(MMM[0], 'g'), MMM[M]);
+        format = format.replace(/\\(.)/g, '$1');
+        return format;
+      }
+    }, {
+      key: "getTimeUnitsfromTimestamp",
+      value: function getTimeUnitsfromTimestamp(minX, maxX, utc) {
+        var w = this.w;
+
+        if (w.config.xaxis.min !== undefined) {
+          minX = w.config.xaxis.min;
+        }
+
+        if (w.config.xaxis.max !== undefined) {
+          maxX = w.config.xaxis.max;
+        }
+
+        var tsMin = this.getDate(minX);
+        var tsMax = this.getDate(maxX);
+        var minD = this.formatDate(tsMin, 'yyyy MM dd HH mm ss').split(' ');
+        var maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm ss').split(' ');
+        return {
+          minSecond: parseInt(minD[5], 10),
+          maxSecond: parseInt(maxD[5], 10),
+          minMinute: parseInt(minD[4], 10),
+          maxMinute: parseInt(maxD[4], 10),
+          minHour: parseInt(minD[3], 10),
+          maxHour: parseInt(maxD[3], 10),
+          minDate: parseInt(minD[2], 10),
+          maxDate: parseInt(maxD[2], 10),
+          minMonth: parseInt(minD[1], 10) - 1,
+          maxMonth: parseInt(maxD[1], 10) - 1,
+          minYear: parseInt(minD[0], 10),
+          maxYear: parseInt(maxD[0], 10)
+        };
+      }
+    }, {
+      key: "isLeapYear",
+      value: function isLeapYear(year) {
+        return year % 4 === 0 && year % 100 !== 0 || year % 400 === 0;
+      }
+    }, {
+      key: "calculcateLastDaysOfMonth",
+      value: function calculcateLastDaysOfMonth(month, year, subtract) {
+        var days = this.determineDaysOfMonths(month, year); // whatever days we get, subtract the number of days asked
+
+        return days - subtract;
+      }
+    }, {
+      key: "determineDaysOfYear",
+      value: function determineDaysOfYear(year) {
+        var days = 365;
+
+        if (this.isLeapYear(year)) {
+          days = 366;
+        }
+
+        return days;
+      }
+    }, {
+      key: "determineRemainingDaysOfYear",
+      value: function determineRemainingDaysOfYear(year, month, date) {
+        var dayOfYear = this.daysCntOfYear[month] + date;
+        if (month > 1 && this.isLeapYear()) dayOfYear++;
+        return dayOfYear;
+      }
+    }, {
+      key: "determineDaysOfMonths",
+      value: function determineDaysOfMonths(month, year) {
+        var days = 30;
+        month = Utils.monthMod(month);
+
+        switch (true) {
+          case this.months30.indexOf(month) > -1:
+            if (month === 2) {
+              if (this.isLeapYear(year)) {
+                days = 29;
+              } else {
+                days = 28;
+              }
+            }
+
+            break;
+
+          case this.months31.indexOf(month) > -1:
+            days = 31;
+            break;
+
+          default:
+            days = 31;
+            break;
+        }
+
+        return days;
+      }
+    }]);
+
+    return DateTime;
   }();
 
   /**
@@ -9505,7 +9518,7 @@
         if (Utils.isNumber(v)) {
           if (w.globals.yValueDecimal !== 0) {
             v = v.toFixed(yaxe.decimalsInFloat !== undefined ? yaxe.decimalsInFloat : w.globals.yValueDecimal);
-          } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 10) {
+          } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 5) {
             v = v.toFixed(1);
           } else {
             v = v.toFixed(0);
@@ -11076,7 +11089,10 @@
         var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
         var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
         var NO_MIN_MAX_PROVIDED = arguments.length > 4 ? arguments[4] : undefined;
-        var w = this.w;
+        var w = this.w; // Determine Range
+
+        var range = Math.abs(yMax - yMin);
+        ticks = this._adjustTicksForSmallRange(ticks, index, range);
 
         if (ticks === 'dataPoints') {
           ticks = w.globals.dataPoints - 1;
@@ -11112,9 +11128,7 @@
         // encompass the Y values.
 
 
-        var result = []; // Determine Range
-
-        var range = Math.abs(yMax - yMin);
+        var result = [];
 
         if (range < 1 && NO_MIN_MAX_PROVIDED && (w.config.chart.type === 'candlestick' || w.config.series[index].type === 'candlestick' || w.globals.isRangeData)) {
           /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
@@ -11189,7 +11203,9 @@
       key: "linearScale",
       value: function linearScale(yMin, yMax) {
         var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
+        var index = arguments.length > 3 ? arguments[3] : undefined;
         var range = Math.abs(yMax - yMin);
+        ticks = this._adjustTicksForSmallRange(ticks, index, range);
         var step = range / ticks;
 
         if (ticks === Number.MAX_VALUE) {
@@ -11249,6 +11265,21 @@
         };
       }
     }, {
+      key: "_adjustTicksForSmallRange",
+      value: function _adjustTicksForSmallRange(ticks, index, range) {
+        var newTicks = ticks;
+
+        if (typeof index !== 'undefined' && this.w.config.yaxis[index].labels.formatter) {
+          var formattedVal = this.w.config.yaxis[index].labels.formatter(1);
+
+          if (Utils.isNumber(Number(formattedVal)) && !Utils.isFloat(formattedVal)) {
+            newTicks = Math.ceil(range);
+          }
+        }
+
+        return newTicks < ticks ? newTicks : ticks;
+      }
+    }, {
       key: "setYScaleForIndex",
       value: function setYScaleForIndex(index, minY, maxY) {
         var gl = this.w.globals;
@@ -11278,7 +11309,7 @@
 
             if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
               // fix https://github.com/apexcharts/apexcharts.js/issues/492
-              gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount);
+              gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount, index);
             } else {
               var noMinMaxProvided = cnf.yaxis[index].max === undefined && cnf.yaxis[index].min === undefined || cnf.yaxis[index].forceNiceScale;
               gl.yAxisScale[index] = this.niceScale(minY, maxY, y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, index, // fix https://github.com/apexcharts/apexcharts.js/issues/397
@@ -13933,14 +13964,14 @@
         switch (cnf.legend.position) {
           case 'bottom':
             gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding;
-            gl.gridWidth = gl.gridHeight;
+            gl.gridWidth = gl.svgWidth;
             gl.translateY = offY - 10;
             gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
             break;
 
           case 'top':
             gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding;
-            gl.gridWidth = gl.gridHeight;
+            gl.gridWidth = gl.svgWidth;
             gl.translateY = this.lgRect.height + offY + 10;
             gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
             break;
@@ -16465,7 +16496,7 @@
           xVal = w.globals.ttKeyFormatter(bufferXVal, customFormatterOpts);
         }
 
-        if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[0].length > 0) {
+        if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[i].length > 0) {
           zVal = zFormatter(w.globals.seriesZ[i][j], w);
         }
 
@@ -19377,7 +19408,7 @@
       this.animDur = 0;
       this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels;
       this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
-      this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.gridHeight : w.globals.gridWidth;
+      this.defaultSize = Math.min(w.globals.gridWidth, w.globals.gridHeight);
       this.centerY = this.defaultSize / 2;
       this.centerX = w.globals.gridWidth / 2;
       this.fullAngle = 360;
@@ -19418,7 +19449,11 @@
 
         series.forEach(function (m) {
           _this.maxY = Math.max(_this.maxY, m);
-        });
+        }); // override maxY if user provided in config
+
+        if (w.config.yaxis[0].max) {
+          this.maxY = w.config.yaxis[0].max;
+        }
 
         if (this.chartType === 'polarArea') {
           this.drawPolarElements();
@@ -19897,8 +19932,7 @@
         var helpers = new CircularChartsHelpers(this.ctx);
         var gCircles = graphics.group();
         var gYAxis = graphics.group();
-        var noMinMaxProvided = w.config.yaxis[0].max === undefined && w.config.yaxis[0].min === undefined;
-        var yScale = scale.niceScale(0, Math.ceil(this.maxY), w.config.yaxis[0].tickAmount, 0, noMinMaxProvided);
+        var yScale = scale.niceScale(0, Math.ceil(this.maxY), w.config.yaxis[0].tickAmount, 0, true);
         var yTexts = yScale.result.reverse();
         var len = yScale.result.length;
         this.maxY = yScale.niceMax;
@@ -22293,18 +22327,22 @@
         var daysWidthOnXAxis = w.globals.gridWidth / daysDiff;
         var hoursWidthOnXAxis = daysWidthOnXAxis / 24;
         var minutesWidthOnXAxis = hoursWidthOnXAxis / 60;
+        var secondsWidthOnXAxis = minutesWidthOnXAxis / 60;
         var numberOfHours = Math.floor(daysDiff * 24);
         var numberOfMinutes = Math.floor(daysDiff * 24 * 60);
+        var numberOfSeconds = Math.floor(daysDiff * 24 * 60 * 60);
         var numberOfDays = Math.floor(daysDiff);
         var numberOfMonths = Math.floor(daysDiff / 30);
         var numberOfYears = Math.floor(daysDiff / 365);
         var firstVal = {
+          minSecond: timeIntervals.minSecond,
           minMinute: timeIntervals.minMinute,
           minHour: timeIntervals.minHour,
           minDate: timeIntervals.minDate,
           minMonth: timeIntervals.minMonth,
           minYear: timeIntervals.minYear
         };
+        var currentSecond = firstVal.minSecond;
         var currentMinute = firstVal.minMinute;
         var currentHour = firstVal.minHour;
         var currentMonthDate = firstVal.minDate;
@@ -22313,6 +22351,7 @@
         var currentYear = firstVal.minYear;
         var params = {
           firstVal: firstVal,
+          currentSecond: currentSecond,
           currentMinute: currentMinute,
           currentHour: currentHour,
           currentMonthDate: currentMonthDate,
@@ -22322,6 +22361,8 @@
           daysWidthOnXAxis: daysWidthOnXAxis,
           hoursWidthOnXAxis: hoursWidthOnXAxis,
           minutesWidthOnXAxis: minutesWidthOnXAxis,
+          secondsWidthOnXAxis: secondsWidthOnXAxis,
+          numberOfSeconds: numberOfSeconds,
           numberOfMinutes: numberOfMinutes,
           numberOfHours: numberOfHours,
           numberOfDays: numberOfDays,
@@ -22814,9 +22855,10 @@
           }
 
           return month;
-        };
+        }; // factor in minSeconds as well
 
-        var remainingMins = 60 - firstVal.minMinute;
+
+        var remainingMins = 60 - (firstVal.minMinute + firstVal.minSecond / 60.0);
         var firstTickPosition = remainingMins * minutesWidthOnXAxis;
         var firstTickValue = firstVal.minHour + 1;
         var hour = firstTickValue + 1;
@@ -22873,17 +22915,19 @@
       key: "generateMinuteScale",
       value: function generateMinuteScale(_ref5) {
         var firstVal = _ref5.firstVal,
+            currentSecond = _ref5.currentSecond,
             currentMinute = _ref5.currentMinute,
             currentHour = _ref5.currentHour,
             currentDate = _ref5.currentDate,
             currentMonth = _ref5.currentMonth,
             currentYear = _ref5.currentYear,
             minutesWidthOnXAxis = _ref5.minutesWidthOnXAxis,
+            secondsWidthOnXAxis = _ref5.secondsWidthOnXAxis,
             numberOfMinutes = _ref5.numberOfMinutes;
         var yrCounter = 0;
         var unit = 'minute';
-        var remainingMins = currentMinute - firstVal.minMinute;
-        var firstTickPosition = minutesWidthOnXAxis - remainingMins;
+        var remainingSecs = 60 - firstVal.minSecond;
+        var firstTickPosition = remainingSecs * secondsWidthOnXAxis;
         var firstTickValue = firstVal.minMinute + 1;
         var minute = firstTickValue + 1;
         var date = currentDate;
@@ -29767,7 +29811,6 @@
       var initCtx = new InitCtxVariables(this);
       initCtx.initModules();
       this.create = Utils.bind(this.create, this);
-      this.windowResizeHandler = this._windowResize.bind(this);
     }
     /**
      * The primary method user will call to render the chart.
@@ -29806,7 +29849,7 @@
 
             _this.events.fireEvent('beforeMount', [_this, _this.w]);
 
-            window.addEventListener('resize', _this.windowResizeHandler);
+            window.addEventListener('resize', _this._windowResizeHandler.bind(_this));
             window.addResizeListener(_this.el.parentNode, _this._parentResizeCallback.bind(_this));
 
             var graphData = _this.create(_this.w.config.series, {});
@@ -30048,7 +30091,7 @@
     }, {
       key: "destroy",
       value: function destroy() {
-        window.removeEventListener('resize', this.windowResizeHandler);
+        window.removeEventListener('resize', this._windowResizeHandler.bind(this));
         window.removeResizeListener(this.el.parentNode, this._parentResizeCallback.bind(this)); // remove the chart's instance from the global Apex._chartInstances
 
         var chartID = this.w.config.chart.id;
@@ -30426,6 +30469,17 @@
 
           _this6.ctx.update();
         }, 150);
+      }
+    }, {
+      key: "_windowResizeHandler",
+      value: function _windowResizeHandler() {
+        var redraw = this.w.config.chart.redrawOnWindowResize;
+
+        if (typeof redraw === 'function') {
+          redraw = redraw();
+        }
+
+        redraw && this._windowResize();
       }
     }], [{
       key: "getChartByID",

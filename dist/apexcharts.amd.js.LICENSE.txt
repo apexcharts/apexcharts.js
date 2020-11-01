@@ -1,0 +1,18 @@
+/*!
+* svg.js - A lightweight library for manipulating and animating SVG.
+* @version 2.6.6
+* https://svgdotjs.github.io/
+*/
+
+/*!
+* svg.select.js - An extension of svg.js which allows to select elements with mouse
+* @version 3.0.1
+* https://github.com/svgdotjs/svg.select.js
+*
+* @copyright Ulrich-Matthias Schäfer
+* @license MIT
+*/
+
+/*! svg.draggable.js - v2.2.2 - 2019-01-08
+* https://github.com/svgdotjs/svg.draggable.js
+* Copyright (c) 2019 Wout Fierens; Licensed MIT */
