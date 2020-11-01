@@ -33,6 +33,7 @@
     "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
+    "@rollup/plugin-babel": "^5.2.1",
     "svg.draggable.js": "^2.2.2",
     "svg.easing.js": "^2.0.0",
     "svg.filter.js": "^2.0.2",
@@ -69,19 +70,19 @@
     "prettier": "1.19.1",
     "puppeteer": "2.0.0",
     "puppeteer-cluster": "0.18.0",
-    "rollup": "2.21.0",
+    "rollup": "2.33.0",
     "rollup-plugin-babel": "4.4.0",
     "rollup-plugin-copy-glob": "0.3.1",
     "rollup-plugin-postcss": "2.0.3",
     "rollup-plugin-svgo": "1.1.0",
-    "rollup-plugin-terser": "6.1.0",
+    "rollup-plugin-terser": "7.0.2",
     "style-loader": "1.1.2",
     "svg-inline-loader": "0.8.0",
-    "terser": "4.8.0",
+    "terser": "5.3.8",
     "tslint": "5.12.1",
     "typescript": "3.2.2",
-    "webpack": "^4.42.0",
-    "webpack-bundle-analyzer": "^3.6.0",
+    "webpack": "5.3.2",
+    "webpack-bundle-analyzer": "3.9.0",
     "webpack-cli": "^3.3.10"
   },
   "author": {
