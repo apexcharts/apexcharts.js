@@ -276,10 +276,8 @@ export default class BarDataLabels {
         if (valIsNegative) {
           dataLabelsX = newX + barWidth / 2 - offX
         } else {
-          dataLabelsX = Math.max(
-            textRects.width / 2,
-            newX - barWidth / 2
-          ) + offX
+          dataLabelsX =
+            Math.max(textRects.width / 2, newX - barWidth / 2) + offX
         }
         break
       case 'bottom':

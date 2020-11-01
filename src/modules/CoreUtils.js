@@ -1,5 +1,3 @@
-import DateTime from '../utils/DateTime'
-
 /*
  ** Util functions which are dependent on ApexCharts instance
  */
