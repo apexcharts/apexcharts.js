@@ -20,7 +20,7 @@ export default class YAnnotations {
       let line = this.annoCtx.graphics.drawLine(
         0 + anno.offsetX, // x1
         y1 + anno.offsetY, // y1
-        w.globals.gridWidth + anno.offsetX, // x2
+        this._getYAxisAnnotationWidth(anno), // x2
         y1 + anno.offsetY, // y2
         anno.borderColor, // lineColor
         strokeDashArray, // dashArray
@@ -42,7 +42,7 @@ export default class YAnnotations {
       let rect = this.annoCtx.graphics.drawRect(
         0 + anno.offsetX, // x1
         y2 + anno.offsetY, // y1
-        w.globals.gridWidth + anno.offsetX, // x2
+        this._getYAxisAnnotationWidth(anno), // x2
         y1 - y2, // y2
         0, // radius
         anno.fillColor, // color
@@ -120,6 +120,18 @@ export default class YAnnotations {
     }
 
     return yP
+  }
+
+  _getYAxisAnnotationWidth(anno) {
+    // issue apexcharts.js#2009
+    const w = this.w
+    let width = w.globals.gridWidth
+    if (anno.width.indexOf('%') > -1) {
+      width = (w.globals.gridWidth * parseInt(anno.width, 10)) / 100
+    } else {
+      width = parseInt(anno.width, 10)
+    }
+    return width + anno.offsetX
   }
 
   drawYAxisAnnotations() {

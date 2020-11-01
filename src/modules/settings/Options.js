@@ -144,6 +144,7 @@ export default class Options {
       opacity: 0.3,
       offsetX: 0,
       offsetY: 0,
+      width: '100%',
       yAxisIndex: 0,
       label: {
         borderColor: '#c2c2c2',
