@@ -272,15 +272,7 @@ class Legend {
       }
     }
 
-    // for now - just prevent click on heatmap legend - and allow hover only
-    const clickAllowed =
-      w.config.chart.type !== 'treemap' &&
-      w.config.chart.type !== 'heatmap' &&
-      !this.isBarsDistributed
-
-    if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
-      w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
-    }
+    w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
 
     if (w.config.legend.onItemHover.highlightDataSeries) {
       w.globals.dom.elWrap.addEventListener(
@@ -421,6 +413,8 @@ class Legend {
   }
 
   onLegendClick(e) {
+    const w = this.w
+
     if (
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
@@ -448,7 +442,15 @@ class Legend {
         ])
       }
 
-      this.legendHelpers.toggleDataSeries(seriesCnt, isHidden)
+      // for now - just prevent click on heatmap legend - and allow hover only
+      const clickAllowed =
+        w.config.chart.type !== 'treemap' &&
+        w.config.chart.type !== 'heatmap' &&
+        !this.isBarsDistributed
+
+      if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
+        this.legendHelpers.toggleDataSeries(seriesCnt, isHidden)
+      }
     }
   }
 }
