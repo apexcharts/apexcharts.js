@@ -37,7 +37,6 @@ export default class ApexCharts {
     initCtx.initModules()
 
     this.create = Utils.bind(this.create, this)
-    this.windowResizeHandler = this._windowResize.bind(this)
   }
 
   /**
@@ -67,7 +66,7 @@ export default class ApexCharts {
         }
 
         this.events.fireEvent('beforeMount', [this, this.w])
-        window.addEventListener('resize', this.windowResizeHandler)
+        window.addEventListener('resize', this._windowResizeHandler.bind(this))
         window.addResizeListener(
           this.el.parentNode,
           this._parentResizeCallback.bind(this)
@@ -337,7 +336,7 @@ export default class ApexCharts {
    * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
    */
   destroy() {
-    window.removeEventListener('resize', this.windowResizeHandler)
+    window.removeEventListener('resize', this._windowResizeHandler.bind(this))
 
     window.removeResizeListener(
       this.el.parentNode,
@@ -712,5 +711,15 @@ export default class ApexCharts {
       // we need to redraw the whole chart on window resize (with a small delay).
       this.ctx.update()
     }, 150)
+  }
+
+  _windowResizeHandler() {
+    let { redrawOnWindowResize: redraw } = this.w.config.chart
+
+    if (typeof redraw === 'function') {
+      redraw = redraw()
+    }
+
+    redraw && this._windowResize()
   }
 }

@@ -290,6 +290,7 @@ export default class Options {
         height: 'auto',
         parentHeightOffset: 15,
         redrawOnParentResize: true,
+        redrawOnWindowResize: true,
         id: undefined,
         group: undefined,
         offsetX: 0,
