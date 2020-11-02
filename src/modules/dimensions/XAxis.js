@@ -283,15 +283,18 @@ export default class DimXAxis {
 
     const padYAxe = (yaxe, i) => {
       if (isCollapsed(i)) return
-      if (xtype !== 'datetime') {
-        if (
-          this.dCtx.gridPad.left < lbWidth / 2 - this.dCtx.yAxisWidthLeft &&
-          !gl.rotateXLabels &&
-          !cnf.xaxis.labels.trim
-        ) {
-          this.dCtx.xPadLeft = lbWidth / 2 + 1
-        }
-      }
+
+      // the code below causes issue apexcharts.js#1989
+      // after testing with other use-cases, this has no actual value, hence commented
+      // if (xtype !== 'datetime') {
+      //   if (
+      //     this.dCtx.gridPad.left < lbWidth / 2 - this.dCtx.yAxisWidthLeft &&
+      //     !gl.rotateXLabels &&
+      //     !cnf.xaxis.labels.trim
+      //   ) {
+      //     this.dCtx.xPadLeft = lbWidth / 2 + 1
+      //   }
+      // }
 
       rightPad(yaxe)
     }
