@@ -113,7 +113,11 @@ export default class Labels {
 
       // for pie / donuts
       if (j === null) {
-        val = f.yLbFormatter(w.globals.series[i], w)
+        val = f.yLbFormatter(w.globals.series[i], {
+          ...w,
+          seriesIndex: i,
+          dataPointIndex: i
+        })
       }
 
       this.DOMHandling({
