@@ -340,10 +340,14 @@ class Fill {
         )
       }
     } else {
-      const gToColor = cnf.fill.gradient.gradientToColors[opts.seriesNumber]
-      gradientTo = gToColor
-      if (gToColor.indexOf('rgba') > -1) {
-        opacityTo = Utils.getOpacityFromRGBA(gToColor)
+      if (cnf.fill.gradient.gradientToColors[opts.seriesNumber]) {
+        const gToColor = cnf.fill.gradient.gradientToColors[opts.seriesNumber]
+        gradientTo = gToColor
+        if (gToColor.indexOf('rgba') > -1) {
+          opacityTo = Utils.getOpacityFromRGBA(gToColor)
+        }
+      } else {
+        gradientTo = fillColor
       }
     }
 
