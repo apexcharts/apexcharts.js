@@ -373,6 +373,7 @@ type YAxisAnnotations = {
   opacity?: number
   offsetX?: number
   offsetY?: number
+  width?: number | string
   yAxisIndex?: number
   label?: AnnotationLabel
 }
