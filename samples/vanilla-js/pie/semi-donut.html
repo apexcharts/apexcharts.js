@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Gradient Donut</title>
+    <title>Semi Donut</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -14,15 +14,6 @@
       max-width: 380px;
       margin: 35px auto;
       padding: 0;
-    }
-    
-    .apexcharts-legend-text tspan:nth-child(1) {
-      font-weight: lighter;
-      fill: #999;
-    }
-    
-    .apexcharts-legend-text tspan:nth-child(3) {
-      font-weight: bold;
     }
       
     </style>
@@ -57,28 +48,19 @@
         var options = {
           series: [44, 55, 41, 17, 15],
           chart: {
-          width: 380,
           type: 'donut',
         },
         plotOptions: {
           pie: {
             startAngle: -90,
-            endAngle: 270
+            endAngle: 90,
+            offsetY: 10
           }
         },
-        dataLabels: {
-          enabled: false
-        },
-        fill: {
-          type: 'gradient',
-        },
-        legend: {
-          formatter: function(val, opts) {
-            return val + " - " + opts.w.globals.series[opts.seriesIndex]
+        grid: {
+          padding: {
+            bottom: -80
           }
-        },
-        title: {
-          text: 'Gradient Donut with custom Start-angle'
         },
         responsive: [{
           breakpoint: 480,

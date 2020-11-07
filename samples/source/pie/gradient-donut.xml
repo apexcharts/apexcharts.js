@@ -25,7 +25,8 @@ chart: {
 },
 plotOptions: {
   pie: {
-    startAngle: -45
+    startAngle: -90,
+    endAngle: 270
   }
 },
 dataLabels: {
