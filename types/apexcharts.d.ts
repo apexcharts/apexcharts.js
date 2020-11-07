@@ -543,6 +543,7 @@ type ApexPlotOptions = {
   }
   pie?: {
     startAngle?: number
+    endAngle?: number
     customScale?: number
     offsetX?: number
     offsetY?: number

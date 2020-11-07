@@ -38,7 +38,14 @@ class Pie {
     this.centerY = this.defaultSize / 2
     this.centerX = w.globals.gridWidth / 2
 
-    this.fullAngle = 360
+    if (w.config.chart.type === 'radialBar') {
+      this.fullAngle = 360
+    } else {
+      this.fullAngle = Math.abs(
+        w.config.plotOptions.pie.endAngle - w.config.plotOptions.pie.startAngle
+      )
+    }
+    this.initialAngle = w.config.plotOptions.pie.startAngle % this.fullAngle
 
     w.globals.radialSize =
       this.defaultSize / 2.05 -
@@ -197,11 +204,10 @@ class Pie {
       class: 'apexcharts-slices'
     })
 
-    const initialAngle = w.config.plotOptions.pie.startAngle % this.fullAngle
-    let startAngle = initialAngle
-    let prevStartAngle = initialAngle
-    let endAngle = initialAngle
-    let prevEndAngle = initialAngle
+    let startAngle = this.initialAngle
+    let prevStartAngle = this.initialAngle
+    let endAngle = this.initialAngle
+    let prevEndAngle = this.initialAngle
 
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
 
