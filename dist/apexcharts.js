@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.22.1
+ * ApexCharts v3.22.2
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -3365,6 +3365,7 @@
               offsetX: 0,
               offsetY: 0,
               startAngle: 0,
+              endAngle: 360,
               expandOnClick: true,
               dataLabels: {
                 // These are the percentage values which are displayed on slice
@@ -4448,11 +4449,15 @@
             gradientTo = utils.shadeColor(parseFloat(cnf.fill.gradient.shadeIntensity), fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor);
           }
         } else {
-          var gToColor = cnf.fill.gradient.gradientToColors[opts.seriesNumber];
-          gradientTo = gToColor;
+          if (cnf.fill.gradient.gradientToColors[opts.seriesNumber]) {
+            var gToColor = cnf.fill.gradient.gradientToColors[opts.seriesNumber];
+            gradientTo = gToColor;
 
-          if (gToColor.indexOf('rgba') > -1) {
-            opacityTo = Utils.getOpacityFromRGBA(gToColor);
+            if (gToColor.indexOf('rgba') > -1) {
+              opacityTo = Utils.getOpacityFromRGBA(gToColor);
+            }
+          } else {
+            gradientTo = fillColor;
           }
         }
 
@@ -13469,13 +13474,17 @@
         };
 
         var padYAxe = function padYAxe(yaxe, i) {
-          if (isCollapsed(i)) return;
-
-          if (xtype !== 'datetime') {
-            if (_this.dCtx.gridPad.left < lbWidth / 2 - _this.dCtx.yAxisWidthLeft && !gl.rotateXLabels && !cnf.xaxis.labels.trim) {
-              _this.dCtx.xPadLeft = lbWidth / 2 + 1;
-            }
-          }
+          if (isCollapsed(i)) return; // the code below causes issue apexcharts.js#1989
+          // after testing with other use-cases, this has no actual value, hence commented
+          // if (xtype !== 'datetime') {
+          //   if (
+          //     this.dCtx.gridPad.left < lbWidth / 2 - this.dCtx.yAxisWidthLeft &&
+          //     !gl.rotateXLabels &&
+          //     !cnf.xaxis.labels.trim
+          //   ) {
+          //     this.dCtx.xPadLeft = lbWidth / 2 + 1
+          //   }
+          // }
 
           rightPad();
         };
@@ -14454,14 +14463,9 @@
           if (!w.config.legend.onItemClick.toggleDataSeries) {
             elLegend.classList.add('apexcharts-no-click');
           }
-        } // for now - just prevent click on heatmap legend - and allow hover only
-
-
-        var clickAllowed = w.config.chart.type !== 'treemap' && w.config.chart.type !== 'heatmap' && !this.isBarsDistributed;
-
-        if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
-          w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true);
         }
+
+        w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true);
 
         if (w.config.legend.onItemHover.highlightDataSeries) {
           w.globals.dom.elWrap.addEventListener('mousemove', self.onLegendHovered, true);
@@ -14572,6 +14576,8 @@
     }, {
       key: "onLegendClick",
       value: function onLegendClick(e) {
+        var w = this.w;
+
         if (e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker')) {
           var seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1;
           var isHidden = e.target.getAttribute('data:collapsed') === 'true';
@@ -14587,9 +14593,14 @@
           if (typeof markerClick === 'function' && e.target.classList.contains('apexcharts-legend-marker')) {
             markerClick(this.ctx, seriesCnt, this.w);
             this.ctx.events.fireEvent('legendMarkerClick', [this.ctx, seriesCnt, this.w]);
-          }
+          } // for now - just prevent click on heatmap legend - and allow hover only
 
-          this.legendHelpers.toggleDataSeries(seriesCnt, isHidden);
+
+          var clickAllowed = w.config.chart.type !== 'treemap' && w.config.chart.type !== 'heatmap' && !this.isBarsDistributed;
+
+          if (clickAllowed && w.config.legend.onItemClick.toggleDataSeries) {
+            this.legendHelpers.toggleDataSeries(seriesCnt, isHidden);
+          }
         }
       }
     }]);
@@ -16239,7 +16250,10 @@
 
 
           if (j === null) {
-            val = f.yLbFormatter(w.globals.series[i], w);
+            val = f.yLbFormatter(w.globals.series[i], _objectSpread2(_objectSpread2({}, w), {}, {
+              seriesIndex: i,
+              dataPointIndex: i
+            }));
           }
 
           _this.DOMHandling({
@@ -19411,7 +19425,14 @@
       this.defaultSize = Math.min(w.globals.gridWidth, w.globals.gridHeight);
       this.centerY = this.defaultSize / 2;
       this.centerX = w.globals.gridWidth / 2;
-      this.fullAngle = 360;
+
+      if (w.config.chart.type === 'radialBar') {
+        this.fullAngle = 360;
+      } else {
+        this.fullAngle = Math.abs(w.config.plotOptions.pie.endAngle - w.config.plotOptions.pie.startAngle);
+      }
+
+      this.initialAngle = w.config.plotOptions.pie.startAngle % this.fullAngle;
       w.globals.radialSize = this.defaultSize / 2.05 - w.config.stroke.width - (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0);
       this.donutSize = w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size, 10) / 100;
       this.maxY = 0;
@@ -19547,11 +19568,10 @@
         var g = graphics.group({
           class: 'apexcharts-slices'
         });
-        var initialAngle = w.config.plotOptions.pie.startAngle % this.fullAngle;
-        var startAngle = initialAngle;
-        var prevStartAngle = initialAngle;
-        var endAngle = initialAngle;
-        var prevEndAngle = initialAngle;
+        var startAngle = this.initialAngle;
+        var prevStartAngle = this.initialAngle;
+        var endAngle = this.initialAngle;
+        var prevEndAngle = this.initialAngle;
         this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0;
 
         for (var i = 0; i < sectorAngleArr.length; i++) {
@@ -23402,11 +23422,11 @@
           legendHeight = new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10;
         }
 
-        var radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar');
+        var el = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar, .apexcharts-pie');
         var chartInnerDimensions = w.globals.radialSize * 2.05;
 
-        if (radialEl && !w.config.chart.sparkline.enabled) {
-          var elRadialRect = Utils.getBoundingClientRect(radialEl);
+        if (el && !w.config.chart.sparkline.enabled) {
+          var elRadialRect = Utils.getBoundingClientRect(el);
           chartInnerDimensions = elRadialRect.bottom;
           var maxHeight = elRadialRect.bottom - elRadialRect.top;
           chartInnerDimensions = Math.max(w.globals.radialSize * 2.05, maxHeight);
@@ -29811,6 +29831,7 @@
       var initCtx = new InitCtxVariables(this);
       initCtx.initModules();
       this.create = Utils.bind(this.create, this);
+      this.windowResizeHandler = this._windowResizeHandler.bind(this);
     }
     /**
      * The primary method user will call to render the chart.
@@ -29849,7 +29870,7 @@
 
             _this.events.fireEvent('beforeMount', [_this, _this.w]);
 
-            window.addEventListener('resize', _this._windowResizeHandler.bind(_this));
+            window.addEventListener('resize', _this.windowResizeHandler);
             window.addResizeListener(_this.el.parentNode, _this._parentResizeCallback.bind(_this));
 
             var graphData = _this.create(_this.w.config.series, {});
@@ -30091,7 +30112,7 @@
     }, {
       key: "destroy",
       value: function destroy() {
-        window.removeEventListener('resize', this._windowResizeHandler.bind(this));
+        window.removeEventListener('resize', this.windowResizeHandler);
         window.removeResizeListener(this.el.parentNode, this._parentResizeCallback.bind(this)); // remove the chart's instance from the global Apex._chartInstances
 
         var chartID = this.w.config.chart.id;
