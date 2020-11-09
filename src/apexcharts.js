@@ -38,6 +38,7 @@ export default class ApexCharts {
 
     this.create = Utils.bind(this.create, this)
     this.windowResizeHandler = this._windowResizeHandler.bind(this)
+    this.parentResizeHandler = this._parentResizeCallback.bind(this)
   }
 
   /**
@@ -68,10 +69,7 @@ export default class ApexCharts {
 
         this.events.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
-        window.addResizeListener(
-          this.el.parentNode,
-          this._parentResizeCallback.bind(this)
-        )
+        window.addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
         let graphData = this.create(this.w.config.series, {})
         if (!graphData) return resolve(this)
@@ -339,10 +337,7 @@ export default class ApexCharts {
   destroy() {
     window.removeEventListener('resize', this.windowResizeHandler)
 
-    window.removeResizeListener(
-      this.el.parentNode,
-      this._parentResizeCallback.bind(this)
-    )
+    window.removeResizeListener(this.el.parentNode, this.parentResizeHandler)
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
     if (chartID) {
