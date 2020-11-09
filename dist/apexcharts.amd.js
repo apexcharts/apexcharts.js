@@ -1440,6 +1440,7 @@ var CoreUtils = function () {
   }, {
     key: 'getSeriesTotalsXRange',
     value: function getSeriesTotalsXRange(minX, maxX) {
+      console.log(w);
       var w = this.w;
 
       var seriesTotalsXRange = w.globals.series.map(function (ser, index) {
@@ -7608,7 +7609,7 @@ var Options = function () {
                 formatter: function formatter(w) {
                   return w.globals.seriesTotals.reduce(function (a, b) {
                     return a + b;
-                  }, 0) / w.globals.series.length + '%';
+                  }, 0) / w.globals.series.length;
                 }
               }
             }
@@ -14250,6 +14251,7 @@ var HeatMap = function () {
   _createClass(HeatMap, [{
     key: 'draw',
     value: function draw(series) {
+      //console.log('draw series dude')
       var w = this.w;
       var graphics = new _Graphics2.default(this.ctx);
 
@@ -14490,6 +14492,20 @@ var HeatMap = function () {
       };
     }
   }, {
+    key: 'formatDisplayValue',
+    value: function formatDisplayValue(displayValue, valueSymbol, modalData) {
+      var finalValue = void 0;
+      if (Object.keys(modalData).length === 0 && modalData.constructor === Object) {
+        finalValue = '-';
+      } else if (valueSymbol !== '' & valueSymbol !== '%') {
+        finalValue = valueSymbol + displayValue;
+      } else {
+        finalValue = displayValue;
+      }
+
+      return finalValue;
+    }
+  }, {
     key: 'calculateHeatmapDataLabels',
     value: function calculateHeatmapDataLabels(_ref) {
       var x = _ref.x,
@@ -14501,6 +14517,7 @@ var HeatMap = function () {
           rectWidth = _ref.rectWidth;
 
       var w = this.w;
+      // console.log(this.w.config.series[i].data[j].displayValue)
       // let graphics = new Graphics(this.ctx)
       var dataLabelsConfig = w.config.dataLabels;
 
@@ -14527,11 +14544,14 @@ var HeatMap = function () {
           dataPointIndex: j,
           w: w
         });
+        var displayValue = this.w.config.series[i].data[j].displayValue;
+        var valueSymbol = this.w.config.series[i].data[j].valueSymbol;
+        var modalData = this.w.config.series[i].data[j].modalData;
         dataLabels.plotDataLabelsText({
           x: dataLabelsX,
           y: dataLabelsY,
           // todo: pass in as props
-          text: text === 0 ? '-' : text + '%',
+          text: this.formatDisplayValue(displayValue, valueSymbol, modalData),
           i: i,
           j: j,
           parent: elDataLabelsWrap,

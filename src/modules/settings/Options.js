@@ -425,8 +425,7 @@ export default class Options {
                 return (
                   w.globals.seriesTotals.reduce((a, b) => {
                     return a + b
-                  }, 0) /
-                    w.globals.series.length
+                  }, 0) / w.globals.series.length
                 )
               }
             }

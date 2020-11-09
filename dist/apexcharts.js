@@ -1,6 +1,6 @@
 /*!
- * ApexCharts v1.0.3
- * (c) 2018-2019 Juned Chhipa
+ * ApexCharts v1.0.4
+ * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -7769,6 +7769,7 @@
     _createClass(HeatMap, [{
       key: "draw",
       value: function draw(series) {
+        //console.log('draw series dude')
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var ret = graphics.group({
@@ -8005,11 +8006,10 @@
       }
     }, {
       key: "formatDisplayValue",
-      value: function formatDisplayValue(displayValue, valueSymbol) {
-        // console.log(valueSymbol)
+      value: function formatDisplayValue(displayValue, valueSymbol, modalData) {
         var finalValue;
 
-        if (displayValue === '0%' || displayValue === 0) {
+        if (Object.keys(modalData).length === 0 && modalData.constructor === Object) {
           finalValue = '-';
         } else if (valueSymbol !== '' & valueSymbol !== '%') {
           finalValue = valueSymbol + displayValue;
@@ -8053,11 +8053,12 @@
           });
           var displayValue = this.w.config.series[i].data[j].displayValue;
           var valueSymbol = this.w.config.series[i].data[j].valueSymbol;
+          var modalData = this.w.config.series[i].data[j].modalData;
           dataLabels.plotDataLabelsText({
             x: dataLabelsX,
             y: dataLabelsY,
             // todo: pass in as props
-            text: this.formatDisplayValue(displayValue, valueSymbol),
+            text: this.formatDisplayValue(displayValue, valueSymbol, modalData),
             i: i,
             j: j,
             parent: elDataLabelsWrap,
