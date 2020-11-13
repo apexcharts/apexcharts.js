@@ -35,7 +35,7 @@ async function processSample(page, sample, command) {
     htmlPath = `${e2eSamplesDir}/${relPath}.html`
     await fs.ensureDir(path.dirname(htmlPath))
     await fs.promises.writeFile(htmlPath, html)
-  } else {
+  } else if (command === 'update') {
     htmlPath = vanillaJsHtml
   }
 
@@ -114,7 +114,7 @@ async function processSample(page, sample, command) {
     } else if (err) {
       throw err
     }
-  } else {
+  } else if (command === 'update') {
     await fs.ensureDir(path.dirname(originalImgPath))
     fs.writeFileSync(originalImgPath, testImgBuffer)
   }
@@ -173,7 +173,7 @@ async function processSamples(command, paths) {
 
   // Build a list of samples to process
   let samples = extractSampleInfo()
-  if (command === 'test' && paths.length === 0) {
+  if (paths.length === 0) {
     paths = ['all']
   }
   if (paths.includes('all')) {
@@ -188,7 +188,7 @@ async function processSamples(command, paths) {
 
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 10
+    maxConcurrency: 5
   })
 
   await cluster.task(async ({ page, data: sample }) => {
