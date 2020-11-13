@@ -343,6 +343,8 @@ class RangeBar extends Bar {
     let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
     let ylabel = w.globals.labels[dataPointIndex]
     let seriesName = w.config.series[seriesIndex].name
+      ? w.config.series[seriesIndex].name
+      : ''
     const yLbFormatter = w.config.tooltip.y.formatter
     const yLbTitleFormatter = w.config.tooltip.y.title.formatter
 
