@@ -404,7 +404,7 @@ export default class Defaults {
 
     if (cats && cats.length) {
       labels = cats.map((c) => {
-        return c.toString()
+        return Array.isArray(c) ? c : String(c)
       })
     }
 
