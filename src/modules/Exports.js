@@ -206,7 +206,7 @@ class Exports {
         }
       }
 
-      return cat
+      return cat.split(columnDelimiter).join('')
     }
 
     const handleAxisRowsColumns = (s, sI) => {
@@ -231,7 +231,7 @@ class Exports {
             columns.push(
               isTimeStamp(cat)
                 ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
-                : cat
+                : cat.split(columnDelimiter).join('')
             )
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
@@ -265,7 +265,11 @@ class Exports {
     columns.push(w.config.chart.toolbar.export.csv.headerCategory)
     series.map((s, sI) => {
       if (w.globals.axisCharts) {
-        columns.push(s.name ? s.name : `series-${sI}`)
+        columns.push(
+          s.name.split(columnDelimiter).join('')
+            ? s.name.split(columnDelimiter).join('')
+            : `series-${sI}`
+        )
       }
     })
 
@@ -279,7 +283,7 @@ class Exports {
       } else {
         columns = []
 
-        columns.push(w.globals.labels[sI])
+        columns.push(w.globals.labels[sI].split(columnDelimiter).join(''))
         columns.push(w.globals.series[sI])
         rows.push(columns.join(columnDelimiter))
       }
