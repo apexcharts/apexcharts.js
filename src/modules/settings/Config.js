@@ -298,10 +298,7 @@ export default class Config {
       )
     }
 
-    if (
-      (config.chart.type === 'bar' || config.chart.type === 'rangeBar') &&
-      config.plotOptions.bar.horizontal
-    ) {
+    if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
       // No multiple yaxis for bars
       if (config.yaxis.length > 1) {
         throw new Error(

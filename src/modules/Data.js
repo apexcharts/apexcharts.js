@@ -384,6 +384,9 @@ export default class Data {
     const xlabels =
       cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
 
+    gl.isTimelineBar =
+      cnf.chart.type === 'rangeBar' && cnf.xaxis.type === 'datetime'
+
     const handleDates = () => {
       for (let j = 0; j < xlabels.length; j++) {
         if (typeof xlabels[j] === 'string') {
