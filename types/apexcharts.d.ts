@@ -175,6 +175,12 @@ type ApexChart = {
         headerCategory?: string
         headerValue?: string
         dateFormatter?(timestamp?: number): any
+      },
+      svg?: {
+        filename?: undefined | string
+      }
+      png?: {
+        filename?: undefined | string
       }
     }
     autoSelected?: 'zoom' | 'selection' | 'pan'

@@ -351,6 +351,12 @@ export default class Options {
               dateFormatter(timestamp) {
                 return new Date(timestamp).toDateString()
               }
+            },
+            png: {
+              filename: undefined
+            },
+            svg: {
+              filename: undefined
             }
           },
           autoSelected: 'zoom' // accepts -> zoom, pan, selection

@@ -136,7 +136,11 @@ class Exports {
   }
 
   exportToSVG() {
-    this.triggerDownload(this.svgUrl(), null, '.svg')
+    this.triggerDownload(
+      this.svgUrl(),
+      this.w.config.chart.toolbar.export.svg.filename,
+      '.svg'
+    )
   }
 
   exportToPng() {
@@ -144,7 +148,11 @@ class Exports {
       if (blob) {
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
       } else {
-        this.triggerDownload(imgURI, null, '.png')
+        this.triggerDownload(
+          imgURI,
+          this.w.config.chart.toolbar.export.png.filename,
+          '.png'
+        )
       }
     })
   }
@@ -264,10 +272,11 @@ class Exports {
 
     columns.push(w.config.chart.toolbar.export.csv.headerCategory)
     series.map((s, sI) => {
+      const sname = s.name ? s.name : `series-${sI}`
       if (w.globals.axisCharts) {
         columns.push(
-          s.name.split(columnDelimiter).join('')
-            ? s.name.split(columnDelimiter).join('')
+          sname.split(columnDelimiter).join('')
+            ? sname.split(columnDelimiter).join('')
             : `series-${sI}`
         )
       }
