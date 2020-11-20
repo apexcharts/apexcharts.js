@@ -83,7 +83,9 @@ export default class Events {
     })
 
     this.ctx.eventList.forEach((event) => {
-      w.globals.dom.baseEl.addEventListener(event, this.documentEvent)
+      w.globals.dom.baseEl.addEventListener(event, this.documentEvent, {
+        passive: true
+      })
     })
 
     this.ctx.core.setupBrushHandler()
