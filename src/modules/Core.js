@@ -329,15 +329,17 @@ export default class Core {
       height: gl.svgHeight
     })
 
-    // gl.dom.Paper.node.parentNode.parentNode.style.minWidth = gl.svgWidth + "px";
-    let offsetY = cnf.chart.sparkline.enabled
-      ? 0
-      : gl.axisCharts
-      ? cnf.chart.parentHeightOffset
-      : 0
+    if (cnf.chart.height.indexOf('%') === -1) {
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2059
+      let offsetY = cnf.chart.sparkline.enabled
+        ? 0
+        : gl.axisCharts
+        ? cnf.chart.parentHeightOffset
+        : 0
 
-    gl.dom.Paper.node.parentNode.parentNode.style.minHeight =
-      gl.svgHeight + offsetY + 'px'
+      gl.dom.Paper.node.parentNode.parentNode.style.minHeight =
+        gl.svgHeight + offsetY + 'px'
+    }
 
     gl.dom.elWrap.style.width = gl.svgWidth + 'px'
     gl.dom.elWrap.style.height = gl.svgHeight + 'px'
