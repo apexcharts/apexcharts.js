@@ -53,7 +53,7 @@ export default class Options {
       },
       title: {
         text: undefined,
-        rotate: 90,
+        rotate: -90,
         offsetY: 0,
         offsetX: 0,
         style: {
@@ -98,6 +98,7 @@ export default class Options {
       label: {
         borderColor: '#c2c2c2',
         borderWidth: 1,
+        borderRadius: 2,
         text: undefined,
         textAnchor: 'middle',
         offsetX: 0,
@@ -143,10 +144,12 @@ export default class Options {
       opacity: 0.3,
       offsetX: 0,
       offsetY: 0,
+      width: '100%',
       yAxisIndex: 0,
       label: {
         borderColor: '#c2c2c2',
         borderWidth: 1,
+        borderRadius: 2,
         text: undefined,
         textAnchor: 'end',
         position: 'right',
@@ -182,6 +185,7 @@ export default class Options {
       label: {
         borderColor: '#c2c2c2',
         borderWidth: 1,
+        borderRadius: 2,
         text: undefined,
         textAnchor: 'middle',
         orientation: 'vertical',
@@ -223,20 +227,6 @@ export default class Options {
       paddingRight: 4,
       paddingTop: 2,
       paddingBottom: 2
-    }
-
-    this.shape = {
-      x: 0,
-      y: 0,
-      type: 'rect',
-      width: '100%', // accepts percentage as well as fixed numbers
-      height: 50,
-      appendTo: '.apexcharts-annotations',
-      backgroundColor: '#fff',
-      opacity: 1,
-      borderWidth: 0,
-      borderRadius: 4,
-      borderColor: '#c2c2c2'
     }
   }
   init() {
@@ -290,14 +280,17 @@ export default class Options {
           dataPointMouseEnter: undefined,
           dataPointMouseLeave: undefined,
           beforeZoom: undefined,
+          beforeResetZoom: undefined,
           zoomed: undefined,
-          scrolled: undefined
+          scrolled: undefined,
+          brushScrolled: undefined
         },
         foreColor: '#373d3f',
         fontFamily: 'Helvetica, Arial, sans-serif',
         height: 'auto',
         parentHeightOffset: 15,
         redrawOnParentResize: true,
+        redrawOnWindowResize: true,
         id: undefined,
         group: undefined,
         offsetX: 0,
@@ -349,6 +342,23 @@ export default class Options {
             reset: true,
             customIcons: []
           },
+          export: {
+            csv: {
+              filename: undefined,
+              columnDelimiter: ',',
+              headerCategory: 'category',
+              headerValue: 'value',
+              dateFormatter(timestamp) {
+                return new Date(timestamp).toDateString()
+              }
+            },
+            png: {
+              filename: undefined
+            },
+            svg: {
+              filename: undefined
+            }
+          },
           autoSelected: 'zoom' // accepts -> zoom, pan, selection
         },
         type: 'line',
@@ -371,6 +381,9 @@ export default class Options {
         }
       },
       plotOptions: {
+        area: {
+          fillTo: 'origin'
+        },
         bar: {
           horizontal: false,
           columnWidth: '70%', // should be in percent 0 - 100
@@ -379,6 +392,7 @@ export default class Options {
           startingShape: 'flat',
           endingShape: 'flat',
           rangeBarOverlap: true,
+          rangeBarGroupRows: false,
           colors: {
             ranges: [],
             backgroundBarColors: [],
@@ -412,6 +426,19 @@ export default class Options {
           shadeIntensity: 0.5,
           reverseNegativeShade: false,
           distributed: false,
+          useFillColorAsStroke: false,
+          colorScale: {
+            inverse: false,
+            ranges: [],
+            min: undefined,
+            max: undefined
+          }
+        },
+        treemap: {
+          enableShades: true,
+          shadeIntensity: 0.5,
+          distributed: false,
+          reverseNegativeShade: false,
           useFillColorAsStroke: false,
           colorScale: {
             inverse: false,
@@ -508,6 +535,8 @@ export default class Options {
           customScale: 1,
           offsetX: 0,
           offsetY: 0,
+          startAngle: 0,
+          endAngle: 360,
           expandOnClick: true,
           dataLabels: {
             // These are the percentage values which are displayed on slice
@@ -698,7 +727,7 @@ export default class Options {
         formatter: undefined,
         tooltipHoverFormatter: undefined,
         offsetX: -20,
-        offsetY: 0,
+        offsetY: 4,
         labels: {
           colors: undefined,
           useSeriesColors: false
@@ -717,7 +746,7 @@ export default class Options {
         },
         itemMargin: {
           horizontal: 5,
-          vertical: 0
+          vertical: 2
         },
         onItemClick: {
           toggleDataSeries: true
@@ -772,14 +801,14 @@ export default class Options {
         hover: {
           filter: {
             type: 'lighten',
-            value: 0.15
+            value: 0.1
           }
         },
         active: {
           allowMultipleDataPointsSelection: false,
           filter: {
             type: 'darken',
-            value: 0.65
+            value: 0.5
           }
         }
       },
@@ -846,7 +875,7 @@ export default class Options {
           formatter: undefined,
           title: {
             formatter(seriesName) {
-              return seriesName
+              return seriesName ? seriesName + ': ' : ''
             }
           }
         },
@@ -872,7 +901,7 @@ export default class Options {
         type: 'category',
         categories: [],
         convertedCatToNumeric: false, // internal property which should not be altered outside
-        sorted: true,
+        sorted: false,
         offsetX: 0,
         offsetY: 0,
         labels: {

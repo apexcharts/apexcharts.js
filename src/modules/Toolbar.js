@@ -227,18 +227,26 @@ export default class Toolbar {
   }
 
   toggleZoomSelection(type) {
-    this.toggleOtherControls()
+    const charts = this.ctx.getSyncedCharts()
 
-    let el = type === 'selection' ? this.elSelection : this.elZoom
-    let enabledType = type === 'selection' ? 'selectionEnabled' : 'zoomEnabled'
+    charts.forEach((ch) => {
+      ch.ctx.toolbar.toggleOtherControls()
 
-    this.w.globals[enabledType] = !this.w.globals[enabledType]
+      let el =
+        type === 'selection'
+          ? ch.ctx.toolbar.elSelection
+          : ch.ctx.toolbar.elZoom
+      let enabledType =
+        type === 'selection' ? 'selectionEnabled' : 'zoomEnabled'
 
-    if (!el.classList.contains(this.selectedClass)) {
-      el.classList.add(this.selectedClass)
-    } else {
-      el.classList.remove(this.selectedClass)
-    }
+      ch.w.globals[enabledType] = !ch.w.globals[enabledType]
+
+      if (!el.classList.contains(ch.ctx.toolbar.selectedClass)) {
+        el.classList.add(ch.ctx.toolbar.selectedClass)
+      } else {
+        el.classList.remove(ch.ctx.toolbar.selectedClass)
+      }
+    })
   }
 
   getToolbarIconsReference() {
@@ -274,14 +282,20 @@ export default class Toolbar {
   }
 
   togglePanning() {
-    this.toggleOtherControls()
-    this.w.globals.panEnabled = !this.w.globals.panEnabled
+    const charts = this.ctx.getSyncedCharts()
 
-    if (!this.elPan.classList.contains(this.selectedClass)) {
-      this.elPan.classList.add(this.selectedClass)
-    } else {
-      this.elPan.classList.remove(this.selectedClass)
-    }
+    charts.forEach((ch) => {
+      ch.ctx.toolbar.toggleOtherControls()
+      ch.w.globals.panEnabled = !ch.w.globals.panEnabled
+
+      if (
+        !ch.ctx.toolbar.elPan.classList.contains(ch.ctx.toolbar.selectedClass)
+      ) {
+        ch.ctx.toolbar.elPan.classList.add(ch.ctx.toolbar.selectedClass)
+      } else {
+        ch.ctx.toolbar.elPan.classList.remove(ch.ctx.toolbar.selectedClass)
+      }
+    })
   }
 
   toggleOtherControls() {
@@ -439,7 +453,10 @@ export default class Toolbar {
         exprt.exportToPng(this.ctx)
         break
       case 'csv':
-        exprt.exportToCSV({ series: w.config.series })
+        exprt.exportToCSV({
+          series: w.config.series,
+          columnDelimiter: w.config.chart.toolbar.export.csv.columnDelimiter
+        })
         break
     }
   }
@@ -456,8 +473,19 @@ export default class Toolbar {
 
       ch.updateHelpers.revertDefaultAxisMinMax()
 
+      if (typeof w.config.chart.events.beforeResetZoom === 'function') {
+        // here, user get an option to control xaxis and yaxis when resetZoom is called
+        // at this point, whatever is returned from w.config.chart.events.beforeResetZoom
+        // is set as the new xaxis/yaxis min/max
+        const resetZoomRange = w.config.chart.events.beforeResetZoom(ch, w)
+
+        if (resetZoomRange) {
+          ch.updateHelpers.revertDefaultAxisMinMax(resetZoomRange)
+        }
+      }
+
       if (typeof w.config.chart.events.zoomed === 'function') {
-        this.zoomCallback({
+        ch.ctx.toolbar.zoomCallback({
           min: w.config.xaxis.min,
           max: w.config.xaxis.max
         })
@@ -465,8 +493,14 @@ export default class Toolbar {
 
       w.globals.zoomed = false
 
+      // if user has some series collapsed before hitting zoom reset button,
+      // those series should stay collapsed
+      let series = ch.ctx.series.emptyCollapsedSeries(
+        Utils.clone(w.globals.initialSeries)
+      )
+
       ch.updateHelpers._updateSeries(
-        w.globals.initialSeries,
+        series,
         w.config.chart.animations.dynamicAnimation.enabled
       )
     })

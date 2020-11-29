@@ -1,6 +1,7 @@
 import Formatters from '../Formatters'
 import Graphics from '../Graphics'
 import CoreUtils from '../CoreUtils'
+import DateTime from '../../utils/DateTime'
 
 export default class AxesUtils {
   constructor(ctx) {
@@ -21,10 +22,18 @@ export default class AxesUtils {
 
     let xFormat = new Formatters(this.ctx)
     let timestamp = rawLabel
-    label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp)
+    label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp, {
+      i,
+      dateFormatter: new DateTime(this.ctx).formatDate,
+      w
+    })
 
     if (customFormatter !== undefined) {
-      label = customFormatter(rawLabel, labels[i], i)
+      label = customFormatter(rawLabel, labels[i], {
+        i,
+        dateFormatter: new DateTime(this.ctx).formatDate,
+        w
+      })
     }
 
     const determineHighestUnit = (unit) => {
@@ -71,13 +80,18 @@ export default class AxesUtils {
       textRect = graphics.getTextRects(label, parseInt(fontSize, 10))
     }
 
+    const timeScaleHoursMinutes =
+      !w.config.xaxis.labels.showDuplicates &&
+      this.ctx.timeScale &&
+      this.ctx.timeScale.tickInterval !== 'hours' &&
+      this.ctx.timeScale.tickInterval !== 'minutes'
+
     if (
       !Array.isArray(label) &&
       (label.indexOf('NaN') === 0 ||
         label.toLowerCase().indexOf('invalid') === 0 ||
         label.toLowerCase().indexOf('infinity') >= 0 ||
-        (drawnLabels.indexOf(label) >= 0 &&
-          !w.config.xaxis.labels.showDuplicates))
+        (drawnLabels.indexOf(label) >= 0 && timeScaleHoursMinutes))
     ) {
       label = ''
     }
@@ -88,6 +102,24 @@ export default class AxesUtils {
       textRect,
       isBold
     }
+  }
+
+  checkLabelBasedOnTickamount(i, label, labelsLen) {
+    const w = this.w
+
+    let ticks = w.config.xaxis.tickAmount
+    if (ticks === 'dataPoints') ticks = Math.round(w.globals.gridWidth / 120)
+
+    if (ticks > labelsLen) return label
+    let tickMultiple = Math.round(labelsLen / (ticks + 1))
+
+    if (i % tickMultiple === 0) {
+      return label
+    } else {
+      label.text = ''
+    }
+
+    return label
   }
 
   checkForOverflowingLabels(
@@ -148,6 +180,20 @@ export default class AxesUtils {
         coreUtils.isSeriesNull(index) &&
         w.globals.collapsedSeriesIndices.indexOf(index) === -1)
     )
+  }
+
+  // get the label color for y-axis
+  // realIndex is the actual series index, while i is the tick Index
+  getYAxisForeColor(yColors, realIndex) {
+    const w = this.w
+    if (Array.isArray(yColors) && w.globals.yAxisScale[realIndex]) {
+      this.ctx.theme.pushExtraColors(
+        yColors,
+        w.globals.yAxisScale[realIndex].result.length,
+        false
+      )
+    }
+    return yColors
   }
 
   drawYAxisTicks(

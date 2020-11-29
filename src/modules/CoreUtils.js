@@ -93,11 +93,10 @@ class CoreUtils {
     const w = this.w
     let catLabels = labels.slice()
     if (w.config.xaxis.convertedCatToNumeric) {
-      catLabels = labels.map((i) => {
+      catLabels = labels.map((i, li) => {
         return w.config.xaxis.labels.formatter(i - w.globals.minX + 1)
       })
     }
-
     return catLabels
   }
   // maxValsInArrayIndex is the index of series[] which has the largest number of items

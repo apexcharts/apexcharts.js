@@ -88,7 +88,7 @@ class DataLabels {
 
     let elDataLabelsWrap = null
 
-    if (!dataLabelsConfig.enabled || pos.x instanceof Array !== true) {
+    if (!dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
       return elDataLabelsWrap
     }
 
@@ -162,6 +162,7 @@ class DataLabels {
       j,
       text,
       textAnchor,
+      fontSize,
       parent,
       dataLabelsConfig,
       color,
@@ -242,7 +243,7 @@ class DataLabels {
         foreColor: dataLabelColor,
         textAnchor: textAnchor || dataLabelsConfig.textAnchor,
         text,
-        fontSize: dataLabelsConfig.style.fontSize,
+        fontSize: fontSize || dataLabelsConfig.style.fontSize,
         fontFamily: dataLabelsConfig.style.fontFamily,
         fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
       })
@@ -340,9 +341,10 @@ class DataLabels {
 
   bringForward() {
     const w = this.w
-    const elDataLabelsNodes = w.globals.dom.baseEl.getElementsByClassName(
-      'apexcharts-datalabels'
+    const elDataLabelsNodes = w.globals.dom.baseEl.querySelectorAll(
+      '.apexcharts-datalabels'
     )
+
     const elSeries = w.globals.dom.baseEl.querySelector(
       '.apexcharts-plot-series:last-child'
     )

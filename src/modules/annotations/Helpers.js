@@ -44,7 +44,11 @@ export default class Helpers {
   addBackgroundToAnno(annoEl, anno) {
     const w = this.w
 
-    if (!anno.label.text || (anno.label.text && !anno.label.text.trim()))
+    if (
+      !annoEl ||
+      !anno.label.text ||
+      (anno.label.text && !anno.label.text.trim())
+    )
       return null
 
     const elGridRect = w.globals.dom.baseEl
@@ -68,11 +72,11 @@ export default class Helpers {
     const x1 = coords.left - elGridRect.left - pleft
     const y1 = coords.top - elGridRect.top - ptop
     const elRect = this.annoCtx.graphics.drawRect(
-      x1,
+      x1 - w.globals.barPadForNumericAxis,
       y1,
       coords.width + pleft + pright,
       coords.height + ptop + pbottom,
-      0,
+      anno.label.borderRadius,
       anno.label.style.background,
       1,
       anno.label.borderWidth,
@@ -115,47 +119,6 @@ export default class Helpers {
 
     w.config.annotations.points.map((anno, i) => {
       add(anno, i, 'point')
-    })
-  }
-
-  makeAnnotationDraggable(el, annoType, index) {
-    const w = this.w
-    const anno = w.config.annotations[annoType][index]
-
-    // in the draggable annotations, we will mutate the original config
-    // object and store the values directly there
-    el.draggable().on('dragend', (de) => {
-      const x = de.target.getAttribute('x')
-      const y = de.target.getAttribute('y')
-      const cx = de.target.getAttribute('cx')
-      const cy = de.target.getAttribute('cy')
-      anno.x = x
-      anno.y = y
-
-      if (cx && cy) {
-        anno.x = cx
-        anno.y = cy
-      }
-    })
-
-    el.node.addEventListener('mousedown', (e) => {
-      e.stopPropagation()
-      el.selectize({
-        pointSize: 8,
-        rotationPoint: false,
-        pointType: 'rect'
-      })
-
-      el.resize().on('resizedone', (re) => {
-        const width = re.target.getAttribute('width')
-        const height = re.target.getAttribute('height')
-        const r = re.target.getAttribute('r')
-        anno.width = width
-        anno.height = height
-        if (r) {
-          anno.radius = r
-        }
-      })
     })
   }
 

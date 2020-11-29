@@ -51,6 +51,7 @@ export default class Config {
         'bubble',
         'scatter',
         'heatmap',
+        'treemap',
         'pie',
         'polarArea',
         'donut',
@@ -276,6 +277,10 @@ export default class Config {
 
       if (!opts.chart.foreColor) {
         opts.chart.foreColor = '#f6f7f8'
+      }
+
+      if (!opts.chart.background) {
+        opts.chart.background = '#424242'
       }
 
       if (!opts.theme.palette) {

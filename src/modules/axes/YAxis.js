@@ -79,10 +79,12 @@ export default class YAxis {
           xPad = xPad * -1
         }
 
+        const yColors = this.axesUtils.getYAxisForeColor(
+          yaxisStyle.colors,
+          realIndex
+        )
         const getForeColor = () => {
-          return Array.isArray(yaxisStyle.colors)
-            ? yaxisStyle.colors[i]
-            : yaxisStyle.colors
+          return Array.isArray(yColors) ? yColors[i] : yColors
         }
 
         let label = graphics.drawText({
@@ -336,6 +338,7 @@ export default class YAxis {
         fontSize: w.config.xaxis.title.style.fontSize,
         fontFamily: w.config.xaxis.title.style.fontFamily,
         fontWeight: w.config.xaxis.title.style.fontWeight,
+        foreColor: w.config.xaxis.title.style.color,
         cssClass:
           'apexcharts-xaxis-title-text ' + w.config.xaxis.title.style.cssClass
       })
@@ -391,8 +394,10 @@ export default class YAxis {
       let titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle)
       yAxisTitle.setAttribute(
         'transform',
-        `rotate(${yAxisOpposite ? '' : '-'}${
-          w.config.yaxis[realIndex].title.rotate
+        `rotate(${
+          yAxisOpposite
+            ? w.config.yaxis[realIndex].title.rotate * -1
+            : w.config.yaxis[realIndex].title.rotate
         } ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
       )
     }
@@ -507,7 +512,7 @@ export default class YAxis {
     yaxis.forEach((y, index) => {
       const yaxe = w.config.yaxis[index]
       // proceed only if user has specified alignment
-      if (yaxe.labels.align !== undefined) {
+      if (yaxe && yaxe.labels.align !== undefined) {
         const yAxisInner = w.globals.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
         )

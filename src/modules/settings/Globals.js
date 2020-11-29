@@ -16,6 +16,7 @@ export default class Globals {
     gl.seriesNames = []
     gl.seriesTotals = []
     gl.seriesLog = []
+    gl.seriesColors = []
     gl.stackedSeriesTotals = []
     gl.seriesXvalues = [] // we will need this in tooltip (it's x position)
     // when we will have unequal x values, we will need
@@ -35,7 +36,6 @@ export default class Globals {
     gl.xaxisLabelsCount = 0
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
-    gl.x2SpaceAvailable = 0
     gl.isDataXYZ = false
     gl.isMultiLineX = false
     gl.isMultipleYAxis = false
@@ -109,6 +109,7 @@ export default class Globals {
       isDirty: false, // chart has been updated after the initial render. This is different than dataChanged property. isDirty means user manually called some method to update
       isExecCalled: false, // whether user updated the chart through the exec method
       initialConfig: null, // we will store the first config user has set to go back when user finishes interactions like zooming and come out of it
+      initialSeries: [],
       lastXAxis: [],
       lastYAxis: [],
       columnSeries: null,
@@ -132,6 +133,7 @@ export default class Globals {
       yAxisSameScaleIndices: [],
       maxValsInArrayIndex: 0,
       radialSize: 0,
+      selection: undefined,
       zoomEnabled:
         config.chart.toolbar.autoSelected === 'zoom' &&
         config.chart.toolbar.tools.zoom &&
@@ -176,7 +178,6 @@ export default class Globals {
       // format is - [[x,y],[x,y]... [x,y]]
       dataLabelsRects: [], // store the positions of datalabels to prevent collision
       lastDrawnDataLabelsIndexes: [],
-      x2SpaceAvailable: 0, // space available on the right side after grid area
       hasNullValues: false, // bool: whether series contains null values
       easing: null, // function: animation effect to apply
       zoomed: false, // whether user has zoomed or not
@@ -192,6 +193,7 @@ export default class Globals {
       ttZFormatter: undefined,
       LINE_HEIGHT_RATIO: 1.618,
       xAxisLabelsHeight: 0,
+      xAxisLabelsWidth: 0,
       yAxisLabelsWidth: 0,
       scaleX: 1,
       scaleY: 1,
@@ -210,11 +212,10 @@ export default class Globals {
     this.initGlobalVars(globals)
 
     globals.initialConfig = Utils.extend({}, config)
-    globals.initialSeries = JSON.parse(
-      JSON.stringify(globals.initialConfig.series)
-    )
-    globals.lastXAxis = JSON.parse(JSON.stringify(globals.initialConfig.xaxis))
-    globals.lastYAxis = JSON.parse(JSON.stringify(globals.initialConfig.yaxis))
+    globals.initialSeries = Utils.clone(config.series)
+
+    globals.lastXAxis = Utils.clone(globals.initialConfig.xaxis)
+    globals.lastYAxis = Utils.clone(globals.initialConfig.yaxis)
     return globals
   }
 }

@@ -14,6 +14,7 @@ class Pie {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
+    const w = this.w
 
     this.chartType = this.w.config.chart.type
 
@@ -27,22 +28,24 @@ class Pie {
 
     this.donutDataLabels = this.w.config.plotOptions.pie.donut.labels
 
-    const w = this.w
-
     this.lineColorArr =
       w.globals.stroke.colors !== undefined
         ? w.globals.stroke.colors
         : w.globals.colors
 
-    this.defaultSize =
-      w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.gridHeight
-        : w.globals.gridWidth
+    this.defaultSize = Math.min(w.globals.gridWidth, w.globals.gridHeight)
 
     this.centerY = this.defaultSize / 2
     this.centerX = w.globals.gridWidth / 2
 
-    this.fullAngle = 360
+    if (w.config.chart.type === 'radialBar') {
+      this.fullAngle = 360
+    } else {
+      this.fullAngle = Math.abs(
+        w.config.plotOptions.pie.endAngle - w.config.plotOptions.pie.startAngle
+      )
+    }
+    this.initialAngle = w.config.plotOptions.pie.startAngle % this.fullAngle
 
     w.globals.radialSize =
       this.defaultSize / 2.05 -
@@ -92,6 +95,11 @@ class Pie {
     series.forEach((m) => {
       this.maxY = Math.max(this.maxY, m)
     })
+
+    // override maxY if user provided in config
+    if (w.config.yaxis[0].max) {
+      this.maxY = w.config.yaxis[0].max
+    }
 
     if (this.chartType === 'polarArea') {
       this.drawPolarElements()
@@ -196,10 +204,10 @@ class Pie {
       class: 'apexcharts-slices'
     })
 
-    let startAngle = 0
-    let prevStartAngle = 0
-    let endAngle = 0
-    let prevEndAngle = 0
+    let startAngle = this.initialAngle
+    let prevStartAngle = this.initialAngle
+    let endAngle = this.initialAngle
+    let prevEndAngle = this.initialAngle
 
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
 
@@ -219,7 +227,10 @@ class Pie {
       endAngle = startAngle + sectorAngleArr[i]
       prevEndAngle = prevStartAngle + this.prevSectorAngleArr[i]
 
-      let angle = endAngle - startAngle
+      const angle =
+        endAngle < startAngle
+          ? this.fullAngle + endAngle - startAngle
+          : endAngle - startAngle
 
       let pathFill = fill.fillPath({
         seriesNumber: i,
@@ -231,10 +242,9 @@ class Pie {
 
       let elPath = graphics.drawPath({
         d: path,
-        stroke:
-          this.lineColorArr instanceof Array
-            ? this.lineColorArr[i]
-            : this.lineColorArr,
+        stroke: Array.isArray(this.lineColorArr)
+          ? this.lineColorArr[i]
+          : this.lineColorArr,
         strokeWidth: 0,
         fill: pathFill,
         fillOpacity: w.config.fill.opacity,
@@ -271,7 +281,7 @@ class Pie {
           this.centerY,
           w.globals.radialSize / 1.25 +
             w.config.plotOptions.pie.dataLabels.offset,
-          startAngle + (endAngle - startAngle) / 2
+          (startAngle + angle / 2) % this.fullAngle
         )
       } else if (this.chartType === 'donut') {
         labelPosition = Utils.polarToCartesian(
@@ -279,7 +289,7 @@ class Pie {
           this.centerY,
           (w.globals.radialSize + this.donutSize) / 2 +
             w.config.plotOptions.pie.dataLabels.offset,
-          startAngle + (endAngle - startAngle) / 2
+          (startAngle + angle / 2) % this.fullAngle
         )
       }
 
@@ -288,9 +298,7 @@ class Pie {
       // Animation code starts
       let dur = 0
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-        dur =
-          ((endAngle - startAngle) / this.fullAngle) *
-          w.config.chart.animations.speed
+        dur = (angle / this.fullAngle) * w.config.chart.animations.speed
 
         if (dur === 0) dur = 1
         this.animDur = dur + this.animDur
@@ -335,7 +343,7 @@ class Pie {
       if (w.config.dataLabels.enabled) {
         let xPos = labelPosition.x
         let yPos = labelPosition.y
-        let text = (100 * (endAngle - startAngle)) / 360 + '%'
+        let text = (100 * angle) / this.fullAngle + '%'
 
         if (
           angle !== 0 &&
@@ -351,6 +359,9 @@ class Pie {
           }
           let foreColor = w.globals.dataLabels.style.colors[i]
 
+          const elPieLabelWrap = graphics.group({
+            class: `apexcharts-datalabels`
+          })
           let elPieLabel = graphics.drawText({
             x: xPos,
             y: yPos,
@@ -362,6 +373,7 @@ class Pie {
             foreColor
           })
 
+          elPieLabelWrap.add(elPieLabel)
           if (w.config.dataLabels.dropShadow.enabled) {
             const textShadow = w.config.dataLabels.dropShadow
             filters.dropShadow(elPieLabel, textShadow)
@@ -377,7 +389,7 @@ class Pie {
               w.config.chart.animations.speed / 940 + 's'
           }
 
-          this.sliceLabels.push(elPieLabel)
+          this.sliceLabels.push(elPieLabelWrap)
         }
       }
     }
@@ -424,7 +436,10 @@ class Pie {
     let w = this.w
     let me = this
 
-    let angle = opts.endAngle - opts.startAngle
+    let angle =
+      opts.endAngle < opts.startAngle
+        ? this.fullAngle + opts.endAngle - opts.startAngle
+        : opts.endAngle - opts.startAngle
     let prevAngle = angle
 
     let fromStartAngle = opts.startAngle
@@ -432,7 +447,10 @@ class Pie {
 
     if (opts.prevStartAngle !== undefined && opts.prevEndAngle !== undefined) {
       fromStartAngle = opts.prevEndAngle
-      prevAngle = opts.prevEndAngle - opts.prevStartAngle
+      prevAngle =
+        opts.prevEndAngle < opts.prevStartAngle
+          ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle
+          : opts.prevEndAngle - opts.prevStartAngle
     }
     if (opts.i === w.config.series.length - 1) {
       // some adjustments for the last overlapping paths
@@ -466,7 +484,10 @@ class Pie {
 
     let currAngle = angle
     let startAngle = toStartAngle
-    let fromAngle = fromStartAngle - toStartAngle
+    let fromAngle =
+      fromStartAngle < toStartAngle
+        ? this.fullAngle + fromStartAngle - toStartAngle
+        : fromStartAngle - toStartAngle
 
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
       // to avoid flicker when updating, set prev path first and then animate from there
@@ -474,7 +495,10 @@ class Pie {
         path = me.getPiePath({
           me,
           startAngle: opts.prevStartAngle,
-          angle: opts.prevEndAngle - opts.prevStartAngle,
+          angle:
+            opts.prevEndAngle < opts.prevStartAngle
+              ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle
+              : opts.prevEndAngle - opts.prevStartAngle,
           size
         })
         el.attr({ d: path })
@@ -613,7 +637,18 @@ class Pie {
     let startRadians = (Math.PI * (startDeg - 90)) / 180
 
     let endDeg = angle + startAngle
-    if (Math.ceil(endDeg) >= 360) endDeg = 359.99
+    // prevent overlap
+    if (
+      Math.ceil(endDeg) >=
+      this.fullAngle +
+        (this.w.config.plotOptions.pie.startAngle % this.fullAngle)
+    ) {
+      endDeg =
+        this.fullAngle +
+        (this.w.config.plotOptions.pie.startAngle % this.fullAngle) -
+        0.01
+    }
+    if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle
 
     let endRadians = (Math.PI * (endDeg - 90)) / 180
 
@@ -678,15 +713,12 @@ class Pie {
     const gCircles = graphics.group()
     const gYAxis = graphics.group()
 
-    const noMinMaxProvided =
-      w.config.yaxis[0].max === undefined && w.config.yaxis[0].min === undefined
-
     const yScale = scale.niceScale(
       0,
       Math.ceil(this.maxY),
       w.config.yaxis[0].tickAmount,
       0,
-      noMinMaxProvided
+      true
     )
 
     const yTexts = yScale.result.reverse()

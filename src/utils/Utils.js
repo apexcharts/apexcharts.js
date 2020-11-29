@@ -94,6 +94,11 @@ class Utils {
         cloneResult[i] = this.clone(source[i])
       }
       return cloneResult
+    } else if (Object.prototype.toString.call(source) === '[object Null]') {
+      // fixes an issue where null values were converted to {}
+      return null
+    } else if (Object.prototype.toString.call(source) === '[object Date]') {
+      return source
     } else if (typeof source === 'object') {
       let cloneResult = {}
       for (let prop in source) {
@@ -148,22 +153,11 @@ class Utils {
   }
 
   static getDimensions(el) {
-    let computedStyle = getComputedStyle(el)
-    let ret = []
+    const computedStyle = getComputedStyle(el, null)
 
-    let elementHeight = el.clientHeight
-    let elementWidth = el.clientWidth
-
-    elementHeight -=
-      parseFloat(computedStyle.paddingTop) +
-      parseFloat(computedStyle.paddingBottom)
-    elementWidth -=
-      parseFloat(computedStyle.paddingLeft) +
-      parseFloat(computedStyle.paddingRight)
-    ret.push(elementWidth)
-    ret.push(elementHeight)
-
-    return ret
+    const height = parseFloat(computedStyle.height)
+    const width = parseFloat(computedStyle.width)
+    return [width, height]
   }
 
   static getBoundingClientRect(element) {

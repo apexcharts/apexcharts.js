@@ -317,7 +317,6 @@ class Bar {
 
     let i = indexes.i
     let j = indexes.j
-    let bc = indexes.bc
 
     if (w.globals.isXNumeric) {
       y =
@@ -357,7 +356,7 @@ class Bar {
     }
 
     this.barHelpers.barBackground({
-      bc,
+      j,
       i,
       y1: barYPosition - barHeight * this.visibleI,
       y2: barHeight * this.seriesLen,
@@ -436,6 +435,7 @@ class Bar {
 
     this.barHelpers.barBackground({
       bc,
+      j,
       i,
       x1: barXPosition - strokeWidth / 2 - barWidth * this.visibleI,
       x2: barWidth * this.seriesLen + strokeWidth / 2,

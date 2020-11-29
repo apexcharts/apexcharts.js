@@ -158,7 +158,11 @@ class Grid {
         return false
       }
 
-      if (i === xCount - 1 && w.globals.skipLastTimelinelabel) {
+      if (
+        i === xCount - 1 &&
+        w.globals.skipLastTimelinelabel &&
+        !w.config.xaxis.labels.formatter
+      ) {
         return false
       }
       if (w.config.chart.type === 'radar') {
@@ -178,13 +182,19 @@ class Grid {
 
   _drawGridLine({ x1, y1, x2, y2, parent }) {
     const w = this.w
+
+    const isHorzLine = parent.node.classList.contains(
+      'apexcharts-gridlines-horizontal'
+    )
+
     let strokeDashArray = w.config.grid.strokeDashArray
+    const offX = w.globals.barPadForNumericAxis
 
     const graphics = new Graphics(this)
     let line = graphics.drawLine(
-      x1,
+      x1 - (isHorzLine ? offX : 0),
       y1,
-      x2,
+      x2 + (isHorzLine ? offX : 0),
       y2,
       w.config.grid.borderColor,
       strokeDashArray
@@ -196,15 +206,16 @@ class Grid {
   _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
+    const offX = w.globals.barPadForNumericAxis
 
     if (type === 'column' && w.config.xaxis.type === 'datetime') return
 
     const color = w.config.grid[type].colors[c]
 
     let rect = graphics.drawRect(
-      x1,
+      x1 - (type === 'row' ? offX : 0),
       y1,
-      x2,
+      x2 + (type === 'row' ? offX * 2 : 0),
       y2,
       0,
       color,
@@ -236,24 +247,48 @@ class Grid {
     }
 
     const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
-      for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
-        if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
-          // single datapoint
-          x1 = w.globals.gridWidth / 2
+      if (
+        typeof w.config.xaxis.tickAmount !== 'undefined' &&
+        w.config.xaxis.tickAmount !== 'dataPoints'
+      ) {
+        // user has specified tickamount in a category x-axis chart
+        const visibleLabels = w.globals.dom.baseEl.querySelectorAll(
+          '.apexcharts-text.apexcharts-xaxis-label tspan:not(:empty)'
+        )
+
+        visibleLabels.forEach((d, i) => {
+          const textRect = d.getBBox()
+
+          this._drawGridLines({
+            i,
+            x1: textRect.x + textRect.width / 2,
+            y1,
+            x2: textRect.x + textRect.width / 2,
+            y2,
+            xCount,
+            parent: this.elgridLinesV
+          })
+        })
+      } else {
+        for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
+          if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
+            // single datapoint
+            x1 = w.globals.gridWidth / 2
+            x2 = x1
+          }
+          this._drawGridLines({
+            i,
+            x1,
+            y1,
+            x2,
+            y2,
+            xCount,
+            parent: this.elgridLinesV
+          })
+
+          x1 = x1 + w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
           x2 = x1
         }
-        this._drawGridLines({
-          i,
-          x1,
-          y1,
-          x2,
-          y2,
-          xCount,
-          parent: this.elgridLinesV
-        })
-
-        x1 = x1 + w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
-        x2 = x1
       }
     }
 
@@ -377,6 +412,9 @@ class Grid {
 
       if (this.isTimelineBar) {
         yTickAmount = w.globals.labels.length
+        if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
+          xCount = w.config.xaxis.tickAmount
+        }
       }
       this._drawXYLines({ xCount, tickAmount: yTickAmount })
     } else {

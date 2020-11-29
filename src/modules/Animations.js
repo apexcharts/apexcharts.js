@@ -214,7 +214,12 @@ export default class Animations {
     ) {
       pathFrom = disableAnimationForCorrupPath()
     }
-    if (pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
+
+    if (
+      !pathTo ||
+      pathTo.indexOf('undefined') > -1 ||
+      pathTo.indexOf('NaN') > -1
+    ) {
       pathTo = disableAnimationForCorrupPath()
     }
     if (!w.globals.shouldAnimate) {

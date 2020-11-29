@@ -1,4 +1,5 @@
 import Formatters from '../Formatters'
+import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
 
 /**
@@ -15,7 +16,7 @@ export default class Labels {
     this.tooltipUtil = new Utils(tooltipContext)
   }
 
-  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2 }) {
+  drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2, e }) {
     let w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
@@ -34,7 +35,8 @@ export default class Labels {
       j,
       values,
       ttItems,
-      shared
+      shared,
+      e
     })
 
     // Re-calculate tooltip dimensions now that we have drawn the text
@@ -44,7 +46,7 @@ export default class Labels {
     this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height
   }
 
-  printLabels({ i, j, values, ttItems, shared }) {
+  printLabels({ i, j, values, ttItems, shared, e }) {
     const w = this.w
     let val
     const { xVal, zVal, xAxisTTVal } = values
@@ -68,6 +70,15 @@ export default class Labels {
         seriesIndex: i,
         j
       })
+
+      if (w.config.chart.type === 'treemap') {
+        seriesName = f.yLbTitleFormatter(String(w.config.series[i].data[j].x), {
+          series: w.globals.series,
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        })
+      }
 
       const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
@@ -93,13 +104,20 @@ export default class Labels {
 
           val = generalFormatter(tIndex)
         } else {
+          if (e && e.target && e.target.getAttribute('fill')) {
+            pColor = e.target.getAttribute('fill')
+          }
           val = generalFormatter(i)
         }
       }
 
       // for pie / donuts
       if (j === null) {
-        val = f.yLbFormatter(w.globals.series[i], w)
+        val = f.yLbFormatter(w.globals.series[i], {
+          ...w,
+          seriesIndex: i,
+          dataPointIndex: i
+        })
       }
 
       this.DOMHandling({
@@ -207,7 +225,7 @@ export default class Labels {
 
     const ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label')
     if (ttYLabel) {
-      ttYLabel.innerHTML = seriesName ? seriesName + ': ' : ''
+      ttYLabel.innerHTML = seriesName ? seriesName : ''
     }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-value')
     if (ttYVal) {
@@ -222,7 +240,7 @@ export default class Labels {
         w.config.tooltip.marker.fillColors &&
         Array.isArray(w.config.tooltip.marker.fillColors)
       ) {
-        pColor = w.config.tooltip.marker.fillColors[i]
+        pColor = w.config.tooltip.marker.fillColors[t]
       }
 
       ttItemsChildren[0].style.backgroundColor = pColor
@@ -323,7 +341,7 @@ export default class Labels {
     if (j === null) {
       val = w.globals.series[i]
     } else {
-      if (w.globals.isXNumeric) {
+      if (w.globals.isXNumeric && w.config.chart.type !== 'treemap') {
         xVal = filteredSeriesX[i][j]
         if (filteredSeriesX[i].length === 0) {
           // a series (possibly the first one) might be collapsed, so get the next active index
@@ -345,7 +363,12 @@ export default class Labels {
       xVal = xFormat.xLabelFormat(
         w.globals.ttKeyFormatter,
         bufferXVal,
-        bufferXVal
+        bufferXVal,
+        {
+          i: undefined,
+          dateFormatter: new DateTime(this.ctx).formatDate,
+          w: this.w
+        }
       )
     } else {
       if (!w.globals.isBarHorizontal) {
@@ -358,7 +381,7 @@ export default class Labels {
       xVal = w.globals.ttKeyFormatter(bufferXVal, customFormatterOpts)
     }
 
-    if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[0].length > 0) {
+    if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[i].length > 0) {
       zVal = zFormatter(w.globals.seriesZ[i][j], w)
     }
 

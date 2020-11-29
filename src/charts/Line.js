@@ -133,8 +133,14 @@ class Line {
       allSeries.push(this.elSeries)
     }
 
-    for (let s = allSeries.length; s > 0; s--) {
-      ret.add(allSeries[s - 1])
+    if (w.config.chart.stacked) {
+      for (let s = allSeries.length; s > 0; s--) {
+        ret.add(allSeries[s - 1])
+      }
+    } else {
+      for (let s = 0; s < allSeries.length; s++) {
+        ret.add(allSeries[s])
+      }
     }
 
     return ret
@@ -169,7 +175,10 @@ class Line {
       (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
 
     this.areaBottomY = this.zeroY
-    if (this.zeroY > w.globals.gridHeight) {
+    if (
+      this.zeroY > w.globals.gridHeight ||
+      w.config.plotOptions.area.fillTo === 'end'
+    ) {
       this.areaBottomY = w.globals.gridHeight
     }
 

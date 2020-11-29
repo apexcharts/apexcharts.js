@@ -1,6 +1,6 @@
 const path = require('path')
 const rollup = require('rollup')
-const babel = require('rollup-plugin-babel')
+const babel = require('@rollup/plugin-babel')
 const replace = require('@rollup/plugin-replace')
 const postcss = require('rollup-plugin-postcss')
 const copy = require('rollup-plugin-copy-glob')
@@ -69,7 +69,7 @@ function rollupConfig(opts) {
       svgo({
         raw: true
       }),
-      babel({
+      babel.babel({
         exclude: 'node_modules/**',
         plugins: ['@babel/plugin-proposal-class-properties'].concat(
           opts.istanbul ? ['istanbul'] : []

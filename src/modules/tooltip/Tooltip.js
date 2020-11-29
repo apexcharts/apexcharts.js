@@ -53,8 +53,9 @@ export default class Tooltip {
     let w = this.w
     this.xyRatios = xyRatios
     this.blxaxisTooltip = w.config.xaxis.tooltip.enabled && w.globals.axisCharts
-    this.blyaxisTooltip =
-      w.config.yaxis[0].tooltip.enabled && w.globals.axisCharts
+    this.yaxisTooltips = w.config.yaxis.map((y, i) => {
+      return y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false
+    })
     this.allTooltipSeriesGroups = []
 
     if (!w.globals.axisCharts) {
@@ -132,6 +133,7 @@ export default class Tooltip {
     for (let i = 0; i < ttItemsCnt; i++) {
       let gTxt = document.createElement('div')
       gTxt.classList.add('apexcharts-tooltip-series-group')
+      gTxt.style.order = w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1
       if (
         this.tConfig.shared &&
         this.tConfig.enabledOnSeries &&
@@ -239,9 +241,9 @@ export default class Tooltip {
         points = w.globals.dom.baseEl.querySelectorAll(
           '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-rangebar-area'
         )
-      } else if (type === 'heatmap') {
+      } else if (type === 'heatmap' || type === 'treemap') {
         points = w.globals.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-heatmap'
+          '.apexcharts-series .apexcharts-heatmap, .apexcharts-series .apexcharts-treemap'
         )
       }
 
@@ -265,7 +267,11 @@ export default class Tooltip {
       (chartWithmarkers && this.showOnIntersect)
     ) {
       this.addDatapointEventsListeners(seriesHoverParams)
-    } else if (!w.globals.axisCharts || type === 'heatmap') {
+    } else if (
+      !w.globals.axisCharts ||
+      type === 'heatmap' ||
+      type === 'treemap'
+    ) {
       let seriesAll = w.globals.dom.baseEl.querySelectorAll(
         '.apexcharts-series'
       )
@@ -515,19 +521,26 @@ export default class Tooltip {
         xcrosshairs.classList.add('apexcharts-active')
       }
 
-      if (this.ycrosshairs !== null && this.blyaxisTooltip) {
+      const hasYAxisTooltip = this.yaxisTooltips.filter((b) => {
+        return b === true
+      })
+      if (this.ycrosshairs !== null && hasYAxisTooltip.length) {
         this.ycrosshairs.classList.add('apexcharts-active')
       }
 
       if (isStickyTooltip && !this.showOnIntersect) {
         this.handleStickyTooltip(e, clientX, clientY, opt)
       } else {
-        if (w.config.chart.type === 'heatmap') {
-          let markerXY = this.intersect.handleHeatTooltip({
+        if (
+          w.config.chart.type === 'heatmap' ||
+          w.config.chart.type === 'treemap'
+        ) {
+          let markerXY = this.intersect.handleHeatTreeTooltip({
             e,
             opt,
             x,
-            y
+            y,
+            type: w.config.chart.type
           })
           x = markerXY.x
           y = markerXY.y
@@ -554,7 +567,7 @@ export default class Tooltip {
         }
       }
 
-      if (this.blyaxisTooltip) {
+      if (this.yaxisTooltips.length) {
         for (let yt = 0; yt < w.config.yaxis.length; yt++) {
           this.axesTooltip.drawYaxisTooltipText(yt, clientY, this.xyRatios)
         }
@@ -678,7 +691,7 @@ export default class Tooltip {
     if (this.blxaxisTooltip) {
       this.xaxisTooltip.classList.remove('apexcharts-active')
     }
-    if (this.blyaxisTooltip) {
+    if (this.yaxisTooltips.length) {
       if (this.yaxisTTEls === null) {
         this.yaxisTTEls = w.globals.dom.baseEl.querySelectorAll(
           '.apexcharts-yaxistooltip'

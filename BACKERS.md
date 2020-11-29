@@ -2,7 +2,7 @@
 
 ## Our Backers and supporters
 
-Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](patreon.com/junedchhipa)!
+Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can join them in supporting ApexCharts development by visiting our page on [Patreon](https://www.patreon.com/junedchhipa)!
 
 
 ### Backers
@@ -10,15 +10,17 @@ Support us with a monthly donation and help us continue our activities. [[Become
 
 Backer on | Name
 -----|-----
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=10265776" target="_blank">Taillefer Brice</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=17096169" target="_blank">Thomas Janotta</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/calinou/creators" target="_blank">Hugo Locurcio</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=25422807" target="_blank">Aslan Mutaf</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=3900260" target="_blank">Bob</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=15111755" target="_blank">Pierre Aguilar</a>
-<img src="https://c10.patreonusercontent.com/3/eyJ3IjoyMDB9/patreon-media/p/user/11313403/3f4cbd5acdc24f309482cfbf23bfcd81/1.jpe?token-time=2145916800&token-hash=sCMYDL4SDg2xLm64lAWWrM_IyTT6nln8ecgBqvThZeA%3D" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=11313403" target="_blank">Gergo Santha</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=10458746" target="_blank">Xavier Trabet</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=16515478" target="_blank">JoeyJoejoe Shabadoo</a>
-<img src="https://apexcharts.com/media/patron.png" width="16" height="16" /> | <a href="https://www.patreon.com/user/creators?u=21350037" target="_blank">Richard Klingler</a>
-<img src="https://avatars1.githubusercontent.com/u/382382?s=460&u=452cb1323a0ee2585d2eca4656baf17aa842edd2&v=4" width="16" height="16" /> | <a href="https://github.com/JohnRomanski" target="_blank">John Romanski</a>
-
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Taillefer Brice
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Hugo Locurcio
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Aslan Mutaf
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Bob
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Pierre Aguilar
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Gergo Santha
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Xavier Trabet
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Christopher Bartling
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Andrew Pyle
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Victor Perrier
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  vicker
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  onepedia
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Johannes Goebel
+<img src="https://apexcharts.com/media/patron.png" width="16" height="16" />  Candin Jones

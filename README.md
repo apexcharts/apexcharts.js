@@ -78,6 +78,8 @@ Useful links to wrappers other than the popular frameworks mentioned above
 - [stencil-apexcharts](https://github.com/mikaelkaron/stencil-apexcharts) - Stencil Component for ApexCharts
 - [apexcharter](https://github.com/dreamRs/apexcharter) - Htmlwidget for ApexCharts
 - [apexcharts.rb](https://github.com/styd/apexcharts.rb) - Ruby wrapper for ApexCharts
+- [larapex-charts](https://github.com/ArielMejiaDev/larapex-charts) - Laravel wrapper for ApexCharts
+- [blazor-apexcharts](https://github.com/joadan/Blazor-ApexCharts) - Blazor wrapper for ApexCharts [demo](https://joadan.github.io/Blazor-ApexCharts/)
 
 ## Usage
 

@@ -404,7 +404,7 @@ export default class Defaults {
 
     if (cats && cats.length) {
       labels = cats.map((c) => {
-        return c.toString()
+        return Array.isArray(c) ? c : String(c)
       })
     }
 
@@ -511,6 +511,56 @@ export default class Defaults {
     }
   }
 
+  treemap() {
+    return {
+      chart: {
+        zoom: {
+          enabled: false
+        }
+      },
+      dataLabels: {
+        style: {
+          fontSize: 14,
+          fontWeight: 600,
+          colors: ['#fff']
+        }
+      },
+      stroke: {
+        show: true,
+        width: 2,
+        colors: ['#fff']
+      },
+      legend: {
+        show: false
+      },
+      fill: {
+        gradient: {
+          stops: [0, 100]
+        }
+      },
+      tooltip: {
+        followCursor: true,
+        x: {
+          show: false
+        }
+      },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0
+        }
+      },
+      xaxis: {
+        crosshairs: {
+          show: false
+        },
+        tooltip: {
+          enabled: false
+        }
+      }
+    }
+  }
+
   pie() {
     return {
       chart: {
@@ -533,6 +583,9 @@ export default class Defaults {
         },
         style: {
           colors: ['#fff']
+        },
+        background: {
+          enabled: false
         },
         dropShadow: {
           enabled: true
@@ -571,6 +624,9 @@ export default class Defaults {
         },
         style: {
           colors: ['#fff']
+        },
+        background: {
+          enabled: false
         },
         dropShadow: {
           enabled: true

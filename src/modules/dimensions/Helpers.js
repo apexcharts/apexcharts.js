@@ -37,6 +37,16 @@ export default class Helpers {
     let w = this.w
 
     let elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
+
+    if (
+      !w.config.legend.height &&
+      (w.config.legend.position === 'top' ||
+        w.config.legend.position === 'bottom')
+    ) {
+      // avoid legend to take up all the space
+      elLegendWrap.style.maxHeight = w.globals.svgHeight / 2 + 'px'
+    }
+
     let lgRect = Object.assign({}, Utils.getBoundingClientRect(elLegendWrap))
 
     if (

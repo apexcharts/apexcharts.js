@@ -11,6 +11,7 @@ import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
 import Legend from './legend/Legend'
 import Line from '../charts/Line'
+import Treemap from '../charts/Treemap'
 import Graphics from './Graphics'
 import Range from './Range'
 import Utils from '../utils/Utils'
@@ -48,7 +49,8 @@ export default class Core {
       'scatter',
       'bubble',
       'radar',
-      'heatmap'
+      'heatmap',
+      'treemap'
     ]
 
     let xyChartsArrTypes = [
@@ -69,7 +71,7 @@ export default class Core {
       (cnf.chart.type === 'bar' || cnf.chart.type === 'rangeBar') &&
       cnf.plotOptions.bar.horizontal
 
-    gl.chartClass = '.apexcharts' + gl.cuid
+    gl.chartClass = '.apexcharts' + gl.chartID
 
     gl.dom.baseEl = this.el
 
@@ -186,7 +188,7 @@ export default class Core {
     let candlestick = new CandleStick(this.ctx, xyRatios)
     this.ctx.pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
-    let rangeBar = new RangeBar(this.ctx, xyRatios)
+    this.ctx.rangeBar = new RangeBar(this.ctx, xyRatios)
     let radar = new Radar(this.ctx)
     let elGraph = []
 
@@ -245,11 +247,15 @@ export default class Core {
           elGraph = candleStick.draw(gl.series)
           break
         case 'rangeBar':
-          elGraph = rangeBar.draw(gl.series)
+          elGraph = this.ctx.rangeBar.draw(gl.series)
           break
         case 'heatmap':
           let heatmap = new HeatMap(this.ctx, xyRatios)
           elGraph = heatmap.draw(gl.series)
+          break
+        case 'treemap':
+          let treemap = new Treemap(this.ctx, xyRatios)
+          elGraph = treemap.draw(gl.series)
           break
         case 'pie':
         case 'donut':
@@ -323,15 +329,17 @@ export default class Core {
       height: gl.svgHeight
     })
 
-    // gl.dom.Paper.node.parentNode.parentNode.style.minWidth = gl.svgWidth + "px";
-    let offsetY = cnf.chart.sparkline.enabled
-      ? 0
-      : gl.axisCharts
-      ? cnf.chart.parentHeightOffset
-      : 0
+    if (cnf.chart.height.indexOf('%') === -1) {
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2059
+      let offsetY = cnf.chart.sparkline.enabled
+        ? 0
+        : gl.axisCharts
+        ? cnf.chart.parentHeightOffset
+        : 0
 
-    gl.dom.Paper.node.parentNode.parentNode.style.minHeight =
-      gl.svgHeight + offsetY + 'px'
+      gl.dom.Paper.node.parentNode.parentNode.style.minHeight =
+        gl.svgHeight + offsetY + 'px'
+    }
 
     gl.dom.elWrap.style.width = gl.svgWidth + 'px'
     gl.dom.elWrap.style.height = gl.svgHeight + 'px'
@@ -347,8 +355,6 @@ export default class Core {
       transform: 'translate(' + tX + ', ' + tY + ')'
     }
     Graphics.setAttrs(gl.dom.elGraphical.node, scalingAttrs)
-
-    gl.x2SpaceAvailable = gl.svgWidth - gl.dom.elGraphical.x() - gl.gridWidth
   }
 
   // To prevent extra spacings in the bottom of the chart, we need to recalculate the height for pie/donut/radialbar charts
@@ -371,12 +377,14 @@ export default class Core {
         new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10
     }
 
-    let radialEl = w.globals.dom.baseEl.querySelector('.apexcharts-radialbar')
+    let el = w.globals.dom.baseEl.querySelector(
+      '.apexcharts-radialbar, .apexcharts-pie'
+    )
 
     let chartInnerDimensions = w.globals.radialSize * 2.05
 
-    if (radialEl && !w.config.chart.sparkline.enabled) {
-      let elRadialRect = Utils.getBoundingClientRect(radialEl)
+    if (el && !w.config.chart.sparkline.enabled) {
+      let elRadialRect = Utils.getBoundingClientRect(el)
       chartInnerDimensions = elRadialRect.bottom
 
       let maxHeight = elRadialRect.bottom - elRadialRect.top
@@ -448,24 +456,24 @@ export default class Core {
         w.config.xaxis.type === 'datetime' &&
         w.config.xaxis.labels.formatter === undefined
       ) {
-        let ts = new TimeScale(this.ctx)
+        this.ctx.timeScale = new TimeScale(this.ctx)
         let formattedTimeScale = []
         if (
           isFinite(w.globals.minX) &&
           isFinite(w.globals.maxX) &&
           !w.globals.isBarHorizontal
         ) {
-          formattedTimeScale = ts.calculateTimeScaleTicks(
+          formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minX,
             w.globals.maxX
           )
         } else if (w.globals.isBarHorizontal) {
-          formattedTimeScale = ts.calculateTimeScaleTicks(
+          formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minY,
             w.globals.maxY
           )
         }
-        ts.recalcDimensionsBasedOnFormat(formattedTimeScale)
+        this.ctx.timeScale.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
 
       const coreUtils = new CoreUtils(this.ctx)
@@ -535,17 +543,28 @@ export default class Core {
             const scale = new Scales(targetChart)
             yaxis = scale.autoScaleY(targetChart, yaxis, e)
           }
+
+          const multipleYaxis = targetChart.w.config.yaxis.reduce(
+            (acc, curr, index) => {
+              return [
+                ...acc,
+                {
+                  ...targetChart.w.config.yaxis[index],
+                  min: yaxis[0].min,
+                  max: yaxis[0].max
+                }
+              ]
+            },
+            []
+          )
+
           targetChart.ctx.updateHelpers._updateOptions(
             {
               xaxis: {
                 min: e.xaxis.min,
                 max: e.xaxis.max
               },
-              yaxis: {
-                ...targetChart.w.config.yaxis[0],
-                min: yaxis[0].min,
-                max: yaxis[0].max
-              }
+              yaxis: multipleYaxis
             },
             false,
             false,

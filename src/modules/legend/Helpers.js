@@ -1,4 +1,5 @@
 import Graphics from '../Graphics'
+import Utils from '../../utils/Utils'
 
 export default class Helpers {
   constructor(lgCtx) {
@@ -108,6 +109,8 @@ export default class Helpers {
     elForeign.appendChild(gl.dom.elLegendWrap)
     elForeign.appendChild(this.getLegendStyles())
 
+    //gl.dom.elGraphical.node.insertAdjacentElement('afterend', elForeign)
+    // the above line causes issue #1907
     gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node)
   }
 
@@ -176,6 +179,9 @@ export default class Helpers {
 
   hideSeries({ seriesEl, realIndex }) {
     const w = this.w
+
+    let series = Utils.clone(w.config.series)
+
     if (w.globals.axisCharts) {
       let shouldNotHideYAxis = false
 
@@ -188,7 +194,7 @@ export default class Helpers {
         if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
           w.globals.ancillaryCollapsedSeries.push({
             index: realIndex,
-            data: w.config.series[realIndex].data.slice(),
+            data: series[realIndex].data.slice(),
             type: seriesEl.parentNode.className.baseVal.split('-')[1]
           })
           w.globals.ancillaryCollapsedSeriesIndices.push(realIndex)
@@ -198,7 +204,7 @@ export default class Helpers {
       if (!shouldNotHideYAxis) {
         w.globals.collapsedSeries.push({
           index: realIndex,
-          data: w.config.series[realIndex].data.slice(),
+          data: series[realIndex].data.slice(),
           type: seriesEl.parentNode.className.baseVal.split('-')[1]
         })
         w.globals.collapsedSeriesIndices.push(realIndex)
@@ -207,16 +213,12 @@ export default class Helpers {
 
         w.globals.risingSeries.splice(removeIndexOfRising, 1)
       }
-
-      // TODO: AVOID mutating the user's config object below
-      w.config.series[realIndex].data = []
     } else {
       w.globals.collapsedSeries.push({
         index: realIndex,
-        data: w.config.series[realIndex]
+        data: series[realIndex]
       })
       w.globals.collapsedSeriesIndices.push(realIndex)
-      w.config.series[realIndex] = 0
     }
 
     let seriesChildren = seriesEl.childNodes
@@ -235,35 +237,60 @@ export default class Helpers {
     w.globals.allSeriesCollapsed =
       w.globals.collapsedSeries.length === w.config.series.length
 
+    series = this._getSeriesBasedOnCollapsedState(series)
     this.lgCtx.ctx.updateHelpers._updateSeries(
-      w.config.series,
+      series,
       w.config.chart.animations.dynamicAnimation.enabled
     )
   }
 
-  riseCollapsedSeries(series, seriesIndices, realIndex) {
+  riseCollapsedSeries(collapsedSeries, seriesIndices, realIndex) {
     const w = this.w
+    let series = Utils.clone(w.config.series)
 
-    if (series.length > 0) {
-      for (let c = 0; c < series.length; c++) {
-        if (series[c].index === realIndex) {
+    if (collapsedSeries.length > 0) {
+      for (let c = 0; c < collapsedSeries.length; c++) {
+        if (collapsedSeries[c].index === realIndex) {
           if (w.globals.axisCharts) {
-            w.config.series[realIndex].data = series[c].data.slice()
-            series.splice(c, 1)
+            series[realIndex].data = collapsedSeries[c].data.slice()
+            collapsedSeries.splice(c, 1)
             seriesIndices.splice(c, 1)
             w.globals.risingSeries.push(realIndex)
           } else {
-            w.config.series[realIndex] = series[c].data
-            series.splice(c, 1)
+            series[realIndex] = collapsedSeries[c].data
+            collapsedSeries.splice(c, 1)
             seriesIndices.splice(c, 1)
             w.globals.risingSeries.push(realIndex)
           }
-          this.lgCtx.ctx.updateHelpers._updateSeries(
-            w.config.series,
-            w.config.chart.animations.dynamicAnimation.enabled
-          )
         }
       }
+
+      series = this._getSeriesBasedOnCollapsedState(series)
+
+      this.lgCtx.ctx.updateHelpers._updateSeries(
+        series,
+        w.config.chart.animations.dynamicAnimation.enabled
+      )
     }
+  }
+
+  _getSeriesBasedOnCollapsedState(series) {
+    const w = this.w
+
+    if (w.globals.axisCharts) {
+      series.forEach((s, sI) => {
+        if (w.globals.collapsedSeriesIndices.indexOf(sI) > -1) {
+          series[sI].data = []
+        }
+      })
+    } else {
+      series.forEach((s, sI) => {
+        if (w.globals.collapsedSeriesIndices.indexOf(sI) > -1) {
+          series[sI] = 0
+        }
+      })
+    }
+
+    return series
   }
 }

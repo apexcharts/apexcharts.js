@@ -65,8 +65,10 @@ export default class BarDataLabels {
       height: 0
     }
     if (w.config.dataLabels.enabled) {
+      const yLabel = this.barCtx.series[i][j]
+
       textRects = graphics.getTextRects(
-        w.globals.yLabelFormatters[0](w.globals.maxY),
+        w.globals.yLabelFormatters[0](yLabel),
         parseFloat(dataLabelsConfig.style.fontSize)
       )
     }
@@ -160,7 +162,9 @@ export default class BarDataLabels {
 
     let valIsNegative = this.barCtx.series[i][j] < 0
 
+    let newY = y
     if (this.barCtx.isReversed) {
+      newY = y - barHeight + (valIsNegative ? barHeight * 2 : 0)
       y = y - barHeight
     }
 
@@ -168,46 +172,47 @@ export default class BarDataLabels {
       case 'center':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight / 2 + offY
+            dataLabelsY = newY + barHeight / 2 + offY
           } else {
-            dataLabelsY = y + barHeight / 2 - offY
+            dataLabelsY = newY + barHeight / 2 - offY
           }
         } else {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight / 2 + textRects.height / 2 + offY
+            dataLabelsY = newY - barHeight / 2 + textRects.height / 2 + offY
           } else {
-            dataLabelsY = y + barHeight / 2 + textRects.height / 2 - offY
+            dataLabelsY = newY + barHeight / 2 + textRects.height / 2 - offY
           }
         }
         break
       case 'bottom':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight + offY
+            dataLabelsY = newY + barHeight + offY
           } else {
-            dataLabelsY = y + barHeight - offY
+            dataLabelsY = newY + barHeight - offY
           }
         } else {
           if (valIsNegative) {
-            dataLabelsY = y + barHeight + textRects.height + strokeWidth + offY
+            dataLabelsY =
+              newY - barHeight + textRects.height + strokeWidth + offY
           } else {
             dataLabelsY =
-              y + barHeight - textRects.height / 2 + strokeWidth - offY
+              newY + barHeight - textRects.height / 2 + strokeWidth - offY
           }
         }
         break
       case 'top':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = y + offY
+            dataLabelsY = newY + offY
           } else {
-            dataLabelsY = y - offY
+            dataLabelsY = newY - offY
           }
         } else {
           if (valIsNegative) {
-            dataLabelsY = y - textRects.height / 2 - offY
+            dataLabelsY = newY - textRects.height / 2 - offY
           } else {
-            dataLabelsY = y + textRects.height + offY
+            dataLabelsY = newY + textRects.height + offY
           }
         }
         break
@@ -262,16 +267,17 @@ export default class BarDataLabels {
 
     let newX = x
     if (this.barCtx.isReversed) {
-      newX = x + barWidth
+      newX = x + barWidth - (valIsNegative ? barWidth * 2 : 0)
       x = w.globals.gridWidth - barWidth
     }
 
     switch (barDataLabelsConfig.position) {
       case 'center':
         if (valIsNegative) {
-          dataLabelsX = newX - barWidth / 2 - offX
+          dataLabelsX = newX + barWidth / 2 - offX
         } else {
-          dataLabelsX = newX - barWidth / 2 + offX
+          dataLabelsX =
+            Math.max(textRects.width / 2, newX - barWidth / 2) + offX
         }
         break
       case 'bottom':
@@ -400,10 +406,6 @@ export default class BarDataLabels {
         // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
         // Note: This issue is only seen in stacked charts
         if (this.barCtx.isHorizontal) {
-          barWidth =
-            Math.abs(w.globals.series[i][j]) /
-            this.barCtx.invertedYRatio[this.barCtx.yaxisIndex]
-
           // FIXED: Don't always hide the stacked negative side label
           // A negative value will result in a negative bar width
           // Only hide the text when the width is smaller (a higher negative number) than the negative bar width.
@@ -414,9 +416,6 @@ export default class BarDataLabels {
             text = ''
           }
         } else {
-          barHeight =
-            Math.abs(w.globals.series[i][j]) /
-            this.barCtx.yRatio[this.barCtx.yaxisIndex]
           if (textRects.height / 1.6 > barHeight) {
             text = ''
           }

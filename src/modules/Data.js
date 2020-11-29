@@ -316,6 +316,8 @@ export default class Data {
   }
 
   handleCandleStickDataFormat(format, ser, i) {
+    const w = this.w
+
     const serO = []
     const serH = []
     const serL = []
@@ -348,7 +350,13 @@ export default class Data {
         }
       }
     } else if (format === 'xy') {
-      if (ser[i].data[0].y.length !== 4) {
+      if (
+        (!w.globals.comboCharts && ser[i].data[0].y.length !== 4) ||
+        (w.globals.comboCharts &&
+          ser[i].type === 'candlestick' &&
+          ser[i].data.length &&
+          ser[i].data[0].y.length !== 4)
+      ) {
         throw new Error(err)
       }
       for (let j = 0; j < ser[i].data.length; j++) {
@@ -390,11 +398,7 @@ export default class Data {
           }
         } else {
           // user provided timestamps
-          if (String(xlabels[j]).length !== 13) {
-            throw new Error('Please provide a valid JavaScript timestamp')
-          } else {
-            this.twoDSeriesX.push(xlabels[j])
-          }
+          this.twoDSeriesX.push(xlabels[j])
         }
       }
     }
@@ -467,6 +471,13 @@ export default class Data {
         gl.seriesNames.push(ser[i].name)
       } else {
         gl.seriesNames.push('series-' + parseInt(i + 1, 10))
+      }
+
+      // overrided default color if user inputs color with series data
+      if (ser[i].color !== undefined) {
+        gl.seriesColors.push(ser[i].color)
+      } else {
+        gl.seriesColors.push(undefined)
       }
     }
 

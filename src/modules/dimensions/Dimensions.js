@@ -121,6 +121,7 @@ export default class Dimensions {
     let yAxisWidth = this.yAxisWidth
     let xAxisHeight = this.xAxisHeight
     gl.xAxisLabelsHeight = this.xAxisHeight
+    gl.xAxisLabelsWidth = this.xAxisWidth
     gl.xAxisHeight = this.xAxisHeight
     let translateY = 10
 
@@ -134,12 +135,17 @@ export default class Dimensions {
         height: 0,
         width: 0
       }
-      xAxisHeight = 0
+    }
+
+    if (this.isSparkline || w.config.chart.type === 'treemap') {
       yAxisWidth = 0
+      xAxisHeight = 0
       translateY = 0
     }
 
-    this.dimXAxis.additionalPaddingXLabels(xaxisLabelCoords)
+    if (!this.isSparkline) {
+      this.dimXAxis.additionalPaddingXLabels(xaxisLabelCoords)
+    }
 
     const legendTopBottom = () => {
       gl.translateX = yAxisWidth
@@ -147,7 +153,11 @@ export default class Dimensions {
         gl.svgHeight -
         this.lgRect.height -
         xAxisHeight -
-        (!this.isSparkline ? (w.globals.rotateXLabels ? 10 : 15) : 0)
+        (!this.isSparkline && w.config.chart.type !== 'treemap'
+          ? w.globals.rotateXLabels
+            ? 10
+            : 15
+          : 0)
       gl.gridWidth = gl.svgWidth - yAxisWidth
     }
 
@@ -220,13 +230,13 @@ export default class Dimensions {
     switch (cnf.legend.position) {
       case 'bottom':
         gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding
-        gl.gridWidth = gl.gridHeight
+        gl.gridWidth = gl.svgWidth
         gl.translateY = offY - 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':
         gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding
-        gl.gridWidth = gl.gridHeight
+        gl.gridWidth = gl.svgWidth
         gl.translateY = this.lgRect.height + offY + 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break

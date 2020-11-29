@@ -5,7 +5,6 @@ import Utilities from '../../utils/Utils'
  *
  * @module Tooltip.Utils
  **/
-import CoreUtils from '../CoreUtils'
 
 export default class Utils {
   constructor(tooltipContext) {
@@ -32,11 +31,15 @@ export default class Utils {
     const seriesBound = elGrid.getBoundingClientRect()
 
     const hasBars = this.hasBars()
-    if (w.globals.comboCharts || hasBars) {
+
+    if (
+      (w.globals.comboCharts || hasBars) &&
+      !w.config.xaxis.convertedCatToNumeric
+    ) {
       xDivisor = hoverWidth / w.globals.dataPoints
     }
 
-    let hoverX = clientX - seriesBound.left
+    let hoverX = clientX - seriesBound.left - w.globals.barPadForNumericAxis
     let hoverY = clientY - seriesBound.top
 
     const notInRect =
@@ -60,7 +63,7 @@ export default class Utils {
 
     let j = Math.round(hoverX / xDivisor)
 
-    if (hasBars) {
+    if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
       j = Math.ceil(hoverX / xDivisor)
       j = j - 1
     }
@@ -164,20 +167,13 @@ export default class Utils {
 
   getFirstActiveXArray(Xarrays) {
     let activeIndex = 0
-    const coreUtils = new CoreUtils(this.ctx)
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
       return xarr.length > 0 ? index : -1
     })
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
-      const total = coreUtils.getSeriesTotalByIndex(a)
-
-      if (
-        firstActiveSeriesIndex[a] !== -1 &&
-        total !== 0 &&
-        !coreUtils.seriesHaveSameValues(a)
-      ) {
+      if (firstActiveSeriesIndex[a] !== -1) {
         activeIndex = firstActiveSeriesIndex[a]
         break
       }

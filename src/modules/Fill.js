@@ -83,7 +83,8 @@ class Fill {
     if (
       ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
         w.config.plotOptions.bar.distributed) ||
-      w.config.chart.type === 'heatmap'
+      w.config.chart.type === 'heatmap' ||
+      w.config.chart.type === 'treemap'
     ) {
       this.seriesIndex = opts.seriesNumber
     } else {
@@ -107,6 +108,11 @@ class Fill {
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
 
+    //override fillcolor if user inputted color with data
+    if (w.globals.seriesColors[this.seriesIndex] !== undefined) {
+      fillColor = w.globals.seriesColors[this.seriesIndex]
+    }
+
     if (typeof fillColor === 'function') {
       fillColor = fillColor({
         seriesIndex: this.seriesIndex,
@@ -120,11 +126,11 @@ class Fill {
       ? cnf.fill.opacity[this.seriesIndex]
       : cnf.fill.opacity
 
-    let defaultColor = fillColor
-
     if (opts.color) {
       fillColor = opts.color
     }
+
+    let defaultColor = fillColor
 
     if (fillColor.indexOf('rgb') === -1) {
       if (fillColor.length < 9) {
@@ -209,13 +215,13 @@ class Fill {
 
     if (w.globals.comboCharts) {
       if (w.config.series[this.seriesIndex].type === 'line') {
-        if (w.globals.stroke.colors instanceof Array) {
+        if (Array.isArray(w.globals.stroke.colors)) {
           fillColors = w.globals.stroke.colors
         } else {
           fillColors.push(w.globals.stroke.colors)
         }
       } else {
-        if (w.globals.fill.colors instanceof Array) {
+        if (Array.isArray(w.globals.fill.colors)) {
           fillColors = w.globals.fill.colors
         } else {
           fillColors.push(w.globals.fill.colors)
@@ -223,13 +229,13 @@ class Fill {
       }
     } else {
       if (cnf.chart.type === 'line') {
-        if (w.globals.stroke.colors instanceof Array) {
+        if (Array.isArray(w.globals.stroke.colors)) {
           fillColors = w.globals.stroke.colors
         } else {
           fillColors.push(w.globals.stroke.colors)
         }
       } else {
-        if (w.globals.fill.colors instanceof Array) {
+        if (Array.isArray(w.globals.fill.colors)) {
           fillColors = w.globals.fill.colors
         } else {
           fillColors.push(w.globals.fill.colors)
@@ -240,7 +246,7 @@ class Fill {
     // colors passed in arguments
     if (typeof opts.fillColors !== 'undefined') {
       fillColors = []
-      if (opts.fillColors instanceof Array) {
+      if (Array.isArray(opts.fillColors)) {
         fillColors = opts.fillColors.slice()
       } else {
         fillColors.push(opts.fillColors)
@@ -265,7 +271,7 @@ class Fill {
         : cnf.fill.pattern.strokeWidth
     let patternLineColor = fillColor
 
-    if (cnf.fill.pattern.style instanceof Array) {
+    if (Array.isArray(cnf.fill.pattern.style)) {
       if (typeof cnf.fill.pattern.style[opts.seriesNumber] !== 'undefined') {
         let pf = graphics.drawPattern(
           cnf.fill.pattern.style[opts.seriesNumber],
@@ -334,10 +340,14 @@ class Fill {
         )
       }
     } else {
-      const gToColor = cnf.fill.gradient.gradientToColors[opts.seriesNumber]
-      gradientTo = gToColor
-      if (gToColor.indexOf('rgba') > -1) {
-        opacityTo = Utils.getOpacityFromRGBA(gToColor)
+      if (cnf.fill.gradient.gradientToColors[opts.seriesNumber]) {
+        const gToColor = cnf.fill.gradient.gradientToColors[opts.seriesNumber]
+        gradientTo = gToColor
+        if (gToColor.indexOf('rgba') > -1) {
+          opacityTo = Utils.getOpacityFromRGBA(gToColor)
+        }
+      } else {
+        gradientTo = fillColor
       }
     }
 

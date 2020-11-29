@@ -81,10 +81,10 @@ class BarStacked extends Bar {
       let elSeries = this.graphics.group({
         class: `apexcharts-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
-
         rel: i + 1,
         'data:realIndex': realIndex
       })
+      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
 
       // eldatalabels
       let elDataLabelsWrap = this.graphics.group({
@@ -234,7 +234,8 @@ class BarStacked extends Bar {
 
       barWidth = xDivision
 
-      if (w.globals.isXNumeric) {
+      if (w.globals.isXNumeric && w.globals.dataPoints > 1) {
+        // the check (w.globals.dataPoints > 1) fixes apexcharts.js #1617
         xDivision = w.globals.minXDiff / this.xRatio
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
       } else {
@@ -277,7 +278,6 @@ class BarStacked extends Bar {
     let barXPosition
     let i = indexes.i
     let j = indexes.j
-    let bc = indexes.bc
 
     let prevBarW = 0
     for (let k = 0; k < this.prevXF.length; k++) {
@@ -336,7 +336,7 @@ class BarStacked extends Bar {
     })
 
     this.barHelpers.barBackground({
-      bc,
+      j,
       i,
       y1: barYPosition,
       y2: barHeight,
@@ -468,6 +468,7 @@ class BarStacked extends Bar {
 
     this.barHelpers.barBackground({
       bc,
+      j,
       i,
       x1: barXPosition,
       x2: barWidth,

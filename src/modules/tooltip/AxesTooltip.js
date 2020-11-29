@@ -85,29 +85,25 @@ class AxesTooltip {
 
       let renderTo = w.globals.dom.elWrap
 
-      if (ttCtx.blyaxisTooltip) {
-        let yaxisTooltip = w.globals.dom.baseEl.querySelector(
-          `.apexcharts-yaxistooltip apexcharts-yaxistooltip-${i}`
+      let yaxisTooltip = w.globals.dom.baseEl.querySelector(
+        `.apexcharts-yaxistooltip apexcharts-yaxistooltip-${i}`
+      )
+
+      if (yaxisTooltip === null) {
+        ttCtx.yaxisTooltip = document.createElement('div')
+        ttCtx.yaxisTooltip.setAttribute(
+          'class',
+          tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
         )
 
-        if (yaxisTooltip === null) {
-          ttCtx.yaxisTooltip = document.createElement('div')
-          ttCtx.yaxisTooltip.setAttribute(
-            'class',
-            tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
-          )
+        renderTo.appendChild(ttCtx.yaxisTooltip)
 
-          renderTo.appendChild(ttCtx.yaxisTooltip)
+        if (i === 0) ttCtx.yaxisTooltipText = []
 
-          if (i === 0) ttCtx.yaxisTooltipText = []
+        ttCtx.yaxisTooltipText[i] = document.createElement('div')
+        ttCtx.yaxisTooltipText[i].classList.add('apexcharts-yaxistooltip-text')
 
-          ttCtx.yaxisTooltipText.push(document.createElement('div'))
-          ttCtx.yaxisTooltipText[i].classList.add(
-            'apexcharts-yaxistooltip-text'
-          )
-
-          ttCtx.yaxisTooltip.appendChild(ttCtx.yaxisTooltipText[i])
-        }
+        ttCtx.yaxisTooltip.appendChild(ttCtx.yaxisTooltipText[i])
       }
     }
   }
@@ -177,7 +173,7 @@ class AxesTooltip {
 
     let lbFormatter = w.globals.yLabelFormatters[index]
 
-    if (ttCtx.blyaxisTooltip) {
+    if (ttCtx.yaxisTooltips[index]) {
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
 

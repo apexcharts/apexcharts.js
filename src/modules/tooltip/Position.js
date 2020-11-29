@@ -75,7 +75,8 @@ export default class Position {
         y1: cy,
         y2: cy
       })
-
+    }
+    if (ttCtx.ycrosshairsHidden !== null) {
       Graphics.setAttrs(ttCtx.ycrosshairsHidden, {
         y1: cy,
         y2: cy
@@ -273,7 +274,7 @@ export default class Position {
       `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers circle`
     )
 
-    if (point) {
+    if (point && cy < w.globals.gridHeight && cy > 0) {
       point.setAttribute('r', hoverSize)
 
       point.setAttribute('cx', cx)
@@ -327,7 +328,12 @@ export default class Position {
           let pcy = pointsArr[p][j][1]
           points[p].setAttribute('cx', cx)
 
-          if (pcy !== null && !isNaN(pcy)) {
+          if (
+            pcy !== null &&
+            !isNaN(pcy) &&
+            pcy < w.globals.gridHeight &&
+            pcy > 0
+          ) {
             points[p] && points[p].setAttribute('r', hoverSize)
             points[p] && points[p].setAttribute('cy', pcy)
           } else {

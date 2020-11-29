@@ -16,11 +16,11 @@ class Intersect {
     return parseFloat(e.target.getAttribute(attr))
   }
 
-  handleHeatTooltip({ e, opt, x, y }) {
+  handleHeatTreeTooltip({ e, opt, x, y, type }) {
     const ttCtx = this.ttCtx
     const w = this.w
 
-    if (e.target.classList.contains('apexcharts-heatmap-rect')) {
+    if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
       let i = this.getAttr(e, 'i')
       let j = this.getAttr(e, 'j')
       let cx = this.getAttr(e, 'cx')
@@ -32,7 +32,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
-        shared: false
+        shared: false,
+        e
       })
 
       w.globals.capturedSeriesIndex = i
@@ -49,7 +50,10 @@ class Intersect {
       if (ttCtx.w.config.tooltip.followCursor) {
         const elGrid = ttCtx.getElGrid()
         const seriesBound = elGrid.getBoundingClientRect()
-        // x = ttCtx.e.clientX - seriesBound.left
+        x = ttCtx.e.clientX - seriesBound.left + 10
+        if (x > w.globals.gridWidth / 2) {
+          x = x - ttCtx.tooltipRect.ttWidth - 10
+        }
         y = ttCtx.e.clientY - seriesBound.top + w.globals.translateY / 2 - 10
       }
     }
@@ -89,7 +93,8 @@ class Intersect {
         ttItems: opt.ttItems,
         i,
         j,
-        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
+        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
+        e
       })
 
       if (e.type === 'mouseup') {
@@ -287,7 +292,8 @@ class Intersect {
         j,
         y1: y1 ? parseInt(y1, 10) : null,
         y2: y2 ? parseInt(y2, 10) : null,
-        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared
+        shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
+        e
       })
 
       if (w.config.tooltip.followCursor) {

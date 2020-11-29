@@ -52,10 +52,15 @@ export default class Helpers {
       dataPoints = w.globals.labels.length
     }
 
+    let seriesLen = this.barCtx.seriesLen
+    if (w.config.plotOptions.bar.rangeBarGroupRows) {
+      seriesLen = 1
+    }
+
     if (this.barCtx.isHorizontal) {
       // height divided into equal parts
       yDivision = w.globals.gridHeight / dataPoints
-      barHeight = yDivision / this.barCtx.seriesLen
+      barHeight = yDivision / seriesLen
 
       if (w.globals.isXNumeric) {
         yDivision = w.globals.gridHeight / this.barCtx.totalItems
@@ -89,9 +94,14 @@ export default class Helpers {
         if (w.config.xaxis.convertedCatToNumeric) {
           xRatio = this.barCtx.initialXRatio
         }
-        if (w.globals.minXDiff && w.globals.minXDiff / xRatio > 0) {
+        if (
+          w.globals.minXDiff &&
+          w.globals.minXDiff !== 0.5 &&
+          w.globals.minXDiff / xRatio > 0
+        ) {
           xDivision = w.globals.minXDiff / xRatio
         }
+
         barWidth =
           ((xDivision / this.barCtx.seriesLen) *
             parseInt(this.barCtx.barOptions.columnWidth, 10)) /
@@ -181,7 +191,7 @@ export default class Helpers {
     return strokeWidth
   }
 
-  barBackground({ bc, i, x1, x2, y1, y2, elSeries }) {
+  barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w
     const graphics = new Graphics(this.barCtx.ctx)
 
@@ -192,11 +202,11 @@ export default class Helpers {
       this.barCtx.barOptions.colors.backgroundBarColors.length > 0 &&
       activeSeriesIndex === i
     ) {
-      if (bc >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-        bc = 0
+      if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
+        j -= this.barCtx.barOptions.colors.backgroundBarColors.length
       }
 
-      let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[bc]
+      let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j]
       let rect = graphics.drawRect(
         typeof x1 !== 'undefined' ? x1 : 0,
         typeof y1 !== 'undefined' ? y1 : 0,

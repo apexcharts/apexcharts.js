@@ -13,6 +13,12 @@
 chart: {
   type: 'polarArea',
 },
+stroke: {
+  colors: ['#fff']
+},
+fill: {
+  opacity: 0.8
+},
 responsive: [{
   breakpoint: 480,
   options: {
@@ -27,6 +33,6 @@ responsive: [{
 </options>
 
 <series>
-[14, 25, 21, 17, 15, 20]
+[14, 23, 21, 17, 15, 10, 12, 17, 21]
 </series>
 </chart>

@@ -55,6 +55,10 @@ export default class DimGrid {
         xDivision = w.globals.minXDiff / xRatio
       }
 
+      if (xDivision > gridWidth / 2) {
+        xDivision = xDivision / 2
+      }
+
       barWidth =
         ((xDivision / seriesLen) *
           parseInt(w.config.plotOptions.bar.columnWidth, 10)) /
@@ -88,16 +92,11 @@ export default class DimGrid {
       }
     })
 
-    const nonAxisOrMultiSeriesCharts =
-      w.config.series.length > 1 ||
-      !w.globals.axisCharts ||
-      w.config.legend.showForSingleSeries
-
     if (
       w.config.legend.show &&
       w.config.legend.position === 'bottom' &&
       !w.config.legend.floating &&
-      nonAxisOrMultiSeriesCharts
+      !w.globals.axisCharts
     ) {
       gridShrinkOffset += 10
     }
@@ -134,6 +133,11 @@ export default class DimGrid {
             (yaxisLabelCoords[index].width + yTitleCoords[index].width) -
             parseInt(w.config.yaxis[index].labels.style.fontSize, 10) / 1.2 -
             12
+        }
+
+        // fixes apexcharts.js#1599
+        if (w.globals.translateX < 2) {
+          w.globals.translateX = 2
         }
       }
     })

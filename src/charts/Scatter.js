@@ -36,7 +36,7 @@ export default class Scatter {
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
 
-    if (pointsPos.x instanceof Array) {
+    if (Array.isArray(pointsPos.x)) {
       for (let q = 0; q < pointsPos.x.length; q++) {
         let dataPointIndex = j + 1
         let shouldDraw = true
@@ -127,6 +127,7 @@ export default class Scatter {
       cy: y,
       fill: pathFillCircle,
       stroke: markerConfig.pointStrokeColor,
+      r: finishRadius,
       'stroke-width': markerConfig.pWidth,
       'stroke-dasharray': markerConfig.pointStrokeDashArray,
       'stroke-opacity': markerConfig.pointStrokeOpacity
@@ -137,11 +138,9 @@ export default class Scatter {
       filters.dropShadow(circle, dropShadow, realIndex)
     }
 
-    if (this.initialAnim && !w.globals.dataChanged) {
-      let speed = 1
-      if (!w.globals.resized) {
-        speed = w.config.chart.animations.speed
-      }
+    if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
+      let speed = w.config.chart.animations.speed
+
       anim.animateCircleRadius(
         circle,
         0,

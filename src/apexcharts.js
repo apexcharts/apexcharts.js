@@ -30,14 +30,15 @@ export default class ApexCharts {
 
     this.w.globals.cuid = Utils.randomId()
     this.w.globals.chartID = this.w.config.chart.id
-      ? this.w.config.chart.id
+      ? Utils.escapeString(this.w.config.chart.id)
       : this.w.globals.cuid
 
     const initCtx = new InitCtxVariables(this)
     initCtx.initModules()
 
     this.create = Utils.bind(this.create, this)
-    this.windowResizeHandler = this._windowResize.bind(this)
+    this.windowResizeHandler = this._windowResizeHandler.bind(this)
+    this.parentResizeHandler = this._parentResizeCallback.bind(this)
   }
 
   /**
@@ -68,10 +69,7 @@ export default class ApexCharts {
 
         this.events.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
-        window.addResizeListener(
-          this.el.parentNode,
-          this._parentResizeCallback.bind(this)
-        )
+        window.addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
         let graphData = this.create(this.w.config.series, {})
         if (!graphData) return resolve(this)
@@ -118,6 +116,11 @@ export default class ApexCharts {
 
     this.core.setupElements()
 
+    if (w.config.chart.type === 'treemap') {
+      w.config.grid.show = false
+      w.config.yaxis[0].show = false
+    }
+
     if (gl.svgWidth === 0) {
       // if the element is hidden, skip drawing
       gl.animationEnded = true
@@ -128,10 +131,9 @@ export default class ApexCharts {
     gl.comboCharts = combo.comboCharts
     gl.comboBarCount = combo.comboBarCount
 
-    if (
-      ser.length === 0 ||
-      (ser.length === 1 && ser[0].data && ser[0].data.length === 0)
-    ) {
+    const allSeriesAreEmpty = ser.every((s) => s.data && s.data.length === 0)
+
+    if (ser.length === 0 || allSeriesAreEmpty) {
       this.series.handleNoData()
     }
 
@@ -153,7 +155,11 @@ export default class ApexCharts {
 
     // legend is calculated here before coreCalculations because it affects the plottable area
     // if there is some data to show or user collapsed all series, then proceed drawing legend
-    if (!gl.noData || gl.collapsedSeries.length === gl.series.length) {
+    if (
+      !gl.noData ||
+      gl.collapsedSeries.length === gl.series.length ||
+      w.config.legend.showForSingleSeries
+    ) {
       this.legend.init()
     }
 
@@ -221,13 +227,14 @@ export default class ApexCharts {
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
       }
-      me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
+      if (w.config.chart.type !== 'treemap') {
+        me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
+      }
 
       me.grid = new Grid(me)
       let elgrid = me.grid.drawGrid()
 
       me.annotations = new Annotations(me)
-      me.annotations.drawShapeAnnos()
       me.annotations.drawImageAnnos()
       me.annotations.drawTextAnnos()
 
@@ -247,7 +254,7 @@ export default class ApexCharts {
         me.annotations.drawAxesAnnotations()
       }
 
-      if (graphData.elGraph instanceof Array) {
+      if (Array.isArray(graphData.elGraph)) {
         for (let g = 0; g < graphData.elGraph.length; g++) {
           w.globals.dom.elGraphical.add(graphData.elGraph[g])
         }
@@ -330,20 +337,17 @@ export default class ApexCharts {
   destroy() {
     window.removeEventListener('resize', this.windowResizeHandler)
 
-    window.removeResizeListener(
-      this.el.parentNode,
-      this._parentResizeCallback.bind(this)
-    )
+    window.removeResizeListener(this.el.parentNode, this.parentResizeHandler)
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
     if (chartID) {
       Apex._chartInstances.forEach((c, i) => {
-        if (c.id === chartID) {
+        if (c.id === Utils.escapeString(chartID)) {
           Apex._chartInstances.splice(i, 1)
         }
       })
     }
-    new Destroy(this.ctx).clear()
+    new Destroy(this.ctx).clear({ isUpdating: false })
   }
 
   /**
@@ -361,6 +365,11 @@ export default class ApexCharts {
     overwriteInitialConfig = true
   ) {
     const w = this.w
+
+    // when called externally, clear some global variables
+    // fixes apexcharts.js#1488
+    w.globals.selection = undefined
+
     if (options.series) {
       this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
@@ -443,7 +452,7 @@ export default class ApexCharts {
     let newSeries = me.w.config.series.slice()
 
     for (let i = 0; i < newSeries.length; i++) {
-      if (typeof newData[i] !== 'undefined') {
+      if (newData[i] !== null && typeof newData[i] !== 'undefined') {
         for (let j = 0; j < newData[i].data.length; j++) {
           newSeries[i].data.push(newData[i].data[j])
         }
@@ -451,9 +460,7 @@ export default class ApexCharts {
     }
     me.w.config.series = newSeries
     if (overwriteInitialSeries) {
-      me.w.globals.initialSeries = JSON.parse(
-        JSON.stringify(me.w.config.series)
-      )
+      me.w.globals.initialSeries = Utils.clone(me.w.config.series)
     }
 
     return this.update()
@@ -461,7 +468,7 @@ export default class ApexCharts {
 
   update(options) {
     return new Promise((resolve, reject) => {
-      new Destroy(this.ctx).clear()
+      new Destroy(this.ctx).clear({ isUpdating: true })
 
       const graphData = this.create(this.w.config.series, options)
       if (!graphData) return resolve(this)
@@ -511,8 +518,9 @@ export default class ApexCharts {
       .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
   }
 
-  static getChartByID(chartID) {
-    const c = Apex._chartInstances.filter((ch) => ch.id === chartID)[0]
+  static getChartByID(id) {
+    const chartId = Utils.escapeString(id)
+    const c = Apex._chartInstances.filter((ch) => ch.id === chartId)[0]
     return c && c.chart
   }
 
@@ -699,5 +707,15 @@ export default class ApexCharts {
       // we need to redraw the whole chart on window resize (with a small delay).
       this.ctx.update()
     }, 150)
+  }
+
+  _windowResizeHandler() {
+    let { redrawOnWindowResize: redraw } = this.w.config.chart
+
+    if (typeof redraw === 'function') {
+      redraw = redraw()
+    }
+
+    redraw && this._windowResize()
   }
 }
