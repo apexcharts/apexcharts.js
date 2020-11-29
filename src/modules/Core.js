@@ -302,11 +302,11 @@ export default class Core {
       gl.svgWidth = parseInt(cnf.chart.width, 10)
     }
 
+    let heightUnit = cnf.chart.height
+      .toString()
+      .split(/[0-9]+/g)
+      .pop()
     if (gl.svgHeight !== 'auto' && gl.svgHeight !== '') {
-      let heightUnit = cnf.chart.height
-        .toString()
-        .split(/[0-9]+/g)
-        .pop()
       if (heightUnit === '%') {
         let elParentDim = Utils.getDimensions(this.el.parentNode)
         gl.svgHeight = (elParentDim[1] * parseInt(cnf.chart.height, 10)) / 100
@@ -329,7 +329,7 @@ export default class Core {
       height: gl.svgHeight
     })
 
-    if (cnf.chart.height.indexOf('%') === -1) {
+    if (heightUnit !== '%') {
       // fixes https://github.com/apexcharts/apexcharts.js/issues/2059
       let offsetY = cnf.chart.sparkline.enabled
         ? 0
