@@ -158,9 +158,9 @@ export default class Range {
   logarithmicScale(yMax) {
     const logs = []
 
-    const ticks = Math.ceil(Math.log10(yMax)) + 1; // Get powers of 10 up to our max, and then one more
+    const ticks = Math.ceil(Math.log10(yMax)) + 1 // Get powers of 10 up to our max, and then one more
 
-    for(let i = 0; i < ticks; i++) {
+    for (let i = 0; i < ticks; i++) {
       logs.push(Math.pow(10, i))
     }
 
