@@ -371,7 +371,9 @@ export default class Labels {
         }
       )
     } else {
-      if (!w.globals.isBarHorizontal) {
+      if (w.globals.isBarHorizontal) {
+        xVal = w.globals.yLabelFormatters[0](bufferXVal, customFormatterOpts)
+      } else {
         xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts)
       }
     }
