@@ -91,63 +91,60 @@ export default class XAxis {
       xPos = xPos + colWidth + w.config.xaxis.labels.offsetX
     }
 
-    if (w.config.xaxis.labels.show) {
-      for (let i = 0; i <= labelsLen - 1; i++) {
-        let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
+    for (let i = 0; i <= labelsLen - 1; i++) {
+      let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
 
-        if (
-          i === 0 &&
-          labelsLen === 1 &&
-          colWidth / 2 === xPos &&
-          w.globals.dataPoints === 1
-        ) {
-          // single datapoint
-          x = w.globals.gridWidth / 2
-        }
-        let label = this.axesUtils.getLabel(
-          labels,
-          w.globals.timescaleLabels,
-          x,
+      if (
+        i === 0 &&
+        labelsLen === 1 &&
+        colWidth / 2 === xPos &&
+        w.globals.dataPoints === 1
+      ) {
+        // single datapoint
+        x = w.globals.gridWidth / 2
+      }
+      let label = this.axesUtils.getLabel(
+        labels,
+        w.globals.timescaleLabels,
+        x,
+        i,
+        this.drawnLabels,
+        this.xaxisFontSize
+      )
+
+      let offsetYCorrection = 28
+      if (w.globals.rotateXLabels) {
+        offsetYCorrection = 22
+      }
+
+      const isCategoryTickAmounts =
+        typeof w.config.xaxis.tickAmount !== 'undefined' &&
+        w.config.xaxis.tickAmount !== 'dataPoints' &&
+        w.config.xaxis.type !== 'datetime'
+
+      if (isCategoryTickAmounts) {
+        label = this.axesUtils.checkLabelBasedOnTickamount(i, label, labelsLen)
+      } else {
+        label = this.axesUtils.checkForOverflowingLabels(
           i,
+          label,
+          labelsLen,
           this.drawnLabels,
-          this.xaxisFontSize
+          this.drawnLabelsRects
         )
+      }
 
-        let offsetYCorrection = 28
-        if (w.globals.rotateXLabels) {
-          offsetYCorrection = 22
-        }
+      const getCatForeColor = () => {
+        return w.config.xaxis.convertedCatToNumeric
+          ? this.xaxisForeColors[w.globals.minX + i - 1]
+          : this.xaxisForeColors[i]
+      }
 
-        const isCategoryTickAmounts =
-          typeof w.config.xaxis.tickAmount !== 'undefined' &&
-          w.config.xaxis.tickAmount !== 'dataPoints' &&
-          w.config.xaxis.type !== 'datetime'
+      if (label.text) {
+        w.globals.xaxisLabelsCount++
+      }
 
-        if (isCategoryTickAmounts) {
-          label = this.axesUtils.checkLabelBasedOnTickamount(
-            i,
-            label,
-            labelsLen
-          )
-        } else {
-          label = this.axesUtils.checkForOverflowingLabels(
-            i,
-            label,
-            labelsLen,
-            this.drawnLabels,
-            this.drawnLabelsRects
-          )
-        }
-
-        const getCatForeColor = () => {
-          return w.config.xaxis.convertedCatToNumeric
-            ? this.xaxisForeColors[w.globals.minX + i - 1]
-            : this.xaxisForeColors[i]
-        }
-
-        if (label.text) {
-          w.globals.xaxisLabelsCount++
-        }
+      if (w.config.xaxis.labels.show) {
         let elText = graphics.drawText({
           x: label.x,
           y:
@@ -171,7 +168,6 @@ export default class XAxis {
           cssClass:
             'apexcharts-xaxis-label ' + w.config.xaxis.labels.style.cssClass
         })
-
         elXaxisTexts.add(elText)
 
         let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
@@ -183,8 +179,8 @@ export default class XAxis {
           this.drawnLabels.push(label.text)
           this.drawnLabelsRects.push(label)
         }
-        xPos = xPos + colWidth
       }
+      xPos = xPos + colWidth
     }
 
     if (w.config.xaxis.title.text !== undefined) {
