@@ -175,7 +175,8 @@ export default class Range {
     let newTicks = ticks
     if (
       typeof index !== 'undefined' &&
-      this.w.config.yaxis[index].labels.formatter
+      this.w.config.yaxis[index].labels.formatter &&
+      this.w.config.yaxis[index].tickAmount === undefined
     ) {
       const formattedVal = this.w.config.yaxis[index].labels.formatter(1)
       if (
