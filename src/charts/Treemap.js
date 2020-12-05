@@ -33,6 +33,8 @@ export default class TreemapChart {
       class: 'apexcharts-treemap'
     })
 
+    if (w.globals.noData) return ret
+
     let ser = []
     series.forEach((s) => {
       let d = s.map((v) => {
