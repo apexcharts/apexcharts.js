@@ -45,9 +45,20 @@ describe('Multiple Y-axis Scales', () => {
 
     expect(yAxisScale).toEqual([
       {
-        niceMax: 500000000,
-        niceMin: 1000000,
-        result: [1000000, 5000000, 20000000, 100000000, 500000000]
+        niceMax: 1000000000,
+        niceMin: 1,
+        result: [
+          1,
+          10,
+          100,
+          1000,
+          10000,
+          100000,
+          1000000,
+          10000000,
+          100000000,
+          1000000000
+        ]
       },
       {
         niceMax: 500000000,
