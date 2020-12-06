@@ -41,7 +41,7 @@ describe('Multiple Y-axis Scales', () => {
 
     expect(minYArr).toEqual([1, 1000000])
 
-    expect(maxYArr).toEqual([500000000, 500000000])
+    expect(maxYArr).toEqual([1000000000, 500000000])
 
     expect(yAxisScale).toEqual([
       {
