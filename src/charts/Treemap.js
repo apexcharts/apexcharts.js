@@ -97,6 +97,7 @@ export default class TreemapChart {
         elRect.attr({
           cx: x1,
           cy: y1,
+          index: i,
           i,
           j,
           width: x2 - x1,
