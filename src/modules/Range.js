@@ -190,7 +190,9 @@ class Range {
         if (typeof yaxe.min === 'number') {
           gl.minYArr[index] = yaxe.min
         } else if (typeof yaxe.min === 'function') {
-          gl.minYArr[index] = yaxe.min(gl.minYArr[index])
+          gl.minYArr[index] = yaxe.min(
+            gl.minYArr[index] === Number.MIN_VALUE ? 0 : gl.minYArr[index]
+          )
         }
         // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
         gl.minY = gl.minYArr[index]
