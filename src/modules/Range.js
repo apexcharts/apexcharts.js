@@ -180,7 +180,10 @@ class Range {
         if (typeof yaxe.max === 'number') {
           gl.maxYArr[index] = yaxe.max
         } else if (typeof yaxe.max === 'function') {
-          gl.maxYArr[index] = yaxe.max(gl.maxYArr[index])
+          // fixes apexcharts.js/issues/2098
+          gl.maxYArr[index] = yaxe.max(
+            gl.isMultipleYAxis ? gl.maxYArr[index] : gl.maxY
+          )
         }
 
         // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
@@ -190,8 +193,13 @@ class Range {
         if (typeof yaxe.min === 'number') {
           gl.minYArr[index] = yaxe.min
         } else if (typeof yaxe.min === 'function') {
+          // fixes apexcharts.js/issues/2098
           gl.minYArr[index] = yaxe.min(
-            gl.minYArr[index] === Number.MIN_VALUE ? 0 : gl.minYArr[index]
+            gl.isMultipleYAxis
+              ? gl.minYArr[index] === Number.MIN_VALUE
+                ? 0
+                : gl.minYArr[index]
+              : gl.minY
           )
         }
         // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
@@ -229,7 +237,8 @@ class Range {
       minY: gl.minY,
       maxY: gl.maxY,
       minYArr: gl.minYArr,
-      maxYArr: gl.maxYArr
+      maxYArr: gl.maxYArr,
+      yAxisScale: gl.yAxisScale
     }
   }
 
