@@ -214,7 +214,7 @@ class Exports {
         }
       }
 
-      return cat.split(columnDelimiter).join('')
+      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
     }
 
     const handleAxisRowsColumns = (s, sI) => {
