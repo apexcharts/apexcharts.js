@@ -20,7 +20,6 @@ describe('Multiple Y-axis Scales', () => {
       ],
       yaxis: [
         {
-          min: 1000000,
           max: 500000000,
           tickAmount: 4,
           logarithmic: true,
@@ -40,15 +39,26 @@ describe('Multiple Y-axis Scales', () => {
     const maxYArr = chart.w.globals.maxYArr
     const yAxisScale = chart.w.globals.yAxisScale
 
-    expect(minYArr).toEqual([1000000, 1000000])
+    expect(minYArr).toEqual([1, 1000000])
 
-    expect(maxYArr).toEqual([500000000, 500000000])
+    expect(maxYArr).toEqual([1000000000, 500000000])
 
     expect(yAxisScale).toEqual([
       {
-        niceMax: 500000000,
-        niceMin: 1000000,
-        result: [1000000, 5000000, 20000000, 100000000, 500000000]
+        niceMax: 1000000000,
+        niceMin: 1,
+        result: [
+          1,
+          10,
+          100,
+          1000,
+          10000,
+          100000,
+          1000000,
+          10000000,
+          100000000,
+          1000000000
+        ]
       },
       {
         niceMax: 500000000,

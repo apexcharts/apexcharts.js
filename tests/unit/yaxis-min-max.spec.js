@@ -54,3 +54,84 @@ describe('yaxis range to not contain negative values', () => {
     expect(yRange.maxY).toEqual(24000)
   })
 })
+
+describe('single yaxis - functions in min and max', () => {
+  it('min and max functions in single yaxis should return correct values in params', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line'
+      },
+      series: [
+        {
+          data: [1, 1, 1, -10, 10, 22, 8]
+        },
+        {
+          data: [2, 2, 2, -10, 10, 22, 8]
+        },
+        {
+          data: [-18.5, -23, -22.5, -20, -21.5, -16, -16]
+        }
+      ],
+      yaxis: {
+        max: (max) => {
+          return Math.ceil(max) <= 10 ? max * 1.01 : Math.floor(max)
+        },
+        min: (min) => {
+          return Math.floor(min) >= 0 ? Math.floor(min) : Math.ceil(min)
+        }
+      }
+    })
+
+    const range = new Range(chart)
+    const yRange = range.setYRange()
+
+    expect(yRange.minY).toEqual(-23)
+    expect(yRange.maxY).toEqual(22)
+  })
+})
+
+describe('multiple yaxis - functions in min and max', () => {
+  it('min and max functions in multiple yaxis should return correct values in params', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line'
+      },
+      series: [
+        {
+          name: 'Series 1',
+          data: [400, 410, 420, 430, 500, 600, 700, 800, 900, 1000]
+        },
+        {
+          name: 'Series 2',
+          data: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        }
+      ],
+      yaxis: [
+        {
+          min: (min) => {
+            return min
+          },
+          max: (max) => {
+            return max
+          }
+        },
+        {
+          min: (min) => {
+            return min
+          },
+          max: (max) => {
+            return max
+          }
+        }
+      ]
+    })
+
+    const range = new Range(chart)
+    const yRange = range.setYRange()
+
+    expect(yRange.yAxisScale[0].niceMin).toEqual(0)
+    expect(yRange.yAxisScale[0].niceMax).toEqual(1000)
+    expect(yRange.yAxisScale[1].niceMin).toEqual(0)
+    expect(yRange.yAxisScale[1].niceMax).toEqual(9.000000000000002)
+  })
+})

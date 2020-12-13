@@ -5,6 +5,7 @@ import DataLabels from '../modules/DataLabels'
 import Filters from '../modules/Filters'
 import Utils from '../utils/Utils'
 import Helpers from './common/circle/Helpers'
+import CoreUtils from '../modules/CoreUtils'
 
 /**
  * ApexCharts Radar Class for Spider/Radar Charts.
@@ -38,8 +39,15 @@ class Radar {
         ? w.globals.gridHeight + w.globals.goldenPadding * 1.5
         : w.globals.gridWidth
 
-    this.maxValue = this.w.globals.maxY
-    this.minValue = this.w.globals.minY
+    this.isLog = w.config.yaxis[0].logarithmic
+
+    this.coreUtils = new CoreUtils(this.ctx)
+    this.maxValue = this.isLog
+      ? this.coreUtils.getLogVal(w.globals.maxY, 0)
+      : w.globals.maxY
+    this.minValue = this.isLog
+      ? this.coreUtils.getLogVal(this.w.globals.minY, 0)
+      : w.globals.minY
 
     this.polygons = w.config.plotOptions.radar.polygons
 
@@ -112,6 +120,11 @@ class Radar {
       s.forEach((dv, j) => {
         const range = Math.abs(this.maxValue - this.minValue)
         dv = dv + Math.abs(this.minValue)
+
+        if (this.isLog) {
+          dv = this.coreUtils.getLogVal(dv, 0)
+        }
+
         this.dataRadiusOfPercent[i][j] = dv / range
 
         this.dataRadius[i][j] = this.dataRadiusOfPercent[i][j] * this.size
