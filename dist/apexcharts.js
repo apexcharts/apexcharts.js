@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.22.3
+ * ApexCharts v3.23.0
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -5813,7 +5813,7 @@
           return w.globals.dom.baseEl.querySelectorAll(".apexcharts-".concat(chartType, "-series .apexcharts-series"));
         };
 
-        var chartTypes = ['line', 'area', 'bar', 'candlestick', 'radar'];
+        var chartTypes = ['line', 'area', 'bar', 'rangebar', 'candlestick', 'radar'];
         chartTypes.forEach(function (type) {
           var paths = getPaths(type);
 
@@ -7314,6 +7314,7 @@
           y2: y2,
           strokeWidth: this.strokeWidth,
           series: this.seriesRangeEnd,
+          realIndex: indexes.realIndex,
           i: realIndex,
           j: j,
           w: w
@@ -7355,6 +7356,7 @@
           strokeWidth: this.strokeWidth,
           series: this.seriesRangeEnd,
           i: indexes.realIndex,
+          realIndex: indexes.realIndex,
           j: indexes.j,
           w: w
         });
@@ -8466,7 +8468,7 @@
           throw new Error('tooltip.shared cannot be enabled when tooltip.intersect is true. Turn off any other option by setting it to false.');
         }
 
-        if ((config.chart.type === 'bar' || config.chart.type === 'rangeBar') && config.plotOptions.bar.horizontal) {
+        if (config.chart.type === 'bar' && config.plotOptions.bar.horizontal) {
           // No multiple yaxis for bars
           if (config.yaxis.length > 1) {
             throw new Error('Multiple Y Axis for bars are not supported. Switch to column chart by setting plotOptions.bar.horizontal=false');
@@ -9194,6 +9196,7 @@
         var gl = this.w.globals;
         var dt = new DateTime(ctx);
         var xlabels = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice();
+        gl.isTimelineBar = cnf.chart.type === 'rangeBar' && cnf.xaxis.type === 'datetime';
 
         var handleDates = function handleDates() {
           for (var j = 0; j < xlabels.length; j++) {
@@ -9721,9 +9724,9 @@
           textRect = graphics.getTextRects(label, parseInt(fontSize, 10));
         }
 
-        var timeScaleHoursMinutes = !w.config.xaxis.labels.showDuplicates && this.ctx.timeScale && this.ctx.timeScale.tickInterval !== 'hours' && this.ctx.timeScale.tickInterval !== 'minutes';
+        var allowDuplicatesInTimeScale = !w.config.xaxis.labels.showDuplicates && this.ctx.timeScale;
 
-        if (!Array.isArray(label) && (label.indexOf('NaN') === 0 || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || drawnLabels.indexOf(label) >= 0 && timeScaleHoursMinutes)) {
+        if (!Array.isArray(label) && (label.indexOf('NaN') === 0 || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || drawnLabels.indexOf(label) >= 0 && allowDuplicatesInTimeScale)) {
           label = '';
         }
 
@@ -10051,7 +10054,7 @@
             }
           }
 
-          return cat.split(columnDelimiter).join('');
+          return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('');
         };
 
         var handleAxisRowsColumns = function handleAxisRowsColumns(s, sI) {
@@ -11754,7 +11757,8 @@
             if (typeof yaxe.max === 'number') {
               gl.maxYArr[index] = yaxe.max;
             } else if (typeof yaxe.max === 'function') {
-              gl.maxYArr[index] = yaxe.max(gl.maxYArr[index]);
+              // fixes apexcharts.js/issues/2098
+              gl.maxYArr[index] = yaxe.max(gl.isMultipleYAxis ? gl.maxYArr[index] : gl.maxY);
             } // gl.maxY is for single y-axis chart, it will be ignored in multi-yaxis
 
 
@@ -11765,7 +11769,8 @@
             if (typeof yaxe.min === 'number') {
               gl.minYArr[index] = yaxe.min;
             } else if (typeof yaxe.min === 'function') {
-              gl.minYArr[index] = yaxe.min(gl.minYArr[index]);
+              // fixes apexcharts.js/issues/2098
+              gl.minYArr[index] = yaxe.min(gl.isMultipleYAxis ? gl.minYArr[index] === Number.MIN_VALUE ? 0 : gl.minYArr[index] : gl.minY);
             } // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
 
 
@@ -11802,7 +11807,8 @@
           minY: gl.minY,
           maxY: gl.maxY,
           minYArr: gl.minYArr,
-          maxYArr: gl.maxYArr
+          maxYArr: gl.maxYArr,
+          yAxisScale: gl.yAxisScale
         };
       }
     }, {
@@ -14614,9 +14620,12 @@
 
       this.ctx = ctx;
       this.w = ctx.w;
+      var w = this.w;
       this.ev = this.w.config.chart.events;
       this.selectedClass = 'apexcharts-selected';
       this.localeValues = this.w.globals.locale.toolbar;
+      this.minX = w.globals.minX;
+      this.maxX = w.globals.maxX;
     }
 
     _createClass(Toolbar, [{
@@ -14887,9 +14896,15 @@
       key: "handleZoomIn",
       value: function handleZoomIn() {
         var w = this.w;
-        var centerX = (w.globals.minX + w.globals.maxX) / 2;
-        var newMinX = (w.globals.minX + centerX) / 2;
-        var newMaxX = (w.globals.maxX + centerX) / 2;
+
+        if (w.globals.isTimelineBar) {
+          this.minX = w.globals.minY;
+          this.maxX = w.globals.maxY;
+        }
+
+        var centerX = (this.minX + this.maxX) / 2;
+        var newMinX = (this.minX + centerX) / 2;
+        var newMaxX = (this.maxX + centerX) / 2;
 
         var newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX);
 
@@ -14900,15 +14915,21 @@
     }, {
       key: "handleZoomOut",
       value: function handleZoomOut() {
-        var w = this.w; // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
+        var w = this.w;
 
-        if (w.config.xaxis.type === 'datetime' && new Date(w.globals.minX).getUTCFullYear() < 1000) {
+        if (w.globals.isTimelineBar) {
+          this.minX = w.globals.minY;
+          this.maxX = w.globals.maxY;
+        } // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
+
+
+        if (w.config.xaxis.type === 'datetime' && new Date(this.minX).getUTCFullYear() < 1000) {
           return;
         }
 
-        var centerX = (w.globals.minX + w.globals.maxX) / 2;
-        var newMinX = w.globals.minX - (centerX - w.globals.minX);
-        var newMaxX = w.globals.maxX - (centerX - w.globals.maxX);
+        var centerX = (this.minX + this.maxX) / 2;
+        var newMinX = this.minX - (centerX - this.minX);
+        var newMaxX = this.maxX - (centerX - this.maxX);
 
         var newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX);
 
@@ -15543,8 +15564,17 @@
           me.endY = tempY;
         }
 
-        var xLowestValue = w.globals.xAxisScale.niceMin + me.startX * xyRatios.xRatio;
-        var xHighestValue = w.globals.xAxisScale.niceMin + me.endX * xyRatios.xRatio; // TODO: we will consider the 1st y axis values here for getting highest and lowest y
+        var xLowestValue = undefined;
+        var xHighestValue = undefined;
+
+        if (!w.globals.isTimelineBar) {
+          xLowestValue = w.globals.xAxisScale.niceMin + me.startX * xyRatios.xRatio;
+          xHighestValue = w.globals.xAxisScale.niceMin + me.endX * xyRatios.xRatio;
+        } else {
+          xLowestValue = w.globals.yAxisScale[0].niceMin + me.startX * xyRatios.invertedYRatio;
+          xHighestValue = w.globals.yAxisScale[0].niceMin + me.endX * xyRatios.invertedYRatio;
+        } // TODO: we will consider the 1st y axis values here for getting highest and lowest y
+
 
         var yHighestValue = [];
         var yLowestValue = [];
@@ -22103,6 +22133,7 @@
             elRect.attr({
               cx: x1,
               cy: y1,
+              index: i,
               i: i,
               j: j,
               width: x2 - x1,
@@ -30070,7 +30101,7 @@
               me.w.globals.tooltip.drawTooltip(graphData.xyRatios);
             }
 
-            if (w.globals.axisCharts && (w.globals.isXNumeric || w.config.xaxis.convertedCatToNumeric)) {
+            if (w.globals.axisCharts && (w.globals.isXNumeric || w.config.xaxis.convertedCatToNumeric || w.globals.isTimelineBar)) {
               if (w.config.chart.zoom.enabled || w.config.chart.selection && w.config.chart.selection.enabled || w.config.chart.pan && w.config.chart.pan.enabled) {
                 me.zoomPanSelection.init({
                   xyRatios: graphData.xyRatios
