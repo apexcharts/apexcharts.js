@@ -270,7 +270,14 @@ export default class Series {
       )
     }
 
-    const chartTypes = ['line', 'area', 'bar', 'candlestick', 'radar']
+    const chartTypes = [
+      'line',
+      'area',
+      'bar',
+      'rangebar',
+      'candlestick',
+      'radar'
+    ]
     chartTypes.forEach((type) => {
       const paths = getPaths(type)
       for (let p = 0; p < paths.length; p++) {

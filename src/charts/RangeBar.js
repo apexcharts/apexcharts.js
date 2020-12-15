@@ -269,6 +269,7 @@ class RangeBar extends Bar {
       y2,
       strokeWidth: this.strokeWidth,
       series: this.seriesRangeEnd,
+      realIndex: indexes.realIndex,
       i: realIndex,
       j,
       w
@@ -313,6 +314,7 @@ class RangeBar extends Bar {
       strokeWidth: this.strokeWidth,
       series: this.seriesRangeEnd,
       i: indexes.realIndex,
+      realIndex: indexes.realIndex,
       j: indexes.j,
       w
     })

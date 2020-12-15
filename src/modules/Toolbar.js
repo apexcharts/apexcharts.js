@@ -29,11 +29,6 @@ export default class Toolbar {
 
     this.minX = w.globals.minX
     this.maxX = w.globals.maxX
-
-    if (w.globals.isTimelineBar) {
-      this.minX = w.globals.minY
-      this.maxX = w.globals.maxY
-    }
   }
 
   createToolbar() {
@@ -326,6 +321,11 @@ export default class Toolbar {
   handleZoomIn() {
     const w = this.w
 
+    if (w.globals.isTimelineBar) {
+      this.minX = w.globals.minY
+      this.maxX = w.globals.maxY
+    }
+
     const centerX = (this.minX + this.maxX) / 2
     let newMinX = (this.minX + centerX) / 2
     let newMaxX = (this.maxX + centerX) / 2
@@ -339,6 +339,11 @@ export default class Toolbar {
 
   handleZoomOut() {
     const w = this.w
+
+    if (w.globals.isTimelineBar) {
+      this.minX = w.globals.minY
+      this.maxX = w.globals.maxY
+    }
 
     // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
     if (
