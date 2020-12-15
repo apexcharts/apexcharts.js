@@ -287,7 +287,9 @@ export default class ApexCharts {
 
         if (
           w.globals.axisCharts &&
-          (w.globals.isXNumeric || w.config.xaxis.convertedCatToNumeric)
+          (w.globals.isXNumeric ||
+            w.config.xaxis.convertedCatToNumeric ||
+            w.globals.isTimelineBar)
         ) {
           if (
             w.config.chart.zoom.enabled ||

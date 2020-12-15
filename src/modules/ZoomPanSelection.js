@@ -507,9 +507,18 @@ export default class ZoomPanSelection extends Toolbar {
       me.endY = tempY
     }
 
-    let xLowestValue =
-      w.globals.xAxisScale.niceMin + me.startX * xyRatios.xRatio
-    let xHighestValue = w.globals.xAxisScale.niceMin + me.endX * xyRatios.xRatio
+    let xLowestValue = undefined
+    let xHighestValue = undefined
+
+    if (!w.globals.isTimelineBar) {
+      xLowestValue = w.globals.xAxisScale.niceMin + me.startX * xyRatios.xRatio
+      xHighestValue = w.globals.xAxisScale.niceMin + me.endX * xyRatios.xRatio
+    } else {
+      xLowestValue =
+        w.globals.yAxisScale[0].niceMin + me.startX * xyRatios.invertedYRatio
+      xHighestValue =
+        w.globals.yAxisScale[0].niceMin + me.endX * xyRatios.invertedYRatio
+    }
 
     // TODO: we will consider the 1st y axis values here for getting highest and lowest y
     let yHighestValue = []

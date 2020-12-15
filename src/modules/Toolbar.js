@@ -20,11 +20,15 @@ export default class Toolbar {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
+    const w = this.w
 
     this.ev = this.w.config.chart.events
     this.selectedClass = 'apexcharts-selected'
 
     this.localeValues = this.w.globals.locale.toolbar
+
+    this.minX = w.globals.minX
+    this.maxX = w.globals.maxX
   }
 
   createToolbar() {
@@ -317,9 +321,14 @@ export default class Toolbar {
   handleZoomIn() {
     const w = this.w
 
-    const centerX = (w.globals.minX + w.globals.maxX) / 2
-    let newMinX = (w.globals.minX + centerX) / 2
-    let newMaxX = (w.globals.maxX + centerX) / 2
+    if (w.globals.isTimelineBar) {
+      this.minX = w.globals.minY
+      this.maxX = w.globals.maxY
+    }
+
+    const centerX = (this.minX + this.maxX) / 2
+    let newMinX = (this.minX + centerX) / 2
+    let newMaxX = (this.maxX + centerX) / 2
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
@@ -331,17 +340,22 @@ export default class Toolbar {
   handleZoomOut() {
     const w = this.w
 
+    if (w.globals.isTimelineBar) {
+      this.minX = w.globals.minY
+      this.maxX = w.globals.maxY
+    }
+
     // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
     if (
       w.config.xaxis.type === 'datetime' &&
-      new Date(w.globals.minX).getUTCFullYear() < 1000
+      new Date(this.minX).getUTCFullYear() < 1000
     ) {
       return
     }
 
-    const centerX = (w.globals.minX + w.globals.maxX) / 2
-    let newMinX = w.globals.minX - (centerX - w.globals.minX)
-    let newMaxX = w.globals.maxX - (centerX - w.globals.maxX)
+    const centerX = (this.minX + this.maxX) / 2
+    let newMinX = this.minX - (centerX - this.minX)
+    let newMaxX = this.maxX - (centerX - this.maxX)
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
