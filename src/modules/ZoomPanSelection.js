@@ -659,9 +659,11 @@ export default class ZoomPanSelection extends Toolbar {
       y: me.clientY
     }
 
-    let xLowestValue = w.globals.minX
+    let xLowestValue = w.globals.isTimelineBar ? w.globals.minY : w.globals.minX
 
-    let xHighestValue = w.globals.maxX
+    let xHighestValue = w.globals.isTimelineBar
+      ? w.globals.maxY
+      : w.globals.maxX
 
     // on a category, we don't pan continuosly as it causes bugs
     if (!w.config.xaxis.convertedCatToNumeric) {
@@ -699,24 +701,31 @@ export default class ZoomPanSelection extends Toolbar {
     const xyRatios = this.xyRatios
     let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
-    if (this.moveDirection === 'left') {
-      xLowestValue =
-        w.globals.minX + (w.globals.gridWidth / 15) * xyRatios.xRatio
-      xHighestValue =
-        w.globals.maxX + (w.globals.gridWidth / 15) * xyRatios.xRatio
-    } else if (this.moveDirection === 'right') {
-      xLowestValue =
-        w.globals.minX - (w.globals.gridWidth / 15) * xyRatios.xRatio
-      xHighestValue =
-        w.globals.maxX - (w.globals.gridWidth / 15) * xyRatios.xRatio
+    let xRatio = xyRatios.xRatio
+    let minX = w.globals.minX
+    let maxX = w.globals.maxX
+    if (w.globals.isTimelineBar) {
+      xRatio = xyRatios.invertedYRatio
+      minX = w.globals.minY
+      maxX = w.globals.maxY
     }
 
-    if (
-      xLowestValue < w.globals.initialMinX ||
-      xHighestValue > w.globals.initialMaxX
-    ) {
-      xLowestValue = w.globals.minX
-      xHighestValue = w.globals.maxX
+    if (this.moveDirection === 'left') {
+      xLowestValue = minX + (w.globals.gridWidth / 15) * xRatio
+      xHighestValue = maxX + (w.globals.gridWidth / 15) * xRatio
+    } else if (this.moveDirection === 'right') {
+      xLowestValue = minX - (w.globals.gridWidth / 15) * xRatio
+      xHighestValue = maxX - (w.globals.gridWidth / 15) * xRatio
+    }
+
+    if (!w.globals.isTimelineBar) {
+      if (
+        xLowestValue < w.globals.initialMinX ||
+        xHighestValue > w.globals.initialMaxX
+      ) {
+        xLowestValue = minX
+        xHighestValue = maxX
+      }
     }
 
     let xaxis = {
