@@ -156,7 +156,11 @@ class Range {
         lowestYInAllSeries !== gl.maxY // single value possibility
       ) {
         let diff = gl.maxY - lowestYInAllSeries
-        if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {
+        if (
+          (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) ||
+          cnf.yaxis[0].min !== undefined ||
+          cnf.yaxis[0].max !== undefined
+        ) {
           // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
           diff = 0
         }
