@@ -256,6 +256,8 @@ class Pie {
         j: i
       })
 
+      filters.setSelectionFilter(elPath, 0, i)
+
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
         filters.dropShadow(elPath, shadow, i)
@@ -338,6 +340,13 @@ class Pie {
         this.chartType !== 'polarArea'
       ) {
         elPath.click(this.pieClicked.bind(this, i))
+      }
+
+      if (
+        typeof w.globals.selectedDataPoints[0] !== 'undefined' &&
+        w.globals.selectedDataPoints[0].indexOf(i) > -1
+      ) {
+        this.pieClicked(i)
       }
 
       if (w.config.dataLabels.enabled) {
