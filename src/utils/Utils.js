@@ -155,9 +155,16 @@ class Utils {
   static getDimensions(el) {
     const computedStyle = getComputedStyle(el, null)
 
-    const height = parseFloat(computedStyle.height)
-    const width = parseFloat(computedStyle.width)
-    return [width, height]
+    let elementHeight = el.clientHeight
+    let elementWidth = el.clientWidth
+    elementHeight -=
+      parseFloat(computedStyle.paddingTop) +
+      parseFloat(computedStyle.paddingBottom)
+    elementWidth -=
+      parseFloat(computedStyle.paddingLeft) +
+      parseFloat(computedStyle.paddingRight)
+
+    return [elementWidth, elementHeight]
   }
 
   static getBoundingClientRect(element) {
