@@ -384,13 +384,14 @@ class Bar {
   }) {
     let w = this.w
 
+    let realIndex = indexes.realIndex
     let i = indexes.i
     let j = indexes.j
     let bc = indexes.bc
 
     if (w.globals.isXNumeric) {
-      let sxI = i
-      if (!w.globals.seriesX[i].length) {
+      let sxI = realIndex
+      if (!w.globals.seriesX[realIndex].length) {
         sxI = w.globals.maxValsInArrayIndex
       }
 
