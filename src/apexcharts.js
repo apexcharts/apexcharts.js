@@ -176,7 +176,7 @@ export default class ApexCharts {
     }
 
     // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
-    // Also we need to do this before calcuting Dimentions plotCoords() method of Dimensions
+    // Also we need to do this before calculating Dimensions plotCoords() method of Dimensions
     this.formatters.heatmapLabelFormatters()
 
     // We got plottable area here, next task would be to calculate axis areas
@@ -542,7 +542,7 @@ export default class ApexCharts {
 
   /**
    * This static method allows users to call chart methods without necessarily from the
-   * instance of the chart in case user has assigned chartID to the targetted chart.
+   * instance of the chart in case user has assigned chartID to the targeted chart.
    * The chartID is used for mapping the instance stored in Apex._chartInstances global variable
    *
    * This is helpful in cases when you don't have reference of the chart instance

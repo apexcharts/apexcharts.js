@@ -68,7 +68,7 @@ export default class Theme {
       }
     }
 
-    // user defined colors in series aray
+    // user defined colors in series array
     w.globals.seriesColors.map((c, i) => {
       if (c) {
         w.globals.colors[i] = c
@@ -104,7 +104,7 @@ export default class Theme {
     }
     const defaultColors = w.globals.colors.slice()
 
-    // if user specfied less colors than no. of series, push the same colors again
+    // if user specified fewer colors than no. of series, push the same colors again
     this.pushExtraColors(w.globals.colors)
 
     const colorTypes = ['fill', 'stroke']

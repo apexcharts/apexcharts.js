@@ -174,7 +174,7 @@ export default class Core {
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
           console.warn(
-            'You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar/scatter/bubble'
+            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble'
           )
         }
         gl.comboCharts = true

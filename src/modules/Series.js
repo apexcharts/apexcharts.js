@@ -2,7 +2,7 @@ import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 
 /**
- * ApexCharts Series Class for interation with the Series of the chart.
+ * ApexCharts Series Class for interaction with the Series of the chart.
  *
  * @module Series
  **/

@@ -247,7 +247,7 @@ export default class TreemapChart {
       // the font size should be proportional to the size of the box (and the value)
       // otherwise you can end up creating a visual distortion where two boxes of identical
       // size have different sized labels, and thus make it look as if the two boxes
-      // represent diffferent sizes
+      // represent different sizes
       let area = width * height
       let arearoot = Math.pow(area, 0.5)
       return Math.min(
