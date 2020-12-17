@@ -2561,7 +2561,7 @@ export const optionsPattern = {
           type: Object,
           attrs: {
             size: {
-              title: 'A custom size for the inner radar. The default size calculation will be overrided with this.',
+              title: 'A custom size for the inner radar. The default size calculation will be overridden with this.',
               type: Number,
             },
             offsetX: {
@@ -2915,7 +2915,7 @@ export const optionsPattern = {
         type: Object,
         attrs: {
           breakpoint: {
-            title: 'The breakpoint is the max screen width at which the original config object will be overrided by the responsive config object',
+            title: 'The breakpoint is the max screen width at which the original config object will be overridden by the responsive config object',
             type: Number,
           },
           options: {
