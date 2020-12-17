@@ -401,7 +401,7 @@ export default class XAxis {
         w.config.xaxis.axisTicks.color
       )
 
-      // we are not returning anything, but appending directly to the element pased in param
+      // we are not returning anything, but appending directly to the element passed in param
       appendToElement.add(line)
       line.node.classList.add('apexcharts-xaxis-tick')
     }
