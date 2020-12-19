@@ -1,6 +1,7 @@
 import Formatters from '../Formatters'
 import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
+import Utilities from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
@@ -165,14 +166,14 @@ export default class Labels {
       if (w.globals.yLabelFormatters[0]) {
         yLbFormatter = w.globals.yLabelFormatters[0]
       } else {
-        yLbFormatter = function(label) {
+        yLbFormatter = function (label) {
           return label
         }
       }
     }
 
     if (typeof yLbTitleFormatter !== 'function') {
-      yLbTitleFormatter = function(label) {
+      yLbTitleFormatter = function (label) {
         return label
       }
     }
@@ -196,6 +197,11 @@ export default class Labels {
   DOMHandling({ i, t, j, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
+
+    Object.keys(values).forEach(key => {
+      if (typeof values[key] == 'string')
+        values[key] = Utilities.sanitizeDom(values[key])
+    })
 
     const { val, xVal, xAxisTTVal, zVal } = values
 
@@ -225,7 +231,7 @@ export default class Labels {
 
     const ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label')
     if (ttYLabel) {
-      ttYLabel.innerHTML = seriesName ? seriesName : ''
+      ttYLabel.innerHTML = seriesName ? Utilities.sanitizeDom(seriesName) : ''
     }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-value')
     if (ttYVal) {
