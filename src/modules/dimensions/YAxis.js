@@ -170,7 +170,7 @@ export default class DimYAxis {
       padForLabelTitle(yTitleCoord, index)
     })
 
-    if (w.globals.isBarHorizontal) {
+    if (w.globals.isBarHorizontal && !w.config.yaxis[0].floating) {
       yAxisWidth =
         w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
     }
