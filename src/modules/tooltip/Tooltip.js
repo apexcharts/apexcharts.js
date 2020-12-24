@@ -602,8 +602,31 @@ export default class Tooltip {
 
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
+
+      if (w.config.legend.tooltipHoverFormatter) {
+        let legendFormatter = w.config.legend.tooltipHoverFormatter
+
+        const i = rel - 1
+        const legendName = this.legendLabels[i].getAttribute(
+          'data:default-text'
+        )
+
+        let text = legendFormatter(legendName, {
+          seriesIndex: i,
+          dataPointIndex: i,
+          w
+        })
+
+        this.legendLabels[i].innerHTML = text
+      }
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       tooltipEl.classList.remove('apexcharts-active')
+      if (w.config.legend.tooltipHoverFormatter) {
+        this.legendLabels.forEach((l) => {
+          const defaultText = l.getAttribute('data:default-text')
+          l.innerHTML = decodeURIComponent(defaultText)
+        })
+      }
     }
   }
 
