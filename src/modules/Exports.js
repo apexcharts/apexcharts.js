@@ -16,7 +16,7 @@ class Exports {
       return svgData
     }
 
-    // replace second occurence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
+    // replace second occurrence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
     let nXmlnsSeen = 0
     let result = svgData.replace(
       /xmlns="http:\/\/www.w3.org\/2000\/svg"/g,

@@ -184,7 +184,7 @@ export default class YAxis {
     return elYaxis
   }
 
-  // This actually becomes horizonal axis (for bar charts)
+  // This actually becomes horizontal axis (for bar charts)
   drawYaxisInversed(realIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)

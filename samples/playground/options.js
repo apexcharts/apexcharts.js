@@ -2528,7 +2528,7 @@ export const optionsPattern = {
                           default: function(w) {
                             return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
                           },
-                        }, 
+                        },
                       },
                     },
                   },
@@ -2561,7 +2561,7 @@ export const optionsPattern = {
           type: Object,
           attrs: {
             size: {
-              title: 'A custom size for the inner radar. The default size calculation will be overrided with this.',
+              title: 'A custom size for the inner radar. The default size calculation will be overridden with this.',
               type: Number,
             },
             offsetX: {
@@ -2915,7 +2915,7 @@ export const optionsPattern = {
         type: Object,
         attrs: {
           breakpoint: {
-            title: 'The breakpoint is the max screen width at which the original config object will be overrided by the responsive config object',
+            title: 'The breakpoint is the max screen width at which the original config object will be overridden by the responsive config object',
             type: Number,
           },
           options: {
@@ -3942,7 +3942,7 @@ export const optionsPattern = {
               default: 0,
             },
             formatter: {
-              title: 'Applies a custom function for the yaxis value. Note: In horizantal bar charts, the second parameters also contains additional data like `dataPointIndex` and `seriesIndex`.',
+              title: 'Applies a custom function for the yaxis value. Note: In horizontal bar charts, the second parameters also contains additional data like `dataPointIndex` and `seriesIndex`.',
               default: function(value) {
                 return val;
               },
