@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.23.0
+ * ApexCharts v3.23.1
  * (c) 2018-2020 Juned Chhipa
  * Released under the MIT License.
  */
@@ -430,9 +430,11 @@
       key: "getDimensions",
       value: function getDimensions(el) {
         var computedStyle = getComputedStyle(el, null);
-        var height = parseFloat(computedStyle.height);
-        var width = parseFloat(computedStyle.width);
-        return [width, height];
+        var elementHeight = el.clientHeight;
+        var elementWidth = el.clientWidth;
+        elementHeight -= parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
+        elementWidth -= parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.paddingRight);
+        return [elementWidth, elementHeight];
       }
     }, {
       key: "getBoundingClientRect",
@@ -5559,7 +5561,7 @@
   }();
 
   /**
-   * ApexCharts Series Class for interation with the Series of the chart.
+   * ApexCharts Series Class for interaction with the Series of the chart.
    *
    * @module Series
    **/
@@ -6737,14 +6739,15 @@
             strokeWidth = _ref3.strokeWidth,
             elSeries = _ref3.elSeries;
         var w = this.w;
+        var realIndex = indexes.realIndex;
         var i = indexes.i;
         var j = indexes.j;
         var bc = indexes.bc;
 
         if (w.globals.isXNumeric) {
-          var sxI = i;
+          var sxI = realIndex;
 
-          if (!w.globals.seriesX[i].length) {
+          if (!w.globals.seriesX[realIndex].length) {
             sxI = w.globals.maxValsInArrayIndex;
           }
 
@@ -9862,7 +9865,7 @@
         if (!Utils.isIE11()) {
           // not IE11 - noop
           return svgData;
-        } // replace second occurence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
+        } // replace second occurrence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
 
 
         var nXmlnsSeen = 0;
@@ -10465,7 +10468,7 @@
 
         if (w.config.xaxis.axisTicks.show) {
           var graphics = new Graphics(this.ctx);
-          var line = graphics.drawLine(x1 + w.config.xaxis.axisTicks.offsetX, y1 + w.config.xaxis.offsetY, x2 + w.config.xaxis.axisTicks.offsetX, y2 + w.config.xaxis.offsetY, w.config.xaxis.axisTicks.color); // we are not returning anything, but appending directly to the element pased in param
+          var line = graphics.drawLine(x1 + w.config.xaxis.axisTicks.offsetX, y1 + w.config.xaxis.offsetY, x2 + w.config.xaxis.axisTicks.offsetX, y2 + w.config.xaxis.offsetY, w.config.xaxis.axisTicks.color); // we are not returning anything, but appending directly to the element passed in param
 
           appendToElement.add(line);
           line.node.classList.add('apexcharts-xaxis-tick');
@@ -11731,7 +11734,7 @@
           ) {
               var diff = gl.maxY - lowestYInAllSeries;
 
-              if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) {
+              if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10 || cnf.yaxis[0].min !== undefined || cnf.yaxis[0].max !== undefined) {
                 // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
                 diff = 0;
               }
@@ -12205,7 +12208,7 @@
         }
 
         return elYaxis;
-      } // This actually becomes horizonal axis (for bar charts)
+      } // This actually becomes horizontal axis (for bar charts)
 
     }, {
       key: "drawYaxisInversed",
@@ -12915,7 +12918,7 @@
               return c;
             });
           }
-        } // user defined colors in series aray
+        } // user defined colors in series array
 
 
         w.globals.seriesColors.map(function (c, i) {
@@ -12954,7 +12957,7 @@
           w.globals.colors = monoArr.slice();
         }
 
-        var defaultColors = w.globals.colors.slice(); // if user specfied less colors than no. of series, push the same colors again
+        var defaultColors = w.globals.colors.slice(); // if user specified fewer colors than no. of series, push the same colors again
 
         this.pushExtraColors(w.globals.colors);
         var colorTypes = ['fill', 'stroke'];
@@ -13638,7 +13641,7 @@
           padForLabelTitle(yTitleCoord, index);
         });
 
-        if (w.globals.isBarHorizontal) {
+        if (w.globals.isBarHorizontal && !w.config.yaxis[0].floating) {
           yAxisWidth = w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15;
         }
 
@@ -15704,8 +15707,8 @@
           x: me.clientX,
           y: me.clientY
         };
-        var xLowestValue = w.globals.minX;
-        var xHighestValue = w.globals.maxX; // on a category, we don't pan continuosly as it causes bugs
+        var xLowestValue = w.globals.isTimelineBar ? w.globals.minY : w.globals.minX;
+        var xHighestValue = w.globals.isTimelineBar ? w.globals.maxY : w.globals.maxX; // on a category, we don't pan continuosly as it causes bugs
 
         if (!w.config.xaxis.convertedCatToNumeric) {
           me.panScrolled(xLowestValue, xHighestValue);
@@ -15742,18 +15745,29 @@
         var w = this.w;
         var xyRatios = this.xyRatios;
         var yaxis = Utils.clone(w.globals.initialConfig.yaxis);
+        var xRatio = xyRatios.xRatio;
+        var minX = w.globals.minX;
+        var maxX = w.globals.maxX;
 
-        if (this.moveDirection === 'left') {
-          xLowestValue = w.globals.minX + w.globals.gridWidth / 15 * xyRatios.xRatio;
-          xHighestValue = w.globals.maxX + w.globals.gridWidth / 15 * xyRatios.xRatio;
-        } else if (this.moveDirection === 'right') {
-          xLowestValue = w.globals.minX - w.globals.gridWidth / 15 * xyRatios.xRatio;
-          xHighestValue = w.globals.maxX - w.globals.gridWidth / 15 * xyRatios.xRatio;
+        if (w.globals.isTimelineBar) {
+          xRatio = xyRatios.invertedYRatio;
+          minX = w.globals.minY;
+          maxX = w.globals.maxY;
         }
 
-        if (xLowestValue < w.globals.initialMinX || xHighestValue > w.globals.initialMaxX) {
-          xLowestValue = w.globals.minX;
-          xHighestValue = w.globals.maxX;
+        if (this.moveDirection === 'left') {
+          xLowestValue = minX + w.globals.gridWidth / 15 * xRatio;
+          xHighestValue = maxX + w.globals.gridWidth / 15 * xRatio;
+        } else if (this.moveDirection === 'right') {
+          xLowestValue = minX - w.globals.gridWidth / 15 * xRatio;
+          xHighestValue = maxX - w.globals.gridWidth / 15 * xRatio;
+        }
+
+        if (!w.globals.isTimelineBar) {
+          if (xLowestValue < w.globals.initialMinX || xHighestValue > w.globals.initialMaxX) {
+            xLowestValue = minX;
+            xHighestValue = maxX;
+          }
         }
 
         var xaxis = {
@@ -18098,8 +18112,27 @@
           var y = w.globals.clientY - seriesBound.top - tooltipRect.ttHeight - 10;
           tooltipEl.style.left = x + 'px';
           tooltipEl.style.top = y + 'px';
+
+          if (w.config.legend.tooltipHoverFormatter) {
+            var legendFormatter = w.config.legend.tooltipHoverFormatter;
+            var i = rel - 1;
+            var legendName = this.legendLabels[i].getAttribute('data:default-text');
+            var text = legendFormatter(legendName, {
+              seriesIndex: i,
+              dataPointIndex: i,
+              w: w
+            });
+            this.legendLabels[i].innerHTML = text;
+          }
         } else if (e.type === 'mouseout' || e.type === 'touchend') {
           tooltipEl.classList.remove('apexcharts-active');
+
+          if (w.config.legend.tooltipHoverFormatter) {
+            this.legendLabels.forEach(function (l) {
+              var defaultText = l.getAttribute('data:default-text');
+              l.innerHTML = decodeURIComponent(defaultText);
+            });
+          }
         }
       }
     }, {
@@ -19603,7 +19636,7 @@
             seriesNumber: i,
             size: this.sliceSizes[i],
             value: series[i]
-          }); // additionaly, pass size for gradient drawing in the fillPath function
+          }); // additionally, pass size for gradient drawing in the fillPath function
 
           var path = this.getChangedPath(prevStartAngle, prevEndAngle);
           var elPath = graphics.drawPath({
@@ -19618,6 +19651,7 @@
             index: 0,
             j: i
           });
+          filters.setSelectionFilter(elPath, 0, i);
 
           if (w.config.chart.dropShadow.enabled) {
             var shadow = w.config.chart.dropShadow;
@@ -19683,6 +19717,10 @@
 
           if (w.config.plotOptions.pie.expandOnClick && this.chartType !== 'polarArea') {
             elPath.click(this.pieClicked.bind(this, i));
+          }
+
+          if (typeof w.globals.selectedDataPoints[0] !== 'undefined' && w.globals.selectedDataPoints[0].indexOf(i) > -1) {
+            this.pieClicked(i);
           }
 
           if (w.config.dataLabels.enabled) {
@@ -20960,6 +20998,7 @@
             filters.dropShadow(elPath, _shadow, i);
           }
 
+          filters.setSelectionFilter(elPath, 0, i);
           this.addListeners(elPath, this.radialDataLabels);
           elRadialBarArc.add(elPath);
           elPath.attr({
@@ -22281,7 +22320,7 @@
           // the font size should be proportional to the size of the box (and the value)
           // otherwise you can end up creating a visual distortion where two boxes of identical
           // size have different sized labels, and thus make it look as if the two boxes
-          // represent diffferent sizes
+          // represent different sizes
           var area = width * height;
           var arearoot = Math.pow(area, 0.5);
           return Math.min(arearoot / averagelabelsize, parseInt(w.config.dataLabels.style.fontSize, 10));
@@ -23255,7 +23294,7 @@
               candlestickSeries.i.push(st);
             } else {
               // user has specified type, but it is not valid (other than line/area/column)
-              console.warn('You have specified an unrecognized chart type. Available types for this propery are line/area/column/bar/scatter/bubble');
+              console.warn('You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble');
             }
 
             gl.comboCharts = true;
@@ -29994,7 +30033,7 @@
             this.formatters.setLabelFormatters();
           }
         } // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
-        // Also we need to do this before calcuting Dimentions plotCoords() method of Dimensions
+        // Also we need to do this before calculating Dimensions plotCoords() method of Dimensions
 
 
         this.formatters.heatmapLabelFormatters(); // We got plottable area here, next task would be to calculate axis areas
@@ -30559,7 +30598,7 @@
       }
       /**
        * This static method allows users to call chart methods without necessarily from the
-       * instance of the chart in case user has assigned chartID to the targetted chart.
+       * instance of the chart in case user has assigned chartID to the targeted chart.
        * The chartID is used for mapping the instance stored in Apex._chartInstances global variable
        *
        * This is helpful in cases when you don't have reference of the chart instance
