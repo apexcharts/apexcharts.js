@@ -173,6 +173,8 @@ export default class ApexCharts {
         // as we have minX and maxX values, determine the default DateTimeFormat for time series
         this.formatters.setLabelFormatters()
       }
+      this.ctx.toolbar.minX = w.globals.minX
+      this.ctx.toolbar.maxX = w.globals.maxX
     }
 
     // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
