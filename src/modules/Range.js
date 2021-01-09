@@ -440,7 +440,7 @@ class Range {
 
         seriesX.forEach((s, j) => {
           if (j > 0) {
-            let xDiff = s - gl.seriesX[i][j - 1]
+            let xDiff = s - seriesX[j - 1]
             if (xDiff > 0) {
               gl.minXDiff = Math.min(xDiff, gl.minXDiff)
             }
