@@ -189,7 +189,9 @@ class Legend {
 
       let elLegendText = document.createElement('span')
       elLegendText.classList.add('apexcharts-legend-text')
-      elLegendText.innerHTML = Array.isArray(text) ? Utils.sanitizeDom(text.join(' ')) : Utils.sanitizeDom(text)
+      elLegendText.innerHTML = Array.isArray(text)
+        ? Utils.sanitizeDom(text.join(' '))
+        : Utils.sanitizeDom(text)
 
       let textColor = w.config.legend.labels.useSeriesColors
         ? w.globals.colors[i]

@@ -166,14 +166,14 @@ export default class Labels {
       if (w.globals.yLabelFormatters[0]) {
         yLbFormatter = w.globals.yLabelFormatters[0]
       } else {
-        yLbFormatter = function (label) {
+        yLbFormatter = function(label) {
           return label
         }
       }
     }
 
     if (typeof yLbTitleFormatter !== 'function') {
-      yLbTitleFormatter = function (label) {
+      yLbTitleFormatter = function(label) {
         return label
       }
     }
@@ -198,8 +198,8 @@ export default class Labels {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    Object.keys(values).forEach(key => {
-      if (typeof values[key] == 'string')
+    Object.keys(values).forEach((key) => {
+      if (typeof values[key] === 'string')
         values[key] = Utilities.sanitizeDom(values[key])
     })
 
