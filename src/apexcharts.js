@@ -249,6 +249,12 @@ export default class ApexCharts {
       if (elgrid !== null) {
         xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
         yaxis.setYAxisTextAlignments()
+
+        w.config.yaxis.map((yaxe, index) => {
+          if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1) {
+            yaxis.yAxisTitleRotate(index, yaxe.opposite)
+          }
+        })
       }
 
       if (w.config.annotations.position === 'back') {
