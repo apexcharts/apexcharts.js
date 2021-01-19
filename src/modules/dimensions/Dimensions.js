@@ -120,7 +120,7 @@ export default class Dimensions {
 
     let yAxisWidth = this.yAxisWidth
     let xAxisHeight = this.xAxisHeight
-    gl.xAxisLabelsHeight = this.xAxisHeight
+    gl.xAxisLabelsHeight = this.xAxisHeight - xtitleCoords.height
     gl.xAxisLabelsWidth = this.xAxisWidth
     gl.xAxisHeight = this.xAxisHeight
     let translateY = 10
