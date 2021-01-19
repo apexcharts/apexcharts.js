@@ -1,5 +1,4 @@
 import Animations from './Animations'
-import Helpers from '../charts/common/bar/Helpers'
 import Filters from './Filters'
 import Utils from '../utils/Utils'
 
@@ -306,8 +305,7 @@ class Graphics {
     } else {
       if (w.globals.resized || !w.globals.dataChanged) {
         anim.showDelayedElements()
-        const barHelpers = new Helpers(this.ctx.bar)
-        barHelpers.roundedCornerBars(el, realIndex)
+        anim.roundedCornerBars(el, realIndex)
       }
     }
 
