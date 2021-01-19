@@ -174,6 +174,53 @@ export default class Animations {
     })
   }
 
+  roundedCornerBars(el, i) {
+    const w = this.w
+    const isBar = el.node.classList.contains('apexcharts-bar-area')
+    const isTimeline = el.node.classList.contains('apexcharts-rangebar-area')
+
+    if (isBar || isTimeline) {
+      let borderRadius = w.config.plotOptions.bar.borderRadius
+
+      if (borderRadius === 0) return
+      if (w.config.plotOptions.bar.endingShape === 'rounded') {
+        // w.config.plotOptions.bar.endingShape is a legacy option
+        borderRadius = 5
+      }
+      const val = el.node.getAttribute('val')
+
+      let clipShape = `0% 0% 0% 0%`
+
+      if (isBar) {
+        if (w.globals.isBarHorizontal) {
+          const isReversed = w.config.yaxis[0].reversed
+          if (val < 0) {
+            clipShape = isReversed ? `0% 0% 0% -100%` : `0% -100% 0% 0%`
+          } else {
+            clipShape = isReversed ? `0% -100% 0% 0%` : `0% 0% 0% -100%`
+          }
+        } else {
+          if (val < 0) {
+            clipShape = `-100% 0% 0% 0%`
+          } else {
+            clipShape = `0% 0% -100% 0%`
+          }
+        }
+      }
+
+      if (
+        isBar &&
+        w.config.chart.stacked &&
+        i !== w.globals.series.length - 1 &&
+        w.config.plotOptions.bar.radiusOnLastStackedBar
+      ) {
+        return
+      }
+
+      el.node.style.clipPath = `inset(${clipShape} round ${borderRadius}px)`
+    }
+  }
+
   animationCompleted(el) {
     const w = this.w
     if (w.globals.animationEnded) return
@@ -232,6 +279,8 @@ export default class Animations {
       .animate(speed, w.globals.easing, delay)
       .plot(pathTo)
       .afterAll(() => {
+        this.roundedCornerBars(el, realIndex)
+
         // a flag to indicate that the original mount function can return true now as animation finished here
 
         if (Utils.isNumber(j)) {
