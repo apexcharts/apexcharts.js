@@ -191,7 +191,7 @@ export default class XAxis {
       let elXAxisTitleText = graphics.drawText({
         x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
         y:
-          this.offY -
+          this.offY +
           parseFloat(this.xaxisFontSize) +
           w.globals.xAxisLabelsHeight +
           w.config.xaxis.title.offsetY,
@@ -476,7 +476,7 @@ export default class XAxis {
             graphics.placeTextWithEllipsis(
               ts,
               ts.textContent,
-              w.config.xaxis.labels.maxHeight -
+              w.globals.xAxisLabelsHeight -
                 (w.config.legend.position === 'bottom' ? 20 : 10)
             )
           })
