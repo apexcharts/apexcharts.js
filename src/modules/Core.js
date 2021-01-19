@@ -201,8 +201,8 @@ export default class Core {
           let barStacked = new BarStacked(this.ctx, xyRatios)
           elGraph.push(barStacked.draw(columnSeries.series, columnSeries.i))
         } else {
-          let bar = new Bar(this.ctx, xyRatios)
-          elGraph.push(bar.draw(columnSeries.series, columnSeries.i))
+          this.ctx.bar = new Bar(this.ctx, xyRatios)
+          elGraph.push(this.ctx.bar.draw(columnSeries.series, columnSeries.i))
         }
       }
       if (lineSeries.series.length > 0) {
@@ -238,8 +238,8 @@ export default class Core {
             let barStacked = new BarStacked(this.ctx, xyRatios)
             elGraph = barStacked.draw(gl.series)
           } else {
-            let bar = new Bar(this.ctx, xyRatios)
-            elGraph = bar.draw(gl.series)
+            this.ctx.bar = new Bar(this.ctx, xyRatios)
+            elGraph = this.ctx.bar.draw(gl.series)
           }
           break
         case 'candlestick':
