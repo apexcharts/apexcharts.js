@@ -249,6 +249,7 @@ export default class Defaults {
       },
       plotOptions: {
         bar: {
+          borderRadius: 0,
           dataLabels: {
             position: 'center'
           }

@@ -12,7 +12,7 @@ plotOptions: {
   bar: {
     horizontal: true,
     barHeight: '80%',
-
+    radiusOnLastStackedBar: false
   },
 },
 dataLabels: {
