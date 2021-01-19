@@ -35,11 +35,5 @@ export default class Axes {
         })
       }
     }
-
-    cnf.yaxis.map((yaxe, index) => {
-      if (gl.ignoreYAxisIndexes.indexOf(index) === -1) {
-        yAxis.yAxisTitleRotate(index, yaxe.opposite)
-      }
-    })
   }
 }
