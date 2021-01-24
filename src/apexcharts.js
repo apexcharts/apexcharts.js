@@ -697,7 +697,6 @@ export default class ApexCharts {
 
   _parentResizeCallback() {
     if (
-      !this.w.globals.noData &&
       this.w.globals.animationEnded &&
       this.w.config.chart.redrawOnParentResize
     ) {
