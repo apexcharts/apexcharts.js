@@ -153,6 +153,8 @@ export default class Scatter {
           }, 100)
         }
       )
+    } else {
+      w.globals.animationEnded = true
     }
 
     if (w.globals.dataChanged) {
