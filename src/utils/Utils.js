@@ -276,6 +276,18 @@ class Utils {
     return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)|(^#[0-9A-F]{8}$)/i.test(color)
   }
 
+  static getPolygonPos(size, dataPointsLen) {
+    let dotsArray = []
+    let angle = (Math.PI * 2) / dataPointsLen
+    for (let i = 0; i < dataPointsLen; i++) {
+      let curPos = {}
+      curPos.x = size * Math.sin(i * angle)
+      curPos.y = -size * Math.cos(i * angle)
+      dotsArray.push(curPos)
+    }
+    return dotsArray
+  }
+
   static polarToCartesian(centerX, centerY, radius, angleInDegrees) {
     let angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0
 

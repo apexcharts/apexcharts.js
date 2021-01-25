@@ -310,7 +310,7 @@ class Radar {
     let lines = []
 
     radiusSizes.forEach((radiusSize, r) => {
-      const polygon = this.getPolygonPos(radiusSize)
+      const polygon = Utils.getPolygonPos(radiusSize, this.dataPointsLen)
       let string = ''
 
       polygon.forEach((p, i) => {
@@ -373,7 +373,7 @@ class Radar {
       class: 'apexcharts-xaxis'
     })
 
-    let polygonPos = this.getPolygonPos(this.size)
+    let polygonPos = Utils.getPolygonPos(this.size, this.dataPointsLen)
 
     w.globals.labels.forEach((label, i) => {
       let formatter = w.config.xaxis.labels.formatter
@@ -514,18 +514,6 @@ class Radar {
       dataPointsPosArray.push(curPointPos)
     }
     return dataPointsPosArray
-  }
-
-  getPolygonPos(size) {
-    let dotsArray = []
-    let angle = (Math.PI * 2) / this.dataPointsLen
-    for (let i = 0; i < this.dataPointsLen; i++) {
-      let curPos = {}
-      curPos.x = size * Math.sin(i * angle)
-      curPos.y = -size * Math.cos(i * angle)
-      dotsArray.push(curPos)
-    }
-    return dotsArray
   }
 }
 

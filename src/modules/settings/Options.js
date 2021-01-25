@@ -588,11 +588,14 @@ export default class Options {
             }
           }
         },
-
         polarArea: {
           rings: {
             strokeWidth: 1,
             strokeColor: '#e8e8e8'
+          },
+          spokes: {
+            strokeWidth: 1,
+            connectorColors: '#e8e8e8'
           }
         },
         radar: {

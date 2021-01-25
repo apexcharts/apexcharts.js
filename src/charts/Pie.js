@@ -101,8 +101,8 @@ class Pie {
       this.maxY = w.config.yaxis[0].max
     }
 
-    if (this.chartType === 'polarArea') {
-      this.drawPolarElements()
+    if (w.config.grid.position === 'back' && this.chartType === 'polarArea') {
+      this.drawPolarElements(this.ret)
     }
 
     for (let i = 0; i < series.length; i++) {
@@ -188,6 +188,10 @@ class Pie {
       })
 
       this.ret.add(dataLabels)
+    }
+
+    if (w.config.grid.position === 'front' && this.chartType === 'polarArea') {
+      this.drawPolarElements(this.ret)
     }
 
     return this.ret
@@ -713,7 +717,7 @@ class Pie {
     return path
   }
 
-  drawPolarElements() {
+  drawPolarElements(parent) {
     const w = this.w
     const scale = new Scales(this.ctx)
     const graphics = new Graphics(this.ctx)
@@ -767,8 +771,10 @@ class Pie {
       circleSize = circleSize - diff
     }
 
-    this.ret.add(gCircles)
-    this.ret.add(gYAxis)
+    this.drawSpokes(parent)
+
+    parent.add(gCircles)
+    parent.add(gYAxis)
   }
 
   renderInnerDataLabels(dataLabelsConfig, opts) {
@@ -942,6 +948,33 @@ class Pie {
     if (dataLabelsGroup !== null) {
       dataLabelsGroup.style.opacity = 1
     }
+  }
+
+  drawSpokes(parent) {
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+    const spokeConfig = w.config.plotOptions.polarArea.spokes
+
+    if (spokeConfig.strokeWidth === 0) return
+
+    const spokes = Utils.getPolygonPos(
+      w.globals.radialSize,
+      w.globals.series.length
+    )
+
+    spokes.forEach((p, i) => {
+      const line = graphics.drawLine(
+        p.x + this.centerX,
+        p.y + this.centerY,
+        this.centerX,
+        this.centerY,
+        Array.isArray(spokeConfig.connectorColors)
+          ? spokeConfig.connectorColors[i]
+          : spokeConfig.connectorColors
+      )
+
+      parent.add(line)
+    })
   }
 
   revertDataLabelsInner(elem, dataLabelsConfig, event) {
