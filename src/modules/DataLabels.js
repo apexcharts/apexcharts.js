@@ -220,6 +220,14 @@ class DataLabels {
     ) {
       dataLabelColor = w.globals.dataLabels.style.colors[j]
     }
+    if (typeof dataLabelColor === 'function') {
+      dataLabelColor = dataLabelColor({
+        series: w.globals.series,
+        seriesIndex: i,
+        dataPointIndex: j,
+        w
+      })
+    }
     if (color) {
       dataLabelColor = color
     }
