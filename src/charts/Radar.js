@@ -282,11 +282,11 @@ class Radar {
       ret.add(xaxisTexts)
     }
 
-    ret.add(this.yaxisLabels)
-
     allSeries.forEach((elS) => {
       ret.add(elS)
     })
+
+    ret.add(this.yaxisLabels)
 
     return ret
   }
