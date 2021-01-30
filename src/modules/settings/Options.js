@@ -391,7 +391,7 @@ export default class Options {
           distributed: false,
           startingShape: 'flat',
           endingShape: 'flat',
-          borderRadius: 6,
+          borderRadius: 0,
           radiusOnLastStackedBar: true,
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
