@@ -25,6 +25,7 @@ responsive: [{
 }],
 plotOptions: {
   bar: {
+    borderRadius: 8,
     horizontal: false,
   },
 },
