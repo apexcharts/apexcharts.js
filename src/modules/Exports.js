@@ -214,6 +214,10 @@ class Exports {
         }
       }
 
+      if (Array.isArray(cat)) {
+        cat = cat.join(' ')
+      }
+
       return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
     }
 
