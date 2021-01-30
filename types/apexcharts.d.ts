@@ -473,6 +473,8 @@ type ApexPlotOptions = {
     horizontal?: boolean
     endingShape?: 'flat' | 'rounded'
     startingShape?: 'flat' | 'rounded'
+    borderRadius?: number;
+    radiusOnLastStackedBar?: boolean;
     columnWidth?: string
     barHeight?: string
     distributed?: boolean
@@ -599,6 +601,10 @@ type ApexPlotOptions = {
       strokeWidth?: number
       strokeColor?: string
     }
+    spokes?: {
+      strokeWidth?: number;
+      connectorColors?: string | string[];
+    };
   }
   radar?: {
     size?: number
@@ -814,7 +820,7 @@ type ApexDataLabels = {
     fontSize?: string
     fontFamily?: string
     fontWeight?: string | number
-    colors?: string[]
+    colors?: any[]
   }
   background?: {
     enabled?: boolean
