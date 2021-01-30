@@ -1,6 +1,6 @@
 /*!
- * ApexCharts v3.23.1
- * (c) 2018-2020 Juned Chhipa
+ * ApexCharts v3.24.0
+ * (c) 2018-2021 Juned Chhipa
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -502,6 +502,21 @@
         return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)|(^#[0-9A-F]{8}$)/i.test(color);
       }
     }, {
+      key: "getPolygonPos",
+      value: function getPolygonPos(size, dataPointsLen) {
+        var dotsArray = [];
+        var angle = Math.PI * 2 / dataPointsLen;
+
+        for (var i = 0; i < dataPointsLen; i++) {
+          var curPos = {};
+          curPos.x = size * Math.sin(i * angle);
+          curPos.y = -size * Math.cos(i * angle);
+          dotsArray.push(curPos);
+        }
+
+        return dotsArray;
+      }
+    }, {
       key: "polarToCartesian",
       value: function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
         var angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
@@ -615,9 +630,319 @@
 
         return false;
       }
+      /**
+       * Sanitize dangerous characters in the string to prevent Cross-Site Scripting
+       * @param {string}
+       * string - String to sanitize
+       */
+
+    }, {
+      key: "sanitizeDom",
+      value: function sanitizeDom(string) {
+        return string.replace(/\&/g, '&amp;').replace(/\</g, '&lt;').replace(/\>/g, '&gt;').replace(/\"/g, '&quot;');
+      }
     }]);
 
     return Utils;
+  }();
+
+  /**
+   * ApexCharts Animation Class.
+   *
+   * @module Animations
+   **/
+
+  var Animations = /*#__PURE__*/function () {
+    function Animations(ctx) {
+      _classCallCheck(this, Animations);
+
+      this.ctx = ctx;
+      this.w = ctx.w;
+      this.setEasingFunctions();
+    }
+
+    _createClass(Animations, [{
+      key: "setEasingFunctions",
+      value: function setEasingFunctions() {
+        var easing;
+        if (this.w.globals.easing) return;
+        var userDefinedEasing = this.w.config.chart.animations.easing;
+
+        switch (userDefinedEasing) {
+          case 'linear':
+            {
+              easing = '-';
+              break;
+            }
+
+          case 'easein':
+            {
+              easing = '<';
+              break;
+            }
+
+          case 'easeout':
+            {
+              easing = '>';
+              break;
+            }
+
+          case 'easeinout':
+            {
+              easing = '<>';
+              break;
+            }
+
+          case 'swing':
+            {
+              easing = function easing(pos) {
+                var s = 1.70158;
+                var ret = (pos -= 1) * pos * ((s + 1) * pos + s) + 1;
+                return ret;
+              };
+
+              break;
+            }
+
+          case 'bounce':
+            {
+              easing = function easing(pos) {
+                var ret = '';
+
+                if (pos < 1 / 2.75) {
+                  ret = 7.5625 * pos * pos;
+                } else if (pos < 2 / 2.75) {
+                  ret = 7.5625 * (pos -= 1.5 / 2.75) * pos + 0.75;
+                } else if (pos < 2.5 / 2.75) {
+                  ret = 7.5625 * (pos -= 2.25 / 2.75) * pos + 0.9375;
+                } else {
+                  ret = 7.5625 * (pos -= 2.625 / 2.75) * pos + 0.984375;
+                }
+
+                return ret;
+              };
+
+              break;
+            }
+
+          case 'elastic':
+            {
+              easing = function easing(pos) {
+                if (pos === !!pos) return pos;
+                return Math.pow(2, -10 * pos) * Math.sin((pos - 0.075) * (2 * Math.PI) / 0.3) + 1;
+              };
+
+              break;
+            }
+
+          default:
+            {
+              easing = '<>';
+            }
+        }
+
+        this.w.globals.easing = easing;
+      }
+    }, {
+      key: "animateLine",
+      value: function animateLine(el, from, to, speed) {
+        el.attr(from).animate(speed).attr(to);
+      }
+      /*
+       ** Animate radius of a circle element
+       */
+
+    }, {
+      key: "animateCircleRadius",
+      value: function animateCircleRadius(el, from, to, speed, easing, cb) {
+        if (!from) from = 0;
+        el.attr({
+          r: from
+        }).animate(speed, easing).attr({
+          r: to
+        }).afterAll(function () {
+          cb();
+        });
+      }
+      /*
+       ** Animate radius and position of a circle element
+       */
+
+    }, {
+      key: "animateCircle",
+      value: function animateCircle(el, from, to, speed, easing) {
+        el.attr({
+          r: from.r,
+          cx: from.cx,
+          cy: from.cy
+        }).animate(speed, easing).attr({
+          r: to.r,
+          cx: to.cx,
+          cy: to.cy
+        });
+      }
+      /*
+       ** Animate rect properties
+       */
+
+    }, {
+      key: "animateRect",
+      value: function animateRect(el, from, to, speed, fn) {
+        el.attr(from).animate(speed).attr(to).afterAll(function () {
+          return fn();
+        });
+      }
+    }, {
+      key: "animatePathsGradually",
+      value: function animatePathsGradually(params) {
+        var el = params.el,
+            realIndex = params.realIndex,
+            j = params.j,
+            fill = params.fill,
+            pathFrom = params.pathFrom,
+            pathTo = params.pathTo,
+            speed = params.speed,
+            delay = params.delay;
+        var me = this;
+        var w = this.w;
+        var delayFactor = 0;
+
+        if (w.config.chart.animations.animateGradually.enabled) {
+          delayFactor = w.config.chart.animations.animateGradually.delay;
+        }
+
+        if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.config.chart.type !== 'bar') {
+          // disabled due to this bug - https://github.com/apexcharts/vue-apexcharts/issues/75
+          delayFactor = 0;
+        }
+
+        me.morphSVG(el, realIndex, j, w.config.chart.type === 'line' && !w.globals.comboCharts ? 'stroke' : fill, pathFrom, pathTo, speed, delay * delayFactor);
+      }
+    }, {
+      key: "showDelayedElements",
+      value: function showDelayedElements() {
+        this.w.globals.delayedElements.forEach(function (d) {
+          var ele = d.el;
+          ele.classList.remove('apexcharts-element-hidden');
+        });
+      }
+    }, {
+      key: "roundedCornerBars",
+      value: function roundedCornerBars(el, i) {
+        var w = this.w;
+        var isBar = el.node.classList.contains('apexcharts-bar-area');
+        var isTimeline = el.node.classList.contains('apexcharts-rangebar-area');
+
+        if (isBar || isTimeline) {
+          var borderRadius = w.config.plotOptions.bar.borderRadius;
+          if (borderRadius === 0) return;
+
+          if (w.config.plotOptions.bar.endingShape === 'rounded') {
+            // w.config.plotOptions.bar.endingShape is a legacy option
+            borderRadius = 5;
+          }
+
+          var val = el.node.getAttribute('val');
+          var clipShape = "0% 0% 0% 0%";
+
+          if (isBar) {
+            if (w.globals.isBarHorizontal) {
+              var isReversed = w.config.yaxis[0].reversed;
+
+              if (val < 0) {
+                clipShape = isReversed ? "0% 0% 0% -100%" : "0% -100% 0% 0%";
+              } else {
+                clipShape = isReversed ? "0% -100% 0% 0%" : "0% 0% 0% -100%";
+              }
+            } else {
+              if (val < 0) {
+                clipShape = "-100% 0% 0% 0%";
+              } else {
+                clipShape = "0% 0% -100% 0%";
+              }
+            }
+          }
+
+          if (isBar && w.config.chart.stacked && i !== w.globals.series.length - 1 && w.config.plotOptions.bar.radiusOnLastStackedBar) {
+            return;
+          }
+
+          el.node.style.clipPath = "inset(".concat(clipShape, " round ").concat(borderRadius, "px)");
+        }
+      }
+    }, {
+      key: "animationCompleted",
+      value: function animationCompleted(el) {
+        var w = this.w;
+        if (w.globals.animationEnded) return;
+        w.globals.animationEnded = true;
+        this.showDelayedElements();
+
+        if (typeof w.config.chart.events.animationEnd === 'function') {
+          w.config.chart.events.animationEnd(this.ctx, {
+            el: el,
+            w: w
+          });
+        }
+      } // SVG.js animation for morphing one path to another
+
+    }, {
+      key: "morphSVG",
+      value: function morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
+        var _this = this;
+
+        var w = this.w;
+
+        if (!pathFrom) {
+          pathFrom = el.attr('pathFrom');
+        }
+
+        if (!pathTo) {
+          pathTo = el.attr('pathTo');
+        }
+
+        var disableAnimationForCorrupPath = function disableAnimationForCorrupPath(path) {
+          if (w.config.chart.type === 'radar') {
+            // radar chart drops the path to bottom and hence a corrup path looks ugly
+            // therefore, disable animation for such a case
+            speed = 1;
+          }
+
+          return "M 0 ".concat(w.globals.gridHeight);
+        };
+
+        if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
+          pathFrom = disableAnimationForCorrupPath();
+        }
+
+        if (!pathTo || pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
+          pathTo = disableAnimationForCorrupPath();
+        }
+
+        if (!w.globals.shouldAnimate) {
+          speed = 1;
+        }
+
+        el.plot(pathFrom).animate(1, w.globals.easing, delay).plot(pathFrom).animate(speed, w.globals.easing, delay).plot(pathTo).afterAll(function () {
+          _this.roundedCornerBars(el, realIndex); // a flag to indicate that the original mount function can return true now as animation finished here
+
+
+          if (Utils.isNumber(j)) {
+            if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
+              _this.animationCompleted(el);
+            }
+          } else if (fill !== 'none' && w.globals.shouldAnimate) {
+            if (!w.globals.comboCharts && realIndex === w.globals.series.length - 1 || w.globals.comboCharts) {
+              _this.animationCompleted(el);
+            }
+          }
+
+          _this.showDelayedElements();
+        });
+      }
+    }]);
+
+    return Animations;
   }();
 
   /**
@@ -842,259 +1167,6 @@
     }]);
 
     return Filters;
-  }();
-
-  /**
-   * ApexCharts Animation Class.
-   *
-   * @module Animations
-   **/
-
-  var Animations = /*#__PURE__*/function () {
-    function Animations(ctx) {
-      _classCallCheck(this, Animations);
-
-      this.ctx = ctx;
-      this.w = ctx.w;
-      this.setEasingFunctions();
-    }
-
-    _createClass(Animations, [{
-      key: "setEasingFunctions",
-      value: function setEasingFunctions() {
-        var easing;
-        if (this.w.globals.easing) return;
-        var userDefinedEasing = this.w.config.chart.animations.easing;
-
-        switch (userDefinedEasing) {
-          case 'linear':
-            {
-              easing = '-';
-              break;
-            }
-
-          case 'easein':
-            {
-              easing = '<';
-              break;
-            }
-
-          case 'easeout':
-            {
-              easing = '>';
-              break;
-            }
-
-          case 'easeinout':
-            {
-              easing = '<>';
-              break;
-            }
-
-          case 'swing':
-            {
-              easing = function easing(pos) {
-                var s = 1.70158;
-                var ret = (pos -= 1) * pos * ((s + 1) * pos + s) + 1;
-                return ret;
-              };
-
-              break;
-            }
-
-          case 'bounce':
-            {
-              easing = function easing(pos) {
-                var ret = '';
-
-                if (pos < 1 / 2.75) {
-                  ret = 7.5625 * pos * pos;
-                } else if (pos < 2 / 2.75) {
-                  ret = 7.5625 * (pos -= 1.5 / 2.75) * pos + 0.75;
-                } else if (pos < 2.5 / 2.75) {
-                  ret = 7.5625 * (pos -= 2.25 / 2.75) * pos + 0.9375;
-                } else {
-                  ret = 7.5625 * (pos -= 2.625 / 2.75) * pos + 0.984375;
-                }
-
-                return ret;
-              };
-
-              break;
-            }
-
-          case 'elastic':
-            {
-              easing = function easing(pos) {
-                if (pos === !!pos) return pos;
-                return Math.pow(2, -10 * pos) * Math.sin((pos - 0.075) * (2 * Math.PI) / 0.3) + 1;
-              };
-
-              break;
-            }
-
-          default:
-            {
-              easing = '<>';
-            }
-        }
-
-        this.w.globals.easing = easing;
-      }
-    }, {
-      key: "animateLine",
-      value: function animateLine(el, from, to, speed) {
-        el.attr(from).animate(speed).attr(to);
-      }
-      /*
-       ** Animate radius of a circle element
-       */
-
-    }, {
-      key: "animateCircleRadius",
-      value: function animateCircleRadius(el, from, to, speed, easing, cb) {
-        if (!from) from = 0;
-        el.attr({
-          r: from
-        }).animate(speed, easing).attr({
-          r: to
-        }).afterAll(function () {
-          cb();
-        });
-      }
-      /*
-       ** Animate radius and position of a circle element
-       */
-
-    }, {
-      key: "animateCircle",
-      value: function animateCircle(el, from, to, speed, easing) {
-        el.attr({
-          r: from.r,
-          cx: from.cx,
-          cy: from.cy
-        }).animate(speed, easing).attr({
-          r: to.r,
-          cx: to.cx,
-          cy: to.cy
-        });
-      }
-      /*
-       ** Animate rect properties
-       */
-
-    }, {
-      key: "animateRect",
-      value: function animateRect(el, from, to, speed, fn) {
-        el.attr(from).animate(speed).attr(to).afterAll(function () {
-          return fn();
-        });
-      }
-    }, {
-      key: "animatePathsGradually",
-      value: function animatePathsGradually(params) {
-        var el = params.el,
-            realIndex = params.realIndex,
-            j = params.j,
-            fill = params.fill,
-            pathFrom = params.pathFrom,
-            pathTo = params.pathTo,
-            speed = params.speed,
-            delay = params.delay;
-        var me = this;
-        var w = this.w;
-        var delayFactor = 0;
-
-        if (w.config.chart.animations.animateGradually.enabled) {
-          delayFactor = w.config.chart.animations.animateGradually.delay;
-        }
-
-        if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.config.chart.type !== 'bar') {
-          // disabled due to this bug - https://github.com/apexcharts/vue-apexcharts/issues/75
-          delayFactor = 0;
-        }
-
-        me.morphSVG(el, realIndex, j, w.config.chart.type === 'line' && !w.globals.comboCharts ? 'stroke' : fill, pathFrom, pathTo, speed, delay * delayFactor);
-      }
-    }, {
-      key: "showDelayedElements",
-      value: function showDelayedElements() {
-        this.w.globals.delayedElements.forEach(function (d) {
-          var ele = d.el;
-          ele.classList.remove('apexcharts-element-hidden');
-        });
-      }
-    }, {
-      key: "animationCompleted",
-      value: function animationCompleted(el) {
-        var w = this.w;
-        if (w.globals.animationEnded) return;
-        w.globals.animationEnded = true;
-        this.showDelayedElements();
-
-        if (typeof w.config.chart.events.animationEnd === 'function') {
-          w.config.chart.events.animationEnd(this.ctx, {
-            el: el,
-            w: w
-          });
-        }
-      } // SVG.js animation for morphing one path to another
-
-    }, {
-      key: "morphSVG",
-      value: function morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
-        var _this = this;
-
-        var w = this.w;
-
-        if (!pathFrom) {
-          pathFrom = el.attr('pathFrom');
-        }
-
-        if (!pathTo) {
-          pathTo = el.attr('pathTo');
-        }
-
-        var disableAnimationForCorrupPath = function disableAnimationForCorrupPath(path) {
-          if (w.config.chart.type === 'radar') {
-            // radar chart drops the path to bottom and hence a corrup path looks ugly
-            // therefore, disable animation for such a case
-            speed = 1;
-          }
-
-          return "M 0 ".concat(w.globals.gridHeight);
-        };
-
-        if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
-          pathFrom = disableAnimationForCorrupPath();
-        }
-
-        if (!pathTo || pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
-          pathTo = disableAnimationForCorrupPath();
-        }
-
-        if (!w.globals.shouldAnimate) {
-          speed = 1;
-        }
-
-        el.plot(pathFrom).animate(1, w.globals.easing, delay).plot(pathFrom).animate(speed, w.globals.easing, delay).plot(pathTo).afterAll(function () {
-          // a flag to indicate that the original mount function can return true now as animation finished here
-          if (Utils.isNumber(j)) {
-            if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
-              _this.animationCompleted(el);
-            }
-          } else if (fill !== 'none' && w.globals.shouldAnimate) {
-            if (!w.globals.comboCharts && realIndex === w.globals.series.length - 1 || w.globals.comboCharts) {
-              _this.animationCompleted(el);
-            }
-          }
-
-          _this.showDelayedElements();
-        });
-      }
-    }]);
-
-    return Animations;
   }();
 
   /**
@@ -1403,6 +1475,7 @@
         } else {
           if (w.globals.resized || !w.globals.dataChanged) {
             anim.showDelayedElements();
+            anim.roundedCornerBars(el, realIndex);
           }
         }
 
@@ -1843,9 +1916,9 @@
 
         if (textString.length > 0) {
           // ellipsis is needed
-          if (textObj.getComputedTextLength() >= width / 0.8) {
+          if (textObj.getComputedTextLength() >= width) {
             for (var x = textString.length - 3; x > 0; x -= 3) {
-              if (textObj.getSubStringLength(0, x) <= width / 0.8) {
+              if (textObj.getSubStringLength(0, x) <= width) {
                 textObj.textContent = textString.substring(0, x) + '...';
                 return;
               }
@@ -3223,6 +3296,8 @@
               distributed: false,
               startingShape: 'flat',
               endingShape: 'flat',
+              borderRadius: 0,
+              radiusOnLastStackedBar: true,
               rangeBarOverlap: true,
               rangeBarGroupRows: false,
               colors: {
@@ -3425,6 +3500,10 @@
               rings: {
                 strokeWidth: 1,
                 strokeColor: '#e8e8e8'
+              },
+              spokes: {
+                strokeWidth: 1,
+                connectorColors: '#e8e8e8'
               }
             },
             radar: {
@@ -4784,6 +4863,8 @@
               anim.animationCompleted(circle);
             }, 100);
           });
+        } else {
+          w.globals.animationEnded = true;
         }
 
         if (w.globals.dataChanged) {
@@ -5027,6 +5108,15 @@
 
         if ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') && w.config.plotOptions.bar.distributed || w.config.dataLabels.distributed) {
           dataLabelColor = w.globals.dataLabels.style.colors[j];
+        }
+
+        if (typeof dataLabelColor === 'function') {
+          dataLabelColor = dataLabelColor({
+            series: w.globals.series,
+            seriesIndex: i,
+            dataPointIndex: j,
+            w: w
+          });
         }
 
         if (color) {
@@ -6198,25 +6288,16 @@
         var graphics = new Graphics(this.barCtx.ctx);
         strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
         if (!strokeWidth) strokeWidth = 0;
-        var shapeOpts = {
-          barWidth: barWidth,
-          strokeWidth: strokeWidth,
-          yRatio: yRatio,
-          barXPosition: barXPosition,
-          y1: y1,
-          y2: y2
-        };
-        var newPath = this.getRoundedBars(w, shapeOpts, series, i, j);
         var x1 = barXPosition;
         var x2 = barXPosition + barWidth;
-        var pathTo = graphics.move(x1, newPath.y1);
-        var pathFrom = graphics.move(x1, newPath.y1);
+        var pathTo = graphics.move(x1, y1);
+        var pathFrom = graphics.move(x1, y1);
 
         if (w.globals.previousPaths.length > 0) {
           pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
         }
 
-        pathTo = pathTo + graphics.line(x1, newPath.y2) + newPath.endingPath + graphics.line(x2 - strokeWidth, newPath.y2) + graphics.line(x2 - strokeWidth, newPath.y1) + newPath.startingPath + 'z';
+        pathTo = pathTo + graphics.line(x1, y2) + graphics.line(barXPosition + barWidth - strokeWidth, y2) + graphics.line(x2 - strokeWidth, y2) + graphics.line(x2 - strokeWidth, y1) + graphics.line(barXPosition + barWidth - strokeWidth, y1) + 'z';
         pathFrom = pathFrom + graphics.line(x1, y1) + graphics.line(x2 - strokeWidth, y1) + graphics.line(x2 - strokeWidth, y1) + graphics.line(x2 - strokeWidth, y1) + graphics.line(x1, y1);
         return {
           pathTo: pathTo,
@@ -6239,16 +6320,8 @@
         var graphics = new Graphics(this.barCtx.ctx);
         strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
         if (!strokeWidth) strokeWidth = 0;
-        var shapeOpts = {
-          barHeight: barHeight,
-          strokeWidth: strokeWidth,
-          barYPosition: barYPosition,
-          x2: x2,
-          x1: x1
-        };
-        var newPath = this.getRoundedBars(w, shapeOpts, series, i, j);
-        var pathTo = graphics.move(newPath.x1, barYPosition);
-        var pathFrom = graphics.move(newPath.x1, barYPosition);
+        var pathTo = graphics.move(x1, barYPosition);
+        var pathFrom = graphics.move(x1, barYPosition);
 
         if (w.globals.previousPaths.length > 0) {
           pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
@@ -6256,135 +6329,12 @@
 
         var y1 = barYPosition;
         var y2 = barYPosition + barHeight;
-        pathTo = pathTo + graphics.line(newPath.x2, y1) + newPath.endingPath + graphics.line(newPath.x2, y2 - strokeWidth) + graphics.line(newPath.x1, y2 - strokeWidth) + newPath.startingPath + 'z';
+        pathTo = pathTo + graphics.line(x2, y1) + graphics.line(x2, barYPosition + barHeight - strokeWidth) + graphics.line(x2, y2 - strokeWidth) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, barYPosition + barHeight - strokeWidth) + 'z';
         pathFrom = pathFrom + graphics.line(x1, y1) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, y1);
         return {
           pathTo: pathTo,
           pathFrom: pathFrom
         };
-      }
-      /** getRoundedBars draws border radius for bars/columns
-       * @memberof Bar
-       * @param {object} w - chart context
-       * @param {object} opts - consists several properties like barHeight/barWidth
-       * @param {array} series - global primary series
-       * @param {int} i - current iterating series's index
-       * @param {int} j - series's j of i
-       * @return {object} endingPath - ending shape path string
-       *         startingPath - starting shape path string
-       *         newY/newX - which is calculated from existing x/y based on rounded border
-       **/
-
-    }, {
-      key: "getRoundedBars",
-      value: function getRoundedBars(w, opts, series, i, j) {
-        var graphics = new Graphics(this.barCtx.ctx);
-        var strokeWidth = Array.isArray(opts.strokeWidth) ? opts.strokeWidth[i] : opts.strokeWidth;
-        if (!strokeWidth) strokeWidth = 0;
-
-        if (this.barCtx.isHorizontal) {
-          var endingShape = null;
-          var startingShape = '';
-          var x2 = opts.x2;
-          var x1 = opts.x1;
-
-          if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
-            var inverse = series[i][j] < 0;
-            var eX = opts.barHeight / 2 - strokeWidth;
-            if (inverse) eX = -opts.barHeight / 2 - strokeWidth;
-
-            if (eX > Math.abs(x2 - x1)) {
-              eX = Math.abs(x2 - x1);
-            }
-
-            if (this.barCtx.barOptions.endingShape === 'rounded') {
-              x2 = opts.x2 - eX / 2;
-            }
-
-            if (this.barCtx.barOptions.startingShape === 'rounded') {
-              x1 = opts.x1 + eX / 2;
-            }
-
-            switch (this.barCtx.barOptions.endingShape) {
-              case 'flat':
-                endingShape = graphics.line(x2, opts.barYPosition + opts.barHeight - strokeWidth);
-                break;
-
-              case 'rounded':
-                endingShape = graphics.quadraticCurve(x2 + eX, opts.barYPosition + (opts.barHeight - strokeWidth) / 2, x2, opts.barYPosition + opts.barHeight - strokeWidth);
-                break;
-            }
-
-            switch (this.barCtx.barOptions.startingShape) {
-              case 'flat':
-                startingShape = graphics.line(x1, opts.barYPosition + opts.barHeight - strokeWidth);
-                break;
-
-              case 'rounded':
-                startingShape = graphics.quadraticCurve(x1 - eX, opts.barYPosition + opts.barHeight / 2, x1, opts.barYPosition);
-                break;
-            }
-          }
-
-          return {
-            endingPath: endingShape,
-            startingPath: startingShape,
-            x2: x2,
-            x1: x1
-          };
-        } else {
-          var _endingShape = null;
-          var _startingShape = '';
-          var y2 = opts.y2;
-          var y1 = opts.y1;
-
-          if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
-            var _inverse = series[i][j] < 0;
-
-            var eY = opts.barWidth / 2 - strokeWidth;
-            if (_inverse) eY = -opts.barWidth / 2 - strokeWidth;
-
-            if (eY > Math.abs(y2 - y1)) {
-              eY = Math.abs(y2 - y1);
-            }
-
-            if (this.barCtx.barOptions.endingShape === 'rounded') {
-              // the shape exceeds the chart height, hence reduce y
-              y2 = y2 + eY / 2;
-            }
-
-            if (this.barCtx.barOptions.startingShape === 'rounded') {
-              y1 = y1 - eY / 2;
-            }
-
-            switch (this.barCtx.barOptions.endingShape) {
-              case 'flat':
-                _endingShape = graphics.line(opts.barXPosition + opts.barWidth - strokeWidth, y2);
-                break;
-
-              case 'rounded':
-                _endingShape = graphics.quadraticCurve(opts.barXPosition + (opts.barWidth - strokeWidth) / 2, y2 - eY, opts.barXPosition + opts.barWidth - strokeWidth, y2);
-                break;
-            }
-
-            switch (this.barCtx.barOptions.startingShape) {
-              case 'flat':
-                _startingShape = graphics.line(opts.barXPosition + opts.barWidth - strokeWidth, y1);
-                break;
-
-              case 'rounded':
-                _startingShape = graphics.quadraticCurve(opts.barXPosition + (opts.barWidth - strokeWidth) / 2, y1 + eY, opts.barXPosition, y1);
-                break;
-            }
-          }
-
-          return {
-            endingPath: _endingShape,
-            startingPath: _startingShape,
-            y2: y2,
-            y1: y1
-          };
-        }
       }
     }]);
 
@@ -7709,6 +7659,7 @@
           },
           plotOptions: {
             bar: {
+              borderRadius: 0,
               dataLabels: {
                 position: 'center'
               }
@@ -10057,6 +10008,10 @@
             }
           }
 
+          if (Array.isArray(cat)) {
+            cat = cat.join(' ');
+          }
+
           return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('');
         };
 
@@ -10308,7 +10263,7 @@
           });
           var elXAxisTitleText = graphics.drawText({
             x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
-            y: this.offY - parseFloat(this.xaxisFontSize) + w.globals.xAxisLabelsHeight + w.config.xaxis.title.offsetY,
+            y: this.offY + parseFloat(this.xaxisFontSize) + w.globals.xAxisLabelsHeight + w.config.xaxis.title.offsetY,
             text: w.config.xaxis.title.text,
             textAnchor: 'middle',
             fontSize: w.config.xaxis.title.style.fontSize,
@@ -10529,7 +10484,7 @@
 
             if (w.config.xaxis.labels.trim) {
               Array.prototype.forEach.call(tSpan, function (ts) {
-                graphics.placeTextWithEllipsis(ts, ts.textContent, w.config.xaxis.labels.maxHeight - (w.config.legend.position === 'bottom' ? 20 : 10));
+                graphics.placeTextWithEllipsis(ts, ts.textContent, w.globals.xAxisLabelsHeight - (w.config.legend.position === 'bottom' ? 20 : 10));
               });
             }
           }
@@ -12001,7 +11956,7 @@
             });
             seriesX.forEach(function (s, j) {
               if (j > 0) {
-                var xDiff = s - gl.seriesX[i][j - 1];
+                var xDiff = s - seriesX[j - 1];
 
                 if (xDiff > 0) {
                   gl.minXDiff = Math.min(xDiff, gl.minXDiff);
@@ -12675,12 +12630,6 @@
             });
           }
         }
-
-        cnf.yaxis.map(function (yaxe, index) {
-          if (gl.ignoreYAxisIndexes.indexOf(index) === -1) {
-            yAxis.yAxisTitleRotate(index, yaxe.opposite);
-          }
-        });
       }
     }]);
 
@@ -12980,7 +12929,7 @@
         this.pushExtraColors(w.globals.dataLabels.style.colors, 50);
 
         if (w.config.plotOptions.radar.polygons.fill.colors === undefined) {
-          w.globals.radarPolygons.fill.colors = [w.config.theme.mode === 'dark' ? '#424242' : '#fff'];
+          w.globals.radarPolygons.fill.colors = [w.config.theme.mode === 'dark' ? '#424242' : 'none'];
         } else {
           w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors.slice();
         }
@@ -13866,7 +13815,7 @@
         gl.translateXAxisX = gl.translateXAxisX + w.config.xaxis.labels.offsetX;
         var yAxisWidth = this.yAxisWidth;
         var xAxisHeight = this.xAxisHeight;
-        gl.xAxisLabelsHeight = this.xAxisHeight;
+        gl.xAxisLabelsHeight = this.xAxisHeight - xtitleCoords.height;
         gl.xAxisLabelsWidth = this.xAxisWidth;
         gl.xAxisHeight = this.xAxisHeight;
         var translateY = 10;
@@ -14397,7 +14346,7 @@
           var elLegend = document.createElement('div');
           var elLegendText = document.createElement('span');
           elLegendText.classList.add('apexcharts-legend-text');
-          elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text;
+          elLegendText.innerHTML = Array.isArray(text) ? Utils.sanitizeDom(text.join(' ')) : Utils.sanitizeDom(text);
           var textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors;
 
           if (!textColor) {
@@ -16372,6 +16321,9 @@
             pColor = _ref4.pColor;
         var w = this.w;
         var ttCtx = this.ttCtx;
+        Object.keys(values).forEach(function (key) {
+          if (typeof values[key] === 'string') values[key] = Utils.sanitizeDom(values[key]);
+        });
         var val = values.val,
             xVal = values.xVal,
             xAxisTTVal = values.xAxisTTVal,
@@ -16402,7 +16354,7 @@
         var ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label');
 
         if (ttYLabel) {
-          ttYLabel.innerHTML = seriesName ? seriesName : '';
+          ttYLabel.innerHTML = seriesName ? Utils.sanitizeDom(seriesName) : '';
         }
 
         var ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-value');
@@ -19521,8 +19473,8 @@
           this.maxY = w.config.yaxis[0].max;
         }
 
-        if (this.chartType === 'polarArea') {
-          this.drawPolarElements();
+        if (w.config.grid.position === 'back' && this.chartType === 'polarArea') {
+          this.drawPolarElements(this.ret);
         }
 
         for (var i = 0; i < series.length; i++) {
@@ -19598,6 +19550,10 @@
             translateY: translateY
           });
           this.ret.add(dataLabels);
+        }
+
+        if (w.config.grid.position === 'front' && this.chartType === 'polarArea') {
+          this.drawPolarElements(this.ret);
         }
 
         return this.ret;
@@ -19995,7 +19951,7 @@
       }
     }, {
       key: "drawPolarElements",
-      value: function drawPolarElements() {
+      value: function drawPolarElements(parent) {
         var w = this.w;
         var scale = new Range(this.ctx);
         var graphics = new Graphics(this.ctx);
@@ -20028,8 +19984,9 @@
           circleSize = circleSize - diff;
         }
 
-        this.ret.add(gCircles);
-        this.ret.add(gYAxis);
+        this.drawSpokes(parent);
+        parent.add(gCircles);
+        parent.add(gYAxis);
       }
     }, {
       key: "renderInnerDataLabels",
@@ -20185,9 +20142,24 @@
         }
       }
     }, {
+      key: "drawSpokes",
+      value: function drawSpokes(parent) {
+        var _this2 = this;
+
+        var w = this.w;
+        var graphics = new Graphics(this.ctx);
+        var spokeConfig = w.config.plotOptions.polarArea.spokes;
+        if (spokeConfig.strokeWidth === 0) return;
+        var spokes = Utils.getPolygonPos(w.globals.radialSize, w.globals.series.length);
+        spokes.forEach(function (p, i) {
+          var line = graphics.drawLine(p.x + _this2.centerX, p.y + _this2.centerY, _this2.centerX, _this2.centerY, Array.isArray(spokeConfig.connectorColors) ? spokeConfig.connectorColors[i] : spokeConfig.connectorColors);
+          parent.add(line);
+        });
+      }
+    }, {
       key: "revertDataLabelsInner",
       value: function revertDataLabelsInner(elem, dataLabelsConfig, event) {
-        var _this2 = this;
+        var _this3 = this;
 
         var w = this.w;
         var dataLabelsGroup = w.globals.dom.baseEl.querySelector('.apexcharts-datalabels-group');
@@ -20204,7 +20176,7 @@
               }
 
               if (printLabel) {
-                _this2.printDataLabelsInner(s, dataLabelsConfig);
+                _this3.printDataLabelsInner(s, dataLabelsConfig);
               }
             }
           });
@@ -20474,10 +20446,10 @@
           ret.add(xaxisTexts);
         }
 
-        ret.add(this.yaxisLabels);
         allSeries.forEach(function (elS) {
           ret.add(elS);
         });
+        ret.add(this.yaxisLabels);
         return ret;
       }
     }, {
@@ -20501,8 +20473,7 @@
         var polygonStrings = [];
         var lines = [];
         radiusSizes.forEach(function (radiusSize, r) {
-          var polygon = _this2.getPolygonPos(radiusSize);
-
+          var polygon = Utils.getPolygonPos(radiusSize, _this2.dataPointsLen);
           var string = '';
           polygon.forEach(function (p, i) {
             if (r === 0) {
@@ -20552,7 +20523,7 @@
         var elXAxisWrap = this.graphics.group({
           class: 'apexcharts-xaxis'
         });
-        var polygonPos = this.getPolygonPos(this.size);
+        var polygonPos = Utils.getPolygonPos(this.size, this.dataPointsLen);
         w.globals.labels.forEach(function (label, i) {
           var formatter = w.config.xaxis.labels.formatter;
           var dataLabels = new DataLabels(_this3.ctx);
@@ -20689,21 +20660,6 @@
         }
 
         return dataPointsPosArray;
-      }
-    }, {
-      key: "getPolygonPos",
-      value: function getPolygonPos(size) {
-        var dotsArray = [];
-        var angle = Math.PI * 2 / this.dataPointsLen;
-
-        for (var i = 0; i < this.dataPointsLen; i++) {
-          var curPos = {};
-          curPos.x = size * Math.sin(i * angle);
-          curPos.y = -size * Math.cos(i * angle);
-          dotsArray.push(curPos);
-        }
-
-        return dotsArray;
       }
     }]);
 
@@ -23321,8 +23277,8 @@
               var barStacked = new BarStacked(this.ctx, xyRatios);
               elGraph.push(barStacked.draw(columnSeries.series, columnSeries.i));
             } else {
-              var bar = new Bar(this.ctx, xyRatios);
-              elGraph.push(bar.draw(columnSeries.series, columnSeries.i));
+              this.ctx.bar = new Bar(this.ctx, xyRatios);
+              elGraph.push(this.ctx.bar.draw(columnSeries.series, columnSeries.i));
             }
           }
 
@@ -23359,9 +23315,8 @@
 
                 elGraph = _barStacked.draw(gl.series);
               } else {
-                var _bar = new Bar(this.ctx, xyRatios);
-
-                elGraph = _bar.draw(gl.series);
+                this.ctx.bar = new Bar(this.ctx, xyRatios);
+                elGraph = this.ctx.bar.draw(gl.series);
               }
 
               break;
@@ -30032,6 +29987,9 @@
             // as we have minX and maxX values, determine the default DateTimeFormat for time series
             this.formatters.setLabelFormatters();
           }
+
+          this.ctx.toolbar.minX = w.globals.minX;
+          this.ctx.toolbar.maxX = w.globals.maxX;
         } // we need to generate yaxis for heatmap separately as we are not showing numerics there, but seriesNames. There are some tweaks which are required for heatmap to align labels correctly which are done in below function
         // Also we need to do this before calculating Dimensions plotCoords() method of Dimensions
 
@@ -30102,6 +30060,11 @@
           if (elgrid !== null) {
             xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth);
             yaxis.setYAxisTextAlignments();
+            w.config.yaxis.map(function (yaxe, index) {
+              if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1) {
+                yaxis.yAxisTitleRotate(index, yaxe.opposite);
+              }
+            });
           }
 
           if (w.config.annotations.position === 'back') {
@@ -30537,7 +30500,7 @@
     }, {
       key: "_parentResizeCallback",
       value: function _parentResizeCallback() {
-        if (!this.w.globals.noData && this.w.globals.animationEnded && this.w.config.chart.redrawOnParentResize) {
+        if (this.w.globals.animationEnded && this.w.config.chart.redrawOnParentResize) {
           this._windowResize();
         }
       }
