@@ -217,7 +217,14 @@ export default class Animations {
         return
       }
 
-      el.node.style.clipPath = `inset(${clipShape} round ${borderRadius}px)`
+      if (!w.config.chart.animations.enabled) {
+        // disabling in animations as it causes rendering issues
+        // TODO: in future, replace paths with rect for bars/columns
+        el.node.setAttribute(
+          'clip-path',
+          `inset(${clipShape} round ${borderRadius}px)`
+        )
+      }
     }
   }
 
