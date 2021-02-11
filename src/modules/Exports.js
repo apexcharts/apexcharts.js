@@ -261,6 +261,19 @@ class Exports {
             columns.push(w.globals.seriesCandleL[sI][i])
             columns.push(w.globals.seriesCandleC[sI][i])
           }
+
+          if (
+            w.config.chart.type === 'boxPlot' ||
+            (s.type && s.type === 'boxPlot')
+          ) {
+            columns.pop()
+            columns.push(w.globals.seriesCandleO[sI][i])
+            columns.push(w.globals.seriesCandleH[sI][i])
+            columns.push(w.globals.seriesCandleM[sI][i])
+            columns.push(w.globals.seriesCandleL[sI][i])
+            columns.push(w.globals.seriesCandleC[sI][i])
+          }
+
           if (w.config.chart.type === 'rangeBar') {
             columns.pop()
             columns.push(w.globals.seriesRangeStart[sI][i])

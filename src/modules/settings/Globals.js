@@ -5,6 +5,7 @@ export default class Globals {
     gl.series = [] // the MAIN series array (y values)
     gl.seriesCandleO = []
     gl.seriesCandleH = []
+    gl.seriesCandleM = []
     gl.seriesCandleL = []
     gl.seriesCandleC = []
     gl.seriesRangeStart = []

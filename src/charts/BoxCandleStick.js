@@ -5,18 +5,19 @@ import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
 
 /**
- * ApexCharts CandleStick Class responsible for drawing both Stacked Columns and Bars.
+ * ApexCharts BoxCandleStick Class responsible for drawing both Stacked Columns and Bars.
  *
- * @module CandleStick
+ * @module BoxCandleStick
  **/
 
-class CandleStick extends Bar {
+class BoxCandleStick extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
     let fill = new Fill(this.ctx)
 
     this.candlestickOptions = this.w.config.plotOptions.candlestick
+    this.boxOptions = this.w.config.plotOptions.boxPlot
 
     const coreUtils = new CoreUtils(this.ctx, w)
     series = coreUtils.getLogSeries(series)
@@ -26,10 +27,14 @@ class CandleStick extends Bar {
     this.barHelpers.initVariables(series)
 
     let ret = graphics.group({
-      class: 'apexcharts-candlestick-series apexcharts-plot-series'
+      class: `apexcharts-${w.config.chart.type}-series apexcharts-plot-series`
     })
 
     for (let i = 0; i < series.length; i++) {
+      this.isBoxPlot =
+        w.config.chart.type === 'boxPlot' ||
+        w.config.series[i].type === 'boxPlot'
+
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -80,9 +85,7 @@ class CandleStick extends Bar {
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
-        let color
-
-        let paths = this.drawCandleStickPaths({
+        let paths = this.drawBoxPaths({
           indexes: {
             i,
             j,
@@ -99,7 +102,6 @@ class CandleStick extends Bar {
 
         y = paths.y
         x = paths.x
-        color = paths.color
 
         // push current X
         if (j > 0) {
@@ -108,35 +110,38 @@ class CandleStick extends Bar {
 
         yArrj.push(y)
 
-        let pathFill = fill.fillPath({
-          seriesNumber: realIndex,
-          dataPointIndex: j,
-          color,
-          value: series[i][j]
-        })
+        paths.pathTo.forEach((pathTo, pi) => {
+          let lineFill =
+            !this.isBoxPlot && this.candlestickOptions.wick.useFillColor
+              ? paths.color[pi]
+              : w.globals.stroke.colors[i]
 
-        let lineFill = this.candlestickOptions.wick.useFillColor
-          ? color
-          : undefined
+          let pathFill = fill.fillPath({
+            seriesNumber: realIndex,
+            dataPointIndex: j,
+            color: paths.color[pi],
+            value: series[i][j]
+          })
 
-        this.renderSeries({
-          realIndex,
-          pathFill,
-          lineFill,
-          j,
-          i,
-          pathFrom: paths.pathFrom,
-          pathTo: paths.pathTo,
-          strokeWidth,
-          elSeries,
-          x,
-          y,
-          series,
-          barHeight,
-          barWidth,
-          elDataLabelsWrap,
-          visibleSeries: this.visibleI,
-          type: 'candlestick'
+          this.renderSeries({
+            realIndex,
+            pathFill,
+            lineFill,
+            j,
+            i,
+            pathFrom: paths.pathFrom,
+            pathTo,
+            strokeWidth,
+            elSeries,
+            x,
+            y,
+            series,
+            barHeight,
+            barWidth,
+            elDataLabelsWrap,
+            visibleSeries: this.visibleI,
+            type: w.config.chart.type
+          })
         })
       }
 
@@ -150,15 +155,7 @@ class CandleStick extends Bar {
     return ret
   }
 
-  drawCandleStickPaths({
-    indexes,
-    x,
-    y,
-    xDivision,
-    barWidth,
-    zeroH,
-    strokeWidth
-  }) {
+  drawBoxPaths({ indexes, x, y, xDivision, barWidth, zeroH, strokeWidth }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
@@ -168,6 +165,11 @@ class CandleStick extends Bar {
     let isPositive = true
     let colorPos = w.config.plotOptions.candlestick.colors.upward
     let colorNeg = w.config.plotOptions.candlestick.colors.downward
+    let color = ''
+
+    if (this.isBoxPlot) {
+      color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper]
+    }
 
     const yRatio = this.yRatio[this.yaxisIndex]
     let realIndex = indexes.realIndex
@@ -182,6 +184,7 @@ class CandleStick extends Bar {
 
     let y1 = Math.min(ohlc.o, ohlc.c)
     let y2 = Math.max(ohlc.o, ohlc.c)
+    let m = ohlc.m
 
     if (w.globals.isXNumeric) {
       x =
@@ -201,26 +204,57 @@ class CandleStick extends Bar {
       y2 = zeroH - y2 / yRatio
       l1 = zeroH - ohlc.h / yRatio
       l2 = zeroH - ohlc.l / yRatio
+      m = zeroH - ohlc.m / yRatio
     }
 
     let pathTo = graphics.move(barXPosition, zeroH)
-    let pathFrom = graphics.move(barXPosition, y1)
+    let pathFrom = graphics.move(barXPosition + barWidth / 2, y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, true)
     }
 
-    pathTo =
-      graphics.move(barXPosition, y2) +
-      graphics.line(barXPosition + barWidth / 2, y2) +
-      graphics.line(barXPosition + barWidth / 2, l1) +
-      graphics.line(barXPosition + barWidth / 2, y2) +
-      graphics.line(barXPosition + barWidth, y2) +
-      graphics.line(barXPosition + barWidth, y1) +
-      graphics.line(barXPosition + barWidth / 2, y1) +
-      graphics.line(barXPosition + barWidth / 2, l2) +
-      graphics.line(barXPosition + barWidth / 2, y1) +
-      graphics.line(barXPosition, y1) +
-      graphics.line(barXPosition, y2 - strokeWidth / 2)
+    if (this.isBoxPlot) {
+      pathTo = [
+        graphics.move(barXPosition, y1) +
+          graphics.line(barXPosition + barWidth / 2, y1) +
+          graphics.line(barXPosition + barWidth / 2, l1) +
+          graphics.line(barXPosition + barWidth / 4, l1) +
+          graphics.line(barXPosition + barWidth - barWidth / 4, l1) +
+          graphics.line(barXPosition + barWidth / 2, l1) +
+          graphics.line(barXPosition + barWidth / 2, y1) +
+          graphics.line(barXPosition + barWidth, y1) +
+          graphics.line(barXPosition + barWidth, m) +
+          graphics.line(barXPosition, m) +
+          graphics.line(barXPosition, y1 + strokeWidth / 2),
+        graphics.move(barXPosition, m) +
+          graphics.line(barXPosition + barWidth, m) +
+          graphics.line(barXPosition + barWidth, y2) +
+          graphics.line(barXPosition + barWidth / 2, y2) +
+          graphics.line(barXPosition + barWidth / 2, l2) +
+          graphics.line(barXPosition + barWidth - barWidth / 4, l2) +
+          graphics.line(barXPosition + barWidth / 4, l2) +
+          graphics.line(barXPosition + barWidth / 2, l2) +
+          graphics.line(barXPosition + barWidth / 2, y2) +
+          graphics.line(barXPosition, y2) +
+          graphics.line(barXPosition, m) +
+          'z'
+      ]
+    } else {
+      // candlestick
+      pathTo = [
+        graphics.move(barXPosition, y2) +
+          graphics.line(barXPosition + barWidth / 2, y2) +
+          graphics.line(barXPosition + barWidth / 2, l1) +
+          graphics.line(barXPosition + barWidth / 2, y2) +
+          graphics.line(barXPosition + barWidth, y2) +
+          graphics.line(barXPosition + barWidth, y1) +
+          graphics.line(barXPosition + barWidth / 2, y1) +
+          graphics.line(barXPosition + barWidth / 2, l2) +
+          graphics.line(barXPosition + barWidth / 2, y1) +
+          graphics.line(barXPosition, y1) +
+          graphics.line(barXPosition, y2 - strokeWidth / 2)
+      ]
+    }
 
     pathFrom = pathFrom + graphics.move(barXPosition, y1)
 
@@ -234,19 +268,29 @@ class CandleStick extends Bar {
       x,
       y: y2,
       barXPosition,
-      color: isPositive ? colorPos : colorNeg
+      color: this.isBoxPlot ? color : isPositive ? [colorPos] : [colorNeg]
     }
   }
 
   getOHLCValue(i, j) {
     const w = this.w
+
     return {
-      o: w.globals.seriesCandleO[i][j],
-      h: w.globals.seriesCandleH[i][j],
-      l: w.globals.seriesCandleL[i][j],
-      c: w.globals.seriesCandleC[i][j]
+      o: this.isBoxPlot
+        ? w.globals.seriesCandleH[i][j]
+        : w.globals.seriesCandleO[i][j],
+      h: this.isBoxPlot
+        ? w.globals.seriesCandleO[i][j]
+        : w.globals.seriesCandleH[i][j],
+      m: w.globals.seriesCandleM[i][j],
+      l: this.isBoxPlot
+        ? w.globals.seriesCandleC[i][j]
+        : w.globals.seriesCandleL[i][j],
+      c: this.isBoxPlot
+        ? w.globals.seriesCandleL[i][j]
+        : w.globals.seriesCandleC[i][j]
     }
   }
 }
 
-export default CandleStick
+export default BoxCandleStick

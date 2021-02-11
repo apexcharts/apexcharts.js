@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>BoxPlot And Scatter Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [
+          {
+            name: 'box',
+            type: 'boxPlot',
+            data: [
+              {
+                x: new Date('2017-01-01').getTime(),
+                y: [54, 66, 69, 75, 88]
+              },
+              {
+                x: new Date('2018-01-01').getTime(),
+                y: [43, 65, 69, 76, 81]
+              },
+              {
+                x: new Date('2019-01-01').getTime(),
+                y: [31, 39, 45, 51, 59]
+              },
+              {
+                x: new Date('2020-01-01').getTime(),
+                y: [39, 46, 55, 65, 71]
+              },
+              {
+                x: new Date('2021-01-01').getTime(),
+                y: [29, 31, 35, 39, 44]
+              }
+            ]
+          },
+          {
+            name: 'outliers',
+            type: 'scatter',
+            data: [
+              {
+                x: new Date('2017-01-01').getTime(),
+                y: 32
+              },
+              {
+                x: new Date('2018-01-01').getTime(),
+                y: 25
+              },
+              {
+                x: new Date('2019-01-01').getTime(),
+                y: 64
+              },
+              {
+                x: new Date('2020-01-01').getTime(),
+                y: 27
+              },
+              {
+                x: new Date('2020-01-01').getTime(),
+                y: 78
+              },
+              {
+                x: new Date('2021-01-01').getTime(),
+                y: 15
+              }
+            ]
+          }
+        ],
+          chart: {
+          type: 'boxPlot',
+          height: 350
+        },
+        title: {
+          text: 'BoxPlot - Scatter Chart',
+          align: 'left'
+        },
+        xaxis: {
+          type: 'datetime',
+          tooltip: {
+            formatter: function(val) {
+              return new Date(val).getFullYear()
+            }
+          }
+        },
+        fill: {
+          colors: ['#FEB019']
+        },
+        tooltip: {
+          shared: false,
+          intersect: true
+        }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
+
+    
+  </body>
+</html>

@@ -13,17 +13,25 @@ export default class DimGrid {
       return 0
     }
 
+    const hasBar = (type) => {
+      return (
+        type === 'bar' ||
+        type === 'rangeBar' ||
+        type === 'candlestick' ||
+        type === 'boxPlot'
+      )
+    }
+
     const type = w.config.chart.type
 
     let barWidth = 0
-    let seriesLen =
-      type === 'bar' || type === 'rangeBar' ? w.config.series.length : 1
+    let seriesLen = hasBar(type) ? w.config.series.length : 1
 
     if (w.globals.comboBarCount > 0) {
       seriesLen = w.globals.comboBarCount
     }
     w.globals.collapsedSeries.forEach((c) => {
-      if (c.type === 'bar' || c.type === 'rangeBar') {
+      if (hasBar(c.type)) {
         seriesLen = seriesLen - 1
       }
     })
@@ -31,11 +39,10 @@ export default class DimGrid {
       seriesLen = 1
     }
 
-    const hasBar =
-      type === 'bar' || type === 'rangeBar' || w.globals.comboBarCount > 0
+    const barsPresent = hasBar(type) || w.globals.comboBarCount > 0
 
     if (
-      hasBar &&
+      barsPresent &&
       w.globals.isXNumeric &&
       !w.globals.isBarHorizontal &&
       seriesLen > 0

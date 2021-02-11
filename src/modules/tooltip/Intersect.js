@@ -252,6 +252,7 @@ class Intersect {
     if (
       cl.contains('apexcharts-bar-area') ||
       cl.contains('apexcharts-candlestick-area') ||
+      cl.contains('apexcharts-boxPlot-area') ||
       cl.contains('apexcharts-rangebar-area')
     ) {
       let bar = e.target

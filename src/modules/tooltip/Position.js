@@ -262,7 +262,12 @@ export default class Position {
     let hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(capturedSeries)
 
     const serType = w.config.series[capturedSeries].type
-    if (serType && (serType === 'column' || serType === 'candlestick')) {
+    if (
+      serType &&
+      (serType === 'column' ||
+        serType === 'candlestick' ||
+        serType === 'boxPlot')
+    ) {
       // fix error mentioned in #811
       return
     }
@@ -365,7 +370,7 @@ export default class Position {
         : Math.floor(barLen / 2) + 1
 
     let jBar = w.globals.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     )
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
@@ -374,6 +379,14 @@ export default class Position {
 
     if (w.globals.isXNumeric) {
       bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
+
+      if (
+        (jBar.classList.contains('apexcharts-candlestick-area') ||
+          jBar.classList.contains('apexcharts-boxPlot-area')) &&
+        w.globals.comboCharts
+      ) {
+        bcx = bcx - bw / 2
+      }
     } else {
       bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
       if (isNaN(bcx)) {

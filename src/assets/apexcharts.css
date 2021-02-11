@@ -144,15 +144,20 @@
   padding: 6px 0 5px;
 }
 
-.apexcharts-tooltip-candlestick {
+.apexcharts-tooltip-box, .apexcharts-custom-tooltip {
   padding: 4px 8px;
 }
 
-.apexcharts-tooltip-candlestick>div {
+.apexcharts-tooltip-boxPlot {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.apexcharts-tooltip-box>div {
   margin: 4px 0;
 }
 
-.apexcharts-tooltip-candlestick span.value {
+.apexcharts-tooltip-box span.value {
   font-weight: bold;
 }
 

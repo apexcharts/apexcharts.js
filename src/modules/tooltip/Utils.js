@@ -293,7 +293,7 @@ export default class Utils {
 
   getElBars() {
     return this.w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-rangebar-series'
+      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-rangebar-series'
     )
   }
 

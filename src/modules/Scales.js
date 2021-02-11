@@ -59,6 +59,8 @@ export default class Range {
       NO_MIN_MAX_PROVIDED &&
       (w.config.chart.type === 'candlestick' ||
         w.config.series[index].type === 'candlestick' ||
+        w.config.chart.type === 'boxPlot' ||
+        w.config.series[index].type === 'boxPlot' ||
         w.globals.isRangeData)
     ) {
       /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */

@@ -1,6 +1,6 @@
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
-import CandleStick from '../charts/CandleStick'
+import BoxCandleStick from '../charts/BoxCandleStick'
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
 import HeatMap from '../charts/HeatMap'
@@ -46,6 +46,7 @@ export default class Core {
       'bar',
       'rangeBar',
       'candlestick',
+      'boxPlot',
       'scatter',
       'bubble',
       'radar',
@@ -59,6 +60,7 @@ export default class Core {
       'bar',
       'rangeBar',
       'candlestick',
+      'boxPlot',
       'scatter',
       'bubble'
     ]
@@ -143,7 +145,13 @@ export default class Core {
       i: []
     }
 
+    let boxplotSeries = {
+      series: [],
+      i: []
+    }
+
     gl.series.map((series, st) => {
+      let comboCount = 0
       // if user has specified a particular type for particular series
       if (typeof ser[st].type !== 'undefined') {
         if (ser[st].type === 'column' || ser[st].type === 'bar') {
@@ -155,29 +163,40 @@ export default class Core {
           }
           columnSeries.series.push(series)
           columnSeries.i.push(st)
+          comboCount++
           w.globals.columnSeries = columnSeries.series
         } else if (ser[st].type === 'area') {
           areaSeries.series.push(series)
           areaSeries.i.push(st)
+          comboCount++
         } else if (ser[st].type === 'line') {
           lineSeries.series.push(series)
           lineSeries.i.push(st)
+          comboCount++
         } else if (ser[st].type === 'scatter') {
           scatterSeries.series.push(series)
           scatterSeries.i.push(st)
         } else if (ser[st].type === 'bubble') {
           bubbleSeries.series.push(series)
           bubbleSeries.i.push(st)
+          comboCount++
         } else if (ser[st].type === 'candlestick') {
           candlestickSeries.series.push(series)
           candlestickSeries.i.push(st)
+          comboCount++
+        } else if (ser[st].type === 'boxPlot') {
+          boxplotSeries.series.push(series)
+          boxplotSeries.i.push(st)
+          comboCount++
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
           console.warn(
             'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble'
           )
         }
-        gl.comboCharts = true
+        if (comboCount > 1) {
+          gl.comboCharts = true
+        }
       } else {
         lineSeries.series.push(series)
         lineSeries.i.push(st)
@@ -185,7 +204,7 @@ export default class Core {
     })
 
     let line = new Line(this.ctx, xyRatios)
-    let candlestick = new CandleStick(this.ctx, xyRatios)
+    let boxCandlestick = new BoxCandleStick(this.ctx, xyRatios)
     this.ctx.pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
     this.ctx.rangeBar = new RangeBar(this.ctx, xyRatios)
@@ -210,8 +229,11 @@ export default class Core {
       }
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
-          candlestick.draw(candlestickSeries.series, candlestickSeries.i)
+          boxCandlestick.draw(candlestickSeries.series, candlestickSeries.i)
         )
+      }
+      if (boxplotSeries.series.length > 0) {
+        elGraph.push(boxCandlestick.draw(boxplotSeries.series, boxplotSeries.i))
       }
       if (scatterSeries.series.length > 0) {
         const scatterLine = new Line(this.ctx, xyRatios, true)
@@ -243,8 +265,12 @@ export default class Core {
           }
           break
         case 'candlestick':
-          let candleStick = new CandleStick(this.ctx, xyRatios)
+          let candleStick = new BoxCandleStick(this.ctx, xyRatios)
           elGraph = candleStick.draw(gl.series)
+          break
+        case 'boxPlot':
+          let boxPlot = new BoxCandleStick(this.ctx, xyRatios)
+          elGraph = boxPlot.draw(gl.series)
           break
         case 'rangeBar':
           elGraph = this.ctx.rangeBar.draw(gl.series)

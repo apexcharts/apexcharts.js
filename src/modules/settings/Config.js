@@ -46,6 +46,7 @@ export default class Config {
         'area',
         'bar',
         'candlestick',
+        'boxPlot',
         'rangeBar',
         'histogram',
         'bubble',
@@ -341,9 +342,14 @@ export default class Config {
       }
     }
 
-    if (config.chart.type === 'candlestick') {
+    if (
+      config.chart.type === 'candlestick' ||
+      config.chart.type === 'boxPlot'
+    ) {
       if (config.yaxis[0].reversed) {
-        console.warn('Reversed y-axis in candlestick chart is not supported.')
+        console.warn(
+          `Reversed y-axis in ${config.chart.type} chart is not supported.`
+        )
         config.yaxis[0].reversed = false
       }
     }

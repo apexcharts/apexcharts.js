@@ -389,10 +389,8 @@ export default class Options {
           columnWidth: '70%', // should be in percent 0 - 100
           barHeight: '70%', // should be in percent 0 - 100
           distributed: false,
-          startingShape: 'flat',
-          endingShape: 'flat',
-          borderRadius: 0,
-          radiusOnLastStackedBar: true,
+          startingShape: 'flat', // deprecated
+          endingShape: 'flat', // deprecated
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
           colors: {
@@ -420,6 +418,12 @@ export default class Options {
           },
           wick: {
             useFillColor: true
+          }
+        },
+        boxPlot: {
+          colors: {
+            upper: '#00E396',
+            lower: '#008FFB'
           }
         },
         heatmap: {

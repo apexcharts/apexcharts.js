@@ -166,26 +166,13 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom({ seriesIndex, dataPointIndex, w }) {
-          const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
-          const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
-          const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
-          const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex]
-          return (
-            '<div class="apexcharts-tooltip-candlestick">' +
-            '<div>Open: <span class="value">' +
-            o +
-            '</span></div>' +
-            '<div>High: <span class="value">' +
-            h +
-            '</span></div>' +
-            '<div>Low: <span class="value">' +
-            l +
-            '</span></div>' +
-            '<div>Close: <span class="value">' +
-            c +
-            '</span></div>' +
-            '</div>'
+        custom: ({ seriesIndex, dataPointIndex, w }) => {
+          return this._getBoxTooltip(
+            w,
+            seriesIndex,
+            dataPointIndex,
+            ['Open', 'High', '', 'Low', 'Close'],
+            'candlestick'
           )
         }
       },
@@ -195,6 +182,47 @@ export default class Defaults {
             type: 'none'
           }
         }
+      },
+      xaxis: {
+        crosshairs: {
+          width: 1
+        }
+      }
+    }
+  }
+
+  boxPlot() {
+    return {
+      chart: {
+        animations: {
+          dynamicAnimation: {
+            enabled: false
+          }
+        }
+      },
+      stroke: {
+        width: 1,
+        colors: ['#24292e']
+      },
+      dataLabels: {
+        enabled: false
+      },
+      tooltip: {
+        shared: true,
+        custom: ({ seriesIndex, dataPointIndex, w }) => {
+          return this._getBoxTooltip(
+            w,
+            seriesIndex,
+            dataPointIndex,
+            ['Minimum', 'Q1', 'Median', 'Q3', 'Maximum'],
+            'boxPlot'
+          )
+        }
+      },
+      markers: {
+        size: 5,
+        strokeWidth: 1,
+        strokeColors: '#111'
       },
       xaxis: {
         crosshairs: {
@@ -771,6 +799,47 @@ export default class Defaults {
         enabled: false,
         fillSeriesColor: true
       }
+    }
+  }
+
+  _getBoxTooltip(w, seriesIndex, dataPointIndex, labels, chartType) {
+    const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
+    const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
+    const m = w.globals.seriesCandleM[seriesIndex][dataPointIndex]
+    const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
+    const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex]
+
+    if (
+      w.config.series[seriesIndex].type &&
+      w.config.series[seriesIndex].type !== chartType
+    ) {
+      return `<div class="apexcharts-custom-tooltip">
+          ${
+            w.config.series[seriesIndex].name
+              ? w.config.series[seriesIndex].name
+              : 'series-' + (seriesIndex + 1)
+          }: <strong>${w.globals.series[seriesIndex][dataPointIndex]}</strong>
+        </div>`
+    } else {
+      return (
+        `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}">` +
+        `<div>${labels[0]}: <span class="value">` +
+        o +
+        '</span></div>' +
+        `<div>${labels[1]}: <span class="value">` +
+        h +
+        '</span></div>' +
+        (m
+          ? `<div>${labels[2]}: <span class="value">` + m + '</span></div>'
+          : '') +
+        `<div>${labels[3]}: <span class="value">` +
+        l +
+        '</span></div>' +
+        `<div>${labels[4]}: <span class="value">` +
+        c +
+        '</span></div>' +
+        '</div>'
+      )
     }
   }
 }

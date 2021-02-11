@@ -11,19 +11,26 @@ class CoreUtils {
   static checkComboSeries(series) {
     let comboCharts = false
     let comboBarCount = 0
+    let comboCount = 0
 
     // if user specified a type in series too, turn on comboCharts flag
     if (series.length && typeof series[0].type !== 'undefined') {
-      comboCharts = true
       series.forEach((s) => {
         if (
           s.type === 'bar' ||
           s.type === 'column' ||
-          s.type === 'candlestick'
+          s.type === 'candlestick' ||
+          s.type === 'boxPlot'
         ) {
           comboBarCount++
         }
+        if (typeof s.type !== 'undefined') {
+          comboCount++
+        }
       })
+    }
+    if (comboCount > 1) {
+      comboCharts = true
     }
 
     return {

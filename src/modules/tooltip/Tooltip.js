@@ -201,6 +201,7 @@ export default class Tooltip {
     const commonBar = !!(
       type === 'bar' ||
       type === 'candlestick' ||
+      type === 'boxPlot' ||
       type === 'rangeBar'
     )
 
@@ -239,7 +240,7 @@ export default class Tooltip {
         )
       } else if (commonBar) {
         points = w.globals.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-rangebar-area'
+          '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-rangebar-area'
         )
       } else if (type === 'heatmap' || type === 'treemap') {
         points = w.globals.dom.baseEl.querySelectorAll(
@@ -329,7 +330,7 @@ export default class Tooltip {
   addDatapointEventsListeners(seriesHoverParams) {
     let w = this.w
     let points = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-series-markers .apexcharts-marker, .apexcharts-bar-area, .apexcharts-candlestick-area, .apexcharts-rangebar-area'
+      '.apexcharts-series-markers .apexcharts-marker, .apexcharts-bar-area, .apexcharts-candlestick-area, .apexcharts-boxPlot-area, .apexcharts-rangebar-area'
     )
     this.addPathsEventListeners(points, seriesHoverParams)
   }

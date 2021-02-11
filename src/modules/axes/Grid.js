@@ -107,7 +107,11 @@ class Grid {
 
     const type = w.config.chart.type
     const hasBar =
-      type === 'bar' || type === 'rangeBar' || w.globals.comboBarCount > 0
+      type === 'bar' ||
+      type === 'rangeBar' ||
+      type === 'candlestick' ||
+      type === 'boxPlot' ||
+      w.globals.comboBarCount > 0
 
     let barWidthLeft = 0
     let barWidthRight = 0

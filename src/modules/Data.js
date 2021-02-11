@@ -59,6 +59,9 @@ export default class Data {
     const cnf = this.w.config
     const gl = this.w.globals
 
+    const isBoxPlot =
+      cnf.chart.type === 'boxPlot' || cnf.series[i].type === 'boxPlot'
+
     if (cnf.xaxis.sorted) {
       if (cnf.xaxis.type === 'datetime') {
         ser[i].data.sort(
@@ -73,11 +76,12 @@ export default class Data {
       if (typeof ser[i].data[j][1] !== 'undefined') {
         if (
           Array.isArray(ser[i].data[j][1]) &&
-          ser[i].data[j][1].length === 4
+          ser[i].data[j][1].length === 4 &&
+          !isBoxPlot
         ) {
           // candlestick nested ohlc format
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1][3]))
-        } else if (ser[i].data[j].length === 5) {
+        } else if (ser[i].data[j].length >= 5) {
           // candlestick non-nested ohlc format
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][4]))
         } else {
@@ -86,7 +90,7 @@ export default class Data {
         gl.dataFormatXNumeric = true
       }
       if (cnf.xaxis.type === 'datetime') {
-        // if timestamps are provided and xaxis type is datettime,
+        // if timestamps are provided and xaxis type is datetime,
 
         let ts = new Date(ser[i].data[j][0])
         ts = new Date(ts).getTime()
@@ -236,18 +240,19 @@ export default class Data {
     return range
   }
 
-  handleCandleStickData(ser, i) {
+  handleCandleStickBoxData(ser, i) {
     const gl = this.w.globals
 
     let ohlc = {}
     if (this.isFormat2DArray()) {
-      ohlc = this.handleCandleStickDataFormat('array', ser, i)
+      ohlc = this.handleCandleStickBoxDataFormat('array', ser, i)
     } else if (this.isFormatXY()) {
-      ohlc = this.handleCandleStickDataFormat('xy', ser, i)
+      ohlc = this.handleCandleStickBoxDataFormat('xy', ser, i)
     }
 
     gl.seriesCandleO[i] = ohlc.o
     gl.seriesCandleH[i] = ohlc.h
+    gl.seriesCandleM[i] = ohlc.m
     gl.seriesCandleL[i] = ohlc.l
     gl.seriesCandleC[i] = ohlc.c
 
@@ -315,61 +320,72 @@ export default class Data {
     }
   }
 
-  handleCandleStickDataFormat(format, ser, i) {
+  handleCandleStickBoxDataFormat(format, ser, i) {
     const w = this.w
+    const isBoxPlot =
+      w.config.chart.type === 'boxPlot' || w.config.series[i].type === 'boxPlot'
 
     const serO = []
     const serH = []
+    const serM = []
     const serL = []
     const serC = []
 
-    const err =
-      'Please provide [Open, High, Low and Close] values in valid format. Read more https://apexcharts.com/docs/series/#candlestick'
-
     if (format === 'array') {
       if (
-        (!Array.isArray(ser[i].data[0][1]) && ser[i].data[0].length !== 5) ||
-        (Array.isArray(ser[i].data[0][1]) && ser[i].data[0][1].length !== 4)
+        (isBoxPlot && ser[i].data[0].length === 6) ||
+        (!isBoxPlot && ser[i].data[0].length === 5)
       ) {
-        throw new Error(err)
-      }
-
-      if (ser[i].data[0].length === 5) {
         for (let j = 0; j < ser[i].data.length; j++) {
           serO.push(ser[i].data[j][1])
           serH.push(ser[i].data[j][2])
-          serL.push(ser[i].data[j][3])
-          serC.push(ser[i].data[j][4])
+
+          if (isBoxPlot) {
+            serM.push(ser[i].data[j][3])
+            serL.push(ser[i].data[j][4])
+            serC.push(ser[i].data[j][5])
+          } else {
+            serL.push(ser[i].data[j][3])
+            serC.push(ser[i].data[j][4])
+          }
         }
       } else {
         for (let j = 0; j < ser[i].data.length; j++) {
-          serO.push(ser[i].data[j][1][0])
-          serH.push(ser[i].data[j][1][1])
-          serL.push(ser[i].data[j][1][2])
-          serC.push(ser[i].data[j][1][3])
+          if (Array.isArray(ser[i].data[j][1])) {
+            serO.push(ser[i].data[j][1][0])
+            serH.push(ser[i].data[j][1][1])
+            if (isBoxPlot) {
+              serM.push(ser[i].data[j][1][2])
+              serL.push(ser[i].data[j][1][3])
+              serC.push(ser[i].data[j][1][4])
+            } else {
+              serL.push(ser[i].data[j][1][2])
+              serC.push(ser[i].data[j][1][3])
+            }
+          }
         }
       }
     } else if (format === 'xy') {
-      if (
-        (!w.globals.comboCharts && ser[i].data[0].y.length !== 4) ||
-        (w.globals.comboCharts &&
-          ser[i].type === 'candlestick' &&
-          ser[i].data.length &&
-          ser[i].data[0].y.length !== 4)
-      ) {
-        throw new Error(err)
-      }
       for (let j = 0; j < ser[i].data.length; j++) {
-        serO.push(ser[i].data[j].y[0])
-        serH.push(ser[i].data[j].y[1])
-        serL.push(ser[i].data[j].y[2])
-        serC.push(ser[i].data[j].y[3])
+        if (Array.isArray(ser[i].data[j].y)) {
+          serO.push(ser[i].data[j].y[0])
+          serH.push(ser[i].data[j].y[1])
+          if (isBoxPlot) {
+            serM.push(ser[i].data[j].y[2])
+            serL.push(ser[i].data[j].y[3])
+            serC.push(ser[i].data[j].y[4])
+          } else {
+            serL.push(ser[i].data[j].y[2])
+            serC.push(ser[i].data[j].y[3])
+          }
+        }
       }
     }
 
     return {
       o: serO,
       h: serH,
+      m: serM,
       l: serL,
       c: serC
     }
@@ -435,8 +451,13 @@ export default class Data {
           this.handleFormatXY(ser, i)
         }
 
-        if (cnf.chart.type === 'candlestick' || ser[i].type === 'candlestick') {
-          this.handleCandleStickData(ser, i)
+        if (
+          cnf.chart.type === 'candlestick' ||
+          ser[i].type === 'candlestick' ||
+          cnf.chart.type === 'boxPlot' ||
+          ser[i].type === 'boxPlot'
+        ) {
+          this.handleCandleStickBoxData(ser, i)
         }
 
         gl.series.push(this.twoDSeries)

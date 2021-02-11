@@ -43,6 +43,9 @@ class Range {
     if (cnf.chart.type === 'candlestick') {
       seriesMin = gl.seriesCandleL
       seriesMax = gl.seriesCandleH
+    } else if (cnf.chart.type === 'boxPlot') {
+      seriesMin = gl.seriesCandleO
+      seriesMax = gl.seriesCandleC
     } else if (gl.isRangeData) {
       seriesMin = gl.seriesRangeStart
       seriesMax = gl.seriesRangeEnd
@@ -54,15 +57,38 @@ class Range {
       for (let j = 0; j < gl.series[i].length; j++) {
         let val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
-          maxY = Math.max(maxY, seriesMax[i][j])
-          lowestY = Math.min(lowestY, seriesMin[i][j])
-          highestY = Math.max(highestY, seriesMin[i][j])
+          if (typeof seriesMax[i][j] !== 'undefined') {
+            maxY = Math.max(maxY, seriesMax[i][j])
+          }
+          if (typeof seriesMin[i][j] !== 'undefined') {
+            lowestY = Math.min(lowestY, seriesMin[i][j])
+            highestY = Math.max(highestY, seriesMin[i][j])
+          }
 
-          if (this.w.config.chart.type === 'candlestick') {
-            maxY = Math.max(maxY, gl.seriesCandleO[i][j])
-            maxY = Math.max(maxY, gl.seriesCandleH[i][j])
-            maxY = Math.max(maxY, gl.seriesCandleL[i][j])
-            maxY = Math.max(maxY, gl.seriesCandleC[i][j])
+          if (
+            this.w.config.chart.type === 'candlestick' ||
+            this.w.config.chart.type === 'boxPlot'
+          ) {
+            if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
+              maxY = Math.max(maxY, gl.seriesCandleO[i][j])
+              maxY = Math.max(maxY, gl.seriesCandleH[i][j])
+              maxY = Math.max(maxY, gl.seriesCandleL[i][j])
+              maxY = Math.max(maxY, gl.seriesCandleC[i][j])
+              if (this.w.config.chart.type === 'boxPlot') {
+                maxY = Math.max(maxY, gl.seriesCandleM[i][j])
+              }
+            }
+
+            // there is a combo chart and the specified series in not either candlestick or boxplot, find the max there
+            if (
+              cnf.series[i].type &&
+              (cnf.series[i].type !== 'candlestick' ||
+                cnf.series[i].type !== 'boxPlot')
+            ) {
+              maxY = Math.max(maxY, gl.series[i][j])
+              lowestY = Math.min(lowestY, gl.series[i][j])
+            }
+
             highestY = maxY
           }
 
@@ -143,11 +169,12 @@ class Range {
     }
 
     // if the numbers are too big, reduce the range
-    // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks
+    // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks/boxPlot
     if (
       cnf.chart.type === 'line' ||
       cnf.chart.type === 'area' ||
       cnf.chart.type === 'candlestick' ||
+      cnf.chart.type === 'boxPlot' ||
       (cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal)
     ) {
       if (

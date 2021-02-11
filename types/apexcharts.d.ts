@@ -99,6 +99,7 @@ type ApexChart = {
     | 'bubble'
     | 'heatmap'
     | 'candlestick'
+    | 'boxPlot'
     | 'radar'
     | 'polarArea'
     | 'rangeBar'
@@ -473,8 +474,6 @@ type ApexPlotOptions = {
     horizontal?: boolean
     endingShape?: 'flat' | 'rounded'
     startingShape?: 'flat' | 'rounded'
-    borderRadius?: number;
-    radiusOnLastStackedBar?: boolean;
     columnWidth?: string
     barHeight?: string
     distributed?: boolean
@@ -508,6 +507,12 @@ type ApexPlotOptions = {
     }
     wick?: {
       useFillColor?: boolean
+    }
+  }
+  boxPlot?: {
+    colors?: {
+      upper?: string,
+      lower?: string
     }
   }
   heatmap?: {
