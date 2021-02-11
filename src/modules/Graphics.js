@@ -305,7 +305,6 @@ class Graphics {
     } else {
       if (w.globals.resized || !w.globals.dataChanged) {
         anim.showDelayedElements()
-        anim.roundedCornerBars(el, realIndex)
       }
     }
 
