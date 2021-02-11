@@ -392,19 +392,6 @@ class Utils {
     // other browser
     return false
   }
-
-  /**
-   * Sanitize dangerous characters in the string to prevent Cross-Site Scripting
-   * @param {string}
-   * string - String to sanitize
-   */
-  static sanitizeDom(string) {
-    return string
-      .replace(/\&/g, '&amp;')
-      .replace(/\</g, '&lt;')
-      .replace(/\>/g, '&gt;')
-      .replace(/\"/g, '&quot;')
-  }
 }
 
 export default Utils
