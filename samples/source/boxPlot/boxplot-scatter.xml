@@ -6,6 +6,7 @@ chart: {
   type: 'boxPlot',
   height: 350
 },
+colors: ['#008FFB', '#FEB019'],
 title: {
   text: 'BoxPlot - Scatter Chart',
   align: 'left'
@@ -17,9 +18,6 @@ xaxis: {
       return new Date(val).getFullYear()
     }
   }
-},
-fill: {
-  colors: ['#FEB019']
 },
 tooltip: {
   shared: false,
