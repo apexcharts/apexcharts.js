@@ -477,6 +477,8 @@ export default class ApexCharts {
   }
 
   update(options) {
+    this.events.fireEvent('beforeupdate', [this, this.w])
+    
     return new Promise((resolve, reject) => {
       new Destroy(this.ctx).clear({ isUpdating: true })
 
