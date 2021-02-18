@@ -957,15 +957,24 @@ class Pie {
 
     if (spokeConfig.strokeWidth === 0) return
 
-    const spokes = Utils.getPolygonPos(
-      w.globals.radialSize,
-      w.globals.series.length
-    )
+    let spokes = []
+
+    let angleDivision = 360 / w.globals.series.length
+    for (let i = 0; i < w.globals.series.length; i++) {
+      spokes.push(
+        Utils.polarToCartesian(
+          this.centerX,
+          this.centerY,
+          w.globals.radialSize,
+          w.config.plotOptions.pie.startAngle + angleDivision * i
+        )
+      )
+    }
 
     spokes.forEach((p, i) => {
       const line = graphics.drawLine(
-        p.x + this.centerX,
-        p.y + this.centerY,
+        p.x,
+        p.y,
         this.centerX,
         this.centerY,
         Array.isArray(spokeConfig.connectorColors)
