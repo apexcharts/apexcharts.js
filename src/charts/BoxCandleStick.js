@@ -199,6 +199,7 @@ class BoxCandleStick extends Bar {
       this.series[i][j] === null
     ) {
       y1 = zeroH
+      y2 = zeroH
     } else {
       y1 = zeroH - y1 / yRatio
       y2 = zeroH - y2 / yRatio

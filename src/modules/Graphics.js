@@ -517,7 +517,7 @@ class Graphics {
 
     let elPoint = null
 
-    if (opts.shape === 'square') {
+    if (opts.shape === 'square' || opts.shape === 'rect') {
       let radius = opts.pRadius === undefined ? size / 2 : opts.pRadius
 
       if (y === null || !size) {
@@ -538,7 +538,7 @@ class Graphics {
         fill: opts.pointFillColor,
         'fill-opacity': opts.pointFillOpacity ? opts.pointFillOpacity : 1,
         stroke: opts.pointStrokeColor,
-        'stroke-width': opts.pWidth ? opts.pWidth : 0,
+        'stroke-width': opts.pointStrokeWidth ? opts.pointStrokeWidth : 0,
         'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
       })
 
@@ -558,7 +558,7 @@ class Graphics {
         stroke: opts.pointStrokeColor,
         fill: opts.pointFillColor,
         'fill-opacity': opts.pointFillOpacity ? opts.pointFillOpacity : 1,
-        'stroke-width': opts.pWidth ? opts.pWidth : 0,
+        'stroke-width': opts.pointStrokeWidth ? opts.pointStrokeWidth : 0,
         'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
       })
     }

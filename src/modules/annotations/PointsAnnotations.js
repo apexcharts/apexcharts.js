@@ -68,7 +68,7 @@ export default class PointAnnotations {
 
     let optsPoints = {
       pSize: anno.marker.size,
-      pWidth: anno.marker.strokeWidth,
+      pointStrokeWidth: anno.marker.strokeWidth,
       pointFillColor: anno.marker.fillColor,
       pointStrokeColor: anno.marker.strokeColor,
       shape: anno.marker.shape,

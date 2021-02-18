@@ -157,7 +157,9 @@ export default class Markers {
     return {
       pSize,
       pRadius: m.radius,
-      pWidth: Array.isArray(m.strokeWidth)
+      width: Array.isArray(m.width) ? m.width[seriesIndex] : m.width,
+      height: Array.isArray(m.height) ? m.height[seriesIndex] : m.height,
+      pointStrokeWidth: Array.isArray(m.strokeWidth)
         ? m.strokeWidth[seriesIndex]
         : m.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,

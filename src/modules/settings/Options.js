@@ -775,6 +775,8 @@ export default class Options {
         strokeDashArray: 0,
         fillOpacity: 1,
         shape: 'circle',
+        width: 8, // only applicable when shape is rect/square
+        height: 8, // only applicable when shape is rect/square
         radius: 2,
         offsetX: 0,
         offsetY: 0,

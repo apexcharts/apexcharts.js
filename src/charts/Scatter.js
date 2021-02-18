@@ -79,7 +79,7 @@ export default class Scatter {
         }
 
         if (shouldDraw) {
-          const circle = this.drawPoint(
+          const point = this.drawPoint(
             x,
             y,
             radius,
@@ -88,7 +88,7 @@ export default class Scatter {
             dataPointIndex,
             j
           )
-          elPointsWrap.add(circle)
+          elPointsWrap.add(point)
         }
 
         elPointsMain.add(elPointsWrap)
@@ -114,7 +114,22 @@ export default class Scatter {
       patternUnits: 'objectBoundingBox',
       value: w.globals.series[realIndex][j]
     })
-    let circle = graphics.drawCircle(radius)
+
+    let el
+    if (markerConfig.shape === 'circle') {
+      el = graphics.drawCircle(radius)
+    } else if (
+      markerConfig.shape === 'square' ||
+      markerConfig.shape === 'rect'
+    ) {
+      el = graphics.drawRect(
+        0,
+        0,
+        markerConfig.width - markerConfig.pointStrokeWidth / 2,
+        markerConfig.height - markerConfig.pointStrokeWidth / 2,
+        markerConfig.pRadius
+      )
+    }
 
     if (w.config.series[i].data[dataPointIndex]) {
       if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -122,34 +137,39 @@ export default class Scatter {
       }
     }
 
-    circle.attr({
+    el.attr({
+      x: x - markerConfig.width / 2 - markerConfig.pointStrokeWidth / 2,
+      y: y - markerConfig.height / 2 - markerConfig.pointStrokeWidth / 2,
       cx: x,
       cy: y,
       fill: pathFillCircle,
+      'fill-opacity': markerConfig.pointFillOpacity,
       stroke: markerConfig.pointStrokeColor,
       r: finishRadius,
-      'stroke-width': markerConfig.pWidth,
+      'stroke-width': markerConfig.pointStrokeWidth,
       'stroke-dasharray': markerConfig.pointStrokeDashArray,
       'stroke-opacity': markerConfig.pointStrokeOpacity
     })
 
     if (w.config.chart.dropShadow.enabled) {
       const dropShadow = w.config.chart.dropShadow
-      filters.dropShadow(circle, dropShadow, realIndex)
+      filters.dropShadow(el, dropShadow, realIndex)
     }
 
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
       let speed = w.config.chart.animations.speed
 
-      anim.animateCircleRadius(
-        circle,
+      anim.animateMarker(
+        el,
         0,
-        finishRadius,
+        markerConfig.shape === 'circle'
+          ? finishRadius
+          : { width: markerConfig.width, height: markerConfig.height },
         speed,
         w.globals.easing,
         () => {
           window.setTimeout(() => {
-            anim.animationCompleted(circle)
+            anim.animationCompleted(el)
           }, 100)
         }
       )
@@ -157,7 +177,7 @@ export default class Scatter {
       w.globals.animationEnded = true
     }
 
-    if (w.globals.dataChanged) {
+    if (w.globals.dataChanged && markerConfig.shape === 'circle') {
       if (this.dynamicAnim) {
         let speed = w.config.chart.animations.dynamicAnimation.speed
         let prevX, prevY, prevR
@@ -186,7 +206,7 @@ export default class Scatter {
         if (x === 0 && y === 0) finishRadius = 0
 
         anim.animateCircle(
-          circle,
+          el,
           {
             cx: prevX,
             cy: prevY,
@@ -201,25 +221,25 @@ export default class Scatter {
           w.globals.easing
         )
       } else {
-        circle.attr({
+        el.attr({
           r: finishRadius
         })
       }
     }
 
-    circle.attr({
+    el.attr({
       rel: dataPointIndex,
       j: dataPointIndex,
       index: realIndex,
       'default-marker-size': finishRadius
     })
 
-    filters.setSelectionFilter(circle, realIndex, dataPointIndex)
-    markers.addEvents(circle)
+    filters.setSelectionFilter(el, realIndex, dataPointIndex)
+    markers.addEvents(el)
 
-    circle.node.classList.add('apexcharts-marker')
+    el.node.classList.add('apexcharts-marker')
 
-    return circle
+    return el
   }
 
   centerTextInBubble(y) {

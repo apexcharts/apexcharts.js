@@ -784,7 +784,9 @@ type ApexMarkers = {
   strokeDashArray?: number | number[]
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
-  shape?: 'circle' | 'square' | string[]
+  shape?: "circle" | "square" | "rect" | string[];
+  width?: number | number[]
+  height?: number | number[]
   radius?: number
   offsetX?: number
   offsetY?: number
