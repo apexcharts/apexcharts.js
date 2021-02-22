@@ -253,7 +253,7 @@ export default class Range {
       // no data in the chart. Either all series collapsed or user passed a blank array
       gl.xAxisScale = this.linearScale(0, 5, 5)
     } else {
-      gl.xAxisScale = this.niceScale(
+      gl.xAxisScale = this.linearScale(
         minX,
         maxX,
         x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
