@@ -197,12 +197,19 @@ export default class Position {
         w.globals.translateY -
         seriesBound.top -
         tooltipRect.ttHeight / 2
-    }
+    } else {
+      if (w.globals.isBarHorizontal) {
+        // non follow shared tooltip in a horizontal bar chart
+        y = y - tooltipRect.ttHeight
+      } else {
+        if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
+          y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
+        }
 
-    if (!w.config.tooltip.followCursor) {
-      const newPositions = this.positionChecks(tooltipRect, x, y)
-      x = newPositions.x
-      y = newPositions.y
+        if (y < 0) {
+          y = 0
+        }
+      }
     }
 
     if (!isNaN(x)) {
@@ -210,22 +217,6 @@ export default class Position {
 
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
-    }
-  }
-
-  positionChecks(tooltipRect, x, y) {
-    const w = this.w
-    if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
-      y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
-    }
-
-    if (y < 0) {
-      y = 0
-    }
-
-    return {
-      x,
-      y
     }
   }
 
@@ -364,18 +355,26 @@ export default class Position {
       ? w.globals.columnSeries.length
       : w.globals.series.length
 
-    const i =
+    let i =
       barLen >= 2 && barLen % 2 === 0
         ? Math.floor(barLen / 2)
         : Math.floor(barLen / 2) + 1
 
+    if (w.globals.isBarHorizontal) {
+      let series = new Series(this.ctx)
+      i = series.getActiveConfigSeriesIndex(false, 'desc') + 1
+    }
     let jBar = w.globals.dom.baseEl.querySelector(
       `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     )
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
-    let bcy = 0
+    let bcy = jBar ? parseFloat(jBar.getAttribute('cy')) : 0
     let bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0
+    let bh = jBar ? parseFloat(jBar.getAttribute('barHeight')) : 0
+
+    const elGrid = ttCtx.getElGrid()
+    let seriesBound = elGrid.getBoundingClientRect()
 
     if (w.globals.isXNumeric) {
       bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
@@ -388,19 +387,24 @@ export default class Position {
         bcx = bcx - bw / 2
       }
     } else {
-      bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
-      if (isNaN(bcx)) {
-        bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2
+      if (!w.globals.isBarHorizontal) {
+        bcx =
+          ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
+        if (isNaN(bcx)) {
+          bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2
+        }
       }
     }
 
-    // tooltip will move vertically along with mouse as it is a shared tooltip
-    const elGrid = ttCtx.getElGrid()
-    let seriesBound = elGrid.getBoundingClientRect()
+    if (!w.globals.isBarHorizontal) {
+      bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
+    } else {
+      bcy = bcy + bh / 3
+    }
 
-    bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
-
-    this.moveXCrosshairs(bcx)
+    if (!w.globals.isBarHorizontal) {
+      this.moveXCrosshairs(bcx)
+    }
 
     if (!ttCtx.fixedTooltip) {
       let tcy = bcy || w.globals.gridHeight

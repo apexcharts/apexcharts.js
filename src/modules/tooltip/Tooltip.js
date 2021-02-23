@@ -81,7 +81,6 @@ export default class Tooltip {
     if (
       (w.globals.comboCharts ||
         this.tConfig.intersect ||
-        w.config.chart.type === 'bar' ||
         w.config.chart.type === 'rangeBar') &&
       !this.tConfig.shared
     ) {
@@ -509,10 +508,6 @@ export default class Tooltip {
         this.tConfig.shared) ||
       (w.globals.comboCharts && this.tooltipUtil.hasBars())
 
-    if (w.globals.isBarHorizontal && this.tooltipUtil.hasBars()) {
-      isStickyTooltip = false
-    }
-
     if (
       e.type === 'mousemove' ||
       e.type === 'touchmove' ||
@@ -654,7 +649,7 @@ export default class Tooltip {
     } else {
       // couldn't capture any series. check if shared X is same,
       // if yes, draw a grouped tooltip
-      if (this.tooltipUtil.isXoverlap(j)) {
+      if (this.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) {
         this.create(e, this, 0, j, opt.ttItems)
       }
     }

@@ -212,25 +212,29 @@ export default class Series {
     }
   }
 
-  getActiveConfigSeriesIndex(ignoreBars = false) {
+  getActiveConfigSeriesIndex(ignoreBars = false, order = 'asc') {
     const w = this.w
     let activeIndex = 0
 
     if (w.config.series.length > 1) {
       // active series flag is required to know if user has not deactivated via legend click
-      let firstActiveSeriesIndex = w.config.series.map((series, index) => {
+      let activeSeriesIndex = w.config.series.map((s, index) => {
         let hasBars = false
         if (ignoreBars) {
           hasBars =
             w.config.series[index].type === 'bar' ||
             w.config.series[index].type === 'column'
         }
-        return series.data && series.data.length > 0 && !hasBars ? index : -1
+        return s.data && s.data.length > 0 && !hasBars ? index : -1
       })
 
-      for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
-        if (firstActiveSeriesIndex[a] !== -1) {
-          activeIndex = firstActiveSeriesIndex[a]
+      for (
+        let a = order === 'asc' ? 0 : activeSeriesIndex.length - 1;
+        order === 'asc' ? a < activeSeriesIndex.length : a >= 0;
+        order === 'asc' ? a++ : a--
+      ) {
+        if (activeSeriesIndex[a] !== -1) {
+          activeIndex = activeSeriesIndex[a]
           break
         }
       }

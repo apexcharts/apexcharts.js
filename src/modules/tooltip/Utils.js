@@ -25,8 +25,10 @@ export default class Utils {
     let w = this.w
 
     const hoverWidth = w.globals.gridWidth
+    const hoverHeight = w.globals.gridHeight
 
     let xDivisor = hoverWidth / (w.globals.dataPoints - 1)
+    let yDivisor = hoverHeight / w.globals.dataPoints
 
     const seriesBound = elGrid.getBoundingClientRect()
 
@@ -62,6 +64,7 @@ export default class Utils {
     }
 
     let j = Math.round(hoverX / xDivisor)
+    let jHorz = Math.floor(hoverY / yDivisor)
 
     if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
       j = Math.ceil(hoverX / xDivisor)
@@ -118,7 +121,7 @@ export default class Utils {
 
     return {
       capturedSeries,
-      j,
+      j: w.globals.isBarHorizontal ? jHorz : j,
       hoverX,
       hoverY
     }

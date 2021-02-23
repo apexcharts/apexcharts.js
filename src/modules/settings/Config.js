@@ -328,17 +328,6 @@ export default class Config {
           )
           config.xaxis.crosshairs.width = 'tickWidth'
         }
-        if (config.plotOptions.bar.horizontal) {
-          config.states.hover.type = 'none'
-          config.tooltip.shared = false
-        }
-        if (!config.tooltip.followCursor) {
-          console.warn(
-            'followCursor option in shared columns cannot be turned off. Please set %ctooltip.followCursor: true',
-            'color: blue;'
-          )
-          config.tooltip.followCursor = true
-        }
       }
     }
 

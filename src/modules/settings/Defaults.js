@@ -128,7 +128,8 @@ export default class Defaults {
         }
       },
       tooltip: {
-        shared: false
+        shared: false,
+        intersect: true
       },
       xaxis: {
         tooltip: {

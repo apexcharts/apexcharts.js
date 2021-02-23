@@ -166,7 +166,16 @@ class Intersect {
       y = 0
     }
 
-    if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
+    const seriesIndex = parseInt(
+      opt.paths.parentNode.getAttribute('data:realIndex'),
+      10
+    )
+
+    const isReversed = w.globals.isMultipleYAxis
+      ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
+      : w.config.yaxis[0].reversed
+
+    if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth && !isReversed) {
       x = x - ttCtx.tooltipRect.ttWidth
     } else if (x < 0) {
       x = 0
@@ -197,10 +206,6 @@ class Intersect {
       (!w.config.tooltip.shared ||
         (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()))
     ) {
-      const isReversed = w.globals.isMultipleYAxis
-        ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
-        : w.config.yaxis[0].reversed
-
       if (isReversed) {
         x = x - ttCtx.tooltipRect.ttWidth
         if (x < 0) {
@@ -208,11 +213,6 @@ class Intersect {
         }
       }
       tooltipEl.style.left = x + w.globals.translateX + 'px'
-
-      const seriesIndex = parseInt(
-        opt.paths.parentNode.getAttribute('data:realIndex'),
-        10
-      )
 
       if (
         isReversed &&
