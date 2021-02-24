@@ -360,7 +360,7 @@ class RangeBar extends Bar {
       seriesName = yLbTitleFormatter(seriesName, opts)
     }
 
-    if (y1 && y2) {
+    if (Number.isFinite(y1) && Number.isFinite(y2)) {
       start = y1
       end = y2
 
