@@ -211,7 +211,8 @@ class CoreUtils {
   getCalculatedRatios() {
     let gl = this.w.globals
 
-    let yRatio = []
+    let 
+    = []
     let invertedYRatio = 0
     let xRatio = 0
     let initialXRatio = 0
@@ -235,7 +236,7 @@ class CoreUtils {
 
     // multiple y axis
     for (let i = 0; i < gl.yRange.length; i++) {
-      yRatio.push(gl.yRange[i] / gl.gridHeight)
+      yRatio.push(gl.yRange[i] / (gl.gridHeight + this.w.config.dataLabels.offsetY))
     }
 
     xRatio = gl.xRange / gl.gridWidth
