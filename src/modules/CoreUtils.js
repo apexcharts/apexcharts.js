@@ -211,7 +211,7 @@ class CoreUtils {
   getCalculatedRatios() {
     let gl = this.w.globals
 
-    let y = []
+    let yRatio = []
     let invertedYRatio = 0
     let xRatio = 0
     let initialXRatio = 0
