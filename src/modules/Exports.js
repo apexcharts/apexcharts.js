@@ -162,7 +162,7 @@ class Exports {
 
     let columns = []
     let rows = []
-    let result = 'data:text/csv;charset=utf-8,'
+    let result = 'data:text/csv;charset=utf-8,\uFEFF'
 
     const isTimeStamp = (num) => {
       return w.config.xaxis.type === 'datetime' && String(num).length >= 10
