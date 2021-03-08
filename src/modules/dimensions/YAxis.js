@@ -65,11 +65,11 @@ export default class DimYAxis {
 
         let graphics = new Graphics(this.dCtx.ctx)
 
-        let rotateStr = 'rotate(' + yaxe.labels.rotate + ' 0 0)'
+        let rotateStr = 'rotate('.concat(yaxe.labels.rotate, ' 0 0)')
         let rect = graphics.getTextRects(
           val,
           yaxe.labels.style.fontSize,
-          yaxe.title.style.fontFamily,
+          yaxe.labels.style.fontFamily,
           rotateStr,
           false
         )
@@ -80,7 +80,7 @@ export default class DimYAxis {
           arrLabelrect = graphics.getTextRects(
             valArr,
             yaxe.labels.style.fontSize,
-            yaxe.title.style.fontFamily,
+            yaxe.labels.style.fontFamily,
             rotateStr,
             false
           )
@@ -119,7 +119,7 @@ export default class DimYAxis {
     w.config.yaxis.map((yaxe, index) => {
       if (yaxe.show && yaxe.title.text !== undefined) {
         let graphics = new Graphics(this.dCtx.ctx)
-        let rotateStr = 'rotate(' + yaxe.title.rotate + ' 0 0)'
+        let rotateStr = 'rotate('.concat(yaxe.title.rotate, ' 0 0)')
         let rect = graphics.getTextRects(
           yaxe.title.text,
           yaxe.title.style.fontSize,
