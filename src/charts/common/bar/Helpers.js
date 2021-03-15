@@ -40,6 +40,12 @@ export default class Helpers {
       // A small adjustment when combo charts are used
       this.barCtx.seriesLen = 1
     }
+    this.barCtx.zeroSerieses = []
+    this.barCtx.radiusOnSeriesNumber = series.length - 1 // which series to draw ending shape on
+
+    if (!w.globals.comboCharts) {
+      this.checkZeroSeries({ series })
+    }
   }
 
   initialPositions() {
@@ -240,32 +246,53 @@ export default class Helpers {
       : strokeWidth
     if (!strokeWidth) strokeWidth = 0
 
+    let shapeOpts = {
+      barWidth,
+      strokeWidth,
+      yRatio,
+      barXPosition,
+      y1,
+      y2
+    }
+    let newPath = this.getRoundedBars(w, shapeOpts, series, i, j)
+
     const x1 = barXPosition
     const x2 = barXPosition + barWidth
 
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
 
+    const sl = graphics.line(x2 - strokeWidth, y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
     }
 
     pathTo =
       pathTo +
-      graphics.line(x1, y2) +
-      graphics.line(barXPosition + barWidth - strokeWidth, y2) +
-      graphics.line(x2 - strokeWidth, y2) +
-      graphics.line(x2 - strokeWidth, y1) +
-      graphics.line(barXPosition + barWidth - strokeWidth, y1) +
+      graphics.line(x1, newPath.y2) +
+      newPath.pathWithRadius +
+      graphics.line(x2 - strokeWidth, newPath.y2) +
+      sl +
+      sl +
       'z'
 
+    // the lines in pathFrom are repeated to equal it to the points of pathTo
+    // this is to avoid weird animation (bug in svg.js)
     pathFrom =
       pathFrom +
       graphics.line(x1, y1) +
-      graphics.line(x2 - strokeWidth, y1) +
-      graphics.line(x2 - strokeWidth, y1) +
-      graphics.line(x2 - strokeWidth, y1) +
+      sl +
+      sl +
+      sl +
+      sl +
+      sl +
       graphics.line(x1, y1)
+
+    if (w.config.chart.stacked) {
+      this.barCtx.yArrj.push(newPath.y2)
+      this.barCtx.yArrjF.push(Math.abs(y1 - newPath.y2))
+      this.barCtx.yArrjVal.push(this.barCtx.series[i][j])
+    }
 
     return {
       pathTo,
@@ -291,6 +318,16 @@ export default class Helpers {
       : strokeWidth
     if (!strokeWidth) strokeWidth = 0
 
+    let shapeOpts = {
+      barHeight,
+      strokeWidth,
+      barYPosition,
+      x2,
+      x1
+    }
+
+    let newPath = this.getRoundedBars(w, shapeOpts, series, i, j)
+
     let pathTo = graphics.move(x1, barYPosition)
     let pathFrom = graphics.move(x1, barYPosition)
 
@@ -301,26 +338,180 @@ export default class Helpers {
     const y1 = barYPosition
     const y2 = barYPosition + barHeight
 
+    const sl = graphics.line(x1, y2 - strokeWidth)
     pathTo =
       pathTo +
-      graphics.line(x2, y1) +
-      graphics.line(x2, barYPosition + barHeight - strokeWidth) +
-      graphics.line(x2, y2 - strokeWidth) +
-      graphics.line(x1, y2 - strokeWidth) +
-      graphics.line(x1, barYPosition + barHeight - strokeWidth) +
+      graphics.line(newPath.x2, y1) +
+      newPath.pathWithRadius +
+      graphics.line(newPath.x2, y2 - strokeWidth) +
+      sl +
+      sl +
       'z'
 
     pathFrom =
       pathFrom +
       graphics.line(x1, y1) +
-      graphics.line(x1, y2 - strokeWidth) +
-      graphics.line(x1, y2 - strokeWidth) +
-      graphics.line(x1, y2 - strokeWidth) +
+      sl +
+      sl +
+      sl +
+      sl +
+      sl +
       graphics.line(x1, y1)
 
+    if (w.config.chart.stacked) {
+      this.barCtx.xArrj.push(newPath.x2)
+      this.barCtx.xArrjF.push(Math.abs(x1 - newPath.x2))
+      this.barCtx.xArrjVal.push(this.barCtx.series[i][j])
+    }
     return {
       pathTo,
       pathFrom
+    }
+  }
+
+  /** getRoundedBars draws border radius for bars/columns
+   * @memberof Bar
+   * @param {object} w - chart context
+   * @param {object} opts - consists several properties like barHeight/barWidth
+   * @param {array} series - global primary series
+   * @param {int} i - current iterating series's index
+   * @param {int} j - series's j of i
+   * @return {object} pathWithRadius - ending shape path string
+   *         newY/newX - which is calculated from existing x/y based on rounded border
+   **/
+  getRoundedBars(w, opts, series, i, j) {
+    let graphics = new Graphics(this.barCtx.ctx)
+    let radius = w.config.plotOptions.bar.borderRadius
+
+    if (
+      w.config.chart.stacked &&
+      series.length > 1 &&
+      i !== this.barCtx.radiusOnSeriesNumber
+    ) {
+      radius = 0
+    }
+
+    if (this.barCtx.isHorizontal) {
+      let pathWithRadius = ''
+      let x2 = opts.x2
+
+      if (Math.abs(opts.x1 - opts.x2) < radius) {
+        radius = Math.abs(opts.x1 - opts.x2)
+      }
+
+      if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
+        let inverse = this.barCtx.isReversed
+          ? series[i][j] > 0
+          : series[i][j] < 0
+
+        if (inverse) radius = radius * -1
+
+        x2 = x2 - radius
+
+        pathWithRadius =
+          graphics.quadraticCurve(
+            x2 + radius,
+            opts.barYPosition,
+            x2 + radius,
+            opts.barYPosition + (!inverse ? radius : radius * -1)
+          ) +
+          graphics.line(
+            x2 + radius,
+            opts.barYPosition +
+              opts.barHeight -
+              opts.strokeWidth -
+              (!inverse ? radius : radius * -1)
+          ) +
+          graphics.quadraticCurve(
+            x2 + radius,
+            opts.barYPosition + opts.barHeight - opts.strokeWidth,
+            x2,
+            opts.barYPosition + opts.barHeight - opts.strokeWidth
+          )
+      }
+
+      return {
+        pathWithRadius,
+        x2
+      }
+    } else {
+      let pathWithRadius = ''
+      let y2 = opts.y2
+
+      if (Math.abs(opts.y1 - opts.y2) < radius) {
+        radius = Math.abs(opts.y1 - opts.y2)
+      }
+
+      if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
+        let inverse = series[i][j] < 0
+
+        if (inverse) radius = radius * -1
+
+        y2 = y2 + radius
+
+        pathWithRadius =
+          graphics.quadraticCurve(
+            opts.barXPosition,
+            y2 - radius,
+            opts.barXPosition + (!inverse ? radius : radius * -1),
+            y2 - radius
+          ) +
+          graphics.line(
+            opts.barXPosition +
+              opts.barWidth -
+              opts.strokeWidth -
+              (!inverse ? radius : radius * -1),
+            y2 - radius
+          ) +
+          graphics.quadraticCurve(
+            opts.barXPosition + opts.barWidth - opts.strokeWidth,
+            y2 - radius,
+            opts.barXPosition + opts.barWidth - opts.strokeWidth,
+            y2
+          )
+      }
+
+      return {
+        pathWithRadius,
+        y2
+      }
+    }
+  }
+
+  checkZeroSeries({ series }) {
+    let w = this.w
+    for (let zs = 0; zs < series.length; zs++) {
+      let total = 0
+      for (
+        let zsj = 0;
+        zsj < series[w.globals.maxValsInArrayIndex].length;
+        zsj++
+      ) {
+        total += series[zs][zsj]
+      }
+      if (total === 0) {
+        this.barCtx.zeroSerieses.push(zs)
+      }
+    }
+
+    // After getting all zeroserieses, we need to ensure whether radiusOnSeriesNumber is not in that zeroseries array
+    for (let s = series.length - 1; s >= 0; s--) {
+      if (
+        this.barCtx.zeroSerieses.indexOf(s) > -1 &&
+        s === this.radiusOnSeriesNumber
+      ) {
+        this.barCtx.radiusOnSeriesNumber -= 1
+      }
+    }
+
+    for (let s = series.length - 1; s >= 0; s--) {
+      if (
+        w.globals.collapsedSeriesIndices.indexOf(
+          this.barCtx.radiusOnSeriesNumber
+        ) > -1
+      ) {
+        this.barCtx.radiusOnSeriesNumber -= 1
+      }
     }
   }
 }

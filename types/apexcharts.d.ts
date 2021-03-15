@@ -472,11 +472,10 @@ type ApexPlotOptions = {
   }
   bar?: {
     horizontal?: boolean
-    endingShape?: 'flat' | 'rounded'
-    startingShape?: 'flat' | 'rounded'
     columnWidth?: string
     barHeight?: string
     distributed?: boolean
+    borderRadius?: number
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
     colors?: {

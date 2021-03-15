@@ -318,10 +318,6 @@ class BarStacked extends Bar {
         (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
     }
 
-    this.xArrj.push(x)
-    this.xArrjF.push(Math.abs(barXPosition - x))
-    this.xArrjVal.push(this.series[i][j])
-
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
       barHeight,
@@ -447,10 +443,6 @@ class BarStacked extends Bar {
       this.series[i][j] / this.yRatio[this.yaxisIndex] +
       (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) *
         2
-
-    this.yArrj.push(y)
-    this.yArrjF.push(Math.abs(barYPosition - y))
-    this.yArrjVal.push(this.series[i][j])
 
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,

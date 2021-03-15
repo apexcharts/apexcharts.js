@@ -115,7 +115,7 @@ export default class Defaults {
       },
       stroke: {
         width: 0,
-        lineCap: 'square'
+        lineCap: 'round'
       },
       fill: {
         opacity: 0.85

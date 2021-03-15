@@ -389,8 +389,7 @@ export default class Options {
           columnWidth: '70%', // should be in percent 0 - 100
           barHeight: '70%', // should be in percent 0 - 100
           distributed: false,
-          startingShape: 'flat', // deprecated
-          endingShape: 'flat', // deprecated
+          borderRadius: 10,
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
           colors: {
