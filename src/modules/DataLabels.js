@@ -33,6 +33,9 @@ class DataLabels {
     let width = textRects.width
     let height = textRects.height
 
+    if (y < 0) y = 0
+    if (y > w.globals.gridHeight + height) y = w.globals.gridHeight + height / 2
+
     // first value in series, so push an empty array
     if (typeof w.globals.dataLabelsRects[i] === 'undefined')
       w.globals.dataLabelsRects[i] = []
