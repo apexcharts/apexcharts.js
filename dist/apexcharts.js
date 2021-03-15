@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.25.0
+ * ApexCharts v3.26.0
  * (c) 2018-2021 Juned Chhipa
  * Released under the MIT License.
  */
@@ -742,13 +742,17 @@
        */
 
     }, {
-      key: "animateCircleRadius",
-      value: function animateCircleRadius(el, from, to, speed, easing, cb) {
+      key: "animateMarker",
+      value: function animateMarker(el, from, to, speed, easing, cb) {
         if (!from) from = 0;
         el.attr({
-          r: from
+          r: from,
+          width: from,
+          height: from
         }).animate(speed, easing).attr({
-          r: to
+          r: to,
+          width: to.width,
+          height: to.height
         }).afterAll(function () {
           cb();
         });
@@ -1616,7 +1620,7 @@
         var size = opts.pSize || 0;
         var elPoint = null;
 
-        if (opts.shape === 'square') {
+        if (opts.shape === 'square' || opts.shape === 'rect') {
           var radius = opts.pRadius === undefined ? size / 2 : opts.pRadius;
 
           if (y === null || !size) {
@@ -1635,7 +1639,7 @@
             fill: opts.pointFillColor,
             'fill-opacity': opts.pointFillOpacity ? opts.pointFillOpacity : 1,
             stroke: opts.pointStrokeColor,
-            'stroke-width': opts.pWidth ? opts.pWidth : 0,
+            'stroke-width': opts.pointStrokeWidth ? opts.pointStrokeWidth : 0,
             'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
           });
           elPoint = p;
@@ -1653,7 +1657,7 @@
             stroke: opts.pointStrokeColor,
             fill: opts.pointFillColor,
             'fill-opacity': opts.pointFillOpacity ? opts.pointFillOpacity : 1,
-            'stroke-width': opts.pWidth ? opts.pWidth : 0,
+            'stroke-width': opts.pointStrokeWidth ? opts.pointStrokeWidth : 0,
             'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
           });
         }
@@ -2718,7 +2722,7 @@
         if (!Utils.isNumber(x)) return;
         var optsPoints = {
           pSize: anno.marker.size,
-          pWidth: anno.marker.strokeWidth,
+          pointStrokeWidth: anno.marker.strokeWidth,
           pointFillColor: anno.marker.fillColor,
           pointStrokeColor: anno.marker.strokeColor,
           shape: anno.marker.shape,
@@ -3244,10 +3248,7 @@
               barHeight: '70%',
               // should be in percent 0 - 100
               distributed: false,
-              startingShape: 'flat',
-              // deprecated
-              endingShape: 'flat',
-              // deprecated
+              borderRadius: 0,
               rangeBarOverlap: true,
               rangeBarGroupRows: false,
               colors: {
@@ -3643,6 +3644,10 @@
             strokeDashArray: 0,
             fillOpacity: 1,
             shape: 'circle',
+            width: 8,
+            // only applicable when shape is rect/square
+            height: 8,
+            // only applicable when shape is rect/square
             radius: 2,
             offsetX: 0,
             offsetY: 0,
@@ -4653,7 +4658,9 @@
         return {
           pSize: pSize,
           pRadius: m.radius,
-          pWidth: Array.isArray(m.strokeWidth) ? m.strokeWidth[seriesIndex] : m.strokeWidth,
+          width: Array.isArray(m.width) ? m.width[seriesIndex] : m.width,
+          height: Array.isArray(m.height) ? m.height[seriesIndex] : m.height,
+          pointStrokeWidth: Array.isArray(m.strokeWidth) ? m.strokeWidth[seriesIndex] : m.strokeWidth,
           pointStrokeColor: pStyle.pointStrokeColor,
           pointFillColor: pStyle.pointFillColor,
           shape: Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape,
@@ -4763,8 +4770,8 @@
             }
 
             if (shouldDraw) {
-              var circle = this.drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j);
-              elPointsWrap.add(circle);
+              var point = this.drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j);
+              elPointsWrap.add(point);
             }
 
             elPointsMain.add(elPointsWrap);
@@ -4788,7 +4795,13 @@
           patternUnits: 'objectBoundingBox',
           value: w.globals.series[realIndex][j]
         });
-        var circle = graphics.drawCircle(radius);
+        var el;
+
+        if (markerConfig.shape === 'circle') {
+          el = graphics.drawCircle(radius);
+        } else if (markerConfig.shape === 'square' || markerConfig.shape === 'rect') {
+          el = graphics.drawRect(0, 0, markerConfig.width - markerConfig.pointStrokeWidth / 2, markerConfig.height - markerConfig.pointStrokeWidth / 2, markerConfig.pRadius);
+        }
 
         if (w.config.series[i].data[dataPointIndex]) {
           if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -4796,34 +4809,40 @@
           }
         }
 
-        circle.attr({
+        el.attr({
+          x: x - markerConfig.width / 2 - markerConfig.pointStrokeWidth / 2,
+          y: y - markerConfig.height / 2 - markerConfig.pointStrokeWidth / 2,
           cx: x,
           cy: y,
           fill: pathFillCircle,
+          'fill-opacity': markerConfig.pointFillOpacity,
           stroke: markerConfig.pointStrokeColor,
           r: finishRadius,
-          'stroke-width': markerConfig.pWidth,
+          'stroke-width': markerConfig.pointStrokeWidth,
           'stroke-dasharray': markerConfig.pointStrokeDashArray,
           'stroke-opacity': markerConfig.pointStrokeOpacity
         });
 
         if (w.config.chart.dropShadow.enabled) {
           var dropShadow = w.config.chart.dropShadow;
-          filters.dropShadow(circle, dropShadow, realIndex);
+          filters.dropShadow(el, dropShadow, realIndex);
         }
 
         if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
           var speed = w.config.chart.animations.speed;
-          anim.animateCircleRadius(circle, 0, finishRadius, speed, w.globals.easing, function () {
+          anim.animateMarker(el, 0, markerConfig.shape === 'circle' ? finishRadius : {
+            width: markerConfig.width,
+            height: markerConfig.height
+          }, speed, w.globals.easing, function () {
             window.setTimeout(function () {
-              anim.animationCompleted(circle);
+              anim.animationCompleted(el);
             }, 100);
           });
         } else {
           w.globals.animationEnded = true;
         }
 
-        if (w.globals.dataChanged) {
+        if (w.globals.dataChanged && markerConfig.shape === 'circle') {
           if (this.dynamicAnim) {
             var _speed = w.config.chart.animations.dynamicAnimation.speed;
             var prevX, prevY, prevR;
@@ -4845,7 +4864,7 @@
             }
 
             if (x === 0 && y === 0) finishRadius = 0;
-            anim.animateCircle(circle, {
+            anim.animateCircle(el, {
               cx: prevX,
               cy: prevY,
               r: prevR
@@ -4855,22 +4874,22 @@
               r: finishRadius
             }, _speed, w.globals.easing);
           } else {
-            circle.attr({
+            el.attr({
               r: finishRadius
             });
           }
         }
 
-        circle.attr({
+        el.attr({
           rel: dataPointIndex,
           j: dataPointIndex,
           index: realIndex,
           'default-marker-size': finishRadius
         });
-        filters.setSelectionFilter(circle, realIndex, dataPointIndex);
-        markers.addEvents(circle);
-        circle.node.classList.add('apexcharts-marker');
-        return circle;
+        filters.setSelectionFilter(el, realIndex, dataPointIndex);
+        markers.addEvents(el);
+        el.node.classList.add('apexcharts-marker');
+        return el;
       }
     }, {
       key: "centerTextInBubble",
@@ -4911,7 +4930,9 @@
 
         var textRects = graphics.getTextRects(val, fontSize);
         var width = textRects.width;
-        var height = textRects.height; // first value in series, so push an empty array
+        var height = textRects.height;
+        if (y < 0) y = 0;
+        if (y > w.globals.gridHeight + height) y = w.globals.gridHeight + height / 2; // first value in series, so push an empty array
 
         if (typeof w.globals.dataLabelsRects[i] === 'undefined') w.globals.dataLabelsRects[i] = []; // then start pushing actual rects in that sub-array
 
@@ -5806,24 +5827,25 @@
       key: "getActiveConfigSeriesIndex",
       value: function getActiveConfigSeriesIndex() {
         var ignoreBars = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+        var order = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'asc';
         var w = this.w;
         var activeIndex = 0;
 
         if (w.config.series.length > 1) {
           // active series flag is required to know if user has not deactivated via legend click
-          var firstActiveSeriesIndex = w.config.series.map(function (series, index) {
+          var activeSeriesIndex = w.config.series.map(function (s, index) {
             var hasBars = false;
 
             if (ignoreBars) {
               hasBars = w.config.series[index].type === 'bar' || w.config.series[index].type === 'column';
             }
 
-            return series.data && series.data.length > 0 && !hasBars ? index : -1;
+            return s.data && s.data.length > 0 && !hasBars ? index : -1;
           });
 
-          for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
-            if (firstActiveSeriesIndex[a] !== -1) {
-              activeIndex = firstActiveSeriesIndex[a];
+          for (var a = order === 'asc' ? 0 : activeSeriesIndex.length - 1; order === 'asc' ? a < activeSeriesIndex.length : a >= 0; order === 'asc' ? a++ : a--) {
+            if (activeSeriesIndex[a] !== -1) {
+              activeIndex = activeSeriesIndex[a];
               break;
             }
           }
@@ -6076,6 +6098,15 @@
           // A small adjustment when combo charts are used
           this.barCtx.seriesLen = 1;
         }
+
+        this.barCtx.zeroSerieses = [];
+        this.barCtx.radiusOnSeriesNumber = series.length - 1; // which series to draw ending shape on
+
+        if (!w.globals.comboCharts) {
+          this.checkZeroSeries({
+            series: series
+          });
+        }
       }
     }, {
       key: "initialPositions",
@@ -6244,17 +6275,36 @@
         var graphics = new Graphics(this.barCtx.ctx);
         strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
         if (!strokeWidth) strokeWidth = 0;
+        var shapeOpts = {
+          barWidth: barWidth,
+          strokeWidth: strokeWidth,
+          yRatio: yRatio,
+          barXPosition: barXPosition,
+          y1: y1,
+          y2: y2
+        };
+        var newPath = this.getRoundedBars(w, shapeOpts, series, i, j);
         var x1 = barXPosition;
         var x2 = barXPosition + barWidth;
         var pathTo = graphics.move(x1, y1);
         var pathFrom = graphics.move(x1, y1);
+        var sl = graphics.line(x2 - strokeWidth, y1);
 
         if (w.globals.previousPaths.length > 0) {
           pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
         }
 
-        pathTo = pathTo + graphics.line(x1, y2) + graphics.line(barXPosition + barWidth - strokeWidth, y2) + graphics.line(x2 - strokeWidth, y2) + graphics.line(x2 - strokeWidth, y1) + graphics.line(barXPosition + barWidth - strokeWidth, y1) + 'z';
-        pathFrom = pathFrom + graphics.line(x1, y1) + graphics.line(x2 - strokeWidth, y1) + graphics.line(x2 - strokeWidth, y1) + graphics.line(x2 - strokeWidth, y1) + graphics.line(x1, y1);
+        pathTo = pathTo + graphics.line(x1, newPath.y2) + newPath.pathWithRadius + graphics.line(x2 - strokeWidth, newPath.y2) + sl + sl + 'z'; // the lines in pathFrom are repeated to equal it to the points of pathTo
+        // this is to avoid weird animation (bug in svg.js)
+
+        pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1);
+
+        if (w.config.chart.stacked) {
+          this.barCtx.yArrj.push(newPath.y2);
+          this.barCtx.yArrjF.push(Math.abs(y1 - newPath.y2));
+          this.barCtx.yArrjVal.push(this.barCtx.series[i][j]);
+        }
+
         return {
           pathTo: pathTo,
           pathFrom: pathFrom
@@ -6276,6 +6326,14 @@
         var graphics = new Graphics(this.barCtx.ctx);
         strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
         if (!strokeWidth) strokeWidth = 0;
+        var shapeOpts = {
+          barHeight: barHeight,
+          strokeWidth: strokeWidth,
+          barYPosition: barYPosition,
+          x2: x2,
+          x1: x1
+        };
+        var newPath = this.getRoundedBars(w, shapeOpts, series, i, j);
         var pathTo = graphics.move(x1, barYPosition);
         var pathFrom = graphics.move(x1, barYPosition);
 
@@ -6285,12 +6343,113 @@
 
         var y1 = barYPosition;
         var y2 = barYPosition + barHeight;
-        pathTo = pathTo + graphics.line(x2, y1) + graphics.line(x2, barYPosition + barHeight - strokeWidth) + graphics.line(x2, y2 - strokeWidth) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, barYPosition + barHeight - strokeWidth) + 'z';
-        pathFrom = pathFrom + graphics.line(x1, y1) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, y2 - strokeWidth) + graphics.line(x1, y1);
+        var sl = graphics.line(x1, y2 - strokeWidth);
+        pathTo = pathTo + graphics.line(newPath.x2, y1) + newPath.pathWithRadius + graphics.line(newPath.x2, y2 - strokeWidth) + sl + sl + 'z';
+        pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1);
+
+        if (w.config.chart.stacked) {
+          this.barCtx.xArrj.push(newPath.x2);
+          this.barCtx.xArrjF.push(Math.abs(x1 - newPath.x2));
+          this.barCtx.xArrjVal.push(this.barCtx.series[i][j]);
+        }
+
         return {
           pathTo: pathTo,
           pathFrom: pathFrom
         };
+      }
+      /** getRoundedBars draws border radius for bars/columns
+       * @memberof Bar
+       * @param {object} w - chart context
+       * @param {object} opts - consists several properties like barHeight/barWidth
+       * @param {array} series - global primary series
+       * @param {int} i - current iterating series's index
+       * @param {int} j - series's j of i
+       * @return {object} pathWithRadius - ending shape path string
+       *         newY/newX - which is calculated from existing x/y based on rounded border
+       **/
+
+    }, {
+      key: "getRoundedBars",
+      value: function getRoundedBars(w, opts, series, i, j) {
+        var graphics = new Graphics(this.barCtx.ctx);
+        var radius = w.config.plotOptions.bar.borderRadius;
+
+        if (w.config.chart.stacked && series.length > 1 && i !== this.barCtx.radiusOnSeriesNumber) {
+          radius = 0;
+        }
+
+        if (this.barCtx.isHorizontal) {
+          var pathWithRadius = '';
+          var x2 = opts.x2;
+
+          if (Math.abs(opts.x1 - opts.x2) < radius) {
+            radius = Math.abs(opts.x1 - opts.x2);
+          }
+
+          if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
+            var inverse = this.barCtx.isReversed ? series[i][j] > 0 : series[i][j] < 0;
+            if (inverse) radius = radius * -1;
+            x2 = x2 - radius;
+            pathWithRadius = graphics.quadraticCurve(x2 + radius, opts.barYPosition, x2 + radius, opts.barYPosition + (!inverse ? radius : radius * -1)) + graphics.line(x2 + radius, opts.barYPosition + opts.barHeight - opts.strokeWidth - (!inverse ? radius : radius * -1)) + graphics.quadraticCurve(x2 + radius, opts.barYPosition + opts.barHeight - opts.strokeWidth, x2, opts.barYPosition + opts.barHeight - opts.strokeWidth);
+          }
+
+          return {
+            pathWithRadius: pathWithRadius,
+            x2: x2
+          };
+        } else {
+          var _pathWithRadius = '';
+          var y2 = opts.y2;
+
+          if (Math.abs(opts.y1 - opts.y2) < radius) {
+            radius = Math.abs(opts.y1 - opts.y2);
+          }
+
+          if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
+            var _inverse = series[i][j] < 0;
+
+            if (_inverse) radius = radius * -1;
+            y2 = y2 + radius;
+            _pathWithRadius = graphics.quadraticCurve(opts.barXPosition, y2 - radius, opts.barXPosition + (!_inverse ? radius : radius * -1), y2 - radius) + graphics.line(opts.barXPosition + opts.barWidth - opts.strokeWidth - (!_inverse ? radius : radius * -1), y2 - radius) + graphics.quadraticCurve(opts.barXPosition + opts.barWidth - opts.strokeWidth, y2 - radius, opts.barXPosition + opts.barWidth - opts.strokeWidth, y2);
+          }
+
+          return {
+            pathWithRadius: _pathWithRadius,
+            y2: y2
+          };
+        }
+      }
+    }, {
+      key: "checkZeroSeries",
+      value: function checkZeroSeries(_ref4) {
+        var series = _ref4.series;
+        var w = this.w;
+
+        for (var zs = 0; zs < series.length; zs++) {
+          var total = 0;
+
+          for (var zsj = 0; zsj < series[w.globals.maxValsInArrayIndex].length; zsj++) {
+            total += series[zs][zsj];
+          }
+
+          if (total === 0) {
+            this.barCtx.zeroSerieses.push(zs);
+          }
+        } // After getting all zeroserieses, we need to ensure whether radiusOnSeriesNumber is not in that zeroseries array
+
+
+        for (var s = series.length - 1; s >= 0; s--) {
+          if (this.barCtx.zeroSerieses.indexOf(s) > -1 && s === this.radiusOnSeriesNumber) {
+            this.barCtx.radiusOnSeriesNumber -= 1;
+          }
+        }
+
+        for (var _s = series.length - 1; _s >= 0; _s--) {
+          if (w.globals.collapsedSeriesIndices.indexOf(this.barCtx.radiusOnSeriesNumber) > -1) {
+            this.barCtx.radiusOnSeriesNumber -= 1;
+          }
+        }
       }
     }]);
 
@@ -7316,7 +7475,7 @@
           seriesName = yLbTitleFormatter(seriesName, opts);
         }
 
-        if (y1 && y2) {
+        if (Number.isFinite(y1) && Number.isFinite(y2)) {
           start = y1;
           end = y2;
 
@@ -7490,7 +7649,7 @@
           },
           stroke: {
             width: 0,
-            lineCap: 'square'
+            lineCap: 'round'
           },
           fill: {
             opacity: 0.85
@@ -7503,7 +7662,8 @@
             }
           },
           tooltip: {
-            shared: false
+            shared: false,
+            intersect: true
           },
           xaxis: {
             tooltip: {
@@ -8455,16 +8615,6 @@
             if (config.xaxis.crosshairs.width === 'barWidth' && config.series.length > 1) {
               console.warn('crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart.');
               config.xaxis.crosshairs.width = 'tickWidth';
-            }
-
-            if (config.plotOptions.bar.horizontal) {
-              config.states.hover.type = 'none';
-              config.tooltip.shared = false;
-            }
-
-            if (!config.tooltip.followCursor) {
-              console.warn('followCursor option in shared columns cannot be turned off. Please set %ctooltip.followCursor: true', 'color: blue;');
-              config.tooltip.followCursor = true;
             }
           }
         }
@@ -9998,7 +10148,7 @@
         var w = this.w;
         var columns = [];
         var rows = [];
-        var result = 'data:text/csv;charset=utf-8,';
+        var result = "data:text/csv;charset=utf-8,\uFEFF";
 
         var isTimeStamp = function isTimeStamp(num) {
           return w.config.xaxis.type === 'datetime' && String(num).length >= 10;
@@ -11211,6 +11361,11 @@
         var index = arguments.length > 3 ? arguments[3] : undefined;
         var range = Math.abs(yMax - yMin);
         ticks = this._adjustTicksForSmallRange(ticks, index, range);
+
+        if (ticks === 'dataPoints') {
+          ticks = this.w.globals.dataPoints - 1;
+        }
+
         var step = range / ticks;
 
         if (ticks === Number.MAX_VALUE) {
@@ -11315,7 +11470,7 @@
           // no data in the chart. Either all series collapsed or user passed a blank array
           gl.xAxisScale = this.linearScale(0, 5, 5);
         } else {
-          gl.xAxisScale = this.niceScale(minX, maxX, x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, 0);
+          gl.xAxisScale = this.linearScale(minX, maxX, x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, 0);
         }
 
         return gl.xAxisScale;
@@ -13563,11 +13718,12 @@
             }
 
             var graphics = new Graphics(_this.dCtx.ctx);
-            var rect = graphics.getTextRects(val, yaxe.labels.style.fontSize);
+            var rotateStr = 'rotate('.concat(yaxe.labels.rotate, ' 0 0)');
+            var rect = graphics.getTextRects(val, yaxe.labels.style.fontSize, yaxe.labels.style.fontFamily, rotateStr, false);
             var arrLabelrect = rect;
 
             if (val !== valArr) {
-              arrLabelrect = graphics.getTextRects(valArr, yaxe.labels.style.fontSize);
+              arrLabelrect = graphics.getTextRects(valArr, yaxe.labels.style.fontSize, yaxe.labels.style.fontFamily, rotateStr, false);
             }
 
             ret.push({
@@ -13599,7 +13755,8 @@
         w.config.yaxis.map(function (yaxe, index) {
           if (yaxe.show && yaxe.title.text !== undefined) {
             var graphics = new Graphics(_this2.dCtx.ctx);
-            var rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, 'rotate(-90 0 0)', false);
+            var rotateStr = 'rotate('.concat(yaxe.title.rotate, ' 0 0)');
+            var rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, rotateStr, false);
             ret.push({
               width: rect.width,
               height: rect.height
@@ -15866,7 +16023,9 @@
             clientY = _ref.clientY;
         var w = this.w;
         var hoverWidth = w.globals.gridWidth;
+        var hoverHeight = w.globals.gridHeight;
         var xDivisor = hoverWidth / (w.globals.dataPoints - 1);
+        var yDivisor = hoverHeight / w.globals.dataPoints;
         var seriesBound = elGrid.getBoundingClientRect();
         var hasBars = this.hasBars();
 
@@ -15892,6 +16051,7 @@
         }
 
         var j = Math.round(hoverX / xDivisor);
+        var jHorz = Math.floor(hoverY / yDivisor);
 
         if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
           j = Math.ceil(hoverX / xDivisor);
@@ -15936,7 +16096,7 @@
         w.globals.capturedDataPointIndex = j;
         return {
           capturedSeries: capturedSeries,
-          j: j,
+          j: w.globals.isBarHorizontal ? jHorz : j,
           hoverX: hoverX,
           hoverY: hoverY
         };
@@ -16783,12 +16943,19 @@
           var elGrid = ttCtx.getElGrid();
           var seriesBound = elGrid.getBoundingClientRect();
           y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top - tooltipRect.ttHeight / 2;
-        }
+        } else {
+          if (w.globals.isBarHorizontal) {
+            // non follow shared tooltip in a horizontal bar chart
+            y = y - tooltipRect.ttHeight;
+          } else {
+            if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
+              y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY;
+            }
 
-        if (!w.config.tooltip.followCursor) {
-          var newPositions = this.positionChecks(tooltipRect, x, y);
-          x = newPositions.x;
-          y = newPositions.y;
+            if (y < 0) {
+              y = 0;
+            }
+          }
         }
 
         if (!isNaN(x)) {
@@ -16796,24 +16963,6 @@
           tooltipEl.style.left = x + 'px';
           tooltipEl.style.top = y + 'px';
         }
-      }
-    }, {
-      key: "positionChecks",
-      value: function positionChecks(tooltipRect, x, y) {
-        var w = this.w;
-
-        if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
-          y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY;
-        }
-
-        if (y < 0) {
-          y = 0;
-        }
-
-        return {
-          x: x,
-          y: y
-        };
       }
     }, {
       key: "moveMarkers",
@@ -16932,10 +17081,19 @@
         var ttCtx = this.ttCtx;
         var barLen = w.globals.columnSeries ? w.globals.columnSeries.length : w.globals.series.length;
         var i = barLen >= 2 && barLen % 2 === 0 ? Math.floor(barLen / 2) : Math.floor(barLen / 2) + 1;
+
+        if (w.globals.isBarHorizontal) {
+          var series = new Series(this.ctx);
+          i = series.getActiveConfigSeriesIndex(false, 'desc') + 1;
+        }
+
         var jBar = w.globals.dom.baseEl.querySelector(".apexcharts-bar-series .apexcharts-series[rel='".concat(i, "'] path[j='").concat(j, "'], .apexcharts-candlestick-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "'], .apexcharts-boxPlot-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "'], .apexcharts-rangebar-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "']"));
         var bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0;
-        var bcy = 0;
+        var bcy = jBar ? parseFloat(jBar.getAttribute('cy')) : 0;
         var bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0;
+        var bh = jBar ? parseFloat(jBar.getAttribute('barHeight')) : 0;
+        var elGrid = ttCtx.getElGrid();
+        var seriesBound = elGrid.getBoundingClientRect();
 
         if (w.globals.isXNumeric) {
           bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0);
@@ -16944,18 +17102,24 @@
             bcx = bcx - bw / 2;
           }
         } else {
-          bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2;
+          if (!w.globals.isBarHorizontal) {
+            bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2;
 
-          if (isNaN(bcx)) {
-            bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2;
+            if (isNaN(bcx)) {
+              bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2;
+            }
           }
-        } // tooltip will move vertically along with mouse as it is a shared tooltip
+        }
 
+        if (!w.globals.isBarHorizontal) {
+          bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2;
+        } else {
+          bcy = bcy + bh / 3;
+        }
 
-        var elGrid = ttCtx.getElGrid();
-        var seriesBound = elGrid.getBoundingClientRect();
-        bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2;
-        this.moveXCrosshairs(bcx);
+        if (!w.globals.isBarHorizontal) {
+          this.moveXCrosshairs(bcx);
+        }
 
         if (!ttCtx.fixedTooltip) {
           var tcy = bcy || w.globals.gridHeight;
@@ -17296,7 +17460,10 @@
           y = 0;
         }
 
-        if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
+        var seriesIndex = parseInt(opt.paths.parentNode.getAttribute('data:realIndex'), 10);
+        var isReversed = w.globals.isMultipleYAxis ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed : w.config.yaxis[0].reversed;
+
+        if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth && !isReversed) {
           x = x - ttCtx.tooltipRect.ttWidth;
         } else if (x < 0) {
           x = 0;
@@ -17323,8 +17490,6 @@
 
 
         if (!ttCtx.fixedTooltip && (!w.config.tooltip.shared || w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars())) {
-          var isReversed = w.globals.isMultipleYAxis ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed : w.config.yaxis[0].reversed;
-
           if (isReversed) {
             x = x - ttCtx.tooltipRect.ttWidth;
 
@@ -17334,7 +17499,6 @@
           }
 
           tooltipEl.style.left = x + w.globals.translateX + 'px';
-          var seriesIndex = parseInt(opt.paths.parentNode.getAttribute('data:realIndex'), 10);
 
           if (isReversed && !(w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars())) {
             y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2;
@@ -17687,7 +17851,7 @@
         } // we forcefully set intersect true for these conditions
 
 
-        if ((w.globals.comboCharts || this.tConfig.intersect || w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') && !this.tConfig.shared) {
+        if ((w.globals.comboCharts || this.tConfig.intersect || w.config.chart.type === 'rangeBar') && !this.tConfig.shared) {
           this.showOnIntersect = true;
         }
 
@@ -18039,10 +18203,6 @@
         var xcrosshairs = this.getElXCrosshairs();
         var isStickyTooltip = w.globals.xyCharts || w.config.chart.type === 'bar' && !w.globals.isBarHorizontal && this.tooltipUtil.hasBars() && this.tConfig.shared || w.globals.comboCharts && this.tooltipUtil.hasBars();
 
-        if (w.globals.isBarHorizontal && this.tooltipUtil.hasBars()) {
-          isStickyTooltip = false;
-        }
-
         if (e.type === 'mousemove' || e.type === 'touchmove' || e.type === 'mouseup') {
           if (xcrosshairs !== null) {
             xcrosshairs.classList.add('apexcharts-active');
@@ -18172,7 +18332,7 @@
         } else {
           // couldn't capture any series. check if shared X is same,
           // if yes, draw a grouped tooltip
-          if (this.tooltipUtil.isXoverlap(j)) {
+          if (this.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) {
             this.create(e, this, 0, j, opt.ttItems);
           }
         }
@@ -18688,9 +18848,6 @@
           x = barXPosition + this.series[i][j] / this.invertedYRatio - (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2;
         }
 
-        this.xArrj.push(x);
-        this.xArrjF.push(Math.abs(barXPosition - x));
-        this.xArrjVal.push(this.series[i][j]);
         var paths = this.barHelpers.getBarpaths({
           barYPosition: barYPosition,
           barHeight: barHeight,
@@ -18801,9 +18958,6 @@
         }
 
         y = barYPosition - this.series[i][j] / this.yRatio[this.yaxisIndex] + (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) * 2;
-        this.yArrj.push(y);
-        this.yArrjF.push(Math.abs(barYPosition - y));
-        this.yArrjVal.push(this.series[i][j]);
         var paths = this.barHelpers.getColumnPaths({
           barXPosition: barXPosition,
           barWidth: barWidth,
@@ -19039,6 +19193,7 @@
 
         if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
           y1 = zeroH;
+          y2 = zeroH;
         } else {
           y1 = zeroH - y1 / yRatio;
           y2 = zeroH - y2 / yRatio;
@@ -20242,9 +20397,15 @@
         var graphics = new Graphics(this.ctx);
         var spokeConfig = w.config.plotOptions.polarArea.spokes;
         if (spokeConfig.strokeWidth === 0) return;
-        var spokes = Utils.getPolygonPos(w.globals.radialSize, w.globals.series.length);
+        var spokes = [];
+        var angleDivision = 360 / w.globals.series.length;
+
+        for (var i = 0; i < w.globals.series.length; i++) {
+          spokes.push(Utils.polarToCartesian(this.centerX, this.centerY, w.globals.radialSize, w.config.plotOptions.pie.startAngle + angleDivision * i));
+        }
+
         spokes.forEach(function (p, i) {
-          var line = graphics.drawLine(p.x + _this2.centerX, p.y + _this2.centerY, _this2.centerX, _this2.centerY, Array.isArray(spokeConfig.connectorColors) ? spokeConfig.connectorColors[i] : spokeConfig.connectorColors);
+          var line = graphics.drawLine(p.x, p.y, _this2.centerX, _this2.centerY, Array.isArray(spokeConfig.connectorColors) ? spokeConfig.connectorColors[i] : spokeConfig.connectorColors);
           parent.add(line);
         });
       }
