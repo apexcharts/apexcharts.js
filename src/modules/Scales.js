@@ -135,6 +135,10 @@ export default class Range {
 
     ticks = this._adjustTicksForSmallRange(ticks, index, range)
 
+    if (ticks === 'dataPoints') {
+      ticks = this.w.globals.dataPoints - 1
+    }
+
     let step = range / ticks
     if (ticks === Number.MAX_VALUE) {
       ticks = 10
