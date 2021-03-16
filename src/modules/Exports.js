@@ -243,6 +243,8 @@ class Exports {
             columns.push(
               isTimeStamp(cat)
                 ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
+                : Utils.isNumber(cat)
+                ? cat
                 : cat.split(columnDelimiter).join('')
             )
 
