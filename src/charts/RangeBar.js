@@ -353,7 +353,9 @@ class RangeBar extends Bar {
     const opts = {
       w,
       seriesIndex,
-      dataPointIndex
+      dataPointIndex,
+      start,
+      end
     }
 
     if (typeof yLbTitleFormatter === 'function') {
