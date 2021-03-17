@@ -353,7 +353,9 @@ class RangeBar extends Bar {
     const opts = {
       w,
       seriesIndex,
-      dataPointIndex
+      dataPointIndex,
+      start,
+      end
     }
 
     if (typeof yLbTitleFormatter === 'function') {
@@ -369,7 +371,7 @@ class RangeBar extends Bar {
       }
 
       if (typeof yLbFormatter === 'function') {
-        ylabel = yLbFormatter(ylabel, opts)
+        ylabel = yLbFormatter(ylabel, { ...opts, ...{ start, end } })
       }
     }
 
@@ -410,12 +412,7 @@ class RangeBar extends Bar {
       '</span></div>' +
       '<div> <span class="category">' +
       ylabel +
-      ' </span> <span class="value start-value">' +
-      start +
-      '</span> <span class="separator">-</span> <span class="value end-value">' +
-      end +
-      '</span></div>' +
-      '</div>'
+      '</span></div></div>'
     )
   }
 }
