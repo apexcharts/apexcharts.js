@@ -371,7 +371,7 @@ class RangeBar extends Bar {
       }
 
       if (typeof yLbFormatter === 'function') {
-        ylabel = yLbFormatter(ylabel, { ...opts, ...{ start, end } })
+        ylabel = yLbFormatter(ylabel, opts)
       }
     }
 
