@@ -55,6 +55,7 @@ class TimeScale {
     let numberOfYears = Math.floor(daysDiff / 365)
 
     const firstVal = {
+      minMillisecond: timeIntervals.minMillisecond,
       minSecond: timeIntervals.minSecond,
       minMinute: timeIntervals.minMinute,
       minHour: timeIntervals.minHour,
@@ -63,6 +64,7 @@ class TimeScale {
       minYear: timeIntervals.minYear
     }
 
+    let currentMillisecond = firstVal.minMillisecond
     let currentSecond = firstVal.minSecond
     let currentMinute = firstVal.minMinute
     let currentHour = firstVal.minHour
@@ -73,6 +75,7 @@ class TimeScale {
 
     const params = {
       firstVal,
+      currentMillisecond,
       currentSecond,
       currentMinute,
       currentHour,
@@ -113,6 +116,7 @@ class TimeScale {
         this.generateHourScale(params)
         break
       }
+      case 'minutes_fives':
       case 'minutes':
         this.generateMinuteScale(params)
         break
@@ -220,14 +224,17 @@ class TimeScale {
             shouldNotSkipUnit = true
           }
           break
-        case 'minutes':
+        case 'minutes_fives':
           if (value % 5 !== 0) {
             shouldNotPrint = true
           }
           break
       }
 
-      if (this.tickInterval === 'minutes' || this.tickInterval === 'hours') {
+      if (
+        this.tickInterval === 'minutes_fives' ||
+        this.tickInterval === 'hours'
+      ) {
         if (!shouldNotPrint) {
           return true
         }
@@ -260,36 +267,39 @@ class TimeScale {
   }
 
   determineInterval(daysDiff) {
+    const yearsDiff = daysDiff / 365
+    const hoursDiff = daysDiff * 24
+    const minutesDiff = hoursDiff * 60
     switch (true) {
-      case daysDiff > 1825: // difference is more than 5 years
+      case yearsDiff > 5:
         this.tickInterval = 'years'
         break
-      case daysDiff > 800 && daysDiff <= 1825:
+      case daysDiff > 800:
         this.tickInterval = 'half_year'
         break
-      case daysDiff > 180 && daysDiff <= 800:
+      case daysDiff > 180:
         this.tickInterval = 'months'
         break
-      case daysDiff > 90 && daysDiff <= 180:
+      case daysDiff > 90:
         this.tickInterval = 'months_fortnight'
         break
-      case daysDiff > 60 && daysDiff <= 90:
+      case daysDiff > 60:
         this.tickInterval = 'months_days'
         break
-      case daysDiff > 30 && daysDiff <= 60:
+      case daysDiff > 30:
         this.tickInterval = 'week_days'
         break
-      case daysDiff > 2 && daysDiff <= 30:
+      case daysDiff > 2:
         this.tickInterval = 'days'
         break
-      case daysDiff > 0.1 && daysDiff <= 2: // less than  2 days
+      case hoursDiff > 2.4:
         this.tickInterval = 'hours'
         break
-      case daysDiff < 0.1:
-        this.tickInterval = 'minutes'
+      case minutesDiff > 15:
+        this.tickInterval = 'minutes_fives'
         break
       default:
-        this.tickInterval = 'days'
+        this.tickInterval = 'minutes'
         break
     }
   }
@@ -618,7 +628,7 @@ class TimeScale {
   }
 
   generateMinuteScale({
-    firstVal,
+    currentMillisecond,
     currentSecond,
     currentMinute,
     currentHour,
@@ -632,31 +642,17 @@ class TimeScale {
     let yrCounter = 0
     let unit = 'minute'
 
-    let remainingSecs = 60 - firstVal.minSecond
-
-    let firstTickPosition = remainingSecs * secondsWidthOnXAxis
-    let firstTickValue = firstVal.minMinute + 1
-    let minute = firstTickValue + 1
+    let remainingSecs = 60 - currentSecond
+    let firstTickPosition =
+      (remainingSecs - currentMillisecond / 1000) * secondsWidthOnXAxis
+    let minute = currentMinute + 1
 
     let date = currentDate
     let month = currentMonth
     let year = currentYear
     let hour = currentHour
 
-    // push the first tick in the array
-    this.timeScaleArray.push({
-      position: firstTickPosition,
-      value: firstTickValue,
-      unit,
-      day: date,
-      hour,
-      minute,
-      year,
-      month: Utils.monthMod(month)
-    })
-
     let pos = firstTickPosition
-    // keep drawing rest of the ticks
     for (let i = 0; i < numberOfMinutes; i++) {
       if (minute >= 60) {
         minute = 0
@@ -666,7 +662,6 @@ class TimeScale {
         }
       }
 
-      pos = minutesWidthOnXAxis + pos
       this.timeScaleArray.push({
         position: pos,
         value: minute,
@@ -674,10 +669,11 @@ class TimeScale {
         hour,
         minute,
         day: date,
-        year: this._getYear(currentYear, month, yrCounter),
+        year: this._getYear(year, month, yrCounter),
         month: Utils.monthMod(month)
       })
 
+      pos += minutesWidthOnXAxis
       minute++
     }
   }
