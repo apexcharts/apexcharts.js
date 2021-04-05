@@ -23,6 +23,18 @@ module.exports = {
     minutes: [
       new Date('02/02/2017 01:59 UTC').getTime(),
       new Date('02/02/2017 02:05 UTC').getTime()
+    ],
+    seconds_tens: [
+      new Date('02/02/2017 01:59:00 UTC').getTime(),
+      new Date('02/02/2017 02:00:25 UTC').getTime()
+    ],
+    seconds_fives: [
+      new Date('02/02/2017 01:59:43 UTC').getTime(),
+      new Date('02/02/2017 02:00:17 UTC').getTime()
+    ],
+    seconds: [
+      new Date('02/02/2017 01:59:58 UTC').getTime(),
+      new Date('02/02/2017 02:00:05 UTC').getTime()
     ]
   }
 }
