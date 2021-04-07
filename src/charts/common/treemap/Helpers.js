@@ -36,7 +36,7 @@ export default class TreemapHelpers {
       if (w.config.plotOptions[chartType].reverseNegativeShade) {
         if (colorProps.percent < 0) {
           colorShadePercent =
-            (colorProps.percent / 100) * (shadeIntensity * 1.25)
+            (1 + colorProps.percent / 100) * (shadeIntensity * 1.25)
         } else {
           colorShadePercent =
             (1 - colorProps.percent / 100) * (shadeIntensity * 1.25)
