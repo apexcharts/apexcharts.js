@@ -153,6 +153,7 @@ export default class Marker {
           w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
       }
 
+      if (newSize < 0) newSize = 0
       elPoint.setAttribute('r', newSize)
     }
   }
@@ -171,7 +172,7 @@ export default class Marker {
 
     for (let p = 0; p < points.length; p++) {
       const size = parseFloat(points[p].getAttribute('default-marker-size'))
-      if (Utils.isNumber(size)) {
+      if (Utils.isNumber(size) && size >= 0) {
         points[p].setAttribute('r', size)
       } else {
         points[p].setAttribute('r', 0)
