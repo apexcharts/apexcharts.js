@@ -3855,6 +3855,16 @@ export const optionsPattern = {
                   title: 'Format specifier for the hour of day',
                   type: String,
                   default: 'HH:mm'
+                },
+                minute: {
+                  title: 'Format specifier for the minute',
+                  type: String,
+                  default: 'HH:mm:ss'
+                },
+                second: {
+                  title: 'Format specifier for the second',
+                  type: String,
+                  default: 'HH:mm:ss'
                 }
               }
             }

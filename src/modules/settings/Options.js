@@ -940,7 +940,8 @@ export default class Options {
             month: "MMM 'yy",
             day: 'dd MMM',
             hour: 'HH:mm',
-            minute: 'HH:mm:ss'
+            minute: 'HH:mm:ss',
+            second: 'HH:mm:ss'
           }
         },
         axisBorder: {
