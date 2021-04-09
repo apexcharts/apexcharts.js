@@ -61,7 +61,6 @@ export default class TreemapHelpers {
     let utils = new Utils()
 
     if (w.config.plotOptions[chartType].enableShades) {
-      if (colorShadePercent < 0) colorShadePercent = 0
       if (this.w.config.theme.mode === 'dark') {
         color = Utils.hexToRgba(
           utils.shadeColor(colorShadePercent * -1, colorProps.color),
