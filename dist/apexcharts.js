@@ -133,7 +133,7 @@
     if (typeof Proxy === "function") return true;
 
     try {
-      Date.prototype.toString.call(Reflect.construct(Date, [], function () {}));
+      Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {}));
       return true;
     } catch (e) {
       return false;
@@ -2140,14 +2140,14 @@
 
     _createClass(CoreUtils, [{
       key: "getStackedSeriesTotals",
-
+      value:
       /**
        * @memberof CoreUtils
        * returns the sum of all individual values in a multiple stacked series
        * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
        *  @return [34,36,48,13]
        **/
-      value: function getStackedSeriesTotals() {
+      function getStackedSeriesTotals() {
         var w = this.w;
         var total = [];
         if (w.globals.series.length === 0) return total;
@@ -7042,9 +7042,11 @@
 
         var tsMin = this.getDate(minX);
         var tsMax = this.getDate(maxX);
-        var minD = this.formatDate(tsMin, 'yyyy MM dd HH mm ss').split(' ');
-        var maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm ss').split(' ');
+        var minD = this.formatDate(tsMin, 'yyyy MM dd HH mm ss fff').split(' ');
+        var maxD = this.formatDate(tsMax, 'yyyy MM dd HH mm ss fff').split(' ');
         return {
+          minMillisecond: parseInt(minD[6], 10),
+          maxMillisecond: parseInt(maxD[6], 10),
           minSecond: parseInt(minD[5], 10),
           maxSecond: parseInt(maxD[5], 10),
           minMinute: parseInt(minD[4], 10),
@@ -7468,7 +7470,9 @@
         var opts = {
           w: w,
           seriesIndex: seriesIndex,
-          dataPointIndex: dataPointIndex
+          dataPointIndex: dataPointIndex,
+          start: start,
+          end: end
         };
 
         if (typeof yLbTitleFormatter === 'function') {
@@ -10216,7 +10220,7 @@
               }
 
               if (sI === 0) {
-                columns.push(isTimeStamp(cat) ? w.config.chart.toolbar.export.csv.dateFormatter(cat) : cat.split(columnDelimiter).join(''));
+                columns.push(isTimeStamp(cat) ? w.config.chart.toolbar.export.csv.dateFormatter(cat) : Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join(''));
 
                 for (var ci = 0; ci < w.globals.series.length; ci++) {
                   columns.push(w.globals.series[ci][i]);
@@ -12506,33 +12510,23 @@
       key: "yAxisTitleRotate",
       value: function yAxisTitleRotate(realIndex, yAxisOpposite) {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        var yAxisLabelsCoord = {
-          width: 0,
-          height: 0
-        };
-        var yAxisTitleCoord = {
-          width: 0,
-          height: 0
-        };
-        var elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(" .apexcharts-yaxis[rel='".concat(realIndex, "'] .apexcharts-yaxis-texts-g"));
-
-        if (elYAxisLabelsWrap !== null) {
-          yAxisLabelsCoord = elYAxisLabelsWrap.getBoundingClientRect();
-        }
-
         var yAxisTitle = w.globals.dom.baseEl.querySelector(".apexcharts-yaxis[rel='".concat(realIndex, "'] .apexcharts-yaxis-title text"));
 
         if (yAxisTitle !== null) {
-          yAxisTitleCoord = yAxisTitle.getBoundingClientRect();
-        }
+          var yAxisLabelsCoord = {
+            width: 0,
+            height: 0
+          };
+          var elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(" .apexcharts-yaxis[rel='".concat(realIndex, "'] .apexcharts-yaxis-texts-g"));
 
-        if (yAxisTitle !== null) {
+          if (elYAxisLabelsWrap !== null) {
+            yAxisLabelsCoord = elYAxisLabelsWrap.getBoundingClientRect();
+          }
+
+          var yAxisTitleCoord = yAxisTitle.getBoundingClientRect();
           var x = this.xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite);
           yAxisTitle.setAttribute('x', x.xPos - (yAxisOpposite ? 10 : 0));
-        }
-
-        if (yAxisTitle !== null) {
+          var graphics = new Graphics(this.ctx);
           var titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle);
           yAxisTitle.setAttribute('transform', "rotate(".concat(yAxisOpposite ? w.config.yaxis[realIndex].title.rotate * -1 : w.config.yaxis[realIndex].title.rotate, " ").concat(titleRotatingCenter.x, " ").concat(titleRotatingCenter.y, ")"));
         }
@@ -22624,6 +22618,7 @@
         var numberOfMonths = Math.floor(daysDiff / 30);
         var numberOfYears = Math.floor(daysDiff / 365);
         var firstVal = {
+          minMillisecond: timeIntervals.minMillisecond,
           minSecond: timeIntervals.minSecond,
           minMinute: timeIntervals.minMinute,
           minHour: timeIntervals.minHour,
@@ -22631,6 +22626,7 @@
           minMonth: timeIntervals.minMonth,
           minYear: timeIntervals.minYear
         };
+        var currentMillisecond = firstVal.minMillisecond;
         var currentSecond = firstVal.minSecond;
         var currentMinute = firstVal.minMinute;
         var currentHour = firstVal.minHour;
@@ -22640,6 +22636,7 @@
         var currentYear = firstVal.minYear;
         var params = {
           firstVal: firstVal,
+          currentMillisecond: currentMillisecond,
           currentSecond: currentSecond,
           currentMinute: currentMinute,
           currentHour: currentHour,
@@ -22688,6 +22685,7 @@
               break;
             }
 
+          case 'minutes_fives':
           case 'minutes':
             this.generateMinuteScale(params);
             break;
@@ -22819,7 +22817,7 @@
 
               break;
 
-            case 'minutes':
+            case 'minutes_fives':
               if (value % 5 !== 0) {
                 shouldNotPrint = true;
               }
@@ -22827,7 +22825,7 @@
               break;
           }
 
-          if (_this.tickInterval === 'minutes' || _this.tickInterval === 'hours') {
+          if (_this.tickInterval === 'minutes_fives' || _this.tickInterval === 'hours') {
             if (!shouldNotPrint) {
               return true;
             }
@@ -22856,47 +22854,49 @@
     }, {
       key: "determineInterval",
       value: function determineInterval(daysDiff) {
+        var yearsDiff = daysDiff / 365;
+        var hoursDiff = daysDiff * 24;
+        var minutesDiff = hoursDiff * 60;
+
         switch (true) {
-          case daysDiff > 1825:
-            // difference is more than 5 years
+          case yearsDiff > 5:
             this.tickInterval = 'years';
             break;
 
-          case daysDiff > 800 && daysDiff <= 1825:
+          case daysDiff > 800:
             this.tickInterval = 'half_year';
             break;
 
-          case daysDiff > 180 && daysDiff <= 800:
+          case daysDiff > 180:
             this.tickInterval = 'months';
             break;
 
-          case daysDiff > 90 && daysDiff <= 180:
+          case daysDiff > 90:
             this.tickInterval = 'months_fortnight';
             break;
 
-          case daysDiff > 60 && daysDiff <= 90:
+          case daysDiff > 60:
             this.tickInterval = 'months_days';
             break;
 
-          case daysDiff > 30 && daysDiff <= 60:
+          case daysDiff > 30:
             this.tickInterval = 'week_days';
             break;
 
-          case daysDiff > 2 && daysDiff <= 30:
+          case daysDiff > 2:
             this.tickInterval = 'days';
             break;
 
-          case daysDiff > 0.1 && daysDiff <= 2:
-            // less than  2 days
+          case hoursDiff > 2.4:
             this.tickInterval = 'hours';
             break;
 
-          case daysDiff < 0.1:
-            this.tickInterval = 'minutes';
+          case minutesDiff > 15:
+            this.tickInterval = 'minutes_fives';
             break;
 
           default:
-            this.tickInterval = 'days';
+            this.tickInterval = 'minutes';
             break;
         }
       }
@@ -23203,7 +23203,7 @@
     }, {
       key: "generateMinuteScale",
       value: function generateMinuteScale(_ref5) {
-        var firstVal = _ref5.firstVal,
+        var currentMillisecond = _ref5.currentMillisecond,
             currentSecond = _ref5.currentSecond,
             currentMinute = _ref5.currentMinute,
             currentHour = _ref5.currentHour,
@@ -23215,26 +23215,14 @@
             numberOfMinutes = _ref5.numberOfMinutes;
         var yrCounter = 0;
         var unit = 'minute';
-        var remainingSecs = 60 - firstVal.minSecond;
-        var firstTickPosition = remainingSecs * secondsWidthOnXAxis;
-        var firstTickValue = firstVal.minMinute + 1;
-        var minute = firstTickValue + 1;
+        var remainingSecs = 60 - currentSecond;
+        var firstTickPosition = (remainingSecs - currentMillisecond / 1000) * secondsWidthOnXAxis;
+        var minute = currentMinute + 1;
         var date = currentDate;
         var month = currentMonth;
         var year = currentYear;
-        var hour = currentHour; // push the first tick in the array
-
-        this.timeScaleArray.push({
-          position: firstTickPosition,
-          value: firstTickValue,
-          unit: unit,
-          day: date,
-          hour: hour,
-          minute: minute,
-          year: year,
-          month: Utils.monthMod(month)
-        });
-        var pos = firstTickPosition; // keep drawing rest of the ticks
+        var hour = currentHour;
+        var pos = firstTickPosition;
 
         for (var i = 0; i < numberOfMinutes; i++) {
           if (minute >= 60) {
@@ -23246,7 +23234,6 @@
             }
           }
 
-          pos = minutesWidthOnXAxis + pos;
           this.timeScaleArray.push({
             position: pos,
             value: minute,
@@ -23254,9 +23241,10 @@
             hour: hour,
             minute: minute,
             day: date,
-            year: this._getYear(currentYear, month, yrCounter),
+            year: this._getYear(year, month, yrCounter),
             month: Utils.monthMod(month)
           });
+          pos += minutesWidthOnXAxis;
           minute++;
         }
       }
@@ -25648,10 +25636,10 @@
               }
 
               if (topParent != document) throw new Error('Element not in the dom');
-            } else {} // the element is NOT in the dom, throw error
-            // disabling the check below which fixes issue #76
-            // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
-            // find native bbox
+            } else {// the element is NOT in the dom, throw error
+              // disabling the check below which fixes issue #76
+              // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
+            } // find native bbox
 
 
             box = element.node.getBBox();

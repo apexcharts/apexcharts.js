@@ -352,34 +352,26 @@ export default class YAxis {
   yAxisTitleRotate(realIndex, yAxisOpposite) {
     let w = this.w
 
-    let graphics = new Graphics(this.ctx)
-
-    let yAxisLabelsCoord = {
-      width: 0,
-      height: 0
-    }
-    let yAxisTitleCoord = {
-      width: 0,
-      height: 0
-    }
-
-    let elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(
-      ` .apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-texts-g`
-    )
-
-    if (elYAxisLabelsWrap !== null) {
-      yAxisLabelsCoord = elYAxisLabelsWrap.getBoundingClientRect()
-    }
-
     let yAxisTitle = w.globals.dom.baseEl.querySelector(
       `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-title text`
     )
 
     if (yAxisTitle !== null) {
-      yAxisTitleCoord = yAxisTitle.getBoundingClientRect()
-    }
+      let yAxisLabelsCoord = {
+        width: 0,
+        height: 0
+      }
 
-    if (yAxisTitle !== null) {
+      let elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(
+        ` .apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-texts-g`
+      )
+
+      if (elYAxisLabelsWrap !== null) {
+        yAxisLabelsCoord = elYAxisLabelsWrap.getBoundingClientRect()
+      }
+
+      let yAxisTitleCoord = yAxisTitle.getBoundingClientRect()
+
       let x = this.xPaddingForYAxisTitle(
         realIndex,
         yAxisLabelsCoord,
@@ -388,9 +380,9 @@ export default class YAxis {
       )
 
       yAxisTitle.setAttribute('x', x.xPos - (yAxisOpposite ? 10 : 0))
-    }
 
-    if (yAxisTitle !== null) {
+      let graphics = new Graphics(this.ctx)
+
       let titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle)
       yAxisTitle.setAttribute(
         'transform',
