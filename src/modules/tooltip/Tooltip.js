@@ -214,9 +214,6 @@ export default class Tooltip {
     let hoverArea = w.globals.dom.Paper.node
 
     const elGrid = this.getElGrid()
-    if (elGrid) {
-      this.seriesBound = elGrid.getBoundingClientRect()
-    }
 
     let tooltipY = []
     let tooltipX = []

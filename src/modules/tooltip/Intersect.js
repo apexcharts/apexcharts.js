@@ -275,14 +275,6 @@ class Intersect {
         i = parseInt(bar.parentNode.getAttribute('data:realIndex'), 10)
       }
 
-      // if (w.config.tooltip.shared) {
-      // this check not needed  at the moment
-      //   const yDivisor = w.globals.gridHeight / (w.globals.series.length)
-      //   const hoverY = ttCtx.clientY - ttCtx.seriesBound.top
-
-      //   j = Math.ceil(hoverY / yDivisor)
-      // }
-
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
         i,
