@@ -158,6 +158,7 @@ export default class TreemapChart {
             speed = this.dynamicAnim.speed
 
             if (
+              w.globals.previousPaths[i] &&
               w.globals.previousPaths[i][j] &&
               w.globals.previousPaths[i][j].rect
             ) {
