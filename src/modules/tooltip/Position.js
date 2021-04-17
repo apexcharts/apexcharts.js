@@ -380,6 +380,7 @@ export default class Position {
       bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
 
       if (
+        jBar && // fixes apexcharts.js#2354
         (jBar.classList.contains('apexcharts-candlestick-area') ||
           jBar.classList.contains('apexcharts-boxPlot-area')) &&
         w.globals.comboCharts
