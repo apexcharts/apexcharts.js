@@ -261,7 +261,17 @@ export default class DimXAxis {
         if (lastLabelPosition > gl.svgWidth - gl.translateX) {
           gl.skipLastTimelinelabel = true
         }
-        if (firstLabelPosition < 0) {
+
+        if (
+          firstLabelPosition <
+          -((!yaxe.show || yaxe.floating) &&
+          (cnf.chart.type === 'bar' ||
+            cnf.chart.type === 'candlestick' ||
+            cnf.chart.type === 'rangeBar' ||
+            cnf.chart.type === 'boxPlot')
+            ? lbWidth / 1.75
+            : 0)
+        ) {
           gl.skipFirstTimelinelabel = true
         }
       } else if (xtype === 'datetime') {
