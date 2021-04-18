@@ -775,6 +775,10 @@ class TimeScale {
   createRawDateString(ts, value) {
     let raw = ts.year
 
+    if (ts.month === 0) {
+      // invalid month, correct it
+      ts.month = 1
+    }
     raw += '-' + ('0' + ts.month.toString()).slice(-2)
 
     // unit is day
