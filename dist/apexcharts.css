@@ -108,8 +108,8 @@
 }
 
 .apexcharts-tooltip-marker {
-  width: 12px;
-  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
   position: relative;
   top: 0px;
   margin-right: 10px;
