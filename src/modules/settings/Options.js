@@ -911,7 +911,6 @@ export default class Options {
         type: 'category',
         categories: [],
         convertedCatToNumeric: false, // internal property which should not be altered outside
-        sorted: false,
         offsetX: 0,
         offsetY: 0,
         labels: {

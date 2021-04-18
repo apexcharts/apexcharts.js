@@ -62,16 +62,6 @@ export default class Data {
     const isBoxPlot =
       cnf.chart.type === 'boxPlot' || cnf.series[i].type === 'boxPlot'
 
-    if (cnf.xaxis.sorted) {
-      if (cnf.xaxis.type === 'datetime') {
-        ser[i].data.sort(
-          (a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()
-        )
-      } else if (cnf.xaxis.type === 'numeric') {
-        ser[i].data.sort((a, b) => a[0] - b[0])
-      }
-    }
-
     for (let j = 0; j < ser[i].data.length; j++) {
       if (typeof ser[i].data[j][1] !== 'undefined') {
         if (
@@ -118,16 +108,6 @@ export default class Data {
     if (gl.collapsedSeriesIndices.indexOf(i) > -1) {
       // fix #368
       activeI = this.activeSeriesIndex
-    }
-
-    if (cnf.xaxis.sorted) {
-      if (cnf.xaxis.type === 'datetime') {
-        ser[i].data.sort(
-          (a, b) => new Date(a.x).getTime() - new Date(b.x).getTime()
-        )
-      } else if (cnf.xaxis.type === 'numeric') {
-        ser[i].data.sort((a, b) => a.x - b.x)
-      }
     }
 
     // get series
