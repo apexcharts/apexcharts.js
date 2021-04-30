@@ -41,7 +41,7 @@ declare class ApexCharts {
   removeAnnotation(id: string, options?: any): void
   clearAnnotations(options?: any): void
   dataURI(): Promise<void>
-  static exec(chartID: string, fn: string, options?: any): any
+  static exec(chartID: string, fn: string, ...args: Array<any>): any
   static initOnLoad(): void
 }
 
