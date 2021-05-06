@@ -964,6 +964,7 @@ export default class Options {
         max: undefined,
         range: undefined,
         floating: false,
+        decimalsInFloat: undefined,
         position: 'bottom',
         title: {
           text: undefined,

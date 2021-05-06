@@ -960,6 +960,7 @@ type ApexXAxis = {
   max?: number
   range?: number
   floating?: boolean
+  decimalsInFloat?: number
   position?: string
   title?: {
     text?: string
@@ -1036,13 +1037,13 @@ type ApexYAxis = {
     align?: 'left' | 'center' | 'right'
     padding?: number
     style?: {
-      colors?: string
+      colors?: string | string[]
       fontSize?: string
       fontWeight?: string | number
       fontFamily?: string
       cssClass?: string
     }
-    formatter?(val: number, opts?: any): string
+    formatter?(val: number, opts?: any): string | string[]
   }
   axisBorder?: {
     show?: boolean

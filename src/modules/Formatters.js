@@ -65,10 +65,6 @@ class Formatters {
   setLabelFormatters() {
     let w = this.w
 
-    w.globals.xLabelFormatter = (val) => {
-      return this.defaultGeneralFormatter(val)
-    }
-
     w.globals.xaxisTooltipFormatter = (val) => {
       return this.defaultGeneralFormatter(val)
     }
@@ -91,14 +87,21 @@ class Formatters {
     } else {
       w.globals.xLabelFormatter = (val) => {
         if (Utils.isNumber(val)) {
-          // numeric xaxis may have smaller range, so defaulting to 1 decimal
           if (
             !w.config.xaxis.convertedCatToNumeric &&
-            w.config.xaxis.type === 'numeric' &&
-            w.globals.dataPoints < 50
+            w.config.xaxis.type === 'numeric'
           ) {
-            return val.toFixed(1)
+            if (Utils.isNumber(w.config.xaxis.decimalsInFloat)) {
+              return val.toFixed(w.config.xaxis.decimalsInFloat)
+            } else {
+              const diff = w.globals.maxX - w.globals.minX
+              if (diff > 0 && diff < 100) {
+                return val.toFixed(1)
+              }
+              return val.toFixed(0)
+            }
           }
+
           if (w.globals.isBarHorizontal) {
             const range = w.globals.maxY - w.globals.minYArr
             if (range < 4) {
