@@ -30,10 +30,9 @@ export default class DimYAxis {
         yS.result.length
       ) {
         let lbFormatter = w.globals.yLabelFormatters[index]
+        let minV = yS.niceMin === Number.MIN_VALUE ? 0 : yS.niceMin
         const longestStr =
-          String(yS.niceMin).length > String(yS.niceMax).length
-            ? yS.niceMin
-            : yS.niceMax
+          String(minV).length > String(yS.niceMax).length ? minV : yS.niceMax
 
         // the second parameter -1 is the index of tick which user can use in the formatter
         let val = lbFormatter(longestStr, {
