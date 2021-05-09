@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.26.1
+ * ApexCharts v3.26.2
  * (c) 2018-2021 Juned Chhipa
  * Released under the MIT License.
  */
@@ -3849,6 +3849,7 @@
             max: undefined,
             range: undefined,
             floating: false,
+            decimalsInFloat: undefined,
             position: 'bottom',
             title: {
               text: undefined,
@@ -5080,7 +5081,13 @@
           y = correctedLabels.y;
         }
 
-        if (correctedLabels.textRects) ;
+        if (correctedLabels.textRects) {
+          // fixes #2264
+          if (x < -10 - correctedLabels.textRects.width || x > w.globals.gridWidth + correctedLabels.textRects.width + 10) {
+            // datalabels fall outside drawing area, so draw a blank label
+            text = '';
+          }
+        }
 
         var dataLabelColor = w.globals.dataLabels.style.colors[i];
 
@@ -9655,10 +9662,6 @@
 
         var w = this.w;
 
-        w.globals.xLabelFormatter = function (val) {
-          return _this.defaultGeneralFormatter(val);
-        };
-
         w.globals.xaxisTooltipFormatter = function (val) {
           return _this.defaultGeneralFormatter(val);
         };
@@ -9681,9 +9684,18 @@
         } else {
           w.globals.xLabelFormatter = function (val) {
             if (Utils.isNumber(val)) {
-              // numeric xaxis may have smaller range, so defaulting to 1 decimal
-              if (!w.config.xaxis.convertedCatToNumeric && w.config.xaxis.type === 'numeric' && w.globals.dataPoints < 50) {
-                return val.toFixed(1);
+              if (!w.config.xaxis.convertedCatToNumeric && w.config.xaxis.type === 'numeric') {
+                if (Utils.isNumber(w.config.xaxis.decimalsInFloat)) {
+                  return val.toFixed(w.config.xaxis.decimalsInFloat);
+                } else {
+                  var diff = w.globals.maxX - w.globals.minX;
+
+                  if (diff > 0 && diff < 100) {
+                    return val.toFixed(1);
+                  }
+
+                  return val.toFixed(0);
+                }
               }
 
               if (w.globals.isBarHorizontal) {
@@ -13583,18 +13595,15 @@
             // for timeline labels, we take the last label and check if it exceeds gridWidth
             var firstimescaleLabel = _this.dCtx.timescaleLabels[0];
             var lastTimescaleLabel = _this.dCtx.timescaleLabels[_this.dCtx.timescaleLabels.length - 1];
-            var lastLabelPosition = lastTimescaleLabel.position + lbWidth / 1.75 - // replace + with - ;
-            // allow the last label to intersect with the right y axis
-            _this.dCtx.yAxisWidthRight;
-            var firstLabelPosition = firstimescaleLabel.position - lbWidth / 1.75 + // remove conditional since the first label is always at the very left
-            // allow the first label to intersect with the left y axes
-            _this.dCtx.yAxisWidthLeft;
+            var lastLabelPosition = lastTimescaleLabel.position + lbWidth / 1.75 - _this.dCtx.yAxisWidthRight;
+            var firstLabelPosition = firstimescaleLabel.position - lbWidth / 1.75 + _this.dCtx.yAxisWidthLeft;
+            var lgRightRectWidth = w.config.legend.position === 'right' && _this.dCtx.lgRect.width > 0 ? _this.dCtx.lgRect.width : 0;
 
-            if (lastLabelPosition > gl.svgWidth - gl.translateX) {
+            if (lastLabelPosition > gl.svgWidth - gl.translateX - lgRightRectWidth) {
               gl.skipLastTimelinelabel = true;
             }
 
-            if (firstLabelPosition < -((!yaxe.show || yaxe.floating) && (cnf.chart.type === 'bar' || cnf.chart.type === 'candlestick' || cnf.chart.type === 'rangeBar' || cnf.chart.type === 'boxPlot') ? lbWidth / 1.75 : 0)) {
+            if (firstLabelPosition < -((!yaxe.show || yaxe.floating) && (cnf.chart.type === 'bar' || cnf.chart.type === 'candlestick' || cnf.chart.type === 'rangeBar' || cnf.chart.type === 'boxPlot') ? lbWidth / 1.75 : 10)) {
               gl.skipFirstTimelinelabel = true;
             }
           } else if (xtype === 'datetime') {
@@ -13672,7 +13681,8 @@
 
           if (!axesUtils.isYAxisHidden(index) && yaxe.labels.show && yS.result.length) {
             var lbFormatter = w.globals.yLabelFormatters[index];
-            var longestStr = String(yS.niceMin).length > String(yS.niceMax).length ? yS.niceMin : yS.niceMax; // the second parameter -1 is the index of tick which user can use in the formatter
+            var minV = yS.niceMin === Number.MIN_VALUE ? 0 : yS.niceMin;
+            var longestStr = String(minV).length > String(yS.niceMax).length ? minV : yS.niceMax; // the second parameter -1 is the index of tick which user can use in the formatter
 
             var val = lbFormatter(longestStr, {
               seriesIndex: index,
@@ -23105,6 +23115,14 @@
           unit = 'month';
           date = firstVal.minDate;
           numberOfDays++;
+        } else if (firstVal.minDate !== 1 && firstVal.minHour === 0 && firstVal.minMinute === 0) {
+          // fixes apexcharts/apexcharts.js/issues/1730
+          firstTickPosition = 0;
+          firstTickValue = firstVal.minDate;
+          date = firstTickValue;
+          val = firstTickValue; // in case it's the last date of month, we need to check it
+
+          month = changeMonth(date, currentMonth, currentYear);
         } // push the first tick in the array
 
 
