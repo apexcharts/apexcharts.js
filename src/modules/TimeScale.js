@@ -532,6 +532,18 @@ class TimeScale {
       unit = 'month'
       date = firstVal.minDate
       numberOfDays++
+    } else if (
+      firstVal.minDate !== 1 &&
+      firstVal.minHour === 0 &&
+      firstVal.minMinute === 0
+    ) {
+      // fixes apexcharts/apexcharts.js/issues/1730
+      firstTickPosition = 0
+      firstTickValue = firstVal.minDate
+      date = firstTickValue
+      val = firstTickValue
+      // in case it's the last date of month, we need to check it
+      month = changeMonth(date, currentMonth, currentYear)
     }
 
     // push the first tick in the array
