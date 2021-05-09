@@ -247,18 +247,21 @@ export default class DimXAxis {
         const lastLabelPosition =
           lastTimescaleLabel.position +
           lbWidth / 1.75 -
-          // replace + with - ;
-          // allow the last label to intersect with the right y axis
           this.dCtx.yAxisWidthRight
 
         const firstLabelPosition =
           firstimescaleLabel.position -
           lbWidth / 1.75 +
-          // remove conditional since the first label is always at the very left
-          // allow the first label to intersect with the left y axes
           this.dCtx.yAxisWidthLeft
 
-        if (lastLabelPosition > gl.svgWidth - gl.translateX) {
+        let lgRightRectWidth =
+          w.config.legend.position === 'right' && this.dCtx.lgRect.width > 0
+            ? this.dCtx.lgRect.width
+            : 0
+        if (
+          lastLabelPosition >
+          gl.svgWidth - gl.translateX - lgRightRectWidth
+        ) {
           gl.skipLastTimelinelabel = true
         }
 
@@ -270,7 +273,7 @@ export default class DimXAxis {
             cnf.chart.type === 'rangeBar' ||
             cnf.chart.type === 'boxPlot')
             ? lbWidth / 1.75
-            : 0)
+            : 10)
         ) {
           gl.skipFirstTimelinelabel = true
         }
