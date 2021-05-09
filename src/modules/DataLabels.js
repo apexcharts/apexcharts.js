@@ -205,14 +205,14 @@ class DataLabels {
     }
 
     if (correctedLabels.textRects) {
-      // commented below code as it hides labels for first and last label even though it is not cut
-      // if (
-      //   x + correctedLabels.textRects.width < -20 ||
-      //   x > w.globals.gridWidth + 20
-      // ) {
-      //   // datalabels fall outside drawing area, so draw a blank label
-      //   text = ''
-      // }
+      // fixes #2264
+      if (
+        x < -10 - correctedLabels.textRects.width ||
+        x > w.globals.gridWidth + correctedLabels.textRects.width + 10
+      ) {
+        // datalabels fall outside drawing area, so draw a blank label
+        text = ''
+      }
     }
 
     let dataLabelColor = w.globals.dataLabels.style.colors[i]
