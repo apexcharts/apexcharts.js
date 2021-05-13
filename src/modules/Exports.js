@@ -11,12 +11,12 @@ class Exports {
 
   scaleSvgNode = (svg, scale) => {
     // get current both width and height of the svg
-    var svgWidth = parseFloat(svg.getAttributeNS(null, "width"))
-    var svgHeight = parseFloat(svg.getAttributeNS(null, "height"))
+    let svgWidth = parseFloat(svg.getAttributeNS(null, 'width'))
+    let svgHeight = parseFloat(svg.getAttributeNS(null, 'height'))
     // set new width and height based on the scale
-    svg.setAttributeNS(null, "width", svgWidth * scale)
-    svg.setAttributeNS(null, "height", svgHeight * scale)
-    svg.setAttributeNS(null, "viewBox", "0 0 " + svgWidth + " " + svgHeight)
+    svg.setAttributeNS(null, 'width', svgWidth * scale)
+    svg.setAttributeNS(null, 'height', svgHeight * scale)
+    svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight)
   }
 
   fixSvgStringForIe11(svgData) {
@@ -100,7 +100,9 @@ class Exports {
     return new Promise((resolve) => {
       const w = this.w
 
-      const scale = options ? (options.scale || options.width / w.globals.svgWidth) : 1
+      const scale = options
+        ? options.scale || options.width / w.globals.svgWidth
+        : 1
 
       this.cleanup()
       const canvas = document.createElement('canvas')
