@@ -40,7 +40,7 @@ declare class ApexCharts {
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void
   removeAnnotation(id: string, options?: any): void
   clearAnnotations(options?: any): void
-  dataURI(): Promise<void>
+  dataURI(options?: { scale?: number, width?: number }): Promise<void>
   static exec(chartID: string, fn: string, ...args: Array<any>): any
   static initOnLoad(): void
 }
