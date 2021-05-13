@@ -10,8 +10,10 @@ class Exports {
   }
 
   scaleSvgNode = (svg, scale) => {
+    // get current both width and height of the svg
     var svgWidth = parseFloat(svg.getAttributeNS(null, "width"))
     var svgHeight = parseFloat(svg.getAttributeNS(null, "height"))
+    // set new width and height based on the scale
     svg.setAttributeNS(null, "width", svgWidth * scale)
     svg.setAttributeNS(null, "height", svgHeight * scale)
     svg.setAttributeNS(null, "viewBox", "0 0 " + svgWidth + " " + svgHeight)
@@ -46,9 +48,13 @@ class Exports {
 
   getSvgString(scale) {
     let svgString = this.w.globals.dom.Paper.svg()
+    // in case the scale is different than 1, the svg needs to be rescaled
     if (scale !== 1) {
-      let svgNode = this.w.globals.dom.Paper.node.cloneNode(true)
+      // clone the svg node so it remains intact in the UI
+      const svgNode = this.w.globals.dom.Paper.node.cloneNode(true)
+      // scale the image
       this.scaleSvgNode(svgNode, scale)
+      // get the string representation of the svgNode
       svgString = new XMLSerializer().serializeToString(svgNode)
     }
     return this.fixSvgStringForIe11(svgString)
