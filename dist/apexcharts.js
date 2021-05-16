@@ -9,44 +9,6 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.ApexCharts = factory());
 }(this, (function () { 'use strict';
 
-  function ownKeys(object, enumerableOnly) {
-    var keys = Object.keys(object);
-
-    if (Object.getOwnPropertySymbols) {
-      var symbols = Object.getOwnPropertySymbols(object);
-
-      if (enumerableOnly) {
-        symbols = symbols.filter(function (sym) {
-          return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-        });
-      }
-
-      keys.push.apply(keys, symbols);
-    }
-
-    return keys;
-  }
-
-  function _objectSpread2(target) {
-    for (var i = 1; i < arguments.length; i++) {
-      var source = arguments[i] != null ? arguments[i] : {};
-
-      if (i % 2) {
-        ownKeys(Object(source), true).forEach(function (key) {
-          _defineProperty(target, key, source[key]);
-        });
-      } else if (Object.getOwnPropertyDescriptors) {
-        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-      } else {
-        ownKeys(Object(source)).forEach(function (key) {
-          Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-        });
-      }
-    }
-
-    return target;
-  }
-
   function _typeof(obj) {
     "@babel/helpers - typeof";
 
@@ -100,6 +62,40 @@
     return obj;
   }
 
+  function ownKeys(object, enumerableOnly) {
+    var keys = Object.keys(object);
+
+    if (Object.getOwnPropertySymbols) {
+      var symbols = Object.getOwnPropertySymbols(object);
+      if (enumerableOnly) symbols = symbols.filter(function (sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      });
+      keys.push.apply(keys, symbols);
+    }
+
+    return keys;
+  }
+
+  function _objectSpread2(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i] != null ? arguments[i] : {};
+
+      if (i % 2) {
+        ownKeys(Object(source), true).forEach(function (key) {
+          _defineProperty(target, key, source[key]);
+        });
+      } else if (Object.getOwnPropertyDescriptors) {
+        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+      } else {
+        ownKeys(Object(source)).forEach(function (key) {
+          Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+        });
+      }
+    }
+
+    return target;
+  }
+
   function _inherits(subClass, superClass) {
     if (typeof superClass !== "function" && superClass !== null) {
       throw new TypeError("Super expression must either be null or a function");
@@ -137,7 +133,7 @@
     if (typeof Proxy === "function") return true;
 
     try {
-      Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {}));
+      Date.prototype.toString.call(Reflect.construct(Date, [], function () {}));
       return true;
     } catch (e) {
       return false;
@@ -188,7 +184,7 @@
   }
 
   function _iterableToArray(iter) {
-    if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+    if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter);
   }
 
   function _unsupportedIterableToArray(o, minLen) {
@@ -2145,14 +2141,14 @@
 
     _createClass(CoreUtils, [{
       key: "getStackedSeriesTotals",
-      value:
+
       /**
        * @memberof CoreUtils
        * returns the sum of all individual values in a multiple stacked series
        * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
        *  @return [34,36,48,13]
        **/
-      function getStackedSeriesTotals() {
+      value: function getStackedSeriesTotals() {
         var w = this.w;
         var total = [];
         if (w.globals.series.length === 0) return total;
@@ -9984,16 +9980,6 @@
     function Exports(ctx) {
       _classCallCheck(this, Exports);
 
-      _defineProperty(this, "scaleSvgNode", function (svg, scale) {
-        // get current both width and height of the svg
-        var svgWidth = parseFloat(svg.getAttributeNS(null, "width"));
-        var svgHeight = parseFloat(svg.getAttributeNS(null, "height")); // set new width and height based on the scale
-
-        svg.setAttributeNS(null, "width", svgWidth * scale);
-        svg.setAttributeNS(null, "height", svgHeight * scale);
-        svg.setAttributeNS(null, "viewBox", "0 0 " + svgWidth + " " + svgHeight);
-      });
-
       this.ctx = ctx;
       this.w = ctx.w;
     }
@@ -10021,18 +10007,8 @@
       }
     }, {
       key: "getSvgString",
-      value: function getSvgString(scale) {
-        var svgString = this.w.globals.dom.Paper.svg(); // in case the scale is different than 1, the svg needs to be rescaled
-
-        if (scale !== 1) {
-          // clone the svg node so it remains intact in the UI
-          var svgNode = this.w.globals.dom.Paper.node.cloneNode(true); // scale the image
-
-          this.scaleSvgNode(svgNode, scale); // get the string representation of the svgNode
-
-          svgString = new XMLSerializer().serializeToString(svgNode);
-        }
-
+      value: function getSvgString() {
+        var svgString = this.w.globals.dom.Paper.svg();
         return this.fixSvgStringForIe11(svgString);
       }
     }, {
@@ -10071,25 +10047,24 @@
       }
     }, {
       key: "dataURI",
-      value: function dataURI(options) {
+      value: function dataURI() {
         var _this = this;
 
         return new Promise(function (resolve) {
           var w = _this.w;
-          var scale = options ? options.scale || options.width / w.globals.svgWidth : 1;
 
           _this.cleanup();
 
           var canvas = document.createElement('canvas');
-          canvas.width = w.globals.svgWidth * scale;
-          canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) * scale; // because of resizeNonAxisCharts
+          canvas.width = w.globals.svgWidth;
+          canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10); // because of resizeNonAxisCharts
 
           var canvasBg = w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background;
           var ctx = canvas.getContext('2d');
           ctx.fillStyle = canvasBg;
-          ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          var svgData = _this.getSvgString(scale);
+          var svgData = _this.getSvgString();
 
           if (window.canvg && Utils.isIE11()) {
             // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
@@ -25778,10 +25753,10 @@
               }
 
               if (topParent != document) throw new Error('Element not in the dom');
-            } else {// the element is NOT in the dom, throw error
-              // disabling the check below which fixes issue #76
-              // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
-            } // find native bbox
+            } else {} // the element is NOT in the dom, throw error
+            // disabling the check below which fixes issue #76
+            // if (!document.documentElement.contains(element.node)) throw new Exception('Element not in the dom')
+            // find native bbox
 
 
             box = element.node.getBBox();
@@ -30896,9 +30871,9 @@
       }
     }, {
       key: "dataURI",
-      value: function dataURI(options) {
+      value: function dataURI() {
         var exp = new Exports(this.ctx);
-        return exp.dataURI(options);
+        return exp.dataURI();
       }
     }, {
       key: "paper",
