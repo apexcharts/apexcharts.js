@@ -686,9 +686,9 @@ export default class ApexCharts {
     this.localization.setCurrentLocaleValues(localeName)
   }
 
-  dataURI() {
+  dataURI(options) {
     const exp = new Exports(this.ctx)
-    return exp.dataURI()
+    return exp.dataURI(options)
   }
 
   paper() {

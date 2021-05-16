@@ -9,6 +9,16 @@ class Exports {
     this.w = ctx.w
   }
 
+  scaleSvgNode = (svg, scale) => {
+    // get current both width and height of the svg
+    let svgWidth = parseFloat(svg.getAttributeNS(null, 'width'))
+    let svgHeight = parseFloat(svg.getAttributeNS(null, 'height'))
+    // set new width and height based on the scale
+    svg.setAttributeNS(null, 'width', svgWidth * scale)
+    svg.setAttributeNS(null, 'height', svgHeight * scale)
+    svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight)
+  }
+
   fixSvgStringForIe11(svgData) {
     // IE11 generates broken SVG that we have to fix by using regex
     if (!Utils.isIE11()) {
@@ -36,8 +46,17 @@ class Exports {
     return result
   }
 
-  getSvgString() {
-    const svgString = this.w.globals.dom.Paper.svg()
+  getSvgString(scale) {
+    let svgString = this.w.globals.dom.Paper.svg()
+    // in case the scale is different than 1, the svg needs to be rescaled
+    if (scale !== 1) {
+      // clone the svg node so it remains intact in the UI
+      const svgNode = this.w.globals.dom.Paper.node.cloneNode(true)
+      // scale the image
+      this.scaleSvgNode(svgNode, scale)
+      // get the string representation of the svgNode
+      svgString = new XMLSerializer().serializeToString(svgNode)
+    }
     return this.fixSvgStringForIe11(svgString)
   }
 
@@ -77,14 +96,18 @@ class Exports {
     return URL.createObjectURL(svgBlob)
   }
 
-  dataURI() {
+  dataURI(options) {
     return new Promise((resolve) => {
       const w = this.w
 
+      const scale = options
+        ? options.scale || options.width / w.globals.svgWidth
+        : 1
+
       this.cleanup()
       const canvas = document.createElement('canvas')
-      canvas.width = w.globals.svgWidth
-      canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) // because of resizeNonAxisCharts
+      canvas.width = w.globals.svgWidth * scale
+      canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) * scale // because of resizeNonAxisCharts
 
       const canvasBg =
         w.config.chart.background === 'transparent'
@@ -93,9 +116,9 @@ class Exports {
 
       let ctx = canvas.getContext('2d')
       ctx.fillStyle = canvasBg
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
 
-      const svgData = this.getSvgString()
+      const svgData = this.getSvgString(scale)
 
       if (window.canvg && Utils.isIE11()) {
         // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
