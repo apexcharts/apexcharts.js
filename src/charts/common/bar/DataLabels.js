@@ -364,12 +364,7 @@ export default class BarDataLabels {
         })
       }
 
-      if (val === 0 && w.config.chart.stacked) {
-        // in a stacked bar/column chart, 0 value should be neglected as it will overlap on the next element
-        text = ''
-      }
-
-      let valIsNegative = w.globals.series[i][j] <= 0
+      let valIsNegative = w.globals.series[i][j] < 0
       let position = w.config.plotOptions.bar.dataLabels.position
       if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
         if (position === 'top') {

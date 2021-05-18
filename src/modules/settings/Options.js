@@ -913,6 +913,7 @@ export default class Options {
         convertedCatToNumeric: false, // internal property which should not be altered outside
         offsetX: 0,
         offsetY: 0,
+        overwriteCategories: undefined,
         labels: {
           show: true,
           rotate: -45,

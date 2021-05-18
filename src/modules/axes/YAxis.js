@@ -72,7 +72,7 @@ export default class YAxis {
       for (let i = tickAmount; i >= 0; i--) {
         let val = labels[i]
 
-        val = lbFormatter(val, i)
+        val = lbFormatter(val, i, w)
 
         let xPad = w.config.yaxis[realIndex].labels.padding
         if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0) {
@@ -226,7 +226,7 @@ export default class YAxis {
     if (w.config.xaxis.labels.show) {
       for (let i = tl ? 0 : tickAmount; tl ? i < tl : i >= 0; tl ? i++ : i--) {
         let val = labels[i]
-        val = lbFormatter(val, i)
+        val = lbFormatter(val, i, w)
 
         let x =
           w.globals.gridWidth +

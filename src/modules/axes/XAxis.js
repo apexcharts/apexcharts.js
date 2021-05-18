@@ -21,6 +21,9 @@ export default class XAxis {
       this.xaxisLabels = w.globals.timescaleLabels.slice()
     }
 
+    if (w.config.xaxis.overwriteCategories) {
+      this.xaxisLabels = w.config.xaxis.overwriteCategories
+    }
     this.drawnLabels = []
     this.drawnLabelsRects = []
 
