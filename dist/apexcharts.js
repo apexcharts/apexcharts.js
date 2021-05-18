@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.26.2
+ * ApexCharts v3.26.3
  * (c) 2018-2021 Juned Chhipa
  * Released under the MIT License.
  */
@@ -3797,6 +3797,7 @@
             // internal property which should not be altered outside
             offsetX: 0,
             offsetY: 0,
+            overwriteCategories: undefined,
             labels: {
               show: true,
               rotate: -45,
@@ -5555,12 +5556,7 @@
             });
           }
 
-          if (val === 0 && w.config.chart.stacked) {
-            // in a stacked bar/column chart, 0 value should be neglected as it will overlap on the next element
-            text = '';
-          }
-
-          var valIsNegative = w.globals.series[i][j] <= 0;
+          var valIsNegative = w.globals.series[i][j] < 0;
           var position = w.config.plotOptions.bar.dataLabels.position;
 
           if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
@@ -9980,6 +9976,16 @@
     function Exports(ctx) {
       _classCallCheck(this, Exports);
 
+      _defineProperty(this, "scaleSvgNode", function (svg, scale) {
+        // get current both width and height of the svg
+        var svgWidth = parseFloat(svg.getAttributeNS(null, 'width'));
+        var svgHeight = parseFloat(svg.getAttributeNS(null, 'height')); // set new width and height based on the scale
+
+        svg.setAttributeNS(null, 'width', svgWidth * scale);
+        svg.setAttributeNS(null, 'height', svgHeight * scale);
+        svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight);
+      });
+
       this.ctx = ctx;
       this.w = ctx.w;
     }
@@ -10007,8 +10013,18 @@
       }
     }, {
       key: "getSvgString",
-      value: function getSvgString() {
-        var svgString = this.w.globals.dom.Paper.svg();
+      value: function getSvgString(scale) {
+        var svgString = this.w.globals.dom.Paper.svg(); // in case the scale is different than 1, the svg needs to be rescaled
+
+        if (scale !== 1) {
+          // clone the svg node so it remains intact in the UI
+          var svgNode = this.w.globals.dom.Paper.node.cloneNode(true); // scale the image
+
+          this.scaleSvgNode(svgNode, scale); // get the string representation of the svgNode
+
+          svgString = new XMLSerializer().serializeToString(svgNode);
+        }
+
         return this.fixSvgStringForIe11(svgString);
       }
     }, {
@@ -10047,24 +10063,25 @@
       }
     }, {
       key: "dataURI",
-      value: function dataURI() {
+      value: function dataURI(options) {
         var _this = this;
 
         return new Promise(function (resolve) {
           var w = _this.w;
+          var scale = options ? options.scale || options.width / w.globals.svgWidth : 1;
 
           _this.cleanup();
 
           var canvas = document.createElement('canvas');
-          canvas.width = w.globals.svgWidth;
-          canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10); // because of resizeNonAxisCharts
+          canvas.width = w.globals.svgWidth * scale;
+          canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) * scale; // because of resizeNonAxisCharts
 
           var canvasBg = w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background;
           var ctx = canvas.getContext('2d');
           ctx.fillStyle = canvasBg;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
 
-          var svgData = _this.getSvgString();
+          var svgData = _this.getSvgString(scale);
 
           if (window.canvg && Utils.isIE11()) {
             // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
@@ -10307,6 +10324,10 @@
       if (w.globals.timescaleLabels.length > 0 && !w.globals.isBarHorizontal) {
         //  timeline labels are there and chart is not rangeabr timeline
         this.xaxisLabels = w.globals.timescaleLabels.slice();
+      }
+
+      if (w.config.xaxis.overwriteCategories) {
+        this.xaxisLabels = w.config.xaxis.overwriteCategories;
       }
 
       this.drawnLabels = [];
@@ -12285,7 +12306,7 @@
         if (w.config.yaxis[realIndex].labels.show) {
           var _loop = function _loop(i) {
             var val = labels[i];
-            val = lbFormatter(val, i);
+            val = lbFormatter(val, i, w);
             var xPad = w.config.yaxis[realIndex].labels.padding;
 
             if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0) {
@@ -12409,7 +12430,7 @@
         if (w.config.xaxis.labels.show) {
           for (var i = tl ? 0 : tickAmount; tl ? i < tl : i >= 0; tl ? i++ : i--) {
             var val = labels[i];
-            val = lbFormatter(val, i);
+            val = lbFormatter(val, i, w);
             var x = w.globals.gridWidth + w.globals.padHorizontal - (l - labelsDivider + w.config.xaxis.labels.offsetX);
 
             if (timescaleLabels.length) {
@@ -30871,9 +30892,9 @@
       }
     }, {
       key: "dataURI",
-      value: function dataURI() {
+      value: function dataURI(options) {
         var exp = new Exports(this.ctx);
-        return exp.dataURI();
+        return exp.dataURI(options);
       }
     }, {
       key: "paper",
