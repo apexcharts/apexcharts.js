@@ -244,7 +244,8 @@ export default class Helpers {
     strokeWidth = Array.isArray(strokeWidth)
       ? strokeWidth[realIndex]
       : strokeWidth
-    if (!strokeWidth) strokeWidth = 0
+    if (!strokeWidth || series[i][j] === 0) strokeWidth = 0
+    if (series[i][j] === 0) barWidth = 0
 
     let shapeOpts = {
       barWidth,
@@ -255,14 +256,13 @@ export default class Helpers {
       y2
     }
     let newPath = this.getRoundedBars(w, shapeOpts, series, i, j)
-
-    const x1 = barXPosition
+    const x1 = barXPosition 
     const x2 = barXPosition + barWidth
 
-    let pathTo = graphics.move(x1, y1)
-    let pathFrom = graphics.move(x1, y1)
+    let pathTo = graphics.move(x1 , newPath.y1)
+    let pathFrom = graphics.move(x1, newPath.y1)
 
-    const sl = graphics.line(x2 - strokeWidth, y1)
+    const sl = graphics.line(x2 - strokeWidth, newPath.y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
     }
@@ -270,23 +270,21 @@ export default class Helpers {
     pathTo =
       pathTo +
       graphics.line(x1, newPath.y2) +
-      newPath.pathWithRadius +
+      newPath.startingShape +
       graphics.line(x2 - strokeWidth, newPath.y2) +
       sl +
-      sl +
+      newPath.endingShape +
       'z'
 
-    // the lines in pathFrom are repeated to equal it to the points of pathTo
-    // this is to avoid weird animation (bug in svg.js)
     pathFrom =
       pathFrom +
-      graphics.line(x1, y1) +
+      graphics.line(x1, newPath.y1) +
       sl +
       sl +
       sl +
       sl +
       sl +
-      graphics.line(x1, y1)
+      graphics.line(x1, newPath.y1)
 
     if (w.config.chart.stacked) {
       this.barCtx.yArrj.push(newPath.y2)
@@ -299,7 +297,7 @@ export default class Helpers {
       pathFrom
     }
   }
-
+  
   getBarpaths({
     barYPosition,
     barHeight,
@@ -316,7 +314,8 @@ export default class Helpers {
     strokeWidth = Array.isArray(strokeWidth)
       ? strokeWidth[realIndex]
       : strokeWidth
-    if (!strokeWidth) strokeWidth = 0
+    if (!strokeWidth || series[i][j]) strokeWidth = 0
+    if (series[i][j] === 0) barHeight = 0
 
     let shapeOpts = {
       barHeight,
@@ -327,9 +326,8 @@ export default class Helpers {
     }
 
     let newPath = this.getRoundedBars(w, shapeOpts, series, i, j)
-
-    let pathTo = graphics.move(x1, barYPosition)
-    let pathFrom = graphics.move(x1, barYPosition)
+    let pathTo = graphics.move(newPath.x1, barYPosition)
+    let pathFrom = graphics.move(newPath.x1, barYPosition)
 
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
@@ -338,29 +336,30 @@ export default class Helpers {
     const y1 = barYPosition
     const y2 = barYPosition + barHeight
 
-    const sl = graphics.line(x1, y2 - strokeWidth)
+    const sl = graphics.line(newPath.x1, y2 - strokeWidth)
     pathTo =
       pathTo +
       graphics.line(newPath.x2, y1) +
-      newPath.pathWithRadius +
+      newPath.startingShape +
       graphics.line(newPath.x2, y2 - strokeWidth) +
       sl +
       sl +
+      newPath.endingShape +
       'z'
 
     pathFrom =
       pathFrom +
-      graphics.line(x1, y1) +
+      graphics.line(newPath.x1, y1) +
       sl +
       sl +
       sl +
       sl +
       sl +
-      graphics.line(x1, y1)
+      graphics.line(newPath.x1, y1)
 
     if (w.config.chart.stacked) {
       this.barCtx.xArrj.push(newPath.x2)
-      this.barCtx.xArrjF.push(Math.abs(x1 - newPath.x2))
+      this.barCtx.xArrjF.push(Math.abs(newPath.x1 - newPath.x2))
       this.barCtx.xArrjVal.push(this.barCtx.series[i][j])
     }
     return {
@@ -379,20 +378,25 @@ export default class Helpers {
    * @return {object} pathWithRadius - ending shape path string
    *         newY/newX - which is calculated from existing x/y based on rounded border
    **/
+
   getRoundedBars(w, opts, series, i, j) {
     let graphics = new Graphics(this.barCtx.ctx)
     let radius = w.config.plotOptions.bar.borderRadius
 
-    if (
-      w.config.chart.stacked &&
-      series.length > 1 &&
-      i !== this.barCtx.radiusOnSeriesNumber
-    ) {
-      radius = 0
-    }
+    // if (
+    //   w.config.chart.stacked &&
+    //   series.length > 1 &&
+    //   i !== this.barCtx.radiusOnSeriesNumber
+    // ) {
+    //   radius = 0
+    // }
 
     if (this.barCtx.isHorizontal) {
-      let pathWithRadius = ''
+      let startingShape = ''
+      let endingShape = ''
+      let startingShapeRadius = radius
+      let endingShapeRadius = radius
+      let x1 = opts.x1
       let x2 = opts.x2
 
       if (Math.abs(opts.x1 - opts.x2) < radius) {
@@ -406,73 +410,183 @@ export default class Helpers {
 
         if (inverse) radius = radius * -1
 
-        x2 = x2 - radius
+        // Assign radius value to starting & ending radius variables
+        startingShapeRadius = endingShapeRadius = radius
 
-        pathWithRadius =
+        if (this.barCtx.barOptions.startingShape === 'flat') {
+          startingShapeRadius = 0
+        }
+        if (this.barCtx.barOptions.endingShape === 'flat') {
+          endingShapeRadius = 0
+        }
+        if (this.barCtx.barOptions.startingShape === 'flat' && this.barCtx.barOptions.endingShape === 'flat') {
+          radius = 0
+        }
+        
+        if (
+          w.config.chart.stacked &&
+          series.length > 1 &&
+          i !== 0
+        ) {
+          if (this.barCtx.barOptions.endingShape === 'flat' || this.barCtx.barOptions.startingShape === 'flat') {
+            x1 = x1 + radius
+          }
+          else {
+            x1 = x1 + endingShapeRadius * 2
+          }
+        }
+        else {
+          x1 = x1 + endingShapeRadius
+          x2 = x2 - startingShapeRadius
+        }        
+
+        startingShape =
           graphics.quadraticCurve(
-            x2 + radius,
+            x2 + startingShapeRadius,
             opts.barYPosition,
-            x2 + radius,
-            opts.barYPosition + (!inverse ? radius : radius * -1)
+            x2 + startingShapeRadius,
+            opts.barYPosition + (!inverse ? startingShapeRadius : startingShapeRadius * -1)
           ) +
           graphics.line(
-            x2 + radius,
+            x2 + startingShapeRadius,
             opts.barYPosition +
               opts.barHeight -
               opts.strokeWidth -
-              (!inverse ? radius : radius * -1)
+              (!inverse ? startingShapeRadius : startingShapeRadius * -1)
           ) +
           graphics.quadraticCurve(
-            x2 + radius,
+            x2 + startingShapeRadius,
             opts.barYPosition + opts.barHeight - opts.strokeWidth,
             x2,
             opts.barYPosition + opts.barHeight - opts.strokeWidth
           )
+
+        endingShape =
+          graphics.quadraticCurve(
+            x1 - endingShapeRadius,
+            opts.barYPosition + opts.barHeight - opts.strokeWidth,
+            x1 - endingShapeRadius,
+            opts.barYPosition + opts.barHeight - opts.strokeWidth -
+            (!inverse ? endingShapeRadius : endingShapeRadius * -1)
+          ) +
+          graphics.line(
+            x1 - endingShapeRadius,
+            opts.barYPosition +
+              (!inverse ? endingShapeRadius : endingShapeRadius * -1)
+          ) +
+          graphics.quadraticCurve(
+            x1 - endingShapeRadius,
+            opts.barYPosition,
+            x1,
+            opts.barYPosition
+          )
       }
 
       return {
-        pathWithRadius,
+        startingShape,
+        endingShape,
+        x1,
         x2
       }
     } else {
-      let pathWithRadius = ''
+      let startingShape = ''
+      let endingShape = ''
+      let startingShapeRadius = radius
+      let endingShapeRadius = radius
       let y2 = opts.y2
+      let y1 = opts.y1
 
       if (Math.abs(opts.y1 - opts.y2) < radius) {
         radius = Math.abs(opts.y1 - opts.y2)
       }
 
       if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
+
         let inverse = series[i][j] < 0
 
-        if (inverse) radius = radius * -1
+        if (inverse) {
+          radius = radius * -1
+        }
 
-        y2 = y2 + radius
+        // Assign radius value to starting & ending radius variables
+        startingShapeRadius = endingShapeRadius = radius
 
-        pathWithRadius =
+        if (this.barCtx.barOptions.startingShape === 'flat') {
+          startingShapeRadius = 0
+        }
+        if (this.barCtx.barOptions.endingShape === 'flat') {
+          endingShapeRadius = 0
+        }
+        if (this.barCtx.barOptions.startingShape === 'flat' && this.barCtx.barOptions.endingShape === 'flat') {
+          radius = 0
+        }
+        
+        if (
+          w.config.chart.stacked &&
+          series.length > 1 &&
+          i !== 0
+        ) {
+          if (this.barCtx.barOptions.endingShape === 'flat' || this.barCtx.barOptions.startingShape === 'flat') {
+            y1 = y1 - radius
+          }
+          else {
+            y1 = y1 - endingShapeRadius * 2
+          }
+        }
+        else {
+          y1 = y1 - endingShapeRadius
+          y2 = y2 + startingShapeRadius
+        }
+
+        startingShape =
           graphics.quadraticCurve(
             opts.barXPosition,
-            y2 - radius,
-            opts.barXPosition + (!inverse ? radius : radius * -1),
-            y2 - radius
+            y2 - startingShapeRadius,
+            opts.barXPosition + (!inverse ? startingShapeRadius : startingShapeRadius * -1),
+            y2 - startingShapeRadius
           ) +
           graphics.line(
             opts.barXPosition +
               opts.barWidth -
               opts.strokeWidth -
-              (!inverse ? radius : radius * -1),
-            y2 - radius
+              (!inverse ? startingShapeRadius : startingShapeRadius * -1),
+            y2 - startingShapeRadius
           ) +
           graphics.quadraticCurve(
             opts.barXPosition + opts.barWidth - opts.strokeWidth,
-            y2 - radius,
+            y2 - startingShapeRadius,
             opts.barXPosition + opts.barWidth - opts.strokeWidth,
             y2
           )
+
+          endingShape =
+            graphics.quadraticCurve(
+              opts.barXPosition +
+              opts.barWidth -
+              opts.strokeWidth,
+              y1 + endingShapeRadius,
+              opts.barXPosition +
+              opts.barWidth -
+              opts.strokeWidth - (!inverse ? endingShapeRadius : endingShapeRadius * -1),
+              y1 + endingShapeRadius
+            ) +
+            graphics.line(
+              opts.barXPosition +
+                (!inverse ? endingShapeRadius : endingShapeRadius * -1),
+              y1 + endingShapeRadius
+            ) +
+            graphics.quadraticCurve(
+              opts.barXPosition,
+              y1 + endingShapeRadius,
+              opts.barXPosition,
+              y1
+            )
       }
 
       return {
-        pathWithRadius,
+        startingShape,
+        endingShape,
+        y1,
         y2
       }
     }

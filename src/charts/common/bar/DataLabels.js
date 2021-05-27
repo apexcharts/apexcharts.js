@@ -162,6 +162,14 @@ export default class BarDataLabels {
 
     let valIsNegative = this.barCtx.series[i][j] < 0
 
+    if (
+      (w.config.plotOptions.bar.startingShape === 'rounded' ||
+        w.config.plotOptions.bar.endingShape === 'rounded') &&
+      i !== 0
+    ) {
+      y = y - w.config.plotOptions.bar.borderRadius
+    }
+
     let newY = y
     if (this.barCtx.isReversed) {
       newY = y - barHeight + (valIsNegative ? barHeight * 2 : 0)
@@ -180,7 +188,7 @@ export default class BarDataLabels {
           if (valIsNegative) {
             dataLabelsY = newY - barHeight / 2 + textRects.height / 2 + offY
           } else {
-            dataLabelsY = newY + barHeight / 2 + textRects.height / 2 - offY
+            dataLabelsY = newY + barHeight / 2 + textRects.height / 3 - offY
           }
         }
         break
