@@ -256,10 +256,10 @@ export default class Helpers {
       y2
     }
     let newPath = this.getRoundedBars(w, shapeOpts, series, i, j)
-    const x1 = barXPosition 
+    const x1 = barXPosition
     const x2 = barXPosition + barWidth
 
-    let pathTo = graphics.move(x1 , newPath.y1)
+    let pathTo = graphics.move(x1, newPath.y1)
     let pathFrom = graphics.move(x1, newPath.y1)
 
     const sl = graphics.line(x2 - strokeWidth, newPath.y1)
@@ -297,7 +297,7 @@ export default class Helpers {
       pathFrom
     }
   }
-  
+
   getBarpaths({
     barYPosition,
     barHeight,
@@ -419,33 +419,34 @@ export default class Helpers {
         if (this.barCtx.barOptions.endingShape === 'flat') {
           endingShapeRadius = 0
         }
-        if (this.barCtx.barOptions.startingShape === 'flat' && this.barCtx.barOptions.endingShape === 'flat') {
+        if (
+          this.barCtx.barOptions.startingShape === 'flat' &&
+          this.barCtx.barOptions.endingShape === 'flat'
+        ) {
           radius = 0
         }
-        
-        if (
-          w.config.chart.stacked &&
-          series.length > 1 &&
-          i !== 0
-        ) {
-          if (this.barCtx.barOptions.endingShape === 'flat' || this.barCtx.barOptions.startingShape === 'flat') {
+
+        if (w.config.chart.stacked && series.length > 1 && i !== 0) {
+          if (
+            this.barCtx.barOptions.endingShape === 'flat' ||
+            this.barCtx.barOptions.startingShape === 'flat'
+          ) {
             x1 = x1 + radius
-          }
-          else {
+          } else {
             x1 = x1 + endingShapeRadius * 2
           }
-        }
-        else {
+        } else {
           x1 = x1 + endingShapeRadius
           x2 = x2 - startingShapeRadius
-        }        
+        }
 
         startingShape =
           graphics.quadraticCurve(
             x2 + startingShapeRadius,
             opts.barYPosition,
             x2 + startingShapeRadius,
-            opts.barYPosition + (!inverse ? startingShapeRadius : startingShapeRadius * -1)
+            opts.barYPosition +
+              (!inverse ? startingShapeRadius : startingShapeRadius * -1)
           ) +
           graphics.line(
             x2 + startingShapeRadius,
@@ -466,8 +467,10 @@ export default class Helpers {
             x1 - endingShapeRadius,
             opts.barYPosition + opts.barHeight - opts.strokeWidth,
             x1 - endingShapeRadius,
-            opts.barYPosition + opts.barHeight - opts.strokeWidth -
-            (!inverse ? endingShapeRadius : endingShapeRadius * -1)
+            opts.barYPosition +
+              opts.barHeight -
+              opts.strokeWidth -
+              (!inverse ? endingShapeRadius : endingShapeRadius * -1)
           ) +
           graphics.line(
             x1 - endingShapeRadius,
@@ -501,7 +504,6 @@ export default class Helpers {
       }
 
       if (typeof series[i][j] !== 'undefined' || series[i][j] !== null) {
-
         let inverse = series[i][j] < 0
 
         if (inverse) {
@@ -517,23 +519,23 @@ export default class Helpers {
         if (this.barCtx.barOptions.endingShape === 'flat') {
           endingShapeRadius = 0
         }
-        if (this.barCtx.barOptions.startingShape === 'flat' && this.barCtx.barOptions.endingShape === 'flat') {
+        if (
+          this.barCtx.barOptions.startingShape === 'flat' &&
+          this.barCtx.barOptions.endingShape === 'flat'
+        ) {
           radius = 0
         }
-        
-        if (
-          w.config.chart.stacked &&
-          series.length > 1 &&
-          i !== 0
-        ) {
-          if (this.barCtx.barOptions.endingShape === 'flat' || this.barCtx.barOptions.startingShape === 'flat') {
+
+        if (w.config.chart.stacked && series.length > 1 && i !== 0) {
+          if (
+            this.barCtx.barOptions.endingShape === 'flat' ||
+            this.barCtx.barOptions.startingShape === 'flat'
+          ) {
             y1 = y1 - radius
-          }
-          else {
+          } else {
             y1 = y1 - endingShapeRadius * 2
           }
-        }
-        else {
+        } else {
           y1 = y1 - endingShapeRadius
           y2 = y2 + startingShapeRadius
         }
@@ -542,7 +544,8 @@ export default class Helpers {
           graphics.quadraticCurve(
             opts.barXPosition,
             y2 - startingShapeRadius,
-            opts.barXPosition + (!inverse ? startingShapeRadius : startingShapeRadius * -1),
+            opts.barXPosition +
+              (!inverse ? startingShapeRadius : startingShapeRadius * -1),
             y2 - startingShapeRadius
           ) +
           graphics.line(
@@ -559,28 +562,27 @@ export default class Helpers {
             y2
           )
 
-          endingShape =
-            graphics.quadraticCurve(
-              opts.barXPosition +
+        endingShape =
+          graphics.quadraticCurve(
+            opts.barXPosition + opts.barWidth - opts.strokeWidth,
+            y1 + endingShapeRadius,
+            opts.barXPosition +
               opts.barWidth -
-              opts.strokeWidth,
-              y1 + endingShapeRadius,
-              opts.barXPosition +
-              opts.barWidth -
-              opts.strokeWidth - (!inverse ? endingShapeRadius : endingShapeRadius * -1),
-              y1 + endingShapeRadius
-            ) +
-            graphics.line(
-              opts.barXPosition +
-                (!inverse ? endingShapeRadius : endingShapeRadius * -1),
-              y1 + endingShapeRadius
-            ) +
-            graphics.quadraticCurve(
-              opts.barXPosition,
-              y1 + endingShapeRadius,
-              opts.barXPosition,
-              y1
-            )
+              opts.strokeWidth -
+              (!inverse ? endingShapeRadius : endingShapeRadius * -1),
+            y1 + endingShapeRadius
+          ) +
+          graphics.line(
+            opts.barXPosition +
+              (!inverse ? endingShapeRadius : endingShapeRadius * -1),
+            y1 + endingShapeRadius
+          ) +
+          graphics.quadraticCurve(
+            opts.barXPosition,
+            y1 + endingShapeRadius,
+            opts.barXPosition,
+            y1
+          )
       }
 
       return {
