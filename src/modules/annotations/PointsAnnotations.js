@@ -43,9 +43,7 @@ export default class PointAnnotations {
       annoY = coreUtils.getLogVal(annoY, anno.yAxisIndex)
       yPos = annoY / w.globals.yLogRatio[anno.yAxisIndex]
     } else {
-      yPos =
-        (annoY - w.globals.minYArr[anno.yAxisIndex]) /
-        (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      yPos = (annoY - w.globals.minYArr[anno.seriesIndex]) / (w.globals.yRange[anno.seriesIndex] / w.globals.gridHeight)
     }
 
     y =
