@@ -163,7 +163,11 @@ class Bar {
             barWidth,
             zeroH
           })
-          barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
+          const value = w.globals.minY > 0 && this.series[i][j] > 0
+            ? this.series[i][j] - w.globals.minY
+            : this.series[i][j];
+
+          barHeight = value / this.yRatio[this.yaxisIndex]
         }
 
         y = paths.y
@@ -408,9 +412,13 @@ class Bar {
     ) {
       y = zeroH
     } else {
+      const value = w.globals.minY > 0 && this.series[i][j] > 0
+        ? this.series[i][j] - w.globals.minY
+        : this.series[i][j];
+
       y =
         zeroH -
-        this.series[i][j] / this.yRatio[this.yaxisIndex] +
+        value / this.yRatio[this.yaxisIndex] +
         (this.isReversed
           ? this.series[i][j] / this.yRatio[this.yaxisIndex]
           : 0) *

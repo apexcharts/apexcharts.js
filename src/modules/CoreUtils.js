@@ -263,7 +263,7 @@ class CoreUtils {
         baseLineY.push(-gl.minYArr[i] / yRatio[i])
       }
     } else {
-      baseLineY.push(-gl.minY / yRatio[0])
+      baseLineY.push(- Math.min(0, gl.minY) / yRatio[0])
 
       if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
         baseLineInvertedY = -gl.minY / invertedYRatio // this is for bar chart
