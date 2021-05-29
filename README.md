@@ -241,7 +241,7 @@ Facebook: <a href="https://facebook.com/apexcharts">fb.com/apexcharts</a>
 
 ## Dependency
 
-ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
+ApexCharts uses <a href="https://svgdotjs.github.io/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
 
 ## Supporting ApexCharts
 
