@@ -90,26 +90,46 @@
   border-bottom: 1px solid #333;
 }
 
-.apexcharts-tooltip-text-value,
+.apexcharts-tooltip-text-y-value,
+.apexcharts-tooltip-text-goals-value,
 .apexcharts-tooltip-text-z-value {
   display: inline-block;
   font-weight: 600;
   margin-left: 5px;
 }
 
-.apexcharts-tooltip-text-z-label:empty,
+.apexcharts-tooltip-text-y-label:empty,
+.apexcharts-tooltip-text-y-value:empty,
+.apexcharts-tooltip-text-goals-label:empty,
+.apexcharts-tooltip-text-goals-value:empty,
 .apexcharts-tooltip-text-z-value:empty {
   display: none;
 }
 
-.apexcharts-tooltip-text-value,
+.apexcharts-tooltip-text-y-value,
+.apexcharts-tooltip-text-goals-value,
 .apexcharts-tooltip-text-z-value {
   font-weight: 600;
 }
 
+.apexcharts-tooltip-text-goals-label, 
+.apexcharts-tooltip-text-goals-value {
+  padding: 6px 0 5px;
+}
+
+.apexcharts-tooltip-goals-group, 
+.apexcharts-tooltip-text-goals-label, 
+.apexcharts-tooltip-text-goals-value {
+  display: flex;
+}
+.apexcharts-tooltip-text-goals-label:not(:empty),
+.apexcharts-tooltip-text-goals-value:not(:empty) {
+  margin-top: -6px;
+}
+
 .apexcharts-tooltip-marker {
-  min-width: 12px;
-  min-height: 12px;
+  width: 12px;
+  height: 12px;
   position: relative;
   top: 0px;
   margin-right: 10px;
