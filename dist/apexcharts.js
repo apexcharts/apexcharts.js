@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.26.3
+ * ApexCharts v3.27.1
  * (c) 2018-2021 Juned Chhipa
  * Released under the MIT License.
  */
@@ -2719,8 +2719,8 @@
 
         for (var i = 0; i <= anno.seriesIndex; i++) {
           var serieName = w.config.yaxis[i].seriesName;
-          if (serieName != undefined) for (var j = i + 1; j <= anno.seriesIndex; j++) {
-            if (w.config.yaxis[j].seriesName == serieName && duplicateSeriesName.indexOf(serieName) == -1) {
+          if (serieName) for (var j = i + 1; j <= anno.seriesIndex; j++) {
+            if (w.config.yaxis[j].seriesName === serieName && duplicateSeriesName.indexOf(serieName) === -1) {
               countDuplicateSeriesName++;
               duplicateSeriesName.push(serieName);
             }

@@ -43,11 +43,11 @@ export default class PointAnnotations {
     let countDuplicateSeriesName = 0
     for (let i = 0; i <= anno.seriesIndex; i++) {
       let serieName = w.config.yaxis[i].seriesName
-      if (serieName != undefined)
+      if (serieName)
         for (let j = i + 1; j <= anno.seriesIndex; j++) {
           if (
-            w.config.yaxis[j].seriesName == serieName &&
-            duplicateSeriesName.indexOf(serieName) == -1
+            w.config.yaxis[j].seriesName === serieName &&
+            duplicateSeriesName.indexOf(serieName) === -1
           ) {
             countDuplicateSeriesName++
             duplicateSeriesName.push(serieName)
