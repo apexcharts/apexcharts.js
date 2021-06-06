@@ -1,6 +1,7 @@
 import Formatters from '../Formatters'
 import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
+import Utilities from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
@@ -49,6 +50,15 @@ export default class Labels {
   printLabels({ i, j, values, ttItems, shared, e }) {
     const w = this.w
     let val
+    let goalVals = []
+    const hasGoalValues = (gi) => {
+      return (
+        w.globals.seriesGoals[gi] &&
+        w.globals.seriesGoals[gi][j] &&
+        Array.isArray(w.globals.seriesGoals[gi][j])
+      )
+    }
+
     const { xVal, zVal, xAxisTTVal } = values
 
     let seriesName = ''
@@ -83,7 +93,7 @@ export default class Labels {
       const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
       if (w.globals.axisCharts) {
-        const generalFormatter = (index) => {
+        const getValBySeriesIndex = (index) => {
           return f.yLbFormatter(w.globals.series[index][j], {
             series: w.globals.series,
             seriesIndex: index,
@@ -102,12 +112,36 @@ export default class Labels {
           })
           pColor = w.globals.colors[tIndex]
 
-          val = generalFormatter(tIndex)
+          val = getValBySeriesIndex(tIndex)
+          if (hasGoalValues(tIndex)) {
+            goalVals = w.globals.seriesGoals[tIndex][j].map((goal) => {
+              return {
+                attrs: goal,
+                val: f.yLbFormatter(goal.value, {
+                  seriesIndex: tIndex,
+                  dataPointIndex: j,
+                  w
+                })
+              }
+            })
+          }
         } else {
           if (e && e.target && e.target.getAttribute('fill')) {
             pColor = e.target.getAttribute('fill')
           }
-          val = generalFormatter(i)
+          val = getValBySeriesIndex(i)
+          if (hasGoalValues(i) && Array.isArray(w.globals.seriesGoals[i][j])) {
+            goalVals = w.globals.seriesGoals[i][j].map((goal) => {
+              return {
+                attrs: goal,
+                val: f.yLbFormatter(goal.value, {
+                  seriesIndex: i,
+                  dataPointIndex: j,
+                  w
+                })
+              }
+            })
+          }
         }
       }
 
@@ -127,6 +161,7 @@ export default class Labels {
         ttItems,
         values: {
           val,
+          goalVals,
           xVal,
           xAxisTTVal,
           zVal
@@ -197,7 +232,12 @@ export default class Labels {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    const { val, xVal, xAxisTTVal, zVal } = values
+    Object.keys(values).forEach((key) => {
+      if (typeof values[key] === 'string')
+        values[key] = Utilities.sanitizeDom(values[key])
+    })
+
+    const { val, goalVals, xVal, xAxisTTVal, zVal } = values
 
     let ttItemsChildren = null
     ttItemsChildren = ttItems[t].children
@@ -223,11 +263,13 @@ export default class Labels {
       ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
     }
 
-    const ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-label')
+    const ttYLabel = ttItems[t].querySelector(
+      '.apexcharts-tooltip-text-y-label'
+    )
     if (ttYLabel) {
-      ttYLabel.innerHTML = seriesName ? seriesName : ''
+      ttYLabel.innerHTML = seriesName ? Utilities.sanitizeDom(seriesName) : ''
     }
-    const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-value')
+    const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-y-value')
     if (ttYVal) {
       ttYVal.innerHTML = typeof val !== 'undefined' ? val : ''
     }
@@ -248,6 +290,42 @@ export default class Labels {
 
     if (!w.config.tooltip.marker.show) {
       ttItemsChildren[0].style.display = 'none'
+    }
+
+    const ttGLabel = ttItems[t].querySelector(
+      '.apexcharts-tooltip-text-goals-label'
+    )
+    const ttGVal = ttItems[t].querySelector(
+      '.apexcharts-tooltip-text-goals-value'
+    )
+
+    if (goalVals.length && w.globals.seriesGoals[t]) {
+      const createGoalsHtml = () => {
+        let gLabels = '<div >'
+        let gVals = '<div>'
+        goalVals.forEach((goal, gi) => {
+          gLabels += ` <div style="display: flex"><span class="apexcharts-tooltip-marker" style="background-color: ${goal.attrs.strokeColor}; height: 3px; border-radius: 0; top: 5px;"></span> ${goal.attrs.name}</div>`
+          gVals += `<div>${goal.val}</div>`
+        })
+        ttGLabel.innerHTML = gLabels + `</div>`
+        ttGVal.innerHTML = gVals + `</div>`
+      }
+      if (shared) {
+        if (
+          w.globals.seriesGoals[t][j] &&
+          Array.isArray(w.globals.seriesGoals[t][j])
+        ) {
+          createGoalsHtml()
+        } else {
+          ttGLabel.innerHTML = ''
+          ttGVal.innerHTML = ''
+        }
+      } else {
+        createGoalsHtml()
+      }
+    } else {
+      ttGLabel.innerHTML = ''
+      ttGVal.innerHTML = ''
     }
 
     if (zVal !== null) {

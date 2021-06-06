@@ -84,6 +84,10 @@ class Legend {
     } else if (this.isBarsDistributed) {
       legendNames = w.globals.labels.slice()
     }
+
+    if (w.config.legend.customLegendItems.length) {
+      legendNames = w.config.legend.customLegendItems
+    }
     let legendFormatter = w.globals.legendFormatter
 
     let isLegendInversed = w.config.legend.inverseOrder
@@ -154,8 +158,14 @@ class Legend {
       mStyle.width = Array.isArray(mWidth)
         ? parseFloat(mWidth[i]) + 'px'
         : parseFloat(mWidth) + 'px'
-      mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX
-      mStyle.top = Array.isArray(mOffsetY) ? mOffsetY[i] : mOffsetY
+      mStyle.left =
+        (Array.isArray(mOffsetX)
+          ? parseFloat(mOffsetX[i])
+          : parseFloat(mOffsetX)) + 'px'
+      mStyle.top =
+        (Array.isArray(mOffsetY)
+          ? parseFloat(mOffsetY[i])
+          : parseFloat(mOffsetY)) + 'px'
       mStyle.borderWidth = Array.isArray(mBorderWidth)
         ? mBorderWidth[i]
         : mBorderWidth
@@ -189,7 +199,9 @@ class Legend {
 
       let elLegendText = document.createElement('span')
       elLegendText.classList.add('apexcharts-legend-text')
-      elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text
+      elLegendText.innerHTML = Array.isArray(text)
+        ? Utils.sanitizeDom(text.join(' '))
+        : Utils.sanitizeDom(text)
 
       let textColor = w.config.legend.labels.useSeriesColors
         ? w.globals.colors[i]
@@ -274,7 +286,10 @@ class Legend {
 
     w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
 
-    if (w.config.legend.onItemHover.highlightDataSeries) {
+    if (
+      w.config.legend.onItemHover.highlightDataSeries &&
+      w.config.legend.customLegendItems.length === 0
+    ) {
       w.globals.dom.elWrap.addEventListener(
         'mousemove',
         self.onLegendHovered,
@@ -414,6 +429,8 @@ class Legend {
 
   onLegendClick(e) {
     const w = this.w
+
+    if (w.config.legend.customLegendItems.length) return
 
     if (
       e.target.classList.contains('apexcharts-legend-text') ||
