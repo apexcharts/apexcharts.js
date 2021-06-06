@@ -92,6 +92,17 @@ class Range {
             highestY = maxY
           }
 
+          if (
+            gl.seriesGoals[i] &&
+            gl.seriesGoals[i][j] &&
+            Array.isArray(gl.seriesGoals[i][j])
+          ) {
+            gl.seriesGoals[i][j].forEach((g) => {
+              maxY = Math.max(maxY, g.value)
+              highestY = maxY
+            })
+          }
+
           if (Utils.isFloat(val)) {
             val = Utils.noExponents(val)
             gl.yValueDecimal = Math.max(

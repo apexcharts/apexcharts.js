@@ -514,4 +514,102 @@ export default class Helpers {
       }
     }
   }
+
+  getXForValue(value, zeroW, zeroPositionForNull = true) {
+    let xForVal = zeroPositionForNull ? zeroW : null
+    if (typeof value !== 'undefined' && value !== null) {
+      xForVal =
+        zeroW +
+        value / this.barCtx.invertedYRatio -
+        (this.barCtx.isReversed ? value / this.barCtx.invertedYRatio : 0) * 2
+    }
+    return xForVal
+  }
+
+  getYForValue(value, zeroH, zeroPositionForNull = true) {
+    let yForVal = zeroPositionForNull ? zeroH : null
+    if (typeof value !== 'undefined' && value !== null) {
+      yForVal =
+        zeroH -
+        value / this.barCtx.yRatio[this.barCtx.yaxisIndex] +
+        (this.barCtx.isReversed
+          ? value / this.barCtx.yRatio[this.barCtx.yaxisIndex]
+          : 0) *
+          2
+    }
+    return yForVal
+  }
+
+  getGoalValues(type, zeroW, zeroH, i, j) {
+    const w = this.w
+
+    let goals = []
+    if (
+      w.globals.seriesGoals[i] &&
+      w.globals.seriesGoals[i][j] &&
+      Array.isArray(w.globals.seriesGoals[i][j])
+    ) {
+      w.globals.seriesGoals[i][j].forEach((goal) => {
+        goals.push({
+          [type]:
+            type === 'x'
+              ? this.getXForValue(goal.value, zeroW, false)
+              : this.getYForValue(goal.value, zeroH, false),
+          attrs: goal
+        })
+      })
+    }
+    return goals
+  }
+
+  drawGoalLine({
+    barXPosition,
+    barYPosition,
+    goalX,
+    goalY,
+    barWidth,
+    barHeight
+  }) {
+    const w = this.w
+
+    let graphics = new Graphics(this.barCtx.ctx)
+    const lineGroup = graphics.group({
+      className: 'apexcharts-bar-goals-groups'
+    })
+
+    let line = null
+    if (w.globals.isBarHorizontal) {
+      if (Array.isArray(goalX)) {
+        goalX.forEach((goal) => {
+          line = graphics.drawLine(
+            goal.x,
+            barYPosition,
+            goal.x,
+            barYPosition + barHeight,
+            goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
+            0,
+            goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2
+          )
+          lineGroup.add(line)
+        })
+      }
+    } else {
+      if (Array.isArray(goalY)) {
+        goalY.forEach((goal) => {
+          line = graphics.drawLine(
+            barXPosition,
+            goal.y,
+            barXPosition + barWidth,
+            goal.y,
+            goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
+            0,
+            goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2
+          )
+          lineGroup.add(line)
+        })
+      }
+    }
+
+    return lineGroup
+  }
 }

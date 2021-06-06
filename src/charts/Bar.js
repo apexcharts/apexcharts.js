@@ -132,6 +132,11 @@ class Bar {
         'data:realIndex': realIndex
       })
 
+      let elGoalsMarkers = graphics.group({
+        class: 'apexcharts-bar-goals-markers',
+        style: `pointer-events: none`
+      })
+
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
@@ -166,6 +171,19 @@ class Bar {
           barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
 
+        const barGoalLine = this.barHelpers.drawGoalLine({
+          barXPosition: paths.barXPosition,
+          barYPosition: paths.barYPosition,
+          goalX: paths.goalX,
+          goalY: paths.goalY,
+          barHeight,
+          barWidth
+        })
+
+        if (barGoalLine) {
+          elGoalsMarkers.add(barGoalLine)
+        }
+
         y = paths.y
         x = paths.x
 
@@ -193,6 +211,7 @@ class Bar {
           barHeight,
           barWidth,
           elDataLabelsWrap,
+          elGoalsMarkers,
           visibleSeries: this.visibleI,
           type: 'bar'
         })
@@ -227,6 +246,7 @@ class Bar {
     barWidth,
     barYPosition,
     elDataLabelsWrap,
+    elGoalsMarkers,
     visibleSeries,
     type
   }) {
@@ -300,6 +320,10 @@ class Bar {
     }
 
     elSeries.add(elDataLabelsWrap)
+
+    if (elGoalsMarkers) {
+      elSeries.add(elGoalsMarkers)
+    }
     return elSeries
   }
 
@@ -326,17 +350,7 @@ class Bar {
 
     let barYPosition = y + barHeight * this.visibleI
 
-    if (
-      typeof this.series[i][j] === 'undefined' ||
-      this.series[i][j] === null
-    ) {
-      x = zeroW
-    } else {
-      x =
-        zeroW +
-        this.series[i][j] / this.invertedYRatio -
-        (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
-    }
+    x = this.barHelpers.getXForValue(this.series[i][j], zeroW)
 
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
@@ -368,6 +382,7 @@ class Bar {
       pathFrom: paths.pathFrom,
       x,
       y,
+      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
       barYPosition
     }
   }
@@ -402,20 +417,7 @@ class Bar {
 
     let barXPosition = x + barWidth * this.visibleI
 
-    if (
-      typeof this.series[i][j] === 'undefined' ||
-      this.series[i][j] === null
-    ) {
-      y = zeroH
-    } else {
-      y =
-        zeroH -
-        this.series[i][j] / this.yRatio[this.yaxisIndex] +
-        (this.isReversed
-          ? this.series[i][j] / this.yRatio[this.yaxisIndex]
-          : 0) *
-          2
-    }
+    y = this.barHelpers.getYForValue(this.series[i][j], zeroH)
 
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,
@@ -448,6 +450,7 @@ class Bar {
       pathFrom: paths.pathFrom,
       x,
       y,
+      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
       barXPosition
     }
   }

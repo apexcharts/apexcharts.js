@@ -24,10 +24,14 @@ export default class DimYAxis {
 
     w.config.yaxis.map((yaxe, index) => {
       const yS = w.globals.yAxisScale[index]
-      let yAxisMinWidth = 0;
-      if (!axesUtils.isYAxisHidden(index) && yaxe.labels.show && yaxe.labels.minWidth != undefined)
-        yAxisMinWidth = yaxe.labels.minWidth;
-      
+      let yAxisMinWidth = 0
+      if (
+        !axesUtils.isYAxisHidden(index) &&
+        yaxe.labels.show &&
+        yaxe.labels.minWidth !== undefined
+      )
+        yAxisMinWidth = yaxe.labels.minWidth
+
       if (
         !axesUtils.isYAxisHidden(index) &&
         yaxe.labels.show &&
@@ -93,10 +97,9 @@ export default class DimYAxis {
           width:
             (yAxisMinWidth > arrLabelrect.width || yAxisMinWidth > rect.width
               ? yAxisMinWidth
-              : (arrLabelrect.width > rect.width
-                ? arrLabelrect.width
-                : rect.width)
-            ) + labelPad,
+              : arrLabelrect.width > rect.width
+              ? arrLabelrect.width
+              : rect.width) + labelPad,
           height:
             arrLabelrect.height > rect.height
               ? arrLabelrect.height

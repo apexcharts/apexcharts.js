@@ -736,6 +736,7 @@ export default class Options {
         tooltipHoverFormatter: undefined,
         offsetX: -20,
         offsetY: 4,
+        customLegendItems: [],
         labels: {
           colors: undefined,
           useSeriesColors: false
