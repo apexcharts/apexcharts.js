@@ -248,7 +248,8 @@ var optionsBar = {
     text: 'Sessions and Views'
   },
   tooltip: {
-    shared: true
+    shared: true,
+    intersect: false
   }
 
 }
