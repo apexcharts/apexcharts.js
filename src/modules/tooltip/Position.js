@@ -212,6 +212,10 @@ export default class Position {
       }
     }
 
+    if (y < 0 && w.config.tooltip.preventOverflow) {
+      y = 0
+    }
+
     if (!isNaN(x)) {
       x = x + w.globals.translateX
 

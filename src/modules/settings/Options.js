@@ -869,6 +869,7 @@ export default class Options {
         custom: undefined,
         fillSeriesColor: false,
         theme: 'light',
+        preventOverflow: true,
         style: {
           fontSize: '12px',
           fontFamily: undefined
