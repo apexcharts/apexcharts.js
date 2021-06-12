@@ -98,8 +98,10 @@ class Range {
             Array.isArray(gl.seriesGoals[i][j])
           ) {
             gl.seriesGoals[i][j].forEach((g) => {
+              minY = Math.min(minY, g.value)
               maxY = Math.max(maxY, g.value)
               highestY = maxY
+              lowestY = minY
             })
           }
 
