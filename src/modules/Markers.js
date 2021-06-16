@@ -139,7 +139,7 @@ export default class Markers {
 
     const m = w.config.markers
 
-    // discrete markers is an option where user can specify a particular marker with different size and color
+    // discrete markers is an option where user can specify a particular marker with different shape, size and color
 
     if (dataPointIndex !== null && m.discrete.length) {
       m.discrete.map((marker) => {
@@ -150,6 +150,7 @@ export default class Markers {
           pStyle.pointStrokeColor = marker.strokeColor
           pStyle.pointFillColor = marker.fillColor
           pSize = marker.size
+          pStyle.pointShape = marker.shape
         }
       })
     }
@@ -164,7 +165,9 @@ export default class Markers {
         : m.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
-      shape: Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape,
+      shape:
+        pStyle.pointShape ||
+        (Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape),
       class: cssClass,
       pointStrokeOpacity: Array.isArray(m.strokeOpacity)
         ? m.strokeOpacity[seriesIndex]

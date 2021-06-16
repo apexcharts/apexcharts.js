@@ -774,12 +774,15 @@ type ApexLegend = {
   }
 }
 
+type ApexMarkerShape = "circle" | "square" | "rect" | string[]
+
 type ApexDiscretePoint = {
   seriesIndex?: number
   dataPointIndex?: number
   fillColor?: string
   strokeColor?: string
   size?: number
+  shape?: ApexMarkerShape
 }
 
 type ApexMarkers = {
@@ -791,7 +794,7 @@ type ApexMarkers = {
   strokeDashArray?: number | number[]
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
-  shape?: "circle" | "square" | "rect" | string[];
+  shape?: ApexMarkerShape
   width?: number | number[]
   height?: number | number[]
   radius?: number
