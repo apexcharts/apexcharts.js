@@ -626,7 +626,8 @@ export default class Tooltip {
     let j = capj.j
     let capturedSeries = capj.capturedSeries
 
-    if (capj.hoverX < 0 || capj.hoverX > w.globals.gridWidth) {
+    const bounds = opt.elGrid.getBoundingClientRect()
+    if (capj.hoverX < 0 || capj.hoverX > bounds.width) {
       this.handleMouseOut(opt)
       return
     }
