@@ -10,6 +10,10 @@
   max-width: 650px;
   margin: 35px auto;
 }
+
+.columns {
+  columns: 2;
+}
 </style>
 
 <scripts>
@@ -94,6 +98,11 @@ function generateDayWiseTimeSeries(baseval, count, yrange) {
   {{ charts['line'] }}
   {{ charts['line2'] }}
   {{ charts['area'] }}
+  <div class="columns">
+    {{ charts['small'] }}
+    {{ charts['small2'] }}
+  </div>
+  
 </div>
 </html>
 
@@ -107,12 +116,7 @@ chart: {
   type: 'line',
   height: 160
 },
-colors: ['#008FFB'],
-yaxis: {
-  labels: {
-    minWidth: 40
-  }
-}
+colors: ['#008FFB']
 </options>
 
 <series>
@@ -135,12 +139,7 @@ chart: {
   type: 'line',
   height: 160
 },
-colors: ['#546E7A'],
-yaxis: {
-  labels: {
-    minWidth: 40
-  }
-}
+colors: ['#546E7A']
 </options>
 
 <series>
@@ -163,12 +162,55 @@ chart: {
   type: 'area',
   height: 160
 },
-colors: ['#00E396'],
-yaxis: {
-  labels: {
-    minWidth: 40
-  }
-}
+colors: ['#00E396']
+</options>
+
+<series>
+[{
+  data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+    min: 10,
+    max: 60
+  })
+}]
+</series>
+</chart>
+
+<chart>
+<id>small</id>
+
+<options>
+chart: {
+  id: 'ig',
+  group: 'social',
+  type: 'area',
+  height: 160,
+  width: 300
+},
+colors: ['#008FFB']
+</options>
+
+<series>
+[{
+  data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+    min: 10,
+    max: 60
+  })
+}]
+</series>
+</chart>
+
+<chart>
+<id>small2</id>
+
+<options>
+chart: {
+  id: 'li',
+  group: 'social',
+  type: 'area',
+  height: 160,
+  width: 300
+},
+colors: ['#546E7A']
 </options>
 
 <series>
