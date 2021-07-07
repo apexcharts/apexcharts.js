@@ -273,6 +273,7 @@ export default class Options {
           updated: undefined,
           click: undefined,
           mouseMove: undefined,
+          mouseLeave: undefined,
           legendClick: undefined,
           markerClick: undefined,
           selection: undefined,
