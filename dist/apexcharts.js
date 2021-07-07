@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.27.1
+ * ApexCharts v3.27.2
  * (c) 2018-2021 Juned Chhipa
  * Released under the MIT License.
  */
@@ -3157,6 +3157,7 @@
               updated: undefined,
               click: undefined,
               mouseMove: undefined,
+              mouseLeave: undefined,
               legendClick: undefined,
               markerClick: undefined,
               selection: undefined,
@@ -4674,7 +4675,7 @@
         var w = this.w;
         var pStyle = this.getMarkerStyle(seriesIndex);
         var pSize = w.globals.markers.size[seriesIndex];
-        var m = w.config.markers; // discrete markers is an option where user can specify a particular marker with different size and color
+        var m = w.config.markers; // discrete markers is an option where user can specify a particular marker with different shape, size and color
 
         if (dataPointIndex !== null && m.discrete.length) {
           m.discrete.map(function (marker) {
@@ -4682,6 +4683,7 @@
               pStyle.pointStrokeColor = marker.strokeColor;
               pStyle.pointFillColor = marker.fillColor;
               pSize = marker.size;
+              pStyle.pointShape = marker.shape;
             }
           });
         }
@@ -4694,7 +4696,7 @@
           pointStrokeWidth: Array.isArray(m.strokeWidth) ? m.strokeWidth[seriesIndex] : m.strokeWidth,
           pointStrokeColor: pStyle.pointStrokeColor,
           pointFillColor: pStyle.pointFillColor,
-          shape: Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape,
+          shape: pStyle.pointShape || (Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape),
           class: cssClass,
           pointStrokeOpacity: Array.isArray(m.strokeOpacity) ? m.strokeOpacity[seriesIndex] : m.strokeOpacity,
           pointStrokeDashArray: Array.isArray(m.strokeDashArray) ? m.strokeDashArray[seriesIndex] : m.strokeDashArray,
@@ -6534,14 +6536,13 @@
             goalY = _ref5.goalY,
             barWidth = _ref5.barWidth,
             barHeight = _ref5.barHeight;
-        var w = this.w;
         var graphics = new Graphics(this.barCtx.ctx);
         var lineGroup = graphics.group({
           className: 'apexcharts-bar-goals-groups'
         });
         var line = null;
 
-        if (w.globals.isBarHorizontal) {
+        if (this.barCtx.isHorizontal) {
           if (Array.isArray(goalX)) {
             goalX.forEach(function (goal) {
               line = graphics.drawLine(goal.x, barYPosition, goal.x, barYPosition + barHeight, goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined, 0, goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2);
@@ -7321,6 +7322,10 @@
             class: 'apexcharts-datalabels',
             'data:realIndex': realIndex
           });
+          var elGoalsMarkers = graphics.group({
+            class: 'apexcharts-rangebar-goals-markers',
+            style: "pointer-events: none"
+          });
 
           for (var j = 0; j < w.globals.dataPoints; j++) {
             var strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
@@ -7395,6 +7400,19 @@
               barHeight = paths.barHeight;
             }
 
+            var barGoalLine = this.barHelpers.drawGoalLine({
+              barXPosition: paths.barXPosition,
+              barYPosition: barYPosition,
+              goalX: paths.goalX,
+              goalY: paths.goalY,
+              barHeight: barHeight,
+              barWidth: barWidth
+            });
+
+            if (barGoalLine) {
+              elGoalsMarkers.add(barGoalLine);
+            }
+
             y = paths.y;
             x = paths.x;
             var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
@@ -7418,6 +7436,7 @@
               barYPosition: barYPosition,
               barWidth: barWidth,
               elDataLabelsWrap: elDataLabelsWrap,
+              elGoalsMarkers: elGoalsMarkers,
               visibleSeries: this.visibleI,
               type: 'rangebar'
             });
@@ -7522,6 +7541,7 @@
           barHeight: barHeight,
           x: x,
           y: y2,
+          goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
           barXPosition: barXPosition
         };
       }
@@ -7562,6 +7582,7 @@
           pathFrom: paths.pathFrom,
           barWidth: barWidth,
           x: x2,
+          goalX: this.barHelpers.getGoalValues('x', zeroW, null, indexes.realIndex, indexes.j),
           y: y
         };
       }
@@ -8739,7 +8760,6 @@
         if (config.chart.type === 'bar' || config.chart.type === 'rangeBar') {
           if (config.tooltip.shared) {
             if (config.xaxis.crosshairs.width === 'barWidth' && config.series.length > 1) {
-              console.warn('crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart.');
               config.xaxis.crosshairs.width = 'tickWidth';
             }
           }
@@ -10111,7 +10131,13 @@
     function Exports(ctx) {
       _classCallCheck(this, Exports);
 
-      _defineProperty(this, "scaleSvgNode", function (svg, scale) {
+      this.ctx = ctx;
+      this.w = ctx.w;
+    }
+
+    _createClass(Exports, [{
+      key: "scaleSvgNode",
+      value: function scaleSvgNode(svg, scale) {
         // get current both width and height of the svg
         var svgWidth = parseFloat(svg.getAttributeNS(null, 'width'));
         var svgHeight = parseFloat(svg.getAttributeNS(null, 'height')); // set new width and height based on the scale
@@ -10119,13 +10145,8 @@
         svg.setAttributeNS(null, 'width', svgWidth * scale);
         svg.setAttributeNS(null, 'height', svgHeight * scale);
         svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight);
-      });
-
-      this.ctx = ctx;
-      this.w = ctx.w;
-    }
-
-    _createClass(Exports, [{
+      }
+    }, {
       key: "fixSvgStringForIe11",
       value: function fixSvgStringForIe11(svgData) {
         // IE11 generates broken SVG that we have to fix by using regex
@@ -11985,6 +12006,11 @@
 
               if (gl.seriesGoals[i] && gl.seriesGoals[i][j] && Array.isArray(gl.seriesGoals[i][j])) {
                 gl.seriesGoals[i][j].forEach(function (g) {
+                  if (minY !== Number.MIN_VALUE) {
+                    minY = Math.min(minY, g.value);
+                    lowestY = minY;
+                  }
+
                   maxY = Math.max(maxY, g.value);
                   highestY = maxY;
                 });
@@ -12892,6 +12918,10 @@
             if (e.type === 'mousemove' || e.type === 'touchmove') {
               if (typeof w.config.chart.events.mouseMove === 'function') {
                 w.config.chart.events.mouseMove(e, me, opts);
+              }
+            } else if (e.type === 'mouseleave' || e.type === 'touchleave') {
+              if (typeof w.config.chart.events.mouseLeave === 'function') {
+                w.config.chart.events.mouseLeave(e, me, opts);
               }
             } else if (e.type === 'mouseup' && e.which === 1 || e.type === 'touchend') {
               if (typeof w.config.chart.events.click === 'function') {
@@ -30318,7 +30348,7 @@
       key: "initModules",
       value: function initModules() {
         this.ctx.publicMethods = ['updateOptions', 'updateSeries', 'appendData', 'appendSeries', 'toggleSeries', 'showSeries', 'hideSeries', 'setLocale', 'resetSeries', 'zoomX', 'toggleDataPointSelection', 'dataURI', 'addXaxisAnnotation', 'addYaxisAnnotation', 'addPointAnnotation', 'clearAnnotations', 'removeAnnotation', 'paper', 'destroy'];
-        this.ctx.eventList = ['click', 'mousedown', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend'];
+        this.ctx.eventList = ['click', 'mousedown', 'mousemove', 'mouseleave', 'touchstart', 'touchmove', 'touchleave', 'mouseup', 'touchend'];
         this.ctx.animations = new Animations(this.ctx);
         this.ctx.axes = new Axes(this.ctx);
         this.ctx.core = new Core(this.ctx.el, this.ctx);
