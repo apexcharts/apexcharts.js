@@ -570,15 +570,13 @@ export default class Helpers {
     barWidth,
     barHeight
   }) {
-    const w = this.w
-
     let graphics = new Graphics(this.barCtx.ctx)
     const lineGroup = graphics.group({
       className: 'apexcharts-bar-goals-groups'
     })
 
     let line = null
-    if (w.globals.isBarHorizontal) {
+    if (this.barCtx.isHorizontal) {
       if (Array.isArray(goalX)) {
         goalX.forEach((goal) => {
           line = graphics.drawLine(
