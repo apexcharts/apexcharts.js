@@ -870,7 +870,6 @@ export default class Options {
         custom: undefined,
         fillSeriesColor: false,
         theme: 'light',
-        preventOverflow: false,
         style: {
           fontSize: '12px',
           fontFamily: undefined
