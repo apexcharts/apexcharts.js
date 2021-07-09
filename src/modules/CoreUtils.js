@@ -235,7 +235,7 @@ class CoreUtils {
 
     // multiple y axis
     for (let i = 0; i < gl.yRange.length; i++) {
-      yRatio.push(gl.yRange[i] / gl.gridHeight)
+      yRatio.push(gl.yRange[i] / (gl.gridHeight + this.w.config.dataLabels.offsetY))
     }
 
     xRatio = gl.xRange / gl.gridWidth
