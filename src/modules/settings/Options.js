@@ -296,6 +296,7 @@ export default class Options {
         group: undefined,
         offsetX: 0,
         offsetY: 0,
+        scale: 1,
         selection: {
           enabled: false,
           type: 'x',
