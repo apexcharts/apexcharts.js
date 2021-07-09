@@ -349,6 +349,7 @@ export default class Options {
               columnDelimiter: ',',
               headerCategory: 'category',
               headerValue: 'value',
+              exportSelection: true, // Fix for Issue #2333
               dateFormatter(timestamp) {
                 return new Date(timestamp).toDateString()
               }
