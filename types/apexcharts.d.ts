@@ -52,6 +52,7 @@ declare module ApexCharts {
     colors?: any[]
     dataLabels?: ApexDataLabels
     fill?: ApexFill
+    forecastDataPoints?: ApexForecastDataPoints;
     grid?: ApexGrid
     labels?: string[]
     legend?: ApexLegend
@@ -1098,6 +1099,13 @@ type ApexYAxis = {
     enabled?: boolean
     offsetX?: number
   }
+}
+
+type ApexForecastDataPoints = {
+  count?: number
+  fillOpacity?: number
+  strokeWidth?: undefined | number
+  dashArray: number
 }
 
 /**

@@ -290,6 +290,16 @@ class Bar {
     })
 
     renderedPath.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
+
+    const forecast = w.config.forecastDataPoints
+    if (forecast.count > 0) {
+      if (j >= w.globals.dataPoints - forecast.count) {
+        renderedPath.node.setAttribute('stroke-dasharray', forecast.dashArray)
+        renderedPath.node.setAttribute('stroke-width', forecast.strokeWidth)
+        renderedPath.node.setAttribute('fill-opacity', forecast.fillOpacity)
+      }
+    }
+
     if (typeof y1 !== 'undefined' && typeof y2 !== 'undefined') {
       renderedPath.attr('data-range-y1', y1)
       renderedPath.attr('data-range-y2', y2)

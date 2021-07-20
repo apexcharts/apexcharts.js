@@ -687,6 +687,12 @@ export default class Options {
           strokeWidth: 2
         }
       },
+      forecastDataPoints: {
+        count: 0,
+        fillOpacity: 0.5,
+        strokeWidth: undefined,
+        dashArray: 4
+      },
       grid: {
         show: true,
         borderColor: '#e0e0e0',
