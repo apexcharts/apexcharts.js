@@ -54,15 +54,22 @@ class Crosshairs {
         xcrosshairs = graphics.drawLine()
       }
 
+      let gridHeight = w.globals.gridHeight
+      if (!Utils.isNumber(gridHeight) || gridHeight < 0) {
+        gridHeight = 0
+      }
+      let crosshairsWidth = w.config.xaxis.crosshairs.width
+      if (!Utils.isNumber(crosshairsWidth) || crosshairsWidth < 0) {
+        crosshairsWidth = 0
+      }
+
       xcrosshairs.attr({
         class: 'apexcharts-xcrosshairs',
         x: 0,
         y: 0,
-        y2: w.globals.gridHeight,
-        width: Utils.isNumber(w.config.xaxis.crosshairs.width)
-          ? w.config.xaxis.crosshairs.width
-          : 0,
-        height: w.globals.gridHeight,
+        y2: gridHeight,
+        width: crosshairsWidth,
+        height: gridHeight,
         fill: xcrosshairsFill,
         filter: shadow,
         'fill-opacity': w.config.xaxis.crosshairs.opacity,
