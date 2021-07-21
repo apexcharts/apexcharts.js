@@ -56,15 +56,18 @@
       
         var options = {
           series: [{
-          name: 'Likes',
+          name: 'Sales',
           data: [4, 3, 10, 9, 29, 19, 22, 9, 12, 7, 19, 5, 13, 9, 17, 2, 7, 5]
         }],
           chart: {
           height: 350,
           type: 'line',
         },
+        forecastDataPoints: {
+          count: 7
+        },
         stroke: {
-          width: 7,
+          width: 5,
           curve: 'smooth'
         },
         xaxis: {
@@ -78,7 +81,7 @@
           }
         },
         title: {
-          text: 'Social Media',
+          text: 'Forecast',
           align: 'left',
           style: {
             fontSize: "16px",
@@ -97,21 +100,9 @@
             stops: [0, 100, 100, 100]
           },
         },
-        markers: {
-          size: 4,
-          colors: ["#FFA41B"],
-          strokeColors: "#fff",
-          strokeWidth: 2,
-          hover: {
-            size: 7,
-          }
-        },
         yaxis: {
           min: -10,
-          max: 40,
-          title: {
-            text: 'Engagement',
-          },
+          max: 40
         }
         };
 
