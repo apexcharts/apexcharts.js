@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.27.2
+ * ApexCharts v3.27.3
  * (c) 2018-2021 Juned Chhipa
  * Released under the MIT License.
  */
@@ -3581,6 +3581,12 @@
               strokeWidth: 2
             }
           },
+          forecastDataPoints: {
+            count: 0,
+            fillOpacity: 0.5,
+            strokeWidth: undefined,
+            dashArray: 4
+          },
           grid: {
             show: true,
             borderColor: '#e0e0e0',
@@ -6828,6 +6834,15 @@
           className: "apexcharts-".concat(type, "-area")
         });
         renderedPath.attr('clip-path', "url(#gridRectMask".concat(w.globals.cuid, ")"));
+        var forecast = w.config.forecastDataPoints;
+
+        if (forecast.count > 0) {
+          if (j >= w.globals.dataPoints - forecast.count) {
+            renderedPath.node.setAttribute('stroke-dasharray', forecast.dashArray);
+            renderedPath.node.setAttribute('stroke-width', forecast.strokeWidth);
+            renderedPath.node.setAttribute('fill-opacity', forecast.fillOpacity);
+          }
+        }
 
         if (typeof y1 !== 'undefined' && typeof y2 !== 'undefined') {
           renderedPath.attr('data-range-y1', y1);
@@ -10971,7 +10986,11 @@
         gl.dom.elGridRectMask = document.createElementNS(gl.SVGNS, 'clipPath');
         gl.dom.elGridRectMask.setAttribute('id', "gridRectMask".concat(gl.cuid));
         gl.dom.elGridRectMarkerMask = document.createElementNS(gl.SVGNS, 'clipPath');
-        gl.dom.elGridRectMarkerMask.setAttribute('id', "gridRectMarkerMask".concat(gl.cuid)); // let barHalfWidth = 0
+        gl.dom.elGridRectMarkerMask.setAttribute('id', "gridRectMarkerMask".concat(gl.cuid));
+        gl.dom.elForecastMask = document.createElementNS(gl.SVGNS, 'clipPath');
+        gl.dom.elForecastMask.setAttribute('id', "forecastMask".concat(gl.cuid));
+        gl.dom.elNonForecastMask = document.createElementNS(gl.SVGNS, 'clipPath');
+        gl.dom.elNonForecastMask.setAttribute('id', "nonForecastMask".concat(gl.cuid)); // let barHalfWidth = 0
 
         var type = w.config.chart.type;
         var hasBar = type === 'bar' || type === 'rangeBar' || type === 'candlestick' || type === 'boxPlot' || w.globals.comboBarCount > 0;
@@ -10997,6 +11016,8 @@
         gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node);
         var defs = gl.dom.baseEl.querySelector('defs');
         defs.appendChild(gl.dom.elGridRectMask);
+        defs.appendChild(gl.dom.elForecastMask);
+        defs.appendChild(gl.dom.elNonForecastMask);
         defs.appendChild(gl.dom.elGridRectMarkerMask);
       }
     }, {
@@ -13085,13 +13106,25 @@
             xcrosshairs = graphics.drawLine();
           }
 
+          var gridHeight = w.globals.gridHeight;
+
+          if (!Utils.isNumber(gridHeight) || gridHeight < 0) {
+            gridHeight = 0;
+          }
+
+          var crosshairsWidth = w.config.xaxis.crosshairs.width;
+
+          if (!Utils.isNumber(crosshairsWidth) || crosshairsWidth < 0) {
+            crosshairsWidth = 0;
+          }
+
           xcrosshairs.attr({
             class: 'apexcharts-xcrosshairs',
             x: 0,
             y: 0,
-            y2: w.globals.gridHeight,
-            width: Utils.isNumber(w.config.xaxis.crosshairs.width) ? w.config.xaxis.crosshairs.width : 0,
-            height: w.globals.gridHeight,
+            y2: gridHeight,
+            width: crosshairsWidth,
+            height: gridHeight,
             fill: xcrosshairsFill,
             filter: shadow,
             'fill-opacity': w.config.xaxis.crosshairs.opacity,
@@ -21954,7 +21987,17 @@
         this.prevSeriesY.push(paths.yArrj); // push all x val arrays into main xArr
 
         w.globals.seriesXvalues[realIndex] = paths.xArrj;
-        w.globals.seriesYvalues[realIndex] = paths.yArrj; // these elements will be shown after area path animation completes
+        w.globals.seriesYvalues[realIndex] = paths.yArrj;
+        var forecast = w.config.forecastDataPoints;
+
+        if (forecast.count > 0) {
+          var forecastCutoff = w.globals.seriesXvalues[realIndex][w.globals.seriesXvalues[realIndex].length - forecast.count - 1];
+          var elForecastMask = graphics.drawRect(forecastCutoff, 0, w.globals.gridWidth, w.globals.gridHeight, 0);
+          w.globals.dom.elForecastMask.appendChild(elForecastMask.node);
+          var elNonForecastMask = graphics.drawRect(0, 0, forecastCutoff, w.globals.gridHeight, 0);
+          w.globals.dom.elNonForecastMask.appendChild(elNonForecastMask.node);
+        } // these elements will be shown after area path animation completes
+
 
         if (!this.pointsChart) {
           w.globals.delayedElements.push({
@@ -22004,16 +22047,32 @@
           }
 
           for (var _p = 0; _p < paths.linePaths.length; _p++) {
-            var _renderedPath = graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
+            var linePathCommonOpts = _objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: paths.pathFromLine,
               pathTo: paths.linePaths[_p],
               stroke: lineFill,
               strokeWidth: this.strokeWidth,
               strokeLineCap: w.config.stroke.lineCap,
               fill: 'none'
-            }));
+            });
+
+            var _renderedPath = graphics.renderPaths(linePathCommonOpts);
 
             this.elSeries.add(_renderedPath);
+
+            if (forecast.count > 0) {
+              var renderedForecastPath = graphics.renderPaths(linePathCommonOpts);
+              renderedForecastPath.node.setAttribute('stroke-dasharray', forecast.dashArray);
+
+              if (forecast.strokeWidth) {
+                renderedForecastPath.node.setAttribute('stroke-width', forecast.strokeWidth);
+              }
+
+              this.elSeries.add(renderedForecastPath);
+              renderedForecastPath.attr('clip-path', "url(#forecastMask".concat(w.globals.cuid, ")"));
+
+              _renderedPath.attr('clip-path', "url(#nonForecastMask".concat(w.globals.cuid, ")"));
+            }
           }
         }
       }
@@ -30476,6 +30535,8 @@
         domEls.elGridRect = null;
         domEls.elGridRectMask = null;
         domEls.elGridRectMarkerMask = null;
+        domEls.elForecastMask = null;
+        domEls.elNonForecastMask = null;
         domEls.elDefs = null;
       }
     }]);
