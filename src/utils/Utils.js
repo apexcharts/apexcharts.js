@@ -399,7 +399,7 @@ class Utils {
    * string - String to sanitize
    */
   static sanitizeDom(string) {
-    return string
+    return String(string)
       .replace(/\&/g, '&amp;')
       .replace(/\</g, '&lt;')
       .replace(/\>/g, '&gt;')

@@ -65,7 +65,7 @@ class Legend {
   }
 
   drawLegends() {
-    let self = this
+    let me = this
     let w = this.w
 
     let fontFamily = w.config.legend.fontFamily
@@ -284,7 +284,7 @@ class Legend {
       }
     }
 
-    w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
+    w.globals.dom.elWrap.addEventListener('click', me.onLegendClick, true)
 
     if (
       w.config.legend.onItemHover.highlightDataSeries &&
@@ -292,12 +292,12 @@ class Legend {
     ) {
       w.globals.dom.elWrap.addEventListener(
         'mousemove',
-        self.onLegendHovered,
+        me.onLegendHovered,
         true
       )
       w.globals.dom.elWrap.addEventListener(
         'mouseout',
-        self.onLegendHovered,
+        me.onLegendHovered,
         true
       )
     }
