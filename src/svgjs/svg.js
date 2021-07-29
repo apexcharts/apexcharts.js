@@ -1660,7 +1660,7 @@
             ? arrayToMatrix([].slice.call(arguments))
             : Array.isArray(source)
               ? arrayToMatrix(source)
-              : typeof source === 'object'
+              : source && typeof source === 'object'
                 ? source : base
 
       // merge source
@@ -1971,7 +1971,7 @@
         for (var i = 0, len = this.arguments.length; i < len; ++i) {
           this[this.arguments[i]] = source[i]
         }
-      } else if (typeof source === 'object') {
+      } else if (source && typeof source === 'object') {
         for (var i = 0, len = this.arguments.length; i < len; ++i) {
           this[this.arguments[i]] = source[this.arguments[i]]
         }
