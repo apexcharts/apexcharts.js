@@ -1652,7 +1652,7 @@
       var base = arrayToMatrix([1, 0, 0, 1, 0, 0])
 
       // ensure source as object
-      source = source instanceof SVG.Element
+      source = source === null ? base : source instanceof SVG.Element
         ? source.matrixify()
         : typeof source === 'string'
           ? arrayToMatrix(source.split(SVG.regex.delimiter).map(parseFloat))
