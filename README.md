@@ -22,26 +22,7 @@
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
-<p align="center"><br /><b>Our Partner</b> <br /><br />
-  <a target="_blank" href="https://www.fusioncharts.com/?utm_source=ac.github%2Fnpm&utm_medium=logo&utm_campaign=apexcharts&utm_content=homepage">
-    <img src="https://apexcharts.com/media/logo-fusioncharts.svg" />
-  </a> <br /><br />
-  ApexCharts is now a partner of <a href="https://github.com/fusioncharts">FusionCharts</a> to bring a wider range of data visualization components. <br />
-  They offer data driven maps, gauges, widgets, advanced timeseries charts and much more.<br /><br />
-  <a target="_blank" href="https://www.fusioncharts.com/charts?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=fusionmaps#fusionmaps">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner01.png" />
-  </a>
-  <a target="_blank" href="https://www.fusioncharts.com/charts/gauges?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=gauges">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner02.png" />
-  </a>
-  <a target="_blank" href="https://www.fusioncharts.com/fusiontime/examples/plotting-multiple-series-on-time-axis?framework=javascript&utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=timeseries">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner03.png" />
-  </a>
-  <a target="_blank" href="https://www.fusioncharts.com/dashboards?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=dashboards">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner04.png" />
-  </a>
-   <br />
-</p> <br />
+<br />
 
 ## Browsers support
 
@@ -172,18 +153,6 @@ Utilize sparklines to indicate trends in data, for example, occasional increment
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
 
-## More advanced chart types from our friends at FusionCharts <img align="center" src="https://apexcharts.com/media/fc/sponsored.png?v=1.2.1"/>
-
-Thanks to our friends at FusionCharts, you now have a better data experience of your <a target="_blank" href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples">time-series</a> data with features like visual time navigator, annotations with the date and event markers, multi-variate analysis, and real-time support.
-
-<p align="center"><a href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples"><img src="https://apexcharts.com/media/fc/time-series.png" alt="time-series" /></a></p>
-
-## Export full dashboards <img align="center" src="https://apexcharts.com/media/fc/sponsored.png?v=1.2.1"/>
-
-Want to export your dashboards to PDF, send them via email or simply export a chart on the server-side? You can do these and more with <a href="https://www.fusioncharts.com/fusionexport?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=fusionexport">FusionExport</a>, a new product from our friends at FusionCharts.
-
-<p align="center"><a href="https://www.fusioncharts.com/fusionexport?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=fusionexport"><img src="https://apexcharts.com/wp-content/themes/apexcharts/img/fc/fusionexports.svg" alt="fusionexport" /></a></p>
-
 ## What's included
 
 The download bundle includes the following files and directories providing a minified single file in the dist folder. Every asset including icon/css is bundled in the js itself to avoid loading multiple files.
@@ -242,19 +211,6 @@ Facebook: <a href="https://facebook.com/apexcharts">fb.com/apexcharts</a>
 ## Dependency
 
 ApexCharts uses <a href="https://svgdotjs.github.io/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
-
-## Supporting ApexCharts
-
-ApexCharts is an open source project. Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can help by becoming a supporter on <a href="https://patreon.com/junedchhipa">Patreon</a> or doing a one time donation on <a href="https://paypal.me/junedchhipa">PayPal</a> <br />
-
-## Our Partners
-
-<p>
-<a href="https://www.fusioncharts.com/?utm_source=ac.github%2Fnpm&utm_medium=logo&utm_campaign=apexcharts&utm_content=homepage">
-    <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
-</a> <br/>
-</p>
-While ApexCharts brings you the goodness of open-source charts, FusionCharts offers additional visualizations for your dashboards. With extensive documentation, consistent API, and cross-browser support, FusionCharts is loved by 28,000+ customers and 750,000+ developers across the globe.
 
 ## License
 
