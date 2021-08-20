@@ -425,23 +425,3 @@ var chartArea = new ApexCharts(
 );
 
 chartArea.render();
-
-/* fusionexport integrations START */
-(() => {
-    const btn = document.getElementById('fusionexport-btn')
-    btn.addEventListener('click', async function() {
-      const endPoint = 'https://www.fusioncharts.com/demos/dashboards/fusionexport-apexcharts/api/export-dashboard'
-      const information = {
-        dashboardName: 'dark'
-      };
-
-      this.setAttribute('disabled', true);
-      const { data } = await axios.post(endPoint, information, {
-        responseType: 'blob'
-      });
-      await download(data, 'apexCharts-dark-dashboard.pdf', 'application/pdf')
-      this.removeAttribute('disabled')
-    });
-  }
-)();
-/* fusionexport integrations END */
