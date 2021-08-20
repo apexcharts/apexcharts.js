@@ -70,31 +70,6 @@ body {
   border-bottom: 3px solid #00c5dc;
 }
 
-/* fusionexport btn CSS START */
-#fusionexport-btn {
-  min-width: 169px;
-  min-height: 38px;
-  text-align: center;
-}
-
-#fusionexport-btn .span {
-  display: inline-block;
-}
-
-#fusionexport-btn[disabled] {
-  cursor: wait;
-}
-
-
 .spinner-border {
   display: none;
 }
-
-#fusionexport-btn[disabled] .spinner-border {
-  display: inline-block;
-}
-
-#fusionexport-btn[disabled] .btn-text {
-  display: none;
-}
-/* fusionexport btn CSS START */
