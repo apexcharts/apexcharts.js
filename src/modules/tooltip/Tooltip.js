@@ -644,10 +644,12 @@ export default class Tooltip {
 
   handleStickyCapturedSeries(e, capturedSeries, opt, j) {
     const w = this.w
-    let ignoreNull = w.globals.series[capturedSeries][j] === null
-    if (ignoreNull) {
-      this.handleMouseOut(opt)
-      return
+    if (!this.tConfig.shared) {
+      let ignoreNull = w.globals.series[capturedSeries][j] === null
+      if (ignoreNull) {
+        this.handleMouseOut(opt)
+        return
+      }
     }
 
     if (typeof w.globals.series[capturedSeries][j] !== 'undefined') {
