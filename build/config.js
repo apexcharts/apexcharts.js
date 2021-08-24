@@ -17,7 +17,7 @@ const resolvePath = (p) => path.resolve(__dirname, '../', p)
 const banner =
   '/*!\n' +
   ` * ApexCharts v${version}\n` +
-  ` * (c) 2018-${new Date().getFullYear()} Juned Chhipa\n` +
+  ` * (c) 2018-${new Date().getFullYear()} ApexCharts\n` +
   ' * Released under the MIT License.\n' +
   ' */'
 
