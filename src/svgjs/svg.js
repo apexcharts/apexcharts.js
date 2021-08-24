@@ -35,7 +35,7 @@
   SVG.ns = 'http://www.w3.org/2000/svg'
   SVG.xmlns = 'http://www.w3.org/2000/xmlns/'
   SVG.xlink = 'http://www.w3.org/1999/xlink'
-  SVG.svgjs = 'http://svgjs.com/svgjs'
+  SVG.svgjs = 'http://svgjs.dev'
 
   // Svg support test
   SVG.supported = (function () {

@@ -33,7 +33,7 @@ class Exports {
       (match) => {
         nXmlnsSeen++
         return nXmlnsSeen === 2
-          ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs"'
+          ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.dev"'
           : match
       }
     )
