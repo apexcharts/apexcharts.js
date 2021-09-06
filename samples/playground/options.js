@@ -850,41 +850,41 @@ export const optionsPattern = {
           attrs: {
             animationEnd: {
               title: 'Fires when the chart’s initial animation is finished',
-              default: function(chartContext, options) {}
+              default(chartContext, options) {}
             },
             beforeMount: {
               title: 'Fires before the chart has been drawn on screen',
-              default: function(chartContext, config) {}
+              default(chartContext, config) {}
             },
             mounted: {
               title: 'Fires after the chart has been drawn on screen',
-              default: function(chartContext, config) {}
+              default(chartContext, config) {}
             },
             updated: {
               title:
                 'Fires when the chart has been dynamically updated either with `updateOptions()` or `updateSeries()` functions',
-              default: function(chartContext, config) {}
+              default(chartContext, config) {}
             },
             click: {
               title: 'Fires when user clicks on any area of the chart',
-              default: function(event, chartContext, config) {
+              default(event, chartContext, config) {
                 // The last parameter config contains additional information like `seriesIndex` and `dataPointIndex` for cartesian charts
               }
             },
             mouseMove: {
               title: 'Fires when user moves mouse on any area of the chart',
-              default: function(event, chartContext, config) {
+              default(event, chartContext, config) {
                 // The last parameter config contains additional information like `seriesIndex` and `dataPointIndex` for cartesian charts
               }
             },
             legendClick: {
               title: 'Fires when user clicks on legend',
-              default: function(chartContext, seriesIndex, config) {}
+              default(chartContext, seriesIndex, config) {}
             },
             markerClick: {
               title: 'Fires when user clicks on the markers',
               url: 'https://apexcharts.com/docs/options/markers/',
-              default: function(
+              default(
                 event,
                 chartContext,
                 { seriesIndex, dataPointIndex, config }
@@ -892,7 +892,7 @@ export const optionsPattern = {
             },
             selection: {
               title: 'Fires when user selects rect using the selection tool',
-              default: function(chartContext, { xaxis, yaxis }) {
+              default(chartContext, { xaxis, yaxis }) {
                 //  The second argument contains the yaxis and xaxis coordinates where user made the selection
               }
             },
@@ -901,50 +901,50 @@ export const optionsPattern = {
                 'Fires when user clicks on a datapoint (bar/column/marker/bubble/donut-slice)',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#dataPointSelection',
-              default: function(event, chartContext, config) {}
+              default(event, chartContext, config) {}
             },
             dataPointMouseEnter: {
               title:
                 'Fires when user’s mouse enter on a datapoint (bar/column/marker/bubble/donut-slice)',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#dataPointMouseEnter',
-              default: function(event, chartContext, config) {}
+              default(event, chartContext, config) {}
             },
             dataPointMouseLeave: {
               title:
                 'Fires when user’s mouse leaves a datapoint (bar/column/marker/bubble/donut-slice)',
-              default: function(event, chartContext, config) {}
+              default(event, chartContext, config) {}
             },
             beforeZoom: {
               title:
                 'This function, if defined, runs just before zooming in/out of the chart allowing you to set a custom range for zooming in/out',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#beforeZoom',
-              default: function(chartContext, { xaxis }) {}
+              default(chartContext, { xaxis }) {}
             },
             beforeResetZoom: {
               title:
                 'This function, if defined, runs just before the user hits the HOME button on the toolbar to reset the chart to it’s original state. The function allows you to set a custom axes range for the initial view of the chart.',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#beforeResetZoom',
-              default: function(chartContext, opts) {}
+              default(chartContext, opts) {}
             },
             zoomed: {
               title:
                 'Fires when user zooms in/out the chart using either the selection zooming tool or zoom in/out buttons',
-              default: function(chartContext, { xaxis, yaxis }) {
+              default(chartContext, { xaxis, yaxis }) {
                 // The 2nd argument includes information of the new xaxis/yaxis generated after zooming
               }
             },
             scrolled: {
               title: 'Fires when user scrolls using the pan tool',
-              default: function(chartContext, { xaxis }) {
+              default(chartContext, { xaxis }) {
                 // The 2nd argument includes information of the new xaxis generated after scrolling
               }
             },
             brushScrolled: {
               title: 'Fires when user drags the brush in a brush chart',
-              default: function(chartContext, { xaxis, yaxis }) {
+              default(chartContext, { xaxis, yaxis }) {
                 // The 2nd argument includes information of the new axes generated after scrolling the brush
               }
             }
@@ -1342,7 +1342,7 @@ export const optionsPattern = {
                     dateFormatter: {
                       title:
                         'If timestamps are provided as X values, those timestamps can be formatted to convert them to date strings',
-                      default: function(timestamp) {
+                      default(timestamp) {
                         return new Date(timestamp).toDateString()
                       }
                     }
@@ -1492,7 +1492,7 @@ export const optionsPattern = {
           title:
             'The formatter function allows you to modify the value before displaying',
           url: 'https://apexcharts.com/docs/options/datalabels/#formatter',
-          default: function(val, opts) {
+          default(val, opts) {
             return val
           }
         },
@@ -1950,7 +1950,7 @@ export const optionsPattern = {
           title:
             'A custom formatter function to append additional text to the legend series names',
           url: 'https://apexcharts.com/docs/options/legend/#formatter',
-          default: function(seriesName, opts) {
+          default(seriesName, opts) {
             return [seriesName, ' - ', opts.w.globals.series[opts.seriesIndex]]
           }
         },
@@ -1972,7 +1972,7 @@ export const optionsPattern = {
             'A formatter function to allow showing data values in the legend while hovering on the chart. This can be useful when you have multiple series, and you don’t want to show tooltips for each series together.',
           url:
             'https://apexcharts.com/docs/options/legend/#tooltipHoverFormatter',
-          default: function(seriesName, opts) {
+          default(seriesName, opts) {
             return (
               seriesName +
               ' - <strong>' +
@@ -2038,11 +2038,11 @@ export const optionsPattern = {
             },
             customHTML: {
               title: 'Custom HTML element to put in place of marker (function)',
-              default: function() {}
+              default() {}
             },
             onClick: {
               title: 'Fire an event when legend’s marker is clicked',
-              default: function(chart, seriesIndex, opts) {}
+              default(chart, seriesIndex, opts) {}
             },
             offsetX: {
               title: 'Sets the left offset of the marker',
@@ -2165,12 +2165,12 @@ export const optionsPattern = {
         onClick: {
           title: 'Called when a marker is clicked',
           url: 'https://apexcharts.com/docs/options/markers/#markerOnClick',
-          default: function(e) {}
+          default(e) {}
         },
         onDblClick: {
           title: 'Called when a marker is double clicked',
           url: 'https://apexcharts.com/docs/options/markers/#markerOnDblClick',
-          default: function(e) {}
+          default(e) {}
         },
         showNullDataPoints: {
           title:
@@ -2710,7 +2710,7 @@ export const optionsPattern = {
                         formatter: {
                           title:
                             'A custom formatter function to apply on the name text in dataLabel',
-                          default: function(val) {
+                          default(val) {
                             return val
                           }
                         }
@@ -2751,7 +2751,7 @@ export const optionsPattern = {
                         formatter: {
                           title:
                             'A custom formatter function to apply on the value label in dataLabel',
-                          default: function(val) {
+                          default(val) {
                             return val
                           }
                         }
@@ -2799,7 +2799,7 @@ export const optionsPattern = {
                         formatter: {
                           title:
                             'A custom formatter function to apply on the total value. It accepts one parameter `w` which contains the chart’s config and global objects. Defaults to a total of all series percentage divided by the length of series.',
-                          default: function(w) {
+                          default(w) {
                             return w.globals.seriesTotals.reduce(
                               (a, b) => a + b,
                               0
@@ -3148,7 +3148,7 @@ export const optionsPattern = {
                     formatter: {
                       title:
                         'A custom formatter function to apply on the value label in dataLabel',
-                      default: function(val) {
+                      default(val) {
                         return val + '%'
                       }
                     }
@@ -3189,7 +3189,7 @@ export const optionsPattern = {
                     formatter: {
                       title:
                         'A custom formatter function to apply on the total value. It accepts one parameter w which contains the chart’s config and global objects. Defaults to a total of all series percentage divided by the length of series.',
-                      default: function(w) {
+                      default(w) {
                         return (
                           w.globals.seriesTotals.reduce((a, b) => {
                             return a + b
@@ -3631,10 +3631,7 @@ export const optionsPattern = {
             formatter: {
               title:
                 'To format the Y-axis values of tooltip, you can define a custom formatter function. By default, these values will be formatted according `yaxis.labels.formatter` function which will be overrided by this function if you define it.',
-              default: function(
-                value,
-                { series, seriesIndex, dataPointIndex, w }
-              ) {
+              default(value, { series, seriesIndex, dataPointIndex, w }) {
                 return value
               }
             },
@@ -3644,7 +3641,7 @@ export const optionsPattern = {
                 formatter: {
                   title:
                     'The series name which appears besides values can be formatted using this function',
-                  default: function(seriesName) {
+                  default(seriesName) {
                     return seriesName
                   }
                 }
@@ -4158,7 +4155,7 @@ export const optionsPattern = {
             formatter: {
               title:
                 'A custom formatter function for the x-axis tooltip label. If undefined, the xaxis tooltip uses the default “X” value used in general tooltip.',
-              default: function(val, opts) {}
+              default(val, opts) {}
             },
             offsetY: {
               title: 'Sets the top offset for x-axis tooltip',
@@ -4326,8 +4323,8 @@ export const optionsPattern = {
             formatter: {
               title:
                 'Applies a custom function for the yaxis value. Note: In horizontal bar charts, the second parameters also contains additional data like `dataPointIndex` and `seriesIndex`.',
-              default: function(value) {
-                return val
+              default(value) {
+                return value
               }
             }
           }
