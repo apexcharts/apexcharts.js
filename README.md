@@ -17,7 +17,7 @@
   <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
 </p>
 
-<p align="center">A modern JavaScript charting library to build interactive charts and visualizations with simple API.</p>
+<p align="center">A modern JavaScript charting library that inspires you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with robust features, ApexCharts are flexible and fully responsive on desktops, tablets, and mobiles. Included are several chart types that guarantee high-performance and options for further customization so you can style the look of your chart the way you want. As an open-source project, ApexCharts is free to use in your commercial apps. </p>
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
@@ -215,3 +215,10 @@ ApexCharts uses <a href="https://svgdotjs.github.io/" target="_blank">SVG.js</a>
 ## License
 
 ApexCharts is released under MIT license. You are free to use, modify and distribute this software, as long as the copyright header is left intact.
+
+## Need Advanced Data Grid for your next project? 
+We partnered with Infragistics, creators of the fastest data grids on the planet! Ignite UI Grids can handle unlimited rows and columns of data, while providing access to custom templates and real-time data updates. Featuring an intuitive API for easy theming and branding, you can quickly bind to data with minimal hand-on coding. The grid is available in most of your favorite frameworks:  
+
+<a href="https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid">Angular Data Grid</a> | <a href="https://www.infragistics.com/products/ignite-ui-react/react/components/data-grid">React Data Grid</a> | <a href="https://www.infragistics.com/products/ignite-ui-blazor/blazor/components/data-grid">Blazor Data Grid</a> | <a href="https://www.infragistics.com/products/ignite-ui-web-components/web-components/components/data-grid">Web Components DataGrid</a> | <a href="https://www.igniteui.com/grid/overview">jQuery Data Grid</a> 
+
+ 
