@@ -257,7 +257,7 @@ class Legend {
         `apexcharts-align-${w.config.legend.horizontalAlign}`
       )
       w.globals.dom.elLegendWrap.classList.add(
-        'position-' + w.config.legend.position
+        'apx-legend-position-' + w.config.legend.position
       )
 
       elLegend.classList.add('apexcharts-legend-series')
