@@ -21,7 +21,8 @@ class Graphics {
     y2,
     lineColor = '#a8a8a8',
     dashArray = 0,
-    strokeWidth = null
+    strokeWidth = null,
+    strokeLineCap = 'butt'
   ) {
     let w = this.w
     let line = w.globals.dom.Paper.line().attr({
@@ -31,7 +32,8 @@ class Graphics {
       y2,
       stroke: lineColor,
       'stroke-dasharray': dashArray,
-      'stroke-width': strokeWidth
+      'stroke-width': strokeWidth,
+      'stroke-linecap': strokeLineCap
     })
 
     return line

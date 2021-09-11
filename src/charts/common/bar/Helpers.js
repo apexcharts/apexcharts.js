@@ -579,14 +579,21 @@ export default class Helpers {
     if (this.barCtx.isHorizontal) {
       if (Array.isArray(goalX)) {
         goalX.forEach((goal) => {
+          let sHeight =
+            typeof goal.attrs.strokeHeight !== 'undefined'
+              ? goal.attrs.strokeHeight
+              : barHeight / 2
+          let y = barYPosition + sHeight + barHeight / 2
+
           line = graphics.drawLine(
             goal.x,
-            barYPosition,
+            y - sHeight * 2,
             goal.x,
-            barYPosition + barHeight,
+            y,
             goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
-            0,
-            goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2
+            goal.attrs.strokeDashArray,
+            goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2,
+            goal.attrs.strokeLineCap
           )
           lineGroup.add(line)
         })
@@ -594,14 +601,21 @@ export default class Helpers {
     } else {
       if (Array.isArray(goalY)) {
         goalY.forEach((goal) => {
+          let sWidth =
+            typeof goal.attrs.strokeWidth !== 'undefined'
+              ? goal.attrs.strokeWidth
+              : barWidth / 2
+          let x = barXPosition + sWidth + barWidth / 2
+
           line = graphics.drawLine(
-            barXPosition,
+            x - sWidth * 2,
             goal.y,
-            barXPosition + barWidth,
+            x,
             goal.y,
             goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
-            0,
-            goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2
+            goal.attrs.strokeDashArray,
+            goal.attrs.strokeHeight ? goal.attrs.strokeHeight : 2,
+            goal.attrs.strokeLineCap
           )
           lineGroup.add(line)
         })
