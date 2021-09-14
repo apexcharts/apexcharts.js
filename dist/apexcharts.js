@@ -15230,7 +15230,7 @@
         });
 
         for (var i = 0; i < this.t.customIcons.length; i++) {
-          if (this.customIcons[i].click) {
+          if (this.t.customIcons[i].click) {
             this.elCustomIcons[i].addEventListener('click', this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w));
           }
         }
