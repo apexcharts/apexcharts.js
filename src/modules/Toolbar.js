@@ -229,8 +229,7 @@ export default class Toolbar {
       this.elMenuItemsCustom[i].innerHTML = menuItems[i].title
       Graphics.setAttrs(this.elMenuItemsCustom[i], {
         class: `apexcharts-menu-item ${menuItems[i].name}`,
-        title: menuItems[i].title,
-        click: menuItems[i].click
+        title: menuItems[i].title
       })
       this.elMenuCustom.appendChild(this.elMenuItemsCustom[i])
     }
@@ -264,9 +263,15 @@ export default class Toolbar {
       'click',
       this.toggleMenuCustom.bind(this)
     )
-    this.elMenuItemsCustom.forEach((m) => {
-      m.addEventListener('click', m.click.bind(this))
-    })
+
+    for (let i = 0; i < this.t.customDropdownItems.length; i++) {
+      if (this.t.customDropdownItems[i].click) {
+        this.elMenuItemsCustom[i].addEventListener(
+          'click',
+          this.t.customDropdownItems[i].click.bind(this)
+        )
+      }
+    }
 
     for (let i = 0; i < this.t.customIcons.length; i++) {
       if (this.t.customIcons[i].click) {

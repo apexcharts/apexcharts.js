@@ -15235,8 +15235,7 @@
           this.elMenuItemsCustom[i].innerHTML = menuItems[i].title;
           Graphics.setAttrs(this.elMenuItemsCustom[i], {
             class: "apexcharts-menu-item ".concat(menuItems[i].name),
-            title: menuItems[i].title,
-            click: menuItems[i].click
+            title: menuItems[i].title
           });
           this.elMenuCustom.appendChild(this.elMenuItemsCustom[i]);
         }
@@ -15263,13 +15262,16 @@
           }
         });
         this.elMenuIconCustom.addEventListener('click', this.toggleMenuCustom.bind(this));
-        this.elMenuItemsCustom.forEach(function (m) {
-          m.addEventListener('click', m.click.bind(_this2));
-        });
 
-        for (var i = 0; i < this.t.customIcons.length; i++) {
-          if (this.t.customIcons[i].click) {
-            this.elCustomIcons[i].addEventListener('click', this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w));
+        for (var i = 0; i < this.t.customDropdownItems.length; i++) {
+          if (this.t.customDropdownItems[i].click) {
+            this.elMenuItemsCustom[i].addEventListener('click', this.t.customDropdownItems[i].click.bind(this));
+          }
+        }
+
+        for (var _i3 = 0; _i3 < this.t.customIcons.length; _i3++) {
+          if (this.t.customIcons[_i3].click) {
+            this.elCustomIcons[_i3].addEventListener('click', this.t.customIcons[_i3].click.bind(this, this.ctx, this.ctx.w));
           }
         }
       }
