@@ -440,6 +440,7 @@
 .apexcharts-pan-icon,
 .apexcharts-selection-icon,
 .apexcharts-menu-icon,
+.apexcharts-custom-menu-icon,
 .apexcharts-toolbar-custom-icon {
   cursor: pointer;
   width: 20px;
@@ -453,7 +454,8 @@
 .apexcharts-zoomin-icon svg,
 .apexcharts-zoomout-icon svg,
 .apexcharts-reset-icon svg,
-.apexcharts-menu-icon svg {
+.apexcharts-menu-icon svg,
+.apexcharts-custom-menu-icon svg {
   fill: #6E8192;
 }
 
@@ -469,6 +471,7 @@
 .apexcharts-theme-dark .apexcharts-pan-icon svg,
 .apexcharts-theme-dark .apexcharts-selection-icon svg,
 .apexcharts-theme-dark .apexcharts-menu-icon svg,
+.apexcharts-theme-dark .apexcharts-custom-menu-icon svg,
 .apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg {
   fill: #f3f4f5;
 }
@@ -484,12 +487,14 @@
 .apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,
 .apexcharts-theme-light .apexcharts-zoomout-icon:hover svg,
 .apexcharts-theme-light .apexcharts-reset-icon:hover svg,
+.apexcharts-theme-light .apexcharts-custom-menu-icon:hover svg,
 .apexcharts-theme-light .apexcharts-menu-icon:hover svg {
   fill: #333;
 }
 
 .apexcharts-selection-icon,
-.apexcharts-menu-icon {
+.apexcharts-menu-icon,
+.apexcharts-custom-menu-icon {
   position: relative;
 }
 
@@ -499,7 +504,8 @@
 
 .apexcharts-zoom-icon,
 .apexcharts-reset-icon,
-.apexcharts-menu-icon {
+.apexcharts-menu-icon,
+.apexcharts-custom-menu-icon {
   transform: scale(0.85);
 }
 
@@ -559,7 +565,27 @@
   pointer-events: none;
 }
 
+.apexcharts-custom-menu {
+  background: #fff;
+  position: absolute;
+  top: 100%;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 3px;
+  right: 10px;
+  opacity: 0;
+  min-width: 110px;
+  transition: 0.15s ease all;
+  pointer-events: none;
+}
+
 .apexcharts-menu.apexcharts-menu-open {
+  opacity: 1;
+  pointer-events: all;
+  transition: 0.15s ease all;
+}
+
+.apexcharts-custom-menu.apexcharts-menu-open {
   opacity: 1;
   pointer-events: all;
   transition: 0.15s ease all;
@@ -576,6 +602,11 @@
 }
 
 .apexcharts-theme-dark .apexcharts-menu {
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+}
+
+.apexcharts-theme-dark .apexcharts-custom-menu {
   background: rgba(0, 0, 0, 0.7);
   color: #fff;
 }

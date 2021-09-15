@@ -132,7 +132,7 @@ export default class Toolbar {
             ? this.t.customDropdown
             : icoMenu,
         title: this.localeValues.menu,
-        class: 'apexcharts-menu-icon'
+        class: 'apexcharts-custom-menu-icon'
       })
     }
 
@@ -219,7 +219,7 @@ export default class Toolbar {
     parent.appendChild(this.elMenuCustom)
 
     Graphics.setAttrs(this.elMenuCustom, {
-      class: 'apexcharts-menu'
+      class: 'apexcharts-custom-menu'
     })
 
     const menuItems = this.t.customDropdownItems
@@ -259,7 +259,10 @@ export default class Toolbar {
       }
     })
 
-    this.elMenuIconCustom.addEventListener('click', this.toggleMenu.bind(this))
+    this.elMenuIconCustom.addEventListener(
+      'click',
+      this.toggleMenuCustom.bind(this)
+    )
     this.elMenuItemsCustom.forEach((m) => {
       m.addEventListener('click', m.click.bind(this))
     })
@@ -496,6 +499,16 @@ export default class Toolbar {
         this.elMenu.classList.remove('apexcharts-menu-open')
       } else {
         this.elMenu.classList.add('apexcharts-menu-open')
+      }
+    }, 0)
+  }
+
+  toggleMenuCustom() {
+    window.setTimeout(() => {
+      if (this.elMenuCustom.classList.contains('apexcharts-menu-open')) {
+        this.elMenuCustom.classList.remove('apexcharts-menu-open')
+      } else {
+        this.elMenuCustom.classList.add('apexcharts-menu-open')
       }
     }, 0)
   }
