@@ -15235,7 +15235,8 @@
           this.elMenuItemsCustom[i].innerHTML = menuItems[i].title;
           Graphics.setAttrs(this.elMenuItemsCustom[i], {
             class: "apexcharts-menu-item ".concat(menuItems[i].name),
-            title: menuItems[i].title
+            title: menuItems[i].title,
+            click: menuItems[i].click
           });
           this.elMenuCustom.appendChild(this.elMenuItemsCustom[i]);
         }
