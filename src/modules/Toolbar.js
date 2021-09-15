@@ -163,6 +163,7 @@ export default class Toolbar {
     }
 
     this._createHamburgerMenu(elToolbarWrap)
+    this._createCustomHamburgerMenu(elToolbarWrap)
 
     if (w.globals.zoomEnabled) {
       this.elZoom.classList.add(this.selectedClass)
