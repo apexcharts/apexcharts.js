@@ -222,20 +222,7 @@ export default class Toolbar {
       class: 'apexcharts-menu'
     })
 
-    const menuItems = [
-      {
-        name: 'exportSVG',
-        title: this.localeValues.exportToSVG
-      },
-      {
-        name: 'exportPNG',
-        title: this.localeValues.exportToPNG
-      },
-      {
-        name: 'exportCSV',
-        title: this.localeValues.exportToCSV
-      }
-    ]
+    const menuItems = this.t.customDropdownItems
 
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItemsCustom.push(document.createElement('div'))
@@ -274,13 +261,7 @@ export default class Toolbar {
 
     this.elMenuIconCustom.addEventListener('click', this.toggleMenu.bind(this))
     this.elMenuItemsCustom.forEach((m) => {
-      if (m.classList.contains('exportSVG')) {
-        m.addEventListener('click', this.handleDownload.bind(this, 'svg'))
-      } else if (m.classList.contains('exportPNG')) {
-        m.addEventListener('click', this.handleDownload.bind(this, 'png'))
-      } else if (m.classList.contains('exportCSV')) {
-        m.addEventListener('click', this.handleDownload.bind(this, 'csv'))
-      }
+      m.addEventListener('click', m.click.bind(this))
     })
 
     for (let i = 0; i < this.t.customIcons.length; i++) {

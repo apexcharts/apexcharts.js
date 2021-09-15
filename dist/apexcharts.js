@@ -15228,16 +15228,7 @@
         Graphics.setAttrs(this.elMenuCustom, {
           class: 'apexcharts-menu'
         });
-        var menuItems = [{
-          name: 'exportSVG',
-          title: this.localeValues.exportToSVG
-        }, {
-          name: 'exportPNG',
-          title: this.localeValues.exportToPNG
-        }, {
-          name: 'exportCSV',
-          title: this.localeValues.exportToCSV
-        }];
+        var menuItems = this.t.customDropdownItems;
 
         for (var i = 0; i < menuItems.length; i++) {
           this.elMenuItemsCustom.push(document.createElement('div'));
@@ -15272,13 +15263,7 @@
         });
         this.elMenuIconCustom.addEventListener('click', this.toggleMenu.bind(this));
         this.elMenuItemsCustom.forEach(function (m) {
-          if (m.classList.contains('exportSVG')) {
-            m.addEventListener('click', _this2.handleDownload.bind(_this2, 'svg'));
-          } else if (m.classList.contains('exportPNG')) {
-            m.addEventListener('click', _this2.handleDownload.bind(_this2, 'png'));
-          } else if (m.classList.contains('exportCSV')) {
-            m.addEventListener('click', _this2.handleDownload.bind(_this2, 'csv'));
-          }
+          m.addEventListener('click', m.click.bind(_this2));
         });
 
         for (var i = 0; i < this.t.customIcons.length; i++) {
