@@ -15075,6 +15075,8 @@
         this.elZoomReset = createDiv();
         this.elMenuIcon = createDiv();
         this.elMenu = createDiv();
+        this.elMenuIconCustom = createDiv();
+        this.elMenuCustom = createDiv();
         this.elCustomIcons = [];
         this.t = w.config.chart.toolbar.tools;
 
@@ -15131,6 +15133,15 @@
           toolbarControls.push({
             el: this.elMenuIcon,
             icon: typeof this.t.download === 'string' ? this.t.download : icoMenu,
+            title: this.localeValues.menu,
+            class: 'apexcharts-menu-icon'
+          });
+        }
+
+        if (this.t.customDropdown) {
+          toolbarControls.push({
+            el: this.elMenuIconCustom,
+            icon: typeof this.t.customDropdown === 'string' ? this.t.customDropdown : icoMenu,
             title: this.localeValues.menu,
             class: 'apexcharts-menu-icon'
           });
@@ -15208,6 +15219,35 @@
         }
       }
     }, {
+      key: "_createCustomHamburgerMenu",
+      value: function _createCustomHamburgerMenu(parent) {
+        this.elMenuItemsCustom = [];
+        parent.appendChild(this.elMenuCustom);
+        Graphics.setAttrs(this.elMenuCustom, {
+          class: 'apexcharts-menu'
+        });
+        var menuItems = [{
+          name: 'exportSVG',
+          title: this.localeValues.exportToSVG
+        }, {
+          name: 'exportPNG',
+          title: this.localeValues.exportToPNG
+        }, {
+          name: 'exportCSV',
+          title: this.localeValues.exportToCSV
+        }];
+
+        for (var i = 0; i < menuItems.length; i++) {
+          this.elMenuItemsCustom.push(document.createElement('div'));
+          this.elMenuItemsCustom[i].innerHTML = menuItems[i].title;
+          Graphics.setAttrs(this.elMenuItemsCustom[i], {
+            class: "apexcharts-menu-item ".concat(menuItems[i].name),
+            title: menuItems[i].title
+          });
+          this.elMenuCustom.appendChild(this.elMenuItemsCustom[i]);
+        }
+      }
+    }, {
       key: "addToolbarEventListeners",
       value: function addToolbarEventListeners() {
         var _this2 = this;
@@ -15220,6 +15260,16 @@
         this.elPan.addEventListener('click', this.togglePanning.bind(this));
         this.elMenuIcon.addEventListener('click', this.toggleMenu.bind(this));
         this.elMenuItems.forEach(function (m) {
+          if (m.classList.contains('exportSVG')) {
+            m.addEventListener('click', _this2.handleDownload.bind(_this2, 'svg'));
+          } else if (m.classList.contains('exportPNG')) {
+            m.addEventListener('click', _this2.handleDownload.bind(_this2, 'png'));
+          } else if (m.classList.contains('exportCSV')) {
+            m.addEventListener('click', _this2.handleDownload.bind(_this2, 'csv'));
+          }
+        });
+        this.elMenuIconCustom.addEventListener('click', this.toggleMenu.bind(this));
+        this.elMenuItemsCustom.forEach(function (m) {
           if (m.classList.contains('exportSVG')) {
             m.addEventListener('click', _this2.handleDownload.bind(_this2, 'svg'));
           } else if (m.classList.contains('exportPNG')) {
@@ -15534,6 +15584,7 @@
         this.elSelection = null;
         this.elZoomReset = null;
         this.elMenuIcon = null;
+        this.elMenuIconCustom = null;
       }
     }]);
 
