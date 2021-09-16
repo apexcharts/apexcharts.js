@@ -232,11 +232,6 @@ export default class Labels {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    Object.keys(values).forEach((key) => {
-      if (typeof values[key] === 'string')
-        values[key] = Utilities.sanitizeHtml(values[key])
-    })
-
     const { val, goalVals, xVal, xAxisTTVal, zVal } = values
 
     let ttItemsChildren = null
@@ -267,7 +262,7 @@ export default class Labels {
       '.apexcharts-tooltip-text-y-label'
     )
     if (ttYLabel) {
-      ttYLabel.innerHTML = seriesName ? Utilities.sanitizeHtml(seriesName) : ''
+      ttYLabel.innerHTML = seriesName ? seriesName : ''
     }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-y-value')
     if (ttYVal) {
