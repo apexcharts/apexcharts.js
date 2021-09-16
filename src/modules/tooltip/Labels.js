@@ -234,7 +234,7 @@ export default class Labels {
 
     Object.keys(values).forEach((key) => {
       if (typeof values[key] === 'string')
-        values[key] = Utilities.sanitizeDom(values[key])
+        values[key] = Utilities.sanitizeHtml(values[key])
     })
 
     const { val, goalVals, xVal, xAxisTTVal, zVal } = values
@@ -267,7 +267,7 @@ export default class Labels {
       '.apexcharts-tooltip-text-y-label'
     )
     if (ttYLabel) {
-      ttYLabel.innerHTML = seriesName ? Utilities.sanitizeDom(seriesName) : ''
+      ttYLabel.innerHTML = seriesName ? Utilities.sanitizeHtml(seriesName) : ''
     }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-y-value')
     if (ttYVal) {
