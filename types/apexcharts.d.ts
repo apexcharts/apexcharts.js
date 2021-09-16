@@ -487,7 +487,7 @@ type ApexPlotOptions = {
     columnWidth?: string
     barHeight?: string
     distributed?: boolean
-    borderRadius?: number
+    borderRadius?: number | number[]
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
     colors?: {
