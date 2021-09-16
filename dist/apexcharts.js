@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.28.1
+ * ApexCharts v3.28.2
  * (c) 2018-2021 ApexCharts
  * Released under the MIT License.
  */
@@ -629,17 +629,74 @@
 
 
         return false;
-      }
-      /**
-       * Sanitize dangerous characters in the string to prevent Cross-Site Scripting
-       * @param {string}
-       * string - String to sanitize
-       */
+      } // https://stackoverflow.com/a/28533511/1247864
 
     }, {
-      key: "sanitizeDom",
-      value: function sanitizeDom(string) {
-        return String(string).replace(/\&/g, '&amp;').replace(/\</g, '&lt;').replace(/\>/g, '&gt;').replace(/\"/g, '&quot;');
+      key: "sanitizeHtml",
+      value: function sanitizeHtml(input) {
+        var tagWhitelist_ = {
+          A: true,
+          B: true,
+          BODY: true,
+          BR: true,
+          DIV: true,
+          EM: true,
+          HR: true,
+          I: true,
+          IMG: true,
+          P: true,
+          SPAN: true,
+          STRONG: true
+        };
+        var attributeWhitelist_ = {
+          class: true,
+          style: true,
+          href: true,
+          src: true
+        };
+        var iframe = document.createElement('iframe');
+
+        if (iframe.sandbox === undefined) {
+          alert('Your browser does not support sandboxed iframes. Please upgrade to a modern browser.');
+          return '';
+        }
+
+        iframe.sandbox = 'allow-same-origin';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe); // necessary so the iframe contains a document
+
+        iframe.contentDocument.body.innerHTML = input;
+
+        function makeSanitizedCopy(node) {
+          var newNode;
+
+          if (node.nodeType === Node.TEXT_NODE) {
+            newNode = node.cloneNode(true);
+          } else if (node.nodeType === Node.ELEMENT_NODE && tagWhitelist_[node.tagName]) {
+            newNode = iframe.contentDocument.createElement(node.tagName);
+
+            for (var i = 0; i < node.attributes.length; i++) {
+              var attr = node.attributes[i];
+
+              if (attributeWhitelist_[attr.name]) {
+                newNode.setAttribute(attr.name, attr.value);
+              }
+            }
+
+            for (var _i = 0; _i < node.childNodes.length; _i++) {
+              var subCopy = makeSanitizedCopy(node.childNodes[_i]);
+              newNode.appendChild(subCopy, false);
+            }
+          } else {
+            newNode = document.createDocumentFragment();
+          }
+
+          return newNode;
+        }
+
+        var resultElement = makeSanitizedCopy(iframe.contentDocument.body);
+        document.body.removeChild(iframe);
+        return resultElement.innerHTML;
       }
     }]);
 
@@ -1147,6 +1204,7 @@
         var lineColor = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : '#a8a8a8';
         var dashArray = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
         var strokeWidth = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
+        var strokeLineCap = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : 'butt';
         var w = this.w;
         var line = w.globals.dom.Paper.line().attr({
           x1: x1,
@@ -1155,7 +1213,8 @@
           y2: y2,
           stroke: lineColor,
           'stroke-dasharray': dashArray,
-          'stroke-width': strokeWidth
+          'stroke-width': strokeWidth,
+          'stroke-linecap': strokeLineCap
         });
         return line;
       }
@@ -6413,9 +6472,18 @@
       key: "getRoundedBars",
       value: function getRoundedBars(w, opts, series, i, j) {
         var graphics = new Graphics(this.barCtx.ctx);
-        var radius = w.config.plotOptions.bar.borderRadius;
+        var radius = 0;
+        var borderRadius = w.config.plotOptions.bar.borderRadius;
+        var borderRadiusIsArray = Array.isArray(borderRadius);
 
-        if (w.config.chart.stacked && series.length > 1 && i !== this.barCtx.radiusOnSeriesNumber) {
+        if (borderRadiusIsArray) {
+          var radiusIndex = i > borderRadius.length - 1 ? borderRadius.length - 1 : i;
+          radius = borderRadius[radiusIndex];
+        } else {
+          radius = borderRadius;
+        }
+
+        if (w.config.chart.stacked && series.length > 1 && i !== this.barCtx.radiusOnSeriesNumber && !borderRadiusIsArray) {
           radius = 0;
         }
 
@@ -6551,14 +6619,18 @@
         if (this.barCtx.isHorizontal) {
           if (Array.isArray(goalX)) {
             goalX.forEach(function (goal) {
-              line = graphics.drawLine(goal.x, barYPosition, goal.x, barYPosition + barHeight, goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined, 0, goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2);
+              var sHeight = typeof goal.attrs.strokeHeight !== 'undefined' ? goal.attrs.strokeHeight : barHeight / 2;
+              var y = barYPosition + sHeight + barHeight / 2;
+              line = graphics.drawLine(goal.x, y - sHeight * 2, goal.x, y, goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined, goal.attrs.strokeDashArray, goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2, goal.attrs.strokeLineCap);
               lineGroup.add(line);
             });
           }
         } else {
           if (Array.isArray(goalY)) {
             goalY.forEach(function (goal) {
-              line = graphics.drawLine(barXPosition, goal.y, barXPosition + barWidth, goal.y, goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined, 0, goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2);
+              var sWidth = typeof goal.attrs.strokeWidth !== 'undefined' ? goal.attrs.strokeWidth : barWidth / 2;
+              var x = barXPosition + sWidth + barWidth / 2;
+              line = graphics.drawLine(x - sWidth * 2, goal.y, x, goal.y, goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined, goal.attrs.strokeDashArray, goal.attrs.strokeHeight ? goal.attrs.strokeHeight : 2, goal.attrs.strokeLineCap);
               lineGroup.add(line);
             });
           }
@@ -10174,7 +10246,7 @@
         var nXmlnsSeen = 0;
         var result = svgData.replace(/xmlns="http:\/\/www.w3.org\/2000\/svg"/g, function (match) {
           nXmlnsSeen++;
-          return nXmlnsSeen === 2 ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs"' : match;
+          return nXmlnsSeen === 2 ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.dev"' : match;
         }); // remove the invalid empty namespace declarations
 
         result = result.replace(/xmlns:NS\d+=""/g, ''); // remove these broken namespaces from attributes
@@ -14438,7 +14510,7 @@
       value: function getLegendStyles() {
         var stylesheet = document.createElement('style');
         stylesheet.setAttribute('type', 'text/css');
-        var text = "\t\n    \t\n      .apexcharts-legend {\t\n        display: flex;\t\n        overflow: auto;\t\n        padding: 0 10px;\t\n      }\t\n      .apexcharts-legend.position-bottom, .apexcharts-legend.position-top {\t\n        flex-wrap: wrap\t\n      }\t\n      .apexcharts-legend.position-right, .apexcharts-legend.position-left {\t\n        flex-direction: column;\t\n        bottom: 0;\t\n      }\t\n      .apexcharts-legend.position-bottom.apexcharts-align-left, .apexcharts-legend.position-top.apexcharts-align-left, .apexcharts-legend.position-right, .apexcharts-legend.position-left {\t\n        justify-content: flex-start;\t\n      }\t\n      .apexcharts-legend.position-bottom.apexcharts-align-center, .apexcharts-legend.position-top.apexcharts-align-center {\t\n        justify-content: center;  \t\n      }\t\n      .apexcharts-legend.position-bottom.apexcharts-align-right, .apexcharts-legend.position-top.apexcharts-align-right {\t\n        justify-content: flex-end;\t\n      }\t\n      .apexcharts-legend-series {\t\n        cursor: pointer;\t\n        line-height: normal;\t\n      }\t\n      .apexcharts-legend.position-bottom .apexcharts-legend-series, .apexcharts-legend.position-top .apexcharts-legend-series{\t\n        display: flex;\t\n        align-items: center;\t\n      }\t\n      .apexcharts-legend-text {\t\n        position: relative;\t\n        font-size: 14px;\t\n      }\t\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\t\n        pointer-events: none;\t\n      }\t\n      .apexcharts-legend-marker {\t\n        position: relative;\t\n        display: inline-block;\t\n        cursor: pointer;\t\n        margin-right: 3px;\t\n        border-style: solid;\n      }\t\n      \t\n      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{\t\n        display: inline-block;\t\n      }\t\n      .apexcharts-legend-series.apexcharts-no-click {\t\n        cursor: auto;\t\n      }\t\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\t\n        display: none !important;\t\n      }\t\n      .apexcharts-inactive-legend {\t\n        opacity: 0.45;\t\n      }";
+        var text = "\t\n    \t\n      .apexcharts-legend {\t\n        display: flex;\t\n        overflow: auto;\t\n        padding: 0 10px;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\t\n        flex-wrap: wrap\t\n      }\t\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\t\n        flex-direction: column;\t\n        bottom: 0;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\t\n        justify-content: flex-start;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\t\n        justify-content: center;  \t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\t\n        justify-content: flex-end;\t\n      }\t\n      .apexcharts-legend-series {\t\n        cursor: pointer;\t\n        line-height: normal;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{\t\n        display: flex;\t\n        align-items: center;\t\n      }\t\n      .apexcharts-legend-text {\t\n        position: relative;\t\n        font-size: 14px;\t\n      }\t\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\t\n        pointer-events: none;\t\n      }\t\n      .apexcharts-legend-marker {\t\n        position: relative;\t\n        display: inline-block;\t\n        cursor: pointer;\t\n        margin-right: 3px;\t\n        border-style: solid;\n      }\t\n      \t\n      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{\t\n        display: inline-block;\t\n      }\t\n      .apexcharts-legend-series.apexcharts-no-click {\t\n        cursor: auto;\t\n      }\t\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\t\n        display: none !important;\t\n      }\t\n      .apexcharts-inactive-legend {\t\n        opacity: 0.45;\t\n      }";
         var rules = document.createTextNode(text);
         stylesheet.appendChild(rules);
         return stylesheet;
@@ -14795,7 +14867,7 @@
           var elLegend = document.createElement('div');
           var elLegendText = document.createElement('span');
           elLegendText.classList.add('apexcharts-legend-text');
-          elLegendText.innerHTML = Array.isArray(text) ? Utils$1.sanitizeDom(text.join(' ')) : Utils$1.sanitizeDom(text);
+          elLegendText.innerHTML = Array.isArray(text) ? Utils$1.sanitizeHtml(text.join(' ')) : Utils$1.sanitizeHtml(text);
           var textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors;
 
           if (!textColor) {
@@ -14832,7 +14904,7 @@
 
           w.globals.dom.elLegendWrap.appendChild(elLegend);
           w.globals.dom.elLegendWrap.classList.add("apexcharts-align-".concat(w.config.legend.horizontalAlign));
-          w.globals.dom.elLegendWrap.classList.add('position-' + w.config.legend.position);
+          w.globals.dom.elLegendWrap.classList.add('apx-legend-position-' + w.config.legend.position);
           elLegend.classList.add('apexcharts-legend-series');
           elLegend.style.margin = "".concat(w.config.legend.itemMargin.vertical, "px ").concat(w.config.legend.itemMargin.horizontal, "px");
           w.globals.dom.elLegendWrap.style.width = w.config.legend.width ? w.config.legend.width + 'px' : '';
@@ -16320,7 +16392,13 @@
 
         w.globals.capturedSeriesIndex = capturedSeries === null ? -1 : capturedSeries;
         if (!j || j < 1) j = 0;
-        w.globals.capturedDataPointIndex = j;
+
+        if (w.globals.isBarHorizontal) {
+          w.globals.capturedDataPointIndex = jHorz;
+        } else {
+          w.globals.capturedDataPointIndex = j;
+        }
+
         return {
           capturedSeries: capturedSeries,
           j: w.globals.isBarHorizontal ? jHorz : j,
@@ -16808,7 +16886,7 @@
         var w = this.w;
         var ttCtx = this.ttCtx;
         Object.keys(values).forEach(function (key) {
-          if (typeof values[key] === 'string') values[key] = Utils$1.sanitizeDom(values[key]);
+          if (typeof values[key] === 'string') values[key] = Utils$1.sanitizeHtml(values[key]);
         });
         var val = values.val,
             goalVals = values.goalVals,
@@ -16841,7 +16919,7 @@
         var ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-y-label');
 
         if (ttYLabel) {
-          ttYLabel.innerHTML = seriesName ? Utils$1.sanitizeDom(seriesName) : '';
+          ttYLabel.innerHTML = seriesName ? Utils$1.sanitizeHtml(seriesName) : '';
         }
 
         var ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-y-value');
@@ -24623,7 +24701,7 @@
     SVG.ns = 'http://www.w3.org/2000/svg';
     SVG.xmlns = 'http://www.w3.org/2000/xmlns/';
     SVG.xlink = 'http://www.w3.org/1999/xlink';
-    SVG.svgjs = 'http://svgjs.com/svgjs'; // Svg support test
+    SVG.svgjs = 'http://svgjs.dev'; // Svg support test
 
     SVG.supported = function () {
       return true; // !!document.createElementNS &&
