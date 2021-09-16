@@ -81,6 +81,26 @@
                 type: 'line',
                 zoom: {
                   enabled: false
+                },
+                toolbar: {
+                  show: true,
+                  tools: {
+                    customDropdown: true,
+                    downloadInCustom: true,
+                    customDropdownItems: 
+                    [
+                        {
+                            name: "Edit",
+                            title: "Edit",
+                            click: this.clickFunction
+                        },
+                        {
+                            name: "Delete",
+                            title: "Delete",
+                            click: this.clickFunction
+                        }
+                    ]
+                  }
                 }
               },
               dataLabels: {
@@ -106,6 +126,10 @@
           
           
           };
+
+          this.clickFunction = () => {
+            console.log("Clicked")
+          }
         }
 
       

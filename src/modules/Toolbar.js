@@ -53,6 +53,7 @@ export default class Toolbar {
     this.elMenu = createDiv()
     this.elMenuIconCustom = createDiv()
     this.elMenuCustom = createDiv()
+    this.subMenuDiv = createDiv()
     this.elCustomIcons = []
 
     this.t = w.config.chart.toolbar.tools
@@ -115,7 +116,7 @@ export default class Toolbar {
 
     appendZoomControl('reset', this.elZoomReset, icoReset)
 
-    if (this.t.download) {
+    if (this.t.download && !this.t.downloadInCustom) {
       toolbarControls.push({
         el: this.elMenuIcon,
         icon: typeof this.t.download === 'string' ? this.t.download : icoMenu,
@@ -163,6 +164,7 @@ export default class Toolbar {
     }
 
     this._createHamburgerMenu(elToolbarWrap)
+
     this._createCustomHamburgerMenu(elToolbarWrap)
 
     if (w.globals.zoomEnabled) {
@@ -224,14 +226,53 @@ export default class Toolbar {
 
     const menuItems = this.t.customDropdownItems
 
+    if (this.t.downloadInCustom) {
+      this.downloadMenuItems = []
+
+      this.elMenuItemsCustom.push(document.createElement('div'))
+      this.elMenuItemsCustom[0].innerHTML =
+        typeof this.t.downloadInCustom === 'string' ||
+        this.t.downloadInCustom instanceof String
+          ? this.t.downloadInCustom
+          : 'Download'
+      Graphics.setAttrs(this.elMenuItemsCustom[0], {
+        class: `apexcharts-menu-item-with-subs ${this.elMenuItemsCustom[0].innerHTML}`,
+        title: this.elMenuItemsCustom[0].innerHTML
+      })
+
+      this.elMenuItemsCustom[0].appendChild(this.subMenuDiv)
+
+      Graphics.setAttrs(this.subMenuDiv, {
+        class: 'apexcharts-custom-submenu'
+      })
+
+      for (let i = 0; i < this.elMenuItems.length; i++) {
+        this.downloadMenuItems.push(document.createElement('div'))
+        this.downloadMenuItems[i].innerHTML = this.elMenuItems[i].title
+        Graphics.setAttrs(this.downloadMenuItems[i], {
+          class: `apexcharts-submenu-item ${this.elMenuItems[i].name}`,
+          title: this.elMenuItems[i].title
+        })
+        this.subMenuDiv.appendChild(this.elMenuItems[i])
+      }
+
+      this.elMenuCustom.appendChild(this.elMenuItemsCustom[0])
+    }
+
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItemsCustom.push(document.createElement('div'))
-      this.elMenuItemsCustom[i].innerHTML = menuItems[i].title
-      Graphics.setAttrs(this.elMenuItemsCustom[i], {
-        class: `apexcharts-menu-item ${menuItems[i].name}`,
-        title: menuItems[i].title
-      })
-      this.elMenuCustom.appendChild(this.elMenuItemsCustom[i])
+      this.elMenuItemsCustom[i + (this.t.downloadInCustom ? 1 : 0)].innerHTML =
+        menuItems[i].title
+      Graphics.setAttrs(
+        this.elMenuItemsCustom[i + (this.t.downloadInCustom ? 1 : 0)],
+        {
+          class: `apexcharts-menu-item ${menuItems[i].name}`,
+          title: menuItems[i].title
+        }
+      )
+      this.elMenuCustom.appendChild(
+        this.elMenuItemsCustom[i + (this.t.downloadInCustom ? 1 : 0)]
+      )
     }
   }
 
@@ -266,11 +307,25 @@ export default class Toolbar {
 
     for (let i = 0; i < this.t.customDropdownItems.length; i++) {
       if (this.t.customDropdownItems[i].click) {
-        this.elMenuItemsCustom[i].addEventListener(
+        this.elMenuItemsCustom[
+          i + this.t.downloadInCustom ? 1 : 0
+        ].addEventListener(
           'click',
           this.t.customDropdownItems[i].click.bind(this)
         )
       }
+    }
+
+    if (this.t.downloadInCustom) {
+      this.elMenuItemsCustom[0].addEventListener(
+        'mouseover',
+        this.toggleSubMenuCustom.bind(this)
+      )
+
+      this.elMenuItemsCustom[0].addEventListener(
+        'mouseout',
+        this.toggleSubMenuCustom.bind(this)
+      )
     }
 
     for (let i = 0; i < this.t.customIcons.length; i++) {
@@ -515,6 +570,16 @@ export default class Toolbar {
         this.elMenuCustom.classList.remove('apexcharts-menu-open')
       } else {
         this.elMenuCustom.classList.add('apexcharts-menu-open')
+      }
+    }, 0)
+  }
+
+  toggleSubMenuCustom() {
+    window.setTimeout(() => {
+      if (this.subMenuDiv.classList.contains('apexcharts-menu-open')) {
+        this.subMenuDiv.classList.remove('apexcharts-menu-open')
+      } else {
+        this.subMenuDiv.classList.add('apexcharts-menu-open')
       }
     }, 0)
   }
