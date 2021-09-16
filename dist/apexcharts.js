@@ -15292,7 +15292,7 @@
 
         for (var i = 0; i < this.t.customDropdownItems.length; i++) {
           if (this.t.customDropdownItems[i].click) {
-            this.elMenuItemsCustom[i + this.t.downloadInCustom ? 1 : 0].addEventListener('click', this.t.customDropdownItems[i].click.bind(this));
+            this.elMenuItemsCustom[i + (this.t.downloadInCustom ? 1 : 0)].addEventListener('click', this.t.customDropdownItems[i].click.bind(this));
           }
         }
 
