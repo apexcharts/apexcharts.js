@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.28.2
+ * ApexCharts v3.28.3
  * (c) 2018-2021 ApexCharts
  * Released under the MIT License.
  */
@@ -629,74 +629,6 @@
 
 
         return false;
-      } // https://stackoverflow.com/a/28533511/1247864
-
-    }, {
-      key: "sanitizeHtml",
-      value: function sanitizeHtml(input) {
-        var tagWhitelist_ = {
-          A: true,
-          B: true,
-          BODY: true,
-          BR: true,
-          DIV: true,
-          EM: true,
-          HR: true,
-          I: true,
-          IMG: true,
-          P: true,
-          SPAN: true,
-          STRONG: true
-        };
-        var attributeWhitelist_ = {
-          class: true,
-          style: true,
-          href: true,
-          src: true
-        };
-        var iframe = document.createElement('iframe');
-
-        if (iframe.sandbox === undefined) {
-          alert('Your browser does not support sandboxed iframes. Please upgrade to a modern browser.');
-          return '';
-        }
-
-        iframe.sandbox = 'allow-same-origin';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe); // necessary so the iframe contains a document
-
-        iframe.contentDocument.body.innerHTML = input;
-
-        function makeSanitizedCopy(node) {
-          var newNode;
-
-          if (node.nodeType === Node.TEXT_NODE) {
-            newNode = node.cloneNode(true);
-          } else if (node.nodeType === Node.ELEMENT_NODE && tagWhitelist_[node.tagName]) {
-            newNode = iframe.contentDocument.createElement(node.tagName);
-
-            for (var i = 0; i < node.attributes.length; i++) {
-              var attr = node.attributes[i];
-
-              if (attributeWhitelist_[attr.name]) {
-                newNode.setAttribute(attr.name, attr.value);
-              }
-            }
-
-            for (var _i = 0; _i < node.childNodes.length; _i++) {
-              var subCopy = makeSanitizedCopy(node.childNodes[_i]);
-              newNode.appendChild(subCopy, false);
-            }
-          } else {
-            newNode = document.createDocumentFragment();
-          }
-
-          return newNode;
-        }
-
-        var resultElement = makeSanitizedCopy(iframe.contentDocument.body);
-        document.body.removeChild(iframe);
-        return resultElement.innerHTML;
       }
     }]);
 
@@ -14867,7 +14799,7 @@
           var elLegend = document.createElement('div');
           var elLegendText = document.createElement('span');
           elLegendText.classList.add('apexcharts-legend-text');
-          elLegendText.innerHTML = Array.isArray(text) ? Utils$1.sanitizeHtml(text.join(' ')) : Utils$1.sanitizeHtml(text);
+          elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text;
           var textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors;
 
           if (!textColor) {
@@ -16885,9 +16817,6 @@
             pColor = _ref4.pColor;
         var w = this.w;
         var ttCtx = this.ttCtx;
-        Object.keys(values).forEach(function (key) {
-          if (typeof values[key] === 'string') values[key] = Utils$1.sanitizeHtml(values[key]);
-        });
         var val = values.val,
             goalVals = values.goalVals,
             xVal = values.xVal,
@@ -16919,7 +16848,7 @@
         var ttYLabel = ttItems[t].querySelector('.apexcharts-tooltip-text-y-label');
 
         if (ttYLabel) {
-          ttYLabel.innerHTML = seriesName ? Utils$1.sanitizeHtml(seriesName) : '';
+          ttYLabel.innerHTML = seriesName ? seriesName : '';
         }
 
         var ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-y-value');
