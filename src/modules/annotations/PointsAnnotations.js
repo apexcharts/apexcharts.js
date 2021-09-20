@@ -56,7 +56,10 @@ export default class PointAnnotations {
     }
 
     let yPos
-    if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
+    if (
+      w.config.yaxis[anno.yAxisIndex].logarithmic &&
+      w.config.yaxis[anno.yAxisIndex].logarithmic.isActive
+    ) {
       const coreUtils = new CoreUtils(this.annoCtx.ctx)
       annoY = coreUtils.getLogVal(annoY, anno.yAxisIndex)
       yPos = annoY / w.globals.yLogRatio[anno.yAxisIndex]

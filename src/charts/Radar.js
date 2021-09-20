@@ -39,7 +39,8 @@ class Radar {
         ? w.globals.gridHeight + w.globals.goldenPadding * 1.5
         : w.globals.gridWidth
 
-    this.isLog = w.config.yaxis[0].logarithmic
+    this.isLog =
+      w.config.yaxis[0].logarithmic && w.config.yaxis[0].logarithmic.isActive
 
     this.coreUtils = new CoreUtils(this.ctx)
     this.maxValue = this.isLog

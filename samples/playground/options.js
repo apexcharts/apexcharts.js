@@ -4217,9 +4217,16 @@ export const optionsPattern = {
           default: false
         },
         logarithmic: {
-          title: 'A non-linear scale when there is a large range of values',
-          type: Boolean,
-          default: false
+          isActive: {
+            title: 'A non-linear scale when there is a large range of values',
+            type: Boolean,
+            default: false
+          },
+          base: {
+            title: 'The base of the log function',
+            type: Number,
+            default: 10
+          }
         },
         tickAmount: {
           title: 'Number of tick intervals to show',
