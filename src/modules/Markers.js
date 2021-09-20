@@ -84,11 +84,11 @@ export default class Markers {
             PointClasses = 'apexcharts-nullpoint'
           }
 
-          let opts = this.getMarkerConfig(
-            PointClasses,
+          let opts = this.getMarkerConfig({
+            cssClass: PointClasses,
             seriesIndex,
             dataPointIndex
-          )
+          })
 
           if (w.config.series[i].data[dataPointIndex]) {
             if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -132,7 +132,12 @@ export default class Markers {
     return elPointsWrap
   }
 
-  getMarkerConfig(cssClass, seriesIndex, dataPointIndex = null) {
+  getMarkerConfig({
+    cssClass,
+    seriesIndex,
+    dataPointIndex = null,
+    finishRadius = null
+  }) {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
     let pSize = w.globals.markers.size[seriesIndex]
@@ -156,7 +161,7 @@ export default class Markers {
     }
 
     return {
-      pSize,
+      pSize: finishRadius === null ? pSize : finishRadius,
       pRadius: m.radius,
       width: Array.isArray(m.width) ? m.width[seriesIndex] : m.width,
       height: Array.isArray(m.height) ? m.height[seriesIndex] : m.height,
