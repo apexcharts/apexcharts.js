@@ -112,7 +112,9 @@ export default class Scatter {
       dataPointIndex,
       finishRadius:
         w.config.chart.type === 'bubble' ||
-        (w.globals.comboCharts && w.config.series[realIndex].type === 'bubble')
+        (w.globals.comboCharts &&
+          w.config.series[realIndex] &&
+          w.config.series[realIndex].type === 'bubble')
           ? finishRadius
           : null
     })
