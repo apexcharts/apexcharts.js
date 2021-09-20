@@ -102,18 +102,15 @@ export default class Scatter {
     let i = realIndex
     let anim = new Animations(this.ctx)
     let filters = new Filters(this.ctx)
-    let fill = new Fill(this.ctx)
     let markers = new Markers(this.ctx)
     const graphics = new Graphics(this.ctx)
 
-    const markerConfig = markers.getMarkerConfig('apexcharts-marker', i)
-
-    let pathFillCircle = fill.fillPath({
-      seriesNumber: realIndex,
-      dataPointIndex,
-      patternUnits: 'objectBoundingBox',
-      value: w.globals.series[realIndex][j]
-    })
+    const markerConfig = markers.getMarkerConfig(
+      'apexcharts-marker',
+      i,
+      dataPointIndex
+    )
+    finishRadius = markerConfig.pSize
 
     let el
     if (markerConfig.shape === 'circle') {
@@ -133,7 +130,8 @@ export default class Scatter {
 
     if (w.config.series[i].data[dataPointIndex]) {
       if (w.config.series[i].data[dataPointIndex].fillColor) {
-        pathFillCircle = w.config.series[i].data[dataPointIndex].fillColor
+        markerConfig.pointFillColor =
+          w.config.series[i].data[dataPointIndex].fillColor
       }
     }
 
@@ -142,7 +140,7 @@ export default class Scatter {
       y: y - markerConfig.height / 2 - markerConfig.pointStrokeWidth / 2,
       cx: x,
       cy: y,
-      fill: pathFillCircle,
+      fill: markerConfig.pointFillColor,
       'fill-opacity': markerConfig.pointFillOpacity,
       stroke: markerConfig.pointStrokeColor,
       r: finishRadius,
