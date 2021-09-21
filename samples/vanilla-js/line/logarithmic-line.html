@@ -9,12 +9,12 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
+
         #chart {
       max-width: 650px;
       margin: 35px auto;
     }
-      
+
     </style>
 
     <script>
@@ -32,9 +32,9 @@
         )
     </script>
 
-    
+
     <script src="../../../dist/apexcharts.js"></script>
-    
+
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -140,7 +140,7 @@
       y: 342497123
     }
   ]
-  
+
   var labelFormatter = function (value) {
     var val = Math.abs(value)
     if (val >= 1000000) {
@@ -155,7 +155,7 @@
      <div id="chart"></div>
 
     <script>
-      
+
         var options = {
           series: [{
           name: "Logarithmic",
@@ -189,9 +189,7 @@
             min: 1000000,
             max: 500000000,
             tickAmount: 4,
-            logarithmic: {
-              isActive: true,
-            },
+            logarithmic: true,
             seriesName: 'Logarithmic',
             labels: {
               formatter: labelFormatter,
@@ -234,10 +232,10 @@
 
         var chart = new ApexCharts(document.querySelector("#chart"), options);
         chart.render();
-      
-      
+
+
     </script>
 
-    
+
   </body>
 </html>

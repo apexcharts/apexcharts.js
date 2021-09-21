@@ -180,7 +180,7 @@ export default class Config {
 
     let isLogY = false
     opts.yaxis.forEach((y) => {
-      if (y.logarithmic && y.logarithmic.isActive) {
+      if (y.logarithmic) {
         isLogY = true
       }
     })

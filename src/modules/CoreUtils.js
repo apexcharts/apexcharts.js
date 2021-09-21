@@ -288,11 +288,7 @@ class CoreUtils {
     const w = this.w
 
     w.globals.seriesLog = series.map((s, i) => {
-      if (
-        w.config.yaxis[i] &&
-        w.config.yaxis[i].logarithmic &&
-        w.config.yaxis[i].logarithmic.isActive
-      ) {
+      if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
         return s.map((d) => {
           if (d === null) return null
 
@@ -322,21 +318,13 @@ class CoreUtils {
     gl.yLogRatio = yRatio.slice()
 
     gl.logYRange = gl.yRange.map((yRange, i) => {
-      if (
-        w.config.yaxis[i] &&
-        this.w.config.yaxis[i].logarithmic &&
-        w.config.yaxis[i].logarithmic.isActive
-      ) {
+      if (w.config.yaxis[i] && this.w.config.yaxis[i].logarithmic) {
         let maxY = -Number.MAX_VALUE
         let minY = Number.MIN_VALUE
         let range = 1
         gl.seriesLog.forEach((s, si) => {
           s.forEach((v) => {
-            if (
-              w.config.yaxis[si] &&
-              w.config.yaxis[si].logarithmic &&
-              w.config.yaxis[si].logarithmic.isActive
-            ) {
+            if (w.config.yaxis[si] && w.config.yaxis[si].logarithmic) {
               maxY = Math.max(v, maxY)
               minY = Math.min(v, minY)
             }

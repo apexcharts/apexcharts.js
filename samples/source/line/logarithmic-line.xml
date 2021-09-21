@@ -133,9 +133,7 @@ yaxis: [
     min: 1000000,
     max: 500000000,
     tickAmount: 4,
-    logarithmic: {
-      isActive: true,
-    },
+    logarithmic: true,
     seriesName: 'Logarithmic',
     labels: {
       formatter: labelFormatter,

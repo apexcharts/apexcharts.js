@@ -22,9 +22,7 @@ describe('Multiple Y-axis Scales', () => {
         {
           max: 500000000,
           tickAmount: 4,
-          logarithmic: {
-            isActive: true
-          },
+          logarithmic: true,
           seriesName: 'Logarithmic'
         },
         {
@@ -89,10 +87,8 @@ describe('Multiple Y-axis Scales', () => {
         {
           max: 500000000,
           tickAmount: 4,
-          logarithmic: {
-            isActive: true,
-            base: 20
-          },
+          logarithmic: true,
+          logBase: 20,
           seriesName: 'Logarithmic'
         },
         {

@@ -12,10 +12,8 @@ export default class Options {
       seriesName: undefined,
       opposite: false,
       reversed: false,
-      logarithmic: {
-        isActive: false,
-        base: 10
-      },
+      logarithmic: false,
+      logBase: 10,
       tickAmount: undefined,
       forceNiceScale: false,
       max: undefined,

@@ -100,10 +100,7 @@ export default class YAnnotations {
       }
     } else {
       let yPos
-      if (
-        w.config.yaxis[anno.yAxisIndex].logarithmic &&
-        w.config.yaxis[anno.yAxisIndex].logarithmic.isActive
-      ) {
+      if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
         const coreUtils = new CoreUtils(this.annoCtx.ctx)
         y = coreUtils.getLogVal(y, anno.yAxisIndex)
         yPos = y / w.globals.yLogRatio[anno.yAxisIndex]
