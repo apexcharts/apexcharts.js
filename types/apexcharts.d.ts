@@ -708,7 +708,8 @@ type ApexFill = {
     inverseColors?: boolean
     opacityFrom?: number
     opacityTo?: number
-    stops?: number[]
+    stops?: number[],
+    colorStops?: any[]
   }
   image?: {
     src?: string | string[]
