@@ -37,15 +37,35 @@ export default class PointAnnotations {
     } else {
       x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
     }
+
+    // count series assign to the same axis
+    let duplicateSeriesName = []
+    let countDuplicateSeriesName = 0
+    for (let i = 0; i <= anno.seriesIndex; i++) {
+      let serieName = w.config.yaxis[i].seriesName
+      if (serieName)
+        for (let j = i + 1; j <= anno.seriesIndex; j++) {
+          if (
+            w.config.yaxis[j].seriesName === serieName &&
+            duplicateSeriesName.indexOf(serieName) === -1
+          ) {
+            countDuplicateSeriesName++
+            duplicateSeriesName.push(serieName)
+          }
+        }
+    }
+
     let yPos
     if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
       const coreUtils = new CoreUtils(this.annoCtx.ctx)
       annoY = coreUtils.getLogVal(annoY, anno.yAxisIndex)
       yPos = annoY / w.globals.yLogRatio[anno.yAxisIndex]
     } else {
+      // calculate the right position in array for this yAxisIndex
+      let actualSerieIndex = anno.yAxisIndex + countDuplicateSeriesName
       yPos =
-        (annoY - w.globals.minYArr[anno.yAxisIndex]) /
-        (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+        (annoY - w.globals.minYArr[actualSerieIndex]) /
+        (w.globals.yRange[actualSerieIndex] / w.globals.gridHeight)
     }
 
     y =

@@ -103,6 +103,12 @@ class Grid {
       `gridRectMarkerMask${gl.cuid}`
     )
 
+    gl.dom.elForecastMask = document.createElementNS(gl.SVGNS, 'clipPath')
+    gl.dom.elForecastMask.setAttribute('id', `forecastMask${gl.cuid}`)
+
+    gl.dom.elNonForecastMask = document.createElementNS(gl.SVGNS, 'clipPath')
+    gl.dom.elNonForecastMask.setAttribute('id', `nonForecastMask${gl.cuid}`)
+
     // let barHalfWidth = 0
 
     const type = w.config.chart.type
@@ -151,6 +157,8 @@ class Grid {
 
     let defs = gl.dom.baseEl.querySelector('defs')
     defs.appendChild(gl.dom.elGridRectMask)
+    defs.appendChild(gl.dom.elForecastMask)
+    defs.appendChild(gl.dom.elNonForecastMask)
     defs.appendChild(gl.dom.elGridRectMarkerMask)
   }
 

@@ -65,7 +65,7 @@ class Legend {
   }
 
   drawLegends() {
-    let self = this
+    let me = this
     let w = this.w
 
     let fontFamily = w.config.legend.fontFamily
@@ -83,6 +83,10 @@ class Legend {
       fillcolor = ranges.map((color) => color.color)
     } else if (this.isBarsDistributed) {
       legendNames = w.globals.labels.slice()
+    }
+
+    if (w.config.legend.customLegendItems.length) {
+      legendNames = w.config.legend.customLegendItems
     }
     let legendFormatter = w.globals.legendFormatter
 
@@ -154,8 +158,14 @@ class Legend {
       mStyle.width = Array.isArray(mWidth)
         ? parseFloat(mWidth[i]) + 'px'
         : parseFloat(mWidth) + 'px'
-      mStyle.left = Array.isArray(mOffsetX) ? mOffsetX[i] : mOffsetX
-      mStyle.top = Array.isArray(mOffsetY) ? mOffsetY[i] : mOffsetY
+      mStyle.left =
+        (Array.isArray(mOffsetX)
+          ? parseFloat(mOffsetX[i])
+          : parseFloat(mOffsetX)) + 'px'
+      mStyle.top =
+        (Array.isArray(mOffsetY)
+          ? parseFloat(mOffsetY[i])
+          : parseFloat(mOffsetY)) + 'px'
       mStyle.borderWidth = Array.isArray(mBorderWidth)
         ? mBorderWidth[i]
         : mBorderWidth
@@ -245,7 +255,7 @@ class Legend {
         `apexcharts-align-${w.config.legend.horizontalAlign}`
       )
       w.globals.dom.elLegendWrap.classList.add(
-        'position-' + w.config.legend.position
+        'apx-legend-position-' + w.config.legend.position
       )
 
       elLegend.classList.add('apexcharts-legend-series')
@@ -272,17 +282,20 @@ class Legend {
       }
     }
 
-    w.globals.dom.elWrap.addEventListener('click', self.onLegendClick, true)
+    w.globals.dom.elWrap.addEventListener('click', me.onLegendClick, true)
 
-    if (w.config.legend.onItemHover.highlightDataSeries) {
+    if (
+      w.config.legend.onItemHover.highlightDataSeries &&
+      w.config.legend.customLegendItems.length === 0
+    ) {
       w.globals.dom.elWrap.addEventListener(
         'mousemove',
-        self.onLegendHovered,
+        me.onLegendHovered,
         true
       )
       w.globals.dom.elWrap.addEventListener(
         'mouseout',
-        self.onLegendHovered,
+        me.onLegendHovered,
         true
       )
     }
@@ -414,6 +427,8 @@ class Legend {
 
   onLegendClick(e) {
     const w = this.w
+
+    if (w.config.legend.customLegendItems.length) return
 
     if (
       e.target.classList.contains('apexcharts-legend-text') ||

@@ -286,6 +286,7 @@ export default class DimXAxis {
         if (
           this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight &&
           !gl.rotateXLabels &&
+          !w.config.xaxis.labels.trim &&
           (w.config.xaxis.tickPlacement !== 'between' ||
             w.globals.isBarHorizontal)
         ) {

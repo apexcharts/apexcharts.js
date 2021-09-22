@@ -269,6 +269,31 @@ class Line {
     w.globals.seriesXvalues[realIndex] = paths.xArrj
     w.globals.seriesYvalues[realIndex] = paths.yArrj
 
+    const forecast = w.config.forecastDataPoints
+    if (forecast.count > 0) {
+      const forecastCutoff =
+        w.globals.seriesXvalues[realIndex][
+          w.globals.seriesXvalues[realIndex].length - forecast.count - 1
+        ]
+      const elForecastMask = graphics.drawRect(
+        forecastCutoff,
+        0,
+        w.globals.gridWidth,
+        w.globals.gridHeight,
+        0
+      )
+      w.globals.dom.elForecastMask.appendChild(elForecastMask.node)
+
+      const elNonForecastMask = graphics.drawRect(
+        0,
+        0,
+        forecastCutoff,
+        w.globals.gridHeight,
+        0
+      )
+      w.globals.dom.elNonForecastMask.appendChild(elNonForecastMask.node)
+    }
+
     // these elements will be shown after area path animation completes
     if (!this.pointsChart) {
       w.globals.delayedElements.push({
@@ -319,7 +344,7 @@ class Line {
       }
 
       for (let p = 0; p < paths.linePaths.length; p++) {
-        let renderedPath = graphics.renderPaths({
+        const linePathCommonOpts = {
           ...defaultRenderedPathOptions,
           pathFrom: paths.pathFromLine,
           pathTo: paths.linePaths[p],
@@ -327,9 +352,35 @@ class Line {
           strokeWidth: this.strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,
           fill: 'none'
-        })
-
+        }
+        let renderedPath = graphics.renderPaths(linePathCommonOpts)
         this.elSeries.add(renderedPath)
+
+        if (forecast.count > 0) {
+          let renderedForecastPath = graphics.renderPaths(linePathCommonOpts)
+
+          renderedForecastPath.node.setAttribute(
+            'stroke-dasharray',
+            forecast.dashArray
+          )
+
+          if (forecast.strokeWidth) {
+            renderedForecastPath.node.setAttribute(
+              'stroke-width',
+              forecast.strokeWidth
+            )
+          }
+
+          this.elSeries.add(renderedForecastPath)
+          renderedForecastPath.attr(
+            'clip-path',
+            `url(#forecastMask${w.globals.cuid})`
+          )
+          renderedPath.attr(
+            'clip-path',
+            `url(#nonForecastMask${w.globals.cuid})`
+          )
+        }
       }
     }
   }

@@ -12,6 +12,7 @@ export default class Data {
     this.twoDSeries = []
     this.threeDSeries = []
     this.twoDSeriesX = []
+    this.seriesGoals = []
     this.coreUtils = new CoreUtils(this.ctx)
   }
 
@@ -120,6 +121,21 @@ export default class Data {
         } else {
           this.twoDSeries.push(Utils.parseNumber(ser[i].data[j].y))
         }
+      }
+
+      if (
+        typeof ser[i].data[j].goals !== 'undefined' &&
+        Array.isArray(ser[i].data[j].goals)
+      ) {
+        if (typeof this.seriesGoals[i] === 'undefined') {
+          this.seriesGoals[i] = []
+        }
+        this.seriesGoals[i].push(ser[i].data[j].goals)
+      } else {
+        if (typeof this.seriesGoals[i] === 'undefined') {
+          this.seriesGoals[i] = []
+        }
+        this.seriesGoals[i].push(null)
       }
     }
 
@@ -443,6 +459,7 @@ export default class Data {
         gl.series.push(this.twoDSeries)
         gl.labels.push(this.twoDSeriesX)
         gl.seriesX.push(this.twoDSeriesX)
+        gl.seriesGoals = this.seriesGoals
 
         if (i === this.activeSeriesIndex && !this.fallbackToCategory) {
           gl.isXNumeric = true

@@ -12,6 +12,7 @@ export default class Globals {
     gl.seriesRangeEnd = []
     gl.seriesRangeBarTimeline = []
     gl.seriesPercent = []
+    gl.seriesGoals = []
     gl.seriesX = []
     gl.seriesZ = []
     gl.seriesNames = []

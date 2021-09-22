@@ -273,6 +273,7 @@ export default class Options {
           updated: undefined,
           click: undefined,
           mouseMove: undefined,
+          mouseLeave: undefined,
           legendClick: undefined,
           markerClick: undefined,
           selection: undefined,
@@ -688,6 +689,12 @@ export default class Options {
           strokeWidth: 2
         }
       },
+      forecastDataPoints: {
+        count: 0,
+        fillOpacity: 0.5,
+        strokeWidth: undefined,
+        dashArray: 4
+      },
       grid: {
         show: true,
         borderColor: '#e0e0e0',
@@ -738,6 +745,7 @@ export default class Options {
         tooltipHoverFormatter: undefined,
         offsetX: -20,
         offsetY: 4,
+        customLegendItems: [],
         labels: {
           colors: undefined,
           useSeriesColors: false

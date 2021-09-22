@@ -154,33 +154,20 @@ export default class Tooltip {
       gYZ.style.fontFamily =
         this.tConfig.style.fontFamily || w.config.chart.fontFamily
       gYZ.style.fontSize = this.tConfig.style.fontSize
+      ;['y', 'goals', 'z'].forEach((g) => {
+        const gValText = document.createElement('div')
+        gValText.classList.add(`apexcharts-tooltip-${g}-group`)
 
-      // y values group
-      const gYValText = document.createElement('div')
-      gYValText.classList.add('apexcharts-tooltip-y-group')
+        let txtLabel = document.createElement('span')
+        txtLabel.classList.add(`apexcharts-tooltip-text-${g}-label`)
+        gValText.appendChild(txtLabel)
 
-      let txtLabel = document.createElement('span')
-      txtLabel.classList.add('apexcharts-tooltip-text-label')
-      gYValText.appendChild(txtLabel)
+        let txtValue = document.createElement('span')
+        txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
+        gValText.appendChild(txtValue)
 
-      let txtValue = document.createElement('span')
-      txtValue.classList.add('apexcharts-tooltip-text-value')
-      gYValText.appendChild(txtValue)
-
-      // z values group
-      const gZValText = document.createElement('div')
-      gZValText.classList.add('apexcharts-tooltip-z-group')
-
-      let txtZLabel = document.createElement('span')
-      txtZLabel.classList.add('apexcharts-tooltip-text-z-label')
-      gZValText.appendChild(txtZLabel)
-
-      let txtZValue = document.createElement('span')
-      txtZValue.classList.add('apexcharts-tooltip-text-z-value')
-      gZValText.appendChild(txtZValue)
-
-      gYZ.appendChild(gYValText)
-      gYZ.appendChild(gZValText)
+        gYZ.appendChild(gValText)
+      })
 
       gTxt.appendChild(gYZ)
 

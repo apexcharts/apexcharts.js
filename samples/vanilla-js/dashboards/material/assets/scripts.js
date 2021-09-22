@@ -248,7 +248,8 @@ var optionsBar = {
     text: 'Sessions and Views'
   },
   tooltip: {
-    shared: true
+    shared: true,
+    intersect: false
   }
 
 }
@@ -550,23 +551,3 @@ chart.render().then(function () {
     ifr.style.height = ifr.contentDocument.body.scrollHeight + 20 +'px';
   }
 });
-
-/* fusionexport integrations START */
-(() => {
-  const btn = document.getElementById('fusionexport-btn')
-  btn.addEventListener('click', async function() {
-    const endPoint = 'https://www.fusioncharts.com/demos/dashboards/fusionexport-apexcharts/api/export-dashboard'
-    const information = {
-      dashboardName: 'material'
-    };
-
-    this.setAttribute('disabled', true);
-    const { data } = await axios.post(endPoint, information, {
-      responseType: 'blob'
-    });
-    await download(data, 'apexCharts-material-dashboard.pdf', 'application/pdf')
-    this.removeAttribute('disabled')
-  });
-}
-)();
-/* fusionexport integrations END */

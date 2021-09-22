@@ -309,7 +309,9 @@ export default class XAxis {
         elYaxisTexts.add(elLabel)
 
         let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
-        elTooltipTitle.textContent = label.text
+        elTooltipTitle.textContent = Array.isArray(label)
+          ? label.join(' ')
+          : label
         elLabel.node.appendChild(elTooltipTitle)
 
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {

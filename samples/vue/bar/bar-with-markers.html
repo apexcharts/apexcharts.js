@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Column Chart with Markers</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="bar" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [
+            {
+              name: 'Actual',
+              data: [
+                {
+                  x: '2011',
+                  y: 12,
+                  goals: [
+                    {
+                      name: 'Expected',
+                      value: 14,
+                      strokeWidth: 2,
+                      strokeDashArray: 2,
+                      strokeColor: '#775DD0'
+                    }
+                  ]
+                },
+                {
+                  x: '2012',
+                  y: 44,
+                  goals: [
+                    {
+                      name: 'Expected',
+                      value: 54,
+                      strokeWidth: 5,
+                      strokeHeight: 10,
+                      strokeColor: '#775DD0'
+                    }
+                  ]
+                },
+                {
+                  x: '2013',
+                  y: 54,
+                  goals: [
+                    {
+                      name: 'Expected',
+                      value: 52,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#775DD0'
+                    }
+                  ]
+                },
+                {
+                  x: '2014',
+                  y: 66,
+                  goals: [
+                    {
+                      name: 'Expected',
+                      value: 61,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#775DD0'
+                    }
+                  ]
+                },
+                {
+                  x: '2015',
+                  y: 81,
+                  goals: [
+                    {
+                      name: 'Expected',
+                      value: 66,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#775DD0'
+                    }
+                  ]
+                },
+                {
+                  x: '2016',
+                  y: 67,
+                  goals: [
+                    {
+                      name: 'Expected',
+                      value: 70,
+                      strokeWidth: 5,
+                      strokeHeight: 10,
+                      strokeColor: '#775DD0'
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          chartOptions: {
+            chart: {
+              height: 350,
+              type: 'bar'
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+              }
+            },
+            colors: ['#00E396'],
+            dataLabels: {
+              formatter: function(val, opt) {
+                const goals =
+                  opt.w.config.series[opt.seriesIndex].data[opt.dataPointIndex]
+                    .goals
+            
+                if (goals && goals.length) {
+                  return `${val} / ${goals[0].value}`
+                }
+                return val
+              }
+            },
+            legend: {
+              show: true,
+              showForSingleSeries: true,
+              customLegendItems: ['Actual', 'Expected'],
+              markers: {
+                fillColors: ['#00E396', '#775DD0']
+              }
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>

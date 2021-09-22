@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "3.26.3",
+  "version": "3.28.3",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -70,10 +70,10 @@
     "prettier": "1.19.1",
     "puppeteer": "2.0.0",
     "puppeteer-cluster": "0.18.0",
-    "rollup": "2.33.0",
+    "rollup": "2.56.0",
     "rollup-plugin-babel": "4.4.0",
-    "rollup-plugin-copy-glob": "0.3.1",
-    "rollup-plugin-postcss": "2.0.3",
+    "rollup-plugin-copy-glob": "0.3.2",
+    "rollup-plugin-postcss": "3.1.0",
     "rollup-plugin-svgo": "1.1.0",
     "rollup-plugin-terser": "7.0.2",
     "style-loader": "1.1.2",
@@ -85,15 +85,8 @@
     "webpack-bundle-analyzer": "3.9.0",
     "webpack-cli": "^3.3.10"
   },
-  "author": {
-    "name": "Juned Chhipa",
-    "email": "juned.chhipa@gmail.com"
-  },
   "bugs": {
     "url": "https://github.com/apexcharts/apexcharts.js/issues"
-  },
-  "funding": {
-    "url": "https://github.com/apexcharts/apexcharts.js?sponsor=1"
   },
   "license": "MIT",
   "licenses": [

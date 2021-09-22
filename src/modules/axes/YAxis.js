@@ -104,6 +104,10 @@ export default class YAxis {
         }
         elYaxisTexts.add(label)
 
+        let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
+        elTooltipTitle.textContent = Array.isArray(val) ? val.join(' ') : val
+        label.node.appendChild(elTooltipTitle)
+
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {
           let firstabelRotatingCenter = graphics.rotateAroundCenter(
             firstLabel.node

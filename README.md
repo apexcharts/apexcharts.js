@@ -17,35 +17,16 @@
   <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
 </p>
 
-<p align="center">A modern JavaScript charting library to build interactive charts and visualizations with simple API.</p>
+<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with the features that you expect, ApexCharts includes over a dozen chart types that deliver beautiful, responsive visualizations in your apps and dashboards. ApexCharts is an MIT licensed open-source project that can be used in commercial and non-commercial projects.</p>
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
 
-<p align="center"><br /><b>Our Partner</b> <br /><br />
-  <a target="_blank" href="https://www.fusioncharts.com/?utm_source=ac.github%2Fnpm&utm_medium=logo&utm_campaign=apexcharts&utm_content=homepage">
-    <img src="https://apexcharts.com/media/logo-fusioncharts.svg" />
-  </a> <br /><br />
-  ApexCharts is now a partner of <a href="https://github.com/fusioncharts">FusionCharts</a> to bring a wider range of data visualization components. <br />
-  They offer data driven maps, gauges, widgets, advanced timeseries charts and much more.<br /><br />
-  <a target="_blank" href="https://www.fusioncharts.com/charts?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=fusionmaps#fusionmaps">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner01.png" />
-  </a>
-  <a target="_blank" href="https://www.fusioncharts.com/charts/gauges?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=gauges">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner02.png" />
-  </a>
-  <a target="_blank" href="https://www.fusioncharts.com/fusiontime/examples/plotting-multiple-series-on-time-axis?framework=javascript&utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=timeseries">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner03.png" />
-  </a>
-  <a target="_blank" href="https://www.fusioncharts.com/dashboards?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=dashboards">
-    <img width="185" src="https://apexcharts.com/media/fc/fusioncharts-intro-banner04.png" />
-  </a>
-   <br />
-</p> <br />
+<br />
 
 ## Browsers support
 
-| [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_48x48.png" alt="Firefox" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Firefox | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_48x48.png" alt="Chrome" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Chrome | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_48x48.png" alt="Safari" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Safari | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_48x48.png" alt="Edge" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> Edge | [<img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Internet_Explorer_9_icon.svg" alt="IE" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> IE11 |
+| [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_48x48.png" alt="Firefox" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Firefox | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_48x48.png" alt="Chrome" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Chrome | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_48x48.png" alt="Safari" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Safari | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_48x48.png" alt="Edge" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> Edge | [<img src="https://user-images.githubusercontent.com/17712401/124668393-30772d00-de87-11eb-9360-3199c3b68b95.png" alt="IE" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> IE11 |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 31+ ✔                                                                                                                                                                                                             | 35+ ✔                                                                                                                                                                                                         | 6+ ✔                                                                                                                                                                                                          | Edge ✔                                                                                                                                                                                                 | [(IE11)](#using-it-with-ie11) ✔                                                                                                                                                                  |
 
@@ -63,23 +44,23 @@ npm install apexcharts --save
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 ```
 
-## Wrappers for Vue/React/Angular
+## Wrappers for Vue/React/Angular/Stencil
 
 Integrate easily with 3rd party frameworks
 
 - [vue-apexcharts](https://github.com/apexcharts/vue-apexcharts)
 - [react-apexcharts](https://github.com/apexcharts/react-apexcharts)
 - [ng-apexcharts](https://github.com/apexcharts/ng-apexcharts) - Plugin by [Morris Janatzek](https://morrisj.net/)
+- [stencil-apexcharts](https://github.com/apexcharts/stencil-apexcharts)
 
 ### Unofficial Wrappers
 
 Useful links to wrappers other than the popular frameworks mentioned above
 
-- [stencil-apexcharts](https://github.com/mikaelkaron/stencil-apexcharts) - Stencil Component for ApexCharts
 - [apexcharter](https://github.com/dreamRs/apexcharter) - Htmlwidget for ApexCharts
 - [apexcharts.rb](https://github.com/styd/apexcharts.rb) - Ruby wrapper for ApexCharts
 - [larapex-charts](https://github.com/ArielMejiaDev/larapex-charts) - Laravel wrapper for ApexCharts
-- [blazor-apexcharts](https://github.com/joadan/Blazor-ApexCharts) - Blazor wrapper for ApexCharts [demo](https://joadan.github.io/Blazor-ApexCharts/)
+- [blazor-apexcharts](https://github.com/apexcharts/Blazor-ApexCharts) - Blazor wrapper for ApexCharts [demo](https://apexcharts.github.io/Blazor-ApexCharts/)
 - [svelte-apexcharts](https://github.com/galkatz373/svelte-apexcharts) - Svelte wrapper for ApexCharts
 
 
@@ -172,17 +153,15 @@ Utilize sparklines to indicate trends in data, for example, occasional increment
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
 
-## More advanced chart types from our friends at FusionCharts <img align="center" src="https://apexcharts.com/media/fc/sponsored.png?v=1.2.1"/>
 
-Thanks to our friends at FusionCharts, you now have a better data experience of your <a target="_blank" href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples">time-series</a> data with features like visual time navigator, annotations with the date and event markers, multi-variate analysis, and real-time support.
+## Need Advanced Data Grid for your next project? 
+We partnered with Infragistics, creators of the fastest data grids on the planet! Ignite UI Grids can handle unlimited rows and columns of data, while providing access to custom templates and real-time data updates. 
 
-<p align="center"><a href="https://www.fusioncharts.com/fusiontime/examples?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=ft-examples"><img src="https://apexcharts.com/media/fc/time-series.png" alt="time-series" /></a></p>
+<p align="center"><a href="https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid" target="_blank"><img src="https://apexcharts.com/media/infragistics-data-grid.png" /></a></p>
 
-## Export full dashboards <img align="center" src="https://apexcharts.com/media/fc/sponsored.png?v=1.2.1"/>
+Featuring an intuitive API for easy theming and branding, you can quickly bind to data with minimal hand-on coding. The grid is available in most of your favorite frameworks:  
 
-Want to export your dashboards to PDF, send them via email or simply export a chart on the server-side? You can do these and more with <a href="https://www.fusioncharts.com/fusionexport?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=fusionexport">FusionExport</a>, a new product from our friends at FusionCharts.
-
-<p align="center"><a href="https://www.fusioncharts.com/fusionexport?utm_source=ac.github%2Fnpm&utm_medium=banner&utm_campaign=apexcharts&utm_content=fusionexport"><img src="https://apexcharts.com/wp-content/themes/apexcharts/img/fc/fusionexports.svg" alt="fusionexport" /></a></p>
+<a target="_blank" href="https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid">Angular Data Grid</a> | <a target="_blank" href="https://www.infragistics.com/products/ignite-ui-react/react/components/grids">React Data Grid</a> | <a target="_blank" href="https://www.infragistics.com/products/ignite-ui-blazor/blazor/components/data-grid">Blazor Data Grid</a> | <a target="_blank" href="https://www.infragistics.com/products/ignite-ui-web-components/web-components/components/data-grid">Web Components DataGrid</a> | <a target="_blank" href="https://www.igniteui.com/grid/overview">jQuery Data Grid </a>
 
 ## What's included
 
@@ -241,20 +220,7 @@ Facebook: <a href="https://facebook.com/apexcharts">fb.com/apexcharts</a>
 
 ## Dependency
 
-ApexCharts uses <a href="http://svgjs.com/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
-
-## Supporting ApexCharts
-
-ApexCharts is an open source project. Financial contributions to ApexCharts go towards ongoing development costs, servers, etc. You can help by becoming a supporter on <a href="https://patreon.com/junedchhipa">Patreon</a> or doing a one time donation on <a href="https://paypal.me/junedchhipa">PayPal</a> <br />
-
-## Our Partners
-
-<p>
-<a href="https://www.fusioncharts.com/?utm_source=ac.github%2Fnpm&utm_medium=logo&utm_campaign=apexcharts&utm_content=homepage">
-    <img src="https://apexcharts.com/media/logo-fusioncharts.svg">
-</a> <br/>
-</p>
-While ApexCharts brings you the goodness of open-source charts, FusionCharts offers additional visualizations for your dashboards. With extensive documentation, consistent API, and cross-browser support, FusionCharts is loved by 28,000+ customers and 750,000+ developers across the globe.
+ApexCharts uses <a href="https://svgdotjs.github.io/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
 
 ## License
 

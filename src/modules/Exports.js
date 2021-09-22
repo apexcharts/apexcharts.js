@@ -9,7 +9,7 @@ class Exports {
     this.w = ctx.w
   }
 
-  scaleSvgNode = (svg, scale) => {
+  scaleSvgNode(svg, scale) {
     // get current both width and height of the svg
     let svgWidth = parseFloat(svg.getAttributeNS(null, 'width'))
     let svgHeight = parseFloat(svg.getAttributeNS(null, 'height'))
@@ -33,7 +33,7 @@ class Exports {
       (match) => {
         nXmlnsSeen++
         return nXmlnsSeen === 2
-          ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs"'
+          ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.dev"'
           : match
       }
     )

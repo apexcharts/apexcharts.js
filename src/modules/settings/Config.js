@@ -323,9 +323,6 @@ export default class Config {
           config.xaxis.crosshairs.width === 'barWidth' &&
           config.series.length > 1
         ) {
-          console.warn(
-            'crosshairs.width = "barWidth" is only supported in single series, not in a multi-series barChart.'
-          )
           config.xaxis.crosshairs.width = 'tickWidth'
         }
       }

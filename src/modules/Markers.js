@@ -84,11 +84,11 @@ export default class Markers {
             PointClasses = 'apexcharts-nullpoint'
           }
 
-          let opts = this.getMarkerConfig(
-            PointClasses,
+          let opts = this.getMarkerConfig({
+            cssClass: PointClasses,
             seriesIndex,
             dataPointIndex
-          )
+          })
 
           if (w.config.series[i].data[dataPointIndex]) {
             if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -132,14 +132,19 @@ export default class Markers {
     return elPointsWrap
   }
 
-  getMarkerConfig(cssClass, seriesIndex, dataPointIndex = null) {
+  getMarkerConfig({
+    cssClass,
+    seriesIndex,
+    dataPointIndex = null,
+    finishRadius = null
+  }) {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
     let pSize = w.globals.markers.size[seriesIndex]
 
     const m = w.config.markers
 
-    // discrete markers is an option where user can specify a particular marker with different size and color
+    // discrete markers is an option where user can specify a particular marker with different shape, size and color
 
     if (dataPointIndex !== null && m.discrete.length) {
       m.discrete.map((marker) => {
@@ -150,12 +155,13 @@ export default class Markers {
           pStyle.pointStrokeColor = marker.strokeColor
           pStyle.pointFillColor = marker.fillColor
           pSize = marker.size
+          pStyle.pointShape = marker.shape
         }
       })
     }
 
     return {
-      pSize,
+      pSize: finishRadius === null ? pSize : finishRadius,
       pRadius: m.radius,
       width: Array.isArray(m.width) ? m.width[seriesIndex] : m.width,
       height: Array.isArray(m.height) ? m.height[seriesIndex] : m.height,
@@ -164,7 +170,9 @@ export default class Markers {
         : m.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
-      shape: Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape,
+      shape:
+        pStyle.pointShape ||
+        (Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape),
       class: cssClass,
       pointStrokeOpacity: Array.isArray(m.strokeOpacity)
         ? m.strokeOpacity[seriesIndex]

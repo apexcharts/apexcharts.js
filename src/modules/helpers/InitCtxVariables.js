@@ -71,8 +71,10 @@ export default class InitCtxVariables {
       'click',
       'mousedown',
       'mousemove',
+      'mouseleave',
       'touchstart',
       'touchmove',
+      'touchleave',
       'mouseup',
       'touchend'
     ]

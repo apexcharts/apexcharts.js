@@ -206,31 +206,7 @@ h1, h2, h3, h4, h5, h6, strong {
 /* overrides */
 .sparkboxes #apexcharts-subtitle-text { fill: #8799a2 !important; }
 
-/* fusionexport btn CSS START */
-#fusionexport-btn {
-  min-width: 169px;
-  min-height: 38px;
-  text-align: center;
-}
-
-#fusionexport-btn .span {
-  display: inline-block;
-}
-
-#fusionexport-btn[disabled] {
-  cursor: wait;
-}
-
 
 .spinner-border {
   display: none;
 }
-
-#fusionexport-btn[disabled] .spinner-border {
-  display: inline-block;
-}
-
-#fusionexport-btn[disabled] .btn-text {
-  display: none;
-}
-/* fusionexport btn CSS START */

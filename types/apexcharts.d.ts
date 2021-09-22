@@ -52,6 +52,7 @@ declare module ApexCharts {
     colors?: any[]
     dataLabels?: ApexDataLabels
     fill?: ApexFill
+    forecastDataPoints?: ApexForecastDataPoints;
     grid?: ApexGrid
     labels?: string[]
     legend?: ApexLegend
@@ -119,6 +120,7 @@ type ApexChart = {
     mounted?(chart: any, options?: any): void
     updated?(chart: any, options?: any): void
     mouseMove?(e: any, chart?: any, options?: any): void
+    mouseLeave?(e: any, chart?: any, options?: any): void
     click?(e: any, chart?: any, options?: any): void
     legendClick?(chart: any, seriesIndex?: number, options?: any): void
     markerClick?(e: any, chart?: any, options?: any): void
@@ -300,9 +302,16 @@ type ApexAxisChartSeries = {
   color?: string
   data:
     | (number | null)[]
-    | { x: any; y: any, fillColor?: string, strokeColor?: string }[]
-    | [number, (number | null)][]
-    | [number, (number | null)[]][]
+    | {
+        x: any;
+        y: any;
+        fillColor?: string;
+        strokeColor?: string;
+        meta?: any;
+        goals?: any;
+      }[]
+    | [number, number | null][]
+    | [number, (number | null)[]][];
 }[]
 
 type ApexNonAxisChartSeries = number[]
@@ -458,6 +467,9 @@ type ApexLocale = {
       zoomOut?: string
       pan?: string
       reset?: string
+			exportToSVG?: string
+			exportToPNG?: string
+			exportToCSV: string
     }
   }
 }
@@ -475,7 +487,7 @@ type ApexPlotOptions = {
     columnWidth?: string
     barHeight?: string
     distributed?: boolean
-    borderRadius?: number
+    borderRadius?: number | number[]
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
     colors?: {
@@ -696,7 +708,8 @@ type ApexFill = {
     inverseColors?: boolean
     opacityFrom?: number
     opacityTo?: number
-    stops?: number[]
+    stops?: number[],
+    colorStops?: any[]
   }
   image?: {
     src?: string | string[]
@@ -734,6 +747,7 @@ type ApexLegend = {
   formatter?(legendName: string, opts?: any): string
   tooltipHoverFormatter?(legendName: string, opts?: any): string
   textAnchor?: string
+  customLegendItems?: string[]
   labels?: {
     colors?: string | string[]
     useSeriesColors?: boolean
@@ -766,12 +780,15 @@ type ApexLegend = {
   }
 }
 
+type ApexMarkerShape = "circle" | "square" | "rect" | string[]
+
 type ApexDiscretePoint = {
   seriesIndex?: number
   dataPointIndex?: number
   fillColor?: string
   strokeColor?: string
   size?: number
+  shape?: ApexMarkerShape
 }
 
 type ApexMarkers = {
@@ -783,7 +800,7 @@ type ApexMarkers = {
   strokeDashArray?: number | number[]
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
-  shape?: "circle" | "square" | "rect" | string[];
+  shape?: ApexMarkerShape
   width?: number | number[]
   height?: number | number[]
   radius?: number
@@ -1086,6 +1103,13 @@ type ApexYAxis = {
     enabled?: boolean
     offsetX?: number
   }
+}
+
+type ApexForecastDataPoints = {
+  count?: number
+  fillOpacity?: number
+  strokeWidth?: undefined | number
+  dashArray: number
 }
 
 /**

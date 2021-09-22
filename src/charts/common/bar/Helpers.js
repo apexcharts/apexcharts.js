@@ -381,12 +381,23 @@ export default class Helpers {
 
   getRoundedBars(w, opts, series, i, j) {
     let graphics = new Graphics(this.barCtx.ctx)
-    let radius = w.config.plotOptions.bar.borderRadius
+    let radius = 0
+
+    const borderRadius = w.config.plotOptions.bar.borderRadius
+    const borderRadiusIsArray = Array.isArray(borderRadius)
+    if (borderRadiusIsArray) {
+      const radiusIndex =
+        i > borderRadius.length - 1 ? borderRadius.length - 1 : i
+      radius = borderRadius[radiusIndex]
+    } else {
+      radius = borderRadius
+    }
 
     // if (
     //   w.config.chart.stacked &&
     //   series.length > 1 &&
-    //   i !== this.barCtx.radiusOnSeriesNumber
+    //   i !== this.barCtx.radiusOnSeriesNumber &&
+    //   !borderRadiusIsArray
     // ) {
     //   radius = 0
     // }
@@ -629,5 +640,115 @@ export default class Helpers {
         this.barCtx.radiusOnSeriesNumber -= 1
       }
     }
+  }
+
+  getXForValue(value, zeroW, zeroPositionForNull = true) {
+    let xForVal = zeroPositionForNull ? zeroW : null
+    if (typeof value !== 'undefined' && value !== null) {
+      xForVal =
+        zeroW +
+        value / this.barCtx.invertedYRatio -
+        (this.barCtx.isReversed ? value / this.barCtx.invertedYRatio : 0) * 2
+    }
+    return xForVal
+  }
+
+  getYForValue(value, zeroH, zeroPositionForNull = true) {
+    let yForVal = zeroPositionForNull ? zeroH : null
+    if (typeof value !== 'undefined' && value !== null) {
+      yForVal =
+        zeroH -
+        value / this.barCtx.yRatio[this.barCtx.yaxisIndex] +
+        (this.barCtx.isReversed
+          ? value / this.barCtx.yRatio[this.barCtx.yaxisIndex]
+          : 0) *
+          2
+    }
+    return yForVal
+  }
+
+  getGoalValues(type, zeroW, zeroH, i, j) {
+    const w = this.w
+
+    let goals = []
+    if (
+      w.globals.seriesGoals[i] &&
+      w.globals.seriesGoals[i][j] &&
+      Array.isArray(w.globals.seriesGoals[i][j])
+    ) {
+      w.globals.seriesGoals[i][j].forEach((goal) => {
+        goals.push({
+          [type]:
+            type === 'x'
+              ? this.getXForValue(goal.value, zeroW, false)
+              : this.getYForValue(goal.value, zeroH, false),
+          attrs: goal
+        })
+      })
+    }
+    return goals
+  }
+
+  drawGoalLine({
+    barXPosition,
+    barYPosition,
+    goalX,
+    goalY,
+    barWidth,
+    barHeight
+  }) {
+    let graphics = new Graphics(this.barCtx.ctx)
+    const lineGroup = graphics.group({
+      className: 'apexcharts-bar-goals-groups'
+    })
+
+    let line = null
+    if (this.barCtx.isHorizontal) {
+      if (Array.isArray(goalX)) {
+        goalX.forEach((goal) => {
+          let sHeight =
+            typeof goal.attrs.strokeHeight !== 'undefined'
+              ? goal.attrs.strokeHeight
+              : barHeight / 2
+          let y = barYPosition + sHeight + barHeight / 2
+
+          line = graphics.drawLine(
+            goal.x,
+            y - sHeight * 2,
+            goal.x,
+            y,
+            goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
+            goal.attrs.strokeDashArray,
+            goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2,
+            goal.attrs.strokeLineCap
+          )
+          lineGroup.add(line)
+        })
+      }
+    } else {
+      if (Array.isArray(goalY)) {
+        goalY.forEach((goal) => {
+          let sWidth =
+            typeof goal.attrs.strokeWidth !== 'undefined'
+              ? goal.attrs.strokeWidth
+              : barWidth / 2
+          let x = barXPosition + sWidth + barWidth / 2
+
+          line = graphics.drawLine(
+            x - sWidth * 2,
+            goal.y,
+            x,
+            goal.y,
+            goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
+            goal.attrs.strokeDashArray,
+            goal.attrs.strokeHeight ? goal.attrs.strokeHeight : 2,
+            goal.attrs.strokeLineCap
+          )
+          lineGroup.add(line)
+        })
+      }
+    }
+
+    return lineGroup
   }
 }

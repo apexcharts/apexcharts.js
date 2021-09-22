@@ -68,6 +68,10 @@ export default class Events {
             if (typeof w.config.chart.events.mouseMove === 'function') {
               w.config.chart.events.mouseMove(e, me, opts)
             }
+          } else if (e.type === 'mouseleave' || e.type === 'touchleave') {
+            if (typeof w.config.chart.events.mouseLeave === 'function') {
+              w.config.chart.events.mouseLeave(e, me, opts)
+            }
           } else if (
             (e.type === 'mouseup' && e.which === 1) ||
             e.type === 'touchend'

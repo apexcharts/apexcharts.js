@@ -71,6 +71,11 @@ class RangeBar extends Bar {
         'data:realIndex': realIndex
       })
 
+      let elGoalsMarkers = graphics.group({
+        class: 'apexcharts-rangebar-goals-markers',
+        style: `pointer-events: none`
+      })
+
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
@@ -139,6 +144,19 @@ class RangeBar extends Bar {
           barHeight = paths.barHeight
         }
 
+        const barGoalLine = this.barHelpers.drawGoalLine({
+          barXPosition: paths.barXPosition,
+          barYPosition,
+          goalX: paths.goalX,
+          goalY: paths.goalY,
+          barHeight,
+          barWidth
+        })
+
+        if (barGoalLine) {
+          elGoalsMarkers.add(barGoalLine)
+        }
+
         y = paths.y
         x = paths.x
 
@@ -165,6 +183,7 @@ class RangeBar extends Bar {
           barYPosition,
           barWidth,
           elDataLabelsWrap,
+          elGoalsMarkers,
           visibleSeries: this.visibleI,
           type: 'rangebar'
         })
@@ -285,6 +304,7 @@ class RangeBar extends Bar {
       barHeight,
       x,
       y: y2,
+      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
       barXPosition
     }
   }
@@ -328,6 +348,13 @@ class RangeBar extends Bar {
       pathFrom: paths.pathFrom,
       barWidth,
       x: x2,
+      goalX: this.barHelpers.getGoalValues(
+        'x',
+        zeroW,
+        null,
+        indexes.realIndex,
+        indexes.j
+      ),
       y
     }
   }

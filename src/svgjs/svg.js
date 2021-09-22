@@ -35,7 +35,7 @@
   SVG.ns = 'http://www.w3.org/2000/svg'
   SVG.xmlns = 'http://www.w3.org/2000/xmlns/'
   SVG.xlink = 'http://www.w3.org/1999/xlink'
-  SVG.svgjs = 'http://svgjs.com/svgjs'
+  SVG.svgjs = 'http://svgjs.dev'
 
   // Svg support test
   SVG.supported = (function () {
@@ -1652,7 +1652,7 @@
       var base = arrayToMatrix([1, 0, 0, 1, 0, 0])
 
       // ensure source as object
-      source = source instanceof SVG.Element
+      source = source === null ? base : source instanceof SVG.Element
         ? source.matrixify()
         : typeof source === 'string'
           ? arrayToMatrix(source.split(SVG.regex.delimiter).map(parseFloat))
@@ -1660,7 +1660,7 @@
             ? arrayToMatrix([].slice.call(arguments))
             : Array.isArray(source)
               ? arrayToMatrix(source)
-              : typeof source === 'object'
+              : source && typeof source === 'object'
                 ? source : base
 
       // merge source
@@ -1971,7 +1971,7 @@
         for (var i = 0, len = this.arguments.length; i < len; ++i) {
           this[this.arguments[i]] = source[i]
         }
-      } else if (typeof source === 'object') {
+      } else if (source && typeof source === 'object') {
         for (var i = 0, len = this.arguments.length; i < len; ++i) {
           this[this.arguments[i]] = source[this.arguments[i]]
         }
