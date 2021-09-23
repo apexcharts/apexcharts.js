@@ -4221,6 +4221,11 @@ export const optionsPattern = {
           type: Boolean,
           default: false
         },
+        logBase: {
+          title: 'The base of the log function',
+          type: Number,
+          default: 10
+        },
         tickAmount: {
           title: 'Number of tick intervals to show',
           type: Number,

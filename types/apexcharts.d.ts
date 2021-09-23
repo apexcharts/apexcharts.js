@@ -1038,7 +1038,8 @@ type ApexYAxis = {
   seriesName?: string
   opposite?: boolean
   reversed?: boolean
-  logarithmic?: boolean
+  logarithmic?: boolean,
+  logBase?: number,
   tickAmount?: number
   forceNiceScale?: boolean
   min?: number | ((min: number) => number)
