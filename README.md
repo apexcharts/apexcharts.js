@@ -17,9 +17,7 @@
   <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
 </p>
 
-<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with robust features, ApexCharts are flexible and fully responsive on desktops, tablets, and mobiles.</p>
-<p align="center">
-Included are several chart types that guarantee high-performance and options for further customization so you can style the look of your chart the way you want. As an open-source project, ApexCharts is free to use in your commercial apps. </p>
+<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with the features that you expect, ApexCharts includes over a dozen chart types that deliver beautiful, responsive visualizations in your apps and dashboards. ApexCharts is an MIT licensed open-source project that can be used in commercial and non-commercial projects.</p>
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
@@ -62,7 +60,7 @@ Useful links to wrappers other than the popular frameworks mentioned above
 - [apexcharter](https://github.com/dreamRs/apexcharter) - Htmlwidget for ApexCharts
 - [apexcharts.rb](https://github.com/styd/apexcharts.rb) - Ruby wrapper for ApexCharts
 - [larapex-charts](https://github.com/ArielMejiaDev/larapex-charts) - Laravel wrapper for ApexCharts
-- [blazor-apexcharts](https://github.com/joadan/Blazor-ApexCharts) - Blazor wrapper for ApexCharts [demo](https://joadan.github.io/Blazor-ApexCharts/)
+- [blazor-apexcharts](https://github.com/apexcharts/Blazor-ApexCharts) - Blazor wrapper for ApexCharts [demo](https://apexcharts.github.io/Blazor-ApexCharts/)
 - [svelte-apexcharts](https://github.com/galkatz373/svelte-apexcharts) - Svelte wrapper for ApexCharts
 
 

@@ -117,7 +117,12 @@ export default class Utils {
       capturedSeries === null ? -1 : capturedSeries
 
     if (!j || j < 1) j = 0
-    w.globals.capturedDataPointIndex = j
+
+    if (w.globals.isBarHorizontal) {
+      w.globals.capturedDataPointIndex = jHorz
+    } else {
+      w.globals.capturedDataPointIndex = j
+    }
 
     return {
       capturedSeries,

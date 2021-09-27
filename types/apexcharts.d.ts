@@ -708,7 +708,8 @@ type ApexFill = {
     inverseColors?: boolean
     opacityFrom?: number
     opacityTo?: number
-    stops?: number[]
+    stops?: number[],
+    colorStops?: any[]
   }
   image?: {
     src?: string | string[]
@@ -1037,7 +1038,8 @@ type ApexYAxis = {
   seriesName?: string
   opposite?: boolean
   reversed?: boolean
-  logarithmic?: boolean
+  logarithmic?: boolean,
+  logBase?: number,
   tickAmount?: number
   forceNiceScale?: boolean
   min?: number | ((min: number) => number)

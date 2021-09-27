@@ -13,6 +13,7 @@ export default class Options {
       opposite: false,
       reversed: false,
       logarithmic: false,
+      logBase: 10,
       tickAmount: undefined,
       forceNiceScale: false,
       max: undefined,
