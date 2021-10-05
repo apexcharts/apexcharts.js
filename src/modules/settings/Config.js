@@ -199,7 +199,6 @@ export default class Config {
         }
 
         if (series.length !== opts.yaxis.length) {
-          debugger
           let totalYAxisPoints = 0
           opts.yaxis.forEach((element, index) => {
             if (Array.isArray(element.seriesName)) {
@@ -214,6 +213,7 @@ export default class Config {
 
             opts.yaxis.forEach((element, index) => {
               if (Array.isArray(element.seriesName)) {
+                console.log(element.seriesName.includes(series[i].name))
                 result = element.seriesName.includes(series[i].name)
                   ? element
                   : undefined

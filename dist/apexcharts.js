@@ -8688,7 +8688,6 @@
             }
 
             if (series.length !== opts.yaxis.length) {
-              debugger;
               var totalYAxisPoints = 0;
               opts.yaxis.forEach(function (element, index) {
                 if (Array.isArray(element.seriesName)) {
@@ -8702,6 +8701,7 @@
                 var result = undefined;
                 opts.yaxis.forEach(function (element, index) {
                   if (Array.isArray(element.seriesName)) {
+                    console.log(element.seriesName.includes(series[i].name));
                     result = element.seriesName.includes(series[i].name) ? element : undefined;
                   } else {
                     result = element.seriesName === series[i].name ? element : undefined;
