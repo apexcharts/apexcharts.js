@@ -197,6 +197,37 @@ export default class Config {
         if (!s.name) {
           series[i].name = `series-${i + 1}`
         }
+
+        if (series.length !== opts.yaxis.length) {
+          let totalYAxisPoints = 0
+          opts.yaxis.forEach((element, index) => {
+            if (Array.isArray(element.seriesName)) {
+              totalYAxisPoints = totalYAxisPoints + element.seriesName.length
+            } else {
+              totalYAxisPoints = totalYAxisPoints + 1
+            }
+          })
+
+          if (series.length === totalYAxisPoints) {
+            let result = undefined
+
+            opts.yaxis.forEach((element, index) => {
+              if (Array.isArray(element.seriesName)) {
+                result = element.seriesName.includes(series[i].name)
+                  ? element
+                  : undefined
+              } else {
+                result =
+                  element.seriesName === series[i].name ? element : undefined
+              }
+            })
+
+            if (result) {
+              return result
+            }
+          }
+        }
+
         if (opts.yaxis[i]) {
           opts.yaxis[i].seriesName = series[i].name
           return opts.yaxis[i]
