@@ -8688,6 +8688,7 @@
             }
 
             if (series.length !== opts.yaxis.length) {
+              debugger;
               var totalYAxisPoints = 0;
               opts.yaxis.forEach(function (element, index) {
                 if (Array.isArray(element.seriesName)) {
