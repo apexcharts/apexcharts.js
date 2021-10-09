@@ -52,7 +52,7 @@ export default class BarDataLabels {
     let dataLabelsConfig = w.config.dataLabels
     let barDataLabelsConfig = this.barCtx.barOptions.dataLabels
 
-    if (typeof barYPosition !== 'undefined' && this.barCtx.isTimelineBar) {
+    if (typeof barYPosition !== 'undefined' && this.barCtx.isRangeBar) {
       bcy = barYPosition
       dataLabelsY = barYPosition
     }
@@ -110,7 +110,7 @@ export default class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: this.barCtx.isTimelineBar ? [y1, y2] : series[i][j],
+      val: this.barCtx.isRangeBar ? [y1, y2] : series[i][j],
       i: realIndex,
       j,
       barWidth,
@@ -257,7 +257,7 @@ export default class BarDataLabels {
 
     let dataLabelsY =
       bcy -
-      (this.barCtx.isTimelineBar ? 0 : dataPointsDividedHeight) +
+      (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) +
       barHeight / 2 +
       textRects.height / 2 +
       offY -
@@ -381,7 +381,7 @@ export default class BarDataLabels {
       }
 
       if (
-        this.barCtx.isTimelineBar &&
+        this.barCtx.isRangeBar &&
         this.barCtx.barOptions.dataLabels.hideOverflowingLabels
       ) {
         // hide the datalabel if it cannot fit into the rect

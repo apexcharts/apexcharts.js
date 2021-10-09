@@ -10,7 +10,7 @@ export default class Globals {
     gl.seriesCandleC = []
     gl.seriesRangeStart = []
     gl.seriesRangeEnd = []
-    gl.seriesRangeBarTimeline = []
+    gl.seriesRangeBar = []
     gl.seriesPercent = []
     gl.seriesGoals = []
     gl.seriesX = []

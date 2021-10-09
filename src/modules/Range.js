@@ -59,6 +59,7 @@ class Range {
         if (val !== null && Utils.isNumber(val)) {
           if (typeof seriesMax[i][j] !== 'undefined') {
             maxY = Math.max(maxY, seriesMax[i][j])
+            lowestY = Math.min(lowestY, seriesMax[i][j])
           }
           if (typeof seriesMin[i][j] !== 'undefined') {
             lowestY = Math.min(lowestY, seriesMin[i][j])
@@ -126,8 +127,7 @@ class Range {
     if (
       cnf.chart.type === 'rangeBar' &&
       gl.seriesRangeStart.length &&
-      gl.isBarHorizontal &&
-      cnf.xaxis.type === 'datetime'
+      gl.isBarHorizontal
     ) {
       minY = lowestY
     }

@@ -53,7 +53,7 @@ export default class Helpers {
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
 
     let dataPoints = w.globals.dataPoints
-    if (this.barCtx.isTimelineBar) {
+    if (this.barCtx.isRangeBar) {
       // timeline rangebar chart
       dataPoints = w.globals.labels.length
     }

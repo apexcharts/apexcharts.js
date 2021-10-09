@@ -105,7 +105,7 @@ class RangeBar extends Bar {
             break
           }
 
-          if (this.isTimelineBar && w.config.series[i].data[j].x) {
+          if (w.config.series[i].data[j].x) {
             let positions = this.detectOverlappingBars({
               i,
               j,
@@ -210,7 +210,7 @@ class RangeBar extends Bar {
 
     const labelX = w.config.series[i].data[j].x
     const rowIndex = w.globals.labels.indexOf(labelX)
-    const overlappedIndex = w.globals.seriesRangeBarTimeline[i].findIndex(
+    const overlappedIndex = w.globals.seriesRangeBar[i].findIndex(
       (tx) => tx.x === labelX && tx.overlaps.length > 0
     )
 
@@ -221,7 +221,7 @@ class RangeBar extends Bar {
     }
 
     if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-      overlaps = w.globals.seriesRangeBarTimeline[i][overlappedIndex].overlaps
+      overlaps = w.globals.seriesRangeBar[i][overlappedIndex].overlaps
 
       if (overlaps.indexOf(rangeName) > -1) {
         barHeight = initPositions.barHeight / overlaps.length

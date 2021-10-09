@@ -22,9 +22,7 @@ class Bar {
     this.strokeWidth = w.config.stroke.width
     this.isNullValue = false
 
-    this.isTimelineBar =
-      w.config.xaxis.type === 'datetime' &&
-      w.globals.seriesRangeBarTimeline.length
+    this.isRangeBar = w.globals.seriesRangeBar.length && this.isHorizontal
 
     this.xyRatios = xyRatios
 
