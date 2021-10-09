@@ -261,10 +261,20 @@ export default class Dimensions {
 
   conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords) {
     const w = this.w
+
+    const baseXAxisHeight = xaxisLabelCoords.height + xtitleCoords.height
+    const xAxisHeightMultiplicate = w.globals.isMultiLineX
+      ? 1.2
+      : w.globals.LINE_HEIGHT_RATIO
+    const rotatedXAxisOffset = w.globals.rotateXLabels ? 22 : 10
+    const rotatedXAxisLegendOffset =
+      w.globals.rotateXLabels && w.config.legend.position === 'bottom'
+    const additionalOffset = rotatedXAxisLegendOffset ? 10 : 0
+
     this.xAxisHeight =
-      (xaxisLabelCoords.height + xtitleCoords.height) *
-        (w.globals.isMultiLineX ? 1.2 : w.globals.LINE_HEIGHT_RATIO) +
-      (w.globals.rotateXLabels ? 22 : 10)
+      baseXAxisHeight * xAxisHeightMultiplicate +
+      rotatedXAxisOffset +
+      additionalOffset
 
     this.xAxisWidth = xaxisLabelCoords.width
 

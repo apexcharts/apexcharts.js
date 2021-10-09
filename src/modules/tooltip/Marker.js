@@ -56,7 +56,10 @@ export default class Marker {
           PointClasses += ' no-pointer-events'
         }
 
-        let elPointOptions = marker.getMarkerConfig(PointClasses, i)
+        let elPointOptions = marker.getMarkerConfig({
+          cssClass: PointClasses,
+          seriesIndex: i
+        })
 
         point = graphics.drawMarker(0, 0, elPointOptions)
 

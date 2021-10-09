@@ -106,11 +106,25 @@ export default class Scatter {
     let markers = new Markers(this.ctx)
     const graphics = new Graphics(this.ctx)
 
-    const markerConfig = markers.getMarkerConfig('apexcharts-marker', i)
+    const markerConfig = markers.getMarkerConfig({
+      cssClass: 'apexcharts-marker',
+      seriesIndex: i,
+      dataPointIndex,
+      finishRadius:
+        w.config.chart.type === 'bubble' ||
+        (w.globals.comboCharts &&
+          w.config.series[realIndex] &&
+          w.config.series[realIndex].type === 'bubble')
+          ? finishRadius
+          : null
+    })
+
+    finishRadius = markerConfig.pSize
 
     let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex,
       dataPointIndex,
+      color: markerConfig.pointFillColor,
       patternUnits: 'objectBoundingBox',
       value: w.globals.series[realIndex][j]
     })
