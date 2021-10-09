@@ -297,7 +297,7 @@ export default class ApexCharts {
           w.globals.axisCharts &&
           (w.globals.isXNumeric ||
             w.config.xaxis.convertedCatToNumeric ||
-            w.globals.isTimelineBar)
+            w.globals.isRangeBar)
         ) {
           if (
             w.config.chart.zoom.enabled ||
@@ -583,6 +583,10 @@ export default class ApexCharts {
 
   toggleSeries(seriesName) {
     return this.series.toggleSeries(seriesName)
+  }
+
+  highlightSeriesOnLegendHover(e, targetElement) {
+    return this.series.toggleSeriesOnHover(e, targetElement)
   }
 
   showSeries(seriesName) {

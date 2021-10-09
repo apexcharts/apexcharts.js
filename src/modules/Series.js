@@ -130,6 +130,8 @@ export default class Series {
   toggleSeriesOnHover(e, targetElement) {
     const w = this.w
 
+    if (!targetElement) targetElement = e.target
+
     let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
       `.apexcharts-series, .apexcharts-datalabels`
     )

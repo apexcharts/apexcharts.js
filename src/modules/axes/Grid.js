@@ -18,9 +18,7 @@ class Grid {
     this.xaxisLabels = w.globals.labels.slice()
     this.axesUtils = new AxesUtils(ctx)
 
-    this.isTimelineBar =
-      w.config.xaxis.type === 'datetime' &&
-      w.globals.seriesRangeBarTimeline.length
+    this.isRangeBar = w.globals.seriesRangeBar.length
 
     if (w.globals.timescaleLabels.length > 0) {
       //  timescaleLabels labels are there
@@ -333,14 +331,14 @@ class Grid {
       let x2 = w.globals.gridWidth
       let tA = tickAmount + 1
 
-      if (this.isTimelineBar) {
+      if (this.isRangeBar) {
         tA = w.globals.labels.length
       }
 
-      for (let i = 0; i < tA + (this.isTimelineBar ? 1 : 0); i++) {
+      for (let i = 0; i < tA + (this.isRangeBar ? 1 : 0); i++) {
         this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesH })
 
-        y1 = y1 + w.globals.gridHeight / (this.isTimelineBar ? tA : tickAmount)
+        y1 = y1 + w.globals.gridHeight / (this.isRangeBar ? tA : tickAmount)
 
         y2 = y1
       }
@@ -419,10 +417,10 @@ class Grid {
 
     let xCount
 
-    if (!w.globals.isBarHorizontal || this.isTimelineBar) {
+    if (!w.globals.isBarHorizontal || this.isRangeBar) {
       xCount = this.xaxisLabels.length
 
-      if (this.isTimelineBar) {
+      if (this.isRangeBar) {
         yTickAmount = w.globals.labels.length
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
           xCount = w.config.xaxis.tickAmount
