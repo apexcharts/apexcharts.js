@@ -19,6 +19,10 @@
       max-width: 650px;
       margin: 35px auto;
     }
+    
+    .columns {
+      columns: 2;
+    }
       
     </style>
 
@@ -147,6 +151,15 @@
   &lt;div id=&quot;chart-area&quot;&gt;
   &lt;ReactApexChart options={this.state.optionsArea} series={this.state.seriesArea} type=&quot;area&quot; height={160} /&gt;
 &lt;/div&gt;
+  &lt;div class=&quot;columns&quot;&gt;
+    &lt;div id=&quot;chart-small&quot;&gt;
+  &lt;ReactApexChart options={this.state.optionsSmall} series={this.state.seriesSmall} type=&quot;area&quot; height={160} width={300} /&gt;
+&lt;/div&gt;
+    &lt;div id=&quot;chart-small2&quot;&gt;
+  &lt;ReactApexChart options={this.state.optionsSmall2} series={this.state.seriesSmall2} type=&quot;area&quot; height={160} width={300} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+  
 &lt;/div&gt;
     </div>
 
@@ -170,12 +183,7 @@
                 type: 'line',
                 height: 160
               },
-              colors: ['#008FFB'],
-              yaxis: {
-                labels: {
-                  minWidth: 40
-                }
-              }
+              colors: ['#008FFB']
             },
           
             seriesLine2: [{
@@ -191,12 +199,7 @@
                 type: 'line',
                 height: 160
               },
-              colors: ['#546E7A'],
-              yaxis: {
-                labels: {
-                  minWidth: 40
-                }
-              }
+              colors: ['#546E7A']
             },
           
             seriesArea: [{
@@ -212,12 +215,41 @@
                 type: 'area',
                 height: 160
               },
-              colors: ['#00E396'],
-              yaxis: {
-                labels: {
-                  minWidth: 40
-                }
-              }
+              colors: ['#00E396']
+            },
+          
+            seriesSmall: [{
+              data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            }],
+            optionsSmall: {
+              chart: {
+                id: 'ig',
+                group: 'social',
+                type: 'area',
+                height: 160,
+                width: 300
+              },
+              colors: ['#008FFB']
+            },
+          
+            seriesSmall2: [{
+              data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+                min: 10,
+                max: 60
+              })
+            }],
+            optionsSmall2: {
+              chart: {
+                id: 'li',
+                group: 'social',
+                type: 'area',
+                height: 160,
+                width: 300
+              },
+              colors: ['#546E7A']
             },
           
           
@@ -239,6 +271,15 @@
                 <div id="chart-area">
                 <ReactApexChart options={this.state.optionsArea} series={this.state.seriesArea} type="area" height={160} />
               </div>
+                <div class="columns">
+                  <div id="chart-small">
+                <ReactApexChart options={this.state.optionsSmall} series={this.state.seriesSmall} type="area" height={160} width={300} />
+              </div>
+                  <div id="chart-small2">
+                <ReactApexChart options={this.state.optionsSmall2} series={this.state.seriesSmall2} type="area" height={160} width={300} />
+              </div>
+                </div>
+                
               </div>
               <div id="html-dist"></div>
             </div>

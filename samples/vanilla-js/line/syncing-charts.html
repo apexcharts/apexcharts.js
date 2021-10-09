@@ -19,6 +19,10 @@
       max-width: 650px;
       margin: 35px auto;
     }
+    
+    .columns {
+      columns: 2;
+    }
       
     </style>
 
@@ -132,6 +136,11 @@
         <div id="chart-line"></div>
         <div id="chart-line2"></div>
         <div id="chart-area"></div>
+        <div class="columns">
+          <div id="chart-small"></div>
+          <div id="chart-small2"></div>
+        </div>
+        
       </div>
 
     <script>
@@ -149,12 +158,7 @@
           type: 'line',
           height: 160
         },
-        colors: ['#008FFB'],
-        yaxis: {
-          labels: {
-            minWidth: 40
-          }
-        }
+        colors: ['#008FFB']
         };
 
         var chart = new ApexCharts(document.querySelector("#chart-line"), options);
@@ -173,12 +177,7 @@
           type: 'line',
           height: 160
         },
-        colors: ['#546E7A'],
-        yaxis: {
-          labels: {
-            minWidth: 40
-          }
-        }
+        colors: ['#546E7A']
         };
 
         var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsLine2);
@@ -197,16 +196,51 @@
           type: 'area',
           height: 160
         },
-        colors: ['#00E396'],
-        yaxis: {
-          labels: {
-            minWidth: 40
-          }
-        }
+        colors: ['#00E396']
         };
 
         var chartArea = new ApexCharts(document.querySelector("#chart-area"), optionsArea);
         chartArea.render();
+      
+        var optionsSmall = {
+          series: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 60
+          })
+        }],
+          chart: {
+          id: 'ig',
+          group: 'social',
+          type: 'area',
+          height: 160,
+          width: 300
+        },
+        colors: ['#008FFB']
+        };
+
+        var chartSmall = new ApexCharts(document.querySelector("#chart-small"), optionsSmall);
+        chartSmall.render();
+      
+        var optionsSmall2 = {
+          series: [{
+          data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+            min: 10,
+            max: 60
+          })
+        }],
+          chart: {
+          id: 'li',
+          group: 'social',
+          type: 'area',
+          height: 160,
+          width: 300
+        },
+        colors: ['#546E7A']
+        };
+
+        var chartSmall2 = new ApexCharts(document.querySelector("#chart-small2"), optionsSmall2);
+        chartSmall2.render();
       
       
     </script>

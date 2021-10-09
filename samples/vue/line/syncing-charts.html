@@ -19,6 +19,10 @@
       max-width: 650px;
       margin: 35px auto;
     }
+    
+    .columns {
+      columns: 2;
+    }
       
     </style>
 
@@ -142,6 +146,15 @@
       <div id="chart-area">
       <apexchart type="area" height="160" :options="chartOptionsArea" :series="seriesArea"></apexchart>
     </div>
+      <div class="columns">
+        <div id="chart-small">
+      <apexchart type="area" height="160" width="300" :options="chartOptionsSmall" :series="seriesSmall"></apexchart>
+    </div>
+        <div id="chart-small2">
+      <apexchart type="area" height="160" width="300" :options="chartOptionsSmall2" :series="seriesSmall2"></apexchart>
+    </div>
+      </div>
+      
     </div>
     </div>
 
@@ -157,6 +170,15 @@
         &lt;div id=&quot;chart-area&quot;&gt;
         &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; :options=&quot;chartOptionsArea&quot; :series=&quot;seriesArea&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
+        &lt;div class=&quot;columns&quot;&gt;
+          &lt;div id=&quot;chart-small&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; width=&quot;300&quot; :options=&quot;chartOptionsSmall&quot; :series=&quot;seriesSmall&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+          &lt;div id=&quot;chart-small2&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; width=&quot;300&quot; :options=&quot;chartOptionsSmall2&quot; :series=&quot;seriesSmall2&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+        
       &lt;/div&gt;
     </div>
 
@@ -181,12 +203,7 @@
               type: 'line',
               height: 160
             },
-            colors: ['#008FFB'],
-            yaxis: {
-              labels: {
-                minWidth: 40
-              }
-            }
+            colors: ['#008FFB']
           },
           
           seriesLine2: [{
@@ -202,12 +219,7 @@
               type: 'line',
               height: 160
             },
-            colors: ['#546E7A'],
-            yaxis: {
-              labels: {
-                minWidth: 40
-              }
-            }
+            colors: ['#546E7A']
           },
           
           seriesArea: [{
@@ -223,12 +235,41 @@
               type: 'area',
               height: 160
             },
-            colors: ['#00E396'],
-            yaxis: {
-              labels: {
-                minWidth: 40
-              }
-            }
+            colors: ['#00E396']
+          },
+          
+          seriesSmall: [{
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          }],
+          chartOptionsSmall: {
+            chart: {
+              id: 'ig',
+              group: 'social',
+              type: 'area',
+              height: 160,
+              width: 300
+            },
+            colors: ['#008FFB']
+          },
+          
+          seriesSmall2: [{
+            data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
+              min: 10,
+              max: 60
+            })
+          }],
+          chartOptionsSmall2: {
+            chart: {
+              id: 'li',
+              group: 'social',
+              type: 'area',
+              height: 160,
+              width: 300
+            },
+            colors: ['#546E7A']
           },
           
           
