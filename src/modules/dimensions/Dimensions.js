@@ -266,15 +266,15 @@ export default class Dimensions {
     const xAxisHeightMultiplicate = w.globals.isMultiLineX
       ? 1.2
       : w.globals.LINE_HEIGHT_RATIO
-    const rotatePlaceXAxisHeight = w.globals.rotateXLabels ? 22 : 10
-    const needAdditionOffset =
+    const rotatedXAxisOffset = w.globals.rotateXLabels ? 22 : 10
+    const rotatedXAxisLegendOffset =
       w.globals.rotateXLabels && w.config.legend.position === 'bottom'
-    const additionOffset = needAdditionOffset ? 10 : 0
+    const additionalOffset = rotatedXAxisLegendOffset ? 10 : 0
 
     this.xAxisHeight =
       baseXAxisHeight * xAxisHeightMultiplicate +
-      rotatePlaceXAxisHeight +
-      additionOffset
+      rotatedXAxisOffset +
+      additionalOffset
 
     this.xAxisWidth = xaxisLabelCoords.width
 
