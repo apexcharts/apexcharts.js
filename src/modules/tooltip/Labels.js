@@ -1,7 +1,6 @@
 import Formatters from '../Formatters'
 import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
-import Utilities from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
