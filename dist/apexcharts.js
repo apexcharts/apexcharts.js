@@ -8681,7 +8681,7 @@
         // If this is not the case, we manually create yaxis for multi-series log chart
 
 
-        if (isLogY && series.length !== opts.yaxis.length && series.length) {
+        if (isLogY || series.length !== opts.yaxis.length && series.length) {
           opts.yaxis = series.map(function (s, i) {
             if (!s.name) {
               series[i].name = "series-".concat(i + 1);
@@ -8698,19 +8698,13 @@
               });
 
               if (series.length === totalYAxisPoints) {
-                var result = undefined;
                 opts.yaxis.forEach(function (element, index) {
                   if (Array.isArray(element.seriesName)) {
-                    console.log(element.seriesName.includes(series[i].name));
-                    result = element.seriesName.includes(series[i].name) ? element : undefined;
+                    element.seriesName.includes(series[i].name) ? element : undefined;
                   } else {
-                    result = element.seriesName === series[i].name ? element : undefined;
+                    element.seriesName === series[i].name ? element : undefined;
                   }
                 });
-
-                if (result) {
-                  return result;
-                }
               }
             }
 
@@ -30974,10 +30968,10 @@
                 tools[t] = false;
               });
             }
+          }
 
-            if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
-              me.toolbar.createToolbar();
-            }
+          if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
+            me.toolbar.createToolbar();
           }
 
           if (w.globals.memory.methodsToExec.length > 0) {

@@ -322,10 +322,10 @@ export default class ApexCharts {
             tools[t] = false
           })
         }
+      }
 
-        if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
-          me.toolbar.createToolbar()
-        }
+      if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
+        me.toolbar.createToolbar()
       }
 
       if (w.globals.memory.methodsToExec.length > 0) {
