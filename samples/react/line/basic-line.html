@@ -70,7 +70,18 @@
           super(props);
 
           this.state = {
-            series: [],
+            series: [{
+                name: "Plates",
+                data: [56, 78, 12, 78, 65, 87, 35, 183, 45]
+            },
+            {
+                name: "Desktops",
+                data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
+            },
+            {
+                name: "Phones",
+                data: [78, 12, 78, 32, 75, 95, 94, 31, 45]
+            }],
             options: {
               chart: {
                 height: 350,

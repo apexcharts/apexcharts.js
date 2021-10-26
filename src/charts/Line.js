@@ -160,7 +160,20 @@ class Line {
       : w.config.stroke.width
 
     if (this.yRatio.length > 1) {
-      this.yaxisIndex = realIndex
+      if (w.config.yaxis.length !== w.globals.series.length) {
+        let serieName = w.globals.seriesNames[realIndex]
+        let yaxisToUse = w.config.yaxis.filter((yAxis) =>
+          yAxis.seriesName.includes(serieName)
+        )
+
+        if (yaxisToUse.length > 0) {
+          this.yaxisIndex = w.config.yaxis.indexOf(yaxisToUse[0])
+        } else {
+          this.yaxisIndex = realIndex
+        }
+      } else {
+        this.yaxisIndex = realIndex
+      }
     }
 
     this.isReversed =

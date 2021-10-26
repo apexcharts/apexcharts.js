@@ -8677,6 +8677,13 @@
 
         if (w && !series) {
           series = w.config.series;
+        } // Do something smart here when series length is > 1 and not equal to yaxis length and yaxis length > 1
+
+
+        if (!isLogY && series.length > 1 && opts.yaxis.length > 1 && series.length !== opts.yaxis.length) {
+          opts.yaxis = opts.yaxis.map(function (yaxisInfo, index) {
+            return yaxisInfo;
+          });
         } // A logarithmic chart works correctly when each series has a corresponding y-axis
         // If this is not the case, we manually create yaxis for multi-series log chart
 
@@ -22034,7 +22041,20 @@
         this.strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[realIndex] : w.config.stroke.width;
 
         if (this.yRatio.length > 1) {
-          this.yaxisIndex = realIndex;
+          if (w.config.yaxis.length !== w.globals.series.length) {
+            var serieName = w.globals.seriesNames[realIndex];
+            var yaxisToUse = w.config.yaxis.filter(function (yAxis) {
+              return yAxis.seriesName.includes(serieName);
+            });
+
+            if (yaxisToUse.length > 0) {
+              this.yaxisIndex = w.config.yaxis.indexOf(yaxisToUse[0]);
+            } else {
+              this.yaxisIndex = realIndex;
+            }
+          } else {
+            this.yaxisIndex = realIndex;
+          }
         }
 
         this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed; // zeroY is the 0 value in y series which can be used in negative charts
