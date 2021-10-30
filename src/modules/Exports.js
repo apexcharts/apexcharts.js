@@ -185,7 +185,8 @@ class Exports {
 
     let columns = []
     let rows = []
-    let result = 'data:text/csv;charset=utf-8,\uFEFF'
+    let result = ''
+    let universalBOM = '\uFEFF'
 
     const isTimeStamp = (num) => {
       return w.config.xaxis.type === 'datetime' && String(num).length >= 10
@@ -342,8 +343,10 @@ class Exports {
 
     result += rows.join(lineDelimiter)
 
+    console.log(result, 'result')
     this.triggerDownload(
-      encodeURI(result),
+      'data:text/csv; charset=utf-8,' +
+        encodeURIComponent(universalBOM + result),
       w.config.chart.toolbar.export.csv.filename,
       '.csv'
     )
