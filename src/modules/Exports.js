@@ -23,7 +23,7 @@ class Exports {
     // IE11 generates broken SVG that we have to fix by using regex
     if (!Utils.isIE11()) {
       // not IE11 - noop
-      return svgData
+      return svgData.replace(/&nbsp;/g, '&#160;')
     }
 
     // replace second occurrence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
