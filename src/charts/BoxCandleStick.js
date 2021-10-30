@@ -53,6 +53,8 @@ class BoxCandleStick extends Bar {
         'data:realIndex': realIndex
       })
 
+      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
+
       if (series[i].length > 0) {
         this.visibleI = this.visibleI + 1
       }
