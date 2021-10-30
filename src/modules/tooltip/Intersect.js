@@ -2,6 +2,8 @@ import Utils from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Intersect Class.
+ * This file deals with functions related to intersecting tooltips
+ * (tooltips that appear when user hovers directly over a data-point whether)
  *
  * @module Tooltip.Intersect
  **/
@@ -12,10 +14,12 @@ class Intersect {
     this.ttCtx = tooltipContext
   }
 
+  // a helper function to get an element's attribute value
   getAttr(e, attr) {
     return parseFloat(e.target.getAttribute(attr))
   }
 
+  // handle tooltip for heatmaps and treemaps
   handleHeatTreeTooltip({ e, opt, x, y, type }) {
     const ttCtx = this.ttCtx
     const w = this.w
@@ -60,6 +64,10 @@ class Intersect {
     }
   }
 
+  /**
+   * handle tooltips for line/area/scatter charts where tooltip.intersect is true
+   * when user hovers over the marker directly, this function is executed
+   */
   handleMarkerTooltip({ e, opt, x, y }) {
     let w = this.w
     const ttCtx = this.ttCtx
@@ -121,6 +129,9 @@ class Intersect {
     }
   }
 
+  /**
+   * handle tooltips for bar/column charts
+   */
   handleBarTooltip({ e, opt }) {
     const w = this.w
     const ttCtx = this.ttCtx

@@ -5,6 +5,9 @@ import Utils from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Marker Class to draw texts on the tooltip.
+ * This file deals with the markers that appear near tooltip in line/area charts.
+ * These markers helps the user to associate the data-points and the values
+ * that are shown in the tooltip
  *
  * @module Tooltip.Marker
  **/

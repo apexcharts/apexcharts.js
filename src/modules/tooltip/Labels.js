@@ -4,6 +4,7 @@ import Utils from './Utils'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
+ * This file deals with printing actual text on the tooltip.
  *
  * @module Tooltip.Labels
  **/
