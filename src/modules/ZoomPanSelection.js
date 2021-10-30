@@ -129,6 +129,8 @@ export default class ZoomPanSelection extends Toolbar {
       }
     }
 
+    if (!e.target) return
+
     const tc = e.target.classList
     let pc
     if (e.target.parentNode && e.target.parentNode !== null) {

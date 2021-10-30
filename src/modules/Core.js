@@ -409,7 +409,11 @@ export default class Core {
 
     let chartInnerDimensions = w.globals.radialSize * 2.05
 
-    if (el && !w.config.chart.sparkline.enabled) {
+    if (
+      el &&
+      !w.config.chart.sparkline.enabled &&
+      w.config.plotOptions.radialBar.startAngle !== 0
+    ) {
       let elRadialRect = Utils.getBoundingClientRect(el)
       chartInnerDimensions = elRadialRect.bottom
 
