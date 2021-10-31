@@ -22,7 +22,11 @@ export default class PointAnnotations {
 
     let annoY = parseFloat(anno.y)
 
-    if (typeof anno.x === 'string') {
+    if (
+      typeof anno.x === 'string' ||
+      w.config.xaxis.type === 'category' ||
+      w.config.xaxis.convertedCatToNumeric
+    ) {
       let catIndex = w.globals.labels.indexOf(anno.x)
 
       if (w.config.xaxis.convertedCatToNumeric) {
