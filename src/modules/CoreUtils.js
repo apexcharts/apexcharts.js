@@ -29,7 +29,7 @@ class CoreUtils {
         }
       })
     }
-    if (comboCount > 1) {
+    if (comboCount > 0) {
       comboCharts = true
     }
 
