@@ -12,6 +12,7 @@ import XAxis from './modules/axes/XAxis'
 import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import Destroy from './modules/helpers/Destroy'
+import { addResizeListener, removeResizeListener } from './utils/Resize'
 
 /**
  *
@@ -730,41 +731,5 @@ export default class ApexCharts {
     }
 
     redraw && this._windowResize()
-  }
-}
-
-// Private helpers to react to element resizes, regardless of what caused them
-// TODO Currently this creates a new ResizeObserver every time we want to observe an element for resizes
-// Ideally, we should be able to use a single observer for all elements
-let ros = new WeakMap() // Map callbacks to ResizeObserver instances for easy removal
-
-function addResizeListener(el, fn) {
-  let called = false
-
-  let ro = new ResizeObserver((r) => {
-    // ROs fire immediately after being created,
-    // per spec: https://drafts.csswg.org/resize-observer/#ref-for-element%E2%91%A3
-    // we don't want that so we just discard the first run
-    if (called) {
-      fn.call(el, r)
-    }
-    called = true
-  })
-
-  if (el.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-    // Document fragment, observe children instead (needed for Shadow DOM, see #1332)
-    Array.from(el.children).forEach((c) => ro.observe(c))
-  } else {
-    ro.observe(el)
-  }
-
-  ros.set(fn, ro)
-}
-
-function removeResizeListener(el, fn) {
-  let ro = ros.get(fn)
-  if (ro) {
-    ro.disconnect()
-    ros.delete(fn)
   }
 }
