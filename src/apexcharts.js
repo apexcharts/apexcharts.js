@@ -69,7 +69,7 @@ export default class ApexCharts {
 
         this.events.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
-        window.addResizeListener(this.el.parentNode, this.parentResizeHandler)
+        addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
         let graphData = this.create(this.w.config.series, {})
         if (!graphData) return resolve(this)
@@ -347,7 +347,7 @@ export default class ApexCharts {
   destroy() {
     window.removeEventListener('resize', this.windowResizeHandler)
 
-    window.removeResizeListener(this.el.parentNode, this.parentResizeHandler)
+    removeResizeListener(this.el.parentNode, this.parentResizeHandler)
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
     if (chartID) {
@@ -730,5 +730,41 @@ export default class ApexCharts {
     }
 
     redraw && this._windowResize()
+  }
+}
+
+// Private helpers to react to element resizes, regardless of what caused them
+// TODO Currently this creates a new ResizeObserver every time we want to observe an element for resizes
+// Ideally, we should be able to use a single observer for all elements
+let ros = new WeakMap() // Map callbacks to ResizeObserver instances for easy removal
+
+function addResizeListener(el, fn) {
+  let called = false
+
+  let ro = new ResizeObserver((r) => {
+    // ROs fire immediately after being created,
+    // per spec: https://drafts.csswg.org/resize-observer/#ref-for-element%E2%91%A3
+    // we don't want that so we just discard the first run
+    if (called) {
+      fn.call(el, r)
+    }
+    called = true
+  })
+
+  if (el.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+    // Document fragment, observe children instead (needed for Shadow DOM, see #1332)
+    Array.from(el.children).forEach((c) => ro.observe(c))
+  } else {
+    ro.observe(el)
+  }
+
+  ros.set(fn, ro)
+}
+
+function removeResizeListener(el, fn) {
+  let ro = ros.get(fn)
+  if (ro) {
+    ro.disconnect()
+    ros.delete(fn)
   }
 }

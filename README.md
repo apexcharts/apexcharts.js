@@ -186,6 +186,7 @@ If you need to make it work with IE11, you need to include these polyfills befor
 
 - [promise-polyfill](https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js)
 - [classlist.js](https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill)
+- [ResizeObserver polyfill](https://cdn.jsdelivr.net/npm/@juggle/resize-observer)
 - [findIndex](https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn) - You will need this only if you require timeline/rangebar charts
 - [canvg](https://unpkg.com/canvg@3.0.4/lib/umd.js) - You will need this only if you require PNG download of your charts
 
