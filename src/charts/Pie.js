@@ -804,7 +804,7 @@ class Pie {
     }
     let labelFontSize = dataLabelsConfig.name.fontSize
     let labelFontFamily = dataLabelsConfig.name.fontFamily
-    let labelFontWeight = dataLabelsConfig.value.fontWeight
+    let labelFontWeight = dataLabelsConfig.name.fontWeight
 
     if (dataLabelsConfig.value.color === undefined) {
       valueColor = w.config.chart.foreColor

@@ -30,7 +30,8 @@ class Radial extends Pie {
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
     this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle
 
-    this.radialDataLabels = w.config.plotOptions.radialBar.dataLabels
+    this.donutDataLabels = this.w.config.plotOptions.radialBar.dataLabels
+    this.radialDataLabels = this.donutDataLabels // make a copy for easy reference
 
     if (!this.trackStartAngle) this.trackStartAngle = this.startAngle
     if (!this.trackEndAngle) this.trackEndAngle = this.endAngle
