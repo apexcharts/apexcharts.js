@@ -12,6 +12,7 @@ import XAxis from './modules/axes/XAxis'
 import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import Destroy from './modules/helpers/Destroy'
+import { addResizeListener, removeResizeListener } from './utils/Resize'
 
 /**
  *
@@ -69,7 +70,7 @@ export default class ApexCharts {
 
         this.events.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
-        window.addResizeListener(this.el.parentNode, this.parentResizeHandler)
+        addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
         let graphData = this.create(this.w.config.series, {})
         if (!graphData) return resolve(this)
@@ -347,7 +348,7 @@ export default class ApexCharts {
   destroy() {
     window.removeEventListener('resize', this.windowResizeHandler)
 
-    window.removeResizeListener(this.el.parentNode, this.parentResizeHandler)
+    removeResizeListener(this.el.parentNode, this.parentResizeHandler)
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
     if (chartID) {
