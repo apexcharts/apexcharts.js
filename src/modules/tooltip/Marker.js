@@ -61,7 +61,7 @@ export default class Marker {
 
         let elPointOptions = marker.getMarkerConfig({
           cssClass: PointClasses,
-          seriesIndex: i
+          seriesIndex: Number(pointsMain.getAttribute('data:realIndex')) // fixes apexcharts/apexcharts.js #1427
         })
 
         point = graphics.drawMarker(0, 0, elPointOptions)
