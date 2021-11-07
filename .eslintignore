@@ -1,6 +1,5 @@
 dist/
 assets/
 src/svgjs/
-src/utils/DetectElementResize.js
 node_modules/
 tests/coverage/

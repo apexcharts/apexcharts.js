@@ -65,7 +65,9 @@ function rollupConfig(opts) {
       json({
         preferConst: true
       }),
-      postcss(),
+      postcss({
+        plugins: []
+      }),
       svgo({
         raw: true
       }),
