@@ -343,7 +343,6 @@ class Exports {
 
     result += rows.join(lineDelimiter)
 
-    console.log(result, 'result')
     this.triggerDownload(
       'data:text/csv; charset=utf-8,' +
         encodeURIComponent(universalBOM + result),

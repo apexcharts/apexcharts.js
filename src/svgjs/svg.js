@@ -483,7 +483,10 @@
           }
         }
 
-        return pathHandlers[i](c, p, p0)
+        if(pathHandlers && typeof pathHandlers[i] === 'function') {
+          // this check fixes jest unit tests
+          return pathHandlers[i](c, p, p0)
+        }
       }
     })(mlhvqtcsa[i].toUpperCase())
   }
@@ -1611,8 +1614,14 @@
               SVG.prepare()
             }
             var clone = element.clone(SVG.parser.draw.instance).show()
-            box = clone.node.getBBox()
-            clone.remove()
+
+            if(clone && clone.node && typeof clone.node.getBBox === 'function') {
+              // this check fixes jest unit tests
+              box = clone.node.getBBox()
+            }
+            if(clone && typeof clone.remove === 'function') {
+              clone.remove()
+            }
           } else {
             box = {
               x: element.node.clientLeft,

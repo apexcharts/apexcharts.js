@@ -718,7 +718,10 @@ class Graphics {
   }
 
   rotateAroundCenter(el) {
-    let coord = el.getBBox()
+    let coord = {}
+    if (el && typeof el.getBBox === 'function') {
+      coord = el.getBBox()
+    }
     let x = coord.x + coord.width / 2
     let y = coord.y + coord.height / 2
 

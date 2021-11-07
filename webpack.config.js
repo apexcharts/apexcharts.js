@@ -3,6 +3,7 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer')
 
 module.exports = {
   entry: [path.resolve(__dirname, 'src/apexcharts.js')],
+  mode: 'production',
   output: {
     library: 'ApexCharts',
     libraryTarget: 'umd',
@@ -17,21 +18,10 @@ module.exports = {
         enforce: 'pre',
         exclude: [
           /node_modules/,
-          path.resolve(__dirname, 'src/utils/DetectElementResize.js'),
           path.resolve(__dirname, 'src/svgjs/svg.js'),
           path.resolve(__dirname, 'src/utils/Utils.js')
         ],
-        include: path.resolve(__dirname, 'src/'),
-        use: [
-          {
-            options: {
-              fix: true,
-              eslintPath: require.resolve('eslint'),
-              parser: require.resolve('babel-eslint')
-            },
-            loader: require.resolve('eslint-loader')
-          }
-        ]
+        include: path.resolve(__dirname, 'src/')
       },
       {
         test: /\.js$/,

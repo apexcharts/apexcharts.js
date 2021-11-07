@@ -63,7 +63,7 @@ export default class Labels {
 
     let seriesName = ''
 
-    let pColor = w.globals.colors[i]
+    let pColor = w.globals.colors[i] // The pColor here is for the markers inside tooltip
     if (j !== null && w.config.plotOptions.bar.distributed) {
       pColor = w.globals.colors[j]
     }
@@ -238,7 +238,6 @@ export default class Labels {
     ttItemsChildren = ttItems[t].children
 
     if (w.config.tooltip.fillSeriesColor) {
-      //  elTooltip.style.backgroundColor = pColor
       ttItems[t].style.backgroundColor = pColor
       ttItemsChildren[0].style.display = 'none'
     }
