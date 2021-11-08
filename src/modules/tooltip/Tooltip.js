@@ -34,6 +34,7 @@ export default class Tooltip {
     this.xaxisTooltip = null
     this.yaxisTTEls = null
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
+    this.lastHoverTime = Date.now();
   }
 
   getElTooltip(ctx) {
@@ -340,7 +341,7 @@ export default class Tooltip {
       events.map((ev) => {
         return paths[p].addEventListener(
           ev,
-          self.seriesHover.bind(self, extendedOpts),
+          self.onSeriesHover.bind(self, extendedOpts),
           { capture: false, passive: true }
         )
       })
@@ -348,9 +349,34 @@ export default class Tooltip {
   }
 
   /*
+   ** Check to see if the tooltips should be updated based on a mouse / touch event
+   */
+  onSeriesHover(opt, e) {
+    // If a user is moving their mouse quickly, don't bother updating the tooltip every single frame
+
+    const targetDelay = 100;
+    const timeSinceLastUpdate = Date.now() - this.lastHoverTime;
+    if (timeSinceLastUpdate >= targetDelay) {
+      // The tooltip was last updated over 100ms ago - redraw it even if the user is still moving their
+      // mouse so they get some feedback that their moves are being registered
+      this.seriesHover(opt, e);
+    } else {
+      // The tooltip was last updated less than 100ms ago
+      // Cancel any other delayed draw, so we don't show stale data
+      clearTimeout(this.seriesHoverTimeout);
+
+      // Schedule the next draw so that it happens about 100ms after the last update
+      this.seriesHoverTimeout = setTimeout(() => {
+        this.seriesHover(opt, e);
+      }, targetDelay - timeSinceLastUpdate);
+    }
+  }
+
+  /*
    ** The actual series hover function
    */
   seriesHover(opt, e) {
+    this.lastHoverTime = Date.now();
     let chartGroups = []
     const w = this.w
 
