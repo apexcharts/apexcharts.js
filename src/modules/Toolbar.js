@@ -190,7 +190,7 @@ export default class Toolbar {
     }
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItems.push(document.createElement('div'))
-      this.elMenuItems[i].innerHTML = menuItems[i].title
+      this.elMenuItems[i].textContent = menuItems[i].title
       Graphics.setAttrs(this.elMenuItems[i], {
         class: `apexcharts-menu-item ${menuItems[i].name}`,
         title: menuItems[i].title

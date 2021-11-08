@@ -600,14 +600,14 @@ export default class Tooltip {
           w
         })
 
-        this.legendLabels[i].innerHTML = text
+        this.legendLabels[i].textContent = text
       }
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       tooltipEl.classList.remove('apexcharts-active')
       if (w.config.legend.tooltipHoverFormatter) {
         this.legendLabels.forEach((l) => {
           const defaultText = l.getAttribute('data:default-text')
-          l.innerHTML = decodeURIComponent(defaultText)
+          l.textContent = decodeURIComponent(defaultText)
         })
       }
     }
@@ -714,7 +714,7 @@ export default class Tooltip {
     if (w.config.legend.tooltipHoverFormatter) {
       this.legendLabels.forEach((l) => {
         const defaultText = l.getAttribute('data:default-text')
-        l.innerHTML = decodeURIComponent(defaultText)
+        l.textContent = decodeURIComponent(defaultText)
       })
     }
   }
@@ -757,7 +757,7 @@ export default class Tooltip {
       // reset all legend values first
       els.forEach((l) => {
         const legendName = l.getAttribute('data:default-text')
-        l.innerHTML = decodeURIComponent(legendName)
+        l.textContent = decodeURIComponent(legendName)
       })
 
       // for irregular time series
@@ -775,12 +775,12 @@ export default class Tooltip {
         })
 
         if (!shared) {
-          l.innerHTML = lsIndex === capturedSeries ? text : legendName
+          l.textContent = lsIndex === capturedSeries ? text : legendName
           if (capturedSeries === lsIndex) {
             break
           }
         } else {
-          l.innerHTML =
+          l.textContent =
             w.globals.collapsedSeriesIndices.indexOf(lsIndex) < 0
               ? text
               : legendName

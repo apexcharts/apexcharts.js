@@ -249,23 +249,23 @@ export default class Labels {
           '.apexcharts-tooltip-title'
         )
       }
-      ttCtx.tooltipTitle.innerHTML = xVal
+      ttCtx.tooltipTitle.textContent = xVal
     }
 
-    // if xaxis tooltip is constructed, we need to replace the innerHTML
+    // if xaxis tooltip is constructed, we need to replace the textContent
     if (ttCtx.blxaxisTooltip) {
-      ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
+      ttCtx.xaxisTooltipText.textContent = xAxisTTVal !== '' ? xAxisTTVal : xVal
     }
 
     const ttYLabel = ttItems[t].querySelector(
       '.apexcharts-tooltip-text-y-label'
     )
     if (ttYLabel) {
-      ttYLabel.innerHTML = seriesName ? seriesName : ''
+      ttYLabel.textContent = seriesName ? seriesName : ''
     }
     const ttYVal = ttItems[t].querySelector('.apexcharts-tooltip-text-y-value')
     if (ttYVal) {
-      ttYVal.innerHTML = typeof val !== 'undefined' ? val : ''
+      ttYVal.textContent = typeof val !== 'undefined' ? val : ''
     }
 
     if (
@@ -295,14 +295,28 @@ export default class Labels {
 
     if (goalVals.length && w.globals.seriesGoals[t]) {
       const createGoalsHtml = () => {
-        let gLabels = '<div >'
-        let gVals = '<div>'
+        const gLabelsOuter = document.createElement('div');
+        const gValsOuter = document.createElement('div');
         goalVals.forEach((goal, gi) => {
-          gLabels += ` <div style="display: flex"><span class="apexcharts-tooltip-marker" style="background-color: ${goal.attrs.strokeColor}; height: 3px; border-radius: 0; top: 5px;"></span> ${goal.attrs.name}</div>`
-          gVals += `<div>${goal.val}</div>`
+          const gLabel = document.createElement('div');
+          gLabel.style.display = 'flex';
+          const gLabelMarker = document.createElement('span');
+          gLabelMarker.className = 'apexcharts-tooltip-marker';
+          gLabelMarker.style.backgroundColor = goal.attrs.strokeColor;
+          gLabelMarker.style.height = '3px';
+          gLabelMarker.style.borderRadius = '0';
+          gLabelMarker.style.top = '5px';
+          gLabel.appendChild(gLabelMarker);
+          gLabel.appendChild(document.createTextNode(` ${goal.attrs.name}`));
+          gLabelsOuter.appendChild(gLabel);
+          const gVal = document.createElement('div');
+          gVal.textContent = goal.val;
+          gValsOuter.appendChild(gVal);
         })
-        ttGLabel.innerHTML = gLabels + `</div>`
-        ttGVal.innerHTML = gVals + `</div>`
+        ttGLabel.textContent = '';
+        ttGLabel.appendChild(gLabelsOuter);
+        ttGVal.textContent = '';
+        ttGVal.appendChild(gValsOuter);
       }
       if (shared) {
         if (
@@ -311,26 +325,26 @@ export default class Labels {
         ) {
           createGoalsHtml()
         } else {
-          ttGLabel.innerHTML = ''
-          ttGVal.innerHTML = ''
+          ttGLabel.textContent = ''
+          ttGVal.textContent = ''
         }
       } else {
         createGoalsHtml()
       }
     } else {
-      ttGLabel.innerHTML = ''
-      ttGVal.innerHTML = ''
+      ttGLabel.textContent = ''
+      ttGVal.textContent = ''
     }
 
     if (zVal !== null) {
       const ttZLabel = ttItems[t].querySelector(
         '.apexcharts-tooltip-text-z-label'
       )
-      ttZLabel.innerHTML = w.config.tooltip.z.title
+      ttZLabel.textContent = w.config.tooltip.z.title
       const ttZVal = ttItems[t].querySelector(
         '.apexcharts-tooltip-text-z-value'
       )
-      ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : ''
+      ttZVal.textContent = typeof zVal !== 'undefined' ? zVal : ''
     }
 
     if (shared && ttItemsChildren[0]) {
@@ -485,7 +499,7 @@ export default class Labels {
     }
 
     // override everything with a custom html tooltip and replace it
-    tooltipEl.innerHTML = fn({
+    tooltipEl.textContent = fn({
       ctx: this.ctx,
       series: w.globals.series,
       seriesIndex: i,

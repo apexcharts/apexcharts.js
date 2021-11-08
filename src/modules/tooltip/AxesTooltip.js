@@ -184,7 +184,7 @@ class AxesTooltip {
       const val = w.globals.minYArr[index] + (height - hoverY)
 
       ttCtx.tooltipPosition.moveYCrosshairs(clientY - seriesBound.top)
-      ttCtx.yaxisTooltipText[index].innerHTML = lbFormatter(val)
+      ttCtx.yaxisTooltipText[index].textContent = lbFormatter(val)
       ttCtx.tooltipPosition.moveYAxisTooltip(index)
     }
   }
