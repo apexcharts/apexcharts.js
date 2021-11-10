@@ -13,6 +13,7 @@ import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import Destroy from './modules/helpers/Destroy'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
+import apexCSS from './assets/apexcharts.css'
 
 /**
  *
@@ -71,6 +72,28 @@ export default class ApexCharts {
         this.events.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
         addResizeListener(this.el.parentNode, this.parentResizeHandler)
+
+        // Add CSS if not already added
+        if (!this.css) {
+          let rootNode = this.el.getRootNode && this.el.getRootNode()
+          let inShadowRoot = Utils.is('ShadowRoot', rootNode)
+          let doc = this.el.ownerDocument
+          let globalCSS = doc.getElementById('apexcharts-css')
+
+          if (inShadowRoot || !globalCSS) {
+            this.css = document.createElement('style')
+            this.css.id = 'apexcharts-css'
+            this.css.textContent = apexCSS
+
+            if (inShadowRoot) {
+              // We are in Shadow DOM, add to shadow root
+              rootNode.prepend(this.css)
+            } else {
+              // Add to <head> of element's document
+              doc.head.appendChild(this.css)
+            }
+          }
+        }
 
         let graphData = this.create(this.w.config.series, {})
         if (!graphData) return resolve(this)
