@@ -63,7 +63,7 @@ export default class YAnnotations {
 
     let elText = this.annoCtx.graphics.drawText({
       x: textX + anno.label.offsetX,
-      y: (y2 || y1) + anno.label.offsetY - 3,
+      y: (y2 != null ? y2 : y1) + anno.label.offsetY - 3,
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,
