@@ -4,7 +4,7 @@
 
 class Utils {
   static bind(fn, me) {
-    return function() {
+    return function () {
       return fn.apply(me, arguments)
     }
   }
@@ -13,6 +13,11 @@ class Utils {
     return (
       item && typeof item === 'object' && !Array.isArray(item) && item != null
     )
+  }
+
+  // Type checking that works across different window objects
+  static is(type, val) {
+    return Object.prototype.toString.call(val) === '[object ' + type + ']';
   }
 
   static listToArray(list) {
@@ -28,8 +33,8 @@ class Utils {
   // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
   static extend(target, source) {
     if (typeof Object.assign !== 'function') {
-      ;(function() {
-        Object.assign = function(target) {
+      ; (function () {
+        Object.assign = function (target) {
           'use strict'
           // We must check against these specific cases.
           if (target === undefined || target === null) {
@@ -88,16 +93,16 @@ class Utils {
   }
 
   static clone(source) {
-    if (Object.prototype.toString.call(source) === '[object Array]') {
+    if (Utils.is('Array', source)) {
       let cloneResult = []
       for (let i = 0; i < source.length; i++) {
         cloneResult[i] = this.clone(source[i])
       }
       return cloneResult
-    } else if (Object.prototype.toString.call(source) === '[object Null]') {
+    } else if (Utils.is('Null', source)) {
       // fixes an issue where null values were converted to {}
       return null
-    } else if (Object.prototype.toString.call(source) === '[object Date]') {
+    } else if (Utils.is('Date', source)) {
       return source
     } else if (typeof source === 'object') {
       let cloneResult = {}
@@ -218,9 +223,9 @@ class Utils {
     )
     return rgb && rgb.length === 4
       ? '#' +
-          ('0' + parseInt(rgb[1], 10).toString(16)).slice(-2) +
-          ('0' + parseInt(rgb[2], 10).toString(16)).slice(-2) +
-          ('0' + parseInt(rgb[3], 10).toString(16)).slice(-2)
+      ('0' + parseInt(rgb[1], 10).toString(16)).slice(-2) +
+      ('0' + parseInt(rgb[2], 10).toString(16)).slice(-2) +
+      ('0' + parseInt(rgb[3], 10).toString(16)).slice(-2)
       : ''
   }
 
