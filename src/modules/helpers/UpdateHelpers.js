@@ -25,55 +25,65 @@ export default class UpdateHelpers {
     updateSyncedCharts = true,
     overwriteInitialConfig = false
   ) {
-    let charts = [this.ctx]
-    if (updateSyncedCharts) {
-      charts = this.ctx.getSyncedCharts()
-    }
-
-    if (this.ctx.w.globals.isExecCalled) {
-      // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
-      charts = [this.ctx]
-      this.ctx.w.globals.isExecCalled = false
-    }
-
-    charts.forEach((ch) => {
-      let w = ch.w
-
-      w.globals.shouldAnimate = animate
-
-      if (!redraw) {
-        w.globals.resized = true
-        w.globals.dataChanged = true
-
-        if (animate) {
-          ch.series.getPreviousPaths()
-        }
+    return new Promise((resolve) => {
+      let charts = [this.ctx]
+      if (updateSyncedCharts) {
+        charts = this.ctx.getSyncedCharts()
       }
 
-      if (options && typeof options === 'object') {
-        ch.config = new Config(options)
-        options = CoreUtils.extendArrayProps(ch.config, options, w)
-
-        // fixes #914, #623
-        if (ch.w.globals.chartID !== this.ctx.w.globals.chartID) {
-          // don't overwrite series of synchronized charts
-          delete options.series
-        }
-
-        w.config = Utils.extend(w.config, options)
-
-        if (overwriteInitialConfig) {
-          // we need to forget the lastXAxis and lastYAxis is user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
-          w.globals.lastXAxis = options.xaxis ? Utils.clone(options.xaxis) : []
-          w.globals.lastYAxis = options.yaxis ? Utils.clone(options.yaxis) : []
-
-          // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
-          w.globals.initialConfig = Utils.extend({}, w.config)
-          w.globals.initialSeries = Utils.clone(w.config.series)
-        }
+      if (this.ctx.w.globals.isExecCalled) {
+        // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
+        charts = [this.ctx]
+        this.ctx.w.globals.isExecCalled = false
       }
 
-      return ch.update(options)
+      charts.forEach((ch, chartIndex) => {
+        let w = ch.w
+
+        w.globals.shouldAnimate = animate
+
+        if (!redraw) {
+          w.globals.resized = true
+          w.globals.dataChanged = true
+
+          if (animate) {
+            ch.series.getPreviousPaths()
+          }
+        }
+
+        if (options && typeof options === 'object') {
+          ch.config = new Config(options)
+          options = CoreUtils.extendArrayProps(ch.config, options, w)
+
+          // fixes #914, #623
+          if (ch.w.globals.chartID !== this.ctx.w.globals.chartID) {
+            // don't overwrite series of synchronized charts
+            delete options.series
+          }
+
+          w.config = Utils.extend(w.config, options)
+
+          if (overwriteInitialConfig) {
+            // we need to forget the lastXAxis and lastYAxis as user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
+            w.globals.lastXAxis = options.xaxis
+              ? Utils.clone(options.xaxis)
+              : []
+            w.globals.lastYAxis = options.yaxis
+              ? Utils.clone(options.yaxis)
+              : []
+
+            // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
+            w.globals.initialConfig = Utils.extend({}, w.config)
+            w.globals.initialSeries = Utils.clone(w.config.series)
+          }
+        }
+
+        return ch.update(options).then(() => {
+          if (chartIndex === charts.length - 1) {
+            resolve(ch)
+          }
+        })
+      })
     })
   }
 
@@ -83,37 +93,41 @@ export default class UpdateHelpers {
    * @param {array} series - New series which will override the existing
    */
   _updateSeries(newSeries, animate, overwriteInitialSeries = false) {
-    const w = this.w
+    return new Promise((resolve) => {
+      const w = this.w
 
-    w.globals.shouldAnimate = animate
+      w.globals.shouldAnimate = animate
 
-    w.globals.dataChanged = true
+      w.globals.dataChanged = true
 
-    if (animate) {
-      this.ctx.series.getPreviousPaths()
-    }
-
-    let existingSeries
-
-    // axis charts
-    if (w.globals.axisCharts) {
-      existingSeries = newSeries.map((s, i) => {
-        return this._extendSeries(s, i)
-      })
-
-      if (existingSeries.length === 0) {
-        existingSeries = [{ data: [] }]
+      if (animate) {
+        this.ctx.series.getPreviousPaths()
       }
-      w.config.series = existingSeries
-    } else {
-      // non-axis chart (pie/radialbar)
-      w.config.series = newSeries.slice()
-    }
 
-    if (overwriteInitialSeries) {
-      w.globals.initialSeries = Utils.clone(w.config.series)
-    }
-    return this.ctx.update()
+      let existingSeries
+
+      // axis charts
+      if (w.globals.axisCharts) {
+        existingSeries = newSeries.map((s, i) => {
+          return this._extendSeries(s, i)
+        })
+
+        if (existingSeries.length === 0) {
+          existingSeries = [{ data: [] }]
+        }
+        w.config.series = existingSeries
+      } else {
+        // non-axis chart (pie/radialbar)
+        w.config.series = newSeries.slice()
+      }
+
+      if (overwriteInitialSeries) {
+        w.globals.initialSeries = Utils.clone(w.config.series)
+      }
+      return this.ctx.update().then(() => {
+        resolve(this.ctx)
+      })
+    })
   }
 
   _extendSeries(s, i) {

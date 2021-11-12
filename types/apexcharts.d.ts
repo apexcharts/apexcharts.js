@@ -20,11 +20,11 @@ declare class ApexCharts {
   updateSeries(
     newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries,
     animate?: boolean
-  ): void
+  ): Promise<void>
   appendSeries(
     newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries,
     animate?: boolean
-  ): void
+  ): Promise<void>
   appendData(data: any[], overwriteInitialSeries?: boolean): void
   toggleSeries(seriesName: string): any
   showSeries(seriesName: string): void
