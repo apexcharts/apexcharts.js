@@ -596,10 +596,7 @@ class Graphics {
     }
 
     if (w.config.states.hover.filter.type !== 'none') {
-      if (
-        w.config.states.active.filter.type !== 'none' &&
-        !w.globals.isTouchDevice
-      ) {
+      if (!w.globals.isTouchDevice) {
         let hoverFilter = w.config.states.hover.filter
         filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
       }
