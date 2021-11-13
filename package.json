@@ -21,7 +21,7 @@
     "dev": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "dev:cjs": "rollup -w -c build/config.js --environment TARGET:web-cjs",
     "bundle": "node build/build.js",
-    "build": "npm run bundle && webpack -p",
+    "build": "npm run bundle && webpack",
     "build:umd": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "build:amd": "webpack",
     "lint": "eslint .",

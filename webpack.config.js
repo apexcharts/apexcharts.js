@@ -14,16 +14,6 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(js)$/,
-        enforce: 'pre',
-        exclude: [
-          /node_modules/,
-          path.resolve(__dirname, 'src/svgjs/svg.js'),
-          path.resolve(__dirname, 'src/utils/Utils.js')
-        ],
-        include: path.resolve(__dirname, 'src/')
-      },
-      {
         test: /\.js$/,
         use: {
           loader: 'babel-loader',
