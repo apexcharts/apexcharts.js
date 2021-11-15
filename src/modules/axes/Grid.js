@@ -485,7 +485,7 @@ class Grid {
           : xCount
       let x1 = w.globals.padHorizontal
       let y1 = 0
-      let x2 = w.globals.padHorizontal + w.globals.gridWidth / xc
+      let x2 = w.globals.padHorizontal + w.globals.gridWidth / (xc + (w.config.chart.type === 'bar' ? 1 : 0) )
       let y2 = w.globals.gridHeight
       for (let i = 0, c = 0; i < xCount; i++, c++) {
         if (c >= w.config.grid.column.colors.length) {
@@ -500,7 +500,7 @@ class Grid {
           type: 'column'
         })
 
-        x1 = x1 + w.globals.gridWidth / xc
+        x1 = x1 + w.globals.gridWidth / (xc + (w.config.chart.type === 'bar' ? 1 : 0) )
       }
     }
   }
