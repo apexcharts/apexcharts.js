@@ -30,7 +30,7 @@ class AxesTooltip {
 
     let renderTo = w.globals.dom.elWrap
 
-    if (ttCtx.blxaxisTooltip) {
+    if (ttCtx.isXAxisTooltipEnabled) {
       let xaxisTooltip = w.globals.dom.baseEl.querySelector(
         '.apexcharts-xaxistooltip'
       )

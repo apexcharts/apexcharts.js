@@ -33,7 +33,7 @@ export default class Position {
       x = (w.globals.gridWidth / tickAmount) * j
     }
 
-    if (xcrosshairs !== null) {
+    if (xcrosshairs !== null && !w.globals.isBarHorizontal) {
       xcrosshairs.setAttribute('x', x)
       xcrosshairs.setAttribute('x1', x)
       xcrosshairs.setAttribute('x2', x)
@@ -49,7 +49,7 @@ export default class Position {
       x = w.globals.gridWidth
     }
 
-    if (ttCtx.blxaxisTooltip) {
+    if (ttCtx.isXAxisTooltipEnabled) {
       let tx = x
       if (
         w.config.xaxis.crosshairs.width === 'tickWidth' ||
@@ -93,7 +93,7 @@ export default class Position {
     let w = this.w
     const ttCtx = this.ttCtx
 
-    if (ttCtx.xaxisTooltip !== null) {
+    if (ttCtx.xaxisTooltip !== null && ttCtx.xcrosshairsWidth !== 0) {
       ttCtx.xaxisTooltip.classList.add('apexcharts-active')
 
       let cy =
@@ -376,13 +376,17 @@ export default class Position {
     const elGrid = ttCtx.getElGrid()
     let seriesBound = elGrid.getBoundingClientRect()
 
+    const isBoxOrCandle =
+      jBar.classList.contains('apexcharts-candlestick-area') ||
+      jBar.classList.contains('apexcharts-boxPlot-area')
     if (w.globals.isXNumeric) {
-      bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
+      if (jBar && !isBoxOrCandle) {
+        bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
+      }
 
       if (
         jBar && // fixes apexcharts.js#2354
-        (jBar.classList.contains('apexcharts-candlestick-area') ||
-          jBar.classList.contains('apexcharts-boxPlot-area')) &&
+        isBoxOrCandle &&
         w.globals.comboCharts
       ) {
         bcx = bcx - bw / 2

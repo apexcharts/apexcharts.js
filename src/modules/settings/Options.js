@@ -81,6 +81,7 @@ export default class Options {
     }
 
     this.pointAnnotation = {
+      id: undefined,
       x: 0,
       y: null,
       yAxisIndex: 0,
@@ -136,6 +137,7 @@ export default class Options {
     }
 
     this.yAxisAnnotation = {
+      id: undefined,
       y: 0,
       y2: null,
       strokeDashArray: 1,
@@ -174,6 +176,7 @@ export default class Options {
     }
 
     this.xAxisAnnotation = {
+      id: undefined,
       x: 0,
       x2: null,
       strokeDashArray: 1,

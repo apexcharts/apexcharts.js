@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Horizontal BoxPlot Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="boxPlot" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;boxPlot&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [
+            {
+              data: [
+                {
+                  x: 'Category A',
+                  y: [54, 66, 69, 75, 88]
+                },
+                {
+                  x: 'Category B',
+                  y: [43, 65, 69, 76, 81]
+                },
+                {
+                  x: 'Category C',
+                  y: [31, 39, 45, 51, 59]
+                },
+                {
+                  x: 'Category D',
+                  y: [39, 46, 55, 65, 71]
+                },
+                {
+                  x: 'Category E',
+                  y: [29, 31, 35, 39, 44]
+                },
+                {
+                  x: 'Category F',
+                  y: [41, 49, 58, 61, 67]
+                },
+                {
+                  x: 'Category G',
+                  y: [54, 59, 66, 71, 88]
+                }
+              ]
+            }
+          ],
+          chartOptions: {
+            chart: {
+              type: 'boxPlot',
+              height: 350
+            },
+            title: {
+              text: 'Horizontal BoxPlot Chart',
+              align: 'left'
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                barHeight: '50%'
+              },
+              boxPlot: {
+                colors: {
+                  upper: '#e9ecef',
+                  lower: '#f8f9fa'
+                }
+              }
+            },
+            stroke: {
+              colors: ['#6c757d']
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>

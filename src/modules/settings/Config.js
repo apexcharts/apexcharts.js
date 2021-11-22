@@ -118,7 +118,7 @@ export default class Config {
     let defaults = new Defaults(opts)
 
     const isBarHorizontal =
-      chartType === 'bar' &&
+      (chartType === 'bar' || chartType === 'boxPlot') &&
       opts.plotOptions &&
       opts.plotOptions.bar &&
       opts.plotOptions.bar.horizontal

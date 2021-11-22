@@ -18,6 +18,7 @@ class BoxCandleStick extends Bar {
 
     this.candlestickOptions = this.w.config.plotOptions.candlestick
     this.boxOptions = this.w.config.plotOptions.boxPlot
+    this.isHorizontal = w.config.plotOptions.bar.horizontal
 
     const coreUtils = new CoreUtils(this.ctx, w)
     series = coreUtils.getLogSeries(series)
@@ -38,7 +39,9 @@ class BoxCandleStick extends Bar {
       let x,
         y,
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
-        zeroH // zeroH is the baseline where 0 meets y axis
+        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
+        zeroH, // zeroH is the baseline where 0 meets y axis
+        zeroW // zeroW is the baseline where 0 meets x axis
 
       let yArrj = [] // hold y values of current iterating series
       let xArrj = [] // hold x values of current iterating series
@@ -70,6 +73,8 @@ class BoxCandleStick extends Bar {
 
       y = initPositions.y
       barHeight = initPositions.barHeight
+      yDivision = initPositions.yDivision
+      zeroW = initPositions.zeroW
 
       x = initPositions.x
       barWidth = initPositions.barWidth
@@ -87,7 +92,8 @@ class BoxCandleStick extends Bar {
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
-        let paths = this.drawBoxPaths({
+        let paths = null
+        const pathsParams = {
           indexes: {
             i,
             j,
@@ -95,12 +101,25 @@ class BoxCandleStick extends Bar {
           },
           x,
           y,
-          xDivision,
-          barWidth,
-          zeroH,
           strokeWidth,
           elSeries
-        })
+        }
+
+        if (this.isHorizontal) {
+          paths = this.drawHorizontalBoxPaths({
+            ...pathsParams,
+            yDivision,
+            barHeight,
+            zeroW
+          })
+        } else {
+          paths = this.drawVerticalBoxPaths({
+            ...pathsParams,
+            xDivision,
+            barWidth,
+            zeroH
+          })
+        }
 
         y = paths.y
         x = paths.x
@@ -157,7 +176,15 @@ class BoxCandleStick extends Bar {
     return ret
   }
 
-  drawBoxPaths({ indexes, x, y, xDivision, barWidth, zeroH, strokeWidth }) {
+  drawVerticalBoxPaths({
+    indexes,
+    x,
+    y,
+    xDivision,
+    barWidth,
+    zeroH,
+    strokeWidth
+  }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
@@ -275,6 +302,108 @@ class BoxCandleStick extends Bar {
     }
   }
 
+  drawHorizontalBoxPaths({
+    indexes,
+    x,
+    y,
+    yDivision,
+    barHeight,
+    zeroW,
+    strokeWidth
+  }) {
+    let w = this.w
+    let graphics = new Graphics(this.ctx)
+
+    let i = indexes.i
+    let j = indexes.j
+
+    let color = this.boxOptions.colors.lower
+
+    if (this.isBoxPlot) {
+      color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper]
+    }
+
+    const yRatio = this.invertedYRatio
+    let realIndex = indexes.realIndex
+
+    const ohlc = this.getOHLCValue(realIndex, j)
+    let l1 = zeroW
+    let l2 = zeroW
+
+    let x1 = Math.min(ohlc.o, ohlc.c)
+    let x2 = Math.max(ohlc.o, ohlc.c)
+    let m = ohlc.m
+
+    if (w.globals.isXNumeric) {
+      y =
+        (w.globals.seriesX[realIndex][j] - w.globals.minX) /
+          this.invertedXRatio -
+        barHeight / 2
+    }
+
+    let barYPosition = y + barHeight * this.visibleI
+
+    if (
+      typeof this.series[i][j] === 'undefined' ||
+      this.series[i][j] === null
+    ) {
+      x1 = zeroW
+      x2 = zeroW
+    } else {
+      x1 = zeroW + x1 / yRatio
+      x2 = zeroW + x2 / yRatio
+      l1 = zeroW + ohlc.h / yRatio
+      l2 = zeroW + ohlc.l / yRatio
+      m = zeroW + ohlc.m / yRatio
+    }
+
+    let pathTo = graphics.move(zeroW, barYPosition)
+    let pathFrom = graphics.move(x1, barYPosition + barHeight / 2)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPreviousPath(realIndex, j, true)
+    }
+
+    pathTo = [
+      graphics.move(x1, barYPosition) +
+        graphics.line(x1, barYPosition + barHeight / 2) +
+        graphics.line(l1, barYPosition + barHeight / 2) +
+        graphics.line(l1, barYPosition + barHeight / 2 - barHeight / 4) +
+        graphics.line(l1, barYPosition + barHeight / 2 + barHeight / 4) +
+        graphics.line(l1, barYPosition + barHeight / 2) +
+        graphics.line(x1, barYPosition + barHeight / 2) +
+        graphics.line(x1, barYPosition + barHeight) +
+        graphics.line(m, barYPosition + barHeight) +
+        graphics.line(m, barYPosition) +
+        graphics.line(x1 + strokeWidth / 2, barYPosition),
+      graphics.move(m, barYPosition) +
+        graphics.line(m, barYPosition + barHeight) +
+        graphics.line(x2, barYPosition + barHeight) +
+        graphics.line(x2, barYPosition + barHeight / 2) +
+        graphics.line(l2, barYPosition + barHeight / 2) +
+        graphics.line(l2, barYPosition + barHeight - barHeight / 4) +
+        graphics.line(l2, barYPosition + barHeight / 4) +
+        graphics.line(l2, barYPosition + barHeight / 2) +
+        graphics.line(x2, barYPosition + barHeight / 2) +
+        graphics.line(x2, barYPosition) +
+        graphics.line(m, barYPosition) +
+        'z'
+    ]
+
+    pathFrom = pathFrom + graphics.move(x1, barYPosition)
+
+    if (!w.globals.isXNumeric) {
+      y = y + yDivision
+    }
+
+    return {
+      pathTo,
+      pathFrom,
+      x: x2,
+      y,
+      barYPosition,
+      color
+    }
+  }
   getOHLCValue(i, j) {
     const w = this.w
 

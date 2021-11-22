@@ -367,6 +367,7 @@ type AnnotationStyle = {
 }
 
 type XAxisAnnotations = {
+  id?: number | string
   x?: null | number | string
   x2?: null | number | string
   strokeDashArray?: number
@@ -380,6 +381,7 @@ type XAxisAnnotations = {
 }
 
 type YAxisAnnotations = {
+  id?: number | string
   y?: null | number | string
   y2?: null | number | string
   strokeDashArray?: number
@@ -395,6 +397,7 @@ type YAxisAnnotations = {
 }
 
 type PointAnnotations = {
+  id?: number | string
   x?: number | string
   y?: null | number
   yAxisIndex?: number

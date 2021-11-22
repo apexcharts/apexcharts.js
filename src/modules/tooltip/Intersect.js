@@ -166,6 +166,7 @@ class Intersect {
       bx = x
     } else {
       if (!w.globals.comboCharts && !w.config.tooltip.shared) {
+        // todo: re-check this condition as it's always 0
         bx = bx / 2
       }
     }

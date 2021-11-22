@@ -70,7 +70,9 @@ export default class Core {
     gl.xyCharts = xyChartsArrTypes.indexOf(ct) > -1
 
     gl.isBarHorizontal =
-      (cnf.chart.type === 'bar' || cnf.chart.type === 'rangeBar') &&
+      (cnf.chart.type === 'bar' ||
+        cnf.chart.type === 'rangeBar' ||
+        cnf.chart.type === 'boxPlot') &&
       cnf.plotOptions.bar.horizontal
 
     gl.chartClass = '.apexcharts' + gl.chartID

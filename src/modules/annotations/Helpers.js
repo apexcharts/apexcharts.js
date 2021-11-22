@@ -105,6 +105,19 @@ export default class Helpers {
 
         if (elRect) {
           parent.insertBefore(elRect.node, annoLabel)
+
+          if (anno.mouseEnter) {
+            elRect.node.addEventListener(
+              'mouseenter',
+              anno.mouseEnter.bind(this, anno)
+            )
+          }
+          if (anno.mouseLeave) {
+            elRect.node.addEventListener(
+              'mouseleave',
+              anno.mouseLeave.bind(this, anno)
+            )
+          }
         }
       }
     }
