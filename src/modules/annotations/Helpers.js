@@ -46,8 +46,9 @@ export default class Helpers {
 
     if (
       !annoEl ||
-      !anno.label.text ||
-      (anno.label.text && !anno.label.text.trim())
+      typeof anno.label.text === 'undefined' ||
+      (typeof anno.label.text !== 'undefined' &&
+        !String(anno.label.text).trim())
     )
       return null
 

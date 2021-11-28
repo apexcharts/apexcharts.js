@@ -182,7 +182,8 @@ class DataLabels {
     let correctedLabels = {
       x,
       y,
-      drawnextLabel: true
+      drawnextLabel: true,
+      textRects: null
     }
 
     if (offsetCorrection) {
@@ -247,38 +248,40 @@ class DataLabels {
     }
 
     if (correctedLabels.drawnextLabel) {
-      let dataLabelText = graphics.drawText({
-        width: 100,
-        height: parseInt(dataLabelsConfig.style.fontSize, 10),
-        x: x + offX,
-        y: y + offY,
-        foreColor: dataLabelColor,
-        textAnchor: textAnchor || dataLabelsConfig.textAnchor,
-        text,
-        fontSize: fontSize || dataLabelsConfig.style.fontSize,
-        fontFamily: dataLabelsConfig.style.fontFamily,
-        fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
-      })
+      if (typeof text !== 'undefined' && String(text).trim().length) {
+        let dataLabelText = graphics.drawText({
+          width: 100,
+          height: parseInt(dataLabelsConfig.style.fontSize, 10),
+          x: x + offX,
+          y: y + offY,
+          foreColor: dataLabelColor,
+          textAnchor: textAnchor || dataLabelsConfig.textAnchor,
+          text,
+          fontSize: fontSize || dataLabelsConfig.style.fontSize,
+          fontFamily: dataLabelsConfig.style.fontFamily,
+          fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
+        })
 
-      dataLabelText.attr({
-        class: 'apexcharts-datalabel',
-        cx: x,
-        cy: y
-      })
+        dataLabelText.attr({
+          class: 'apexcharts-datalabel',
+          cx: x,
+          cy: y
+        })
 
-      if (dataLabelsConfig.dropShadow.enabled) {
-        const textShadow = dataLabelsConfig.dropShadow
-        const filters = new Filters(this.ctx)
-        filters.dropShadow(dataLabelText, textShadow)
+        if (dataLabelsConfig.dropShadow.enabled) {
+          const textShadow = dataLabelsConfig.dropShadow
+          const filters = new Filters(this.ctx)
+          filters.dropShadow(dataLabelText, textShadow)
+        }
+
+        parent.add(dataLabelText)
+
+        if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
+          w.globals.lastDrawnDataLabelsIndexes[i] = []
+        }
+
+        w.globals.lastDrawnDataLabelsIndexes[i].push(j)
       }
-
-      parent.add(dataLabelText)
-
-      if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
-        w.globals.lastDrawnDataLabelsIndexes[i] = []
-      }
-
-      w.globals.lastDrawnDataLabelsIndexes[i].push(j)
     }
   }
 
