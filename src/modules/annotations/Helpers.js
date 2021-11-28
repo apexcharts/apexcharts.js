@@ -1,3 +1,5 @@
+import Utils from '../../utils/Utils'
+
 export default class Helpers {
   constructor(annoCtx) {
     this.w = annoCtx.w
@@ -86,7 +88,7 @@ export default class Helpers {
     )
 
     if (anno.id) {
-      elRect.node.classList.add(anno.id)
+      elRect.node.classList.add(Utils.escapeString(anno.id))
     }
 
     return elRect
@@ -107,16 +109,16 @@ export default class Helpers {
         if (elRect) {
           parent.insertBefore(elRect.node, annoLabel)
 
-          if (anno.mouseEnter) {
+          if (anno.label.mouseEnter) {
             elRect.node.addEventListener(
               'mouseenter',
-              anno.mouseEnter.bind(this, anno)
+              anno.label.mouseEnter.bind(this, anno)
             )
           }
-          if (anno.mouseLeave) {
+          if (anno.label.mouseLeave) {
             elRect.node.addEventListener(
               'mouseleave',
-              anno.mouseLeave.bind(this, anno)
+              anno.label.mouseLeave.bind(this, anno)
             )
           }
         }

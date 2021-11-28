@@ -177,6 +177,8 @@ export default class Annotations {
     if (parent) {
       parent.appendChild(img.node)
     }
+
+    return img
   }
 
   // The addXaxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method

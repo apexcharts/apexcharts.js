@@ -349,6 +349,8 @@ type AnnotationLabel = {
   style?: AnnotationStyle
   position?: string
   orientation?: string
+  mouseEnter?: Function
+  mouseLeave?: Function
 }
 
 type AnnotationStyle = {
@@ -402,6 +404,8 @@ type PointAnnotations = {
   y?: null | number
   yAxisIndex?: number
   seriesIndex?: number
+  mouseEnter?: Function
+  mouseLeave?: Function
   marker?: {
     size?: number
     fillColor?: string
