@@ -442,12 +442,23 @@ class Range {
 
       if (cnf.xaxis.type === 'datetime') {
         const newMinX = datetimeObj.getDate(gl.minX)
-        newMinX.setUTCDate(newMinX.getDate() - 2)
+        if (cnf.xaxis.labels.datetimeUTC) {
+          newMinX.setUTCDate(newMinX.getUTCDate() - 2)
+        } else {
+          newMinX.setDate(newMinX.getDate() - 2)
+        }
+
         gl.minX = new Date(newMinX).getTime()
 
         const newMaxX = datetimeObj.getDate(gl.maxX)
-        newMaxX.setUTCDate(newMaxX.getDate() + 2)
+        if (cnf.xaxis.labels.datetimeUTC) {
+          newMaxX.setUTCDate(newMaxX.getUTCDate() + 2)
+        } else {
+          newMaxX.setDate(newMaxX.getDate() + 2)
+        }
         gl.maxX = new Date(newMaxX).getTime()
+
+        console.log(gl.minX, gl.maxX)
       } else if (
         cnf.xaxis.type === 'numeric' ||
         (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)
