@@ -86,8 +86,7 @@ export default class TreemapHelpers {
 
     let seriesNumber = chartOpts.colorScale.inverse ? j : i
 
-    const isDistributed = w.config.plotOptions[chartType].distributed
-    if (isDistributed) {
+    if (chartOpts.distributed && w.config.chart.type === 'treemap') {
       seriesNumber = j
     }
 
