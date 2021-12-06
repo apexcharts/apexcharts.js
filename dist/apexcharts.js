@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.31.0
+ * ApexCharts v3.32.0
  * (c) 2018-2021 ApexCharts
  * Released under the MIT License.
  */
@@ -5212,39 +5212,37 @@
         }
 
         if (correctedLabels.drawnextLabel) {
-          if (typeof text !== 'undefined' && String(text).trim().length) {
-            var dataLabelText = graphics.drawText({
-              width: 100,
-              height: parseInt(dataLabelsConfig.style.fontSize, 10),
-              x: x + offX,
-              y: y + offY,
-              foreColor: dataLabelColor,
-              textAnchor: textAnchor || dataLabelsConfig.textAnchor,
-              text: text,
-              fontSize: fontSize || dataLabelsConfig.style.fontSize,
-              fontFamily: dataLabelsConfig.style.fontFamily,
-              fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
-            });
-            dataLabelText.attr({
-              class: 'apexcharts-datalabel',
-              cx: x,
-              cy: y
-            });
+          var dataLabelText = graphics.drawText({
+            width: 100,
+            height: parseInt(dataLabelsConfig.style.fontSize, 10),
+            x: x + offX,
+            y: y + offY,
+            foreColor: dataLabelColor,
+            textAnchor: textAnchor || dataLabelsConfig.textAnchor,
+            text: text,
+            fontSize: fontSize || dataLabelsConfig.style.fontSize,
+            fontFamily: dataLabelsConfig.style.fontFamily,
+            fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
+          });
+          dataLabelText.attr({
+            class: 'apexcharts-datalabel',
+            cx: x,
+            cy: y
+          });
 
-            if (dataLabelsConfig.dropShadow.enabled) {
-              var textShadow = dataLabelsConfig.dropShadow;
-              var filters = new Filters(this.ctx);
-              filters.dropShadow(dataLabelText, textShadow);
-            }
-
-            parent.add(dataLabelText);
-
-            if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
-              w.globals.lastDrawnDataLabelsIndexes[i] = [];
-            }
-
-            w.globals.lastDrawnDataLabelsIndexes[i].push(j);
+          if (dataLabelsConfig.dropShadow.enabled) {
+            var textShadow = dataLabelsConfig.dropShadow;
+            var filters = new Filters(this.ctx);
+            filters.dropShadow(dataLabelText, textShadow);
           }
+
+          parent.add(dataLabelText);
+
+          if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
+            w.globals.lastDrawnDataLabelsIndexes[i] = [];
+          }
+
+          w.globals.lastDrawnDataLabelsIndexes[i].push(j);
         }
       }
     }, {
@@ -19863,9 +19861,8 @@
         var val = w.globals.series[i][j];
         var chartOpts = w.config.plotOptions[chartType];
         var seriesNumber = chartOpts.colorScale.inverse ? j : i;
-        var isDistributed = w.config.plotOptions[chartType].distributed;
 
-        if (isDistributed) {
+        if (chartOpts.distributed && w.config.chart.type === 'treemap') {
           seriesNumber = j;
         }
 
