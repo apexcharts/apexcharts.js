@@ -54,13 +54,10 @@ class DataLabels {
     if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
       let lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex]
       if (
-        lastDataLabelRect &&
-        lastDataLabelRect.x &&
-        lastDataLabelRect.y &&
         // next label forward and x not intersecting
-        (x > lastDataLabelRect.x + lastDataLabelRect.width + 2 ||
-          y > lastDataLabelRect.y + lastDataLabelRect.height + 2 ||
-          x + width < lastDataLabelRect.x) // next label is going to be drawn backwards
+        x > lastDataLabelRect.x + lastDataLabelRect.width + 2 ||
+        y > lastDataLabelRect.y + lastDataLabelRect.height + 2 ||
+        x + width < lastDataLabelRect.x // next label is going to be drawn backwards
       ) {
         // the 2 indexes don't override, so OK to draw next label
         drawnextLabel = true
@@ -251,40 +248,38 @@ class DataLabels {
     }
 
     if (correctedLabels.drawnextLabel) {
-      if (typeof text !== 'undefined' && String(text).trim().length) {
-        let dataLabelText = graphics.drawText({
-          width: 100,
-          height: parseInt(dataLabelsConfig.style.fontSize, 10),
-          x: x + offX,
-          y: y + offY,
-          foreColor: dataLabelColor,
-          textAnchor: textAnchor || dataLabelsConfig.textAnchor,
-          text,
-          fontSize: fontSize || dataLabelsConfig.style.fontSize,
-          fontFamily: dataLabelsConfig.style.fontFamily,
-          fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
-        })
+      let dataLabelText = graphics.drawText({
+        width: 100,
+        height: parseInt(dataLabelsConfig.style.fontSize, 10),
+        x: x + offX,
+        y: y + offY,
+        foreColor: dataLabelColor,
+        textAnchor: textAnchor || dataLabelsConfig.textAnchor,
+        text,
+        fontSize: fontSize || dataLabelsConfig.style.fontSize,
+        fontFamily: dataLabelsConfig.style.fontFamily,
+        fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
+      })
 
-        dataLabelText.attr({
-          class: 'apexcharts-datalabel',
-          cx: x,
-          cy: y
-        })
+      dataLabelText.attr({
+        class: 'apexcharts-datalabel',
+        cx: x,
+        cy: y
+      })
 
-        if (dataLabelsConfig.dropShadow.enabled) {
-          const textShadow = dataLabelsConfig.dropShadow
-          const filters = new Filters(this.ctx)
-          filters.dropShadow(dataLabelText, textShadow)
-        }
-
-        parent.add(dataLabelText)
-
-        if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
-          w.globals.lastDrawnDataLabelsIndexes[i] = []
-        }
-
-        w.globals.lastDrawnDataLabelsIndexes[i].push(j)
+      if (dataLabelsConfig.dropShadow.enabled) {
+        const textShadow = dataLabelsConfig.dropShadow
+        const filters = new Filters(this.ctx)
+        filters.dropShadow(dataLabelText, textShadow)
       }
+
+      parent.add(dataLabelText)
+
+      if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
+        w.globals.lastDrawnDataLabelsIndexes[i] = []
+      }
+
+      w.globals.lastDrawnDataLabelsIndexes[i].push(j)
     }
   }
 
