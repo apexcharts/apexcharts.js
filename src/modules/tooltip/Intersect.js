@@ -224,8 +224,6 @@ class Intersect {
           x = 0
         }
       }
-      tooltipEl.style.left = x + w.globals.translateX + 'px'
-
       if (
         isReversed &&
         !(w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars())
@@ -237,11 +235,16 @@ class Intersect {
           w.globals.gridHeight -
           ttCtx.tooltipRect.ttHeight +
           w.globals.translateY
-        tooltipEl.style.top = y + 'px'
       } else {
-        tooltipEl.style.top =
-          y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px'
+        y = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2
+
+        if (y < 0) {
+          y = 0
+        }
       }
+
+      tooltipEl.style.left = x + w.globals.translateX + 'px'
+      tooltipEl.style.top = y + 'px'
     }
   }
 
