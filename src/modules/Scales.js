@@ -217,7 +217,7 @@ export default class Range {
 
     if (y.logarithmic && diff > 5) {
       gl.allSeriesCollapsed = false
-      gl.yAxisScale[index] = this.logarithmicScale(maxY, y.logBase)
+      gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.logBase)
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
         // no data in the chart. Either all series collapsed or user passed a blank array
