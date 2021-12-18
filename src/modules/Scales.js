@@ -161,13 +161,17 @@ export default class Range {
     }
   }
 
-  logarithmicScale(yMax, base) {
+  logarithmicScale(yMin, yMax, base) {
     const logs = []
 
     const ticks = Math.ceil(Math.log(yMax) / Math.log(base)) + 1 // Get powers of base up to our max, and then one more
 
     for (let i = 0; i < ticks; i++) {
       logs.push(Math.pow(base, i))
+    }
+    
+    if (yMin === 0) {
+      logs.unshift(yMin)
     }
 
     return {
@@ -213,7 +217,7 @@ export default class Range {
 
     if (y.logarithmic && diff > 5) {
       gl.allSeriesCollapsed = false
-      gl.yAxisScale[index] = this.logarithmicScale(maxY, y.logBase)
+      gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.logBase)
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
         // no data in the chart. Either all series collapsed or user passed a blank array
