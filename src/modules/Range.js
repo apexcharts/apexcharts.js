@@ -457,8 +457,6 @@ class Range {
           newMaxX.setDate(newMaxX.getDate() + 2)
         }
         gl.maxX = new Date(newMaxX).getTime()
-
-        console.log(gl.minX, gl.maxX)
       } else if (
         cnf.xaxis.type === 'numeric' ||
         (cnf.xaxis.type === 'category' && !gl.noLabelsProvided)

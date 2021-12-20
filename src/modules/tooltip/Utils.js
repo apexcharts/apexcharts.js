@@ -144,7 +144,7 @@ export default class Utils {
     let j = -1
 
     if (w.globals.series.length > 1) {
-      activeIndex = this.getFirstActiveXArray(Xarrays)
+      activeIndex = this.getFirstActiveXArray(Xarrays, Yarrays)
     } else {
       currIndex = 0
     }
@@ -157,9 +157,9 @@ export default class Utils {
     let diff = diffY + diffX
 
     Yarrays.map((arrY, arrIndex) => {
-      arrY.map((y, innerKey) => {
-        let newdiffY = Math.abs(hoverY - Yarrays[arrIndex][innerKey])
-        let newdiffX = Math.abs(hoverX - Xarrays[arrIndex][innerKey])
+      arrY.map((y, innerIndex) => {
+        let newdiffY = Math.abs(hoverY - Yarrays[arrIndex][innerIndex])
+        let newdiffX = Math.abs(hoverX - Xarrays[arrIndex][innerIndex])
         let newdiff = newdiffX + newdiffY
 
         if (newdiff < diff) {
@@ -167,7 +167,7 @@ export default class Utils {
           diffX = newdiffX
           diffY = newdiffY
           currIndex = arrIndex
-          j = innerKey
+          j = innerIndex
         }
       })
     })
@@ -178,11 +178,11 @@ export default class Utils {
     }
   }
 
-  getFirstActiveXArray(Xarrays) {
+  getFirstActiveXArray(Xarrays, Yarrays) {
     let activeIndex = 0
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
-      return xarr.length > 0 ? index : -1
+      return xarr.length > 0 && Yarrays[index].length > 0 ? index : -1
     })
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
