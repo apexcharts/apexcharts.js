@@ -132,6 +132,14 @@ class Legend {
       let mBorderColor = w.config.legend.markers.strokeColor
       let mBorderRadius = w.config.legend.markers.radius
 
+      // todo - untested code below
+      // if (Array.isArray(w.config.legend.markers.shape)) {
+      // } else {
+      //   if (w.config.legend.markers.shape !== 'circle') {
+      //     mBorderRadius = 1
+      //   }
+      // }
+
       let mStyle = elMarker.style
 
       mStyle.background = fillcolor[i]
