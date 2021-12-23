@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.32.0
+ * ApexCharts v3.32.1
  * (c) 2018-2021 ApexCharts
  * Released under the MIT License.
  */
@@ -2453,7 +2453,8 @@
       key: "getLogVal",
       value: function getLogVal(d, yIndex) {
         var w = this.w;
-        return (Math.log(d) - Math.log(w.globals.minYArr[yIndex])) / (Math.log(w.globals.maxYArr[yIndex]) - Math.log(w.globals.minYArr[yIndex]));
+        var lv = (Math.log(d) - Math.log(w.globals.minYArr[yIndex])) / (Math.log(w.globals.maxYArr[yIndex]) - Math.log(w.globals.minYArr[yIndex]));
+        return isNaN(lv) ? d : lv;
       }
     }, {
       key: "getLogYRatios",
@@ -11640,12 +11641,16 @@
       }
     }, {
       key: "logarithmicScale",
-      value: function logarithmicScale(yMax, base) {
+      value: function logarithmicScale(yMin, yMax, base) {
         var logs = [];
         var ticks = Math.ceil(Math.log(yMax) / Math.log(base)) + 1; // Get powers of base up to our max, and then one more
 
         for (var i = 0; i < ticks; i++) {
           logs.push(Math.pow(base, i));
+        }
+
+        if (yMin === 0) {
+          logs.unshift(yMin);
         }
 
         return {
@@ -11688,7 +11693,7 @@
 
         if (y.logarithmic && diff > 5) {
           gl.allSeriesCollapsed = false;
-          gl.yAxisScale[index] = this.logarithmicScale(maxY, y.logBase);
+          gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.logBase);
         } else {
           if (maxY === -Number.MAX_VALUE || !Utils$1.isNumber(maxY)) {
             // no data in the chart. Either all series collapsed or user passed a blank array
@@ -12419,7 +12424,6 @@
             }
 
             gl.maxX = new Date(newMaxX).getTime();
-            console.log(gl.minX, gl.maxX);
           } else if (cnf.xaxis.type === 'numeric' || cnf.xaxis.type === 'category' && !gl.noLabelsProvided) {
             gl.minX = gl.minX - 2;
             gl.initialMinX = gl.minX;
@@ -14827,7 +14831,14 @@
           var mWidth = w.config.legend.markers.width;
           var mBorderWidth = w.config.legend.markers.strokeWidth;
           var mBorderColor = w.config.legend.markers.strokeColor;
-          var mBorderRadius = w.config.legend.markers.radius;
+          var mBorderRadius = w.config.legend.markers.radius; // todo - untested code below
+          // if (Array.isArray(w.config.legend.markers.shape)) {
+          // } else {
+          //   if (w.config.legend.markers.shape !== 'circle') {
+          //     mBorderRadius = 1
+          //   }
+          // }
+
           var mStyle = elMarker.style;
           mStyle.background = fillcolor[i];
           mStyle.color = fillcolor[i];
@@ -16434,7 +16445,7 @@
         var j = -1;
 
         if (w.globals.series.length > 1) {
-          activeIndex = this.getFirstActiveXArray(Xarrays);
+          activeIndex = this.getFirstActiveXArray(Xarrays, Yarrays);
         } else {
           currIndex = 0;
         }
@@ -16445,9 +16456,9 @@
         var diffY = Math.abs(hoverY - currY);
         var diff = diffY + diffX;
         Yarrays.map(function (arrY, arrIndex) {
-          arrY.map(function (y, innerKey) {
-            var newdiffY = Math.abs(hoverY - Yarrays[arrIndex][innerKey]);
-            var newdiffX = Math.abs(hoverX - Xarrays[arrIndex][innerKey]);
+          arrY.map(function (y, innerIndex) {
+            var newdiffY = Math.abs(hoverY - Yarrays[arrIndex][innerIndex]);
+            var newdiffX = Math.abs(hoverX - Xarrays[arrIndex][innerIndex]);
             var newdiff = newdiffX + newdiffY;
 
             if (newdiff < diff) {
@@ -16455,7 +16466,7 @@
               diffX = newdiffX;
               diffY = newdiffY;
               currIndex = arrIndex;
-              j = innerKey;
+              j = innerIndex;
             }
           });
         });
@@ -16466,10 +16477,10 @@
       }
     }, {
       key: "getFirstActiveXArray",
-      value: function getFirstActiveXArray(Xarrays) {
+      value: function getFirstActiveXArray(Xarrays, Yarrays) {
         var activeIndex = 0;
         var firstActiveSeriesIndex = Xarrays.map(function (xarr, index) {
-          return xarr.length > 0 ? index : -1;
+          return xarr.length > 0 && Yarrays[index].length > 0 ? index : -1;
         });
 
         for (var a = 0; a < firstActiveSeriesIndex.length; a++) {
@@ -17912,18 +17923,22 @@
             }
           }
 
-          tooltipEl.style.left = x + w.globals.translateX + 'px';
-
           if (isReversed && !(w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars())) {
             y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2;
           }
 
           if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {
             y = w.globals.gridHeight - ttCtx.tooltipRect.ttHeight + w.globals.translateY;
-            tooltipEl.style.top = y + 'px';
           } else {
-            tooltipEl.style.top = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2 + 'px';
+            y = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2;
+
+            if (y < 0) {
+              y = 0;
+            }
           }
+
+          tooltipEl.style.left = x + w.globals.translateX + 'px';
+          tooltipEl.style.top = y + 'px';
         }
       }
     }, {
