@@ -800,7 +800,7 @@ type ApexDiscretePoint = {
 
 type ApexMarkers = {
   size?: number | number[]
-  colors?: string[]
+  colors?: string | string[]
   strokeColors?: string | string[]
   strokeWidth?: number | number[]
   strokeOpacity?: number | number[]
