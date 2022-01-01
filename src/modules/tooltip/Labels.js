@@ -338,6 +338,7 @@ export default class Labels {
       if (
         typeof val === 'undefined' ||
         val === null ||
+        w.globals.ancillaryCollapsedSeriesIndices.indexOf(t) > -1 ||
         w.globals.collapsedSeriesIndices.indexOf(t) > -1
       ) {
         ttItemsChildren[0].parentNode.style.display = 'none'

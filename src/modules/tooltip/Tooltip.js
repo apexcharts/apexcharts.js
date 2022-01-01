@@ -527,6 +527,15 @@ export default class Tooltip {
       e.type === 'touchmove' ||
       e.type === 'mouseup'
     ) {
+      // there is no series to hover over
+      if (
+        w.globals.collapsedSeries.length +
+          w.globals.ancillaryCollapsedSeries.length ===
+        w.globals.series.length
+      ) {
+        return
+      }
+
       if (xcrosshairs !== null) {
         xcrosshairs.classList.add('apexcharts-active')
       }
