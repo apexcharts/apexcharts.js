@@ -304,11 +304,10 @@ class CoreUtils {
 
   getLogVal(d, yIndex) {
     const w = this.w
-    const lv = (
+    const lv =
       (Math.log(d) - Math.log(w.globals.minYArr[yIndex])) /
       (Math.log(w.globals.maxYArr[yIndex]) -
         Math.log(w.globals.minYArr[yIndex]))
-    )
 
     return isNaN(lv) ? d : lv
   }

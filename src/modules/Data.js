@@ -567,8 +567,27 @@ export default class Data {
 
     if (gl.axisCharts) {
       if (gl.series.length > 0) {
-        for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
-          labelArr.push(i + 1)
+        if (this.isFormatXY()) {
+          // in case there is a combo chart (boxplot/scatter)
+          // and there are duplicated x values, we need to eliminate duplicates
+          const seriesDataFiltered = cnf.series.map((serie, s) => {
+            return serie.data.filter(
+              (v, i, a) => a.findIndex((t) => t.x === v.x) === i
+            )
+          })
+
+          const len = seriesDataFiltered.reduce(
+            (p, c, i, a) => (a[p].length > c.length ? p : i),
+            0
+          )
+
+          for (let i = 0; i < seriesDataFiltered[len].length; i++) {
+            labelArr.push(i + 1)
+          }
+        } else {
+          for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+            labelArr.push(i + 1)
+          }
         }
       }
 
