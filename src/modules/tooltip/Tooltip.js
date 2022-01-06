@@ -39,6 +39,8 @@ export default class Tooltip {
 
   getElTooltip(ctx) {
     if (!ctx) ctx = this
+    if (!ctx.w.globals.dom.baseEl) return null
+
     return ctx.w.globals.dom.baseEl.querySelector('.apexcharts-tooltip')
   }
 
@@ -434,6 +436,8 @@ export default class Tooltip {
   seriesHoverByContext({ chartCtx, ttCtx, opt, e }) {
     let w = chartCtx.w
     const tooltipEl = this.getElTooltip()
+
+    if (!tooltipEl) return
 
     // tooltipRect is calculated on every mousemove, because the text is dynamic
     ttCtx.tooltipRect = {
