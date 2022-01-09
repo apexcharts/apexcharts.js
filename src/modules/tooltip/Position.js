@@ -327,8 +327,8 @@ export default class Position {
           if (
             pcy !== null &&
             !isNaN(pcy) &&
-            pcy < w.globals.gridHeight &&
-            pcy > 0
+            pcy < w.globals.gridHeight + hoverSize &&
+            pcy + hoverSize > 0
           ) {
             points[p] && points[p].setAttribute('r', hoverSize)
             points[p] && points[p].setAttribute('cy', pcy)
