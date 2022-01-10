@@ -198,10 +198,7 @@ export default class Position {
         seriesBound.top -
         tooltipRect.ttHeight / 2
     } else {
-      if (w.globals.isBarHorizontal) {
-        // non follow shared tooltip in a horizontal bar chart
-        y = y - tooltipRect.ttHeight
-      } else {
+      if (!w.globals.isBarHorizontal) {
         if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
           y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
         }

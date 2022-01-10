@@ -53,8 +53,11 @@ class Intersect {
       }
       if (ttCtx.w.config.tooltip.followCursor) {
         let seriesBound = w.globals.dom.elWrap.getBoundingClientRect()
-        x = w.globals.clientX - seriesBound.left - ttCtx.tooltipRect.ttWidth / 2
-        y = w.globals.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight - 5
+        x =
+          w.globals.clientX -
+          seriesBound.left -
+          (x > w.globals.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
+        y = w.globals.clientY - seriesBound.top
       }
     }
 
