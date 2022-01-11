@@ -144,7 +144,7 @@ export default class Utils {
     let j = -1
 
     if (w.globals.series.length > 1) {
-      activeIndex = this.getFirstActiveXArray(Xarrays, Yarrays)
+      activeIndex = this.getFirstActiveXArray(Xarrays)
     } else {
       currIndex = 0
     }
@@ -178,15 +178,20 @@ export default class Utils {
     }
   }
 
-  getFirstActiveXArray(Xarrays, Yarrays) {
+  getFirstActiveXArray(Xarrays) {
+    const w = this.w
     let activeIndex = 0
 
     let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
-      return xarr.length > 0 && Yarrays[index].length > 0 ? index : -1
+      return xarr.length > 0 ? index : -1
     })
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
-      if (firstActiveSeriesIndex[a] !== -1) {
+      if (
+        firstActiveSeriesIndex[a] !== -1 &&
+        w.globals.collapsedSeriesIndices.indexOf(a) === -1 &&
+        w.globals.ancillaryCollapsedSeriesIndices.indexOf(a) === -1
+      ) {
         activeIndex = firstActiveSeriesIndex[a]
         break
       }
