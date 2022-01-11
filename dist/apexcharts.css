@@ -98,6 +98,7 @@
   margin-left: 5px;
 }
 
+.apexcharts-tooltip-title:empty,
 .apexcharts-tooltip-text-y-label:empty,
 .apexcharts-tooltip-text-y-value:empty,
 .apexcharts-tooltip-text-goals-label:empty,
