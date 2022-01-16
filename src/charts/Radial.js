@@ -353,20 +353,14 @@ class Radial extends Pie {
 
       let dur = 0
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-        dur = ((endAngle - startAngle) / 360) * w.config.chart.animations.speed
-
-        this.animDur = dur / (opts.series.length * 1.2) + this.animDur
-        this.animBeginArr.push(this.animDur)
+        dur = w.config.chart.animations.speed
       }
 
       if (w.globals.dataChanged) {
-        dur =
-          ((endAngle - startAngle) / 360) *
-          w.config.chart.animations.dynamicAnimation.speed
-
-        this.animDur = dur / (opts.series.length * 1.2) + this.animDur
-        this.animBeginArr.push(this.animDur)
+        dur = w.config.chart.animations.dynamicAnimation.speed
       }
+      this.animDur = dur / (opts.series.length * 1.2) + this.animDur
+      this.animBeginArr.push(this.animDur)
 
       this.animatePaths(elPath, {
         centerX: opts.centerX,
