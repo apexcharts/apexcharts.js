@@ -257,6 +257,8 @@ class Radar {
             w
           })
 
+          const offsetCorrection = dataLabelsConfig.offsetCorrection != null ? dataLabelsConfig.offsetCorrection : false;
+
           dataLabels.plotDataLabelsText({
             x: dataPointsPos[j].x,
             y: dataPointsPos[j].y,
@@ -265,7 +267,7 @@ class Radar {
             i,
             j: i,
             parent: elDataPointsMain,
-            offsetCorrection: false,
+            offsetCorrection,
             dataLabelsConfig: {
               ...dataLabelsConfig
             }

@@ -139,6 +139,8 @@ class DataLabels {
           }
         }
 
+        const offsetCorrection = dataLabelsConfig?.offsetCorrection != null ? dataLabelsConfig?.offsetCorrection : true;
+
         this.plotDataLabelsText({
           x,
           y,
@@ -146,7 +148,7 @@ class DataLabels {
           i,
           j: dataPointIndex,
           parent: elDataLabelsWrap,
-          offsetCorrection: true,
+          offsetCorrection,
           dataLabelsConfig: w.config.dataLabels
         })
       }

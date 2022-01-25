@@ -424,6 +424,8 @@ export default class BarDataLabels {
         }
       }
 
+      const offsetCorrection =  modifiedDataLabelsConfig.offsetCorrection != null ? modifiedDataLabelsConfig?.offsetCorrection : true
+
       dataLabels.plotDataLabelsText({
         x,
         y,
@@ -433,7 +435,7 @@ export default class BarDataLabels {
         parent: elDataLabelsWrap,
         dataLabelsConfig: modifiedDataLabelsConfig,
         alwaysDrawDataLabel: true,
-        offsetCorrection: true
+        offsetCorrection
       })
     }
 
