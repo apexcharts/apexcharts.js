@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.33.0
+ * ApexCharts v3.33.1
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -8852,14 +8852,6 @@
           if (config.yaxis[0].reversed) {
             console.warn("Reversed y-axis in ".concat(config.chart.type, " chart is not supported."));
             config.yaxis[0].reversed = false;
-          }
-        } // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
-
-
-        if (Array.isArray(config.stroke.width)) {
-          if (config.chart.type !== 'line' && config.chart.type !== 'area') {
-            console.warn('stroke.width option accepts array only for line and area charts. Reverted back to Number');
-            config.stroke.width = config.stroke.width[0];
           }
         }
 
@@ -21800,17 +21792,15 @@
           var dur = 0;
 
           if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-            dur = (endAngle - startAngle) / 360 * w.config.chart.animations.speed;
-            this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
-            this.animBeginArr.push(this.animDur);
+            dur = w.config.chart.animations.speed;
           }
 
           if (w.globals.dataChanged) {
-            dur = (endAngle - startAngle) / 360 * w.config.chart.animations.dynamicAnimation.speed;
-            this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
-            this.animBeginArr.push(this.animDur);
+            dur = w.config.chart.animations.dynamicAnimation.speed;
           }
 
+          this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
+          this.animBeginArr.push(this.animDur);
           this.animatePaths(elPath, {
             centerX: opts.centerX,
             centerY: opts.centerY,
