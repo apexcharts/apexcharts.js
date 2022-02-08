@@ -340,16 +340,6 @@ export default class Config {
       }
     }
 
-    // if user supplied array for stroke width, it will only be applicable to line/area charts, for any other charts, revert back to Number
-    if (Array.isArray(config.stroke.width)) {
-      if (config.chart.type !== 'line' && config.chart.type !== 'area') {
-        console.warn(
-          'stroke.width option accepts array only for line and area charts. Reverted back to Number'
-        )
-        config.stroke.width = config.stroke.width[0]
-      }
-    }
-
     return config
   }
 }
