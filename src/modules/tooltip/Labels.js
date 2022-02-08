@@ -126,8 +126,15 @@ export default class Labels {
             })
           }
         } else {
-          if (e && e.target && e.target.getAttribute('fill')) {
-            pColor = e.target.getAttribute('fill')
+          // get a color from a hover area (if it's a line pattern then get from a first line)
+          const targetFill = e?.target?.getAttribute('fill');
+          if (targetFill) {
+            pColor = (targetFill.indexOf("url") !== -1) ? (
+              document
+                .querySelector(targetFill.substr(4).slice(0, -1))
+                .querySelector("line")
+                .getAttribute("stroke")
+            ) : targetFill;
           }
           val = getValBySeriesIndex(i)
           if (hasGoalValues(i) && Array.isArray(w.globals.seriesGoals[i][j])) {
@@ -200,14 +207,14 @@ export default class Labels {
       if (w.globals.yLabelFormatters[0]) {
         yLbFormatter = w.globals.yLabelFormatters[0]
       } else {
-        yLbFormatter = function(label) {
+        yLbFormatter = function (label) {
           return label
         }
       }
     }
 
     if (typeof yLbTitleFormatter !== 'function') {
-      yLbTitleFormatter = function(label) {
+      yLbTitleFormatter = function (label) {
         return label
       }
     }
