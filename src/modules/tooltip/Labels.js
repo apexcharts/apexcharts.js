@@ -132,7 +132,7 @@ export default class Labels {
             pColor = (targetFill.indexOf("url") !== -1) ? (
               document
                 .querySelector(targetFill.substr(4).slice(0, -1))
-                .querySelector("line")
+                .childNodes[0]
                 .getAttribute("stroke")
             ) : targetFill;
           }
