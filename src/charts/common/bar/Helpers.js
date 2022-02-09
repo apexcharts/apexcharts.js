@@ -209,7 +209,7 @@ export default class Helpers {
       activeSeriesIndex === i
     ) {
       if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-        j -= this.barCtx.barOptions.colors.backgroundBarColors.length
+        j %= this.barCtx.barOptions.colors.backgroundBarColors.length
       }
 
       let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j]
