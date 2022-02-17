@@ -147,32 +147,33 @@ export default class XAxis {
     let xPos = w.globals.padHorizontal
 
     let labelsLen = labels.length
+    let datapoints = w.globals.dataPoints
 
     if (isXNumeric) {
-      let len = labelsLen > 1 ? labelsLen - 1 : labelsLen
+      let len = datapoints > 1 ? datapoints - 1 : datapoints
       colWidth = w.globals.gridWidth / len
       xPos = xPos + colWidthCb(0, colWidth) / 2 + w.config.xaxis.labels.offsetX
     } else {
-      colWidth = w.globals.gridWidth / labels.length
+      colWidth = w.globals.gridWidth / datapoints
       xPos = xPos + colWidthCb(0, colWidth) + w.config.xaxis.labels.offsetX
     }
 
 
     for (let i = 0; i <= labelsLen - 1; i++) {
-      let x = xPos - colWidth / 2 + w.config.xaxis.labels.offsetX
+      let x = xPos - colWidthCb(i, colWidth) / 2 + w.config.xaxis.labels.offsetX
 
       if (
         i === 0 &&
         labelsLen === 1 &&
         colWidth / 2 === xPos &&
-        w.globals.dataPoints === 1
+        datapoints === 1
       ) {
         // single datapoint
         x = w.globals.gridWidth / 2
       }
       let label = this.axesUtils.getLabel(
         labels,
-        w.globals.timescaleLabels,
+        [],
         x,
         i,
         drawnLabels,
