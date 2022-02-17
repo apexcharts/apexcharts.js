@@ -104,8 +104,8 @@ export default class Dimensions {
     gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX =
       w.globals.rotateXLabels &&
-      w.globals.isXNumeric &&
-      w.config.xaxis.labels.rotate <= -45
+        w.globals.isXNumeric &&
+        w.config.xaxis.labels.rotate <= -45
         ? -this.xAxisWidth / 4
         : 0
 
@@ -208,8 +208,8 @@ export default class Dimensions {
 
     const type =
       cnf.chart.type === 'pie' ||
-      cnf.chart.type === 'polarArea' ||
-      cnf.chart.type === 'donut'
+        cnf.chart.type === 'polarArea' ||
+        cnf.chart.type === 'donut'
         ? 'pie'
         : 'radialBar'
 
@@ -262,7 +262,9 @@ export default class Dimensions {
   conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords) {
     const w = this.w
 
-    const baseXAxisHeight = xaxisLabelCoords.height + xtitleCoords.height
+    const xAxisNum = (w.globals.hasGroups ? 2 : 1)
+
+    const baseXAxisHeight = xAxisNum * xaxisLabelCoords.height + xtitleCoords.height
     const xAxisHeightMultiplicate = w.globals.isMultiLineX
       ? 1.2
       : w.globals.LINE_HEIGHT_RATIO
@@ -273,7 +275,7 @@ export default class Dimensions {
 
     this.xAxisHeight =
       baseXAxisHeight * xAxisHeightMultiplicate +
-      rotatedXAxisOffset +
+      xAxisNum * rotatedXAxisOffset +
       additionalOffset
 
     this.xAxisWidth = xaxisLabelCoords.width
