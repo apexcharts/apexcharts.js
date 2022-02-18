@@ -399,7 +399,9 @@ export default class Position {
     }
 
     if (!w.globals.isBarHorizontal) {
-      bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
+      if (w.config.tooltip.followCursor) {
+        bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
+      }
     } else {
       bcy = bcy + bh / 3
     }
