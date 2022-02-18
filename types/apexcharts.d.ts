@@ -40,7 +40,7 @@ declare class ApexCharts {
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void
   removeAnnotation(id: string, options?: any): void
   clearAnnotations(options?: any): void
-  dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string }>
+  dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
   static exec(chartID: string, fn: string, ...args: Array<any>): any
   static getChartByID(chartID: string): ApexCharts|undefined
   static initOnLoad(): void
