@@ -52,7 +52,7 @@ declare class ApexCharts {
     exportToPng(): void
     exportToCSV(options?: { series?: any, columnDelimiter?: string, lineDelimiter?: string }): void
     getSvgString(scale?: number): void
-    triggerDownload(href: string, filename: string, ext: string): void
+    triggerDownload(href: string, filename?: string, ext?: string): void
   }
 }
 
