@@ -47,7 +47,7 @@ declare class ApexCharts {
   exports: {
     cleanup(): string
     svgUrl(): string
-    dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string }>
+    dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
     exportToSVG(): void
     exportToPng(): void
     exportToCSV(options?: { series?: any, columnDelimiter?: string, lineDelimiter?: string }): void
