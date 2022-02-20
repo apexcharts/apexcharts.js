@@ -40,9 +40,20 @@ declare class ApexCharts {
   addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void
   removeAnnotation(id: string, options?: any): void
   clearAnnotations(options?: any): void
-  dataURI(options?: { scale?: number, width?: number }): Promise<void>
+  dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
   static exec(chartID: string, fn: string, ...args: Array<any>): any
+  static getChartByID(chartID: string): ApexCharts|undefined
   static initOnLoad(): void
+  exports: {
+    cleanup(): string
+    svgUrl(): string
+    dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
+    exportToSVG(): void
+    exportToPng(): void
+    exportToCSV(options?: { series?: any, columnDelimiter?: string, lineDelimiter?: string }): void
+    getSvgString(scale?: number): void
+    triggerDownload(href: string, filename?: string, ext?: string): void
+  }
 }
 
 declare module ApexCharts {
