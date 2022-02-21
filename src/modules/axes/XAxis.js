@@ -88,7 +88,7 @@ export default class XAxis {
       for (let i = 0; i < labelsGroup.length; i++) {
         labels.push(labelsGroup[i].title)
       }
-      this.drawXAxisLabelGroup(false, graphics, elXaxisTexts, labels, w.globals.isXNumeric, (i, colWidth) => labelsGroup[i].cols * colWidth)
+      this.drawXAxisLabelGroup(false, graphics, elXaxisTexts, labels, false, (i, colWidth) => labelsGroup[i].cols * colWidth)
     }
 
     if (w.config.xaxis.title.text !== undefined) {
