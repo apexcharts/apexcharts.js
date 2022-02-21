@@ -88,7 +88,17 @@ export default class XAxis {
       for (let i = 0; i < labelsGroup.length; i++) {
         labels.push(labelsGroup[i].title)
       }
-      this.drawXAxisLabelGroup(false, graphics, elXaxisTexts, labels, false, (i, colWidth) => labelsGroup[i].cols * colWidth)
+
+      let overwriteStyles = {}
+      if (w.config.xaxis.group.style) {
+        overwriteStyles.xaxisFontSize = w.config.xaxis.group.style.fontSize
+        overwriteStyles.xaxisFontFamily = w.config.xaxis.group.style.fontFamily
+        overwriteStyles.xaxisForeColors = w.config.xaxis.group.style.colors
+        overwriteStyles.fontWeight = w.config.xaxis.group.style.fontWeight
+        overwriteStyles.cssClass = w.config.xaxis.group.style.cssClass
+      }
+
+      this.drawXAxisLabelGroup(false, graphics, elXaxisTexts, labels, false, (i, colWidth) => labelsGroup[i].cols * colWidth, overwriteStyles)
     }
 
     if (w.config.xaxis.title.text !== undefined) {
@@ -136,10 +146,17 @@ export default class XAxis {
     return elXaxis
   }
 
-  drawXAxisLabelGroup(isLeafGroup, graphics, elXaxisTexts, labels, isXNumeric, colWidthCb) {
+  drawXAxisLabelGroup(isLeafGroup, graphics, elXaxisTexts, labels, isXNumeric, colWidthCb, overwriteStyles = {}) {
     let drawnLabels = []
     let drawnLabelsRects = []
     let w = this.w
+
+
+    const xaxisFontSize = overwriteStyles.xaxisFontSize || this.xaxisFontSize
+    const xaxisFontFamily = overwriteStyles.xaxisFontFamily || this.xaxisFontFamily
+    const xaxisForeColors = overwriteStyles.xaxisForeColors || this.xaxisForeColors
+    const fontWeight = overwriteStyles.fontWeight || w.config.xaxis.labels.style.fontWeight
+    const cssClass = overwriteStyles.cssClass || w.config.xaxis.labels.style.cssClass
 
     let colWidth
 
@@ -177,7 +194,7 @@ export default class XAxis {
         x,
         i,
         drawnLabels,
-        this.xaxisFontSize
+        xaxisFontSize
       )
 
       let offsetYCorrection = 28
@@ -186,7 +203,7 @@ export default class XAxis {
       }
 
       if (!isLeafGroup) {
-        offsetYCorrection = offsetYCorrection - parseFloat(this.xaxisFontSize) + w.globals.xAxisLabelsHeight / 2
+        offsetYCorrection = offsetYCorrection - parseFloat(xaxisFontSize) + w.globals.xAxisLabelsHeight / 2
       }
 
       const isCategoryTickAmounts =
@@ -208,8 +225,8 @@ export default class XAxis {
 
       const getCatForeColor = () => {
         return w.config.xaxis.convertedCatToNumeric
-          ? this.xaxisForeColors[w.globals.minX + i - 1]
-          : this.xaxisForeColors[i]
+          ? xaxisForeColors[w.globals.minX + i - 1]
+          : xaxisForeColors[i]
       }
 
       if (isLeafGroup && label.text) {
@@ -230,15 +247,15 @@ export default class XAxis {
           textAnchor: 'middle',
           fontWeight: label.isBold
             ? 600
-            : w.config.xaxis.labels.style.fontWeight,
-          fontSize: this.xaxisFontSize,
-          fontFamily: this.xaxisFontFamily,
-          foreColor: Array.isArray(this.xaxisForeColors)
+            : fontWeight,
+          fontSize: xaxisFontSize,
+          fontFamily: xaxisFontFamily,
+          foreColor: Array.isArray(xaxisForeColors)
             ? getCatForeColor()
-            : this.xaxisForeColors,
+            : xaxisForeColors,
           isPlainText: false,
           cssClass:
-            (isLeafGroup ? 'apexcharts-xaxis-label ' : 'apexcharts-xaxis-group-label') + w.config.xaxis.labels.style.cssClass
+            (isLeafGroup ? 'apexcharts-xaxis-label ' : 'apexcharts-xaxis-group-label ') + cssClass
         })
         elXaxisTexts.add(elText)
 
