@@ -395,7 +395,7 @@ export default class Data {
 
     gl.isRangeBar = cnf.chart.type === 'rangeBar' && gl.isBarHorizontal
 
-    gl.hasGroups = typeof (cnf.xaxis.group) !== 'undefined' && typeof (cnf.xaxis.group.groups) !== 'undefined' && cnf.xaxis.group.groups.length > 0
+    gl.hasGroups = cnf.xaxis.type === 'category' && typeof (cnf.xaxis.group) !== 'undefined' && typeof (cnf.xaxis.group.groups) !== 'undefined' && cnf.xaxis.group.groups.length > 0
     if (gl.hasGroups) {
       gl.groups = cnf.xaxis.group.groups;
     }
