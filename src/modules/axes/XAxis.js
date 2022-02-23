@@ -203,7 +203,7 @@ export default class XAxis {
       }
 
       if (!isLeafGroup) {
-        offsetYCorrection = offsetYCorrection - parseFloat(xaxisFontSize) + w.globals.xAxisLabelsHeight / 2
+        offsetYCorrection = offsetYCorrection + parseFloat(xaxisFontSize) + (w.globals.xAxisLabelsHeight - w.globals.xAxisGroupLabelsHeight)
       }
 
       const isCategoryTickAmounts =

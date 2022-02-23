@@ -97,9 +97,10 @@ export default class Dimensions {
     this.yAxisWidth = this.dimYAxis.getTotalYAxisWidth()
 
     let xaxisLabelCoords = this.dimXAxis.getxAxisLabelsCoords()
+    let xaxisGroupLabelCoords = this.dimXAxis.getxAxisGroupLabelsCoords()
     let xtitleCoords = this.dimXAxis.getxAxisTitleCoords()
 
-    this.conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords)
+    this.conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords, xaxisGroupLabelCoords)
 
     gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX =
@@ -121,6 +122,7 @@ export default class Dimensions {
     let yAxisWidth = this.yAxisWidth
     let xAxisHeight = this.xAxisHeight
     gl.xAxisLabelsHeight = this.xAxisHeight - xtitleCoords.height
+    gl.xAxisGroupLabelsHeight = gl.xAxisLabelsHeight - xaxisLabelCoords.height
     gl.xAxisLabelsWidth = this.xAxisWidth
     gl.xAxisHeight = this.xAxisHeight
     let translateY = 10
@@ -259,12 +261,12 @@ export default class Dimensions {
     }
   }
 
-  conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords) {
+  conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords, xaxisGroupLabelCoords) {
     const w = this.w
 
     const xAxisNum = (w.globals.hasGroups ? 2 : 1)
 
-    const baseXAxisHeight = xAxisNum * xaxisLabelCoords.height + xtitleCoords.height
+    const baseXAxisHeight = xaxisGroupLabelCoords.height + xaxisLabelCoords.height + xtitleCoords.height
     const xAxisHeightMultiplicate = w.globals.isMultiLineX
       ? 1.2
       : w.globals.LINE_HEIGHT_RATIO
