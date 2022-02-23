@@ -224,7 +224,7 @@ export default class XAxis {
       }
 
       const getCatForeColor = () => {
-        return w.config.xaxis.convertedCatToNumeric
+        return isLeafGroup && w.config.xaxis.convertedCatToNumeric
           ? xaxisForeColors[w.globals.minX + i - 1]
           : xaxisForeColors[i]
       }
