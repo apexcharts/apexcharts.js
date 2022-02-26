@@ -137,9 +137,6 @@ class Grid {
       '#fff'
     )
 
-    const coreUtils = new CoreUtils(this)
-    coreUtils.getLargestMarkerSize()
-
     let markerSize = w.globals.markers.largestSize + 1
 
     gl.dom.elGridRectMarker = graphics.drawRect(

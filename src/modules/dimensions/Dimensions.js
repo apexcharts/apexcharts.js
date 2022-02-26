@@ -41,6 +41,15 @@ export default class Dimensions {
 
     this.lgRect = this.dimHelpers.getLegendsRect()
 
+    if (
+      this.isSparkline &&
+      (w.config.markers.discrete.length > 0 || w.config.markers.size > 0)
+    ) {
+      Object.entries(this.gridPad).forEach(([k, v]) => {
+        this.gridPad[k] = Math.max(v, this.w.globals.markers.largestSize / 1.5)
+      })
+    }
+
     if (gl.axisCharts) {
       // for line / area / scatter / column
       this.setDimensionsForAxisCharts()

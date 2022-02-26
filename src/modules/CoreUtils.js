@@ -127,6 +127,16 @@ class CoreUtils {
       size = Math.max(size, m)
     })
 
+    if (w.config.markers.discrete && w.config.markers.discrete.length) {
+      w.config.markers.discrete.forEach((m) => {
+        size = Math.max(size, m.size)
+      })
+    }
+
+    if (size > 0) {
+      size += w.config.markers.hover.sizeOffset + 1
+    }
+
     w.globals.markers.largestSize = size
 
     return size

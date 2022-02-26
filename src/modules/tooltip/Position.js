@@ -403,7 +403,11 @@ export default class Position {
         bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
       }
     } else {
-      bcy = bcy + bh / 3
+      bcy = bcy + w.config.grid.padding.top + bh / 3
+
+      if (bcy + bh > w.globals.gridHeight) {
+        bcy = w.globals.gridHeight - bh
+      }
     }
 
     if (!w.globals.isBarHorizontal) {
