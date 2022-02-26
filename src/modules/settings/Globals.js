@@ -26,8 +26,6 @@ export default class Globals {
     gl.seriesYvalues = [] // we will need this when deciding which series
     // user hovered on
     gl.labels = []
-    gl.hasGroups = false
-    gl.groups = []
     gl.categoryLabels = []
     gl.timescaleLabels = []
     gl.noLabelsProvided = false
@@ -197,7 +195,6 @@ export default class Globals {
       ttZFormatter: undefined,
       LINE_HEIGHT_RATIO: 1.618,
       xAxisLabelsHeight: 0,
-      xAxisGroupLabelsHeight: 0,
       xAxisLabelsWidth: 0,
       yAxisLabelsWidth: 0,
       scaleX: 1,
