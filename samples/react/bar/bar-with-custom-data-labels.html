@@ -72,7 +72,7 @@
           this.state = {
 
             series: [{
-              data: [0, 0, 0, 16, 8, 4, 690, 1000, 1200, 1380]
+              data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380]
             }],
             options: {
               chart: {
@@ -83,6 +83,7 @@
                 bar: {
                   barHeight: '100%',
                   distributed: true,
+                  horizontal: true,
                   dataLabels: {
                     position: 'bottom'
                   },
@@ -115,8 +116,9 @@
                 ],
               },
               yaxis: {
-                logarithmic: true,
-                logBase: 8,
+                labels: {
+                  show: false
+                }
               },
               title: {
                   text: 'Custom DataLabels',
