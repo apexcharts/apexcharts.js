@@ -75,6 +75,21 @@ export default class UpdateHelpers {
             // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
             w.globals.initialConfig = Utils.extend({}, w.config)
             w.globals.initialSeries = Utils.clone(w.config.series)
+
+            if (options.series) {
+              // Replace the collapsed series data
+              for (let i = 0; i < w.globals.collapsedSeriesIndices.length; i++) {
+                let series = w.config.series[w.globals.collapsedSeriesIndices[i]]
+                w.globals.collapsedSeries[i].data = w.globals.axisCharts ? series.data.slice() : series
+              }
+              for (let i = 0; i < w.globals.ancillaryCollapsedSeriesIndices.length; i++) {
+                let series = w.config.series[w.globals.ancillaryCollapsedSeriesIndices[i]]
+                w.globals.ancillaryCollapsedSeries[i].data = w.globals.axisCharts ? series.data.slice() : series
+              }
+
+              // Ensure that auto-generated axes are scaled to the visible data
+              ch.series.emptyCollapsedSeries(w.config.series)
+            }
           }
         }
 
