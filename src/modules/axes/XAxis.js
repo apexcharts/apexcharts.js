@@ -194,16 +194,17 @@ export default class XAxis {
         x,
         i,
         drawnLabels,
-        xaxisFontSize
+        xaxisFontSize,
+        isLeafGroup
       )
 
       let offsetYCorrection = 28
-      if (w.globals.rotateXLabels) {
+      if (w.globals.rotateXLabels && isLeafGroup) {
         offsetYCorrection = 22
       }
 
       if (!isLeafGroup) {
-        offsetYCorrection = offsetYCorrection + parseFloat(xaxisFontSize) + (w.globals.xAxisLabelsHeight - w.globals.xAxisGroupLabelsHeight)
+        offsetYCorrection = offsetYCorrection + parseFloat(xaxisFontSize) + (w.globals.xAxisLabelsHeight - w.globals.xAxisGroupLabelsHeight) + (w.globals.rotateXLabels ? 10 : 0)
       }
 
       const isCategoryTickAmounts =
@@ -494,7 +495,7 @@ export default class XAxis {
     let xAxis = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g')
 
     let xAxisTexts = w.globals.dom.baseEl.querySelectorAll(
-      '.apexcharts-xaxis-texts-g text'
+      '.apexcharts-xaxis-texts-g text:not(.apexcharts-xaxis-group-label)'
     )
     let yAxisTextsInversed = w.globals.dom.baseEl.querySelectorAll(
       '.apexcharts-yaxis-inversed text'

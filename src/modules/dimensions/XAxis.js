@@ -205,42 +205,6 @@ export default class DimXAxis {
           : xArrLabelrect.height
     }
 
-    if (
-      (rect.width * xaxisLabels.length >
-        w.globals.svgWidth -
-        this.dCtx.lgWidthForSideLegends -
-        this.dCtx.yAxisWidth -
-        this.dCtx.gridPad.left -
-        this.dCtx.gridPad.right &&
-        w.config.xaxis.labels.rotate !== 0) ||
-      w.config.xaxis.labels.rotateAlways
-    ) {
-      const getRotatedTextRects = (text) => {
-        return graphics.getTextRects(
-          text,
-          fontSize,
-          fontFamily,
-          `rotate(${w.config.xaxis.labels.rotate} 0 0)`,
-          false
-        )
-      }
-      xLabelrect = getRotatedTextRects(val)
-      if (val !== valArr) {
-        xArrLabelrect = getRotatedTextRects(valArr)
-      }
-
-      rect.height =
-        (xLabelrect.height > xArrLabelrect.height
-          ? xLabelrect.height
-          : xArrLabelrect.height) / 1.5
-      rect.width =
-        xLabelrect.width > xArrLabelrect.width
-          ? xLabelrect.width
-          : xArrLabelrect.width
-    }
-
-
-
     if (!w.config.xaxis.labels.show) {
       rect = {
         width: 0,
