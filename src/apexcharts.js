@@ -205,6 +205,10 @@ export default class ApexCharts {
     // Also we need to do this before calculating Dimensions plotCoords() method of Dimensions
     this.formatters.heatmapLabelFormatters()
 
+    // get the largest marker size which will be needed in dimensions calc
+    const coreUtils = new CoreUtils(this)
+    coreUtils.getLargestMarkerSize()
+
     // We got plottable area here, next task would be to calculate axis areas
     this.dimensions.plotCoords()
 

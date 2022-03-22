@@ -127,6 +127,16 @@ class CoreUtils {
       size = Math.max(size, m)
     })
 
+    if (w.config.markers.discrete && w.config.markers.discrete.length) {
+      w.config.markers.discrete.forEach((m) => {
+        size = Math.max(size, m.size)
+      })
+    }
+
+    if (size > 0) {
+      size += w.config.markers.hover.sizeOffset + 1
+    }
+
     w.globals.markers.largestSize = size
 
     return size
@@ -291,8 +301,7 @@ class CoreUtils {
       if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
         return s.map((d) => {
           if (d === null) return null
-
-          return this.getLogVal(d, i)
+          return this.getLogVal(w.config.yaxis[i].logBase, d, i)
         })
       } else {
         return s
@@ -301,15 +310,25 @@ class CoreUtils {
 
     return w.globals.invalidLogScale ? series : w.globals.seriesLog
   }
-
-  getLogVal(d, yIndex) {
+  getBaseLog(base, value) {
+    return Math.log(value) / Math.log(base)
+  }
+  getLogVal(b, d, yIndex) {
+    if (d === 0) {
+      return 0
+    }
     const w = this.w
-    const lv =
-      (Math.log(d) - Math.log(w.globals.minYArr[yIndex])) /
-      (Math.log(w.globals.maxYArr[yIndex]) -
-        Math.log(w.globals.minYArr[yIndex]))
-
-    return isNaN(lv) ? d : lv
+    const min_log_val =
+      w.globals.minYArr[yIndex] === 0
+        ? -1 // make sure we dont calculate log of 0
+        : this.getBaseLog(b, w.globals.minYArr[yIndex])
+    const max_log_val =
+      w.globals.maxYArr[yIndex] === 0
+        ? 0 // make sure we dont calculate log of 0
+        : this.getBaseLog(b, w.globals.maxYArr[yIndex])
+    const number_of_height_levels = max_log_val - min_log_val
+    const log_height_value = this.getBaseLog(b, d) - min_log_val
+    return log_height_value / number_of_height_levels
   }
 
   getLogYRatios(yRatio) {

@@ -73,10 +73,10 @@ export default class Utils {
     let seriesYValArr = []
 
     //add extra values to show markers for the first points. Included both axes to avoid incorrect positioning of the marker
-    w.globals.seriesXvalues.forEach(value => {
+    w.globals.seriesXvalues.forEach((value) => {
       seriesXValArr.push([value[0] + 0.000001].concat(value))
     })
-    w.globals.seriesYvalues.forEach(value => {
+    w.globals.seriesYvalues.forEach((value) => {
       seriesYValArr.push([value[0] + 0.000001].concat(value))
     })
 
@@ -171,10 +171,10 @@ export default class Utils {
       Yarrays.forEach((arrY, iAY) => {
         const newDiff = Math.abs(hoverY - arrY[j])
         if (newDiff < diffY) {
-          diffY = newDiff;
-          currIndex = iAY;
+          diffY = newDiff
+          currIndex = iAY
         }
-      });
+      })
     }
 
     return {

@@ -45,9 +45,19 @@ export default class Markers {
 
     let point
 
-    if (w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker) {
+    const hasDiscreteMarkers =
+      w.config.markers.discrete && w.config.markers.discrete.length
+
+    if (
+      w.globals.markers.size[seriesIndex] > 0 ||
+      alwaysDrawMarker ||
+      hasDiscreteMarkers
+    ) {
       elPointsWrap = graphics.group({
-        class: alwaysDrawMarker ? '' : 'apexcharts-series-markers'
+        class:
+          alwaysDrawMarker || hasDiscreteMarkers
+            ? ''
+            : 'apexcharts-series-markers'
       })
 
       elPointsWrap.attr(
@@ -77,7 +87,7 @@ export default class Markers {
           ? w.globals.markers.size[seriesIndex] > 0
           : w.config.markers.size > 0
 
-        if (shouldMarkerDraw || alwaysDrawMarker) {
+        if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
           if (Utils.isNumber(p.y[q])) {
             PointClasses += ` w${Utils.randomId()}`
           } else {

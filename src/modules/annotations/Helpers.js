@@ -1,5 +1,3 @@
-import Utils from '../../utils/Utils'
-
 export default class Helpers {
   constructor(annoCtx) {
     this.w = annoCtx.w
@@ -88,7 +86,8 @@ export default class Helpers {
     )
 
     if (anno.id) {
-      elRect.node.classList.add(Utils.escapeString(anno.id))
+      // don't escapeString for this ID as it causes duplicate rects
+      elRect.node.classList.add(anno.id)
     }
 
     return elRect

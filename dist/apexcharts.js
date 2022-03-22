@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.33.1
+ * ApexCharts v3.33.0
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -181,6 +181,10 @@
     };
   }
 
+  function _slicedToArray(arr, i) {
+    return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+  }
+
   function _toConsumableArray(arr) {
     return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread();
   }
@@ -189,8 +193,42 @@
     if (Array.isArray(arr)) return _arrayLikeToArray(arr);
   }
 
+  function _arrayWithHoles(arr) {
+    if (Array.isArray(arr)) return arr;
+  }
+
   function _iterableToArray(iter) {
     if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+  }
+
+  function _iterableToArrayLimit(arr, i) {
+    var _i = arr == null ? null : typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"];
+
+    if (_i == null) return;
+    var _arr = [];
+    var _n = true;
+    var _d = false;
+
+    var _s, _e;
+
+    try {
+      for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) {
+        _arr.push(_s.value);
+
+        if (i && _arr.length === i) break;
+      }
+    } catch (err) {
+      _d = true;
+      _e = err;
+    } finally {
+      try {
+        if (!_n && _i["return"] != null) _i["return"]();
+      } finally {
+        if (_d) throw _e;
+      }
+    }
+
+    return _arr;
   }
 
   function _unsupportedIterableToArray(o, minLen) {
@@ -212,6 +250,10 @@
 
   function _nonIterableSpread() {
     throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+
+  function _nonIterableRest() {
+    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
   /*
@@ -2273,6 +2315,17 @@
         w.globals.markers.size.forEach(function (m) {
           size = Math.max(size, m);
         });
+
+        if (w.config.markers.discrete && w.config.markers.discrete.length) {
+          w.config.markers.discrete.forEach(function (m) {
+            size = Math.max(size, m.size);
+          });
+        }
+
+        if (size > 0) {
+          size += w.config.markers.hover.sizeOffset + 1;
+        }
+
         w.globals.markers.largestSize = size;
         return size;
       }
@@ -2441,7 +2494,7 @@
           if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
             return s.map(function (d) {
               if (d === null) return null;
-              return _this.getLogVal(d, i);
+              return _this.getLogVal(w.config.yaxis[i].logBase, d, i);
             });
           } else {
             return s;
@@ -2450,11 +2503,25 @@
         return w.globals.invalidLogScale ? series : w.globals.seriesLog;
       }
     }, {
+      key: "getBaseLog",
+      value: function getBaseLog(base, value) {
+        return Math.log(value) / Math.log(base);
+      }
+    }, {
       key: "getLogVal",
-      value: function getLogVal(d, yIndex) {
+      value: function getLogVal(b, d, yIndex) {
+        if (d === 0) {
+          return 0;
+        }
+
         var w = this.w;
-        var lv = (Math.log(d) - Math.log(w.globals.minYArr[yIndex])) / (Math.log(w.globals.maxYArr[yIndex]) - Math.log(w.globals.minYArr[yIndex]));
-        return isNaN(lv) ? d : lv;
+        var min_log_val = w.globals.minYArr[yIndex] === 0 ? -1 // make sure we dont calculate log of 0
+        : this.getBaseLog(b, w.globals.minYArr[yIndex]);
+        var max_log_val = w.globals.maxYArr[yIndex] === 0 ? 0 // make sure we dont calculate log of 0
+        : this.getBaseLog(b, w.globals.maxYArr[yIndex]);
+        var number_of_height_levels = max_log_val - min_log_val;
+        var log_height_value = this.getBaseLog(b, d) - min_log_val;
+        return log_height_value / number_of_height_levels;
       }
     }, {
       key: "getLogYRatios",
@@ -4646,10 +4713,11 @@
         var elPointsWrap = null;
         var graphics = new Graphics(this.ctx);
         var point;
+        var hasDiscreteMarkers = w.config.markers.discrete && w.config.markers.discrete.length;
 
-        if (w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker) {
+        if (w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers) {
           elPointsWrap = graphics.group({
-            class: alwaysDrawMarker ? '' : 'apexcharts-series-markers'
+            class: alwaysDrawMarker || hasDiscreteMarkers ? '' : 'apexcharts-series-markers'
           });
           elPointsWrap.attr('clip-path', "url(#gridRectMarkerMask".concat(w.globals.cuid, ")"));
         }
@@ -4668,7 +4736,7 @@
 
             var shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0;
 
-            if (shouldMarkerDraw || alwaysDrawMarker) {
+            if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
               if (Utils$1.isNumber(p.y[q])) {
                 PointClasses += " w".concat(Utils$1.randomId());
               } else {
@@ -6343,7 +6411,7 @@
 
         if (this.barCtx.barOptions.colors.backgroundBarColors.length > 0 && activeSeriesIndex === i) {
           if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-            j -= this.barCtx.barOptions.colors.backgroundBarColors.length;
+            j %= this.barCtx.barOptions.colors.backgroundBarColors.length;
           }
 
           var bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j];
@@ -11079,8 +11147,6 @@
         }
 
         gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2 - barWidthLeft - 2, -strokeSize / 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize, 0, '#fff');
-        var coreUtils = new CoreUtils(this);
-        coreUtils.getLargestMarkerSize();
         var markerSize = w.globals.markers.largestSize + 1;
         gl.dom.elGridRectMarker = graphics.drawRect(-markerSize * 2, -markerSize * 2, gl.gridWidth + markerSize * 4, gl.gridHeight + markerSize * 4, 0, '#fff');
         gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node);
@@ -14295,9 +14361,21 @@
     _createClass(Dimensions, [{
       key: "plotCoords",
       value: function plotCoords() {
+        var _this = this;
+
         var w = this.w;
         var gl = w.globals;
         this.lgRect = this.dimHelpers.getLegendsRect();
+
+        if (this.isSparkline && (w.config.markers.discrete.length > 0 || w.config.markers.size > 0)) {
+          Object.entries(this.gridPad).forEach(function (_ref) {
+            var _ref2 = _slicedToArray(_ref, 2),
+                k = _ref2[0],
+                v = _ref2[1];
+
+            _this.gridPad[k] = Math.max(v, _this.w.globals.markers.largestSize / 1.5);
+          });
+        }
 
         if (gl.axisCharts) {
           // for line / area / scatter / column
@@ -14319,7 +14397,7 @@
     }, {
       key: "setDimensionsForAxisCharts",
       value: function setDimensionsForAxisCharts() {
-        var _this = this;
+        var _this2 = this;
 
         var w = this.w;
         var gl = w.globals;
@@ -14383,7 +14461,7 @@
 
         var legendTopBottom = function legendTopBottom() {
           gl.translateX = yAxisWidth;
-          gl.gridHeight = gl.svgHeight - _this.lgRect.height - xAxisHeight - (!_this.isSparkline && w.config.chart.type !== 'treemap' ? w.globals.rotateXLabels ? 10 : 15 : 0);
+          gl.gridHeight = gl.svgHeight - _this2.lgRect.height - xAxisHeight - (!_this2.isSparkline && w.config.chart.type !== 'treemap' ? w.globals.rotateXLabels ? 10 : 15 : 0);
           gl.gridWidth = gl.svgWidth - yAxisWidth;
         };
 
@@ -16401,18 +16479,20 @@
         var capturedSeries = null;
         var closest = null;
         var seriesXValArr = [];
-        var seriesYValArr = [];
+        var seriesYValArr = []; //add extra values to show markers for the first points. Included both axes to avoid incorrect positioning of the marker
 
-        for (var s = 0; s < w.globals.seriesXvalues.length; s++) {
-          seriesXValArr.push([w.globals.seriesXvalues[s][0] - 0.000001].concat(w.globals.seriesXvalues[s]));
-        }
-
+        w.globals.seriesXvalues.forEach(function (value) {
+          seriesXValArr.push([value[0] - 0.000001].concat(value));
+        });
+        w.globals.seriesYvalues.forEach(function (value) {
+          seriesYValArr.push([value[0] + 0.000001].concat(value));
+        });
         seriesXValArr = seriesXValArr.map(function (seriesXVal) {
           return seriesXVal.filter(function (s) {
-            return s;
+            return Utils$1.isNumber(s);
           });
         });
-        seriesYValArr = w.globals.seriesYvalues.map(function (seriesYVal) {
+        seriesYValArr = seriesYValArr.map(function (seriesYVal) {
           return seriesYVal.filter(function (s) {
             return Utils$1.isNumber(s);
           });
@@ -16467,26 +16547,35 @@
           currIndex = 0;
         }
 
-        var currY = Yarrays[activeIndex][0];
         var currX = Xarrays[activeIndex][0];
-        var diffX = Math.abs(hoverX - currX);
-        var diffY = Math.abs(hoverY - currY);
-        var diff = diffY + diffX;
-        Yarrays.map(function (arrY, arrIndex) {
-          arrY.map(function (y, innerIndex) {
-            var newdiffY = Math.abs(hoverY - Yarrays[arrIndex][innerIndex]);
-            var newdiffX = Math.abs(hoverX - Xarrays[arrIndex][innerIndex]);
-            var newdiff = newdiffX + newdiffY;
+        var diffX = Math.abs(hoverX - currX); // find nearest point on x-axis
 
-            if (newdiff < diff) {
-              diff = newdiff;
-              diffX = newdiffX;
-              diffY = newdiffY;
-              currIndex = arrIndex;
-              j = innerIndex;
+        Xarrays.forEach(function (arrX) {
+          arrX.forEach(function (x, iX) {
+            var newDiff = Math.abs(hoverX - x);
+
+            if (newDiff < diffX) {
+              diffX = newDiff;
+              j = iX;
             }
           });
         });
+
+        if (j !== -1) {
+          // find nearest graph on y-axis relevanted to nearest point on x-axis
+          var currY = Yarrays[activeIndex][j];
+          var diffY = Math.abs(hoverY - currY);
+          currIndex = activeIndex;
+          Yarrays.forEach(function (arrY, iAY) {
+            var newDiff = Math.abs(hoverY - arrY[j]);
+
+            if (newDiff < diffY) {
+              diffY = newDiff;
+              currIndex = iAY;
+            }
+          });
+        }
+
         return {
           index: currIndex,
           j: j
@@ -16812,8 +16901,13 @@
                 });
               }
             } else {
-              if (e && e.target && e.target.getAttribute('fill')) {
-                pColor = e.target.getAttribute('fill');
+              var _e$target;
+
+              // get a color from a hover area (if it's a line pattern then get from a first line)
+              var targetFill = e === null || e === void 0 ? void 0 : (_e$target = e.target) === null || _e$target === void 0 ? void 0 : _e$target.getAttribute('fill');
+
+              if (targetFill) {
+                pColor = targetFill.indexOf("url") !== -1 ? document.querySelector(targetFill.substr(4).slice(0, -1)).childNodes[0].getAttribute("stroke") : targetFill;
               }
 
               val = getValBySeriesIndex(i);
@@ -17530,9 +17624,15 @@
         }
 
         if (!w.globals.isBarHorizontal) {
-          bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2;
+          if (w.config.tooltip.followCursor) {
+            bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2;
+          }
         } else {
-          bcy = bcy + bh / 3;
+          bcy = bcy + w.config.grid.padding.top + bh / 3;
+
+          if (bcy + bh > w.globals.gridHeight) {
+            bcy = w.globals.gridHeight - bh;
+          }
         }
 
         if (!w.globals.isBarHorizontal) {
@@ -30693,6 +30793,17 @@
 
   function addResizeListener(el, fn) {
     var called = false;
+    var elRect = el.getBoundingClientRect();
+
+    if (el.style.display === 'none' || elRect.width === 0) {
+      // if elRect.width=0, the chart is not rendered at all
+      // (it has either display none or hidden in a different tab)
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2825
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2991
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2992
+      called = true;
+    }
+
     var ro = new ResizeObserver(function (r) {
       // ROs fire immediately after being created,
       // per spec: https://drafts.csswg.org/resize-observer/#ref-for-element%E2%91%A3
@@ -30909,7 +31020,10 @@
         // Also we need to do this before calculating Dimensions plotCoords() method of Dimensions
 
 
-        this.formatters.heatmapLabelFormatters(); // We got plottable area here, next task would be to calculate axis areas
+        this.formatters.heatmapLabelFormatters(); // get the largest marker size which will be needed in dimensions calc
+
+        var coreUtils = new CoreUtils(this);
+        coreUtils.getLargestMarkerSize(); // We got plottable area here, next task would be to calculate axis areas
 
         this.dimensions.plotCoords();
         var xyRatios = this.core.xySettings();

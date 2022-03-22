@@ -399,9 +399,15 @@ export default class Position {
     }
 
     if (!w.globals.isBarHorizontal) {
-      bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
+      if (w.config.tooltip.followCursor) {
+        bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
+      }
     } else {
-      bcy = bcy + bh / 3
+      bcy = bcy + w.config.grid.padding.top + bh / 3
+
+      if (bcy + bh > w.globals.gridHeight) {
+        bcy = w.globals.gridHeight - bh
+      }
     }
 
     if (!w.globals.isBarHorizontal) {
