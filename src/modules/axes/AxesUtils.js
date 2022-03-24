@@ -10,7 +10,7 @@ export default class AxesUtils {
   }
 
   // Based on the formatter function, get the label text and position
-  getLabel(labels, timescaleLabels, x, i, drawnLabels = [], fontSize = '12px') {
+  getLabel(labels, timescaleLabels, x, i, drawnLabels = [], fontSize = '12px', isLeafGroup = true) {
     const w = this.w
     let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
     let label = rawLabel
@@ -68,7 +68,7 @@ export default class AxesUtils {
 
     let graphics = new Graphics(this.ctx)
     let textRect = {}
-    if (w.globals.rotateXLabels) {
+    if (w.globals.rotateXLabels && isLeafGroup) {
       textRect = graphics.getTextRects(
         label,
         parseInt(fontSize, 10),
@@ -147,10 +147,10 @@ export default class AxesUtils {
       if (
         label.x <
         prev.textRect.width /
-          (w.globals.rotateXLabels
-            ? Math.abs(w.config.xaxis.labels.rotate) / 12
-            : 1.01) +
-          prev.x
+        (w.globals.rotateXLabels
+          ? Math.abs(w.config.xaxis.labels.rotate) / 12
+          : 1.01) +
+        prev.x
       ) {
         label.text = ''
       }
