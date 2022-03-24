@@ -327,6 +327,7 @@ class CoreUtils {
         ? 0 // make sure we dont calculate log of 0
         : this.getBaseLog(b, w.globals.maxYArr[yIndex])
     const number_of_height_levels = max_log_val - min_log_val
+    if (d < 1) return d / number_of_height_levels
     const log_height_value = this.getBaseLog(b, d) - min_log_val
     return log_height_value / number_of_height_levels
   }
