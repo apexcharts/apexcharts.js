@@ -976,7 +976,7 @@ type ApexXAxis = {
       minute?: string
     },
     group?: {
-      groups: { title: string, cols: number }[],
+      groups?: { title: string, cols: number }[],
       style?:  {
         colors?: string | string[]
         fontSize?: string
