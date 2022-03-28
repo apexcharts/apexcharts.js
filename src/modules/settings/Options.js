@@ -888,6 +888,7 @@ export default class Options {
         custom: undefined,
         fillSeriesColor: false,
         theme: 'light',
+        cssClass: '',
         style: {
           fontSize: '12px',
           fontFamily: undefined

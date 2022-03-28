@@ -178,7 +178,7 @@ export default class Position {
     let y = parseFloat(cy) + pointR / 2 // - tooltipRect.ttHeight / 2
 
     if (x > w.globals.gridWidth / 2) {
-      x = x - tooltipRect.ttWidth - pointR - 15
+      x = x - tooltipRect.ttWidth - pointR - 10
     }
 
     if (x > w.globals.gridWidth - tooltipRect.ttWidth - 10) {
@@ -401,13 +401,25 @@ export default class Position {
     if (!w.globals.isBarHorizontal) {
       if (w.config.tooltip.followCursor) {
         bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
+      } else {
+        if (bcy + ttCtx.tooltipRect.ttHeight + 15 > w.globals.gridHeight) {
+          bcy = w.globals.gridHeight
+        }
       }
     } else {
+      if (bcy > w.globals.gridHeight / 2) {
+        bcy = bcy - ttCtx.tooltipRect.ttHeight
+      }
+
       bcy = bcy + w.config.grid.padding.top + bh / 3
 
       if (bcy + bh > w.globals.gridHeight) {
         bcy = w.globals.gridHeight - bh
       }
+    }
+
+    if (bcy < -10) {
+      bcy = -10
     }
 
     if (!w.globals.isBarHorizontal) {

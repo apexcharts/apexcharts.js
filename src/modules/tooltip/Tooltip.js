@@ -68,6 +68,9 @@ export default class Tooltip {
 
     const tooltipEl = document.createElement('div')
     tooltipEl.classList.add('apexcharts-tooltip')
+    if (w.config.tooltip.cssClass) {
+      tooltipEl.classList.add(w.config.tooltip.cssClass)
+    }
     tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme}`)
     w.globals.dom.elWrap.appendChild(tooltipEl)
 

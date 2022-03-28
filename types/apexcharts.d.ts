@@ -903,6 +903,7 @@ type ApexTooltip = {
   custom?: ((options: any) => any) | ((options: any) => any)[]
   fillSeriesColor?: boolean
   theme?: string
+  cssClass?: string
   style?: {
     fontSize?: string
     fontFamily?: string
