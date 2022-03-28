@@ -1,3 +1,5 @@
+import CoreUtils from '../CoreUtils'
+
 export default class Helpers {
   constructor(annoCtx) {
     this.w = annoCtx.w
@@ -135,6 +137,86 @@ export default class Helpers {
     w.config.annotations.points.map((anno, i) => {
       add(anno, i, 'point')
     })
+  }
+
+  getY1Y2(type, anno) {
+    let y = type === 'y1' ? anno.y : anno.y2
+    let yP
+
+    const w = this.w
+    if (this.annoCtx.invertAxis) {
+      let catIndex = w.globals.labels.indexOf(y)
+      if (w.config.xaxis.convertedCatToNumeric) {
+        catIndex = w.globals.categoryLabels.indexOf(y)
+      }
+      const xLabel = w.globals.dom.baseEl.querySelector(
+        '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+      )
+      if (xLabel) {
+        yP = parseFloat(xLabel.getAttribute('y'))
+      }
+    } else {
+      let yPos
+      if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
+        const coreUtils = new CoreUtils(this.annoCtx.ctx)
+        y = coreUtils.getLogVal(y, anno.yAxisIndex)
+        yPos = y / w.globals.yLogRatio[anno.yAxisIndex]
+      } else {
+        yPos =
+          (y - w.globals.minYArr[anno.yAxisIndex]) /
+          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+      }
+      yP = w.globals.gridHeight - yPos
+
+      if (
+        w.config.yaxis[anno.yAxisIndex] &&
+        w.config.yaxis[anno.yAxisIndex].reversed
+      ) {
+        yP = yPos
+      }
+    }
+
+    return yP
+  }
+
+  getX1X2(type, anno) {
+    const w = this.w
+    let min = this.annoCtx.invertAxis ? w.globals.minY : w.globals.minX
+    let max = this.annoCtx.invertAxis ? w.globals.maxY : w.globals.maxX
+    const range = this.annoCtx.invertAxis
+      ? w.globals.yRange[0]
+      : w.globals.xRange
+
+    let x1 = (anno.x - min) / (range / w.globals.gridWidth)
+
+    if (this.annoCtx.inversedReversedAxis) {
+      x1 = (max - anno.x) / (range / w.globals.gridWidth)
+    }
+
+    if (
+      (w.config.xaxis.type === 'category' ||
+        w.config.xaxis.convertedCatToNumeric) &&
+      !this.annoCtx.invertAxis &&
+      !w.globals.dataFormatXNumeric
+    ) {
+      x1 = this.getStringX(anno.x)
+    }
+
+    let x2 = (anno.x2 - min) / (range / w.globals.gridWidth)
+
+    if (this.annoCtx.inversedReversedAxis) {
+      x2 = (max - anno.x2) / (range / w.globals.gridWidth)
+    }
+    if (
+      (w.config.xaxis.type === 'category' ||
+        w.config.xaxis.convertedCatToNumeric) &&
+      !this.annoCtx.invertAxis &&
+      !w.globals.dataFormatXNumeric
+    ) {
+      x2 = this.getStringX(anno.x2)
+    }
+
+    return type === 'x1' ? x1 : x2
   }
 
   getStringX(x) {

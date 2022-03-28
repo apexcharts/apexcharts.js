@@ -1,4 +1,5 @@
 import Utils from '../../utils/Utils'
+import Helpers from './Helpers'
 
 export default class XAnnotations {
   constructor(annoCtx) {
@@ -6,31 +7,17 @@ export default class XAnnotations {
     this.annoCtx = annoCtx
 
     this.invertAxis = this.annoCtx.invertAxis
+
+    this.helpers = new Helpers(this.annoCtx)
   }
 
   addXaxisAnnotation(anno, parent, index) {
     let w = this.w
 
-    let min = this.invertAxis ? w.globals.minY : w.globals.minX
-    let max = this.invertAxis ? w.globals.maxY : w.globals.maxX
-    const range = this.invertAxis ? w.globals.yRange[0] : w.globals.xRange
-
-    let x1 = (anno.x - min) / (range / w.globals.gridWidth)
-
-    if (this.annoCtx.inversedReversedAxis) {
-      x1 = (max - anno.x) / (range / w.globals.gridWidth)
-    }
+    let x1 = this.helpers.getX1X2('x1', anno)
+    let x2
 
     const text = anno.label.text
-
-    if (
-      (w.config.xaxis.type === 'category' ||
-        w.config.xaxis.convertedCatToNumeric) &&
-      !this.invertAxis &&
-      !w.globals.dataFormatXNumeric
-    ) {
-      x1 = this.annoCtx.helpers.getStringX(anno.x)
-    }
 
     let strokeDashArray = anno.strokeDashArray
 
@@ -51,19 +38,7 @@ export default class XAnnotations {
         line.node.classList.add(anno.id)
       }
     } else {
-      let x2 = (anno.x2 - min) / (range / w.globals.gridWidth)
-
-      if (this.annoCtx.inversedReversedAxis) {
-        x2 = (max - anno.x2) / (range / w.globals.gridWidth)
-      }
-      if (
-        (w.config.xaxis.type === 'category' ||
-          w.config.xaxis.convertedCatToNumeric) &&
-        !this.invertAxis &&
-        !w.globals.dataFormatXNumeric
-      ) {
-        x2 = this.annoCtx.helpers.getStringX(anno.x2)
-      }
+      x2 = this.helpers.getX1X2('x2', anno)
 
       if (x2 < x1) {
         let temp = x1

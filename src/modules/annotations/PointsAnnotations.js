@@ -1,92 +1,18 @@
 import Utils from '../../utils/Utils'
-import CoreUtils from '../CoreUtils'
+import Helpers from './Helpers'
 
 export default class PointAnnotations {
   constructor(annoCtx) {
     this.w = annoCtx.w
     this.annoCtx = annoCtx
+    this.helpers = new Helpers(this.annoCtx)
   }
 
   addPointAnnotation(anno, parent, index) {
     const w = this.w
 
-    let x = 0
-    let y = 0
-    let pointY = 0
-
-    if (this.annoCtx.invertAxis) {
-      console.warn(
-        'Point annotation is not supported in horizontal bar charts.'
-      )
-    }
-
-    let annoY = parseFloat(anno.y)
-
-    if (
-      typeof anno.x === 'string' ||
-      w.config.xaxis.type === 'category' ||
-      w.config.xaxis.convertedCatToNumeric
-    ) {
-      let catIndex = w.globals.labels.indexOf(anno.x)
-
-      if (w.config.xaxis.convertedCatToNumeric) {
-        catIndex = w.globals.categoryLabels.indexOf(anno.x)
-      }
-
-      x = this.annoCtx.helpers.getStringX(anno.x)
-
-      if (anno.y === null) {
-        annoY = w.globals.series[anno.seriesIndex][catIndex]
-      }
-    } else {
-      x = (anno.x - w.globals.minX) / (w.globals.xRange / w.globals.gridWidth)
-    }
-
-    // count series assign to the same axis
-    let duplicateSeriesName = []
-    let countDuplicateSeriesName = 0
-    for (let i = 0; i <= anno.seriesIndex; i++) {
-      let serieName = w.config.yaxis[i].seriesName
-      if (serieName)
-        for (let j = i + 1; j <= anno.seriesIndex; j++) {
-          if (
-            w.config.yaxis[j].seriesName === serieName &&
-            duplicateSeriesName.indexOf(serieName) === -1
-          ) {
-            countDuplicateSeriesName++
-            duplicateSeriesName.push(serieName)
-          }
-        }
-    }
-
-    let yPos
-    if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
-      const coreUtils = new CoreUtils(this.annoCtx.ctx)
-      annoY = coreUtils.getLogVal(annoY, anno.yAxisIndex)
-      yPos = annoY / w.globals.yLogRatio[anno.yAxisIndex]
-    } else {
-      // calculate the right position in array for this yAxisIndex
-      let actualSerieIndex = anno.yAxisIndex + countDuplicateSeriesName
-      yPos =
-        (annoY - w.globals.minYArr[actualSerieIndex]) /
-        (w.globals.yRange[actualSerieIndex] / w.globals.gridHeight)
-    }
-
-    y =
-      w.globals.gridHeight -
-      yPos -
-      parseFloat(anno.label.style.fontSize) -
-      anno.marker.size
-
-    pointY = w.globals.gridHeight - yPos
-
-    if (
-      w.config.yaxis[anno.yAxisIndex] &&
-      w.config.yaxis[anno.yAxisIndex].reversed
-    ) {
-      y = yPos + parseFloat(anno.label.style.fontSize) + anno.marker.size
-      pointY = yPos
-    }
+    let x = this.helpers.getX1X2('x1', anno)
+    let y = this.helpers.getY1Y2('y1', anno)
 
     if (!Utils.isNumber(x)) return
 
@@ -104,7 +30,7 @@ export default class PointAnnotations {
 
     let point = this.annoCtx.graphics.drawMarker(
       x + anno.marker.offsetX,
-      pointY + anno.marker.offsetY,
+      y + anno.marker.offsetY,
       optsPoints
     )
 
@@ -114,7 +40,11 @@ export default class PointAnnotations {
 
     let elText = this.annoCtx.graphics.drawText({
       x: x + anno.label.offsetX,
-      y: y + anno.label.offsetY,
+      y:
+        y +
+        anno.label.offsetY -
+        anno.marker.size -
+        parseFloat(anno.label.style.fontSize) / 1.6,
       text,
       textAnchor: anno.label.textAnchor,
       fontSize: anno.label.style.fontSize,

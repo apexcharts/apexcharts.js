@@ -1,9 +1,11 @@
-import CoreUtils from '../CoreUtils'
+import Helpers from './Helpers'
 
 export default class YAnnotations {
   constructor(annoCtx) {
     this.w = annoCtx.w
     this.annoCtx = annoCtx
+
+    this.helpers = new Helpers(this.annoCtx)
   }
 
   addYaxisAnnotation(anno, parent, index) {
@@ -11,7 +13,7 @@ export default class YAnnotations {
 
     let strokeDashArray = anno.strokeDashArray
 
-    let y1 = this._getY1Y2('y1', anno)
+    let y1 = this.helpers.getY1Y2('y1', anno)
     let y2
 
     const text = anno.label.text
@@ -31,7 +33,7 @@ export default class YAnnotations {
         line.node.classList.add(anno.id)
       }
     } else {
-      y2 = this._getY1Y2('y2', anno)
+      y2 = this.helpers.getY1Y2('y2', anno)
 
       if (y2 > y1) {
         let temp = y1
@@ -80,46 +82,6 @@ export default class YAnnotations {
     })
 
     parent.appendChild(elText.node)
-  }
-
-  _getY1Y2(type, anno) {
-    let y = type === 'y1' ? anno.y : anno.y2
-    let yP
-
-    const w = this.w
-    if (this.annoCtx.invertAxis) {
-      let catIndex = w.globals.labels.indexOf(y)
-      if (w.config.xaxis.convertedCatToNumeric) {
-        catIndex = w.globals.categoryLabels.indexOf(y)
-      }
-      const xLabel = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
-      )
-      if (xLabel) {
-        yP = parseFloat(xLabel.getAttribute('y'))
-      }
-    } else {
-      let yPos
-      if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
-        const coreUtils = new CoreUtils(this.annoCtx.ctx)
-        y = coreUtils.getLogVal(y, anno.yAxisIndex)
-        yPos = y / w.globals.yLogRatio[anno.yAxisIndex]
-      } else {
-        yPos =
-          (y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
-      }
-      yP = w.globals.gridHeight - yPos
-
-      if (
-        w.config.yaxis[anno.yAxisIndex] &&
-        w.config.yaxis[anno.yAxisIndex].reversed
-      ) {
-        yP = yPos
-      }
-    }
-
-    return yP
   }
 
   _getYAxisAnnotationWidth(anno) {
