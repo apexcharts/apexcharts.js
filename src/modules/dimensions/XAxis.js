@@ -35,7 +35,7 @@ export default class DimXAxis {
       this.dCtx.lgWidthForSideLegends =
         (w.config.legend.position === 'left' ||
           w.config.legend.position === 'right') &&
-        !w.config.legend.floating
+          !w.config.legend.floating
           ? this.dCtx.lgRect.width
           : 0
 
@@ -105,10 +105,10 @@ export default class DimXAxis {
       if (
         (rect.width * xaxisLabels.length >
           w.globals.svgWidth -
-            this.dCtx.lgWidthForSideLegends -
-            this.dCtx.yAxisWidth -
-            this.dCtx.gridPad.left -
-            this.dCtx.gridPad.right &&
+          this.dCtx.lgWidthForSideLegends -
+          this.dCtx.yAxisWidth -
+          this.dCtx.gridPad.left -
+          this.dCtx.gridPad.right &&
           w.config.xaxis.labels.rotate !== 0) ||
         w.config.xaxis.labels.rotateAlways
       ) {
@@ -140,6 +140,69 @@ export default class DimXAxis {
       } else {
         w.globals.rotateXLabels = false
       }
+    }
+
+    if (!w.config.xaxis.labels.show) {
+      rect = {
+        width: 0,
+        height: 0
+      }
+    }
+
+    return {
+      width: rect.width,
+      height: rect.height
+    }
+  }
+
+  /**
+   * Get X Axis Label Group height
+   * @memberof Dimensions
+   * @return {{width, height}}
+   */
+  getxAxisGroupLabelsCoords() {
+    let w = this.w
+
+    if (!w.globals.hasGroups) {
+      return { width: 0, height: 0 }
+    }
+
+    const fontSize = w.config.xaxis.group.style.fontSize || w.config.xaxis.labels.style.fontSize
+    const fontFamily = w.config.xaxis.group.style.fontFamily || w.config.xaxis.labels.style.fontFamily
+
+    let xaxisLabels = w.globals.groups.map(g => g.title)
+
+    let rect
+
+    // prevent changing xaxisLabels to avoid issues in multi-yaxes - fix #522
+    let val = Utils.getLargestStringFromArr(xaxisLabels)
+    let valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
+      val,
+      xaxisLabels
+    )
+
+    let graphics = new Graphics(this.dCtx.ctx)
+    let xLabelrect = graphics.getTextRects(
+      val,
+      fontSize
+    )
+    let xArrLabelrect = xLabelrect
+    if (val !== valArr) {
+      xArrLabelrect = graphics.getTextRects(
+        valArr,
+        fontSize
+      )
+    }
+
+    rect = {
+      width:
+        xLabelrect.width >= xArrLabelrect.width
+          ? xLabelrect.width
+          : xArrLabelrect.width,
+      height:
+        xLabelrect.height >= xArrLabelrect.height
+          ? xLabelrect.height
+          : xArrLabelrect.height
     }
 
     if (!w.config.xaxis.labels.show) {
@@ -268,10 +331,10 @@ export default class DimXAxis {
         if (
           firstLabelPosition <
           -((!yaxe.show || yaxe.floating) &&
-          (cnf.chart.type === 'bar' ||
-            cnf.chart.type === 'candlestick' ||
-            cnf.chart.type === 'rangeBar' ||
-            cnf.chart.type === 'boxPlot')
+            (cnf.chart.type === 'bar' ||
+              cnf.chart.type === 'candlestick' ||
+              cnf.chart.type === 'rangeBar' ||
+              cnf.chart.type === 'boxPlot')
             ? lbWidth / 1.75
             : 10)
         ) {
