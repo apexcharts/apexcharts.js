@@ -57,7 +57,10 @@ class Intersect {
           w.globals.clientX -
           seriesBound.left -
           (x > w.globals.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
-        y = w.globals.clientY - seriesBound.top
+        y =
+          w.globals.clientY -
+          seriesBound.top -
+          (y > w.globals.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
       }
     }
 
