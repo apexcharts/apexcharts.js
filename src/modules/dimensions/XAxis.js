@@ -35,7 +35,7 @@ export default class DimXAxis {
       this.dCtx.lgWidthForSideLegends =
         (w.config.legend.position === 'left' ||
           w.config.legend.position === 'right') &&
-          !w.config.legend.floating
+        !w.config.legend.floating
           ? this.dCtx.lgRect.width
           : 0
 
@@ -105,10 +105,10 @@ export default class DimXAxis {
       if (
         (rect.width * xaxisLabels.length >
           w.globals.svgWidth -
-          this.dCtx.lgWidthForSideLegends -
-          this.dCtx.yAxisWidth -
-          this.dCtx.gridPad.left -
-          this.dCtx.gridPad.right &&
+            this.dCtx.lgWidthForSideLegends -
+            this.dCtx.yAxisWidth -
+            this.dCtx.gridPad.left -
+            this.dCtx.gridPad.right &&
           w.config.xaxis.labels.rotate !== 0) ||
         w.config.xaxis.labels.rotateAlways
       ) {
@@ -167,10 +167,11 @@ export default class DimXAxis {
       return { width: 0, height: 0 }
     }
 
-    const fontSize = w.config.xaxis.group.style.fontSize || w.config.xaxis.labels.style.fontSize
-    const fontFamily = w.config.xaxis.group.style.fontFamily || w.config.xaxis.labels.style.fontFamily
+    const fontSize =
+      w.config.xaxis.group.style?.fontSize ||
+      w.config.xaxis.labels.style.fontSize
 
-    let xaxisLabels = w.globals.groups.map(g => g.title)
+    let xaxisLabels = w.globals.groups.map((g) => g.title)
 
     let rect
 
@@ -182,16 +183,10 @@ export default class DimXAxis {
     )
 
     let graphics = new Graphics(this.dCtx.ctx)
-    let xLabelrect = graphics.getTextRects(
-      val,
-      fontSize
-    )
+    let xLabelrect = graphics.getTextRects(val, fontSize)
     let xArrLabelrect = xLabelrect
     if (val !== valArr) {
-      xArrLabelrect = graphics.getTextRects(
-        valArr,
-        fontSize
-      )
+      xArrLabelrect = graphics.getTextRects(valArr, fontSize)
     }
 
     rect = {
@@ -331,10 +326,10 @@ export default class DimXAxis {
         if (
           firstLabelPosition <
           -((!yaxe.show || yaxe.floating) &&
-            (cnf.chart.type === 'bar' ||
-              cnf.chart.type === 'candlestick' ||
-              cnf.chart.type === 'rangeBar' ||
-              cnf.chart.type === 'boxPlot')
+          (cnf.chart.type === 'bar' ||
+            cnf.chart.type === 'candlestick' ||
+            cnf.chart.type === 'rangeBar' ||
+            cnf.chart.type === 'boxPlot')
             ? lbWidth / 1.75
             : 10)
         ) {

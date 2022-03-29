@@ -79,7 +79,14 @@ export default class XAxis {
       labels.push(this.xaxisLabels[i])
     }
 
-    this.drawXAxisLabelGroup(true, graphics, elXaxisTexts, labels, w.globals.isXNumeric, (i, colWidth) => colWidth);
+    this.drawXAxisLabelAndGroup(
+      true,
+      graphics,
+      elXaxisTexts,
+      labels,
+      w.globals.isXNumeric,
+      (i, colWidth) => colWidth
+    )
 
     if (w.globals.hasGroups) {
       let labelsGroup = w.globals.groups
@@ -98,7 +105,15 @@ export default class XAxis {
         overwriteStyles.cssClass = w.config.xaxis.group.style.cssClass
       }
 
-      this.drawXAxisLabelGroup(false, graphics, elXaxisTexts, labels, false, (i, colWidth) => labelsGroup[i].cols * colWidth, overwriteStyles)
+      this.drawXAxisLabelAndGroup(
+        false,
+        graphics,
+        elXaxisTexts,
+        labels,
+        false,
+        (i, colWidth) => labelsGroup[i].cols * colWidth,
+        overwriteStyles
+      )
     }
 
     if (w.config.xaxis.title.text !== undefined) {
@@ -146,17 +161,28 @@ export default class XAxis {
     return elXaxis
   }
 
-  drawXAxisLabelGroup(isLeafGroup, graphics, elXaxisTexts, labels, isXNumeric, colWidthCb, overwriteStyles = {}) {
+  drawXAxisLabelAndGroup(
+    isLeafGroup,
+    graphics,
+    elXaxisTexts,
+    labels,
+    isXNumeric,
+    colWidthCb,
+    overwriteStyles = {}
+  ) {
     let drawnLabels = []
     let drawnLabelsRects = []
     let w = this.w
 
-
     const xaxisFontSize = overwriteStyles.xaxisFontSize || this.xaxisFontSize
-    const xaxisFontFamily = overwriteStyles.xaxisFontFamily || this.xaxisFontFamily
-    const xaxisForeColors = overwriteStyles.xaxisForeColors || this.xaxisForeColors
-    const fontWeight = overwriteStyles.fontWeight || w.config.xaxis.labels.style.fontWeight
-    const cssClass = overwriteStyles.cssClass || w.config.xaxis.labels.style.cssClass
+    const xaxisFontFamily =
+      overwriteStyles.xaxisFontFamily || this.xaxisFontFamily
+    const xaxisForeColors =
+      overwriteStyles.xaxisForeColors || this.xaxisForeColors
+    const fontWeight =
+      overwriteStyles.fontWeight || w.config.xaxis.labels.style.fontWeight
+    const cssClass =
+      overwriteStyles.cssClass || w.config.xaxis.labels.style.cssClass
 
     let colWidth
 
@@ -174,7 +200,6 @@ export default class XAxis {
       colWidth = w.globals.gridWidth / datapoints
       xPos = xPos + colWidthCb(0, colWidth) + w.config.xaxis.labels.offsetX
     }
-
 
     for (let i = 0; i <= labelsLen - 1; i++) {
       let x = xPos - colWidthCb(i, colWidth) / 2 + w.config.xaxis.labels.offsetX
@@ -204,7 +229,11 @@ export default class XAxis {
       }
 
       if (!isLeafGroup) {
-        offsetYCorrection = offsetYCorrection + parseFloat(xaxisFontSize) + (w.globals.xAxisLabelsHeight - w.globals.xAxisGroupLabelsHeight) + (w.globals.rotateXLabels ? 10 : 0)
+        offsetYCorrection =
+          offsetYCorrection +
+          parseFloat(xaxisFontSize) +
+          (w.globals.xAxisLabelsHeight - w.globals.xAxisGroupLabelsHeight) +
+          (w.globals.rotateXLabels ? 10 : 0)
       }
 
       const isCategoryTickAmounts =
@@ -246,9 +275,7 @@ export default class XAxis {
               : 0),
           text: label.text,
           textAnchor: 'middle',
-          fontWeight: label.isBold
-            ? 600
-            : fontWeight,
+          fontWeight: label.isBold ? 600 : fontWeight,
           fontSize: xaxisFontSize,
           fontFamily: xaxisFontFamily,
           foreColor: Array.isArray(xaxisForeColors)
@@ -256,12 +283,17 @@ export default class XAxis {
             : xaxisForeColors,
           isPlainText: false,
           cssClass:
-            (isLeafGroup ? 'apexcharts-xaxis-label ' : 'apexcharts-xaxis-group-label ') + cssClass
+            (isLeafGroup
+              ? 'apexcharts-xaxis-label '
+              : 'apexcharts-xaxis-group-label ') + cssClass
         })
         elXaxisTexts.add(elText)
 
         if (isLeafGroup) {
-          let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
+          let elTooltipTitle = document.createElementNS(
+            w.globals.SVGNS,
+            'title'
+          )
           elTooltipTitle.textContent = Array.isArray(label.text)
             ? label.text.join(' ')
             : label.text
@@ -529,7 +561,7 @@ export default class XAxis {
               ts,
               ts.textContent,
               w.globals.xAxisLabelsHeight -
-              (w.config.legend.position === 'bottom' ? 20 : 10)
+                (w.config.legend.position === 'bottom' ? 20 : 10)
             )
           })
         }
@@ -576,8 +608,8 @@ export default class XAxis {
           xAxisTextsInversed[xat],
           xAxisTextsInversed[xat].textContent,
           w.config.yaxis[0].labels.maxWidth -
-          parseFloat(w.config.yaxis[0].title.style.fontSize) * 2 -
-          20
+            parseFloat(w.config.yaxis[0].title.style.fontSize) * 2 -
+            20
         )
       }
     }
