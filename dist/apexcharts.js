@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.34.0
+ * ApexCharts v3.35.0
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -10741,26 +10741,32 @@
 
         var xPos = w.globals.padHorizontal;
         var labelsLen = labels.length;
-        var datapoints = w.globals.dataPoints;
+        /**
+         * labelsLen can be different (whether you are drawing x-axis labels or x-axis group labels)
+         * hence, we introduce dataPoints to be consistent.
+         * Also, in datetime/numeric xaxis, dataPoints can be misleading, so we resort to labelsLen for such xaxis type
+         */
+
+        var dataPoints = w.config.xaxis.type === 'category' ? w.globals.dataPoints : labelsLen;
 
         if (isXNumeric) {
-          var len = datapoints > 1 ? datapoints - 1 : datapoints;
+          var len = dataPoints > 1 ? dataPoints - 1 : dataPoints;
           colWidth = w.globals.gridWidth / len;
           xPos = xPos + colWidthCb(0, colWidth) / 2 + w.config.xaxis.labels.offsetX;
         } else {
-          colWidth = w.globals.gridWidth / datapoints;
+          colWidth = w.globals.gridWidth / dataPoints;
           xPos = xPos + colWidthCb(0, colWidth) + w.config.xaxis.labels.offsetX;
         }
 
         var _loop = function _loop(i) {
           var x = xPos - colWidthCb(i, colWidth) / 2 + w.config.xaxis.labels.offsetX;
 
-          if (i === 0 && labelsLen === 1 && colWidth / 2 === xPos && datapoints === 1) {
+          if (i === 0 && labelsLen === 1 && colWidth / 2 === xPos && dataPoints === 1) {
             // single datapoint
             x = w.globals.gridWidth / 2;
           }
 
-          var label = _this.axesUtils.getLabel(labels, [], x, i, drawnLabels, xaxisFontSize, isLeafGroup);
+          var label = _this.axesUtils.getLabel(labels, w.globals.timescaleLabels, x, i, drawnLabels, xaxisFontSize, isLeafGroup);
 
           var offsetYCorrection = 28;
 
