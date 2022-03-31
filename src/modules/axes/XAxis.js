@@ -190,14 +190,21 @@ export default class XAxis {
     let xPos = w.globals.padHorizontal
 
     let labelsLen = labels.length
-    let datapoints = w.globals.dataPoints
+
+    /**
+     * labelsLen can be different (whether you are drawing x-axis labels or x-axis group labels)
+     * hence, we introduce dataPoints to be consistent.
+     * Also, in datetime/numeric xaxis, dataPoints can be misleading, so we resort to labelsLen for such xaxis type
+     */
+    let dataPoints =
+      w.config.xaxis.type === 'category' ? w.globals.dataPoints : labelsLen
 
     if (isXNumeric) {
-      let len = datapoints > 1 ? datapoints - 1 : datapoints
+      let len = dataPoints > 1 ? dataPoints - 1 : dataPoints
       colWidth = w.globals.gridWidth / len
       xPos = xPos + colWidthCb(0, colWidth) / 2 + w.config.xaxis.labels.offsetX
     } else {
-      colWidth = w.globals.gridWidth / datapoints
+      colWidth = w.globals.gridWidth / dataPoints
       xPos = xPos + colWidthCb(0, colWidth) + w.config.xaxis.labels.offsetX
     }
 
@@ -208,7 +215,7 @@ export default class XAxis {
         i === 0 &&
         labelsLen === 1 &&
         colWidth / 2 === xPos &&
-        datapoints === 1
+        dataPoints === 1
       ) {
         // single datapoint
         x = w.globals.gridWidth / 2
