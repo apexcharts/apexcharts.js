@@ -297,8 +297,11 @@ export default class Utils {
     markersWraps.sort((a, b) => {
       return Number(b.getAttribute('data:realIndex')) <
         Number(a.getAttribute('data:realIndex'))
-        ? 0
-        : -1
+        ? 1
+        : Number(b.getAttribute('data:realIndex')) >
+          Number(a.getAttribute('data:realIndex'))
+        ? -1
+        : 0
     })
 
     let markers = []
