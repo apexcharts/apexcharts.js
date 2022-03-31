@@ -215,7 +215,7 @@ export default class XAxis {
       }
       let label = this.axesUtils.getLabel(
         labels,
-        [],
+        w.globals.timescaleLabels,
         x,
         i,
         drawnLabels,
