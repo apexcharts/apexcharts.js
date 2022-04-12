@@ -182,6 +182,10 @@ class Line {
       this.areaBottomY = w.globals.gridHeight
     }
 
+    if (w.config.plotOptions.area.fillTo === 'start') {
+      this.areaBottomY = 0
+    }
+
     this.categoryAxisCorrection = this.xDivision / 2
 
     // el to which series will be drawn

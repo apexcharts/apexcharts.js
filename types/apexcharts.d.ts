@@ -498,7 +498,7 @@ type ApexLocale = {
  */
 type ApexPlotOptions = {
   area?: {
-    fillTo?: 'origin' | 'end'
+    fillTo?: 'origin' | 'end' | 'start'
   }
   bar?: {
     horizontal?: boolean
