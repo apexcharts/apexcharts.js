@@ -1,6 +1,7 @@
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
+import Fill from '../Fill'
 import AxesUtils from './AxesUtils'
 
 /**
@@ -224,14 +225,21 @@ class Grid {
     parent.add(line)
   }
 
-  _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
+  _drawGridBandRect({ c, x1, y1, x2, y2, type, fill }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
     const offX = w.globals.barPadForNumericAxis
 
     if (type === 'column' && w.config.xaxis.type === 'datetime') return
 
-    const color = w.config.grid[type].colors[c]
+    let color, opacity
+    if (fill) {
+      color = fill
+      opacity = 1
+    } else {
+      color = w.config.grid[type].colors[c]
+      opacity = w.config.grid[type].opacity
+    }
 
     let rect = graphics.drawRect(
       x1 - (type === 'row' ? offX : 0),
@@ -240,7 +248,7 @@ class Grid {
       y2,
       0,
       color,
-      w.config.grid[type].opacity
+      opacity
     )
     this.elg.add(rect)
     rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
@@ -456,6 +464,32 @@ class Grid {
   drawGridBands(xCount, tickAmount) {
     const w = this.w
 
+    const gridFill = this.ctx.w.config.grid.fill
+    const fillContext = {
+      ...this.ctx,
+      w: { ...this.ctx.w, config: { ...this.ctx.w.config, fill: gridFill } }
+    }
+    const fill = new Fill(fillContext)
+
+    // fill background band
+    if (w.config.grid.fill !== undefined) {
+      let x1 = 0
+      let y1 = 0
+      let x2 = w.globals.gridWidth
+      let pathFill = fill.fillPath({
+        seriesNumber: 0
+      })
+      let y2 = w.globals.gridHeight
+      this._drawGridBandRect({
+        c: 0,
+        x1,
+        y1,
+        x2,
+        y2,
+        type: 'row',
+        fill: pathFill
+      })
+    }
     // rows background bands
     if (
       w.config.grid.row.colors !== undefined &&
