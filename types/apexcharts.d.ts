@@ -720,7 +720,7 @@ type ApexFill = {
   type?: string | string[]
   gradient?: {
     shade?: string
-    type?: string
+    type?: string | string[]
     shadeIntensity?: number
     gradientToColors?: string[]
     inverseColors?: boolean
