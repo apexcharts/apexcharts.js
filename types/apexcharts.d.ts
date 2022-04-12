@@ -1151,6 +1151,7 @@ type ApexGrid = {
   borderColor?: string
   strokeDashArray?: number
   position?: 'front' | 'back'
+  fill?: ApexFill
   xaxis?: {
     lines?: {
       show?: boolean
