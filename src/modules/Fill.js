@@ -304,7 +304,9 @@ class Fill {
     let graphics = new Graphics(this.ctx)
     let utils = new Utils()
 
-    let type = cnf.fill.gradient.type
+    let type = Array.isArray(cnf.fill.gradient.type)
+      ? cnf.fill.gradient.type[i]
+      : cnf.fill.gradient.type
     let gradientFrom = fillColor
     let gradientTo
     let opacityFrom =
