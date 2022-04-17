@@ -963,16 +963,16 @@ export default class Options {
             hour: 'HH:mm',
             minute: 'HH:mm:ss',
             second: 'HH:mm:ss'
-          },
-          group: {
-            groups: [],
-            style: {
-              colors: [],
-              fontSize: '12px',
-              fontWeight: 400,
-              fontFamily: undefined,
-              cssClass: ''
-            }
+          }
+        },
+        group: {
+          groups: [],
+          style: {
+            colors: [],
+            fontSize: '12px',
+            fontWeight: 400,
+            fontFamily: undefined,
+            cssClass: ''
           }
         },
         axisBorder: {
