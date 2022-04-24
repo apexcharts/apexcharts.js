@@ -182,16 +182,16 @@ class Grid {
       if (w.config.grid.xaxis.lines.show) {
         this._drawGridLine({ x1, y1, x2, y2, parent })
       }
-      let y_2 = 0;
-      if (w.globals.hasGroups && (typeof w.config.xaxis.tickAmount === 'undefined' || w.config.xaxis.tickAmount === 'dataPoints') && w.config.xaxis.tickPlacement === 'between') {
-        const groups = w.globals.groups;
+      let y_2 = 0
+      if (w.globals.hasGroups && w.config.xaxis.tickPlacement === 'between') {
+        const groups = w.globals.groups
         if (groups) {
-          let gacc = 0;
+          let gacc = 0
           for (let gi = 0; gacc < i && gi < groups.length; gi++) {
-            gacc += groups[gi].cols;
+            gacc += groups[gi].cols
           }
           if (gacc === i) {
-            y_2 = w.globals.xAxisLabelsHeight * 0.6;
+            y_2 = w.globals.xAxisLabelsHeight * 0.6
           }
         }
       }
@@ -270,7 +270,8 @@ class Grid {
     const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
       if (
         typeof w.config.xaxis.tickAmount !== 'undefined' &&
-        w.config.xaxis.tickAmount !== 'dataPoints'
+        w.config.xaxis.tickAmount !== 'dataPoints' &&
+        w.config.xaxis.tickPlacement === 'on'
       ) {
         // user has specified tickamount in a category x-axis chart
         const visibleLabels = w.globals.dom.baseEl.querySelectorAll(
@@ -490,8 +491,8 @@ class Grid {
     ) {
       const xc =
         !w.globals.isBarHorizontal &&
-          (w.config.xaxis.type === 'category' ||
-            w.config.xaxis.convertedCatToNumeric)
+        (w.config.xaxis.type === 'category' ||
+          w.config.xaxis.convertedCatToNumeric)
           ? xCount - 1
           : xCount
       let x1 = w.globals.padHorizontal

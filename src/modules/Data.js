@@ -395,9 +395,10 @@ export default class Data {
 
     gl.isRangeBar = cnf.chart.type === 'rangeBar' && gl.isBarHorizontal
 
-    gl.hasGroups = cnf.xaxis.type === 'category' && typeof (cnf.xaxis.group) !== 'undefined' && typeof (cnf.xaxis.group.groups) !== 'undefined' && cnf.xaxis.group.groups.length > 0
+    gl.hasGroups =
+      cnf.xaxis.type === 'category' && cnf.xaxis.group.groups.length > 0
     if (gl.hasGroups) {
-      gl.groups = cnf.xaxis.group.groups;
+      gl.groups = cnf.xaxis.group.groups
     }
 
     const handleDates = () => {
@@ -612,8 +613,8 @@ export default class Data {
       labelArr = gl.axisCharts
         ? []
         : gl.series.map((gls, glsi) => {
-          return glsi + 1
-        })
+            return glsi + 1
+          })
       for (let i = 0; i < ser.length; i++) {
         gl.seriesX.push(labelArr)
       }
