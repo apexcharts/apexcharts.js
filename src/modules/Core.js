@@ -430,6 +430,9 @@ export default class Core {
       gl.dom.elLegendForeign.setAttribute('height', newHeight)
     }
 
+    // fix apexcharts/apexcharts.js/issues/3105 (when % is provided in height, it keeps increasing)
+    if (w.config.chart.height.indexOf('%') > 0) return
+
     gl.dom.elWrap.style.height = newHeight + 'px'
 
     Graphics.setAttrs(gl.dom.Paper.node, {
