@@ -334,11 +334,18 @@ class Line {
     if (w.config.stroke.show && !this.pointsChart) {
       let lineFill = null
       if (type === 'line') {
-        // fillable lines only for lineChart
         lineFill = fill.fillPath({
           seriesNumber: realIndex,
           i
         })
+      } else if (w.config.stroke.fill) {
+        const prevFill = w.config.fill
+        w.config.fill = w.config.stroke.fill
+        lineFill = fill.fillPath({
+          seriesNumber: realIndex,
+          i
+        })
+        w.config.fill = prevFill
       } else {
         lineFill = w.globals.stroke.colors[realIndex]
       }
