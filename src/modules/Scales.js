@@ -162,16 +162,17 @@ export default class Range {
   }
 
   logarithmicScaleNice(yMin, yMax, base) {
+    // Basic validation to avoid for loop starting at -inf.
+    if (yMax <= 0) yMax = Math.max(yMin, base)
+    if (yMin <= 0) yMin = Math.min(yMax, base)
+
     const logs = []
 
-    const ticks = Math.ceil(Math.log(yMax) / Math.log(base)) + 1 // Get powers of base up to our max, and then one more
+    const logMax = Math.ceil(Math.log(yMax) / Math.log(base) + 1) // Get powers of base for our max and min
+    const logMin = Math.floor(Math.log(yMin) / Math.log(base))
 
-    for (let i = 0; i < ticks; i++) {
+    for (let i = logMin; i < logMax; i++) {
       logs.push(Math.pow(base, i))
-    }
-
-    if (yMin === 0) {
-      logs.unshift(yMin)
     }
 
     return {
