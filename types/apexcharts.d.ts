@@ -338,6 +338,7 @@ type ApexStroke = {
   colors?: string[]
   width?: number | number[]
   dashArray?: number | number[]
+  fill?: ApexFill
 }
 
 type ApexAnnotations = {
