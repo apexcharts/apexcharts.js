@@ -684,10 +684,24 @@ class Graphics {
       let activeFilter = w.config.states.active.filter
       if (activeFilter !== 'none') {
         filters.applyFilter(path, i, activeFilter.type, activeFilter.value)
+      } else {
+        // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
+        if (w.config.states.hover.filter !== 'none') {
+          if (!w.globals.isTouchDevice) {
+            var hoverFilter = w.config.states.hover.filter;
+            filter.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+          }
+        }
       }
     } else {
+      // If the item was deselected, apply hover state filter if it is not a touch device
       if (w.config.states.active.filter.type !== 'none') {
-        filters.getDefaultFilter(path, i)
+        if (w.config.states.hover.filter.type !== 'none' && !w.globals.isTouchDevice) {
+          var hoverFilter = w.config.states.hover.filter;
+          filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+        } else {
+          filters.getDefaultFilter(path, i);
+        }
       }
     }
 
