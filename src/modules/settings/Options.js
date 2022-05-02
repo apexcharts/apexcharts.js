@@ -876,7 +876,23 @@ export default class Options {
         lineCap: 'butt', // round, butt , square
         width: 2,
         colors: undefined, // array of colors
-        dashArray: 0 // single value or array of values
+        dashArray: 0, // single value or array of values
+        fill: {
+          type: 'solid',
+          colors: undefined, // array of colors
+          opacity: 0.85,
+          gradient: {
+            shade: 'dark',
+            type: 'horizontal',
+            shadeIntensity: 0.5,
+            gradientToColors: undefined,
+            inverseColors: true,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 50, 100],
+            colorStops: []
+          }
+        }
       },
       tooltip: {
         enabled: true,

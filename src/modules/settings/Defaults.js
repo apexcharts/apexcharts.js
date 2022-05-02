@@ -330,7 +330,18 @@ export default class Defaults {
   area() {
     return {
       stroke: {
-        width: 4
+        width: 4,
+        fill: {
+          type: 'solid',
+          gradient: {
+            inverseColors: false,
+            shade: 'light',
+            type: 'vertical',
+            opacityFrom: 0.65,
+            opacityTo: 0.5,
+            stops: [0, 100, 100]
+          }
+        }
       },
       fill: {
         type: 'gradient',
