@@ -95,6 +95,7 @@ export default class YAxis {
           fontSize: yaxisFontSize,
           fontFamily: yaxisFontFamily,
           fontWeight: yaxisFontWeight,
+          maxWidth: w.config.yaxis[realIndex].labels.maxWidth,
           foreColor: getForeColor(),
           isPlainText: false,
           cssClass: 'apexcharts-yaxis-label ' + yaxisStyle.cssClass

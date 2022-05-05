@@ -615,8 +615,10 @@ export default class XAxis {
           xAxisTextsInversed[xat],
           xAxisTextsInversed[xat].textContent,
           w.config.yaxis[0].labels.maxWidth -
-            parseFloat(w.config.yaxis[0].title.style.fontSize) * 2 -
-            20
+            (w.config.yaxis[0].title.text
+              ? parseFloat(w.config.yaxis[0].title.style.fontSize) * 2
+              : 0) -
+            15
         )
       }
     }

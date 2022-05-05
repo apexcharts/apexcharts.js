@@ -109,13 +109,17 @@ export default class Dimensions {
     let xaxisGroupLabelCoords = this.dimXAxis.getxAxisGroupLabelsCoords()
     let xtitleCoords = this.dimXAxis.getxAxisTitleCoords()
 
-    this.conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords, xaxisGroupLabelCoords)
+    this.conditionalChecksForAxisCoords(
+      xaxisLabelCoords,
+      xtitleCoords,
+      xaxisGroupLabelCoords
+    )
 
     gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX =
       w.globals.rotateXLabels &&
-        w.globals.isXNumeric &&
-        w.config.xaxis.labels.rotate <= -45
+      w.globals.isXNumeric &&
+      w.config.xaxis.labels.rotate <= -45
         ? -this.xAxisWidth / 4
         : 0
 
@@ -219,8 +223,8 @@ export default class Dimensions {
 
     const type =
       cnf.chart.type === 'pie' ||
-        cnf.chart.type === 'polarArea' ||
-        cnf.chart.type === 'donut'
+      cnf.chart.type === 'polarArea' ||
+      cnf.chart.type === 'donut'
         ? 'pie'
         : 'radialBar'
 
@@ -270,12 +274,19 @@ export default class Dimensions {
     }
   }
 
-  conditionalChecksForAxisCoords(xaxisLabelCoords, xtitleCoords, xaxisGroupLabelCoords) {
+  conditionalChecksForAxisCoords(
+    xaxisLabelCoords,
+    xtitleCoords,
+    xaxisGroupLabelCoords
+  ) {
     const w = this.w
 
-    const xAxisNum = (w.globals.hasGroups ? 2 : 1)
+    const xAxisNum = w.globals.hasGroups ? 2 : 1
 
-    const baseXAxisHeight = xaxisGroupLabelCoords.height + xaxisLabelCoords.height + xtitleCoords.height
+    const baseXAxisHeight =
+      xaxisGroupLabelCoords.height +
+      xaxisLabelCoords.height +
+      xtitleCoords.height
     const xAxisHeightMultiplicate = w.globals.isMultiLineX
       ? 1.2
       : w.globals.LINE_HEIGHT_RATIO

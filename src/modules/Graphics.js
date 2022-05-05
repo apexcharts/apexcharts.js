@@ -456,6 +456,16 @@ class Graphics {
     return g
   }
 
+  getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily }) {
+    const tRects = this.getTextRects(text, fontSize, fontFamily)
+    const wordWidth = tRects.width / text.length
+    const wordsBasedOnWidth = Math.floor(maxWidth / wordWidth)
+    if (maxWidth < tRects.width) {
+      return text.slice(0, wordsBasedOnWidth - 3) + '...'
+    }
+    return text
+  }
+
   drawText({
     x,
     y,
@@ -466,6 +476,7 @@ class Graphics {
     fontWeight,
     foreColor,
     opacity,
+    maxWidth,
     cssClass = '',
     isPlainText = true
   }) {
@@ -473,6 +484,7 @@ class Graphics {
 
     if (typeof text === 'undefined') text = ''
 
+    let truncatedText = text
     if (!textAnchor) {
       textAnchor = 'start'
     }
@@ -481,19 +493,39 @@ class Graphics {
       foreColor = w.config.chart.foreColor
     }
     fontFamily = fontFamily || w.config.chart.fontFamily
+    fontSize = fontSize || '11px'
     fontWeight = fontWeight || 'regular'
 
+    const commonProps = {
+      maxWidth,
+      fontSize,
+      fontFamily
+    }
     let elText
     if (Array.isArray(text)) {
       elText = w.globals.dom.Paper.text((add) => {
         for (let i = 0; i < text.length; i++) {
-          i === 0 ? add.tspan(text[i]) : add.tspan(text[i]).newLine()
+          if (maxWidth) {
+            truncatedText = this.getTextBasedOnMaxWidth({
+              text: text[i],
+              ...commonProps
+            })
+          }
+          i === 0
+            ? add.tspan(truncatedText)
+            : add.tspan(truncatedText).newLine()
         }
       })
     } else {
+      if (maxWidth) {
+        truncatedText = this.getTextBasedOnMaxWidth({
+          text,
+          ...commonProps
+        })
+      }
       elText = isPlainText
         ? w.globals.dom.Paper.plain(text)
-        : w.globals.dom.Paper.text((add) => add.tspan(text))
+        : w.globals.dom.Paper.text((add) => add.tspan(truncatedText))
     }
 
     elText.attr({
@@ -688,19 +720,22 @@ class Graphics {
         // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
         if (w.config.states.hover.filter !== 'none') {
           if (!w.globals.isTouchDevice) {
-            var hoverFilter = w.config.states.hover.filter;
-            filter.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+            var hoverFilter = w.config.states.hover.filter
+            filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
           }
         }
       }
     } else {
       // If the item was deselected, apply hover state filter if it is not a touch device
       if (w.config.states.active.filter.type !== 'none') {
-        if (w.config.states.hover.filter.type !== 'none' && !w.globals.isTouchDevice) {
-          var hoverFilter = w.config.states.hover.filter;
-          filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+        if (
+          w.config.states.hover.filter.type !== 'none' &&
+          !w.globals.isTouchDevice
+        ) {
+          var hoverFilter = w.config.states.hover.filter
+          filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
         } else {
-          filters.getDefaultFilter(path, i);
+          filters.getDefaultFilter(path, i)
         }
       }
     }
