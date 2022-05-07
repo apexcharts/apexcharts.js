@@ -431,7 +431,8 @@ export default class Core {
     }
 
     // fix apexcharts/apexcharts.js/issues/3105 (when % is provided in height, it keeps increasing)
-    if (w.config.chart.height.indexOf('%') > 0) return
+    if (w.config.chart.height && String(w.config.chart.height).indexOf('%') > 0)
+      return
 
     gl.dom.elWrap.style.height = newHeight + 'px'
 
