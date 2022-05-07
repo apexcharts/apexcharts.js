@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.35.0
+ * ApexCharts v3.35.1
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -1613,23 +1613,44 @@
         return g;
       }
     }, {
-      key: "drawText",
-      value: function drawText(_ref3) {
-        var x = _ref3.x,
-            y = _ref3.y,
-            text = _ref3.text,
-            textAnchor = _ref3.textAnchor,
+      key: "getTextBasedOnMaxWidth",
+      value: function getTextBasedOnMaxWidth(_ref3) {
+        var text = _ref3.text,
+            maxWidth = _ref3.maxWidth,
             fontSize = _ref3.fontSize,
-            fontFamily = _ref3.fontFamily,
-            fontWeight = _ref3.fontWeight,
-            foreColor = _ref3.foreColor,
-            opacity = _ref3.opacity,
-            _ref3$cssClass = _ref3.cssClass,
-            cssClass = _ref3$cssClass === void 0 ? '' : _ref3$cssClass,
-            _ref3$isPlainText = _ref3.isPlainText,
-            isPlainText = _ref3$isPlainText === void 0 ? true : _ref3$isPlainText;
+            fontFamily = _ref3.fontFamily;
+        var tRects = this.getTextRects(text, fontSize, fontFamily);
+        var wordWidth = tRects.width / text.length;
+        var wordsBasedOnWidth = Math.floor(maxWidth / wordWidth);
+
+        if (maxWidth < tRects.width) {
+          return text.slice(0, wordsBasedOnWidth - 3) + '...';
+        }
+
+        return text;
+      }
+    }, {
+      key: "drawText",
+      value: function drawText(_ref4) {
+        var _this = this;
+
+        var x = _ref4.x,
+            y = _ref4.y,
+            text = _ref4.text,
+            textAnchor = _ref4.textAnchor,
+            fontSize = _ref4.fontSize,
+            fontFamily = _ref4.fontFamily,
+            fontWeight = _ref4.fontWeight,
+            foreColor = _ref4.foreColor,
+            opacity = _ref4.opacity,
+            maxWidth = _ref4.maxWidth,
+            _ref4$cssClass = _ref4.cssClass,
+            cssClass = _ref4$cssClass === void 0 ? '' : _ref4$cssClass,
+            _ref4$isPlainText = _ref4.isPlainText,
+            isPlainText = _ref4$isPlainText === void 0 ? true : _ref4$isPlainText;
         var w = this.w;
         if (typeof text === 'undefined') text = '';
+        var truncatedText = text;
 
         if (!textAnchor) {
           textAnchor = 'start';
@@ -1640,18 +1661,36 @@
         }
 
         fontFamily = fontFamily || w.config.chart.fontFamily;
+        fontSize = fontSize || '11px';
         fontWeight = fontWeight || 'regular';
+        var commonProps = {
+          maxWidth: maxWidth,
+          fontSize: fontSize,
+          fontFamily: fontFamily
+        };
         var elText;
 
         if (Array.isArray(text)) {
           elText = w.globals.dom.Paper.text(function (add) {
             for (var i = 0; i < text.length; i++) {
-              i === 0 ? add.tspan(text[i]) : add.tspan(text[i]).newLine();
+              if (maxWidth) {
+                truncatedText = _this.getTextBasedOnMaxWidth(_objectSpread2({
+                  text: text[i]
+                }, commonProps));
+              }
+
+              i === 0 ? add.tspan(truncatedText) : add.tspan(truncatedText).newLine();
             }
           });
         } else {
+          if (maxWidth) {
+            truncatedText = this.getTextBasedOnMaxWidth(_objectSpread2({
+              text: text
+            }, commonProps));
+          }
+
           elText = isPlainText ? w.globals.dom.Paper.plain(text) : w.globals.dom.Paper.text(function (add) {
-            return add.tspan(text);
+            return add.tspan(truncatedText);
           });
         }
 
@@ -1836,10 +1875,24 @@
 
           if (activeFilter !== 'none') {
             filters.applyFilter(path, i, activeFilter.type, activeFilter.value);
+          } else {
+            // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
+            if (w.config.states.hover.filter !== 'none') {
+              if (!w.globals.isTouchDevice) {
+                var hoverFilter = w.config.states.hover.filter;
+                filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+              }
+            }
           }
         } else {
+          // If the item was deselected, apply hover state filter if it is not a touch device
           if (w.config.states.active.filter.type !== 'none') {
-            filters.getDefaultFilter(path, i);
+            if (w.config.states.hover.filter.type !== 'none' && !w.globals.isTouchDevice) {
+              var hoverFilter = w.config.states.hover.filter;
+              filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+            } else {
+              filters.getDefaultFilter(path, i);
+            }
           }
         }
 
@@ -3826,8 +3879,25 @@
             width: 2,
             colors: undefined,
             // array of colors
-            dashArray: 0 // single value or array of values
-
+            dashArray: 0,
+            // single value or array of values
+            fill: {
+              type: 'solid',
+              colors: undefined,
+              // array of colors
+              opacity: 0.85,
+              gradient: {
+                shade: 'dark',
+                type: 'horizontal',
+                shadeIntensity: 0.5,
+                gradientToColors: undefined,
+                inverseColors: true,
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [0, 50, 100],
+                colorStops: []
+              }
+            }
           },
           tooltip: {
             enabled: true,
@@ -3921,16 +3991,16 @@
                 hour: 'HH:mm',
                 minute: 'HH:mm:ss',
                 second: 'HH:mm:ss'
-              },
-              group: {
-                groups: [],
-                style: {
-                  colors: [],
-                  fontSize: '12px',
-                  fontWeight: 400,
-                  fontFamily: undefined,
-                  cssClass: ''
-                }
+              }
+            },
+            group: {
+              groups: [],
+              style: {
+                colors: [],
+                fontSize: '12px',
+                fontWeight: 400,
+                fontFamily: undefined,
+                cssClass: ''
               }
             },
             axisBorder: {
@@ -8130,7 +8200,18 @@
       value: function area() {
         return {
           stroke: {
-            width: 4
+            width: 4,
+            fill: {
+              type: 'solid',
+              gradient: {
+                inverseColors: false,
+                shade: 'light',
+                type: 'vertical',
+                opacityFrom: 0.65,
+                opacityTo: 0.5,
+                stops: [0, 100, 100]
+              }
+            }
           },
           fill: {
             type: 'gradient',
@@ -9573,7 +9654,7 @@
         var dt = new DateTime(ctx);
         var xlabels = cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice();
         gl.isRangeBar = cnf.chart.type === 'rangeBar' && gl.isBarHorizontal;
-        gl.hasGroups = cnf.xaxis.type === 'category' && typeof cnf.xaxis.group !== 'undefined' && typeof cnf.xaxis.group.groups !== 'undefined' && cnf.xaxis.group.groups.length > 0;
+        gl.hasGroups = cnf.xaxis.type === 'category' && cnf.xaxis.group.groups.length > 0;
 
         if (gl.hasGroups) {
           gl.groups = cnf.xaxis.group.groups;
@@ -11065,7 +11146,7 @@
 
 
           for (var _xat2 = 0; _xat2 < xAxisTextsInversed.length; _xat2++) {
-            graphics.placeTextWithEllipsis(xAxisTextsInversed[_xat2], xAxisTextsInversed[_xat2].textContent, w.config.yaxis[0].labels.maxWidth - parseFloat(w.config.yaxis[0].title.style.fontSize) * 2 - 20);
+            graphics.placeTextWithEllipsis(xAxisTextsInversed[_xat2], xAxisTextsInversed[_xat2].textContent, w.config.yaxis[0].labels.maxWidth - (w.config.yaxis[0].title.text ? parseFloat(w.config.yaxis[0].title.style.fontSize) * 2 : 0) - 15);
           }
         }
       } // renderXAxisBands() {
@@ -11229,7 +11310,7 @@
 
           var y_2 = 0;
 
-          if (w.globals.hasGroups && (typeof w.config.xaxis.tickAmount === 'undefined' || w.config.xaxis.tickAmount === 'dataPoints') && w.config.xaxis.tickPlacement === 'between') {
+          if (w.globals.hasGroups && w.config.xaxis.tickPlacement === 'between') {
             var groups = w.globals.groups;
 
             if (groups) {
@@ -11324,7 +11405,7 @@
               x2 = _ref6.x2,
               y2 = _ref6.y2;
 
-          if (typeof w.config.xaxis.tickAmount !== 'undefined' && w.config.xaxis.tickAmount !== 'dataPoints') {
+          if (typeof w.config.xaxis.tickAmount !== 'undefined' && w.config.xaxis.tickAmount !== 'dataPoints' && w.config.xaxis.tickPlacement === 'on') {
             // user has specified tickamount in a category x-axis chart
             var visibleLabels = w.globals.dom.baseEl.querySelectorAll('.apexcharts-text.apexcharts-xaxis-label tspan:not(:empty)');
             visibleLabels.forEach(function (d, i) {
@@ -11766,23 +11847,56 @@
         };
       }
     }, {
-      key: "logarithmicScale",
-      value: function logarithmicScale(yMin, yMax, base) {
+      key: "logarithmicScaleNice",
+      value: function logarithmicScaleNice(yMin, yMax, base) {
+        // Basic validation to avoid for loop starting at -inf.
+        if (yMax <= 0) yMax = Math.max(yMin, base);
+        if (yMin <= 0) yMin = Math.min(yMax, base);
         var logs = [];
-        var ticks = Math.ceil(Math.log(yMax) / Math.log(base)) + 1; // Get powers of base up to our max, and then one more
+        var logMax = Math.ceil(Math.log(yMax) / Math.log(base) + 1); // Get powers of base for our max and min
 
-        for (var i = 0; i < ticks; i++) {
+        var logMin = Math.floor(Math.log(yMin) / Math.log(base));
+
+        for (var i = logMin; i < logMax; i++) {
           logs.push(Math.pow(base, i));
-        }
-
-        if (yMin === 0) {
-          logs.unshift(yMin);
         }
 
         return {
           result: logs,
           niceMin: logs[0],
           niceMax: logs[logs.length - 1]
+        };
+      }
+    }, {
+      key: "logarithmicScale",
+      value: function logarithmicScale(yMin, yMax, base) {
+        // Basic validation to avoid for loop starting at -inf.
+        if (yMax <= 0) yMax = Math.max(yMin, base);
+        if (yMin <= 0) yMin = Math.min(yMax, base);
+        var logs = []; // Get the logarithmic range.
+
+        var logMax = Math.log(yMax) / Math.log(base);
+        var logMin = Math.log(yMin) / Math.log(base); // Get the exact logarithmic range.
+        // (This is the exact number of multiples of the base there are between yMin and yMax).
+
+        var logRange = logMax - logMin; // Round the logarithmic range to get the number of ticks we will create.
+        // If the chosen min/max values are multiples of each other WRT the base, this will be neat.
+        // If the chosen min/max aren't, we will at least still provide USEFUL ticks.
+
+        var ticks = Math.round(logRange); // Get the logarithmic spacing between ticks.
+
+        var logTickSpacing = logRange / ticks; // Create as many ticks as there is range in the logs.
+
+        for (var i = 0, logTick = logMin; i < ticks; i++, logTick += logTickSpacing) {
+          logs.push(Math.pow(base, logTick));
+        } // Add a final tick at the yMax.
+
+
+        logs.push(Math.pow(base, logMax));
+        return {
+          result: logs,
+          niceMin: yMin,
+          niceMax: yMax
         };
       }
     }, {
@@ -11820,6 +11934,7 @@
         if (y.logarithmic && diff > 5) {
           gl.allSeriesCollapsed = false;
           gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.logBase);
+          gl.yAxisScale[index] = y.forceNiceScale ? this.logarithmicScaleNice(minY, maxY, y.logBase) : this.logarithmicScale(minY, maxY, y.logBase);
         } else {
           if (maxY === -Number.MAX_VALUE || !Utils$1.isNumber(maxY)) {
             // no data in the chart. Either all series collapsed or user passed a blank array
@@ -12725,6 +12840,7 @@
               fontSize: yaxisFontSize,
               fontFamily: yaxisFontFamily,
               fontWeight: yaxisFontWeight,
+              maxWidth: w.config.yaxis[realIndex].labels.maxWidth,
               foreColor: getForeColor(),
               isPlainText: false,
               cssClass: 'apexcharts-yaxis-label ' + yaxisStyle.cssClass
@@ -16797,7 +16913,9 @@
         var markersWraps = this.w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers-wrap');
         markersWraps = _toConsumableArray(markersWraps);
         markersWraps.sort(function (a, b) {
-          return Number(b.getAttribute('data:realIndex')) < Number(a.getAttribute('data:realIndex')) ? 0 : -1;
+          var indexA = Number(a.getAttribute('data:realIndex'));
+          var indexB = Number(b.getAttribute('data:realIndex'));
+          return indexB < indexA ? 1 : indexB > indexA ? -1 : 0;
         });
         var markers = [];
         markersWraps.forEach(function (m) {
@@ -22541,11 +22659,18 @@
           var lineFill = null;
 
           if (type === 'line') {
-            // fillable lines only for lineChart
             lineFill = fill.fillPath({
               seriesNumber: realIndex,
               i: i
             });
+          } else if (w.config.stroke.fill) {
+            var prevFill = w.config.fill;
+            w.config.fill = w.config.stroke.fill;
+            lineFill = fill.fillPath({
+              seriesNumber: realIndex,
+              i: i
+            });
+            w.config.fill = prevFill;
           } else {
             lineFill = w.globals.stroke.colors[realIndex];
           }
@@ -24668,8 +24793,10 @@
 
         if (gl.dom.elLegendForeign) {
           gl.dom.elLegendForeign.setAttribute('height', newHeight);
-        }
+        } // fix apexcharts/apexcharts.js/issues/3105 (when % is provided in height, it keeps increasing)
 
+
+        if (w.config.chart.height && String(w.config.chart.height).indexOf('%') > 0) return;
         gl.dom.elWrap.style.height = newHeight + 'px';
         Graphics.setAttrs(gl.dom.Paper.node, {
           height: newHeight
