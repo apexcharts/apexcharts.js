@@ -148,10 +148,10 @@
   
   var labelFormatter = function (value) {
     var val = Math.abs(value)
-    if (val >= 1000000) {
-      val = (val / 1000000).toFixed(1) + ' M';
+    if (val >= 100000) {
+      return (val / 1000000).toFixed(1) + ' M';
     }
-    return val;
+    return val.toFixed(0);
   }
   </script>
   </head>
