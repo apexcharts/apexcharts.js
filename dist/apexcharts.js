@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.35.1
+ * ApexCharts v3.35.2
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -22663,16 +22663,18 @@
               seriesNumber: realIndex,
               i: i
             });
-          } else if (w.config.stroke.fill) {
-            var prevFill = w.config.fill;
-            w.config.fill = w.config.stroke.fill;
-            lineFill = fill.fillPath({
-              seriesNumber: realIndex,
-              i: i
-            });
-            w.config.fill = prevFill;
           } else {
-            lineFill = w.globals.stroke.colors[realIndex];
+            if (w.config.stroke.fill.type === 'solid') {
+              lineFill = w.globals.stroke.colors[realIndex];
+            } else {
+              var prevFill = w.config.fill;
+              w.config.fill = w.config.stroke.fill;
+              lineFill = fill.fillPath({
+                seriesNumber: realIndex,
+                i: i
+              });
+              w.config.fill = prevFill;
+            }
           }
 
           for (var _p = 0; _p < paths.linePaths.length; _p++) {
