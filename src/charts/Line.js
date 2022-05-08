@@ -338,16 +338,19 @@ class Line {
           seriesNumber: realIndex,
           i
         })
-      } else if (w.config.stroke.fill) {
-        const prevFill = w.config.fill
-        w.config.fill = w.config.stroke.fill
-        lineFill = fill.fillPath({
-          seriesNumber: realIndex,
-          i
-        })
-        w.config.fill = prevFill
       } else {
-        lineFill = w.globals.stroke.colors[realIndex]
+        if (w.config.stroke.fill.type === 'solid') {
+          lineFill = w.globals.stroke.colors[realIndex]
+        } else {
+          const prevFill = w.config.fill
+          w.config.fill = w.config.stroke.fill
+
+          lineFill = fill.fillPath({
+            seriesNumber: realIndex,
+            i
+          })
+          w.config.fill = prevFill
+        }
       }
 
       for (let p = 0; p < paths.linePaths.length; p++) {
