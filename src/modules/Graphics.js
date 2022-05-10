@@ -505,6 +505,7 @@ class Graphics {
     if (Array.isArray(text)) {
       elText = w.globals.dom.Paper.text((add) => {
         for (let i = 0; i < text.length; i++) {
+          truncatedText = text[i]
           if (maxWidth) {
             truncatedText = this.getTextBasedOnMaxWidth({
               text: text[i],
