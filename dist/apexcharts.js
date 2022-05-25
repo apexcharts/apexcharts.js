@@ -10383,6 +10383,10 @@
     }, {
       key: "getSvgString",
       value: function getSvgString(scale) {
+        if (scale == undefined) {
+          scale = 1; // if no scale is specified, don't scale...
+        }
+
         var svgString = this.w.globals.dom.Paper.svg(); // in case the scale is different than 1, the svg needs to be rescaled
 
         if (scale !== 1) {
