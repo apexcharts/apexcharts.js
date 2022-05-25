@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.35.2
+ * ApexCharts v3.35.3
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -1673,6 +1673,8 @@
         if (Array.isArray(text)) {
           elText = w.globals.dom.Paper.text(function (add) {
             for (var i = 0; i < text.length; i++) {
+              truncatedText = text[i];
+
               if (maxWidth) {
                 truncatedText = _this.getTextBasedOnMaxWidth(_objectSpread2({
                   text: text[i]
