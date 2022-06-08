@@ -140,7 +140,7 @@ export default class Utils {
     let w = this.w
     let activeIndex = 0
     let currIndex = null
-    let j = -1
+    let j = 0
 
     if (w.globals.series.length > 1) {
       activeIndex = this.getFirstActiveXArray(Xarrays)
@@ -148,7 +148,7 @@ export default class Utils {
       currIndex = 0
     }
 
-    let currX = Xarrays[activeIndex][0]
+    let currX = Xarrays[activeIndex][j]
     let diffX = Math.abs(hoverX - currX)
 
     // find nearest point on x-axis
