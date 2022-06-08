@@ -142,6 +142,13 @@ export default class Utils {
     let currIndex = null
     let j = 0
 
+    if (!Xarrays.length || !Yarrays.length) {
+      return {
+        index: -1,
+        j: -1
+      }
+    }
+
     if (w.globals.series.length > 1) {
       activeIndex = this.getFirstActiveXArray(Xarrays)
     } else {
@@ -162,20 +169,18 @@ export default class Utils {
       })
     })
 
-    if (j !== -1) {
-      // find nearest graph on y-axis relevanted to nearest point on x-axis
-      let currY = Yarrays[activeIndex][j]
-      let diffY = Math.abs(hoverY - currY)
-      currIndex = activeIndex
+    // find nearest graph on y-axis relevanted to nearest point on x-axis
+    let currY = Yarrays[activeIndex][j]
+    let diffY = Math.abs(hoverY - currY)
+    currIndex = activeIndex
 
-      Yarrays.forEach((arrY, iAY) => {
-        const newDiff = Math.abs(hoverY - arrY[j])
-        if (newDiff < diffY) {
-          diffY = newDiff
-          currIndex = iAY
-        }
-      })
-    }
+    Yarrays.forEach((arrY, iAY) => {
+      const newDiff = Math.abs(hoverY - arrY[j])
+      if (newDiff < diffY) {
+        diffY = newDiff
+        currIndex = iAY
+      }
+    })
 
     return {
       index: currIndex,
