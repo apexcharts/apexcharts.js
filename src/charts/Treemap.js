@@ -188,7 +188,15 @@ export default class TreemapChart {
           series
         })
         if (w.config.dataLabels.enabled && dataLabels) {
-          this.rotateToFitLabel(dataLabels, formattedText, x1, y1, x2, y2)
+          this.rotateToFitLabel(
+            dataLabels,
+            fontSize,
+            formattedText,
+            x1,
+            y1,
+            x2,
+            y2
+          )
         }
         elSeries.add(elRect)
 
@@ -263,11 +271,15 @@ export default class TreemapChart {
     )
   }
 
-  rotateToFitLabel(elText, text, x1, y1, x2, y2) {
+  rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
     const graphics = new Graphics(this.ctx)
-    const textRect = graphics.getTextRects(text)
+    const textRect = graphics.getTextRects(text, fontSize)
+
     //if the label fits better sideways then rotate it
-    if (textRect.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
+    if (
+      textRect.width + this.w.config.stroke.width + 5 > x2 - x1 &&
+      textRect.width <= y2 - y1
+    ) {
       let labelRotatingCenter = graphics.rotateAroundCenter(elText.node)
 
       elText.node.setAttribute(
