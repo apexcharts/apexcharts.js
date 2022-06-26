@@ -289,8 +289,8 @@ export default class Helpers {
       graphics.line(x1, y1)
 
     if (w.config.chart.stacked) {
-      this.barCtx.yArrj.push(newPath.y2)
-      this.barCtx.yArrjF.push(Math.abs(y1 - newPath.y2))
+      this.barCtx.yArrj.push(newPath.y2WithRadius)
+      this.barCtx.yArrjF.push(Math.abs(y1 - newPath.y2WithRadius))
       this.barCtx.yArrjVal.push(this.barCtx.series[i][j])
     }
 
@@ -359,8 +359,8 @@ export default class Helpers {
       graphics.line(x1, y1)
 
     if (w.config.chart.stacked) {
-      this.barCtx.xArrj.push(newPath.x2)
-      this.barCtx.xArrjF.push(Math.abs(x1 - newPath.x2))
+      this.barCtx.xArrj.push(newPath.x2WithRadius)
+      this.barCtx.xArrjF.push(Math.abs(x1 - newPath.x2WithRadius))
       this.barCtx.xArrjVal.push(this.barCtx.series[i][j])
     }
     return {
@@ -443,6 +443,7 @@ export default class Helpers {
 
       return {
         pathWithRadius,
+        x2WithRadius: x2 + radius,
         x2
       }
     } else {
@@ -484,6 +485,7 @@ export default class Helpers {
 
       return {
         pathWithRadius,
+        y2WithRadius: y2 - radius,
         y2
       }
     }
