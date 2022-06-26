@@ -218,8 +218,7 @@ export default class UpdateHelpers {
   }
 
   forceYAxisUpdate(options) {
-    const w = this.w
-    if (w.config.chart.stacked && w.config.chart.stackType === '100%') {
+    if (options.chart && options.chart.stacked && options.chart.stackType === '100%') {
       if (Array.isArray(options.yaxis)) {
         options.yaxis.forEach((yaxe, index) => {
           options.yaxis[index].min = 0

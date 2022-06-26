@@ -6,14 +6,16 @@ let ros = new WeakMap() // Map callbacks to ResizeObserver instances for easy re
 export function addResizeListener(el, fn) {
   let called = false
 
-  const elRect = el.getBoundingClientRect()
-  if (el.style.display === 'none' || elRect.width === 0) {
-    // if elRect.width=0, the chart is not rendered at all
-    // (it has either display none or hidden in a different tab)
-    // fixes https://github.com/apexcharts/apexcharts.js/issues/2825
-    // fixes https://github.com/apexcharts/apexcharts.js/issues/2991
-    // fixes https://github.com/apexcharts/apexcharts.js/issues/2992
-    called = true
+  if (el.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
+    const elRect = el.getBoundingClientRect()
+    if (el.style.display === 'none' || elRect.width === 0) {
+      // if elRect.width=0, the chart is not rendered at all
+      // (it has either display none or hidden in a different tab)
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2825
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2991
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2992
+      called = true
+    }
   }
 
   let ro = new ResizeObserver((r) => {
