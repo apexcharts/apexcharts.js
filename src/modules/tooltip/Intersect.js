@@ -264,7 +264,7 @@ class Intersect {
     let barWidth = 0
     let barHeight = 0
 
-    const cl = e.target.classList
+    const cl = e.initialTarget.classList
 
     if (
       cl.contains('apexcharts-bar-area') ||
@@ -272,7 +272,7 @@ class Intersect {
       cl.contains('apexcharts-boxPlot-area') ||
       cl.contains('apexcharts-rangebar-area')
     ) {
-      let bar = e.target
+      let bar = e.initialTarget
       let barRect = bar.getBoundingClientRect()
 
       let seriesBound = opt.elGrid.getBoundingClientRect()

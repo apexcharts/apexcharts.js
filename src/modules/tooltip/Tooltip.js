@@ -362,6 +362,10 @@ export default class Tooltip {
 
     const targetDelay = 100
     const timeSinceLastUpdate = Date.now() - this.lastHoverTime
+
+    // Save the target, as it can be overwritten during setTimeout (see event retargeting in the case of shadow dom)
+    e.initialTarget = e.target
+
     if (timeSinceLastUpdate >= targetDelay) {
       // The tooltip was last updated over 100ms ago - redraw it even if the user is still moving their
       // mouse so they get some feedback that their moves are being registered
