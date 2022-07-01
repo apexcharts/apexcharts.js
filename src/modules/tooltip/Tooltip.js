@@ -363,7 +363,8 @@ export default class Tooltip {
     const targetDelay = 100
     const timeSinceLastUpdate = Date.now() - this.lastHoverTime
 
-    // Save the target, as it can be overwritten during setTimeout (see event retargeting in the case of shadow dom)
+    // Save the target, as it could be overwritten e.g in the case of event bubbling from shadow dom (see "shadow dom event retargeting)
+    // No standard propertie supported at the moment by all browsers
     e.initialTarget = e.target
 
     if (timeSinceLastUpdate >= targetDelay) {

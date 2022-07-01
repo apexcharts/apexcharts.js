@@ -14,9 +14,14 @@ class Intersect {
     this.ttCtx = tooltipContext
   }
 
+  // if initialTarget has been set, use it, otherwise fallback to target attribute
+  getTarget = (e) => {
+    return e.initialTarget || e.target
+  }
+
   // a helper function to get an element's attribute value
   getAttr(e, attr) {
-    return parseFloat(e.target.getAttribute(attr))
+    return parseFloat(this.getTarget(e).getAttribute(attr))
   }
 
   // handle tooltip for heatmaps and treemaps
@@ -24,7 +29,7 @@ class Intersect {
     const ttCtx = this.ttCtx
     const w = this.w
 
-    if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
+    if (this.getTarget(e).classList.contains(`apexcharts-${type}-rect`)) {
       let i = this.getAttr(e, 'i')
       let j = this.getAttr(e, 'j')
       let cx = this.getAttr(e, 'cx')
@@ -80,7 +85,7 @@ class Intersect {
 
     let i
     let j
-    if (e.target.classList.contains('apexcharts-marker')) {
+    if (this.getTarget(e).classList.contains('apexcharts-marker')) {
       let cx = parseInt(opt.paths.getAttribute('cx'), 10)
       let cy = parseInt(opt.paths.getAttribute('cy'), 10)
       let val = parseFloat(opt.paths.getAttribute('val'))
@@ -264,7 +269,7 @@ class Intersect {
     let barWidth = 0
     let barHeight = 0
 
-    const cl = e.initialTarget.classList
+    const cl = this.getTarget(e).classList
 
     if (
       cl.contains('apexcharts-bar-area') ||
@@ -272,7 +277,7 @@ class Intersect {
       cl.contains('apexcharts-boxPlot-area') ||
       cl.contains('apexcharts-rangebar-area')
     ) {
-      let bar = e.initialTarget
+      let bar = this.getTarget(e)
       let barRect = bar.getBoundingClientRect()
 
       let seriesBound = opt.elGrid.getBoundingClientRect()
