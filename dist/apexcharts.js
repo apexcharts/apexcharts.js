@@ -6499,8 +6499,8 @@
         pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1);
 
         if (w.config.chart.stacked) {
-          this.barCtx.yArrj.push(newPath.y2WithRadius);
-          this.barCtx.yArrjF.push(Math.abs(y1 - newPath.y2WithRadius));
+          this.barCtx.yArrj.push(newPath.y2);
+          this.barCtx.yArrjF.push(Math.abs(y1 - newPath.y2));
           this.barCtx.yArrjVal.push(this.barCtx.series[i][j]);
         }
 
@@ -6547,8 +6547,8 @@
         pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1);
 
         if (w.config.chart.stacked) {
-          this.barCtx.xArrj.push(newPath.x2WithRadius);
-          this.barCtx.xArrjF.push(Math.abs(x1 - newPath.x2WithRadius));
+          this.barCtx.xArrj.push(newPath.x2);
+          this.barCtx.xArrjF.push(Math.abs(x1 - newPath.x2));
           this.barCtx.xArrjVal.push(this.barCtx.series[i][j]);
         }
 
@@ -6604,7 +6604,6 @@
 
           return {
             pathWithRadius: pathWithRadius,
-            x2WithRadius: x2 + radius,
             x2: x2
           };
         } else {
@@ -6625,7 +6624,6 @@
 
           return {
             pathWithRadius: _pathWithRadius,
-            y2WithRadius: y2 - radius,
             y2: y2
           };
         }
@@ -10984,8 +10982,7 @@
               fontFamily: ylabels.style.fontFamily,
               fontWeight: ylabels.style.fontWeight,
               isPlainText: false,
-              cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass,
-              maxWidth: ylabels.maxWidth
+              cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
             });
             elYaxisTexts.add(elLabel);
             var elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title');
@@ -23423,7 +23420,7 @@
             });
 
             if (w.config.dataLabels.enabled && dataLabels) {
-              _this.rotateToFitLabel(dataLabels, fontSize, formattedText, x1, y1, x2, y2);
+              _this.rotateToFitLabel(dataLabels, formattedText, x1, y1, x2, y2);
             }
 
             elSeries.add(elRect);
@@ -23496,11 +23493,11 @@
       }
     }, {
       key: "rotateToFitLabel",
-      value: function rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
+      value: function rotateToFitLabel(elText, text, x1, y1, x2, y2) {
         var graphics = new Graphics(this.ctx);
-        var textRect = graphics.getTextRects(text, fontSize); //if the label fits better sideways then rotate it
+        var textRect = graphics.getTextRects(text); //if the label fits better sideways then rotate it
 
-        if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
+        if (textRect.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
           var labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
           elText.node.setAttribute('transform', "rotate(-90 ".concat(labelRotatingCenter.x, " ").concat(labelRotatingCenter.y, ")"));
         }
@@ -25183,7 +25180,9 @@
     }, {
       key: "forceYAxisUpdate",
       value: function forceYAxisUpdate(options) {
-        if (options.chart && options.chart.stacked && options.chart.stackType === '100%') {
+        var w = this.w;
+
+        if (w.config.chart.stacked && w.config.chart.stackType === '100%') {
           if (Array.isArray(options.yaxis)) {
             options.yaxis.forEach(function (yaxe, index) {
               options.yaxis[index].min = 0;
@@ -31067,18 +31066,15 @@
 
   function addResizeListener(el, fn) {
     var called = false;
+    var elRect = el.getBoundingClientRect();
 
-    if (el.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
-      var elRect = el.getBoundingClientRect();
-
-      if (el.style.display === 'none' || elRect.width === 0) {
-        // if elRect.width=0, the chart is not rendered at all
-        // (it has either display none or hidden in a different tab)
-        // fixes https://github.com/apexcharts/apexcharts.js/issues/2825
-        // fixes https://github.com/apexcharts/apexcharts.js/issues/2991
-        // fixes https://github.com/apexcharts/apexcharts.js/issues/2992
-        called = true;
-      }
+    if (el.style.display === 'none' || elRect.width === 0) {
+      // if elRect.width=0, the chart is not rendered at all
+      // (it has either display none or hidden in a different tab)
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2825
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2991
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/2992
+      called = true;
     }
 
     var ro = new ResizeObserver(function (r) {
