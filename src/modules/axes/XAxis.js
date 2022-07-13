@@ -389,7 +389,8 @@ export default class XAxis {
           fontFamily: ylabels.style.fontFamily,
           fontWeight: ylabels.style.fontWeight,
           isPlainText: false,
-          cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass
+          cssClass: 'apexcharts-yaxis-label ' + ylabels.style.cssClass,
+          maxWidth: ylabels.maxWidth
         })
 
         elYaxisTexts.add(elLabel)
