@@ -723,6 +723,11 @@ export default class ApexCharts {
     return exp.dataURI(options)
   }
 
+  exportToCSV(options = {}) {
+    const exp = new Exports(this.ctx)
+    return exp.exportToCSV(options)
+  }
+
   paper() {
     return this.w.globals.dom.Paper
   }

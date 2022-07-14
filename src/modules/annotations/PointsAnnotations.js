@@ -104,6 +104,9 @@ export default class PointAnnotations {
         anno.mouseLeave.bind(this, anno)
       )
     }
+    if (anno.click) {
+      point.node.addEventListener('click', anno.click.bind(this, anno))
+    }
   }
 
   drawPointAnnotations() {

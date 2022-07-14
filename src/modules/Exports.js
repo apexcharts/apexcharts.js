@@ -48,7 +48,7 @@ class Exports {
 
   getSvgString(scale) {
     if (scale == undefined) {
-        scale = 1; // if no scale is specified, don't scale...
+      scale = 1 // if no scale is specified, don't scale...
     }
     let svgString = this.w.globals.dom.Paper.svg()
     // in case the scale is different than 1, the svg needs to be rescaled
@@ -183,8 +183,10 @@ class Exports {
     })
   }
 
-  exportToCSV({ series, columnDelimiter, lineDelimiter = '\n' }) {
+  exportToCSV({ series, columnDelimiter = ',', lineDelimiter = '\n' }) {
     const w = this.w
+
+    if (!series) series = w.config.series
 
     let columns = []
     let rows = []

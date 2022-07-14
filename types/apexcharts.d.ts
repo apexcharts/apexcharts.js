@@ -363,6 +363,7 @@ type AnnotationLabel = {
   orientation?: string
   mouseEnter?: Function
   mouseLeave?: Function
+  click?: Function
 }
 
 type AnnotationStyle = {
@@ -418,6 +419,7 @@ type PointAnnotations = {
   seriesIndex?: number
   mouseEnter?: Function
   mouseLeave?: Function
+  click?: Function
   marker?: {
     size?: number
     fillColor?: string

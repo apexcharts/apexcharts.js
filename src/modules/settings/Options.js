@@ -88,6 +88,7 @@ export default class Options {
       seriesIndex: 0,
       mouseEnter: undefined,
       mouseLeave: undefined,
+      click: undefined,
       marker: {
         size: 4,
         fillColor: '#fff',
@@ -109,6 +110,7 @@ export default class Options {
         offsetY: 0,
         mouseEnter: undefined,
         mouseLeave: undefined,
+        click: undefined,
         style: {
           background: '#fff',
           color: undefined,
@@ -164,6 +166,7 @@ export default class Options {
         offsetY: -3,
         mouseEnter: undefined,
         mouseLeave: undefined,
+        click: undefined,
         style: {
           background: '#fff',
           color: undefined,
@@ -204,6 +207,7 @@ export default class Options {
         offsetY: 0,
         mouseEnter: undefined,
         mouseLeave: undefined,
+        click: undefined,
         style: {
           background: '#fff',
           color: undefined,

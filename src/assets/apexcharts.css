@@ -618,6 +618,9 @@
 
 .apexcharts-gridline,
 .apexcharts-annotation-rect,
+.apexcharts-xaxis-annotation-label,
+.apexcharts-yaxis-annotation-label,
+.apexcharts-point-annotation-label,
 .apexcharts-tooltip .apexcharts-marker,
 .apexcharts-area-series .apexcharts-area,
 .apexcharts-line,

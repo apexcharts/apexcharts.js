@@ -122,6 +122,12 @@ export default class Helpers {
               anno.label.mouseLeave.bind(this, anno)
             )
           }
+          if (anno.label.click) {
+            elRect.node.addEventListener(
+              'click',
+              anno.label.click.bind(this, anno)
+            )
+          }
         }
       }
     }
