@@ -564,6 +564,11 @@ export default class Range {
         min *= min < 0 ? 1.1 : 0.9
         max *= max < 0 ? 0.9 : 1.1
 
+        if (min === 0 && max === 0) {
+          min = -1
+          max = 1
+        }
+
         if (max < 0 && max < initialMax) {
           max = initialMax
         }
