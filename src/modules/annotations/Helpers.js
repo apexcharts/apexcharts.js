@@ -174,6 +174,11 @@ export default class Helpers {
       }
       yP = w.globals.gridHeight - yPos
 
+      if (anno.marker && (anno.y === undefined || anno.y === null)) {
+        // point annotation
+        yP = 0
+      }
+
       if (
         w.config.yaxis[anno.yAxisIndex] &&
         w.config.yaxis[anno.yAxisIndex].reversed
@@ -220,6 +225,11 @@ export default class Helpers {
       !w.globals.dataFormatXNumeric
     ) {
       x2 = this.getStringX(anno.x2)
+    }
+
+    if ((anno.x === undefined || anno.x === null) && anno.marker) {
+      // point annotation in a horizontal chart
+      x1 = w.globals.gridWidth
     }
 
     return type === 'x1' ? x1 : x2
