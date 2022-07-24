@@ -17,7 +17,7 @@
   <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
 </p>
 
-<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with the features that you expect, ApexCharts includes over a dozen chart types that deliver beautiful, responsive visualizations in your apps and dashboards. ApexCharts is an MIT licensed open-source project that can be used in commercial and non-commercial projects.</p>
+<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with the features that you expect, ApexCharts includes over a dozen chart types that deliver beautiful, responsive visualizations in your apps and dashboards. ApexCharts is an MIT-licensed open-source project that can be used in commercial and non-commercial projects.</p>
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
@@ -105,57 +105,57 @@ Below is an example of synchronized charts with github style.
 
 ## Interactivity
 
-Zoom, Pan, Scroll through data. Make selections and load other charts using those selections.
+Zoom, Pan, and Scroll through data. Make selections and load other charts using those selections.
 An example showing some interactivity
 
 <p align="center"><a href="https://codepen.io/apexcharts/pen/QrbEQg" target="_blank"><img src="https://apexcharts.com/media/interactivity.gif" alt="interactive chart"></a></p>
 
 ## Dynamic Series Update
 
-Another approach to Drill down charts where one selection updates the data of other charts.
+Another approach is to Drill down charts where one selection updates the data of other charts.
 An example of loading dynamic series into charts is shown below
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/dynamic-loaded-chart/"><img src="https://apexcharts.com/media/dynamic-selection.gif" alt="dynamic-loading-chart" /></a></p>
 
 ## Annotations
 
-Annotations allows you to write custom text on specific values or on axes values. Valuable to expand the visual appeal of your chart and make it more informative.
+Annotations allow you to write custom text on specific values or on axes values. Valuable to expand the visual appeal of your chart and make it more informative.
 
 <p align="center"><a href="https://apexcharts.com/docs/annotations/"><img src="https://apexcharts.com/media/annotations.png" alt="annotations" /></a></p>
 
 ## Mixed Charts
 
-You can combine more than one chart type to create a combo/mixed chart. Possible combinations can be line/area/column together in a single chart. Each chart-type can have it's own y-axis.
+You can combine more than one chart type to create a combo/mixed chart. Possible combinations can be line/area/column together in a single chart. Each chart type can have its own y-axis.
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/mixed-charts/"><img src="https://apexcharts.com/wp-content/uploads/2018/05/line-column-area-mixed-chart.svg" alt="annotations" width="490" /></a></p>
 
 ## Candlestick
 
-Use a candlestick chart (a common financial chart) to describe price changes of a security, derivative, or currency. Below image show how you can use another chart as a brush/preview-pane which acts as a handle to browse the main candlestick chart.
+Use a candlestick chart (a common financial chart) to describe price changes of a security, derivative, or currency. The below image shows how you can use another chart as a brush/preview pane which acts as a handle to browse the main candlestick chart.
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/candlestick-charts/"><img src="https://apexcharts.com/media/candlestick.png" alt="candlestick" width="490" /></a></p>
 
 ## Heatmaps
 
-Use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and area of focus.
+Use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and areas of focus.
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap-charts.png" alt="heatmap" /></a></p>
 
 ## Gauges
 
-The tiny gauges are an important part of a dashboard and are useful in displaying single series data. A demo of these gauges:
+The tiny gauges are an important part of a dashboard and are useful in displaying single-series data. A demo of these gauges:
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars-gauges.png" width="490" alt="radialbar-chart" /></a></p>
 
 ## Sparklines
 
-Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature most extreme and least values:
+Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature the most extreme and least values:
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
 
 
 ## Need Advanced Data Grid for your next project? 
-We partnered with Infragistics, creators of the fastest data grids on the planet! Ignite UI Grids can handle unlimited rows and columns of data, while providing access to custom templates and real-time data updates. 
+We partnered with Infragistics, creators of the fastest data grids on the planet! Ignite UI Grids can handle unlimited rows and columns of data while providing access to custom templates and real-time data updates. 
 
 <p align="center"><a href="https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid" target="_blank"><img src="https://apexcharts.com/media/infragistics-data-grid.png" /></a></p>
 
@@ -192,7 +192,7 @@ If you need to make it work with IE11, you need to include these polyfills befor
 
 ## Development
 
-#### Install dependencies and run project
+#### Install dependencies and run the project
 
 ```bash
 npm install
@@ -221,7 +221,7 @@ Facebook: <a href="https://facebook.com/apexcharts">fb.com/apexcharts</a>
 
 ## Dependency
 
-ApexCharts uses <a href="https://svgdotjs.github.io/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
+ApexCharts uses <a href="https://svgdotjs.github.io/" target="_blank">SVG.js</a> for drawing shapes, animations, applying svg filters, and a lot more under the hood. The library is bundled in the final build file, so you don't need to include it.
 
 ## License
 
