@@ -278,7 +278,11 @@ class Exports {
             )
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
-              columns.push(w.globals.series[ci][i])
+              if (dataFormat.isFormatXY()) {
+                columns.push(series[ci].data[i].y)
+              } else {
+                columns.push(w.globals.series[ci][i])
+              }
             }
           }
 

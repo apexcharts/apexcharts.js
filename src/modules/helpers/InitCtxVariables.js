@@ -55,6 +55,7 @@ export default class InitCtxVariables {
       'zoomX',
       'toggleDataPointSelection',
       'dataURI',
+      'exportToCSV',
       'addXaxisAnnotation',
       'addYaxisAnnotation',
       'addPointAnnotation',

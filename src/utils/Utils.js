@@ -4,7 +4,7 @@
 
 class Utils {
   static bind(fn, me) {
-    return function () {
+    return function() {
       return fn.apply(me, arguments)
     }
   }
@@ -17,7 +17,7 @@ class Utils {
 
   // Type checking that works across different window objects
   static is(type, val) {
-    return Object.prototype.toString.call(val) === '[object ' + type + ']';
+    return Object.prototype.toString.call(val) === '[object ' + type + ']'
   }
 
   static listToArray(list) {
@@ -33,8 +33,8 @@ class Utils {
   // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
   static extend(target, source) {
     if (typeof Object.assign !== 'function') {
-      ; (function () {
-        Object.assign = function (target) {
+      ;(function() {
+        Object.assign = function(target) {
           'use strict'
           // We must check against these specific cases.
           if (target === undefined || target === null) {
@@ -223,9 +223,9 @@ class Utils {
     )
     return rgb && rgb.length === 4
       ? '#' +
-      ('0' + parseInt(rgb[1], 10).toString(16)).slice(-2) +
-      ('0' + parseInt(rgb[2], 10).toString(16)).slice(-2) +
-      ('0' + parseInt(rgb[3], 10).toString(16)).slice(-2)
+          ('0' + parseInt(rgb[1], 10).toString(16)).slice(-2) +
+          ('0' + parseInt(rgb[2], 10).toString(16)).slice(-2) +
+          ('0' + parseInt(rgb[3], 10).toString(16)).slice(-2)
       : ''
   }
 
@@ -305,7 +305,7 @@ class Utils {
   static escapeString(str, escapeWith = 'x') {
     let newStr = str.toString().slice()
     newStr = newStr.replace(
-      /[` ~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\/]/gi,
+      /[` ~!@#$%^&*()|+\=?;:'",.<>{}[\]\\/]/gi,
       escapeWith
     )
     return newStr
