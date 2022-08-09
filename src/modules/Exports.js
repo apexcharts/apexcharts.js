@@ -323,16 +323,33 @@ class Exports {
     }
 
     columns.push(w.config.chart.toolbar.export.csv.headerCategory)
-    series.map((s, sI) => {
-      const sname = s.name ? s.name : `series-${sI}`
-      if (w.globals.axisCharts) {
-        columns.push(
-          sname.split(columnDelimiter).join('')
-            ? sname.split(columnDelimiter).join('')
-            : `series-${sI}`
-        )
-      }
-    })
+
+    if (w.config.chart.type === 'boxPlot') {
+      columns.push('minimum')
+      columns.push('q1')
+      columns.push('median')
+      columns.push('q3')
+      columns.push('maximum')
+    } else if (w.config.chart.type === 'candlestick') {
+      columns.push('open')
+      columns.push('high')
+      columns.push('low')
+      columns.push('close')
+    } else if (w.config.chart.type === 'rangeBar') {
+      columns.push('minimum')
+      columns.push('maximum')
+    } else {
+      series.map((s, sI) => {
+        const sname = s.name ? s.name : `series-${sI}`
+        if (w.globals.axisCharts) {
+          columns.push(
+            sname.split(columnDelimiter).join('')
+              ? sname.split(columnDelimiter).join('')
+              : `series-${sI}`
+          )
+        }
+      })
+    }
 
     if (!w.globals.axisCharts) {
       columns.push(w.config.chart.toolbar.export.csv.headerValue)
