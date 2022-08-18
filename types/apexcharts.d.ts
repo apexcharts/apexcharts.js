@@ -133,6 +133,7 @@ type ApexChart = {
     mouseMove?(e: any, chart?: any, options?: any): void
     mouseLeave?(e: any, chart?: any, options?: any): void
     click?(e: any, chart?: any, options?: any): void
+    labelClick?(e: any, chart?: any, options?: any): void
     legendClick?(chart: any, seriesIndex?: number, options?: any): void
     markerClick?(e: any, chart?: any, options?: any): void
     selection?(chart: any, options?: any): void

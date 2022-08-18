@@ -395,6 +395,17 @@ export default class XAxis {
 
         elYaxisTexts.add(elLabel)
 
+        elLabel.on('click', (e) => {
+          if (typeof w.config.chart.events.labelClick === 'function') {
+            const opts = Object.assign({}, w, {
+              seriesIndex: realIndex,
+              dataPointIndex: i
+            })
+
+            w.config.chart.events.labelClick(e, this.ctx, opts)
+          }
+        })
+
         let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
         elTooltipTitle.textContent = Array.isArray(label)
           ? label.join(' ')
