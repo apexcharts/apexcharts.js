@@ -183,7 +183,12 @@ class Exports {
     })
   }
 
-  exportToCSV({ series, columnDelimiter = ',', lineDelimiter = '\n' }) {
+  exportToCSV({
+    series,
+    fileName,
+    columnDelimiter = ',',
+    lineDelimiter = '\n'
+  }) {
     const w = this.w
 
     if (!series) series = w.config.series
@@ -372,7 +377,7 @@ class Exports {
     this.triggerDownload(
       'data:text/csv; charset=utf-8,' +
         encodeURIComponent(universalBOM + result),
-      w.config.chart.toolbar.export.csv.filename,
+      fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
       '.csv'
     )
   }
