@@ -297,12 +297,12 @@ export default class XAxis {
         elXaxisTexts.add(elText)
 
         elText.on('click', (e) => {
-          if (typeof w.config.chart.events.labelClick === 'function') {
+          if (typeof w.config.chart.events.xAxisLabelClick === 'function') {
             const opts = Object.assign({}, w, {
-              xAxisLabelClick: i
+              labelIndex: i
             })
 
-            w.config.chart.events.labelClick(e, this.ctx, opts)
+            w.config.chart.events.xAxisLabelClick(e, this.ctx, opts)
           }
         })
 
@@ -406,12 +406,12 @@ export default class XAxis {
         elYaxisTexts.add(elLabel)
 
         elLabel.on('click', (e) => {
-          if (typeof w.config.chart.events.labelClick === 'function') {
+          if (typeof w.config.chart.events.xAxisLabelClick === 'function') {
             const opts = Object.assign({}, w, {
-              xAxisLabelClick: i
+              labelIndex: i
             })
 
-            w.config.chart.events.labelClick(e, this.ctx, opts)
+            w.config.chart.events.xAxisLabelClick(e, this.ctx, opts)
           }
         })
 
