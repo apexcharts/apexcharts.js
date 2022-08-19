@@ -299,7 +299,7 @@ export default class XAxis {
         elText.on('click', (e) => {
           if (typeof w.config.chart.events.labelClick === 'function') {
             const opts = Object.assign({}, w, {
-              labelIndex: i
+              xAxisLabelClick: i
             })
 
             w.config.chart.events.labelClick(e, this.ctx, opts)
@@ -408,7 +408,7 @@ export default class XAxis {
         elLabel.on('click', (e) => {
           if (typeof w.config.chart.events.labelClick === 'function') {
             const opts = Object.assign({}, w, {
-              labelIndex: i
+              xAxisLabelClick: i
             })
 
             w.config.chart.events.labelClick(e, this.ctx, opts)
