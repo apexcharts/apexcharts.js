@@ -296,6 +296,16 @@ export default class XAxis {
         })
         elXaxisTexts.add(elText)
 
+        elText.on('click', (e) => {
+          if (typeof w.config.chart.events.labelClick === 'function') {
+            const opts = Object.assign({}, w, {
+              labelIndex: i
+            })
+
+            w.config.chart.events.labelClick(e, this.ctx, opts)
+          }
+        })
+
         if (isLeafGroup) {
           let elTooltipTitle = document.createElementNS(
             w.globals.SVGNS,
@@ -398,8 +408,7 @@ export default class XAxis {
         elLabel.on('click', (e) => {
           if (typeof w.config.chart.events.labelClick === 'function') {
             const opts = Object.assign({}, w, {
-              seriesIndex: realIndex,
-              dataPointIndex: i
+              labelIndex: i
             })
 
             w.config.chart.events.labelClick(e, this.ctx, opts)
