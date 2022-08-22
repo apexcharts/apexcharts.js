@@ -50,7 +50,7 @@ declare class ApexCharts {
     dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
     exportToSVG(): void
     exportToPng(): void
-    exportToCSV(options?: { series?: any, columnDelimiter?: string, lineDelimiter?: string }): void
+    exportToCSV(options?: { series?: any, fileName?: string, columnDelimiter?: string, lineDelimiter?: string }): void
     getSvgString(scale?: number): void
     triggerDownload(href: string, filename?: string, ext?: string): void
   }
