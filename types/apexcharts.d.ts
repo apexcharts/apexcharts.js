@@ -63,7 +63,7 @@ declare module ApexCharts {
     colors?: any[]
     dataLabels?: ApexDataLabels
     fill?: ApexFill
-    forecastDataPoints?: ApexForecastDataPoints;
+    forecastDataPoints?: ApexForecastDataPoints
     grid?: ApexGrid
     labels?: string[]
     legend?: ApexLegend
