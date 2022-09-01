@@ -463,10 +463,11 @@ export default class ApexCharts {
    *
    * @param {array} newSerie - New serie which will be appended to the existing series
    */
-  appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
+  appendSeries(newSerie, animate = true, overwriteInitialSeries = true,
+               shouldUpdateChart = false, shouldResetZoom = true, shouldResetCollapsed = true) {
     const newSeries = this.w.config.series.slice()
     newSeries.push(newSerie)
-    this.series.resetSeries(false)
+    this.series.resetSeries(shouldUpdateChart, shouldResetZoom, shouldResetCollapsed)
     this.updateHelpers.revertDefaultAxisMinMax()
     return this.updateHelpers._updateSeries(
       newSeries,
