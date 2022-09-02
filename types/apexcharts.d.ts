@@ -977,6 +977,7 @@ type ApexXAxis = {
       day?: string
       hour?: string
       minute?: string
+      second?: string
     }
   }
   group?: {
