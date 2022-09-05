@@ -290,6 +290,7 @@ export default class Options {
           click: undefined,
           mouseMove: undefined,
           mouseLeave: undefined,
+          xAxisLabelClick: undefined,
           legendClick: undefined,
           markerClick: undefined,
           selection: undefined,
