@@ -323,7 +323,8 @@ type ApexAxisChartSeries = {
         goals?: any;
       }[]
     | [number, number | null][]
-    | [number, (number | null)[]][];
+    | [number, (number | null)[]][]
+    | number[][];
 }[]
 
 type ApexNonAxisChartSeries = number[]
