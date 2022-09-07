@@ -92,6 +92,11 @@ class BarStacked extends Bar {
         'data:realIndex': realIndex
       })
 
+      let elGoalsMarkers = this.graphics.group({
+        class: 'apexcharts-bar-goals-markers',
+        style: `pointer-events: none`
+      })
+
       let barHeight = 0
       let barWidth = 0
 
@@ -162,6 +167,19 @@ class BarStacked extends Bar {
           barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
         }
 
+        const barGoalLine = this.barHelpers.drawGoalLine({
+          barXPosition: paths.barXPosition,
+          barYPosition: paths.barYPosition,
+          goalX: paths.goalX,
+          goalY: paths.goalY,
+          barHeight,
+          barWidth
+        })
+
+        if (barGoalLine) {
+          elGoalsMarkers.add(barGoalLine)
+        }
+
         y = paths.y
         x = paths.x
 
@@ -185,6 +203,7 @@ class BarStacked extends Bar {
           barHeight,
           barWidth,
           elDataLabelsWrap,
+          elGoalsMarkers,
           type: 'bar',
           visibleSeries: 0
         })
@@ -244,6 +263,7 @@ class BarStacked extends Bar {
       }
 
       zeroH =
+        w.globals.gridHeight -
         this.baseLineY[this.yaxisIndex] +
         (this.isReversed ? w.globals.gridHeight : 0) -
         (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
@@ -344,6 +364,8 @@ class BarStacked extends Bar {
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
+      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
+      barYPosition,
       x,
       y
     }
@@ -428,14 +450,14 @@ class BarStacked extends Bar {
         this.prevYF.slice(1, i).every((arr) => arr.every((val) => isNaN(val)))
       ) {
         // Use the same calc way as line #485
-        barYPosition = w.globals.gridHeight - zeroH
+        barYPosition = zeroH
       } else {
         // Nothing special
         barYPosition = bYP
       }
     } else {
       // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
-      barYPosition = w.globals.gridHeight - zeroH
+      barYPosition = zeroH
     }
 
     y =
@@ -472,6 +494,8 @@ class BarStacked extends Bar {
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
+      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
+      barXPosition,
       x: w.globals.isXNumeric ? x - xDivision : x,
       y
     }
