@@ -63,7 +63,7 @@ declare module ApexCharts {
     colors?: any[]
     dataLabels?: ApexDataLabels
     fill?: ApexFill
-    forecastDataPoints?: ApexForecastDataPoints;
+    forecastDataPoints?: ApexForecastDataPoints
     grid?: ApexGrid
     labels?: string[]
     legend?: ApexLegend
@@ -133,6 +133,7 @@ type ApexChart = {
     mouseMove?(e: any, chart?: any, options?: any): void
     mouseLeave?(e: any, chart?: any, options?: any): void
     click?(e: any, chart?: any, options?: any): void
+    xAxisLabelClick?(e: any, chart?: any, options?: any): void
     legendClick?(chart: any, seriesIndex?: number, options?: any): void
     markerClick?(e: any, chart?: any, options?: any): void
     selection?(chart: any, options?: any): void
@@ -977,6 +978,7 @@ type ApexXAxis = {
       day?: string
       hour?: string
       minute?: string
+      second?: string
     }
   }
   group?: {
