@@ -295,7 +295,12 @@ export default class Position {
     let pointsArr = w.globals.pointsArray
 
     let series = new Series(this.ctx)
-    activeSeries = series.getActiveConfigSeriesIndex(true)
+    activeSeries = series.getActiveConfigSeriesIndex('asc', [
+      'line',
+      'area',
+      'scatter',
+      'bubble'
+    ])
 
     let hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(activeSeries)
 
@@ -359,7 +364,7 @@ export default class Position {
 
     if (w.globals.isBarHorizontal) {
       let series = new Series(this.ctx)
-      i = series.getActiveConfigSeriesIndex(false, 'desc') + 1
+      i = series.getActiveConfigSeriesIndex('desc') + 1
     }
     let jBar = w.globals.dom.baseEl.querySelector(
       `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`

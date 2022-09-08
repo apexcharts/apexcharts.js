@@ -4,6 +4,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Utils from '../utils/Utils'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
+import Series from '../modules/Series'
 
 /**
  * ApexCharts Bar Class responsible for drawing both Columns and Bars.
@@ -37,6 +38,24 @@ class Bar {
     }
     this.yaxisIndex = 0
     this.seriesLen = 0
+
+    const ser = new Series(this.ctx)
+    this.lastActiveBarSerieIndex = ser.getActiveConfigSeriesIndex('desc', [
+      'bar',
+      'column'
+    ])
+
+    const barSeriesIndices = ser.getBarSeriesIndices()
+    const coreUtils = new CoreUtils(this.ctx)
+    this.stackedSeriesTotals = coreUtils.getStackedSeriesTotals(
+      this.w.config.series
+        .map((s, i) => {
+          return barSeriesIndices.indexOf(i) === -1 ? i : -1
+        })
+        .filter((s) => {
+          return s !== -1
+        })
+    )
 
     this.barHelpers = new BarHelpers(this)
   }
@@ -308,7 +327,7 @@ class Bar {
     elSeries.add(renderedPath)
 
     let barDataLabels = new BarDataLabels(this)
-    let dataLabels = barDataLabels.handleBarDataLabels({
+    let dataLabelsObj = barDataLabels.handleBarDataLabels({
       x,
       y,
       y1,
@@ -323,8 +342,12 @@ class Bar {
       renderedPath,
       visibleSeries
     })
-    if (dataLabels !== null) {
-      elDataLabelsWrap.add(dataLabels)
+    if (dataLabelsObj.dataLabels !== null) {
+      elDataLabelsWrap.add(dataLabelsObj.dataLabels)
+    }
+
+    if (dataLabelsObj.totalDataLabels) {
+      elDataLabelsWrap.add(dataLabelsObj.totalDataLabels)
     }
 
     elSeries.add(elDataLabelsWrap)

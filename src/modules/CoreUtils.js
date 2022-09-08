@@ -45,7 +45,7 @@ class CoreUtils {
    * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
    *  @return [34,36,48,13]
    **/
-  getStackedSeriesTotals() {
+  getStackedSeriesTotals(excludedSeriesIndices = []) {
     const w = this.w
     let total = []
 
@@ -58,13 +58,15 @@ class CoreUtils {
     ) {
       let t = 0
       for (let j = 0; j < w.globals.series.length; j++) {
-        if (typeof w.globals.series[j][i] !== 'undefined') {
+        if (
+          typeof w.globals.series[j][i] !== 'undefined' &&
+          excludedSeriesIndices.indexOf(j) === -1
+        ) {
           t += w.globals.series[j][i]
         }
       }
       total.push(t)
     }
-    w.globals.stackedSeriesTotals = total
     return total
   }
 

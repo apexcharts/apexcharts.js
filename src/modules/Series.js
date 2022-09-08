@@ -214,22 +214,28 @@ export default class Series {
     }
   }
 
-  getActiveConfigSeriesIndex(ignoreBars = false, order = 'asc') {
+  getActiveConfigSeriesIndex(order = 'asc', chartTypes = []) {
     const w = this.w
     let activeIndex = 0
 
     if (w.config.series.length > 1) {
       // active series flag is required to know if user has not deactivated via legend click
       let activeSeriesIndex = w.config.series.map((s, index) => {
-        let hasBars = false
-        if (ignoreBars) {
-          hasBars =
-            w.config.series[index].type === 'bar' ||
-            w.config.series[index].type === 'column'
+        const checkChartType = () => {
+          if (w.globals.comboCharts) {
+            return (
+              chartTypes.length === 0 ||
+              (chartTypes.length &&
+                chartTypes.indexOf(w.config.series[index].type) > -1)
+            )
+          }
+          return true
         }
-        return s.data && s.data.length > 0 && !hasBars ? index : -1
-      })
 
+        const hasData = s.data && s.data.length > 0
+
+        return hasData && checkChartType() ? index : -1
+      })
       for (
         let a = order === 'asc' ? 0 : activeSeriesIndex.length - 1;
         order === 'asc' ? a < activeSeriesIndex.length : a >= 0;
@@ -243,6 +249,22 @@ export default class Series {
     }
 
     return activeIndex
+  }
+
+  getBarSeriesIndices() {
+    const w = this.w
+    if (w.globals.comboCharts) {
+      return this.w.config.series
+        .map((s, i) => {
+          return s.type === 'bar' || s.type === 'column' ? i : -1
+        })
+        .filter((i) => {
+          return i !== -1
+        })
+    }
+    return this.w.config.series.map((s, i) => {
+      return i
+    })
   }
 
   getPreviousPaths() {

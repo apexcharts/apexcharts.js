@@ -420,8 +420,19 @@ export default class Options {
             position: 'top', // top, center, bottom
             maxItems: 100,
             hideOverflowingLabels: true,
-            orientation: 'horizontal'
-            // TODO: provide stackedLabels for stacked charts which gives additions of values
+            orientation: 'horizontal',
+            total: {
+              enabled: false,
+              formatter: undefined,
+              offsetX: 0,
+              offsetY: 0,
+              style: {
+                color: '#373d3f',
+                fontSize: '12px',
+                fontFamily: undefined,
+                fontWeight: 600
+              }
+            }
           }
         },
         bubble: {
