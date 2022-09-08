@@ -130,7 +130,7 @@ export default class BarDataLabels {
       dataLabelsConfig
     })
 
-    if (w.config.chart.stacked) {
+    if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled) {
       totalDataLabels = this.drawTotalDataLabels({
         x: dataLabelsPos.totalDataLabelsX,
         y: dataLabelsPos.totalDataLabelsY,
@@ -263,7 +263,10 @@ export default class BarDataLabels {
         break
     }
 
-    if (this.barCtx.lastActiveBarSerieIndex === realIndex) {
+    if (
+      this.barCtx.lastActiveBarSerieIndex === realIndex &&
+      barTotalDataLabelsConfig.enabled
+    ) {
       const ADDITIONAL_OFFX = 20
 
       const graphics = new Graphics(this.barCtx.ctx)
@@ -389,7 +392,10 @@ export default class BarDataLabels {
         break
     }
 
-    if (this.barCtx.lastActiveBarSerieIndex === realIndex) {
+    if (
+      this.barCtx.lastActiveBarSerieIndex === realIndex &&
+      barTotalDataLabelsConfig.enabled
+    ) {
       const ADDITIONAL_OFFX = 20
       const graphics = new Graphics(this.barCtx.ctx)
       const totalLabeltextRects = graphics.getTextRects(

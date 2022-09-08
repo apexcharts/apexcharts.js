@@ -526,7 +526,19 @@ type ApexPlotOptions = {
       maxItems?: number
       hideOverflowingLabels?: boolean
       position?: string
-      orientation?: 'horizontal' | 'vertical'
+      orientation?: 'horizontal' | 'vertical',
+      total?: {
+        enabled?: boolean,
+        formatter?(val?: string, opts?: any): string,
+        offsetX?: number,
+        offsetY?: number,
+        style?: {
+          color?: string,
+          fontSize?: string,
+          fontFamily?: string,
+          fontWeight?: number | string
+        }
+      }
     }
   }
   bubble?: {
