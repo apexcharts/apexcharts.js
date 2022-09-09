@@ -135,6 +135,7 @@ export default class BarDataLabels {
         x: dataLabelsPos.totalDataLabelsX,
         y: dataLabelsPos.totalDataLabelsY,
         realIndex,
+        textAnchor: dataLabelsPos.totalDataLabelsAnchor,
         val: this.getStackedTotalDataLabel({ realIndex, j }),
         dataLabelsConfig,
         barTotalDataLabelsConfig
@@ -185,6 +186,7 @@ export default class BarDataLabels {
     let dataLabelsX
     let totalDataLabelsY
     let totalDataLabelsX
+    let totalDataLabelsAnchor = 'middle'
     barHeight = Math.abs(barHeight)
 
     let vertical =
@@ -267,7 +269,7 @@ export default class BarDataLabels {
       this.barCtx.lastActiveBarSerieIndex === realIndex &&
       barTotalDataLabelsConfig.enabled
     ) {
-      const ADDITIONAL_OFFX = 20
+      const ADDITIONAL_OFFX = 18
 
       const graphics = new Graphics(this.barCtx.ctx)
       const totalLabeltextRects = graphics.getTextRects(
@@ -308,7 +310,8 @@ export default class BarDataLabels {
       dataLabelsX,
       dataLabelsY,
       totalDataLabelsX,
-      totalDataLabelsY
+      totalDataLabelsY,
+      totalDataLabelsAnchor
     }
   }
 
@@ -346,6 +349,7 @@ export default class BarDataLabels {
 
     let totalDataLabelsX
     let totalDataLabelsY
+    let totalDataLabelsAnchor = 'start'
 
     let valIsNegative = this.barCtx.series[i][j] < 0
 
@@ -396,7 +400,7 @@ export default class BarDataLabels {
       this.barCtx.lastActiveBarSerieIndex === realIndex &&
       barTotalDataLabelsConfig.enabled
     ) {
-      const ADDITIONAL_OFFX = 20
+      const ADDITIONAL_OFFX = 15
       const graphics = new Graphics(this.barCtx.ctx)
       const totalLabeltextRects = graphics.getTextRects(
         this.getStackedTotalDataLabel({ realIndex, j }),
@@ -410,6 +414,8 @@ export default class BarDataLabels {
           offX -
           barTotalDataLabelsConfig.offsetX -
           ADDITIONAL_OFFX
+
+        totalDataLabelsAnchor = 'end'
       } else {
         totalDataLabelsX =
           newX -
@@ -436,7 +442,8 @@ export default class BarDataLabels {
       dataLabelsX,
       dataLabelsY,
       totalDataLabelsX,
-      totalDataLabelsY
+      totalDataLabelsY,
+      totalDataLabelsAnchor
     }
   }
 
@@ -561,7 +568,7 @@ export default class BarDataLabels {
     y,
     val,
     realIndex,
-    dataLabelsConfig,
+    textAnchor,
     barTotalDataLabelsConfig
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
@@ -579,7 +586,7 @@ export default class BarDataLabels {
         y: y,
         foreColor: barTotalDataLabelsConfig.style.color,
         text: val,
-        textAnchor: dataLabelsConfig.textAnchor,
+        textAnchor,
         fontFamily: barTotalDataLabelsConfig.style.fontFamily,
         fontSize: barTotalDataLabelsConfig.style.fontSize,
         fontWeight: barTotalDataLabelsConfig.style.fontWeight
