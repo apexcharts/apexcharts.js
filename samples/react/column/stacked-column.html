@@ -109,7 +109,16 @@
               plotOptions: {
                 bar: {
                   horizontal: false,
-                  borderRadius: 10
+                  borderRadius: 10,
+                  dataLabels: {
+                    total: {
+                      enabled: true,
+                      style: {
+                        fontSize: '13px',
+                        fontWeight: 900
+                      }
+                    }
+                  }
                 },
               },
               xaxis: {
