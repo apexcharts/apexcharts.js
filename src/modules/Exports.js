@@ -197,10 +197,14 @@ class Exports {
     let rows = []
     let result = ''
     let universalBOM = '\uFEFF'
+    let gSeries = w.globals.series.map((s,i)=>{
+      return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
+    })
 
     const isTimeStamp = (num) => {
       return w.config.xaxis.type === 'datetime' && String(num).length >= 10
     }
+    const seriesMaxDataLength = Math.max(...series.map((s) => { return s.data ? s.data.length : 0 }))
     const dataFormat = new Data(this.ctx)
 
     const axesUtils = new AxesUtils(this.ctx)
@@ -255,12 +259,18 @@ class Exports {
       return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
     }
 
+    // Fix https://github.com/apexcharts/apexcharts.js/issues/3365
+    const getEmptyDataForCsvColumn = () => {
+      return [...Array(seriesMaxDataLength)].map(() => '')
+    }
+
     const handleAxisRowsColumns = (s, sI) => {
       if (columns.length && sI === 0) {
         rows.push(columns.join(columnDelimiter))
       }
 
-      if (s.data && s.data.length) {
+      if (s.data) {
+        s.data = s.data.length && s.data || getEmptyDataForCsvColumn()
         for (let i = 0; i < s.data.length; i++) {
           columns = []
 
@@ -286,7 +296,7 @@ class Exports {
               if (dataFormat.isFormatXY()) {
                 columns.push(series[ci].data[i].y)
               } else {
-                columns.push(w.globals.series[ci][i])
+                columns.push(gSeries[ci][i])
               }
             }
           }
@@ -367,7 +377,7 @@ class Exports {
         columns = []
 
         columns.push(w.globals.labels[sI].split(columnDelimiter).join(''))
-        columns.push(w.globals.series[sI])
+        columns.push(gSeries[sI])
         rows.push(columns.join(columnDelimiter))
       }
     })
