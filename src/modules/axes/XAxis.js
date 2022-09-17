@@ -199,6 +199,9 @@ export default class XAxis {
     let dataPoints =
       w.config.xaxis.type === 'category' ? w.globals.dataPoints : labelsLen
 
+    // when all series are collapsed, fixes #3381
+    if (dataPoints === 0 && labelsLen > dataPoints) dataPoints = labelsLen
+
     if (isXNumeric) {
       let len = dataPoints > 1 ? dataPoints - 1 : dataPoints
       colWidth = w.globals.gridWidth / len
