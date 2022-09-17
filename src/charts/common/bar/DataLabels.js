@@ -154,9 +154,10 @@ export default class BarDataLabels {
     let val = this.barCtx.stackedSeriesTotals[j]
     if (this.totalFormatter) {
       val = this.totalFormatter(val, {
+        ...w,
         seriesIndex: realIndex,
         dataPointIndex: j,
-        ...w
+        w
       })
     }
 
@@ -481,6 +482,7 @@ export default class BarDataLabels {
       let text = ''
       if (typeof val !== 'undefined') {
         text = formatter(val, {
+          ...w,
           seriesIndex: i,
           dataPointIndex: j,
           w
