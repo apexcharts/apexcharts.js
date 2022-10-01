@@ -268,7 +268,10 @@ class BarOverlapped extends BarStacked {
 
     let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
+    // this allow to center the datalabel based on the showed part of the element
     if (nextValue) {
+      // Since values are ordered descending, the next value is the next biggest value
+      // So since they are all on the same y axis we get the size of the next element to only get the size of the showed part
       if (this.isHorizontal) {
         const nextBarWidth = nextValue / this.invertedYRatio
         barWidth -= nextBarWidth
