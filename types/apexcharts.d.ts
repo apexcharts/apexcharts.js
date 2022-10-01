@@ -161,6 +161,7 @@ type ApexChart = {
   sparkline?: {
     enabled?: boolean
   }
+  overlapped?: boolean
   stacked?: boolean
   stackType?: 'normal' | '100%'
   toolbar?: {

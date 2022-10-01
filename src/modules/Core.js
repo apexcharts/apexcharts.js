@@ -1,4 +1,5 @@
 import Bar from '../charts/Bar'
+import BarOverlapped from '../charts/BarOverlapped'
 import BarStacked from '../charts/BarStacked'
 import BoxCandleStick from '../charts/BoxCandleStick'
 import CoreUtils from './CoreUtils'
@@ -258,7 +259,10 @@ export default class Core {
           elGraph = line.draw(gl.series, 'area')
           break
         case 'bar':
-          if (cnf.chart.stacked) {
+          if (cnf.chart.overlapped) {
+            let barOverlapped = new BarOverlapped(this.ctx, xyRatios)
+            elGraph = barOverlapped.draw(gl.series)
+          } else if (cnf.chart.stacked) {
             let barStacked = new BarStacked(this.ctx, xyRatios)
             elGraph = barStacked.draw(gl.series)
           } else {
