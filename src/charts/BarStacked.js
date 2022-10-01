@@ -307,20 +307,22 @@ class BarStacked extends Bar {
     if (i > 0) {
       let bXP = zeroW
 
-      if (this.prevXVal[i - 1][j] < 0) {
-        bXP =
-          this.series[i][j] >= 0
-            ? this.prevX[i - 1][j] +
-              prevBarW -
-              (this.isReversed ? prevBarW : 0) * 2
-            : this.prevX[i - 1][j]
-      } else if (this.prevXVal[i - 1][j] >= 0) {
-        bXP =
-          this.series[i][j] >= 0
-            ? this.prevX[i - 1][j]
-            : this.prevX[i - 1][j] -
-              prevBarW +
-              (this.isReversed ? prevBarW : 0) * 2
+      if (this.prevXVal[i - 1]) {
+        if (this.prevXVal[i - 1][j] < 0) {
+          bXP =
+            this.series[i][j] >= 0
+              ? this.prevX[i - 1][j] +
+                prevBarW -
+                (this.isReversed ? prevBarW : 0) * 2
+              : this.prevX[i - 1][j]
+        } else if (this.prevXVal[i - 1][j] >= 0) {
+          bXP =
+            this.series[i][j] >= 0
+              ? this.prevX[i - 1][j]
+              : this.prevX[i - 1][j] -
+                prevBarW +
+                (this.isReversed ? prevBarW : 0) * 2
+        }
       }
 
       barXPosition = bXP
@@ -424,20 +426,22 @@ class BarStacked extends Bar {
 
       for (let ii = 1; ii < p; ii++) {
         // find the previous available value(non-NaN) to give bYP
-        if (this.prevYVal[i - ii][j] < 0) {
-          bYP =
-            this.series[i][j] >= 0
-              ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
-              : prevYValue
-          // found it? break the loop
-          break
-        } else if (this.prevYVal[i - ii][j] >= 0) {
-          bYP =
-            this.series[i][j] >= 0
-              ? prevYValue
-              : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
-          // found it? break the loop
-          break
+        if (this.prevYVal[i - ii]) {
+          if (this.prevYVal[i - ii][j] < 0) {
+            bYP =
+              this.series[i][j] >= 0
+                ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
+                : prevYValue
+            // found it? break the loop
+            break
+          } else if (this.prevYVal[i - ii][j] >= 0) {
+            bYP =
+              this.series[i][j] >= 0
+                ? prevYValue
+                : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
+            // found it? break the loop
+            break
+          }
         }
       }
 
