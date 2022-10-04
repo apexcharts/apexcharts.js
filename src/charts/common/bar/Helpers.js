@@ -169,7 +169,11 @@ export default class Helpers {
         : realIndex,
       dataPointIndex: j,
       color: fillColor,
-      value: series[i][j]
+      value: series[i][j],
+      fillConfig: w.config.series[i].data[j].fill,
+      fillType: w.config.series[i].data[j].fill?.type
+        ? w.config.series[i].data[j].fill.type
+        : w.config.fill.type
     })
 
     return pathFill

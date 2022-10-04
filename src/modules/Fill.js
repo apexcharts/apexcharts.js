@@ -121,7 +121,9 @@ class Fill {
         w
       })
     }
-    let fillType = this.getFillType(this.seriesIndex)
+    let fillType = opts.fillType
+      ? opts.fillType
+      : this.getFillType(this.seriesIndex)
     let fillOpacity = Array.isArray(cnf.fill.opacity)
       ? cnf.fill.opacity[this.seriesIndex]
       : cnf.fill.opacity
@@ -145,20 +147,22 @@ class Fill {
     if (opts.opacity) fillOpacity = opts.opacity
 
     if (fillType === 'pattern') {
-      patternFill = this.handlePatternFill(
+      patternFill = this.handlePatternFill({
+        fillConfig: opts.fillConfig,
         patternFill,
         fillColor,
         fillOpacity,
         defaultColor
-      )
+      })
     }
 
     if (fillType === 'gradient') {
-      gradientFill = this.handleGradientFill(
+      gradientFill = this.handleGradientFill({
+        fillConfig: opts.fillConfig,
         fillColor,
         fillOpacity,
-        this.seriesIndex
-      )
+        i: this.seriesIndex
+      })
     }
 
     if (fillType === 'image') {
@@ -256,27 +260,33 @@ class Fill {
     return fillColors
   }
 
-  handlePatternFill(patternFill, fillColor, fillOpacity, defaultColor) {
-    const cnf = this.w.config
+  handlePatternFill({
+    fillConfig,
+    patternFill,
+    fillColor,
+    fillOpacity,
+    defaultColor
+  }) {
+    let fillCnf = this.w.config.fill
+
+    if (fillConfig) {
+      fillCnf = fillConfig
+    }
+
     const opts = this.opts
     let graphics = new Graphics(this.ctx)
 
-    let patternStrokeWidth =
-      cnf.fill.pattern.strokeWidth === undefined
-        ? Array.isArray(cnf.stroke.width)
-          ? cnf.stroke.width[this.seriesIndex]
-          : cnf.stroke.width
-        : Array.isArray(cnf.fill.pattern.strokeWidth)
-        ? cnf.fill.pattern.strokeWidth[this.seriesIndex]
-        : cnf.fill.pattern.strokeWidth
+    let patternStrokeWidth = Array.isArray(fillCnf.pattern.strokeWidth)
+      ? fillCnf.pattern.strokeWidth[this.seriesIndex]
+      : fillCnf.pattern.strokeWidth
     let patternLineColor = fillColor
 
-    if (Array.isArray(cnf.fill.pattern.style)) {
-      if (typeof cnf.fill.pattern.style[opts.seriesNumber] !== 'undefined') {
+    if (Array.isArray(fillCnf.pattern.style)) {
+      if (typeof fillCnf.pattern.style[opts.seriesNumber] !== 'undefined') {
         let pf = graphics.drawPattern(
-          cnf.fill.pattern.style[opts.seriesNumber],
-          cnf.fill.pattern.width,
-          cnf.fill.pattern.height,
+          fillCnf.pattern.style[opts.seriesNumber],
+          fillCnf.pattern.width,
+          fillCnf.pattern.height,
           patternLineColor,
           patternStrokeWidth,
           fillOpacity
@@ -287,9 +297,9 @@ class Fill {
       }
     } else {
       patternFill = graphics.drawPattern(
-        cnf.fill.pattern.style,
-        cnf.fill.pattern.width,
-        cnf.fill.pattern.height,
+        fillCnf.pattern.style,
+        fillCnf.pattern.width,
+        fillCnf.pattern.height,
         patternLineColor,
         patternStrokeWidth,
         fillOpacity
@@ -298,50 +308,54 @@ class Fill {
     return patternFill
   }
 
-  handleGradientFill(fillColor, fillOpacity, i) {
-    const cnf = this.w.config
+  handleGradientFill({ fillColor, fillOpacity, fillConfig, i }) {
+    let fillCnf = this.w.config.fill
+
+    if (fillConfig) {
+      fillCnf = fillConfig
+    }
     const opts = this.opts
     let graphics = new Graphics(this.ctx)
     let utils = new Utils()
 
-    let type = cnf.fill.gradient.type
+    let type = fillCnf.gradient.type
     let gradientFrom = fillColor
     let gradientTo
     let opacityFrom =
-      cnf.fill.gradient.opacityFrom === undefined
+      fillCnf.gradient.opacityFrom === undefined
         ? fillOpacity
-        : Array.isArray(cnf.fill.gradient.opacityFrom)
-        ? cnf.fill.gradient.opacityFrom[i]
-        : cnf.fill.gradient.opacityFrom
+        : Array.isArray(fillCnf.gradient.opacityFrom)
+        ? fillCnf.gradient.opacityFrom[i]
+        : fillCnf.gradient.opacityFrom
 
     if (gradientFrom.indexOf('rgba') > -1) {
       opacityFrom = Utils.getOpacityFromRGBA(gradientFrom)
     }
     let opacityTo =
-      cnf.fill.gradient.opacityTo === undefined
+      fillCnf.gradient.opacityTo === undefined
         ? fillOpacity
-        : Array.isArray(cnf.fill.gradient.opacityTo)
-        ? cnf.fill.gradient.opacityTo[i]
-        : cnf.fill.gradient.opacityTo
+        : Array.isArray(fillCnf.gradient.opacityTo)
+        ? fillCnf.gradient.opacityTo[i]
+        : fillCnf.gradient.opacityTo
 
     if (
-      cnf.fill.gradient.gradientToColors === undefined ||
-      cnf.fill.gradient.gradientToColors.length === 0
+      fillCnf.gradient.gradientToColors === undefined ||
+      fillCnf.gradient.gradientToColors.length === 0
     ) {
-      if (cnf.fill.gradient.shade === 'dark') {
+      if (fillCnf.gradient.shade === 'dark') {
         gradientTo = utils.shadeColor(
-          parseFloat(cnf.fill.gradient.shadeIntensity) * -1,
+          parseFloat(fillCnf.gradient.shadeIntensity) * -1,
           fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor
         )
       } else {
         gradientTo = utils.shadeColor(
-          parseFloat(cnf.fill.gradient.shadeIntensity),
+          parseFloat(fillCnf.gradient.shadeIntensity),
           fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor
         )
       }
     } else {
-      if (cnf.fill.gradient.gradientToColors[opts.seriesNumber]) {
-        const gToColor = cnf.fill.gradient.gradientToColors[opts.seriesNumber]
+      if (fillCnf.gradient.gradientToColors[opts.seriesNumber]) {
+        const gToColor = fillCnf.gradient.gradientToColors[opts.seriesNumber]
         gradientTo = gToColor
         if (gToColor.indexOf('rgba') > -1) {
           opacityTo = Utils.getOpacityFromRGBA(gToColor)
@@ -351,7 +365,14 @@ class Fill {
       }
     }
 
-    if (cnf.fill.gradient.inverseColors) {
+    if (fillCnf.gradient.gradientFrom) {
+      gradientFrom = fillCnf.gradient.gradientFrom
+    }
+    if (fillCnf.gradient.gradientTo) {
+      gradientTo = fillCnf.gradient.gradientTo
+    }
+
+    if (fillCnf.gradient.inverseColors) {
       let t = gradientFrom
       gradientFrom = gradientTo
       gradientTo = t
@@ -371,8 +392,8 @@ class Fill {
       opacityFrom,
       opacityTo,
       opts.size,
-      cnf.fill.gradient.stops,
-      cnf.fill.gradient.colorStops,
+      fillCnf.gradient.stops,
+      fillCnf.gradient.colorStops,
       i
     )
   }
