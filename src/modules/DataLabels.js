@@ -76,7 +76,7 @@ class DataLabels {
     }
   }
 
-  drawDataLabel(pos, i, j, z = null, strokeWidth = 2) {
+  drawDataLabel({ type, pos, i, j, isRangeStart, strokeWidth = 2 }) {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
     // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
     let w = this.w
@@ -109,6 +109,14 @@ class DataLabels {
         if (j === 1 && q === 1) dataPointIndex = 1
 
         let val = w.globals.series[i][dataPointIndex]
+
+        if (type === 'rangeArea') {
+          if (isRangeStart) {
+            val = w.globals.seriesRangeStart[i][dataPointIndex]
+          } else {
+            val = w.globals.seriesRangeEnd[i][dataPointIndex]
+          }
+        }
 
         let text = ''
 

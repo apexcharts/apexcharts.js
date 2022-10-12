@@ -1,11 +1,124 @@
 import Utils from '../../utils/Utils'
-import RangeBar from '../../charts/RangeBar'
+import DateTime from '../../utils/DateTime'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
  *
  * @module Defaults
  **/
+
+const getRangeValues = ({ ctx, seriesIndex, dataPointIndex, y1, y2, w }) => {
+  let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
+  let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+  let ylabel = w.globals.labels[dataPointIndex]
+  let seriesName = w.config.series[seriesIndex].name
+    ? w.config.series[seriesIndex].name
+    : ''
+  const yLbFormatter = w.config.tooltip.y.formatter
+  const yLbTitleFormatter = w.config.tooltip.y.title.formatter
+
+  const opts = {
+    w,
+    seriesIndex,
+    dataPointIndex,
+    start,
+    end
+  }
+
+  if (typeof yLbTitleFormatter === 'function') {
+    seriesName = yLbTitleFormatter(seriesName, opts)
+  }
+  if (w.config.series[seriesIndex].data[dataPointIndex]?.x) {
+    ylabel = w.config.series[seriesIndex].data[dataPointIndex].x + ':'
+  }
+
+  if (typeof yLbFormatter === 'function') {
+    ylabel = yLbFormatter(ylabel, opts)
+  }
+  if (Number.isFinite(y1) && Number.isFinite(y2)) {
+    start = y1
+    end = y2
+  }
+
+  let startVal = ''
+  let endVal = ''
+
+  const color = w.globals.colors[seriesIndex]
+  if (w.config.tooltip.x.formatter === undefined) {
+    if (w.config.xaxis.type === 'datetime') {
+      let datetimeObj = new DateTime(ctx)
+      startVal = datetimeObj.formatDate(
+        datetimeObj.getDate(start),
+        w.config.tooltip.x.format
+      )
+      endVal = datetimeObj.formatDate(
+        datetimeObj.getDate(end),
+        w.config.tooltip.x.format
+      )
+    } else {
+      startVal = start
+      endVal = end
+    }
+  } else {
+    startVal = w.config.tooltip.x.formatter(start)
+    endVal = w.config.tooltip.x.formatter(end)
+  }
+
+  return { start, end, startVal, endVal, ylabel, color, seriesName }
+}
+const buildRangeTooltipHTML = (opts) => {
+  let {
+    color,
+    seriesName,
+    ylabel,
+    start,
+    end,
+    seriesIndex,
+    dataPointIndex
+  } = opts
+
+  const formatter = opts.ctx.tooltip.tooltipLabels.getFormatters(seriesIndex)
+
+  start = formatter.yLbFormatter(start)
+  end = formatter.yLbFormatter(end)
+  const val = formatter.yLbFormatter(
+    opts.w.globals.series[seriesIndex][dataPointIndex]
+  )
+
+  let valueHTML = ''
+  const rangeValues = `<span class="value start-value">
+  ${start}
+  </span> <span class="separator">-</span> <span class="value end-value">
+  ${end}
+  </span>`
+
+  if (opts.w.globals.comboCharts) {
+    if (
+      opts.w.config.series[seriesIndex].type === 'rangeArea' ||
+      opts.w.config.series[seriesIndex].type === 'rangeBar'
+    ) {
+      valueHTML = rangeValues
+    } else {
+      valueHTML = `<span>${val}</span>`
+    }
+  } else {
+    valueHTML = rangeValues
+  }
+  return (
+    '<div class="apexcharts-tooltip-rangebar">' +
+    '<div> <span class="series-name" style="color: ' +
+    color +
+    '">' +
+    (seriesName ? seriesName : '') +
+    '</span></div>' +
+    '<div> <span class="category">' +
+    ylabel +
+    ' </span> ' +
+    valueHTML +
+    ' </div>' +
+    '</div>'
+  )
+}
 
 export default class Defaults {
   constructor(opts) {
@@ -235,16 +348,10 @@ export default class Defaults {
 
   rangeBar() {
     const handleTimelineTooltip = (opts) => {
-      const rangeCtx = new RangeBar(opts.ctx, null)
-
-      const {
-        color,
-        seriesName,
-        ylabel,
-        startVal,
-        endVal
-      } = rangeCtx.getTooltipValues(opts)
-      return rangeCtx.buildCustomTooltipHTML({
+      const { color, seriesName, ylabel, startVal, endVal } = getRangeValues(
+        opts
+      )
+      return buildRangeTooltipHTML({
         color,
         seriesName,
         ylabel,
@@ -254,16 +361,8 @@ export default class Defaults {
     }
 
     const handleRangeColumnTooltip = (opts) => {
-      const rangeCtx = new RangeBar(opts.ctx, null)
-
-      const {
-        color,
-        seriesName,
-        ylabel,
-        start,
-        end
-      } = rangeCtx.getTooltipValues(opts)
-      return rangeCtx.buildCustomTooltipHTML({
+      const { color, seriesName, ylabel, start, end } = getRangeValues(opts)
+      return buildRangeTooltipHTML({
         color,
         seriesName,
         ylabel,
@@ -287,9 +386,24 @@ export default class Defaults {
       dataLabels: {
         enabled: false,
         formatter(val, { ctx, seriesIndex, dataPointIndex, w }) {
-          const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
-          const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
-          return end - start
+          const getVal = () => {
+            const start =
+              w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
+            const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+            return end - start
+          }
+          if (w.globals.comboCharts) {
+            if (
+              w.config.series[seriesIndex].type === 'rangeBar' ||
+              w.config.series[seriesIndex].type === 'rangeArea'
+            ) {
+              return getVal()
+            } else {
+              return val
+            }
+          } else {
+            return getVal()
+          }
         },
         background: {
           enabled: false
@@ -362,6 +476,53 @@ export default class Defaults {
       },
       tooltip: {
         followCursor: false
+      }
+    }
+  }
+
+  rangeArea() {
+    const handleRangeAreaTooltip = (opts) => {
+      const { color, seriesName, ylabel, start, end } = getRangeValues(opts)
+      return buildRangeTooltipHTML({
+        ...opts,
+        color,
+        seriesName,
+        ylabel,
+        start,
+        end
+      })
+    }
+    return {
+      stroke: {
+        curve: 'straight',
+        width: 0
+      },
+      fill: {
+        type: 'solid',
+        opacity: 0.6
+      },
+      markers: {
+        size: 0
+      },
+      states: {
+        hover: {
+          filter: {
+            type: 'none'
+          }
+        },
+        active: {
+          filter: {
+            type: 'none'
+          }
+        }
+      },
+      tooltip: {
+        intersect: false,
+        shared: true,
+        followCursor: true,
+        custom(opts) {
+          return handleRangeAreaTooltip(opts)
+        }
       }
     }
   }

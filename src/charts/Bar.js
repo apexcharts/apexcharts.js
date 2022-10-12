@@ -23,7 +23,7 @@ class Bar {
     this.strokeWidth = w.config.stroke.width
     this.isNullValue = false
 
-    this.isRangeBar = w.globals.seriesRangeBar.length && this.isHorizontal
+    this.isRangeBar = w.globals.seriesRange.length && this.isHorizontal
 
     this.xyRatios = xyRatios
 

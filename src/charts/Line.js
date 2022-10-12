@@ -8,7 +8,7 @@ import Utils from '../utils/Utils'
 import Helpers from './common/line/Helpers'
 
 /**
- * ApexCharts Line Class responsible for drawing Line / Area Charts.
+ * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
  * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
  * @module Line
  **/
@@ -38,10 +38,10 @@ class Line {
     this.yaxisIndex = 0
   }
 
-  draw(series, ptype, seriesIndex) {
+  draw(series, ctype, seriesIndex, seriesRangeEnd) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
-    let type = w.globals.comboCharts ? ptype : w.config.chart.type
+    let type = w.globals.comboCharts ? ctype : w.config.chart.type
     let ret = graphics.group({
       class: `apexcharts-${type}-series apexcharts-plot-series`
     })
@@ -84,8 +84,10 @@ class Line {
 
       let pX = x
       let pY
+      let pY2
       let prevX = pX
       let prevY = this.zeroY
+      let prevY2 = this.zeroY
       let lineYPosition = 0
 
       // the first value in the current series is not null or undefined
@@ -96,19 +98,35 @@ class Line {
         lineYPosition
       })
       prevY = firstPrevY.prevY
-
       yArrj.push(prevY)
       pY = prevY
 
+      // y2 are needed for range-area charts
+      let firstPrevY2
+
+      if (type === 'rangeArea') {
+        firstPrevY2 = this.lineHelpers.determineFirstPrevY({
+          i,
+          series: seriesRangeEnd,
+          prevY: prevY2,
+          lineYPosition
+        })
+        prevY2 = firstPrevY2.prevY
+        pY2 = prevY2
+      }
+
       let pathsFrom = this._calculatePathsFrom({
+        type,
         series,
         i,
         realIndex,
         prevX,
-        prevY
+        prevY,
+        prevY2
       })
 
-      let paths = this._iterateOverDataPoints({
+      const iteratingOpts = {
+        type,
         series,
         realIndex,
         i,
@@ -122,8 +140,36 @@ class Line {
         seriesIndex,
         lineYPosition,
         xArrj,
-        yArrj
+        yArrj,
+        seriesRangeEnd
+      }
+
+      let paths = this._iterateOverDataPoints({
+        ...iteratingOpts,
+        iterations: type === 'rangeArea' ? series[i].length - 1 : undefined,
+        isRangeStart: true
       })
+
+      if (type === 'rangeArea') {
+        let pathsFrom2 = this._calculatePathsFrom({
+          series: seriesRangeEnd,
+          i,
+          realIndex,
+          prevX,
+          prevY: prevY2
+        })
+        let rangePaths = this._iterateOverDataPoints({
+          ...iteratingOpts,
+          series: seriesRangeEnd,
+          pY: pY2,
+          pathsFrom: pathsFrom2,
+          iterations: seriesRangeEnd[i].length - 1,
+          isRangeStart: false
+        })
+
+        paths.linePaths[0] = rangePaths.linePath + paths.linePath
+        paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
+      }
 
       this._handlePaths({ type, realIndex, i, paths })
 
@@ -212,7 +258,7 @@ class Line {
     this.appendPathFrom = true
   }
 
-  _calculatePathsFrom({ series, i, realIndex, prevX, prevY }) {
+  _calculatePathsFrom({ type, series, i, realIndex, prevX, prevY, prevY2 }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
     let linePath, areaPath, pathFromLine, pathFromArea
@@ -230,6 +276,10 @@ class Line {
       }
     } else {
       linePath = graphics.move(prevX, prevY)
+
+      if (type === 'rangeArea') {
+        linePath = graphics.move(prevX, prevY2) + graphics.line(prevX, prevY)
+      }
       areaPath =
         graphics.move(prevX, this.areaBottomY) + graphics.line(prevX, prevY)
     }
@@ -270,7 +320,7 @@ class Line {
     w.globals.seriesYvalues[realIndex] = paths.yArrj
 
     const forecast = w.config.forecastDataPoints
-    if (forecast.count > 0) {
+    if (forecast.count > 0 && type !== 'rangeArea') {
       const forecastCutoff =
         w.globals.seriesXvalues[realIndex][
           w.globals.seriesXvalues[realIndex].length - forecast.count - 1
@@ -353,7 +403,14 @@ class Line {
         }
       }
 
+      // range-area paths are drawn using linePaths
       for (let p = 0; p < paths.linePaths.length; p++) {
+        let pathFill = lineFill
+        if (type === 'rangeArea') {
+          pathFill = fill.fillPath({
+            seriesNumber: realIndex
+          })
+        }
         const linePathCommonOpts = {
           ...defaultRenderedPathOptions,
           pathFrom: paths.pathFromLine,
@@ -361,12 +418,13 @@ class Line {
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,
-          fill: 'none'
+          fill: type === 'rangeArea' ? pathFill : 'none'
         }
         let renderedPath = graphics.renderPaths(linePathCommonOpts)
         this.elSeries.add(renderedPath)
+        renderedPath.attr('fill-rule', `evenodd`)
 
-        if (forecast.count > 0) {
+        if (forecast.count > 0 && type !== 'rangeArea') {
           let renderedForecastPath = graphics.renderPaths(linePathCommonOpts)
 
           renderedForecastPath.node.setAttribute(
@@ -396,7 +454,9 @@ class Line {
   }
 
   _iterateOverDataPoints({
+    type,
     series,
+    iterations,
     realIndex,
     i,
     x,
@@ -409,7 +469,9 @@ class Line {
     seriesIndex,
     lineYPosition,
     xArrj,
-    yArrj
+    yArrj,
+    isRangeStart,
+    seriesRangeEnd
   }) {
     const w = this.w
     let graphics = new Graphics(this.ctx)
@@ -420,9 +482,14 @@ class Line {
       ? w.globals.minYArr[realIndex]
       : w.globals.minY
 
-    const iterations =
-      w.globals.dataPoints > 1 ? w.globals.dataPoints - 1 : w.globals.dataPoints
+    if (!iterations) {
+      iterations =
+        w.globals.dataPoints > 1
+          ? w.globals.dataPoints - 1
+          : w.globals.dataPoints
+    }
 
+    let y2 = y
     for (let j = 0; j < iterations; j++) {
       const isNull =
         typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
@@ -474,6 +541,16 @@ class Line {
           lineYPosition -
           series[i][j + 1] / yRatio[this.yaxisIndex] +
           (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2
+
+        if (type === 'rangeArea') {
+          y2 =
+            lineYPosition -
+            seriesRangeEnd[i][j + 1] / yRatio[this.yaxisIndex] +
+            (this.isReversed
+              ? seriesRangeEnd[i][j + 1] / yRatio[this.yaxisIndex]
+              : 0) *
+              2
+        }
       }
 
       // push current X
@@ -493,19 +570,22 @@ class Line {
       })
 
       let calculatedPaths = this._createPaths({
+        type,
         series,
         i,
         realIndex,
         j,
         x,
         y,
+        y2,
         pX,
         pY,
         linePath,
         areaPath,
         linePaths,
         areaPaths,
-        seriesIndex
+        seriesIndex,
+        isRangeStart
       })
 
       areaPaths = calculatedPaths.areaPaths
@@ -523,14 +603,12 @@ class Line {
       this.handleNullDataPoints(series, pointsPos, i, j, realIndex)
 
       this._handleMarkersAndLabels({
+        type,
         pointsPos,
-        series,
-        x,
-        y,
-        prevY,
         i,
         j,
-        realIndex
+        realIndex,
+        isRangeStart
       })
     }
 
@@ -540,11 +618,13 @@ class Line {
       pathFromArea,
       areaPaths,
       pathFromLine,
-      linePaths
+      linePaths,
+      linePath,
+      areaPath
     }
   }
 
-  _handleMarkersAndLabels({ pointsPos, series, x, y, prevY, i, j, realIndex }) {
+  _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j, realIndex }) {
     const w = this.w
     let dataLabels = new DataLabels(this.ctx)
 
@@ -571,31 +651,35 @@ class Line {
       })
     }
 
-    let drawnLabels = dataLabels.drawDataLabel(
-      pointsPos,
-      realIndex,
-      j + 1,
-      null
-    )
+    let drawnLabels = dataLabels.drawDataLabel({
+      type,
+      isRangeStart,
+      pos: pointsPos,
+      i: realIndex,
+      j: j + 1
+    })
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels)
     }
   }
 
   _createPaths({
+    type,
     series,
     i,
     realIndex,
     j,
     x,
     y,
+    y2,
     pX,
     pY,
     linePath,
     areaPath,
     linePaths,
     areaPaths,
-    seriesIndex
+    seriesIndex,
+    isRangeStart
   }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
@@ -652,9 +736,18 @@ class Line {
           graphics.curve(pX, pY, x, y, x, areaBottomY) +
           graphics.move(x, y) +
           'z'
-        if (!w.globals.hasNullValues) {
-          linePaths.push(linePath)
-          areaPaths.push(areaPath)
+
+        if (type === 'rangeArea' && isRangeStart) {
+          linePath =
+            linePath +
+            graphics.curve(pX, pY, x, y, x, y2) +
+            graphics.move(x, y2) +
+            'z'
+        } else {
+          if (!w.globals.hasNullValues) {
+            linePaths.push(linePath)
+            areaPaths.push(areaPath)
+          }
         }
       }
     } else {
@@ -689,8 +782,14 @@ class Line {
         // last loop, close path
         areaPath =
           areaPath + graphics.line(x, areaBottomY) + graphics.move(x, y) + 'z'
-        linePaths.push(linePath)
-        areaPaths.push(areaPath)
+
+        if (type === 'rangeArea' && isRangeStart) {
+          linePath =
+            linePath + graphics.line(x, y2) + graphics.move(x, y2) + 'z'
+        } else {
+          linePaths.push(linePath)
+          areaPaths.push(areaPath)
+        }
       }
     }
 

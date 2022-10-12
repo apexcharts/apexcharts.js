@@ -18,7 +18,7 @@ class Grid {
     this.xaxisLabels = w.globals.labels.slice()
     this.axesUtils = new AxesUtils(ctx)
 
-    this.isRangeBar = w.globals.seriesRangeBar.length
+    this.isRangeBar = w.globals.seriesRange.length
 
     if (w.globals.timescaleLabels.length > 0) {
       //  timescaleLabels labels are there

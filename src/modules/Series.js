@@ -303,6 +303,7 @@ export default class Series {
       'area',
       'bar',
       'rangebar',
+      'rangeArea',
       'candlestick',
       'radar'
     ]

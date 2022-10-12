@@ -48,6 +48,7 @@ export default class Config {
         'candlestick',
         'boxPlot',
         'rangeBar',
+        'rangeArea',
         'histogram',
         'bubble',
         'scatter',

@@ -324,8 +324,16 @@ export default class Position {
         }
         if (pointArr && pointArr.length) {
           let pcy = pointsArr[p][j][1]
+          let pcy2
           points[p].setAttribute('cx', cx)
 
+          if (w.config.chart.type === 'rangeArea' && !w.globals.comboCharts) {
+            const rangeStartIndex = j + w.globals.series[p].length
+            pcy2 = pointsArr[p][rangeStartIndex][1]
+            const pcyDiff = Math.abs(pcy - pcy2) / 2
+
+            pcy = pcy - pcyDiff
+          }
           if (
             pcy !== null &&
             !isNaN(pcy) &&
