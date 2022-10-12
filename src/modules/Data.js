@@ -202,10 +202,10 @@ export default class Data {
     gl.seriesRangeStart.push(range.start)
     gl.seriesRangeEnd.push(range.end)
 
-    gl.seriesRangeBar.push(range.rangeUniques)
+    gl.seriesRange.push(range.rangeUniques)
 
     // check for overlaps to avoid clashes in a timeline chart
-    gl.seriesRangeBar.forEach((sr, si) => {
+    gl.seriesRange.forEach((sr, si) => {
       if (sr) {
         sr.forEach((sarr, sarri) => {
           sarr.y.forEach((arr, arri) => {
@@ -268,29 +268,24 @@ export default class Data {
         }
       })
 
-    const err =
-      'Please provide [Start, End] values in valid format. Read more https://apexcharts.com/docs/series/#rangecharts'
-
-    const serObj = new Series(this.ctx)
-    const activeIndex = serObj.getActiveConfigSeriesIndex()
     if (format === 'array') {
-      if (ser[activeIndex].data[0][1].length !== 2) {
-        throw new Error(err)
-      }
       for (let j = 0; j < ser[i].data.length; j++) {
-        rangeStart.push(ser[i].data[j][1][0])
-        rangeEnd.push(ser[i].data[j][1][1])
+        if (Array.isArray(ser[i].data[j])) {
+          rangeStart.push(ser[i].data[j][1][0])
+          rangeEnd.push(ser[i].data[j][1][1])
+        } else {
+          rangeStart.push(ser[i].data[j])
+          rangeEnd.push(ser[i].data[j])
+        }
       }
     } else if (format === 'xy') {
-      if (ser[activeIndex].data[0].y.length !== 2) {
-        throw new Error(err)
-      }
       for (let j = 0; j < ser[i].data.length; j++) {
+        let isDataPoint2D = Array.isArray(ser[i].data[j].y)
         const id = Utils.randomId()
         const x = ser[i].data[j].x
         const y = {
-          y1: ser[i].data[j].y[0],
-          y2: ser[i].data[j].y[1],
+          y1: isDataPoint2D ? ser[i].data[j].y[0] : ser[i].data[j].y,
+          y2: isDataPoint2D ? ser[i].data[j].y[1] : ser[i].data[j].y,
           rangeName: id
         }
 
@@ -439,7 +434,16 @@ export default class Data {
         ser[i].type === 'rangeArea'
       ) {
         gl.isRangeData = true
-        this.handleRangeData(ser, i)
+        if (gl.isComboCharts) {
+          if (ser[i].type === 'rangeBar' || ser[i].type === 'rangeArea') {
+            this.handleRangeData(ser, i)
+          }
+        } else if (
+          cnf.chart.type === 'rangeBar' ||
+          cnf.chart.type === 'rangeArea'
+        ) {
+          this.handleRangeData(ser, i)
+        }
       }
 
       if (this.isMultiFormat()) {
@@ -542,8 +546,8 @@ export default class Data {
       // user provided labels in x prop in [{ x: 3, y: 55 }] data, and those labels are already stored in gl.labels[0], so just re-arrange the gl.labels array
       gl.labels = gl.labels[0]
 
-      if (gl.seriesRangeBar.length) {
-        gl.seriesRangeBar.map((srt) => {
+      if (gl.seriesRange.length) {
+        gl.seriesRange.map((srt) => {
           srt.forEach((sr) => {
             if (gl.labels.indexOf(sr.x) < 0 && sr.x) {
               gl.labels.push(sr.x)
@@ -649,12 +653,11 @@ export default class Data {
     if (gl.axisCharts) {
       // axisCharts includes line / area / column / scatter
       this.parseDataAxisCharts(ser)
+      this.coreUtils.getLargestSeries()
     } else {
       // non-axis charts are pie / donut
       this.parseDataNonAxisCharts(ser)
     }
-
-    this.coreUtils.getLargestSeries()
 
     // set Null values to 0 in all series when user hides/shows some series
     if (cnf.chart.type === 'bar' && cnf.chart.stacked) {

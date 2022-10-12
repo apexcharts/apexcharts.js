@@ -73,23 +73,32 @@ class Range {
 
           if (
             this.w.config.chart.type === 'candlestick' ||
-            this.w.config.chart.type === 'boxPlot'
+            this.w.config.chart.type === 'boxPlot' ||
+            this.w.config.chart.type !== 'rangeArea' ||
+            this.w.config.chart.type !== 'rangeBar'
           ) {
-            if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
-              maxY = Math.max(maxY, gl.seriesCandleO[i][j])
-              maxY = Math.max(maxY, gl.seriesCandleH[i][j])
-              maxY = Math.max(maxY, gl.seriesCandleL[i][j])
-              maxY = Math.max(maxY, gl.seriesCandleC[i][j])
-              if (this.w.config.chart.type === 'boxPlot') {
-                maxY = Math.max(maxY, gl.seriesCandleM[i][j])
+            if (
+              this.w.config.chart.type === 'candlestick' ||
+              this.w.config.chart.type === 'boxPlot'
+            ) {
+              if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
+                maxY = Math.max(maxY, gl.seriesCandleO[i][j])
+                maxY = Math.max(maxY, gl.seriesCandleH[i][j])
+                maxY = Math.max(maxY, gl.seriesCandleL[i][j])
+                maxY = Math.max(maxY, gl.seriesCandleC[i][j])
+                if (this.w.config.chart.type === 'boxPlot') {
+                  maxY = Math.max(maxY, gl.seriesCandleM[i][j])
+                }
               }
             }
 
-            // there is a combo chart and the specified series in not either candlestick or boxplot, find the max there
+            // there is a combo chart and the specified series in not either candlestick, boxplot, or rangeArea/rangeBar; find the max there
             if (
               cnf.series[i].type &&
               (cnf.series[i].type !== 'candlestick' ||
-                cnf.series[i].type !== 'boxPlot')
+                cnf.series[i].type !== 'boxPlot' ||
+                cnf.series[i].type !== 'rangeArea' ||
+                cnf.series[i].type !== 'rangeBar')
             ) {
               maxY = Math.max(maxY, gl.series[i][j])
               lowestY = Math.min(lowestY, gl.series[i][j])

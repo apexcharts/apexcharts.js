@@ -97,6 +97,7 @@ export default class InitCtxVariables {
     this.ctx.titleSubtitle = new TitleSubtitle(this.ctx)
     this.ctx.legend = new Legend(this.ctx)
     this.ctx.toolbar = new Toolbar(this.ctx)
+    this.ctx.tooltip = new Tooltip(this.ctx)
     this.ctx.dimensions = new Dimensions(this.ctx)
     this.ctx.updateHelpers = new UpdateHelpers(this.ctx)
     this.ctx.zoomPanSelection = new ZoomPanSelection(this.ctx)

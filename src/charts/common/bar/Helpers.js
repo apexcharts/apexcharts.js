@@ -170,9 +170,9 @@ export default class Helpers {
       dataPointIndex: j,
       color: fillColor,
       value: series[i][j],
-      fillConfig: w.config.series[i].data[j].fill,
-      fillType: w.config.series[i].data[j].fill?.type
-        ? w.config.series[i].data[j].fill.type
+      fillConfig: w.config.series[i].data[j]?.fill,
+      fillType: w.config.series[i].data[j]?.fill?.type
+        ? w.config.series[i].data[j]?.fill.type
         : w.config.fill.type
     })
 

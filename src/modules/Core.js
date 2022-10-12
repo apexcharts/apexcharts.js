@@ -45,6 +45,7 @@ export default class Core {
       'area',
       'bar',
       'rangeBar',
+      'rangeArea',
       'candlestick',
       'boxPlot',
       'scatter',
@@ -59,6 +60,7 @@ export default class Core {
       'area',
       'bar',
       'rangeBar',
+      'rangeArea',
       'candlestick',
       'boxPlot',
       'scatter',
@@ -152,7 +154,18 @@ export default class Core {
       i: []
     }
 
-    gl.series.map((series, st) => {
+    let rangeBarSeries = {
+      series: [],
+      i: []
+    }
+
+    let rangeAreaSeries = {
+      series: [],
+      seriesRangeEnd: [],
+      i: []
+    }
+
+    gl.series.map((serie, st) => {
       let comboCount = 0
       // if user has specified a particular type for particular series
       if (typeof ser[st].type !== 'undefined') {
@@ -163,32 +176,41 @@ export default class Core {
               'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
             )
           }
-          columnSeries.series.push(series)
+          columnSeries.series.push(serie)
           columnSeries.i.push(st)
           comboCount++
           w.globals.columnSeries = columnSeries.series
         } else if (ser[st].type === 'area') {
-          areaSeries.series.push(series)
+          areaSeries.series.push(serie)
           areaSeries.i.push(st)
           comboCount++
         } else if (ser[st].type === 'line') {
-          lineSeries.series.push(series)
+          lineSeries.series.push(serie)
           lineSeries.i.push(st)
           comboCount++
         } else if (ser[st].type === 'scatter') {
-          scatterSeries.series.push(series)
+          scatterSeries.series.push(serie)
           scatterSeries.i.push(st)
         } else if (ser[st].type === 'bubble') {
-          bubbleSeries.series.push(series)
+          bubbleSeries.series.push(serie)
           bubbleSeries.i.push(st)
           comboCount++
         } else if (ser[st].type === 'candlestick') {
-          candlestickSeries.series.push(series)
+          candlestickSeries.series.push(serie)
           candlestickSeries.i.push(st)
           comboCount++
         } else if (ser[st].type === 'boxPlot') {
-          boxplotSeries.series.push(series)
+          boxplotSeries.series.push(serie)
           boxplotSeries.i.push(st)
+          comboCount++
+        } else if (ser[st].type === 'rangeBar') {
+          rangeBarSeries.series.push(serie)
+          rangeBarSeries.i.push(st)
+          comboCount++
+        } else if (ser[st].type === 'rangeArea') {
+          rangeAreaSeries.series.push(gl.seriesRangeStart[st])
+          rangeAreaSeries.seriesRangeEnd.push(gl.seriesRangeEnd[st])
+          rangeAreaSeries.i.push(st)
           comboCount++
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
@@ -200,7 +222,7 @@ export default class Core {
           gl.comboCharts = true
         }
       } else {
-        lineSeries.series.push(series)
+        lineSeries.series.push(serie)
         lineSeries.i.push(st)
       }
     })
@@ -226,6 +248,16 @@ export default class Core {
           elGraph.push(this.ctx.bar.draw(columnSeries.series, columnSeries.i))
         }
       }
+      if (rangeAreaSeries.series.length > 0) {
+        elGraph.push(
+          line.draw(
+            rangeAreaSeries.series,
+            'rangeArea',
+            rangeAreaSeries.i,
+            rangeAreaSeries.seriesRangeEnd
+          )
+        )
+      }
       if (lineSeries.series.length > 0) {
         elGraph.push(line.draw(lineSeries.series, 'line', lineSeries.i))
       }
@@ -237,6 +269,12 @@ export default class Core {
       if (boxplotSeries.series.length > 0) {
         elGraph.push(boxCandlestick.draw(boxplotSeries.series, boxplotSeries.i))
       }
+      if (rangeBarSeries.series.length > 0) {
+        elGraph.push(
+          this.ctx.rangeBar.draw(rangeBarSeries.series, rangeBarSeries.i)
+        )
+      }
+
       if (scatterSeries.series.length > 0) {
         const scatterLine = new Line(this.ctx, xyRatios, true)
         elGraph.push(
@@ -276,6 +314,14 @@ export default class Core {
           break
         case 'rangeBar':
           elGraph = this.ctx.rangeBar.draw(gl.series)
+          break
+        case 'rangeArea':
+          elGraph = line.draw(
+            gl.seriesRangeStart,
+            'rangeArea',
+            undefined,
+            gl.seriesRangeEnd
+          )
           break
         case 'heatmap':
           let heatmap = new HeatMap(this.ctx, xyRatios)

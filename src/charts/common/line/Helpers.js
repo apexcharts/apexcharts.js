@@ -11,12 +11,12 @@ export default class Helpers {
     const w = this.w
 
     if (
-      w.config.chart.type === 'line' &&
-      (w.config.fill.type === 'gradient' ||
-        w.config.fill.type[i] === 'gradient')
+      w.config.fill.type === 'gradient' ||
+      w.config.fill.type[i] === 'gradient'
     ) {
       const coreUtils = new CoreUtils(this.lineCtx.ctx, w)
 
+      // applied only to LINE chart
       // a small adjustment to allow gradient line to draw correctly for all same values
       /* #fix https://github.com/apexcharts/apexcharts.js/issues/358 */
       if (coreUtils.seriesHaveSameValues(i)) {
@@ -104,7 +104,7 @@ export default class Helpers {
 
   determineFirstPrevY({ i, series, prevY, lineYPosition }) {
     let w = this.w
-    if (typeof series[i][0] !== 'undefined') {
+    if (typeof series[i]?.[0] !== 'undefined') {
       if (w.config.chart.stacked) {
         if (i > 0) {
           // 1st y value of previous series
