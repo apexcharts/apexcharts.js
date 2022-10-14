@@ -318,10 +318,13 @@ type ApexAxisChartSeries = {
     | {
         x: any;
         y: any;
+        fill: ApexFill;
         fillColor?: string;
         strokeColor?: string;
         meta?: any;
         goals?: any;
+        barHeightOffset?: number;
+        columnWidthOffset?: number;
       }[]
     | [number, number | null][]
     | [number, (number | null)[]][]
@@ -511,7 +514,9 @@ type ApexPlotOptions = {
     columnWidth?: string
     barHeight?: string
     distributed?: boolean
-    borderRadius?: number | number[]
+    borderRadius?: number;
+    borderRadiusApplication?: 'around' | 'end';
+    borderRadiusWhenStacked?: 'all' | 'last';
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
     colors?: {

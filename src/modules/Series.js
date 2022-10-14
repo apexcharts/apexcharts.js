@@ -232,7 +232,10 @@ export default class Series {
           return true
         }
 
-        const hasData = s.data && s.data.length > 0
+        const hasData =
+          s.data &&
+          s.data.length > 0 &&
+          w.globals.collapsedSeriesIndices.indexOf(index) === -1
 
         return hasData && checkChartType() ? index : -1
       })
