@@ -27,6 +27,8 @@ plotOptions: {
   bar: {
     horizontal: false,
     borderRadius: 10,
+    borderRadiusApplication: 'end', // 'around', 'end'
+    borderRadiusWhenStacked: 'last', // 'all', 'last'
     dataLabels: {
       total: {
         enabled: true,
