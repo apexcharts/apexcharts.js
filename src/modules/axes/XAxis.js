@@ -442,8 +442,8 @@ export default class XAxis {
       })
 
       let elXAxisTitleText = graphics.drawText({
-        x: 0,
-        y: w.globals.gridHeight / 2,
+        x: w.config.yaxis[0].title.offsetX,
+        y: w.globals.gridHeight / 2 + w.config.yaxis[0].title.offsetY,
         text: w.config.yaxis[0].title.text,
         textAnchor: 'middle',
         foreColor: w.config.yaxis[0].title.style.color,
