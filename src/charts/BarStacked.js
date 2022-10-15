@@ -264,8 +264,8 @@ class BarStacked extends Bar {
 
       zeroH =
         w.globals.gridHeight -
-        this.baseLineY[this.yaxisIndex] +
-        (this.isReversed ? w.globals.gridHeight : 0) -
+        this.baseLineY[this.yaxisIndex] -
+        (this.isReversed ? w.globals.gridHeight : 0) +
         (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
 
       // initial x position is one third of barWidth
