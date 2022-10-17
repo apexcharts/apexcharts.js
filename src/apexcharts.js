@@ -338,17 +338,21 @@ export default class ApexCharts {
           }
         } else {
           const tools = w.config.chart.toolbar.tools
-          let toolsArr = [
-            'zoom',
-            'zoomin',
-            'zoomout',
-            'selection',
-            'pan',
-            'reset'
-          ]
-          toolsArr.forEach((t) => {
-            tools[t] = false
-          })
+          if (tools != undefined) {
+            let toolsArr = [
+              'zoom',
+              'zoomin',
+              'zoomout',
+              'selection',
+              'pan',
+              'reset'
+            ]
+            toolsArr.forEach((t) => {
+              if (tools[t] != 'undefined') {
+                tools[t] = false;
+              }
+            })
+          }
         }
 
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {

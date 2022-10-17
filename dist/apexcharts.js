@@ -31978,10 +31978,15 @@
               }
             } else {
               var tools = w.config.chart.toolbar.tools;
-              var toolsArr = ['zoom', 'zoomin', 'zoomout', 'selection', 'pan', 'reset'];
-              toolsArr.forEach(function (t) {
-                tools[t] = false;
-              });
+
+              if (tools != undefined) {
+                var toolsArr = ['zoom', 'zoomin', 'zoomout', 'selection', 'pan', 'reset'];
+                toolsArr.forEach(function (t) {
+                  if (tools[t] != 'undefined') {
+                    tools[t] = false;
+                  }
+                });
+              }
             }
 
             if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
