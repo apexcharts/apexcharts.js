@@ -50,9 +50,13 @@ export default class Scatter {
 
         if (zRatio !== Infinity) {
           // means we have a bubble
-          finishRadius = w.globals.seriesZ[realIndex][dataPointIndex] / zRatio
-
           const bubble = w.config.plotOptions.bubble
+          finishRadius = w.globals.seriesZ[realIndex][dataPointIndex]
+
+          if (bubble.zScaling) {
+            finishRadius /= zRatio
+          }
+
           if (bubble.minBubbleRadius && finishRadius < bubble.minBubbleRadius) {
             finishRadius = bubble.minBubbleRadius
           }
