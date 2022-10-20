@@ -438,6 +438,7 @@ export default class Options {
           }
         },
         bubble: {
+          zScaling: true,
           minBubbleRadius: undefined,
           maxBubbleRadius: undefined
         },
