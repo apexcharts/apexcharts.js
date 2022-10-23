@@ -126,7 +126,9 @@ export default class XAxis {
         y:
           this.offY +
           parseFloat(this.xaxisFontSize) +
-          w.globals.xAxisLabelsHeight +
+          (w.config.xaxis.title.position === 'bottom'
+            ? w.globals.xAxisLabelsHeight
+            : -w.globals.xAxisLabelsHeight - 10) +
           w.config.xaxis.title.offsetY,
         text: w.config.xaxis.title.text,
         textAnchor: 'middle',
@@ -236,6 +238,10 @@ export default class XAxis {
       let offsetYCorrection = 28
       if (w.globals.rotateXLabels && isLeafGroup) {
         offsetYCorrection = 22
+      }
+
+      if (w.config.xaxis.title.text && w.config.xaxis.position === 'top') {
+        offsetYCorrection += parseFloat(w.config.xaxis.title.style.fontSize) + 2
       }
 
       if (!isLeafGroup) {
