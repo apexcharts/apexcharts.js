@@ -352,6 +352,7 @@ export default class Defaults {
         opts
       )
       return buildRangeTooltipHTML({
+        ...opts,
         color,
         seriesName,
         ylabel,
@@ -363,6 +364,7 @@ export default class Defaults {
     const handleRangeColumnTooltip = (opts) => {
       const { color, seriesName, ylabel, start, end } = getRangeValues(opts)
       return buildRangeTooltipHTML({
+        ...opts,
         color,
         seriesName,
         ylabel,
