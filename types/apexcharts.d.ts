@@ -496,7 +496,7 @@ type ApexLocale = {
       reset?: string
 			exportToSVG?: string
 			exportToPNG?: string
-			exportToCSV: string
+			exportToCSV?: string
     }
   }
 }
@@ -894,7 +894,7 @@ type ApexDataLabels = {
     opacity?: number
     borderWidth?: number
     borderColor?: string
-    dropShadow: ApexDropShadow
+    dropShadow?: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
   formatter?(val: string | number | number[], opts?: any): string | number
@@ -1163,7 +1163,7 @@ type ApexForecastDataPoints = {
   count?: number
   fillOpacity?: number
   strokeWidth?: undefined | number
-  dashArray: number
+  dashArray?: number
 }
 
 /**
