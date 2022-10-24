@@ -65,12 +65,18 @@ export default class XAnnotations {
         rect.node.classList.add(anno.id)
       }
     }
-    let textY = anno.label.position === 'top' ? 4 : w.globals.gridHeight
 
     let textRects = this.annoCtx.graphics.getTextRects(
       text,
       parseFloat(anno.label.style.fontSize)
     )
+    let textY =
+      anno.label.position === 'top'
+        ? 4
+        : anno.label.position === 'center'
+        ? w.globals.gridHeight / 2 +
+          (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
+        : w.globals.gridHeight
 
     let elText = this.annoCtx.graphics.drawText({
       x: x1 + anno.label.offsetX,

@@ -187,6 +187,10 @@ export default class Helpers {
       }
     }
 
+    if (typeof y === 'string' && y.indexOf('px') > -1) {
+      yP = parseFloat(y)
+    }
+
     return yP
   }
 
@@ -230,6 +234,22 @@ export default class Helpers {
     if ((anno.x === undefined || anno.x === null) && anno.marker) {
       // point annotation in a horizontal chart
       x1 = w.globals.gridWidth
+    }
+
+    if (
+      type === 'x1' &&
+      typeof anno.x === 'string' &&
+      anno.x.indexOf('px') > -1
+    ) {
+      x1 = parseFloat(anno.x)
+    }
+
+    if (
+      type === 'x2' &&
+      typeof anno.x2 === 'string' &&
+      anno.x2.indexOf('px') > -1
+    ) {
+      x2 = parseFloat(anno.x2)
     }
 
     return type === 'x1' ? x1 : x2

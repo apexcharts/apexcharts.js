@@ -61,7 +61,12 @@ export default class YAnnotations {
         rect.node.classList.add(anno.id)
       }
     }
-    let textX = anno.label.position === 'right' ? w.globals.gridWidth : 0
+    let textX =
+      anno.label.position === 'right'
+        ? w.globals.gridWidth
+        : anno.label.position === 'center'
+        ? w.globals.gridWidth / 2
+        : 0
 
     let elText = this.annoCtx.graphics.drawText({
       x: textX + anno.label.offsetX,
