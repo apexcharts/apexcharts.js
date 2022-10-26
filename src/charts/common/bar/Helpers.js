@@ -280,6 +280,10 @@ export default class Helpers {
     const x1 = bXP
     const x2 = bXP + bW
 
+    // append tiny pixels to avoid exponentials (which cause issues in border-radius)
+    y1 += 0.001
+    y2 += 0.001
+
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
 
@@ -359,6 +363,10 @@ export default class Helpers {
 
     const y1 = bYP
     const y2 = bYP + bH
+
+    // append tiny pixels to avoid exponentials (which cause issues in border-radius)
+    x1 += 0.001
+    x2 += 0.001
 
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
