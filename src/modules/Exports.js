@@ -266,12 +266,15 @@ class Exports {
 
     const handleAxisRowsColumns = (s, sI) => {
       if (columns.length && sI === 0) {
+        // It's the first series.  Go ahead and create the first row with header information.
         rows.push(columns.join(columnDelimiter))
       }
 
       if (s.data) {
+        // Use the data we have, or generate a properly sized empty array with empty data if some data is missing.
         s.data = s.data.length && s.data || getEmptyDataForCsvColumn()
         for (let i = 0; i < s.data.length; i++) {
+          // Reset the columns array so that we can start building columns for this row.
           columns = []
 
           let cat = getCat(i)
@@ -284,6 +287,7 @@ class Exports {
           }
 
           if (sI === 0) {
+            // It's the first series.  Also handle the category.
             columns.push(
               isTimeStamp(cat)
                 ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
