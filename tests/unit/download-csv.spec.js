@@ -150,10 +150,7 @@ describe('Export Csv', () => {
       },
       xaxis: {
         type: 'datetime',
-        categories: ["2018-09-19T00:00:00.000", "2018-09-19T01:30:00.000"],
-        // labels: {
-        //   datetimeUTC: true
-        // }
+        categories: ["2018-09-19T00:00:00.000", "2018-09-19T01:30:00.000"]
       },
       tooltip: {
         x: {
