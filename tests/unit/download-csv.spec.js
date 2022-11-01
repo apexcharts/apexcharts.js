@@ -3,7 +3,7 @@ import Exports from './../../src/modules/Exports'
 
 
 describe('Export Csv', () => {
-  it('export csv from simple line chart with one series should call triggerDownload with csv econded file data', () => {
+  it('export csv from simple line chart with one series should call triggerDownload with csv encoded file data', () => {
     const series = [{data: [0,1]}]
     const csvData = "category,series-0\n1,0\n2,1"
     const chart = createChart('line', series)
@@ -17,7 +17,7 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
-  it('export csv from simple bar chart with two series should call triggerDownload with csv econded file data', () => {
+  it('export csv from simple bar chart with two series should call triggerDownload with csv encoded file data', () => {
     var options = {
       chart: {
         height: 380,
@@ -53,7 +53,7 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
-  it('export csv from simple line chart with two series should call triggerDownload with csv econded file data', () => {
+  it('export csv from simple line chart with two series should call triggerDownload with csv encoded file data', () => {
     const series = [{name: 'series 1', data: [0,1]},{name: 'series 2', data: [1,2]}]
     const csvData = "category,series 1,series 2\n" +
       "1,0,1\n" +
@@ -69,7 +69,7 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
-  it("export csv from simple line chart with two x y series should call triggerDownload with csv econded file data", () => {
+  it("export csv from simple line chart with two x y series should call triggerDownload with csv encoded file data", () => {
     const series =  [{
       name: 'series 1',
       data: [{
@@ -105,7 +105,7 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
-  it('export csv from simple line chart with first series collapsed should call triggerDownload with csv econded file data', () => {
+  it('export csv from simple line chart with first series collapsed should call triggerDownload with csv encoded file data', () => {
    const series = [{name: 'series 1', data: [0,1]},{name: 'series 2', data: [1,2]}]
     const csvData = "category,series 1,series 2\n" +
       "1,,1\n" +
@@ -129,7 +129,7 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
-  it("export csv from simple spline area chart with two series should call triggerDownload with csv econded file data", () => {
+  it("export csv from simple spline area chart with two series should call triggerDownload with csv encoded file data", () => {
     var options = {
       series: [{
         name: 'series1',
@@ -150,7 +150,7 @@ describe('Export Csv', () => {
       },
       xaxis: {
         type: 'datetime',
-        categories: ["2018-09-19T00:00:00.000Z", "2018-09-19T01:30:00.000Z"]
+        categories: ["2018-09-19T00:00:00.000", "2018-09-19T01:30:00.000"]
       },
       tooltip: {
         x: {
@@ -172,7 +172,7 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
-  it("export csv from simple spline area chart with first of two series collapsed should call triggerDownload with csv econded file data", () => {
+  it("export csv from simple spline area chart with first of two series collapsed should call triggerDownload with csv encoded file data", () => {
     var options = {
       series: [{
         name: 'series1',
@@ -193,7 +193,7 @@ describe('Export Csv', () => {
       },
       xaxis: {
         type: 'datetime',
-        categories: ["2018-09-19T00:00:00.000Z", "2018-09-19T01:30:00.000Z"]
+        categories: ["2018-09-19T00:00:00.000", "2018-09-19T01:30:00.000"]
       },
       tooltip: {
         x: {
