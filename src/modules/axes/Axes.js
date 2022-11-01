@@ -7,12 +7,12 @@ export default class Axes {
     this.w = ctx.w
   }
 
-  drawAxis(type, xyRatios) {
+  drawAxis(type, elgrid) {
     let gl = this.w.globals
     let cnf = this.w.config
 
-    let xAxis = new XAxis(this.ctx)
-    let yAxis = new YAxis(this.ctx)
+    let xAxis = new XAxis(this.ctx, elgrid)
+    let yAxis = new YAxis(this.ctx, elgrid)
 
     if (gl.axisCharts && type !== 'radar') {
       let elXaxis, elYaxis

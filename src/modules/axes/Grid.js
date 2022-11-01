@@ -180,7 +180,7 @@ class Grid {
 
     if (shouldDraw()) {
       if (w.config.grid.xaxis.lines.show) {
-        this._drawGridLine({ x1, y1, x2, y2, parent })
+        this._drawGridLine({ i, x1, y1, x2, y2, xCount, parent })
       }
       let y_2 = 0
       if (w.globals.hasGroups && w.config.xaxis.tickPlacement === 'between') {
@@ -201,8 +201,9 @@ class Grid {
     }
   }
 
-  _drawGridLine({ x1, y1, x2, y2, parent }) {
+  _drawGridLine({ i, x1, y1, x2, y2, xCount, parent }) {
     const w = this.w
+    let excludeBorders = false
 
     const isHorzLine = parent.node.classList.contains(
       'apexcharts-gridlines-horizontal'
@@ -210,6 +211,15 @@ class Grid {
 
     let strokeDashArray = w.config.grid.strokeDashArray
     const offX = w.globals.barPadForNumericAxis
+    if ((y1 === 0 && y2 === 0) || (x1 === 0 && x2 === 0)) {
+      excludeBorders = true
+    }
+    if (y1 === w.globals.gridHeight && y2 === w.globals.gridHeight) {
+      excludeBorders = true
+    }
+    if (w.globals.isBarHorizontal && (i === 0 || i === xCount - 1)) {
+      excludeBorders = true
+    }
 
     const graphics = new Graphics(this)
     let line = graphics.drawLine(
@@ -221,7 +231,12 @@ class Grid {
       strokeDashArray
     )
     line.node.classList.add('apexcharts-gridline')
-    parent.add(line)
+
+    if (excludeBorders) {
+      this.elGridBorders.add(line)
+    } else {
+      parent.add(line)
+    }
   }
 
   _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
@@ -348,7 +363,15 @@ class Grid {
       }
 
       for (let i = 0; i < tA + (this.isRangeBar ? 1 : 0); i++) {
-        this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesH })
+        this._drawGridLine({
+          i,
+          xCount: tA + (this.isRangeBar ? 1 : 0),
+          x1,
+          y1,
+          x2,
+          y2,
+          parent: this.elgridLinesH
+        })
 
         y1 = y1 + w.globals.gridHeight / (this.isRangeBar ? tA : tickAmount)
 
@@ -368,7 +391,15 @@ class Grid {
       let y2 = w.globals.gridHeight
       for (let i = 0; i < xCount + 1; i++) {
         if (w.config.grid.xaxis.lines.show) {
-          this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesV })
+          this._drawGridLine({
+            i,
+            xCount: xCount + 1,
+            x1,
+            y1,
+            x2,
+            y2,
+            parent: this.elgridLinesV
+          })
         }
 
         let xAxis = new XAxis(this.ctx)
@@ -386,7 +417,15 @@ class Grid {
       let x2 = w.globals.gridWidth
 
       for (let i = 0; i < w.globals.dataPoints + 1; i++) {
-        this._drawGridLine({ x1, y1, x2, y2, parent: this.elgridLinesH })
+        this._drawGridLine({
+          i,
+          xCount: w.globals.dataPoints + 1,
+          x1,
+          y1,
+          x2,
+          y2,
+          parent: this.elgridLinesH
+        })
 
         y1 = y1 + w.globals.gridHeight / w.globals.dataPoints
         y2 = y1
@@ -407,6 +446,9 @@ class Grid {
     })
     this.elgridLinesV = graphics.group({
       class: 'apexcharts-gridlines-vertical'
+    })
+    this.elGridBorders = graphics.group({
+      class: 'apexcharts-grid-borders'
     })
 
     this.elg.add(this.elgridLinesH)
@@ -450,6 +492,7 @@ class Grid {
     this.drawGridBands(xCount, yTickAmount)
     return {
       el: this.elg,
+      elGridBorders: this.elGridBorders,
       xAxisTickWidth: w.globals.gridWidth / xCount
     }
   }

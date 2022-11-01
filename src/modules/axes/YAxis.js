@@ -9,8 +9,9 @@ import AxesUtils from './AxesUtils'
  **/
 
 export default class YAxis {
-  constructor(ctx) {
+  constructor(ctx, elgrid) {
     this.ctx = ctx
+    this.elgrid = elgrid
     this.w = ctx.w
     const w = this.w
 
@@ -318,7 +319,12 @@ export default class YAxis {
         axisBorder.height
       )
 
-      parent.add(elHorzLine)
+      // in horizontal bars, we append axisBorder to elGridBorders element to avoid z-index issues
+      if (this.elgrid && this.elgrid.elGridBorders) {
+        this.elgrid.elGridBorders.add(elHorzLine)
+      } else {
+        parent.add(elHorzLine)
+      }
     }
   }
 

@@ -257,12 +257,13 @@ export default class ApexCharts {
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
       }
-      if (w.config.chart.type !== 'treemap') {
-        me.axes.drawAxis(w.config.chart.type, graphData.xyRatios)
-      }
 
       me.grid = new Grid(me)
       let elgrid = me.grid.drawGrid()
+
+      if (w.config.chart.type !== 'treemap') {
+        me.axes.drawAxis(w.config.chart.type, elgrid)
+      }
 
       me.annotations = new Annotations(me)
       me.annotations.drawImageAnnos()
@@ -272,8 +273,8 @@ export default class ApexCharts {
         w.globals.dom.elGraphical.add(elgrid.el)
       }
 
-      let xAxis = new XAxis(this.ctx)
-      let yaxis = new YAxis(this.ctx)
+      let xAxis = new XAxis(this.ctx, elgrid)
+      let yaxis = new YAxis(this.ctx, elgrid)
       if (elgrid !== null) {
         xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
         yaxis.setYAxisTextAlignments()
@@ -301,6 +302,7 @@ export default class ApexCharts {
       if (w.config.grid.position === 'front' && elgrid) {
         w.globals.dom.elGraphical.add(elgrid.el)
       }
+      w.globals.dom.elGraphical.add(elgrid.elGridBorders)
 
       if (w.config.xaxis.crosshairs.position === 'front') {
         me.crosshairs.drawXCrosshairs()

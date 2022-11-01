@@ -8,8 +8,9 @@ import AxesUtils from './AxesUtils'
  **/
 
 export default class XAxis {
-  constructor(ctx) {
+  constructor(ctx, elgrid) {
     this.ctx = ctx
+    this.elgrid = elgrid
     this.w = ctx.w
 
     const w = this.w
@@ -157,7 +158,11 @@ export default class XAxis {
         this.xaxisBorderHeight
       )
 
-      elXaxis.add(elHorzLine)
+      if (this.elgrid && this.elgrid.elGridBorders) {
+        this.elgrid.elGridBorders.add(elHorzLine)
+      } else {
+        elXaxis.add(elHorzLine)
+      }
     }
 
     return elXaxis
@@ -481,7 +486,11 @@ export default class XAxis {
         0
       )
 
-      elYaxis.add(elVerticalLine)
+      if (this.elgrid && this.elgrid.elGridBorders) {
+        this.elgrid.elGridBorders.add(elVerticalLine)
+      } else {
+        elYaxis.add(elVerticalLine)
+      }
     }
 
     if (w.config.yaxis[0].axisTicks.show) {
