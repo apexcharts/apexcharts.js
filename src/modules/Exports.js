@@ -197,14 +197,18 @@ class Exports {
     let rows = []
     let result = ''
     let universalBOM = '\uFEFF'
-    let gSeries = w.globals.series.map((s,i)=>{
+    let gSeries = w.globals.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
     })
 
     const isTimeStamp = (num) => {
       return w.config.xaxis.type === 'datetime' && String(num).length >= 10
     }
-    const seriesMaxDataLength = Math.max(...series.map((s) => { return s.data ? s.data.length : 0 }))
+    const seriesMaxDataLength = Math.max(
+      ...series.map((s) => {
+        return s.data ? s.data.length : 0
+      })
+    )
     const dataFormat = new Data(this.ctx)
 
     const axesUtils = new AxesUtils(this.ctx)
@@ -270,7 +274,7 @@ class Exports {
       }
 
       if (s.data) {
-        s.data = s.data.length && s.data || getEmptyDataForCsvColumn()
+        s.data = (s.data.length && s.data) || getEmptyDataForCsvColumn()
         for (let i = 0; i < s.data.length; i++) {
           columns = []
 
