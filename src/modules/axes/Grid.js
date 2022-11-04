@@ -457,6 +457,7 @@ class Grid {
     if (!w.config.grid.show) {
       this.elgridLinesV.hide()
       this.elgridLinesH.hide()
+      this.elGridBorders.hide()
     }
 
     let yTickAmount = w.globals.yAxisScale.length
