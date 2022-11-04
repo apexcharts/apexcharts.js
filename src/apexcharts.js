@@ -302,7 +302,10 @@ export default class ApexCharts {
       if (w.config.grid.position === 'front' && elgrid) {
         w.globals.dom.elGraphical.add(elgrid.el)
       }
-      w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+
+      if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.el) {
+        w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+      }
 
       if (w.config.xaxis.crosshairs.position === 'front') {
         me.crosshairs.drawXCrosshairs()
