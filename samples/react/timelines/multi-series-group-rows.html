@@ -280,17 +280,23 @@
                 custom: function(opts) {
                   const fromYear = new Date(opts.y1).getFullYear()
                   const toYear = new Date(opts.y2).getFullYear()
-                  const values = opts.ctx.rangeBar.getTooltipValues(opts)
+              
+                  const w = opts.ctx.w
+                  let ylabel = w.globals.labels[opts.dataPointIndex]
+                  let seriesName = w.config.series[opts.seriesIndex].name
+                    ? w.config.series[opts.seriesIndex].name
+                    : ''
+                  const color = w.globals.colors[opts.seriesIndex]
               
                   return (
                     '<div class="apexcharts-tooltip-rangebar">' +
                     '<div> <span class="series-name" style="color: ' +
-                    values.color +
+                    color +
                     '">' +
-                    (values.seriesName ? values.seriesName : '') +
+                    (seriesName ? seriesName : '') +
                     '</span></div>' +
                     '<div> <span class="category">' +
-                    values.ylabel +
+                    ylabel +
                     ' </span> <span class="value start-value">' +
                     fromYear +
                     '</span> <span class="separator">-</span> <span class="value end-value">' +
