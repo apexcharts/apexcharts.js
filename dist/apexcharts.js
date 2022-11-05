@@ -6693,7 +6693,7 @@
         var fillCnf = this.w.config.fill;
 
         if (fillConfig) {
-          fillCnf = fillConfig;
+          fillCnf = _objectSpread2(_objectSpread2({}, fillCnf), fillConfig);
         }
 
         var opts = this.opts;
