@@ -312,7 +312,10 @@ class Fill {
     let fillCnf = this.w.config.fill
 
     if (fillConfig) {
-      fillCnf = fillConfig
+      fillCnf = {
+        ...fillCnf,
+        ...fillConfig
+      }
     }
     const opts = this.opts
     let graphics = new Graphics(this.ctx)
