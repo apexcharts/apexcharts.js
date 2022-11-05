@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.36.1
+ * ApexCharts v3.36.2
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -6693,7 +6693,7 @@
         var fillCnf = this.w.config.fill;
 
         if (fillConfig) {
-          fillCnf = fillConfig;
+          fillCnf = _objectSpread2(_objectSpread2({}, fillCnf), fillConfig);
         }
 
         var opts = this.opts;
@@ -10358,6 +10358,7 @@
         if (!w.config.grid.show) {
           this.elgridLinesV.hide();
           this.elgridLinesH.hide();
+          this.elGridBorders.hide();
         }
 
         var yTickAmount = w.globals.yAxisScale.length ? w.globals.yAxisScale[0].result.length - 1 : 5;
@@ -32145,7 +32146,9 @@
             w.globals.dom.elGraphical.add(elgrid.el);
           }
 
-          w.globals.dom.elGraphical.add(elgrid.elGridBorders);
+          if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
+            w.globals.dom.elGraphical.add(elgrid.elGridBorders);
+          }
 
           if (w.config.xaxis.crosshairs.position === 'front') {
             me.crosshairs.drawXCrosshairs();
