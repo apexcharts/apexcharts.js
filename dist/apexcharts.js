@@ -16142,6 +16142,7 @@
         }
 
         if (shared && ttItemsChildren[0]) {
+          // hide when no Val or series collapsed
           if (w.config.tooltip.hideEmptyShared) {
             var ttItemMarker = ttItems[t].querySelector('.apexcharts-tooltip-marker');
             var ttItemText = ttItems[t].querySelector('.apexcharts-tooltip-text');
@@ -16153,8 +16154,7 @@
               ttItemMarker.style.display = 'block';
               ttItemText.style.display = 'block';
             }
-          } // hide when no Val or series collapsed
-
+          }
 
           if (typeof val === 'undefined' || val === null || w.globals.ancillaryCollapsedSeriesIndices.indexOf(t) > -1 || w.globals.collapsedSeriesIndices.indexOf(t) > -1) {
             ttItemsChildren[0].parentNode.style.display = 'none';
