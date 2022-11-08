@@ -530,17 +530,23 @@ class Range {
         let poss = 0
         let negs = 0
         for (let i = 0; i < gl.series.length; i++) {
-          if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
-            // 0.0001 fixes #185 when values are very small
-            gl.series[i][j] > 0
-              ? (poss = poss + parseFloat(gl.series[i][j]) + 0.0001)
-              : (negs = negs + parseFloat(gl.series[i][j]))
-          }
+          let stackSeries =
+            !this.w.config.chart.stackOnlyBar ||
+            (gl.series[i] && gl.series[i].type && gl.series[i].type === 'bar')
 
-          if (i === gl.series.length - 1) {
-            // push all the totals to the array for future use
-            stackedPoss.push(poss)
-            stackedNegs.push(negs)
+          if (stackSeries) {
+            if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
+              // 0.0001 fixes #185 when values are very small
+              gl.series[i][j] > 0
+                ? (poss = poss + parseFloat(gl.series[i][j]) + 0.0001)
+                : (negs = negs + parseFloat(gl.series[i][j]))
+            }
+
+            if (i === gl.series.length - 1) {
+              // push all the totals to the array for future use
+              stackedPoss.push(poss)
+              stackedNegs.push(negs)
+            }
           }
         }
       }

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.36.2
+ * ApexCharts v3.36.3
  * (c) 2018-2022 ApexCharts
  * Released under the MIT License.
  */
@@ -3512,6 +3512,8 @@
             },
             stacked: false,
             stackType: 'normal',
+            stackOnlyBar: true,
+            // mixed chart with stacked bars and line series - incorrect line draw #907
             toolbar: {
               show: true,
               offsetX: 0,
@@ -4107,6 +4109,7 @@
             enabled: true,
             enabledOnSeries: undefined,
             shared: true,
+            hideEmptyShared: true,
             followCursor: false,
             // when disabled, the tooltip will show on top of the series instead of mouse position
             intersect: false,
@@ -11518,15 +11521,19 @@
             var negs = 0;
 
             for (var i = 0; i < gl.series.length; i++) {
-              if (gl.series[i][j] !== null && Utils$1.isNumber(gl.series[i][j])) {
-                // 0.0001 fixes #185 when values are very small
-                gl.series[i][j] > 0 ? poss = poss + parseFloat(gl.series[i][j]) + 0.0001 : negs = negs + parseFloat(gl.series[i][j]);
-              }
+              var stackSeries = !this.w.config.chart.stackOnlyBar || gl.series[i] && gl.series[i].type && gl.series[i].type === 'bar';
 
-              if (i === gl.series.length - 1) {
-                // push all the totals to the array for future use
-                stackedPoss.push(poss);
-                stackedNegs.push(negs);
+              if (stackSeries) {
+                if (gl.series[i][j] !== null && Utils$1.isNumber(gl.series[i][j])) {
+                  // 0.0001 fixes #185 when values are very small
+                  gl.series[i][j] > 0 ? poss = poss + parseFloat(gl.series[i][j]) + 0.0001 : negs = negs + parseFloat(gl.series[i][j]);
+                }
+
+                if (i === gl.series.length - 1) {
+                  // push all the totals to the array for future use
+                  stackedPoss.push(poss);
+                  stackedNegs.push(negs);
+                }
               }
             }
           }
@@ -16135,7 +16142,20 @@
         }
 
         if (shared && ttItemsChildren[0]) {
-          // hide when no Val or series collapsed
+          if (w.config.tooltip.hideEmptyShared) {
+            var ttItemMarker = ttItems[t].querySelector('.apexcharts-tooltip-marker');
+            var ttItemText = ttItems[t].querySelector('.apexcharts-tooltip-text');
+
+            if (parseFloat(val) == 0) {
+              ttItemMarker.style.display = 'none';
+              ttItemText.style.display = 'none';
+            } else {
+              ttItemMarker.style.display = 'block';
+              ttItemText.style.display = 'block';
+            }
+          } // hide when no Val or series collapsed
+
+
           if (typeof val === 'undefined' || val === null || w.globals.ancillaryCollapsedSeriesIndices.indexOf(t) > -1 || w.globals.collapsedSeriesIndices.indexOf(t) > -1) {
             ttItemsChildren[0].parentNode.style.display = 'none';
           } else {
@@ -22968,9 +22988,10 @@
             prevY = _ref3.prevY,
             lineYPosition = _ref3.lineYPosition;
         var w = this.w;
+        var stackSeries = w.config.chart.stacked && (!w.config.chart.stackOnlyBar || series[i] && series[i].type && series[i].type === 'bar');
 
         if (typeof ((_series$i = series[i]) === null || _series$i === void 0 ? void 0 : _series$i[0]) !== 'undefined') {
-          if (w.config.chart.stacked) {
+          if (stackSeries) {
             if (i > 0) {
               // 1st y value of previous series
               lineYPosition = this.lineCtx.prevSeriesY[i - 1][0];
@@ -22985,7 +23006,7 @@
           prevY = lineYPosition - series[i][0] / this.lineCtx.yRatio[this.lineCtx.yaxisIndex] + (this.lineCtx.isReversed ? series[i][0] / this.lineCtx.yRatio[this.lineCtx.yaxisIndex] : 0) * 2;
         } else {
           // the first value in the current series is null
-          if (w.config.chart.stacked && i > 0 && typeof series[i][0] === 'undefined') {
+          if (stackSeries && i > 0 && typeof series[i][0] === 'undefined') {
             // check for undefined value (undefined value will occur when we clear the series while user clicks on legend to hide serieses)
             for (var s = i - 1; s >= 0; s--) {
               // for loop to get to 1st previous value until we get it
@@ -23443,6 +23464,7 @@
         }
 
         var y2 = y;
+        var stackSeries = w.config.chart.stacked && (!this.w.config.chart.stackOnlyBar || this.w.config.series[realIndex] && this.w.config.series[realIndex].type && (this.w.config.series[realIndex].type === 'bar' || this.w.config.series[realIndex].type === ''));
 
         for (var j = 0; j < iterations; j++) {
           var isNull = typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null;
@@ -23460,7 +23482,7 @@
             x = x + this.xDivision;
           }
 
-          if (w.config.chart.stacked) {
+          if (stackSeries) {
             if (i > 0 && w.globals.collapsedSeries.length < w.config.series.length - 1) {
               // a collapsed series in a stacked bar chart may provide wrong result for the next series, hence find the prevIndex of prev series which is not collapsed - fixes apexcharts.js#1372
               var prevIndex = function prevIndex(pi) {

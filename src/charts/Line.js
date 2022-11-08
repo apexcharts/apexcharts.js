@@ -490,6 +490,15 @@ class Line {
     }
 
     let y2 = y
+
+    let stackSeries =
+      w.config.chart.stacked &&
+      (!this.w.config.chart.stackOnlyBar ||
+        (this.w.config.series[realIndex] &&
+          this.w.config.series[realIndex].type &&
+          (this.w.config.series[realIndex].type === 'bar' ||
+            this.w.config.series[realIndex].type === '')))
+
     for (let j = 0; j < iterations; j++) {
       const isNull =
         typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
@@ -505,7 +514,7 @@ class Line {
         x = x + this.xDivision
       }
 
-      if (w.config.chart.stacked) {
+      if (stackSeries) {
         if (
           i > 0 &&
           w.globals.collapsedSeries.length < w.config.series.length - 1
