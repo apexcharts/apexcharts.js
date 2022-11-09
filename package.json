@@ -78,7 +78,7 @@
     "rollup-plugin-svgo": "1.1.0",
     "rollup-plugin-terser": "7.0.2",
     "style-loader": "1.1.2",
-    "svg-inline-loader": "0.8.0",
+    "svg-inline-loader": "0.8.2",
     "terser": "5.14.2",
     "tslint": "5.12.1",
     "typescript": "3.2.2",
