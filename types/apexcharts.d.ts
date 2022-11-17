@@ -919,6 +919,11 @@ type ApexTooltipY = {
  */
 type ApexTooltip = {
   enabled?: boolean
+  absolute: {
+    position?: 'side' | 'top',
+    offsetX?: number,
+    offsetY?: number,
+  }
   enabledOnSeries?: undefined | number[]
   shared?: boolean
   followCursor?: boolean

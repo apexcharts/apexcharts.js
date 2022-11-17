@@ -176,6 +176,16 @@ export default class Position {
 
     let x = parseFloat(cx) + pointR + 5
     let y = parseFloat(cy) + pointR / 2 // - tooltipRect.ttHeight / 2
+    let offsetX = 0
+    let offsetY = 0
+
+    if (w.config.tooltip.absolute && w.config.tooltip.absolute.offsetX) {
+      offsetX = w.config.tooltip.absolute.offsetX || 0
+    }
+
+    if (w.config.tooltip.absolute && w.config.tooltip.absolute.offsetY) {
+      offsetY = w.config.tooltip.absolute.offsetY || 0
+    }
 
     if (x > w.globals.gridWidth / 2) {
       x = x - tooltipRect.ttWidth - pointR - 10
@@ -189,7 +199,17 @@ export default class Position {
       x = -20
     }
 
-    if (w.config.tooltip.followCursor) {
+    if (
+      w.config.tooltip.absolute &&
+      w.config.tooltip.absolute.position === 'top'
+    ) {
+      x = parseFloat(cx) - tooltipRect.ttWidth / 2
+      y =
+        parseFloat(cy) -
+        pointR / 2 -
+        tooltipRect.ttHeight +
+        w.globals.translateY
+    } else if (w.config.tooltip.followCursor) {
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
       y =
@@ -212,8 +232,8 @@ export default class Position {
     if (!isNaN(x)) {
       x = x + w.globals.translateX
 
-      tooltipEl.style.left = x + 'px'
-      tooltipEl.style.top = y + 'px'
+      tooltipEl.style.left = (x + offsetX).toString() + 'px'
+      tooltipEl.style.top = (y + offsetY).toString() + 'px'
     }
   }
 
