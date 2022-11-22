@@ -213,21 +213,36 @@ export default class Toolbar {
     this.elZoomOut.addEventListener('click', this.handleZoomOut.bind(this))
     this.elPan.addEventListener('click', this.togglePanning.bind(this))
     this.elMenuIcon.addEventListener('click', this.toggleMenu.bind(this))
+	var controls = [this.elZoomReset, this.elSelection, this.elZoom, this.elZoomIn, this.elZoomOut, this.elPan, this.elMenuIcon];
     this.elMenuItems.forEach((m) => {
       if (m.classList.contains('exportSVG')) {
-        m.addEventListener('click', this.handleDownload.bind(this, 'svg'))
+        m.addEventListener('click', this.handleDownload.bind(this, 'svg'));
+		controls.push(m);
       } else if (m.classList.contains('exportPNG')) {
-        m.addEventListener('click', this.handleDownload.bind(this, 'png'))
+        m.addEventListener('click', this.handleDownload.bind(this, 'png'));
+		controls.push(m);
       } else if (m.classList.contains('exportCSV')) {
-        m.addEventListener('click', this.handleDownload.bind(this, 'csv'))
+        m.addEventListener('click', this.handleDownload.bind(this, 'csv'));
+		controls.push(m);
       }
     })
     for (let i = 0; i < this.t.customIcons.length; i++) {
       this.elCustomIcons[i].addEventListener(
         'click',
         this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w)
-      )
+      );
+	  controls.push(this.elCustomIcons[i]);
     }
+	for (var i = 0; i < controls.length; i++) {
+		var c = controls[i];
+        c.setAttribute("tabindex", 0);
+        c.addEventListener("keypress", function (event) {
+        if (event.key === "Enter" || event.key === "NumpadEnter") {
+				event.preventDefault();
+				event.target.click();
+			}
+		});
+	}
   }
 
   toggleZoomSelection(type) {
