@@ -403,11 +403,27 @@ export default class XAxis {
         if (Array.isArray(label)) {
           multiY = (label.length / 2) * parseInt(ylabels.style.fontSize, 10)
         }
+
+        let offsetX = ylabels.offsetX - 15
+        let textAnchor = 'end'
+        if (this.yaxis.opposite) {
+          textAnchor = 'start'
+        }
+        if (w.config.yaxis[0].labels.align === 'left') {
+          offsetX = ylabels.offsetX
+          textAnchor = 'start'
+        } else if (w.config.yaxis[0].labels.align === 'center') {
+          offsetX = ylabels.offsetX
+          textAnchor = 'middle'
+        } else if (w.config.yaxis[0].labels.align === 'right') {
+          textAnchor = 'end'
+        }
+
         let elLabel = graphics.drawText({
-          x: ylabels.offsetX - 15,
+          x: offsetX,
           y: yPos + colHeight + ylabels.offsetY - multiY,
           text: label,
-          textAnchor: this.yaxis.opposite ? 'start' : 'end',
+          textAnchor,
           foreColor: getForeColor(),
           fontSize: ylabels.style.fontSize,
           fontFamily: ylabels.style.fontFamily,

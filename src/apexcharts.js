@@ -261,10 +261,6 @@ export default class ApexCharts {
       me.grid = new Grid(me)
       let elgrid = me.grid.drawGrid()
 
-      if (w.config.chart.type !== 'treemap') {
-        me.axes.drawAxis(w.config.chart.type, elgrid)
-      }
-
       me.annotations = new Annotations(me)
       me.annotations.drawImageAnnos()
       me.annotations.drawTextAnnos()
@@ -318,6 +314,10 @@ export default class ApexCharts {
       if (w.config.annotations.position === 'front') {
         w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
         me.annotations.drawAxesAnnotations()
+      }
+
+      if (w.config.chart.type !== 'treemap') {
+        me.axes.drawAxis(w.config.chart.type, elgrid)
       }
 
       if (!w.globals.noData) {

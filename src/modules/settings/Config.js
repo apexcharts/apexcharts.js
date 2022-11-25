@@ -19,21 +19,6 @@ export default class Config {
 
     this.chartType = opts.chart.type
 
-    if (this.chartType === 'histogram') {
-      // technically, a histogram can be drawn by a column chart with no spaces in between
-      opts.chart.type = 'bar'
-      opts = Utils.extend(
-        {
-          plotOptions: {
-            bar: {
-              columnWidth: '99.99%'
-            }
-          }
-        },
-        opts
-      )
-    }
-
     opts = this.extendYAxis(opts)
     opts = this.extendAnnotations(opts)
 
@@ -49,7 +34,6 @@ export default class Config {
         'boxPlot',
         'rangeBar',
         'rangeArea',
-        'histogram',
         'bubble',
         'scatter',
         'heatmap',
