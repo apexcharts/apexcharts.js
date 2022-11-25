@@ -127,7 +127,7 @@ export default class XAxis {
         y:
           this.offY +
           parseFloat(this.xaxisFontSize) +
-          (w.config.xaxis.title.position === 'bottom'
+          (w.config.xaxis.position === 'bottom'
             ? w.globals.xAxisLabelsHeight
             : -w.globals.xAxisLabelsHeight - 10) +
           w.config.xaxis.title.offsetY,
