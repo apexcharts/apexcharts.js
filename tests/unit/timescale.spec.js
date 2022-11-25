@@ -388,6 +388,34 @@ describe('Generate TimeScale', () => {
       })
     ])
   })
+
+  it('should generate an hour timescale with no overlapping ticks', () => {
+    const chart = createChart('line', [
+      {
+        data: [0, 1]
+      }
+    ])
+    const timeScale = new TimeScale(chart)
+    timeScale.generateHourScale({
+      firstVal: {
+        minSecond: 0,
+        minMinute: 30,
+        minHour: 22
+      },
+      currentDate: 22,
+      currentMonth: 11,
+      currentYear: 2022,
+      minutesWidthOnXAxis: 0.4,
+      numberOfHours: 24
+    })
+
+    const generatedScale = timeScale.timeScaleArray
+    for (let i = 0; i < generatedScale.length - 1; i++) {
+      expect(generatedScale[i].position).not.toEqual(
+        generatedScale[i + 1].position
+      )
+    }
+  })
 })
 
 describe('createRawDateString', () => {
