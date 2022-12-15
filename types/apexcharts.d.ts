@@ -103,7 +103,6 @@ type ApexChart = {
     | 'line'
     | 'area'
     | 'bar'
-    | 'histogram'
     | 'pie'
     | 'donut'
     | 'radialBar'

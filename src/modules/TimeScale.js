@@ -659,10 +659,7 @@ class TimeScale {
       }
 
       let year = this._getYear(currentYear, month, yrCounter)
-      pos =
-        hour === 0 && i === 0
-          ? remainingMins * minutesWidthOnXAxis
-          : 60 * minutesWidthOnXAxis + pos
+      pos = 60 * minutesWidthOnXAxis + pos
       let val = hour === 0 ? date : hour
       this.timeScaleArray.push({
         position: pos,
