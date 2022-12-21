@@ -4,9 +4,9 @@
 ;(function() {
 
     // Main filter class
-    SVG.Filter = SVG.invent({
+    window.SVG.Filter = window.SVG.invent({
       create: 'filter',
-      inherit: SVG.Parent,
+      inherit: window.SVG.Parent,
       extend: {
         // Static strings
         source:           'SourceGraphic',
@@ -32,70 +32,70 @@
         },
         // Blend effect
         blend: function(in1, in2, mode) {
-          return this.put(new SVG.BlendEffect(in1, in2, mode))
+          return this.put(new window.SVG.BlendEffect(in1, in2, mode))
         },
         // ColorMatrix effect
         colorMatrix: function(type, values) {
-          return this.put(new SVG.ColorMatrixEffect(type, values))
+          return this.put(new window.SVG.ColorMatrixEffect(type, values))
         },
         // ConvolveMatrix effect
         convolveMatrix: function(matrix) {
-          return this.put(new SVG.ConvolveMatrixEffect(matrix))
+          return this.put(new window.SVG.ConvolveMatrixEffect(matrix))
         },
         // ComponentTransfer effect
         componentTransfer: function(components) {
-          return this.put(new SVG.ComponentTransferEffect(components))
+          return this.put(new window.SVG.ComponentTransferEffect(components))
         },
         // Composite effect
         composite: function(in1, in2, operator) {
-          return this.put(new SVG.CompositeEffect(in1, in2, operator))
+          return this.put(new window.SVG.CompositeEffect(in1, in2, operator))
         },
         // Flood effect
         flood: function(color, opacity) {
-          return this.put(new SVG.FloodEffect(color, opacity))
+          return this.put(new window.SVG.FloodEffect(color, opacity))
         },
         // Offset effect
         offset: function(x, y) {
-          return this.put(new SVG.OffsetEffect(x,y))
+          return this.put(new window.SVG.OffsetEffect(x,y))
         },
         // Image effect
         image: function(src) {
-          return this.put(new SVG.ImageEffect(src))
+          return this.put(new window.SVG.ImageEffect(src))
         },
         // Merge effect
         merge: function() {
           //pass the array of arguments to the constructor because we dont know if the user gave us an array as the first arguemnt or wether they listed the effects in the arguments
           var args = [undefined]
           for(var i in arguments) args.push(arguments[i])
-          return this.put(new (SVG.MergeEffect.bind.apply(SVG.MergeEffect,args)))
+          return this.put(new (window.SVG.MergeEffect.bind.apply(window.SVG.MergeEffect,args)))
         },
         // Gaussian Blur effect
         gaussianBlur: function(x,y) {
-          return this.put(new SVG.GaussianBlurEffect(x,y))
+          return this.put(new window.SVG.GaussianBlurEffect(x,y))
         },
         // Morphology effect
         morphology: function(operator,radius){
-          return this.put(new SVG.MorphologyEffect(operator,radius))
+          return this.put(new window.SVG.MorphologyEffect(operator,radius))
         },
         // DiffuseLighting effect
         diffuseLighting: function(surfaceScale,diffuseConstant,kernelUnitLength){
-          return this.put(new SVG.DiffuseLightingEffect(surfaceScale,diffuseConstant,kernelUnitLength))
+          return this.put(new window.SVG.DiffuseLightingEffect(surfaceScale,diffuseConstant,kernelUnitLength))
         },
         // DisplacementMap effect
         displacementMap: function(in1,in2,scale,xChannelSelector,yChannelSelector){
-          return this.put(new SVG.DisplacementMapEffect(in1,in2,scale,xChannelSelector,yChannelSelector))
+          return this.put(new window.SVG.DisplacementMapEffect(in1,in2,scale,xChannelSelector,yChannelSelector))
         },
         // SpecularLighting effect
         specularLighting: function(surfaceScale,diffuseConstant,specularExponent,kernelUnitLength){
-          return this.put(new SVG.SpecularLightingEffect(surfaceScale,diffuseConstant,specularExponent,kernelUnitLength))
+          return this.put(new window.SVG.SpecularLightingEffect(surfaceScale,diffuseConstant,specularExponent,kernelUnitLength))
         },
         // Tile effect
         tile: function(){
-          return this.put(new SVG.TileEffect());
+          return this.put(new window.SVG.TileEffect());
         },
         // Turbulence effect
         turbulence: function(baseFrequency,numOctaves,seed,stitchTiles,type){
-          return this.put(new SVG.TurbulenceEffect(baseFrequency,numOctaves,seed,stitchTiles,type))
+          return this.put(new window.SVG.TurbulenceEffect(baseFrequency,numOctaves,seed,stitchTiles,type))
         },
         // Default string value
         toString: function() {
@@ -105,10 +105,10 @@
     })
   
     //add .filter function
-    SVG.extend(SVG.Defs, {
+    window.SVG.extend(window.SVG.Defs, {
       // Define filter
       filter: function(block) {
-        var filter = this.put(new SVG.Filter)
+        var filter = this.put(new window.SVG.Filter)
   
         /* invoke passed block */
         if (typeof block === 'function')
@@ -117,16 +117,16 @@
         return filter
       }
     })
-    SVG.extend(SVG.Container, {
+    window.SVG.extend(window.SVG.Container, {
       // Define filter on defs
       filter: function(block) {
         return this.defs().filter(block)
       }
     })
-    SVG.extend(SVG.Element, SVG.G, SVG.Nested, {
+    window.SVG.extend(window.SVG.Element, window.SVG.G, window.SVG.Nested, {
       // Create filter element in defs and store reference
       filter: function(block) {
-        this.filterer = block instanceof SVG.Element ?
+        this.filterer = block instanceof window.SVG.Element ?
           block : this.doc().filter(block)
   
         if(this.doc() && this.filterer.doc() !== this.doc()){
@@ -152,11 +152,11 @@
     })
   
     // Create SVG.Effect class
-    SVG.Effect = SVG.invent({
+    window.SVG.Effect = window.SVG.invent({
       create: function(){
         this.constructor.call(this)
       },
-      inherit: SVG.Element,
+      inherit: window.SVG.Element,
       extend: {
         // Set in attribute
         in: function(effect) {
@@ -175,11 +175,11 @@
   
     // create class for parent effects like merge
     // Inherit from SVG.Parent
-    SVG.ParentEffect = SVG.invent({
+    window.SVG.ParentEffect = window.SVG.invent({
       create: function(){
         this.constructor.call(this)
       },
-      inherit: SVG.Parent,
+      inherit: window.SVG.Parent,
       extend: {
         // Set in attribute
         in: function(effect) {
@@ -263,15 +263,15 @@
         return this.parent() && this.parent().turbulence(baseFrequency,numOctaves,seed,stitchTiles,type).in(this)
       }
     }
-    SVG.extend(SVG.Effect,chainingEffects)
-    SVG.extend(SVG.ParentEffect,chainingEffects)
+    window.SVG.extend(window.SVG.Effect,chainingEffects)
+    window.SVG.extend(window.SVG.ParentEffect,chainingEffects)
   
     //crea class for child effects, like MergeNode, FuncR and lights
-    SVG.ChildEffect = SVG.invent({
+    window.SVG.ChildEffect = window.SVG.invent({
       create: function(){
         this.constructor.call(this)
       },
-      inherit: SVG.Element,
+      inherit: window.SVG.Element,
       extend: {
       in: function(effect){
         this.attr('in',effect)
@@ -324,7 +324,7 @@
         })
       },
       image: function(src){
-        this.attr('href', src, SVG.xlink)
+        this.attr('href', src, window.SVG.xlink)
       },
       displacementMap: function(in1,in2,scale,xChannelSelector,yChannelSelector){
         this.attr({
@@ -367,13 +367,13 @@
         var children
   
         //test to see if we have a set
-        if(arguments[0] instanceof SVG.Set){
+        if(arguments[0] instanceof window.SVG.Set){
           var that = this
           arguments[0].each(function(i){
-            if(this instanceof SVG.MergeNode)
+            if(this instanceof window.SVG.MergeNode)
               that.put(this)
-            else if(this instanceof SVG.Effect || this instanceof SVG.ParentEffect)
-              that.put(new SVG.MergeNode(this))
+            else if(this instanceof window.SVG.Effect || this instanceof window.SVG.ParentEffect)
+              that.put(new window.SVG.MergeNode(this))
           })
         }
         else{
@@ -384,21 +384,21 @@
             children = arguments
   
           for(var i = 0; i < children.length; i++){
-            if(children[i] instanceof SVG.MergeNode){
+            if(children[i] instanceof window.SVG.MergeNode){
               this.put(children[i])
             }
-            else this.put(new SVG.MergeNode(children[i]))
+            else this.put(new window.SVG.MergeNode(children[i]))
           }
         }
       },
       componentTransfer: function(compontents){
         /* create rgb set */
-        this.rgb = new SVG.Set
+        this.rgb = new window.SVG.Set
   
         /* create components */
         ;(['r', 'g', 'b', 'a']).forEach(function(c) {
           /* create component */
-          this[c] = new SVG['Func' + c.toUpperCase()]('identity')
+          this[c] = new window.SVG['Func' + c.toUpperCase()]('identity')
   
           /* store component in set */
           this.rgb.add(this[c])
@@ -502,10 +502,10 @@
       var proto = {}
   
       /* create class */
-      SVG[name + 'Effect'] = SVG.invent({
+      window.SVG[name + 'Effect'] = window.SVG.invent({
         create: function() {
           //call super
-          this.constructor.call(this, SVG.create('fe' + name))
+          this.constructor.call(this, window.SVG.create('fe' + name))
   
           //call constructor for this effect
           effect.apply(this,arguments)
@@ -513,7 +513,7 @@
           //set the result
           this.result(this.attr('id') + 'Out')
         },
-        inherit: SVG.Effect,
+        inherit: window.SVG.Effect,
         extend: proto
       })
     })
@@ -526,10 +526,10 @@
       var proto = {}
   
       /* create class */
-      SVG[name + 'Effect'] = SVG.invent({
+      window.SVG[name + 'Effect'] = window.SVG.invent({
         create: function() {
           //call super
-          this.constructor.call(this, SVG.create('fe' + name))
+          this.constructor.call(this, window.SVG.create('fe' + name))
   
           //call constructor for this effect
           effect.apply(this,arguments)
@@ -537,7 +537,7 @@
           //set the result
           this.result(this.attr('id') + 'Out')
         },
-        inherit: SVG.ParentEffect,
+        inherit: window.SVG.ParentEffect,
         extend: proto
       })
     })
@@ -550,38 +550,38 @@
       var proto = {}
   
       /* create class */
-      SVG[name] = SVG.invent({
+      window.SVG[name] = window.SVG.invent({
         create: function() {
           //call super
-          this.constructor.call(this, SVG.create('fe' + name))
+          this.constructor.call(this, window.SVG.create('fe' + name))
   
           //call constructor for this effect
           effect.apply(this,arguments)
         },
-        inherit: SVG.ChildEffect,
+        inherit: window.SVG.ChildEffect,
         extend: proto
       })
     })
   
     // Effect-specific extensions
-    SVG.extend(SVG.MergeEffect,{
+    window.SVG.extend(window.SVG.MergeEffect,{
       in: function(effect){
-        if(effect instanceof SVG.MergeNode)
+        if(effect instanceof window.SVG.MergeNode)
           this.add(effect,0)
         else
-          this.add(new SVG.MergeNode(effect),0)
+          this.add(new window.SVG.MergeNode(effect),0)
   
         return this
       }
     })
-    SVG.extend(SVG.CompositeEffect,SVG.BlendEffect,SVG.DisplacementMapEffect,{
+    window.SVG.extend(window.SVG.CompositeEffect,window.SVG.BlendEffect,window.SVG.DisplacementMapEffect,{
       in2: function(effect){
           return effect == null? this.parent() && this.parent().select('[result="'+this.attr('in2')+'"]').get(0) || this.attr('in2') : this.attr('in2', effect)
       }
     })
   
     // Presets
-    SVG.filter = {
+    window.SVG.filter = {
       sepiatone:  [ .343, .669, .119, 0, 0
                   , .249, .626, .130, 0, 0
                   , .172, .334, .111, 0, 0
@@ -592,7 +592,7 @@
     function normaliseMatrix(matrix) {
       /* convert possible array value to string */
       if (Array.isArray(matrix))
-        matrix = new SVG.Array(matrix)
+        matrix = new window.SVG.Array(matrix)
   
       /* ensure there are no leading, tailing or double spaces */
       return matrix.toString().replace(/^\s+/, '').replace(/\s+$/, '').replace(/\s+/g, ' ')
