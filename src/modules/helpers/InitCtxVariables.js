@@ -24,7 +24,7 @@ import Data from '../Data'
 import UpdateHelpers from './UpdateHelpers'
 
 import '../../svgjs/svg.js'
-import 'svg.filter.js'
+import '../../svgjs/svg.filter.js'
 import 'svg.pathmorphing.js'
 import 'svg.draggable.js'
 import 'svg.select.js'
