@@ -626,27 +626,12 @@ export default class Core {
             yaxis = scale.autoScaleY(targetChart, yaxis, e)
           }
 
-          const multipleYaxis = targetChart.w.config.yaxis.reduce(
-            (acc, curr, index) => {
-              return [
-                ...acc,
-                {
-                  ...targetChart.w.config.yaxis[index],
-                  min: yaxis[0].min,
-                  max: yaxis[0].max
-                }
-              ]
-            },
-            []
-          )
-
           targetChart.ctx.updateHelpers._updateOptions(
             {
               xaxis: {
                 min: e.xaxis.min,
                 max: e.xaxis.max
               },
-              yaxis: multipleYaxis
             },
             false,
             false,
