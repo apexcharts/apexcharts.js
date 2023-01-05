@@ -34,7 +34,7 @@ export default class Utils {
     const hasBars = this.hasBars()
 
     if (
-      (w.globals.comboCharts || hasBars) &&
+      (w.globals.comboCharts || hasBars || w.config.xaxis.tickPlacement === 'between') &&
       !w.config.xaxis.convertedCatToNumeric
     ) {
       xDivisor = hoverWidth / w.globals.dataPoints
@@ -61,6 +61,12 @@ export default class Utils {
 
     let j = Math.round(hoverX / xDivisor)
     let jHorz = Math.floor(hoverY / yDivisor)
+
+    // If tick placement is 'between' then the boundaries between each
+    // point will be on each tick, rather than halfway between each tick.
+    if (w.config.xaxis.tickPlacement === 'between') {
+      j = Math.floor(hoverX / xDivisor)
+    }
 
     if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
       j = Math.ceil(hoverX / xDivisor)
