@@ -850,20 +850,20 @@ export const optionsPattern = {
           attrs: {
             animationEnd: {
               title: 'Fires when the chart’s initial animation is finished',
-              default(chartContext, options) {}
+              default(chartContext, options) { }
             },
             beforeMount: {
               title: 'Fires before the chart has been drawn on screen',
-              default(chartContext, config) {}
+              default(chartContext, config) { }
             },
             mounted: {
               title: 'Fires after the chart has been drawn on screen',
-              default(chartContext, config) {}
+              default(chartContext, config) { }
             },
             updated: {
               title:
                 'Fires when the chart has been dynamically updated either with `updateOptions()` or `updateSeries()` functions',
-              default(chartContext, config) {}
+              default(chartContext, config) { }
             },
             click: {
               title: 'Fires when user clicks on any area of the chart',
@@ -879,7 +879,7 @@ export const optionsPattern = {
             },
             legendClick: {
               title: 'Fires when user clicks on legend',
-              default(chartContext, seriesIndex, config) {}
+              default(chartContext, seriesIndex, config) { }
             },
             markerClick: {
               title: 'Fires when user clicks on the markers',
@@ -888,7 +888,7 @@ export const optionsPattern = {
                 event,
                 chartContext,
                 { seriesIndex, dataPointIndex, config }
-              ) {}
+              ) { }
             },
             selection: {
               title: 'Fires when user selects rect using the selection tool',
@@ -901,33 +901,33 @@ export const optionsPattern = {
                 'Fires when user clicks on a datapoint (bar/column/marker/bubble/donut-slice)',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#dataPointSelection',
-              default(event, chartContext, config) {}
+              default(event, chartContext, config) { }
             },
             dataPointMouseEnter: {
               title:
                 'Fires when user’s mouse enter on a datapoint (bar/column/marker/bubble/donut-slice)',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#dataPointMouseEnter',
-              default(event, chartContext, config) {}
+              default(event, chartContext, config) { }
             },
             dataPointMouseLeave: {
               title:
                 'Fires when user’s mouse leaves a datapoint (bar/column/marker/bubble/donut-slice)',
-              default(event, chartContext, config) {}
+              default(event, chartContext, config) { }
             },
             beforeZoom: {
               title:
                 'This function, if defined, runs just before zooming in/out of the chart allowing you to set a custom range for zooming in/out',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#beforeZoom',
-              default(chartContext, { xaxis }) {}
+              default(chartContext, { xaxis }) { }
             },
             beforeResetZoom: {
               title:
                 'This function, if defined, runs just before the user hits the HOME button on the toolbar to reset the chart to it’s original state. The function allows you to set a custom axes range for the initial view of the chart.',
               url:
                 'https://apexcharts.com/docs/options/chart/events/#beforeResetZoom',
-              default(chartContext, opts) {}
+              default(chartContext, opts) { }
             },
             zoomed: {
               title:
@@ -2038,11 +2038,11 @@ export const optionsPattern = {
             },
             customHTML: {
               title: 'Custom HTML element to put in place of marker (function)',
-              default() {}
+              default() { }
             },
             onClick: {
               title: 'Fire an event when legend’s marker is clicked',
-              default(chart, seriesIndex, opts) {}
+              default(chart, seriesIndex, opts) { }
             },
             offsetX: {
               title: 'Sets the left offset of the marker',
@@ -2165,12 +2165,12 @@ export const optionsPattern = {
         onClick: {
           title: 'Called when a marker is clicked',
           url: 'https://apexcharts.com/docs/options/markers/#markerOnClick',
-          default(e) {}
+          default(e) { }
         },
         onDblClick: {
           title: 'Called when a marker is double clicked',
           url: 'https://apexcharts.com/docs/options/markers/#markerOnDblClick',
-          default(e) {}
+          default(e) { }
         },
         showNullDataPoints: {
           title:
@@ -3194,7 +3194,7 @@ export const optionsPattern = {
                           w.globals.seriesTotals.reduce((a, b) => {
                             return a + b
                           }, 0) /
-                            w.globals.series.length +
+                          w.globals.series.length +
                           '%'
                         )
                       }
@@ -3946,7 +3946,7 @@ export const optionsPattern = {
             'Whether to draw the ticks in between the data-points or on the data-points. Note: tickPlacement only works for xaxis.type: category charts and not for datetime charts.',
           type: String,
           choices: ['between', 'on'],
-          default: 'between'
+          default: 'on'
         },
         min: {
           title:
@@ -4155,7 +4155,7 @@ export const optionsPattern = {
             formatter: {
               title:
                 'A custom formatter function for the x-axis tooltip label. If undefined, the xaxis tooltip uses the default “X” value used in general tooltip.',
-              default(val, opts) {}
+              default(val, opts) { }
             },
             offsetY: {
               title: 'Sets the top offset for x-axis tooltip',
