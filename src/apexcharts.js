@@ -287,13 +287,6 @@ export default class ApexCharts {
         me.annotations.drawAxesAnnotations()
       }
 
-      if (Array.isArray(graphData.elGraph)) {
-        for (let g = 0; g < graphData.elGraph.length; g++) {
-          w.globals.dom.elGraphical.add(graphData.elGraph[g])
-        }
-      } else {
-        w.globals.dom.elGraphical.add(graphData.elGraph)
-      }
 
       if (w.config.grid.position === 'front' && elgrid) {
         w.globals.dom.elGraphical.add(elgrid.el)
@@ -318,6 +311,15 @@ export default class ApexCharts {
 
       if (w.config.chart.type !== 'treemap') {
         me.axes.drawAxis(w.config.chart.type, elgrid)
+      }
+
+
+      if (Array.isArray(graphData.elGraph)) {
+        for (let g = 0; g < graphData.elGraph.length; g++) {
+          w.globals.dom.elGraphical.add(graphData.elGraph[g])
+        }
+      } else {
+        w.globals.dom.elGraphical.add(graphData.elGraph)
       }
 
       if (!w.globals.noData) {
