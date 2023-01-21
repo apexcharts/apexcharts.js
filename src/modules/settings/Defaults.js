@@ -1,5 +1,6 @@
 import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
+import Formatters from '../Formatters'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
@@ -7,14 +8,22 @@ import DateTime from '../../utils/DateTime'
  * @module Defaults
  **/
 
-const getRangeValues = ({ ctx, seriesIndex, dataPointIndex, y1, y2, w }) => {
+const getRangeValues = ({
+  isTimeline,
+  ctx,
+  seriesIndex,
+  dataPointIndex,
+  y1,
+  y2,
+  w
+}) => {
   let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
   let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
   let ylabel = w.globals.labels[dataPointIndex]
   let seriesName = w.config.series[seriesIndex].name
     ? w.config.series[seriesIndex].name
     : ''
-  const yLbFormatter = w.config.tooltip.y.formatter
+  const yLbFormatter = w.globals.ttKeyFormatter
   const yLbTitleFormatter = w.config.tooltip.y.title.formatter
 
   const opts = {
@@ -29,7 +38,18 @@ const getRangeValues = ({ ctx, seriesIndex, dataPointIndex, y1, y2, w }) => {
     seriesName = yLbTitleFormatter(seriesName, opts)
   }
   if (w.config.series[seriesIndex].data[dataPointIndex]?.x) {
-    ylabel = w.config.series[seriesIndex].data[dataPointIndex].x + ':'
+    ylabel = w.config.series[seriesIndex].data[dataPointIndex].x
+  }
+
+  if (!isTimeline) {
+    if (w.config.xaxis.type === 'datetime') {
+      let xFormat = new Formatters(ctx)
+      ylabel = xFormat.xLabelFormat(w.globals.ttKeyFormatter, ylabel, ylabel, {
+        i: undefined,
+        dateFormatter: new DateTime(ctx).formatDate,
+        w
+      })
+    }
   }
 
   if (typeof yLbFormatter === 'function') {
@@ -113,7 +133,7 @@ const buildRangeTooltipHTML = (opts) => {
     '</span></div>' +
     '<div> <span class="category">' +
     ylabel +
-    ' </span> ' +
+    ': </span> ' +
     valueHTML +
     ' </div>' +
     '</div>'
@@ -348,9 +368,10 @@ export default class Defaults {
 
   rangeBar() {
     const handleTimelineTooltip = (opts) => {
-      const { color, seriesName, ylabel, startVal, endVal } = getRangeValues(
-        opts
-      )
+      const { color, seriesName, ylabel, startVal, endVal } = getRangeValues({
+        ...opts,
+        isTimeline: true
+      })
       return buildRangeTooltipHTML({
         ...opts,
         color,
