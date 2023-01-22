@@ -267,6 +267,41 @@ export default class ApexCharts {
 
       if (w.config.grid.position === 'back' && elgrid) {
         w.globals.dom.elGraphical.add(elgrid.el)
+        if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
+          w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+        }
+      }
+
+      if (Array.isArray(graphData.elGraph)) {
+        for (let g = 0; g < graphData.elGraph.length; g++) {
+          w.globals.dom.elGraphical.add(graphData.elGraph[g])
+        }
+      } else {
+        w.globals.dom.elGraphical.add(graphData.elGraph)
+      }
+
+      if (w.config.grid.position === 'front' && elgrid) {
+        w.globals.dom.elGraphical.add(elgrid.el)
+        if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
+          w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+        }
+      }
+
+      if (w.config.xaxis.crosshairs.position === 'front') {
+        me.crosshairs.drawXCrosshairs()
+      }
+
+      if (w.config.yaxis[0].crosshairs.position === 'front') {
+        me.crosshairs.drawYCrosshairs()
+      }
+
+      if (w.config.annotations.position === 'front') {
+        w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
+        me.annotations.drawAxesAnnotations()
+      }
+
+      if (w.config.chart.type !== 'treemap') {
+        me.axes.drawAxis(w.config.chart.type, elgrid)
       }
 
       let xAxis = new XAxis(this.ctx, elgrid)
@@ -285,39 +320,6 @@ export default class ApexCharts {
       if (w.config.annotations.position === 'back') {
         w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
         me.annotations.drawAxesAnnotations()
-      }
-
-      if (Array.isArray(graphData.elGraph)) {
-        for (let g = 0; g < graphData.elGraph.length; g++) {
-          w.globals.dom.elGraphical.add(graphData.elGraph[g])
-        }
-      } else {
-        w.globals.dom.elGraphical.add(graphData.elGraph)
-      }
-
-      if (w.config.grid.position === 'front' && elgrid) {
-        w.globals.dom.elGraphical.add(elgrid.el)
-      }
-
-      if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
-        w.globals.dom.elGraphical.add(elgrid.elGridBorders)
-      }
-
-      if (w.config.xaxis.crosshairs.position === 'front') {
-        me.crosshairs.drawXCrosshairs()
-      }
-
-      if (w.config.yaxis[0].crosshairs.position === 'front') {
-        me.crosshairs.drawYCrosshairs()
-      }
-
-      if (w.config.annotations.position === 'front') {
-        w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
-        me.annotations.drawAxesAnnotations()
-      }
-
-      if (w.config.chart.type !== 'treemap') {
-        me.axes.drawAxis(w.config.chart.type, elgrid)
       }
 
       if (!w.globals.noData) {
