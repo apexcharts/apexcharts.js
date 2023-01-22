@@ -449,7 +449,6 @@ class BarStacked extends Bar {
         this.prevYF[0].every((val) => val === 0) &&
         this.prevYF.slice(1, i).every((arr) => arr.every((val) => isNaN(val)))
       ) {
-        // Use the same calc way as line #485
         barYPosition = zeroH
       } else {
         // Nothing special
@@ -460,11 +459,18 @@ class BarStacked extends Bar {
       barYPosition = zeroH
     }
 
-    y =
-      barYPosition -
-      this.series[i][j] / this.yRatio[this.yaxisIndex] +
-      (this.isReversed ? this.series[i][j] / this.yRatio[this.yaxisIndex] : 0) *
-        2
+    if (this.series[i][j]) {
+      y =
+        barYPosition -
+        this.series[i][j] / this.yRatio[this.yaxisIndex] +
+        (this.isReversed
+          ? this.series[i][j] / this.yRatio[this.yaxisIndex]
+          : 0) *
+          2
+    } else {
+      // fixes #3610
+      y = barYPosition
+    }
 
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,
