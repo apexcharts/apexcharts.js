@@ -31,6 +31,12 @@ export default class Axes {
           if (gl.ignoreYAxisIndexes.indexOf(index) === -1) {
             elYaxis = yAxis.drawYaxis(index)
             gl.dom.Paper.add(elYaxis)
+
+            if (this.w.config.grid.position === 'back') {
+              const inner = gl.dom.Paper.children()[1]
+              inner.remove()
+              gl.dom.Paper.add(inner)
+            }
           }
         })
       }
