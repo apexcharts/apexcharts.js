@@ -200,9 +200,6 @@ export default class Theme {
 
     // D6E3F8, FCEFEF, DCE0D9, A5978B, EDDDD4, D6E3F8, FEF5EF
     switch (palette) {
-      case 'palette1':
-        this.colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0']
-        break
       case 'palette2':
         this.colors = ['#3f51b5', '#03a9f4', '#4caf50', '#f9ce1d', '#FF9800']
         break
@@ -230,6 +227,7 @@ export default class Theme {
       case 'palette10':
         this.colors = ['#A300D6', '#7D02EB', '#5653FE', '#2983FF', '#00B1F2']
         break
+      case 'palette1':
       default:
         this.colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0']
         break
