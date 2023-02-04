@@ -440,10 +440,11 @@ class Bar {
       if (!w.globals.seriesX[realIndex].length) {
         sxI = w.globals.maxValsInArrayIndex
       }
-
-      x =
-        (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
-        (barWidth * this.seriesLen) / 2
+      if (w.globals.seriesX[sxI][j]) {
+        x =
+          (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
+          (barWidth * this.seriesLen) / 2
+      }
     }
 
     let barXPosition = x + barWidth * this.visibleI
