@@ -831,11 +831,22 @@ export default class Tooltip {
       }
     }
 
+    const commonSeriesTextsParams = {
+      ttItems,
+      i: capturedSeries,
+      j,
+      ...(typeof w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1 !==
+        'undefined' && {
+        y1: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1
+      }),
+      ...(typeof w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2 !==
+        'undefined' && {
+        y2: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2
+      })
+    }
     if (shared) {
       ttCtx.tooltipLabels.drawSeriesTexts({
-        ttItems,
-        i: capturedSeries,
-        j,
+        ...commonSeriesTextsParams,
         shared: this.showOnIntersect ? false : this.tConfig.shared
       })
 
@@ -869,9 +880,7 @@ export default class Tooltip {
     } else {
       ttCtx.tooltipLabels.drawSeriesTexts({
         shared: false,
-        ttItems,
-        i: capturedSeries,
-        j
+        ...commonSeriesTextsParams
       })
 
       if (this.tooltipUtil.hasBars()) {
