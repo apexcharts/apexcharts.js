@@ -731,7 +731,7 @@ export default class Options {
         position: 'back',
         xaxis: {
           lines: {
-            show: false
+            show: true
           }
         },
         yaxis: {
