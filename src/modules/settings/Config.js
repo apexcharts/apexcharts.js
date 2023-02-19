@@ -51,6 +51,10 @@ export default class Config {
         chartDefaults = defaults.line()
       }
 
+      if (opts.chart.stacked && opts.chart.type === 'bar') {
+        chartDefaults = defaults.stackedBars()
+      }
+
       if (opts.chart.brush && opts.chart.brush.enabled) {
         chartDefaults = defaults.brush(chartDefaults)
       }
