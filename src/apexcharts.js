@@ -295,11 +295,6 @@ export default class ApexCharts {
         me.crosshairs.drawYCrosshairs()
       }
 
-      if (w.config.annotations.position === 'front') {
-        w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
-        me.annotations.drawAxesAnnotations()
-      }
-
       if (w.config.chart.type !== 'treemap') {
         me.axes.drawAxis(w.config.chart.type, elgrid)
       }
@@ -317,10 +312,8 @@ export default class ApexCharts {
         })
       }
 
-      if (w.config.annotations.position === 'back') {
-        w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
-        me.annotations.drawAxesAnnotations()
-      }
+      w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
+      me.annotations.drawAxesAnnotations()
 
       if (!w.globals.noData) {
         // draw tooltips at the end

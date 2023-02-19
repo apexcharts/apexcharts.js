@@ -347,7 +347,6 @@ type ApexStroke = {
 }
 
 type ApexAnnotations = {
-  position?: string
   yaxis?: YAxisAnnotations[]
   xaxis?: XAxisAnnotations[]
   points?: PointAnnotations[]
