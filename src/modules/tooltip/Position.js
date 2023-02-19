@@ -202,10 +202,6 @@ export default class Position {
         if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
           y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
         }
-
-        if (y < 0) {
-          y = 0
-        }
       }
     }
 
@@ -381,7 +377,6 @@ export default class Position {
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
     let bcy = jBar ? parseFloat(jBar.getAttribute('cy')) : 0
     let bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0
-    let bh = jBar ? parseFloat(jBar.getAttribute('barHeight')) : 0
 
     const elGrid = ttCtx.getElGrid()
     let seriesBound = elGrid.getBoundingClientRect()
@@ -420,19 +415,7 @@ export default class Position {
         }
       }
     } else {
-      if (bcy > w.globals.gridHeight / 2) {
-        bcy = bcy - ttCtx.tooltipRect.ttHeight
-      }
-
-      bcy = bcy + w.config.grid.padding.top + bh / 3
-
-      if (bcy + bh > w.globals.gridHeight) {
-        bcy = w.globals.gridHeight - bh
-      }
-    }
-
-    if (bcy < -10) {
-      bcy = -10
+      bcy = bcy - ttCtx.tooltipRect.ttHeight
     }
 
     if (!w.globals.isBarHorizontal) {
