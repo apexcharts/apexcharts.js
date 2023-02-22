@@ -372,14 +372,32 @@ class Bar {
 
     let i = indexes.i
     let j = indexes.j
+    let barYPosition
 
     if (w.globals.isXNumeric) {
       y =
         (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
         barHeight
-    }
+      barYPosition = y + barHeight * this.visibleI
+    } else {
+      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+        let nonZeroColumns = 0
+        let zeroEncounters = 0
+        w.globals.seriesPercent.forEach((_s, _si) => {
+          if (_s[j]) {
+            nonZeroColumns++
+          }
 
-    let barYPosition = y + barHeight * this.visibleI
+          if (_si < i && _s[j] === 0) {
+            zeroEncounters++
+          }
+        })
+
+        barHeight = (this.seriesLen * barHeight) / nonZeroColumns
+        barYPosition = y + barHeight * this.visibleI
+        barYPosition -= barHeight * zeroEncounters
+      }
+    }
 
     x = this.barHelpers.getXForValue(this.series[i][j], zeroW)
 
@@ -434,6 +452,7 @@ class Bar {
     let i = indexes.i
     let j = indexes.j
     let bc = indexes.bc
+    let barXPosition
 
     if (w.globals.isXNumeric) {
       let sxI = realIndex
@@ -445,9 +464,28 @@ class Bar {
           (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
           (barWidth * this.seriesLen) / 2
       }
-    }
 
-    let barXPosition = x + barWidth * this.visibleI
+      // re-calc barXPosition as x changed
+      barXPosition = x + barWidth * this.visibleI
+    } else {
+      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+        let nonZeroColumns = 0
+        let zeroEncounters = 0
+        w.globals.seriesPercent.forEach((_s, _si) => {
+          if (_s[j]) {
+            nonZeroColumns++
+          }
+
+          if (_si < i && _s[j] === 0) {
+            zeroEncounters++
+          }
+        })
+
+        barWidth = (this.seriesLen * barWidth) / nonZeroColumns
+        barXPosition = x + barWidth * this.visibleI
+        barXPosition -= barWidth * zeroEncounters
+      }
+    }
 
     y = this.barHelpers.getYForValue(this.series[i][j], zeroH)
 

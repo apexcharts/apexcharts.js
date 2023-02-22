@@ -515,6 +515,7 @@ type ApexPlotOptions = {
     borderRadius?: number;
     borderRadiusApplication?: 'around' | 'end';
     borderRadiusWhenStacked?: 'all' | 'last';
+    hideZeroBarsWhenGrouped?: boolean
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
     colors?: {

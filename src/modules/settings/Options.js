@@ -248,7 +248,6 @@ export default class Options {
   init() {
     return {
       annotations: {
-        position: 'front',
         yaxis: [this.yAxisAnnotation],
         xaxis: [this.xAxisAnnotation],
         points: [this.pointAnnotation],
@@ -412,6 +411,7 @@ export default class Options {
           borderRadiusWhenStacked: 'last', // [all, last]
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
+          hideZeroBarsWhenGrouped: true,
           colors: {
             ranges: [],
             backgroundBarColors: [],
@@ -731,7 +731,7 @@ export default class Options {
         position: 'back',
         xaxis: {
           lines: {
-            show: true
+            show: false
           }
         },
         yaxis: {
