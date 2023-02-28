@@ -357,7 +357,7 @@ export default class Position {
     }
   }
 
-  moveStickyTooltipOverBars(j) {
+  moveStickyTooltipOverBars(j, capturedSeries) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -377,6 +377,15 @@ export default class Position {
     let jBar = w.globals.dom.baseEl.querySelector(
       `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     )
+    if (!jBar && typeof capturedSeries == 'number') {
+      // Try with captured series index
+      jBar = w.globals.dom.baseEl.querySelector(
+        `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`
+      );
+    }
 
     let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
     let bcy = jBar ? parseFloat(jBar.getAttribute('cy')) : 0
@@ -386,9 +395,9 @@ export default class Position {
     const elGrid = ttCtx.getElGrid()
     let seriesBound = elGrid.getBoundingClientRect()
 
-    const isBoxOrCandle =
+    const isBoxOrCandle = jBar && (
       jBar.classList.contains('apexcharts-candlestick-area') ||
-      jBar.classList.contains('apexcharts-boxPlot-area')
+      jBar.classList.contains('apexcharts-boxPlot-area'))
     if (w.globals.isXNumeric) {
       if (jBar && !isBoxOrCandle) {
         bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)

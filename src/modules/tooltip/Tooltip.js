@@ -669,6 +669,9 @@ export default class Tooltip {
     let j = capj.j
     let capturedSeries = capj.capturedSeries
 
+    if (w.globals.collapsedSeriesIndices.includes(capturedSeries))
+      capturedSeries = null
+
     const bounds = opt.elGrid.getBoundingClientRect()
     if (capj.hoverX < 0 || capj.hoverX > bounds.width) {
       this.handleMouseOut(opt)
@@ -681,7 +684,8 @@ export default class Tooltip {
       // couldn't capture any series. check if shared X is same,
       // if yes, draw a grouped tooltip
       if (this.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) {
-        this.create(e, this, 0, j, opt.ttItems)
+        const firstVisibleSeries = w.globals.series.findIndex((s,i) => !w.globals.collapsedSeriesIndices.includes(i))
+        this.create(e, this, firstVisibleSeries, j, opt.ttItems)
       }
     }
   }
@@ -708,7 +712,8 @@ export default class Tooltip {
       }
     } else {
       if (this.tooltipUtil.isXoverlap(j)) {
-        this.create(e, this, 0, j, opt.ttItems)
+        const firstVisibleSeries = w.globals.series.findIndex((s,i) => !w.globals.collapsedSeriesIndices.includes(i));
+        this.create(e, this, firstVisibleSeries, j, opt.ttItems)
       }
     }
   }
@@ -788,7 +793,7 @@ export default class Tooltip {
 
     if (shared === null) shared = this.tConfig.shared
 
-    const hasMarkers = this.tooltipUtil.hasMarkers()
+    const hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries)
 
     const bars = this.tooltipUtil.getElBars()
 
@@ -847,7 +852,7 @@ export default class Tooltip {
         }
       }
 
-      if (this.tooltipUtil.hasBars()) {
+      else if (this.tooltipUtil.hasBars()) {
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars)
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
@@ -859,7 +864,7 @@ export default class Tooltip {
           // de-activate first
           this.deactivateHoverFilter()
 
-          this.tooltipPosition.moveStickyTooltipOverBars(j)
+          this.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
 
           for (let b = 0; b < paths.length; b++) {
             graphics.pathMouseEnter(paths[b])
@@ -875,7 +880,7 @@ export default class Tooltip {
       })
 
       if (this.tooltipUtil.hasBars()) {
-        ttCtx.tooltipPosition.moveStickyTooltipOverBars(j)
+        ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
       }
 
       if (hasMarkers) {

@@ -280,7 +280,12 @@ export default class Utils {
     return totalHeight
   }
 
-  getElMarkers() {
+  getElMarkers(capturedSeries) {
+    if (typeof capturedSeries == 'number') {
+      return this.w.globals.dom.baseEl.querySelectorAll(
+        `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers`
+      )
+    }
     return this.w.globals.dom.baseEl.querySelectorAll(
       ' .apexcharts-series-markers'
     )
@@ -308,8 +313,8 @@ export default class Utils {
     return markers
   }
 
-  hasMarkers() {
-    const markers = this.getElMarkers()
+  hasMarkers(capturedSeries) {
+    const markers = this.getElMarkers(capturedSeries)
     return markers.length > 0
   }
 
