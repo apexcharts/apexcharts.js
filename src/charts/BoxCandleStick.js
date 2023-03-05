@@ -11,9 +11,10 @@ import Utils from '../utils/Utils'
  **/
 
 class BoxCandleStick extends Bar {
-  draw(series, seriesIndex) {
+  draw(series, ctype, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
+    let type = w.globals.comboCharts ? ctype : w.config.chart.type
     let fill = new Fill(this.ctx)
 
     this.candlestickOptions = this.w.config.plotOptions.candlestick
@@ -28,7 +29,7 @@ class BoxCandleStick extends Bar {
     this.barHelpers.initVariables(series)
 
     let ret = graphics.group({
-      class: `apexcharts-${w.config.chart.type}-series apexcharts-plot-series`
+      class: `apexcharts-${type}-series apexcharts-plot-series`
     })
 
     for (let i = 0; i < series.length; i++) {

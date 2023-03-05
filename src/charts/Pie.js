@@ -610,7 +610,9 @@ class Pie {
       Array.prototype.forEach.call(allEls, (pieSlice) => {
         pieSlice.setAttribute('data:pieClicked', 'false')
         let origPath = pieSlice.getAttribute('data:pathOrig')
-        pieSlice.setAttribute('d', origPath)
+        if (origPath) {
+          pieSlice.setAttribute('d', origPath)
+        }
       })
       elPath.attr('data:pieClicked', 'true')
     }
