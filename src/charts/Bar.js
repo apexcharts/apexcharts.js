@@ -225,8 +225,8 @@ class Bar {
           x,
           y,
           series,
-          barHeight,
-          barWidth,
+          barHeight: paths.barHeight ? paths.barHeight : barHeight,
+          barWidth: paths.barWidth ? paths.barWidth : barWidth,
           elDataLabelsWrap,
           elGoalsMarkers,
           visibleSeries: this.visibleI,
@@ -432,7 +432,8 @@ class Bar {
       x,
       y,
       goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
-      barYPosition
+      barYPosition,
+      barHeight
     }
   }
 
@@ -484,6 +485,8 @@ class Bar {
         barWidth = (this.seriesLen * barWidth) / nonZeroColumns
         barXPosition = x + barWidth * this.visibleI
         barXPosition -= barWidth * zeroEncounters
+      } else {
+        barXPosition = x + barWidth * this.visibleI
       }
     }
 
@@ -521,7 +524,8 @@ class Bar {
       x,
       y,
       goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
-      barXPosition
+      barXPosition,
+      barWidth
     }
   }
 
