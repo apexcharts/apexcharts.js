@@ -489,6 +489,10 @@ export default class BarDataLabels {
         })
       }
 
+      if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+        text = ''
+      }
+
       let valIsNegative = w.globals.series[i][j] < 0
       let position = w.config.plotOptions.bar.dataLabels.position
       if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
