@@ -268,7 +268,12 @@ export default class ApexCharts {
       if (w.config.grid.position === 'back' && elgrid) {
         w.globals.dom.elGraphical.add(elgrid.el)
       }
-
+      
+      if (w.config.annotations.position === 'back') {
+        w.globals.dom.Paper.add(w.globals.dom.elAnnotations);
+        me.annotations.drawAxesAnnotations();
+      }
+      
       if (Array.isArray(graphData.elGraph)) {
         for (let g = 0; g < graphData.elGraph.length; g++) {
           w.globals.dom.elGraphical.add(graphData.elGraph[g])
@@ -292,6 +297,11 @@ export default class ApexCharts {
       if (w.config.yaxis[0].crosshairs.position === 'front') {
         me.crosshairs.drawYCrosshairs()
       }
+      
+      if (w.config.annotations.position === 'front') {
+        w.globals.dom.Paper.add(w.globals.dom.elAnnotations);
+        me.annotations.drawAxesAnnotations();
+      }
 
       if (w.config.chart.type !== 'treemap') {
         me.axes.drawAxis(w.config.chart.type, elgrid)
@@ -309,9 +319,6 @@ export default class ApexCharts {
           }
         })
       }
-
-      w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
-      me.annotations.drawAxesAnnotations()
 
       if (!w.globals.noData) {
         // draw tooltips at the end
