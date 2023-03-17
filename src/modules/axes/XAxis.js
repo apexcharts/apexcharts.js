@@ -280,10 +280,6 @@ export default class XAxis {
           : xaxisForeColors[i]
       }
 
-      if (isLeafGroup && label.text) {
-        w.globals.xaxisLabelsCount++
-      }
-
       if (w.config.xaxis.labels.show) {
         let elText = graphics.drawText({
           x: label.x,

@@ -12,7 +12,7 @@ import Helpers from './Helpers'
  **/
 
 class Legend {
-  constructor(ctx, opts) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -44,14 +44,6 @@ class Legend {
       }
 
       this.drawLegends()
-      if (!Utils.isIE11()) {
-        this.legendHelpers.appendToForeignObject()
-      } else {
-        // IE11 doesn't supports foreignObject, hence append it to <head>
-        document
-          .getElementsByTagName('head')[0]
-          .appendChild(this.legendHelpers.getLegendStyles())
-      }
 
       if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
         this.legendAlignHorizontal()
@@ -131,14 +123,6 @@ class Legend {
       let mBorderWidth = w.config.legend.markers.strokeWidth
       let mBorderColor = w.config.legend.markers.strokeColor
       let mBorderRadius = w.config.legend.markers.radius
-
-      // todo - untested code below
-      // if (Array.isArray(w.config.legend.markers.shape)) {
-      // } else {
-      //   if (w.config.legend.markers.shape !== 'circle') {
-      //     mBorderRadius = 1
-      //   }
-      // }
 
       let mStyle = elMarker.style
 
@@ -291,6 +275,7 @@ class Legend {
     }
 
     w.globals.dom.elWrap.addEventListener('click', me.onLegendClick, true)
+    w.globals.dom.elWrap.appendChild(w.globals.dom.elLegendWrap)
 
     if (
       w.config.legend.onItemHover.highlightDataSeries &&
@@ -312,7 +297,7 @@ class Legend {
   setLegendWrapXY(offsetX, offsetY) {
     let w = this.w
 
-    let elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
+    let elLegendWrap = w.globals.dom.elLegendWrap
 
     const legendRect = elLegendWrap.getBoundingClientRect()
 
@@ -359,7 +344,7 @@ class Legend {
   legendAlignHorizontal() {
     let w = this.w
 
-    let elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
+    let elLegendWrap = w.globals.dom.elLegendWrap
 
     elLegendWrap.style.right = 0
 

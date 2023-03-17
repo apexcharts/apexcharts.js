@@ -263,11 +263,11 @@ export default class Core {
       }
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
-          boxCandlestick.draw(candlestickSeries.series, candlestickSeries.i)
+          boxCandlestick.draw(candlestickSeries.series, 'candlestick', candlestickSeries.i)
         )
       }
       if (boxplotSeries.series.length > 0) {
-        elGraph.push(boxCandlestick.draw(boxplotSeries.series, boxplotSeries.i))
+        elGraph.push(boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i))
       }
       if (rangeBarSeries.series.length > 0) {
         elGraph.push(
@@ -306,11 +306,11 @@ export default class Core {
           break
         case 'candlestick':
           let candleStick = new BoxCandleStick(this.ctx, xyRatios)
-          elGraph = candleStick.draw(gl.series)
+          elGraph = candleStick.draw(gl.series, 'candlestick')
           break
         case 'boxPlot':
           let boxPlot = new BoxCandleStick(this.ctx, xyRatios)
-          elGraph = boxPlot.draw(gl.series)
+          elGraph = boxPlot.draw(gl.series, 'boxPlot')
           break
         case 'rangeBar':
           elGraph = this.ctx.rangeBar.draw(gl.series)

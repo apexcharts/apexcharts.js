@@ -206,7 +206,11 @@ export default class Range {
     const logTickSpacing = logRange / ticks
 
     // Create as many ticks as there is range in the logs.
-    for (let i = 0, logTick = logMin; i < ticks; i++, logTick += logTickSpacing) {
+    for (
+      let i = 0, logTick = logMin;
+      i < ticks;
+      i++, logTick += logTickSpacing
+    ) {
       logs.push(Math.pow(base, logTick))
     }
 
@@ -227,11 +231,10 @@ export default class Range {
       this.w.config.yaxis[index].labels.formatter &&
       this.w.config.yaxis[index].tickAmount === undefined
     ) {
-      const formattedVal = this.w.config.yaxis[index].labels.formatter(1)
-      if (
-        Utils.isNumber(Number(formattedVal)) &&
-        !Utils.isFloat(formattedVal)
-      ) {
+      const formattedVal = Number(
+        this.w.config.yaxis[index].labels.formatter(1)
+      )
+      if (Utils.isNumber(formattedVal) && this.w.globals.yValueDecimal === 0) {
         newTicks = Math.ceil(range)
       }
     }

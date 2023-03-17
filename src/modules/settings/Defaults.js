@@ -605,6 +605,21 @@ export default class Defaults {
     return opts
   }
 
+  stackedBars() {
+    const barDefaults = this.bar()
+    return {
+      ...barDefaults,
+      plotOptions: {
+        ...barDefaults.plotOptions,
+        bar: {
+          ...barDefaults.plotOptions.bar,
+          borderRadiusApplication: 'end',
+          borderRadiusWhenStacked: 'last'
+        }
+      }
+    }
+  }
+
   // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
   convertCatToNumeric(opts) {
     opts.xaxis.convertedCatToNumeric = true

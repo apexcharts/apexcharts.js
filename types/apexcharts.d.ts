@@ -347,7 +347,6 @@ type ApexStroke = {
 }
 
 type ApexAnnotations = {
-  position?: string
   yaxis?: YAxisAnnotations[]
   xaxis?: XAxisAnnotations[]
   points?: PointAnnotations[]
@@ -516,6 +515,7 @@ type ApexPlotOptions = {
     borderRadius?: number;
     borderRadiusApplication?: 'around' | 'end';
     borderRadiusWhenStacked?: 'all' | 'last';
+    hideZeroBarsWhenGrouped?: boolean
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
     colors?: {

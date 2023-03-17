@@ -94,12 +94,24 @@ export default class Labels {
 
       if (w.globals.axisCharts) {
         const getValBySeriesIndex = (index) => {
-          return f.yLbFormatter(w.globals.series[index][j], {
+          let _val = ''
+          if (w.globals.isRangeData) {
+            _val +=
+              f.yLbFormatter(w.globals.seriesRangeStart?.[index]?.[j], {
+                series: w.globals.seriesRangeStart,
+                seriesIndex: index,
+                dataPointIndex: j,
+                w
+              }) + ' - '
+          }
+          _val += f.yLbFormatter(w.globals.series[index][j], {
             series: w.globals.series,
             seriesIndex: index,
             dataPointIndex: j,
             w
           })
+
+          return _val
         }
         if (shared) {
           f = this.getFormatters(tIndex)
@@ -364,29 +376,6 @@ export default class Labels {
         ttItemsChildren[0].parentNode.style.display =
           w.config.tooltip.items.display
       }
-
-      // TODO: issue #1240 needs to be looked at again. commenting it because this also hides single series values with 0 in it (shared tooltip)
-
-      // if (w.globals.stackedSeriesTotals[j] === 0) {
-      //   // shared tooltip and all values are null, so we need to hide the x value too
-      //   let allYZeroForJ = false
-      //   for (let si = 1; si < w.globals.seriesYvalues.length; si++) {
-      //     if (
-      //       w.globals.seriesYvalues[si][j] ===
-      //       w.globals.seriesYvalues[si - 1][j]
-      //     ) {
-      //       allYZeroForJ = true
-      //     }
-      //   }
-
-      //   if (allYZeroForJ) {
-      //     ttCtx.tooltipTitle.style.display = 'none'
-      //   } else {
-      //     ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
-      //   }
-      // } else {
-      //   ttCtx.tooltipTitle.style.display = w.config.tooltip.items.display
-      // }
     }
   }
 

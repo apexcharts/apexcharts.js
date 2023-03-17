@@ -180,8 +180,6 @@ class Intersect {
     // y is NaN, make it touch the bottom of grid area
     if (isNaN(y)) {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
-    } else if (y < 0) {
-      y = 0
     }
 
     const seriesIndex = parseInt(
@@ -236,18 +234,8 @@ class Intersect {
       ) {
         y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2
       }
-      if (ttCtx.tooltipRect.ttHeight + y > w.globals.gridHeight) {
-        y =
-          w.globals.gridHeight -
-          ttCtx.tooltipRect.ttHeight +
-          w.globals.translateY
-      } else {
-        y = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2
 
-        if (y < 0) {
-          y = 0
-        }
-      }
+      y = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2
 
       tooltipEl.style.left = x + w.globals.translateX + 'px'
       tooltipEl.style.top = y + 'px'

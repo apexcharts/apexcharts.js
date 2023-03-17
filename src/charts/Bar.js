@@ -225,8 +225,8 @@ class Bar {
           x,
           y,
           series,
-          barHeight,
-          barWidth,
+          barHeight: paths.barHeight ? paths.barHeight : barHeight,
+          barWidth: paths.barWidth ? paths.barWidth : barWidth,
           elDataLabelsWrap,
           elGoalsMarkers,
           visibleSeries: this.visibleI,
@@ -372,14 +372,32 @@ class Bar {
 
     let i = indexes.i
     let j = indexes.j
+    let barYPosition
 
     if (w.globals.isXNumeric) {
       y =
         (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
         barHeight
-    }
+      barYPosition = y + barHeight * this.visibleI
+    } else {
+      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+        let nonZeroColumns = 0
+        let zeroEncounters = 0
+        w.globals.seriesPercent.forEach((_s, _si) => {
+          if (_s[j]) {
+            nonZeroColumns++
+          }
 
-    let barYPosition = y + barHeight * this.visibleI
+          if (_si < i && _s[j] === 0) {
+            zeroEncounters++
+          }
+        })
+
+        barHeight = (this.seriesLen * barHeight) / nonZeroColumns
+        barYPosition = y + barHeight * this.visibleI
+        barYPosition -= barHeight * zeroEncounters
+      }
+    }
 
     x = this.barHelpers.getXForValue(this.series[i][j], zeroW)
 
@@ -414,7 +432,8 @@ class Bar {
       x,
       y,
       goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
-      barYPosition
+      barYPosition,
+      barHeight
     }
   }
 
@@ -434,19 +453,42 @@ class Bar {
     let i = indexes.i
     let j = indexes.j
     let bc = indexes.bc
+    let barXPosition
 
     if (w.globals.isXNumeric) {
       let sxI = realIndex
       if (!w.globals.seriesX[realIndex].length) {
         sxI = w.globals.maxValsInArrayIndex
       }
+      if (w.globals.seriesX[sxI][j]) {
+        x =
+          (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
+          (barWidth * this.seriesLen) / 2
+      }
 
-      x =
-        (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
-        (barWidth * this.seriesLen) / 2
+      // re-calc barXPosition as x changed
+      barXPosition = x + barWidth * this.visibleI
+    } else {
+      if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+        let nonZeroColumns = 0
+        let zeroEncounters = 0
+        w.globals.seriesPercent.forEach((_s, _si) => {
+          if (_s[j]) {
+            nonZeroColumns++
+          }
+
+          if (_si < i && _s[j] === 0) {
+            zeroEncounters++
+          }
+        })
+
+        barWidth = (this.seriesLen * barWidth) / nonZeroColumns
+        barXPosition = x + barWidth * this.visibleI
+        barXPosition -= barWidth * zeroEncounters
+      } else {
+        barXPosition = x + barWidth * this.visibleI
+      }
     }
-
-    let barXPosition = x + barWidth * this.visibleI
 
     y = this.barHelpers.getYForValue(this.series[i][j], zeroH)
 
@@ -482,7 +524,8 @@ class Bar {
       x,
       y,
       goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
-      barXPosition
+      barXPosition,
+      barWidth
     }
   }
 
