@@ -411,7 +411,7 @@ export default class Options {
           borderRadiusWhenStacked: 'last', // [all, last]
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
-          hideZeroBarsWhenGrouped: true,
+          hideZeroBarsWhenGrouped: false,
           colors: {
             ranges: [],
             backgroundBarColors: [],
