@@ -281,13 +281,15 @@ export default class Utils {
   }
 
   getElMarkers(capturedSeries) {
+    // The selector .apexcharts-series-markers-wrap > * includes marker groups for which the
+    // .apexcharts-series-markers class is not added due to null values or discrete markers
     if (typeof capturedSeries == 'number') {
       return this.w.globals.dom.baseEl.querySelectorAll(
-        `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers`
+        `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers-wrap > *`
       )
     }
     return this.w.globals.dom.baseEl.querySelectorAll(
-      ' .apexcharts-series-markers'
+      '.apexcharts-series-markers-wrap > *'
     )
   }
 
