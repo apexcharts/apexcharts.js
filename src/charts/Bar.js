@@ -393,9 +393,13 @@ class Bar {
           }
         })
 
-        barHeight = (this.seriesLen * barHeight) / nonZeroColumns
+        if (nonZeroColumns > 0) {
+          barHeight = (this.seriesLen * barHeight) / nonZeroColumns
+        }
         barYPosition = y + barHeight * this.visibleI
         barYPosition -= barHeight * zeroEncounters
+      } else {
+        barYPosition = y + barHeight * this.visibleI
       }
     }
 
@@ -482,7 +486,9 @@ class Bar {
           }
         })
 
-        barWidth = (this.seriesLen * barWidth) / nonZeroColumns
+        if (nonZeroColumns > 0) {
+          barWidth = (this.seriesLen * barWidth) / nonZeroColumns
+        }
         barXPosition = x + barWidth * this.visibleI
         barXPosition -= barWidth * zeroEncounters
       } else {
