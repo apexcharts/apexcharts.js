@@ -259,14 +259,6 @@ class Radial extends Pie {
       }
     }
 
-    let barLabelFormatter = this.barLabels.formatter;
-
-    if (!barLabelFormatter) {
-      barLabelFormatter = function (val) {
-        return val
-      }
-    }
-
     let reverseLoop = false
     if (w.config.plotOptions.radialBar.inverseOrder) {
       reverseLoop = true
@@ -370,7 +362,7 @@ class Radial extends Pie {
           opts.size,
           startAngle
         )
-        let text = barLabelFormatter(w.globals.seriesNames[i], { seriesIndex: i, w })
+        let text = this.barLabels.formatter(w.globals.seriesNames[i], { seriesIndex: i, w })
         let classes = ['apexcharts-radialbar-label'];
         if (!this.barLabels.onClick) {
           classes.push('apexcharts-no-click')

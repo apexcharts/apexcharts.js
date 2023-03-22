@@ -527,6 +527,13 @@ export default class Options {
               opacity: 0.5
             }
           },
+          barLabels: {
+            enabled: false,
+            margin: 5,
+            formatter(val) {
+              return val
+            }
+          },
           dataLabels: {
             show: true,
             name: {
