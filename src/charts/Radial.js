@@ -259,7 +259,7 @@ class Radial extends Pie {
       }
     }
 
-    let barLabelFormatter = w.config.plotOptions.radialBar.barLabels.formatter;
+    let barLabelFormatter = this.barLabels.formatter;
 
     if (!barLabelFormatter) {
       barLabelFormatter = function (val) {
@@ -376,7 +376,7 @@ class Radial extends Pie {
           classes.push('apexcharts-no-click')
         }
 
-        let textColor = w.config.plotOptions.radialBar.barLabels.useSeriesColors
+        let textColor = this.barLabels.useSeriesColors
           ? w.globals.colors[i]
           : w.config.chart.foreColor
 
@@ -392,9 +392,9 @@ class Radial extends Pie {
           text,
           textAnchor: 'end',
           dominantBaseline: 'middle',
-          fontFamily: w.config.plotOptions.radialBar.barLabels.fontFamily,
-          fontWeight: w.config.plotOptions.radialBar.barLabels.fontWeight,
-          fontSize: w.config.plotOptions.radialBar.barLabels.fontSize,
+          fontFamily: this.barLabels.fontFamily,
+          fontWeight: this.barLabels.fontWeight,
+          fontSize: this.barLabels.fontSize,
           foreColor: textColor,
           cssClass: classes.join(' ')
         })
