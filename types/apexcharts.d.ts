@@ -713,7 +713,7 @@ type ApexPlotOptions = {
       fontWeight?: string | number
       fontSize?: string
       formatter?: (barName: string, opts?: any) => string
-      onClick: (barName: string, opts?: any) => void
+      onClick?: (barName: string, opts?: any) => void
     }
     dataLabels?: {
       show?: boolean
