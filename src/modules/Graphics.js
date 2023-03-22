@@ -659,7 +659,8 @@ class Graphics {
     opacity,
     maxWidth,
     cssClass = '',
-    isPlainText = true
+    isPlainText = true,
+    dominantBaseline = 'auto'
   }) {
     let w = this.w
 
@@ -714,7 +715,7 @@ class Graphics {
       x,
       y,
       'text-anchor': textAnchor,
-      'dominant-baseline': 'auto',
+      'dominant-baseline': dominantBaseline,
       'font-size': fontSize,
       'font-family': fontFamily,
       'font-weight': fontWeight,

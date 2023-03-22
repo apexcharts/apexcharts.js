@@ -705,6 +705,16 @@ type ApexPlotOptions = {
       margin?: number
       dropShadow?: ApexDropShadow
     }
+    barLabels?: {
+      enabled?: boolean
+      margin?: number
+      useSeriesColors?: boolean
+      fontFamily?: string
+      fontWeight?: string | number
+      fontSize?: string
+      formatter?: (barName: string, opts?: any) => string
+      onClick: (barName: string, opts?: any) => void
+    }
     dataLabels?: {
       show?: boolean
       name?: {

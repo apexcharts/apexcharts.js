@@ -29,6 +29,15 @@ plotOptions: {
       background: 'transparent',
       image: undefined,
     },
+    barLabels: {
+      enabled: true,
+      useSeriesColors: true,
+      margin: 8,
+      fontSize: '16px',
+      formatter: function(seriesName, opts) {
+        return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
+      },
+    },
     dataLabels: {
       name: {
         show: false,
@@ -41,31 +50,15 @@ plotOptions: {
 },
 colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
 labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
-legend: {
-  show: true,
-  floating: true,
-  fontSize: '16px',
-  position: 'left',
-  offsetX: 160,
-  offsetY: 15,
-  labels: {
-    useSeriesColors: true,
-  },
-  markers: {
-    size: 0
-  },
-  formatter: function(seriesName, opts) {
-    return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
-  },
-  itemMargin: {
-    vertical: 3
-  }
-},
 responsive: [{
   breakpoint: 480,
   options: {
-    legend: {
-        show: false
+    plotOptions: {
+      radialBar: {
+        barLabels: {
+          enabled: false
+        }
+      }
     }
   }
 }]

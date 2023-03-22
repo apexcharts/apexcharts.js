@@ -991,6 +991,10 @@ export default class Defaults {
           show: false
         }
       },
+      barLabels: {
+        enabled: false,
+        margin: 8
+      },
       fill: {
         gradient: {
           shade: 'dark',

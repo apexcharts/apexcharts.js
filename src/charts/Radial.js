@@ -30,6 +30,8 @@ class Radial extends Pie {
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
     this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle
 
+    this.barLabels = this.w.config.plotOptions.radialBar.barLabels;
+
     this.donutDataLabels = this.w.config.plotOptions.radialBar.dataLabels
     this.radialDataLabels = this.donutDataLabels // make a copy for easy reference
 
@@ -39,6 +41,8 @@ class Radial extends Pie {
     if (this.endAngle === 360) this.endAngle = 359.99
 
     this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10)
+
+    this.onBarLabelClick = this.onBarLabelClick.bind(this)
   }
 
   draw(series) {
@@ -255,6 +259,14 @@ class Radial extends Pie {
       }
     }
 
+    let barLabelFormatter = w.config.plotOptions.radialBar.barLabels.formatter;
+
+    if (!barLabelFormatter) {
+      barLabelFormatter = function (val) {
+        return val
+      }
+    }
+
     let reverseLoop = false
     if (w.config.plotOptions.radialBar.inverseOrder) {
       reverseLoop = true
@@ -350,6 +362,58 @@ class Radial extends Pie {
         index: 0,
         j: i
       })
+
+      if (this.barLabels.enabled) {
+        let barStartCords = Utils.polarToCartesian(
+          opts.centerX,
+          opts.centerY,
+          opts.size,
+          startAngle
+        )
+        let text = barLabelFormatter(w.globals.seriesNames[i], { seriesIndex: i, w })
+        let classes = ['apexcharts-radialbar-label'];
+        if (!this.barLabels.onClick) {
+          classes.push('apexcharts-no-click')
+        }
+
+        let textColor = w.config.plotOptions.radialBar.barLabels.useSeriesColors
+          ? w.globals.colors[i]
+          : w.config.chart.foreColor
+
+        if (!textColor) {
+          textColor = w.config.chart.foreColor
+        }
+
+        const x = barStartCords.x - this.barLabels.margin;
+        const y = barStartCords.y;
+        let elText = graphics.drawText({
+          x,
+          y,
+          text,
+          textAnchor: 'end',
+          dominantBaseline: 'middle',
+          fontFamily: w.config.plotOptions.radialBar.barLabels.fontFamily,
+          fontWeight: w.config.plotOptions.radialBar.barLabels.fontWeight,
+          fontSize: w.config.plotOptions.radialBar.barLabels.fontSize,
+          foreColor: textColor,
+          cssClass: classes.join(' ')
+        })
+
+        elText.on('click', this.onBarLabelClick)
+
+        elText.attr({
+          rel: i + 1
+        })
+
+        if (startAngle !== 0) {
+          elText.attr({
+            'transform-origin': `${x} ${y}`,
+            transform: `rotate(${startAngle} 0 0)`
+          })
+        }
+
+        elRadialBarArc.add(elText)
+      }
 
       let dur = 0
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -463,6 +527,16 @@ class Radial extends Pie {
         (opts.series.length + 1) -
       this.margin
     )
+  }
+
+  onBarLabelClick(e) {
+    let seriesIndex = parseInt(e.target.getAttribute('rel'), 10) - 1
+    const legendClick = this.barLabels.onClick
+    const w = this.w;
+
+    if (legendClick) {
+      legendClick(w.globals.seriesNames[seriesIndex], { w, seriesIndex })
+    }
   }
 }
 
