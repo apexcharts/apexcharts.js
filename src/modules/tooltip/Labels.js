@@ -94,24 +94,29 @@ export default class Labels {
 
       if (w.globals.axisCharts) {
         const getValBySeriesIndex = (index) => {
-          let _val = ''
           if (w.globals.isRangeData) {
-            _val +=
+            return (
               f.yLbFormatter(w.globals.seriesRangeStart?.[index]?.[j], {
                 series: w.globals.seriesRangeStart,
                 seriesIndex: index,
                 dataPointIndex: j,
                 w
-              }) + ' - '
+              }) +
+              ' - ' +
+              f.yLbFormatter(w.globals.seriesRangeEnd?.[index]?.[j], {
+                series: w.globals.seriesRangeEnd,
+                seriesIndex: index,
+                dataPointIndex: j,
+                w
+              })
+            )
           }
-          _val += f.yLbFormatter(w.globals.series[index][j], {
+          return f.yLbFormatter(w.globals.series[index][j], {
             series: w.globals.series,
             seriesIndex: index,
             dataPointIndex: j,
             w
           })
-
-          return _val
         }
         if (shared) {
           f = this.getFormatters(tIndex)
