@@ -66,22 +66,8 @@ export default class Markers {
       )
     }
 
-    if (typeof w.globals.pointsArray[seriesIndex] === 'undefined')
-      w.globals.pointsArray[seriesIndex] = []
-
     if (Array.isArray(p.x)) {
       for (let q = 0; q < p.x.length; q++) {
-        w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]])
-
-        if (
-          p.x[q] < 0 ||
-          p.x[q] > w.globals.gridWidth ||
-          p.y[q] < 0 ||
-          p.y[q] > w.globals.gridHeight
-        ) {
-          continue
-        }
-
         let dataPointIndex = j
 
         // a small hack as we have 2 points for the first val to connect it
@@ -143,6 +129,12 @@ export default class Markers {
           if (elPointsWrap) {
             elPointsWrap.add(point)
           }
+        } else {
+          // dynamic array creation - multidimensional
+          if (typeof w.globals.pointsArray[seriesIndex] === 'undefined')
+            w.globals.pointsArray[seriesIndex] = []
+
+          w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]])
         }
       }
     }
