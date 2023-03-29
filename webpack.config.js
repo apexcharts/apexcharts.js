@@ -1,5 +1,6 @@
 const path = require('path')
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer')
+const ESLintPlugin = require('eslint-webpack-plugin')
 
 module.exports = {
   entry: [path.resolve(__dirname, 'src/apexcharts.js')],
@@ -45,6 +46,7 @@ module.exports = {
     maxAssetSize: 512000
   },
   plugins: [
+    new ESLintPlugin(),
     new BundleAnalyzerPlugin({
       analyzerMode: 'static',
       reportFilename: path.join('..', 'bundle-analysis.html'),

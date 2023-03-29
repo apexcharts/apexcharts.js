@@ -68,15 +68,6 @@ export default class Markers {
 
     if (Array.isArray(p.x)) {
       for (let q = 0; q < p.x.length; q++) {
-        if (
-          p.x[q] < 0 ||
-          p.x[q] > w.globals.gridWidth ||
-          p.y[q] < 0 ||
-          p.y[q] > w.globals.gridHeight
-        ) {
-          continue
-        }
-
         let dataPointIndex = j
 
         // a small hack as we have 2 points for the first val to connect it

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.37.1
+ * ApexCharts v3.37.2
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -7,7 +7,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.ApexCharts = factory());
-}(this, (function () { 'use strict';
+})(this, (function () { 'use strict';
 
   function ownKeys(object, enumerableOnly) {
     var keys = Object.keys(object);
@@ -3582,7 +3582,7 @@
               // [all, last]
               rangeBarOverlap: true,
               rangeBarGroupRows: false,
-              hideZeroBarsWhenGrouped: true,
+              hideZeroBarsWhenGrouped: false,
               colors: {
                 ranges: [],
                 backgroundBarColors: [],
@@ -7015,6 +7015,10 @@
 
         if (Array.isArray(p.x)) {
           for (var q = 0; q < p.x.length; q++) {
+            if (p.x[q] < 0 || p.x[q] > w.globals.gridWidth || p.y[q] < 0 || p.y[q] > w.globals.gridHeight) {
+              continue;
+            }
+
             var dataPointIndex = j; // a small hack as we have 2 points for the first val to connect it
 
             if (j === 1 && q === 0) dataPointIndex = 0;
@@ -15686,8 +15690,14 @@
       }
     }, {
       key: "getElMarkers",
-      value: function getElMarkers() {
-        return this.w.globals.dom.baseEl.querySelectorAll(' .apexcharts-series-markers');
+      value: function getElMarkers(capturedSeries) {
+        // The selector .apexcharts-series-markers-wrap > * includes marker groups for which the
+        // .apexcharts-series-markers class is not added due to null values or discrete markers
+        if (typeof capturedSeries == 'number') {
+          return this.w.globals.dom.baseEl.querySelectorAll(".apexcharts-series[data\\:realIndex='".concat(capturedSeries, "'] .apexcharts-series-markers-wrap > *"));
+        }
+
+        return this.w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers-wrap > *');
       }
     }, {
       key: "getAllMarkers",
@@ -15709,8 +15719,8 @@
       }
     }, {
       key: "hasMarkers",
-      value: function hasMarkers() {
-        var markers = this.getElMarkers();
+      value: function hasMarkers(capturedSeries) {
+        var markers = this.getElMarkers(capturedSeries);
         return markers.length > 0;
       }
     }, {
@@ -16589,7 +16599,7 @@
       }
     }, {
       key: "moveStickyTooltipOverBars",
-      value: function moveStickyTooltipOverBars(j) {
+      value: function moveStickyTooltipOverBars(j, capturedSeries) {
         var w = this.w;
         var ttCtx = this.ttCtx;
         var barLen = w.globals.columnSeries ? w.globals.columnSeries.length : w.globals.series.length;
@@ -16601,12 +16611,18 @@
         }
 
         var jBar = w.globals.dom.baseEl.querySelector(".apexcharts-bar-series .apexcharts-series[rel='".concat(i, "'] path[j='").concat(j, "'], .apexcharts-candlestick-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "'], .apexcharts-boxPlot-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "'], .apexcharts-rangebar-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "']"));
+
+        if (!jBar && typeof capturedSeries == 'number') {
+          // Try with captured series index
+          jBar = w.globals.dom.baseEl.querySelector(".apexcharts-bar-series .apexcharts-series[data\\:realIndex='".concat(capturedSeries, "'] path[j='").concat(j, "'],\n        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='").concat(capturedSeries, "'] path[j='").concat(j, "'],\n        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='").concat(capturedSeries, "'] path[j='").concat(j, "'],\n        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='").concat(capturedSeries, "'] path[j='").concat(j, "']"));
+        }
+
         var bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0;
         var bcy = jBar ? parseFloat(jBar.getAttribute('cy')) : 0;
         var bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0;
         var elGrid = ttCtx.getElGrid();
         var seriesBound = elGrid.getBoundingClientRect();
-        var isBoxOrCandle = jBar.classList.contains('apexcharts-candlestick-area') || jBar.classList.contains('apexcharts-boxPlot-area');
+        var isBoxOrCandle = jBar && (jBar.classList.contains('apexcharts-candlestick-area') || jBar.classList.contains('apexcharts-boxPlot-area'));
 
         if (w.globals.isXNumeric) {
           if (jBar && !isBoxOrCandle) {
@@ -17897,6 +17913,7 @@
         });
         var j = capj.j;
         var capturedSeries = capj.capturedSeries;
+        if (w.globals.collapsedSeriesIndices.includes(capturedSeries)) capturedSeries = null;
         var bounds = opt.elGrid.getBoundingClientRect();
 
         if (capj.hoverX < 0 || capj.hoverX > bounds.width) {
@@ -17910,7 +17927,10 @@
           // couldn't capture any series. check if shared X is same,
           // if yes, draw a grouped tooltip
           if (this.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) {
-            this.create(e, this, 0, j, opt.ttItems);
+            var firstVisibleSeries = w.globals.series.findIndex(function (s, i) {
+              return !w.globals.collapsedSeriesIndices.includes(i);
+            });
+            this.create(e, this, firstVisibleSeries, j, opt.ttItems);
           }
         }
       }
@@ -17936,7 +17956,10 @@
           }
         } else {
           if (this.tooltipUtil.isXoverlap(j)) {
-            this.create(e, this, 0, j, opt.ttItems);
+            var firstVisibleSeries = w.globals.series.findIndex(function (s, i) {
+              return !w.globals.collapsedSeriesIndices.includes(i);
+            });
+            this.create(e, this, firstVisibleSeries, j, opt.ttItems);
           }
         }
       }
@@ -18025,7 +18048,7 @@
         }
 
         if (shared === null) shared = this.tConfig.shared;
-        var hasMarkers = this.tooltipUtil.hasMarkers();
+        var hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries);
         var bars = this.tooltipUtil.getElBars();
 
         if (w.config.legend.tooltipHoverFormatter) {
@@ -18080,9 +18103,7 @@
             } else {
               ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
             }
-          }
-
-          if (this.tooltipUtil.hasBars()) {
+          } else if (this.tooltipUtil.hasBars()) {
             this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars);
 
             if (this.barSeriesHeight > 0) {
@@ -18091,7 +18112,7 @@
               var paths = w.globals.dom.Paper.select(".apexcharts-bar-area[j='".concat(j, "']")); // de-activate first
 
               this.deactivateHoverFilter();
-              this.tooltipPosition.moveStickyTooltipOverBars(j);
+              this.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
 
               for (var b = 0; b < paths.length; b++) {
                 graphics.pathMouseEnter(paths[b]);
@@ -18104,7 +18125,7 @@
           }, commonSeriesTextsParams));
 
           if (this.tooltipUtil.hasBars()) {
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j);
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
           }
 
           if (hasMarkers) {
@@ -18545,6 +18566,10 @@
               dataPointIndex: j,
               w: w
             }));
+          }
+
+          if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+            text = '';
           }
 
           var valIsNegative = w.globals.series[i][j] < 0;
@@ -19300,8 +19325,8 @@
               x: x,
               y: y,
               series: series,
-              barHeight: barHeight,
-              barWidth: barWidth,
+              barHeight: paths.barHeight ? paths.barHeight : barHeight,
+              barWidth: paths.barWidth ? paths.barWidth : barWidth,
               elDataLabelsWrap: elDataLabelsWrap,
               elGoalsMarkers: elGoalsMarkers,
               visibleSeries: this.visibleI,
@@ -19457,9 +19482,15 @@
                 zeroEncounters++;
               }
             });
-            barHeight = this.seriesLen * barHeight / nonZeroColumns;
+
+            if (nonZeroColumns > 0) {
+              barHeight = this.seriesLen * barHeight / nonZeroColumns;
+            }
+
             barYPosition = y + barHeight * this.visibleI;
             barYPosition -= barHeight * zeroEncounters;
+          } else {
+            barYPosition = y + barHeight * this.visibleI;
           }
         }
 
@@ -19494,7 +19525,8 @@
           x: x,
           y: y,
           goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
-          barYPosition: barYPosition
+          barYPosition: barYPosition,
+          barHeight: barHeight
         };
       }
     }, {
@@ -19541,9 +19573,15 @@
                 zeroEncounters++;
               }
             });
-            barWidth = this.seriesLen * barWidth / nonZeroColumns;
+
+            if (nonZeroColumns > 0) {
+              barWidth = this.seriesLen * barWidth / nonZeroColumns;
+            }
+
             barXPosition = x + barWidth * this.visibleI;
             barXPosition -= barWidth * zeroEncounters;
+          } else {
+            barXPosition = x + barWidth * this.visibleI;
           }
         }
 
@@ -19579,7 +19617,8 @@
           x: x,
           y: y,
           goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
-          barXPosition: barXPosition
+          barXPosition: barXPosition,
+          barWidth: barWidth
         };
       }
       /** getPreviousPath is a common function for bars/columns which is used to get previous paths when data changes.
@@ -20120,11 +20159,12 @@
 
     _createClass(BoxCandleStick, [{
       key: "draw",
-      value: function draw(series, seriesIndex) {
+      value: function draw(series, ctype, seriesIndex) {
         var _this = this;
 
         var w = this.w;
         var graphics = new Graphics(this.ctx);
+        var type = w.globals.comboCharts ? ctype : w.config.chart.type;
         var fill = new Fill(this.ctx);
         this.candlestickOptions = this.w.config.plotOptions.candlestick;
         this.boxOptions = this.w.config.plotOptions.boxPlot;
@@ -20135,7 +20175,7 @@
         this.yRatio = coreUtils.getLogYRatios(this.yRatio);
         this.barHelpers.initVariables(series);
         var ret = graphics.group({
-          class: "apexcharts-".concat(w.config.chart.type, "-series apexcharts-plot-series")
+          class: "apexcharts-".concat(type, "-series apexcharts-plot-series")
         });
 
         var _loop = function _loop(i) {
@@ -21323,7 +21363,10 @@
           Array.prototype.forEach.call(allEls, function (pieSlice) {
             pieSlice.setAttribute('data:pieClicked', 'false');
             var origPath = pieSlice.getAttribute('data:pathOrig');
-            pieSlice.setAttribute('d', origPath);
+
+            if (origPath) {
+              pieSlice.setAttribute('d', origPath);
+            }
           });
           elPath.attr('data:pieClicked', 'true');
         }
@@ -25378,11 +25421,11 @@
           }
 
           if (candlestickSeries.series.length > 0) {
-            elGraph.push(boxCandlestick.draw(candlestickSeries.series, candlestickSeries.i));
+            elGraph.push(boxCandlestick.draw(candlestickSeries.series, 'candlestick', candlestickSeries.i));
           }
 
           if (boxplotSeries.series.length > 0) {
-            elGraph.push(boxCandlestick.draw(boxplotSeries.series, boxplotSeries.i));
+            elGraph.push(boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i));
           }
 
           if (rangeBarSeries.series.length > 0) {
@@ -25422,12 +25465,12 @@
 
             case 'candlestick':
               var candleStick = new BoxCandleStick(this.ctx, xyRatios);
-              elGraph = candleStick.draw(gl.series);
+              elGraph = candleStick.draw(gl.series, 'candlestick');
               break;
 
             case 'boxPlot':
               var boxPlot = new BoxCandleStick(this.ctx, xyRatios);
-              elGraph = boxPlot.draw(gl.series);
+              elGraph = boxPlot.draw(gl.series, 'boxPlot');
               break;
 
             case 'rangeBar':
@@ -32115,10 +32158,6 @@
 
           if (w.config.grid.position === 'back' && elgrid) {
             w.globals.dom.elGraphical.add(elgrid.el);
-
-            if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
-              w.globals.dom.elGraphical.add(elgrid.elGridBorders);
-            }
           }
 
           if (Array.isArray(graphData.elGraph)) {
@@ -32131,10 +32170,10 @@
 
           if (w.config.grid.position === 'front' && elgrid) {
             w.globals.dom.elGraphical.add(elgrid.el);
+          }
 
-            if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
-              w.globals.dom.elGraphical.add(elgrid.elGridBorders);
-            }
+          if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
+            w.globals.dom.elGraphical.add(elgrid.elGridBorders);
           }
 
           if (w.config.xaxis.crosshairs.position === 'front') {
@@ -32686,4 +32725,4 @@
 
   return ApexCharts$1;
 
-})));
+}));
