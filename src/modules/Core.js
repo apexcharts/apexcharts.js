@@ -1,5 +1,6 @@
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
+import BarGroupedStacked from '../charts/BarGroupedStacked'
 import BoxCandleStick from '../charts/BoxCandleStick'
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
@@ -215,7 +216,7 @@ export default class Core {
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
           console.warn(
-            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble'
+            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble/candlestick/boxPlot/rangeBar/rangeArea'
           )
         }
         if (comboCount > 1) {
@@ -241,8 +242,20 @@ export default class Core {
       }
       if (columnSeries.series.length > 0) {
         if (w.config.chart.stacked) {
-          let barStacked = new BarStacked(this.ctx, xyRatios)
-          elGraph.push(barStacked.draw(columnSeries.series, columnSeries.i))
+          if (w.config.series[columnSeries.i]?.group) {
+            let barGroupedStack = new BarGroupedStacked(this.ctx, xyRatios)
+            elGraph.push(
+              barGroupedStack.draw(
+                columnSeries.series,
+                columnSeries.i,
+                columnSeries.i,
+                w.config.series[columnSeries.i].group
+              )
+            )
+          } else {
+            let barStacked = new BarStacked(this.ctx, xyRatios)
+            elGraph.push(barStacked.draw(columnSeries.series, columnSeries.i))
+          }
         } else {
           this.ctx.bar = new Bar(this.ctx, xyRatios)
           elGraph.push(this.ctx.bar.draw(columnSeries.series, columnSeries.i))
@@ -263,11 +276,17 @@ export default class Core {
       }
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
-          boxCandlestick.draw(candlestickSeries.series, 'candlestick', candlestickSeries.i)
+          boxCandlestick.draw(
+            candlestickSeries.series,
+            'candlestick',
+            candlestickSeries.i
+          )
         )
       }
       if (boxplotSeries.series.length > 0) {
-        elGraph.push(boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i))
+        elGraph.push(
+          boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i)
+        )
       }
       if (rangeBarSeries.series.length > 0) {
         elGraph.push(
@@ -297,8 +316,13 @@ export default class Core {
           break
         case 'bar':
           if (cnf.chart.stacked) {
-            let barStacked = new BarStacked(this.ctx, xyRatios)
-            elGraph = barStacked.draw(gl.series)
+            if (gl.hasSeriesGroups) {
+              let barGroupedStacked = new BarGroupedStacked(this.ctx, xyRatios)
+              elGraph = barGroupedStacked.draw(gl.series)
+            } else {
+              let barStacked = new BarStacked(this.ctx, xyRatios)
+              elGraph = barStacked.draw(gl.series)
+            }
           } else {
             this.ctx.bar = new Bar(this.ctx, xyRatios)
             elGraph = this.ctx.bar.draw(gl.series)

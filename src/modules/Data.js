@@ -390,10 +390,23 @@ export default class Data {
 
     gl.isRangeBar = cnf.chart.type === 'rangeBar' && gl.isBarHorizontal
 
-    gl.hasGroups =
+    gl.hasXaxisGroups =
       cnf.xaxis.type === 'category' && cnf.xaxis.group.groups.length > 0
-    if (gl.hasGroups) {
+    if (gl.hasXaxisGroups) {
       gl.groups = cnf.xaxis.group.groups
+    }
+
+    gl.hasSeriesGroups = ser[0]?.group
+    if (gl.hasSeriesGroups) {
+      let buckets = []
+      let groups = [...new Set(ser.map((s) => s.group))]
+      ser.forEach((s, i) => {
+        let index = groups.indexOf(s.group)
+        if (!buckets[index]) buckets[index] = []
+
+        buckets[index].push(s.name)
+      })
+      gl.seriesGroups = buckets
     }
 
     const handleDates = () => {

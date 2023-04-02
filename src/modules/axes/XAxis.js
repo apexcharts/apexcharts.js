@@ -89,7 +89,7 @@ export default class XAxis {
       (i, colWidth) => colWidth
     )
 
-    if (w.globals.hasGroups) {
+    if (w.globals.hasXaxisGroups) {
       let labelsGroup = w.globals.groups
 
       labels = []

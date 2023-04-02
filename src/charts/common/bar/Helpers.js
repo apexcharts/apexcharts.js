@@ -41,7 +41,6 @@ export default class Helpers {
       this.barCtx.seriesLen = 1
     }
     this.barCtx.zeroSerieses = []
-    this.barCtx.radiusOnSeriesNumber = series.length - 1 // which series to draw ending shape on
 
     if (!w.globals.comboCharts) {
       this.checkZeroSeries({ series })
@@ -140,6 +139,53 @@ export default class Helpers {
       barWidth,
       zeroH,
       zeroW
+    }
+  }
+
+  initializeStackedPrevVars(ctx) {
+    const w = ctx.w
+    if (w.globals.hasSeriesGroups) {
+      w.globals.seriesGroups.forEach((group) => {
+        if (!ctx[group]) ctx[group] = {}
+
+        ctx[group].prevY = []
+        ctx[group].prevX = []
+        ctx[group].prevYF = []
+        ctx[group].prevXF = []
+        ctx[group].prevYVal = []
+        ctx[group].prevXVal = []
+      })
+    } else {
+      ctx.prevY = [] // y position on chart (in columns)
+      ctx.prevX = [] // x position on chart (in horz bars)
+      ctx.prevYF = [] // starting y and ending y (height) in columns
+      ctx.prevXF = [] // starting x and ending x (width) in bars
+      ctx.prevYVal = [] // y values (series[i][j]) in columns
+      ctx.prevXVal = [] // x values (series[i][j]) in bars
+    }
+  }
+
+  initializeStackedXYVars(ctx) {
+    const w = ctx.w
+
+    if (w.globals.hasSeriesGroups) {
+      w.globals.seriesGroups.forEach((group) => {
+        if (!ctx[group]) ctx[group] = {}
+
+        ctx[group].xArrj = []
+        ctx[group].xArrjF = []
+        ctx[group].xArrjVal = []
+        ctx[group].yArrj = []
+        ctx[group].yArrjF = []
+        ctx[group].yArrjVal = []
+      })
+    } else {
+      ctx.xArrj = [] // xj indicates x position on graph in bars
+      ctx.xArrjF = [] // xjF indicates bar's x position + x2 positions in bars
+      ctx.xArrjVal = [] // x val means the actual series's y values in horizontal/bars
+      ctx.yArrj = [] // yj indicates y position on graph in columns
+      ctx.yArrjF = [] // yjF indicates bar's y position + y2 positions in columns
+      ctx.yArrjVal = [] // y val means the actual series's y values in columns
     }
   }
 
@@ -254,6 +300,7 @@ export default class Helpers {
     y1,
     y2,
     strokeWidth,
+    seriesGroup,
     realIndex,
     i,
     j,
@@ -321,9 +368,13 @@ export default class Helpers {
     }
 
     if (w.config.chart.stacked) {
-      this.barCtx.yArrj.push(y2)
-      this.barCtx.yArrjF.push(Math.abs(y1 - y2))
-      this.barCtx.yArrjVal.push(this.barCtx.series[i][j])
+      let _ctx = this.barCtx
+      if (w.globals.hasSeriesGroups && seriesGroup) {
+        _ctx = ths.barCtx[seriesGroup]
+      }
+      _ctx.yArrj.push(y2)
+      _ctx.yArrjF.push(Math.abs(y1 - y2))
+      _ctx.yArrjVal.push(this.barCtx.series[i][j])
     }
 
     return {
@@ -426,26 +477,6 @@ export default class Helpers {
       }
       if (total === 0) {
         this.barCtx.zeroSerieses.push(zs)
-      }
-    }
-
-    // After getting all zeroserieses, we need to ensure whether radiusOnSeriesNumber is not in that zeroseries array
-    for (let s = series.length - 1; s >= 0; s--) {
-      if (
-        this.barCtx.zeroSerieses.indexOf(s) > -1 &&
-        s === this.radiusOnSeriesNumber
-      ) {
-        this.barCtx.radiusOnSeriesNumber -= 1
-      }
-    }
-
-    for (let s = series.length - 1; s >= 0; s--) {
-      if (
-        w.globals.collapsedSeriesIndices.indexOf(
-          this.barCtx.radiusOnSeriesNumber
-        ) > -1
-      ) {
-        this.barCtx.radiusOnSeriesNumber -= 1
       }
     }
   }

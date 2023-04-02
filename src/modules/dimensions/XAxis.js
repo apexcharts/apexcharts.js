@@ -163,7 +163,7 @@ export default class DimXAxis {
   getxAxisGroupLabelsCoords() {
     let w = this.w
 
-    if (!w.globals.hasGroups) {
+    if (!w.globals.hasXaxisGroups) {
       return { width: 0, height: 0 }
     }
 
