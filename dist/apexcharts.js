@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.37.2
+ * ApexCharts v3.37.3
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -7015,10 +7015,6 @@
 
         if (Array.isArray(p.x)) {
           for (var q = 0; q < p.x.length; q++) {
-            if (p.x[q] < 0 || p.x[q] > w.globals.gridWidth || p.y[q] < 0 || p.y[q] > w.globals.gridHeight) {
-              continue;
-            }
-
             var dataPointIndex = j; // a small hack as we have 2 points for the first val to connect it
 
             if (j === 1 && q === 0) dataPointIndex = 0;
@@ -15886,26 +15882,28 @@
 
           if (w.globals.axisCharts) {
             var getValBySeriesIndex = function getValBySeriesIndex(index) {
-              var _val = '';
-
               if (w.globals.isRangeData) {
-                var _w$globals$seriesRang, _w$globals$seriesRang2;
+                var _w$globals$seriesRang, _w$globals$seriesRang2, _w$globals$seriesRang3, _w$globals$seriesRang4;
 
-                _val += f.yLbFormatter((_w$globals$seriesRang = w.globals.seriesRangeStart) === null || _w$globals$seriesRang === void 0 ? void 0 : (_w$globals$seriesRang2 = _w$globals$seriesRang[index]) === null || _w$globals$seriesRang2 === void 0 ? void 0 : _w$globals$seriesRang2[j], {
+                return f.yLbFormatter((_w$globals$seriesRang = w.globals.seriesRangeStart) === null || _w$globals$seriesRang === void 0 ? void 0 : (_w$globals$seriesRang2 = _w$globals$seriesRang[index]) === null || _w$globals$seriesRang2 === void 0 ? void 0 : _w$globals$seriesRang2[j], {
                   series: w.globals.seriesRangeStart,
                   seriesIndex: index,
                   dataPointIndex: j,
                   w: w
-                }) + ' - ';
+                }) + ' - ' + f.yLbFormatter((_w$globals$seriesRang3 = w.globals.seriesRangeEnd) === null || _w$globals$seriesRang3 === void 0 ? void 0 : (_w$globals$seriesRang4 = _w$globals$seriesRang3[index]) === null || _w$globals$seriesRang4 === void 0 ? void 0 : _w$globals$seriesRang4[j], {
+                  series: w.globals.seriesRangeEnd,
+                  seriesIndex: index,
+                  dataPointIndex: j,
+                  w: w
+                });
               }
 
-              _val += f.yLbFormatter(w.globals.series[index][j], {
+              return f.yLbFormatter(w.globals.series[index][j], {
                 series: w.globals.series,
                 seriesIndex: index,
                 dataPointIndex: j,
                 w: w
               });
-              return _val;
             };
 
             if (shared) {
@@ -16464,7 +16462,17 @@
         if (w.config.tooltip.followCursor) {
           var elGrid = ttCtx.getElGrid();
           var seriesBound = elGrid.getBoundingClientRect();
-          y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top - tooltipRect.ttHeight / 2;
+          x = ttCtx.e.clientX - seriesBound.left;
+
+          if (x > w.globals.gridWidth / 2) {
+            x = x - ttCtx.tooltipRect.ttWidth;
+          }
+
+          y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top;
+
+          if (y > w.globals.gridHeight / 2) {
+            y = y - ttCtx.tooltipRect.ttHeight;
+          }
         } else {
           if (!w.globals.isBarHorizontal) {
             if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
@@ -16593,8 +16601,7 @@
         this.moveXCrosshairs(cx);
 
         if (!ttCtx.fixedTooltip) {
-          var tcy = cy || w.globals.gridHeight;
-          this.moveTooltip(cx, tcy, hoverSize);
+          this.moveTooltip(cx, cy || w.globals.gridHeight, hoverSize);
         }
       }
     }, {
@@ -16612,7 +16619,7 @@
 
         var jBar = w.globals.dom.baseEl.querySelector(".apexcharts-bar-series .apexcharts-series[rel='".concat(i, "'] path[j='").concat(j, "'], .apexcharts-candlestick-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "'], .apexcharts-boxPlot-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "'], .apexcharts-rangebar-series .apexcharts-series[rel='").concat(i, "'] path[j='").concat(j, "']"));
 
-        if (!jBar && typeof capturedSeries == 'number') {
+        if (!jBar && typeof capturedSeries === 'number') {
           // Try with captured series index
           jBar = w.globals.dom.baseEl.querySelector(".apexcharts-bar-series .apexcharts-series[data\\:realIndex='".concat(capturedSeries, "'] path[j='").concat(j, "'],\n        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='").concat(capturedSeries, "'] path[j='").concat(j, "'],\n        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='").concat(capturedSeries, "'] path[j='").concat(j, "'],\n        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='").concat(capturedSeries, "'] path[j='").concat(j, "']"));
         }
@@ -16660,8 +16667,7 @@
         }
 
         if (!ttCtx.fixedTooltip) {
-          var tcy = bcy || w.globals.gridHeight;
-          this.moveTooltip(bcx, tcy);
+          this.moveTooltip(bcx, bcy || w.globals.gridHeight);
         }
       }
     }]);
