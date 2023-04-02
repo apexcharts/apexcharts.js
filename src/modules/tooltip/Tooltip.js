@@ -684,7 +684,9 @@ export default class Tooltip {
       // couldn't capture any series. check if shared X is same,
       // if yes, draw a grouped tooltip
       if (this.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) {
-        const firstVisibleSeries = w.globals.series.findIndex((s,i) => !w.globals.collapsedSeriesIndices.includes(i))
+        const firstVisibleSeries = w.globals.series.findIndex(
+          (s, i) => !w.globals.collapsedSeriesIndices.includes(i)
+        )
         this.create(e, this, firstVisibleSeries, j, opt.ttItems)
       }
     }
@@ -712,7 +714,9 @@ export default class Tooltip {
       }
     } else {
       if (this.tooltipUtil.isXoverlap(j)) {
-        const firstVisibleSeries = w.globals.series.findIndex((s,i) => !w.globals.collapsedSeriesIndices.includes(i));
+        const firstVisibleSeries = w.globals.series.findIndex(
+          (s, i) => !w.globals.collapsedSeriesIndices.includes(i)
+        )
         this.create(e, this, firstVisibleSeries, j, opt.ttItems)
       }
     }
@@ -861,9 +865,7 @@ export default class Tooltip {
         } else {
           ttCtx.tooltipPosition.moveDynamicPointsOnHover(j)
         }
-      }
-
-      else if (this.tooltipUtil.hasBars()) {
+      } else if (this.tooltipUtil.hasBars()) {
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars)
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter

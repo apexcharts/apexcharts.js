@@ -192,11 +192,15 @@ export default class Position {
     if (w.config.tooltip.followCursor) {
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
-      y =
-        ttCtx.e.clientY +
-        w.globals.translateY -
-        seriesBound.top -
-        tooltipRect.ttHeight / 2
+
+      x = ttCtx.e.clientX - seriesBound.left
+      if (x > w.globals.gridWidth / 2) {
+        x = x - ttCtx.tooltipRect.ttWidth
+      }
+      y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top
+      if (y > w.globals.gridHeight / 2) {
+        y = y - ttCtx.tooltipRect.ttHeight
+      }
     } else {
       if (!w.globals.isBarHorizontal) {
         if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
@@ -348,8 +352,7 @@ export default class Position {
     this.moveXCrosshairs(cx)
 
     if (!ttCtx.fixedTooltip) {
-      let tcy = cy || w.globals.gridHeight
-      this.moveTooltip(cx, tcy, hoverSize)
+      this.moveTooltip(cx, cy || w.globals.gridHeight, hoverSize)
     }
   }
 
@@ -433,8 +436,7 @@ export default class Position {
     }
 
     if (!ttCtx.fixedTooltip) {
-      let tcy = bcy || w.globals.gridHeight
-      this.moveTooltip(bcx, tcy)
+      this.moveTooltip(bcx, bcy || w.globals.gridHeight)
     }
   }
 }
