@@ -370,7 +370,7 @@ export default class Helpers {
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx
       if (w.globals.hasSeriesGroups && seriesGroup) {
-        _ctx = ths.barCtx[seriesGroup]
+        _ctx = this.barCtx[seriesGroup]
       }
       _ctx.yArrj.push(y2)
       _ctx.yArrjF.push(Math.abs(y1 - y2))
@@ -389,6 +389,7 @@ export default class Helpers {
     x1,
     x2,
     strokeWidth,
+    seriesGroup,
     realIndex,
     i,
     j,
@@ -454,9 +455,14 @@ export default class Helpers {
     }
 
     if (w.config.chart.stacked) {
-      this.barCtx.xArrj.push(x2)
-      this.barCtx.xArrjF.push(Math.abs(x1 - x2))
-      this.barCtx.xArrjVal.push(this.barCtx.series[i][j])
+      let _ctx = this.barCtx
+      if (w.globals.hasSeriesGroups && seriesGroup) {
+        _ctx = this.barCtx[seriesGroup]
+      }
+
+      _ctx.xArrj.push(x2)
+      _ctx.xArrjF.push(Math.abs(x1 - x2))
+      _ctx.xArrjVal.push(this.barCtx.series[i][j])
     }
     return {
       pathTo,

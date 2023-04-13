@@ -312,6 +312,7 @@ type ApexAxisChartSeries = {
   name?: string
   type?: string
   color?: string
+  group?: string
   data:
     | (number | null)[]
     | {

@@ -43,6 +43,19 @@ class BarStacked extends Bar {
       let zeroH // zeroH is the baseline where 0 meets y axis
       let zeroW // zeroW is the baseline where 0 meets x axis
 
+      let groupIndex = -1 // groupIndex is the index of group buckets (group1, group2, ...)
+      this.groupCtx = this
+
+      w.globals.seriesGroups.forEach((group, gIndex) => {
+        if (group.indexOf(w.config.series[i].name) > -1) {
+          groupIndex = gIndex
+        }
+      })
+
+      if (groupIndex !== -1) {
+        this.groupCtx = this[w.globals.seriesGroups[groupIndex]]
+      }
+
       let xArrValues = []
       let yArrValues = []
 
@@ -99,14 +112,13 @@ class BarStacked extends Bar {
 
       this.barHelpers.initializeStackedXYVars(this)
 
-      // fix issue #1215;
       // where all stack bar disappear after collapsing the first series
-      // sol: if only 1 arr in this.prevY(this.prevY.length === 1) and all are NaN
-      if (this.prevY.length === 1 && this.prevY[0].every((val) => isNaN(val))) {
-        // make this.prevY[0] all zeroH
-        this.prevY[0] = this.prevY[0].map((val) => zeroH)
-        // make this.prevYF[0] all 0
-        this.prevYF[0] = this.prevYF[0].map((val) => 0)
+      if (
+        this.groupCtx.prevY.length === 1 &&
+        this.groupCtx.prevY[0].every((val) => isNaN(val))
+      ) {
+        this.groupCtx.prevY[0] = this.groupCtx.prevY[0].map((val) => zeroH)
+        this.groupCtx.prevYF[0] = this.groupCtx.prevYF[0].map((val) => 0)
       }
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
@@ -116,7 +128,9 @@ class BarStacked extends Bar {
           strokeWidth,
           x,
           y,
-          elSeries
+          elSeries,
+          groupIndex,
+          seriesGroup: w.globals.seriesGroups[groupIndex]
         }
         let paths = null
         if (this.isHorizontal) {
@@ -163,6 +177,7 @@ class BarStacked extends Bar {
           pathFill,
           j,
           i,
+          groupIndex,
           pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
           strokeWidth,
@@ -184,12 +199,12 @@ class BarStacked extends Bar {
       w.globals.seriesYvalues[realIndex] = yArrValues
 
       // push all current y values array to main PrevY Array
-      this.prevY.push(this.yArrj)
-      this.prevYF.push(this.yArrjF)
-      this.prevYVal.push(this.yArrjVal)
-      this.prevX.push(this.xArrj)
-      this.prevXF.push(this.xArrjF)
-      this.prevXVal.push(this.xArrjVal)
+      this.groupCtx.prevY.push(this.groupCtx.yArrj)
+      this.groupCtx.prevYF.push(this.groupCtx.yArrjF)
+      this.groupCtx.prevYVal.push(this.groupCtx.yArrjVal)
+      this.groupCtx.prevX.push(this.groupCtx.xArrj)
+      this.groupCtx.prevXF.push(this.groupCtx.xArrjF)
+      this.groupCtx.prevXVal.push(this.groupCtx.xArrjVal)
 
       ret.add(elSeries)
     }
@@ -246,7 +261,9 @@ class BarStacked extends Bar {
       y,
       yDivision,
       xDivision,
-      barHeight,
+      barHeight: w.globals.seriesGroups?.length
+        ? barHeight / w.globals.seriesGroups.length
+        : barHeight,
       barWidth: w.globals.seriesGroups?.length
         ? barWidth / w.globals.seriesGroups.length
         : barWidth,
@@ -262,35 +279,42 @@ class BarStacked extends Bar {
     zeroW,
     x,
     y,
+    groupIndex,
+    seriesGroup,
     yDivision,
     elSeries
   }) {
     let w = this.w
-    let barYPosition = y
+    let barYPosition = y + (groupIndex !== -1 ? groupIndex * barHeight : 0)
     let barXPosition
     let i = indexes.i
     let j = indexes.j
 
     let prevBarW = 0
-    for (let k = 0; k < this.prevXF.length; k++) {
-      prevBarW = prevBarW + this.prevXF[k][j]
+    for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
+      prevBarW = prevBarW + this.groupCtx.prevXF[k][j]
     }
 
-    if (i > 0) {
+    let gsi = i // an index to keep track of the series inside a group
+    if (seriesGroup) {
+      gsi = seriesGroup.indexOf(w.config.series[i].name)
+    }
+
+    if (gsi > 0) {
       let bXP = zeroW
 
-      if (this.prevXVal[i - 1][j] < 0) {
+      if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
         bXP =
           this.series[i][j] >= 0
-            ? this.prevX[i - 1][j] +
+            ? this.groupCtx.prevX[gsi - 1][j] +
               prevBarW -
               (this.isReversed ? prevBarW : 0) * 2
-            : this.prevX[i - 1][j]
-      } else if (this.prevXVal[i - 1][j] >= 0) {
+            : this.groupCtx.prevX[gsi - 1][j]
+      } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
         bXP =
           this.series[i][j] >= 0
-            ? this.prevX[i - 1][j]
-            : this.prevX[i - 1][j] -
+            ? this.groupCtx.prevX[gsi - 1][j]
+            : this.groupCtx.prevX[gsi - 1][j] -
               prevBarW +
               (this.isReversed ? prevBarW : 0) * 2
       }
@@ -318,6 +342,7 @@ class BarStacked extends Bar {
       strokeWidth,
       series: this.series,
       realIndex: indexes.realIndex,
+      seriesGroup,
       i,
       j,
       w
@@ -350,7 +375,8 @@ class BarStacked extends Bar {
     xDivision,
     barWidth,
     zeroH,
-    strokeWidth,
+    groupIndex,
+    seriesGroup,
     elSeries
   }) {
     let w = this.w
@@ -362,32 +388,47 @@ class BarStacked extends Bar {
       let seriesVal = w.globals.seriesX[i][j]
       if (!seriesVal) seriesVal = 0
       x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2
+
+      if (w.globals.seriesGroups.length) {
+        x =
+          (seriesVal - w.globals.minX) / this.xRatio -
+          (barWidth / 2) * w.globals.seriesGroups.length
+      }
     }
 
-    let barXPosition = x
+    let barXPosition = x + (groupIndex !== -1 ? groupIndex * barWidth : 0)
     let barYPosition
 
     let prevBarH = 0
-    for (let k = 0; k < this.prevYF.length; k++) {
+    for (let k = 0; k < this.groupCtx.prevYF.length; k++) {
       // fix issue #1215
-      // in case where this.prevYF[k][j] is NaN, use 0 instead
-      prevBarH = prevBarH + (!isNaN(this.prevYF[k][j]) ? this.prevYF[k][j] : 0)
+      // in case where this.groupCtx.prevYF[k][j] is NaN, use 0 instead
+      prevBarH =
+        prevBarH +
+        (!isNaN(this.groupCtx.prevYF[k][j]) ? this.groupCtx.prevYF[k][j] : 0)
     }
 
+    let gsi = i // an index to keep track of the series inside a group
+    if (seriesGroup) {
+      gsi = seriesGroup.indexOf(w.config.series[i].name)
+    }
     if (
-      (i > 0 && !w.globals.isXNumeric) ||
-      (i > 0 &&
+      (gsi > 0 && !w.globals.isXNumeric) ||
+      (gsi > 0 &&
         w.globals.isXNumeric &&
         w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j])
     ) {
       let bYP
       let prevYValue
       const p = Math.min(this.yRatio.length + 1, i + 1)
-      if (this.prevY[i - 1] !== undefined) {
+      if (
+        this.groupCtx.prevY[gsi - 1] !== undefined &&
+        this.groupCtx.prevY[gsi - 1].length
+      ) {
         for (let ii = 1; ii < p; ii++) {
-          if (!isNaN(this.prevY[i - ii][j])) {
+          if (!isNaN(this.groupCtx.prevY[gsi - ii]?.[j])) {
             // find the previous available value to give prevYValue
-            prevYValue = this.prevY[i - ii][j]
+            prevYValue = this.groupCtx.prevY[gsi - ii][j]
             // if found it, break the loop
             break
           }
@@ -396,14 +437,14 @@ class BarStacked extends Bar {
 
       for (let ii = 1; ii < p; ii++) {
         // find the previous available value(non-NaN) to give bYP
-        if (this.prevYVal[i - ii][j] < 0) {
+        if (this.groupCtx.prevYVal[gsi - ii]?.[j] < 0) {
           bYP =
             this.series[i][j] >= 0
               ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
               : prevYValue
           // found it? break the loop
           break
-        } else if (this.prevYVal[i - ii][j] >= 0) {
+        } else if (this.groupCtx.prevYVal[gsi - ii]?.[j] >= 0) {
           bYP =
             this.series[i][j] >= 0
               ? prevYValue
@@ -418,8 +459,10 @@ class BarStacked extends Bar {
       // if this.prevYF[0] is all 0 resulted from line #486
       // AND every arr starting from the second only contains NaN
       if (
-        this.prevYF[0].every((val) => val === 0) &&
-        this.prevYF.slice(1, i).every((arr) => arr.every((val) => isNaN(val)))
+        this.groupCtx.prevYF[0]?.every((val) => val === 0) &&
+        this.groupCtx.prevYF
+          .slice(1, gsi)
+          .every((arr) => arr.every((val) => isNaN(val)))
       ) {
         barYPosition = zeroH
       } else {
@@ -452,6 +495,7 @@ class BarStacked extends Bar {
       yRatio: this.yRatio[this.yaxisIndex],
       strokeWidth: this.strokeWidth,
       series: this.series,
+      seriesGroup,
       realIndex: indexes.realIndex,
       i,
       j,

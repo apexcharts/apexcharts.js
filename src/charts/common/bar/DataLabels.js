@@ -29,6 +29,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
+      groupIndex,
       series,
       barHeight,
       barWidth,
@@ -87,6 +88,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
+      groupIndex: !!groupIndex ? groupIndex : -1,
       renderedPath,
       bcx,
       bcy,
@@ -170,6 +172,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
+      groupIndex,
       y,
       bcx,
       barWidth,
@@ -193,7 +196,8 @@ export default class BarDataLabels {
     let vertical =
       w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
 
-    bcx = bcx - strokeWidth / 2
+    bcx =
+      bcx - strokeWidth / 2 + (groupIndex !== -1 ? groupIndex * barWidth : 0)
 
     let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
     if (w.globals.isXNumeric) {
@@ -323,6 +327,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
+      groupIndex,
       bcy,
       barHeight,
       barWidth,
@@ -339,6 +344,8 @@ export default class BarDataLabels {
     let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
 
     barWidth = Math.abs(barWidth)
+
+    bcy = bcy + (groupIndex !== -1 ? groupIndex * barHeight : 0)
 
     let dataLabelsY =
       bcy -

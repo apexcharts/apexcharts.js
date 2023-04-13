@@ -1,6 +1,5 @@
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
-import BarGroupedStacked from '../charts/BarGroupedStacked'
 import BoxCandleStick from '../charts/BoxCandleStick'
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
@@ -242,20 +241,8 @@ export default class Core {
       }
       if (columnSeries.series.length > 0) {
         if (w.config.chart.stacked) {
-          if (w.config.series[columnSeries.i]?.group) {
-            let barGroupedStack = new BarGroupedStacked(this.ctx, xyRatios)
-            elGraph.push(
-              barGroupedStack.draw(
-                columnSeries.series,
-                columnSeries.i,
-                columnSeries.i,
-                w.config.series[columnSeries.i].group
-              )
-            )
-          } else {
-            let barStacked = new BarStacked(this.ctx, xyRatios)
-            elGraph.push(barStacked.draw(columnSeries.series, columnSeries.i))
-          }
+          let barStacked = new BarStacked(this.ctx, xyRatios)
+          elGraph.push(barStacked.draw(columnSeries.series, columnSeries.i))
         } else {
           this.ctx.bar = new Bar(this.ctx, xyRatios)
           elGraph.push(this.ctx.bar.draw(columnSeries.series, columnSeries.i))
@@ -316,13 +303,8 @@ export default class Core {
           break
         case 'bar':
           if (cnf.chart.stacked) {
-            if (gl.hasSeriesGroups) {
-              let barGroupedStacked = new BarGroupedStacked(this.ctx, xyRatios)
-              elGraph = barGroupedStacked.draw(gl.series)
-            } else {
-              let barStacked = new BarStacked(this.ctx, xyRatios)
-              elGraph = barStacked.draw(gl.series)
-            }
+            let barStacked = new BarStacked(this.ctx, xyRatios)
+            elGraph = barStacked.draw(gl.series)
           } else {
             this.ctx.bar = new Bar(this.ctx, xyRatios)
             elGraph = this.ctx.bar.draw(gl.series)
