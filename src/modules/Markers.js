@@ -115,6 +115,16 @@ export default class Markers {
           if (pSize) {
             opts.pSize = pSize
           }
+
+          if (
+            p.x[q] < 0 ||
+            p.x[q] > w.globals.gridWidth ||
+            p.y[q] < 0 ||
+            p.y[q] > w.globals.gridHeight
+          ) {
+            opts.pSize = 0
+          }
+
           point = graphics.drawMarker(p.x[q], p.y[q], opts)
 
           point.attr('rel', dataPointIndex)
