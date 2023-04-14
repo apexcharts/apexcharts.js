@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Grouped Stacked Bar</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="bar" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [
+            {
+              name: 'Q1 Budget',
+              group: 'budget',
+              data: [44000, 55000, 41000, 67000, 22000]
+            },
+            {
+              name: 'Q2 Budget',
+              group: 'budget',
+              data: [13000, 36000, 20000, 8000, 13000]
+            },
+            {
+              name: 'Q1 Actual',
+              group: 'actual',
+              data: [48000, 50000, 40000, 65000, 25000]
+            },
+            {
+              name: 'Q2 Actual',
+              group: 'actual',
+              data: [20000, 40000, 25000, 10000, 12000]
+            }
+          ],
+          chartOptions: {
+            chart: {
+              type: 'bar',
+              height: 350,
+              stacked: true,
+            },
+            stroke: {
+              width: 1,
+              colors: ['#fff']
+            },
+            dataLabels: {
+              formatter: (val) => {
+                return val / 1000 + 'K'
+              }
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true
+              }
+            },
+            xaxis: {
+              categories: [
+                'Online advertising',
+                'Sales Training',
+                'Print advertising',
+                'Catalogs',
+                'Meetings'
+              ],
+              labels: {
+                formatter: (val) => {
+                  return val / 1000 + 'K'
+                }
+              }
+            },
+            fill: {
+              opacity: 1
+            },
+            colors: ['#80c7fd', '#80f1cb', '#008FFB', '#00E396']
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>

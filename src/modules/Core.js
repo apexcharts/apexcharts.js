@@ -215,7 +215,7 @@ export default class Core {
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
           console.warn(
-            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble'
+            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble/candlestick/boxPlot/rangeBar/rangeArea'
           )
         }
         if (comboCount > 1) {
@@ -263,11 +263,17 @@ export default class Core {
       }
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
-          boxCandlestick.draw(candlestickSeries.series, 'candlestick', candlestickSeries.i)
+          boxCandlestick.draw(
+            candlestickSeries.series,
+            'candlestick',
+            candlestickSeries.i
+          )
         )
       }
       if (boxplotSeries.series.length > 0) {
-        elGraph.push(boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i))
+        elGraph.push(
+          boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i)
+        )
       }
       if (rangeBarSeries.series.length > 0) {
         elGraph.push(

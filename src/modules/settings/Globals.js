@@ -26,8 +26,10 @@ export default class Globals {
     gl.seriesYvalues = [] // we will need this when deciding which series
     // user hovered on
     gl.labels = []
-    gl.hasGroups = false
+    gl.hasXaxisGroups = false
     gl.groups = []
+    gl.hasSeriesGroups = false
+    gl.seriesGroups = []
     gl.categoryLabels = []
     gl.timescaleLabels = []
     gl.noLabelsProvided = false
