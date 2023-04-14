@@ -183,7 +183,10 @@ class Grid {
         this._drawGridLine({ i, x1, y1, x2, y2, xCount, parent })
       }
       let y_2 = 0
-      if (w.globals.hasGroups && w.config.xaxis.tickPlacement === 'between') {
+      if (
+        w.globals.hasXaxisGroups &&
+        w.config.xaxis.tickPlacement === 'between'
+      ) {
         const groups = w.globals.groups
         if (groups) {
           let gacc = 0

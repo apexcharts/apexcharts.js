@@ -281,7 +281,7 @@ export default class Dimensions {
   ) {
     const w = this.w
 
-    const xAxisNum = w.globals.hasGroups ? 2 : 1
+    const xAxisNum = w.globals.hasXaxisGroups ? 2 : 1
 
     const baseXAxisHeight =
       xaxisGroupLabelCoords.height +
