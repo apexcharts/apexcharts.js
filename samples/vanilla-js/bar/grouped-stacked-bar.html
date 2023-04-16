@@ -62,14 +62,14 @@
             data: [44000, 55000, 41000, 67000, 22000]
           },
           {
-            name: 'Q2 Budget',
-            group: 'budget',
-            data: [13000, 36000, 20000, 8000, 13000]
-          },
-          {
             name: 'Q1 Actual',
             group: 'actual',
             data: [48000, 50000, 40000, 65000, 25000]
+          },
+          {
+            name: 'Q2 Budget',
+            group: 'budget',
+            data: [13000, 36000, 20000, 8000, 13000]
           },
           {
             name: 'Q2 Actual',
@@ -111,9 +111,13 @@
           }
         },
         fill: {
-          opacity: 1
+          opacity: 1,
         },
-        colors: ['#80c7fd', '#80f1cb', '#008FFB', '#00E396']
+        colors: ['#80c7fd', '#008FFB', '#80f1cb', '#00E396'],
+        legend: {
+          position: 'top',
+          horizontalAlign: 'left'
+        }
         };
 
         var chart = new ApexCharts(document.querySelector("#chart"), options);
