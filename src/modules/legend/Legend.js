@@ -284,7 +284,6 @@ class Legend {
     }
 
     w.globals.dom.elWrap.addEventListener('click', me.onLegendClick, true)
-    w.globals.dom.elWrap.appendChild(w.globals.dom.elLegendWrap)
 
     if (
       w.config.legend.onItemHover.highlightDataSeries &&

@@ -96,22 +96,7 @@ export default class Helpers {
   appendToForeignObject() {
     const gl = this.w.globals
 
-    gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
-
-    let elForeign = gl.dom.elLegendForeign
-
-    elForeign.setAttribute('x', 0)
-    elForeign.setAttribute('y', 0)
-    elForeign.setAttribute('width', gl.svgWidth)
-    elForeign.setAttribute('height', gl.svgHeight)
-    gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml')
-
-    elForeign.appendChild(gl.dom.elLegendWrap)
-    elForeign.appendChild(this.getLegendStyles())
-
-    // gl.dom.elGraphical.node.insertAdjacentElement('afterend', elForeign)
-    // the above line causes issue https://github.com/apexcharts/apexcharts.js/issues/1907
-    gl.dom.Paper.node.insertBefore(elForeign, gl.dom.elGraphical.node)
+    gl.dom.elLegendForeign.appendChild(this.getLegendStyles())
   }
 
   toggleDataSeries(seriesCnt, isHidden) {

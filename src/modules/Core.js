@@ -99,19 +99,29 @@ export default class Core {
 
     this.setSVGDimensions()
 
+    // append foreignElement (legend's parent)
+    // legend is kept in foreignElement to be included while exporting
+    // removing foreignElement and creating legend through HTML will not render legend in export
+    gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
+    Graphics.setAttrs(gl.dom.elLegendForeign, {
+      x: 0,
+      y: 0,
+      width: gl.svgWidth,
+      height: gl.svgHeight
+    })
+    gl.dom.elLegendWrap = document.createElement('div')
+    gl.dom.elLegendWrap.classList.add('apexcharts-legend')
+    gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml')
+    gl.dom.elLegendForeign.appendChild(gl.dom.elLegendWrap)
+    gl.dom.Paper.node.appendChild(gl.dom.elLegendForeign)
+
+    // the elGraphical is the parent of all primary visuals
     gl.dom.elGraphical = gl.dom.Paper.group().attr({
       class: 'apexcharts-inner apexcharts-graphical'
     })
 
-    gl.dom.elAnnotations = gl.dom.Paper.group().attr({
-      class: 'apexcharts-annotations'
-    })
-
     gl.dom.elDefs = gl.dom.Paper.defs()
 
-    gl.dom.elLegendWrap = document.createElement('div')
-    gl.dom.elLegendWrap.classList.add('apexcharts-legend')
-    gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)
     gl.dom.Paper.add(gl.dom.elGraphical)
     gl.dom.elGraphical.add(gl.dom.elDefs)
   }
