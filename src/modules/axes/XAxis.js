@@ -157,8 +157,7 @@ export default class XAxis {
         0,
         this.xaxisBorderHeight
       )
-
-      if (this.elgrid && this.elgrid.elGridBorders) {
+      if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
         this.elgrid.elGridBorders.add(elHorzLine)
       } else {
         elXaxis.add(elHorzLine)
@@ -498,7 +497,7 @@ export default class XAxis {
         0
       )
 
-      if (this.elgrid && this.elgrid.elGridBorders) {
+      if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
         this.elgrid.elGridBorders.add(elVerticalLine)
       } else {
         elYaxis.add(elVerticalLine)

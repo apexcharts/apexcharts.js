@@ -235,7 +235,7 @@ class Grid {
     )
     line.node.classList.add('apexcharts-gridline')
 
-    if (excludeBorders) {
+    if (excludeBorders && w.config.grid.show) {
       this.elGridBorders.add(line)
     } else {
       parent.add(line)

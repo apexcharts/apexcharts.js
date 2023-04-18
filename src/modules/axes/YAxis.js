@@ -332,7 +332,7 @@ export default class YAxis {
       )
 
       // in horizontal bars, we append axisBorder to elGridBorders element to avoid z-index issues
-      if (this.elgrid && this.elgrid.elGridBorders) {
+      if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
         this.elgrid.elGridBorders.add(elHorzLine)
       } else {
         parent.add(elHorzLine)
