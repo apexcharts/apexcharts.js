@@ -158,7 +158,7 @@ describe('Export Csv', () => {
     )
   })
   it('export csv from simple line chart with first series collapsed should call triggerDownload with csv encoded file data', () => {
-    const series = [{name: 'series 1', data: [0,1]},{name: 'series 2', data: [1,2]}]
+   const series = [{name: 'series 1', data: [0,1]},{name: 'series 2', data: [1,2]}]
     const csvData = "category,series 1,series 2\n" +
       "1,,1\n" +
       "2,,2"
