@@ -53,9 +53,61 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
+  it('export csv from simple bar chart with numeric series names should call triggerDownload with csv encoded file data', () => {
+    var options = {
+      chart: {
+        height: 380,
+        width: "100%",
+        type: "bar"
+      },
+      series: [
+        {
+          name: 2022,
+          data: [1,2]
+        },
+        {
+          name: 2023,
+          data: [2,3]
+        }
+      ],
+      xaxis: {
+        categories: ["Category 1","Category 2"]
+      }
+    };
+    const csvData = "category,2022,2023\n" +
+      "Category 1,,2\n" +
+      "Category 2,,3"
+    const chart = createChartWithOptions(options)
+    chart.w.globals.collapsedSeriesIndices = [0]
+    const exports = new Exports(chart.ctx)
+    jest.spyOn(Exports.prototype,'triggerDownload')
+    exports.exportToCSV(chart.w.config.series,'fileName')
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(csvData)),
+      expect.toBeUndefined,
+      expect.stringContaining('.csv')
+    )
+  })
   it('export csv from simple line chart with two series should call triggerDownload with csv encoded file data', () => {
     const series = [{name: 'series 1', data: [0,1]},{name: 'series 2', data: [1,2]}]
     const csvData = "category,series 1,series 2\n" +
+      "1,0,1\n" +
+      "2,1,2"
+    const chart = createChart('line', series)
+    const exports = new Exports(chart.ctx)
+    jest.spyOn(Exports.prototype,'triggerDownload')
+    exports.exportToCSV(chart.w.config.series,'fileName')
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(csvData)),
+      expect.toBeUndefined,
+      expect.stringContaining('.csv')
+    )
+  })
+  it('export csv from simple line chart with numeric series names should call triggerDownload with csv encoded file data', () => {
+    const series = [{name: 2022, data: [0,1]},{name: 2023, data: [1,2]}]
+    const csvData = "category,2022,2023\n" +
       "1,0,1\n" +
       "2,1,2"
     const chart = createChart('line', series)
@@ -106,7 +158,7 @@ describe('Export Csv', () => {
     )
   })
   it('export csv from simple line chart with first series collapsed should call triggerDownload with csv encoded file data', () => {
-   const series = [{name: 'series 1', data: [0,1]},{name: 'series 2', data: [1,2]}]
+    const series = [{name: 'series 1', data: [0,1]},{name: 'series 2', data: [1,2]}]
     const csvData = "category,series 1,series 2\n" +
       "1,,1\n" +
       "2,,2"

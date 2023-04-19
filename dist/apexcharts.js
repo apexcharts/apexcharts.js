@@ -9387,7 +9387,7 @@
           columns.push('maximum');
         } else {
           series.map(function (s, sI) {
-            var sname = s.name ? s.name : "series-".concat(sI);
+            var sname = (s.name ? s.name : "series-".concat(sI)) + '';
 
             if (w.globals.axisCharts) {
               columns.push(sname.split(columnDelimiter).join('') ? sname.split(columnDelimiter).join('') : "series-".concat(sI));

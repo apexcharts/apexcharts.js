@@ -184,11 +184,11 @@ class Exports {
   }
 
   exportToCSV({
-    series,
-    fileName,
-    columnDelimiter = ',',
-    lineDelimiter = '\n'
-  }) {
+                series,
+                fileName,
+                columnDelimiter = ',',
+                lineDelimiter = '\n'
+              }) {
     const w = this.w
 
     if (!series) series = w.config.series
@@ -296,8 +296,8 @@ class Exports {
               isTimeStamp(cat)
                 ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
                 : Utils.isNumber(cat)
-                ? cat
-                : cat.split(columnDelimiter).join('')
+                  ? cat
+                  : cat.split(columnDelimiter).join('')
             )
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
@@ -363,7 +363,7 @@ class Exports {
       columns.push('maximum')
     } else {
       series.map((s, sI) => {
-        const sname = s.name ? s.name : `series-${sI}`
+        const sname = (s.name ? s.name : `series-${sI}`) + ''
         if (w.globals.axisCharts) {
           columns.push(
             sname.split(columnDelimiter).join('')
@@ -394,7 +394,7 @@ class Exports {
 
     this.triggerDownload(
       'data:text/csv; charset=utf-8,' +
-        encodeURIComponent(universalBOM + result),
+      encodeURIComponent(universalBOM + result),
       fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
       '.csv'
     )
