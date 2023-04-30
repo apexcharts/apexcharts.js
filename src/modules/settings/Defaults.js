@@ -394,6 +394,11 @@ export default class Defaults {
       })
     }
     return {
+      chart: {
+        animations: {
+          animateGradually: false
+        }
+      },
       stroke: {
         width: 0,
         lineCap: 'square'
@@ -435,6 +440,9 @@ export default class Defaults {
           colors: ['#fff']
         }
       },
+      markers: {
+        size: 10
+      },
       tooltip: {
         shared: false,
         followCursor: true,
@@ -462,6 +470,16 @@ export default class Defaults {
         }
       }
     }
+  }
+
+  dumbbell(opts) {
+    if (!opts.plotOptions.bar?.barHeight) {
+      opts.plotOptions.bar.barHeight = 2
+    }
+    if (!opts.plotOptions.bar?.columnWidth) {
+      opts.plotOptions.bar.columnWidth = 2
+    }
+    return opts
   }
 
   area() {

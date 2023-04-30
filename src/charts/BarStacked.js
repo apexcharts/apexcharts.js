@@ -224,6 +224,12 @@ class BarStacked extends Bar {
       barHeight =
         (barHeight * parseInt(w.config.plotOptions.bar.barHeight, 10)) / 100
 
+      if (w.globals.seriesGroups?.length) {
+        barHeight = barHeight / w.globals.seriesGroups.length
+      }
+      if (String(w.config.plotOptions.bar.barHeight).indexOf('%') === -1) {
+        barHeight = parseInt(w.config.plotOptions.bar.barHeight, 10)
+      }
       zeroW =
         this.baseLineInvertedY +
         w.globals.padHorizontal +
@@ -246,7 +252,12 @@ class BarStacked extends Bar {
         barWidth =
           (barWidth * parseInt(w.config.plotOptions.bar.columnWidth, 10)) / 100
       }
-
+      if (w.globals.seriesGroups?.length) {
+        barWidth = barWidth / w.globals.seriesGroups.length
+      }
+      if (String(w.config.plotOptions.bar.columnWidth).indexOf('%') === -1) {
+        barWidth = parseInt(w.config.plotOptions.bar.columnWidth, 10)
+      }
       zeroH =
         w.globals.gridHeight -
         this.baseLineY[this.yaxisIndex] -
@@ -261,12 +272,8 @@ class BarStacked extends Bar {
       y,
       yDivision,
       xDivision,
-      barHeight: w.globals.seriesGroups?.length
-        ? barHeight / w.globals.seriesGroups.length
-        : barHeight,
-      barWidth: w.globals.seriesGroups?.length
-        ? barWidth / w.globals.seriesGroups.length
-        : barWidth,
+      barHeight,
+      barWidth,
       zeroH,
       zeroW
     }

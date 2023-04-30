@@ -55,12 +55,16 @@ export default class Config {
         chartDefaults = defaults.stackedBars()
       }
 
-      if (opts.chart.brush && opts.chart.brush.enabled) {
+      if (opts.chart.brush?.enabled) {
         chartDefaults = defaults.brush(chartDefaults)
       }
 
       if (opts.chart.stacked && opts.chart.stackType === '100%') {
         opts = defaults.stacked100(opts)
+      }
+
+      if (opts.plotOptions?.bar?.isDumbbell) {
+        opts = defaults.dumbbell(opts)
       }
 
       // If user has specified a dark theme, make the tooltip dark too
@@ -78,10 +82,8 @@ export default class Config {
       opts = this.checkForCatToNumericXAxis(this.chartType, chartDefaults, opts)
 
       if (
-        (opts.chart.sparkline && opts.chart.sparkline.enabled) ||
-        (window.Apex.chart &&
-          window.Apex.chart.sparkline &&
-          window.Apex.chart.sparkline.enabled)
+        opts.chart.sparkline?.enabled ||
+        window.Apex.chart?.sparkline?.enabled
       ) {
         chartDefaults = defaults.sparkline(chartDefaults)
       }
@@ -108,9 +110,7 @@ export default class Config {
 
     const isBarHorizontal =
       (chartType === 'bar' || chartType === 'boxPlot') &&
-      opts.plotOptions &&
-      opts.plotOptions.bar &&
-      opts.plotOptions.bar.horizontal
+      opts.plotOptions?.bar?.horizontal
 
     const unsupportedZoom =
       chartType === 'pie' ||

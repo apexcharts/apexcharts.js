@@ -75,6 +75,10 @@ export default class Helpers {
       barHeight =
         (barHeight * parseInt(this.barCtx.barOptions.barHeight, 10)) / 100
 
+      if (String(this.barCtx.barOptions.barHeight).indexOf('%') === -1) {
+        barHeight = parseInt(this.barCtx.barOptions.barHeight, 10)
+      }
+
       zeroW =
         this.barCtx.baseLineInvertedY +
         w.globals.padHorizontal +
@@ -115,6 +119,9 @@ export default class Helpers {
         if (barWidth < 1) {
           barWidth = 1
         }
+      }
+      if (String(this.barCtx.barOptions.columnWidth).indexOf('%') === -1) {
+        barWidth = parseInt(this.barCtx.barOptions.columnWidth, 10)
       }
 
       zeroH =
@@ -516,19 +523,41 @@ export default class Helpers {
     const w = this.w
 
     let goals = []
+
+    const pushGoal = (value, attrs) => {
+      goals.push({
+        [type]:
+          type === 'x'
+            ? this.getXForValue(value, zeroW, false)
+            : this.getYForValue(value, zeroH, false),
+        attrs
+      })
+    }
     if (
       w.globals.seriesGoals[i] &&
       w.globals.seriesGoals[i][j] &&
       Array.isArray(w.globals.seriesGoals[i][j])
     ) {
       w.globals.seriesGoals[i][j].forEach((goal) => {
-        goals.push({
-          [type]:
-            type === 'x'
-              ? this.getXForValue(goal.value, zeroW, false)
-              : this.getYForValue(goal.value, zeroH, false),
-          attrs: goal
-        })
+        pushGoal(goal.value, goal)
+      })
+    }
+    if (this.barCtx.barOptions.isDumbbell && w.globals.seriesRange.length) {
+      let colors = this.barCtx.barOptions.dumbbellColors
+        ? this.barCtx.barOptions.dumbbellColors
+        : w.globals.colors
+      const commonAttrs = {
+        strokeHeight: type === 'x' ? 0 : w.globals.markers.size[i],
+        strokeWidth: type === 'x' ? w.globals.markers.size[i] : 0,
+        strokeDashArray: 0,
+        strokeLineCap: 'round',
+        strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i]
+      }
+
+      pushGoal(w.globals.seriesRangeStart[i][j], commonAttrs)
+      pushGoal(w.globals.seriesRangeEnd[i][j], {
+        ...commonAttrs,
+        strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i]
       })
     }
     return goals
@@ -546,6 +575,16 @@ export default class Helpers {
     const lineGroup = graphics.group({
       className: 'apexcharts-bar-goals-groups'
     })
+
+    lineGroup.node.classList.add('apexcharts-element-hidden')
+    this.barCtx.w.globals.delayedElements.push({
+      el: lineGroup.node
+    })
+
+    lineGroup.attr(
+      'clip-path',
+      `url(#gridRectMarkerMask${this.barCtx.w.globals.cuid})`
+    )
 
     let line = null
     if (this.barCtx.isHorizontal) {

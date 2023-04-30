@@ -450,6 +450,7 @@ class Grid {
       xCount = this.xaxisLabels.length
 
       if (this.isRangeBar) {
+        xCount--
         yTickAmount = w.globals.labels.length
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
           xCount = w.config.xaxis.tickAmount

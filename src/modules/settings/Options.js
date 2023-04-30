@@ -412,6 +412,8 @@ export default class Options {
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
           hideZeroBarsWhenGrouped: false,
+          isDumbbell: false,
+          dumbbellColors: undefined,
           colors: {
             ranges: [],
             backgroundBarColors: [],

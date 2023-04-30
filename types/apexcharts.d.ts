@@ -510,8 +510,8 @@ type ApexPlotOptions = {
   }
   bar?: {
     horizontal?: boolean
-    columnWidth?: string
-    barHeight?: string
+    columnWidth?: string | number;
+    barHeight?: string | number;
     distributed?: boolean
     borderRadius?: number;
     borderRadiusApplication?: 'around' | 'end';
@@ -519,6 +519,8 @@ type ApexPlotOptions = {
     hideZeroBarsWhenGrouped?: boolean
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
+    isDumbbell?: boolean;
+    dumbbellColors?: string[][];
     colors?: {
       ranges?: {
         from?: number
