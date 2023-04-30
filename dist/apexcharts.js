@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.39.0
+ * ApexCharts v3.40.0
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -1218,6 +1218,8 @@
     _createClass(Graphics, [{
       key: "roundPathCorners",
       value: function roundPathCorners(pathString, radius) {
+        if (pathString.indexOf('NaN') > -1) pathString = '';
+
         function moveTowardsLength(movingPoint, targetPoint, amount) {
           var width = targetPoint.x - movingPoint.x;
           var height = targetPoint.y - movingPoint.y;
@@ -3583,6 +3585,8 @@
               rangeBarOverlap: true,
               rangeBarGroupRows: false,
               hideZeroBarsWhenGrouped: false,
+              isDumbbell: false,
+              dumbbellColors: undefined,
               colors: {
                 ranges: [],
                 backgroundBarColors: [],
@@ -5414,6 +5418,11 @@
         };
 
         return {
+          chart: {
+            animations: {
+              animateGradually: false
+            }
+          },
           stroke: {
             width: 0,
             lineCap: 'square'
@@ -5457,6 +5466,9 @@
               colors: ['#fff']
             }
           },
+          markers: {
+            size: 10
+          },
           tooltip: {
             shared: false,
             followCursor: true,
@@ -5480,6 +5492,21 @@
             }
           }
         };
+      }
+    }, {
+      key: "dumbbell",
+      value: function dumbbell(opts) {
+        var _opts$plotOptions$bar, _opts$plotOptions$bar2;
+
+        if (!((_opts$plotOptions$bar = opts.plotOptions.bar) !== null && _opts$plotOptions$bar !== void 0 && _opts$plotOptions$bar.barHeight)) {
+          opts.plotOptions.bar.barHeight = 2;
+        }
+
+        if (!((_opts$plotOptions$bar2 = opts.plotOptions.bar) !== null && _opts$plotOptions$bar2 !== void 0 && _opts$plotOptions$bar2.columnWidth)) {
+          opts.plotOptions.bar.columnWidth = 2;
+        }
+
+        return opts;
       }
     }, {
       key: "area",
@@ -6082,6 +6109,8 @@
         var newDefaults = {};
 
         if (opts && _typeof(opts) === 'object') {
+          var _opts$chart$brush, _opts$plotOptions, _opts$plotOptions$bar, _opts$chart$sparkline, _window$Apex$chart, _window$Apex$chart$sp;
+
           var chartDefaults = {};
           var chartTypes = ['line', 'area', 'bar', 'candlestick', 'boxPlot', 'rangeBar', 'rangeArea', 'bubble', 'scatter', 'heatmap', 'treemap', 'pie', 'polarArea', 'donut', 'radar', 'radialBar'];
 
@@ -6095,12 +6124,16 @@
             chartDefaults = defaults.stackedBars();
           }
 
-          if (opts.chart.brush && opts.chart.brush.enabled) {
+          if ((_opts$chart$brush = opts.chart.brush) !== null && _opts$chart$brush !== void 0 && _opts$chart$brush.enabled) {
             chartDefaults = defaults.brush(chartDefaults);
           }
 
           if (opts.chart.stacked && opts.chart.stackType === '100%') {
             opts = defaults.stacked100(opts);
+          }
+
+          if ((_opts$plotOptions = opts.plotOptions) !== null && _opts$plotOptions !== void 0 && (_opts$plotOptions$bar = _opts$plotOptions.bar) !== null && _opts$plotOptions$bar !== void 0 && _opts$plotOptions$bar.isDumbbell) {
+            opts = defaults.dumbbell(opts);
           } // If user has specified a dark theme, make the tooltip dark too
 
 
@@ -6117,7 +6150,7 @@
 
           opts = this.checkForCatToNumericXAxis(this.chartType, chartDefaults, opts);
 
-          if (opts.chart.sparkline && opts.chart.sparkline.enabled || window.Apex.chart && window.Apex.chart.sparkline && window.Apex.chart.sparkline.enabled) {
+          if ((_opts$chart$sparkline = opts.chart.sparkline) !== null && _opts$chart$sparkline !== void 0 && _opts$chart$sparkline.enabled || (_window$Apex$chart = window.Apex.chart) !== null && _window$Apex$chart !== void 0 && (_window$Apex$chart$sp = _window$Apex$chart.sparkline) !== null && _window$Apex$chart$sp !== void 0 && _window$Apex$chart$sp.enabled) {
             chartDefaults = defaults.sparkline(chartDefaults);
           }
 
@@ -6137,8 +6170,10 @@
     }, {
       key: "checkForCatToNumericXAxis",
       value: function checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
+        var _opts$plotOptions2, _opts$plotOptions2$ba;
+
         var defaults = new Defaults(opts);
-        var isBarHorizontal = (chartType === 'bar' || chartType === 'boxPlot') && opts.plotOptions && opts.plotOptions.bar && opts.plotOptions.bar.horizontal;
+        var isBarHorizontal = (chartType === 'bar' || chartType === 'boxPlot') && ((_opts$plotOptions2 = opts.plotOptions) === null || _opts$plotOptions2 === void 0 ? void 0 : (_opts$plotOptions2$ba = _opts$plotOptions2.bar) === null || _opts$plotOptions2$ba === void 0 ? void 0 : _opts$plotOptions2$ba.horizontal);
         var unsupportedZoom = chartType === 'pie' || chartType === 'polarArea' || chartType === 'donut' || chartType === 'radar' || chartType === 'radialBar' || chartType === 'heatmap';
         var notNumericXAxis = opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric';
         var tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -9556,7 +9591,7 @@
           var offX = w.globals.barPadForNumericAxis;
           var elHorzLine = graphics.drawLine(w.globals.padHorizontal + w.config.xaxis.axisBorder.offsetX - offX, this.offY, this.xaxisBorderWidth + offX, this.offY, w.config.xaxis.axisBorder.color, 0, this.xaxisBorderHeight);
 
-          if (this.elgrid && this.elgrid.elGridBorders) {
+          if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
             this.elgrid.elGridBorders.add(elHorzLine);
           } else {
             elXaxis.add(elHorzLine);
@@ -9824,7 +9859,7 @@
         if (axisBorder.show) {
           var elVerticalLine = graphics.drawLine(w.globals.padHorizontal + axisBorder.offsetX + offX, 1 + axisBorder.offsetY, w.globals.padHorizontal + axisBorder.offsetX + offX, w.globals.gridHeight + axisBorder.offsetY, axisBorder.color, 0);
 
-          if (this.elgrid && this.elgrid.elGridBorders) {
+          if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
             this.elgrid.elGridBorders.add(elVerticalLine);
           } else {
             elYaxis.add(elVerticalLine);
@@ -10166,7 +10201,7 @@
         var line = graphics.drawLine(x1 - (isHorzLine ? offX : 0), y1, x2 + (isHorzLine ? offX : 0), y2, w.config.grid.borderColor, strokeDashArray);
         line.node.classList.add('apexcharts-gridline');
 
-        if (excludeBorders) {
+        if (excludeBorders && w.config.grid.show) {
           this.elGridBorders.add(line);
         } else {
           parent.add(line);
@@ -10408,6 +10443,7 @@
           xCount = this.xaxisLabels.length;
 
           if (this.isRangeBar) {
+            xCount--;
             yTickAmount = w.globals.labels.length;
 
             if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
@@ -11858,7 +11894,7 @@
 
           var elHorzLine = graphics.drawLine(w.globals.padHorizontal + lineCorrection + axisBorder.offsetX, this.xAxisoffX, w.globals.gridWidth, this.xAxisoffX, axisBorder.color, 0, axisBorder.height); // in horizontal bars, we append axisBorder to elGridBorders element to avoid z-index issues
 
-          if (this.elgrid && this.elgrid.elGridBorders) {
+          if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
             this.elgrid.elGridBorders.add(elHorzLine);
           } else {
             parent.add(elHorzLine);
@@ -18813,6 +18849,11 @@
           }
 
           barHeight = barHeight * parseInt(this.barCtx.barOptions.barHeight, 10) / 100;
+
+          if (String(this.barCtx.barOptions.barHeight).indexOf('%') === -1) {
+            barHeight = parseInt(this.barCtx.barOptions.barHeight, 10);
+          }
+
           zeroW = this.barCtx.baseLineInvertedY + w.globals.padHorizontal + (this.barCtx.isReversed ? w.globals.gridWidth : 0) - (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0);
           y = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
         } else {
@@ -18842,6 +18883,10 @@
             if (barWidth < 1) {
               barWidth = 1;
             }
+          }
+
+          if (String(this.barCtx.barOptions.columnWidth).indexOf('%') === -1) {
+            barWidth = parseInt(this.barCtx.barOptions.columnWidth, 10);
           }
 
           zeroH = w.globals.gridHeight - this.barCtx.baseLineY[this.barCtx.yaxisIndex] - (this.barCtx.isReversed ? w.globals.gridHeight : 0) + (this.barCtx.isReversed ? this.barCtx.baseLineY[this.barCtx.yaxisIndex] * 2 : 0);
@@ -19200,12 +19245,31 @@
         var w = this.w;
         var goals = [];
 
+        var pushGoal = function pushGoal(value, attrs) {
+          var _goals$push;
+
+          goals.push((_goals$push = {}, _defineProperty(_goals$push, type, type === 'x' ? _this.getXForValue(value, zeroW, false) : _this.getYForValue(value, zeroH, false)), _defineProperty(_goals$push, "attrs", attrs), _goals$push));
+        };
+
         if (w.globals.seriesGoals[i] && w.globals.seriesGoals[i][j] && Array.isArray(w.globals.seriesGoals[i][j])) {
           w.globals.seriesGoals[i][j].forEach(function (goal) {
-            var _goals$push;
-
-            goals.push((_goals$push = {}, _defineProperty(_goals$push, type, type === 'x' ? _this.getXForValue(goal.value, zeroW, false) : _this.getYForValue(goal.value, zeroH, false)), _defineProperty(_goals$push, "attrs", goal), _goals$push));
+            pushGoal(goal.value, goal);
           });
+        }
+
+        if (this.barCtx.barOptions.isDumbbell && w.globals.seriesRange.length) {
+          var colors = this.barCtx.barOptions.dumbbellColors ? this.barCtx.barOptions.dumbbellColors : w.globals.colors;
+          var commonAttrs = {
+            strokeHeight: type === 'x' ? 0 : w.globals.markers.size[i],
+            strokeWidth: type === 'x' ? w.globals.markers.size[i] : 0,
+            strokeDashArray: 0,
+            strokeLineCap: 'round',
+            strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i]
+          };
+          pushGoal(w.globals.seriesRangeStart[i][j], commonAttrs);
+          pushGoal(w.globals.seriesRangeEnd[i][j], _objectSpread2(_objectSpread2({}, commonAttrs), {}, {
+            strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i]
+          }));
         }
 
         return goals;
@@ -19223,6 +19287,11 @@
         var lineGroup = graphics.group({
           className: 'apexcharts-bar-goals-groups'
         });
+        lineGroup.node.classList.add('apexcharts-element-hidden');
+        this.barCtx.w.globals.delayedElements.push({
+          el: lineGroup.node
+        });
+        lineGroup.attr('clip-path', "url(#gridRectMarkerMask".concat(this.barCtx.w.globals.cuid, ")"));
         var line = null;
 
         if (this.barCtx.isHorizontal) {
@@ -20007,20 +20076,31 @@
     }, {
       key: "initialPositions",
       value: function initialPositions(x, y, xDivision, yDivision, zeroH, zeroW) {
-        var _w$globals$seriesGrou, _w$globals$seriesGrou2;
-
         var w = this.w;
         var barHeight, barWidth;
 
         if (this.isHorizontal) {
+          var _w$globals$seriesGrou;
+
           // height divided into equal parts
           yDivision = w.globals.gridHeight / w.globals.dataPoints;
           barHeight = yDivision;
           barHeight = barHeight * parseInt(w.config.plotOptions.bar.barHeight, 10) / 100;
+
+          if ((_w$globals$seriesGrou = w.globals.seriesGroups) !== null && _w$globals$seriesGrou !== void 0 && _w$globals$seriesGrou.length) {
+            barHeight = barHeight / w.globals.seriesGroups.length;
+          }
+
+          if (String(w.config.plotOptions.bar.barHeight).indexOf('%') === -1) {
+            barHeight = parseInt(w.config.plotOptions.bar.barHeight, 10);
+          }
+
           zeroW = this.baseLineInvertedY + w.globals.padHorizontal + (this.isReversed ? w.globals.gridWidth : 0) - (this.isReversed ? this.baseLineInvertedY * 2 : 0); // initial y position is half of barHeight * half of number of Bars
 
           y = (yDivision - barHeight) / 2;
         } else {
+          var _w$globals$seriesGrou2;
+
           // width divided into equal parts
           xDivision = w.globals.gridWidth / w.globals.dataPoints;
           barWidth = xDivision;
@@ -20033,6 +20113,14 @@
             barWidth = barWidth * parseInt(w.config.plotOptions.bar.columnWidth, 10) / 100;
           }
 
+          if ((_w$globals$seriesGrou2 = w.globals.seriesGroups) !== null && _w$globals$seriesGrou2 !== void 0 && _w$globals$seriesGrou2.length) {
+            barWidth = barWidth / w.globals.seriesGroups.length;
+          }
+
+          if (String(w.config.plotOptions.bar.columnWidth).indexOf('%') === -1) {
+            barWidth = parseInt(w.config.plotOptions.bar.columnWidth, 10);
+          }
+
           zeroH = w.globals.gridHeight - this.baseLineY[this.yaxisIndex] - (this.isReversed ? w.globals.gridHeight : 0) + (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0); // initial x position is one third of barWidth
 
           x = w.globals.padHorizontal + (xDivision - barWidth) / 2;
@@ -20043,8 +20131,8 @@
           y: y,
           yDivision: yDivision,
           xDivision: xDivision,
-          barHeight: (_w$globals$seriesGrou = w.globals.seriesGroups) !== null && _w$globals$seriesGrou !== void 0 && _w$globals$seriesGrou.length ? barHeight / w.globals.seriesGroups.length : barHeight,
-          barWidth: (_w$globals$seriesGrou2 = w.globals.seriesGroups) !== null && _w$globals$seriesGrou2 !== void 0 && _w$globals$seriesGrou2.length ? barWidth / w.globals.seriesGroups.length : barWidth,
+          barHeight: barHeight,
+          barWidth: barWidth,
           zeroH: zeroH,
           zeroW: zeroW
         };
