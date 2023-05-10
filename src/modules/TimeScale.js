@@ -838,6 +838,11 @@ class TimeScale {
         dateToFormat = dt.getDate(dt.parseDateWithTimezone(raw))
       }
 
+      //to show min and max depending on timezone you give
+      if (w.config.xaxis.labels.customTimeZone !== undefined) {
+        dateToFormat = dt.getDate(raw,true)
+      }
+
       if (w.config.xaxis.labels.format === undefined) {
         let customFormat = 'dd MMM'
         const dtFormatter = w.config.xaxis.labels.datetimeFormatter

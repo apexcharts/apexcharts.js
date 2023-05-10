@@ -31,12 +31,50 @@ class DateTime {
       : new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
   }
 
-  getDate(timestamp) {
-    const utc = this.w.config.xaxis.labels.datetimeUTC
+  conver24Hrs(timeString){
+    // Extract the hour, minute, second, and AM/PM indicator
+    let timeParts = timeString.split(/:|\s/);
+    let hour = parseInt(timeParts[0]);
+    let minute = parseInt(timeParts[1]);
+    let second = parseInt(timeParts[2]);
+    let ampm = timeParts[3];
 
-    return utc
-      ? new Date(new Date(timestamp).toUTCString())
-      : new Date(timestamp)
+    // Adjust the hour based on the AM/PM indicator
+    if (ampm === 'AM' && hour === 12) {
+      hour = 0;
+    } else if (ampm === 'PM' && hour < 12) {
+      hour += 12;
+    }
+
+    // Convert the hour, minute, and second to a string in 24-hour format
+    let hourStr = hour.toString().padStart(2, '0');
+    let minuteStr = minute.toString().padStart(2, '0');
+    let secondStr = second.toString().padStart(2, '0');
+    return [hourStr, minuteStr, secondStr]
+  }
+
+  isValidCustomDate(d) {
+    return d instanceof Date && !isNaN(d);
+  }
+
+  getDate(timestamp,istz) {
+    const utc = this.w.config.xaxis.labels.datetimeUTC
+    const custtz = this.w.config.xaxis.labels.customTimeZone
+    const date = utc ? date(new Date(timestamp).toUTCString()) : new Date(timestamp)
+    //change the date to time zone date
+    if (custtz != undefined && this.isValidCustomDate(date) && !istz) {
+      const timeZoneConvertedDate = date.toLocaleString("en-US", {timeZone: custtz}); // to convert given timezone's time 
+      const dtArr = timeZoneConvertedDate.split(', ');
+      const timezoneDate = dtArr[0].split('/');
+      const timezoneTime = this.conver24Hrs(dtArr[1]);
+      date.setFullYear(timezoneDate[2])
+      date.setMonth(timezoneDate[1])
+      date.setDate(timezoneDate[0])
+      date.setHours(timezoneTime[0])
+      date.setMinutes(timezoneTime[1])
+      date.setSeconds(timezoneTime[2])
+    }
+    return date 
   }
 
   parseDate(dateStr) {

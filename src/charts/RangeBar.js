@@ -12,8 +12,27 @@ import DateTime from '../utils/DateTime'
 class RangeBar extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
+    const locale = this.w.globals.locale
     let graphics = new Graphics(this.ctx)
 
+    //to sort y label date's (https://github.com/apexcharts/apexcharts.js/issues/3796) issue fix
+    if(w.config.yaxis[0].labels.sort){
+      if(w.config.yaxis[0].labels.type === 'datetime' || w.config.yaxis[0].labels.type === 'date'){
+        w.globals.labels = w.globals.labels.map((val) => {
+          return new Date(val);
+        });
+
+        const sorted = w.globals.labels.sort((a,b) => {
+          return a - b;
+        })
+        const dt = new DateTime(this.ctx);
+        w.globals.labels = sorted.map((date) => {
+          return dt.formatDate(date, 'MMM, dd');
+        })
+      }
+
+    }
+    
     this.rangeBarOptions = this.w.config.plotOptions.rangeBar
 
     this.series = series
