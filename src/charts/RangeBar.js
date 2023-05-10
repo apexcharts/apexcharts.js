@@ -12,7 +12,6 @@ import DateTime from '../utils/DateTime'
 class RangeBar extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
-    const locale = this.w.globals.locale
     let graphics = new Graphics(this.ctx)
 
     //to sort y label date's (https://github.com/apexcharts/apexcharts.js/issues/3796) issue fix
