@@ -4647,10 +4647,56 @@
         return !utc ? new Date(dateStr).getTime() : new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime();
       }
     }, {
+      key: "conver24Hrs",
+      value: function conver24Hrs(timeString) {
+        // Extract the hour, minute, second, and AM/PM indicator
+        var timeParts = timeString.split(/:|\s/);
+        var hour = parseInt(timeParts[0]);
+        var minute = parseInt(timeParts[1]);
+        var second = parseInt(timeParts[2]);
+        var ampm = timeParts[3]; // Adjust the hour based on the AM/PM indicator
+
+        if (ampm === 'AM' && hour === 12) {
+          hour = 0;
+        } else if (ampm === 'PM' && hour < 12) {
+          hour += 12;
+        } // Convert the hour, minute, and second to a string in 24-hour format
+
+
+        var hourStr = hour.toString().padStart(2, '0');
+        var minuteStr = minute.toString().padStart(2, '0');
+        var secondStr = second.toString().padStart(2, '0');
+        return [hourStr, minuteStr, secondStr];
+      }
+    }, {
+      key: "isValidCustomDate",
+      value: function isValidCustomDate(d) {
+        return d instanceof Date && !isNaN(d);
+      }
+    }, {
       key: "getDate",
-      value: function getDate(timestamp) {
+      value: function getDate(timestamp, istz) {
         var utc = this.w.config.xaxis.labels.datetimeUTC;
-        return utc ? new Date(new Date(timestamp).toUTCString()) : new Date(timestamp);
+        var custtz = this.w.config.xaxis.labels.customTimeZone;
+        var date = utc ? date(new Date(timestamp).toUTCString()) : new Date(timestamp); //change the date to time zone date
+
+        if (custtz != undefined && this.isValidCustomDate(date) && !istz) {
+          var timeZoneConvertedDate = date.toLocaleString("en-US", {
+            timeZone: custtz
+          }); // to convert given timezone's time 
+
+          var dtArr = timeZoneConvertedDate.split(', ');
+          var timezoneDate = dtArr[0].split('/');
+          var timezoneTime = this.conver24Hrs(dtArr[1]);
+          date.setFullYear(timezoneDate[2]);
+          date.setMonth(timezoneDate[1]);
+          date.setDate(timezoneDate[0]);
+          date.setHours(timezoneTime[0]);
+          date.setMinutes(timezoneTime[1]);
+          date.setSeconds(timezoneTime[2]);
+        }
+
+        return date;
       }
     }, {
       key: "parseDate",
@@ -22797,7 +22843,23 @@
       key: "draw",
       value: function draw(series, seriesIndex) {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
+        var graphics = new Graphics(this.ctx); //to sort y label date's (https://github.com/apexcharts/apexcharts.js/issues/3796) issue fix
+
+        if (w.config.yaxis[0].labels.sort) {
+          if (w.config.yaxis[0].labels.type === 'datetime' || w.config.yaxis[0].labels.type === 'date') {
+            w.globals.labels = w.globals.labels.map(function (val) {
+              return new Date(val);
+            });
+            var sorted = w.globals.labels.sort(function (a, b) {
+              return a - b;
+            });
+            var dt = new DateTime(this.ctx);
+            w.globals.labels = sorted.map(function (date) {
+              return dt.formatDate(date, 'MMM, dd');
+            });
+          }
+        }
+
         this.rangeBarOptions = this.w.config.plotOptions.rangeBar;
         this.series = series;
         this.seriesRangeStart = w.globals.seriesRangeStart;
@@ -25367,6 +25429,11 @@
           if (!_this2.utc) {
             // Fixes #1726, #1544, #1485, #1255
             dateToFormat = dt.getDate(dt.parseDateWithTimezone(raw));
+          } //to show min and max depending on timezone you give
+
+
+          if (w.config.xaxis.labels.customTimeZone !== undefined) {
+            dateToFormat = dt.getDate(raw, true);
           }
 
           if (w.config.xaxis.labels.format === undefined) {
