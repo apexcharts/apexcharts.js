@@ -673,7 +673,7 @@ export default class Data {
     }
 
     // set Null values to 0 in all series when user hides/shows some series
-    if (cnf.chart.type === 'bar' && cnf.chart.stacked) {
+    if (cnf.chart.stacked) {
       const series = new Series(this.ctx)
       gl.series = series.setNullSeriesToZeroValues(gl.series)
     }
