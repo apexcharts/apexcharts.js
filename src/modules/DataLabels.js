@@ -72,7 +72,7 @@ class DataLabels {
       x,
       y,
       textRects,
-      drawnextLabel
+      drawnextLabel,
     }
   }
 
@@ -96,7 +96,7 @@ class DataLabels {
     }
 
     elDataLabelsWrap = graphics.group({
-      class: 'apexcharts-data-labels'
+      class: 'apexcharts-data-labels',
     })
 
     for (let q = 0; q < pos.x.length; q++) {
@@ -125,7 +125,7 @@ class DataLabels {
             ctx: this.ctx,
             seriesIndex: i,
             dataPointIndex,
-            w
+            w,
           })
         }
 
@@ -155,7 +155,7 @@ class DataLabels {
           j: dataPointIndex,
           parent: elDataLabelsWrap,
           offsetCorrection: true,
-          dataLabelsConfig: w.config.dataLabels
+          dataLabelsConfig: w.config.dataLabels,
         })
       }
     }
@@ -178,7 +178,7 @@ class DataLabels {
       dataLabelsConfig,
       color,
       alwaysDrawDataLabel,
-      offsetCorrection
+      offsetCorrection,
     } = opts
 
     if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
@@ -191,7 +191,7 @@ class DataLabels {
       x,
       y,
       drawnextLabel: true,
-      textRects: null
+      textRects: null,
     }
 
     if (offsetCorrection) {
@@ -237,7 +237,7 @@ class DataLabels {
         series: w.globals.series,
         seriesIndex: i,
         dataPointIndex: j,
-        w
+        w,
       })
     }
     if (color) {
@@ -266,13 +266,13 @@ class DataLabels {
         text,
         fontSize: fontSize || dataLabelsConfig.style.fontSize,
         fontFamily: dataLabelsConfig.style.fontFamily,
-        fontWeight: dataLabelsConfig.style.fontWeight || 'normal'
+        fontWeight: dataLabelsConfig.style.fontWeight || 'normal',
       })
 
       dataLabelText.attr({
         class: 'apexcharts-datalabel',
         cx: x,
-        cy: y
+        cy: y,
       })
 
       if (dataLabelsConfig.dropShadow.enabled) {

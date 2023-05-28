@@ -42,13 +42,17 @@ export default class Config {
         'polarArea',
         'donut',
         'radar',
-        'radialBar'
+        'radialBar',
       ]
 
       if (chartTypes.indexOf(opts.chart.type) !== -1) {
         chartDefaults = defaults[opts.chart.type]()
       } else {
         chartDefaults = defaults.line()
+      }
+
+      if (opts.plotOptions?.bar?.isFunnel) {
+        chartDefaults = defaults.funnel()
       }
 
       if (opts.chart.stacked && opts.chart.type === 'bar') {

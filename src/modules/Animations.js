@@ -83,9 +83,7 @@ export default class Animations {
   }
 
   animateLine(el, from, to, speed) {
-    el.attr(from)
-      .animate(speed)
-      .attr(to)
+    el.attr(from).animate(speed).attr(to)
   }
 
   /*
@@ -97,13 +95,13 @@ export default class Animations {
     el.attr({
       r: from,
       width: from,
-      height: from
+      height: from,
     })
       .animate(speed, easing)
       .attr({
         r: to,
         width: to.width,
-        height: to.height
+        height: to.height,
       })
       .afterAll(() => {
         cb()
@@ -117,13 +115,13 @@ export default class Animations {
     el.attr({
       r: from.r,
       cx: from.cx,
-      cy: from.cy
+      cy: from.cy,
     })
       .animate(speed, easing)
       .attr({
         r: to.r,
         cx: to.cx,
-        cy: to.cy
+        cy: to.cy,
       })
   }
 
@@ -175,6 +173,7 @@ export default class Animations {
     this.w.globals.delayedElements.forEach((d) => {
       const ele = d.el
       ele.classList.remove('apexcharts-element-hidden')
+      ele.classList.add('apexcharts-hidden-element-shown')
     })
   }
 

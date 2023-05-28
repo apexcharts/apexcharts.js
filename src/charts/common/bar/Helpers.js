@@ -1,6 +1,7 @@
 import Fill from '../../../modules/Fill'
 import Graphics from '../../../modules/Graphics'
 import Series from '../../../modules/Series'
+import Utils from '../../../utils/Utils'
 
 export default class Helpers {
   constructor(barCtx) {
@@ -85,6 +86,9 @@ export default class Helpers {
         (this.barCtx.isReversed ? w.globals.gridWidth : 0) -
         (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0)
 
+      if (this.barCtx.isFunnel) {
+        zeroW = w.globals.gridWidth / 2
+      }
       y = (yDivision - barHeight * this.barCtx.seriesLen) / 2
     } else {
       // width divided into equal parts
@@ -145,7 +149,7 @@ export default class Helpers {
       barHeight,
       barWidth,
       zeroH,
-      zeroW
+      zeroW,
     }
   }
 
@@ -226,7 +230,7 @@ export default class Helpers {
       fillConfig: w.config.series[i].data[j]?.fill,
       fillType: w.config.series[i].data[j]?.fill?.type
         ? w.config.series[i].data[j]?.fill.type
-        : w.config.fill.type
+        : w.config.fill.type,
     })
 
     return pathFill
@@ -311,7 +315,7 @@ export default class Helpers {
     realIndex,
     i,
     j,
-    w
+    w,
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
     strokeWidth = Array.isArray(strokeWidth)
@@ -386,7 +390,7 @@ export default class Helpers {
 
     return {
       pathTo,
-      pathFrom
+      pathFrom,
     }
   }
 
@@ -400,7 +404,7 @@ export default class Helpers {
     realIndex,
     i,
     j,
-    w
+    w,
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
     strokeWidth = Array.isArray(strokeWidth)
@@ -473,7 +477,7 @@ export default class Helpers {
     }
     return {
       pathTo,
-      pathFrom
+      pathFrom,
     }
   }
 
@@ -530,7 +534,7 @@ export default class Helpers {
           type === 'x'
             ? this.getXForValue(value, zeroW, false)
             : this.getYForValue(value, zeroH, false),
-        attrs
+        attrs,
       })
     }
     if (
@@ -551,13 +555,13 @@ export default class Helpers {
         strokeWidth: type === 'x' ? w.globals.markers.size[i] : 0,
         strokeDashArray: 0,
         strokeLineCap: 'round',
-        strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i]
+        strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i],
       }
 
       pushGoal(w.globals.seriesRangeStart[i][j], commonAttrs)
       pushGoal(w.globals.seriesRangeEnd[i][j], {
         ...commonAttrs,
-        strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i]
+        strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i],
       })
     }
     return goals
@@ -569,16 +573,16 @@ export default class Helpers {
     goalX,
     goalY,
     barWidth,
-    barHeight
+    barHeight,
   }) {
     let graphics = new Graphics(this.barCtx.ctx)
     const lineGroup = graphics.group({
-      className: 'apexcharts-bar-goals-groups'
+      className: 'apexcharts-bar-goals-groups',
     })
 
     lineGroup.node.classList.add('apexcharts-element-hidden')
     this.barCtx.w.globals.delayedElements.push({
-      el: lineGroup.node
+      el: lineGroup.node,
     })
 
     lineGroup.attr(
@@ -634,5 +638,35 @@ export default class Helpers {
     }
 
     return lineGroup
+  }
+
+  drawBarShadow({ prevPaths, currPaths, color }) {
+    const w = this.w
+    const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths
+    const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths
+
+    const prevY2 = prevY1 + currPaths.barHeight
+
+    const graphics = new Graphics(this.barCtx.ctx)
+    const utils = new Utils()
+
+    const shadowPath =
+      graphics.move(prevX1, prevY2) +
+      graphics.line(prevX2, prevY2) +
+      graphics.line(currX2, currY1) +
+      graphics.line(currX1, currY1) +
+      graphics.line(prevX1, prevY2) +
+      (w.config.plotOptions.bar.borderRadiusApplication === 'around'
+        ? ' Z'
+        : ' z')
+
+    return graphics.drawPath({
+      d: shadowPath,
+      fill: utils.shadeColor(0.5, Utils.rgb2hex(color)),
+      stroke: 'none',
+      strokeWidth: 0,
+      fillOpacity: 1,
+      classes: 'apexcharts-bar-shadows',
+    })
   }
 }

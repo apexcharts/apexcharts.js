@@ -46,7 +46,7 @@ export default class DimYAxis {
         let val = lbFormatter(longestStr, {
           seriesIndex: index,
           dataPointIndex: -1,
-          w
+          w,
         })
         let valArr = val
 
@@ -103,12 +103,12 @@ export default class DimYAxis {
           height:
             arrLabelrect.height > rect.height
               ? arrLabelrect.height
-              : rect.height
+              : rect.height,
         })
       } else {
         ret.push({
           width,
-          height
+          height,
         })
       }
     })
@@ -139,12 +139,12 @@ export default class DimYAxis {
 
         ret.push({
           width: rect.width,
-          height: rect.height
+          height: rect.height,
         })
       } else {
         ret.push({
           width: 0,
-          height: 0
+          height: 0,
         })
       }
     })
@@ -160,7 +160,7 @@ export default class DimYAxis {
     let padding = w.globals.yAxisScale.length > 1 ? 10 : 0
     const axesUtils = new AxesUtils(this.dCtx.ctx)
 
-    const isHiddenYAxis = function(index) {
+    const isHiddenYAxis = function (index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
     }
 

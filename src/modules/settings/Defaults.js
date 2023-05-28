@@ -15,7 +15,7 @@ const getRangeValues = ({
   dataPointIndex,
   y1,
   y2,
-  w
+  w,
 }) => {
   let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
   let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
@@ -31,7 +31,7 @@ const getRangeValues = ({
     seriesIndex,
     dataPointIndex,
     start,
-    end
+    end,
   }
 
   if (typeof yLbTitleFormatter === 'function') {
@@ -47,7 +47,7 @@ const getRangeValues = ({
       ylabel = xFormat.xLabelFormat(w.globals.ttKeyFormatter, ylabel, ylabel, {
         i: undefined,
         dateFormatter: new DateTime(ctx).formatDate,
-        w
+        w,
       })
     }
   }
@@ -87,15 +87,8 @@ const getRangeValues = ({
   return { start, end, startVal, endVal, ylabel, color, seriesName }
 }
 const buildRangeTooltipHTML = (opts) => {
-  let {
-    color,
-    seriesName,
-    ylabel,
-    start,
-    end,
-    seriesIndex,
-    dataPointIndex
-  } = opts
+  let { color, seriesName, ylabel, start, end, seriesIndex, dataPointIndex } =
+    opts
 
   const formatter = opts.ctx.tooltip.tooltipLabels.getFormatters(seriesIndex)
 
@@ -145,41 +138,44 @@ export default class Defaults {
     this.opts = opts
   }
 
-  line() {
-    return {
-      chart: {
-        animations: {
-          easing: 'swing'
-        }
-      },
-      dataLabels: {
-        enabled: false
-      },
-      stroke: {
-        width: 5,
-        curve: 'straight'
-      },
-      markers: {
-        size: 0,
-        hover: {
-          sizeOffset: 6
-        }
-      },
-      xaxis: {
-        crosshairs: {
-          width: 1
-        }
-      }
-    }
-  }
-
-  sparkline(defaults) {
+  hideYAxis() {
     this.opts.yaxis[0].show = false
     this.opts.yaxis[0].title.text = ''
     this.opts.yaxis[0].axisBorder.show = false
     this.opts.yaxis[0].axisTicks.show = false
     this.opts.yaxis[0].floating = true
+  }
 
+  line() {
+    return {
+      chart: {
+        animations: {
+          easing: 'swing',
+        },
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      stroke: {
+        width: 5,
+        curve: 'straight',
+      },
+      markers: {
+        size: 0,
+        hover: {
+          sizeOffset: 6,
+        },
+      },
+      xaxis: {
+        crosshairs: {
+          width: 1,
+        },
+      },
+    }
+  }
+
+  sparkline(defaults) {
+    this.hideYAxis()
     const ret = {
       grid: {
         show: false,
@@ -187,37 +183,37 @@ export default class Defaults {
           left: 0,
           right: 0,
           top: 0,
-          bottom: 0
-        }
+          bottom: 0,
+        },
       },
       legend: {
-        show: false
+        show: false,
       },
       xaxis: {
         labels: {
-          show: false
+          show: false,
         },
         tooltip: {
-          enabled: false
+          enabled: false,
         },
         axisBorder: {
-          show: false
+          show: false,
         },
         axisTicks: {
-          show: false
-        }
+          show: false,
+        },
       },
       chart: {
         toolbar: {
-          show: false
+          show: false,
         },
         zoom: {
-          enabled: false
-        }
+          enabled: false,
+        },
       },
       dataLabels: {
-        enabled: false
-      }
+        enabled: false,
+      },
     }
 
     return Utils.extend(defaults, ret)
@@ -228,61 +224,109 @@ export default class Defaults {
       chart: {
         stacked: false,
         animations: {
-          easing: 'swing'
-        }
+          easing: 'swing',
+        },
       },
       plotOptions: {
         bar: {
           dataLabels: {
-            position: 'center'
-          }
-        }
+            position: 'center',
+          },
+        },
       },
       dataLabels: {
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
         },
         background: {
-          enabled: false
-        }
+          enabled: false,
+        },
       },
       stroke: {
         width: 0,
-        lineCap: 'round'
+        lineCap: 'round',
       },
       fill: {
-        opacity: 0.85
+        opacity: 0.85,
       },
       legend: {
         markers: {
           shape: 'square',
           radius: 2,
-          size: 8
-        }
+          size: 8,
+        },
       },
       tooltip: {
         shared: false,
-        intersect: true
+        intersect: true,
       },
       xaxis: {
         tooltip: {
-          enabled: false
+          enabled: false,
         },
         tickPlacement: 'between',
         crosshairs: {
           width: 'barWidth',
           position: 'back',
           fill: {
-            type: 'gradient'
+            type: 'gradient',
           },
           dropShadow: {
-            enabled: false
+            enabled: false,
           },
           stroke: {
-            width: 0
-          }
-        }
-      }
+            width: 0,
+          },
+        },
+      },
+    }
+  }
+
+  funnel() {
+    this.hideYAxis()
+
+    return {
+      ...this.bar(),
+      chart: {
+        animations: {
+          easing: 'linear',
+          speed: 800,
+          animateGradually: {
+            enabled: false,
+          },
+        },
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          borderRadiusApplication: 'around',
+          borderRadius: 0,
+          dataLabels: {
+            position: 'center',
+          },
+        },
+      },
+      grid: {
+        show: false,
+        padding: {
+          left: 0,
+          right: 0,
+        },
+      },
+      xaxis: {
+        labels: {
+          show: false,
+        },
+        tooltip: {
+          enabled: false,
+        },
+        axisBorder: {
+          show: false,
+        },
+        axisTicks: {
+          show: false,
+        },
+      },
     }
   }
 
@@ -290,13 +334,13 @@ export default class Defaults {
     return {
       stroke: {
         width: 1,
-        colors: ['#333']
+        colors: ['#333'],
       },
       fill: {
-        opacity: 1
+        opacity: 1,
       },
       dataLabels: {
-        enabled: false
+        enabled: false,
       },
       tooltip: {
         shared: true,
@@ -308,20 +352,20 @@ export default class Defaults {
             ['Open', 'High', '', 'Low', 'Close'],
             'candlestick'
           )
-        }
+        },
       },
       states: {
         active: {
           filter: {
-            type: 'none'
-          }
-        }
+            type: 'none',
+          },
+        },
       },
       xaxis: {
         crosshairs: {
-          width: 1
-        }
-      }
+          width: 1,
+        },
+      },
     }
   }
 
@@ -330,16 +374,16 @@ export default class Defaults {
       chart: {
         animations: {
           dynamicAnimation: {
-            enabled: false
-          }
-        }
+            enabled: false,
+          },
+        },
       },
       stroke: {
         width: 1,
-        colors: ['#24292e']
+        colors: ['#24292e'],
       },
       dataLabels: {
-        enabled: false
+        enabled: false,
       },
       tooltip: {
         shared: true,
@@ -351,18 +395,18 @@ export default class Defaults {
             ['Minimum', 'Q1', 'Median', 'Q3', 'Maximum'],
             'boxPlot'
           )
-        }
+        },
       },
       markers: {
         size: 5,
         strokeWidth: 1,
-        strokeColors: '#111'
+        strokeColors: '#111',
       },
       xaxis: {
         crosshairs: {
-          width: 1
-        }
-      }
+          width: 1,
+        },
+      },
     }
   }
 
@@ -370,7 +414,7 @@ export default class Defaults {
     const handleTimelineTooltip = (opts) => {
       const { color, seriesName, ylabel, startVal, endVal } = getRangeValues({
         ...opts,
-        isTimeline: true
+        isTimeline: true,
       })
       return buildRangeTooltipHTML({
         ...opts,
@@ -378,7 +422,7 @@ export default class Defaults {
         seriesName,
         ylabel,
         start: startVal,
-        end: endVal
+        end: endVal,
       })
     }
 
@@ -390,26 +434,26 @@ export default class Defaults {
         seriesName,
         ylabel,
         start,
-        end
+        end,
       })
     }
     return {
       chart: {
         animations: {
-          animateGradually: false
-        }
+          animateGradually: false,
+        },
       },
       stroke: {
         width: 0,
-        lineCap: 'square'
+        lineCap: 'square',
       },
       plotOptions: {
         bar: {
           borderRadius: 0,
           dataLabels: {
-            position: 'center'
-          }
-        }
+            position: 'center',
+          },
+        },
       },
       dataLabels: {
         enabled: false,
@@ -434,14 +478,14 @@ export default class Defaults {
           }
         },
         background: {
-          enabled: false
+          enabled: false,
         },
         style: {
-          colors: ['#fff']
-        }
+          colors: ['#fff'],
+        },
       },
       markers: {
-        size: 10
+        size: 10,
       },
       tooltip: {
         shared: false,
@@ -456,19 +500,19 @@ export default class Defaults {
           } else {
             return handleRangeColumnTooltip(opts)
           }
-        }
+        },
       },
       xaxis: {
         tickPlacement: 'between',
         tooltip: {
-          enabled: false
+          enabled: false,
         },
         crosshairs: {
           stroke: {
-            width: 0
-          }
-        }
-      }
+            width: 0,
+          },
+        },
+      },
     }
   }
 
@@ -494,9 +538,9 @@ export default class Defaults {
             type: 'vertical',
             opacityFrom: 0.65,
             opacityTo: 0.5,
-            stops: [0, 100, 100]
-          }
-        }
+            stops: [0, 100, 100],
+          },
+        },
       },
       fill: {
         type: 'gradient',
@@ -506,18 +550,18 @@ export default class Defaults {
           type: 'vertical',
           opacityFrom: 0.65,
           opacityTo: 0.5,
-          stops: [0, 100, 100]
-        }
+          stops: [0, 100, 100],
+        },
       },
       markers: {
         size: 0,
         hover: {
-          sizeOffset: 6
-        }
+          sizeOffset: 6,
+        },
       },
       tooltip: {
-        followCursor: false
-      }
+        followCursor: false,
+      },
     }
   }
 
@@ -530,32 +574,32 @@ export default class Defaults {
         seriesName,
         ylabel,
         start,
-        end
+        end,
       })
     }
     return {
       stroke: {
         curve: 'straight',
-        width: 0
+        width: 0,
       },
       fill: {
         type: 'solid',
-        opacity: 0.6
+        opacity: 0.6,
       },
       markers: {
-        size: 0
+        size: 0,
       },
       states: {
         hover: {
           filter: {
-            type: 'none'
-          }
+            type: 'none',
+          },
         },
         active: {
           filter: {
-            type: 'none'
-          }
-        }
+            type: 'none',
+          },
+        },
       },
       tooltip: {
         intersect: false,
@@ -563,8 +607,8 @@ export default class Defaults {
         followCursor: true,
         custom(opts) {
           return handleRangeAreaTooltip(opts)
-        }
-      }
+        },
+      },
     }
   }
 
@@ -573,26 +617,26 @@ export default class Defaults {
       chart: {
         toolbar: {
           autoSelected: 'selection',
-          show: false
+          show: false,
         },
         zoom: {
-          enabled: false
-        }
+          enabled: false,
+        },
       },
       dataLabels: {
-        enabled: false
+        enabled: false,
       },
       stroke: {
-        width: 1
+        width: 1,
       },
       tooltip: {
-        enabled: false
+        enabled: false,
       },
       xaxis: {
         tooltip: {
-          enabled: false
-        }
-      }
+          enabled: false,
+        },
+      },
     }
 
     return Utils.extend(defaults, ret)
@@ -613,7 +657,7 @@ export default class Defaults {
     if (isBar) {
       opts.dataLabels.formatter =
         existingDataLabelFormatter ||
-        function(val) {
+        function (val) {
           if (typeof val === 'number') {
             return val ? val.toFixed(0) + '%' : val
           }
@@ -632,9 +676,9 @@ export default class Defaults {
         bar: {
           ...barDefaults.plotOptions.bar,
           borderRadiusApplication: 'end',
-          borderRadiusWhenStacked: 'last'
-        }
-      }
+          borderRadiusWhenStacked: 'last',
+        },
+      },
     }
   }
 
@@ -650,7 +694,7 @@ export default class Defaults {
     opts.xaxis.labels = opts.xaxis.labels || {}
     opts.xaxis.labels.formatter =
       opts.xaxis.labels.formatter ||
-      function(val) {
+      function (val) {
         return Utils.isNumber(val) ? Math.floor(val) : val
       }
 
@@ -667,7 +711,7 @@ export default class Defaults {
     }
 
     if (labels && labels.length) {
-      opts.xaxis.labels.formatter = function(val) {
+      opts.xaxis.labels.formatter = function (val) {
         return Utils.isNumber(val)
           ? defaultFormatter(labels[Math.floor(val) - 1])
           : defaultFormatter(val)
@@ -684,17 +728,17 @@ export default class Defaults {
     return {
       dataLabels: {
         style: {
-          colors: ['#fff']
-        }
+          colors: ['#fff'],
+        },
       },
       tooltip: {
         shared: false,
-        intersect: true
+        intersect: true,
       },
       xaxis: {
         crosshairs: {
-          width: 0
-        }
+          width: 0,
+        },
       },
       fill: {
         type: 'solid',
@@ -703,69 +747,69 @@ export default class Defaults {
           inverse: true,
           shadeIntensity: 0.55,
           opacityFrom: 0.4,
-          opacityTo: 0.8
-        }
-      }
+          opacityTo: 0.8,
+        },
+      },
     }
   }
 
   scatter() {
     return {
       dataLabels: {
-        enabled: false
+        enabled: false,
       },
       tooltip: {
         shared: false,
-        intersect: true
+        intersect: true,
       },
       markers: {
         size: 6,
         strokeWidth: 1,
         hover: {
-          sizeOffset: 2
-        }
-      }
+          sizeOffset: 2,
+        },
+      },
     }
   }
 
   heatmap() {
     return {
       chart: {
-        stacked: false
+        stacked: false,
       },
       fill: {
-        opacity: 1
+        opacity: 1,
       },
       dataLabels: {
         style: {
-          colors: ['#fff']
-        }
+          colors: ['#fff'],
+        },
       },
       stroke: {
-        colors: ['#fff']
+        colors: ['#fff'],
       },
       tooltip: {
         followCursor: true,
         marker: {
-          show: false
+          show: false,
         },
         x: {
-          show: false
-        }
+          show: false,
+        },
       },
       legend: {
         position: 'top',
         markers: {
           shape: 'square',
           size: 10,
-          offsetY: 2
-        }
+          offsetY: 2,
+        },
       },
       grid: {
         padding: {
-          right: 20
-        }
-      }
+          right: 20,
+        },
+      },
     }
   }
 
@@ -773,49 +817,49 @@ export default class Defaults {
     return {
       chart: {
         zoom: {
-          enabled: false
-        }
+          enabled: false,
+        },
       },
       dataLabels: {
         style: {
           fontSize: 14,
           fontWeight: 600,
-          colors: ['#fff']
-        }
+          colors: ['#fff'],
+        },
       },
       stroke: {
         show: true,
         width: 2,
-        colors: ['#fff']
+        colors: ['#fff'],
       },
       legend: {
-        show: false
+        show: false,
       },
       fill: {
         gradient: {
-          stops: [0, 100]
-        }
+          stops: [0, 100],
+        },
       },
       tooltip: {
         followCursor: true,
         x: {
-          show: false
-        }
+          show: false,
+        },
       },
       grid: {
         padding: {
           left: 0,
-          right: 0
-        }
+          right: 0,
+        },
       },
       xaxis: {
         crosshairs: {
-          show: false
+          show: false,
         },
         tooltip: {
-          enabled: false
-        }
-      }
+          enabled: false,
+        },
+      },
     }
   }
 
@@ -823,49 +867,49 @@ export default class Defaults {
     return {
       chart: {
         toolbar: {
-          show: false
-        }
+          show: false,
+        },
       },
       plotOptions: {
         pie: {
           donut: {
             labels: {
-              show: false
-            }
-          }
-        }
+              show: false,
+            },
+          },
+        },
       },
       dataLabels: {
         formatter(val) {
           return val.toFixed(1) + '%'
         },
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
         },
         background: {
-          enabled: false
+          enabled: false,
         },
         dropShadow: {
-          enabled: true
-        }
+          enabled: true,
+        },
       },
       stroke: {
-        colors: ['#fff']
+        colors: ['#fff'],
       },
       fill: {
         opacity: 1,
         gradient: {
           shade: 'light',
-          stops: [0, 100]
-        }
+          stops: [0, 100],
+        },
       },
       tooltip: {
         theme: 'dark',
-        fillSeriesColor: true
+        fillSeriesColor: true,
       },
       legend: {
-        position: 'right'
-      }
+        position: 'right',
+      },
     }
   }
 
@@ -873,25 +917,25 @@ export default class Defaults {
     return {
       chart: {
         toolbar: {
-          show: false
-        }
+          show: false,
+        },
       },
       dataLabels: {
         formatter(val) {
           return val.toFixed(1) + '%'
         },
         style: {
-          colors: ['#fff']
+          colors: ['#fff'],
         },
         background: {
-          enabled: false
+          enabled: false,
         },
         dropShadow: {
-          enabled: true
-        }
+          enabled: true,
+        },
       },
       stroke: {
-        colors: ['#fff']
+        colors: ['#fff'],
       },
       fill: {
         opacity: 1,
@@ -900,16 +944,16 @@ export default class Defaults {
           shadeIntensity: 0.35,
           stops: [80, 100],
           opacityFrom: 1,
-          opacityTo: 1
-        }
+          opacityTo: 1,
+        },
       },
       tooltip: {
         theme: 'dark',
-        fillSeriesColor: true
+        fillSeriesColor: true,
       },
       legend: {
-        position: 'right'
-      }
+        position: 'right',
+      },
     }
   }
 
@@ -921,29 +965,29 @@ export default class Defaults {
     return {
       chart: {
         toolbar: {
-          show: false
-        }
+          show: false,
+        },
       },
       dataLabels: {
         formatter(val) {
           return val.toFixed(1) + '%'
         },
-        enabled: false
+        enabled: false,
       },
       stroke: {
         show: true,
-        width: 2
+        width: 2,
       },
       fill: {
-        opacity: 0.7
+        opacity: 0.7,
       },
       tooltip: {
         theme: 'dark',
-        fillSeriesColor: true
+        fillSeriesColor: true,
       },
       legend: {
-        position: 'right'
-      }
+        position: 'right',
+      },
     }
   }
 
@@ -956,43 +1000,43 @@ export default class Defaults {
       dataLabels: {
         enabled: false,
         style: {
-          fontSize: '11px'
-        }
+          fontSize: '11px',
+        },
       },
       stroke: {
-        width: 2
+        width: 2,
       },
       markers: {
         size: 3,
         strokeWidth: 1,
-        strokeOpacity: 1
+        strokeOpacity: 1,
       },
       fill: {
-        opacity: 0.2
+        opacity: 0.2,
       },
       tooltip: {
         shared: false,
         intersect: true,
-        followCursor: true
+        followCursor: true,
       },
       grid: {
-        show: false
+        show: false,
       },
       xaxis: {
         labels: {
           formatter: (val) => val,
           style: {
             colors: ['#a8a8a8'],
-            fontSize: '11px'
-          }
+            fontSize: '11px',
+          },
         },
         tooltip: {
-          enabled: false
+          enabled: false,
         },
         crosshairs: {
-          show: false
-        }
-      }
+          show: false,
+        },
+      },
     }
   }
 
@@ -1002,12 +1046,12 @@ export default class Defaults {
         animations: {
           dynamicAnimation: {
             enabled: true,
-            speed: 800
-          }
+            speed: 800,
+          },
         },
         toolbar: {
-          show: false
-        }
+          show: false,
+        },
       },
       fill: {
         gradient: {
@@ -1017,17 +1061,17 @@ export default class Defaults {
           type: 'diagonal2',
           opacityFrom: 1,
           opacityTo: 1,
-          stops: [70, 98, 100]
-        }
+          stops: [70, 98, 100],
+        },
       },
       legend: {
         show: false,
-        position: 'right'
+        position: 'right',
       },
       tooltip: {
         enabled: false,
-        fillSeriesColor: true
-      }
+        fillSeriesColor: true,
+      },
     }
   }
 
