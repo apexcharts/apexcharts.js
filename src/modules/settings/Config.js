@@ -29,6 +29,7 @@ export default class Config {
       const chartTypes = [
         'line',
         'area',
+        'aster',
         'bar',
         'candlestick',
         'boxPlot',
@@ -117,6 +118,7 @@ export default class Config {
       opts.plotOptions?.bar?.horizontal
 
     const unsupportedZoom =
+      chartType === 'aster' ||
       chartType === 'pie' ||
       chartType === 'polarArea' ||
       chartType === 'donut' ||

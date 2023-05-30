@@ -1,3 +1,4 @@
+import Aster from '../charts/Aster'
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
 import BoxCandleStick from '../charts/BoxCandleStick'
@@ -239,6 +240,7 @@ export default class Core {
 
     let line = new Line(this.ctx, xyRatios)
     let boxCandlestick = new BoxCandleStick(this.ctx, xyRatios)
+    this.ctx.aster = new Aster(this.ctx)
     this.ctx.pie = new Pie(this.ctx)
     let radialBar = new Radial(this.ctx)
     this.ctx.rangeBar = new RangeBar(this.ctx, xyRatios)
@@ -346,6 +348,9 @@ export default class Core {
         case 'treemap':
           let treemap = new Treemap(this.ctx, xyRatios)
           elGraph = treemap.draw(gl.series)
+          break
+        case 'aster':
+          elGraph = this.ctx.aster.draw(gl.series)
           break
         case 'pie':
         case 'donut':

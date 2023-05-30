@@ -102,6 +102,7 @@ type ApexChart = {
   type?:
     | 'line'
     | 'area'
+    | 'aster'
     | 'bar'
     | 'pie'
     | 'donut'
@@ -331,7 +332,7 @@ type ApexAxisChartSeries = {
     | number[][];
 }[]
 
-type ApexNonAxisChartSeries = number[]
+type ApexNonAxisChartSeries = number[] | number[][]
 
 /**
  * Options for the line drawn on line and area charts.
@@ -654,6 +655,21 @@ type ApexPlotOptions = {
           formatter?(w: any): string
         }
       }
+    }
+  }
+  aster?: {
+    customScale?: number
+    dataLabels?: {
+      offset?: number
+      minAngleToShowLabel?: number
+    }
+    rings?: {
+      strokeWidth?: number
+      strokeColor?: string
+    }
+    spokes?: {
+      strokeWidth?: number;
+      connectorColors?: string | string[];
     }
   }
   polarArea?: {

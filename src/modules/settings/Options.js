@@ -627,6 +627,22 @@ export default class Options {
             },
           },
         },
+        aster: {
+          customScale: 1,
+          dataLabels: {
+            // These are the percentage values which are displayed on slice
+            offset: 0, // offset by which labels will move outside
+            minAngleToShowLabel: 10,
+          },
+          rings: {
+            strokeWidth: 1,
+            strokeColor: '#e8e8e8',
+          },
+          spokes: {
+            strokeWidth: 1,
+            connectorColors: '#e8e8e8',
+          },
+        },
         polarArea: {
           rings: {
             strokeWidth: 1,
