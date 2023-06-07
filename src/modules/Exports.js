@@ -363,7 +363,7 @@ class Exports {
       columns.push('maximum')
     } else {
       series.map((s, sI) => {
-        const sname = s.name ? s.name : `series-${sI}`
+        const sname = (s.name ? s.name : `series-${sI}`) + ''
         if (w.globals.axisCharts) {
           columns.push(
             sname.split(columnDelimiter).join('')
