@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.40.0
+ * ApexCharts v3.41.0
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -871,6 +871,7 @@
         this.w.globals.delayedElements.forEach(function (d) {
           var ele = d.el;
           ele.classList.remove('apexcharts-element-hidden');
+          ele.classList.add('apexcharts-hidden-element-shown');
         });
       }
     }, {
@@ -3587,6 +3588,8 @@
               hideZeroBarsWhenGrouped: false,
               isDumbbell: false,
               dumbbellColors: undefined,
+              isFunnel: false,
+              isFunnel3d: true,
               colors: {
                 ranges: [],
                 backgroundBarColors: [],
@@ -5157,6 +5160,15 @@
     }
 
     _createClass(Defaults, [{
+      key: "hideYAxis",
+      value: function hideYAxis() {
+        this.opts.yaxis[0].show = false;
+        this.opts.yaxis[0].title.text = '';
+        this.opts.yaxis[0].axisBorder.show = false;
+        this.opts.yaxis[0].axisTicks.show = false;
+        this.opts.yaxis[0].floating = true;
+      }
+    }, {
       key: "line",
       value: function line() {
         return {
@@ -5188,11 +5200,7 @@
     }, {
       key: "sparkline",
       value: function sparkline(defaults) {
-        this.opts.yaxis[0].show = false;
-        this.opts.yaxis[0].title.text = '';
-        this.opts.yaxis[0].axisBorder.show = false;
-        this.opts.yaxis[0].axisTicks.show = false;
-        this.opts.yaxis[0].floating = true;
+        this.hideYAxis();
         var ret = {
           grid: {
             show: false,
@@ -5297,6 +5305,53 @@
             }
           }
         };
+      }
+    }, {
+      key: "funnel",
+      value: function funnel() {
+        this.hideYAxis();
+        return _objectSpread2(_objectSpread2({}, this.bar()), {}, {
+          chart: {
+            animations: {
+              easing: 'linear',
+              speed: 800,
+              animateGradually: {
+                enabled: false
+              }
+            }
+          },
+          plotOptions: {
+            bar: {
+              horizontal: true,
+              borderRadiusApplication: 'around',
+              borderRadius: 0,
+              dataLabels: {
+                position: 'center'
+              }
+            }
+          },
+          grid: {
+            show: false,
+            padding: {
+              left: 0,
+              right: 0
+            }
+          },
+          xaxis: {
+            labels: {
+              show: false
+            },
+            tooltip: {
+              enabled: false
+            },
+            axisBorder: {
+              show: false
+            },
+            axisTicks: {
+              show: false
+            }
+          }
+        });
       }
     }, {
       key: "candlestick",
@@ -6109,7 +6164,7 @@
         var newDefaults = {};
 
         if (opts && _typeof(opts) === 'object') {
-          var _opts$chart$brush, _opts$plotOptions, _opts$plotOptions$bar, _opts$chart$sparkline, _window$Apex$chart, _window$Apex$chart$sp;
+          var _opts$plotOptions, _opts$plotOptions$bar, _opts$chart$brush, _opts$plotOptions2, _opts$plotOptions2$ba, _opts$chart$sparkline, _window$Apex$chart, _window$Apex$chart$sp;
 
           var chartDefaults = {};
           var chartTypes = ['line', 'area', 'bar', 'candlestick', 'boxPlot', 'rangeBar', 'rangeArea', 'bubble', 'scatter', 'heatmap', 'treemap', 'pie', 'polarArea', 'donut', 'radar', 'radialBar'];
@@ -6118,6 +6173,10 @@
             chartDefaults = defaults[opts.chart.type]();
           } else {
             chartDefaults = defaults.line();
+          }
+
+          if ((_opts$plotOptions = opts.plotOptions) !== null && _opts$plotOptions !== void 0 && (_opts$plotOptions$bar = _opts$plotOptions.bar) !== null && _opts$plotOptions$bar !== void 0 && _opts$plotOptions$bar.isFunnel) {
+            chartDefaults = defaults.funnel();
           }
 
           if (opts.chart.stacked && opts.chart.type === 'bar') {
@@ -6132,7 +6191,7 @@
             opts = defaults.stacked100(opts);
           }
 
-          if ((_opts$plotOptions = opts.plotOptions) !== null && _opts$plotOptions !== void 0 && (_opts$plotOptions$bar = _opts$plotOptions.bar) !== null && _opts$plotOptions$bar !== void 0 && _opts$plotOptions$bar.isDumbbell) {
+          if ((_opts$plotOptions2 = opts.plotOptions) !== null && _opts$plotOptions2 !== void 0 && (_opts$plotOptions2$ba = _opts$plotOptions2.bar) !== null && _opts$plotOptions2$ba !== void 0 && _opts$plotOptions2$ba.isDumbbell) {
             opts = defaults.dumbbell(opts);
           } // If user has specified a dark theme, make the tooltip dark too
 
@@ -6170,10 +6229,10 @@
     }, {
       key: "checkForCatToNumericXAxis",
       value: function checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
-        var _opts$plotOptions2, _opts$plotOptions2$ba;
+        var _opts$plotOptions3, _opts$plotOptions3$ba;
 
         var defaults = new Defaults(opts);
-        var isBarHorizontal = (chartType === 'bar' || chartType === 'boxPlot') && ((_opts$plotOptions2 = opts.plotOptions) === null || _opts$plotOptions2 === void 0 ? void 0 : (_opts$plotOptions2$ba = _opts$plotOptions2.bar) === null || _opts$plotOptions2$ba === void 0 ? void 0 : _opts$plotOptions2$ba.horizontal);
+        var isBarHorizontal = (chartType === 'bar' || chartType === 'boxPlot') && ((_opts$plotOptions3 = opts.plotOptions) === null || _opts$plotOptions3 === void 0 ? void 0 : (_opts$plotOptions3$ba = _opts$plotOptions3.bar) === null || _opts$plotOptions3$ba === void 0 ? void 0 : _opts$plotOptions3$ba.horizontal);
         var unsupportedZoom = chartType === 'pie' || chartType === 'polarArea' || chartType === 'donut' || chartType === 'radar' || chartType === 'radialBar' || chartType === 'heatmap';
         var notNumericXAxis = opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric';
         var tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -6726,8 +6785,9 @@
       key: "getSeriesIndex",
       value: function getSeriesIndex(opts) {
         var w = this.w;
+        var cType = w.config.chart.type;
 
-        if ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') && w.config.plotOptions.bar.distributed || w.config.chart.type === 'heatmap' || w.config.chart.type === 'treemap') {
+        if ((cType === 'bar' || cType === 'rangeBar') && w.config.plotOptions.bar.distributed || cType === 'heatmap' || cType === 'treemap') {
           this.seriesIndex = opts.seriesNumber;
         } else {
           this.seriesIndex = opts.seriesNumber % w.globals.series.length;
@@ -8727,10 +8787,9 @@
                   gl.labels.push(sr.x);
                 }
               });
-            });
-            gl.labels = gl.labels.filter(function (elem, pos, arr) {
-              return arr.indexOf(elem) === pos;
-            });
+            }); // remove duplicate x-axis labels
+
+            gl.labels = Array.from(new Set(gl.labels.map(JSON.stringify)), JSON.parse);
           }
 
           if (cnf.xaxis.convertedCatToNumeric) {
@@ -8834,7 +8893,7 @@
         } // set Null values to 0 in all series when user hides/shows some series
 
 
-        if (cnf.chart.type === 'bar' && cnf.chart.stacked) {
+        if (cnf.chart.stacked) {
           var series = new Series(this.ctx);
           gl.series = series.setNullSeriesToZeroValues(gl.series);
         }
@@ -10442,7 +10501,7 @@
         if (!w.globals.isBarHorizontal || this.isRangeBar) {
           xCount = this.xaxisLabels.length;
 
-          if (this.isRangeBar) {
+          if (this.isRangeBar && w.globals.isBarHorizontal) {
             xCount--;
             yTickAmount = w.globals.labels.length;
 
@@ -11154,6 +11213,10 @@
             gl.dataPoints = gl.categoryLabels.filter(function (label) {
               return typeof label !== 'undefined';
             }).length;
+          }
+
+          if (gl.labels.length) {
+            gl.dataPoints = Math.max(gl.dataPoints, gl.labels.length);
           }
 
           for (var j = 0; j < gl.series[i].length; j++) {
@@ -12503,13 +12566,14 @@
     }, {
       key: "setDefaultColors",
       value: function setDefaultColors() {
-        var _this = this;
+        var _w$config$colors,
+            _this = this;
 
         var w = this.w;
         var utils = new Utils$1();
         w.globals.dom.elWrap.classList.add("apexcharts-theme-".concat(w.config.theme.mode));
 
-        if (w.config.colors === undefined) {
+        if (w.config.colors === undefined || ((_w$config$colors = w.config.colors) === null || _w$config$colors === void 0 ? void 0 : _w$config$colors.length) === 0) {
           w.globals.colors = this.predefined();
         } else {
           w.globals.colors = w.config.colors; // if user provided a function in colors, we need to eval here
@@ -16944,7 +17008,9 @@
       _classCallCheck(this, Intersect);
 
       this.w = tooltipContext.w;
+      var w = this.w;
       this.ttCtx = tooltipContext;
+      this.isVerticalGroupedRangeBar = !w.globals.isBarHorizontal && w.config.chart.type === 'rangeBar' && w.config.plotOptions.bar.rangeBarGroupRows;
     } // a helper function to get an element's attribute value
 
 
@@ -17162,6 +17228,8 @@
     }, {
       key: "getBarTooltipXY",
       value: function getBarTooltipXY(_ref4) {
+        var _this = this;
+
         var e = _ref4.e,
             opt = _ref4.opt;
         var w = this.w;
@@ -17200,6 +17268,24 @@
           // }
 
 
+          var handleXForColumns = function handleXForColumns(x) {
+            if (w.globals.isXNumeric) {
+              x = cx - bw / 2;
+            } else {
+              if (_this.isVerticalGroupedRangeBar) {
+                x = cx + bw / 2;
+              } else {
+                x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
+              }
+            }
+
+            return x;
+          };
+
+          var handleYForBars = function handleYForBars() {
+            return cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
+          };
+
           ttCtx.tooltipLabels.drawSeriesTexts({
             ttItems: opt.ttItems,
             i: i,
@@ -17213,14 +17299,9 @@
           if (w.config.tooltip.followCursor) {
             if (w.globals.isBarHorizontal) {
               x = clientX - seriesBound.left + 15;
-              y = cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
+              y = handleYForBars();
             } else {
-              if (w.globals.isXNumeric) {
-                x = cx - bw / 2;
-              } else {
-                x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
-              }
-
+              x = handleXForColumns(x);
               y = e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15;
             }
           } else {
@@ -17231,15 +17312,9 @@
                 x = cx - ttCtx.tooltipRect.ttWidth;
               }
 
-              y = cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
+              y = handleYForBars();
             } else {
-              // if columns
-              if (w.globals.isXNumeric) {
-                x = cx - bw / 2;
-              } else {
-                x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
-              }
-
+              x = handleXForColumns(x);
               y = cy; // - ttCtx.tooltipRect.ttHeight / 2 + 10
             }
           }
@@ -18268,6 +18343,7 @@
             series = opts.series,
             barHeight = opts.barHeight,
             barWidth = opts.barWidth,
+            barXPosition = opts.barXPosition,
             barYPosition = opts.barYPosition,
             visibleSeries = opts.visibleSeries,
             renderedPath = opts.renderedPath;
@@ -18294,6 +18370,11 @@
         if (typeof barYPosition !== 'undefined' && this.barCtx.isRangeBar) {
           bcy = barYPosition;
           dataLabelsY = barYPosition;
+        }
+
+        if (typeof barXPosition !== 'undefined' && this.barCtx.isVerticalGroupedRangeBar) {
+          bcx = barXPosition;
+          dataLabelsX = barXPosition;
         }
 
         var offX = dataLabelsConfig.offsetX;
@@ -18408,6 +18489,7 @@
             barWidth = opts.barWidth,
             barHeight = opts.barHeight,
             textRects = opts.textRects,
+            dataLabelsX = opts.dataLabelsX,
             dataLabelsY = opts.dataLabelsY,
             dataLabelsConfig = opts.dataLabelsConfig,
             barDataLabelsConfig = opts.barDataLabelsConfig,
@@ -18415,7 +18497,6 @@
             strokeWidth = opts.strokeWidth,
             offX = opts.offX,
             offY = opts.offY;
-        var dataLabelsX;
         var totalDataLabelsY;
         var totalDataLabelsX;
         var totalDataLabelsAnchor = 'middle';
@@ -18424,10 +18505,14 @@
         bcx = bcx - strokeWidth / 2 + (groupIndex !== -1 ? groupIndex * barWidth : 0);
         var dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints;
 
-        if (w.globals.isXNumeric) {
-          dataLabelsX = bcx - barWidth / 2 + offX;
+        if (this.barCtx.isVerticalGroupedRangeBar) {
+          dataLabelsX = dataLabelsX + barWidth / 2;
         } else {
-          dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
+          if (w.globals.isXNumeric) {
+            dataLabelsX = bcx - barWidth / 2 + offX;
+          } else {
+            dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
+          }
         }
 
         if (vertical) {
@@ -18855,6 +18940,11 @@
           }
 
           zeroW = this.barCtx.baseLineInvertedY + w.globals.padHorizontal + (this.barCtx.isReversed ? w.globals.gridWidth : 0) - (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0);
+
+          if (this.barCtx.isFunnel) {
+            zeroW = w.globals.gridWidth / 2;
+          }
+
           y = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
         } else {
           // width divided into equal parts
@@ -18864,7 +18954,7 @@
             xDivision = w.globals.gridWidth / w.globals.dataPoints;
           }
 
-          barWidth = xDivision / this.barCtx.seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
+          barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
 
           if (w.globals.isXNumeric) {
             // max barwidth should be equal to minXDiff to avoid overlap
@@ -18878,7 +18968,7 @@
               xDivision = w.globals.minXDiff / xRatio;
             }
 
-            barWidth = xDivision / this.barCtx.seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
+            barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
 
             if (barWidth < 1) {
               barWidth = 1;
@@ -19316,6 +19406,32 @@
 
         return lineGroup;
       }
+    }, {
+      key: "drawBarShadow",
+      value: function drawBarShadow(_ref6) {
+        var prevPaths = _ref6.prevPaths,
+            currPaths = _ref6.currPaths,
+            color = _ref6.color;
+        var w = this.w;
+        var prevX2 = prevPaths.x,
+            prevX1 = prevPaths.x1,
+            prevY1 = prevPaths.barYPosition;
+        var currX2 = currPaths.x,
+            currX1 = currPaths.x1,
+            currY1 = currPaths.barYPosition;
+        var prevY2 = prevY1 + currPaths.barHeight;
+        var graphics = new Graphics(this.barCtx.ctx);
+        var utils = new Utils$1();
+        var shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === 'around' ? ' Z' : ' z');
+        return graphics.drawPath({
+          d: shadowPath,
+          fill: utils.shadeColor(0.5, Utils$1.rgb2hex(color)),
+          stroke: 'none',
+          strokeWidth: 0,
+          fillOpacity: 1,
+          classes: 'apexcharts-bar-shadows'
+        });
+      }
     }]);
 
     return Helpers;
@@ -19339,6 +19455,8 @@
       this.strokeWidth = w.config.stroke.width;
       this.isNullValue = false;
       this.isRangeBar = w.globals.seriesRange.length && this.isHorizontal;
+      this.isVerticalGroupedRangeBar = !w.globals.isBarHorizontal && w.globals.seriesRange.length && w.config.plotOptions.bar.rangeBarGroupRows;
+      this.isFunnel = this.barOptions.isFunnel;
       this.xyRatios = xyRatios;
 
       if (this.xyRatios !== null) {
@@ -19353,6 +19471,7 @@
 
       this.yaxisIndex = 0;
       this.seriesLen = 0;
+      this.pathArr = [];
       var ser = new Series(this.ctx);
       this.lastActiveBarSerieIndex = ser.getActiveConfigSeriesIndex('desc', ['bar', 'column']);
       var barSeriesIndices = ser.getBarSeriesIndices();
@@ -19448,10 +19567,22 @@
             class: 'apexcharts-datalabels',
             'data:realIndex': realIndex
           });
+          w.globals.delayedElements.push({
+            el: elDataLabelsWrap.node
+          });
+          elDataLabelsWrap.node.classList.add('apexcharts-element-hidden');
           var elGoalsMarkers = graphics.group({
             class: 'apexcharts-bar-goals-markers',
             style: "pointer-events: none"
           });
+          var elBarShadows = graphics.group({
+            class: 'apexcharts-bar-shadows',
+            style: "pointer-events: none"
+          });
+          w.globals.delayedElements.push({
+            el: elBarShadows.node
+          });
+          elBarShadows.node.classList.add('apexcharts-element-hidden');
 
           for (var j = 0; j < w.globals.dataPoints; j++) {
             var strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
@@ -19485,6 +19616,21 @@
               barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex];
             }
 
+            var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
+
+            if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j > 0) {
+              var barShadow = this.barHelpers.drawBarShadow({
+                color: typeof pathFill === 'string' && (pathFill === null || pathFill === void 0 ? void 0 : pathFill.indexOf('url')) === -1 ? pathFill : Utils$1.hexToRgba(w.globals.colors[i]),
+                prevPaths: this.pathArr[this.pathArr.length - 1],
+                currPaths: paths
+              });
+
+              if (barShadow) {
+                elBarShadows.add(barShadow);
+              }
+            }
+
+            this.pathArr.push(paths);
             var barGoalLine = this.barHelpers.drawGoalLine({
               barXPosition: paths.barXPosition,
               barYPosition: paths.barYPosition,
@@ -19506,7 +19652,6 @@
             }
 
             yArrj.push(y);
-            var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
             this.renderSeries({
               realIndex: realIndex,
               pathFill: pathFill,
@@ -19523,6 +19668,7 @@
               barWidth: paths.barWidth ? paths.barWidth : barWidth,
               elDataLabelsWrap: elDataLabelsWrap,
               elGoalsMarkers: elGoalsMarkers,
+              elBarShadows: elBarShadows,
               visibleSeries: this.visibleI,
               type: 'bar'
             });
@@ -19556,9 +19702,11 @@
             series = _ref.series,
             barHeight = _ref.barHeight,
             barWidth = _ref.barWidth,
+            barXPosition = _ref.barXPosition,
             barYPosition = _ref.barYPosition,
             elDataLabelsWrap = _ref.elDataLabelsWrap,
             elGoalsMarkers = _ref.elGoalsMarkers,
+            elBarShadows = _ref.elBarShadows,
             visibleSeries = _ref.visibleSeries,
             type = _ref.type;
         var w = this.w;
@@ -19625,6 +19773,7 @@
           groupIndex: groupIndex,
           barHeight: barHeight,
           barWidth: barWidth,
+          barXPosition: barXPosition,
           barYPosition: barYPosition,
           renderedPath: renderedPath,
           visibleSeries: visibleSeries
@@ -19642,6 +19791,10 @@
 
         if (elGoalsMarkers) {
           elSeries.add(elGoalsMarkers);
+        }
+
+        if (elBarShadows) {
+          elSeries.add(elBarShadows);
         }
 
         return elSeries;
@@ -19690,6 +19843,10 @@
           }
         }
 
+        if (this.isFunnel) {
+          zeroW = zeroW - (this.barHelpers.getXForValue(this.series[i][j], zeroW) - zeroW) / 2;
+        }
+
         x = this.barHelpers.getXForValue(this.series[i][j], zeroW);
         var paths = this.barHelpers.getBarpaths({
           barYPosition: barYPosition,
@@ -19718,6 +19875,7 @@
         return {
           pathTo: paths.pathTo,
           pathFrom: paths.pathFrom,
+          x1: zeroW,
           x: x,
           y: y,
           goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
@@ -20076,20 +20234,16 @@
     }, {
       key: "initialPositions",
       value: function initialPositions(x, y, xDivision, yDivision, zeroH, zeroW) {
+        var _w$globals$seriesGrou, _w$globals$seriesGrou2;
+
         var w = this.w;
         var barHeight, barWidth;
 
         if (this.isHorizontal) {
-          var _w$globals$seriesGrou;
-
           // height divided into equal parts
           yDivision = w.globals.gridHeight / w.globals.dataPoints;
           barHeight = yDivision;
           barHeight = barHeight * parseInt(w.config.plotOptions.bar.barHeight, 10) / 100;
-
-          if ((_w$globals$seriesGrou = w.globals.seriesGroups) !== null && _w$globals$seriesGrou !== void 0 && _w$globals$seriesGrou.length) {
-            barHeight = barHeight / w.globals.seriesGroups.length;
-          }
 
           if (String(w.config.plotOptions.bar.barHeight).indexOf('%') === -1) {
             barHeight = parseInt(w.config.plotOptions.bar.barHeight, 10);
@@ -20099,8 +20253,6 @@
 
           y = (yDivision - barHeight) / 2;
         } else {
-          var _w$globals$seriesGrou2;
-
           // width divided into equal parts
           xDivision = w.globals.gridWidth / w.globals.dataPoints;
           barWidth = xDivision;
@@ -20111,10 +20263,6 @@
             barWidth = xDivision * parseInt(this.barOptions.columnWidth, 10) / 100;
           } else {
             barWidth = barWidth * parseInt(w.config.plotOptions.bar.columnWidth, 10) / 100;
-          }
-
-          if ((_w$globals$seriesGrou2 = w.globals.seriesGroups) !== null && _w$globals$seriesGrou2 !== void 0 && _w$globals$seriesGrou2.length) {
-            barWidth = barWidth / w.globals.seriesGroups.length;
           }
 
           if (String(w.config.plotOptions.bar.columnWidth).indexOf('%') === -1) {
@@ -20131,8 +20279,8 @@
           y: y,
           yDivision: yDivision,
           xDivision: xDivision,
-          barHeight: barHeight,
-          barWidth: barWidth,
+          barHeight: (_w$globals$seriesGrou = w.globals.seriesGroups) !== null && _w$globals$seriesGrou !== void 0 && _w$globals$seriesGrou.length ? barHeight / w.globals.seriesGroups.length : barHeight,
+          barWidth: (_w$globals$seriesGrou2 = w.globals.seriesGroups) !== null && _w$globals$seriesGrou2 !== void 0 && _w$globals$seriesGrou2.length ? barWidth / w.globals.seriesGroups.length : barWidth,
           zeroH: zeroH,
           zeroW: zeroW
         };
@@ -22844,7 +22992,9 @@
           zeroW = initPositions.zeroW;
           x = initPositions.x;
           barWidth = initPositions.barWidth;
+          barHeight = initPositions.barHeight;
           xDivision = initPositions.xDivision;
+          yDivision = initPositions.yDivision;
           zeroH = initPositions.zeroH; // eldatalabels
 
           var elDataLabelsWrap = graphics.group({
@@ -22857,10 +23007,13 @@
           });
 
           for (var j = 0; j < w.globals.dataPoints; j++) {
+            var _this$renderSeries;
+
             var strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
             var y1 = this.seriesRangeStart[i][j];
             var y2 = this.seriesRangeEnd[i][j];
             var paths = null;
+            var barXPosition = null;
             var barYPosition = null;
             var params = {
               x: x,
@@ -22868,24 +23021,21 @@
               strokeWidth: strokeWidth,
               elSeries: elSeries
             };
-            yDivision = initPositions.yDivision;
-            barHeight = initPositions.barHeight;
+            var seriesLen = this.seriesLen;
+
+            if (w.config.plotOptions.bar.rangeBarGroupRows) {
+              seriesLen = 1;
+            }
+
+            if (typeof w.config.series[i].data[j] === 'undefined') {
+              // no data exists for further indexes, hence we need to get out the innr loop.
+              // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
+              break;
+            }
 
             if (this.isHorizontal) {
               barYPosition = y + barHeight * this.visibleI;
-              var seriesLen = this.seriesLen;
-
-              if (w.config.plotOptions.bar.rangeBarGroupRows) {
-                seriesLen = 1;
-              }
-
               var srty = (yDivision - barHeight * seriesLen) / 2;
-
-              if (typeof w.config.series[i].data[j] === 'undefined') {
-                // no data exists for further indexes, hence we need to get out the innr loop.
-                // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
-                break;
-              }
 
               if (w.config.series[i].data[j].x) {
                 var positions = this.detectOverlappingBars({
@@ -22916,14 +23066,37 @@
               }, params));
               barWidth = paths.barWidth;
             } else {
+              if (w.globals.isXNumeric) {
+                x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
+              }
+
+              barXPosition = x + barWidth * this.visibleI;
+              var srtx = (xDivision - barWidth * seriesLen) / 2;
+
+              if (w.config.series[i].data[j].x) {
+                var _positions = this.detectOverlappingBars({
+                  i: i,
+                  j: j,
+                  barXPosition: barXPosition,
+                  srtx: srtx,
+                  barWidth: barWidth,
+                  xDivision: xDivision,
+                  initPositions: initPositions
+                });
+
+                barWidth = _positions.barWidth;
+                barXPosition = _positions.barXPosition;
+              }
+
               paths = this.drawRangeColumnPaths(_objectSpread2({
                 indexes: {
                   i: i,
                   j: j,
                   realIndex: realIndex
                 },
-                zeroH: zeroH,
                 barWidth: barWidth,
+                barXPosition: barXPosition,
+                zeroH: zeroH,
                 xDivision: xDivision
               }, params));
               barHeight = paths.barHeight;
@@ -22946,7 +23119,7 @@
             x = paths.x;
             var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
             var lineFill = w.globals.stroke.colors[realIndex];
-            this.renderSeries({
+            this.renderSeries((_this$renderSeries = {
               realIndex: realIndex,
               pathFill: pathFill,
               lineFill: lineFill,
@@ -22962,13 +23135,10 @@
               elSeries: elSeries,
               series: series,
               barHeight: barHeight,
-              barYPosition: barYPosition,
               barWidth: barWidth,
-              elDataLabelsWrap: elDataLabelsWrap,
-              elGoalsMarkers: elGoalsMarkers,
-              visibleSeries: this.visibleI,
-              type: 'rangebar'
-            });
+              barXPosition: barXPosition,
+              barYPosition: barYPosition
+            }, _defineProperty(_this$renderSeries, "barWidth", barWidth), _defineProperty(_this$renderSeries, "elDataLabelsWrap", elDataLabelsWrap), _defineProperty(_this$renderSeries, "elGoalsMarkers", elGoalsMarkers), _defineProperty(_this$renderSeries, "visibleSeries", this.visibleI), _defineProperty(_this$renderSeries, "type", 'rangebar'), _this$renderSeries));
           }
 
           ret.add(elSeries);
@@ -22982,47 +23152,75 @@
         var i = _ref.i,
             j = _ref.j,
             barYPosition = _ref.barYPosition,
+            barXPosition = _ref.barXPosition,
             srty = _ref.srty,
+            srtx = _ref.srtx,
             barHeight = _ref.barHeight,
+            barWidth = _ref.barWidth,
             yDivision = _ref.yDivision,
+            xDivision = _ref.xDivision,
             initPositions = _ref.initPositions;
         var w = this.w;
         var overlaps = [];
         var rangeName = w.config.series[i].data[j].rangeName;
-        var labelX = w.config.series[i].data[j].x;
-        var rowIndex = w.globals.labels.indexOf(labelX);
+        var x = w.config.series[i].data[j].x;
+        var labelX = Array.isArray(x) ? x.join(' ') : x;
+        var rowIndex = w.globals.labels.map(function (_) {
+          return Array.isArray(_) ? _.join(' ') : _;
+        }).indexOf(labelX);
         var overlappedIndex = w.globals.seriesRange[i].findIndex(function (tx) {
           return tx.x === labelX && tx.overlaps.length > 0;
         });
 
-        if (w.config.plotOptions.bar.rangeBarGroupRows) {
-          barYPosition = srty + yDivision * rowIndex;
+        if (this.isHorizontal) {
+          if (w.config.plotOptions.bar.rangeBarGroupRows) {
+            barYPosition = srty + yDivision * rowIndex;
+          } else {
+            barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex;
+          }
+
+          if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+            overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps;
+
+            if (overlaps.indexOf(rangeName) > -1) {
+              barHeight = initPositions.barHeight / overlaps.length;
+              barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
+            }
+          }
         } else {
-          barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex;
-        }
+          if (rowIndex > -1) {
+            if (w.config.plotOptions.bar.rangeBarGroupRows) {
+              barXPosition = srtx + xDivision * rowIndex;
+            } else {
+              barXPosition = srtx + barWidth * this.visibleI + xDivision * rowIndex;
+            }
+          }
 
-        if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-          overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps;
+          if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+            overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps;
 
-          if (overlaps.indexOf(rangeName) > -1) {
-            barHeight = initPositions.barHeight / overlaps.length;
-            barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
+            if (overlaps.indexOf(rangeName) > -1) {
+              barWidth = initPositions.barWidth / overlaps.length;
+              barXPosition = barWidth * this.visibleI + xDivision * (100 - parseInt(this.barOptions.barWidth, 10)) / 100 / 2 + barWidth * (this.visibleI + overlaps.indexOf(rangeName)) + xDivision * rowIndex;
+            }
           }
         }
 
         return {
           barYPosition: barYPosition,
-          barHeight: barHeight
+          barXPosition: barXPosition,
+          barHeight: barHeight,
+          barWidth: barWidth
         };
       }
     }, {
       key: "drawRangeColumnPaths",
       value: function drawRangeColumnPaths(_ref2) {
         var indexes = _ref2.indexes,
-            x = _ref2.x;
-            _ref2.strokeWidth;
-            var xDivision = _ref2.xDivision,
+            x = _ref2.x,
+            xDivision = _ref2.xDivision,
             barWidth = _ref2.barWidth,
+            barXPosition = _ref2.barXPosition,
             zeroH = _ref2.zeroH;
         var w = this.w;
         var i = indexes.i;
@@ -23032,12 +23230,6 @@
         var range = this.getRangeValue(realIndex, j);
         var y1 = Math.min(range.start, range.end);
         var y2 = Math.max(range.start, range.end);
-
-        if (w.globals.isXNumeric) {
-          x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
-        }
-
-        var barXPosition = x + barWidth * this.visibleI;
 
         if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
           y1 = zeroH;
@@ -25700,7 +25892,7 @@
 
             case 'boxPlot':
               var boxPlot = new BoxCandleStick(this.ctx, xyRatios);
-              elGraph = boxPlot.draw(gl.series, 'boxPlot');
+              elGraph = boxPlot.draw(gl.series, cnf.chart.type);
               break;
 
             case 'rangeBar':
@@ -32146,7 +32338,7 @@
     }
   }
 
-  var css_248z = "@keyframes opaque {\n  0% {\n      opacity: 0\n  }\n\n  to {\n      opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n  0%,to {\n      opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  user-select: none\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\n.legend-mouseover-inactive {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255,255,255,.96)\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  color: #fff;\n  background: rgba(30,30,30,.8)\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {\n  background: #eceff1;\n  border-bottom: 1px solid #ddd\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: rgba(0,0,0,.7);\n  border-bottom: 1px solid #333\n}\n\n.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 0;\n  margin-right: 10px;\n  border-radius: 50%\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active,.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px\n}\n\n.apexcharts-tooltip-series-group-hidden {\n  opacity: 0;\n  height: 0;\n  line-height: 0;\n  padding: 0!important\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n.apexcharts-xaxistooltip,.apexcharts-yaxistooltip {\n  opacity: 0;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #eceff1;\n  border: 1px solid #90a4ae\n}\n\n.apexcharts-xaxistooltip {\n  padding: 9px 10px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-left: -7px\n}\n\n.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:before {\n  border-bottom-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-top.apexcharts-theme-dark:before {\n  border-top-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 4px 10px\n}\n\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-top: -7px\n}\n\n.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-left.apexcharts-theme-dark:before {\n  border-left-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-right.apexcharts-theme-dark:before {\n  border-right-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_boundingRect,.svg_select_points_rot {\n  pointer-events: none;\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_boundingRect,.apexcharts-selection-rect+g .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_points_l,.apexcharts-selection-rect+g .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible\n}\n\n.svg_select_points {\n  fill: #efefef;\n  stroke: #333;\n  rx: 2\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center\n}\n\n.apexcharts-menu-icon svg,.apexcharts-reset-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg {\n  fill: #6e8192\n}\n\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(.76)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon svg,.apexcharts-theme-dark .apexcharts-pan-icon svg,.apexcharts-theme-dark .apexcharts-reset-icon svg,.apexcharts-theme-dark .apexcharts-selection-icon svg,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg,.apexcharts-theme-dark .apexcharts-zoom-icon svg,.apexcharts-theme-dark .apexcharts-zoomin-icon svg,.apexcharts-theme-dark .apexcharts-zoomout-icon svg {\n  fill: #f3f4f5\n}\n\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected svg {\n  fill: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover svg,.apexcharts-theme-light .apexcharts-reset-icon:hover svg,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,.apexcharts-theme-light .apexcharts-zoomout-icon:hover svg {\n  fill: #333\n}\n\n.apexcharts-menu-icon,.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-reset-icon {\n  margin-left: 5px\n}\n\n.apexcharts-menu-icon,.apexcharts-reset-icon,.apexcharts-zoom-icon {\n  transform: scale(.85)\n}\n\n.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  transform: scale(.7)\n}\n\n.apexcharts-zoomout-icon {\n  margin-right: 3px\n}\n\n.apexcharts-pan-icon {\n  transform: scale(.62);\n  position: relative;\n  left: 1px;\n  top: 0\n}\n\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6e8192;\n  stroke-width: 2\n}\n\n.apexcharts-pan-icon.apexcharts-selected svg {\n  stroke: #008ffb\n}\n\n.apexcharts-pan-icon:not(.apexcharts-selected):hover svg {\n  stroke: #333\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0 6px 2px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: .15s ease all;\n  pointer-events: none\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  pointer-events: all;\n  transition: .15s ease all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: #eee\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(0,0,0,.7);\n  color: #fff\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n      opacity: 1\n  }\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points {\n  opacity: 0\n}\n\n.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-gridline,.apexcharts-line,.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-point-annotation-label,.apexcharts-radar-series path,.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect {\n  pointer-events: none\n}\n\n.apexcharts-marker {\n  transition: .15s ease all\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,.resize-triggers,.resize-triggers>div {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n";
+  var css_248z = "@keyframes opaque {\n  0% {\n      opacity: 0\n  }\n\n  to {\n      opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n  0%,to {\n      opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  user-select: none\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\n.legend-mouseover-inactive {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255,255,255,.96)\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  color: #fff;\n  background: rgba(30,30,30,.8)\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {\n  background: #eceff1;\n  border-bottom: 1px solid #ddd\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: rgba(0,0,0,.7);\n  border-bottom: 1px solid #333\n}\n\n.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 0;\n  margin-right: 10px;\n  border-radius: 50%\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active,.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px\n}\n\n.apexcharts-tooltip-series-group-hidden {\n  opacity: 0;\n  height: 0;\n  line-height: 0;\n  padding: 0!important\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n.apexcharts-xaxistooltip,.apexcharts-yaxistooltip {\n  opacity: 0;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #eceff1;\n  border: 1px solid #90a4ae\n}\n\n.apexcharts-xaxistooltip {\n  padding: 9px 10px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-left: -7px\n}\n\n.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:before {\n  border-bottom-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-top.apexcharts-theme-dark:before {\n  border-top-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 4px 10px\n}\n\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-top: -7px\n}\n\n.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-left.apexcharts-theme-dark:before {\n  border-left-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-right.apexcharts-theme-dark:before {\n  border-right-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_boundingRect,.svg_select_points_rot {\n  pointer-events: none;\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_boundingRect,.apexcharts-selection-rect+g .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_points_l,.apexcharts-selection-rect+g .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible\n}\n\n.svg_select_points {\n  fill: #efefef;\n  stroke: #333;\n  rx: 2\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center\n}\n\n.apexcharts-menu-icon svg,.apexcharts-reset-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg {\n  fill: #6e8192\n}\n\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(.76)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon svg,.apexcharts-theme-dark .apexcharts-pan-icon svg,.apexcharts-theme-dark .apexcharts-reset-icon svg,.apexcharts-theme-dark .apexcharts-selection-icon svg,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg,.apexcharts-theme-dark .apexcharts-zoom-icon svg,.apexcharts-theme-dark .apexcharts-zoomin-icon svg,.apexcharts-theme-dark .apexcharts-zoomout-icon svg {\n  fill: #f3f4f5\n}\n\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected svg {\n  fill: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover svg,.apexcharts-theme-light .apexcharts-reset-icon:hover svg,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,.apexcharts-theme-light .apexcharts-zoomout-icon:hover svg {\n  fill: #333\n}\n\n.apexcharts-menu-icon,.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-reset-icon {\n  margin-left: 5px\n}\n\n.apexcharts-menu-icon,.apexcharts-reset-icon,.apexcharts-zoom-icon {\n  transform: scale(.85)\n}\n\n.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  transform: scale(.7)\n}\n\n.apexcharts-zoomout-icon {\n  margin-right: 3px\n}\n\n.apexcharts-pan-icon {\n  transform: scale(.62);\n  position: relative;\n  left: 1px;\n  top: 0\n}\n\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6e8192;\n  stroke-width: 2\n}\n\n.apexcharts-pan-icon.apexcharts-selected svg {\n  stroke: #008ffb\n}\n\n.apexcharts-pan-icon:not(.apexcharts-selected):hover svg {\n  stroke: #333\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0 6px 2px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: .15s ease all;\n  pointer-events: none\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  pointer-events: all;\n  transition: .15s ease all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: #eee\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(0,0,0,.7);\n  color: #fff\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n      opacity: 1\n  }\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points {\n  opacity: 0\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-gridline,.apexcharts-line,.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-point-annotation-label,.apexcharts-radar-series path,.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect {\n  pointer-events: none\n}\n\n.apexcharts-marker {\n  transition: .15s ease all\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,.resize-triggers,.resize-triggers>div {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n";
 
   /**
    *
