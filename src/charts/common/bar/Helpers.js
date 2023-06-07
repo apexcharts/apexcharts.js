@@ -53,10 +53,6 @@ export default class Helpers {
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
 
     let dataPoints = w.globals.dataPoints
-    if (this.barCtx.isRangeBar) {
-      // timeline rangebar chart
-      dataPoints = w.globals.labels.length
-    }
 
     let seriesLen = this.barCtx.seriesLen
     if (w.config.plotOptions.bar.rangeBarGroupRows) {
@@ -97,7 +93,7 @@ export default class Helpers {
         xDivision = w.globals.gridWidth / w.globals.dataPoints
       }
       barWidth =
-        ((xDivision / this.barCtx.seriesLen) *
+        ((xDivision / seriesLen) *
           parseInt(this.barCtx.barOptions.columnWidth, 10)) /
         100
 
@@ -116,7 +112,7 @@ export default class Helpers {
         }
 
         barWidth =
-          ((xDivision / this.barCtx.seriesLen) *
+          ((xDivision / seriesLen) *
             parseInt(this.barCtx.barOptions.columnWidth, 10)) /
           100
 

@@ -221,7 +221,7 @@ export default class Tooltip {
       tooltipEl,
       tooltipY,
       tooltipX,
-      ttItems: this.ttItems
+      ttItems: this.ttItems,
     }
 
     let points
@@ -266,9 +266,8 @@ export default class Tooltip {
       type === 'heatmap' ||
       type === 'treemap'
     ) {
-      let seriesAll = w.globals.dom.baseEl.querySelectorAll(
-        '.apexcharts-series'
-      )
+      let seriesAll =
+        w.globals.dom.baseEl.querySelectorAll('.apexcharts-series')
       this.addPathsEventListeners(seriesAll, seriesHoverParams)
     }
 
@@ -316,7 +315,7 @@ export default class Tooltip {
       x,
       y,
       ttWidth,
-      ttHeight
+      ttHeight,
     }
   }
 
@@ -339,7 +338,7 @@ export default class Tooltip {
         tooltipX: opts.tooltipX,
         elGrid: opts.elGrid,
         hoverArea: opts.hoverArea,
-        ttItems: opts.ttItems
+        ttItems: opts.ttItems,
       }
 
       let events = ['mousemove', 'mouseup', 'touchmove', 'mouseout', 'touchend']
@@ -410,7 +409,7 @@ export default class Tooltip {
           tooltipX: opt.tooltipX,
           elGrid: opt.elGrid,
           hoverArea: opt.hoverArea,
-          ttItems: ch.w.globals.tooltip.ttItems
+          ttItems: ch.w.globals.tooltip.ttItems,
         }
 
         // all the charts should have the same minX and maxX (same xaxis) for multiple tooltips to work correctly
@@ -422,7 +421,7 @@ export default class Tooltip {
             chartCtx: ch,
             ttCtx: ch.w.globals.tooltip,
             opt: newOpts,
-            e
+            e,
           })
         }
       })
@@ -431,7 +430,7 @@ export default class Tooltip {
         chartCtx: this.ctx,
         ttCtx: this.w.globals.tooltip,
         opt,
-        e
+        e,
       })
     }
   }
@@ -447,7 +446,7 @@ export default class Tooltip {
       x: 0,
       y: 0,
       ttWidth: tooltipEl.getBoundingClientRect().width,
-      ttHeight: tooltipEl.getBoundingClientRect().height
+      ttHeight: tooltipEl.getBoundingClientRect().height,
     }
     ttCtx.e = e
 
@@ -471,14 +470,14 @@ export default class Tooltip {
       ttCtx.axisChartsTooltips({
         e,
         opt,
-        tooltipRect: ttCtx.tooltipRect
+        tooltipRect: ttCtx.tooltipRect,
       })
     } else {
       // non-plot charts i.e pie/donut/circle
       ttCtx.nonAxisChartsTooltips({
         e,
         opt,
-        tooltipRect: ttCtx.tooltipRect
+        tooltipRect: ttCtx.tooltipRect,
       })
     }
   }
@@ -566,7 +565,7 @@ export default class Tooltip {
             opt,
             x,
             y,
-            type: w.config.chart.type
+            type: w.config.chart.type,
           })
           x = markerXY.x
           y = markerXY.y
@@ -577,7 +576,7 @@ export default class Tooltip {
           if (this.tooltipUtil.hasBars()) {
             this.intersect.handleBarTooltip({
               e,
-              opt
+              opt,
             })
           }
 
@@ -587,7 +586,7 @@ export default class Tooltip {
               e,
               opt,
               x,
-              y
+              y,
             })
           }
         }
@@ -620,7 +619,7 @@ export default class Tooltip {
       this.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
         i: parseInt(rel, 10) - 1,
-        shared: false
+        shared: false,
       })
 
       let x = w.globals.clientX - seriesBound.left - tooltipRect.ttWidth / 2
@@ -633,14 +632,13 @@ export default class Tooltip {
         let legendFormatter = w.config.legend.tooltipHoverFormatter
 
         const i = rel - 1
-        const legendName = this.legendLabels[i].getAttribute(
-          'data:default-text'
-        )
+        const legendName =
+          this.legendLabels[i].getAttribute('data:default-text')
 
         let text = legendFormatter(legendName, {
           seriesIndex: i,
           dataPointIndex: i,
-          w
+          w,
         })
 
         this.legendLabels[i].innerHTML = text
@@ -663,7 +661,7 @@ export default class Tooltip {
       hoverArea: opt.hoverArea,
       elGrid: opt.elGrid,
       clientX,
-      clientY
+      clientY,
     })
 
     let j = capj.j
@@ -777,13 +775,13 @@ export default class Tooltip {
       w.config.chart.events.markerClick(e, this.ctx, {
         seriesIndex,
         dataPointIndex,
-        w
+        w,
       })
     }
     this.ctx.events.fireEvent('markerClick', [
       e,
       this.ctx,
-      { seriesIndex, dataPointIndex, w }
+      { seriesIndex, dataPointIndex, w },
     ])
   }
 
@@ -823,7 +821,7 @@ export default class Tooltip {
         let text = legendFormatter(legendName, {
           seriesIndex: shared ? lsIndex : capturedSeries,
           dataPointIndex: j,
-          w
+          w,
         })
 
         if (!shared) {
@@ -846,17 +844,17 @@ export default class Tooltip {
       j,
       ...(typeof w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1 !==
         'undefined' && {
-        y1: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1
+        y1: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1,
       }),
       ...(typeof w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2 !==
         'undefined' && {
-        y2: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2
-      })
+        y2: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2,
+      }),
     }
     if (shared) {
       ttCtx.tooltipLabels.drawSeriesTexts({
         ...commonSeriesTextsParams,
-        shared: this.showOnIntersect ? false : this.tConfig.shared
+        shared: this.showOnIntersect ? false : this.tConfig.shared,
       })
 
       if (hasMarkers) {
@@ -887,7 +885,7 @@ export default class Tooltip {
     } else {
       ttCtx.tooltipLabels.drawSeriesTexts({
         shared: false,
-        ...commonSeriesTextsParams
+        ...commonSeriesTextsParams,
       })
 
       if (this.tooltipUtil.hasBars()) {

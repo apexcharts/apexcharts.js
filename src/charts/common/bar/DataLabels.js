@@ -6,7 +6,8 @@ export default class BarDataLabels {
     this.w = barCtx.w
     this.barCtx = barCtx
 
-    this.totalFormatter = this.w.config.plotOptions.bar.dataLabels.total.formatter
+    this.totalFormatter =
+      this.w.config.plotOptions.bar.dataLabels.total.formatter
 
     if (!this.totalFormatter) {
       this.totalFormatter = this.w.config.dataLabels.formatter
@@ -33,9 +34,10 @@ export default class BarDataLabels {
       series,
       barHeight,
       barWidth,
+      barXPosition,
       barYPosition,
       visibleSeries,
-      renderedPath
+      renderedPath,
     } = opts
     let w = this.w
     let graphics = new Graphics(this.barCtx.ctx)
@@ -66,12 +68,20 @@ export default class BarDataLabels {
       dataLabelsY = barYPosition
     }
 
+    if (
+      typeof barXPosition !== 'undefined' &&
+      this.barCtx.isVerticalGroupedRangeBar
+    ) {
+      bcx = barXPosition
+      dataLabelsX = barXPosition
+    }
+
     const offX = dataLabelsConfig.offsetX
     const offY = dataLabelsConfig.offsetY
 
     let textRects = {
       width: 0,
-      height: 0
+      height: 0,
     }
     if (w.config.dataLabels.enabled) {
       const yLabel = this.barCtx.series[i][j]
@@ -102,7 +112,7 @@ export default class BarDataLabels {
       barDataLabelsConfig,
       barTotalDataLabelsConfig,
       offX,
-      offY
+      offY,
     }
 
     if (this.barCtx.isHorizontal) {
@@ -117,7 +127,7 @@ export default class BarDataLabels {
       j,
       val: series[i][j],
       barHeight,
-      barWidth
+      barWidth,
     })
 
     dataLabels = this.drawCalculatedDataLabels({
@@ -129,7 +139,7 @@ export default class BarDataLabels {
       barWidth,
       barHeight,
       textRects,
-      dataLabelsConfig
+      dataLabelsConfig,
     })
 
     if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled) {
@@ -140,13 +150,13 @@ export default class BarDataLabels {
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
         val: this.getStackedTotalDataLabel({ realIndex, j }),
         dataLabelsConfig,
-        barTotalDataLabelsConfig
+        barTotalDataLabelsConfig,
       })
     }
 
     return {
       dataLabels,
-      totalDataLabels
+      totalDataLabels,
     }
   }
 
@@ -159,7 +169,7 @@ export default class BarDataLabels {
         ...w,
         seriesIndex: realIndex,
         dataPointIndex: j,
-        w
+        w,
       })
     }
 
@@ -178,16 +188,16 @@ export default class BarDataLabels {
       barWidth,
       barHeight,
       textRects,
+      dataLabelsX,
       dataLabelsY,
       dataLabelsConfig,
       barDataLabelsConfig,
       barTotalDataLabelsConfig,
       strokeWidth,
       offX,
-      offY
+      offY,
     } = opts
 
-    let dataLabelsX
     let totalDataLabelsY
     let totalDataLabelsX
     let totalDataLabelsAnchor = 'middle'
@@ -200,10 +210,15 @@ export default class BarDataLabels {
       bcx - strokeWidth / 2 + (groupIndex !== -1 ? groupIndex * barWidth : 0)
 
     let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
-    if (w.globals.isXNumeric) {
-      dataLabelsX = bcx - barWidth / 2 + offX
+
+    if (this.barCtx.isVerticalGroupedRangeBar) {
+      dataLabelsX = dataLabelsX + barWidth / 2
     } else {
-      dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
+      if (w.globals.isXNumeric) {
+        dataLabelsX = bcx - barWidth / 2 + offX
+      } else {
+        dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
+      }
     }
 
     if (vertical) {
@@ -316,7 +331,7 @@ export default class BarDataLabels {
       dataLabelsY,
       totalDataLabelsX,
       totalDataLabelsY,
-      totalDataLabelsAnchor
+      totalDataLabelsAnchor,
     }
   }
 
@@ -338,7 +353,7 @@ export default class BarDataLabels {
       barDataLabelsConfig,
       barTotalDataLabelsConfig,
       offX,
-      offY
+      offY,
     } = opts
 
     let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
@@ -451,7 +466,7 @@ export default class BarDataLabels {
       dataLabelsY,
       totalDataLabelsX,
       totalDataLabelsY,
-      totalDataLabelsAnchor
+      totalDataLabelsAnchor,
     }
   }
 
@@ -464,7 +479,7 @@ export default class BarDataLabels {
     textRects,
     barHeight,
     barWidth,
-    dataLabelsConfig
+    dataLabelsConfig,
   }) {
     const w = this.w
     let rotate = 'rotate(0)'
@@ -483,7 +498,7 @@ export default class BarDataLabels {
     if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
       elDataLabelsWrap = graphics.group({
         class: 'apexcharts-data-labels',
-        transform: rotate
+        transform: rotate,
       })
 
       let text = ''
@@ -492,7 +507,7 @@ export default class BarDataLabels {
           ...w,
           seriesIndex: i,
           dataPointIndex: j,
-          w
+          w,
         })
       }
 
@@ -548,7 +563,7 @@ export default class BarDataLabels {
       }
 
       let modifiedDataLabelsConfig = {
-        ...dataLabelsConfig
+        ...dataLabelsConfig,
       }
       if (this.barCtx.isHorizontal) {
         if (val < 0) {
@@ -569,7 +584,7 @@ export default class BarDataLabels {
         parent: elDataLabelsWrap,
         dataLabelsConfig: modifiedDataLabelsConfig,
         alwaysDrawDataLabel: true,
-        offsetCorrection: true
+        offsetCorrection: true,
       })
     }
 
@@ -582,7 +597,7 @@ export default class BarDataLabels {
     val,
     realIndex,
     textAnchor,
-    barTotalDataLabelsConfig
+    barTotalDataLabelsConfig,
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
 
@@ -602,7 +617,7 @@ export default class BarDataLabels {
         textAnchor,
         fontFamily: barTotalDataLabelsConfig.style.fontFamily,
         fontSize: barTotalDataLabelsConfig.style.fontSize,
-        fontWeight: barTotalDataLabelsConfig.style.fontWeight
+        fontWeight: barTotalDataLabelsConfig.style.fontWeight,
       })
     }
 

@@ -59,6 +59,10 @@ class Range {
           (label) => typeof label !== 'undefined'
         ).length
       }
+
+      if (gl.labels.length) {
+        gl.dataPoints = Math.max(gl.dataPoints, gl.labels.length)
+      }
       for (let j = 0; j < gl.series[i].length; j++) {
         let val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
@@ -160,7 +164,7 @@ class Range {
       minY,
       maxY,
       lowestY,
-      highestY
+      highestY,
     }
   }
 
@@ -298,7 +302,7 @@ class Range {
       maxY: gl.maxY,
       minYArr: gl.minYArr,
       maxYArr: gl.maxYArr,
-      yAxisScale: gl.yAxisScale
+      yAxisScale: gl.yAxisScale,
     }
   }
 
@@ -390,7 +394,7 @@ class Range {
           gl.xAxisScale = {
             result: catScale,
             niceMin: catScale[0],
-            niceMax: catScale[catScale.length - 1]
+            niceMax: catScale[catScale.length - 1],
           }
         } else {
           gl.xAxisScale = this.scales.setXScale(gl.minX, gl.maxX)
@@ -426,7 +430,7 @@ class Range {
 
     return {
       minX: gl.minX,
-      maxX: gl.maxX
+      maxX: gl.maxX,
     }
   }
 

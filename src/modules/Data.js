@@ -264,7 +264,7 @@ export default class Data {
         return {
           x: r.x,
           overlaps: [],
-          y: []
+          y: [],
         }
       })
 
@@ -286,7 +286,7 @@ export default class Data {
         const y = {
           y1: isDataPoint2D ? ser[i].data[j].y[0] : ser[i].data[j].y,
           y2: isDataPoint2D ? ser[i].data[j].y[1] : ser[i].data[j].y,
-          rangeName: id
+          rangeName: id,
         }
 
         // mutating config object by adding a new property
@@ -304,7 +304,7 @@ export default class Data {
     return {
       start: rangeStart,
       end: rangeEnd,
-      rangeUniques: uniqueKeys
+      rangeUniques: uniqueKeys,
     }
   }
 
@@ -375,7 +375,7 @@ export default class Data {
       h: serH,
       m: serM,
       l: serL,
-      c: serC
+      c: serC,
     }
   }
 
@@ -567,8 +567,10 @@ export default class Data {
             }
           })
         })
-        gl.labels = gl.labels.filter(
-          (elem, pos, arr) => arr.indexOf(elem) === pos
+        // remove duplicate x-axis labels
+        gl.labels = Array.from(
+          new Set(gl.labels.map(JSON.stringify)),
+          JSON.parse
         )
       }
 

@@ -25,6 +25,11 @@ class Bar {
 
     this.isRangeBar = w.globals.seriesRange.length && this.isHorizontal
 
+    this.isVerticalGroupedRangeBar =
+      !w.globals.isBarHorizontal &&
+      w.globals.seriesRange.length &&
+      w.config.plotOptions.bar.rangeBarGroupRows
+
     this.isFunnel = this.barOptions.isFunnel
     this.xyRatios = xyRatios
 
@@ -289,18 +294,19 @@ class Bar {
     lineFill,
     j,
     i,
-    groupIndex,
+    groupIndex, // required in grouped-stacked bars
     pathFrom,
     pathTo,
     strokeWidth,
     elSeries,
-    x,
-    y,
-    y1,
-    y2,
+    x, // x pos
+    y, // y pos
+    y1, // absolute value
+    y2, // absolute value
     series,
     barHeight,
     barWidth,
+    barXPosition,
     barYPosition,
     elDataLabelsWrap,
     elGoalsMarkers,
@@ -380,6 +386,7 @@ class Bar {
       groupIndex,
       barHeight,
       barWidth,
+      barXPosition,
       barYPosition,
       renderedPath,
       visibleSeries,
