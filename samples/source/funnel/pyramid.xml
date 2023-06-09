@@ -39,7 +39,7 @@ title: {
   align: 'middle',
 },
 xaxis: {
-  categories: ['Sweets', 'Processed Foods', 'Healthy Fats', 'Meat', 'Beans & Legumes', 'Dairy', 'Fruits & Vegetables', 'Grains', 'Sourced'],
+  categories: ['Sweets', 'Processed Foods', 'Healthy Fats', 'Meat', 'Beans & Legumes', 'Dairy', 'Fruits & Vegetables', 'Grains'],
 },
 legend: {
   show: false,
