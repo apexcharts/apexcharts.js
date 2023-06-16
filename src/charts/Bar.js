@@ -162,13 +162,11 @@ class Bar {
       elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
 
       let elGoalsMarkers = graphics.group({
-        class: 'apexcharts-bar-goals-markers',
-        style: `pointer-events: none`,
+        class: 'apexcharts-bar-goals-markers'        
       })
 
       let elBarShadows = graphics.group({
-        class: 'apexcharts-bar-shadows',
-        style: `pointer-events: none`,
+        class: 'apexcharts-bar-shadows'        
       })
 
       w.globals.delayedElements.push({

@@ -583,3 +583,15 @@
   width: 200%;
   height: 200%
 }
+
+.apexcharts-bar-goals-markers{
+  pointer-events: none
+}
+
+.apexcharts-bar-shadows{
+  pointer-events: none
+}
+
+.apexcharts-rangebar-goals-markers{
+  pointer-events: none
+}
