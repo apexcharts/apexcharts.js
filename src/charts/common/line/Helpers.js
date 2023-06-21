@@ -104,8 +104,10 @@ export default class Helpers {
 
   determineFirstPrevY({ i, series, prevY, lineYPosition }) {
     let w = this.w
+    let stackSeries = w.config.chart.stacked && (!w.config.chart.stackOnlyBar || (series[i] && series[i].type && series[i].type === 'bar'));
+
     if (typeof series[i]?.[0] !== 'undefined') {
-      if (w.config.chart.stacked) {
+      if (stackSeries) {
         if (i > 0) {
           // 1st y value of previous series
           lineYPosition = this.lineCtx.prevSeriesY[i - 1][0]
@@ -126,7 +128,7 @@ export default class Helpers {
     } else {
       // the first value in the current series is null
       if (
-        w.config.chart.stacked &&
+        stackSeries &&
         i > 0 &&
         typeof series[i][0] === 'undefined'
       ) {

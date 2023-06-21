@@ -344,6 +344,7 @@ export default class Options {
           target: undefined,
         },
         stacked: false,
+        stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907
         stackType: 'normal',
         toolbar: {
           show: true,
@@ -921,6 +922,7 @@ export default class Options {
         enabled: true,
         enabledOnSeries: undefined,
         shared: true,
+        hideEmptyShared: true,
         followCursor: false, // when disabled, the tooltip will show on top of the series instead of mouse position
         intersect: false, // when enabled, tooltip will only show when user directly hovers over point
         inverseOrder: false,
