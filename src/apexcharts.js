@@ -239,7 +239,6 @@ export default class ApexCharts {
     return {
       elGraph,
       xyRatios,
-      elInner: w.globals.dom.elGraphical,
       dimensions: dim
     }
   }
@@ -310,7 +309,6 @@ export default class ApexCharts {
         })
       }
 
-      w.globals.dom.Paper.add(w.globals.dom.elAnnotations)
       me.annotations.drawAxesAnnotations()
 
       if (!w.globals.noData) {

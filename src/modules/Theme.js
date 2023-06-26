@@ -36,7 +36,7 @@ export default class Theme {
       `apexcharts-theme-${w.config.theme.mode}`
     )
 
-    if (w.config.colors === undefined) {
+    if (w.config.colors === undefined || w.config.colors?.length === 0) {
       w.globals.colors = this.predefined()
     } else {
       w.globals.colors = w.config.colors
@@ -60,7 +60,7 @@ export default class Theme {
                 : w.globals.series[i],
               seriesIndex: i,
               dataPointIndex: i,
-              w
+              w,
             })
           }
           return c
@@ -120,16 +120,18 @@ export default class Theme {
     if (w.config.dataLabels.style.colors === undefined) {
       w.globals.dataLabels.style.colors = defaultColors
     } else {
-      w.globals.dataLabels.style.colors = w.config.dataLabels.style.colors.slice()
+      w.globals.dataLabels.style.colors =
+        w.config.dataLabels.style.colors.slice()
     }
     this.pushExtraColors(w.globals.dataLabels.style.colors, 50)
 
     if (w.config.plotOptions.radar.polygons.fill.colors === undefined) {
       w.globals.radarPolygons.fill.colors = [
-        w.config.theme.mode === 'dark' ? '#424242' : 'none'
+        w.config.theme.mode === 'dark' ? '#424242' : 'none',
       ]
     } else {
-      w.globals.radarPolygons.fill.colors = w.config.plotOptions.radar.polygons.fill.colors.slice()
+      w.globals.radarPolygons.fill.colors =
+        w.config.plotOptions.radar.polygons.fill.colors.slice()
     }
     this.pushExtraColors(w.globals.radarPolygons.fill.colors, 20)
 

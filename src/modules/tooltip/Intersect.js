@@ -11,7 +11,13 @@ import Utils from '../../utils/Utils'
 class Intersect {
   constructor(tooltipContext) {
     this.w = tooltipContext.w
+    const w = this.w
     this.ttCtx = tooltipContext
+
+    this.isVerticalGroupedRangeBar =
+      !w.globals.isBarHorizontal &&
+      w.config.chart.type === 'rangeBar' &&
+      w.config.plotOptions.bar.rangeBarGroupRows
   }
 
   // a helper function to get an element's attribute value
@@ -37,7 +43,7 @@ class Intersect {
         i,
         j,
         shared: false,
-        e
+        e,
       })
 
       w.globals.capturedSeriesIndex = i
@@ -66,7 +72,7 @@ class Intersect {
 
     return {
       x,
-      y
+      y,
     }
   }
 
@@ -104,7 +110,7 @@ class Intersect {
         i,
         j,
         shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
-        e
+        e,
       })
 
       if (e.type === 'mouseup') {
@@ -131,7 +137,7 @@ class Intersect {
 
     return {
       x,
-      y
+      y,
     }
   }
 
@@ -151,7 +157,7 @@ class Intersect {
     let strokeWidth
     let barXY = this.getBarTooltipXY({
       e,
-      opt
+      opt,
     })
     i = barXY.i
     let barHeight = barXY.barHeight
@@ -292,6 +298,28 @@ class Intersect {
       //   j = Math.ceil(hoverY / yDivisor)
       // }
 
+      const handleXForColumns = (x) => {
+        if (w.globals.isXNumeric) {
+          x = cx - bw / 2
+        } else {
+          if (this.isVerticalGroupedRangeBar) {
+            x = cx + bw / 2
+          } else {
+            x = cx - ttCtx.dataPointsDividedWidth + bw / 2
+          }
+        }
+        return x
+      }
+
+      const handleYForBars = () => {
+        return (
+          cy -
+          ttCtx.dataPointsDividedHeight +
+          bh / 2 -
+          ttCtx.tooltipRect.ttHeight / 2
+        )
+      }
+
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
         i,
@@ -299,23 +327,15 @@ class Intersect {
         y1: y1 ? parseInt(y1, 10) : null,
         y2: y2 ? parseInt(y2, 10) : null,
         shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
-        e
+        e,
       })
 
       if (w.config.tooltip.followCursor) {
         if (w.globals.isBarHorizontal) {
           x = clientX - seriesBound.left + 15
-          y =
-            cy -
-            ttCtx.dataPointsDividedHeight +
-            bh / 2 -
-            ttCtx.tooltipRect.ttHeight / 2
+          y = handleYForBars()
         } else {
-          if (w.globals.isXNumeric) {
-            x = cx - bw / 2
-          } else {
-            x = cx - ttCtx.dataPointsDividedWidth + bw / 2
-          }
+          x = handleXForColumns(x)
           y = e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15
         }
       } else {
@@ -324,20 +344,9 @@ class Intersect {
           if (x < ttCtx.xyRatios.baseLineInvertedY) {
             x = cx - ttCtx.tooltipRect.ttWidth
           }
-
-          y =
-            cy -
-            ttCtx.dataPointsDividedHeight +
-            bh / 2 -
-            ttCtx.tooltipRect.ttHeight / 2
+          y = handleYForBars()
         } else {
-          // if columns
-          if (w.globals.isXNumeric) {
-            x = cx - bw / 2
-          } else {
-            x = cx - ttCtx.dataPointsDividedWidth + bw / 2
-          }
-
+          x = handleXForColumns(x)
           y = cy // - ttCtx.tooltipRect.ttHeight / 2 + 10
         }
       }
@@ -349,7 +358,7 @@ class Intersect {
       barHeight,
       barWidth,
       i,
-      j
+      j,
     }
   }
 }

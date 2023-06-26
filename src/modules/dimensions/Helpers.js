@@ -36,7 +36,7 @@ export default class Helpers {
   getLegendsRect() {
     let w = this.w
 
-    let elLegendWrap = w.globals.dom.baseEl.querySelector('.apexcharts-legend')
+    let elLegendWrap = w.globals.dom.elLegendWrap
 
     if (
       !w.config.legend.height &&

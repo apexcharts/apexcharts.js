@@ -34,7 +34,7 @@ stroke: {
   colors: ["#fff"],
   width: 0.2
 },
-labels: Array.apply(null, {length: 39}).map(function(el, index){
+labels: Array.apply(null, {length: 32}).map(function(el, index){
   return index + 1;
 }),
 yaxis: {

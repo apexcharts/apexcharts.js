@@ -163,7 +163,7 @@ export default class DimXAxis {
   getxAxisGroupLabelsCoords() {
     let w = this.w
 
-    if (!w.globals.hasGroups) {
+    if (!w.globals.hasXaxisGroups) {
       return { width: 0, height: 0 }
     }
 
@@ -354,19 +354,7 @@ export default class DimXAxis {
     }
 
     const padYAxe = (yaxe, i) => {
-      if (isCollapsed(i)) return
-
-      // the code below causes issue apexcharts.js#1989
-      // after testing with other use-cases, this has no actual value, hence commented
-      // if (xtype !== 'datetime') {
-      //   if (
-      //     this.dCtx.gridPad.left < lbWidth / 2 - this.dCtx.yAxisWidthLeft &&
-      //     !gl.rotateXLabels &&
-      //     !cnf.xaxis.labels.trim
-      //   ) {
-      //     this.dCtx.xPadLeft = lbWidth / 2 + 1
-      //   }
-      // }
+      if (cnf.yaxis.length > 1 && isCollapsed(i)) return
 
       rightPad(yaxe)
     }

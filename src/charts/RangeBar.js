@@ -23,7 +23,7 @@ class RangeBar extends Bar {
     this.barHelpers.initVariables(series)
 
     let ret = graphics.group({
-      class: 'apexcharts-rangebar-series apexcharts-plot-series'
+      class: 'apexcharts-rangebar-series apexcharts-plot-series',
     })
 
     for (let i = 0; i < series.length; i++) {
@@ -41,7 +41,7 @@ class RangeBar extends Bar {
         class: `apexcharts-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
         rel: i + 1,
-        'data:realIndex': realIndex
+        'data:realIndex': realIndex,
       })
 
       this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
@@ -64,18 +64,19 @@ class RangeBar extends Bar {
 
       x = initPositions.x
       barWidth = initPositions.barWidth
+      barHeight = initPositions.barHeight
       xDivision = initPositions.xDivision
+      yDivision = initPositions.yDivision
       zeroH = initPositions.zeroH
 
       // eldatalabels
       let elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels',
-        'data:realIndex': realIndex
+        'data:realIndex': realIndex,
       })
 
       let elGoalsMarkers = graphics.group({
-        class: 'apexcharts-rangebar-goals-markers',
-        style: `pointer-events: none`
+        class: 'apexcharts-rangebar-goals-markers'
       })
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
@@ -85,27 +86,25 @@ class RangeBar extends Bar {
         const y2 = this.seriesRangeEnd[i][j]
 
         let paths = null
+        let barXPosition = null
         let barYPosition = null
         const params = { x, y, strokeWidth, elSeries }
 
-        yDivision = initPositions.yDivision
-        barHeight = initPositions.barHeight
+        let seriesLen = this.seriesLen
+        if (w.config.plotOptions.bar.rangeBarGroupRows) {
+          seriesLen = 1
+        }
+
+        if (typeof w.config.series[i].data[j] === 'undefined') {
+          // no data exists for further indexes, hence we need to get out the innr loop.
+          // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
+          break
+        }
 
         if (this.isHorizontal) {
           barYPosition = y + barHeight * this.visibleI
 
-          let seriesLen = this.seriesLen
-          if (w.config.plotOptions.bar.rangeBarGroupRows) {
-            seriesLen = 1
-          }
-
           let srty = (yDivision - barHeight * seriesLen) / 2
-
-          if (typeof w.config.series[i].data[j] === 'undefined') {
-            // no data exists for further indexes, hence we need to get out the innr loop.
-            // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
-            break
-          }
 
           if (w.config.series[i].data[j].x) {
             let positions = this.detectOverlappingBars({
@@ -115,7 +114,7 @@ class RangeBar extends Bar {
               srty,
               barHeight,
               yDivision,
-              initPositions
+              initPositions,
             })
 
             barHeight = positions.barHeight
@@ -130,17 +129,43 @@ class RangeBar extends Bar {
             yDivision,
             y1,
             y2,
-            ...params
+            ...params,
           })
 
           barWidth = paths.barWidth
         } else {
+          if (w.globals.isXNumeric) {
+            x =
+              (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio -
+              barWidth / 2
+          }
+
+          barXPosition = x + barWidth * this.visibleI
+
+          let srtx = (xDivision - barWidth * seriesLen) / 2
+
+          if (w.config.series[i].data[j].x) {
+            let positions = this.detectOverlappingBars({
+              i,
+              j,
+              barXPosition,
+              srtx,
+              barWidth,
+              xDivision,
+              initPositions,
+            })
+
+            barWidth = positions.barWidth
+            barXPosition = positions.barXPosition
+          }
+
           paths = this.drawRangeColumnPaths({
             indexes: { i, j, realIndex },
-            zeroH,
             barWidth,
+            barXPosition,
+            zeroH,
             xDivision,
-            ...params
+            ...params,
           })
 
           barHeight = paths.barHeight
@@ -152,7 +177,7 @@ class RangeBar extends Bar {
           goalX: paths.goalX,
           goalY: paths.goalY,
           barHeight,
-          barWidth
+          barWidth,
         })
 
         if (barGoalLine) {
@@ -182,12 +207,14 @@ class RangeBar extends Bar {
           elSeries,
           series,
           barHeight,
+          barWidth,
+          barXPosition,
           barYPosition,
           barWidth,
           elDataLabelsWrap,
           elGoalsMarkers,
           visibleSeries: this.visibleI,
-          type: 'rangebar'
+          type: 'rangebar',
         })
       }
 
@@ -201,56 +228,92 @@ class RangeBar extends Bar {
     i,
     j,
     barYPosition,
+    barXPosition,
     srty,
+    srtx,
     barHeight,
+    barWidth,
     yDivision,
-    initPositions
+    xDivision,
+    initPositions,
   }) {
     const w = this.w
     let overlaps = []
     let rangeName = w.config.series[i].data[j].rangeName
 
-    const labelX = w.config.series[i].data[j].x
-    const rowIndex = w.globals.labels.indexOf(labelX)
+    const x = w.config.series[i].data[j].x
+    const labelX = Array.isArray(x) ? x.join(' ') : x
+
+    const rowIndex = w.globals.labels
+      .map((_) => (Array.isArray(_) ? _.join(' ') : _))
+      .indexOf(labelX)
     const overlappedIndex = w.globals.seriesRange[i].findIndex(
       (tx) => tx.x === labelX && tx.overlaps.length > 0
     )
 
-    if (w.config.plotOptions.bar.rangeBarGroupRows) {
-      barYPosition = srty + yDivision * rowIndex
+    if (this.isHorizontal) {
+      if (w.config.plotOptions.bar.rangeBarGroupRows) {
+        barYPosition = srty + yDivision * rowIndex
+      } else {
+        barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex
+      }
+
+      if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+        overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps
+
+        if (overlaps.indexOf(rangeName) > -1) {
+          barHeight = initPositions.barHeight / overlaps.length
+
+          barYPosition =
+            barHeight * this.visibleI +
+            (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
+              100 /
+              2 +
+            barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
+            yDivision * rowIndex
+        }
+      }
     } else {
-      barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex
-    }
+      if (rowIndex > -1) {
+        if (w.config.plotOptions.bar.rangeBarGroupRows) {
+          barXPosition = srtx + xDivision * rowIndex
+        } else {
+          barXPosition = srtx + barWidth * this.visibleI + xDivision * rowIndex
+        }
+      }
 
-    if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-      overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps
+      if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+        overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps
 
-      if (overlaps.indexOf(rangeName) > -1) {
-        barHeight = initPositions.barHeight / overlaps.length
+        if (overlaps.indexOf(rangeName) > -1) {
+          barWidth = initPositions.barWidth / overlaps.length
 
-        barYPosition =
-          barHeight * this.visibleI +
-          (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
-            100 /
-            2 +
-          barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
-          yDivision * rowIndex
+          barXPosition =
+            barWidth * this.visibleI +
+            (xDivision * (100 - parseInt(this.barOptions.barWidth, 10))) /
+              100 /
+              2 +
+            barWidth * (this.visibleI + overlaps.indexOf(rangeName)) +
+            xDivision * rowIndex
+        }
       }
     }
 
     return {
       barYPosition,
-      barHeight
+      barXPosition,
+      barHeight,
+      barWidth,
     }
   }
 
   drawRangeColumnPaths({
     indexes,
     x,
-    strokeWidth,
     xDivision,
     barWidth,
-    zeroH
+    barXPosition,
+    zeroH,
   }) {
     let w = this.w
 
@@ -264,13 +327,6 @@ class RangeBar extends Bar {
 
     let y1 = Math.min(range.start, range.end)
     let y2 = Math.max(range.start, range.end)
-
-    if (w.globals.isXNumeric) {
-      x =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2
-    }
-
-    let barXPosition = x + barWidth * this.visibleI
 
     if (
       typeof this.series[i][j] === 'undefined' ||
@@ -293,7 +349,7 @@ class RangeBar extends Bar {
       realIndex: indexes.realIndex,
       i: realIndex,
       j,
-      w
+      w,
     })
 
     if (!w.globals.isXNumeric) {
@@ -307,7 +363,7 @@ class RangeBar extends Bar {
       x,
       y: y2,
       goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
-      barXPosition
+      barXPosition,
     }
   }
 
@@ -319,7 +375,7 @@ class RangeBar extends Bar {
     yDivision,
     barHeight,
     barYPosition,
-    zeroW
+    zeroW,
   }) {
     let w = this.w
 
@@ -338,7 +394,7 @@ class RangeBar extends Bar {
       i: indexes.realIndex,
       realIndex: indexes.realIndex,
       j: indexes.j,
-      w
+      w,
     })
 
     if (!w.globals.isXNumeric) {
@@ -357,7 +413,7 @@ class RangeBar extends Bar {
         indexes.realIndex,
         indexes.j
       ),
-      y
+      y,
     }
   }
 
@@ -365,7 +421,7 @@ class RangeBar extends Bar {
     const w = this.w
     return {
       start: w.globals.seriesRangeStart[i][j],
-      end: w.globals.seriesRangeEnd[i][j]
+      end: w.globals.seriesRangeEnd[i][j],
     }
   }
 }

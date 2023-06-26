@@ -52,7 +52,7 @@ export default class Core {
       'bubble',
       'radar',
       'heatmap',
-      'treemap'
+      'treemap',
     ]
 
     let xyChartsArrTypes = [
@@ -64,7 +64,7 @@ export default class Core {
       'candlestick',
       'boxPlot',
       'scatter',
-      'bubble'
+      'bubble',
     ]
 
     gl.axisCharts = axisChartsArrTypes.indexOf(ct) > -1
@@ -84,7 +84,7 @@ export default class Core {
     gl.dom.elWrap = document.createElement('div')
     Graphics.setAttrs(gl.dom.elWrap, {
       id: gl.chartClass.substring(1),
-      class: 'apexcharts-canvas ' + gl.chartClass.substring(1)
+      class: 'apexcharts-canvas ' + gl.chartClass.substring(1),
     })
     this.el.appendChild(gl.dom.elWrap)
 
@@ -92,26 +92,36 @@ export default class Core {
     gl.dom.Paper.attr({
       class: 'apexcharts-svg',
       'xmlns:data': 'ApexChartsNS',
-      transform: `translate(${cnf.chart.offsetX}, ${cnf.chart.offsetY})`
+      transform: `translate(${cnf.chart.offsetX}, ${cnf.chart.offsetY})`,
     })
 
     gl.dom.Paper.node.style.background = cnf.chart.background
 
     this.setSVGDimensions()
 
-    gl.dom.elGraphical = gl.dom.Paper.group().attr({
-      class: 'apexcharts-inner apexcharts-graphical'
+    // append foreignElement (legend's parent)
+    // legend is kept in foreignElement to be included while exporting
+    // removing foreignElement and creating legend through HTML will not render legend in export
+    gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
+    Graphics.setAttrs(gl.dom.elLegendForeign, {
+      x: 0,
+      y: 0,
+      width: gl.svgWidth,
+      height: gl.svgHeight,
     })
+    gl.dom.elLegendWrap = document.createElement('div')
+    gl.dom.elLegendWrap.classList.add('apexcharts-legend')
+    gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml')
+    gl.dom.elLegendForeign.appendChild(gl.dom.elLegendWrap)
+    gl.dom.Paper.node.appendChild(gl.dom.elLegendForeign)
 
-    gl.dom.elAnnotations = gl.dom.Paper.group().attr({
-      class: 'apexcharts-annotations'
+    // the elGraphical is the parent of all primary visuals
+    gl.dom.elGraphical = gl.dom.Paper.group().attr({
+      class: 'apexcharts-inner apexcharts-graphical',
     })
 
     gl.dom.elDefs = gl.dom.Paper.defs()
 
-    gl.dom.elLegendWrap = document.createElement('div')
-    gl.dom.elLegendWrap.classList.add('apexcharts-legend')
-    gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)
     gl.dom.Paper.add(gl.dom.elGraphical)
     gl.dom.elGraphical.add(gl.dom.elDefs)
   }
@@ -123,46 +133,46 @@ export default class Core {
 
     let lineSeries = {
       series: [],
-      i: []
+      i: [],
     }
     let areaSeries = {
       series: [],
-      i: []
+      i: [],
     }
     let scatterSeries = {
       series: [],
-      i: []
+      i: [],
     }
 
     let bubbleSeries = {
       series: [],
-      i: []
+      i: [],
     }
 
     let columnSeries = {
       series: [],
-      i: []
+      i: [],
     }
 
     let candlestickSeries = {
       series: [],
-      i: []
+      i: [],
     }
 
     let boxplotSeries = {
       series: [],
-      i: []
+      i: [],
     }
 
     let rangeBarSeries = {
       series: [],
-      i: []
+      i: [],
     }
 
     let rangeAreaSeries = {
       series: [],
       seriesRangeEnd: [],
-      i: []
+      i: [],
     }
 
     gl.series.map((serie, st) => {
@@ -215,7 +225,7 @@ export default class Core {
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
           console.warn(
-            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble'
+            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble/candlestick/boxPlot/rangeBar/rangeArea'
           )
         }
         if (comboCount > 1) {
@@ -263,11 +273,17 @@ export default class Core {
       }
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
-          boxCandlestick.draw(candlestickSeries.series, 'candlestick', candlestickSeries.i)
+          boxCandlestick.draw(
+            candlestickSeries.series,
+            'candlestick',
+            candlestickSeries.i
+          )
         )
       }
       if (boxplotSeries.series.length > 0) {
-        elGraph.push(boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i))
+        elGraph.push(
+          boxCandlestick.draw(boxplotSeries.series, 'boxPlot', boxplotSeries.i)
+        )
       }
       if (rangeBarSeries.series.length > 0) {
         elGraph.push(
@@ -310,7 +326,7 @@ export default class Core {
           break
         case 'boxPlot':
           let boxPlot = new BoxCandleStick(this.ctx, xyRatios)
-          elGraph = boxPlot.draw(gl.series, 'boxPlot')
+          elGraph = boxPlot.draw(gl.series, cnf.chart.type)
           break
         case 'rangeBar':
           elGraph = this.ctx.rangeBar.draw(gl.series)
@@ -400,7 +416,7 @@ export default class Core {
 
     Graphics.setAttrs(gl.dom.Paper.node, {
       width: gl.svgWidth,
-      height: gl.svgHeight
+      height: gl.svgHeight,
     })
 
     if (heightUnit !== '%') {
@@ -426,7 +442,7 @@ export default class Core {
     let tX = gl.translateX
 
     let scalingAttrs = {
-      transform: 'translate(' + tX + ', ' + tY + ')'
+      transform: 'translate(' + tX + ', ' + tY + ')',
     }
     Graphics.setAttrs(gl.dom.elGraphical.node, scalingAttrs)
   }
@@ -483,7 +499,7 @@ export default class Core {
     gl.dom.elWrap.style.height = newHeight + 'px'
 
     Graphics.setAttrs(gl.dom.Paper.node, {
-      height: newHeight
+      height: newHeight,
     })
 
     gl.dom.Paper.node.parentNode.parentNode.style.minHeight = newHeight + 'px'
@@ -572,10 +588,10 @@ export default class Core {
           selection: {
             xaxis: {
               min: targetChart.w.globals.minX,
-              max: targetChart.w.globals.maxX
-            }
-          }
-        }
+              max: targetChart.w.globals.maxX,
+            },
+          },
+        },
       },
       false,
       false
@@ -594,7 +610,7 @@ export default class Core {
     // otherwise we leave it to the user to define the functionality for selection
     if (typeof w.config.chart.events.selection !== 'function') {
       let targets = w.config.chart.brush.targets || [
-        w.config.chart.brush.target
+        w.config.chart.brush.target,
       ]
       // retro compatibility with single target option
       targets.forEach((target) => {
@@ -633,8 +649,8 @@ export default class Core {
                 {
                   ...targetChart.w.config.yaxis[index],
                   min: yaxis[0].min,
-                  max: yaxis[0].max
-                }
+                  max: yaxis[0].max,
+                },
               ]
             },
             []
@@ -644,9 +660,9 @@ export default class Core {
             {
               xaxis: {
                 min: e.xaxis.min,
-                max: e.xaxis.max
+                max: e.xaxis.max,
               },
-              yaxis: multipleYaxis
+              yaxis: multipleYaxis,
             },
             false,
             false,

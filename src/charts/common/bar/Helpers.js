@@ -1,6 +1,7 @@
 import Fill from '../../../modules/Fill'
 import Graphics from '../../../modules/Graphics'
 import Series from '../../../modules/Series'
+import Utils from '../../../utils/Utils'
 
 export default class Helpers {
   constructor(barCtx) {
@@ -41,7 +42,6 @@ export default class Helpers {
       this.barCtx.seriesLen = 1
     }
     this.barCtx.zeroSerieses = []
-    this.barCtx.radiusOnSeriesNumber = series.length - 1 // which series to draw ending shape on
 
     if (!w.globals.comboCharts) {
       this.checkZeroSeries({ series })
@@ -76,12 +76,19 @@ export default class Helpers {
       barHeight =
         (barHeight * parseInt(this.barCtx.barOptions.barHeight, 10)) / 100
 
+      if (String(this.barCtx.barOptions.barHeight).indexOf('%') === -1) {
+        barHeight = parseInt(this.barCtx.barOptions.barHeight, 10)
+      }
+
       zeroW =
         this.barCtx.baseLineInvertedY +
         w.globals.padHorizontal +
         (this.barCtx.isReversed ? w.globals.gridWidth : 0) -
         (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0)
 
+      if (this.barCtx.isFunnel) {
+        zeroW = w.globals.gridWidth / 2
+      }
       y = (yDivision - barHeight * this.barCtx.seriesLen) / 2
     } else {
       // width divided into equal parts
@@ -90,7 +97,7 @@ export default class Helpers {
         xDivision = w.globals.gridWidth / w.globals.dataPoints
       }
       barWidth =
-        ((xDivision / this.barCtx.seriesLen) *
+        ((xDivision / seriesLen) *
           parseInt(this.barCtx.barOptions.columnWidth, 10)) /
         100
 
@@ -109,13 +116,16 @@ export default class Helpers {
         }
 
         barWidth =
-          ((xDivision / this.barCtx.seriesLen) *
+          ((xDivision / seriesLen) *
             parseInt(this.barCtx.barOptions.columnWidth, 10)) /
           100
 
         if (barWidth < 1) {
           barWidth = 1
         }
+      }
+      if (String(this.barCtx.barOptions.columnWidth).indexOf('%') === -1) {
+        barWidth = parseInt(this.barCtx.barOptions.columnWidth, 10)
       }
 
       zeroH =
@@ -139,7 +149,54 @@ export default class Helpers {
       barHeight,
       barWidth,
       zeroH,
-      zeroW
+      zeroW,
+    }
+  }
+
+  initializeStackedPrevVars(ctx) {
+    const w = ctx.w
+    if (w.globals.hasSeriesGroups) {
+      w.globals.seriesGroups.forEach((group) => {
+        if (!ctx[group]) ctx[group] = {}
+
+        ctx[group].prevY = []
+        ctx[group].prevX = []
+        ctx[group].prevYF = []
+        ctx[group].prevXF = []
+        ctx[group].prevYVal = []
+        ctx[group].prevXVal = []
+      })
+    } else {
+      ctx.prevY = [] // y position on chart (in columns)
+      ctx.prevX = [] // x position on chart (in horz bars)
+      ctx.prevYF = [] // starting y and ending y (height) in columns
+      ctx.prevXF = [] // starting x and ending x (width) in bars
+      ctx.prevYVal = [] // y values (series[i][j]) in columns
+      ctx.prevXVal = [] // x values (series[i][j]) in bars
+    }
+  }
+
+  initializeStackedXYVars(ctx) {
+    const w = ctx.w
+
+    if (w.globals.hasSeriesGroups) {
+      w.globals.seriesGroups.forEach((group) => {
+        if (!ctx[group]) ctx[group] = {}
+
+        ctx[group].xArrj = []
+        ctx[group].xArrjF = []
+        ctx[group].xArrjVal = []
+        ctx[group].yArrj = []
+        ctx[group].yArrjF = []
+        ctx[group].yArrjVal = []
+      })
+    } else {
+      ctx.xArrj = [] // xj indicates x position on graph in bars
+      ctx.xArrjF = [] // xjF indicates bar's x position + x2 positions in bars
+      ctx.xArrjVal = [] // x val means the actual series's y values in horizontal/bars
+      ctx.yArrj = [] // yj indicates y position on graph in columns
+      ctx.yArrjF = [] // yjF indicates bar's y position + y2 positions in columns
+      ctx.yArrjVal = [] // y val means the actual series's y values in columns
     }
   }
 
@@ -173,7 +230,7 @@ export default class Helpers {
       fillConfig: w.config.series[i].data[j]?.fill,
       fillType: w.config.series[i].data[j]?.fill?.type
         ? w.config.series[i].data[j]?.fill.type
-        : w.config.fill.type
+        : w.config.fill.type,
     })
 
     return pathFill
@@ -254,10 +311,11 @@ export default class Helpers {
     y1,
     y2,
     strokeWidth,
+    seriesGroup,
     realIndex,
     i,
     j,
-    w
+    w,
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
     strokeWidth = Array.isArray(strokeWidth)
@@ -321,14 +379,18 @@ export default class Helpers {
     }
 
     if (w.config.chart.stacked) {
-      this.barCtx.yArrj.push(y2)
-      this.barCtx.yArrjF.push(Math.abs(y1 - y2))
-      this.barCtx.yArrjVal.push(this.barCtx.series[i][j])
+      let _ctx = this.barCtx
+      if (w.globals.hasSeriesGroups && seriesGroup) {
+        _ctx = this.barCtx[seriesGroup]
+      }
+      _ctx.yArrj.push(y2)
+      _ctx.yArrjF.push(Math.abs(y1 - y2))
+      _ctx.yArrjVal.push(this.barCtx.series[i][j])
     }
 
     return {
       pathTo,
-      pathFrom
+      pathFrom,
     }
   }
 
@@ -338,10 +400,11 @@ export default class Helpers {
     x1,
     x2,
     strokeWidth,
+    seriesGroup,
     realIndex,
     i,
     j,
-    w
+    w,
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
     strokeWidth = Array.isArray(strokeWidth)
@@ -403,13 +466,18 @@ export default class Helpers {
     }
 
     if (w.config.chart.stacked) {
-      this.barCtx.xArrj.push(x2)
-      this.barCtx.xArrjF.push(Math.abs(x1 - x2))
-      this.barCtx.xArrjVal.push(this.barCtx.series[i][j])
+      let _ctx = this.barCtx
+      if (w.globals.hasSeriesGroups && seriesGroup) {
+        _ctx = this.barCtx[seriesGroup]
+      }
+
+      _ctx.xArrj.push(x2)
+      _ctx.xArrjF.push(Math.abs(x1 - x2))
+      _ctx.xArrjVal.push(this.barCtx.series[i][j])
     }
     return {
       pathTo,
-      pathFrom
+      pathFrom,
     }
   }
 
@@ -426,26 +494,6 @@ export default class Helpers {
       }
       if (total === 0) {
         this.barCtx.zeroSerieses.push(zs)
-      }
-    }
-
-    // After getting all zeroserieses, we need to ensure whether radiusOnSeriesNumber is not in that zeroseries array
-    for (let s = series.length - 1; s >= 0; s--) {
-      if (
-        this.barCtx.zeroSerieses.indexOf(s) > -1 &&
-        s === this.radiusOnSeriesNumber
-      ) {
-        this.barCtx.radiusOnSeriesNumber -= 1
-      }
-    }
-
-    for (let s = series.length - 1; s >= 0; s--) {
-      if (
-        w.globals.collapsedSeriesIndices.indexOf(
-          this.barCtx.radiusOnSeriesNumber
-        ) > -1
-      ) {
-        this.barCtx.radiusOnSeriesNumber -= 1
       }
     }
   }
@@ -479,19 +527,41 @@ export default class Helpers {
     const w = this.w
 
     let goals = []
+
+    const pushGoal = (value, attrs) => {
+      goals.push({
+        [type]:
+          type === 'x'
+            ? this.getXForValue(value, zeroW, false)
+            : this.getYForValue(value, zeroH, false),
+        attrs,
+      })
+    }
     if (
       w.globals.seriesGoals[i] &&
       w.globals.seriesGoals[i][j] &&
       Array.isArray(w.globals.seriesGoals[i][j])
     ) {
       w.globals.seriesGoals[i][j].forEach((goal) => {
-        goals.push({
-          [type]:
-            type === 'x'
-              ? this.getXForValue(goal.value, zeroW, false)
-              : this.getYForValue(goal.value, zeroH, false),
-          attrs: goal
-        })
+        pushGoal(goal.value, goal)
+      })
+    }
+    if (this.barCtx.barOptions.isDumbbell && w.globals.seriesRange.length) {
+      let colors = this.barCtx.barOptions.dumbbellColors
+        ? this.barCtx.barOptions.dumbbellColors
+        : w.globals.colors
+      const commonAttrs = {
+        strokeHeight: type === 'x' ? 0 : w.globals.markers.size[i],
+        strokeWidth: type === 'x' ? w.globals.markers.size[i] : 0,
+        strokeDashArray: 0,
+        strokeLineCap: 'round',
+        strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i],
+      }
+
+      pushGoal(w.globals.seriesRangeStart[i][j], commonAttrs)
+      pushGoal(w.globals.seriesRangeEnd[i][j], {
+        ...commonAttrs,
+        strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i],
       })
     }
     return goals
@@ -503,12 +573,22 @@ export default class Helpers {
     goalX,
     goalY,
     barWidth,
-    barHeight
+    barHeight,
   }) {
     let graphics = new Graphics(this.barCtx.ctx)
     const lineGroup = graphics.group({
-      className: 'apexcharts-bar-goals-groups'
+      className: 'apexcharts-bar-goals-groups',
     })
+
+    lineGroup.node.classList.add('apexcharts-element-hidden')
+    this.barCtx.w.globals.delayedElements.push({
+      el: lineGroup.node,
+    })
+
+    lineGroup.attr(
+      'clip-path',
+      `url(#gridRectMarkerMask${this.barCtx.w.globals.cuid})`
+    )
 
     let line = null
     if (this.barCtx.isHorizontal) {
@@ -558,5 +638,35 @@ export default class Helpers {
     }
 
     return lineGroup
+  }
+
+  drawBarShadow({ prevPaths, currPaths, color }) {
+    const w = this.w
+    const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths
+    const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths
+
+    const prevY2 = prevY1 + currPaths.barHeight
+
+    const graphics = new Graphics(this.barCtx.ctx)
+    const utils = new Utils()
+
+    const shadowPath =
+      graphics.move(prevX1, prevY2) +
+      graphics.line(prevX2, prevY2) +
+      graphics.line(currX2, currY1) +
+      graphics.line(currX1, currY1) +
+      graphics.line(prevX1, prevY2) +
+      (w.config.plotOptions.bar.borderRadiusApplication === 'around'
+        ? ' Z'
+        : ' z')
+
+    return graphics.drawPath({
+      d: shadowPath,
+      fill: utils.shadeColor(0.5, Utils.rgb2hex(color)),
+      stroke: 'none',
+      strokeWidth: 0,
+      fillOpacity: 1,
+      classes: 'apexcharts-bar-shadows',
+    })
   }
 }

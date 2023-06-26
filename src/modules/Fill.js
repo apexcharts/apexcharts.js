@@ -56,7 +56,7 @@ class Fill {
         ? params.patternUnits
         : 'userSpaceOnUse',
       width: imgWidth + 'px',
-      height: imgHeight + 'px'
+      height: imgHeight + 'px',
     })
 
     let elImage = document.createElementNS(w.globals.SVGNS, 'image')
@@ -69,7 +69,7 @@ class Fill {
       y: 0,
       preserveAspectRatio: 'none',
       width: imgWidth + 'px',
-      height: imgHeight + 'px'
+      height: imgHeight + 'px',
     })
 
     elImage.style.opacity = params.opacity
@@ -79,12 +79,13 @@ class Fill {
 
   getSeriesIndex(opts) {
     const w = this.w
+    const cType = w.config.chart.type
 
     if (
-      ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') &&
+      ((cType === 'bar' || cType === 'rangeBar') &&
         w.config.plotOptions.bar.distributed) ||
-      w.config.chart.type === 'heatmap' ||
-      w.config.chart.type === 'treemap'
+      cType === 'heatmap' ||
+      cType === 'treemap'
     ) {
       this.seriesIndex = opts.seriesNumber
     } else {
@@ -118,7 +119,7 @@ class Fill {
         seriesIndex: this.seriesIndex,
         dataPointIndex: opts.dataPointIndex,
         value: opts.value,
-        w
+        w,
       })
     }
     let fillType = opts.fillType
@@ -152,7 +153,7 @@ class Fill {
         patternFill,
         fillColor,
         fillOpacity,
-        defaultColor
+        defaultColor,
       })
     }
 
@@ -161,7 +162,7 @@ class Fill {
         fillConfig: opts.fillConfig,
         fillColor,
         fillOpacity,
-        i: this.seriesIndex
+        i: this.seriesIndex,
       })
     }
 
@@ -179,11 +180,13 @@ class Fill {
         width: opts.width ? opts.width : undefined,
         height: opts.height ? opts.height : undefined,
         patternUnits: opts.patternUnits,
-        patternID: `pattern${w.globals.cuid}${opts.seriesNumber +
-          1}${patternID}`
+        patternID: `pattern${w.globals.cuid}${
+          opts.seriesNumber + 1
+        }${patternID}`,
       })
-      pathFill = `url(#pattern${w.globals.cuid}${opts.seriesNumber +
-        1}${patternID})`
+      pathFill = `url(#pattern${w.globals.cuid}${
+        opts.seriesNumber + 1
+      }${patternID})`
     } else if (fillType === 'gradient') {
       pathFill = gradientFill
     } else if (fillType === 'pattern') {
@@ -265,7 +268,7 @@ class Fill {
     patternFill,
     fillColor,
     fillOpacity,
-    defaultColor
+    defaultColor,
   }) {
     let fillCnf = this.w.config.fill
 
@@ -314,7 +317,7 @@ class Fill {
     if (fillConfig) {
       fillCnf = {
         ...fillCnf,
-        ...fillConfig
+        ...fillConfig,
       }
     }
     const opts = this.opts

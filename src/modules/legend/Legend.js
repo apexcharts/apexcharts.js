@@ -45,6 +45,15 @@ class Legend {
 
       this.drawLegends()
 
+      if (!Utils.isIE11()) {
+        this.legendHelpers.appendToForeignObject()
+      } else {
+        // IE11 doesn't supports foreignObject, hence append it to <head>
+        document
+          .getElementsByTagName('head')[0]
+          .appendChild(this.legendHelpers.getLegendStyles())
+      }
+
       if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
         this.legendAlignHorizontal()
       } else if (
@@ -275,7 +284,6 @@ class Legend {
     }
 
     w.globals.dom.elWrap.addEventListener('click', me.onLegendClick, true)
-    w.globals.dom.elWrap.appendChild(w.globals.dom.elLegendWrap)
 
     if (
       w.config.legend.onItemHover.highlightDataSeries &&

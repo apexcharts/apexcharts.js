@@ -45,6 +45,8 @@ class Graphics {
    * @returns A new SVG path string with the rounding
    */
   roundPathCorners(pathString, radius) {
+    if (pathString.indexOf('NaN') > -1) pathString = ''
+
     function moveTowardsLength(movingPoint, targetPoint, amount) {
       var width = targetPoint.x - movingPoint.x
       var height = targetPoint.y - movingPoint.y

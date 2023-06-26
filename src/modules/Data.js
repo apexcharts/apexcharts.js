@@ -264,7 +264,7 @@ export default class Data {
         return {
           x: r.x,
           overlaps: [],
-          y: []
+          y: [],
         }
       })
 
@@ -286,7 +286,7 @@ export default class Data {
         const y = {
           y1: isDataPoint2D ? ser[i].data[j].y[0] : ser[i].data[j].y,
           y2: isDataPoint2D ? ser[i].data[j].y[1] : ser[i].data[j].y,
-          rangeName: id
+          rangeName: id,
         }
 
         // mutating config object by adding a new property
@@ -304,7 +304,7 @@ export default class Data {
     return {
       start: rangeStart,
       end: rangeEnd,
-      rangeUniques: uniqueKeys
+      rangeUniques: uniqueKeys,
     }
   }
 
@@ -375,7 +375,7 @@ export default class Data {
       h: serH,
       m: serM,
       l: serL,
-      c: serC
+      c: serC,
     }
   }
 
@@ -390,10 +390,23 @@ export default class Data {
 
     gl.isRangeBar = cnf.chart.type === 'rangeBar' && gl.isBarHorizontal
 
-    gl.hasGroups =
+    gl.hasXaxisGroups =
       cnf.xaxis.type === 'category' && cnf.xaxis.group.groups.length > 0
-    if (gl.hasGroups) {
+    if (gl.hasXaxisGroups) {
       gl.groups = cnf.xaxis.group.groups
+    }
+
+    gl.hasSeriesGroups = ser[0]?.group
+    if (gl.hasSeriesGroups) {
+      let buckets = []
+      let groups = [...new Set(ser.map((s) => s.group))]
+      ser.forEach((s, i) => {
+        let index = groups.indexOf(s.group)
+        if (!buckets[index]) buckets[index] = []
+
+        buckets[index].push(s.name)
+      })
+      gl.seriesGroups = buckets
     }
 
     const handleDates = () => {
@@ -554,8 +567,10 @@ export default class Data {
             }
           })
         })
-        gl.labels = gl.labels.filter(
-          (elem, pos, arr) => arr.indexOf(elem) === pos
+        // remove duplicate x-axis labels
+        gl.labels = Array.from(
+          new Set(gl.labels.map(JSON.stringify)),
+          JSON.parse
         )
       }
 
@@ -660,7 +675,7 @@ export default class Data {
     }
 
     // set Null values to 0 in all series when user hides/shows some series
-    if (cnf.chart.type === 'bar' && cnf.chart.stacked) {
+    if (cnf.chart.stacked) {
       const series = new Series(this.ctx)
       gl.series = series.setNullSeriesToZeroValues(gl.series)
     }

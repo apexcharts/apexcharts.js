@@ -34,7 +34,7 @@ class Grid {
 
     if (elGrid === null) {
       elGrid = graphics.group({
-        class: 'apexcharts-grid'
+        class: 'apexcharts-grid',
       })
     }
 
@@ -183,7 +183,10 @@ class Grid {
         this._drawGridLine({ i, x1, y1, x2, y2, xCount, parent })
       }
       let y_2 = 0
-      if (w.globals.hasGroups && w.config.xaxis.tickPlacement === 'between') {
+      if (
+        w.globals.hasXaxisGroups &&
+        w.config.xaxis.tickPlacement === 'between'
+      ) {
         const groups = w.globals.groups
         if (groups) {
           let gacc = 0
@@ -232,7 +235,7 @@ class Grid {
     )
     line.node.classList.add('apexcharts-gridline')
 
-    if (excludeBorders) {
+    if (excludeBorders && w.config.grid.show) {
       this.elGridBorders.add(line)
     } else {
       parent.add(line)
@@ -277,7 +280,7 @@ class Grid {
           x2,
           y2,
           xCount,
-          parent: this.elgridLinesV
+          parent: this.elgridLinesV,
         })
       }
     }
@@ -296,7 +299,7 @@ class Grid {
           x2,
           y2,
           xCount,
-          parent: this.elgridLinesV
+          parent: this.elgridLinesV,
         })
 
         x1 = x1 + w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
@@ -341,7 +344,7 @@ class Grid {
           y1,
           x2,
           y2,
-          parent: this.elgridLinesH
+          parent: this.elgridLinesH,
         })
 
         y1 = y1 + w.globals.gridHeight / (this.isRangeBar ? tA : tickAmount)
@@ -369,7 +372,7 @@ class Grid {
             y1,
             x2,
             y2,
-            parent: this.elgridLinesV
+            parent: this.elgridLinesV,
           })
         }
 
@@ -395,7 +398,7 @@ class Grid {
           y1,
           x2,
           y2,
-          parent: this.elgridLinesH
+          parent: this.elgridLinesH,
         })
 
         y1 = y1 + w.globals.gridHeight / w.globals.dataPoints
@@ -410,16 +413,16 @@ class Grid {
     let graphics = new Graphics(this.ctx)
 
     this.elg = graphics.group({
-      class: 'apexcharts-grid'
+      class: 'apexcharts-grid',
     })
     this.elgridLinesH = graphics.group({
-      class: 'apexcharts-gridlines-horizontal'
+      class: 'apexcharts-gridlines-horizontal',
     })
     this.elgridLinesV = graphics.group({
-      class: 'apexcharts-gridlines-vertical'
+      class: 'apexcharts-gridlines-vertical',
     })
     this.elGridBorders = graphics.group({
-      class: 'apexcharts-grid-borders'
+      class: 'apexcharts-grid-borders',
     })
 
     this.elg.add(this.elgridLinesH)
@@ -446,7 +449,8 @@ class Grid {
     if (!w.globals.isBarHorizontal || this.isRangeBar) {
       xCount = this.xaxisLabels.length
 
-      if (this.isRangeBar) {
+      if (this.isRangeBar && w.globals.isBarHorizontal) {
+        xCount--
         yTickAmount = w.globals.labels.length
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
           xCount = w.config.xaxis.tickAmount
@@ -465,7 +469,7 @@ class Grid {
     return {
       el: this.elg,
       elGridBorders: this.elGridBorders,
-      xAxisTickWidth: w.globals.gridWidth / xCount
+      xAxisTickWidth: w.globals.gridWidth / xCount,
     }
   }
 
@@ -492,7 +496,7 @@ class Grid {
           y1,
           x2,
           y2,
-          type: 'row'
+          type: 'row',
         })
 
         y1 = y1 + w.globals.gridHeight / tickAmount
@@ -524,7 +528,7 @@ class Grid {
           y1,
           x2,
           y2,
-          type: 'column'
+          type: 'column',
         })
 
         x1 = x1 + w.globals.gridWidth / xc
