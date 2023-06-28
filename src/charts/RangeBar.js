@@ -76,8 +76,7 @@ class RangeBar extends Bar {
       })
 
       let elGoalsMarkers = graphics.group({
-        class: 'apexcharts-rangebar-goals-markers',
-        style: `pointer-events: none`,
+        class: 'apexcharts-rangebar-goals-markers'
       })
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
