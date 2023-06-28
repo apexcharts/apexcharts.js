@@ -43,7 +43,7 @@ class Line {
     let graphics = new Graphics(this.ctx)
     let type = w.globals.comboCharts ? ctype : w.config.chart.type
     let ret = graphics.group({
-      class: `apexcharts-${type}-series apexcharts-plot-series`
+      class: `apexcharts-${type}-series apexcharts-plot-series`,
     })
 
     const coreUtils = new CoreUtils(this.ctx, w)
@@ -95,7 +95,7 @@ class Line {
         i,
         series,
         prevY,
-        lineYPosition
+        lineYPosition,
       })
       prevY = firstPrevY.prevY
       yArrj.push(prevY)
@@ -109,7 +109,7 @@ class Line {
           i,
           series: seriesRangeEnd,
           prevY: prevY2,
-          lineYPosition
+          lineYPosition,
         })
         prevY2 = firstPrevY2.prevY
         pY2 = prevY2
@@ -122,7 +122,7 @@ class Line {
         realIndex,
         prevX,
         prevY,
-        prevY2
+        prevY2,
       })
 
       const iteratingOpts = {
@@ -141,13 +141,13 @@ class Line {
         lineYPosition,
         xArrj,
         yArrj,
-        seriesRangeEnd
+        seriesRangeEnd,
       }
 
       let paths = this._iterateOverDataPoints({
         ...iteratingOpts,
         iterations: type === 'rangeArea' ? series[i].length - 1 : undefined,
-        isRangeStart: true
+        isRangeStart: true,
       })
 
       if (type === 'rangeArea') {
@@ -156,7 +156,7 @@ class Line {
           i,
           realIndex,
           prevX,
-          prevY: prevY2
+          prevY: prevY2,
         })
         let rangePaths = this._iterateOverDataPoints({
           ...iteratingOpts,
@@ -164,7 +164,7 @@ class Line {
           pY: pY2,
           pathsFrom: pathsFrom2,
           iterations: seriesRangeEnd[i].length - 1,
-          isRangeStart: false
+          isRangeStart: false,
         })
 
         paths.linePaths[0] = rangePaths.linePath + paths.linePath
@@ -233,26 +233,26 @@ class Line {
     // el to which series will be drawn
     this.elSeries = graphics.group({
       class: `apexcharts-series`,
-      seriesName: Utils.escapeString(w.globals.seriesNames[realIndex])
+      seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
     })
 
     // points
     this.elPointsMain = graphics.group({
       class: 'apexcharts-series-markers-wrap',
-      'data:realIndex': realIndex
+      'data:realIndex': realIndex,
     })
 
     // eldatalabels
     this.elDataLabelsWrap = graphics.group({
       class: 'apexcharts-datalabels',
-      'data:realIndex': realIndex
+      'data:realIndex': realIndex,
     })
 
     let longestSeries = series[i].length === w.globals.dataPoints
     this.elSeries.attr({
       'data:longestSeries': longestSeries,
       rel: i + 1,
-      'data:realIndex': realIndex
+      'data:realIndex': realIndex,
     })
 
     this.appendPathFrom = true
@@ -291,7 +291,7 @@ class Line {
       const pathFrom = this.lineHelpers.checkPreviousPaths({
         pathFromLine,
         pathFromArea,
-        realIndex
+        realIndex,
       })
       pathFromLine = pathFrom.pathFromLine
       pathFromArea = pathFrom.pathFromArea
@@ -303,7 +303,7 @@ class Line {
       linePath,
       areaPath,
       pathFromLine,
-      pathFromArea
+      pathFromArea,
     }
   }
 
@@ -348,7 +348,7 @@ class Line {
     if (!this.pointsChart) {
       w.globals.delayedElements.push({
         el: this.elPointsMain.node,
-        index: realIndex
+        index: realIndex,
       })
     }
 
@@ -358,12 +358,12 @@ class Line {
       animationDelay: i,
       initialSpeed: w.config.chart.animations.speed,
       dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-      className: `apexcharts-${type}`
+      className: `apexcharts-${type}`,
     }
 
     if (type === 'area') {
       let pathFill = fill.fillPath({
-        seriesNumber: realIndex
+        seriesNumber: realIndex,
       })
 
       for (let p = 0; p < paths.areaPaths.length; p++) {
@@ -374,7 +374,7 @@ class Line {
           stroke: 'none',
           strokeWidth: 0,
           strokeLineCap: null,
-          fill: pathFill
+          fill: pathFill,
         })
 
         this.elSeries.add(renderedPath)
@@ -386,7 +386,7 @@ class Line {
       if (type === 'line') {
         lineFill = fill.fillPath({
           seriesNumber: realIndex,
-          i
+          i,
         })
       } else {
         if (w.config.stroke.fill.type === 'solid') {
@@ -397,7 +397,7 @@ class Line {
 
           lineFill = fill.fillPath({
             seriesNumber: realIndex,
-            i
+            i,
           })
           w.config.fill = prevFill
         }
@@ -408,7 +408,7 @@ class Line {
         let pathFill = lineFill
         if (type === 'rangeArea') {
           pathFill = fill.fillPath({
-            seriesNumber: realIndex
+            seriesNumber: realIndex,
           })
         }
         const linePathCommonOpts = {
@@ -418,7 +418,7 @@ class Line {
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,
-          fill: type === 'rangeArea' ? pathFill : 'none'
+          fill: type === 'rangeArea' ? pathFill : 'none',
         }
         let renderedPath = graphics.renderPaths(linePathCommonOpts)
         this.elSeries.add(renderedPath)
@@ -471,7 +471,7 @@ class Line {
     xArrj,
     yArrj,
     isRangeStart,
-    seriesRangeEnd
+    seriesRangeEnd,
   }) {
     const w = this.w
     let graphics = new Graphics(this.ctx)
@@ -566,7 +566,7 @@ class Line {
         realIndex,
         i,
         j,
-        prevY
+        prevY,
       })
 
       let calculatedPaths = this._createPaths({
@@ -585,7 +585,7 @@ class Line {
         linePaths,
         areaPaths,
         seriesIndex,
-        isRangeStart
+        isRangeStart,
       })
 
       areaPaths = calculatedPaths.areaPaths
@@ -608,7 +608,7 @@ class Line {
         i,
         j,
         realIndex,
-        isRangeStart
+        isRangeStart,
       })
     }
 
@@ -620,7 +620,7 @@ class Line {
       pathFromLine,
       linePaths,
       linePath,
-      areaPath
+      areaPath,
     }
   }
 
@@ -647,7 +647,7 @@ class Line {
         realIndex,
         pointsPos,
         zRatio: this.zRatio,
-        elParent: this.elPointsMain
+        elParent: this.elPointsMain,
       })
     }
 
@@ -656,7 +656,7 @@ class Line {
       isRangeStart,
       pos: pointsPos,
       i: realIndex,
-      j: j + 1
+      j: j + 1,
     })
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels)
@@ -679,7 +679,7 @@ class Line {
     linePaths,
     areaPaths,
     seriesIndex,
-    isRangeStart
+    isRangeStart,
   }) {
     let w = this.w
     let graphics = new Graphics(this.ctx)
@@ -799,7 +799,7 @@ class Line {
       pX,
       pY,
       linePath,
-      areaPath
+      areaPath,
     }
   }
 
