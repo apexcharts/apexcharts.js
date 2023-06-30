@@ -623,7 +623,9 @@ export default class Data {
       }
 
       // turn on the isXNumeric flag to allow minX and maxX to function properly
-      gl.isXNumeric = true
+      if (!this.w.globals.isBarHorizontal) {
+        gl.isXNumeric = true
+      }
     }
 
     // no series to pull labels from, put a 0-10 series
