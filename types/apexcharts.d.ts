@@ -150,6 +150,7 @@ type ApexChart = {
     enabled?: boolean
     autoScaleYaxis?: boolean
     target?: string
+    targets?: string[]
   }
   id?: string
   group?: string
