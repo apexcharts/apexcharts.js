@@ -30,7 +30,7 @@ export default class TreemapChart {
     const fill = new Fill(this.ctx)
 
     let ret = graphics.group({
-      class: 'apexcharts-treemap'
+      class: 'apexcharts-treemap',
     })
 
     if (w.globals.noData) return ret
@@ -63,7 +63,7 @@ export default class TreemapChart {
         class: `apexcharts-series apexcharts-treemap-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         rel: i + 1,
-        'data:realIndex': i
+        'data:realIndex': i,
       })
 
       if (w.config.chart.dropShadow.enabled) {
@@ -73,7 +73,7 @@ export default class TreemapChart {
       }
 
       let elDataLabelWrap = graphics.group({
-        class: 'apexcharts-data-labels'
+        class: 'apexcharts-data-labels',
       })
 
       node.forEach((r, j) => {
@@ -101,7 +101,7 @@ export default class TreemapChart {
           i,
           j,
           width: x2 - x1,
-          height: y2 - y1
+          height: y2 - y1,
         })
 
         let colorProps = this.helpers.getShadeColor(
@@ -121,13 +121,13 @@ export default class TreemapChart {
         let pathFill = fill.fillPath({
           color,
           seriesNumber: i,
-          dataPointIndex: j
+          dataPointIndex: j,
         })
 
         elRect.node.classList.add('apexcharts-treemap-rect')
 
         elRect.attr({
-          fill: pathFill
+          fill: pathFill,
         })
 
         this.helpers.addListeners(elRect)
@@ -136,13 +136,13 @@ export default class TreemapChart {
           x: x1 + (x2 - x1) / 2,
           y: y1 + (y2 - y1) / 2,
           width: 0,
-          height: 0
+          height: 0,
         }
         let toRect = {
           x: x1,
           y: y1,
           width: x2 - x1,
-          height: y2 - y1
+          height: y2 - y1,
         }
 
         if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
@@ -169,14 +169,25 @@ export default class TreemapChart {
           }
         }
 
-        const fontSize = this.getFontSize(r)
+        let fontSize = this.getFontSize(r)
 
         let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
           value: w.globals.series[i][j],
           seriesIndex: i,
           dataPointIndex: j,
-          w
+          w,
         })
+        if (w.config.plotOptions.treemap.dataLabels.format === 'truncate') {
+          fontSize = parseInt(w.config.dataLabels.style.fontSize, 10)
+          formattedText = this.truncateLabels(
+            formattedText,
+            fontSize,
+            x1,
+            y1,
+            x2,
+            y2
+          )
+        }
         let dataLabels = this.helpers.calculateDataLabels({
           text: formattedText,
           x: (x1 + x2) / 2,
@@ -185,7 +196,7 @@ export default class TreemapChart {
           j,
           colorProps,
           fontSize,
-          series
+          series,
         })
         if (w.config.dataLabels.enabled && dataLabels) {
           this.rotateToFitLabel(
@@ -284,8 +295,36 @@ export default class TreemapChart {
 
       elText.node.setAttribute(
         'transform',
-        `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y})`
+        `rotate(-90 ${labelRotatingCenter.x} ${
+          labelRotatingCenter.y
+        }) translate(${textRect.height / 3})`
       )
+    }
+  }
+
+  // This is an alternative label formatting method that uses a
+  // consistent font size, and trims the edge of long labels
+  truncateLabels(text, fontSize, x1, y1, x2, y2) {
+    const graphics = new Graphics(this.ctx)
+    const textRect = graphics.getTextRects(text, fontSize)
+
+    // Determine max width based on ideal orientation of text
+    const labelMaxWidth =
+      textRect.width + this.w.config.stroke.width + 5 > x2 - x1 &&
+      y2 - y1 > x2 - x1
+        ? y2 - y1
+        : x2 - x1
+    const truncatedText = graphics.getTextBasedOnMaxWidth({
+      text: text,
+      maxWidth: labelMaxWidth,
+      fontSize: fontSize,
+    })
+
+    // Return empty label when text has been trimmed for very small rects
+    if (text.length !== truncatedText.length && labelMaxWidth / fontSize < 5) {
+      return ''
+    } else {
+      return truncatedText
     }
   }
 
@@ -297,13 +336,13 @@ export default class TreemapChart {
         x: fromRect.x,
         y: fromRect.y,
         width: fromRect.width,
-        height: fromRect.height
+        height: fromRect.height,
       },
       {
         x: toRect.x,
         y: toRect.y,
         width: toRect.width,
-        height: toRect.height
+        height: toRect.height,
       },
       speed,
       () => {
