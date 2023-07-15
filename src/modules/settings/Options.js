@@ -342,6 +342,7 @@ export default class Options {
           enabled: false,
           autoScaleYaxis: true,
           target: undefined,
+          targets: undefined,
         },
         stacked: false,
         stackType: 'normal',
@@ -481,6 +482,7 @@ export default class Options {
           distributed: false,
           reverseNegativeShade: false,
           useFillColorAsStroke: false,
+          dataLabels: 'scale', // scale | truncate
           colorScale: {
             inverse: false,
             ranges: [],
