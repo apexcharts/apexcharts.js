@@ -482,7 +482,9 @@ export default class Options {
           distributed: false,
           reverseNegativeShade: false,
           useFillColorAsStroke: false,
-          dataLabels: 'scale', // scale | truncate
+          dataLabels: {
+            format: 'scale', // scale | truncate
+          },
           colorScale: {
             inverse: false,
             ranges: [],
