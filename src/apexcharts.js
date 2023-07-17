@@ -268,6 +268,10 @@ export default class ApexCharts {
         w.globals.dom.elGraphical.add(elgrid.el)
       }
 
+      if (w.config.grid.position === 'back' && elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
+        w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+      }
+
       if (Array.isArray(graphData.elGraph)) {
         for (let g = 0; g < graphData.elGraph.length; g++) {
           w.globals.dom.elGraphical.add(graphData.elGraph[g])
@@ -280,7 +284,7 @@ export default class ApexCharts {
         w.globals.dom.elGraphical.add(elgrid.el)
       }
 
-      if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
+      if (w.config.grid.position === 'front' && elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
         w.globals.dom.elGraphical.add(elgrid.elGridBorders)
       }
 
