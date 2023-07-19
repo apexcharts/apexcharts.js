@@ -170,7 +170,8 @@ export default class UpdateHelpers {
       name: s.name ? s.name : ser && ser.name,
       color: s.color ? s.color : ser && ser.color,
       type: s.type ? s.type : ser && ser.type,
-      data: s.data ? s.data : ser && ser.data
+      group: s.group ? s.group : ser && ser.group,
+      data: s.data ? s.data : ser && ser.data,
     }
   }
 
