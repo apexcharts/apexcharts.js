@@ -685,13 +685,16 @@ class Line {
     let graphics = new Graphics(this.ctx)
 
     let curve = w.config.stroke.curve
+    let steplineType = w.config.stroke.steplineType
     const areaBottomY = this.areaBottomY
 
     if (Array.isArray(w.config.stroke.curve)) {
       if (Array.isArray(seriesIndex)) {
         curve = w.config.stroke.curve[seriesIndex[i]]
+        steplineType = w.config.stroke.steplineType[seriesIndex[i]]
       } else {
         curve = w.config.stroke.curve[i]
+        steplineType = w.config.stroke.steplineType[i]
       }
     }
 
@@ -769,10 +772,14 @@ class Line {
       }
 
       if (curve === 'stepline') {
-        linePath =
-          linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
-        areaPath =
-          areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
+        if(steplineType === 'horizontalFirst') {
+          linePath = linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
+          areaPath = areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
+        }
+        else {
+          linePath = linePath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H');
+          areaPath = areaPath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H');
+        }
       } else if (curve === 'straight') {
         linePath = linePath + graphics.line(x, y)
         areaPath = areaPath + graphics.line(x, y)

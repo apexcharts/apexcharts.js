@@ -3323,6 +3323,12 @@ export const optionsPattern = {
           choices: ['smooth', 'straight', 'stepline'],
           default: 'smooth'
         },
+        steplineType: {
+          title: 'In stepline charts, whether to draw the vertical line or the horizontal line first',
+          type: String,
+          choices: ['horizontalFirst', 'verticalFirst'],
+          default: 'horizontalFirst'
+        },
         lineCap: {
           title: 'For setting the starting and ending points of stroke',
           url: 'https://apexcharts.com/docs/options/stroke/#lineCap',
