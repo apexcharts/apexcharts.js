@@ -900,7 +900,7 @@ export default class Options {
       stroke: {
         show: true,
         curve: 'smooth', // "smooth" / "straight" / "stepline"
-        stypelineType: 'horizontalFirst', // "horizontalFirst" / "verticalFirst"
+        steplineType: 'horizontalFirst', // "horizontalFirst" / "verticalFirst"
         lineCap: 'butt', // round, butt , square
         width: 2,
         colors: undefined, // array of colors
