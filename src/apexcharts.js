@@ -58,7 +58,7 @@ export default class ApexCharts {
           Apex._chartInstances.push({
             id: this.w.globals.chartID,
             group: this.w.config.chart.group,
-            chart: this
+            chart: this,
           })
         }
 
@@ -232,14 +232,14 @@ export default class ApexCharts {
         left: w.globals.translateX,
         top: w.globals.translateY,
         width: w.globals.gridWidth,
-        height: w.globals.gridHeight
-      }
+        height: w.globals.gridHeight,
+      },
     }
 
     return {
       elGraph,
       xyRatios,
-      dimensions: dim
+      dimensions: dim,
     }
   }
 
@@ -264,8 +264,13 @@ export default class ApexCharts {
       me.annotations.drawImageAnnos()
       me.annotations.drawTextAnnos()
 
-      if (w.config.grid.position === 'back' && elgrid) {
-        w.globals.dom.elGraphical.add(elgrid.el)
+      if (w.config.grid.position === 'back') {
+        if (elgrid) {
+          w.globals.dom.elGraphical.add(elgrid.el)
+        }
+        if (elgrid?.elGridBorders?.node) {
+          w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+        }
       }
 
       if (Array.isArray(graphData.elGraph)) {
@@ -276,12 +281,13 @@ export default class ApexCharts {
         w.globals.dom.elGraphical.add(graphData.elGraph)
       }
 
-      if (w.config.grid.position === 'front' && elgrid) {
-        w.globals.dom.elGraphical.add(elgrid.el)
-      }
-
-      if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
-        w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+      if (w.config.grid.position === 'front') {
+        if (elgrid) {
+          w.globals.dom.elGraphical.add(elgrid.el)
+        }
+        if (elgrid?.elGridBorders?.node) {
+          w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+        }
       }
 
       if (w.config.xaxis.crosshairs.position === 'front') {
@@ -329,7 +335,7 @@ export default class ApexCharts {
             (w.config.chart.pan && w.config.chart.pan.enabled)
           ) {
             me.zoomPanSelection.init({
-              xyRatios: graphData.xyRatios
+              xyRatios: graphData.xyRatios,
             })
           }
         } else {
@@ -340,7 +346,7 @@ export default class ApexCharts {
             'zoomout',
             'selection',
             'pan',
-            'reset'
+            'reset',
           ]
           toolsArr.forEach((t) => {
             tools[t] = false
