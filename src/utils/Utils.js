@@ -4,7 +4,7 @@
 
 class Utils {
   static bind(fn, me) {
-    return function() {
+    return function () {
       return fn.apply(me, arguments)
     }
   }
@@ -33,8 +33,8 @@ class Utils {
   // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
   static extend(target, source) {
     if (typeof Object.assign !== 'function') {
-      ;(function() {
-        Object.assign = function(target) {
+      ;(function () {
+        Object.assign = function (target) {
           'use strict'
           // We must check against these specific cases.
           if (target === undefined || target === null) {
@@ -63,14 +63,14 @@ class Utils {
         if (this.isObject(source[key])) {
           if (!(key in target)) {
             Object.assign(output, {
-              [key]: source[key]
+              [key]: source[key],
             })
           } else {
             output[key] = this.extend(target[key], source[key])
           }
         } else {
           Object.assign(output, {
-            [key]: source[key]
+            [key]: source[key],
           })
         }
       })
@@ -134,6 +134,10 @@ class Utils {
     return parseFloat(val)
   }
 
+  static stripNumber(num, precision = 2) {
+    return parseFloat(num.toPrecision(precision))
+  }
+
   static randomId() {
     return (Math.random() + 1).toString(36).substring(4)
   }
@@ -182,7 +186,7 @@ class Utils {
       width: element.clientWidth,
       height: element.clientHeight,
       x: rect.left,
-      y: rect.top
+      y: rect.top,
     }
   }
 
@@ -298,7 +302,7 @@ class Utils {
 
     return {
       x: centerX + radius * Math.cos(angleInRadians),
-      y: centerY + radius * Math.sin(angleInRadians)
+      y: centerY + radius * Math.sin(angleInRadians),
     }
   }
 
