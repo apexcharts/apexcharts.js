@@ -1,4 +1,3 @@
-import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
 import AxesUtils from './AxesUtils'
@@ -18,7 +17,7 @@ class Grid {
     this.xaxisLabels = w.globals.labels.slice()
     this.axesUtils = new AxesUtils(ctx)
 
-    this.isRangeBar = w.globals.seriesRange.length
+    this.isRangeBar = w.globals.seriesRange.length && w.globals.isBarHorizontal
 
     if (w.globals.timescaleLabels.length > 0) {
       //  timescaleLabels labels are there
@@ -449,7 +448,7 @@ class Grid {
     if (!w.globals.isBarHorizontal || this.isRangeBar) {
       xCount = this.xaxisLabels.length
 
-      if (this.isRangeBar && w.globals.isBarHorizontal) {
+      if (this.isRangeBar) {
         xCount--
         yTickAmount = w.globals.labels.length
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
