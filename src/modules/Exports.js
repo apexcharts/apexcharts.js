@@ -128,7 +128,7 @@ class Exports {
         // without ignoreClear we lose our background color; without ignoreDimensions some grid lines become invisible
         let v = window.canvg.Canvg.fromString(ctx, svgData, {
           ignoreClear: true,
-          ignoreDimensions: true
+          ignoreDimensions: true,
         })
         // render the svg to canvas
         v.start()
@@ -187,7 +187,7 @@ class Exports {
     series,
     fileName,
     columnDelimiter = ',',
-    lineDelimiter = '\n'
+    lineDelimiter = '\n',
   }) {
     const w = this.w
 
@@ -234,7 +234,7 @@ class Exports {
             cat = lbFormatter(w.globals.labels[i], {
               seriesIndex: activeSeries,
               dataPointIndex: i,
-              w
+              w,
             })
           } else {
             cat = axesUtils.getLabel(
@@ -302,7 +302,7 @@ class Exports {
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
               if (dataFormat.isFormatXY()) {
-                columns.push(series[ci].data[i].y)
+                columns.push(series[ci].data[i]?.y)
               } else {
                 columns.push(gSeries[ci][i])
               }
