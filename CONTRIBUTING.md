@@ -10,7 +10,7 @@ Install this package's dependencies with `npm`:
 npm install
 ```
 
-## Development
+## Build
 
 Run the following to build this library and watch its source files for changes:
 
@@ -19,6 +19,18 @@ npm run dev
 ```
 
 You will now have a fully functioning local build of this library ready to be used. **Leave the `start` script running**, and continue with a new Terminal/shell window.
+
+## Work on a fix or feature
+
+To preview your progress on a fix or feature, either use samples directory or npm link...
+
+## Add tests for your changes
+
+As of now, we have very less tests, and from now on, would like to pay extra attention to it. It would be great if the changes you did could be tested somehow. Our tests live inside the `tests` directory, and they can be run with the following command:
+
+```sh
+npm run test
+```
 
 ## Send your changes back to us! :revolving_hearts:
 
@@ -37,11 +49,3 @@ git push --set-upstream origin feature/branch-name-here
 ```
 
 After these steps, you should be able to create a new Pull Request for this repository. If you hit any issues following these instructions, please open an issue and we'll see if we can improve these instructions even further.
-
-## Add tests for your changes
-
-As of now, we have very less tests, and from now on, would like to pay extra attention to it. It would be great if the changes you did could be tested somehow. Our tests live inside the `tests` directory, and they can be run with the following command:
-
-```sh
-npm run test
-```
