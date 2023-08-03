@@ -22,7 +22,17 @@ You will now have a fully functioning local build of this library ready to be us
 
 ## Work on a fix or feature
 
-To preview your progress on a fix or feature, either use samples directory or npm link...
+To work on a fix or feature and be able to view changes, use samples included, or start a new project with modified Apexcharts as a dependency.
+
+### View included samples
+
+The project includes many samples which can be used as a quick start for working on contributions.
+
+Start an HTTP server with the Apexchart root directory set as a base path to run them. A lightweight HTTP server, like [http-server](https://www.npmjs.com/package/http-server), can be used.
+
+Samples are located under `/samples` path, like `/samples/vanilla-js/timelines/simple.html`.
+
+To preview changes, have a [Build](#build) process running. After a change in Apexcharts source code, wait a moment for a build to complete and refresh the browser (command + shift + r).
 
 ## Add tests for your changes
 
