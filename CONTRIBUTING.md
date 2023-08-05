@@ -26,13 +26,15 @@ To work on a fix or feature and be able to view changes, use samples included, o
 
 ### View included samples
 
-The project includes many samples which can be used as a quick start for working on contributions.
+The project includes many samples which can be used as a quick start when working on contributions. Start an HTTP server at the root directory of Apexcharts to view them.
 
-Start an HTTP server with the Apexchart root directory set as a base path to run them. A lightweight HTTP server, like [http-server](https://www.npmjs.com/package/http-server), can be used.
+```bash
+apexcharts.js$ npx http-server
+```
 
-Samples are located under `/samples` path, like `/samples/vanilla-js/timelines/simple.html`.
+And visit http://localhost:8080/samples.
 
-To preview changes, have a [Build](#build) process running. After a change in Apexcharts source code, wait a moment for a build to complete and refresh the browser (command + shift + r).
+To preview changes, have a [Build](#build) process running. After applying a change, wait for a build to complete and refresh the browser (command + shift + r).
 
 ## Add tests for your changes
 
