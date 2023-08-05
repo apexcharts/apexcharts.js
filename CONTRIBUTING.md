@@ -22,19 +22,15 @@ You will now have a fully functioning local build of this library ready to be us
 
 ## Work on a fix or feature
 
-To work on a fix or feature and be able to view changes, use samples included, or start a new project with modified Apexcharts as a dependency.
+To work on a fix or feature and to preview changes in source code, use samples included, or start a new project with modified Apexcharts as a dependency.
 
 ### View included samples
 
-The project includes many samples which can be used as a quick start when working on contributions. Start an HTTP server at the root directory of Apexcharts to view them.
+There are many samples included which can be used as a quick start when working on contributions. Start an HTTP server at the root directory of Apexcharts to view them.
 
 ```bash
-apexcharts.js$ npx http-server
+npx browser-sync start --server --files "." --directory --startPath "/samples"
 ```
-
-And visit http://localhost:8080/samples.
-
-To preview changes, have a [Build](#build) process running. After applying a change, wait for a build to complete and refresh the browser (command + shift + r).
 
 ## Add tests for your changes
 
