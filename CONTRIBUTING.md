@@ -99,13 +99,27 @@ npx parcel serve index.html
 
 And visit http://localhost:1234
 
-## Add tests for your changes
+## Tests
 
-As of now, we have very less tests, and from now on, would like to pay extra attention to it. It would be great if the changes you did could be tested somehow. Our tests live inside the `tests` directory, and they can be run with the following command:
+Apexcharts comes with unit tests and integration tests. Integration tests are based on viewing sample projects in a test browser, taking screenshots, and comparing them with previously captured screenshots to detect differences. To run them all, use:
 
-```sh
+```bash
 npm run test
 ```
+
+If this command ends with an error `Error: Unable to launch browser, error message: Chromium revision is not downloaded.` then calling puppeteer install may solve the problem:
+
+```bash
+node node_modules/puppeteer/install.js
+```
+
+E2e tests will likely fail due to minor differences in OS and the browser version used to take screenshots. To address this, before working on a feature, recapture screenshots using this command:
+
+```bash
+npm run e2e:update
+```
+
+This way, when later working on a feature or fix, `npm run test` command will detect only screenshots affected by changes done. Please avoid sending locally generated screenshots in PR, by excluding `tests/e2e/snapshots` folder from commit.
 
 ## Send your changes back to us! :revolving_hearts:
 
