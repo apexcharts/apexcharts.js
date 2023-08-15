@@ -405,6 +405,7 @@ class Legend {
     const w = this.w
 
     const hoverOverLegend =
+      e.target.classList.contains('apexcharts-legend-series') ||
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
 
@@ -434,6 +435,7 @@ class Legend {
     if (w.config.legend.customLegendItems.length) return
 
     if (
+      e.target.classList.contains('apexcharts-legend-series') ||
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
     ) {
