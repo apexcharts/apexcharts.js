@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.41.1
+ * ApexCharts v3.42.0
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -4095,7 +4095,7 @@
           stroke: {
             show: true,
             curve: 'smooth',
-            // "smooth" / "straight" / "stepline"
+            // "smooth" / "straight" / "monotoneCubic" / "stepline"
             lineCap: 'butt',
             // round, butt , square
             width: 2,
@@ -23486,6 +23486,177 @@
   }();
 
   /**
+   * 
+   * @yr/monotone-cubic-spline (https://github.com/YR/monotone-cubic-spline)
+   * 
+   * The MIT License (MIT)
+   * 
+   * Copyright (c) 2015 yr.no
+   * 
+   * Permission is hereby granted, free of charge, to any person obtaining a copy of
+   * this software and associated documentation files (the "Software"), to deal in
+   * the Software without restriction, including without limitation the rights to
+   * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+   * the Software, and to permit persons to whom the Software is furnished to do so,
+   * subject to the following conditions:
+   * 
+   * The above copyright notice and this permission notice shall be included in all
+   * copies or substantial portions of the Software.
+
+   * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+   * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+   * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+   * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+   */
+
+  /**
+   * Generate tangents for 'points'
+   * @param {Array} points
+   * @returns {Array}
+   */
+  var tangents = function tangents(points) {
+    var m = finiteDifferences(points);
+    var n = points.length - 1;
+    var ε = 1e-6;
+    var tgts = [];
+    var a, b, d, s;
+
+    for (var i = 0; i < n; i++) {
+      d = slope(points[i], points[i + 1]);
+
+      if (Math.abs(d) < ε) {
+        m[i] = m[i + 1] = 0;
+      } else {
+        a = m[i] / d;
+        b = m[i + 1] / d;
+        s = a * a + b * b;
+
+        if (s > 9) {
+          s = d * 3 / Math.sqrt(s);
+          m[i] = s * a;
+          m[i + 1] = s * b;
+        }
+      }
+    }
+
+    for (var _i = 0; _i <= n; _i++) {
+      s = (points[Math.min(n, _i + 1)][0] - points[Math.max(0, _i - 1)][0]) / (6 * (1 + m[_i] * m[_i]));
+      tgts.push([s || 0, m[_i] * s || 0]);
+    }
+
+    return tgts;
+  };
+  /**
+   * Convert 'points' to svg path
+   * @param {Array} points
+   * @returns {String}
+   */
+
+  var svgPath = function svgPath(points) {
+    var p = '';
+
+    for (var i = 0; i < points.length; i++) {
+      var point = points[i];
+      var n = point.length;
+
+      if (n > 4) {
+        p += "C".concat(point[0], ", ").concat(point[1]);
+        p += ", ".concat(point[2], ", ").concat(point[3]);
+        p += ", ".concat(point[4], ", ").concat(point[5]);
+      } else if (n > 2) {
+        p += "S".concat(point[0], ", ").concat(point[1]);
+        p += ", ".concat(point[2], ", ").concat(point[3]);
+      }
+    }
+
+    return p;
+  };
+  var spline = {
+    /**
+     * Convert 'points' to bezier
+     * @param {Array} points
+     * @returns {Array}
+     */
+    points: function points(_points) {
+      var tgts = tangents(_points);
+      var p = _points[1];
+      var p0 = _points[0];
+      var pts = [];
+      var t = tgts[1];
+      var t0 = tgts[0]; // Add starting 'M' and 'C' points
+
+      pts.push(p0, [p0[0] + t0[0], p0[1] + t0[1], p[0] - t[0], p[1] - t[1], p[0], p[1]]); // Add 'S' points
+
+      for (var i = 2, n = tgts.length; i < n; i++) {
+        var _p = _points[i];
+        var _t = tgts[i];
+        pts.push([_p[0] - _t[0], _p[1] - _t[1], _p[0], _p[1]]);
+      }
+
+      return pts;
+    },
+
+    /**
+     * Slice out a segment of 'points'
+     * @param {Array} points
+     * @param {Number} start
+     * @param {Number} end
+     * @returns {Array}
+     */
+    slice: function slice(points, start, end) {
+      var pts = points.slice(start, end);
+
+      if (start) {
+        // Add additional 'C' points
+        if (pts[1].length < 6) {
+          var n = pts[0].length;
+          pts[1] = [pts[0][n - 2] * 2 - pts[0][n - 4], pts[0][n - 1] * 2 - pts[0][n - 3]].concat(pts[1]);
+        } // Remove control points for 'M'
+
+
+        pts[0] = pts[0].slice(-2);
+      }
+
+      return pts;
+    }
+  };
+  /**
+   * Compute slope from point 'p0' to 'p1'
+   * @param {Array} p0
+   * @param {Array} p1
+   * @returns {Number}
+   */
+
+  function slope(p0, p1) {
+    return (p1[1] - p0[1]) / (p1[0] - p0[0]);
+  }
+  /**
+   * Compute three-point differences for 'points'
+   * @param {Array} points
+   * @returns {Array}
+   */
+
+
+  function finiteDifferences(points) {
+    var m = [];
+    var p0 = points[0];
+    var p1 = points[1];
+    var d = m[0] = slope(p0, p1);
+    var i = 1;
+
+    for (var n = points.length - 1; i < n; i++) {
+      p0 = p1;
+      p1 = points[i + 1];
+      m[i] = (d + (d = slope(p0, p1))) * 0.5;
+    }
+
+    m[i] = d;
+    return m;
+  }
+
+  /**
    * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
    * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
    * @module Line
@@ -23535,6 +23706,8 @@
 
           var yArrj = []; // hold y values of current iterating series
 
+          var y2Arrj = []; // holds y2 values in range-area charts
+
           var xArrj = []; // hold x values of current iterating series
 
           var x = w.globals.padHorizontal + this.categoryAxisCorrection;
@@ -23577,6 +23750,7 @@
             });
             prevY2 = firstPrevY2.prevY;
             pY2 = prevY2;
+            y2Arrj.push(prevY2);
           }
 
           var pathsFrom = this._calculatePathsFrom({
@@ -23605,6 +23779,7 @@
             lineYPosition: lineYPosition,
             xArrj: xArrj,
             yArrj: yArrj,
+            y2Arrj: y2Arrj,
             seriesRangeEnd: seriesRangeEnd
           };
 
@@ -23903,6 +24078,7 @@
             lineYPosition = _ref3.lineYPosition,
             xArrj = _ref3.xArrj,
             yArrj = _ref3.yArrj,
+            y2Arrj = _ref3.y2Arrj,
             isRangeStart = _ref3.isRangeStart,
             seriesRangeEnd = _ref3.seriesRangeEnd;
         var w = this.w;
@@ -23976,6 +24152,7 @@
           xArrj.push(x); // push current Y that will be used as next series's bottom position
 
           yArrj.push(y);
+          y2Arrj.push(y2);
           var pointsPos = this.lineHelpers.calculatePoints({
             series: series,
             x: x,
@@ -23995,6 +24172,9 @@
             x: x,
             y: y,
             y2: y2,
+            xArrj: xArrj,
+            yArrj: yArrj,
+            y2Arrj: y2Arrj,
             pX: pX,
             pY: pY,
             linePath: linePath,
@@ -24012,7 +24192,7 @@
           areaPath = calculatedPaths.areaPath;
           linePath = calculatedPaths.linePath;
 
-          if (this.appendPathFrom) {
+          if (this.appendPathFrom && !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')) {
             pathFromLine = pathFromLine + graphics.line(x, this.zeroY);
             pathFromArea = pathFromArea + graphics.line(x, this.zeroY);
           }
@@ -24094,7 +24274,10 @@
             j = _ref5.j,
             x = _ref5.x,
             y = _ref5.y,
+            xArrj = _ref5.xArrj,
+            yArrj = _ref5.yArrj,
             y2 = _ref5.y2,
+            y2Arrj = _ref5.y2Arrj,
             pX = _ref5.pX,
             pY = _ref5.pY,
             linePath = _ref5.linePath,
@@ -24114,6 +24297,10 @@
           } else {
             curve = w.config.stroke.curve[i];
           }
+        }
+
+        if ((type === 'rangeArea' && (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0) || w.globals.hasNullValues) && curve === 'monotoneCubic') {
+          curve = 'straight';
         } // logic of smooth curve derived from chartist
         // CREDITS: https://gionkunz.github.io/chartist-js/
 
@@ -24135,8 +24322,8 @@
             linePaths.push(linePath);
             areaPaths.push(areaPath);
           } else {
-            linePath = linePath + graphics.curve(pX + length, pY, x - length, y, x, y);
-            areaPath = areaPath + graphics.curve(pX + length, pY, x - length, y, x, y);
+            linePath += graphics.curve(pX + length, pY, x - length, y, x, y);
+            areaPath += graphics.curve(pX + length, pY, x - length, y, x, y);
           }
 
           pX = x;
@@ -24144,16 +24331,48 @@
 
           if (j === series[i].length - 2) {
             // last loop, close path
-            areaPath = areaPath + graphics.curve(pX, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z';
+            areaPath += graphics.curve(pX, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z';
 
             if (type === 'rangeArea' && isRangeStart) {
-              linePath = linePath + graphics.curve(pX, pY, x, y, x, y2) + graphics.move(x, y2) + 'z';
+              linePath += graphics.curve(pX, pY, x, y, x, y2) + graphics.move(x, y2) + 'z';
             } else {
               if (!w.globals.hasNullValues) {
                 linePaths.push(linePath);
                 areaPaths.push(areaPath);
               }
             }
+          }
+        } else if (curve === 'monotoneCubic') {
+          var shouldRenderMonotone = type === 'rangeArea' ? xArrj.length === w.globals.dataPoints : j === series[i].length - 2;
+
+          if (shouldRenderMonotone) {
+            var monotoneInputPoints = xArrj.map(function (_, i) {
+              return [xArrj[i], yArrj[i]];
+            });
+            var points = spline.points(monotoneInputPoints);
+            linePath += svgPath(points);
+            areaPath += svgPath(points);
+            pX = x;
+            pY = y;
+
+            if (type === 'rangeArea' && isRangeStart) {
+              // draw the line to connect y with y2; then draw the other end of range
+              linePath += graphics.line(xArrj[xArrj.length - 1], y2Arrj[y2Arrj.length - 1]);
+              var xArrjInversed = xArrj.slice().reverse();
+              var y2ArrjInversed = y2Arrj.slice().reverse();
+              var monotoneInputPointsY2 = xArrjInversed.map(function (_, i) {
+                return [xArrjInversed[i], y2ArrjInversed[i]];
+              });
+              var pointsY2 = spline.points(monotoneInputPointsY2);
+              linePath += svgPath(pointsY2); // in range area, we don't have separate line and area path
+
+              areaPath = linePath;
+            } else {
+              areaPath += graphics.curve(pX, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z';
+            }
+
+            linePaths.push(linePath);
+            areaPaths.push(areaPath);
           }
         } else {
           if (series[i][j + 1] === null) {
@@ -26943,6 +27162,11 @@
         p.x = c[2];
         p.y = c[3];
         return ['Q', c[0], c[1], c[2], c[3]];
+      },
+      S: function S(c, p) {
+        p.x = c[2];
+        p.y = c[3];
+        return ['S', c[0], c[1], c[2], c[3]];
       },
       Z: function Z(c, p, p0) {
         p.x = p0.x;
