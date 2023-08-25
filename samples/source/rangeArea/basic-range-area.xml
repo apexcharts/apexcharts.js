@@ -7,7 +7,7 @@ chart: {
   type: 'rangeArea'
 },
 stroke: {
-  curve: 'straight'
+  curve: 'monotoneCubic'
 },
 title: {
   text: 'New York Temperature (all year round)'
