@@ -340,7 +340,7 @@ type ApexNonAxisChartSeries = number[]
  */
 type ApexStroke = {
   show?: boolean
-  curve?: 'smooth' | 'straight' | 'stepline' | ('smooth' | 'straight' | 'stepline')[]
+  curve?: 'smooth' | 'straight' | 'stepline' | 'monotoneCubic' | ('smooth' | 'straight' | 'stepline' | 'monotoneCubic')[]
   lineCap?: 'butt' | 'square' | 'round'
   colors?: string[]
   width?: number | number[]
