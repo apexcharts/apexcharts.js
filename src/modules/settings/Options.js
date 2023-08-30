@@ -342,6 +342,7 @@ export default class Options {
           enabled: false,
           autoScaleYaxis: true,
           target: undefined,
+          targets: undefined,
         },
         stacked: false,
         stackType: 'normal',
@@ -482,6 +483,9 @@ export default class Options {
           distributed: false,
           reverseNegativeShade: false,
           useFillColorAsStroke: false,
+          dataLabels: {
+            format: 'scale', // scale | truncate
+          },
           colorScale: {
             inverse: false,
             ranges: [],
@@ -896,7 +900,7 @@ export default class Options {
       },
       stroke: {
         show: true,
-        curve: 'smooth', // "smooth" / "straight" / "stepline"
+        curve: 'smooth', // "smooth" / "straight" / "monotoneCubic" / "stepline"
         lineCap: 'butt', // round, butt , square
         width: 2,
         colors: undefined, // array of colors

@@ -6,7 +6,7 @@ import Markers from '../modules/Markers'
 import Scatter from './Scatter'
 import Utils from '../utils/Utils'
 import Helpers from './common/line/Helpers'
-
+import { svgPath, spline } from '../libs/monotone-cubic'
 /**
  * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
  * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
@@ -66,6 +66,7 @@ class Line {
       this._initSerieVariables(series, i, realIndex)
 
       let yArrj = [] // hold y values of current iterating series
+      let y2Arrj = [] // holds y2 values in range-area charts
       let xArrj = [] // hold x values of current iterating series
 
       let x = w.globals.padHorizontal + this.categoryAxisCorrection
@@ -113,6 +114,7 @@ class Line {
         })
         prevY2 = firstPrevY2.prevY
         pY2 = prevY2
+        y2Arrj.push(prevY2)
       }
 
       let pathsFrom = this._calculatePathsFrom({
@@ -141,6 +143,7 @@ class Line {
         lineYPosition,
         xArrj,
         yArrj,
+        y2Arrj,
         seriesRangeEnd,
       }
 
@@ -470,6 +473,7 @@ class Line {
     lineYPosition,
     xArrj,
     yArrj,
+    y2Arrj,
     isRangeStart,
     seriesRangeEnd,
   }) {
@@ -567,6 +571,7 @@ class Line {
 
       // push current Y that will be used as next series's bottom position
       yArrj.push(y)
+      y2Arrj.push(y2)
 
       let pointsPos = this.lineHelpers.calculatePoints({
         series,
@@ -587,6 +592,9 @@ class Line {
         x,
         y,
         y2,
+        xArrj,
+        yArrj,
+        y2Arrj,
         pX,
         pY,
         linePath,
@@ -604,7 +612,10 @@ class Line {
       areaPath = calculatedPaths.areaPath
       linePath = calculatedPaths.linePath
 
-      if (this.appendPathFrom) {
+      if (
+        this.appendPathFrom &&
+        !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')
+      ) {
         pathFromLine = pathFromLine + graphics.line(x, this.zeroY)
         pathFromArea = pathFromArea + graphics.line(x, this.zeroY)
       }
@@ -680,7 +691,10 @@ class Line {
     j,
     x,
     y,
+    xArrj,
+    yArrj,
     y2,
+    y2Arrj,
     pX,
     pY,
     linePath,
@@ -702,6 +716,15 @@ class Line {
       } else {
         curve = w.config.stroke.curve[i]
       }
+    }
+
+    if (
+      ((type === 'rangeArea' &&
+        (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0)) ||
+        w.globals.hasNullValues) &&
+      curve === 'monotoneCubic'
+    ) {
+      curve = 'straight'
     }
 
     // logic of smooth curve derived from chartist
@@ -729,10 +752,8 @@ class Line {
         linePaths.push(linePath)
         areaPaths.push(areaPath)
       } else {
-        linePath =
-          linePath + graphics.curve(pX + length, pY, x - length, y, x, y)
-        areaPath =
-          areaPath + graphics.curve(pX + length, pY, x - length, y, x, y)
+        linePath += graphics.curve(pX + length, pY, x - length, y, x, y)
+        areaPath += graphics.curve(pX + length, pY, x - length, y, x, y)
       }
 
       pX = x
@@ -740,24 +761,68 @@ class Line {
 
       if (j === series[i].length - 2) {
         // last loop, close path
-        areaPath =
-          areaPath +
+        areaPath +=
           graphics.curve(pX, pY, x, y, x, areaBottomY) +
           graphics.move(x, y) +
           'z'
 
         if (type === 'rangeArea' && isRangeStart) {
-          linePath =
-            linePath +
-            graphics.curve(pX, pY, x, y, x, y2) +
-            graphics.move(x, y2) +
-            'z'
+          linePath +=
+            graphics.curve(pX, pY, x, y, x, y2) + graphics.move(x, y2) + 'z'
         } else {
           if (!w.globals.hasNullValues) {
             linePaths.push(linePath)
             areaPaths.push(areaPath)
           }
         }
+      }
+    } else if (curve === 'monotoneCubic') {
+      const shouldRenderMonotone =
+        type === 'rangeArea'
+          ? xArrj.length === w.globals.dataPoints
+          : j === series[i].length - 2
+
+      if (shouldRenderMonotone) {
+        const monotoneInputPoints = xArrj.map((_, i) => {
+          return [xArrj[i], yArrj[i]]
+        })
+
+        const points = spline.points(monotoneInputPoints)
+
+        linePath += svgPath(points)
+        areaPath += svgPath(points)
+
+        pX = x
+        pY = y
+
+        if (type === 'rangeArea' && isRangeStart) {
+          // draw the line to connect y with y2; then draw the other end of range
+          linePath += graphics.line(
+            xArrj[xArrj.length - 1],
+            y2Arrj[y2Arrj.length - 1]
+          )
+
+          const xArrjInversed = xArrj.slice().reverse()
+          const y2ArrjInversed = y2Arrj.slice().reverse()
+          const monotoneInputPointsY2 = xArrjInversed.map((_, i) => {
+            return [xArrjInversed[i], y2ArrjInversed[i]]
+          })
+
+          const pointsY2 = spline.points(monotoneInputPointsY2)
+
+          linePath += svgPath(pointsY2)
+
+          // in range area, we don't have separate line and area path
+          areaPath = linePath
+        } else {
+          areaPath +=
+            graphics.curve(pX, pY, x, y, x, areaBottomY) +
+            graphics.move(x, y) +
+            'z'
+        }
+
+        linePaths.push(linePath)
+        areaPaths.push(areaPath)
       }
     } else {
       if (series[i][j + 1] === null) {

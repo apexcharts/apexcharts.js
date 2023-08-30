@@ -96,7 +96,7 @@ export default class Range {
 
     if (NO_MIN_MAX_PROVIDED && range > 2) {
       while (1) {
-        result.push(val)
+        result.push(Utils.stripNumber(val, 7))
         val += stepSize
         if (val > ub) {
           break
@@ -106,12 +106,12 @@ export default class Range {
       return {
         result,
         niceMin: result[0],
-        niceMax: result[result.length - 1]
+        niceMax: result[result.length - 1],
       }
     } else {
       result = []
       let v = yMin
-      result.push(v)
+      result.push(Utils.stripNumber(v, 7))
       let valuesDivider = Math.abs(yMax - yMin) / ticks
       for (let i = 0; i <= ticks; i++) {
         v = v + valuesDivider
@@ -125,7 +125,7 @@ export default class Range {
       return {
         result,
         niceMin: result[0],
-        niceMax: result[result.length - 1]
+        niceMax: result[result.length - 1],
       }
     }
   }
@@ -157,7 +157,7 @@ export default class Range {
     return {
       result,
       niceMin: result[0],
-      niceMax: result[result.length - 1]
+      niceMax: result[result.length - 1],
     }
   }
 
@@ -178,7 +178,7 @@ export default class Range {
     return {
       result: logs,
       niceMin: logs[0],
-      niceMax: logs[logs.length - 1]
+      niceMax: logs[logs.length - 1],
     }
   }
 
@@ -220,7 +220,7 @@ export default class Range {
     return {
       result: logs,
       niceMin: yMin,
-      niceMax: yMax
+      niceMax: yMax,
     }
   }
 
@@ -338,11 +338,11 @@ export default class Range {
             scalesIndices.push({
               index: si,
               similarIndex: i,
-              alreadyExists: true
+              alreadyExists: true,
             })
           } else {
             scalesIndices.push({
-              index: si
+              index: si,
             })
           }
         }
@@ -418,11 +418,11 @@ export default class Range {
           }
           sameScaleMinYArr[i].push({
             key: yi,
-            value: minYValue
+            value: minYValue,
           })
           sameScaleMaxYArr[i].push({
             key: yi,
-            value: maxYArr[yi]
+            value: maxYArr[yi],
           })
         }
       })

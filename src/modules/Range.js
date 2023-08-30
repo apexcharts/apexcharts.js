@@ -60,7 +60,11 @@ class Range {
         ).length
       }
 
-      if (gl.labels.length && cnf.xaxis.type !== 'datetime') {
+      if (
+        gl.labels.length &&
+        cnf.xaxis.type !== 'datetime' &&
+        gl.series.reduce((a, c) => a + c.length, 0) !== 0
+      ) {
         // the condition cnf.xaxis.type !== 'datetime' fixes #3897 and #3905
         gl.dataPoints = Math.max(gl.dataPoints, gl.labels.length)
       }

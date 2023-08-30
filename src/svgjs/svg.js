@@ -460,6 +460,11 @@
       p.y = c[3]
       return ['Q', c[0], c[1], c[2], c[3]]
     },
+    S: function (c, p) {
+      p.x = c[2]
+      p.y = c[3]
+      return ['S', c[0], c[1], c[2], c[3]]
+    },
     Z: function (c, p, p0) {
       p.x = p0.x
       p.y = p0.y

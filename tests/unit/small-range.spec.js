@@ -5,7 +5,7 @@ describe('Y-axis with ultra-small values', () => {
   it('should return small range of min/max when ultra small values are provided', () => {
     const chart = createChartWithOptions({
       chart: {
-        type: 'line'
+        type: 'line',
       },
       series: [
         {
@@ -13,16 +13,16 @@ describe('Y-axis with ultra-small values', () => {
             [1553258700000, 0.0037721],
             [1553259000000, 0.0037814],
             [1553261100000, 0.003799],
-            [1553262900000, 0.0037601]
-          ]
-        }
+            [1553262900000, 0.0037601],
+          ],
+        },
       ],
       xaxis: {
-        type: 'datetime'
+        type: 'datetime',
       },
       yaxis: {
-        decimalsInFloat: 7
-      }
+        decimalsInFloat: 7,
+      },
     })
 
     const minY = chart.w.globals.minY
@@ -35,20 +35,20 @@ describe('Y-axis with ultra-small values', () => {
   it('should not apply nice scale for small values', () => {
     const chart = createChartWithOptions({
       chart: {
-        type: 'line'
+        type: 'line',
       },
       series: [
         {
           data: [
             [1553258700000, 1],
             [1553259000000, 2],
-            [1553261100000, 4]
-          ]
-        }
+            [1553261100000, 4],
+          ],
+        },
       ],
       xaxis: {
-        type: 'datetime'
-      }
+        type: 'datetime',
+      },
     })
 
     const minY = chart.w.globals.minY
@@ -63,12 +63,12 @@ describe('yaxis scale to not contain duplicated values when formatter is provide
   it('yaxis scale should not contain duplicated values for small integer range', () => {
     const chart = createChartWithOptions({
       chart: {
-        type: 'line'
+        type: 'line',
       },
       series: [
         {
-          data: [1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 2]
-        }
+          data: [1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 2],
+        },
       ],
       xaxis: {
         categories: [
@@ -83,16 +83,16 @@ describe('yaxis scale to not contain duplicated values when formatter is provide
           'Sep',
           'Oct',
           'Nov',
-          'Dec'
-        ]
+          'Dec',
+        ],
       },
       yaxis: {
         labels: {
           formatter: (val) => {
             return val.toFixed(0)
-          }
-        }
-      }
+          },
+        },
+      },
     })
 
     const range = new Range(chart)
@@ -106,25 +106,17 @@ describe('yaxis scale to ignore duplication if fractions are present in series',
   it('yaxis scale should ignore duplication of labels when non integers are provided', () => {
     const chart = createChartWithOptions({
       chart: {
-        type: 'line'
+        type: 'line',
       },
       series: [
         {
           data: [
-            1.2321908386878013,
-            1.956555241215017,
-            1.8841188009622953,
-            1.8116823607095738,
-            1.7392459204568522,
-            1.6668094802041307,
-            1.594373039951409,
-            1.5219365996986876,
-            1.449500159445966,
-            1.3770637191932444,
-            1.3046272789405229,
-            1.2321908386878013
-          ]
-        }
+            1.2321908386878013, 1.956555241215017, 1.8841188009622953,
+            1.8116823607095738, 1.7392459204568522, 1.6668094802041307,
+            1.594373039951409, 1.5219365996986876, 1.449500159445966,
+            1.3770637191932444, 1.3046272789405229, 1.2321908386878013,
+          ],
+        },
       ],
       xaxis: {
         categories: [
@@ -139,28 +131,24 @@ describe('yaxis scale to ignore duplication if fractions are present in series',
           'Sep',
           'Oct',
           'Nov',
-          'Dec'
-        ]
+          'Dec',
+        ],
       },
       yaxis: {
         labels: {
           formatter: (val) => {
             return val.toFixed(2)
-          }
-        }
-      }
+          },
+        },
+      },
     })
 
     const range = new Range(chart)
     const yRange = range.setYRange()
 
     expect(yRange.yAxisScale[0].result).toEqual([
-      1.2321908386878013,
-      1.3770637191932444,
-      1.5219365996986876,
-      1.6668094802041307,
-      1.8116823607095738,
-      1.956555241215017
+      1.232191, 1.3770637191932444, 1.5219365996986876, 1.6668094802041307,
+      1.8116823607095738, 1.956555241215017,
     ])
   })
 })
