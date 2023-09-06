@@ -560,6 +560,8 @@ export default class ApexCharts {
 
   static getChartByID(id) {
     const chartId = Utils.escapeString(id)
+    if (!Apex._chartInstances) return undefined
+
     const c = Apex._chartInstances.filter((ch) => ch.id === chartId)[0]
     return c && c.chart
   }

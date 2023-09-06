@@ -157,6 +157,10 @@ export default class Data {
             // a category and not a numeric x value
             this.fallbackToCategory = true
             this.twoDSeriesX.push(ser[activeI].data[j].x)
+
+            if (!isNaN(ser[activeI].data[j].x)) {
+              gl.isXNumeric = true
+            }
           }
         } else {
           if (cnf.xaxis.type === 'datetime') {

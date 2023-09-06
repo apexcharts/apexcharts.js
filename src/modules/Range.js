@@ -405,7 +405,7 @@ class Range {
           gl.xAxisScale = this.scales.setXScale(gl.minX, gl.maxX)
         }
       } else {
-        gl.xAxisScale = this.scales.linearScale(1, ticks, ticks)
+        gl.xAxisScale = this.scales.linearScale(0, ticks, ticks)
         if (gl.noLabelsProvided && gl.labels.length > 0) {
           gl.xAxisScale = this.scales.linearScale(
             1,
