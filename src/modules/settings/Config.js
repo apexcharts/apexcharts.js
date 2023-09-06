@@ -203,7 +203,7 @@ export default class Config {
 
     if (isLogY && series.length > 1 && series.length !== opts.yaxis.length) {
       console.warn(
-        'A multi-series logarithmic chart should have equal number of series and y-axes. Please make sure to equalize both.'
+        'A multi-series logarithmic chart should have equal number of series and y-axes'
       )
     }
     return opts

@@ -91,7 +91,7 @@ class Bar {
     if (w.config.dataLabels.enabled) {
       if (this.totalItems > this.barOptions.dataLabels.maxItems) {
         console.warn(
-          'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.'
+          'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering - ApexCharts'
         )
       }
     }
@@ -162,11 +162,11 @@ class Bar {
       elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
 
       let elGoalsMarkers = graphics.group({
-        class: 'apexcharts-bar-goals-markers'        
+        class: 'apexcharts-bar-goals-markers',
       })
 
       let elBarShadows = graphics.group({
-        class: 'apexcharts-bar-shadows'        
+        class: 'apexcharts-bar-shadows',
       })
 
       w.globals.delayedElements.push({

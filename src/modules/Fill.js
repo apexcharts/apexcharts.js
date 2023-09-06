@@ -133,6 +133,12 @@ class Fill {
       fillColor = opts.color
     }
 
+    // in case a color is undefined, fallback to white color to prevent runtime error
+    if (!fillColor) {
+      fillColor = '#fff'
+      console.warn('undefined color - ApexCharts')
+    }
+
     let defaultColor = fillColor
 
     if (fillColor.indexOf('rgb') === -1) {
