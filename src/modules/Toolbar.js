@@ -70,7 +70,7 @@ export default class Toolbar {
           el,
           icon: typeof this.t[tool] === 'string' ? this.t[tool] : ico,
           title: this.localeValues[type],
-          class: `apexcharts-${tool}-icon`
+          class: `apexcharts-${tool}-icon`,
         })
       }
     }
@@ -88,12 +88,11 @@ export default class Toolbar {
               : z === 'zoom'
               ? icoZoom
               : icoSelect,
-          title: this.localeValues[
-            z === 'zoom' ? 'selectionZoom' : 'selection'
-          ],
+          title:
+            this.localeValues[z === 'zoom' ? 'selectionZoom' : 'selection'],
           class: w.globals.isTouchDevice
             ? 'apexcharts-element-hidden'
-            : `apexcharts-${z}-icon`
+            : `apexcharts-${z}-icon`,
         })
       }
     }
@@ -107,7 +106,7 @@ export default class Toolbar {
         title: this.localeValues.pan,
         class: w.globals.isTouchDevice
           ? 'apexcharts-element-hidden'
-          : 'apexcharts-pan-icon'
+          : 'apexcharts-pan-icon',
       })
     }
 
@@ -118,7 +117,7 @@ export default class Toolbar {
         el: this.elMenuIcon,
         icon: typeof this.t.download === 'string' ? this.t.download : icoMenu,
         title: this.localeValues.menu,
-        class: 'apexcharts-menu-icon'
+        class: 'apexcharts-menu-icon',
       })
     }
 
@@ -128,7 +127,7 @@ export default class Toolbar {
         icon: this.t.customIcons[i].icon,
         title: this.t.customIcons[i].title,
         index: this.t.customIcons[i].index,
-        class: 'apexcharts-toolbar-custom-icon ' + this.t.customIcons[i].class
+        class: 'apexcharts-toolbar-custom-icon ' + this.t.customIcons[i].class,
       })
     }
 
@@ -141,7 +140,7 @@ export default class Toolbar {
     for (let i = 0; i < toolbarControls.length; i++) {
       Graphics.setAttrs(toolbarControls[i].el, {
         class: toolbarControls[i].class,
-        title: toolbarControls[i].title
+        title: toolbarControls[i].title,
       })
 
       toolbarControls[i].el.innerHTML = toolbarControls[i].icon
@@ -166,22 +165,22 @@ export default class Toolbar {
     parent.appendChild(this.elMenu)
 
     Graphics.setAttrs(this.elMenu, {
-      class: 'apexcharts-menu'
+      class: 'apexcharts-menu',
     })
 
     const menuItems = [
       {
         name: 'exportSVG',
-        title: this.localeValues.exportToSVG
+        title: this.localeValues.exportToSVG,
       },
       {
         name: 'exportPNG',
-        title: this.localeValues.exportToPNG
+        title: this.localeValues.exportToPNG,
       },
       {
         name: 'exportCSV',
-        title: this.localeValues.exportToCSV
-      }
+        title: this.localeValues.exportToCSV,
+      },
     ]
 
     if (!this.w.globals.allSeriesHasEqualX) {
@@ -193,7 +192,7 @@ export default class Toolbar {
       this.elMenuItems[i].innerHTML = menuItems[i].title
       Graphics.setAttrs(this.elMenuItems[i], {
         class: `apexcharts-menu-item ${menuItems[i].name}`,
-        title: menuItems[i].title
+        title: menuItems[i].title,
       })
       this.elMenu.appendChild(this.elMenuItems[i])
     }
@@ -368,7 +367,7 @@ export default class Toolbar {
     const shouldFloor = this.w.config.xaxis.convertedCatToNumeric
     return {
       minX: shouldFloor ? Math.floor(newMinX) : newMinX,
-      maxX: shouldFloor ? Math.floor(newMaxX) : newMaxX
+      maxX: shouldFloor ? Math.floor(newMaxX) : newMaxX,
     }
   }
 
@@ -394,7 +393,7 @@ export default class Toolbar {
 
     let xaxis = {
       min: newMinX,
-      max: newMaxX
+      max: newMaxX,
     }
 
     const beforeZoomRange = this.getBeforeZoomRange(xaxis)
@@ -403,14 +402,14 @@ export default class Toolbar {
     }
 
     let options = {
-      xaxis
+      xaxis,
     }
 
     let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
     if (w.config.chart.zoom.autoScaleYaxis) {
       const scale = new Scales(this.ctx)
       yaxis = scale.autoScaleY(this.ctx, yaxis, {
-        xaxis
+        xaxis,
       })
     }
 
@@ -469,7 +468,7 @@ export default class Toolbar {
       case 'csv':
         exprt.exportToCSV({
           series: w.config.series,
-          columnDelimiter: w.config.chart.toolbar.export.csv.columnDelimiter
+          columnDelimiter: w.config.chart.toolbar.export.csv.columnDelimiter,
         })
         break
     }
@@ -482,8 +481,8 @@ export default class Toolbar {
       let w = ch.w
 
       // forget lastXAxis min/max as reset button isn't resetting the x-axis completely if zoomX is called before
-      w.globals.lastXAxis.min = undefined
-      w.globals.lastXAxis.max = undefined
+      w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min
+      w.globals.lastXAxis.max = w.globals.initialConfig.xaxis.max
 
       ch.updateHelpers.revertDefaultAxisMinMax()
 
@@ -501,7 +500,7 @@ export default class Toolbar {
       if (typeof w.config.chart.events.zoomed === 'function') {
         ch.ctx.toolbar.zoomCallback({
           min: w.config.xaxis.min,
-          max: w.config.xaxis.max
+          max: w.config.xaxis.max,
         })
       }
 
