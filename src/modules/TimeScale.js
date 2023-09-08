@@ -629,6 +629,7 @@ class TimeScale {
 
     let date = currentDate
 
+    // we need to apply date switching logic here as well, to avoid duplicated labels
     if (hour >= 24) {
       hour = 0
       date += 1
