@@ -416,6 +416,54 @@ describe('Generate TimeScale', () => {
       )
     }
   })
+
+  it.each([...Array(24).keys()].map((hour) => ({ hour: hour + 1 })))(
+    'should generate an formatted hourly timescale with unique ticks starting on hour $hour:00',
+    ({ hour }) => {
+      const chart = createChartWithOptions({
+        series: [
+          {
+            type: 'line',
+            data: [
+              {
+                data: [...Array(9).keys()],
+              },
+            ],
+          },
+        ],
+        chart: {
+          type: 'line',
+        },
+        xaxis: {
+          type: 'datetime',
+          labels: {
+            format: 'HH:mm',
+            datetimeUTC: false,
+          },
+        },
+      })
+      const timeScale = new TimeScale(chart)
+      timeScale.generateHourScale({
+        firstVal: {
+          minSecond: 0,
+          minMinute: 0,
+          minHour: hour,
+        },
+        currentDate: 22,
+        currentMonth: 11,
+        currentYear: 2022,
+        minutesWidthOnXAxis: 0.4,
+        numberOfHours: 8,
+      })
+
+      const generatedScale = timeScale.timeScaleArray
+      const formattedScale = timeScale.formatDates(generatedScale)
+      const scaleValues = formattedScale.map((gs) => gs.value)
+      expect(scaleValues.map((gs) => gs.value).length).toEqual(
+        new Set(scaleValues).size
+      )
+    }
+  )
 })
 
 describe('createRawDateString', () => {
