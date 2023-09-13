@@ -69,11 +69,21 @@ export default class Utils {
 
     let capturedSeries = null
     let closest = null
+    let seriesXValArr = []
+    let seriesYValArr = []
 
-    let seriesXValArr = seriesXValArr.map((seriesXVal) => {
+    //add extra values to show markers for the first points. Included both axes to avoid incorrect positioning of the marker
+    w.globals.seriesXvalues.forEach((value) => {
+      seriesXValArr.push([value[0] + 0.000001].concat(value))
+    })
+    w.globals.seriesYvalues.forEach((value) => {
+      seriesYValArr.push([value[0] + 0.000001].concat(value))
+    })
+
+    seriesXValArr = seriesXValArr.map((seriesXVal) => {
       return seriesXVal.filter((s) => Utilities.isNumber(s))
     })
-    let seriesYValArr = seriesYValArr.map((seriesYVal) => {
+    seriesYValArr = seriesYValArr.map((seriesYVal) => {
       return seriesYVal.filter((s) => Utilities.isNumber(s))
     })
 
@@ -145,7 +155,7 @@ export default class Utils {
     Xarrays.forEach((arrX) => {
       arrX.forEach((x, iX) => {
         const newDiff = Math.abs(hoverX - x)
-        if (newDiff <= diffX) {
+        if (newDiff < diffX) {
           diffX = newDiff
           j = iX
         }
@@ -160,7 +170,7 @@ export default class Utils {
 
       Yarrays.forEach((arrY, iAY) => {
         const newDiff = Math.abs(hoverY - arrY[j])
-        if (newDiff <= diffY) {
+        if (newDiff < diffY) {
           diffY = newDiff
           currIndex = iAY
         }
