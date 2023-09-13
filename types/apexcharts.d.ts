@@ -744,6 +744,12 @@ type ApexPlotOptions = {
   }
 }
 
+type ApexColorStop = {
+  offset: number
+  color: string
+  opacity: number
+}
+
 type ApexFill = {
   colors?: any[]
   opacity?: number | number[]
@@ -757,7 +763,7 @@ type ApexFill = {
     opacityFrom?: number | number[]
     opacityTo?: number | number[]
     stops?: number[],
-    colorStops?: any[]
+    colorStops?: ApexColorStop[][] | ApexColorStop[]
   }
   image?: {
     src?: string | string[]

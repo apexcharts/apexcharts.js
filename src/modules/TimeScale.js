@@ -619,7 +619,7 @@ class TimeScale {
 
     let firstTickPosition = remainingMins * minutesWidthOnXAxis
     let firstTickValue = firstVal.minHour + 1
-    let hour = firstTickValue + 1
+    let hour = firstTickValue
 
     if (remainingMins === 60) {
       firstTickPosition = 0
@@ -629,7 +629,17 @@ class TimeScale {
 
     let date = currentDate
 
-    let month = changeMonth(date, currentMonth)
+    // we need to apply date switching logic here as well, to avoid duplicated labels
+    if (hour >= 24) {
+      hour = 0
+      date += 1
+      unit = 'day'
+    }
+
+    const checkNextMonth = changeDate(date, currentMonth)
+
+    let month = checkNextMonth.month
+    month = changeMonth(date, month)
 
     // push the first tick in the array
     this.timeScaleArray.push({
@@ -641,6 +651,8 @@ class TimeScale {
       year: currentYear,
       month: Utils.monthMod(month)
     })
+
+    hour++
 
     let pos = firstTickPosition
     // keep drawing rest of the ticks
