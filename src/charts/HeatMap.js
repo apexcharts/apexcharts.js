@@ -32,7 +32,7 @@ export default class HeatMap {
     const graphics = new Graphics(this.ctx)
 
     let ret = graphics.group({
-      class: 'apexcharts-heatmap'
+      class: 'apexcharts-heatmap',
     })
 
     ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
@@ -62,7 +62,7 @@ export default class HeatMap {
         class: `apexcharts-series apexcharts-heatmap-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         rel: i + 1,
-        'data:realIndex': i
+        'data:realIndex': i,
       })
       this.ctx.series.addCollapsedClassToSeries(elSeries, i)
 
@@ -102,7 +102,7 @@ export default class HeatMap {
               : xDivision,
             height: w.config.fill.image.height
               ? w.config.fill.image.height
-              : yDivision
+              : yDivision,
           })
         }
 
@@ -111,7 +111,7 @@ export default class HeatMap {
         let rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius)
         rect.attr({
           cx: x1,
-          cy: y1
+          cy: y1,
         })
 
         rect.node.classList.add('apexcharts-heatmap-rect')
@@ -127,7 +127,7 @@ export default class HeatMap {
           stroke: w.config.plotOptions.heatmap.useFillColorAsStroke
             ? color
             : w.globals.stroke.colors[0],
-          color
+          color,
         })
 
         this.helpers.addListeners(rect)
@@ -168,7 +168,7 @@ export default class HeatMap {
           value: w.globals.series[i][j],
           seriesIndex: i,
           dataPointIndex: j,
-          w
+          w,
         })
 
         let dataLabels = this.helpers.calculateDataLabels({
@@ -178,7 +178,7 @@ export default class HeatMap {
           i,
           j,
           colorProps: heatColorProps,
-          series: heatSeries
+          series: heatSeries,
         })
         if (dataLabels !== null) {
           elSeries.add(dataLabels)
@@ -200,8 +200,6 @@ export default class HeatMap {
       yAxisScale.push('')
     }
     w.globals.yAxisScale[0].result = yAxisScale
-    let divisor = w.globals.gridHeight / w.globals.series.length
-    w.config.yaxis[0].labels.offsetY = -(divisor / 2)
 
     return ret
   }
@@ -214,13 +212,13 @@ export default class HeatMap {
         x: x + width / 2,
         y: y + height / 2,
         width: 0,
-        height: 0
+        height: 0,
       },
       {
         x,
         y,
         width,
-        height
+        height,
       },
       speed,
       () => {
@@ -231,11 +229,11 @@ export default class HeatMap {
 
   animateHeatColor(el, colorFrom, colorTo, speed) {
     el.attr({
-      fill: colorFrom
+      fill: colorFrom,
     })
       .animate(speed)
       .attr({
-        fill: colorTo
+        fill: colorTo,
       })
   }
 }
