@@ -669,4 +669,25 @@ export default class Helpers {
       classes: 'apexcharts-bar-shadows',
     })
   }
+
+  getZeroValueEncounters({ i, j }) {
+    const w = this.w
+
+    let nonZeroColumns = 0
+    let zeroEncounters = 0
+    w.globals.seriesPercent.forEach((_s, _si) => {
+      if (_s[j]) {
+        nonZeroColumns++
+      }
+
+      if (_si < i && _s[j] === 0) {
+        zeroEncounters++
+      }
+    })
+
+    return {
+      nonZeroColumns,
+      zeroEncounters,
+    }
+  }
 }
