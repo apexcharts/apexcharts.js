@@ -70,10 +70,10 @@ export default class Utils {
     let capturedSeries = null
     let closest = null
 
-    let seriesXValArr = seriesXValArr.map((seriesXVal) => {
+    let seriesXValArr = w.globals.seriesXvalues.map((seriesXVal) => {
       return seriesXVal.filter((s) => Utilities.isNumber(s))
     })
-    let seriesYValArr = seriesYValArr.map((seriesYVal) => {
+    let seriesYValArr = w.globals.seriesYvalues.map((seriesYVal) => {
       return seriesYVal.filter((s) => Utilities.isNumber(s))
     })
 
