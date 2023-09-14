@@ -158,7 +158,11 @@ export default class Data {
             this.fallbackToCategory = true
             this.twoDSeriesX.push(ser[activeI].data[j].x)
 
-            if (!isNaN(ser[activeI].data[j].x)) {
+            if (
+              !isNaN(ser[activeI].data[j].x) &&
+              this.w.config.xaxis.type !== 'category' &&
+              typeof ser[activeI].data[j].x !== 'string'
+            ) {
               gl.isXNumeric = true
             }
           }
@@ -293,7 +297,7 @@ export default class Data {
           rangeName: id,
         }
 
-        // mutating config object by adding a new property
+        // CAUTION: mutating config object by adding a new property
         // TODO: As this is specifically for timeline rangebar charts, update the docs mentioning the series only supports xy format
         ser[i].data[j].rangeName = id
 

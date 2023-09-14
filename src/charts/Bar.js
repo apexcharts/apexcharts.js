@@ -532,17 +532,8 @@ class Bar {
       barXPosition = x + barWidth * this.visibleI
     } else {
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-        let nonZeroColumns = 0
-        let zeroEncounters = 0
-        w.globals.seriesPercent.forEach((_s, _si) => {
-          if (_s[j]) {
-            nonZeroColumns++
-          }
-
-          if (_si < i && _s[j] === 0) {
-            zeroEncounters++
-          }
-        })
+        const { nonZeroColumns, zeroEncounters } =
+          this.barHelpers.getZeroValueEncounters({ i, j })
 
         if (nonZeroColumns > 0) {
           barWidth = (this.seriesLen * barWidth) / nonZeroColumns
