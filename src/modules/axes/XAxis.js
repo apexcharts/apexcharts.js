@@ -210,7 +210,8 @@ export default class XAxis {
 
     if (isXNumeric) {
       let len = dataPoints > 1 ? dataPoints - 1 : dataPoints
-      colWidth = w.globals.gridWidth / len
+      colWidth = w.globals.gridWidth / Math.min(len, labelsLen - 1)
+
       xPos = xPos + colWidthCb(0, colWidth) / 2 + w.config.xaxis.labels.offsetX
     } else {
       colWidth = w.globals.gridWidth / dataPoints
