@@ -629,6 +629,10 @@ export default class ApexCharts {
     this.series.hideSeries(seriesName)
   }
 
+  isSeriesHidden(seriesName) {
+    this.series.isSeriesHidden(seriesName);
+  }
+
   resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
     this.series.resetSeries(shouldUpdateChart, shouldResetZoom)
   }

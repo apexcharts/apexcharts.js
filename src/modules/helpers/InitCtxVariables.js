@@ -47,6 +47,7 @@ export default class InitCtxVariables {
       'updateSeries',
       'appendData',
       'appendSeries',
+      'isSeriesHidden',
       'toggleSeries',
       'showSeries',
       'hideSeries',
