@@ -69,8 +69,6 @@ export default class Utils {
 
     let capturedSeries = null
     let closest = null
-    let seriesXValArr = []
-    let seriesYValArr = []
 
     let seriesXValArr = w.globals.seriesXvalues.map((seriesXVal) => {
       return seriesXVal.filter((s) => Utilities.isNumber(s))
