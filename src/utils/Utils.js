@@ -135,7 +135,7 @@ class Utils {
   }
 
   static stripNumber(num, precision = 2) {
-    return parseFloat(num.toPrecision(precision))
+    return Number.isInteger(num) ? num : parseFloat(num.toPrecision(precision))
   }
 
   static randomId() {
