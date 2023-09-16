@@ -35,14 +35,14 @@ export default class AxesUtils {
       label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp, {
         i,
         dateFormatter: new DateTime(this.ctx).formatDate,
-        w
+        w,
       })
 
       if (customFormatter !== undefined) {
         label = customFormatter(rawLabel, labels[i], {
           i,
           dateFormatter: new DateTime(this.ctx).formatDate,
-          w
+          w,
         })
       }
     }
@@ -108,7 +108,7 @@ export default class AxesUtils {
       x,
       text: label,
       textRect,
-      isBold
+      isBold,
     }
   }
 
