@@ -250,7 +250,7 @@ export default class BarDataLabels {
       case 'center':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = newY + barHeight / 2 + offY
+            dataLabelsY = newY - barHeight / 2 + offY
           } else {
             dataLabelsY = newY + barHeight / 2 - offY
           }
@@ -265,7 +265,7 @@ export default class BarDataLabels {
       case 'bottom':
         if (vertical) {
           if (valIsNegative) {
-            dataLabelsY = newY + barHeight + offY
+            dataLabelsY = newY - barHeight + offY
           } else {
             dataLabelsY = newY + barHeight - offY
           }
