@@ -509,6 +509,7 @@ class Grid {
     ) {
       const xc =
         !w.globals.isBarHorizontal &&
+        w.config.xaxis.tickPlacement === 'on' &&
         (w.config.xaxis.type === 'category' ||
           w.config.xaxis.convertedCatToNumeric)
           ? xCount - 1
