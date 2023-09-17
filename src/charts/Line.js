@@ -493,6 +493,14 @@ class Line {
           : w.globals.dataPoints
     }
 
+    const getY = (_y, lineYPos) => {
+      return (
+        lineYPos -
+        _y / yRatio[this.yaxisIndex] +
+        (this.isReversed ? _y / yRatio[this.yaxisIndex] : 0) * 2
+      )
+    }
+
     let y2 = y
     for (let j = 0; j < iterations; j++) {
       const isNull =
@@ -536,24 +544,12 @@ class Line {
       }
 
       if (isNull) {
-        y =
-          lineYPosition -
-          minY / yRatio[this.yaxisIndex] +
-          (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2
+        y = getY(minY, lineYPosition)
       } else {
-        y =
-          lineYPosition -
-          series[i][j + 1] / yRatio[this.yaxisIndex] +
-          (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2
+        y = getY(series[i][j + 1], lineYPosition)
 
         if (type === 'rangeArea') {
-          y2 =
-            lineYPosition -
-            seriesRangeEnd[i][j + 1] / yRatio[this.yaxisIndex] +
-            (this.isReversed
-              ? seriesRangeEnd[i][j + 1] / yRatio[this.yaxisIndex]
-              : 0) *
-              2
+          y2 = getY(seriesRangeEnd[i][j + 1], lineYPosition)
         }
       }
 
@@ -561,7 +557,21 @@ class Line {
       xArrj.push(x)
 
       // push current Y that will be used as next series's bottom position
-      yArrj.push(y)
+      if (isNull && w.config.stroke.curve === 'smooth') {
+        let _y1 = yArrj
+          .slice()
+          .reverse()
+          .find((_) => _ !== lineYPosition)
+        let _y2 = getY(series[i][j + 2], lineYPosition)
+        let middleY = (_y1 + _y2) / 2
+        if (!isNaN(middleY)) {
+          yArrj.push(middleY)
+        } else {
+          yArrj.push(y)
+        }
+      } else {
+        yArrj.push(y)
+      }
       y2Arrj.push(y2)
 
       let pointsPos = this.lineHelpers.calculatePoints({
@@ -605,7 +615,7 @@ class Line {
 
       if (
         this.appendPathFrom &&
-        !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')
+        !(w.config.stroke.curve === 'smooth' && type === 'rangeArea')
       ) {
         pathFromLine = pathFromLine + graphics.line(x, this.zeroY)
         pathFromArea = pathFromArea + graphics.line(x, this.zeroY)
@@ -710,64 +720,14 @@ class Line {
     }
 
     if (
-      ((type === 'rangeArea' &&
-        (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0)) ||
-        w.globals.hasNullValues) &&
-      curve === 'monotoneCubic'
+      type === 'rangeArea' &&
+      (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0) &&
+      curve === 'smooth'
     ) {
       curve = 'straight'
     }
 
-    // logic of smooth curve derived from chartist
-    // CREDITS: https://gionkunz.github.io/chartist-js/
     if (curve === 'smooth') {
-      let length = (x - pX) * 0.35
-      if (w.globals.hasNullValues) {
-        if (series[i][j] !== null) {
-          if (series[i][j + 1] !== null) {
-            linePath =
-              graphics.move(pX, pY) +
-              graphics.curve(pX + length, pY, x - length, y, x + 1, y)
-            areaPath =
-              graphics.move(pX + 1, pY) +
-              graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
-              graphics.line(x, areaBottomY) +
-              graphics.line(pX, areaBottomY) +
-              'z'
-          } else {
-            linePath = graphics.move(pX, pY)
-            areaPath = graphics.move(pX, pY) + 'z'
-          }
-        }
-
-        linePaths.push(linePath)
-        areaPaths.push(areaPath)
-      } else {
-        linePath += graphics.curve(pX + length, pY, x - length, y, x, y)
-        areaPath += graphics.curve(pX + length, pY, x - length, y, x, y)
-      }
-
-      pX = x
-      pY = y
-
-      if (j === series[i].length - 2) {
-        // last loop, close path
-        areaPath +=
-          graphics.curve(pX, pY, x, y, x, areaBottomY) +
-          graphics.move(x, y) +
-          'z'
-
-        if (type === 'rangeArea' && isRangeStart) {
-          linePath +=
-            graphics.curve(pX, pY, x, y, x, y2) + graphics.move(x, y2) + 'z'
-        } else {
-          if (!w.globals.hasNullValues) {
-            linePaths.push(linePath)
-            areaPaths.push(areaPath)
-          }
-        }
-      }
-    } else if (curve === 'monotoneCubic') {
       const shouldRenderMonotone =
         type === 'rangeArea'
           ? xArrj.length === w.globals.dataPoints
