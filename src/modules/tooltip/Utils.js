@@ -122,7 +122,7 @@ export default class Utils {
       capturedSeries,
       j: w.globals.isBarHorizontal ? jHorz : j,
       hoverX,
-      hoverY
+      hoverY,
     }
   }
 
@@ -169,7 +169,7 @@ export default class Utils {
 
     return {
       index: currIndex,
-      j
+      j,
     }
   }
 
@@ -209,7 +209,7 @@ export default class Utils {
     }
 
     return {
-      index: currIndex
+      index: currIndex,
     }
   }
 

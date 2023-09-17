@@ -73,13 +73,13 @@ export default class Position {
     if (ttCtx.ycrosshairs !== null) {
       Graphics.setAttrs(ttCtx.ycrosshairs, {
         y1: cy,
-        y2: cy
+        y2: cy,
       })
     }
     if (ttCtx.ycrosshairsHidden !== null) {
       Graphics.setAttrs(ttCtx.ycrosshairsHidden, {
         y1: cy,
-        y2: cy
+        y2: cy,
       })
     }
   }
@@ -299,7 +299,7 @@ export default class Position {
       'line',
       'area',
       'scatter',
-      'bubble'
+      'bubble',
     ])
 
     let hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(activeSeries)
