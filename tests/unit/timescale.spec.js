@@ -1,13 +1,13 @@
 import TimeScale from '../../src/modules/TimeScale'
 import { range } from './data/sample-data'
-import { createChart } from './utils/utils.js'
+import { createChart, createChartWithOptions } from './utils/utils.js'
 
 describe('Generate TimeScale', () => {
   it('should return timescale ticks for year range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleYears = timeScale.calculateTimeScaleTicks(
@@ -28,8 +28,8 @@ describe('Generate TimeScale', () => {
   it('should return timescale ticks for months range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleMonths = timeScale.calculateTimeScaleTicks(
@@ -46,8 +46,8 @@ describe('Generate TimeScale', () => {
   it('should return timescale ticks for days range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleDays = timeScale.calculateTimeScaleTicks(
@@ -68,8 +68,8 @@ describe('Generate TimeScale', () => {
   it('should return timescale ticks for hours range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleHours = timeScale.calculateTimeScaleTicks(
@@ -86,8 +86,8 @@ describe('Generate TimeScale', () => {
   it('should return timescale ticks for five-minutes range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
@@ -100,46 +100,46 @@ describe('Generate TimeScale', () => {
         unit: 'minute',
         hour: 1,
         minute: 40,
-        value: 40
+        value: 40,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 1,
         minute: 45,
-        value: 45
+        value: 45,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 1,
         minute: 50,
-        value: 50
+        value: 50,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 1,
         minute: 55,
-        value: 55
+        value: 55,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
         minute: 0,
-        value: 0
+        value: 0,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
         minute: 5,
-        value: 5
-      })
+        value: 5,
+      }),
     ])
   })
 
   it('should return timescale ticks for single minutes range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
@@ -152,46 +152,46 @@ describe('Generate TimeScale', () => {
         unit: 'minute',
         hour: 2,
         minute: 0,
-        value: 0
+        value: 0,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
         minute: 1,
-        value: 1
+        value: 1,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
         minute: 2,
-        value: 2
+        value: 2,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
         minute: 3,
-        value: 3
+        value: 3,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
         minute: 4,
-        value: 4
+        value: 4,
       }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
         minute: 5,
-        value: 5
-      })
+        value: 5,
+      }),
     ])
   })
 
   it('should return timescale ticks for ten seconds range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
@@ -205,65 +205,65 @@ describe('Generate TimeScale', () => {
         hour: 1,
         minute: 59,
         second: 10,
-        value: 10
+        value: 10,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
         minute: 59,
         second: 20,
-        value: 20
+        value: 20,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
         minute: 59,
         second: 30,
-        value: 30
+        value: 30,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
         minute: 59,
         second: 40,
-        value: 40
+        value: 40,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
         minute: 59,
         second: 50,
-        value: 50
+        value: 50,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 0,
-        value: 0
+        value: 0,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 10,
-        value: 10
+        value: 10,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 20,
-        value: 20
-      })
+        value: 20,
+      }),
     ])
   })
 
   it('should return timescale ticks for five seconds range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
@@ -277,58 +277,58 @@ describe('Generate TimeScale', () => {
         hour: 1,
         minute: 59,
         second: 45,
-        value: 45
+        value: 45,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
         minute: 59,
         second: 50,
-        value: 50
+        value: 50,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
         minute: 59,
         second: 55,
-        value: 55
+        value: 55,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 0,
-        value: 0
+        value: 0,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 5,
-        value: 5
+        value: 5,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 10,
-        value: 10
+        value: 10,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 15,
-        value: 15
-      })
+        value: 15,
+      }),
     ])
   })
 
   it('should return timescale ticks for single seconds range in a datetime series', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
@@ -342,71 +342,71 @@ describe('Generate TimeScale', () => {
         hour: 1,
         minute: 59,
         second: 59,
-        value: 59
+        value: 59,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 0,
-        value: 0
+        value: 0,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 1,
-        value: 1
+        value: 1,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 2,
-        value: 2
+        value: 2,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 3,
-        value: 3
+        value: 3,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 4,
-        value: 4
+        value: 4,
       }),
       expect.objectContaining({
         unit: 'second',
         hour: 2,
         minute: 0,
         second: 5,
-        value: 5
-      })
+        value: 5,
+      }),
     ])
   })
 
   it('should generate an hour timescale with no overlapping ticks', () => {
     const chart = createChart('line', [
       {
-        data: [0, 1]
-      }
+        data: [0, 1],
+      },
     ])
     const timeScale = new TimeScale(chart)
     timeScale.generateHourScale({
       firstVal: {
         minSecond: 0,
         minMinute: 30,
-        minHour: 22
+        minHour: 22,
       },
       currentDate: 22,
       currentMonth: 11,
       currentYear: 2022,
       minutesWidthOnXAxis: 0.4,
-      numberOfHours: 24
+      numberOfHours: 24,
     })
 
     const generatedScale = timeScale.timeScaleArray
@@ -469,8 +469,8 @@ describe('Generate TimeScale', () => {
 describe('createRawDateString', () => {
   const chart = createChart('line', [
     {
-      data: [0, 1]
-    }
+      data: [0, 1],
+    },
   ])
   const timeScale = new TimeScale(chart)
 
@@ -481,7 +481,7 @@ describe('createRawDateString', () => {
           unit: 'month',
           year: 2020,
           month: 2,
-          value: 2
+          value: 2,
         },
         '2'
       )
@@ -496,7 +496,7 @@ describe('createRawDateString', () => {
           year: 2020,
           month: 1,
           day: 2,
-          value: 2
+          value: 2,
         },
         '2'
       )
@@ -512,7 +512,7 @@ describe('createRawDateString', () => {
           month: 1,
           day: 1,
           hour: 2,
-          value: 2
+          value: 2,
         },
         '2'
       )
@@ -529,7 +529,7 @@ describe('createRawDateString', () => {
           day: 1,
           hour: 1,
           minute: 59,
-          value: 59
+          value: 59,
         },
         '59'
       )
@@ -547,7 +547,7 @@ describe('createRawDateString', () => {
           hour: 1,
           minute: 1,
           second: 59,
-          value: 59
+          value: 59,
         },
         '59'
       )
