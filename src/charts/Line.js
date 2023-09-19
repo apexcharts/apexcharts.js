@@ -83,10 +83,7 @@ class Line {
 
       xArrj.push(x)
 
-      let pX = x
-      let pY
-      let pY2
-      let prevX = pX
+      let prevX = x
       let prevY = this.zeroY
       let prevY2 = this.zeroY
       let lineYPosition = 0
@@ -99,8 +96,12 @@ class Line {
         lineYPosition,
       })
       prevY = firstPrevY.prevY
-      yArrj.push(prevY)
-      pY = prevY
+      if (w.config.stroke.curve === 'smooth' && series[i][0] === null) {
+        // we have to discard the y position if 1st dataPoint is null as it causes issues with monotoneCubic path creation
+        yArrj.push(null)
+      } else {
+        yArrj.push(prevY)
+      }
 
       // y2 are needed for range-area charts
       let firstPrevY2
@@ -113,7 +114,6 @@ class Line {
           lineYPosition,
         })
         prevY2 = firstPrevY2.prevY
-        pY2 = prevY2
         y2Arrj.push(prevY2)
       }
 
@@ -134,8 +134,6 @@ class Line {
         i,
         x,
         y,
-        pX,
-        pY,
         pathsFrom,
         linePaths,
         areaPaths,
@@ -164,7 +162,6 @@ class Line {
         let rangePaths = this._iterateOverDataPoints({
           ...iteratingOpts,
           series: seriesRangeEnd,
-          pY: pY2,
           pathsFrom: pathsFrom2,
           iterations: seriesRangeEnd[i].length - 1,
           isRangeStart: false,
@@ -464,8 +461,6 @@ class Line {
     i,
     x,
     y,
-    pX,
-    pY,
     pathsFrom,
     linePaths,
     areaPaths,
@@ -558,17 +553,7 @@ class Line {
 
       // push current Y that will be used as next series's bottom position
       if (isNull && w.config.stroke.curve === 'smooth') {
-        let _y1 = yArrj
-          .slice()
-          .reverse()
-          .find((_) => _ !== lineYPosition)
-        let _y2 = getY(series[i][j + 2], lineYPosition)
-        let middleY = (_y1 + _y2) / 2
-        if (!isNaN(middleY)) {
-          yArrj.push(middleY)
-        } else {
-          yArrj.push(y)
-        }
+        yArrj.push(null)
       } else {
         yArrj.push(y)
       }
@@ -596,8 +581,6 @@ class Line {
         xArrj,
         yArrj,
         y2Arrj,
-        pX,
-        pY,
         linePath,
         areaPath,
         linePaths,
@@ -608,8 +591,6 @@ class Line {
 
       areaPaths = calculatedPaths.areaPaths
       linePaths = calculatedPaths.linePaths
-      pX = calculatedPaths.pX
-      pY = calculatedPaths.pY
       areaPath = calculatedPaths.areaPath
       linePath = calculatedPaths.linePath
 
@@ -696,8 +677,6 @@ class Line {
     yArrj,
     y2,
     y2Arrj,
-    pX,
-    pY,
     linePath,
     areaPath,
     linePaths,
@@ -734,17 +713,22 @@ class Line {
           : j === series[i].length - 2
 
       if (shouldRenderMonotone) {
-        const monotoneInputPoints = xArrj.map((_, i) => {
-          return [xArrj[i], yArrj[i]]
-        })
+        const smoothInputs = xArrj
+          .map((_, i) => {
+            return [xArrj[i], yArrj[i]]
+          })
+          .filter((_) => _[1] !== null)
 
-        const points = spline.points(monotoneInputPoints)
+        const points = spline.points(smoothInputs)
 
         linePath += svgPath(points)
-        areaPath += svgPath(points)
-
-        pX = x
-        pY = y
+        if (series[i][0] === null) {
+          // if the first dataPoint is null, we use the linePath directly
+          areaPath = linePath
+        } else {
+          // else, we append the areaPath
+          areaPath += svgPath(points)
+        }
 
         if (type === 'rangeArea' && isRangeStart) {
           // draw the line to connect y with y2; then draw the other end of range
@@ -755,11 +739,11 @@ class Line {
 
           const xArrjInversed = xArrj.slice().reverse()
           const y2ArrjInversed = y2Arrj.slice().reverse()
-          const monotoneInputPointsY2 = xArrjInversed.map((_, i) => {
+          const smoothInputsY2 = xArrjInversed.map((_, i) => {
             return [xArrjInversed[i], y2ArrjInversed[i]]
           })
 
-          const pointsY2 = spline.points(monotoneInputPointsY2)
+          const pointsY2 = spline.points(smoothInputsY2)
 
           linePath += svgPath(pointsY2)
 
@@ -767,8 +751,12 @@ class Line {
           areaPath = linePath
         } else {
           areaPath +=
-            graphics.curve(pX, pY, x, y, x, areaBottomY) +
-            graphics.move(x, y) +
+            graphics.line(
+              smoothInputs[smoothInputs.length - 1][0],
+              areaBottomY
+            ) +
+            graphics.line(smoothInputs[0][0], areaBottomY) +
+            graphics.move(smoothInputs[0][0], smoothInputs[0][1]) +
             'z'
         }
 
@@ -821,8 +809,6 @@ class Line {
     return {
       linePaths,
       areaPaths,
-      pX,
-      pY,
       linePath,
       areaPath,
     }
