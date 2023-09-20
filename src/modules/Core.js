@@ -95,7 +95,10 @@ export default class Core {
       transform: `translate(${cnf.chart.offsetX}, ${cnf.chart.offsetY})`,
     })
 
-    gl.dom.Paper.node.style.background = cnf.chart.background
+    gl.dom.Paper.node.style.background =
+      cnf.theme.mode === 'dark' && cnf.chart.background === 'transparent'
+        ? 'rgba(0, 0, 0, 0.8)'
+        : cnf.chart.background
 
     this.setSVGDimensions()
 
