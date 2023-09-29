@@ -55,8 +55,9 @@ class DataLabels {
       let lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex]
       if (
         // next label forward and x not intersecting
-        x > lastDataLabelRect.x + lastDataLabelRect.width + 2 ||
-        y > lastDataLabelRect.y + lastDataLabelRect.height + 2 ||
+        x > lastDataLabelRect.x + lastDataLabelRect.width ||
+        y > lastDataLabelRect.y + lastDataLabelRect.height ||
+        y + height < lastDataLabelRect.y ||
         x + width < lastDataLabelRect.x // next label is going to be drawn backwards
       ) {
         // the 2 indexes don't override, so OK to draw next label
