@@ -167,11 +167,12 @@ export default class UpdateHelpers {
 
     return {
       ...w.config.series[i],
-      name: s.name ? s.name : ser && ser.name,
-      color: s.color ? s.color : ser && ser.color,
-      type: s.type ? s.type : ser && ser.type,
-      group: s.group ? s.group : ser && ser.group,
-      data: s.data ? s.data : ser && ser.data,
+      name: s.name ? s.name : ser?.name,
+      color: s.color ? s.color : ser?.color,
+      type: s.type ? s.type : ser?.type,
+      group: s.group ? s.group : ser?.group,
+      data: s.data ? s.data : ser?.data,
+      zIndex: typeof s.zIndex !== 'undefined' ? s.zIndex : i,
     }
   }
 
