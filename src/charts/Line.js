@@ -181,7 +181,9 @@ class Line {
 
     if (typeof w.config.series[0]?.zIndex !== 'undefined') {
       allSeries.sort(
-        (a, b) => a.node.getAttribute('zIndex') - b.node.getAttribute('zIndex')
+        (a, b) =>
+          Number(a.node.getAttribute('zIndex')) -
+          Number(b.node.getAttribute('zIndex'))
       )
     }
 
