@@ -518,18 +518,14 @@ class Bar {
     let barXPosition
 
     if (w.globals.isXNumeric) {
-      let sxI = realIndex
-      if (!w.globals.seriesX[realIndex].length) {
-        sxI = w.globals.maxValsInArrayIndex
-      }
-      if (w.globals.seriesX[sxI][j]) {
-        x =
-          (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
-          (barWidth * this.seriesLen) / 2
-      }
-
-      // re-calc barXPosition as x changed
-      barXPosition = x + barWidth * this.visibleI
+      const xForNumericX = this.getBarXForNumericXAxis({
+        x,
+        j,
+        realIndex,
+        barWidth,
+      })
+      x = xForNumericX.x
+      barXPosition = xForNumericX.barXPosition
     } else {
       if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
         const { nonZeroColumns, zeroEncounters } =
@@ -581,6 +577,24 @@ class Bar {
       goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
       barXPosition,
       barWidth,
+    }
+  }
+
+  getBarXForNumericXAxis({ x, barWidth, realIndex, j }) {
+    const w = this.w
+    let sxI = realIndex
+    if (!w.globals.seriesX[realIndex].length) {
+      sxI = w.globals.maxValsInArrayIndex
+    }
+    if (w.globals.seriesX[sxI][j]) {
+      x =
+        (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
+        (barWidth * this.seriesLen) / 2
+    }
+
+    return {
+      barXPosition: x + barWidth * this.visibleI,
+      x,
     }
   }
 

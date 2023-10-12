@@ -1,7 +1,6 @@
 import Bar from './Bar'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
-import DateTime from '../utils/DateTime'
 
 /**
  * ApexCharts RangeBar Class responsible for drawing Range/Timeline Bars.
@@ -76,7 +75,7 @@ class RangeBar extends Bar {
       })
 
       let elGoalsMarkers = graphics.group({
-        class: 'apexcharts-rangebar-goals-markers'
+        class: 'apexcharts-rangebar-goals-markers',
       })
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
@@ -354,6 +353,15 @@ class RangeBar extends Bar {
 
     if (!w.globals.isXNumeric) {
       x = x + xDivision
+    } else {
+      const xForNumericXAxis = this.getBarXForNumericXAxis({
+        x,
+        j,
+        realIndex,
+        barWidth,
+      })
+      x = xForNumericXAxis.x
+      barXPosition = xForNumericXAxis.barXPosition
     }
 
     return {
