@@ -179,6 +179,12 @@ class Line {
       allSeries.push(this.elSeries)
     }
 
+    if (typeof w.config.series[0]?.zIndex !== 'undefined') {
+      allSeries.sort(
+        (a, b) => a.node.getAttribute('zIndex') - b.node.getAttribute('zIndex')
+      )
+    }
+
     if (w.config.chart.stacked) {
       for (let s = allSeries.length; s > 0; s--) {
         ret.add(allSeries[s - 1])
@@ -233,6 +239,10 @@ class Line {
     // el to which series will be drawn
     this.elSeries = graphics.group({
       class: `apexcharts-series`,
+      zIndex:
+        typeof w.config.series[realIndex].zIndex !== 'undefined'
+          ? w.config.series[realIndex].zIndex
+          : realIndex,
       seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
     })
 
