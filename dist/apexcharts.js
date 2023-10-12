@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.43.0
+ * ApexCharts v3.43.2-0
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -19970,18 +19970,14 @@
         var barXPosition;
 
         if (w.globals.isXNumeric) {
-          var sxI = realIndex;
-
-          if (!w.globals.seriesX[realIndex].length) {
-            sxI = w.globals.maxValsInArrayIndex;
-          }
-
-          if (w.globals.seriesX[sxI][j]) {
-            x = (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
-          } // re-calc barXPosition as x changed
-
-
-          barXPosition = x + barWidth * this.visibleI;
+          var xForNumericX = this.getBarXForNumericXAxis({
+            x: x,
+            j: j,
+            realIndex: realIndex,
+            barWidth: barWidth
+          });
+          x = xForNumericX.x;
+          barXPosition = xForNumericX.barXPosition;
         } else {
           if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
             var _this$barHelpers$getZ = this.barHelpers.getZeroValueEncounters({
@@ -20036,6 +20032,29 @@
           goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
           barXPosition: barXPosition,
           barWidth: barWidth
+        };
+      }
+    }, {
+      key: "getBarXForNumericXAxis",
+      value: function getBarXForNumericXAxis(_ref4) {
+        var x = _ref4.x,
+            barWidth = _ref4.barWidth,
+            realIndex = _ref4.realIndex,
+            j = _ref4.j;
+        var w = this.w;
+        var sxI = realIndex;
+
+        if (!w.globals.seriesX[realIndex].length) {
+          sxI = w.globals.maxValsInArrayIndex;
+        }
+
+        if (w.globals.seriesX[sxI][j]) {
+          x = (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
+        }
+
+        return {
+          barXPosition: x + barWidth * this.visibleI,
+          x: x
         };
       }
       /** getPreviousPath is a common function for bars/columns which is used to get previous paths when data changes.
@@ -23313,6 +23332,15 @@
 
         if (!w.globals.isXNumeric) {
           x = x + xDivision;
+        } else {
+          var xForNumericXAxis = this.getBarXForNumericXAxis({
+            x: x,
+            j: j,
+            realIndex: realIndex,
+            barWidth: barWidth
+          });
+          x = xForNumericXAxis.x;
+          barXPosition = xForNumericXAxis.barXPosition;
         }
 
         return {
@@ -23725,6 +23753,8 @@
     _createClass(Line, [{
       key: "draw",
       value: function draw(series, ctype, seriesIndex, seriesRangeEnd) {
+        var _w$config$series$;
+
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var type = w.globals.comboCharts ? ctype : w.config.chart.type;
@@ -23863,6 +23893,12 @@
           allSeries.push(this.elSeries);
         }
 
+        if (typeof ((_w$config$series$ = w.config.series[0]) === null || _w$config$series$ === void 0 ? void 0 : _w$config$series$.zIndex) !== 'undefined') {
+          allSeries.sort(function (a, b) {
+            return Number(a.node.getAttribute('zIndex')) - Number(b.node.getAttribute('zIndex'));
+          });
+        }
+
         if (w.config.chart.stacked) {
           for (var s = allSeries.length; s > 0; s--) {
             ret.add(allSeries[s - 1]);
@@ -23901,6 +23937,7 @@
 
         this.elSeries = graphics.group({
           class: "apexcharts-series",
+          zIndex: typeof w.config.series[realIndex].zIndex !== 'undefined' ? w.config.series[realIndex].zIndex : realIndex,
           seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex])
         }); // points
 
