@@ -724,13 +724,13 @@ class Line {
           ? xArrj.length === w.globals.dataPoints
           : j === series[i].length - 2
 
-      if (shouldRenderMonotone) {
-        const smoothInputs = xArrj
-          .map((_, i) => {
-            return [xArrj[i], yArrj[i]]
-          })
-          .filter((_) => _[1] !== null)
+      const smoothInputs = xArrj
+        .map((_, i) => {
+          return [xArrj[i], yArrj[i]]
+        })
+        .filter((_) => _[1] !== null)
 
+      if (shouldRenderMonotone && smoothInputs.length > 1) {
         const points = spline.points(smoothInputs)
 
         linePath += svgPath(points)
