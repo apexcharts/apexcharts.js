@@ -41,13 +41,21 @@ export default class Dimensions {
 
     this.lgRect = this.dimHelpers.getLegendsRect()
 
-    if (
-      this.isSparkline &&
-      (w.config.markers.discrete.length > 0 || w.config.markers.size > 0)
-    ) {
-      Object.entries(this.gridPad).forEach(([k, v]) => {
-        this.gridPad[k] = Math.max(v, this.w.globals.markers.largestSize / 1.5)
-      })
+    if (this.isSparkline) {
+      if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
+        Object.entries(this.gridPad).forEach(([k, v]) => {
+          this.gridPad[k] = Math.max(
+            v,
+            this.w.globals.markers.largestSize / 1.5
+          )
+        })
+      }
+
+      this.gridPad.top = Math.max(w.config.stroke.width / 2, this.gridPad.top)
+      this.gridPad.bottom = Math.max(
+        w.config.stroke.width / 2,
+        this.gridPad.bottom
+      )
     }
 
     if (gl.axisCharts) {
@@ -95,11 +103,11 @@ export default class Dimensions {
       // store the labels and titles coords in global vars
       w.globals.yLabelsCoords.push({
         width: yaxisLabelCoords[index].width,
-        index
+        index,
       })
       w.globals.yTitleCoords.push({
         width: yTitleCoords[index].width,
-        index
+        index,
       })
     })
 
@@ -148,7 +156,7 @@ export default class Dimensions {
     if (this.isSparkline) {
       this.lgRect = {
         height: 0,
-        width: 0
+        width: 0,
       }
     }
 

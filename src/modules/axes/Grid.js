@@ -131,7 +131,7 @@ class Grid {
       -strokeSize - barWidthLeft - 2,
       -strokeSize * 2 - 2,
       gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
-      gl.gridHeight + strokeSize * 2 + 4,
+      gl.gridHeight + strokeSize * 4 + 4,
       0,
       '#fff'
     )
