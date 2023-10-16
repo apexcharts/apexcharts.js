@@ -96,7 +96,7 @@ export default class Core {
     })
 
     gl.dom.Paper.node.style.background =
-      cnf.theme.mode === 'dark' && cnf.chart.background === 'transparent'
+      cnf.theme.mode === 'dark' && !cnf.chart.background
         ? 'rgba(0, 0, 0, 0.8)'
         : cnf.chart.background
 
