@@ -57,7 +57,7 @@ export default class Markers {
         class:
           alwaysDrawMarker || hasDiscreteMarkers
             ? ''
-            : 'apexcharts-series-markers'
+            : 'apexcharts-series-markers',
       })
 
       elPointsWrap.attr(
@@ -97,7 +97,7 @@ export default class Markers {
           let opts = this.getMarkerConfig({
             cssClass: PointClasses,
             seriesIndex,
-            dataPointIndex
+            dataPointIndex,
           })
 
           if (w.config.series[i].data[dataPointIndex]) {
@@ -119,8 +119,8 @@ export default class Markers {
           if (
             p.x[q] < 0 ||
             p.x[q] > w.globals.gridWidth ||
-            p.y[q] < 0 ||
-            p.y[q] > w.globals.gridHeight
+            p.y[q] < -w.globals.markers.largestSize ||
+            p.y[q] > w.globals.gridHeight + w.globals.markers.largestSize
           ) {
             opts.pSize = 0
           }
@@ -156,7 +156,7 @@ export default class Markers {
     cssClass,
     seriesIndex,
     dataPointIndex = null,
-    finishRadius = null
+    finishRadius = null,
   }) {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
@@ -203,7 +203,7 @@ export default class Markers {
       pointFillOpacity: Array.isArray(m.fillOpacity)
         ? m.fillOpacity[seriesIndex]
         : m.fillOpacity,
-      seriesIndex
+      seriesIndex,
     }
   }
 
@@ -249,7 +249,7 @@ export default class Markers {
 
     return {
       pointStrokeColor,
-      pointFillColor
+      pointFillColor,
     }
   }
 }
