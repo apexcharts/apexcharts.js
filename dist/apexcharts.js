@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.43.2-0
+ * ApexCharts v3.44.0
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -7172,7 +7172,7 @@
                 opts.pSize = pSize;
               }
 
-              if (p.x[q] < 0 || p.x[q] > w.globals.gridWidth || p.y[q] < 0 || p.y[q] > w.globals.gridHeight) {
+              if (p.x[q] < 0 || p.x[q] > w.globals.gridWidth || p.y[q] < -w.globals.markers.largestSize || p.y[q] > w.globals.gridHeight + w.globals.markers.largestSize) {
                 opts.pSize = 0;
               }
 
@@ -10183,7 +10183,7 @@
           }
         }
 
-        gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2 - barWidthLeft - 2, -strokeSize / 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize, 0, '#fff');
+        gl.dom.elGridRect = graphics.drawRect(-strokeSize - barWidthLeft - 2, -strokeSize * 2 - 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize * 4 + 4, 0, '#fff');
         var markerSize = w.globals.markers.largestSize + 1;
         gl.dom.elGridRectMarker = graphics.drawRect(-markerSize * 2, -markerSize * 2, gl.gridWidth + markerSize * 4, gl.gridHeight + markerSize * 4, 0, '#fff');
         gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node);
@@ -13583,14 +13583,19 @@
         var gl = w.globals;
         this.lgRect = this.dimHelpers.getLegendsRect();
 
-        if (this.isSparkline && (w.config.markers.discrete.length > 0 || w.config.markers.size > 0)) {
-          Object.entries(this.gridPad).forEach(function (_ref) {
-            var _ref2 = _slicedToArray(_ref, 2),
-                k = _ref2[0],
-                v = _ref2[1];
+        if (this.isSparkline) {
+          if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
+            Object.entries(this.gridPad).forEach(function (_ref) {
+              var _ref2 = _slicedToArray(_ref, 2),
+                  k = _ref2[0],
+                  v = _ref2[1];
 
-            _this.gridPad[k] = Math.max(v, _this.w.globals.markers.largestSize / 1.5);
-          });
+              _this.gridPad[k] = Math.max(v, _this.w.globals.markers.largestSize / 1.5);
+            });
+          }
+
+          this.gridPad.top = Math.max(w.config.stroke.width / 2, this.gridPad.top);
+          this.gridPad.bottom = Math.max(w.config.stroke.width / 2, this.gridPad.bottom);
         }
 
         if (gl.axisCharts) {
@@ -23630,15 +23635,24 @@
 
     for (var i = 0; i < points.length; i++) {
       var point = points[i];
+      var prevPoint = points[i - 1];
       var n = point.length;
+      var pn = prevPoint === null || prevPoint === void 0 ? void 0 : prevPoint.length;
 
-      if (n > 4) {
-        p += "C".concat(point[0], ", ").concat(point[1]);
+      if (i > 1 && Math.abs(point[n - 2] - prevPoint[pn - 2]) < 30) {
+        // fallback to quadratic curve if the x distance is too small
+        // or if the curve goes backward too much
+        p += "Q".concat(point[0], ", ").concat(point[1]);
         p += ", ".concat(point[2], ", ").concat(point[3]);
-        p += ", ".concat(point[4], ", ").concat(point[5]);
-      } else if (n > 2) {
-        p += "S".concat(point[0], ", ").concat(point[1]);
-        p += ", ".concat(point[2], ", ").concat(point[3]);
+      } else {
+        if (n > 4) {
+          p += "C".concat(point[0], ", ").concat(point[1]);
+          p += ", ".concat(point[2], ", ").concat(point[3]);
+          p += ", ".concat(point[4], ", ").concat(point[5]);
+        } else if (n > 2) {
+          p += "S".concat(point[0], ", ").concat(point[1]);
+          p += ", ".concat(point[2], ", ").concat(point[3]);
+        }
       }
     }
 
@@ -24387,13 +24401,13 @@
 
         if (curve === 'smooth') {
           var shouldRenderMonotone = type === 'rangeArea' ? xArrj.length === w.globals.dataPoints : j === series[i].length - 2;
+          var smoothInputs = xArrj.map(function (_, i) {
+            return [xArrj[i], yArrj[i]];
+          }).filter(function (_) {
+            return _[1] !== null;
+          });
 
-          if (shouldRenderMonotone) {
-            var smoothInputs = xArrj.map(function (_, i) {
-              return [xArrj[i], yArrj[i]];
-            }).filter(function (_) {
-              return _[1] !== null;
-            });
+          if (shouldRenderMonotone && smoothInputs.length > 1) {
             var points = spline.points(smoothInputs);
             linePath += svgPath(points);
 
@@ -26005,7 +26019,7 @@
           'xmlns:data': 'ApexChartsNS',
           transform: "translate(".concat(cnf.chart.offsetX, ", ").concat(cnf.chart.offsetY, ")")
         });
-        gl.dom.Paper.node.style.background = cnf.theme.mode === 'dark' && cnf.chart.background === 'transparent' ? 'rgba(0, 0, 0, 0.8)' : cnf.chart.background;
+        gl.dom.Paper.node.style.background = cnf.theme.mode === 'dark' && !cnf.chart.background ? 'rgba(0, 0, 0, 0.8)' : cnf.chart.background;
         this.setSVGDimensions(); // append foreignElement (legend's parent)
         // legend is kept in foreignElement to be included while exporting
         // removing foreignElement and creating legend through HTML will not render legend in export
@@ -26667,11 +26681,12 @@
         var w = this.w;
         var ser = w.config.series[i];
         return _objectSpread2(_objectSpread2({}, w.config.series[i]), {}, {
-          name: s.name ? s.name : ser && ser.name,
-          color: s.color ? s.color : ser && ser.color,
-          type: s.type ? s.type : ser && ser.type,
-          group: s.group ? s.group : ser && ser.group,
-          data: s.data ? s.data : ser && ser.data
+          name: s.name ? s.name : ser === null || ser === void 0 ? void 0 : ser.name,
+          color: s.color ? s.color : ser === null || ser === void 0 ? void 0 : ser.color,
+          type: s.type ? s.type : ser === null || ser === void 0 ? void 0 : ser.type,
+          group: s.group ? s.group : ser === null || ser === void 0 ? void 0 : ser.group,
+          data: s.data ? s.data : ser === null || ser === void 0 ? void 0 : ser.data,
+          zIndex: typeof s.zIndex !== 'undefined' ? s.zIndex : i
         });
       }
     }, {
