@@ -359,6 +359,17 @@ export default class Labels {
 
     if (shared && ttItemsChildren[0]) {
       // hide when no Val or series collapsed
+      if (w.config.tooltip.hideEmptyShared) {
+        let ttItemMarker = ttItems[t].querySelector('.apexcharts-tooltip-marker');
+        let ttItemText = ttItems[t].querySelector('.apexcharts-tooltip-text');
+        if (parseFloat(val) == 0) {
+          ttItemMarker.style.display = 'none';
+          ttItemText.style.display = 'none';
+        } else {
+          ttItemMarker.style.display = 'block';
+          ttItemText.style.display = 'block';
+        }
+      }
       if (
         typeof val === 'undefined' ||
         val === null ||
