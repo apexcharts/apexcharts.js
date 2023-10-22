@@ -554,12 +554,18 @@ class Range {
             stackedPoss[group][j] = 0
             stackedNegs[group][j] = 0
           }
+          let stackSeries =
+            !this.w.config.chart.stackOnlyBar ||
+            (gl.series[i] && gl.series[i].type && gl.series[i].type === 'bar')
 
-          if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
-            gl.series[i][j] > 0
-              ? (stackedPoss[group][j] += parseFloat(gl.series[i][j]) + 0.0001)
-              : (stackedNegs[group][j] += parseFloat(gl.series[i][j]))
+          if (stackSeries) {
+            if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
+              gl.series[i][j] > 0
+                ? (stackedPoss[group][j] += parseFloat(gl.series[i][j]) + 0.0001)
+                : (stackedNegs[group][j] += parseFloat(gl.series[i][j]))
+            }
           }
+
         }
       })
     })
