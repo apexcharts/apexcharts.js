@@ -513,10 +513,7 @@ class Line {
     let stackSeries =
       w.config.chart.stacked &&
       (!this.w.config.chart.stackOnlyBar ||
-        (this.w.config.series[realIndex] &&
-          this.w.config.series[realIndex].type &&
-          (this.w.config.series[realIndex].type === 'bar' ||
-            this.w.config.series[realIndex].type === '')))
+        this.w.config.series[realIndex]?.type === 'bar')
 
     for (let j = 0; j < iterations; j++) {
       const isNull =
