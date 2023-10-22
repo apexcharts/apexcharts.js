@@ -270,14 +270,22 @@ export default class ZoomPanSelection extends Toolbar {
           w.config.chart.selection.xaxis.min !== undefined &&
           w.config.chart.selection.xaxis.max !== undefined
         ) {
-          const x =
+          let x =
             (w.config.chart.selection.xaxis.min - w.globals.minX) /
             xyRatios.xRatio
-          const width =
+          let width =
             w.globals.gridWidth -
             (w.globals.maxX - w.config.chart.selection.xaxis.max) /
               xyRatios.xRatio -
             x
+          if (w.globals.isRangeBar) {                                           // rangebars put datetime data in y axis
+            x =                                                           // calculation: (selection left time - chart left time) / milliseconds per pixel = selection X value in pixels
+              (w.config.chart.selection.xaxis.min - w.globals.yAxisScale[0].niceMin) / 
+              xyRatios.invertedYRatio
+            width =
+              (w.config.chart.selection.xaxis.max - w.config.chart.selection.xaxis.min) / 
+              xyRatios.invertedYRatio
+          }
           let selectionRect = {
             x,
             y: 0,
@@ -459,20 +467,34 @@ export default class ZoomPanSelection extends Toolbar {
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
         const gridRectDim = this.gridRect.getBoundingClientRect()
         const selectionRect = selRect.node.getBoundingClientRect()
+        
+        let minX, maxX, minY, maxY;
+        
+        if (!w.globals.isRangeBar) {                                            // original code is in the IF. rangeBar exception is in the ELSE.
+          minX =
+            w.globals.xAxisScale.niceMin +
+            (selectionRect.left - gridRectDim.left) * xyRatios.xRatio
+          maxX =
+            w.globals.xAxisScale.niceMin +
+            (selectionRect.right - gridRectDim.left) * xyRatios.xRatio
 
-        const minX =
-          w.globals.xAxisScale.niceMin +
-          (selectionRect.left - gridRectDim.left) * xyRatios.xRatio
-        const maxX =
-          w.globals.xAxisScale.niceMin +
-          (selectionRect.right - gridRectDim.left) * xyRatios.xRatio
+          minY =
+            w.globals.yAxisScale[0].niceMin +
+            (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0]
+          maxY =
+            w.globals.yAxisScale[0].niceMax -
+            (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0]
+        } else {                                                                // rangeBars use x as the category, and y as the datetime data. // find data in y axis and use Y ratio
+          minX =
+            w.globals.yAxisScale[0].niceMin +                                   
+            (selectionRect.left - gridRectDim.left) * xyRatios.invertedYRatio   
+          maxX =
+            w.globals.yAxisScale[0].niceMin +
+            (selectionRect.right - gridRectDim.left) * xyRatios.invertedYRatio;
 
-        const minY =
-          w.globals.yAxisScale[0].niceMin +
-          (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0]
-        const maxY =
-          w.globals.yAxisScale[0].niceMax -
-          (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0]
+          minY = 0                                                        // there is no y min/max with rangebars (it uses categories, not numeric data), so use dummy values
+          maxY = 1
+        }
 
         const xyAxis = {
           xaxis: {
