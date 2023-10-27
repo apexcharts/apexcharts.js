@@ -62,7 +62,7 @@ class Graphics {
     function moveTowardsFractional(movingPoint, targetPoint, fraction) {
       return {
         x: movingPoint.x + (targetPoint.x - movingPoint.x) * fraction,
-        y: movingPoint.y + (targetPoint.y - movingPoint.y) * fraction
+        y: movingPoint.y + (targetPoint.y - movingPoint.y) * fraction,
       }
     }
 
@@ -78,12 +78,12 @@ class Graphics {
     function pointForCommand(cmd) {
       return {
         x: parseFloat(cmd[cmd.length - 2]),
-        y: parseFloat(cmd[cmd.length - 1])
+        y: parseFloat(cmd[cmd.length - 1]),
       }
     }
 
     // Split apart the path, handing concatonated letters and numbers
-    var pathParts = pathString.split(/[,\s]/).reduce(function(parts, part) {
+    var pathParts = pathString.split(/[,\s]/).reduce(function (parts, part) {
       var match = part.match('([a-zA-Z])(.+)')
       if (match) {
         parts.push(match[1])
@@ -96,7 +96,7 @@ class Graphics {
     }, [])
 
     // Group the commands with their arguments for easier handling
-    var commands = pathParts.reduce(function(commands, part) {
+    var commands = pathParts.reduce(function (commands, part) {
       if (parseFloat(part) == part && commands.length) {
         commands[commands.length - 1].push(part)
       } else {
@@ -169,7 +169,7 @@ class Graphics {
             endControl.x,
             endControl.y,
             curveEnd.x,
-            curveEnd.y
+            curveEnd.y,
           ]
           // Save the original point for fractional calculations
           curveCmd.origPoint = curPoint
@@ -192,7 +192,7 @@ class Graphics {
       resultCommands = commands
     }
 
-    return resultCommands.reduce(function(str, c) {
+    return resultCommands.reduce(function (str, c) {
       return str + c.join(' ') + ' '
     }, '')
   }
@@ -216,7 +216,7 @@ class Graphics {
       stroke: lineColor,
       'stroke-dasharray': dashArray,
       'stroke-width': strokeWidth,
-      'stroke-linecap': strokeLineCap
+      'stroke-linecap': strokeLineCap,
     })
 
     return line
@@ -247,7 +247,7 @@ class Graphics {
       opacity,
       'stroke-width': strokeWidth !== null ? strokeWidth : 0,
       stroke: strokeColor !== null ? strokeColor : 'none',
-      'stroke-dasharray': strokeDashArray
+      'stroke-dasharray': strokeDashArray,
     })
 
     // fix apexcharts.js#1410
@@ -266,7 +266,7 @@ class Graphics {
     const polygon = w.globals.dom.Paper.polygon(polygonString).attr({
       fill,
       stroke,
-      'stroke-width': strokeWidth
+      'stroke-width': strokeWidth,
     })
 
     return polygon
@@ -292,7 +292,7 @@ class Graphics {
     strokeOpacity = 1,
     classes,
     strokeLinecap = null,
-    strokeDashArray = 0
+    strokeDashArray = 0,
   }) {
     let w = this.w
 
@@ -311,7 +311,7 @@ class Graphics {
       'stroke-linecap': strokeLinecap,
       'stroke-width': strokeWidth,
       'stroke-dasharray': strokeDashArray,
-      class: classes
+      class: classes,
     })
 
     return p
@@ -394,7 +394,7 @@ class Graphics {
     className,
     shouldClipToGrid = true,
     bindEventsOnPaths = true,
-    drawShadow = true
+    drawShadow = true,
   }) {
     let w = this.w
     const filters = new Filters(this.ctx)
@@ -433,14 +433,14 @@ class Graphics {
       fillOpacity: 1,
       classes: className,
       strokeLinecap,
-      strokeDashArray
+      strokeDashArray,
     })
 
     el.attr('index', realIndex)
 
     if (shouldClipToGrid) {
       el.attr({
-        'clip-path': `url(#gridRectMask${w.globals.cuid})`
+        'clip-path': `url(#gridRectMask${w.globals.cuid})`,
       })
     }
 
@@ -469,7 +469,7 @@ class Graphics {
 
     el.attr({
       pathTo,
-      pathFrom
+      pathFrom,
     })
 
     const defaultAnimateOpts = {
@@ -480,13 +480,13 @@ class Graphics {
       pathTo,
       fill,
       strokeWidth,
-      delay: animationDelay
+      delay: animationDelay,
     }
 
     if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
       anim.animatePathsGradually({
         ...defaultAnimateOpts,
-        speed: initialSpeed
+        speed: initialSpeed,
       })
     } else {
       if (w.globals.resized || !w.globals.dataChanged) {
@@ -497,7 +497,7 @@ class Graphics {
     if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
       anim.animatePathsGradually({
         ...defaultAnimateOpts,
-        speed: dataChangeSpeed
+        speed: dataChangeSpeed,
       })
     }
 
@@ -623,7 +623,7 @@ class Graphics {
           gradientUnits: 'userSpaceOnUse',
           cx: offx,
           cy: offy,
-          r: size
+          r: size,
         })
       } else {
         g.attr({
@@ -631,7 +631,7 @@ class Graphics {
           cy: 0.5,
           r: 0.8,
           fx: 0.2,
-          fy: 0.2
+          fy: 0.2,
         })
       }
     }
@@ -661,7 +661,8 @@ class Graphics {
     opacity,
     maxWidth,
     cssClass = '',
-    isPlainText = true
+    isPlainText = true,
+    dominantBaseline = 'auto',
   }) {
     let w = this.w
 
@@ -682,7 +683,7 @@ class Graphics {
     const commonProps = {
       maxWidth,
       fontSize,
-      fontFamily
+      fontFamily,
     }
     let elText
     if (Array.isArray(text)) {
@@ -692,7 +693,7 @@ class Graphics {
           if (maxWidth) {
             truncatedText = this.getTextBasedOnMaxWidth({
               text: text[i],
-              ...commonProps
+              ...commonProps,
             })
           }
           i === 0
@@ -704,7 +705,7 @@ class Graphics {
       if (maxWidth) {
         truncatedText = this.getTextBasedOnMaxWidth({
           text,
-          ...commonProps
+          ...commonProps,
         })
       }
       elText = isPlainText
@@ -716,12 +717,12 @@ class Graphics {
       x,
       y,
       'text-anchor': textAnchor,
-      'dominant-baseline': 'auto',
+      'dominant-baseline': dominantBaseline,
       'font-size': fontSize,
       'font-family': fontFamily,
       'font-weight': fontWeight,
       fill: foreColor,
-      class: 'apexcharts-text ' + cssClass
+      class: 'apexcharts-text ' + cssClass,
     })
 
     elText.node.style.fontFamily = fontFamily
@@ -758,7 +759,7 @@ class Graphics {
         'fill-opacity': opts.pointFillOpacity ? opts.pointFillOpacity : 1,
         stroke: opts.pointStrokeColor,
         'stroke-width': opts.pointStrokeWidth ? opts.pointStrokeWidth : 0,
-        'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
+        'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1,
       })
 
       elPoint = p
@@ -778,7 +779,7 @@ class Graphics {
         fill: opts.pointFillColor,
         'fill-opacity': opts.pointFillOpacity ? opts.pointFillOpacity : 1,
         'stroke-width': opts.pointStrokeWidth ? opts.pointStrokeWidth : 0,
-        'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1
+        'stroke-opacity': opts.pointStrokeOpacity ? opts.pointStrokeOpacity : 1,
       })
     }
 
@@ -796,13 +797,13 @@ class Graphics {
       w.config.chart.events.dataPointMouseEnter(e, this.ctx, {
         seriesIndex: i,
         dataPointIndex: j,
-        w
+        w,
       })
     }
     this.ctx.events.fireEvent('dataPointMouseEnter', [
       e,
       this.ctx,
-      { seriesIndex: i, dataPointIndex: j, w }
+      { seriesIndex: i, dataPointIndex: j, w },
     ])
 
     if (w.config.states.active.filter.type !== 'none') {
@@ -830,13 +831,13 @@ class Graphics {
       w.config.chart.events.dataPointMouseLeave(e, this.ctx, {
         seriesIndex: i,
         dataPointIndex: j,
-        w
+        w,
       })
     }
     this.ctx.events.fireEvent('dataPointMouseLeave', [
       e,
       this.ctx,
-      { seriesIndex: i, dataPointIndex: j, w }
+      { seriesIndex: i, dataPointIndex: j, w },
     ])
 
     if (w.config.states.active.filter.type !== 'none') {
@@ -871,8 +872,9 @@ class Graphics {
         w.globals.selectedDataPoints.length > 0
       ) {
         w.globals.selectedDataPoints = []
-        const elPaths = w.globals.dom.Paper.select('.apexcharts-series path')
-          .members
+        const elPaths = w.globals.dom.Paper.select(
+          '.apexcharts-series path'
+        ).members
         const elCircles = w.globals.dom.Paper.select(
           '.apexcharts-series circle, .apexcharts-series rect'
         ).members
@@ -929,7 +931,7 @@ class Graphics {
         selectedDataPoints: w.globals.selectedDataPoints,
         seriesIndex: i,
         dataPointIndex: j,
-        w
+        w,
       })
     }
 
@@ -941,8 +943,8 @@ class Graphics {
           selectedDataPoints: w.globals.selectedDataPoints,
           seriesIndex: i,
           dataPointIndex: j,
-          w
-        }
+          w,
+        },
       ])
     }
   }
@@ -957,7 +959,7 @@ class Graphics {
 
     return {
       x,
-      y
+      y,
     }
   }
 
@@ -979,7 +981,7 @@ class Graphics {
       fontSize,
       fontFamily,
       foreColor: '#fff',
-      opacity: 0
+      opacity: 0,
     })
 
     if (transform) {
@@ -996,7 +998,7 @@ class Graphics {
 
     return {
       width: rect.width,
-      height: rect.height
+      height: rect.height,
     }
   }
 

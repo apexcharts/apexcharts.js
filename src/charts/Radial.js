@@ -30,6 +30,8 @@ class Radial extends Pie {
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
     this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle
 
+    this.barLabels = this.w.config.plotOptions.radialBar.barLabels
+
     this.donutDataLabels = this.w.config.plotOptions.radialBar.dataLabels
     this.radialDataLabels = this.donutDataLabels // make a copy for easy reference
 
@@ -39,6 +41,7 @@ class Radial extends Pie {
     if (this.endAngle === 360) this.endAngle = 359.99
 
     this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10)
+    this.onBarLabelClick = this.onBarLabelClick.bind(this)
   }
 
   draw(series) {
@@ -46,7 +49,7 @@ class Radial extends Pie {
     const graphics = new Graphics(this.ctx)
 
     let ret = graphics.group({
-      class: 'apexcharts-radialbar'
+      class: 'apexcharts-radialbar',
     })
 
     if (w.globals.noData) return ret
@@ -68,7 +71,7 @@ class Radial extends Pie {
         centerX,
         centerY,
         colorArr,
-        series
+        series,
       })
       elSeries.add(elTracks)
     }
@@ -78,7 +81,7 @@ class Radial extends Pie {
       centerX,
       centerY,
       colorArr,
-      series
+      series,
     })
 
     let totalAngle = 360
@@ -117,7 +120,7 @@ class Radial extends Pie {
     const graphics = new Graphics(this.ctx)
 
     let g = graphics.group({
-      class: 'apexcharts-tracks'
+      class: 'apexcharts-tracks',
     })
 
     let filters = new Filters(this.ctx)
@@ -129,12 +132,12 @@ class Radial extends Pie {
 
     for (let i = 0; i < opts.series.length; i++) {
       let elRadialBarTrack = graphics.group({
-        class: 'apexcharts-radialbar-track apexcharts-track'
+        class: 'apexcharts-radialbar-track apexcharts-track',
       })
       g.add(elRadialBarTrack)
 
       elRadialBarTrack.attr({
-        rel: i + 1
+        rel: i + 1,
       })
 
       opts.size = opts.size - strokeWidth - this.margin
@@ -146,7 +149,7 @@ class Radial extends Pie {
         fillColors: Array.isArray(trackConfig.background)
           ? trackConfig.background[i]
           : trackConfig.background,
-        solid: true
+        solid: true,
       })
 
       let startAngle = this.trackStartAngle
@@ -162,7 +165,7 @@ class Radial extends Pie {
           (strokeWidth * parseInt(trackConfig.strokeWidth, 10)) / 100,
         fill: 'none',
         strokeOpacity: trackConfig.opacity,
-        classes: 'apexcharts-radialbar-area'
+        classes: 'apexcharts-radialbar-area',
       })
 
       if (trackConfig.dropShadow.enabled) {
@@ -185,7 +188,7 @@ class Radial extends Pie {
         animBeginArr: 0,
         dur: 0,
         isTrack: true,
-        easing: w.globals.easing
+        easing: w.globals.easing,
       })
     }
 
@@ -224,7 +227,7 @@ class Radial extends Pie {
       size: hollowRadius,
       centerX: opts.centerX,
       centerY: opts.centerY,
-      fill: hollowFillID ? hollowFillID : 'transparent'
+      fill: hollowFillID ? hollowFillID : 'transparent',
     })
 
     if (w.config.plotOptions.radialBar.hollow.dropShadow.enabled) {
@@ -244,7 +247,7 @@ class Radial extends Pie {
         hollowSize,
         centerX: opts.centerX,
         centerY: opts.centerY,
-        opacity: shown
+        opacity: shown,
       })
     }
 
@@ -267,13 +270,13 @@ class Radial extends Pie {
     ) {
       let elRadialBarArc = graphics.group({
         class: `apexcharts-series apexcharts-radial-series`,
-        seriesName: Utils.escapeString(w.globals.seriesNames[i])
+        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
       })
       g.add(elRadialBarArc)
 
       elRadialBarArc.attr({
         rel: i + 1,
-        'data:realIndex': i
+        'data:realIndex': i,
       })
 
       this.ctx.series.addCollapsedClassToSeries(elRadialBarArc, i)
@@ -283,7 +286,7 @@ class Radial extends Pie {
       let pathFill = fill.fillPath({
         seriesNumber: i,
         size: opts.size,
-        value: opts.series[i]
+        value: opts.series[i],
       })
 
       let startAngle = this.startAngle
@@ -328,12 +331,12 @@ class Radial extends Pie {
         fill: 'none',
         fillOpacity: w.config.fill.opacity,
         classes: 'apexcharts-radialbar-area apexcharts-radialbar-slice-' + i,
-        strokeDashArray: dashArray
+        strokeDashArray: dashArray,
       })
 
       Graphics.setAttrs(elPath.node, {
         'data:angle': angle,
-        'data:value': opts.series[i]
+        'data:value': opts.series[i],
       })
 
       if (w.config.chart.dropShadow.enabled) {
@@ -348,8 +351,63 @@ class Radial extends Pie {
 
       elPath.attr({
         index: 0,
-        j: i
+        j: i,
       })
+
+      if (this.barLabels.enabled) {
+        let barStartCords = Utils.polarToCartesian(
+          opts.centerX,
+          opts.centerY,
+          opts.size,
+          startAngle
+        )
+        let text = this.barLabels.formatter(w.globals.seriesNames[i], {
+          seriesIndex: i,
+          w,
+        })
+        let classes = ['apexcharts-radialbar-label']
+        if (!this.barLabels.onClick) {
+          classes.push('apexcharts-no-click')
+        }
+
+        let textColor = this.barLabels.useSeriesColors
+          ? w.globals.colors[i]
+          : w.config.chart.foreColor
+
+        if (!textColor) {
+          textColor = w.config.chart.foreColor
+        }
+
+        const x = barStartCords.x - this.barLabels.margin
+        const y = barStartCords.y
+        let elText = graphics.drawText({
+          x,
+          y,
+          text,
+          textAnchor: 'end',
+          dominantBaseline: 'middle',
+          fontFamily: this.barLabels.fontFamily,
+          fontWeight: this.barLabels.fontWeight,
+          fontSize: this.barLabels.fontSize,
+          foreColor: textColor,
+          cssClass: classes.join(' '),
+        })
+
+        elText.on('click', this.onBarLabelClick)
+
+        elText.attr({
+          rel: i + 1,
+        })
+
+        if (startAngle !== 0) {
+          elText.attr({
+            'transform-origin': `${x} ${y}`,
+            transform: `rotate(${startAngle} 0 0)`,
+          })
+        }
+
+        elRadialBarArc.add(elText)
+      }
 
       let dur = 0
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -375,14 +433,14 @@ class Radial extends Pie {
         animBeginArr: this.animBeginArr,
         dur,
         shouldSetPrevPaths: true,
-        easing: w.globals.easing
+        easing: w.globals.easing,
       })
     }
 
     return {
       g,
       elHollow,
-      dataLabels
+      dataLabels,
     }
   }
 
@@ -396,7 +454,7 @@ class Radial extends Pie {
       cx: opts.centerX,
       cy: opts.centerY,
       r: opts.size,
-      fill: opts.fill
+      fill: opts.fill,
     })
 
     return circle
@@ -414,14 +472,14 @@ class Radial extends Pie {
         width: hollowSize,
         height: hollowSize,
         image: hollowFillImg,
-        patternID: `pattern${w.globals.cuid}${randID}`
+        patternID: `pattern${w.globals.cuid}${randID}`,
       })
       hollowFillID = `url(#pattern${w.globals.cuid}${randID})`
     } else {
       const imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth
       const imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight
       if (imgWidth === undefined && imgHeight === undefined) {
-        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function(
+        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (
           loader
         ) {
           this.move(
@@ -435,7 +493,7 @@ class Radial extends Pie {
         })
         g.add(image)
       } else {
-        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function(
+        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (
           loader
         ) {
           this.move(
@@ -463,6 +521,16 @@ class Radial extends Pie {
         (opts.series.length + 1) -
       this.margin
     )
+  }
+
+  onBarLabelClick(e) {
+    let seriesIndex = parseInt(e.target.getAttribute('rel'), 10) - 1
+    const legendClick = this.barLabels.onClick
+    const w = this.w
+
+    if (legendClick) {
+      legendClick(w.globals.seriesNames[seriesIndex], { w, seriesIndex })
+    }
   }
 }
 

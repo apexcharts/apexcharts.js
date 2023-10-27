@@ -576,6 +576,18 @@ export default class Options {
               },
             },
           },
+          barLabels: {
+            enabled: false,
+            margin: 5,
+            useSeriesColors: true,
+            fontFamily: undefined,
+            fontWeight: 600,
+            fontSize: '16px',
+            formatter(val) {
+              return val
+            },
+            onClick: undefined,
+          },
         },
         pie: {
           customScale: 1,

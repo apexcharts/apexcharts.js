@@ -743,6 +743,16 @@ type ApexPlotOptions = {
         formatter?(opts: any): string
       }
     }
+    barLabels?: {
+      enabled?: boolean
+      margin?: number
+      useSeriesColors?: boolean
+      fontFamily?: string
+      fontWeight?: string | number
+      fontSize?: string
+      formatter?: (barName: string, opts?: any) => string
+      onClick?: (barName: string, opts?: any) => void
+    }
   }
 }
 

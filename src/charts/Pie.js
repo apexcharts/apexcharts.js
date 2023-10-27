@@ -717,7 +717,7 @@ class Pie {
       path = [...pathBeginning].join(' ')
     }
 
-    return graphics.roundPathCorners(path, this.strokeWidth)
+    return graphics.roundPathCorners(path, this.strokeWidth * 2)
   }
 
   drawPolarElements(parent) {
