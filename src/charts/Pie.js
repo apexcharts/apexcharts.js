@@ -647,6 +647,7 @@ class Pie {
 
   getPiePath({ me, startAngle, angle, size }) {
     let path
+    const graphics = new Graphics(this.ctx)
 
     let startDeg = startAngle
     let startRadians = (Math.PI * (startDeg - 90)) / 180
@@ -716,7 +717,7 @@ class Pie {
       path = [...pathBeginning].join(' ')
     }
 
-    return path
+    return graphics.roundPathCorners(path, this.strokeWidth)
   }
 
   drawPolarElements(parent) {
