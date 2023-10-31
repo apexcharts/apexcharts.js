@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Brush with range bars</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #wrapper {
+      padding-top: 20px;
+      padding-left: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    <script>
+       
+  function generateTimeRangeData(label, startDate, endDate, count) {
+    var points = []; // random points between start and end date
+    var series = []; // series between points 1 and 2, 3 and 4 etc
+    
+    // Generate random points
+    for (var i = 0; i < count; i++) {
+      points.push(new Date(
+        startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime())
+      ));
+    }
+  
+    // Sort the points in ascending order
+    points.sort((a, b) => a - b);
+  
+    // Create ranges
+    for (var i = 0; i < points.length; i += 2) {
+      if (i + 1 < points.length) {
+        var startDateTime = points[i];
+        var endDateTime = points[i + 1];
+        series.push({
+          x: label,
+          y: [startDateTime.getTime(), endDateTime.getTime()],
+        });
+      }
+    }
+  
+    return series;
+  }
+  
+  var startDate = new Date("2023-10-01T00:00:00.000Z");
+  var endDate = new Date("2023-10-30T00:00:00.000Z");
+  
+  var event1Series = generateTimeRangeData("event 1", startDate, endDate, 60);
+  var event2Series = generateTimeRangeData("event 2", startDate, endDate, 50);
+  var event3Series = generateTimeRangeData("event 3", startDate, endDate, 40);
+  
+  var dataSeries = [{ data: event1Series }, { data: event2Series }, { data: event3Series }]
+  
+  var barColors = ['#008ffb', '#00e396', '#feb019']
+  
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="wrapper">
+      <div id="chart-TopChart">
+      <apexchart type="rangeBar" height="230" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      <div id="chart-BrushChart">
+      <apexchart type="rangeBar" height="100" :options="chartOptionsBrushChart" :series="seriesBrushChart"></apexchart>
+    </div>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;wrapper&quot;&gt;
+        &lt;div id=&quot;chart-TopChart&quot;&gt;
+        &lt;apexchart type=&quot;rangeBar&quot; height=&quot;230&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;div id=&quot;chart-BrushChart&quot;&gt;
+        &lt;apexchart type=&quot;rangeBar&quot; height=&quot;100&quot; :options=&quot;chartOptionsBrushChart&quot; :series=&quot;seriesBrushChart&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: dataSeries,
+          chartOptions: {
+            chart: {
+              height: 230,
+              type: 'rangeBar',
+              id: 'TopChart',
+              toolbar: {
+                show: false,
+              },
+              zoom: {
+                enabled: false,
+              },
+            },
+            
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                barHeight: '50%',
+                borderRadius: 2,
+                rangeBarGroupRows: true
+              }
+            },
+            
+            xaxis: {
+              type: 'datetime',
+              tooltip: {
+                enabled: false,
+              },
+            },
+            
+            colors: barColors,
+            
+            fill: {
+              type: 'solid',
+              opacity: 0.5,
+            },
+            
+            stroke: {
+              show: true,
+              width: 2,
+            },
+            
+            dataLabels: {
+              enabled: false,
+            },
+            
+            tooltip: {
+              enabled: true,
+              x: {
+                show: true,
+                formatter: function (value, opts) {
+                  if (typeof value === 'number') {
+                    var d = new Date(value)
+                    const timeLabel = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+                    return timeLabel;
+                  }
+                  return value;
+                }
+              },
+            },
+            
+            legend: {
+              show: false,
+            }
+          },
+          
+          seriesBrushChart: dataSeries,
+          chartOptionsBrushChart: {
+            chart: {
+              height: 100,
+              type: 'rangeBar',
+              id: 'BrushChart',
+              brush: {
+                target: 'TopChart',
+                enabled: true
+              },
+              toolbar: {
+                show: false,
+              },
+              selection: {
+                enabled: true,
+                type: 'x',
+                xaxis: {
+                  min: new Date("2023-10-25T00:00:00.000Z").getTime(),
+                  max: new Date("2023-10-30T00:00:00.000Z").getTime(),
+                }
+              },
+            },
+            
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                barHeight: '50%',
+                rangeBarGroupRows: true
+              }
+            },
+            
+            xaxis: {
+              type: 'datetime',
+              min: new Date("2023-10-01T00:00:00.000Z").getTime(),
+              max: new Date("2023-10-30T00:00:00.000Z").getTime(),
+              tooltip: {
+                enabled: false,
+              },
+            },
+            
+            yaxis: {
+              labels: {
+                style: {
+                  colors: ['#fff', '#fff', '#fff'], // just hiding the labels here
+                }
+              },
+            },
+            
+            colors: barColors,
+            
+            fill: {
+              type: 'solid',
+              opacity: 0.5,
+            },
+            
+            stroke: {
+              show: true,
+              width: 1,
+            },
+            
+            dataLabels: {
+              enabled: false,
+            },
+            
+            tooltip: {
+              enabled: true,
+              x: {
+                show: true,
+              },
+            },
+            
+            legend: {
+              show: false,
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>
