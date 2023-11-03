@@ -310,6 +310,7 @@ export default class Options {
         redrawOnWindowResize: true,
         id: undefined,
         group: undefined,
+        nonce: undefined,
         offsetX: 0,
         offsetY: 0,
         selection: {
