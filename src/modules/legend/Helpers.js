@@ -10,6 +10,10 @@ export default class Helpers {
   getLegendStyles() {
     let stylesheet = document.createElement('style')
     stylesheet.setAttribute('type', 'text/css')
+    const nonce = this.lgCtx.ctx?.opts?.chart?.nonce || this.w.config.chart.nonce;
+    if (nonce) {
+      stylesheet.setAttribute('nonce', nonce);
+    }
 
     const text = `	
     	

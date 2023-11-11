@@ -84,6 +84,10 @@ export default class ApexCharts {
             this.css = document.createElement('style')
             this.css.id = 'apexcharts-css'
             this.css.textContent = apexCSS
+            const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce;
+            if (nonce) {
+              this.css.setAttribute('nonce', nonce);
+            }
 
             if (inShadowRoot) {
               // We are in Shadow DOM, add to shadow root
