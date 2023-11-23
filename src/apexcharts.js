@@ -108,6 +108,9 @@ export default class ApexCharts {
             }
 
             this.events.fireEvent('mounted', [this, this.w])
+
+            this._hideHiddenAtStart()
+
             resolve(graphData)
           })
           .catch((e) => {
@@ -775,5 +778,14 @@ export default class ApexCharts {
     }
 
     redraw && this._windowResize()
+  }
+
+  _hideHiddenAtStart() {
+    let series = this.series;
+    this.w.config.series.forEach((ser) => {
+      if(ser.hiddenAtStart && ser.name) {
+        series.hideSeries(ser.name)
+      }
+    });
   }
 }
