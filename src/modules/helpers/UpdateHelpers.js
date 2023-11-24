@@ -134,19 +134,14 @@ export default class UpdateHelpers {
         this.ctx.series.getPreviousPaths()
       }
 
-      let existingSeries
+      if (w.globals.axisCharts && w.config.chart.type !== "rangeArea") {
+        // axis charts exclude rangeArea
+        w.config.series = newSeries.length ? (
+          newSeries.map((s, i) => this._extendSeries(s, i))
+        ) : [{ data: [] }]
+      }
 
-      // axis charts
-      if (w.globals.axisCharts) {
-        existingSeries = newSeries.map((s, i) => {
-          return this._extendSeries(s, i)
-        })
-
-        if (existingSeries.length === 0) {
-          existingSeries = [{ data: [] }]
-        }
-        w.config.series = existingSeries
-      } else {
+      if (!w.globals.axisCharts) {
         // non-axis chart (pie/radialbar)
         w.config.series = newSeries.slice()
       }
