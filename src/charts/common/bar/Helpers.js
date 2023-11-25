@@ -230,6 +230,8 @@ export default class Helpers {
       fillConfig: w.config.series[i].data[j]?.fill,
       fillType: w.config.series[i].data[j]?.fill?.type
         ? w.config.series[i].data[j]?.fill.type
+        : Array.isArray(w.config.fill.type)
+        ? w.config.fill.type[i]
         : w.config.fill.type,
     })
 
