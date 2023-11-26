@@ -52,7 +52,6 @@ export default class HeatMap {
       rev = true
       heatSeries.reverse()
     }
-    console.log(heatSeries, 'heatSeries')
 
     for (
       let i = rev ? 0 : heatSeries.length - 1;
