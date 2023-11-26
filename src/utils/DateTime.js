@@ -18,7 +18,6 @@ class DateTime {
   }
 
   isValidDate(date) {
-    console.log(typeof date)
     if (typeof date === 'number') {
       return false // don't test for timestamps
     }
