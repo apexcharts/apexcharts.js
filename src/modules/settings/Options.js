@@ -410,6 +410,7 @@ export default class Options {
           barHeight: '70%', // should be in percent 0 - 100
           distributed: false,
           borderRadius: 0,
+          //LOOKHERE
           borderRadiusApplication: 'around', // [around, end]
           borderRadiusWhenStacked: 'last', // [all, last]
           rangeBarOverlap: true,

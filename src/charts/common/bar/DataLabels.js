@@ -561,7 +561,7 @@ export default class BarDataLabels {
         this.barCtx.barOptions.dataLabels.hideOverflowingLabels
       ) {
         // if there is not enough space to draw the label in the bar/column rect, check hideOverflowingLabels property to prevent overflowing on wrong rect
-        // Note: This issue is only seen in stacked charts
+        // Note: This issue is only seen in  charts
         if (this.barCtx.isHorizontal) {
           if (textRects.width / 1.6 > Math.abs(barWidth)) {
             text = ''

@@ -256,7 +256,8 @@ export default class Helpers {
     }
     return strokeWidth
   }
-
+  
+  //LOOKHERE
   shouldApplyRadius(realIndex) {
     const w = this.w
     let applyRadius = false
