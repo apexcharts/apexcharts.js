@@ -1,0 +1,34 @@
+//The blow is a front end rendering of a practice graph for group members to use in their new project local dev environment
+//After the backend is complete, the user should be able to add "both" as a parameter and the graph will only apply a radius to the first and last bar
+import ApexCharts from 'apexcharts';
+
+const options = {
+    chart: {
+        type: "bar",
+        stacked: true,
+        // Move radius property outside plotOptions
+        radius: true,
+    },
+    plotOptions: {
+        bar: {
+            borderRadius: 5,
+            borderRadiusApplication: 'end', // 'around', 'end'
+            borderRadiusWhenStacked: 'all', // 'all', 'last'
+            horizontal: true,
+        },
+    },
+    series: [
+        {
+            name: 'sales',
+            data: [30, 40, 45, 50, 49, 60, 70, 91, 125],
+        },
+        {
+            name: 'revenue',
+            data: [40, 50, 55, 60, 59, 70, 20, 20, 5],
+        },
+    ],
+    xaxis: { categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999] },
+};
+
+const chart = new ApexCharts(document.querySelector('#chart'), options);
+chart.render();
