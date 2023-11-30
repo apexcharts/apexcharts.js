@@ -555,7 +555,9 @@ class Range {
             Negs[group][j] = 0
           }
           let stackSeries =
-            !this.w.config.chart.stackOnlyBar || gl.series?.[i]?.type === 'bar'
+            !this.w.config.chart.stackOnlyBar ||
+            gl.series?.[i]?.type === 'bar' ||
+            this.w.config.chart.type === 'bar'
 
           if (stackSeries) {
             if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
