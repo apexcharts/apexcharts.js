@@ -85,7 +85,7 @@ class BarStacked extends Bar {
       })
 
       let elGoalsMarkers = this.graphics.group({
-        class: 'apexcharts-bar-goals-markers'        
+        class: 'apexcharts-bar-goals-markers',
       })
 
       let barHeight = 0

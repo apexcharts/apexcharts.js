@@ -146,6 +146,7 @@ export default class BarDataLabels {
       totalDataLabels = this.drawTotalDataLabels({
         x: dataLabelsPos.totalDataLabelsX,
         y: dataLabelsPos.totalDataLabelsY,
+        barWidth,
         realIndex,
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
         val: this.getStackedTotalDataLabel({ realIndex, j }),
@@ -606,10 +607,12 @@ export default class BarDataLabels {
     x,
     y,
     val,
+    barWidth,
     realIndex,
     textAnchor,
     barTotalDataLabelsConfig,
   }) {
+    const w = this.w
     const graphics = new Graphics(this.barCtx.ctx)
 
     let totalDataLabelText
@@ -621,7 +624,11 @@ export default class BarDataLabels {
       this.barCtx.lastActiveBarSerieIndex === realIndex
     ) {
       totalDataLabelText = graphics.drawText({
-        x: x,
+        x:
+          x -
+          (w.globals.seriesGroups.length
+            ? barWidth / w.globals.seriesGroups.length
+            : 0),
         y: y,
         foreColor: barTotalDataLabelsConfig.style.color,
         text: val,
