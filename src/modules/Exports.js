@@ -345,6 +345,48 @@ class Exports {
       }
     }
 
+    const handleUnequalDatetimeSeries = () => {
+      const categories = new Set()
+      const data = {}
+
+      series.forEach((s, sI) => {
+        s?.data.forEach((dataItem) => {
+          let cat, value
+          if (dataFormat.isFormatXY()) {
+            cat = dataItem.x
+            value = dataItem.y
+          } else if (dataFormat.isFormat2DArray()) {
+            cat = dataItem[0]
+            value = dataItem[1]
+          } else {
+            return
+          }
+          if (!data[cat]) {
+            data[cat] = Array(series.length).fill('')
+          }
+          data[cat][sI] = value
+          categories.add(cat)
+        })
+      })
+
+      if (columns.length) {
+        rows.push(columns.join(columnDelimiter))
+      }
+
+      Array.from(categories)
+        .sort()
+        .forEach((cat) => {
+          rows.push([
+            isTimeStamp(cat)
+              ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
+              : Utils.isNumber(cat)
+              ? cat
+              : cat.split(columnDelimiter).join(''),
+            data[cat].join(columnDelimiter),
+          ])
+        })
+    }
+
     columns.push(w.config.chart.toolbar.export.csv.headerCategory)
 
     if (w.config.chart.type === 'boxPlot') {
@@ -378,17 +420,28 @@ class Exports {
       columns.push(w.config.chart.toolbar.export.csv.headerValue)
       rows.push(columns.join(columnDelimiter))
     }
-    series.map((s, sI) => {
-      if (w.globals.axisCharts) {
-        handleAxisRowsColumns(s, sI)
-      } else {
-        columns = []
 
-        columns.push(w.globals.labels[sI].split(columnDelimiter).join(''))
-        columns.push(gSeries[sI])
-        rows.push(columns.join(columnDelimiter))
-      }
-    })
+    if (
+      !w.globals.allSeriesHasEqualX &&
+      w.globals.axisCharts &&
+      w.config.xaxis.type === 'datetime' &&
+      !w.config.xaxis.categories.length &&
+      !w.config.labels.length
+    ) {
+      handleUnequalDatetimeSeries()
+    } else {
+      series.map((s, sI) => {
+        if (w.globals.axisCharts) {
+          handleAxisRowsColumns(s, sI)
+        } else {
+          columns = []
+
+          columns.push(w.globals.labels[sI].split(columnDelimiter).join(''))
+          columns.push(gSeries[sI])
+          rows.push(columns.join(columnDelimiter))
+        }
+      })
+    }
 
     result += rows.join(lineDelimiter)
 
