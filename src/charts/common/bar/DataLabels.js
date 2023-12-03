@@ -147,6 +147,7 @@ export default class BarDataLabels {
         x: dataLabelsPos.totalDataLabelsX,
         y: dataLabelsPos.totalDataLabelsY,
         barWidth,
+        barHeight,
         realIndex,
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
         val: this.getStackedTotalDataLabel({ realIndex, j }),
@@ -608,6 +609,7 @@ export default class BarDataLabels {
     y,
     val,
     barWidth,
+    barHeight,
     realIndex,
     textAnchor,
     barTotalDataLabelsConfig,
@@ -626,10 +628,14 @@ export default class BarDataLabels {
       totalDataLabelText = graphics.drawText({
         x:
           x -
-          (w.globals.seriesGroups.length
+          (!w.globals.isBarHorizontal && w.globals.seriesGroups.length
             ? barWidth / w.globals.seriesGroups.length
             : 0),
-        y: y,
+        y:
+          y -
+          (w.globals.isBarHorizontal && w.globals.seriesGroups.length
+            ? barHeight / w.globals.seriesGroups.length
+            : 0),
         foreColor: barTotalDataLabelsConfig.style.color,
         text: val,
         textAnchor,

@@ -692,6 +692,8 @@ export default class Data {
     this.coreUtils.getSeriesTotals()
     if (gl.axisCharts) {
       gl.stackedSeriesTotals = this.coreUtils.getStackedSeriesTotals()
+      gl.stackedSeriesTotalsByGroups =
+        this.coreUtils.getStackedSeriesTotalsByGroups()
     }
 
     this.coreUtils.getPercentSeries()
