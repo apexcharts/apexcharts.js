@@ -79,10 +79,9 @@ export const svgPath = (points, chartWidth) => {
     const pn = prevPoint?.length
 
     if (i > 1 && Math.abs(point[n - 2] - prevPoint[pn - 2]) < chartWidth / 25) {
-      // fallback to quadratic curve if the x distance is too small
+      // fallback to straight line if the x distance is too small
       // or if the curve goes backward too much
-      p += `Q${point[0]}, ${point[1]}`
-      p += `, ${point[2]}, ${point[3]}`
+      p += `L${point[2]}, ${point[3]}`
     } else {
       if (n > 4) {
         p += `C${point[0]}, ${point[1]}`
