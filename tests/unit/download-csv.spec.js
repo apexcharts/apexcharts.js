@@ -181,6 +181,72 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
+  it("export csv from simple line chart with two unequal datetime series should call triggerDownload with csv encoded file data", () => {
+    var options = {
+      chart: {
+        type: "line"
+      },
+      series: [{
+        name: 'series1',
+        data: [["2000-01-01T00:00:00.000", 1]]
+      }, {
+        name: 'series2',
+        data: [["2000-01-02T00:00:00.000", 1]]
+      }],
+      xaxis: {
+          type: 'datetime',
+      },
+    };
+    const csvData = "category,series1,series2\n" +
+      "Sat Jan 01 2000,1,\n" +
+      "Sun Jan 02 2000,,1"
+    const chart = createChartWithOptions(options)
+    const exports = new Exports(chart.ctx)
+    jest.spyOn(Exports.prototype,'triggerDownload')
+    exports.exportToCSV(chart.w.config.series,'fileName')
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(csvData)),
+      expect.toBeUndefined,
+      expect.stringContaining('.csv')
+    )
+  })
+  it("export csv from simple line chart with two unequal datetime x y series should call triggerDownload with csv encoded file data", () => {
+    var options = {
+      chart: {
+        type: "line"
+      },
+      series: [{
+        name: 'series1',
+        data: [{
+          x: "2000-01-01T00:00:00.000",
+          y: 1
+        }]
+      }, {
+        name: 'series2',
+        data: [{
+          x: "2000-01-02T00:00:00.000",
+          y: 1
+        }]
+      }],
+      xaxis: {
+          type: 'datetime',
+      },
+    };
+    const csvData = "category,series1,series2\n" +
+      "Sat Jan 01 2000,1,\n" +
+      "Sun Jan 02 2000,,1"
+    const chart = createChartWithOptions(options)
+    const exports = new Exports(chart.ctx)
+    jest.spyOn(Exports.prototype,'triggerDownload')
+    exports.exportToCSV(chart.w.config.series,'fileName')
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(csvData)),
+      expect.toBeUndefined,
+      expect.stringContaining('.csv')
+    )
+  })
   it("export csv from simple spline area chart with two series should call triggerDownload with csv encoded file data", () => {
     var options = {
       series: [{
