@@ -183,19 +183,6 @@ export default class Toolbar {
       },
     ]
 
-    if (
-      !this.w.globals.allSeriesHasEqualX &&
-      !(
-        this.w.globals.axisCharts &&
-        this.w.config.xaxis.type === 'datetime' &&
-        !this.w.config.xaxis.categories.length &&
-        !this.w.config.labels.length
-      )
-    ) {
-      // if it is a multi series, and all series have variable x values, export CSV won't work
-      // unless it is a simple datetime chart
-      menuItems.splice(2, 1)
-    }
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItems.push(document.createElement('div'))
       this.elMenuItems[i].innerHTML = menuItems[i].title

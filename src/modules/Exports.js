@@ -345,7 +345,7 @@ class Exports {
       }
     }
 
-    const handleUnequalDatetimeSeries = () => {
+    const handleUnequalXValues = () => {
       const categories = new Set()
       const data = {}
 
@@ -377,7 +377,7 @@ class Exports {
         .sort()
         .forEach((cat) => {
           rows.push([
-            isTimeStamp(cat)
+            isTimeStamp(cat) && w.config.xaxis.type === 'datetime'
               ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
               : Utils.isNumber(cat)
               ? cat
@@ -424,11 +424,10 @@ class Exports {
     if (
       !w.globals.allSeriesHasEqualX &&
       w.globals.axisCharts &&
-      w.config.xaxis.type === 'datetime' &&
       !w.config.xaxis.categories.length &&
       !w.config.labels.length
     ) {
-      handleUnequalDatetimeSeries()
+      handleUnequalXValues()
     } else {
       series.map((s, sI) => {
         if (w.globals.axisCharts) {
