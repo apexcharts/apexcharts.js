@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.44.1
+ * ApexCharts v3.44.2
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -8750,11 +8750,7 @@
           if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea' || ser[i].type === 'rangeBar' || ser[i].type === 'rangeArea') {
             gl.isRangeData = true;
 
-            if (gl.isComboCharts) {
-              if (ser[i].type === 'rangeBar' || ser[i].type === 'rangeArea') {
-                this.handleRangeData(ser, i);
-              }
-            } else if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea') {
+            if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea') {
               this.handleRangeData(ser, i);
             }
           }
@@ -9546,7 +9542,7 @@
           }
         };
 
-        var handleUnequalDatetimeSeries = function handleUnequalDatetimeSeries() {
+        var handleUnequalXValues = function handleUnequalXValues() {
           var categories = new Set();
           var data = {};
           series.forEach(function (s, sI) {
@@ -9577,7 +9573,7 @@
           }
 
           Array.from(categories).sort().forEach(function (cat) {
-            rows.push([isTimeStamp(cat) ? w.config.chart.toolbar.export.csv.dateFormatter(cat) : Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join(''), data[cat].join(columnDelimiter)]);
+            rows.push([isTimeStamp(cat) && w.config.xaxis.type === 'datetime' ? w.config.chart.toolbar.export.csv.dateFormatter(cat) : Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join(''), data[cat].join(columnDelimiter)]);
           });
         };
 
@@ -9612,8 +9608,8 @@
           rows.push(columns.join(columnDelimiter));
         }
 
-        if (!w.globals.allSeriesHasEqualX && w.globals.axisCharts && w.config.xaxis.type === 'datetime' && !w.config.xaxis.categories.length && !w.config.labels.length) {
-          handleUnequalDatetimeSeries();
+        if (!w.globals.allSeriesHasEqualX && w.globals.axisCharts && !w.config.xaxis.categories.length && !w.config.labels.length) {
+          handleUnequalXValues();
         } else {
           series.map(function (s, sI) {
             if (w.globals.axisCharts) {
@@ -11790,14 +11786,14 @@
 
           indicesOfSeriesInGroup.forEach(function (i) {
             for (var j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
-              var _gl$series, _gl$series$i;
+              var _this$w$config$series, _this$w$config$series2;
 
               if (typeof stackedPoss[group][j] === 'undefined') {
                 stackedPoss[group][j] = 0;
                 stackedNegs[group][j] = 0;
               }
 
-              var stackSeries = !_this.w.config.chart.stackOnlyBar || ((_gl$series = gl.series) === null || _gl$series === void 0 ? void 0 : (_gl$series$i = _gl$series[i]) === null || _gl$series$i === void 0 ? void 0 : _gl$series$i.type) === 'bar' || _this.w.config.chart.type === 'bar';
+              var stackSeries = _this.w.config.chart.stacked && !gl.comboCharts || _this.w.config.chart.stacked && gl.comboCharts && (!_this.w.config.chart.stackOnlyBar || ((_this$w$config$series = _this.w.config.series) === null || _this$w$config$series === void 0 ? void 0 : (_this$w$config$series2 = _this$w$config$series[i]) === null || _this$w$config$series2 === void 0 ? void 0 : _this$w$config$series2.type) === 'bar');
 
               if (stackSeries) {
                 if (gl.series[i][j] !== null && Utils$1.isNumber(gl.series[i][j])) {
@@ -14670,12 +14666,6 @@
           name: 'exportCSV',
           title: this.localeValues.exportToCSV
         }];
-
-        if (!this.w.globals.allSeriesHasEqualX && !(this.w.globals.axisCharts && this.w.config.xaxis.type === 'datetime' && !this.w.config.xaxis.categories.length && !this.w.config.labels.length)) {
-          // if it is a multi series, and all series have variable x values, export CSV won't work
-          // unless it is a simple datetime chart
-          menuItems.splice(2, 1);
-        }
 
         for (var i = 0; i < menuItems.length; i++) {
           this.elMenuItems.push(document.createElement('div'));
@@ -23727,16 +23717,16 @@
     }, {
       key: "determineFirstPrevY",
       value: function determineFirstPrevY(_ref3) {
-        var _series$i, _series$i2;
+        var _this$w$config$series, _series$i;
 
         var i = _ref3.i,
             series = _ref3.series,
             prevY = _ref3.prevY,
             lineYPosition = _ref3.lineYPosition;
         var w = this.w;
-        var stackSeries = w.config.chart.stacked && (!w.config.chart.stackOnlyBar || (series === null || series === void 0 ? void 0 : (_series$i = series[i]) === null || _series$i === void 0 ? void 0 : _series$i.type) === 'bar');
+        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[i]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar');
 
-        if (typeof ((_series$i2 = series[i]) === null || _series$i2 === void 0 ? void 0 : _series$i2[0]) !== 'undefined') {
+        if (typeof ((_series$i = series[i]) === null || _series$i === void 0 ? void 0 : _series$i[0]) !== 'undefined') {
           if (stackSeries) {
             if (i > 0) {
               // 1st y value of previous series
@@ -24407,7 +24397,7 @@
         };
 
         var y2 = y;
-        var stackSeries = w.config.chart.stacked && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[realIndex]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar');
+        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[realIndex]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar');
 
         for (var j = 0; j < iterations; j++) {
           var isNull = typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null;
