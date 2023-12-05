@@ -511,9 +511,11 @@ class Line {
     let y2 = y
 
     let stackSeries =
-      w.config.chart.stacked &&
-      (!this.w.config.chart.stackOnlyBar ||
-        this.w.config.series[realIndex]?.type === 'bar')
+      (w.config.chart.stacked && !w.globals.comboCharts) ||
+      (w.config.chart.stacked &&
+        w.globals.comboCharts &&
+        (!this.w.config.chart.stackOnlyBar ||
+          this.w.config.series[realIndex]?.type === 'bar'))
 
     for (let j = 0; j < iterations; j++) {
       const isNull =

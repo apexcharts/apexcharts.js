@@ -554,10 +554,13 @@ class Range {
             stackedPoss[group][j] = 0
             stackedNegs[group][j] = 0
           }
+
           let stackSeries =
-            !this.w.config.chart.stackOnlyBar ||
-            gl.series?.[i]?.type === 'bar' ||
-            this.w.config.chart.type === 'bar'
+            (this.w.config.chart.stacked && !gl.comboCharts) ||
+            (this.w.config.chart.stacked &&
+              gl.comboCharts &&
+              (!this.w.config.chart.stackOnlyBar ||
+                this.w.config.series?.[i]?.type === 'bar'))
 
           if (stackSeries) {
             if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {

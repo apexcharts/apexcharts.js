@@ -105,8 +105,11 @@ export default class Helpers {
   determineFirstPrevY({ i, series, prevY, lineYPosition }) {
     let w = this.w
     let stackSeries =
-      w.config.chart.stacked &&
-      (!w.config.chart.stackOnlyBar || series?.[i]?.type === 'bar')
+      (w.config.chart.stacked && !w.globals.comboCharts) ||
+      (w.config.chart.stacked &&
+        w.globals.comboCharts &&
+        (!this.w.config.chart.stackOnlyBar ||
+          this.w.config.series[i]?.type === 'bar'))
 
     if (typeof series[i]?.[0] !== 'undefined') {
       if (stackSeries) {

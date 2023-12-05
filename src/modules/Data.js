@@ -454,14 +454,7 @@ export default class Data {
         ser[i].type === 'rangeArea'
       ) {
         gl.isRangeData = true
-        if (gl.isComboCharts) {
-          if (ser[i].type === 'rangeBar' || ser[i].type === 'rangeArea') {
-            this.handleRangeData(ser, i)
-          }
-        } else if (
-          cnf.chart.type === 'rangeBar' ||
-          cnf.chart.type === 'rangeArea'
-        ) {
+        if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea') {
           this.handleRangeData(ser, i)
         }
       }
