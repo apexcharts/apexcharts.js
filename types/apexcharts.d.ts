@@ -42,7 +42,7 @@ declare class ApexCharts {
   clearAnnotations(options?: any): void
   dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
   static exec(chartID: string, fn: string, ...args: Array<any>): any
-  static getChartByID(chartID: string): ApexCharts|undefined
+  static getChartByID(chartID: string): ApexCharts | undefined
   static initOnLoad(): void
   exports: {
     cleanup(): string
@@ -100,22 +100,22 @@ type ApexChart = {
   width?: string | number
   height?: string | number
   type?:
-    | 'line'
-    | 'area'
-    | 'bar'
-    | 'pie'
-    | 'donut'
-    | 'radialBar'
-    | 'scatter'
-    | 'bubble'
-    | 'heatmap'
-    | 'candlestick'
-    | 'boxPlot'
-    | 'radar'
-    | 'polarArea'
-    | 'rangeBar'
-    | 'rangeArea'
-    | 'treemap'
+  | 'line'
+  | 'area'
+  | 'bar'
+  | 'pie'
+  | 'donut'
+  | 'radialBar'
+  | 'scatter'
+  | 'bubble'
+  | 'heatmap'
+  | 'candlestick'
+  | 'boxPlot'
+  | 'radar'
+  | 'polarArea'
+  | 'rangeBar'
+  | 'rangeArea'
+  | 'treemap'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -317,21 +317,21 @@ type ApexAxisChartSeries = {
   group?: string
   zIndex?: number
   data:
-    | (number | null)[]
-    | {
-        x: any;
-        y: any;
-        fill?: ApexFill;
-        fillColor?: string;
-        strokeColor?: string;
-        meta?: any;
-        goals?: any;
-        barHeightOffset?: number;
-        columnWidthOffset?: number;
-      }[]
-    | [number, number | null][]
-    | [number, (number | null)[]][]
-    | number[][];
+  | (number | null)[]
+  | {
+    x: any;
+    y: any;
+    fill?: ApexFill;
+    fillColor?: string;
+    strokeColor?: string;
+    meta?: any;
+    goals?: any;
+    barHeightOffset?: number;
+    columnWidthOffset?: number;
+  }[]
+  | [number, number | null][]
+  | [number, (number | null)[]][]
+  | number[][];
 }[]
 
 type ApexNonAxisChartSeries = number[]
@@ -496,9 +496,9 @@ type ApexLocale = {
       zoomOut?: string
       pan?: string
       reset?: string
-			exportToSVG?: string
-			exportToPNG?: string
-			exportToCSV?: string
+      exportToSVG?: string
+      exportToPNG?: string
+      exportToCSV?: string
     }
   }
 }
@@ -518,7 +518,7 @@ type ApexPlotOptions = {
     distributed?: boolean
     borderRadius?: number;
     borderRadiusApplication?: 'around' | 'end';
-    borderRadiusWhenStacked?: 'all' | 'last';
+    borderRadiusWhenStacked?: 'all' | 'last', 'both'; //New feature: both which is first and last in stack
     hideZeroBarsWhenGrouped?: boolean
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
@@ -1015,7 +1015,7 @@ type ApexXAxis = {
     offsetX?: number
     offsetY?: number
     format?: string
-    formatter?(value: string, timestamp?: number, opts?:any): string | string[]
+    formatter?(value: string, timestamp?: number, opts?: any): string | string[]
     datetimeUTC?: boolean
     datetimeFormatter?: {
       year?: string
@@ -1027,14 +1027,14 @@ type ApexXAxis = {
     }
   }
   group?: {
-      groups?: { title: string, cols: number }[],
-      style?:  {
-        colors?: string | string[]
-        fontSize?: string
-        fontFamily?: string
-        fontWeight?: string | number
-        cssClass?: string
-      }
+    groups?: { title: string, cols: number }[],
+    style?: {
+      colors?: string | string[]
+      fontSize?: string
+      fontFamily?: string
+      fontWeight?: string | number
+      cssClass?: string
+    }
   }
   axisBorder?: {
     show?: boolean

@@ -231,8 +231,8 @@ export default class Helpers {
       fillType: w.config.series[i].data[j]?.fill?.type
         ? w.config.series[i].data[j]?.fill.type
         : Array.isArray(w.config.fill.type)
-        ? w.config.fill.type[i]
-        : w.config.fill.type,
+          ? w.config.fill.type[i]
+          : w.config.fill.type,
     })
 
     return pathFill
@@ -265,6 +265,11 @@ export default class Helpers {
       if (w.config.chart.stacked) {
         if (w.config.plotOptions.bar.borderRadiusWhenStacked === 'last') {
           if (this.barCtx.lastActiveBarSerieIndex === realIndex) {
+            applyRadius = true
+          }
+        }
+        else if (w.config.plotOptions.bar.borderRadiusWhenStacked === 'both') {
+          if (this.barCtx.lastActiveBarSerieIndex === realIndex || realIndex == 0) {
             applyRadius = true
           }
         } else {
@@ -520,7 +525,7 @@ export default class Helpers {
         (this.barCtx.isReversed
           ? value / this.barCtx.yRatio[this.barCtx.yaxisIndex]
           : 0) *
-          2
+        2
     }
     return yForVal
   }
