@@ -141,6 +141,9 @@ export default class Helpers {
         (xDivision - barWidth * this.barCtx.seriesLen) / 2
     }
 
+    w.globals.barHeight = barHeight
+    w.globals.barWidth = barWidth
+
     return {
       x,
       y,

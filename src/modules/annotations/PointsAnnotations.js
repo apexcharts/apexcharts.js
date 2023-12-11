@@ -25,7 +25,7 @@ export default class PointAnnotations {
       pRadius: anno.marker.radius,
       class: `apexcharts-point-annotation-marker ${anno.marker.cssClass} ${
         anno.id ? anno.id : ''
-      }`
+      }`,
     }
 
     let point = this.annoCtx.graphics.drawMarker(
@@ -53,11 +53,11 @@ export default class PointAnnotations {
       foreColor: anno.label.style.color,
       cssClass: `apexcharts-point-annotation-label ${
         anno.label.style.cssClass
-      } ${anno.id ? anno.id : ''}`
+      } ${anno.id ? anno.id : ''}`,
     })
 
     elText.attr({
-      rel: index
+      rel: index,
     })
 
     parent.appendChild(elText.node)
@@ -66,12 +66,13 @@ export default class PointAnnotations {
     if (anno.customSVG.SVG) {
       let g = this.annoCtx.graphics.group({
         class:
-          'apexcharts-point-annotations-custom-svg ' + anno.customSVG.cssClass
+          'apexcharts-point-annotations-custom-svg ' + anno.customSVG.cssClass,
       })
 
       g.attr({
-        transform: `translate(${x + anno.customSVG.offsetX}, ${y +
-          anno.customSVG.offsetY})`
+        transform: `translate(${x + anno.customSVG.offsetX}, ${
+          y + anno.customSVG.offsetY
+        })`,
       })
 
       g.node.innerHTML = anno.customSVG.SVG
@@ -88,7 +89,7 @@ export default class PointAnnotations {
         width: imgWidth,
         height: imgHeight,
         path: anno.image.path,
-        appendTo: '.apexcharts-point-annotations'
+        appendTo: '.apexcharts-point-annotations',
       })
     }
 
@@ -113,7 +114,7 @@ export default class PointAnnotations {
     let w = this.w
 
     let elg = this.annoCtx.graphics.group({
-      class: 'apexcharts-point-annotations'
+      class: 'apexcharts-point-annotations',
     })
 
     w.config.annotations.points.map((anno, index) => {

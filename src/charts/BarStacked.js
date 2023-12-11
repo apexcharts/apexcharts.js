@@ -109,6 +109,9 @@ class BarStacked extends Bar {
       xDivision = initPositions.xDivision
       zeroH = initPositions.zeroH
 
+      w.globals.barHeight = barHeight
+      w.globals.barWidth = barWidth
+
       this.barHelpers.initializeStackedXYVars(this)
 
       // where all stack bar disappear after collapsing the first series

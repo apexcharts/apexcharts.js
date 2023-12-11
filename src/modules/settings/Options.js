@@ -85,7 +85,7 @@ export default class Options {
       x: 0,
       y: null,
       yAxisIndex: 0,
-      seriesIndex: 0,
+      seriesIndex: undefined,
       mouseEnter: undefined,
       mouseLeave: undefined,
       click: undefined,
