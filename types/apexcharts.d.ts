@@ -1053,6 +1053,7 @@ type ApexXAxis = {
   }
   tickPlacement?: string
   tickAmount?: number | 'dataPoints'
+  stepSize?: number
   min?: number
   max?: number
   range?: number
@@ -1120,6 +1121,7 @@ type ApexYAxis = {
   logarithmic?: boolean,
   logBase?: number,
   tickAmount?: number
+  stepSize?: number
   forceNiceScale?: boolean
   min?: number | ((min: number) => number)
   max?: number | ((max: number) => number)

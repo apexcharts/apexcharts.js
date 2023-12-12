@@ -87,6 +87,18 @@ export default class Range {
     }
     let stepSize = magMsd * magPow
 
+    if (w.config.yaxis[index].stepSize) {
+      stepSize = w.config.yaxis[index].stepSize
+    }
+
+    if (
+      w.globals.isBarHorizontal &&
+      w.config.xaxis.stepSize &&
+      w.config.xaxis.type !== 'datetime'
+    ) {
+      stepSize = w.config.xaxis.stepSize
+    }
+
     // build Y label array.
     // Lower and upper bounds calculations
     let lb = stepSize * Math.floor(yMin / stepSize)
