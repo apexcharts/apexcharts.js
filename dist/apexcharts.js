@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.44.2
+ * ApexCharts v3.45.0
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -2737,6 +2737,12 @@
           if (xLabel) {
             yP = parseFloat(xLabel.getAttribute('y'));
           }
+
+          if (typeof anno.seriesIndex !== 'undefined') {
+            if (w.globals.barHeight) {
+              yP = yP - w.globals.barHeight / 2 * (w.globals.series.length - 1) + w.globals.barHeight * anno.seriesIndex;
+            }
+          }
         } else {
           var yPos;
 
@@ -2804,6 +2810,12 @@
 
         if (type === 'x2' && typeof anno.x2 === 'string' && anno.x2.indexOf('px') > -1) {
           x2 = parseFloat(anno.x2);
+        }
+
+        if (typeof anno.seriesIndex !== 'undefined') {
+          if (w.globals.barWidth && !this.annoCtx.invertAxis) {
+            x1 = x1 - w.globals.barWidth / 2 * (w.globals.series.length - 1) + w.globals.barWidth * anno.seriesIndex;
+          }
         }
 
         return type === 'x1' ? x1 : x2;
@@ -3223,6 +3235,7 @@
         logarithmic: false,
         logBase: 10,
         tickAmount: undefined,
+        stepSize: undefined,
         forceNiceScale: false,
         max: undefined,
         min: undefined,
@@ -3292,7 +3305,7 @@
         x: 0,
         y: null,
         yAxisIndex: 0,
-        seriesIndex: 0,
+        seriesIndex: undefined,
         mouseEnter: undefined,
         mouseLeave: undefined,
         click: undefined,
@@ -4289,6 +4302,7 @@
               offsetX: 0,
               offsetY: 0
             },
+            stepSize: undefined,
             tickAmount: undefined,
             tickPlacement: 'on',
             min: undefined,
@@ -10621,11 +10635,17 @@
           xCount = this.xaxisLabels.length;
 
           if (this.isRangeBar) {
+            var _w$globals$yAxisScale, _w$globals$yAxisScale2, _w$globals$yAxisScale3;
+
             xCount--;
             yTickAmount = w.globals.labels.length;
 
             if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
               xCount = w.config.xaxis.tickAmount;
+            }
+
+            if (((_w$globals$yAxisScale = w.globals.yAxisScale) === null || _w$globals$yAxisScale === void 0 ? void 0 : (_w$globals$yAxisScale2 = _w$globals$yAxisScale[0]) === null || _w$globals$yAxisScale2 === void 0 ? void 0 : (_w$globals$yAxisScale3 = _w$globals$yAxisScale2.result) === null || _w$globals$yAxisScale3 === void 0 ? void 0 : _w$globals$yAxisScale3.length) > 0 && w.config.xaxis.type !== 'datetime') {
+              xCount = w.globals.yAxisScale[0].result.length - 1;
             }
           }
 
@@ -10794,8 +10814,17 @@
           magMsd = 1;
         }
 
-        var stepSize = magMsd * magPow; // build Y label array.
+        var stepSize = magMsd * magPow;
+
+        if (w.config.yaxis[index].stepSize) {
+          stepSize = w.config.yaxis[index].stepSize;
+        }
+
+        if (w.globals.isBarHorizontal && w.config.xaxis.stepSize && w.config.xaxis.type !== 'datetime') {
+          stepSize = w.config.xaxis.stepSize;
+        } // build Y label array.
         // Lower and upper bounds calculations
+
 
         var lb = stepSize * Math.floor(yMin / stepSize);
         var ub = stepSize * Math.ceil(yMax / stepSize); // Build array
@@ -19174,6 +19203,8 @@
           x = w.globals.padHorizontal + (xDivision - barWidth * this.barCtx.seriesLen) / 2;
         }
 
+        w.globals.barHeight = barHeight;
+        w.globals.barWidth = barWidth;
         return {
           x: x,
           y: y,
@@ -20338,6 +20369,8 @@
           barWidth = initPositions.barWidth;
           xDivision = initPositions.xDivision;
           zeroH = initPositions.zeroH;
+          w.globals.barHeight = barHeight;
+          w.globals.barWidth = barWidth;
 
           _this.barHelpers.initializeStackedXYVars(_this); // where all stack bar disappear after collapsing the first series
 
