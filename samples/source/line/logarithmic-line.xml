@@ -119,7 +119,7 @@ dataLabels: {
   enabled: false
 },
 stroke: {
-  curve: 'straight'
+  curve: 'smooth',
 },
 title: {
   text: 'Logarithmic Scale',
