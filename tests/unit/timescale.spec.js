@@ -417,6 +417,58 @@ describe('Generate TimeScale', () => {
     }
   })
 
+  it('should generate an hour timescale without skipping ticks when start with full hour', () => {
+    const chart = createChart('line', [
+      {
+        data: [0, 1],
+      },
+    ])
+    const timeScale = new TimeScale(chart)
+    timeScale.generateHourScale({
+      firstVal: {
+        minSecond: 0,
+        minMinute: 0,
+        minHour: 0,
+      },
+      currentDate: 22,
+      currentMonth: 11,
+      currentYear: 2022,
+      minutesWidthOnXAxis: 0.4,
+      numberOfHours: 3,
+    })
+
+    const generatedScale = timeScale.timeScaleArray
+    for (let i = 0; i < generatedScale.length - 1; i++) {
+      expect(generatedScale[i].value).toEqual(i)
+    }
+  })
+
+  it('should generate an hour timescale without skipping ticks when start with partial hour', () => {
+    const chart = createChart('line', [
+      {
+        data: [0, 1],
+      },
+    ])
+    const timeScale = new TimeScale(chart)
+    timeScale.generateHourScale({
+      firstVal: {
+        minSecond: 0,
+        minMinute: 35,
+        minHour: 0,
+      },
+      currentDate: 22,
+      currentMonth: 11,
+      currentYear: 2022,
+      minutesWidthOnXAxis: 0.4,
+      numberOfHours: 3,
+    })
+
+    const generatedScale = timeScale.timeScaleArray
+    for (let i = 0; i < generatedScale.length - 1; i++) {
+      expect(generatedScale[i].value).toEqual(i + 1)
+    }
+  })
+
   it.each([...Array(24).keys()].map((hour) => ({ hour: hour + 1 })))(
     'should generate an formatted hourly timescale with unique ticks starting on hour $hour:00',
     ({ hour }) => {
