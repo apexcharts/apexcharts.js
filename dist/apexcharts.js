@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.45.0
+ * ApexCharts v3.45.1
  * (c) 2018-2023 ApexCharts
  * Released under the MIT License.
  */
@@ -10746,7 +10746,7 @@
     _createClass(Range, [{
       key: "niceScale",
       value: function niceScale(yMin, yMax) {
-        var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
+        var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 5;
         var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
         var NO_MIN_MAX_PROVIDED = arguments.length > 4 ? arguments[4] : undefined;
         var w = this.w; // Determine Range
@@ -10762,7 +10762,7 @@
           // when all values are 0
           yMin = 0;
           yMax = ticks;
-          var linearScale = this.linearScale(yMin, yMax, ticks);
+          var linearScale = this.linearScale(yMin, yMax, ticks, index, w.config.yaxis[index].stepSize);
           return linearScale;
         }
 
@@ -10871,8 +10871,9 @@
     }, {
       key: "linearScale",
       value: function linearScale(yMin, yMax) {
-        var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
-        var index = arguments.length > 3 ? arguments[3] : undefined;
+        var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 5;
+        var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+        var step = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
         var range = Math.abs(yMax - yMin);
         ticks = this._adjustTicksForSmallRange(ticks, index, range);
 
@@ -10880,10 +10881,12 @@
           ticks = this.w.globals.dataPoints - 1;
         }
 
-        var step = range / ticks;
+        if (!step) {
+          step = range / ticks;
+        }
 
         if (ticks === Number.MAX_VALUE) {
-          ticks = 10;
+          ticks = 5;
           step = 1;
         }
 
@@ -10994,14 +10997,14 @@
         } else {
           if (maxY === -Number.MAX_VALUE || !Utils$1.isNumber(maxY)) {
             // no data in the chart. Either all series collapsed or user passed a blank array
-            gl.yAxisScale[index] = this.linearScale(0, 5, 5);
+            gl.yAxisScale[index] = this.linearScale(0, 5, 5, index, cnf.yaxis[index].stepSize);
           } else {
             // there is some data. Turn off the allSeriesCollapsed flag
             gl.allSeriesCollapsed = false;
 
             if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
               // fix https://github.com/apexcharts/apexcharts.js/issues/492
-              gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount, index);
+              gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount, index, cnf.yaxis[index].stepSize);
             } else {
               var noMinMaxProvided = cnf.yaxis[index].max === undefined && cnf.yaxis[index].min === undefined || cnf.yaxis[index].forceNiceScale;
               gl.yAxisScale[index] = this.niceScale(minY, maxY, y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, index, // fix https://github.com/apexcharts/apexcharts.js/issues/397
@@ -11015,14 +11018,13 @@
       value: function setXScale(minX, maxX) {
         var w = this.w;
         var gl = w.globals;
-        var x = w.config.xaxis;
         var diff = Math.abs(maxX - minX);
 
         if (maxX === -Number.MAX_VALUE || !Utils$1.isNumber(maxX)) {
           // no data in the chart. Either all series collapsed or user passed a blank array
           gl.xAxisScale = this.linearScale(0, 5, 5);
         } else {
-          gl.xAxisScale = this.linearScale(minX, maxX, x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, 0);
+          gl.xAxisScale = this.linearScale(minX, maxX, w.config.xaxis.tickAmount ? w.config.xaxis.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, 0, w.config.xaxis.stepSize);
         }
 
         return gl.xAxisScale;
@@ -11665,10 +11667,10 @@
               gl.xAxisScale = this.scales.setXScale(gl.minX, gl.maxX);
             }
           } else {
-            gl.xAxisScale = this.scales.linearScale(0, ticks, ticks);
+            gl.xAxisScale = this.scales.linearScale(0, ticks, ticks, 0, cnf.xaxis.stepSize);
 
             if (gl.noLabelsProvided && gl.labels.length > 0) {
-              gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1); // this is the only place seriesX is again mutated
+              gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1, 0, cnf.xaxis.stepSize); // this is the only place seriesX is again mutated
 
               gl.seriesX = gl.labels.slice();
             }
@@ -25913,7 +25915,7 @@
         if (remainingMins === 60) {
           firstTickPosition = 0;
           firstTickValue = firstVal.minHour;
-          hour = firstTickValue + 1;
+          hour = firstTickValue;
         }
 
         var date = currentDate; // we need to apply date switching logic here as well, to avoid duplicated labels
