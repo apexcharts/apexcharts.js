@@ -328,7 +328,6 @@ export default class Range {
   setXScale(minX, maxX) {
     const w = this.w
     const gl = w.globals
-    const x = w.config.xaxis
     let diff = Math.abs(maxX - minX)
     if (maxX === -Number.MAX_VALUE || !Utils.isNumber(maxX)) {
       // no data in the chart. Either all series collapsed or user passed a blank array
@@ -337,7 +336,11 @@ export default class Range {
       gl.xAxisScale = this.linearScale(
         minX,
         maxX,
-        x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
+        w.config.xaxis.tickAmount
+          ? w.config.xaxis.tickAmount
+          : diff < 5 && diff > 1
+          ? diff + 1
+          : 5,
         0,
         w.config.xaxis.stepSize
       )

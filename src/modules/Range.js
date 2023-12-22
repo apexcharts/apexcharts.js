@@ -410,7 +410,7 @@ class Range {
           ticks,
           ticks,
           0,
-          w.config.xaxis.stepSize
+          cnf.xaxis.stepSize
         )
         if (gl.noLabelsProvided && gl.labels.length > 0) {
           gl.xAxisScale = this.scales.linearScale(
@@ -418,7 +418,7 @@ class Range {
             gl.labels.length,
             ticks - 1,
             0,
-            w.config.xaxis.stepSize
+            cnf.xaxis.stepSize
           )
 
           // this is the only place seriesX is again mutated
