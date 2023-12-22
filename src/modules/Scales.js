@@ -8,7 +8,7 @@ export default class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale(yMin, yMax, ticks = 10, index = 0, NO_MIN_MAX_PROVIDED) {
+  niceScale(yMin, yMax, ticks = 5, index = 0, NO_MIN_MAX_PROVIDED) {
     const w = this.w
     // Determine Range
     let range = Math.abs(yMax - yMin)
