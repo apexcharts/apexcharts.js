@@ -53,7 +53,7 @@ npm run dev:cjs
 In a new terminal window, create a new project outside of the Apexcharts folder.
 
 ```bash
- mkdir ~/new-project && cd ~/new-project &&
+mkdir ~/new-project && cd ~/new-project &&
 npm init -y
 ```
 
