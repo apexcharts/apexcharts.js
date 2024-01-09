@@ -612,7 +612,7 @@ export default class Core {
     // if user has not defined a custom function for selection - we handle the brush chart
     // otherwise we leave it to the user to define the functionality for selection
     if (typeof w.config.chart.events.selection !== 'function') {
-      let targets = Array.isArray(w.config.chart.brush.targets) || [
+      let targets = Array.isArray(w.config.chart.brush.targets) ? w.config.chart.brush.targets : [
         w.config.chart.brush.target,
       ]
       // retro compatibility with single target option
