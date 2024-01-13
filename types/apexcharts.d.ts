@@ -602,6 +602,7 @@ type ApexPlotOptions = {
     reverseNegativeShade?: boolean
     useFillColorAsStroke?: boolean
     dataLabels?: { format?: 'scale' | 'truncate' }
+    borderRadius?: number
     colorScale?: {
       inverse?: boolean
       ranges?: {

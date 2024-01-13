@@ -485,6 +485,7 @@ export default class Options {
           distributed: false,
           reverseNegativeShade: false,
           useFillColorAsStroke: false,
+          borderRadius: 4,
           dataLabels: {
             format: 'scale', // scale | truncate
           },
