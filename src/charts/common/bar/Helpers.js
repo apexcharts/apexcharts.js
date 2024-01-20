@@ -104,9 +104,7 @@ export default class Helpers {
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
         let xRatio = this.barCtx.xRatio
-        if (w.config.xaxis.convertedCatToNumeric) {
-          xRatio = this.barCtx.initialXRatio
-        }
+
         if (
           w.globals.minXDiff &&
           w.globals.minXDiff !== 0.5 &&
