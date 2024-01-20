@@ -254,7 +254,6 @@ class CoreUtils {
     let yRatio = []
     let invertedYRatio = 0
     let xRatio = 0
-    let initialXRatio = 0
     let invertedXRatio = 0
     let zRatio = 0
     let baseLineY = []
@@ -279,8 +278,6 @@ class CoreUtils {
     }
 
     xRatio = gl.xRange / gl.gridWidth
-
-    initialXRatio = Math.abs(gl.initialMaxX - gl.initialMinX) / gl.gridWidth
 
     invertedYRatio = gl.yRange / gl.gridWidth
     invertedXRatio = gl.xRange / gl.gridHeight
@@ -316,7 +313,6 @@ class CoreUtils {
       invertedYRatio,
       zRatio,
       xRatio,
-      initialXRatio,
       invertedXRatio,
       baseLineInvertedY,
       baseLineY,
