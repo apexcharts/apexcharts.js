@@ -83,7 +83,10 @@ class Line {
 
       xArrj.push(x)
 
-      let prevX = x
+      let pX = x
+      let pY
+      let pY2
+      let prevX = pX
       let prevY = this.zeroY
       let prevY2 = this.zeroY
       let lineYPosition = 0
@@ -96,12 +99,13 @@ class Line {
         lineYPosition,
       })
       prevY = firstPrevY.prevY
-      if (w.config.stroke.curve === 'smooth' && series[i][0] === null) {
+      if (w.config.stroke.curve === 'monotonCubic' && series[i][0] === null) {
         // we have to discard the y position if 1st dataPoint is null as it causes issues with monotoneCubic path creation
         yArrj.push(null)
       } else {
         yArrj.push(prevY)
       }
+      pY = prevY
 
       // y2 are needed for range-area charts
       let firstPrevY2
@@ -114,6 +118,7 @@ class Line {
           lineYPosition,
         })
         prevY2 = firstPrevY2.prevY
+        pY2 = prevY2
         y2Arrj.push(prevY2)
       }
 
@@ -134,6 +139,8 @@ class Line {
         i,
         x,
         y,
+        pX,
+        pY,
         pathsFrom,
         linePaths,
         areaPaths,
@@ -162,6 +169,7 @@ class Line {
         let rangePaths = this._iterateOverDataPoints({
           ...iteratingOpts,
           series: seriesRangeEnd,
+          pY: pY2,
           pathsFrom: pathsFrom2,
           iterations: seriesRangeEnd[i].length - 1,
           isRangeStart: false,
@@ -473,6 +481,8 @@ class Line {
     i,
     x,
     y,
+    pX,
+    pY,
     pathsFrom,
     linePaths,
     areaPaths,
@@ -601,6 +611,8 @@ class Line {
         xArrj,
         yArrj,
         y2Arrj,
+        pX,
+        pY,
         linePath,
         areaPath,
         linePaths,
@@ -611,12 +623,14 @@ class Line {
 
       areaPaths = calculatedPaths.areaPaths
       linePaths = calculatedPaths.linePaths
+      pX = calculatedPaths.pX
+      pY = calculatedPaths.pY
       areaPath = calculatedPaths.areaPath
       linePath = calculatedPaths.linePath
 
       if (
         this.appendPathFrom &&
-        !(w.config.stroke.curve === 'smooth' && type === 'rangeArea')
+        !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')
       ) {
         pathFromLine = pathFromLine + graphics.line(x, this.zeroY)
         pathFromArea = pathFromArea + graphics.line(x, this.zeroY)
@@ -697,6 +711,8 @@ class Line {
     yArrj,
     y2,
     y2Arrj,
+    pX,
+    pY,
     linePath,
     areaPath,
     linePaths,
@@ -721,12 +737,12 @@ class Line {
     if (
       type === 'rangeArea' &&
       (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0) &&
-      curve === 'smooth'
+      curve === 'monotoneCubic'
     ) {
       curve = 'straight'
     }
 
-    if (curve === 'smooth') {
+    if (curve === 'monotoneCubic') {
       const shouldRenderMonotone =
         type === 'rangeArea'
           ? xArrj.length === w.globals.dataPoints
@@ -741,13 +757,13 @@ class Line {
       if (shouldRenderMonotone && smoothInputs.length > 1) {
         const points = spline.points(smoothInputs)
 
-        linePath += svgPath(points, w.globals.gridWidth)
+        linePath += svgPath(points)
         if (series[i][0] === null) {
           // if the first dataPoint is null, we use the linePath directly
           areaPath = linePath
         } else {
           // else, we append the areaPath
-          areaPath += svgPath(points, w.globals.gridWidth)
+          areaPath += svgPath(points)
         }
 
         if (type === 'rangeArea' && isRangeStart) {
@@ -765,7 +781,7 @@ class Line {
 
           const pointsY2 = spline.points(smoothInputsY2)
 
-          linePath += svgPath(pointsY2, w.globals.gridWidth)
+          linePath += svgPath(pointsY2)
 
           // in range area, we don't have separate line and area path
           areaPath = linePath
@@ -782,6 +798,59 @@ class Line {
 
         linePaths.push(linePath)
         areaPaths.push(areaPath)
+      }
+    } else if (curve === 'smooth') {
+      let length = (x - pX) * 0.35
+      if (w.globals.hasNullValues) {
+        if (series[i][j] !== null) {
+          if (series[i][j + 1] !== null) {
+            linePath =
+              graphics.move(pX, pY) +
+              graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+            areaPath =
+              graphics.move(pX + 1, pY) +
+              graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
+              graphics.line(x, areaBottomY) +
+              graphics.line(pX, areaBottomY) +
+              'z'
+          } else {
+            linePath = graphics.move(pX, pY)
+            areaPath = graphics.move(pX, pY) + 'z'
+          }
+        }
+
+        linePaths.push(linePath)
+        areaPaths.push(areaPath)
+      } else {
+        linePath =
+          linePath + graphics.curve(pX + length, pY, x - length, y, x, y)
+        areaPath =
+          areaPath + graphics.curve(pX + length, pY, x - length, y, x, y)
+      }
+
+      pX = x
+      pY = y
+
+      if (j === series[i].length - 2) {
+        // last loop, close path
+        areaPath =
+          areaPath +
+          graphics.curve(pX, pY, x, y, x, areaBottomY) +
+          graphics.move(x, y) +
+          'z'
+
+        if (type === 'rangeArea' && isRangeStart) {
+          linePath =
+            linePath +
+            graphics.curve(pX, pY, x, y, x, y2) +
+            graphics.move(x, y2) +
+            'z'
+        } else {
+          if (!w.globals.hasNullValues) {
+            linePaths.push(linePath)
+            areaPaths.push(areaPath)
+          }
+        }
       }
     } else {
       if (series[i][j + 1] === null) {
@@ -829,6 +898,8 @@ class Line {
     return {
       linePaths,
       areaPaths,
+      pX,
+      pY,
       linePath,
       areaPath,
     }
