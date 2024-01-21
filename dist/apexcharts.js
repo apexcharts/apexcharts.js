@@ -1,6 +1,6 @@
 /*!
- * ApexCharts v3.45.1
- * (c) 2018-2023 ApexCharts
+ * ApexCharts v3.45.2
+ * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -2418,7 +2418,6 @@
         var yRatio = [];
         var invertedYRatio = 0;
         var xRatio = 0;
-        var initialXRatio = 0;
         var invertedXRatio = 0;
         var zRatio = 0;
         var baseLineY = [];
@@ -2443,7 +2442,6 @@
         }
 
         xRatio = gl.xRange / gl.gridWidth;
-        initialXRatio = Math.abs(gl.initialMaxX - gl.initialMinX) / gl.gridWidth;
         invertedYRatio = gl.yRange / gl.gridWidth;
         invertedXRatio = gl.xRange / gl.gridHeight;
         zRatio = gl.zRange / gl.gridHeight * 16;
@@ -2478,7 +2476,6 @@
           invertedYRatio: invertedYRatio,
           zRatio: zRatio,
           xRatio: xRatio,
-          initialXRatio: initialXRatio,
           invertedXRatio: invertedXRatio,
           baseLineInvertedY: baseLineInvertedY,
           baseLineY: baseLineY,
@@ -3712,6 +3709,7 @@
               distributed: false,
               reverseNegativeShade: false,
               useFillColorAsStroke: false,
+              borderRadius: 4,
               dataLabels: {
                 format: 'scale' // scale | truncate
 
@@ -4186,7 +4184,7 @@
             enabled: true,
             enabledOnSeries: undefined,
             shared: true,
-            hideEmptySeries: true,
+            hideEmptySeries: false,
             followCursor: false,
             // when disabled, the tooltip will show on top of the series instead of mouse position
             intersect: false,
@@ -6242,7 +6240,7 @@
         var newDefaults = {};
 
         if (opts && _typeof(opts) === 'object') {
-          var _opts$plotOptions, _opts$plotOptions$bar, _opts$chart$brush, _opts$plotOptions2, _opts$plotOptions2$ba, _opts, _opts$stroke, _opts$chart$sparkline, _window$Apex$chart, _window$Apex$chart$sp;
+          var _opts$plotOptions, _opts$plotOptions$bar, _opts$chart$brush, _opts$plotOptions2, _opts$plotOptions2$ba, _opts$chart$sparkline, _window$Apex$chart, _window$Apex$chart$sp;
 
           var chartDefaults = {};
           var chartTypes = ['line', 'area', 'bar', 'candlestick', 'boxPlot', 'rangeBar', 'rangeArea', 'bubble', 'scatter', 'heatmap', 'treemap', 'pie', 'polarArea', 'donut', 'radar', 'radialBar'];
@@ -6271,10 +6269,6 @@
 
           if ((_opts$plotOptions2 = opts.plotOptions) !== null && _opts$plotOptions2 !== void 0 && (_opts$plotOptions2$ba = _opts$plotOptions2.bar) !== null && _opts$plotOptions2$ba !== void 0 && _opts$plotOptions2$ba.isDumbbell) {
             opts = defaults.dumbbell(opts);
-          }
-
-          if (((_opts = opts) === null || _opts === void 0 ? void 0 : (_opts$stroke = _opts.stroke) === null || _opts$stroke === void 0 ? void 0 : _opts$stroke.curve) === 'monotoneCubic') {
-            opts.stroke.curve = 'smooth';
           } // If user has specified a dark theme, make the tooltip dark too
 
 
@@ -13974,7 +13968,7 @@
           stylesheet.setAttribute('nonce', nonce);
         }
 
-        var text = "\t\n    \t\n      .apexcharts-legend {\t\n        display: flex;\t\n        overflow: auto;\t\n        padding: 0 10px;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\t\n        flex-wrap: wrap\t\n      }\t\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\t\n        flex-direction: column;\t\n        bottom: 0;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\t\n        justify-content: flex-start;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\t\n        justify-content: center;  \t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\t\n        justify-content: flex-end;\t\n      }\t\n      .apexcharts-legend-series {\t\n        cursor: pointer;\t\n        line-height: normal;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{\t\n        display: flex;\t\n        align-items: center;\t\n      }\t\n      .apexcharts-legend-text {\t\n        position: relative;\t\n        font-size: 14px;\t\n      }\t\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\t\n        pointer-events: none;\t\n      }\t\n      .apexcharts-legend-marker {\t\n        position: relative;\t\n        display: inline-block;\t\n        cursor: pointer;\t\n        margin-right: 3px;\t\n        border-style: solid;\n      }\t\n      \t\n      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{\t\n        display: inline-block;\t\n      }\t\n      .apexcharts-legend-series.apexcharts-no-click {\t\n        cursor: auto;\t\n      }\t\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\t\n        display: none !important;\t\n      }\t\n      .apexcharts-inactive-legend {\t\n        opacity: 0.45;\t\n      }";
+        var text = "\n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        justify-content: flex-start;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n        justify-content: center;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n        justify-content: flex-end;\n      }\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n      }\n      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{\n        display: flex;\n        align-items: center;\n      }\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n      .apexcharts-legend-marker {\n        position: relative;\n        display: inline-block;\n        cursor: pointer;\n        margin-right: 3px;\n        border-style: solid;\n      }\n\n      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{\n        display: inline-block;\n      }\n      .apexcharts-legend-series.apexcharts-no-click {\n        cursor: auto;\n      }\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n      .apexcharts-inactive-legend {\n        opacity: 0.45;\n      }";
         var rules = document.createTextNode(text);
         stylesheet.appendChild(rules);
         return stylesheet;
@@ -19182,10 +19176,6 @@
             // max barwidth should be equal to minXDiff to avoid overlap
             var xRatio = this.barCtx.xRatio;
 
-            if (w.config.xaxis.convertedCatToNumeric) {
-              xRatio = this.barCtx.initialXRatio;
-            }
-
             if (w.globals.minXDiff && w.globals.minXDiff !== 0.5 && w.globals.minXDiff / xRatio > 0) {
               xDivision = w.globals.minXDiff / xRatio;
             }
@@ -19315,7 +19305,7 @@
         var strokeWidth = 0;
         var w = this.w;
 
-        if (!this.barCtx.series[i][j]) {
+        if (typeof this.barCtx.series[i][j] === 'undefined' || this.barCtx.series[i][j] === null) {
           this.barCtx.isNullValue = true;
         } else {
           this.barCtx.isNullValue = false;
@@ -19707,7 +19697,6 @@
 
       if (this.xyRatios !== null) {
         this.xRatio = xyRatios.xRatio;
-        this.initialXRatio = xyRatios.initialXRatio;
         this.yRatio = xyRatios.yRatio;
         this.invertedXRatio = xyRatios.invertedXRatio;
         this.invertedYRatio = xyRatios.invertedYRatio;
@@ -23869,28 +23858,20 @@
    * @returns {String}
    */
 
-  var svgPath = function svgPath(points, chartWidth) {
+  var svgPath = function svgPath(points) {
     var p = '';
 
     for (var i = 0; i < points.length; i++) {
       var point = points[i];
-      var prevPoint = points[i - 1];
       var n = point.length;
-      var pn = prevPoint === null || prevPoint === void 0 ? void 0 : prevPoint.length;
 
-      if (i > 1 && Math.abs(point[n - 2] - prevPoint[pn - 2]) < chartWidth / 25) {
-        // fallback to straight line if the x distance is too small
-        // or if the curve goes backward too much
-        p += "L".concat(point[2], ", ").concat(point[3]);
-      } else {
-        if (n > 4) {
-          p += "C".concat(point[0], ", ").concat(point[1]);
-          p += ", ".concat(point[2], ", ").concat(point[3]);
-          p += ", ".concat(point[4], ", ").concat(point[5]);
-        } else if (n > 2) {
-          p += "S".concat(point[0], ", ").concat(point[1]);
-          p += ", ".concat(point[2], ", ").concat(point[3]);
-        }
+      if (n > 4) {
+        p += "C".concat(point[0], ", ").concat(point[1]);
+        p += ", ".concat(point[2], ", ").concat(point[3]);
+        p += ", ".concat(point[4], ", ").concat(point[5]);
+      } else if (n > 2) {
+        p += "S".concat(point[0], ", ").concat(point[1]);
+        p += ", ".concat(point[2], ", ").concat(point[3]);
       }
     }
 
@@ -24046,7 +24027,10 @@
           }
 
           xArrj.push(x);
-          var prevX = x;
+          var pX = x;
+          var pY = void 0;
+          var pY2 = void 0;
+          var prevX = pX;
           var prevY = this.zeroY;
           var prevY2 = this.zeroY;
           var lineYPosition = 0; // the first value in the current series is not null or undefined
@@ -24059,13 +24043,14 @@
           });
           prevY = firstPrevY.prevY;
 
-          if (w.config.stroke.curve === 'smooth' && series[i][0] === null) {
+          if (w.config.stroke.curve === 'monotonCubic' && series[i][0] === null) {
             // we have to discard the y position if 1st dataPoint is null as it causes issues with monotoneCubic path creation
             yArrj.push(null);
           } else {
             yArrj.push(prevY);
-          } // y2 are needed for range-area charts
+          }
 
+          pY = prevY; // y2 are needed for range-area charts
 
           var firstPrevY2 = void 0;
 
@@ -24077,6 +24062,7 @@
               lineYPosition: lineYPosition
             });
             prevY2 = firstPrevY2.prevY;
+            pY2 = prevY2;
             y2Arrj.push(prevY2);
           }
 
@@ -24097,6 +24083,8 @@
             i: i,
             x: x,
             y: y,
+            pX: pX,
+            pY: pY,
             pathsFrom: pathsFrom,
             linePaths: linePaths,
             areaPaths: areaPaths,
@@ -24124,6 +24112,7 @@
 
             var rangePaths = this._iterateOverDataPoints(_objectSpread2(_objectSpread2({}, iteratingOpts), {}, {
               series: seriesRangeEnd,
+              pY: pY2,
               pathsFrom: pathsFrom2,
               iterations: seriesRangeEnd[i].length - 1,
               isRangeStart: false
@@ -24403,6 +24392,8 @@
             i = _ref3.i,
             x = _ref3.x,
             y = _ref3.y,
+            pX = _ref3.pX,
+            pY = _ref3.pY,
             pathsFrom = _ref3.pathsFrom,
             linePaths = _ref3.linePaths,
             areaPaths = _ref3.areaPaths,
@@ -24517,6 +24508,8 @@
             xArrj: xArrj,
             yArrj: yArrj,
             y2Arrj: y2Arrj,
+            pX: pX,
+            pY: pY,
             linePath: linePath,
             areaPath: areaPath,
             linePaths: linePaths,
@@ -24527,10 +24520,12 @@
 
           areaPaths = calculatedPaths.areaPaths;
           linePaths = calculatedPaths.linePaths;
+          pX = calculatedPaths.pX;
+          pY = calculatedPaths.pY;
           areaPath = calculatedPaths.areaPath;
           linePath = calculatedPaths.linePath;
 
-          if (this.appendPathFrom && !(w.config.stroke.curve === 'smooth' && type === 'rangeArea')) {
+          if (this.appendPathFrom && !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')) {
             pathFromLine = pathFromLine + graphics.line(x, this.zeroY);
             pathFromArea = pathFromArea + graphics.line(x, this.zeroY);
           }
@@ -24616,6 +24611,8 @@
             yArrj = _ref5.yArrj,
             y2 = _ref5.y2,
             y2Arrj = _ref5.y2Arrj,
+            pX = _ref5.pX,
+            pY = _ref5.pY,
             linePath = _ref5.linePath,
             areaPath = _ref5.areaPath,
             linePaths = _ref5.linePaths,
@@ -24635,11 +24632,11 @@
           }
         }
 
-        if (type === 'rangeArea' && (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0) && curve === 'smooth') {
+        if (type === 'rangeArea' && (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0) && curve === 'monotoneCubic') {
           curve = 'straight';
         }
 
-        if (curve === 'smooth') {
+        if (curve === 'monotoneCubic') {
           var shouldRenderMonotone = type === 'rangeArea' ? xArrj.length === w.globals.dataPoints : j === series[i].length - 2;
           var smoothInputs = xArrj.map(function (_, i) {
             return [xArrj[i], yArrj[i]];
@@ -24649,14 +24646,14 @@
 
           if (shouldRenderMonotone && smoothInputs.length > 1) {
             var points = spline.points(smoothInputs);
-            linePath += svgPath(points, w.globals.gridWidth);
+            linePath += svgPath(points);
 
             if (series[i][0] === null) {
               // if the first dataPoint is null, we use the linePath directly
               areaPath = linePath;
             } else {
               // else, we append the areaPath
-              areaPath += svgPath(points, w.globals.gridWidth);
+              areaPath += svgPath(points);
             }
 
             if (type === 'rangeArea' && isRangeStart) {
@@ -24668,7 +24665,7 @@
                 return [xArrjInversed[i], y2ArrjInversed[i]];
               });
               var pointsY2 = spline.points(smoothInputsY2);
-              linePath += svgPath(pointsY2, w.globals.gridWidth); // in range area, we don't have separate line and area path
+              linePath += svgPath(pointsY2); // in range area, we don't have separate line and area path
 
               areaPath = linePath;
             } else {
@@ -24677,6 +24674,43 @@
 
             linePaths.push(linePath);
             areaPaths.push(areaPath);
+          }
+        } else if (curve === 'smooth') {
+          var length = (x - pX) * 0.35;
+
+          if (w.globals.hasNullValues) {
+            if (series[i][j] !== null) {
+              if (series[i][j + 1] !== null) {
+                linePath = graphics.move(pX, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y);
+                areaPath = graphics.move(pX + 1, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y) + graphics.line(x, areaBottomY) + graphics.line(pX, areaBottomY) + 'z';
+              } else {
+                linePath = graphics.move(pX, pY);
+                areaPath = graphics.move(pX, pY) + 'z';
+              }
+            }
+
+            linePaths.push(linePath);
+            areaPaths.push(areaPath);
+          } else {
+            linePath = linePath + graphics.curve(pX + length, pY, x - length, y, x, y);
+            areaPath = areaPath + graphics.curve(pX + length, pY, x - length, y, x, y);
+          }
+
+          pX = x;
+          pY = y;
+
+          if (j === series[i].length - 2) {
+            // last loop, close path
+            areaPath = areaPath + graphics.curve(pX, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z';
+
+            if (type === 'rangeArea' && isRangeStart) {
+              linePath = linePath + graphics.curve(pX, pY, x, y, x, y2) + graphics.move(x, y2) + 'z';
+            } else {
+              if (!w.globals.hasNullValues) {
+                linePaths.push(linePath);
+                areaPaths.push(areaPath);
+              }
+            }
           }
         } else {
           if (series[i][j + 1] === null) {
@@ -24714,6 +24748,8 @@
         return {
           linePaths: linePaths,
           areaPaths: areaPaths,
+          pX: pX,
+          pY: pY,
           linePath: linePath,
           areaPath: areaPath
         };
@@ -25055,7 +25091,7 @@
             var y1 = r[1];
             var x2 = r[2];
             var y2 = r[3];
-            var elRect = graphics.drawRect(x1, y1, x2 - x1, y2 - y1, 0, '#fff', 1, _this.strokeWidth, w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]);
+            var elRect = graphics.drawRect(x1, y1, x2 - x1, y2 - y1, w.config.plotOptions.treemap.borderRadius, '#fff', 1, _this.strokeWidth, w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]);
             elRect.attr({
               cx: x1,
               cy: y1,
@@ -26716,7 +26752,7 @@
 
 
         if (typeof w.config.chart.events.selection !== 'function') {
-          var targets = Array.isArray(w.config.chart.brush.targets) || [w.config.chart.brush.target]; // retro compatibility with single target option
+          var targets = Array.isArray(w.config.chart.brush.targets) ? w.config.chart.brush.targets : [w.config.chart.brush.target]; // retro compatibility with single target option
 
           targets.forEach(function (target) {
             var targetChart = ApexCharts.getChartByID(target);
