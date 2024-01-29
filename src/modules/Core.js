@@ -1,3 +1,4 @@
+import ApexCharts from '../apexcharts'
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
 import BoxCandleStick from '../charts/BoxCandleStick'
@@ -427,8 +428,8 @@ export default class Core {
       let offsetY = cnf.chart.sparkline.enabled
         ? 0
         : gl.axisCharts
-        ? cnf.chart.parentHeightOffset
-        : 0
+          ? cnf.chart.parentHeightOffset
+          : 0
 
       gl.dom.Paper.node.parentNode.parentNode.style.minHeight =
         gl.svgHeight + offsetY + 'px'
