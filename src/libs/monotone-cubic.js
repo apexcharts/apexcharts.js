@@ -69,29 +69,20 @@ export const tangents = (points) => {
  * @param {Array} points
  * @returns {String}
  */
-export const svgPath = (points, chartWidth) => {
+export const svgPath = (points) => {
   let p = ''
 
   for (let i = 0; i < points.length; i++) {
     const point = points[i]
-    const prevPoint = points[i - 1]
     const n = point.length
-    const pn = prevPoint?.length
 
-    if (i > 1 && Math.abs(point[n - 2] - prevPoint[pn - 2]) < chartWidth / 25) {
-      // fallback to quadratic curve if the x distance is too small
-      // or if the curve goes backward too much
-      p += `Q${point[0]}, ${point[1]}`
+    if (n > 4) {
+      p += `C${point[0]}, ${point[1]}`
       p += `, ${point[2]}, ${point[3]}`
-    } else {
-      if (n > 4) {
-        p += `C${point[0]}, ${point[1]}`
-        p += `, ${point[2]}, ${point[3]}`
-        p += `, ${point[4]}, ${point[5]}`
-      } else if (n > 2) {
-        p += `S${point[0]}, ${point[1]}`
-        p += `, ${point[2]}, ${point[3]}`
-      }
+      p += `, ${point[4]}, ${point[5]}`
+    } else if (n > 2) {
+      p += `S${point[0]}, ${point[1]}`
+      p += `, ${point[2]}, ${point[3]}`
     }
   }
 

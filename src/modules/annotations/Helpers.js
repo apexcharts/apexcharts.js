@@ -161,6 +161,15 @@ export default class Helpers {
       if (xLabel) {
         yP = parseFloat(xLabel.getAttribute('y'))
       }
+
+      if (typeof anno.seriesIndex !== 'undefined') {
+        if (w.globals.barHeight) {
+          yP =
+            yP -
+            (w.globals.barHeight / 2) * (w.globals.series.length - 1) +
+            w.globals.barHeight * anno.seriesIndex
+        }
+      }
     } else {
       let yPos
       if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
@@ -250,6 +259,15 @@ export default class Helpers {
       anno.x2.indexOf('px') > -1
     ) {
       x2 = parseFloat(anno.x2)
+    }
+
+    if (typeof anno.seriesIndex !== 'undefined') {
+      if (w.globals.barWidth && !this.annoCtx.invertAxis) {
+        x1 =
+          x1 -
+          (w.globals.barWidth / 2) * (w.globals.series.length - 1) +
+          w.globals.barWidth * anno.seriesIndex
+      }
     }
 
     return type === 'x1' ? x1 : x2

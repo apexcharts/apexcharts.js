@@ -47,6 +47,7 @@ export default class HeatMap {
     this.negRange = this.helpers.checkColorRange()
 
     let heatSeries = series.slice()
+
     if (w.config.yaxis[0].reversed) {
       rev = true
       heatSeries.reverse()
@@ -122,7 +123,7 @@ export default class HeatMap {
           i,
           index: i,
           j,
-          val: heatSeries[i][j],
+          val: series[i][j],
           'stroke-width': this.strokeWidth,
           stroke: w.config.plotOptions.heatmap.useFillColorAsStroke
             ? color

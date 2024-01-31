@@ -71,10 +71,6 @@ export default class Config {
         opts = defaults.dumbbell(opts)
       }
 
-      if (opts?.stroke?.curve === 'monotoneCubic') {
-        opts.stroke.curve = 'smooth'
-      }
-
       // If user has specified a dark theme, make the tooltip dark too
       this.checkForDarkTheme(window.Apex) // check global window Apex options
       this.checkForDarkTheme(opts) // check locally passed options

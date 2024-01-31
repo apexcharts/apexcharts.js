@@ -65,7 +65,7 @@ export default class Helpers {
 
     let pointsPos = {
       x: ptX,
-      y: ptY
+      y: ptY,
     }
 
     return pointsPos
@@ -98,13 +98,18 @@ export default class Helpers {
 
     return {
       pathFromLine,
-      pathFromArea
+      pathFromArea,
     }
   }
 
   determineFirstPrevY({ i, series, prevY, lineYPosition }) {
     let w = this.w
-    let stackSeries = w.config.chart.stacked && (!w.config.chart.stackOnlyBar || (series[i] && series[i].type && series[i].type === 'bar'));
+    let stackSeries =
+      (w.config.chart.stacked && !w.globals.comboCharts) ||
+      (w.config.chart.stacked &&
+        w.globals.comboCharts &&
+        (!this.w.config.chart.stackOnlyBar ||
+          this.w.config.series[i]?.type === 'bar'))
 
     if (typeof series[i]?.[0] !== 'undefined') {
       if (stackSeries) {
@@ -127,11 +132,7 @@ export default class Helpers {
           2
     } else {
       // the first value in the current series is null
-      if (
-        stackSeries &&
-        i > 0 &&
-        typeof series[i][0] === 'undefined'
-      ) {
+      if (stackSeries && i > 0 && typeof series[i][0] === 'undefined') {
         // check for undefined value (undefined value will occur when we clear the series while user clicks on legend to hide serieses)
         for (let s = i - 1; s >= 0; s--) {
           // for loop to get to 1st previous value until we get it
@@ -145,7 +146,7 @@ export default class Helpers {
     }
     return {
       prevY,
-      lineYPosition
+      lineYPosition,
     }
   }
 }

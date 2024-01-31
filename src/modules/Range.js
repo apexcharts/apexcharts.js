@@ -405,12 +405,20 @@ class Range {
           gl.xAxisScale = this.scales.setXScale(gl.minX, gl.maxX)
         }
       } else {
-        gl.xAxisScale = this.scales.linearScale(0, ticks, ticks)
+        gl.xAxisScale = this.scales.linearScale(
+          0,
+          ticks,
+          ticks,
+          0,
+          cnf.xaxis.stepSize
+        )
         if (gl.noLabelsProvided && gl.labels.length > 0) {
           gl.xAxisScale = this.scales.linearScale(
             1,
             gl.labels.length,
-            ticks - 1
+            ticks - 1,
+            0,
+            cnf.xaxis.stepSize
           )
 
           // this is the only place seriesX is again mutated
@@ -554,8 +562,13 @@ class Range {
             stackedPoss[group][j] = 0
             stackedNegs[group][j] = 0
           }
+
           let stackSeries =
-            !this.w.config.chart.stackOnlyBar || gl.series?.[i]?.type === 'bar'
+            (this.w.config.chart.stacked && !gl.comboCharts) ||
+            (this.w.config.chart.stacked &&
+              gl.comboCharts &&
+              (!this.w.config.chart.stackOnlyBar ||
+                this.w.config.series?.[i]?.type === 'bar'))
 
           if (stackSeries) {
             if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {

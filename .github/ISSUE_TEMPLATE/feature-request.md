@@ -1,5 +1,5 @@
----	
-name: Feature Request	
+---
+name: Feature Request
 about: Suggest a feature you would like to have in ApexCharts
 labels: feature-request
 ---

@@ -35,7 +35,7 @@ class CoreUtils {
 
     return {
       comboBarCount,
-      comboCharts
+      comboCharts,
     }
   }
 
@@ -79,6 +79,34 @@ class CoreUtils {
       // axis charts - supporting multiple series
       return this.w.globals.series[index].reduce((acc, cur) => acc + cur, 0)
     }
+  }
+
+  /**
+   * @memberof CoreUtils
+   * returns the sum of values in a multiple stacked grouped charts
+   * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1], [43, 23, 34, 22]]
+   * series 1 and 2 are in a group, while series 3 is in another group
+   *  @return [[34, 36, 48, 12], [43, 23, 34, 22]]
+   **/
+  getStackedSeriesTotalsByGroups() {
+    const w = this.w
+    let total = []
+
+    w.globals.seriesGroups.forEach((sg) => {
+      let includedIndexes = []
+      w.config.series.forEach((s, si) => {
+        if (sg.indexOf(s.name) > -1) {
+          includedIndexes.push(si)
+        }
+      })
+
+      const excludedIndices = w.globals.series
+        .map((_, fi) => (includedIndexes.indexOf(fi) === -1 ? fi : -1))
+        .filter((f) => f !== -1)
+
+      total.push(this.getStackedSeriesTotals(excludedIndices))
+    })
+    return total
   }
 
   isSeriesNull(index = null) {
@@ -226,7 +254,6 @@ class CoreUtils {
     let yRatio = []
     let invertedYRatio = 0
     let xRatio = 0
-    let initialXRatio = 0
     let invertedXRatio = 0
     let zRatio = 0
     let baseLineY = []
@@ -251,8 +278,6 @@ class CoreUtils {
     }
 
     xRatio = gl.xRange / gl.gridWidth
-
-    initialXRatio = Math.abs(gl.initialMaxX - gl.initialMinX) / gl.gridWidth
 
     invertedYRatio = gl.yRange / gl.gridWidth
     invertedXRatio = gl.xRange / gl.gridHeight
@@ -288,11 +313,10 @@ class CoreUtils {
       invertedYRatio,
       zRatio,
       xRatio,
-      initialXRatio,
       invertedXRatio,
       baseLineInvertedY,
       baseLineY,
-      baseLineX
+      baseLineX,
     }
   }
 

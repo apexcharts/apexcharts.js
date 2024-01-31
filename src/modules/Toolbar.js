@@ -183,10 +183,6 @@ export default class Toolbar {
       },
     ]
 
-    if (!this.w.globals.allSeriesHasEqualX) {
-      // if it is a multi series, and all series have variable x values, export CSV won't work
-      menuItems.splice(2, 1)
-    }
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItems.push(document.createElement('div'))
       this.elMenuItems[i].innerHTML = menuItems[i].title

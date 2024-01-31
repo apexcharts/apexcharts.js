@@ -40,9 +40,9 @@
     ],
     "shortDays": ["Do", "Se", "Te", "Qa", "Qi", "Sx", "Sa"],
     "toolbar": {
-      "exportToSVG": "Baixar SVG",
-      "exportToPNG": "Baixar PNG",
-      "exportToCSV": "Baixar CSV",
+      "exportToSVG": "Transferir SVG",
+      "exportToPNG": "Transferir PNG",
+      "exportToCSV": "Transferir CSV",
       "menu": "Menu",
       "selection": "Selecionar",
       "selectionZoom": "Zoom: Selecionar",

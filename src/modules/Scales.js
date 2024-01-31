@@ -8,7 +8,7 @@ export default class Range {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
   // This routine creates the Y axis values for a graph.
-  niceScale(yMin, yMax, ticks = 10, index = 0, NO_MIN_MAX_PROVIDED) {
+  niceScale(yMin, yMax, ticks = 5, index = 0, NO_MIN_MAX_PROVIDED) {
     const w = this.w
     // Determine Range
     let range = Math.abs(yMax - yMin)
@@ -27,7 +27,13 @@ export default class Range {
       // when all values are 0
       yMin = 0
       yMax = ticks
-      let linearScale = this.linearScale(yMin, yMax, ticks)
+      let linearScale = this.linearScale(
+        yMin,
+        yMax,
+        ticks,
+        index,
+        w.config.yaxis[index].stepSize
+      )
       return linearScale
     }
 
@@ -87,6 +93,18 @@ export default class Range {
     }
     let stepSize = magMsd * magPow
 
+    if (w.config.yaxis[index].stepSize) {
+      stepSize = w.config.yaxis[index].stepSize
+    }
+
+    if (
+      w.globals.isBarHorizontal &&
+      w.config.xaxis.stepSize &&
+      w.config.xaxis.type !== 'datetime'
+    ) {
+      stepSize = w.config.xaxis.stepSize
+    }
+
     // build Y label array.
     // Lower and upper bounds calculations
     let lb = stepSize * Math.floor(yMin / stepSize)
@@ -130,7 +148,7 @@ export default class Range {
     }
   }
 
-  linearScale(yMin, yMax, ticks = 10, index) {
+  linearScale(yMin, yMax, ticks = 5, index = 0, step = undefined) {
     let range = Math.abs(yMax - yMin)
 
     ticks = this._adjustTicksForSmallRange(ticks, index, range)
@@ -139,9 +157,12 @@ export default class Range {
       ticks = this.w.globals.dataPoints - 1
     }
 
-    let step = range / ticks
+    if (!step) {
+      step = range / ticks
+    }
+
     if (ticks === Number.MAX_VALUE) {
-      ticks = 10
+      ticks = 5
       step = 1
     }
 
@@ -266,7 +287,13 @@ export default class Range {
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
         // no data in the chart. Either all series collapsed or user passed a blank array
-        gl.yAxisScale[index] = this.linearScale(0, 5, 5)
+        gl.yAxisScale[index] = this.linearScale(
+          0,
+          5,
+          5,
+          index,
+          cnf.yaxis[index].stepSize
+        )
       } else {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
@@ -277,7 +304,8 @@ export default class Range {
             minY,
             maxY,
             y.tickAmount,
-            index
+            index,
+            cnf.yaxis[index].stepSize
           )
         } else {
           const noMinMaxProvided =
@@ -300,7 +328,6 @@ export default class Range {
   setXScale(minX, maxX) {
     const w = this.w
     const gl = w.globals
-    const x = w.config.xaxis
     let diff = Math.abs(maxX - minX)
     if (maxX === -Number.MAX_VALUE || !Utils.isNumber(maxX)) {
       // no data in the chart. Either all series collapsed or user passed a blank array
@@ -309,8 +336,13 @@ export default class Range {
       gl.xAxisScale = this.linearScale(
         minX,
         maxX,
-        x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
-        0
+        w.config.xaxis.tickAmount
+          ? w.config.xaxis.tickAmount
+          : diff < 5 && diff > 1
+          ? diff + 1
+          : 5,
+        0,
+        w.config.xaxis.stepSize
       )
     }
     return gl.xAxisScale

@@ -625,7 +625,7 @@ class TimeScale {
     if (remainingMins === 60) {
       firstTickPosition = 0
       firstTickValue = firstVal.minHour
-      hour = firstTickValue + 1
+      hour = firstTickValue
     }
 
     let date = currentDate

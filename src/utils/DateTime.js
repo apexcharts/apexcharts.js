@@ -18,6 +18,9 @@ class DateTime {
   }
 
   isValidDate(date) {
+    if (typeof date === 'number') {
+      return false // don't test for timestamps
+    }
     return !isNaN(this.parseDate(date))
   }
 
@@ -176,7 +179,7 @@ class DateTime {
       minMonth: parseInt(minD[1], 10) - 1,
       maxMonth: parseInt(maxD[1], 10) - 1,
       minYear: parseInt(minD[0], 10),
-      maxYear: parseInt(maxD[0], 10)
+      maxYear: parseInt(maxD[0], 10),
     }
   }
 

@@ -15,6 +15,7 @@ export default class Options {
       logarithmic: false,
       logBase: 10,
       tickAmount: undefined,
+      stepSize: undefined,
       forceNiceScale: false,
       max: undefined,
       min: undefined,
@@ -85,7 +86,7 @@ export default class Options {
       x: 0,
       y: null,
       yAxisIndex: 0,
-      seriesIndex: 0,
+      seriesIndex: undefined,
       mouseEnter: undefined,
       mouseLeave: undefined,
       click: undefined,
@@ -484,6 +485,7 @@ export default class Options {
           distributed: false,
           reverseNegativeShade: false,
           useFillColorAsStroke: false,
+          borderRadius: 4,
           dataLabels: {
             format: 'scale', // scale | truncate
           },
@@ -939,7 +941,7 @@ export default class Options {
         enabled: true,
         enabledOnSeries: undefined,
         shared: true,
-        hideEmptySeries: true,
+        hideEmptySeries: false,
         followCursor: false, // when disabled, the tooltip will show on top of the series instead of mouse position
         intersect: false, // when enabled, tooltip will only show when user directly hovers over point
         inverseOrder: false,
@@ -1048,6 +1050,7 @@ export default class Options {
           offsetX: 0,
           offsetY: 0,
         },
+        stepSize: undefined,
         tickAmount: undefined,
         tickPlacement: 'on',
         min: undefined,

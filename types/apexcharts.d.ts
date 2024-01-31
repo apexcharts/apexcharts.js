@@ -496,9 +496,9 @@ type ApexLocale = {
       zoomOut?: string
       pan?: string
       reset?: string
-			exportToSVG?: string
-			exportToPNG?: string
-			exportToCSV?: string
+      exportToSVG?: string
+      exportToPNG?: string
+      exportToCSV?: string
     }
   }
 }
@@ -602,6 +602,7 @@ type ApexPlotOptions = {
     reverseNegativeShade?: boolean
     useFillColorAsStroke?: boolean
     dataLabels?: { format?: 'scale' | 'truncate' }
+    borderRadius?: number
     colorScale?: {
       inverse?: boolean
       ranges?: {
@@ -1053,6 +1054,7 @@ type ApexXAxis = {
   }
   tickPlacement?: string
   tickAmount?: number | 'dataPoints'
+  stepSize?: number
   min?: number
   max?: number
   range?: number
@@ -1120,6 +1122,7 @@ type ApexYAxis = {
   logarithmic?: boolean,
   logBase?: number,
   tickAmount?: number
+  stepSize?: number
   forceNiceScale?: boolean
   min?: number | ((min: number) => number)
   max?: number | ((max: number) => number)

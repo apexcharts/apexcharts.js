@@ -143,8 +143,7 @@ export default class Data {
     for (let j = 0; j < ser[activeI].data.length; j++) {
       const isXString = typeof ser[activeI].data[j].x === 'string'
       const isXArr = Array.isArray(ser[activeI].data[j].x)
-      const isXDate =
-        !isXArr && !!dt.isValidDate(ser[activeI].data[j].x.toString())
+      const isXDate = !isXArr && !!dt.isValidDate(ser[activeI].data[j].x)
 
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
@@ -455,14 +454,7 @@ export default class Data {
         ser[i].type === 'rangeArea'
       ) {
         gl.isRangeData = true
-        if (gl.isComboCharts) {
-          if (ser[i].type === 'rangeBar' || ser[i].type === 'rangeArea') {
-            this.handleRangeData(ser, i)
-          }
-        } else if (
-          cnf.chart.type === 'rangeBar' ||
-          cnf.chart.type === 'rangeArea'
-        ) {
+        if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea') {
           this.handleRangeData(ser, i)
         }
       }
@@ -693,6 +685,8 @@ export default class Data {
     this.coreUtils.getSeriesTotals()
     if (gl.axisCharts) {
       gl.stackedSeriesTotals = this.coreUtils.getStackedSeriesTotals()
+      gl.stackedSeriesTotalsByGroups =
+        this.coreUtils.getStackedSeriesTotalsByGroups()
     }
 
     this.coreUtils.getPercentSeries()

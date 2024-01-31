@@ -86,7 +86,7 @@ export default class TreemapChart {
           y1,
           x2 - x1,
           y2 - y1,
-          0,
+          w.config.plotOptions.treemap.borderRadius,
           '#fff',
           1,
           this.strokeWidth,

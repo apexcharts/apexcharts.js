@@ -454,8 +454,18 @@ class Grid {
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
           xCount = w.config.xaxis.tickAmount
         }
+        if (
+          w.globals.yAxisScale?.[0]?.result?.length > 0 &&
+          w.config.xaxis.type !== 'datetime'
+        ) {
+          xCount = w.globals.yAxisScale[0].result.length - 1
+        }
       }
-      this._drawXYLines({ xCount, tickAmount: yTickAmount })
+
+      this._drawXYLines({
+        xCount,
+        tickAmount: yTickAmount,
+      })
     } else {
       xCount = yTickAmount
 

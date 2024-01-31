@@ -104,9 +104,7 @@ export default class Helpers {
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
         let xRatio = this.barCtx.xRatio
-        if (w.config.xaxis.convertedCatToNumeric) {
-          xRatio = this.barCtx.initialXRatio
-        }
+
         if (
           w.globals.minXDiff &&
           w.globals.minXDiff !== 0.5 &&
@@ -140,6 +138,9 @@ export default class Helpers {
         w.globals.padHorizontal +
         (xDivision - barWidth * this.barCtx.seriesLen) / 2
     }
+
+    w.globals.barHeight = barHeight
+    w.globals.barWidth = barWidth
 
     return {
       x,
@@ -230,6 +231,8 @@ export default class Helpers {
       fillConfig: w.config.series[i].data[j]?.fill,
       fillType: w.config.series[i].data[j]?.fill?.type
         ? w.config.series[i].data[j]?.fill.type
+        : Array.isArray(w.config.fill.type)
+        ? w.config.fill.type[i]
         : w.config.fill.type,
     })
 
@@ -240,7 +243,10 @@ export default class Helpers {
     let strokeWidth = 0
     const w = this.w
 
-    if (!this.barCtx.series[i][j]) {
+    if (
+      typeof this.barCtx.series[i][j] === 'undefined' ||
+      this.barCtx.series[i][j] === null
+    ) {
       this.barCtx.isNullValue = true
     } else {
       this.barCtx.isNullValue = false
