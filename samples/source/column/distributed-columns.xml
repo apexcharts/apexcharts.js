@@ -49,6 +49,9 @@ dataLabels: {
 legend: {
   show: false
 },
+yaxis: {
+  min: 0
+},
 xaxis: {
   categories: [
     ['John', 'Doe'],

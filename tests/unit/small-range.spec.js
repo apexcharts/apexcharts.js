@@ -29,7 +29,7 @@ describe('Y-axis with ultra-small values', () => {
     const maxY = chart.w.globals.maxY
 
     expect(minY.toFixed(6)).toEqual('0.003760')
-    expect(maxY.toFixed(6)).toEqual('0.003807')
+    expect(maxY.toFixed(6)).toEqual('0.003800')
   })
 
   it('should not apply nice scale for small values', () => {
@@ -59,48 +59,56 @@ describe('Y-axis with ultra-small values', () => {
   })
 })
 
-describe('yaxis scale to not contain duplicated values when formatter is provided', () => {
-  it('yaxis scale should not contain duplicated values for small integer range', () => {
-    const chart = createChartWithOptions({
-      chart: {
-        type: 'line',
-      },
-      series: [
-        {
-          data: [1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 2],
-        },
-      ],
-      xaxis: {
-        categories: [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ],
-      },
-      yaxis: {
-        labels: {
-          formatter: (val) => {
-            return val.toFixed(0)
-          },
-        },
-      },
-    })
-
-    const range = new Range(chart)
-    const yRange = range.setYRange()
-
-    expect(yRange.yAxisScale[0].result).toEqual([1, 2])
-  })
-})
+// Removal of duplicate labels can only be done within
+// the formatter itself. See the new:
+// samples/source/mixed/duplicate-labels.xml
+//
+// It appears that this unit test, when run against the current main branch code,
+// succeeds only because the range of the Y axis is <= 2, which sends it through
+// a path in niceScale() that happens to return just the two expected values.
+// 
+//describe('yaxis scale to not contain duplicated values when formatter is provided', () => {
+//  it('yaxis scale should not contain duplicated values for small integer range', () => {
+//    const chart = createChartWithOptions({
+//      chart: {
+//        type: 'line',
+//      },
+//      series: [
+//        {
+//          data: [1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 2],
+//        },
+//      ],
+//      xaxis: {
+//        categories: [
+//          'Jan',
+//          'Feb',
+//          'Mar',
+//          'Apr',
+//          'May',
+//          'Jun',
+//          'Jul',
+//          'Aug',
+//          'Sep',
+//          'Oct',
+//          'Nov',
+//          'Dec',
+//        ],
+//      },
+//      yaxis: {
+//        labels: {
+//          formatter: (val) => {
+//            return val.toFixed(0)
+//          },
+//        },
+//      },
+//    })
+//
+//    const range = new Range(chart)
+//    const yRange = range.setYRange()
+//
+//    expect(yRange.yAxisScale[0].result).toEqual([1, 2])
+//  })
+//})
 
 describe('yaxis scale to ignore duplication if fractions are present in series', () => {
   it('yaxis scale should ignore duplication of labels when non integers are provided', () => {
@@ -146,9 +154,6 @@ describe('yaxis scale to ignore duplication if fractions are present in series',
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.yAxisScale[0].result).toEqual([
-      1.232191, 1.3770637191932444, 1.5219365996986876, 1.6668094802041307,
-      1.8116823607095738, 1.956555241215017,
-    ])
+    expect(yRange.yAxisScale[0].result).toEqual([1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2])
   })
 })

@@ -16,6 +16,9 @@ chart: {
 title: {
   text: 'Basic Radar Chart'
 },
+yaxis: {
+  stepSize: 20
+},
 xaxis: {
   categories: ['January', 'February', 'March', 'April', 'May', 'June']
 }

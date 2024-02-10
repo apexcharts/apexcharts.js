@@ -357,8 +357,7 @@ var optionsArea = {
     }
   },
   yaxis: {
-    tickAmount: 4,
-    max: 12,
+    stepSize: 3,
     axisBorder: {
       show: false
     },

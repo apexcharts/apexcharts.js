@@ -38,6 +38,7 @@ xaxis: {
 },
 yaxis: [
   {
+    seriesName: 'Income',
     axisTicks: {
       show: true,
     },
@@ -61,7 +62,7 @@ yaxis: [
     }
   },
   {
-    seriesName: 'Income',
+    seriesName: 'Cashflow',
     opposite: true,
     axisTicks: {
       show: true,

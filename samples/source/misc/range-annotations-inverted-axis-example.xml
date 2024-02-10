@@ -49,6 +49,9 @@ plotOptions: {
 dataLabels: {
   enabled: false
 },
+yaxis: {
+  min: 0,
+},
 xaxis: {
   categories: ['South Korea', 'Canada', 'United Kingdom', 'Netherlands', 'Italy', 'France', 'Japan', 'United States', 'China', 'Germany'],
 }

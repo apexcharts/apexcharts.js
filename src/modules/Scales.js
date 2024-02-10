@@ -1,22 +1,41 @@
 import Utils from '../utils/Utils'
 
-export default class Range {
+export default class Scales {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
-  // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
+  // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
   // This routine creates the Y axis values for a graph.
-  niceScale(yMin, yMax, ticks = 5, index = 0, NO_MIN_MAX_PROVIDED) {
+  niceScale(yMin, yMax, index = 0) {
+    const jsPrecision = 1e-11 // JS precision errors
     const w = this.w
-    // Determine Range
-    let range = Math.abs(yMax - yMin)
+    const gl = w.globals
+    const xaxisCnf = w.config.xaxis
+    const yaxisCnf = w.config.yaxis[index]
+    let gotMin = yaxisCnf.min !== undefined
+    let gotMax = yaxisCnf.max !== undefined
+    let gotStepSize = yaxisCnf.stepSize !== undefined
+    let gotTickAmount = yaxisCnf.tickAmount !== undefined
+    // The most ticks we can fit into the svg chart dimensions
+    const maxTicks = ((gl.isBarHorizontal ? gl.svgWidth : gl.svgHeight) - 100) / 15 // Guestimate
+    let ticks = gotTickAmount ? yaxisCnf.tickAmount : 10
 
-    ticks = this._adjustTicksForSmallRange(ticks, index, range)
+    // In case we have a multi axis chart:
+    // Ensure subsequent series start with the same tickAmount as series[0],
+    // because the tick lines are drawn based on series[0]. This does not
+    // override user defined options for any series.
+    if (gl.isMultipleYAxis && !gotTickAmount && gl.multiAxisTickAmount > 0) {
+      ticks = gl.multiAxisTickAmount
+      gotTickAmount = true
+    }
 
     if (ticks === 'dataPoints') {
-      ticks = w.globals.dataPoints - 1
+      ticks = gl.dataPoints - 1
+    } else {
+      // Ensure ticks is an integer
+      ticks = Math.abs(Math.round(ticks))
     }
 
     if (
@@ -27,128 +46,319 @@ export default class Range {
       // when all values are 0
       yMin = 0
       yMax = ticks
-      let linearScale = this.linearScale(
-        yMin,
-        yMax,
-        ticks,
-        index,
-        w.config.yaxis[index].stepSize
-      )
-      return linearScale
+      gl.allSeriesCollapsed = false
     }
 
     if (yMin > yMax) {
       // if somehow due to some wrong config, user sent max less than min,
       // adjust the min/max again
-      console.warn('axis.min cannot be greater than axis.max')
-      yMax = yMin + 0.1
+      console.warn('axis.min cannot be greater than axis.max: swapping min and max')
+      let temp = yMax
+      yMax = yMin
+      yMin = temp
     } else if (yMin === yMax) {
       // If yMin and yMax are identical, then
       // adjust the yMin and yMax values to actually
       // make a graph. Also avoids division by zero errors.
-      yMin = yMin === 0 ? 0 : yMin - 0.5 // some small value
-      yMax = yMax === 0 ? 2 : yMax + 0.5 // some small value
+      yMin = yMin === 0 ? 0 : yMin - 1 // choose an integer in case yValueDecimals=0
+      yMax = yMax === 0 ? 2 : yMax + 1 // choose an integer in case yValueDecimals=0
     }
 
     // Calculate Min amd Max graphical labels and graph
-    // increments.  The number of ticks defaults to
-    // 10 which is the SUGGESTED value.  Any tick value
-    // entered is used as a suggested value which is
-    // adjusted to be a 'pretty' value.
-    //
+    // increments.
+    // 
     // Output will be an array of the Y axis values that
     // encompass the Y values.
     let result = []
 
-    if (
-      range < 1 &&
-      NO_MIN_MAX_PROVIDED &&
-      (w.config.chart.type === 'candlestick' ||
-        w.config.series[index].type === 'candlestick' ||
-        w.config.chart.type === 'boxPlot' ||
-        w.config.series[index].type === 'boxPlot' ||
-        w.globals.isRangeData)
-    ) {
-      /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
-      yMax = yMax * 1.01
+    if (ticks < 1) {
+      ticks = 1
+    }
+    let tiks = ticks
+
+    // Determine Range
+    let range = Math.abs(yMax - yMin)
+    
+    if (yaxisCnf.forceNiceScale) {
+      // Snap min or max to zero if close
+      let proximityRatio = 0.15
+      if (!gotMin && yMin > 0 && yMin / range < proximityRatio) {
+        yMin = 0
+        gotMin = true
+      }
+      if (!gotMax && yMax < 0 && -yMax / range < proximityRatio) {
+        yMax = 0
+        gotMax = true
+      }
+      range = Math.abs(yMax - yMin)
     }
 
-    let tiks = ticks + 1
-    // Adjust ticks if needed
-    if (tiks < 2) {
-      tiks = 2
-    } else if (tiks > 2) {
-      tiks -= 2
-    }
+    // Calculate a pretty step value based on ticks
 
-    // Get raw step value
-    let tempStep = range / tiks
-    // Calculate pretty step value
-
-    let mag = Math.floor(Utils.log10(tempStep))
+    // Initial stepSize
+    let stepSize = range / tiks
+    let niceStep = stepSize
+    let mag = Math.floor(Math.log10(niceStep))
     let magPow = Math.pow(10, mag)
-    let magMsd = Math.round(tempStep / magPow)
-    if (magMsd < 1) {
-      magMsd = 1
-    }
-    let stepSize = magMsd * magPow
+    // ceil() is used below in conjunction with the values populating
+    // niceScaleAllowedMagMsd[][] to ensure that (niceStep * tiks)
+    // produces a range that doesn't clip data points after stretching
+    // the raw range out a little to match the prospective new range.
+    let magMsd = Math.ceil(niceStep / magPow)
+    // See globals.js for info on what niceScaleAllowedMagMsd does
+    magMsd = gl.niceScaleAllowedMagMsd[gl.yValueDecimal === 0 ? 0 : 1][magMsd]
+    niceStep = magMsd * magPow
 
-    if (w.config.yaxis[index].stepSize) {
-      stepSize = w.config.yaxis[index].stepSize
+    // Initial stepSize
+    stepSize = niceStep
+
+    // Get step value
+    if (gl.isBarHorizontal
+      && xaxisCnf.stepSize
+      && xaxisCnf.type !== 'datetime') {
+      stepSize = xaxisCnf.stepSize
+      gotStepSize = true
+    } else if (gotStepSize) {
+      stepSize = yaxisCnf.stepSize
+    }
+    if (gotStepSize) {
+      if (yaxisCnf.forceNiceScale) {
+        // Check that given stepSize is sane with respect to the range.
+        // 
+        // The user can, by setting forceNiceScale = true,
+        // define a stepSize that will be scaled to useful value before
+        // it's checked for consistency.
+        // 
+        // If, for example, the range = 4 and the user defined stepSize = 8
+        // (or 8000 or 0.0008, etc), then stepSize is inapplicable as
+        // it is. Reducing it to 0.8 will fit with 5 ticks.
+        // 
+        if (Math.round(Math.log10(stepSize)) != mag) {
+          let ref = range / ticks
+          while (stepSize < ref) {
+            stepSize *= 10
+          }
+          while (stepSize > ref) {
+            stepSize /= 10
+          }
+        }
+      }
+    }
+
+    // Start applying some rules
+    if (gotMin && gotMax) {
+      let crudeStep = range / tiks
+      // min and max (range) cannot be changed
+      if (gotTickAmount) {
+        if (gotStepSize) {
+          if (Utils.mod(range, stepSize) != 0) {
+            // stepSize conflicts with range
+            let gcdStep = Utils.getGCD(stepSize, crudeStep)
+            // gcdStep is a multiple of range because crudeStep is a multiple.
+            // gcdStep is also a multiple of stepSize, so it partially honoured
+            // All three could be equal, which would be very nice
+            // if the computed stepSize generates too many ticks they will be
+            // reduced later, unless the number is prime, in which case,
+            // the chart will display all of them or just one (plus the X axis)
+            // depending on svg dimensions. Setting forceNiceScale: true will force
+            // the display of at least the default number of ticks.
+            if (crudeStep / gcdStep < 10) {
+              stepSize = gcdStep
+            } else {
+              // stepSize conflicts and no reasonable adjustment, but must
+              // honour tickAmount
+              stepSize = crudeStep
+            }
+          } else {
+            // stepSize fits
+            if (Utils.mod(stepSize, crudeStep) == 0) {
+              // crudeStep is a multiple of stepSize, or vice versa
+              // we know crudeStep will generate tickAmount ticks
+              stepSize = crudeStep
+            } else {
+              // stepSize conflicts with tickAmount
+              // if the user is setting up a multi-axis chart and wants
+              // synced axis ticks then they should not define stepSize
+              // or ensure there is no conflict between any of their options
+              // on any axis.
+              crudeStep = stepSize
+              // De-prioritizing ticks from now on
+              gotTickAmount = false
+            }
+          }
+        } else {
+          // no user stepSize, honour ticks
+          stepSize = crudeStep
+        }
+      } else {
+        // default ticks in use
+        if (gotStepSize) {
+          if (Utils.mod(range, stepSize) == 0) {
+            // stepSize fits
+            crudeStep = stepSize
+          } else {
+            stepSize = crudeStep
+          }
+        } else {
+          // no user stepSize
+          tiks = Math.round(range / niceStep)
+          crudeStep = range / tiks
+          if (Utils.mod(range, stepSize) != 0) {
+            // stepSize doesn't fit
+            let gcdStep = Utils.getGCD(range, niceStep)
+            if (niceStep / gcdStep < 10) {
+              crudeStep = gcdStep
+            }
+            stepSize = crudeStep
+          } else {
+            // stepSize fits
+            crudeStep = stepSize
+          }
+        }
+      }
+      tiks = Math.round(range / stepSize)
+    } else {
+      // Snap range to ticks
+      if (!gotMin && !gotMax) {
+        if (gotTickAmount) {
+          // Allow a half-stepSize shift if series doesn't cross the X axis
+          // to ensure graph doesn't clip. Not if it does cross, in order
+          // to keep the 0 aligned with a grid line in multi axis charts.
+          let shift = stepSize / ((yMax - yMin > yMax) ? 1 : 2)
+          yMin = shift * Math.floor(yMin / shift)
+          yMax = yMin + stepSize * tiks
+        } else {
+          yMin = stepSize * Math.floor(yMin / stepSize)
+          // Shrinkwrapping to follow
+          yMax = stepSize * Math.ceil(yMax / stepSize)
+        }
+      } else if (gotMax) {
+        if (gotTickAmount) {
+          yMin = yMax - stepSize * tiks
+        } else {
+          // Shrinkwrapping to follow
+          yMin = stepSize * Math.floor(yMin / stepSize)
+        }
+      } else if (gotMin) {
+        if (gotTickAmount) {
+          yMax = yMin + stepSize * tiks
+        } else {
+          // Shrinkwrapping to follow
+          yMax = stepSize * Math.ceil(yMax / stepSize)
+        }
+      }
+      range = Math.abs(yMax - yMin)
+    }
+
+    // Shrinkwrap ticks to the range
+    if (!gotTickAmount && !(gotMin && gotMax)) {
+      tiks = Math.ceil((range - jsPrecision) / (stepSize + jsPrecision))
+      // No user tickAmount, or min or max, we are free to adjust to avoid a
+      // prime number. This helps when reducing ticks for small svg dimensions.
+      if (tiks > 16 && Utils.getPrimeFactors(tiks).length < 2) {
+        tiks++
+      }
+    }
+
+    // Record final tiks for use by other series that call niceScale().
+    // Note: some don't, like logarithmicScale(), etc.
+    if (gl.isMultipleYAxis && gl.multiAxisTickAmount == 0) {
+      gl.multiAxisTickAmount = tiks
     }
 
     if (
-      w.globals.isBarHorizontal &&
-      w.config.xaxis.stepSize &&
-      w.config.xaxis.type !== 'datetime'
+      tiks > maxTicks
+      && (
+          !(
+              gotTickAmount
+              || gotStepSize
+            )
+          || yaxisCnf.forceNiceScale
+      )
     ) {
-      stepSize = w.config.xaxis.stepSize
+      // Reduce the number of ticks nicely if chart svg dimensions shrink too far.
+      // The reduced tick set should always be a subset of the full set.
+      //
+      // This following products of prime factors method works as follows:
+      // We compute the prime factors of the full tick count (tiks), then all the
+      // possible products of those factors in order from smallest to biggest,
+      // until we find a product P such that: tiks/P < maxTicks.
+      // 
+      // Example:
+      // Computing products of the prime factors of 30.
+      //
+      //   tiks | pf  |  1     2     3      4      5      6  <-- compute order
+      //   --------------------------------------------------
+      //     30 |  5  |              5             5      5  <-- Multiply all
+      //        |  3  |        3            3      3      3  <-- primes in each
+      //        |  2  |  2                  2             2  <-- column = P
+      //   --------------------------------------------------
+      //                15    10     6      5      2      1  <-- tiks/P
+      //   
+      //   tiks = 30 has prime factors [2, 3, 5]
+      //   The loop below computes the products [2,3,5,6,15,30].
+      //   The last product of P = 2*3*5 is skipped since 30/P = 1.
+      //   This yields tiks/P = [15,10,6,5,2,1], checked in order until
+      //   tiks/P < maxTicks.
+      //   
+      //   Pros:
+      //      1) The ticks in the reduced set are always members of the
+      //         full set of ticks.
+      //   Cons:
+      //      1) None: if tiks is prime, we get all or one, nothing between, so
+      //      the worst case is to display all, which is the status quo. Really
+      //      only a problem visually for larger tick numbers, say, > 7.
+      //
+      let pf = Utils.getPrimeFactors(tiks)
+      let last = pf.length - 1
+      let tt = tiks
+      reduceLoop:
+      for (var xFactors = 0; xFactors < last; xFactors++) {
+        for (var lowest = 0; lowest <= last - xFactors; lowest++) {
+          let stop = Math.min(lowest + xFactors, last)
+          let t = tt
+          let div = 1
+          for (var next = lowest; next <= stop; next++) {
+            div *= pf[next]
+          }
+          t /= div
+          if (t < maxTicks) {
+            tt = t
+            break reduceLoop
+          }
+        }
+      }
+      // Only reduce tiks all the way down to 1 (increase stepSize to range)
+      // if forceNiceScale = true, to give the user the option if tiks is
+      // prime and > maxTicks, which may result in premature removal of all but
+      // the last tick. It will not be immediately obvious why that has occured.
+      if (tt === tiks && yaxisCnf.forceNiceScale) {
+        stepSize = range
+      } else {
+        stepSize = range / tt
+      }
     }
 
     // build Y label array.
-    // Lower and upper bounds calculations
-    let lb = stepSize * Math.floor(yMin / stepSize)
-    let ub = stepSize * Math.ceil(yMax / stepSize)
-    // Build array
-    let val = lb
 
-    if (NO_MIN_MAX_PROVIDED && range > 2) {
-      while (1) {
-        result.push(Utils.stripNumber(val, 7))
-        val += stepSize
-        if (val > ub) {
-          break
-        }
-      }
+    let val = yMin - stepSize
+    // Ensure we don't under/over shoot due to JS precision errors.
+    // This also fixes (amongst others):
+    // https://github.com/apexcharts/apexcharts.js/issues/430
+    let err = stepSize * jsPrecision
+    do {
+      val += stepSize
+      result.push(Utils.stripNumber(val, 7))
+    } while ((yMax - val) > err)
 
-      return {
-        result,
-        niceMin: result[0],
-        niceMax: result[result.length - 1],
-      }
-    } else {
-      result = []
-      let v = yMin
-      result.push(Utils.stripNumber(v, 7))
-      let valuesDivider = Math.abs(yMax - yMin) / ticks
-      for (let i = 0; i <= ticks; i++) {
-        v = v + valuesDivider
-        result.push(v)
-      }
-
-      if (result[result.length - 2] >= yMax) {
-        result.pop()
-      }
-
-      return {
-        result,
-        niceMin: result[0],
-        niceMax: result[result.length - 1],
-      }
+    return {
+      result,
+      niceMin: result[0],
+      niceMax: result[result.length - 1],
     }
   }
 
-  linearScale(yMin, yMax, ticks = 5, index = 0, step = undefined) {
+  linearScale(yMin, yMax, ticks = 10, index = 0, step = undefined) {
     let range = Math.abs(yMax - yMin)
 
     ticks = this._adjustTicksForSmallRange(ticks, index, range)
@@ -280,7 +490,6 @@ export default class Range {
 
     if (y.logarithmic && diff > 5) {
       gl.allSeriesCollapsed = false
-      gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.logBase)
       gl.yAxisScale[index] = y.forceNiceScale
         ? this.logarithmicScaleNice(minY, maxY, y.logBase)
         : this.logarithmicScale(minY, maxY, y.logBase)
@@ -289,38 +498,19 @@ export default class Range {
         // no data in the chart. Either all series collapsed or user passed a blank array
         gl.yAxisScale[index] = this.linearScale(
           0,
-          5,
-          5,
+          10,
+          10,
           index,
           cnf.yaxis[index].stepSize
         )
       } else {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
-
-        if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
-          // fix https://github.com/apexcharts/apexcharts.js/issues/492
-          gl.yAxisScale[index] = this.linearScale(
-            minY,
-            maxY,
-            y.tickAmount,
-            index,
-            cnf.yaxis[index].stepSize
-          )
-        } else {
-          const noMinMaxProvided =
-            (cnf.yaxis[index].max === undefined &&
-              cnf.yaxis[index].min === undefined) ||
-            cnf.yaxis[index].forceNiceScale
-          gl.yAxisScale[index] = this.niceScale(
-            minY,
-            maxY,
-            y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5,
-            index,
-            // fix https://github.com/apexcharts/apexcharts.js/issues/397
-            noMinMaxProvided
-          )
-        }
+        gl.yAxisScale[index] = this.niceScale(
+          minY,
+          maxY,
+          index
+        )
       }
     }
   }
@@ -331,16 +521,16 @@ export default class Range {
     let diff = Math.abs(maxX - minX)
     if (maxX === -Number.MAX_VALUE || !Utils.isNumber(maxX)) {
       // no data in the chart. Either all series collapsed or user passed a blank array
-      gl.xAxisScale = this.linearScale(0, 5, 5)
+      gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
       gl.xAxisScale = this.linearScale(
         minX,
         maxX,
         w.config.xaxis.tickAmount
           ? w.config.xaxis.tickAmount
-          : diff < 5 && diff > 1
-          ? diff + 1
-          : 5,
+          : diff < 10 && diff > 1
+            ? diff + 1
+            : 10,
         0,
         w.config.xaxis.stepSize
       )
@@ -523,104 +713,5 @@ export default class Range {
         })
       })
     })
-  }
-
-  // experimental feature which scales the y-axis to a min/max based on x-axis range
-  autoScaleY(ctx, yaxis, e) {
-    if (!ctx) {
-      ctx = this
-    }
-
-    const w = ctx.w
-
-    if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
-      // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
-      // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
-      console.warn('autoScaleYaxis not supported in a multi-yaxis chart.')
-      return yaxis
-    }
-
-    const seriesX = w.globals.seriesX[0]
-
-    let isStacked = w.config.chart.stacked
-
-    yaxis.forEach((yaxe, yi) => {
-      let firstXIndex = 0
-
-      for (let xi = 0; xi < seriesX.length; xi++) {
-        if (seriesX[xi] >= e.xaxis.min) {
-          firstXIndex = xi
-          break
-        }
-      }
-
-      let initialMin = w.globals.minYArr[yi]
-      let initialMax = w.globals.maxYArr[yi]
-      let min, max
-
-      let stackedSer = w.globals.stackedSeriesTotals
-
-      w.globals.series.forEach((serie, sI) => {
-        let firstValue = serie[firstXIndex]
-
-        if (isStacked) {
-          firstValue = stackedSer[firstXIndex]
-          min = max = firstValue
-
-          stackedSer.forEach((y, yI) => {
-            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
-              if (y > max && y !== null) max = y
-              if (serie[yI] < min && serie[yI] !== null) min = serie[yI]
-            }
-          })
-        } else {
-          min = max = firstValue
-
-          serie.forEach((y, yI) => {
-            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
-              let valMin = y
-              let valMax = y
-              w.globals.series.forEach((wS, wSI) => {
-                if (y !== null) {
-                  valMin = Math.min(wS[yI], valMin)
-                  valMax = Math.max(wS[yI], valMax)
-                }
-              })
-              if (valMax > max && valMax !== null) max = valMax
-              if (valMin < min && valMin !== null) min = valMin
-            }
-          })
-        }
-
-        if (min === undefined && max === undefined) {
-          min = initialMin
-          max = initialMax
-        }
-        min *= min < 0 ? 1.1 : 0.9
-        max *= max < 0 ? 0.9 : 1.1
-
-        if (min === 0 && max === 0) {
-          min = -1
-          max = 1
-        }
-
-        if (max < 0 && max < initialMax) {
-          max = initialMax
-        }
-        if (min < 0 && min > initialMin) {
-          min = initialMin
-        }
-
-        if (yaxis.length > 1) {
-          yaxis[sI].min = yaxe.min === undefined ? min : yaxe.min
-          yaxis[sI].max = yaxe.max === undefined ? max : yaxe.max
-        } else {
-          yaxis[0].min = yaxe.min === undefined ? min : yaxe.min
-          yaxis[0].max = yaxe.max === undefined ? max : yaxe.max
-        }
-      })
-    })
-
-    return yaxis
   }
 }

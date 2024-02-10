@@ -36,7 +36,31 @@ class Range {
     if (len === null) {
       len = startingIndex + 1
     }
-    const series = gl.series
+
+    let firstXIndex = 0
+    let lastXIndex = 0
+    let  seriesX = undefined
+    if (gl.seriesX.length) {
+      seriesX = [...new Set([].concat(...gl.seriesX))]
+      firstXIndex = 0
+      lastXIndex = seriesX.length - 1
+      if (cnf.xaxis.min) {
+        for (
+          firstXIndex = 0;
+          firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min;
+          firstXIndex++
+        ) {}
+      }
+      if (cnf.xaxis.max) {
+        for (
+          ;
+          lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max;
+          lastXIndex--
+        ) {}
+      }
+    }
+    
+    let series = gl.series
     let seriesMin = series
     let seriesMax = series
 
@@ -68,7 +92,11 @@ class Range {
         // the condition cnf.xaxis.type !== 'datetime' fixes #3897 and #3905
         gl.dataPoints = Math.max(gl.dataPoints, gl.labels.length)
       }
-      for (let j = 0; j < gl.series[i].length; j++) {
+      if (!seriesX) {
+        firstXIndex = 0
+        lastXIndex = gl.series[i].length
+      }
+      for (let j = firstXIndex; j <= lastXIndex; j++) {
         let val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
           if (typeof seriesMax[i][j] !== 'undefined') {
@@ -80,41 +108,37 @@ class Range {
             highestY = Math.max(highestY, seriesMin[i][j])
           }
 
-          if (
-            this.w.config.chart.type === 'candlestick' ||
-            this.w.config.chart.type === 'boxPlot' ||
-            this.w.config.chart.type !== 'rangeArea' ||
-            this.w.config.chart.type !== 'rangeBar'
-          ) {
-            if (
-              this.w.config.chart.type === 'candlestick' ||
-              this.w.config.chart.type === 'boxPlot'
-            ) {
+          // These series arrays are dual purpose:
+          // Array      : CandleO, CandleH, CandleM, CandleL, CandleC
+          // Candlestick: O        H                 L        C
+          // Boxplot    : Min      Q1       Median   Q3       Max
+          switch (cnf.series[i].type) {
+            case 'candlestick': {
               if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
-                maxY = Math.max(maxY, gl.seriesCandleO[i][j])
                 maxY = Math.max(maxY, gl.seriesCandleH[i][j])
-                maxY = Math.max(maxY, gl.seriesCandleL[i][j])
-                maxY = Math.max(maxY, gl.seriesCandleC[i][j])
-                if (this.w.config.chart.type === 'boxPlot') {
-                  maxY = Math.max(maxY, gl.seriesCandleM[i][j])
-                }
+                lowestY = Math.min(lowestY, gl.seriesCandleL[i][j])
               }
             }
-
-            // there is a combo chart and the specified series in not either candlestick, boxplot, or rangeArea/rangeBar; find the max there
-            if (
-              cnf.series[i].type &&
-              (cnf.series[i].type !== 'candlestick' ||
-                cnf.series[i].type !== 'boxPlot' ||
-                cnf.series[i].type !== 'rangeArea' ||
-                cnf.series[i].type !== 'rangeBar')
-            ) {
-              maxY = Math.max(maxY, gl.series[i][j])
-              lowestY = Math.min(lowestY, gl.series[i][j])
+            case 'boxPlot': {
+              if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
+                maxY = Math.max(maxY, gl.seriesCandleC[i][j])
+                lowestY = Math.min(lowestY, gl.seriesCandleO[i][j])
+              }
             }
-
-            highestY = maxY
           }
+
+          // there is a combo chart and the specified series in not either candlestick, boxplot, or rangeArea/rangeBar; find the max there
+          if (
+            cnf.series[i].type &&
+            (cnf.series[i].type !== 'candlestick' &&
+              cnf.series[i].type !== 'boxPlot' &&
+              cnf.series[i].type !== 'rangeArea' &&
+              cnf.series[i].type !== 'rangeBar')
+          ) {
+            maxY = Math.max(maxY, gl.series[i][j])
+            lowestY = Math.min(lowestY, gl.series[i][j])
+          }
+          highestY = maxY
 
           if (
             gl.seriesGoals[i] &&
@@ -183,11 +207,12 @@ class Range {
 
     if (gl.isMultipleYAxis) {
       // we need to get minY and maxY for multiple y axis
+      lowestYInAllSeries = Number.MAX_VALUE
       for (let i = 0; i < gl.series.length; i++) {
-        const minYMaxYArr = this.getMinYMaxY(i, lowestYInAllSeries, null, i + 1)
-        gl.minYArr.push(minYMaxYArr.minY)
-        gl.maxYArr.push(minYMaxYArr.maxY)
-        lowestYInAllSeries = minYMaxYArr.lowestY
+        const minYMaxYArr = this.getMinYMaxY(i, Number.MAX_VALUE, null, i + 1)
+        gl.minYArr[i] = minYMaxYArr.lowestY
+        gl.maxYArr[i] = minYMaxYArr.highestY
+        lowestYInAllSeries  = Math.min(lowestYInAllSeries, minYMaxYArr.lowestY)
       }
     }
 
@@ -198,8 +223,8 @@ class Range {
       null,
       gl.series.length
     )
-    gl.minY = minYMaxY.minY
-    gl.maxY = minYMaxY.maxY
+    gl.minY = minYMaxY.lowestY
+    gl.maxY = minYMaxY.highestY
     lowestYInAllSeries = minYMaxY.lowestY
 
     if (cnf.chart.stacked) {
@@ -211,6 +236,9 @@ class Range {
     if (
       cnf.chart.type === 'line' ||
       cnf.chart.type === 'area' ||
+      cnf.chart.type === 'bar' ||
+      cnf.chart.type === 'column' ||
+      cnf.chart.type === 'scatter' ||
       cnf.chart.type === 'candlestick' ||
       cnf.chart.type === 'boxPlot' ||
       (cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal)
@@ -220,27 +248,10 @@ class Range {
         lowestYInAllSeries !== -Number.MAX_VALUE &&
         lowestYInAllSeries !== gl.maxY // single value possibility
       ) {
-        let diff = gl.maxY - lowestYInAllSeries
-        if (
-          (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10) ||
-          cnf.yaxis[0].min !== undefined ||
-          cnf.yaxis[0].max !== undefined
-        ) {
-          // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
-          diff = 0
-        }
-
-        gl.minY = lowestYInAllSeries - (diff * 5) / 100
-
-        /* fix https://github.com/apexcharts/apexcharts.js/issues/614 */
-        /* fix https://github.com/apexcharts/apexcharts.js/issues/968 */
-        if (lowestYInAllSeries > 0 && gl.minY < 0) {
-          gl.minY = 0
-        }
-
-        /* fix https://github.com/apexcharts/apexcharts.js/issues/426 */
-        gl.maxY = gl.maxY + (diff * 5) / 100
+        gl.minY = lowestYInAllSeries
       }
+    } else {
+      gl.minY = minYMaxY.minY
     }
 
     cnf.yaxis.forEach((yaxe, index) => {
@@ -399,7 +410,7 @@ class Range {
           gl.xAxisScale = {
             result: catScale,
             niceMin: catScale[0],
-            niceMax: catScale[catScale.length - 1],
+            niceMax: catScale[catScale.length - 1]
           }
         } else {
           gl.xAxisScale = this.scales.setXScale(gl.minX, gl.maxX)
@@ -511,7 +522,7 @@ class Range {
           // fix #811
           sX.push(
             gl.seriesX[gl.maxValsInArrayIndex][
-              gl.seriesX[gl.maxValsInArrayIndex].length - 1
+            gl.seriesX[gl.maxValsInArrayIndex].length - 1
             ]
           )
         }
@@ -574,7 +585,7 @@ class Range {
             if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {
               gl.series[i][j] > 0
                 ? (stackedPoss[group][j] +=
-                    parseFloat(gl.series[i][j]) + 0.0001)
+                  parseFloat(gl.series[i][j]) + 0.0001)
                 : (stackedNegs[group][j] += parseFloat(gl.series[i][j]))
             }
           }
@@ -582,7 +593,7 @@ class Range {
       })
     })
 
-    Object.entries(stackedPoss).forEach(([key]) => {
+    Object.entries(stackedPoss).forEach(([key]) => {      
       stackedPoss[key].forEach((_, stgi) => {
         gl.maxY = Math.max(gl.maxY, stackedPoss[key][stgi])
         gl.minY = Math.min(gl.minY, stackedNegs[key][stgi])

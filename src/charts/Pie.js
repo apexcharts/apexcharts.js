@@ -732,9 +732,7 @@ class Pie {
     const yScale = scale.niceScale(
       0,
       Math.ceil(this.maxY),
-      w.config.yaxis[0].tickAmount,
-      0,
-      true
+      0
     )
 
     const yTexts = yScale.result.reverse()
