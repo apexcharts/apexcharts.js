@@ -379,7 +379,6 @@ subtitle: {
   offsetX: 15
 },
 yaxis: {
-  min: 350,
   labels: {
     show: false
   }

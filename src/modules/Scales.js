@@ -14,10 +14,10 @@ export default class Scales {
     const gl = w.globals
     const xaxisCnf = w.config.xaxis
     const yaxisCnf = w.config.yaxis[index]
-    let gotMin = yaxisCnf.min !== undefined
-    let gotMax = yaxisCnf.max !== undefined
-    let gotStepSize = yaxisCnf.stepSize !== undefined
-    let gotTickAmount = yaxisCnf.tickAmount !== undefined
+    let gotMin = yaxisCnf.min !== undefined && yaxisCnf.min !== null
+    let gotMax = yaxisCnf.max !== undefined && yaxisCnf.min !== null
+    let gotStepSize = yaxisCnf.stepSize !== undefined && yaxisCnf.stepSize !== null
+    let gotTickAmount = yaxisCnf.tickAmount !== undefined && yaxisCnf.tickAmount !== null
     // The most ticks we can fit into the svg chart dimensions
     const maxTicks = ((gl.isBarHorizontal ? gl.svgWidth : gl.svgHeight) - 100) / 15 // Guestimate
     let ticks = gotTickAmount ? yaxisCnf.tickAmount : 10

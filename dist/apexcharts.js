@@ -9946,10 +9946,10 @@
         var gl = w.globals;
         var xaxisCnf = w.config.xaxis;
         var yaxisCnf = w.config.yaxis[index];
-        var gotMin = yaxisCnf.min !== undefined;
-        var gotMax = yaxisCnf.max !== undefined;
-        var gotStepSize = yaxisCnf.stepSize !== undefined;
-        var gotTickAmount = yaxisCnf.tickAmount !== undefined;
+        var gotMin = yaxisCnf.min !== undefined && yaxisCnf.min !== null;
+        var gotMax = yaxisCnf.max !== undefined && yaxisCnf.min !== null;
+        var gotStepSize = yaxisCnf.stepSize !== undefined && yaxisCnf.stepSize !== null;
+        var gotTickAmount = yaxisCnf.tickAmount !== undefined && yaxisCnf.tickAmount !== null;
         // The most ticks we can fit into the svg chart dimensions
         var maxTicks = ((gl.isBarHorizontal ? gl.svgWidth : gl.svgHeight) - 100) / 15; // Guestimate
         var ticks = gotTickAmount ? yaxisCnf.tickAmount : 10;
@@ -10599,20 +10599,20 @@
       value: function getMinYMaxY(startingIndex) {
         var lowestY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Number.MAX_VALUE;
         var highestY = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -Number.MAX_VALUE;
-        var len = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+        var endingIndex = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
         var cnf = this.w.config;
         var gl = this.w.globals;
         var maxY = -Number.MAX_VALUE;
         var minY = Number.MIN_VALUE;
-        if (len === null) {
-          len = startingIndex + 1;
+        if (endingIndex === null) {
+          endingIndex = startingIndex + 1;
         }
         var firstXIndex = 0;
         var lastXIndex = 0;
         var seriesX = undefined;
-        if (gl.seriesX.length) {
+        if (gl.seriesX.length >= endingIndex) {
           var _ref;
-          seriesX = _toConsumableArray(new Set((_ref = []).concat.apply(_ref, _toConsumableArray(gl.seriesX))));
+          seriesX = _toConsumableArray(new Set((_ref = []).concat.apply(_ref, _toConsumableArray(gl.seriesX.slice(startingIndex, endingIndex)))));
           firstXIndex = 0;
           lastXIndex = seriesX.length - 1;
           if (cnf.xaxis.min) {
@@ -10635,7 +10635,7 @@
           seriesMin = gl.seriesRangeStart;
           seriesMax = gl.seriesRangeEnd;
         }
-        for (var i = startingIndex; i < len; i++) {
+        for (var i = startingIndex; i < endingIndex; i++) {
           gl.dataPoints = Math.max(gl.dataPoints, series[i].length);
           if (gl.categoryLabels.length) {
             gl.dataPoints = gl.categoryLabels.filter(function (label) {
@@ -10744,7 +10744,7 @@
           // we need to get minY and maxY for multiple y axis
           lowestYInAllSeries = Number.MAX_VALUE;
           for (var i = 0; i < gl.series.length; i++) {
-            var minYMaxYArr = this.getMinYMaxY(i, Number.MAX_VALUE, null, i + 1);
+            var minYMaxYArr = this.getMinYMaxY(i);
             gl.minYArr[i] = minYMaxYArr.lowestY;
             gl.maxYArr[i] = minYMaxYArr.highestY;
             lowestYInAllSeries = Math.min(lowestYInAllSeries, minYMaxYArr.lowestY);
@@ -10761,8 +10761,10 @@
         }
 
         // if the numbers are too big, reduce the range
-        // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks/boxPlot
-        if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'bar' || cnf.chart.type === 'column' || cnf.chart.type === 'scatter' || cnf.chart.type === 'candlestick' || cnf.chart.type === 'boxPlot' || cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal) {
+        // for eg, if number is between 100000-110000, putting 0 as the lowest
+        // value is not so good idea. So change the gl.minY for
+        // line/area/scatter/candlesticks/boxPlot/vertical rangebar
+        if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'scatter' || cnf.chart.type === 'candlestick' || cnf.chart.type === 'boxPlot' || cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal) {
           if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== -Number.MAX_VALUE && lowestYInAllSeries !== gl.maxY // single value possibility
           ) {
             gl.minY = lowestYInAllSeries;

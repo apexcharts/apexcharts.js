@@ -38,7 +38,6 @@ labels: Array.apply(null, {length: 32}).map(function(el, index){
   return index + 1;
 }),
 yaxis: {
-  forceNiceScale: true,
   axisBorder: {
     show: false
   },

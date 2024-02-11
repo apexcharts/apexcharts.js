@@ -63,10 +63,6 @@ describe('Y-axis with ultra-small values', () => {
 // the formatter itself. See the new:
 // samples/source/mixed/duplicate-labels.xml
 //
-// It appears that this unit test, when run against the current main branch code,
-// succeeds only because the range of the Y axis is <= 2, which sends it through
-// a path in niceScale() that happens to return just the two expected values.
-// 
 //describe('yaxis scale to not contain duplicated values when formatter is provided', () => {
 //  it('yaxis scale should not contain duplicated values for small integer range', () => {
 //    const chart = createChartWithOptions({

@@ -26,22 +26,22 @@ class Range {
     startingIndex,
     lowestY = Number.MAX_VALUE,
     highestY = -Number.MAX_VALUE,
-    len = null
+    endingIndex = null
   ) {
     const cnf = this.w.config
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
 
-    if (len === null) {
-      len = startingIndex + 1
+    if (endingIndex === null) {
+      endingIndex = startingIndex + 1
     }
 
     let firstXIndex = 0
     let lastXIndex = 0
     let  seriesX = undefined
-    if (gl.seriesX.length) {
-      seriesX = [...new Set([].concat(...gl.seriesX))]
+    if (gl.seriesX.length >= endingIndex) {
+      seriesX = [...new Set([].concat(...gl.seriesX.slice(startingIndex, endingIndex)))]
       firstXIndex = 0
       lastXIndex = seriesX.length - 1
       if (cnf.xaxis.min) {
@@ -75,7 +75,7 @@ class Range {
       seriesMax = gl.seriesRangeEnd
     }
 
-    for (let i = startingIndex; i < len; i++) {
+    for (let i = startingIndex; i < endingIndex; i++) {
       gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
 
       if (gl.categoryLabels.length) {
@@ -209,7 +209,7 @@ class Range {
       // we need to get minY and maxY for multiple y axis
       lowestYInAllSeries = Number.MAX_VALUE
       for (let i = 0; i < gl.series.length; i++) {
-        const minYMaxYArr = this.getMinYMaxY(i, Number.MAX_VALUE, null, i + 1)
+        const minYMaxYArr = this.getMinYMaxY(i)
         gl.minYArr[i] = minYMaxYArr.lowestY
         gl.maxYArr[i] = minYMaxYArr.highestY
         lowestYInAllSeries  = Math.min(lowestYInAllSeries, minYMaxYArr.lowestY)
@@ -232,12 +232,12 @@ class Range {
     }
 
     // if the numbers are too big, reduce the range
-    // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks/boxPlot
+    // for eg, if number is between 100000-110000, putting 0 as the lowest
+    // value is not so good idea. So change the gl.minY for
+    // line/area/scatter/candlesticks/boxPlot/vertical rangebar
     if (
       cnf.chart.type === 'line' ||
       cnf.chart.type === 'area' ||
-      cnf.chart.type === 'bar' ||
-      cnf.chart.type === 'column' ||
       cnf.chart.type === 'scatter' ||
       cnf.chart.type === 'candlestick' ||
       cnf.chart.type === 'boxPlot' ||
