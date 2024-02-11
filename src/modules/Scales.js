@@ -229,29 +229,40 @@ export default class Scales {
           yMax = yMin + stepSize * tiks
         } else {
           yMin = stepSize * Math.floor(yMin / stepSize)
-          // Shrinkwrapping to follow
           yMax = stepSize * Math.ceil(yMax / stepSize)
         }
       } else if (gotMax) {
         if (gotTickAmount) {
           yMin = yMax - stepSize * tiks
         } else {
-          // Shrinkwrapping to follow
           yMin = stepSize * Math.floor(yMin / stepSize)
+          range = Math.abs(yMax - yMin)
+          if (Utils.mod(range, stepSize) != 0) {
+            // stepSize doesn't fit
+            let gcdStep = Utils.getGCD(range, stepSize)
+            stepSize = gcdStep
+            tiks = Math.round(range / stepSize)
+          }
         }
       } else if (gotMin) {
         if (gotTickAmount) {
           yMax = yMin + stepSize * tiks
         } else {
-          // Shrinkwrapping to follow
           yMax = stepSize * Math.ceil(yMax / stepSize)
+          range = Math.abs(yMax - yMin)
+          if (Utils.mod(range, stepSize) != 0) {
+            // stepSize doesn't fit
+            let gcdStep = Utils.getGCD(range, stepSize)
+            stepSize = gcdStep
+            tiks = Math.round(range / stepSize)
+          }
         }
       }
       range = Math.abs(yMax - yMin)
     }
 
     // Shrinkwrap ticks to the range
-    if (!gotTickAmount && !(gotMin && gotMax)) {
+    if (!gotTickAmount && !(gotMin || gotMax)) {
       tiks = Math.ceil((range - jsPrecision) / (stepSize + jsPrecision))
       // No user tickAmount, or min or max, we are free to adjust to avoid a
       // prime number. This helps when reducing ticks for small svg dimensions.
