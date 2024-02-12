@@ -63,7 +63,7 @@ class Filters {
         filter = add
       }
       filter.componentTransfer({
-        rgb: { type: 'linear', slope: 1.5, intercept: intensity }
+        rgb: { type: 'linear', slope: 1.5, intercept: intensity },
       })
     })
     el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
@@ -88,7 +88,7 @@ class Filters {
         filter = add
       }
       filter.componentTransfer({
-        rgb: { type: 'linear', slope: intensity }
+        rgb: { type: 'linear', slope: intensity },
       })
     })
     el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
@@ -103,13 +103,13 @@ class Filters {
       }
       case 'lighten': {
         this.addLightenFilter(el, i, {
-          intensity
+          intensity,
         })
         break
       }
       case 'darken': {
         this.addDarkenFilter(el, i, {
-          intensity
+          intensity,
         })
         break
       }
@@ -121,7 +121,14 @@ class Filters {
 
   // appends dropShadow to the filter object which can be chained with other filter effects
   addShadow(add, i, attrs) {
+    const w = this.w
     const { blur, top, left, color, opacity } = attrs
+
+    if (w.config.chart.dropShadow.enabledOnSeries?.length > 0) {
+      if (w.config.chart.dropShadow.enabledOnSeries.indexOf(i) === -1) {
+        return add
+      }
+    }
 
     let shadowBlur = add
       .flood(Array.isArray(color) ? color[i] : color, opacity)
@@ -143,6 +150,12 @@ class Filters {
     if (Utils.isIE() && w.config.chart.type === 'radialBar') {
       // in radialbar charts, dropshadow is clipping actual drawing in IE
       return el
+    }
+
+    if (w.config.chart.dropShadow.enabledOnSeries?.length > 0) {
+      if (w.config.chart.dropShadow.enabledOnSeries?.indexOf(i) === -1) {
+        return el
+      }
     }
 
     color = Array.isArray(color) ? color[i] : color
@@ -204,7 +217,7 @@ class Filters {
       width: '200%',
       height: '200%',
       x: '-50%',
-      y: '-50%'
+      y: '-50%',
     })
   }
 }

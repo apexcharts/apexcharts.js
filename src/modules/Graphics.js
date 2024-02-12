@@ -450,14 +450,8 @@ class Graphics {
       filters.getDefaultFilter(el, realIndex)
     } else {
       if (w.config.chart.dropShadow.enabled && drawShadow) {
-        if (
-          !w.config.chart.dropShadow.enabledOnSeries ||
-          (w.config.chart.dropShadow.enabledOnSeries &&
-            w.config.chart.dropShadow.enabledOnSeries.indexOf(realIndex) !== -1)
-        ) {
-          const shadow = w.config.chart.dropShadow
-          filters.dropShadow(el, shadow, realIndex)
-        }
+        const shadow = w.config.chart.dropShadow
+        filters.dropShadow(el, shadow, realIndex)
       }
     }
 
