@@ -65,16 +65,20 @@ export default class DimGrid {
       if (xDivision > gridWidth / 2) {
         xDivision = xDivision / 2
       }
+      // Here, barWidth is assumed to be the width occupied by a group of bars.
+      // There will be one bar in the group for each series plotted.
+      // Note: This version of the following math is different to that over in
+      // Helpers.js. Don't assume they should be the same. Over there,
+      // xDivision is computed differently and it's used on different charts.
+      // They were the same, but the solution to
+      // https://github.com/apexcharts/apexcharts.js/issues/4178
+      // was to remove the division by seriesLen.
       barWidth =
-        ((xDivision / seriesLen) *
-          parseInt(w.config.plotOptions.bar.columnWidth, 10)) /
-        100
+        (xDivision * parseInt(w.config.plotOptions.bar.columnWidth, 10)) / 100
 
       if (barWidth < 1) {
         barWidth = 1
       }
-
-      barWidth = barWidth / (seriesLen > 1 ? 1 : 1.5) + 5
 
       w.globals.barPadForNumericAxis = barWidth
     }

@@ -725,13 +725,103 @@ class Graphics {
     return elText
   }
 
+  /**
+   * Creates a group with given attributes.
+   * @param {number} x - The x-coordinate of the group.
+   * @param {number} y - The y-coordinate of the group.
+   * @param {Array} lines - The lines to be added to the group.
+   * @param {Object} opts - The options for the group.
+   * @returns {Object} The created group.
+   */
+  createGroupWithAttributes(x, y, lines, opts) {
+    let elPoint = this.group()
+    lines.forEach((line) => elPoint.add(line))
+    elPoint.attr({
+      class: opts.class ? opts.class : '',
+      cy: y,
+      cx: x,
+    })
+    return elPoint
+  }
+
+  /**
+   * Draws a plus sign at the given coordinates.
+   * @param {number} x - The x-coordinate of the plus sign.
+   * @param {number} y - The y-coordinate of the plus sign.
+   * @param {number} size - The size of the plus sign.
+   * @param {Object} opts - The options for the plus sign.
+   * @returns {Object} The created plus sign.
+   */
+  drawPlus(x, y, size, opts) {
+    let halfSize = size / 2
+    let line1 = this.drawLine(
+      x,
+      y - halfSize,
+      x,
+      y + halfSize,
+      opts.pointStrokeColor,
+      opts.pointStrokeDashArray,
+      opts.pointStrokeWidth,
+      opts.pointStrokeLineCap
+    )
+    let line2 = this.drawLine(
+      x - halfSize,
+      y,
+      x + halfSize,
+      y,
+      opts.pointStrokeColor,
+      opts.pointStrokeDashArray,
+      opts.pointStrokeWidth,
+      opts.pointStrokeLineCap
+    )
+
+    return this.createGroupWithAttributes(x, y, [line1, line2], opts)
+  }
+
+  /**
+   * Draws an 'X' at the given coordinates.
+   * @param {number} x - The x-coordinate of the 'X'.
+   * @param {number} y - The y-coordinate of the 'X'.
+   * @param {number} size - The size of the 'X'.
+   * @param {Object} opts - The options for the 'X'.
+   * @returns {Object} The created 'X'.
+   */
+  drawX(x, y, size, opts) {
+    let halfSize = size / 2
+    let line1 = this.drawLine(
+      x - halfSize,
+      y - halfSize,
+      x + halfSize,
+      y + halfSize,
+      opts.pointStrokeColor,
+      opts.pointStrokeDashArray,
+      opts.pointStrokeWidth,
+      opts.pointStrokeLineCap
+    )
+    let line2 = this.drawLine(
+      x - halfSize,
+      y + halfSize,
+      x + halfSize,
+      y - halfSize,
+      opts.pointStrokeColor,
+      opts.pointStrokeDashArray,
+      opts.pointStrokeWidth,
+      opts.pointStrokeLineCap
+    )
+
+    return this.createGroupWithAttributes(x, y, [line1, line2], opts)
+  }
+
   drawMarker(x, y, opts) {
     x = x || 0
     let size = opts.pSize || 0
 
     let elPoint = null
-
-    if (opts.shape === 'square' || opts.shape === 'rect') {
+    if (opts?.shape === 'X' || opts?.shape === 'x') {
+      elPoint = this.drawX(x, y, size, opts)
+    } else if (opts?.shape === 'plus' || opts?.shape === '+') {
+      elPoint = this.drawPlus(x, y, size, opts)
+    } else if (opts.shape === 'square' || opts.shape === 'rect') {
       let radius = opts.pRadius === undefined ? size / 2 : opts.pRadius
 
       if (y === null || !size) {
