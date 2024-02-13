@@ -25,7 +25,7 @@ describe('user defined Y-axis min/max', () => {
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(3.175199)
-    expect(yRange.maxY).toEqual(4.755432999999999)
+    expect(yRange.maxY).toEqual(4.755433)
   })
 })
 
@@ -46,7 +46,7 @@ describe('yaxis range to not contain negative values', () => {
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
-    expect(yRange.maxY).toEqual(24000)
+    expect(yRange.maxY).toEqual(25000)
   })
 })
 
@@ -124,7 +124,7 @@ describe('multiple yaxis - functions in min and max', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.yAxisScale[0].niceMin).toEqual(0)
+    expect(yRange.yAxisScale[0].niceMin).toEqual(400)
     expect(yRange.yAxisScale[0].niceMax).toEqual(1000)
     expect(yRange.yAxisScale[1].niceMin).toEqual(0)
     expect(yRange.yAxisScale[1].niceMax).toEqual(9)

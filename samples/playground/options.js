@@ -4227,7 +4227,7 @@ export const optionsPattern = {
           default: 10
         },
         tickAmount: {
-          title: 'Number of tick intervals to show',
+          title: 'Number of tick intervals to show. Will be honoured unless it conflicts with your other settings.',
           type: Number,
           default: 6
         },
@@ -4243,7 +4243,7 @@ export const optionsPattern = {
         },
         forceNiceScale: {
           title:
-            'If set to `true`, the y-axis scales are forced to generate nice looking rounded numbers even when min/max are provided. Turn this off if you manually set min/max and want it to be unchanged.',
+            'If set to `true`, y-axis scaling will try to make inferences from your option settings when conflicts would otherwise cause one or more to be ignored.',
           type: Boolean,
           default: false
         },

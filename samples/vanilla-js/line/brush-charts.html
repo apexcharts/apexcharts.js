@@ -22,7 +22,7 @@
     
     #chart-line {
       position: relative;
-      margin-top: -40px;
+      margin-top: 0px;
     }
       
     </style>
@@ -71,7 +71,7 @@
     var series = [];
     while (i < count) {
       var x = baseval;
-      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1) * i / count) + yrange.min;
   
       series.push([x, y]);
       baseval += 86400000;
@@ -80,10 +80,15 @@
     return series;
   }
   
-  var data = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
-    min: 30,
-    max: 90
+  var data1 = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
+    min: 20,
+    max: 100
   })
+  var data2 = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
+    min: 5,
+    max: 50
+  })
+  
   </script>
   </head>
 
@@ -97,30 +102,89 @@
       
         var options = {
           series: [{
-          data: data
+          name: 'Flies',
+          data: data1
+        },{
+          name: 'Spiders',
+          data: data2
         }],
           chart: {
           id: 'chart2',
           type: 'line',
           height: 230,
+          dropShadow: {
+              enabled: true,
+              enabledOnSeries: [1]
+          },
           toolbar: {
             autoSelected: 'pan',
             show: false
           }
         },
-        colors: ['#546E7A'],
+        colors: ['#008FFB', '#00E396'],
         stroke: {
           width: 3
         },
         dataLabels: {
           enabled: false
         },
+        stroke: {
+          width: [2,6],
+          curve: ['straight','monotoneCubic']
+        },
         fill: {
-          opacity: 1,
+          opacity: [1,0.75],
         },
         markers: {
           size: 0
         },
+        yaxis: [
+          {
+            seriesName: 'Flies',
+            axisTicks: {
+              show: true,
+              color: '#008FFB'
+            },
+            axisBorder: {
+              show: true,
+              color: '#008FFB'
+            },
+            labels: {
+              style: {
+                colors: '#008FFB',
+              }
+            },
+            title: {
+              text: "Flies",
+              style: {
+                color: '#008FFB'
+              }
+            },
+          },
+          {
+            seriesName: 'Spiders',
+            opposite: true,
+            axisTicks: {
+              show: true,
+              color: '#00E396'
+            },
+            axisBorder: {
+              show: true,
+              color: '#00E396'
+            },
+            labels: {
+              style: {
+                colors: '#00E396'
+              }
+            },
+            title: {
+              text: "Spiders",
+              style: {
+                color: '#00E396'
+              }
+            },
+          }
+        ],
         xaxis: {
           type: 'datetime'
         }
@@ -131,7 +195,11 @@
       
         var optionsLine = {
           series: [{
-          data: data
+          name: 'Flies',
+          data: data1
+        },{
+          name: 'Spiders',
+          data: data2
         }],
           chart: {
           id: 'chart1',
@@ -144,12 +212,16 @@
           selection: {
             enabled: true,
             xaxis: {
-              min: new Date('19 Jun 2017').getTime(),
-              max: new Date('14 Aug 2017').getTime()
+              min: new Date('24 April 2017').getTime(),
+              max: new Date('29 May 2017').getTime()
             }
           },
         },
-        colors: ['#008FFB'],
+        colors: ['#008FFB', '#00E396'],
+        stroke: {
+          width: [1, 3],
+          curve: ['straight', 'monotoneCubic']
+        },
         fill: {
           type: 'gradient',
           gradient: {
@@ -164,6 +236,7 @@
           }
         },
         yaxis: {
+          max: 100,
           tickAmount: 2
         }
         };

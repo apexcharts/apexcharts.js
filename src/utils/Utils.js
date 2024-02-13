@@ -401,6 +401,44 @@ class Utils {
     // other browser
     return false
   }
+  // 
+  // Find the Greatest Common Divisor of two numbers
+  //
+  static getGCD(a, b, p = 7) {
+    let big = Math.pow(10, (p - Math.floor(Math.log10(Math.max(a, b)))))
+    a = Math.round(Math.abs(a) * big)
+    b = Math.round(Math.abs(b) * big)
+
+    while (b) {
+      let t = b
+      b = a % b
+      a = t
+    }
+    return a / big
+  }
+  
+  static getPrimeFactors(n) {
+    const factors = []
+    let divisor = 2
+
+    while (n >= 2) {
+      if (n % divisor == 0) {
+        factors.push(divisor)
+        n = n / divisor
+      } else {
+        divisor++
+      }
+    }
+    return factors
+  }
+
+  static mod(a, b, p = 7) {
+    let big = Math.pow(10, (p - Math.floor(Math.log10(Math.max(a, b)))))
+    a = Math.round(Math.abs(a) * big)
+    b = Math.round(Math.abs(b) * big)
+
+    return (a % b) / big
+  }
 }
 
 export default Utils
