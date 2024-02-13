@@ -16,10 +16,13 @@ export default class Scales {
     const yaxisCnf = w.config.yaxis[index]
     let gotMin = yaxisCnf.min !== undefined && yaxisCnf.min !== null
     let gotMax = yaxisCnf.max !== undefined && yaxisCnf.min !== null
-    let gotStepSize = yaxisCnf.stepSize !== undefined && yaxisCnf.stepSize !== null
-    let gotTickAmount = yaxisCnf.tickAmount !== undefined && yaxisCnf.tickAmount !== null
+    let gotStepSize =
+      yaxisCnf.stepSize !== undefined && yaxisCnf.stepSize !== null
+    let gotTickAmount =
+      yaxisCnf.tickAmount !== undefined && yaxisCnf.tickAmount !== null
     // The most ticks we can fit into the svg chart dimensions
-    const maxTicks = ((gl.isBarHorizontal ? gl.svgWidth : gl.svgHeight) - 100) / 15 // Guestimate
+    const maxTicks =
+      ((gl.isBarHorizontal ? gl.svgWidth : gl.svgHeight) - 100) / 15 // Guestimate
     let ticks = gotTickAmount ? yaxisCnf.tickAmount : 10
 
     // In case we have a multi axis chart:
@@ -52,7 +55,9 @@ export default class Scales {
     if (yMin > yMax) {
       // if somehow due to some wrong config, user sent max less than min,
       // adjust the min/max again
-      console.warn('axis.min cannot be greater than axis.max: swapping min and max')
+      console.warn(
+        'axis.min cannot be greater than axis.max: swapping min and max'
+      )
       let temp = yMax
       yMax = yMin
       yMin = temp
@@ -66,7 +71,7 @@ export default class Scales {
 
     // Calculate Min amd Max graphical labels and graph
     // increments.
-    // 
+    //
     // Output will be an array of the Y axis values that
     // encompass the Y values.
     let result = []
@@ -78,7 +83,7 @@ export default class Scales {
 
     // Determine Range
     let range = Math.abs(yMax - yMin)
-    
+
     if (yaxisCnf.forceNiceScale) {
       // Snap min or max to zero if close
       let proximityRatio = 0.15
@@ -113,9 +118,11 @@ export default class Scales {
     stepSize = niceStep
 
     // Get step value
-    if (gl.isBarHorizontal
-      && xaxisCnf.stepSize
-      && xaxisCnf.type !== 'datetime') {
+    if (
+      gl.isBarHorizontal &&
+      xaxisCnf.stepSize &&
+      xaxisCnf.type !== 'datetime'
+    ) {
       stepSize = xaxisCnf.stepSize
       gotStepSize = true
     } else if (gotStepSize) {
@@ -124,15 +131,15 @@ export default class Scales {
     if (gotStepSize) {
       if (yaxisCnf.forceNiceScale) {
         // Check that given stepSize is sane with respect to the range.
-        // 
+        //
         // The user can, by setting forceNiceScale = true,
         // define a stepSize that will be scaled to useful value before
         // it's checked for consistency.
-        // 
+        //
         // If, for example, the range = 4 and the user defined stepSize = 8
         // (or 8000 or 0.0008, etc), then stepSize is inapplicable as
         // it is. Reducing it to 0.8 will fit with 5 ticks.
-        // 
+        //
         if (Math.round(Math.log10(stepSize)) != mag) {
           let ref = range / ticks
           while (stepSize < ref) {
@@ -224,7 +231,7 @@ export default class Scales {
           // Allow a half-stepSize shift if series doesn't cross the X axis
           // to ensure graph doesn't clip. Not if it does cross, in order
           // to keep the 0 aligned with a grid line in multi axis charts.
-          let shift = stepSize / ((yMax - yMin > yMax) ? 1 : 2)
+          let shift = stepSize / (yMax - yMin > yMax ? 1 : 2)
           yMin = shift * Math.floor(yMin / shift)
           yMax = yMin + stepSize * tiks
         } else {
@@ -278,14 +285,8 @@ export default class Scales {
     }
 
     if (
-      tiks > maxTicks
-      && (
-          !(
-              gotTickAmount
-              || gotStepSize
-            )
-          || yaxisCnf.forceNiceScale
-      )
+      tiks > maxTicks &&
+      (!(gotTickAmount || gotStepSize) || yaxisCnf.forceNiceScale)
     ) {
       // Reduce the number of ticks nicely if chart svg dimensions shrink too far.
       // The reduced tick set should always be a subset of the full set.
@@ -294,7 +295,7 @@ export default class Scales {
       // We compute the prime factors of the full tick count (tiks), then all the
       // possible products of those factors in order from smallest to biggest,
       // until we find a product P such that: tiks/P < maxTicks.
-      // 
+      //
       // Example:
       // Computing products of the prime factors of 30.
       //
@@ -305,13 +306,13 @@ export default class Scales {
       //        |  2  |  2                  2             2  <-- column = P
       //   --------------------------------------------------
       //                15    10     6      5      2      1  <-- tiks/P
-      //   
+      //
       //   tiks = 30 has prime factors [2, 3, 5]
       //   The loop below computes the products [2,3,5,6,15,30].
       //   The last product of P = 2*3*5 is skipped since 30/P = 1.
       //   This yields tiks/P = [15,10,6,5,2,1], checked in order until
       //   tiks/P < maxTicks.
-      //   
+      //
       //   Pros:
       //      1) The ticks in the reduced set are always members of the
       //         full set of ticks.
@@ -323,8 +324,7 @@ export default class Scales {
       let pf = Utils.getPrimeFactors(tiks)
       let last = pf.length - 1
       let tt = tiks
-      reduceLoop:
-      for (var xFactors = 0; xFactors < last; xFactors++) {
+      reduceLoop: for (var xFactors = 0; xFactors < last; xFactors++) {
         for (var lowest = 0; lowest <= last - xFactors; lowest++) {
           let stop = Math.min(lowest + xFactors, last)
           let t = tt
@@ -360,7 +360,7 @@ export default class Scales {
     do {
       val += stepSize
       result.push(Utils.stripNumber(val, 7))
-    } while ((yMax - val) > err)
+    } while (yMax - val > err)
 
     return {
       result,
@@ -517,11 +517,7 @@ export default class Scales {
       } else {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
-        gl.yAxisScale[index] = this.niceScale(
-          minY,
-          maxY,
-          index
-        )
+        gl.yAxisScale[index] = this.niceScale(minY, maxY, index)
       }
     }
   }
@@ -540,8 +536,8 @@ export default class Scales {
         w.config.xaxis.tickAmount
           ? w.config.xaxis.tickAmount
           : diff < 10 && diff > 1
-            ? diff + 1
-            : 10,
+          ? diff + 1
+          : 10,
         0,
         w.config.xaxis.stepSize
       )
@@ -724,5 +720,104 @@ export default class Scales {
         })
       })
     })
+  }
+
+  // experimental feature which scales the y-axis to a min/max based on x-axis range
+  autoScaleY(ctx, yaxis, e) {
+    if (!ctx) {
+      ctx = this
+    }
+
+    const w = ctx.w
+
+    if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
+      // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
+      // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
+      console.warn('autoScaleYaxis not supported in a multi-yaxis chart.')
+      return yaxis
+    }
+
+    const seriesX = w.globals.seriesX[0]
+
+    let isStacked = w.config.chart.stacked
+
+    yaxis.forEach((yaxe, yi) => {
+      let firstXIndex = 0
+
+      for (let xi = 0; xi < seriesX.length; xi++) {
+        if (seriesX[xi] >= e.xaxis.min) {
+          firstXIndex = xi
+          break
+        }
+      }
+
+      let initialMin = w.globals.minYArr[yi]
+      let initialMax = w.globals.maxYArr[yi]
+      let min, max
+
+      let stackedSer = w.globals.stackedSeriesTotals
+
+      w.globals.series.forEach((serie, sI) => {
+        let firstValue = serie[firstXIndex]
+
+        if (isStacked) {
+          firstValue = stackedSer[firstXIndex]
+          min = max = firstValue
+
+          stackedSer.forEach((y, yI) => {
+            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+              if (y > max && y !== null) max = y
+              if (serie[yI] < min && serie[yI] !== null) min = serie[yI]
+            }
+          })
+        } else {
+          min = max = firstValue
+
+          serie.forEach((y, yI) => {
+            if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
+              let valMin = y
+              let valMax = y
+              w.globals.series.forEach((wS, wSI) => {
+                if (y !== null) {
+                  valMin = Math.min(wS[yI], valMin)
+                  valMax = Math.max(wS[yI], valMax)
+                }
+              })
+              if (valMax > max && valMax !== null) max = valMax
+              if (valMin < min && valMin !== null) min = valMin
+            }
+          })
+        }
+
+        if (min === undefined && max === undefined) {
+          min = initialMin
+          max = initialMax
+        }
+        min *= min < 0 ? 1.1 : 0.9
+        max *= max < 0 ? 0.9 : 1.1
+
+        if (min === 0 && max === 0) {
+          min = -1
+          max = 1
+        }
+
+        if (max < 0 && max < initialMax) {
+          max = initialMax
+        }
+        if (min < 0 && min > initialMin) {
+          min = initialMin
+        }
+
+        if (yaxis.length > 1) {
+          yaxis[sI].min = yaxe.min === undefined ? min : yaxe.min
+          yaxis[sI].max = yaxe.max === undefined ? max : yaxe.max
+        } else {
+          yaxis[0].min = yaxe.min === undefined ? min : yaxe.min
+          yaxis[0].max = yaxe.max === undefined ? max : yaxe.max
+        }
+      })
+    })
+
+    return yaxis
   }
 }
