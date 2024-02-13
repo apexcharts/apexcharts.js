@@ -243,29 +243,19 @@ export default class Scales {
           yMin = yMax - stepSize * tiks
         } else {
           yMin = stepSize * Math.floor(yMin / stepSize)
-          range = Math.abs(yMax - yMin)
-          if (Utils.mod(range, stepSize) != 0) {
-            // stepSize doesn't fit
-            let gcdStep = Utils.getGCD(range, stepSize)
-            stepSize = gcdStep
-            tiks = Math.round(range / stepSize)
           }
-        }
       } else if (gotMin) {
         if (gotTickAmount) {
           yMax = yMin + stepSize * tiks
         } else {
           yMax = stepSize * Math.ceil(yMax / stepSize)
-          range = Math.abs(yMax - yMin)
-          if (Utils.mod(range, stepSize) != 0) {
-            // stepSize doesn't fit
-            let gcdStep = Utils.getGCD(range, stepSize)
-            stepSize = gcdStep
-            tiks = Math.round(range / stepSize)
-          }
         }
       }
       range = Math.abs(yMax - yMin)
+      // Final check and possible adjustment of stepSize to prevent
+      // overridding the user's min or max choice.
+      stepSize = Utils.getGCD(range, stepSize)
+      tiks = Math.round(range / stepSize)
     }
 
     // Shrinkwrap ticks to the range
