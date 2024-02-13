@@ -8,3 +8,4 @@ tests/e2e/diffs
 .nyc_output
 .vscode
 bundle-analysis.html
+/nbproject/private/

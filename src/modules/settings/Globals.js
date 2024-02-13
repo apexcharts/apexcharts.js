@@ -69,6 +69,7 @@ export default class Globals {
     gl.zRange = 0
     gl.dataPoints = 0
     gl.xTickAmount = 0
+    gl.multiAxisTickAmount = 0
   }
 
   globalVars(config) {
@@ -209,7 +210,26 @@ export default class Globals {
       yAxisWidths: [],
       translateXAxisY: 0,
       translateXAxisX: 0,
-      tooltip: null
+      tooltip: null,
+      // Rules for niceScaleAllowedMagMsd:
+      // 1) An array of two arrays only ([[],[]]):
+      //    * array[0][]: influences labelling of data series that contain only integers
+      //       - must contain only integers (or expect ugly ticks)
+      //    * array[1][]: influences labelling of data series that contain at least one float
+      //       - may contain floats
+      //    * both arrays:
+      //       - each array[][i] ideally satisfy: 10 mod array[][i] == 0 (or expect ugly ticks)
+      //       - to avoid clipping data point keep each array[][i] >= i
+      // 2) each array[i][] contains 11 values, for all possible index values 0..10.
+      //    array[][0] should not be needed (not proven) but ensures non-zero is returned.
+      // 
+      // Users can effectively force their preferred "magMsd" through stepSize and
+      // forceNiceScale. With forceNiceScale: true, stepSize becomes normalizable to the
+      // axis's min..max range, which allows users to set stepSize to an integer 1..10, for
+      // example, stepSize: 3. This value will be preferred to the value determined through
+      // this array. The range-normalized value is checked for consistency with other
+      // user defined options and will be ignored if inconsistent.
+      niceScaleAllowedMagMsd: [[1,1,2,5,5,5,10,10,10,10,10],[1,1,2,5,5,5,10,10,10,10,10]]
     }
   }
 

@@ -635,37 +635,13 @@ export default class Core {
       w.config.chart.events.selection = (chart, e) => {
         targets.forEach((target) => {
           let targetChart = ApexCharts.getChartByID(target)
-          let yaxis = Utils.clone(w.config.yaxis)
-
-          if (
-            w.config.chart.brush.autoScaleYaxis &&
-            targetChart.w.globals.series.length === 1
-          ) {
-            const scale = new Scales(targetChart)
-            yaxis = scale.autoScaleY(targetChart, yaxis, e)
-          }
-
-          const multipleYaxis = targetChart.w.config.yaxis.reduce(
-            (acc, curr, index) => {
-              return [
-                ...acc,
-                {
-                  ...targetChart.w.config.yaxis[index],
-                  min: yaxis[0].min,
-                  max: yaxis[0].max,
-                },
-              ]
-            },
-            []
-          )
 
           targetChart.ctx.updateHelpers._updateOptions(
             {
               xaxis: {
                 min: e.xaxis.min,
                 max: e.xaxis.max,
-              },
-              yaxis: multipleYaxis,
+              }
             },
             false,
             false,

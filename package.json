@@ -55,7 +55,7 @@
     "babel-loader": "8.0.6",
     "babel-plugin-istanbul": "6.0.0",
     "chalk": "3.0.0",
-    "css-loader": "3.4.1",
+    "css-loader": "6.10.0",
     "eslint": "8.36.0",
     "eslint-config-prettier": "8.8.0",
     "eslint-loader": "3.0.3",

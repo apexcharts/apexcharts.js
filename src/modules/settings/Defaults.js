@@ -958,10 +958,6 @@ export default class Defaults {
   }
 
   polarArea() {
-    this.opts.yaxis[0].tickAmount = this.opts.yaxis[0].tickAmount
-      ? this.opts.yaxis[0].tickAmount
-      : 6
-
     return {
       chart: {
         toolbar: {
