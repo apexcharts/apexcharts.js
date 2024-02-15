@@ -96,9 +96,7 @@ export default class AxesUtils {
 
     if (
       !Array.isArray(label) &&
-      (label.indexOf('NaN') === 0 ||
-        label.toLowerCase().indexOf('invalid') === 0 ||
-        label.toLowerCase().indexOf('infinity') >= 0 ||
+      (String(label) === 'NaN' ||
         (drawnLabels.indexOf(label) >= 0 && allowDuplicatesInTimeScale))
     ) {
       label = ''
