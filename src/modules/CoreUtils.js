@@ -390,17 +390,17 @@ class CoreUtils {
 
   // Some config objects can be array - and we need to extend them correctly
   static extendArrayProps(configInstance, options, w) {
-    if (options.yaxis) {
+    if (options?.yaxis) {
       options = configInstance.extendYAxis(options, w)
     }
-    if (options.annotations) {
+    if (options?.annotations) {
       if (options.annotations.yaxis) {
         options = configInstance.extendYAxisAnnotations(options)
       }
-      if (options.annotations.xaxis) {
+      if (options?.annotations?.xaxis) {
         options = configInstance.extendXAxisAnnotations(options)
       }
-      if (options.annotations.points) {
+      if (options?.annotations?.points) {
         options = configInstance.extendPointAnnotations(options)
       }
     }

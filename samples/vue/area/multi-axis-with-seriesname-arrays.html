@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Multi-YAxis-with-seriesName-arrays</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    <script>
+  var generateDayWiseTimeSeries = function (baseval, count, yrange) {
+    var i = 0;
+    var series = [];
+    while (i < count) {
+      var x = baseval;
+      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+  
+      series.push([x, y]);
+      baseval += 86400000;
+      i++;
+    }
+    return series;
+  };
+  
+  var data1 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+       min: 5,
+       max: 20
+     });
+     
+  var data2 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+       min: 10,
+       max: 20
+     });
+     
+  var data3 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+       min: 5,
+       max: 25
+     });
+     
+  var data4 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
+       min: 10,
+       max: 35
+     });
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="area" height="350" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+             name: 'Broccoli',
+             data: data1
+           },
+           {
+             name: 'Spinach',
+             data: data2
+           },
+           {
+             name: 'Apples',
+             data: data3
+           },
+           {
+             name: 'Plums',
+             data: data4
+           }],
+          chartOptions: {
+            chart: {
+              type: 'area',
+              height: 350,
+              stacked: false
+            },
+            colors: ['#00EE00', '#008800', '#FF0000', '#AA00FF'],
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              curve: 'monotoneCubic',
+              width: [4, 4, 2, 2],
+              dashArray: [0, 0, 2, 2]
+            },
+            legend: {
+              position: 'top',
+              horizontalAlign: 'left'
+            },
+            yaxis: [
+              {
+                seriesName: ['Broccoli', 'Spinach'],
+                axisTicks: {
+                  show: true,
+                  color: '#008800'
+                },
+                axisBorder: {
+                  show: true,
+                  color: '#008800'
+                },
+                labels: {
+                  style: {
+                    colors: '#008800',
+                  },
+                  formatter: (val) => {
+                    let ref = val.toFixed(0);
+                    return val == ref ? val : ''
+                  }
+                },
+                title: {
+                  text: "Vegetables",
+                  style: {
+                    color: '#008800'
+                  }
+                },
+              },
+              {
+                seriesName: ['Plums','Apples'],
+                opposite: true,
+                axisTicks: {
+                  show: true,
+                  color: '#FF0000'
+                },
+                axisBorder: {
+                  show: true,
+                  color: '#FF0000'
+                },
+                labels: {
+                  style: {
+                    colors: '#FF0000',
+                  },
+                  formatter: (val) => {
+                    let ref = val.toFixed(0);
+                    return val == ref ? val : ''
+                  }
+                },
+                title: {
+                  text: "Fruit",
+                  style: {
+                    color: '#FF0000'
+                  }
+                },
+              }
+            ],
+            xaxis: {
+              type: 'datetime'
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>

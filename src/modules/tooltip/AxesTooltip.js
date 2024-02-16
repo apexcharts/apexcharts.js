@@ -74,16 +74,6 @@ class AxesTooltip {
         ? `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-right`
         : `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-left`
 
-      w.globals.yAxisSameScaleIndices.map((samescales, ssi) => {
-        samescales.map((s, si) => {
-          if (si === i) {
-            tooltipCssClass += w.config.yaxis[si].show
-              ? ` `
-              : ` apexcharts-yaxistooltip-hidden`
-          }
-        })
-      })
-
       let renderTo = w.globals.dom.elWrap
 
       let yaxisTooltip = w.globals.dom.baseEl.querySelector(
