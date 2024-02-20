@@ -554,9 +554,10 @@ export default class Scales {
     let unassignedYAxisIndices = []
     // here, we loop through the yaxis array and find the item which has "seriesName" property
     cnf.yaxis.forEach((yaxe, yi) => {
-      // Allow seriesName to be either a string (for backward compatibility)
-      // or an array of strings so that multiple series can reference the same
-      // y-axis. Feature request #4237
+      // Allow seriesName to be either a string (for backward compatibility),
+      // in which case, handle multiple yaxes referencing the same series.
+      // or an array of strings so that a yaxis can reference multiple series.
+      // Feature request #4237
       if (yaxe.seriesName) {
         let seriesNames = []
         if (Array.isArray(yaxe.seriesName)) {
@@ -567,8 +568,7 @@ export default class Scales {
         axisSeriesMap[yi] = []
         seriesNames.forEach((name) => {
           cnf.series.forEach((s, si) => {
-            // if seriesName matches and that series is not collapsed, we use
-            // that scale.
+            // if seriesName matches we use that scale.
             if (s.name === name) {
               axisSeriesMap[yi].push(si)
               let remove = unassignedSeriesIndices.indexOf(si)
@@ -632,7 +632,7 @@ export default class Scales {
     // 1: [1,2,3,4]
     // If the chart is stacked, it can be assumed that any axis with multiple
     // series is stacked.
-    //
+
     // First things first, convert the old to the new.
     let emptyAxes = []
     axisSeriesMap.forEach((axisSeries, ai) => {
