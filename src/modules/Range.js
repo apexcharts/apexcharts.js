@@ -44,19 +44,27 @@ class Range {
       seriesX = [...new Set([].concat(...gl.seriesX.slice(startingIndex, endingIndex)))]
       firstXIndex = 0
       lastXIndex = seriesX.length - 1
-      if (cnf.xaxis.min) {
-        for (
-          firstXIndex = 0;
-          firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min;
-          firstXIndex++
-        ) {}
-      }
-      if (cnf.xaxis.max) {
-        for (
-          ;
-          lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max;
-          lastXIndex--
-        ) {}
+      // Eventually brushSource will be set if the current chart is a target.
+      // That is, after the appropriate event causes us to update.
+      let brush = gl.brushSource?.w.config.chart.brush
+      if ((cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis)
+              || (brush?.enabled && brush?.autoScaleYaxis)
+      ) {
+        // Scale the Y axis to the min..max within the zoomed X axis domain.
+        if (cnf.xaxis.min) {
+          for (
+            firstXIndex = 0;
+            firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min;
+            firstXIndex++
+          ) {}
+        }
+        if (cnf.xaxis.max) {
+          for (
+            ;
+            lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max;
+            lastXIndex--
+          ) {}
+        }
       }
     }
     

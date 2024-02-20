@@ -605,13 +605,6 @@ export default class ZoomPanSelection extends Toolbar {
           })
         }
 
-        if (w.config.chart.zoom.autoScaleYaxis) {
-          const scale = new Scales(me.ctx)
-          yaxis = scale.autoScaleY(me.ctx, yaxis, {
-            xaxis,
-          })
-        }
-
         if (toolbar) {
           let beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis)
           if (beforeZoomRange) {
@@ -762,13 +755,6 @@ export default class ZoomPanSelection extends Toolbar {
     let xaxis = {
       min: xLowestValue,
       max: xHighestValue,
-    }
-
-    if (w.config.chart.zoom.autoScaleYaxis) {
-      const scale = new Scales(this.ctx)
-      yaxis = scale.autoScaleY(this.ctx, yaxis, {
-        xaxis,
-      })
     }
 
     let options = {

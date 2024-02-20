@@ -402,12 +402,6 @@ export default class Toolbar {
     }
 
     let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
-    if (w.config.chart.zoom.autoScaleYaxis) {
-      const scale = new Scales(this.ctx)
-      yaxis = scale.autoScaleY(this.ctx, yaxis, {
-        xaxis,
-      })
-    }
 
     if (!w.config.chart.group) {
       // if chart in a group, prevent yaxis update here

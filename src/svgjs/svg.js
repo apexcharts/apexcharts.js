@@ -2229,7 +2229,7 @@
     SVG.listeners[index][ev][ns][listener._svgjsListenerId] = l
 
     // add listener
-    node.addEventListener(ev, l, options || { passive: true })
+    node.addEventListener(ev, l, options || { passive: false })
   }
 
   // Add event unbinder in the SVG namespace
