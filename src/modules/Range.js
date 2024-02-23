@@ -309,10 +309,6 @@ class Range {
     if (gl.isMultipleYAxis) {
       this.scales.setMultipleYScales()
       gl.minY = lowestYInAllSeries
-      gl.yAxisScale.forEach((scale, i) => {
-        gl.minYArr[i] = scale.niceMin
-        gl.maxYArr[i] = scale.niceMax
-      })
     } else {
       this.scales.setYScaleForIndex(0, gl.minY, gl.maxY)
       gl.minY = gl.yAxisScale[0].niceMin
