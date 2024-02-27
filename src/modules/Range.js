@@ -104,7 +104,7 @@ class Range {
         firstXIndex = 0
         lastXIndex = gl.series[i].length
       }
-      for (let j = firstXIndex; j <= lastXIndex; j++) {
+      for (let j = firstXIndex; j <= lastXIndex && j < gl.series[i].length; j++) {
         let val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
           if (typeof seriesMax[i][j] !== 'undefined') {
