@@ -12,18 +12,27 @@ export default class Scales {
     const jsPrecision = 1e-11 // JS precision errors
     const w = this.w
     const gl = w.globals
-    const xaxisCnf = w.config.xaxis
-    const yaxisCnf = w.config.yaxis[index]
-    let gotMin = yaxisCnf.min !== undefined && yaxisCnf.min !== null
-    let gotMax = yaxisCnf.max !== undefined && yaxisCnf.min !== null
+    let axisCnf
+    let maxTicks
+    let gotMin
+    let gotMax
+    if (gl.isBarHorizontal) {
+      axisCnf = w.config.xaxis
+      gotMin = axisCnf.min !== undefined && axisCnf.min !== null
+      gotMax = axisCnf.max !== undefined && axisCnf.min !== null
+      // The most ticks we can fit into the svg chart dimensions
+      maxTicks = (gl.svgWidth - 100) / 25 // Guestimate
+    } else {
+      axisCnf = w.config.yaxis[index]
+      gotMin = axisCnf.min !== undefined && axisCnf.min !== null
+      gotMax = axisCnf.max !== undefined && axisCnf.min !== null
+      maxTicks = (gl.svgHeight - 100) / 15
+    }
     let gotStepSize =
-      yaxisCnf.stepSize !== undefined && yaxisCnf.stepSize !== null
+      axisCnf.stepSize !== undefined && axisCnf.stepSize !== null
     let gotTickAmount =
-      yaxisCnf.tickAmount !== undefined && yaxisCnf.tickAmount !== null
-    // The most ticks we can fit into the svg chart dimensions
-    const maxTicks =
-      ((gl.isBarHorizontal ? gl.svgWidth : gl.svgHeight) - 100) / 15 // Guestimate
-    let ticks = gotTickAmount ? yaxisCnf.tickAmount : 10
+      axisCnf.tickAmount !== undefined && axisCnf.tickAmount !== null
+    let ticks = gotTickAmount ? axisCnf.tickAmount : 10
 
     // In case we have a multi axis chart:
     // Ensure subsequent series start with the same tickAmount as series[0],
@@ -84,7 +93,7 @@ export default class Scales {
     // Determine Range
     let range = Math.abs(yMax - yMin)
 
-    if (yaxisCnf.forceNiceScale) {
+    if (axisCnf.forceNiceScale) {
       // Snap min or max to zero if close
       let proximityRatio = 0.15
       if (!gotMin && yMin > 0 && yMin / range < proximityRatio) {
@@ -120,35 +129,28 @@ export default class Scales {
     // Get step value
     if (
       gl.isBarHorizontal &&
-      xaxisCnf.stepSize &&
-      xaxisCnf.type !== 'datetime'
+      axisCnf.stepSize &&
+      axisCnf.type !== 'datetime'
     ) {
-      stepSize = xaxisCnf.stepSize
+      stepSize = axisCnf.stepSize
       gotStepSize = true
     } else if (gotStepSize) {
-      stepSize = yaxisCnf.stepSize
+      stepSize = axisCnf.stepSize
     }
     if (gotStepSize) {
-      if (yaxisCnf.forceNiceScale) {
+      if (axisCnf.forceNiceScale) {
         // Check that given stepSize is sane with respect to the range.
         //
         // The user can, by setting forceNiceScale = true,
-        // define a stepSize that will be scaled to useful value before
+        // define a stepSize that will be scaled to a useful value before
         // it's checked for consistency.
         //
         // If, for example, the range = 4 and the user defined stepSize = 8
         // (or 8000 or 0.0008, etc), then stepSize is inapplicable as
         // it is. Reducing it to 0.8 will fit with 5 ticks.
         //
-        if (Math.round(Math.log10(stepSize)) != mag) {
-          let ref = range / ticks
-          while (stepSize < ref) {
-            stepSize *= 10
-          }
-          while (stepSize > ref) {
-            stepSize /= 10
-          }
-        }
+        let stepMag = Math.floor(Math.log10(stepSize))
+        stepSize *= Math.pow(10, mag - stepMag)
       }
     }
 
@@ -198,10 +200,10 @@ export default class Scales {
           stepSize = crudeStep
         }
       } else {
-        // default ticks in use
+        // default ticks in use, tiks can change
         if (gotStepSize) {
           if (Utils.mod(range, stepSize) == 0) {
-            // stepSize fits
+            // bigStep fits
             crudeStep = stepSize
           } else {
             stepSize = crudeStep
@@ -282,7 +284,7 @@ export default class Scales {
 
     if (
       tiks > maxTicks &&
-      (!(gotTickAmount || gotStepSize) || yaxisCnf.forceNiceScale)
+      (!(gotTickAmount || gotStepSize) || axisCnf.forceNiceScale)
     ) {
       // Reduce the number of ticks nicely if chart svg dimensions shrink too far.
       // The reduced tick set should always be a subset of the full set.
@@ -339,7 +341,7 @@ export default class Scales {
       // if forceNiceScale = true, to give the user the option if tiks is
       // prime and > maxTicks, which may result in premature removal of all but
       // the last tick. It will not be immediately obvious why that has occured.
-      if (tt === tiks && yaxisCnf.forceNiceScale) {
+      if (tt === tiks && axisCnf.forceNiceScale) {
         stepSize = range
       } else {
         stepSize = range / tt
