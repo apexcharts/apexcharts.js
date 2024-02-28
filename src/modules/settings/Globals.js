@@ -228,7 +228,8 @@ export default class Globals {
       // example, stepSize: 3. This value will be preferred to the value determined through
       // this array. The range-normalized value is checked for consistency with other
       // user defined options and will be ignored if inconsistent.
-      niceScaleAllowedMagMsd: [[1,1,2,5,5,5,10,10,10,10,10],[1,1,2,5,5,5,10,10,10,10,10]]
+      niceScaleAllowedMagMsd: [[1,1,2,5,5,5,10,10,10,10,10],[1,1,2,5,5,5,10,10,10,10,10]],
+      seriesYAxisMap: [] // Indices of Series to Indices of yAxis map. Multiple series can be referenced to each yAxis.
     }
   }
 

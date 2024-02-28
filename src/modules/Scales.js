@@ -604,6 +604,7 @@ export default class Scales {
       })
     }
 
+    gl.seriesYAxisMap = axisSeriesMap.map((x) => x)
     this.sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap)
   }
 

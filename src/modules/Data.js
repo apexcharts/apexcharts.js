@@ -714,14 +714,24 @@ export default class Data {
 
   excludeCollapsedSeriesInYAxis() {
     const w = this.w
-    w.globals.ignoreYAxisIndexes = w.globals.collapsedSeries.map(
-      (collapsed, i) => {
-        // fix issue #1215
-        // if stacked, not returning collapsed.index to preserve yaxis
-        if (this.w.globals.isMultipleYAxis && !w.config.chart.stacked) {
-          return collapsed.index
+    // fix issue #1215
+    // if stacked, not returning collapsed.index to preserve yaxis
+    if (this.w.globals.isMultipleYAxis && !w.config.chart.stacked) {
+      // Post revision 3.46.0 there is no longer a strict one-to-one
+      // correspondence between series and Y axes.
+      // An axis can be ignored only while all series referenced by it
+      // are collapsed.
+      let yAxisIndexes = []
+      w.globals.seriesYAxisMap.forEach((yAxisArr, yi) => {
+        let allCollapsed = true
+        yAxisArr.forEach((seriesIndex) => {
+          allCollapsed = allCollapsed && w.globals.collapsedSeriesIndices.indexOf(seriesIndex) !== -1
+        })
+        if (allCollapsed) {
+          yAxisIndexes.push(yi)
         }
-      }
-    )
+      })
+      w.globals.ignoreYAxisIndexes = yAxisIndexes ? yAxisIndexes.map((x) => x) : []
+    }
   }
 }
