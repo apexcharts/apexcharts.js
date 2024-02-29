@@ -81,6 +81,7 @@ class DataLabels {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
     // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
     let w = this.w
+    
     const graphics = new Graphics(this.ctx)
 
     let dataLabelsConfig = w.config.dataLabels
@@ -92,7 +93,10 @@ class DataLabels {
 
     let elDataLabelsWrap = null
 
-    if (!dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
+    const seriesCollapsed = 
+        w.globals.collapsedSeriesIndices.indexOf(i) !== -1
+
+    if (seriesCollapsed || !dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
       return elDataLabelsWrap
     }
 
