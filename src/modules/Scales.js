@@ -267,6 +267,11 @@ export default class Scales {
         } else {
           let yMaxPrev = yMax
           yMax = stepSize * Math.ceil(yMax / stepSize)
+          if (Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) > maxTicks) {
+            // Use default ticks to compute yMax then shrinkwrap
+            yMax = yMin + stepSize * ticks
+            yMax -= stepSize * Math.floor((yMax - yMaxPrev) / stepSize)
+          }
         }
       }
       range = Math.abs(yMax - yMin)
