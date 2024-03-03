@@ -175,16 +175,20 @@ export default class AxesUtils {
     }
     return labels
   }
-
+  
   isYAxisHidden(index) {
     const w = this.w
     const coreUtils = new CoreUtils(this.ctx)
+    
+    let allCollapsed = !w.globals.seriesYAxisMap[index].some((si) => {
+      return w.globals.collapsedSeriesIndices.indexOf(si) === -1
+    })
 
     return (
       !w.config.yaxis[index].show ||
       (!w.config.yaxis[index].showForNullSeries &&
         coreUtils.isSeriesNull(index) &&
-        w.globals.collapsedSeriesIndices.indexOf(index) === -1)
+        allCollapsed)
     )
   }
 

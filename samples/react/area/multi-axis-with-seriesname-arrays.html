@@ -156,8 +156,11 @@
                       colors: '#008800',
                     },
                     formatter: (val) => {
-                      let ref = val.toFixed(0);
-                      return val == ref ? val : ''
+                      if (typeof val !== "undefined") {
+                        let ref = val.toFixed(0);
+                        return val == ref ? val : ''
+                      }
+                      return val
                     }
                   },
                   title: {
@@ -183,8 +186,11 @@
                       colors: '#FF0000',
                     },
                     formatter: (val) => {
-                      let ref = val.toFixed(0);
-                      return val == ref ? val : ''
+                      if (typeof val !== "undefined") {
+                        let ref = val.toFixed(0);
+                        return val == ref ? val : ''
+                      }
+                      return val
                     }
                   },
                   title: {
