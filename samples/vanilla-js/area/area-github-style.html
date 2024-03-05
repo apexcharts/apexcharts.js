@@ -111,7 +111,7 @@
           chart: {
           id: 'chartyear',
           type: 'area',
-          height: 160,
+          height: 180,
           background: '#F6F8FA',
           toolbar: {
             show: false,
@@ -145,7 +145,8 @@
           type: 'solid'
         },
         yaxis: {
-          show: true
+          show: true,
+          forceNiceScale: true
         },
         xaxis: {
           type: 'datetime',
@@ -161,7 +162,7 @@
           data: githubdata.series
         }],
           chart: {
-          height: 200,
+          height: 150,
           type: 'area',
           background: '#F6F8FA',
           toolbar: {
@@ -174,8 +175,8 @@
           selection: {
             enabled: true,
             xaxis: {
-              min: new Date('26 Jan 2014').getTime(),
-              max: new Date('29 Mar 2015').getTime()
+              min: new Date('15 Feb 2016').getTime(),
+              max: new Date('14 Feb 2017').getTime()
             }
           },
         },

@@ -9,6 +9,11 @@ export default class Scales {
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
   // This routine creates the Y axis values for a graph.
   niceScale(yMin, yMax, index = 0) {
+    // Calculate Min amd Max graphical labels and graph
+    // increments.
+    //
+    // Output will be an array of the Y axis values that
+    // encompass the Y values.
     const jsPrecision = 1e-11 // JS precision errors
     const w = this.w
     const gl = w.globals
@@ -18,21 +23,25 @@ export default class Scales {
     let gotMax
     if (gl.isBarHorizontal) {
       axisCnf = w.config.xaxis
-      gotMin = axisCnf.min !== undefined && axisCnf.min !== null
-      gotMax = axisCnf.max !== undefined && axisCnf.min !== null
       // The most ticks we can fit into the svg chart dimensions
       maxTicks = (gl.svgWidth - 100) / 25 // Guestimate
     } else {
       axisCnf = w.config.yaxis[index]
-      gotMin = axisCnf.min !== undefined && axisCnf.min !== null
-      gotMax = axisCnf.max !== undefined && axisCnf.min !== null
       maxTicks = (gl.svgHeight - 100) / 15
     }
+    gotMin = axisCnf.min !== undefined && axisCnf.min !== null
+    gotMax = axisCnf.max !== undefined && axisCnf.min !== null
     let gotStepSize =
       axisCnf.stepSize !== undefined && axisCnf.stepSize !== null
     let gotTickAmount =
       axisCnf.tickAmount !== undefined && axisCnf.tickAmount !== null
-    let ticks = gotTickAmount ? axisCnf.tickAmount : 10
+    let ticks = gotTickAmount ?
+                  axisCnf.tickAmount :
+                    !axisCnf.forceNiceScale ?
+                      10 :
+                      gl.niceScaleDefaultTicks[
+                        Math.min(Math.round(maxTicks/2),
+                          gl.niceScaleDefaultTicks.length - 1)]
 
     // In case we have a multi axis chart:
     // Ensure subsequent series start with the same tickAmount as series[0],
@@ -78,11 +87,6 @@ export default class Scales {
       yMax = yMax === 0 ? 2 : yMax + 1 // choose an integer in case yValueDecimals=0
     }
 
-    // Calculate Min amd Max graphical labels and graph
-    // increments.
-    //
-    // Output will be an array of the Y axis values that
-    // encompass the Y values.
     let result = []
 
     if (ticks < 1) {
@@ -108,7 +112,7 @@ export default class Scales {
     }
 
     // Calculate a pretty step value based on ticks
-
+    
     // Initial stepSize
     let stepSize = range / tiks
     let niceStep = stepSize
@@ -182,7 +186,7 @@ export default class Scales {
             // stepSize fits
             if (Utils.mod(stepSize, crudeStep) == 0) {
               // crudeStep is a multiple of stepSize, or vice versa
-              // we know crudeStep will generate tickAmount ticks
+              // but we know that crudeStep will generate tickAmount ticks
               stepSize = crudeStep
             } else {
               // stepSize conflicts with tickAmount
@@ -196,32 +200,31 @@ export default class Scales {
             }
           }
         } else {
-          // no user stepSize, honour ticks
+          // no user stepSize, honour tickAmount
           stepSize = crudeStep
         }
       } else {
         // default ticks in use, tiks can change
         if (gotStepSize) {
           if (Utils.mod(range, stepSize) == 0) {
-            // bigStep fits
+            // user stepSize fits
             crudeStep = stepSize
           } else {
             stepSize = crudeStep
           }
         } else {
           // no user stepSize
-          tiks = Math.round(range / niceStep)
-          crudeStep = range / tiks
-          if (Utils.mod(range, stepSize) != 0) {
-            // stepSize doesn't fit
-            let gcdStep = Utils.getGCD(range, niceStep)
-            if (niceStep / gcdStep < 10) {
+          if (Utils.mod(range, stepSize) == 0) {
+            // generated nice stepSize fits
+            crudeStep = stepSize
+          } else {
+            tiks = Math.ceil(range / stepSize)
+            crudeStep = range / tiks
+            let gcdStep = Utils.getGCD(range, stepSize)
+            if (range / gcdStep < maxTicks) {
               crudeStep = gcdStep
             }
             stepSize = crudeStep
-          } else {
-            // stepSize fits
-            crudeStep = stepSize
           }
         }
       }
@@ -250,18 +253,25 @@ export default class Scales {
         if (gotTickAmount) {
           yMin = yMax - stepSize * tiks
         } else {
+          let yMinPrev = yMin
           yMin = stepSize * Math.floor(yMin / stepSize)
+          if (Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) > maxTicks) {
+            // Use default ticks to compute yMin then shrinkwrap
+            yMin = yMax - stepSize * ticks
+            yMin += stepSize * Math.floor((yMinPrev - yMin) / stepSize)
           }
+        }
       } else if (gotMin) {
         if (gotTickAmount) {
           yMax = yMin + stepSize * tiks
         } else {
+          let yMaxPrev = yMax
           yMax = stepSize * Math.ceil(yMax / stepSize)
         }
       }
       range = Math.abs(yMax - yMin)
       // Final check and possible adjustment of stepSize to prevent
-      // overridding the user's min or max choice.
+      // overriding the user's min or max choice.
       stepSize = Utils.getGCD(range, stepSize)
       tiks = Math.round(range / stepSize)
     }
@@ -337,11 +347,9 @@ export default class Scales {
           }
         }
       }
-      // Only reduce tiks all the way down to 1 (increase stepSize to range)
-      // if forceNiceScale = true, to give the user the option if tiks is
-      // prime and > maxTicks, which may result in premature removal of all but
-      // the last tick. It will not be immediately obvious why that has occured.
-      if (tt === tiks && axisCnf.forceNiceScale) {
+      if (tt === tiks) {
+        // Could not reduce ticks at all, go all in and display just the
+        // X axis and one tick.
         stepSize = range
       } else {
         stepSize = range / tt

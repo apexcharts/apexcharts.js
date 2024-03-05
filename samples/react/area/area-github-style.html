@@ -96,7 +96,7 @@
     <div id="html">
       &lt;div id=&quot;wrapper&quot;&gt;
   &lt;div id=&quot;chart-months&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height={160} /&gt;
+  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height={180} /&gt;
 &lt;/div&gt;
 
   &lt;h5 class=&quot;github-style&quot;&gt;
@@ -110,7 +110,7 @@
   &lt;/h5&gt;
 
   &lt;div id=&quot;chart-years&quot;&gt;
-  &lt;ReactApexChart options={this.state.optionsYears} series={this.state.seriesYears} type=&quot;area&quot; height={200} /&gt;
+  &lt;ReactApexChart options={this.state.optionsYears} series={this.state.seriesYears} type=&quot;area&quot; height={150} /&gt;
 &lt;/div&gt;
 &lt;/div&gt;
     </div>
@@ -130,7 +130,7 @@
               chart: {
                 id: 'chartyear',
                 type: 'area',
-                height: 160,
+                height: 180,
                 background: '#F6F8FA',
                 toolbar: {
                   show: false,
@@ -164,7 +164,8 @@
                 type: 'solid'
               },
               yaxis: {
-                show: true
+                show: true,
+                forceNiceScale: true
               },
               xaxis: {
                 type: 'datetime',
@@ -177,7 +178,7 @@
             }],
             optionsYears: {
               chart: {
-                height: 200,
+                height: 150,
                 type: 'area',
                 background: '#F6F8FA',
                 toolbar: {
@@ -190,8 +191,8 @@
                 selection: {
                   enabled: true,
                   xaxis: {
-                    min: new Date('26 Jan 2014').getTime(),
-                    max: new Date('29 Mar 2015').getTime()
+                    min: new Date('15 Feb 2016').getTime(),
+                    max: new Date('14 Feb 2017').getTime()
                   }
                 },
               },
@@ -227,7 +228,7 @@
             <div>
               <div id="wrapper">
                 <div id="chart-months">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="area" height={160} />
+                <ReactApexChart options={this.state.options} series={this.state.series} type="area" height={180} />
               </div>
               
                 <h5 class="github-style">
@@ -241,7 +242,7 @@
                 </h5>
               
                 <div id="chart-years">
-                <ReactApexChart options={this.state.optionsYears} series={this.state.seriesYears} type="area" height={200} />
+                <ReactApexChart options={this.state.optionsYears} series={this.state.seriesYears} type="area" height={150} />
               </div>
               </div>
               <div id="html-dist"></div>

@@ -715,23 +715,25 @@ export default class Data {
   excludeCollapsedSeriesInYAxis() {
     const w = this.w
     // fix issue #1215
-    // if stacked, not returning collapsed.index to preserve yaxis
-    if (this.w.globals.isMultipleYAxis && !w.config.chart.stacked) {
-      // Post revision 3.46.0 there is no longer a strict one-to-one
-      // correspondence between series and Y axes.
-      // An axis can be ignored only while all series referenced by it
-      // are collapsed.
-      let yAxisIndexes = []
-      w.globals.seriesYAxisMap.forEach((yAxisArr, yi) => {
-        let allCollapsed = true
-        yAxisArr.forEach((seriesIndex) => {
-          allCollapsed = allCollapsed && w.globals.collapsedSeriesIndices.indexOf(seriesIndex) !== -1
-        })
-        if (allCollapsed) {
-          yAxisIndexes.push(yi)
+    // Post revision 3.46.0 there is no longer a strict one-to-one
+    // correspondence between series and Y axes.
+    // An axis can be ignored only while all series referenced by it
+    // are collapsed.
+    let yAxisIndexes = []
+    w.globals.seriesYAxisMap.forEach((yAxisArr, yi) => {
+      let collapsedCount = 0
+      yAxisArr.forEach((seriesIndex) => {
+        if (w.globals.collapsedSeriesIndices.indexOf(seriesIndex) !== -1) {
+          collapsedCount++
         }
       })
-      w.globals.ignoreYAxisIndexes = yAxisIndexes ? yAxisIndexes.map((x) => x) : []
-    }
+      // It's possible to have a yaxis that doesn't reference any series yet,
+      // eg, because there are no series' yet, so don't list it as ignored
+      // prematurely.
+      if (collapsedCount > 0 && collapsedCount == yAxisArr.length) {
+        yAxisIndexes.push(yi)
+      }
+    })
+    w.globals.ignoreYAxisIndexes = yAxisIndexes.map((x) => x)
   }
 }
