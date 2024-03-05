@@ -171,14 +171,13 @@ export default class Helpers {
     let series = Utils.clone(w.config.series)
 
     if (w.globals.axisCharts) {
-      let shouldNotHideYAxis = false
+      let yaxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]]
 
       if (
-        w.config.yaxis[realIndex] &&
-        w.config.yaxis[realIndex].show &&
-        w.config.yaxis[realIndex].showAlways
+        yaxis &&
+        yaxis.show &&
+        yaxis.showAlways
       ) {
-        shouldNotHideYAxis = true
         if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
           w.globals.ancillaryCollapsedSeries.push({
             index: realIndex,
@@ -187,19 +186,18 @@ export default class Helpers {
           })
           w.globals.ancillaryCollapsedSeriesIndices.push(realIndex)
         }
-      }
+      } else {
+        if (w.globals.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+          w.globals.collapsedSeries.push({
+            index: realIndex,
+            data: series[realIndex].data.slice(),
+            type: seriesEl.parentNode.className.baseVal.split('-')[1]
+          })
+          w.globals.collapsedSeriesIndices.push(realIndex)
 
-      if (!shouldNotHideYAxis) {
-        w.globals.collapsedSeries.push({
-          index: realIndex,
-          data: series[realIndex].data.slice(),
-          type: seriesEl.parentNode.className.baseVal.split('-')[1]
-        })
-        w.globals.collapsedSeriesIndices.push(realIndex)
-
-        let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
-
-        w.globals.risingSeries.splice(removeIndexOfRising, 1)
+          let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
+          w.globals.risingSeries.splice(removeIndexOfRising, 1)
+        }
       }
     } else {
       w.globals.collapsedSeries.push({

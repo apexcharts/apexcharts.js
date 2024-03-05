@@ -233,7 +233,8 @@ export default class Globals {
       // of divisors. The array is indexed using a calculated maxTicks value
       // divided by 2 simply to halve the array size. See Scales.niceScale().
       niceScaleDefaultTicks: [1,2,4,4,6,6,6,6,6,6,6,6,6,6,6,6,6,6,12,12,12,12,12,12,12,12,12,24],
-      seriesYAxisMap: [] // Indices of Series to Indices of yAxis map. Multiple series can be referenced to each yAxis.
+      seriesYAxisMap: [], // Given yAxis index, return all series indices belonging to it. Multiple series can be referenced to each yAxis.
+      seriesYAxisReverseMap: [] // Given a Series index, return its yAxis index.
     }
   }
 

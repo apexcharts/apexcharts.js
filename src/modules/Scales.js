@@ -24,10 +24,10 @@ export default class Scales {
     if (gl.isBarHorizontal) {
       axisCnf = w.config.xaxis
       // The most ticks we can fit into the svg chart dimensions
-      maxTicks = (gl.svgWidth - 100) / 25 // Guestimate
+      maxTicks = Math.max((gl.svgWidth - 100) / 25, 2) // Guestimate
     } else {
       axisCnf = w.config.yaxis[index]
-      maxTicks = (gl.svgHeight - 100) / 15
+      maxTicks = Math.max((gl.svgHeight - 100) / 15, 2)
     }
     gotMin = axisCnf.min !== undefined && axisCnf.min !== null
     gotMax = axisCnf.max !== undefined && axisCnf.min !== null
@@ -267,11 +267,6 @@ export default class Scales {
         } else {
           let yMaxPrev = yMax
           yMax = stepSize * Math.ceil(yMax / stepSize)
-          if (Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) > maxTicks) {
-            // Use default ticks to compute yMax then shrinkwrap
-            yMax = yMin + stepSize * ticks
-            yMax -= stepSize * Math.floor((yMax - yMaxPrev) / stepSize)
-          }
         }
       }
       range = Math.abs(yMax - yMin)
@@ -564,8 +559,12 @@ export default class Scales {
     const maxYArr = gl.maxYArr
 
     let axisSeriesMap = []
+    let seriesYAxisReverseMap = []
     let unassignedSeriesIndices = []
-    cnf.series.forEach((s, i) => {unassignedSeriesIndices.push(i)})
+    cnf.series.forEach((s, i) => {
+      unassignedSeriesIndices.push(i)
+      seriesYAxisReverseMap.push(null)
+    })
     let unassignedYAxisIndices = []
     // here, we loop through the yaxis array and find the item which has "seriesName" property
     cnf.yaxis.forEach((yaxe, yi) => {
@@ -586,6 +585,7 @@ export default class Scales {
             // if seriesName matches we use that scale.
             if (s.name === name) {
               axisSeriesMap[yi].push(si)
+              seriesYAxisReverseMap[si] = yi
               let remove = unassignedSeriesIndices.indexOf(si)
               unassignedSeriesIndices.splice(remove, 1)
             }
@@ -602,22 +602,28 @@ export default class Scales {
     // default single and multiaxis config options which simply includes zero,
     // one or as many yaxes as there are series but do not reference them by name.
     let lastUnassignedYAxis
-    unassignedYAxisIndices.forEach((yi) => {
-      lastUnassignedYAxis = yi
-      axisSeriesMap[yi] = []
+    for (let i = 0; i < unassignedYAxisIndices.length; i++) {
+      lastUnassignedYAxis = unassignedYAxisIndices[i]
+      axisSeriesMap[lastUnassignedYAxis] = []
       if (unassignedSeriesIndices) {
-        axisSeriesMap[yi].push([unassignedSeriesIndices[0]])
+        let si = unassignedSeriesIndices[0]
         unassignedSeriesIndices.shift()
+        axisSeriesMap[lastUnassignedYAxis].push([si])
+        seriesYAxisReverseMap[si] = lastUnassignedYAxis
+      } else {
+        break
       }
-    })
+    }
 
     if (lastUnassignedYAxis) {
       unassignedSeriesIndices.forEach((i) => {
         axisSeriesMap[lastUnassignedYAxis].push(i)
+        seriesYAxisReverseMap[i] = lastUnassignedYAxis
       })
     }
 
     gl.seriesYAxisMap = axisSeriesMap.map((x) => x)
+    gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x)
     this.sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap)
   }
 

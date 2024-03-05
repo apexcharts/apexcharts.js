@@ -433,12 +433,16 @@ class Grid {
       this.elGridBorders.hide()
     }
 
-    // Draw the grid using ticks from the first unhidden Yaxis.
+    // Draw the grid using ticks from the first unhidden Yaxis,
+    // or yaxis[0] is all hidden.
     let gridAxisIndex = 0
     while (gridAxisIndex < w.globals.seriesYAxisMap.length &&
             w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
     ) {
       gridAxisIndex++
+    }
+    if (gridAxisIndex === w.globals.seriesYAxisMap.length) {
+      gridAxisIndex = 0
     }
 
     let yTickAmount = w.globals.yAxisScale[gridAxisIndex].result.length - 1

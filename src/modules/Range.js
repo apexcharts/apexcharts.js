@@ -321,6 +321,7 @@ class Range {
       gl.minYArr[0] = gl.yAxisScale[0].niceMin
       gl.maxYArr[0] = gl.yAxisScale[0].niceMax
       gl.seriesYAxisMap = [gl.series.map((x, i) => i)]
+      gl.seriesYAxisReverseMap = gl.series.map((x, i) => 0)
     }
 
     return {

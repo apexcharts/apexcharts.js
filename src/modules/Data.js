@@ -206,8 +206,9 @@ export default class Data {
       range = this.handleRangeDataFormat('xy', ser, i)
     }
 
-    gl.seriesRangeStart.push(range.start)
-    gl.seriesRangeEnd.push(range.end)
+    // Fix: RangeArea Chart: hide all series results in a crash #3984
+    gl.seriesRangeStart.push(range.start === undefined ? [] : range.start)
+    gl.seriesRangeEnd.push(range.end === undefined ? [] : range.end)
 
     gl.seriesRange.push(range.rangeUniques)
 
