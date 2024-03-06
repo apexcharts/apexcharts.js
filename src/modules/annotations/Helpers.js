@@ -151,15 +151,23 @@ export default class Helpers {
 
     const w = this.w
     if (this.annoCtx.invertAxis) {
-      let catIndex = w.globals.labels.indexOf(y)
+      let labels = w.globals.labels
       if (w.config.xaxis.convertedCatToNumeric) {
-        catIndex = w.globals.categoryLabels.indexOf(y)
+        labels = w.globals.categoryLabels
       }
+
+      let catIndex = labels.indexOf(y)
+
       const xLabel = w.globals.dom.baseEl.querySelector(
         '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
       )
+
       if (xLabel) {
         yP = parseFloat(xLabel.getAttribute('y'))
+      } else {
+        yP =
+          (w.globals.gridHeight / labels.length - 1) * (catIndex + 1) -
+          w.globals.barHeight
       }
 
       if (typeof anno.seriesIndex !== 'undefined') {
