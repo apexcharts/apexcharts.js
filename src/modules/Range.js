@@ -44,19 +44,27 @@ class Range {
       seriesX = [...new Set([].concat(...gl.seriesX.slice(startingIndex, endingIndex)))]
       firstXIndex = 0
       lastXIndex = seriesX.length - 1
-      if (cnf.xaxis.min) {
-        for (
-          firstXIndex = 0;
-          firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min;
-          firstXIndex++
-        ) {}
-      }
-      if (cnf.xaxis.max) {
-        for (
-          ;
-          lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max;
-          lastXIndex--
-        ) {}
+      // Eventually brushSource will be set if the current chart is a target.
+      // That is, after the appropriate event causes us to update.
+      let brush = gl.brushSource?.w.config.chart.brush
+      if ((cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis)
+              || (brush?.enabled && brush?.autoScaleYaxis)
+      ) {
+        // Scale the Y axis to the min..max within the zoomed X axis domain.
+        if (cnf.xaxis.min) {
+          for (
+            firstXIndex = 0;
+            firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min;
+            firstXIndex++
+          ) {}
+        }
+        if (cnf.xaxis.max) {
+          for (
+            ;
+            lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max;
+            lastXIndex--
+          ) {}
+        }
       }
     }
     
@@ -96,7 +104,7 @@ class Range {
         firstXIndex = 0
         lastXIndex = gl.series[i].length
       }
-      for (let j = firstXIndex; j <= lastXIndex; j++) {
+      for (let j = firstXIndex; j <= lastXIndex && j < gl.series[i].length; j++) {
         let val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
           if (typeof seriesMax[i][j] !== 'undefined') {
@@ -301,16 +309,13 @@ class Range {
     if (gl.isMultipleYAxis) {
       this.scales.setMultipleYScales()
       gl.minY = lowestYInAllSeries
-      gl.yAxisScale.forEach((scale, i) => {
-        gl.minYArr[i] = scale.niceMin
-        gl.maxYArr[i] = scale.niceMax
-      })
     } else {
       this.scales.setYScaleForIndex(0, gl.minY, gl.maxY)
       gl.minY = gl.yAxisScale[0].niceMin
       gl.maxY = gl.yAxisScale[0].niceMax
       gl.minYArr[0] = gl.yAxisScale[0].niceMin
       gl.maxYArr[0] = gl.yAxisScale[0].niceMax
+      gl.seriesYAxisMap = [gl.series.map((x, i) => i)]
     }
 
     return {

@@ -11,10 +11,10 @@ colors: [
   '#d5e2eb'
 ],
 chart: {
-  height: '350',
+  height: 350,
   width: '90%',
   type: 'line',
-  stacked: 'true',
+  stacked: true,
   zoom: {
     enabled: true,
     type: 'x'
