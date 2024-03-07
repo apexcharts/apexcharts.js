@@ -433,15 +433,19 @@ class Grid {
       this.elGridBorders.hide()
     }
 
-    let yTickAmount = w.globals.yAxisScale.length
-      ? w.globals.yAxisScale[0].result.length - 1
-      : 5
-    for (let i = 0; i < w.globals.series.length; i++) {
-      if (typeof w.globals.yAxisScale[i] !== 'undefined') {
-        yTickAmount = w.globals.yAxisScale[i].result.length - 1
-      }
-      if (yTickAmount > 2) break
+    // Draw the grid using ticks from the first unhidden Yaxis,
+    // or yaxis[0] is all hidden.
+    let gridAxisIndex = 0
+    while (gridAxisIndex < w.globals.seriesYAxisMap.length &&
+            w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
+    ) {
+      gridAxisIndex++
     }
+    if (gridAxisIndex === w.globals.seriesYAxisMap.length) {
+      gridAxisIndex = 0
+    }
+
+    let yTickAmount = w.globals.yAxisScale[gridAxisIndex].result.length - 1
 
     let xCount
 
@@ -455,10 +459,10 @@ class Grid {
           xCount = w.config.xaxis.tickAmount
         }
         if (
-          w.globals.yAxisScale?.[0]?.result?.length > 0 &&
+          w.globals.yAxisScale?.[gridAxisIndex]?.result?.length > 0 &&
           w.config.xaxis.type !== 'datetime'
         ) {
-          xCount = w.globals.yAxisScale[0].result.length - 1
+          xCount = w.globals.yAxisScale[gridAxisIndex].result.length - 1
         }
       }
 

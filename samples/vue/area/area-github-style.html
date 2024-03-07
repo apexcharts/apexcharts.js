@@ -91,7 +91,7 @@
     <div id="app">
       <div id="wrapper">
       <div id="chart-months">
-      <apexchart type="area" height="160" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="area" height="180" :options="chartOptions" :series="series"></apexchart>
     </div>
     
       <h5 class="github-style">
@@ -105,7 +105,7 @@
       </h5>
     
       <div id="chart-years">
-      <apexchart type="area" height="200" :options="chartOptionsYears" :series="seriesYears"></apexchart>
+      <apexchart type="area" height="150" :options="chartOptionsYears" :series="seriesYears"></apexchart>
     </div>
     </div>
     </div>
@@ -114,7 +114,7 @@
     <div id="html">
       &lt;div id=&quot;wrapper&quot;&gt;
         &lt;div id=&quot;chart-months&quot;&gt;
-        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;180&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
       
         &lt;h5 class=&quot;github-style&quot;&gt;
@@ -128,7 +128,7 @@
         &lt;/h5&gt;
       
         &lt;div id=&quot;chart-years&quot;&gt;
-        &lt;apexchart type=&quot;area&quot; height=&quot;200&quot; :options=&quot;chartOptionsYears&quot; :series=&quot;seriesYears&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;150&quot; :options=&quot;chartOptionsYears&quot; :series=&quot;seriesYears&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
       &lt;/div&gt;
     </div>
@@ -149,7 +149,7 @@
             chart: {
               id: 'chartyear',
               type: 'area',
-              height: 160,
+              height: 180,
               background: '#F6F8FA',
               toolbar: {
                 show: false,
@@ -183,7 +183,8 @@
               type: 'solid'
             },
             yaxis: {
-              show: true
+              show: true,
+              forceNiceScale: true
             },
             xaxis: {
               type: 'datetime',
@@ -196,7 +197,7 @@
           }],
           chartOptionsYears: {
             chart: {
-              height: 200,
+              height: 150,
               type: 'area',
               background: '#F6F8FA',
               toolbar: {
@@ -209,8 +210,8 @@
               selection: {
                 enabled: true,
                 xaxis: {
-                  min: new Date('26 Jan 2014').getTime(),
-                  max: new Date('29 Mar 2015').getTime()
+                  min: new Date('15 Feb 2016').getTime(),
+                  max: new Date('14 Feb 2017').getTime()
                 }
               },
             },

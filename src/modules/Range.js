@@ -226,13 +226,18 @@ class Range {
 
     // and then, get the minY and maxY from all series
     const minYMaxY = this.getMinYMaxY(
-      0,
-      lowestYInAllSeries,
-      null,
-      gl.series.length
-    )
-    gl.minY = minYMaxY.lowestY
-    gl.maxY = minYMaxY.highestY
+                            0,
+                            lowestYInAllSeries,
+                            null,
+                            gl.series.length
+                          )
+    if (cnf.chart.type === 'bar') {
+      gl.minY = minYMaxY.minY
+      gl.maxY = minYMaxY.maxY
+    } else {
+      gl.minY = minYMaxY.lowestY
+      gl.maxY = minYMaxY.highestY
+    }
     lowestYInAllSeries = minYMaxY.lowestY
 
     if (cnf.chart.stacked) {
@@ -316,6 +321,7 @@ class Range {
       gl.minYArr[0] = gl.yAxisScale[0].niceMin
       gl.maxYArr[0] = gl.yAxisScale[0].niceMax
       gl.seriesYAxisMap = [gl.series.map((x, i) => i)]
+      gl.seriesYAxisReverseMap = gl.series.map((x, i) => 0)
     }
 
     return {

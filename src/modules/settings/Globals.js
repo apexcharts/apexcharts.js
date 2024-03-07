@@ -229,7 +229,12 @@ export default class Globals {
       // this array. The range-normalized value is checked for consistency with other
       // user defined options and will be ignored if inconsistent.
       niceScaleAllowedMagMsd: [[1,1,2,5,5,5,10,10,10,10,10],[1,1,2,5,5,5,10,10,10,10,10]],
-      seriesYAxisMap: [] // Indices of Series to Indices of yAxis map. Multiple series can be referenced to each yAxis.
+      // Default ticks based on SVG size. These values have high numbers
+      // of divisors. The array is indexed using a calculated maxTicks value
+      // divided by 2 simply to halve the array size. See Scales.niceScale().
+      niceScaleDefaultTicks: [1,2,4,4,6,6,6,6,6,6,6,6,6,6,6,6,6,6,12,12,12,12,12,12,12,12,12,24],
+      seriesYAxisMap: [], // Given yAxis index, return all series indices belonging to it. Multiple series can be referenced to each yAxis.
+      seriesYAxisReverseMap: [] // Given a Series index, return its yAxis index.
     }
   }
 
