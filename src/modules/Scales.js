@@ -608,7 +608,7 @@ export default class Scales {
       if (unassignedSeriesIndices) {
         let si = unassignedSeriesIndices[0]
         unassignedSeriesIndices.shift()
-        axisSeriesMap[lastUnassignedYAxis].push([si])
+        axisSeriesMap[lastUnassignedYAxis].push(si)
         seriesYAxisReverseMap[si] = lastUnassignedYAxis
       } else {
         break
