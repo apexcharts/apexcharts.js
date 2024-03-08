@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.46.0
+ * ApexCharts v3.47.0
  * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
@@ -254,6 +254,63 @@
 
   function _nonIterableRest() {
     throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+
+  function _createForOfIteratorHelper(o, allowArrayLike) {
+    var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+
+    if (!it) {
+      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+        if (it) o = it;
+        var i = 0;
+
+        var F = function () {};
+
+        return {
+          s: F,
+          n: function () {
+            if (i >= o.length) return {
+              done: true
+            };
+            return {
+              done: false,
+              value: o[i++]
+            };
+          },
+          e: function (e) {
+            throw e;
+          },
+          f: F
+        };
+      }
+
+      throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+    }
+
+    var normalCompletion = true,
+        didErr = false,
+        err;
+    return {
+      s: function () {
+        it = it.call(o);
+      },
+      n: function () {
+        var step = it.next();
+        normalCompletion = step.done;
+        return step;
+      },
+      e: function (e) {
+        didErr = true;
+        err = e;
+      },
+      f: function () {
+        try {
+          if (!normalCompletion && it.return != null) it.return();
+        } finally {
+          if (didErr) throw err;
+        }
+      }
+    };
   }
 
   /*
@@ -2706,20 +2763,24 @@
     }, {
       key: "extendArrayProps",
       value: function extendArrayProps(configInstance, options, w) {
-        if (options.yaxis) {
+        var _options, _options2;
+
+        if ((_options = options) !== null && _options !== void 0 && _options.yaxis) {
           options = configInstance.extendYAxis(options, w);
         }
 
-        if (options.annotations) {
+        if ((_options2 = options) !== null && _options2 !== void 0 && _options2.annotations) {
+          var _options3, _options3$annotations, _options4, _options4$annotations;
+
           if (options.annotations.yaxis) {
             options = configInstance.extendYAxisAnnotations(options);
           }
 
-          if (options.annotations.xaxis) {
+          if ((_options3 = options) !== null && _options3 !== void 0 && (_options3$annotations = _options3.annotations) !== null && _options3$annotations !== void 0 && _options3$annotations.xaxis) {
             options = configInstance.extendXAxisAnnotations(options);
           }
 
-          if (options.annotations.points) {
+          if ((_options4 = options) !== null && _options4 !== void 0 && (_options4$annotations = _options4.annotations) !== null && _options4$annotations !== void 0 && _options4$annotations.points) {
             options = configInstance.extendPointAnnotations(options);
           }
         }
@@ -2847,16 +2908,19 @@
         var w = this.w;
 
         if (this.annoCtx.invertAxis) {
-          var catIndex = w.globals.labels.indexOf(y);
+          var labels = w.globals.labels;
 
           if (w.config.xaxis.convertedCatToNumeric) {
-            catIndex = w.globals.categoryLabels.indexOf(y);
+            labels = w.globals.categoryLabels;
           }
 
+          var catIndex = labels.indexOf(y);
           var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
 
           if (xLabel) {
             yP = parseFloat(xLabel.getAttribute('y'));
+          } else {
+            yP = (w.globals.gridHeight / labels.length - 1) * (catIndex + 1) - w.globals.barHeight;
           }
 
           if (typeof anno.seriesIndex !== 'undefined') {
@@ -6776,7 +6840,6 @@
           // if a user enabled log scale but the data provided is not valid to generate a log scale, turn on this flag
           ignoreYAxisIndexes: [],
           // when series are being collapsed in multiple y axes, ignore certain index
-          yAxisSameScaleIndices: [],
           maxValsInArrayIndex: 0,
           radialSize: 0,
           selection: undefined,
@@ -6889,7 +6952,15 @@
           // example, stepSize: 3. This value will be preferred to the value determined through
           // this array. The range-normalized value is checked for consistency with other
           // user defined options and will be ignored if inconsistent.
-          niceScaleAllowedMagMsd: [[1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10], [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10]]
+          niceScaleAllowedMagMsd: [[1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10], [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10]],
+          // Default ticks based on SVG size. These values have high numbers
+          // of divisors. The array is indexed using a calculated maxTicks value
+          // divided by 2 simply to halve the array size. See Scales.niceScale().
+          niceScaleDefaultTicks: [1, 2, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 12, 12, 12, 12, 12, 12, 12, 12, 12, 24],
+          seriesYAxisMap: [],
+          // Given yAxis index, return all series indices belonging to it. Multiple series can be referenced to each yAxis.
+          seriesYAxisReverseMap: [] // Given a Series index, return its yAxis index.
+
         };
       }
     }, {
@@ -7771,8 +7842,9 @@
         var y = 0;
         var dataPointIndex = j;
         var elDataLabelsWrap = null;
+        var seriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) !== -1;
 
-        if (!dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
+        if (seriesCollapsed || !dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
           return elDataLabelsWrap;
         }
 
@@ -8654,10 +8726,11 @@
           range = this.handleRangeDataFormat('array', ser, i);
         } else if (this.isFormatXY()) {
           range = this.handleRangeDataFormat('xy', ser, i);
-        }
+        } // Fix: RangeArea Chart: hide all series results in a crash #3984
 
-        gl.seriesRangeStart.push(range.start);
-        gl.seriesRangeEnd.push(range.end);
+
+        gl.seriesRangeStart.push(range.start === undefined ? [] : range.start);
+        gl.seriesRangeEnd.push(range.end === undefined ? [] : range.end);
         gl.seriesRange.push(range.rangeUniques); // check for overlaps to avoid clashes in a timeline chart
 
         gl.seriesRange.forEach(function (sr, si) {
@@ -9152,15 +9225,29 @@
     }, {
       key: "excludeCollapsedSeriesInYAxis",
       value: function excludeCollapsedSeriesInYAxis() {
-        var _this2 = this;
+        var w = this.w; // fix issue #1215
+        // Post revision 3.46.0 there is no longer a strict one-to-one
+        // correspondence between series and Y axes.
+        // An axis can be ignored only while all series referenced by it
+        // are collapsed.
 
-        var w = this.w;
-        w.globals.ignoreYAxisIndexes = w.globals.collapsedSeries.map(function (collapsed, i) {
-          // fix issue #1215
-          // if stacked, not returning collapsed.index to preserve yaxis
-          if (_this2.w.globals.isMultipleYAxis && !w.config.chart.stacked) {
-            return collapsed.index;
+        var yAxisIndexes = [];
+        w.globals.seriesYAxisMap.forEach(function (yAxisArr, yi) {
+          var collapsedCount = 0;
+          yAxisArr.forEach(function (seriesIndex) {
+            if (w.globals.collapsedSeriesIndices.indexOf(seriesIndex) !== -1) {
+              collapsedCount++;
+            }
+          }); // It's possible to have a yaxis that doesn't reference any series yet,
+          // eg, because there are no series' yet, so don't list it as ignored
+          // prematurely.
+
+          if (collapsedCount > 0 && collapsedCount == yAxisArr.length) {
+            yAxisIndexes.push(yi);
           }
+        });
+        w.globals.ignoreYAxisIndexes = yAxisIndexes.map(function (x) {
+          return x;
         });
       }
     }]);
@@ -9320,7 +9407,10 @@
       value: function isYAxisHidden(index) {
         var w = this.w;
         var coreUtils = new CoreUtils(this.ctx);
-        return !w.config.yaxis[index].show || !w.config.yaxis[index].showForNullSeries && coreUtils.isSeriesNull(index) && w.globals.collapsedSeriesIndices.indexOf(index) === -1;
+        var allCollapsed = !w.globals.seriesYAxisMap[index].some(function (si) {
+          return w.globals.collapsedSeriesIndices.indexOf(si) === -1;
+        });
+        return !w.config.yaxis[index].show || !w.config.yaxis[index].showForNullSeries && coreUtils.isSeriesNull(index) && allCollapsed;
       } // get the label color for y-axis
       // realIndex is the actual series index, while i is the tick Index
 
@@ -10754,18 +10844,21 @@
           this.elgridLinesV.hide();
           this.elgridLinesH.hide();
           this.elGridBorders.hide();
+        } // Draw the grid using ticks from the first unhidden Yaxis,
+        // or yaxis[0] is all hidden.
+
+
+        var gridAxisIndex = 0;
+
+        while (gridAxisIndex < w.globals.seriesYAxisMap.length && w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1) {
+          gridAxisIndex++;
         }
 
-        var yTickAmount = w.globals.yAxisScale.length ? w.globals.yAxisScale[0].result.length - 1 : 5;
-
-        for (var i = 0; i < w.globals.series.length; i++) {
-          if (typeof w.globals.yAxisScale[i] !== 'undefined') {
-            yTickAmount = w.globals.yAxisScale[i].result.length - 1;
-          }
-
-          if (yTickAmount > 2) break;
+        if (gridAxisIndex === w.globals.seriesYAxisMap.length) {
+          gridAxisIndex = 0;
         }
 
+        var yTickAmount = w.globals.yAxisScale[gridAxisIndex].result.length - 1;
         var xCount;
 
         if (!w.globals.isBarHorizontal || this.isRangeBar) {
@@ -10781,8 +10874,8 @@
               xCount = w.config.xaxis.tickAmount;
             }
 
-            if (((_w$globals$yAxisScale = w.globals.yAxisScale) === null || _w$globals$yAxisScale === void 0 ? void 0 : (_w$globals$yAxisScale2 = _w$globals$yAxisScale[0]) === null || _w$globals$yAxisScale2 === void 0 ? void 0 : (_w$globals$yAxisScale3 = _w$globals$yAxisScale2.result) === null || _w$globals$yAxisScale3 === void 0 ? void 0 : _w$globals$yAxisScale3.length) > 0 && w.config.xaxis.type !== 'datetime') {
-              xCount = w.globals.yAxisScale[0].result.length - 1;
+            if (((_w$globals$yAxisScale = w.globals.yAxisScale) === null || _w$globals$yAxisScale === void 0 ? void 0 : (_w$globals$yAxisScale2 = _w$globals$yAxisScale[gridAxisIndex]) === null || _w$globals$yAxisScale2 === void 0 ? void 0 : (_w$globals$yAxisScale3 = _w$globals$yAxisScale2.result) === null || _w$globals$yAxisScale3 === void 0 ? void 0 : _w$globals$yAxisScale3.length) > 0 && w.config.xaxis.type !== 'datetime') {
+              xCount = w.globals.yAxisScale[gridAxisIndex].result.length - 1;
             }
           }
 
@@ -10884,20 +10977,34 @@
       key: "niceScale",
       value: function niceScale(yMin, yMax) {
         var index = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+        // Calculate Min amd Max graphical labels and graph
+        // increments.
+        //
+        // Output will be an array of the Y axis values that
+        // encompass the Y values.
         var jsPrecision = 1e-11; // JS precision errors
 
         var w = this.w;
         var gl = w.globals;
-        var xaxisCnf = w.config.xaxis;
-        var yaxisCnf = w.config.yaxis[index];
-        var gotMin = yaxisCnf.min !== undefined && yaxisCnf.min !== null;
-        var gotMax = yaxisCnf.max !== undefined && yaxisCnf.min !== null;
-        var gotStepSize = yaxisCnf.stepSize !== undefined && yaxisCnf.stepSize !== null;
-        var gotTickAmount = yaxisCnf.tickAmount !== undefined && yaxisCnf.tickAmount !== null; // The most ticks we can fit into the svg chart dimensions
+        var axisCnf;
+        var maxTicks;
+        var gotMin;
+        var gotMax;
 
-        var maxTicks = ((gl.isBarHorizontal ? gl.svgWidth : gl.svgHeight) - 100) / 15; // Guestimate
+        if (gl.isBarHorizontal) {
+          axisCnf = w.config.xaxis; // The most ticks we can fit into the svg chart dimensions
 
-        var ticks = gotTickAmount ? yaxisCnf.tickAmount : 10; // In case we have a multi axis chart:
+          maxTicks = Math.max((gl.svgWidth - 100) / 25, 2); // Guestimate
+        } else {
+          axisCnf = w.config.yaxis[index];
+          maxTicks = Math.max((gl.svgHeight - 100) / 15, 2);
+        }
+
+        gotMin = axisCnf.min !== undefined && axisCnf.min !== null;
+        gotMax = axisCnf.max !== undefined && axisCnf.min !== null;
+        var gotStepSize = axisCnf.stepSize !== undefined && axisCnf.stepSize !== null;
+        var gotTickAmount = axisCnf.tickAmount !== undefined && axisCnf.tickAmount !== null;
+        var ticks = gotTickAmount ? axisCnf.tickAmount : !axisCnf.forceNiceScale ? 10 : gl.niceScaleDefaultTicks[Math.min(Math.round(maxTicks / 2), gl.niceScaleDefaultTicks.length - 1)]; // In case we have a multi axis chart:
         // Ensure subsequent series start with the same tickAmount as series[0],
         // because the tick lines are drawn based on series[0]. This does not
         // override user defined options for any series.
@@ -10935,12 +11042,7 @@
           yMin = yMin === 0 ? 0 : yMin - 1; // choose an integer in case yValueDecimals=0
 
           yMax = yMax === 0 ? 2 : yMax + 1; // choose an integer in case yValueDecimals=0
-        } // Calculate Min amd Max graphical labels and graph
-        // increments.
-        //
-        // Output will be an array of the Y axis values that
-        // encompass the Y values.
-
+        }
 
         var result = [];
 
@@ -10952,7 +11054,7 @@
 
         var range = Math.abs(yMax - yMin);
 
-        if (yaxisCnf.forceNiceScale) {
+        if (axisCnf.forceNiceScale) {
           // Snap min or max to zero if close
           var proximityRatio = 0.15;
 
@@ -10986,36 +11088,27 @@
 
         stepSize = niceStep; // Get step value
 
-        if (gl.isBarHorizontal && xaxisCnf.stepSize && xaxisCnf.type !== 'datetime') {
-          stepSize = xaxisCnf.stepSize;
+        if (gl.isBarHorizontal && axisCnf.stepSize && axisCnf.type !== 'datetime') {
+          stepSize = axisCnf.stepSize;
           gotStepSize = true;
         } else if (gotStepSize) {
-          stepSize = yaxisCnf.stepSize;
+          stepSize = axisCnf.stepSize;
         }
 
         if (gotStepSize) {
-          if (yaxisCnf.forceNiceScale) {
+          if (axisCnf.forceNiceScale) {
             // Check that given stepSize is sane with respect to the range.
             //
             // The user can, by setting forceNiceScale = true,
-            // define a stepSize that will be scaled to useful value before
+            // define a stepSize that will be scaled to a useful value before
             // it's checked for consistency.
             //
             // If, for example, the range = 4 and the user defined stepSize = 8
             // (or 8000 or 0.0008, etc), then stepSize is inapplicable as
             // it is. Reducing it to 0.8 will fit with 5 ticks.
             //
-            if (Math.round(Math.log10(stepSize)) != mag) {
-              var ref = range / ticks;
-
-              while (stepSize < ref) {
-                stepSize *= 10;
-              }
-
-              while (stepSize > ref) {
-                stepSize /= 10;
-              }
-            }
+            var stepMag = Math.floor(Math.log10(stepSize));
+            stepSize *= Math.pow(10, mag - stepMag);
           }
         } // Start applying some rules
 
@@ -11047,7 +11140,7 @@
                 // stepSize fits
                 if (Utils$1.mod(stepSize, crudeStep) == 0) {
                   // crudeStep is a multiple of stepSize, or vice versa
-                  // we know crudeStep will generate tickAmount ticks
+                  // but we know that crudeStep will generate tickAmount ticks
                   stepSize = crudeStep;
                 } else {
                   // stepSize conflicts with tickAmount
@@ -11061,35 +11154,34 @@
                 }
               }
             } else {
-              // no user stepSize, honour ticks
+              // no user stepSize, honour tickAmount
               stepSize = crudeStep;
             }
           } else {
-            // default ticks in use
+            // default ticks in use, tiks can change
             if (gotStepSize) {
               if (Utils$1.mod(range, stepSize) == 0) {
-                // stepSize fits
+                // user stepSize fits
                 crudeStep = stepSize;
               } else {
                 stepSize = crudeStep;
               }
             } else {
               // no user stepSize
-              tiks = Math.round(range / niceStep);
-              crudeStep = range / tiks;
+              if (Utils$1.mod(range, stepSize) == 0) {
+                // generated nice stepSize fits
+                crudeStep = stepSize;
+              } else {
+                tiks = Math.ceil(range / stepSize);
+                crudeStep = range / tiks;
 
-              if (Utils$1.mod(range, stepSize) != 0) {
-                // stepSize doesn't fit
-                var _gcdStep = Utils$1.getGCD(range, niceStep);
+                var _gcdStep = Utils$1.getGCD(range, stepSize);
 
-                if (niceStep / _gcdStep < 10) {
+                if (range / _gcdStep < maxTicks) {
                   crudeStep = _gcdStep;
                 }
 
                 stepSize = crudeStep;
-              } else {
-                // stepSize fits
-                crudeStep = stepSize;
               }
             }
           }
@@ -11103,8 +11195,15 @@
               // to ensure graph doesn't clip. Not if it does cross, in order
               // to keep the 0 aligned with a grid line in multi axis charts.
               var shift = stepSize / (yMax - yMin > yMax ? 1 : 2);
-              yMin = shift * Math.floor(yMin / shift);
-              yMax = yMin + stepSize * tiks;
+              var tMin = shift * Math.floor(yMin / shift);
+
+              if (Math.abs(tMin - yMin) <= shift / 2) {
+                yMin = tMin;
+                yMax = yMin + stepSize * tiks;
+              } else {
+                yMax = shift * Math.ceil(yMax / shift);
+                yMin = yMax - stepSize * tiks;
+              }
             } else {
               yMin = stepSize * Math.floor(yMin / stepSize);
               yMax = stepSize * Math.ceil(yMax / stepSize);
@@ -11113,7 +11212,14 @@
             if (gotTickAmount) {
               yMin = yMax - stepSize * tiks;
             } else {
+              var yMinPrev = yMin;
               yMin = stepSize * Math.floor(yMin / stepSize);
+
+              if (Math.abs(yMax - yMin) / Utils$1.getGCD(range, stepSize) > maxTicks) {
+                // Use default ticks to compute yMin then shrinkwrap
+                yMin = yMax - stepSize * ticks;
+                yMin += stepSize * Math.floor((yMinPrev - yMin) / stepSize);
+              }
             }
           } else if (gotMin) {
             if (gotTickAmount) {
@@ -11124,7 +11230,7 @@
           }
 
           range = Math.abs(yMax - yMin); // Final check and possible adjustment of stepSize to prevent
-          // overridding the user's min or max choice.
+          // overriding the user's min or max choice.
 
           stepSize = Utils$1.getGCD(range, stepSize);
           tiks = Math.round(range / stepSize);
@@ -11146,7 +11252,7 @@
           gl.multiAxisTickAmount = tiks;
         }
 
-        if (tiks > maxTicks && (!(gotTickAmount || gotStepSize) || yaxisCnf.forceNiceScale)) {
+        if (tiks > maxTicks && (!(gotTickAmount || gotStepSize) || axisCnf.forceNiceScale)) {
           // Reduce the number of ticks nicely if chart svg dimensions shrink too far.
           // The reduced tick set should always be a subset of the full set.
           //
@@ -11201,13 +11307,11 @@
                 break reduceLoop;
               }
             }
-          } // Only reduce tiks all the way down to 1 (increase stepSize to range)
-          // if forceNiceScale = true, to give the user the option if tiks is
-          // prime and > maxTicks, which may result in premature removal of all but
-          // the last tick. It will not be immediately obvious why that has occured.
+          }
 
-
-          if (tt === tiks && yaxisCnf.forceNiceScale) {
+          if (tt === tiks) {
+            // Could not reduce ticks at all, go all in and display just the
+            // X axis and one tick.
             stepSize = range;
           } else {
             stepSize = range / tt;
@@ -11348,13 +11452,13 @@
           gl.yAxisScale[index] = [];
         }
 
-        var diff = Math.abs(maxY - minY);
+        var range = Math.abs(maxY - minY);
 
-        if (y.logarithmic && diff <= 5) {
+        if (y.logarithmic && range <= 5) {
           gl.invalidLogScale = true;
         }
 
-        if (y.logarithmic && diff > 5) {
+        if (y.logarithmic && range > 5) {
           gl.allSeriesCollapsed = false;
           gl.yAxisScale[index] = y.forceNiceScale ? this.logarithmicScaleNice(minY, maxY, y.logBase) : this.logarithmicScale(minY, maxY, y.logBase);
         } else {
@@ -11387,272 +11491,234 @@
     }, {
       key: "setMultipleYScales",
       value: function setMultipleYScales() {
-        var _this = this;
-
         var gl = this.w.globals;
         var cnf = this.w.config;
-        var minYArr = gl.minYArr.concat([]);
-        var maxYArr = gl.maxYArr.concat([]);
-        var scalesIndices = []; // here, we loop through the yaxis array and find the item which has "seriesName" property
-
-        cnf.yaxis.forEach(function (yaxe, i) {
-          var index = i;
-          cnf.series.forEach(function (s, si) {
-            // if seriesName matches and that series is not collapsed, we use that scale
-            // fix issue #1215
-            // proceed even if si is in gl.collapsedSeriesIndices
-            if (s.name === yaxe.seriesName) {
-              index = si;
-
-              if (i !== si) {
-                scalesIndices.push({
-                  index: si,
-                  similarIndex: i,
-                  alreadyExists: true
-                });
-              } else {
-                scalesIndices.push({
-                  index: si
-                });
-              }
-            }
-          });
-          var minY = minYArr[index];
-          var maxY = maxYArr[index];
-
-          _this.setYScaleForIndex(i, minY, maxY);
+        var minYArr = gl.minYArr;
+        var maxYArr = gl.maxYArr;
+        var axisSeriesMap = [];
+        var seriesYAxisReverseMap = [];
+        var unassignedSeriesIndices = [];
+        cnf.series.forEach(function (s, i) {
+          unassignedSeriesIndices.push(i);
+          seriesYAxisReverseMap.push(null);
         });
-        this.sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices);
+        var unassignedYAxisIndices = []; // here, we loop through the yaxis array and find the item which has "seriesName" property
+
+        cnf.yaxis.forEach(function (yaxe, yi) {
+          // Allow seriesName to be either a string (for backward compatibility),
+          // in which case, handle multiple yaxes referencing the same series.
+          // or an array of strings so that a yaxis can reference multiple series.
+          // Feature request #4237
+          if (yaxe.seriesName) {
+            var seriesNames = [];
+
+            if (Array.isArray(yaxe.seriesName)) {
+              seriesNames = yaxe.seriesName;
+            } else {
+              seriesNames.push(yaxe.seriesName);
+            }
+
+            axisSeriesMap[yi] = [];
+            seriesNames.forEach(function (name) {
+              cnf.series.forEach(function (s, si) {
+                // if seriesName matches we use that scale.
+                if (s.name === name) {
+                  axisSeriesMap[yi].push(si);
+                  seriesYAxisReverseMap[si] = yi;
+                  var remove = unassignedSeriesIndices.indexOf(si);
+                  unassignedSeriesIndices.splice(remove, 1);
+                }
+              });
+            });
+          } else {
+            unassignedYAxisIndices.push(yi);
+          }
+        }); // All series referenced directly by yaxes have been assigned to those axes.
+        // Any series so far unassigned will be assigned to any yaxes that have yet
+        // to reference series directly, one-for-one in order of appearance, with
+        // all left-over series assigned to the last such yaxis. This captures the
+        // default single and multiaxis config options which simply includes zero,
+        // one or as many yaxes as there are series but do not reference them by name.
+
+        var lastUnassignedYAxis;
+
+        for (var i = 0; i < unassignedYAxisIndices.length; i++) {
+          lastUnassignedYAxis = unassignedYAxisIndices[i];
+          axisSeriesMap[lastUnassignedYAxis] = [];
+
+          if (unassignedSeriesIndices) {
+            var si = unassignedSeriesIndices[0];
+            unassignedSeriesIndices.shift();
+            axisSeriesMap[lastUnassignedYAxis].push(si);
+            seriesYAxisReverseMap[si] = lastUnassignedYAxis;
+          } else {
+            break;
+          }
+        }
+
+        if (lastUnassignedYAxis) {
+          unassignedSeriesIndices.forEach(function (i) {
+            axisSeriesMap[lastUnassignedYAxis].push(i);
+            seriesYAxisReverseMap[i] = lastUnassignedYAxis;
+          });
+        }
+
+        gl.seriesYAxisMap = axisSeriesMap.map(function (x) {
+          return x;
+        });
+        gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map(function (x) {
+          return x;
+        });
+        this.sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap);
       }
     }, {
       key: "sameScaleInMultipleAxes",
-      value: function sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices) {
-        var _this2 = this;
+      value: function sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap) {
+        var _this = this;
 
         var cnf = this.w.config;
-        var gl = this.w.globals; // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
+        var gl = this.w.globals; // The current config method to map multiple series to a y axis is to
+        // include one yaxis config per series but set each yaxis seriesName to the
+        // same series name. This relies on indexing equivalence to map series to
+        // an axis: series[n] => yaxis[n]. This needs to be retained for compatibility.
+        // But we introduce an alternative that explicitly configures yaxis elements
+        // with the series that will be referenced to them (seriesName: []). This
+        // only requires including the yaxis elements that will be seen on the chart.
+        // Old way:
+        // ya: s
+        // 0: 0
+        // 1: 1
+        // 2: 1
+        // 3: 1
+        // 4: 1
+        // Axes 0..4 are all scaled and all will be rendered unless the axes are
+        // show: false. If the chart is stacked, it's assumed that series 1..4 are
+        // the contributing series. This is not particularly intuitive.
+        // New way:
+        // ya: s
+        // 0: [0]
+        // 1: [1,2,3,4]
+        // If the chart is stacked, it can be assumed that any axis with multiple
+        // series is stacked.
+        // First things first, convert the old to the new.
 
-        var similarIndices = [];
-        scalesIndices.forEach(function (scale) {
-          if (scale.alreadyExists) {
-            if (typeof similarIndices[scale.index] === 'undefined') {
-              similarIndices[scale.index] = [];
+        var emptyAxes = [];
+        axisSeriesMap.forEach(function (axisSeries, ai) {
+          for (var si = ai + 1; si < axisSeriesMap.length; si++) {
+            var iter = axisSeries.values();
+
+            var _iterator = _createForOfIteratorHelper(iter),
+                _step;
+
+            try {
+              for (_iterator.s(); !(_step = _iterator.n()).done;) {
+                var val = _step.value;
+                var i = axisSeriesMap[si].indexOf(val);
+
+                if (i !== -1) {
+                  axisSeries.push(si); // add series index to current yaxis
+
+                  axisSeriesMap[si].splice(i, 1); // remove it from its old yaxis
+                }
+              }
+            } catch (err) {
+              _iterator.e(err);
+            } finally {
+              _iterator.f();
             }
 
-            similarIndices[scale.index].push(scale.index);
-            similarIndices[scale.index].push(scale.similarIndex);
+            if (axisSeriesMap[si].length < 1 && emptyAxes.indexOf(si) === -1) {
+              emptyAxes.push(si);
+            }
           }
         });
 
-        function intersect(a, b) {
-          return a.filter(function (value) {
-            return b.indexOf(value) !== -1;
-          });
-        }
+        for (var i = emptyAxes.length - 1; i >= 0; i--) {
+          axisSeriesMap.splice(emptyAxes[i], 1);
+        } // Compute min..max for each yaxis
+        // 
 
-        gl.yAxisSameScaleIndices = similarIndices;
-        similarIndices.forEach(function (si, i) {
-          similarIndices.forEach(function (sj, j) {
-            if (i !== j) {
-              if (intersect(si, sj).length > 0) {
-                similarIndices[i] = similarIndices[i].concat(similarIndices[j]);
-              }
-            }
-          });
-        }); // then, we remove duplicates from the similarScale array
 
-        var uniqueSimilarIndices = similarIndices.map(function (item) {
-          return item.filter(function (i, pos) {
-            return item.indexOf(i) === pos;
-          });
-        }); // sort further to remove whole duplicate arrays later
+        axisSeriesMap.forEach(function (axisSeries, ai) {
+          var minY = Number.MAX_VALUE;
+          var maxY = -Number.MAX_VALUE;
 
-        var sortedIndices = uniqueSimilarIndices.map(function (s) {
-          return s.sort();
-        }); // remove undefined items
-
-        similarIndices = similarIndices.filter(function (s) {
-          return !!s;
-        });
-        var indices = sortedIndices.slice();
-        var stringIndices = indices.map(function (ind) {
-          return JSON.stringify(ind);
-        });
-        indices = indices.filter(function (ind, p) {
-          return stringIndices.indexOf(JSON.stringify(ind)) === p;
-        });
-        var sameScaleMinYArr = [];
-        var sameScaleMaxYArr = [];
-        minYArr.forEach(function (minYValue, yi) {
-          indices.forEach(function (scale, i) {
-            // we compare only the yIndex which exists in the indices array
-            if (scale.indexOf(yi) > -1) {
-              if (typeof sameScaleMinYArr[i] === 'undefined') {
-                sameScaleMinYArr[i] = [];
-                sameScaleMaxYArr[i] = [];
-              }
-
-              sameScaleMinYArr[i].push({
-                key: yi,
-                value: minYValue
-              });
-              sameScaleMaxYArr[i].push({
-                key: yi,
-                value: maxYArr[yi]
-              });
-            }
-          });
-        });
-        var sameScaleMin = Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf, Number.MIN_VALUE);
-        var sameScaleMax = Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf, -Number.MAX_VALUE);
-        sameScaleMinYArr.forEach(function (s, i) {
-          s.forEach(function (sc, j) {
-            sameScaleMin[i] = Math.min(sc.value, sameScaleMin[i]);
-          });
-        });
-        sameScaleMaxYArr.forEach(function (s, i) {
-          s.forEach(function (sc, j) {
-            sameScaleMax[i] = Math.max(sc.value, sameScaleMax[i]);
-          });
-        });
-        minYArr.forEach(function (min, i) {
-          sameScaleMaxYArr.forEach(function (s, si) {
-            var minY = sameScaleMin[si];
-            var maxY = sameScaleMax[si];
-
-            if (cnf.chart.stacked) {
-              // for stacked charts, we need to add the values
-              maxY = 0;
-              s.forEach(function (ind, k) {
-                // fix incorrectly adjust y scale issue #1215
-                if (ind.value !== -Number.MAX_VALUE) {
-                  maxY += ind.value;
-                }
-
-                if (minY !== Number.MIN_VALUE) {
-                  minY += sameScaleMinYArr[si][k].value;
-                }
-              });
-            }
-
-            s.forEach(function (ind, k) {
-              if (s[k].key === i) {
-                if (cnf.yaxis[i].min !== undefined) {
-                  if (typeof cnf.yaxis[i].min === 'function') {
-                    minY = cnf.yaxis[i].min(gl.minY);
-                  } else {
-                    minY = cnf.yaxis[i].min;
-                  }
-                }
-
-                if (cnf.yaxis[i].max !== undefined) {
-                  if (typeof cnf.yaxis[i].max === 'function') {
-                    maxY = cnf.yaxis[i].max(gl.maxY);
-                  } else {
-                    maxY = cnf.yaxis[i].max;
-                  }
-                }
-
-                _this2.setYScaleForIndex(i, minY, maxY);
-              }
+          if (cnf.chart.stacked) {
+            var sumSeries = gl.seriesX[axisSeries[0]].map(function (x) {
+              return Number.MIN_VALUE;
             });
-          });
-        });
-      } // experimental feature which scales the y-axis to a min/max based on x-axis range
+            var posSeries = gl.seriesX[axisSeries[0]].map(function (x) {
+              return Number.MIN_VALUE;
+            });
+            var negSeries = gl.seriesX[axisSeries[0]].map(function (x) {
+              return Number.MIN_VALUE;
+            }); // The first series bound to the axis sets the type for stacked series
 
-    }, {
-      key: "autoScaleY",
-      value: function autoScaleY(ctx, yaxis, e) {
-        if (!ctx) {
-          ctx = this;
-        }
+            var seriesType = cnf.series[axisSeries[0]].type;
 
-        var w = ctx.w;
+            for (var _i = 0; _i < axisSeries.length; _i++) {
+              // Sum all series for this yaxis at each corresponding datapoint
+              // For bar and column charts we need to keep positive and negative
+              // values separate.
+              var si = axisSeries[_i];
 
-        if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
-          // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
-          // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
-          console.warn('autoScaleYaxis not supported in a multi-yaxis chart.');
-          return yaxis;
-        }
+              if (gl.collapsedSeriesIndices.indexOf(si) === -1) {
+                for (var j = 0; j < gl.series[si].length; j++) {
+                  var val = gl.series[si][j];
 
-        var seriesX = w.globals.seriesX[0];
-        var isStacked = w.config.chart.stacked;
-        yaxis.forEach(function (yaxe, yi) {
-          var firstXIndex = 0;
+                  if (val >= 0) {
+                    posSeries[j] += val;
+                  } else {
+                    negSeries[j] += val;
+                  }
 
-          for (var xi = 0; xi < seriesX.length; xi++) {
-            if (seriesX[xi] >= e.xaxis.min) {
-              firstXIndex = xi;
-              break;
+                  sumSeries[j] += val;
+                }
+              }
+            }
+
+            if (seriesType === 'bar') {
+              minY = Math.min.apply(null, negSeries);
+              maxY = Math.max.apply(null, posSeries);
+            } else {
+              minY = Math.min.apply(null, sumSeries);
+              maxY = Math.max.apply(null, sumSeries);
+            }
+          } else {
+            for (var _i2 = 0; _i2 < axisSeries.length; _i2++) {
+              minY = Math.min(minY, minYArr[axisSeries[_i2]]);
+            }
+
+            for (var _i3 = 0; _i3 < axisSeries.length; _i3++) {
+              maxY = Math.max(maxY, maxYArr[axisSeries[_i3]]);
             }
           }
 
-          var initialMin = w.globals.minYArr[yi];
-          var initialMax = w.globals.maxYArr[yi];
-          var min, max;
-          var stackedSer = w.globals.stackedSeriesTotals;
-          w.globals.series.forEach(function (serie, sI) {
-            var firstValue = serie[firstXIndex];
-
-            if (isStacked) {
-              firstValue = stackedSer[firstXIndex];
-              min = max = firstValue;
-              stackedSer.forEach(function (y, yI) {
-                if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
-                  if (y > max && y !== null) max = y;
-                  if (serie[yI] < min && serie[yI] !== null) min = serie[yI];
-                }
-              });
+          if (cnf.yaxis[ai].min !== undefined) {
+            if (typeof cnf.yaxis[ai].min === 'function') {
+              minY = cnf.yaxis[ai].min(minY);
             } else {
-              min = max = firstValue;
-              serie.forEach(function (y, yI) {
-                if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
-                  var valMin = y;
-                  var valMax = y;
-                  w.globals.series.forEach(function (wS, wSI) {
-                    if (y !== null) {
-                      valMin = Math.min(wS[yI], valMin);
-                      valMax = Math.max(wS[yI], valMax);
-                    }
-                  });
-                  if (valMax > max && valMax !== null) max = valMax;
-                  if (valMin < min && valMin !== null) min = valMin;
-                }
-              });
+              minY = cnf.yaxis[ai].min;
             }
+          }
 
-            if (min === undefined && max === undefined) {
-              min = initialMin;
-              max = initialMax;
-            }
-
-            min *= min < 0 ? 1.1 : 0.9;
-            max *= max < 0 ? 0.9 : 1.1;
-
-            if (min === 0 && max === 0) {
-              min = -1;
-              max = 1;
-            }
-
-            if (max < 0 && max < initialMax) {
-              max = initialMax;
-            }
-
-            if (min < 0 && min > initialMin) {
-              min = initialMin;
-            }
-
-            if (yaxis.length > 1) {
-              yaxis[sI].min = yaxe.min === undefined ? min : yaxe.min;
-              yaxis[sI].max = yaxe.max === undefined ? max : yaxe.max;
+          if (cnf.yaxis[ai].max !== undefined) {
+            if (typeof cnf.yaxis[ai].max === 'function') {
+              maxY = cnf.yaxis[ai].max(maxY);
             } else {
-              yaxis[0].min = yaxe.min === undefined ? min : yaxe.min;
-              yaxis[0].max = yaxe.max === undefined ? max : yaxe.max;
+              maxY = cnf.yaxis[ai].max;
             }
+          } // Set the scale for this yaxis
+
+
+          _this.setYScaleForIndex(ai, minY, maxY); // Set individual series min and max to nice values
+
+
+          axisSeries.forEach(function (si) {
+            minYArr[si] = gl.yAxisScale[ai].niceMin;
+            maxYArr[si] = gl.yAxisScale[ai].niceMax;
           });
         });
-        return yaxis;
       }
     }]);
 
@@ -11683,36 +11749,42 @@
       }
     }, {
       key: "getMinYMaxY",
-      value: function getMinYMaxY(startingIndex) {
+      value: function getMinYMaxY(startingSeriesIndex) {
         var lowestY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Number.MAX_VALUE;
         var highestY = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -Number.MAX_VALUE;
-        var endingIndex = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+        var endingSeriesIndex = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
         var cnf = this.w.config;
         var gl = this.w.globals;
         var maxY = -Number.MAX_VALUE;
         var minY = Number.MIN_VALUE;
 
-        if (endingIndex === null) {
-          endingIndex = startingIndex + 1;
+        if (endingSeriesIndex === null) {
+          endingSeriesIndex = startingSeriesIndex + 1;
         }
 
         var firstXIndex = 0;
         var lastXIndex = 0;
         var seriesX = undefined;
 
-        if (gl.seriesX.length >= endingIndex) {
-          var _ref;
+        if (gl.seriesX.length >= endingSeriesIndex) {
+          var _ref, _gl$brushSource;
 
-          seriesX = _toConsumableArray(new Set((_ref = []).concat.apply(_ref, _toConsumableArray(gl.seriesX.slice(startingIndex, endingIndex)))));
+          seriesX = _toConsumableArray(new Set((_ref = []).concat.apply(_ref, _toConsumableArray(gl.seriesX.slice(startingSeriesIndex, endingSeriesIndex)))));
           firstXIndex = 0;
-          lastXIndex = seriesX.length - 1;
+          lastXIndex = seriesX.length - 1; // Eventually brushSource will be set if the current chart is a target.
+          // That is, after the appropriate event causes us to update.
 
-          if (cnf.xaxis.min) {
-            for (firstXIndex = 0; firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min; firstXIndex++) {}
-          }
+          var brush = (_gl$brushSource = gl.brushSource) === null || _gl$brushSource === void 0 ? void 0 : _gl$brushSource.w.config.chart.brush;
 
-          if (cnf.xaxis.max) {
-            for (; lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max; lastXIndex--) {}
+          if (cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis || brush !== null && brush !== void 0 && brush.enabled && brush !== null && brush !== void 0 && brush.autoScaleYaxis) {
+            // Scale the Y axis to the min..max within the zoomed X axis domain.
+            if (cnf.xaxis.min) {
+              for (firstXIndex = 0; firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min; firstXIndex++) {}
+            }
+
+            if (cnf.xaxis.max) {
+              for (; lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max; lastXIndex--) {}
+            }
           }
         }
 
@@ -11731,8 +11803,9 @@
           seriesMax = gl.seriesRangeEnd;
         }
 
-        for (var i = startingIndex; i < endingIndex; i++) {
+        for (var i = startingSeriesIndex; i < endingSeriesIndex; i++) {
           gl.dataPoints = Math.max(gl.dataPoints, series[i].length);
+          var seriesType = cnf.series[i].type;
 
           if (gl.categoryLabels.length) {
             gl.dataPoints = gl.categoryLabels.filter(function (label) {
@@ -11752,7 +11825,7 @@
             lastXIndex = gl.series[i].length;
           }
 
-          for (var j = firstXIndex; j <= lastXIndex; j++) {
+          for (var j = firstXIndex; j <= lastXIndex && j < gl.series[i].length; j++) {
             var val = series[i][j];
 
             if (val !== null && Utils$1.isNumber(val)) {
@@ -11770,7 +11843,7 @@
               // Boxplot    : Min      Q1       Median   Q3       Max
 
 
-              switch (cnf.series[i].type) {
+              switch (seriesType) {
                 case 'candlestick':
                   {
                     if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
@@ -11786,10 +11859,11 @@
                       lowestY = Math.min(lowestY, gl.seriesCandleO[i][j]);
                     }
                   }
-              } // there is a combo chart and the specified series in not either candlestick, boxplot, or rangeArea/rangeBar; find the max there
+              } // there is a combo chart and the specified series in not either
+              // candlestick, boxplot, or rangeArea/rangeBar; find the max there.
 
 
-              if (cnf.series[i].type && cnf.series[i].type !== 'candlestick' && cnf.series[i].type !== 'boxPlot' && cnf.series[i].type !== 'rangeArea' && cnf.series[i].type !== 'rangeBar') {
+              if (seriesType && seriesType !== 'candlestick' && seriesType !== 'boxPlot' && seriesType !== 'rangeArea' && seriesType !== 'rangeBar') {
                 maxY = Math.max(maxY, gl.series[i][j]);
                 lowestY = Math.min(lowestY, gl.series[i][j]);
               }
@@ -11818,6 +11892,19 @@
               }
             } else {
               gl.hasNullValues = true;
+            }
+          }
+
+          if (seriesType === 'bar' || seriesType === 'column') {
+            if (minY < 0 && maxY < 0) {
+              // all negative values in a bar series, hence make the max to 0
+              maxY = 0;
+              highestY = Math.max(highestY, 0);
+            }
+
+            if (minY === Number.MIN_VALUE) {
+              minY = 0;
+              lowestY = Math.min(lowestY, 0);
             }
           }
         }
@@ -11852,23 +11939,31 @@
         gl.maxY = -Number.MAX_VALUE;
         gl.minY = Number.MIN_VALUE;
         var lowestYInAllSeries = Number.MAX_VALUE;
+        var minYMaxY;
 
         if (gl.isMultipleYAxis) {
           // we need to get minY and maxY for multiple y axis
           lowestYInAllSeries = Number.MAX_VALUE;
 
           for (var i = 0; i < gl.series.length; i++) {
-            var minYMaxYArr = this.getMinYMaxY(i);
-            gl.minYArr[i] = minYMaxYArr.lowestY;
-            gl.maxYArr[i] = minYMaxYArr.highestY;
-            lowestYInAllSeries = Math.min(lowestYInAllSeries, minYMaxYArr.lowestY);
+            minYMaxY = this.getMinYMaxY(i);
+            gl.minYArr[i] = minYMaxY.lowestY;
+            gl.maxYArr[i] = minYMaxY.highestY;
+            lowestYInAllSeries = Math.min(lowestYInAllSeries, minYMaxY.lowestY);
           }
         } // and then, get the minY and maxY from all series
 
 
-        var minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, null, gl.series.length);
-        gl.minY = minYMaxY.lowestY;
-        gl.maxY = minYMaxY.highestY;
+        minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, null, gl.series.length);
+
+        if (cnf.chart.type === 'bar') {
+          gl.minY = minYMaxY.minY;
+          gl.maxY = minYMaxY.maxY;
+        } else {
+          gl.minY = minYMaxY.lowestY;
+          gl.maxY = minYMaxY.highestY;
+        }
+
         lowestYInAllSeries = minYMaxY.lowestY;
 
         if (cnf.chart.stacked) {
@@ -11928,16 +12023,18 @@
         if (gl.isMultipleYAxis) {
           this.scales.setMultipleYScales();
           gl.minY = lowestYInAllSeries;
-          gl.yAxisScale.forEach(function (scale, i) {
-            gl.minYArr[i] = scale.niceMin;
-            gl.maxYArr[i] = scale.niceMax;
-          });
         } else {
           this.scales.setYScaleForIndex(0, gl.minY, gl.maxY);
           gl.minY = gl.yAxisScale[0].niceMin;
           gl.maxY = gl.yAxisScale[0].niceMax;
           gl.minYArr[0] = gl.yAxisScale[0].niceMin;
           gl.maxYArr[0] = gl.yAxisScale[0].niceMax;
+          gl.seriesYAxisMap = [gl.series.map(function (x, i) {
+            return i;
+          })];
+          gl.seriesYAxisReverseMap = gl.series.map(function (x, i) {
+            return 0;
+          });
         }
 
         return {
@@ -14445,11 +14542,9 @@
         var series = Utils$1.clone(w.config.series);
 
         if (w.globals.axisCharts) {
-          var shouldNotHideYAxis = false;
+          var yaxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]];
 
-          if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].show && w.config.yaxis[realIndex].showAlways) {
-            shouldNotHideYAxis = true;
-
+          if (yaxis && yaxis.show && yaxis.showAlways) {
             if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
               w.globals.ancillaryCollapsedSeries.push({
                 index: realIndex,
@@ -14458,17 +14553,17 @@
               });
               w.globals.ancillaryCollapsedSeriesIndices.push(realIndex);
             }
-          }
-
-          if (!shouldNotHideYAxis) {
-            w.globals.collapsedSeries.push({
-              index: realIndex,
-              data: series[realIndex].data.slice(),
-              type: seriesEl.parentNode.className.baseVal.split('-')[1]
-            });
-            w.globals.collapsedSeriesIndices.push(realIndex);
-            var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
-            w.globals.risingSeries.splice(removeIndexOfRising, 1);
+          } else {
+            if (w.globals.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+              w.globals.collapsedSeries.push({
+                index: realIndex,
+                data: series[realIndex].data.slice(),
+                type: seriesEl.parentNode.className.baseVal.split('-')[1]
+              });
+              w.globals.collapsedSeriesIndices.push(realIndex);
+              var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
+              w.globals.risingSeries.splice(removeIndexOfRising, 1);
+            }
           }
         } else {
           w.globals.collapsedSeries.push({
@@ -15289,13 +15384,6 @@
         };
         var yaxis = Utils$1.clone(w.globals.initialConfig.yaxis);
 
-        if (w.config.chart.zoom.autoScaleYaxis) {
-          var scale = new Scales(this.ctx);
-          yaxis = scale.autoScaleY(this.ctx, yaxis, {
-            xaxis: xaxis
-          });
-        }
-
         if (!w.config.chart.group) {
           // if chart in a group, prevent yaxis update here
           // fix issue #650
@@ -15544,7 +15632,7 @@
         me.clientX = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientX : e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
         me.clientY = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientY : e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
 
-        if (e.type === 'mousedown' && e.which === 1) {
+        if ((e.type === 'mousedown' || e.type === 'touchmove') && e.which === 1) {
           var gridRectDim = me.gridRect.getBoundingClientRect();
           me.startX = me.clientX - gridRectDim.left;
           me.startY = me.clientY - gridRectDim.top;
@@ -15558,7 +15646,17 @@
           if (w.globals.panEnabled) {
             w.globals.selection = null;
 
-            if (me.w.globals.mousedown) {
+            if (me.w.globals.mousedown || e.type === 'touchmove') {
+              if (e.type === 'touchmove' && !me.w.globals.mousedown) {
+                console.warn('me.w.globals.mousedown ', me.w.globals.mousedown);
+
+                var _gridRectDim = me.gridRect.getBoundingClientRect();
+
+                me.startX = me.clientX - _gridRectDim.left;
+                me.startY = me.clientY - _gridRectDim.top;
+                me.w.globals.mousedown = true;
+              }
+
               me.panDragging({
                 context: me,
                 zoomtype: zoomtype,
@@ -15566,6 +15664,17 @@
               });
             }
           } else {
+            if (e.type === 'touchmove') {
+              if (!me.w.globals.mousedown) {
+                var _gridRectDim2 = me.gridRect.getBoundingClientRect();
+
+                me.startX = me.clientX - _gridRectDim2.left;
+                me.startY = me.clientY - _gridRectDim2.top;
+              }
+
+              me.w.globals.mousedown = true;
+            }
+
             if (me.w.globals.mousedown && w.globals.zoomEnabled || me.w.globals.mousedown && w.globals.selectionEnabled) {
               me.selection = me.selectionDrawing({
                 context: me,
@@ -15577,12 +15686,12 @@
 
         if (e.type === 'mouseup' || e.type === 'touchend' || e.type === 'mouseleave') {
           // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-          var _gridRectDim = me.gridRect.getBoundingClientRect();
+          var _gridRectDim3 = me.gridRect.getBoundingClientRect();
 
           if (me.w.globals.mousedown) {
             // user released the drag, now do all the calculations
-            me.endX = me.clientX - _gridRectDim.left;
-            me.endY = me.clientY - _gridRectDim.top;
+            me.endX = me.clientX - _gridRectDim3.left;
+            me.endY = me.clientY - _gridRectDim3.top;
             me.dragX = Math.abs(me.endX - me.startX);
             me.dragY = Math.abs(me.endY - me.startY);
 
@@ -15951,13 +16060,6 @@
               });
             }
 
-            if (w.config.chart.zoom.autoScaleYaxis) {
-              var scale = new Scales(me.ctx);
-              yaxis = scale.autoScaleY(me.ctx, yaxis, {
-                xaxis: xaxis
-              });
-            }
-
             if (toolbar) {
               var beforeZoomRange = toolbar.getBeforeZoomRange(xaxis, yaxis);
 
@@ -16100,19 +16202,6 @@
             xHighestValue = maxX;
           }
         }
-
-        var xaxis = {
-          min: xLowestValue,
-          max: xHighestValue
-        };
-
-        if (w.config.chart.zoom.autoScaleYaxis) {
-          var scale = new Scales(this.ctx);
-          yaxis = scale.autoScaleY(this.ctx, yaxis, {
-            xaxis: xaxis
-          });
-        }
-
         var options = {
           xaxis: {
             min: xLowestValue,
@@ -17977,17 +18066,10 @@
         var w = this.w;
         var ttCtx = this.ttCtx;
 
-        var _loop = function _loop(i) {
+        for (var i = 0; i < w.config.yaxis.length; i++) {
           var isRight = w.config.yaxis[i].opposite || w.config.yaxis[i].crosshairs.opposite;
           ttCtx.yaxisOffX = isRight ? w.globals.gridWidth + 1 : 1;
           var tooltipCssClass = isRight ? "apexcharts-yaxistooltip apexcharts-yaxistooltip-".concat(i, " apexcharts-yaxistooltip-right") : "apexcharts-yaxistooltip apexcharts-yaxistooltip-".concat(i, " apexcharts-yaxistooltip-left");
-          w.globals.yAxisSameScaleIndices.map(function (samescales, ssi) {
-            samescales.map(function (s, si) {
-              if (si === i) {
-                tooltipCssClass += w.config.yaxis[si].show ? " " : " apexcharts-yaxistooltip-hidden";
-              }
-            });
-          });
           var renderTo = w.globals.dom.elWrap;
           var yaxisTooltip = w.globals.dom.baseEl.querySelector(".apexcharts-yaxistooltip apexcharts-yaxistooltip-".concat(i));
 
@@ -18000,10 +18082,6 @@
             ttCtx.yaxisTooltipText[i].classList.add('apexcharts-yaxistooltip-text');
             ttCtx.yaxisTooltip.appendChild(ttCtx.yaxisTooltipText[i]);
           }
-        };
-
-        for (var i = 0; i < w.config.yaxis.length; i++) {
-          _loop(i);
         }
       }
       /**
@@ -29523,7 +29601,7 @@
       SVG.listeners[index][ev][ns][listener._svgjsListenerId] = l; // add listener
 
       node.addEventListener(ev, l, options || {
-        passive: true
+        passive: false
       });
     }; // Add event unbinder in the SVG namespace
 
