@@ -74,6 +74,9 @@ legend: {
   show: false,
 },
 labels: series.monthDataSeries1.dates,
+yaxis: {
+  min: 8000
+},
 xaxis: {
   type: 'datetime',
 }
