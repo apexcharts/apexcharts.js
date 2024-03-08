@@ -23,25 +23,25 @@ class Range {
   }
 
   getMinYMaxY(
-    startingIndex,
+    startingSeriesIndex,
     lowestY = Number.MAX_VALUE,
     highestY = -Number.MAX_VALUE,
-    endingIndex = null
+    endingSeriesIndex = null
   ) {
     const cnf = this.w.config
     const gl = this.w.globals
     let maxY = -Number.MAX_VALUE
     let minY = Number.MIN_VALUE
 
-    if (endingIndex === null) {
-      endingIndex = startingIndex + 1
+    if (endingSeriesIndex === null) {
+      endingSeriesIndex = startingSeriesIndex + 1
     }
 
     let firstXIndex = 0
     let lastXIndex = 0
     let  seriesX = undefined
-    if (gl.seriesX.length >= endingIndex) {
-      seriesX = [...new Set([].concat(...gl.seriesX.slice(startingIndex, endingIndex)))]
+    if (gl.seriesX.length >= endingSeriesIndex) {
+      seriesX = [...new Set([].concat(...gl.seriesX.slice(startingSeriesIndex, endingSeriesIndex)))]
       firstXIndex = 0
       lastXIndex = seriesX.length - 1
       // Eventually brushSource will be set if the current chart is a target.
@@ -83,8 +83,10 @@ class Range {
       seriesMax = gl.seriesRangeEnd
     }
 
-    for (let i = startingIndex; i < endingIndex; i++) {
+    for (let i = startingSeriesIndex; i < endingSeriesIndex; i++) {
       gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
+
+      const seriesType = cnf.series[i].type
 
       if (gl.categoryLabels.length) {
         gl.dataPoints = gl.categoryLabels.filter(
@@ -120,7 +122,7 @@ class Range {
           // Array      : CandleO, CandleH, CandleM, CandleL, CandleC
           // Candlestick: O        H                 L        C
           // Boxplot    : Min      Q1       Median   Q3       Max
-          switch (cnf.series[i].type) {
+          switch (seriesType) {
             case 'candlestick': {
               if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
                 maxY = Math.max(maxY, gl.seriesCandleH[i][j])
@@ -135,13 +137,14 @@ class Range {
             }
           }
 
-          // there is a combo chart and the specified series in not either candlestick, boxplot, or rangeArea/rangeBar; find the max there
+          // there is a combo chart and the specified series in not either
+          // candlestick, boxplot, or rangeArea/rangeBar; find the max there.
           if (
-            cnf.series[i].type &&
-            (cnf.series[i].type !== 'candlestick' &&
-              cnf.series[i].type !== 'boxPlot' &&
-              cnf.series[i].type !== 'rangeArea' &&
-              cnf.series[i].type !== 'rangeBar')
+            seriesType &&
+            (seriesType !== 'candlestick' &&
+              seriesType !== 'boxPlot' &&
+              seriesType !== 'rangeArea' &&
+              seriesType !== 'rangeBar')
           ) {
             maxY = Math.max(maxY, gl.series[i][j])
             lowestY = Math.min(lowestY, gl.series[i][j])
@@ -175,6 +178,17 @@ class Range {
           }
         } else {
           gl.hasNullValues = true
+        }
+      }
+      if (seriesType === 'bar' || seriesType === 'column') {
+        if (minY < 0 && maxY < 0) {
+          // all negative values in a bar series, hence make the max to 0
+          maxY = 0
+          highestY = Math.max(highestY, 0)
+        }
+        if (minY === Number.MIN_VALUE) {
+          minY = 0
+          lowestY = Math.min(lowestY, 0)
         }
       }
     }
@@ -212,20 +226,21 @@ class Range {
     gl.minY = Number.MIN_VALUE
 
     let lowestYInAllSeries = Number.MAX_VALUE
+    let minYMaxY
 
     if (gl.isMultipleYAxis) {
       // we need to get minY and maxY for multiple y axis
       lowestYInAllSeries = Number.MAX_VALUE
       for (let i = 0; i < gl.series.length; i++) {
-        const minYMaxYArr = this.getMinYMaxY(i)
-        gl.minYArr[i] = minYMaxYArr.lowestY
-        gl.maxYArr[i] = minYMaxYArr.highestY
-        lowestYInAllSeries  = Math.min(lowestYInAllSeries, minYMaxYArr.lowestY)
+        minYMaxY = this.getMinYMaxY(i)
+        gl.minYArr[i] = minYMaxY.lowestY
+        gl.maxYArr[i] = minYMaxY.highestY
+        lowestYInAllSeries  = Math.min(lowestYInAllSeries, minYMaxY.lowestY)
       }
     }
 
     // and then, get the minY and maxY from all series
-    const minYMaxY = this.getMinYMaxY(
+    minYMaxY = this.getMinYMaxY(
                             0,
                             lowestYInAllSeries,
                             null,

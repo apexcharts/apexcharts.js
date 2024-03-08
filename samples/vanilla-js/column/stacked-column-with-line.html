@@ -273,7 +273,7 @@
           labels: {
             showDuplicates: false,
             formatter: function(value) {
-              return value.toFixed(0)
+              return value?.toFixed(0) // Value is undefined if all series are collapsed
             }
           }
         },
