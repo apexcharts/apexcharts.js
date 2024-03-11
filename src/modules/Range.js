@@ -54,14 +54,14 @@ class Range {
         if (cnf.xaxis.min) {
           for (
             firstXIndex = 0;
-            firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min;
+            firstXIndex < lastXIndex && seriesX[firstXIndex] < cnf.xaxis.min;
             firstXIndex++
           ) {}
         }
         if (cnf.xaxis.max) {
           for (
             ;
-            lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max;
+            lastXIndex > firstXIndex && seriesX[lastXIndex] > cnf.xaxis.max;
             lastXIndex--
           ) {}
         }

@@ -285,6 +285,19 @@ export default class Scales {
         tiks++
       }
     }
+    
+    // Prune tiks down to range if series is all integers. Since tiks > range,
+    // range is very low (< 10 or so). Skip this step if tickAmount is true
+    // because, either the user set it, or the chart is multiscale and this
+    // axis is not determining the number of grid lines.
+    if (!gotTickAmount &&
+          axisCnf.forceNiceScale &&
+            gl.yValueDecimal === 0 &&
+              tiks > range
+    ) {
+      tiks = range
+      stepSize = Math.round(range / tiks)
+    }
 
     // Record final tiks for use by other series that call niceScale().
     // Note: some don't, like logarithmicScale(), etc.

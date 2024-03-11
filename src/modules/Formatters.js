@@ -53,10 +53,13 @@ class Formatters {
             ? yaxe.decimalsInFloat
             : w.globals.yValueDecimal
         )
-      } else if (w.globals.maxYArr[i] - w.globals.minYArr[i] < 5) {
-        v = v.toFixed(1)
       } else {
-        v = v.toFixed(0)
+        // We have an integer value but the label is not an integer. We can
+        // deduce this is due to the number of ticks exceeding the even lower
+        // integer range. Add an additional decimal place only in this case.
+        const f = v.toFixed(0)
+        // Do not change the == to ===
+        v = v == f ? f : v.toFixed(1)
       }
     }
     return v
