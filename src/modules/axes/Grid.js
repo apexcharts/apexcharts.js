@@ -377,7 +377,7 @@ class Grid {
 
         let xAxis = new XAxis(this.ctx)
         xAxis.drawXaxisTicks(x1, 0, w.globals.dom.elGraphical)
-        x1 = x1 + w.globals.gridWidth / xCount + 0.3
+        x1 = x1 + w.globals.gridWidth / xCount
         x2 = x1
       }
     }
