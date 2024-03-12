@@ -875,6 +875,11 @@ class Line {
           linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
         areaPath =
           areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
+      } else if (curve === 'linestep') {
+        linePath =
+          linePath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H')
+        areaPath =
+          areaPath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H')
       } else if (curve === 'straight') {
         linePath = linePath + graphics.line(x, y)
         areaPath = areaPath + graphics.line(x, y)
