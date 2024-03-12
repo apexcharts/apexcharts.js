@@ -915,7 +915,7 @@ export default class Options {
       },
       stroke: {
         show: true,
-        curve: 'smooth', // "smooth" / "straight" / "monotoneCubic" / "stepline"
+        curve: 'smooth', // "smooth" / "straight" / "monotoneCubic" / "stepline" / "linestep"
         lineCap: 'butt', // round, butt , square
         width: 2,
         colors: undefined, // array of colors

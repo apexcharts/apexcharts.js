@@ -3320,7 +3320,7 @@ export const optionsPattern = {
             'In line/area charts, whether to draw smooth lines or straight lines',
           url: 'https://apexcharts.com/docs/options/stroke/#curve',
           type: String,
-          choices: ['smooth', 'straight', 'stepline'],
+          choices: ['smooth', 'straight', 'stepline', 'linestep'],
           default: 'smooth'
         },
         lineCap: {
