@@ -572,11 +572,14 @@ export default class ZoomPanSelection extends Toolbar {
     let yLowestValue = []
 
     w.config.yaxis.forEach((yaxe, index) => {
+      // We can use the first series index referenced by the Yaxis
+      // because any others will return the same value.
+      let seriesIndex = w.globals.seriesYAxisMap[index][0]
       yHighestValue.push(
-        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.startY
+        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.startY
       )
       yLowestValue.push(
-        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[index] * me.endY
+        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.endY
       )
     })
 

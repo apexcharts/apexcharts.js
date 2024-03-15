@@ -185,9 +185,12 @@ export default class Helpers {
         y = coreUtils.getLogVal(y, anno.yAxisIndex)
         yPos = y / w.globals.yLogRatio[anno.yAxisIndex]
       } else {
+        // We can use the first series index referenced by the Yaxis
+        // because any others will return the same value.
+        let seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
         yPos =
-          (y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+          (y - w.globals.minYArr[seriesIndex]) /
+          (w.globals.yRange[seriesIndex] / w.globals.gridHeight)
       }
       yP = w.globals.gridHeight - yPos
 
