@@ -578,9 +578,14 @@ export default class Scales {
       unassignedSeriesIndices.push(i)
       seriesYAxisReverseMap.push(null)
     })
+    cnf.yaxis.forEach((yaxe, yi) => {
+      axisSeriesMap[yi] = []
+    })
+
     let unassignedYAxisIndices = []
     // here, we loop through the yaxis array and find the item which has "seriesName" property
     cnf.yaxis.forEach((yaxe, yi) => {
+      let assigned = false
       // Allow seriesName to be either a string (for backward compatibility),
       // in which case, handle multiple yaxes referencing the same series.
       // or an array of strings so that a yaxis can reference multiple series.
@@ -592,19 +597,27 @@ export default class Scales {
         } else {
           seriesNames.push(yaxe.seriesName)
         }
-        axisSeriesMap[yi] = []
         seriesNames.forEach((name) => {
           cnf.series.forEach((s, si) => {
-            // if seriesName matches we use that scale.
             if (s.name === name) {
+              assigned = true
               axisSeriesMap[yi].push(si)
-              seriesYAxisReverseMap[si] = yi
-              let remove = unassignedSeriesIndices.indexOf(si)
-              unassignedSeriesIndices.splice(remove, 1)
+              let remove
+              if (yi === si) {
+                seriesYAxisReverseMap[si] = yi
+                remove = unassignedSeriesIndices.indexOf(si)
+              } else {
+                seriesYAxisReverseMap[yi] = yi
+                remove = unassignedSeriesIndices.indexOf(yi)
+              }
+              if (remove !== -1) {
+                unassignedSeriesIndices.splice(remove, 1)
+              }
             }
           })
         })
-      } else {
+      }
+      if (!assigned) {
         unassignedYAxisIndices.push(yi)
       }
     })
@@ -667,26 +680,48 @@ export default class Scales {
     // 1: [1,2,3,4]
     // If the chart is stacked, it can be assumed that any axis with multiple
     // series is stacked.
+    // 
+    // If this is an old chart and we are being backward compatible, it will be
+    // expected that each series is associated with it's corresponding yaxis
+    // through their indices, one-to-one.
+    // If yaxis.seriesName matches series.name, we have indices yi and si.
+    // A name match where yi != si is interpretted as yaxis[yi] and yaxis[si]
+    // will both be scaled to fit the combined series[si] and series[yi].
+    // Consider series named: S0,S1,S2 and yaxes A0,A1,A2.
+    // 
+    // Example 1: A0 and A1 scaled the same.
+    // A0.seriesName: S0
+    // A1.seriesName: S0
+    // A2.seriesName: S2
+    // Then A1 <-> A0
+    // 
+    // Example 2: A0, A1 and A2 all scaled the same.
+    // A0.seriesName: S2
+    // A1.seriesName: S0
+    // A2.seriesName: S1
+    // A0 <-> A2, A1 <-> A0, A2 <-> A1 --->>> A0 <-> A1 <-> A2
 
     // First things first, convert the old to the new.
-    let emptyAxes = []
-    axisSeriesMap.forEach((axisSeries, ai) => {
-      for (let si = ai + 1; si < axisSeriesMap.length; si++) {
-        let iter = axisSeries.values()
-        for (const val of iter) {
-          let i = axisSeriesMap[si].indexOf(val)
-          if (i !== -1) {
-            axisSeries.push(si) // add series index to current yaxis
-            axisSeriesMap[si].splice(i, 1) // remove it from its old yaxis
-          }
+    
+    // Consolidate series indices into axes
+    if (axisSeriesMap.length === cnf.series.length) {
+      axisSeriesMap.forEach((axisSeries, ai) => {
+        let si = axisSeries[0]
+        if (si !== ai) {
+          axisSeriesMap[si].push(ai)
+          axisSeriesMap[ai].splice(0,1)
         }
-        if (axisSeriesMap[si].length < 1 && emptyAxes.indexOf(si) === -1) {
-          emptyAxes.push(si)
+      })
+      // Now duplicate axisSeriesMap elements that need to be the same.
+      axisSeriesMap.forEach((axisSeries, ai) => {
+        if (!axisSeries.length) {
+          axisSeriesMap.forEach((as, i) => {
+            if (as.indexOf(ai) > -1) {
+              axisSeriesMap[ai] = axisSeriesMap[i].map((x) => x)
+            }
+          })
         }
-      }
-    })
-    for (let i = emptyAxes.length - 1; i >= 0; i--) {
-      axisSeriesMap.splice(emptyAxes[i], 1)
+      })
     }
 
     // Compute min..max for each yaxis
