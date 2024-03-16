@@ -148,6 +148,7 @@ export default class Helpers {
   getY1Y2(type, anno) {
     let y = type === 'y1' ? anno.y : anno.y2
     let yP
+    let clipped = false
 
     const w = this.w
     if (this.annoCtx.invertAxis) {
@@ -180,14 +181,27 @@ export default class Helpers {
       }
     } else {
       let yPos
+      // We can use the index of any series referenced by the Yaxis
+      // because they will all return the same value.
+      let seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
       if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
         const coreUtils = new CoreUtils(this.annoCtx.ctx)
-        y = coreUtils.getLogVal(y, anno.yAxisIndex)
-        yPos = y / w.globals.yLogRatio[anno.yAxisIndex]
+        y = coreUtils.getLogVal(
+                w.config.yaxis[anno.yAxisIndex].logBase,
+                y,
+                seriesIndex)
+        yPos = y / w.globals.yLogRatio[seriesIndex]
       } else {
         yPos =
-          (y - w.globals.minYArr[anno.yAxisIndex]) /
-          (w.globals.yRange[anno.yAxisIndex] / w.globals.gridHeight)
+          (y - w.globals.minYArr[seriesIndex]) /
+          (w.globals.yRange[seriesIndex] / w.globals.gridHeight)
+      }
+      if (yPos > w.globals.gridHeight) {
+        yPos = w.globals.gridHeight
+        clipped = true
+      } else if (yPos < 0) {
+        yPos = 0
+        clipped = true
       }
       yP = w.globals.gridHeight - yPos
 
@@ -208,21 +222,24 @@ export default class Helpers {
       yP = parseFloat(y)
     }
 
-    return yP
+    return {'yP': yP, 'clipped': clipped}
   }
 
   getX1X2(type, anno) {
+    let x = type === 'x1' ? anno.x : anno.x2
     const w = this.w
     let min = this.annoCtx.invertAxis ? w.globals.minY : w.globals.minX
     let max = this.annoCtx.invertAxis ? w.globals.maxY : w.globals.maxX
     const range = this.annoCtx.invertAxis
       ? w.globals.yRange[0]
       : w.globals.xRange
+    let clipped = false
 
-    let x1 = (anno.x - min) / (range / w.globals.gridWidth)
-
+    let xP
     if (this.annoCtx.inversedReversedAxis) {
-      x1 = (max - anno.x) / (range / w.globals.gridWidth)
+      xP = (max - x) / (range / w.globals.gridWidth)
+    } else {
+      xP = (x - min) / (range / w.globals.gridWidth)
     }
 
     if (
@@ -231,54 +248,40 @@ export default class Helpers {
       !this.annoCtx.invertAxis &&
       !w.globals.dataFormatXNumeric
     ) {
-      x1 = this.getStringX(anno.x)
+      if (!w.config.chart.sparkline.enabled) {
+        xP = this.getStringX(x)
+      }
     }
 
-    let x2 = (anno.x2 - min) / (range / w.globals.gridWidth)
-
-    if (this.annoCtx.inversedReversedAxis) {
-      x2 = (max - anno.x2) / (range / w.globals.gridWidth)
-    }
     if (
-      (w.config.xaxis.type === 'category' ||
-        w.config.xaxis.convertedCatToNumeric) &&
-      !this.annoCtx.invertAxis &&
-      !w.globals.dataFormatXNumeric
+      typeof x === 'string' &&
+      x.indexOf('px') > -1
     ) {
-      x2 = this.getStringX(anno.x2)
+      xP = parseFloat(x)
     }
 
-    if ((anno.x === undefined || anno.x === null) && anno.marker) {
+    if ((x === undefined || x === null) && anno.marker) {
       // point annotation in a horizontal chart
-      x1 = w.globals.gridWidth
-    }
-
-    if (
-      type === 'x1' &&
-      typeof anno.x === 'string' &&
-      anno.x.indexOf('px') > -1
-    ) {
-      x1 = parseFloat(anno.x)
-    }
-
-    if (
-      type === 'x2' &&
-      typeof anno.x2 === 'string' &&
-      anno.x2.indexOf('px') > -1
-    ) {
-      x2 = parseFloat(anno.x2)
+      xP = w.globals.gridWidth
     }
 
     if (typeof anno.seriesIndex !== 'undefined') {
       if (w.globals.barWidth && !this.annoCtx.invertAxis) {
-        x1 =
-          x1 -
-          (w.globals.barWidth / 2) * (w.globals.series.length - 1) +
-          w.globals.barWidth * anno.seriesIndex
+        xP = xP -
+              (w.globals.barWidth / 2) * (w.globals.series.length - 1) +
+              w.globals.barWidth * anno.seriesIndex
       }
     }
 
-    return type === 'x1' ? x1 : x2
+    if (xP > w.globals.gridWidth) {
+      xP = w.globals.gridWidth
+      clipped = true
+    } else if (xP < 0) {
+      xP = 0
+      clipped = true
+    }
+
+    return {'x': xP, 'clipped': clipped}
   }
 
   getStringX(x) {

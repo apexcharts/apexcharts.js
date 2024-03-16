@@ -40,13 +40,14 @@ class Radar {
         : w.globals.gridWidth
 
     this.isLog = w.config.yaxis[0].logarithmic
+    this.logBase = w.config.yaxis[0].logBase
 
     this.coreUtils = new CoreUtils(this.ctx)
     this.maxValue = this.isLog
-      ? this.coreUtils.getLogVal(w.globals.maxY, 0)
+      ? this.coreUtils.getLogVal(this.logBase, w.globals.maxY, 0)
       : w.globals.maxY
     this.minValue = this.isLog
-      ? this.coreUtils.getLogVal(this.w.globals.minY, 0)
+      ? this.coreUtils.getLogVal(this.logBase, this.w.globals.minY, 0)
       : w.globals.minY
 
     this.polygons = w.config.plotOptions.radar.polygons
@@ -122,7 +123,7 @@ class Radar {
         dv = dv + Math.abs(this.minValue)
 
         if (this.isLog) {
-          dv = this.coreUtils.getLogVal(dv, 0)
+          dv = this.coreUtils.getLogVal(this.logBase, dv, 0)
         }
 
         this.dataRadiusOfPercent[i][j] = dv / range

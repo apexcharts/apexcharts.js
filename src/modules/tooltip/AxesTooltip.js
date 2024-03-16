@@ -168,10 +168,12 @@ class AxesTooltip {
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
 
-      const hoverY = (clientY - seriesBound.top) * xyRatios.yRatio[index]
-      const height = w.globals.maxYArr[index] - w.globals.minYArr[index]
-
-      const val = w.globals.minYArr[index] + (height - hoverY)
+      // We can use the index of any series referenced by the Yaxis
+      // because they will all return the same value.
+      let seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
+      const hoverY = (clientY - seriesBound.top) * xyRatios.yRatio[seriesIndex]
+      const height = w.globals.maxYArr[seriesIndex] - w.globals.minYArr[seriesIndex]
+      const val = w.globals.minYArr[seriesIndex] + (height - hoverY)
 
       ttCtx.tooltipPosition.moveYCrosshairs(clientY - seriesBound.top)
       ttCtx.yaxisTooltipText[index].innerHTML = lbFormatter(val)

@@ -249,7 +249,8 @@ class CoreUtils {
   }
 
   getCalculatedRatios() {
-    let gl = this.w.globals
+    let w = this.w
+    let gl = w.globals
 
     let yRatio = []
     let invertedYRatio = 0
@@ -292,20 +293,37 @@ class CoreUtils {
       gl.hasNegs = true
     }
 
-    if (gl.isMultipleYAxis) {
-      baseLineY = []
+    // Check we have a map as series may still to be added/updated.
+    if (w.globals.seriesYAxisReverseMap.length > 0) {
+      let scaleBaseLineYScale = (y, i) => {
+        let yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i]]
+        let sign = y < 0 ? -1 : 1
+        y = Math.abs(y)
+        if (yAxis.logarithmic) {
+          y = this.getBaseLog(yAxis.logBase, y)
+        }
+        return -sign * y / yRatio[i]
+      }
+      if (gl.isMultipleYAxis) {
+        baseLineY = []
+        // baseline variables is the 0 of the yaxis which will be needed when there are negatives
+        for (let i = 0; i < yRatio.length; i++) {
+          baseLineY.push(scaleBaseLineYScale(gl.minYArr[i], i))
+        }
+      } else {
+        baseLineY = []
+        baseLineY.push(scaleBaseLineYScale(gl.minY, 0))
 
-      // baseline variables is the 0 of the yaxis which will be needed when there are negatives
-      for (let i = 0; i < yRatio.length; i++) {
-        baseLineY.push(-gl.minYArr[i] / yRatio[i])
+        if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
+          baseLineInvertedY = -gl.minY / invertedYRatio // this is for bar chart
+          baseLineX = gl.minX / xRatio
+        }
       }
     } else {
-      baseLineY.push(-gl.minY / yRatio[0])
-
-      if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
-        baseLineInvertedY = -gl.minY / invertedYRatio // this is for bar chart
-        baseLineX = gl.minX / xRatio
-      }
+      baseLineY = []
+      baseLineY.push(0)
+      baseLineInvertedY = 0
+      baseLineX = 0
     }
 
     return {
@@ -324,10 +342,11 @@ class CoreUtils {
     const w = this.w
 
     w.globals.seriesLog = series.map((s, i) => {
-      if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
+      let yAxisIndex = w.globals.seriesYAxisReverseMap[i]
+      if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
         return s.map((d) => {
           if (d === null) return null
-          return this.getLogVal(w.config.yaxis[i].logBase, d, i)
+          return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, d, i)
         })
       } else {
         return s
@@ -339,19 +358,19 @@ class CoreUtils {
   getBaseLog(base, value) {
     return Math.log(value) / Math.log(base)
   }
-  getLogVal(b, d, yIndex) {
-    if (d === 0) {
-      return 0
+  getLogVal(b, d, seriesIndex) {
+    if (d <= 0) {
+      return 0 // Should be Number.NEGATIVE_INFINITY
     }
     const w = this.w
     const min_log_val =
-      w.globals.minYArr[yIndex] === 0
+      w.globals.minYArr[seriesIndex] === 0
         ? -1 // make sure we dont calculate log of 0
-        : this.getBaseLog(b, w.globals.minYArr[yIndex])
+        : this.getBaseLog(b, w.globals.minYArr[seriesIndex])
     const max_log_val =
-      w.globals.maxYArr[yIndex] === 0
+      w.globals.maxYArr[seriesIndex] === 0
         ? 0 // make sure we dont calculate log of 0
-        : this.getBaseLog(b, w.globals.maxYArr[yIndex])
+        : this.getBaseLog(b, w.globals.maxYArr[seriesIndex])
     const number_of_height_levels = max_log_val - min_log_val
     if (d < 1) return d / number_of_height_levels
     const log_height_value = this.getBaseLog(b, d) - min_log_val
@@ -365,7 +384,8 @@ class CoreUtils {
     gl.yLogRatio = yRatio.slice()
 
     gl.logYRange = gl.yRange.map((yRange, i) => {
-      if (w.config.yaxis[i] && this.w.config.yaxis[i].logarithmic) {
+      let yAxisIndex = w.globals.seriesYAxisReverseMap[i]
+      if (w.config.yaxis[yAxisIndex] && this.w.config.yaxis[yAxisIndex].logarithmic) {
         let maxY = -Number.MAX_VALUE
         let minY = Number.MIN_VALUE
         let range = 1

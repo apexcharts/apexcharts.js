@@ -42,6 +42,7 @@ class Bar {
       this.baseLineInvertedY = xyRatios.baseLineInvertedY
     }
     this.yaxisIndex = 0
+    this.translationsIndex = 0
     this.seriesLen = 0
     this.pathArr = []
 
@@ -126,8 +127,10 @@ class Bar {
       let barWidth = 0
 
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = realIndex
+        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex]
+        this.translationsIndex = realIndex
       }
+      let translationsIndex = this.translationsIndex
 
       this.isReversed =
         w.config.yaxis[this.yaxisIndex] &&
@@ -182,6 +185,7 @@ class Bar {
             i,
             j,
             realIndex,
+            translationsIndex,
             bc,
           },
           x,
@@ -204,7 +208,7 @@ class Bar {
             barWidth,
             zeroH,
           })
-          barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
+          barHeight = this.series[i][j] / this.yRatio[translationsIndex]
         }
 
         let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
@@ -511,6 +515,7 @@ class Bar {
     let w = this.w
 
     let realIndex = indexes.realIndex
+    let translationsIndex = indexes.translationsIndex
     let i = indexes.i
     let j = indexes.j
     let bc = indexes.bc
@@ -540,7 +545,7 @@ class Bar {
       }
     }
 
-    y = this.barHelpers.getYForValue(this.series[i][j], zeroH)
+    y = this.barHelpers.getYForValue(this.series[i][j], zeroH, translationsIndex)
 
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,
@@ -549,7 +554,7 @@ class Bar {
       y2: y,
       strokeWidth,
       series: this.series,
-      realIndex: indexes.realIndex,
+      realIndex: realIndex,
       i,
       j,
       w,
@@ -573,7 +578,7 @@ class Bar {
       pathFrom: paths.pathFrom,
       x,
       y,
-      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
+      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j, translationsIndex),
       barXPosition,
       barWidth,
     }

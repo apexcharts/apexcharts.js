@@ -66,8 +66,10 @@ class BoxCandleStick extends Bar {
       let barHeight = 0
       let barWidth = 0
 
+      let translationsIndex = 0
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = realIndex
+        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0]
+        translationsIndex = realIndex
       }
 
       let initPositions = this.barHelpers.initialPositions()
@@ -98,7 +100,8 @@ class BoxCandleStick extends Bar {
           indexes: {
             i,
             j,
-            realIndex
+            realIndex,
+            translationsIndex
           },
           x,
           y,
@@ -201,7 +204,7 @@ class BoxCandleStick extends Bar {
       color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper]
     }
 
-    const yRatio = this.yRatio[this.yaxisIndex]
+    const yRatio = this.yRatio[indexes.translationsIndex]
     let realIndex = indexes.realIndex
 
     const ohlc = this.getOHLCValue(realIndex, j)

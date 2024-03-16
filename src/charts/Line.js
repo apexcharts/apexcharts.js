@@ -62,6 +62,8 @@ class Line {
       series = this.lineHelpers.sameValueSeriesFix(i, series)
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      let translationsIndex = this.yRatio.length > 1 ? realIndex: 0
+
 
       this._initSerieVariables(series, i, realIndex)
 
@@ -97,6 +99,7 @@ class Line {
         series,
         prevY,
         lineYPosition,
+        translationsIndex
       })
       prevY = firstPrevY.prevY
       if (w.config.stroke.curve === 'monotonCubic' && series[i][0] === null) {
@@ -116,6 +119,7 @@ class Line {
           series: seriesRangeEnd,
           prevY: prevY2,
           lineYPosition,
+          translationsIndex
         })
         prevY2 = firstPrevY2.prevY
         pY2 = prevY2
@@ -136,6 +140,7 @@ class Line {
         type,
         series,
         realIndex,
+        translationsIndex,
         i,
         x,
         y,
@@ -221,8 +226,10 @@ class Line {
       ? w.config.stroke.width[realIndex]
       : w.config.stroke.width
 
+    let translationsIndex = 0
     if (this.yRatio.length > 1) {
-      this.yaxisIndex = realIndex
+      this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex]
+      translationsIndex = realIndex
     }
 
     this.isReversed =
@@ -232,9 +239,9 @@ class Line {
     // zeroY is the 0 value in y series which can be used in negative charts
     this.zeroY =
       w.globals.gridHeight -
-      this.baseLineY[this.yaxisIndex] -
+      this.baseLineY[translationsIndex] -
       (this.isReversed ? w.globals.gridHeight : 0) +
-      (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
+      (this.isReversed ? this.baseLineY[translationsIndex] * 2 : 0)
 
     this.areaBottomY = this.zeroY
     if (
@@ -288,7 +295,7 @@ class Line {
       for (let s = 0; s < series[i].length; s++) {
         if (series[i][s] !== null) {
           prevX = this.xDivision * s
-          prevY = this.zeroY - series[i][s] / this.yRatio[this.yaxisIndex]
+          prevY = this.zeroY - series[i][s] / this.yRatio[realIndex]
           linePath = graphics.move(prevX, prevY)
           areaPath = graphics.move(prevX, this.areaBottomY)
           break
@@ -478,6 +485,7 @@ class Line {
     series,
     iterations,
     realIndex,
+    translationsIndex,
     i,
     x,
     y,
@@ -513,8 +521,8 @@ class Line {
     const getY = (_y, lineYPos) => {
       return (
         lineYPos -
-        _y / yRatio[this.yaxisIndex] +
-        (this.isReversed ? _y / yRatio[this.yaxisIndex] : 0) * 2
+        _y / yRatio[translationsIndex] +
+        (this.isReversed ? _y / yRatio[translationsIndex] : 0) * 2
       )
     }
 

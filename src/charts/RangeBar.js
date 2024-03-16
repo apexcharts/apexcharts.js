@@ -52,8 +52,10 @@ class RangeBar extends Bar {
       let barHeight = 0
       let barWidth = 0
 
+      let translationsIndex = 0
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = realIndex
+        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0]
+        translationsIndex = realIndex
       }
 
       let initPositions = this.barHelpers.initialPositions()
@@ -159,7 +161,7 @@ class RangeBar extends Bar {
           }
 
           paths = this.drawRangeColumnPaths({
-            indexes: { i, j, realIndex },
+            indexes: { i, j, realIndex, translationsIndex },
             barWidth,
             barXPosition,
             zeroH,
@@ -319,7 +321,7 @@ class RangeBar extends Bar {
     let i = indexes.i
     let j = indexes.j
 
-    const yRatio = this.yRatio[this.yaxisIndex]
+    const yRatio = this.yRatio[indexes.translationsIndex]
     let realIndex = indexes.realIndex
 
     const range = this.getRangeValue(realIndex, j)
@@ -370,7 +372,13 @@ class RangeBar extends Bar {
       barHeight,
       x,
       y: y2,
-      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
+      goalY: this.barHelpers.getGoalValues(
+              'y',
+              null,
+              zeroH,
+              i,
+              j,
+              indexes.translationsIndex),
       barXPosition,
     }
   }
