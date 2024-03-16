@@ -73,29 +73,28 @@ export default class ApexCharts {
         window.addEventListener('resize', this.windowResizeHandler)
         addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
-        // Add CSS if not already added
-        if (!this.css) {
-          let rootNode = this.el.getRootNode && this.el.getRootNode()
-          let inShadowRoot = Utils.is('ShadowRoot', rootNode)
-          let doc = this.el.ownerDocument
-          let globalCSS = doc.getElementById('apexcharts-css')
+        let rootNode = this.el.getRootNode && this.el.getRootNode()
+        let inShadowRoot = Utils.is('ShadowRoot', rootNode)
+        let doc = this.el.ownerDocument
+        let css = inShadowRoot
+          ? rootNode.getElementById('apexcharts-css')
+          : doc.getElementById('apexcharts-css')
 
-          if (inShadowRoot || !globalCSS) {
-            this.css = document.createElement('style')
-            this.css.id = 'apexcharts-css'
-            this.css.textContent = apexCSS
-            const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce;
-            if (nonce) {
-              this.css.setAttribute('nonce', nonce);
-            }
+        if (!css) {
+          css = document.createElement('style')
+          css.id = 'apexcharts-css'
+          css.textContent = apexCSS
+          const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce;
+          if (nonce) {
+            this.css.setAttribute('nonce', nonce);
+          }
 
-            if (inShadowRoot) {
-              // We are in Shadow DOM, add to shadow root
-              rootNode.prepend(this.css)
-            } else {
-              // Add to <head> of element's document
-              doc.head.appendChild(this.css)
-            }
+          if (inShadowRoot) {
+            // We are in Shadow DOM, add to shadow root
+            rootNode.prepend(css)
+          } else {
+            // Add to <head> of element's document
+            doc.head.appendChild(css)
           }
         }
 
