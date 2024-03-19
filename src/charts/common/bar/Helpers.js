@@ -128,14 +128,13 @@ export default class Helpers {
 
       zeroH =
         w.globals.gridHeight -
-        this.barCtx.baseLineY[this.barCtx.yaxisIndex] -
+        this.barCtx.baseLineY[this.barCtx.translationsIndex] -
         (this.barCtx.isReversed ? w.globals.gridHeight : 0) +
         (this.barCtx.isReversed
-          ? this.barCtx.baseLineY[this.barCtx.yaxisIndex] * 2
+          ? this.barCtx.baseLineY[this.barCtx.translationsIndex] * 2
           : 0)
 
-      x =
-        w.globals.padHorizontal +
+      x = w.globals.padHorizontal +
         (xDivision - barWidth * this.barCtx.seriesLen) / 2
     }
 
@@ -515,21 +514,21 @@ export default class Helpers {
     return xForVal
   }
 
-  getYForValue(value, zeroH, zeroPositionForNull = true) {
+  getYForValue(value, zeroH, translationsIndex, zeroPositionForNull = true) {
     let yForVal = zeroPositionForNull ? zeroH : null
     if (typeof value !== 'undefined' && value !== null) {
       yForVal =
         zeroH -
-        value / this.barCtx.yRatio[this.barCtx.yaxisIndex] +
+        value / this.barCtx.yRatio[translationsIndex] +
         (this.barCtx.isReversed
-          ? value / this.barCtx.yRatio[this.barCtx.yaxisIndex]
+          ? value / this.barCtx.yRatio[translationsIndex]
           : 0) *
           2
     }
     return yForVal
   }
 
-  getGoalValues(type, zeroW, zeroH, i, j) {
+  getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
     const w = this.w
 
     let goals = []
@@ -539,7 +538,7 @@ export default class Helpers {
         [type]:
           type === 'x'
             ? this.getXForValue(value, zeroW, false)
-            : this.getYForValue(value, zeroH, false),
+            : this.getYForValue(value, zeroH, translationsIndex, false),
         attrs,
       })
     }
@@ -600,45 +599,51 @@ export default class Helpers {
     if (this.barCtx.isHorizontal) {
       if (Array.isArray(goalX)) {
         goalX.forEach((goal) => {
-          let sHeight =
-            typeof goal.attrs.strokeHeight !== 'undefined'
-              ? goal.attrs.strokeHeight
-              : barHeight / 2
-          let y = barYPosition + sHeight + barHeight / 2
+          // Need a tiny margin of 1 each side so goals don't disappear at extremeties
+          if (goal.x >= -1 && goal.x <= graphics.w.globals.gridWidth + 1) {
+            let sHeight =
+              typeof goal.attrs.strokeHeight !== 'undefined'
+                ? goal.attrs.strokeHeight
+                : barHeight / 2
+            let y = barYPosition + sHeight + barHeight / 2
 
-          line = graphics.drawLine(
-            goal.x,
-            y - sHeight * 2,
-            goal.x,
-            y,
-            goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
-            goal.attrs.strokeDashArray,
-            goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2,
-            goal.attrs.strokeLineCap
-          )
-          lineGroup.add(line)
+            line = graphics.drawLine(
+              goal.x,
+              y - sHeight * 2,
+              goal.x,
+              y,
+              goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
+              goal.attrs.strokeDashArray,
+              goal.attrs.strokeWidth ? goal.attrs.strokeWidth : 2,
+              goal.attrs.strokeLineCap
+            )
+            lineGroup.add(line)
+          }
         })
       }
     } else {
       if (Array.isArray(goalY)) {
         goalY.forEach((goal) => {
-          let sWidth =
-            typeof goal.attrs.strokeWidth !== 'undefined'
-              ? goal.attrs.strokeWidth
-              : barWidth / 2
-          let x = barXPosition + sWidth + barWidth / 2
+          // Need a tiny margin of 1 each side so goals don't disappear at extremeties
+          if (goal.y >= -1 && goal.y <= graphics.w.globals.gridHeight + 1) {
+            let sWidth =
+              typeof goal.attrs.strokeWidth !== 'undefined'
+                ? goal.attrs.strokeWidth
+                : barWidth / 2
+            let x = barXPosition + sWidth + barWidth / 2
 
-          line = graphics.drawLine(
-            x - sWidth * 2,
-            goal.y,
-            x,
-            goal.y,
-            goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
-            goal.attrs.strokeDashArray,
-            goal.attrs.strokeHeight ? goal.attrs.strokeHeight : 2,
-            goal.attrs.strokeLineCap
-          )
-          lineGroup.add(line)
+            line = graphics.drawLine(
+              x - sWidth * 2,
+              goal.y,
+              x,
+              goal.y,
+              goal.attrs.strokeColor ? goal.attrs.strokeColor : undefined,
+              goal.attrs.strokeDashArray,
+              goal.attrs.strokeHeight ? goal.attrs.strokeHeight : 2,
+              goal.attrs.strokeLineCap
+            )
+            lineGroup.add(line)
+          }
         })
       }
     }

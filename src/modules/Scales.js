@@ -429,7 +429,8 @@ export default class Scales {
 
     const logs = []
 
-    const logMax = Math.ceil(Math.log(yMax) / Math.log(base) + 1) // Get powers of base for our max and min
+    // Get powers of base for our max and min
+    const logMax = Math.ceil(Math.log(yMax) / Math.log(base) + 1)
     const logMin = Math.floor(Math.log(yMin) / Math.log(base))
 
     for (let i = logMin; i < logMax; i++) {
@@ -571,16 +572,67 @@ export default class Scales {
     const minYArr = gl.minYArr
     const maxYArr = gl.maxYArr
 
+    // The current config method to map multiple series to a y axis is to
+    // include one yaxis config per series but set each yaxis seriesName to the
+    // same series name. This relies on indexing equivalence to map series to
+    // an axis: series[n] => yaxis[n]. This needs to be retained for compatibility.
+    // But we introduce an alternative that explicitly configures yaxis elements
+    // with the series that will be referenced to them (seriesName: []). This
+    // only requires including the yaxis elements that will be seen on the chart.
+    // Old way:
+    // ya: s
+    // 0: 0
+    // 1: 1
+    // 2: 1
+    // 3: 1
+    // 4: 1
+    // Axes 0..4 are all scaled and all will be rendered unless the axes are
+    // show: false. If the chart is stacked, it's assumed that series 1..4 are
+    // the contributing series. This is not particularly intuitive.
+    // New way:
+    // ya: s
+    // 0: [0]
+    // 1: [1,2,3,4]
+    // If the chart is stacked, it can be assumed that any axis with multiple
+    // series is stacked.
+    // 
+    // If this is an old chart and we are being backward compatible, it will be
+    // expected that each series is associated with it's corresponding yaxis
+    // through their indices, one-to-one.
+    // If yaxis.seriesName matches series.name, we have indices yi and si.
+    // A name match where yi != si is interpretted as yaxis[yi] and yaxis[si]
+    // will both be scaled to fit the combined series[si] and series[yi].
+    // Consider series named: S0,S1,S2 and yaxes A0,A1,A2.
+    // 
+    // Example 1: A0 and A1 scaled the same.
+    // A0.seriesName: S0
+    // A1.seriesName: S0
+    // A2.seriesName: S2
+    // Then A1 <-> A0
+    // 
+    // Example 2: A0, A1 and A2 all scaled the same.
+    // A0.seriesName: S2
+    // A1.seriesName: S0
+    // A2.seriesName: S1
+    // A0 <-> A2, A1 <-> A0, A2 <-> A1 --->>> A0 <-> A1 <-> A2
+
     let axisSeriesMap = []
     let seriesYAxisReverseMap = []
     let unassignedSeriesIndices = []
+    let assumeSeriesNameArrays = cnf.yaxis.length !== cnf.series.length
+
     cnf.series.forEach((s, i) => {
       unassignedSeriesIndices.push(i)
       seriesYAxisReverseMap.push(null)
     })
+    cnf.yaxis.forEach((yaxe, yi) => {
+      axisSeriesMap[yi] = []
+    })
+
     let unassignedYAxisIndices = []
     // here, we loop through the yaxis array and find the item which has "seriesName" property
     cnf.yaxis.forEach((yaxe, yi) => {
+      let assigned = false
       // Allow seriesName to be either a string (for backward compatibility),
       // in which case, handle multiple yaxes referencing the same series.
       // or an array of strings so that a yaxis can reference multiple series.
@@ -592,21 +644,31 @@ export default class Scales {
         } else {
           seriesNames.push(yaxe.seriesName)
         }
-        axisSeriesMap[yi] = []
         seriesNames.forEach((name) => {
           cnf.series.forEach((s, si) => {
-            // if seriesName matches we use that scale.
             if (s.name === name) {
-              axisSeriesMap[yi].push(si)
-              seriesYAxisReverseMap[si] = yi
+              if (yi === si || assumeSeriesNameArrays) {
+                axisSeriesMap[yi].push(si)
+              } else {
+                axisSeriesMap[si].push(yi)
+              }
+              assigned = true
               let remove = unassignedSeriesIndices.indexOf(si)
-              unassignedSeriesIndices.splice(remove, 1)
+              if (remove !== -1) {
+                unassignedSeriesIndices.splice(remove, 1)
+              }
             }
           })
         })
-      } else {
+      }
+      if (!assigned) {
         unassignedYAxisIndices.push(yi)
       }
+    })
+    axisSeriesMap.forEach((yaxe, yi) => {
+      yaxe.forEach((si) => {
+        seriesYAxisReverseMap[si] = yi
+      })
     })
     // All series referenced directly by yaxes have been assigned to those axes.
     // Any series so far unassigned will be assigned to any yaxes that have yet
@@ -635,6 +697,8 @@ export default class Scales {
       })
     }
 
+    // We deliberately leave the zero-length yaxis array elements in for
+    // compatibility with the old equivalence in number between sereis and yaxes.
     gl.seriesYAxisMap = axisSeriesMap.map((x) => x)
     gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x)
     this.sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap)
@@ -644,115 +708,72 @@ export default class Scales {
     const cnf = this.w.config
     const gl = this.w.globals
 
-    // The current config method to map multiple series to a y axis is to
-    // include one yaxis config per series but set each yaxis seriesName to the
-    // same series name. This relies on indexing equivalence to map series to
-    // an axis: series[n] => yaxis[n]. This needs to be retained for compatibility.
-    // But we introduce an alternative that explicitly configures yaxis elements
-    // with the series that will be referenced to them (seriesName: []). This
-    // only requires including the yaxis elements that will be seen on the chart.
-    // Old way:
-    // ya: s
-    // 0: 0
-    // 1: 1
-    // 2: 1
-    // 3: 1
-    // 4: 1
-    // Axes 0..4 are all scaled and all will be rendered unless the axes are
-    // show: false. If the chart is stacked, it's assumed that series 1..4 are
-    // the contributing series. This is not particularly intuitive.
-    // New way:
-    // ya: s
-    // 0: [0]
-    // 1: [1,2,3,4]
-    // If the chart is stacked, it can be assumed that any axis with multiple
-    // series is stacked.
-
-    // First things first, convert the old to the new.
-    let emptyAxes = []
-    axisSeriesMap.forEach((axisSeries, ai) => {
-      for (let si = ai + 1; si < axisSeriesMap.length; si++) {
-        let iter = axisSeries.values()
-        for (const val of iter) {
-          let i = axisSeriesMap[si].indexOf(val)
-          if (i !== -1) {
-            axisSeries.push(si) // add series index to current yaxis
-            axisSeriesMap[si].splice(i, 1) // remove it from its old yaxis
-          }
-        }
-        if (axisSeriesMap[si].length < 1 && emptyAxes.indexOf(si) === -1) {
-          emptyAxes.push(si)
-        }
-      }
-    })
-    for (let i = emptyAxes.length - 1; i >= 0; i--) {
-      axisSeriesMap.splice(emptyAxes[i], 1)
-    }
-
     // Compute min..max for each yaxis
     // 
     axisSeriesMap.forEach((axisSeries, ai) => {
-      let minY = Number.MAX_VALUE
-      let maxY = -Number.MAX_VALUE
-      if (cnf.chart.stacked) {
-        let sumSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
-        let posSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
-        let negSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
-        // The first series bound to the axis sets the type for stacked series
-        let seriesType = cnf.series[axisSeries[0]].type
-        for (let i = 0; i < axisSeries.length; i++) {
-          // Sum all series for this yaxis at each corresponding datapoint
-          // For bar and column charts we need to keep positive and negative
-          // values separate.
-          let si = axisSeries[i]
-          if (gl.collapsedSeriesIndices.indexOf(si) === -1) {
-            for (let j = 0; j < gl.series[si].length; j++) {
-              let val = gl.series[si][j]
-              if (val >= 0) {
-                posSeries[j] += val
-              } else {
-                negSeries[j] += val
+      if (axisSeries.length > 0) {
+        let minY = Number.MAX_VALUE
+        let maxY = -Number.MAX_VALUE
+        if (cnf.chart.stacked) {
+          let sumSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
+          let posSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
+          let negSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
+          // The first series bound to the axis sets the type for stacked series
+          let seriesType = cnf.series[axisSeries[0]].type
+          for (let i = 0; i < axisSeries.length; i++) {
+            // Sum all series for this yaxis at each corresponding datapoint
+            // For bar and column charts we need to keep positive and negative
+            // values separate.
+            let si = axisSeries[i]
+            if (gl.collapsedSeriesIndices.indexOf(si) === -1) {
+              for (let j = 0; j < gl.series[si].length; j++) {
+                let val = gl.series[si][j]
+                if (val >= 0) {
+                  posSeries[j] += val
+                } else {
+                  negSeries[j] += val
+                }
+                sumSeries[j] += val
               }
-              sumSeries[j] += val
             }
           }
-        }
-        if (seriesType === 'bar') {
-          minY = Math.min.apply(null, negSeries)
-          maxY = Math.max.apply(null, posSeries)
+          if (seriesType === 'bar') {
+            minY = Math.min.apply(null, negSeries)
+            maxY = Math.max.apply(null, posSeries)
+          } else {
+            minY = Math.min.apply(null, sumSeries)
+            maxY = Math.max.apply(null, sumSeries)
+          }
         } else {
-          minY = Math.min.apply(null, sumSeries)
-          maxY = Math.max.apply(null, sumSeries)
+          for (let i = 0; i < axisSeries.length; i++) {
+            minY = Math.min(minY, minYArr[axisSeries[i]])
+          }
+          for (let i = 0; i < axisSeries.length; i++) {
+            maxY = Math.max(maxY, maxYArr[axisSeries[i]])
+          }
         }
-      } else {
-        for (let i = 0; i < axisSeries.length; i++) {
-          minY = Math.min(minY, minYArr[axisSeries[i]])
+        if (cnf.yaxis[ai].min !== undefined) {
+          if (typeof cnf.yaxis[ai].min === 'function') {
+            minY = cnf.yaxis[ai].min(minY)
+          } else {
+            minY = cnf.yaxis[ai].min
+          }
         }
-        for (let i = 0; i < axisSeries.length; i++) {
-          maxY = Math.max(maxY, maxYArr[axisSeries[i]])
+        if (cnf.yaxis[ai].max !== undefined) {
+          if (typeof cnf.yaxis[ai].max === 'function') {
+            maxY = cnf.yaxis[ai].max(maxY)
+          } else {
+            maxY = cnf.yaxis[ai].max
+          }
         }
+        // Set the scale for this yaxis
+        this.setYScaleForIndex(ai, minY, maxY)
+        // Set individual series min and max to nice values
+        axisSeries.forEach((si) => {
+          minYArr[si] = gl.yAxisScale[ai].niceMin
+          maxYArr[si] = gl.yAxisScale[ai].niceMax
+        })
       }
-      if (cnf.yaxis[ai].min !== undefined) {
-        if (typeof cnf.yaxis[ai].min === 'function') {
-          minY = cnf.yaxis[ai].min(minY)
-        } else {
-          minY = cnf.yaxis[ai].min
-        }
-      }
-      if (cnf.yaxis[ai].max !== undefined) {
-        if (typeof cnf.yaxis[ai].max === 'function') {
-          maxY = cnf.yaxis[ai].max(maxY)
-        } else {
-          maxY = cnf.yaxis[ai].max
-        }
-      }
-      // Set the scale for this yaxis
-      this.setYScaleForIndex(ai, minY, maxY)
-      // Set individual series min and max to nice values
-      axisSeries.forEach((si) => {
-        minYArr[si] = gl.yAxisScale[ai].niceMin
-        maxYArr[si] = gl.yAxisScale[ai].niceMax
-      })
     })
   }
 }

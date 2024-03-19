@@ -102,7 +102,7 @@ export default class Helpers {
     }
   }
 
-  determineFirstPrevY({ i, series, prevY, lineYPosition }) {
+  determineFirstPrevY({ i, series, prevY, lineYPosition, translationsIndex }) {
     let w = this.w
     let stackSeries =
       (w.config.chart.stacked && !w.globals.comboCharts) ||
@@ -125,11 +125,9 @@ export default class Helpers {
       }
       prevY =
         lineYPosition -
-        series[i][0] / this.lineCtx.yRatio[this.lineCtx.yaxisIndex] +
-        (this.lineCtx.isReversed
-          ? series[i][0] / this.lineCtx.yRatio[this.lineCtx.yaxisIndex]
-          : 0) *
-          2
+        series[i][0] / this.lineCtx.yRatio[translationsIndex] +
+        (this.lineCtx.isReversed 
+          ? series[i][0] / this.lineCtx.yRatio[translationsIndex] : 0) * 2
     } else {
       // the first value in the current series is null
       if (stackSeries && i > 0 && typeof series[i][0] === 'undefined') {

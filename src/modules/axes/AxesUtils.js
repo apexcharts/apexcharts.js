@@ -185,10 +185,10 @@ export default class AxesUtils {
     })
 
     return (
+      allCollapsed ||
       !w.config.yaxis[index].show ||
       (!w.config.yaxis[index].showForNullSeries &&
-        coreUtils.isSeriesNull(index) &&
-        allCollapsed)
+        coreUtils.isSeriesNull(index))
     )
   }
 

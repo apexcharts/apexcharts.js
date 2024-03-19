@@ -61,8 +61,10 @@ class BarStacked extends Bar {
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
+      let translationsIndex = 0
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = realIndex
+        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0]
+        translationsIndex = realIndex
       }
 
       this.isReversed =
@@ -97,7 +99,8 @@ class BarStacked extends Bar {
         xDivision,
         yDivision,
         zeroH,
-        zeroW
+        zeroW,
+        translationsIndex
       )
       y = initPositions.y
       barHeight = initPositions.barHeight
@@ -126,7 +129,7 @@ class BarStacked extends Bar {
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
         const commonPathOpts = {
-          indexes: { i, j, realIndex, bc },
+          indexes: { i, j, realIndex, translationsIndex, bc },
           strokeWidth,
           x,
           y,
@@ -150,7 +153,7 @@ class BarStacked extends Bar {
             barWidth,
             zeroH,
           })
-          barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex]
+          barHeight = this.series[i][j] / this.yRatio[translationsIndex]
         }
 
         const barGoalLine = this.barHelpers.drawGoalLine({
@@ -214,7 +217,7 @@ class BarStacked extends Bar {
     return ret
   }
 
-  initialPositions(x, y, xDivision, yDivision, zeroH, zeroW) {
+  initialPositions(x, y, xDivision, yDivision, zeroH, zeroW, translationsIndex) {
     let w = this.w
 
     let barHeight, barWidth
@@ -257,9 +260,9 @@ class BarStacked extends Bar {
       }
       zeroH =
         w.globals.gridHeight -
-        this.baseLineY[this.yaxisIndex] -
+        this.baseLineY[translationsIndex] -
         (this.isReversed ? w.globals.gridHeight : 0) +
-        (this.isReversed ? this.baseLineY[this.yaxisIndex] * 2 : 0)
+        (this.isReversed ? this.baseLineY[translationsIndex] * 2 : 0)
 
       // initial x position is one third of barWidth
       x = w.globals.padHorizontal + (xDivision - barWidth) / 2
@@ -297,6 +300,7 @@ class BarStacked extends Bar {
     let barXPosition
     let i = indexes.i
     let j = indexes.j
+    let translationsIndex = indexes.translationsIndex
 
     let prevBarW = 0
     for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
@@ -369,7 +373,7 @@ class BarStacked extends Bar {
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
-      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
+      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j, translationsIndex),
       barYPosition,
       x,
       y,
@@ -391,6 +395,7 @@ class BarStacked extends Bar {
     let i = indexes.i
     let j = indexes.j
     let bc = indexes.bc
+    let translationsIndex = indexes.translationsIndex
 
     if (w.globals.isXNumeric) {
       let seriesVal = w.globals.seriesX[i][j]
@@ -485,9 +490,9 @@ class BarStacked extends Bar {
     if (this.series[i][j]) {
       y =
         barYPosition -
-        this.series[i][j] / this.yRatio[this.yaxisIndex] +
+        this.series[i][j] / this.yRatio[translationsIndex] +
         (this.isReversed
-          ? this.series[i][j] / this.yRatio[this.yaxisIndex]
+          ? this.series[i][j] / this.yRatio[translationsIndex]
           : 0) *
           2
     } else {
@@ -500,7 +505,7 @@ class BarStacked extends Bar {
       barWidth,
       y1: barYPosition,
       y2: y,
-      yRatio: this.yRatio[this.yaxisIndex],
+      yRatio: this.yRatio[translationsIndex],
       strokeWidth: this.strokeWidth,
       series: this.series,
       seriesGroup,
