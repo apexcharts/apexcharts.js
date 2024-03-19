@@ -128,10 +128,10 @@ class Grid {
       }
     }
     gl.dom.elGridRect = graphics.drawRect(
-      -strokeSize - barWidthLeft - 2,
-      -strokeSize * 2 - 2,
+      -strokeSize / 2 - barWidthLeft - 2,
+      -strokeSize / 2 - 2,
       gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
-      gl.gridHeight + strokeSize * 4 + 4,
+      gl.gridHeight + strokeSize + 4,
       0,
       '#fff'
     )
@@ -436,8 +436,9 @@ class Grid {
     // Draw the grid using ticks from the first unhidden Yaxis,
     // or yaxis[0] is all hidden.
     let gridAxisIndex = 0
-    while (gridAxisIndex < w.globals.seriesYAxisMap.length &&
-            w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
+    while (
+      gridAxisIndex < w.globals.seriesYAxisMap.length &&
+      w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
     ) {
       gridAxisIndex++
     }
