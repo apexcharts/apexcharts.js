@@ -575,7 +575,9 @@ class Range {
 
   _setStackedMinMax() {
     const gl = this.w.globals
-    // for stacked charts, we calculate each series's parallel values. i.e, series[0][j] + series[1][j] .... [series[i.length][j]] and get the max out of it
+    // for stacked charts, we calculate each series's parallel values.
+    // i.e, series[0][j] + series[1][j] .... [series[i.length][j]]
+    // and get the max out of it
 
     if (!gl.series.length) return
     let seriesGroups = gl.seriesGroups
@@ -600,7 +602,7 @@ class Range {
             stackedNegs[group][j] = 0
           }
 
-          let stackSeries =
+          let stackSeries = 
             (this.w.config.chart.stacked && !gl.comboCharts) ||
             (this.w.config.chart.stacked &&
               gl.comboCharts &&

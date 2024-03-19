@@ -8,12 +8,19 @@ class CoreUtils {
     this.w = ctx.w
   }
 
-  static checkComboSeries(series) {
+  static checkComboSeries(series, chartType) {
     let comboCharts = false
     let comboBarCount = 0
     let comboCount = 0
-
-    // if user specified a type in series too, turn on comboCharts flag
+    
+    if (chartType === undefined) {
+      chartType = 'line'
+    }
+    
+    // Check if user specified a type in series that may make us a combo chart.
+    // The default type for chart is "line" and the default for series is the
+    // chart type, therefore, if the types of all series match the chart type,
+    // this should not be considered a combo chart.
     if (series.length && typeof series[0].type !== 'undefined') {
       series.forEach((s) => {
         if (
@@ -24,7 +31,7 @@ class CoreUtils {
         ) {
           comboBarCount++
         }
-        if (typeof s.type !== 'undefined') {
+        if (typeof s.type !== 'undefined' && s.type !== chartType) {
           comboCount++
         }
       })

@@ -154,7 +154,7 @@ export default class ApexCharts {
       return null
     }
 
-    const combo = CoreUtils.checkComboSeries(ser)
+    const combo = CoreUtils.checkComboSeries(ser, w.config.chart.type)
     gl.comboCharts = combo.comboCharts
     gl.comboBarCount = combo.comboBarCount
 

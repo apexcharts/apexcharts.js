@@ -178,9 +178,16 @@ export default class Core {
       i: [],
     }
 
+    let chartType = cnf.chart.type !== undefined ? cnf.chart.type : 'line'
+    // Check if the user has specified a type for any series.
+    let comboCount = 0
     gl.series.map((serie, st) => {
-      let comboCount = 0
-      // if user has specified a particular type for particular series
+      // The default type for chart is "line" and the default for series is the
+      // chart type, therefore, if the types of all series match the chart type,
+      // this should not be considered a combo chart.
+      // Combo charts are explicitly excluded from stacking with the exception
+      // that series of type "bar" can be stacked if the user sets "stackOnlyBar"
+      // true.
       if (typeof ser[st].type !== 'undefined') {
         if (ser[st].type === 'column' || ser[st].type === 'bar') {
           if (gl.series.length > 1 && cnf.plotOptions.bar.horizontal) {
@@ -191,54 +198,68 @@ export default class Core {
           }
           columnSeries.series.push(serie)
           columnSeries.i.push(st)
-          comboCount++
+          if (chartType !== 'bar') {
+            comboCount++
+          }
           w.globals.columnSeries = columnSeries.series
         } else if (ser[st].type === 'area') {
           areaSeries.series.push(serie)
           areaSeries.i.push(st)
-          comboCount++
+          if (chartType !== ser[st].type) {
+            comboCount++
+          }
         } else if (ser[st].type === 'line') {
           lineSeries.series.push(serie)
           lineSeries.i.push(st)
-          comboCount++
+          if (chartType !== ser[st].type) {
+            comboCount++
+          }
         } else if (ser[st].type === 'scatter') {
           scatterSeries.series.push(serie)
           scatterSeries.i.push(st)
         } else if (ser[st].type === 'bubble') {
           bubbleSeries.series.push(serie)
           bubbleSeries.i.push(st)
-          comboCount++
+          if (chartType !== ser[st].type) {
+            comboCount++
+          }
         } else if (ser[st].type === 'candlestick') {
           candlestickSeries.series.push(serie)
           candlestickSeries.i.push(st)
-          comboCount++
+          if (chartType !== ser[st].type) {
+            comboCount++
+          }
         } else if (ser[st].type === 'boxPlot') {
           boxplotSeries.series.push(serie)
           boxplotSeries.i.push(st)
-          comboCount++
+          if (chartType !== ser[st].type) {
+            comboCount++
+          }
         } else if (ser[st].type === 'rangeBar') {
           rangeBarSeries.series.push(serie)
           rangeBarSeries.i.push(st)
-          comboCount++
+          if (chartType !== ser[st].type) {
+            comboCount++
+          }
         } else if (ser[st].type === 'rangeArea') {
           rangeAreaSeries.series.push(gl.seriesRangeStart[st])
           rangeAreaSeries.seriesRangeEnd.push(gl.seriesRangeEnd[st])
           rangeAreaSeries.i.push(st)
-          comboCount++
+          if (chartType !== ser[st].type) {
+            comboCount++
+          }
         } else {
           // user has specified type, but it is not valid (other than line/area/column)
           console.warn(
             'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble/candlestick/boxPlot/rangeBar/rangeArea'
           )
         }
-        if (comboCount > 1) {
-          gl.comboCharts = true
-        }
       } else {
         lineSeries.series.push(serie)
         lineSeries.i.push(st)
       }
     })
+    gl.comboCharts ||= comboCount > 0
 
     let line = new Line(this.ctx, xyRatios)
     let boxCandlestick = new BoxCandleStick(this.ctx, xyRatios)
