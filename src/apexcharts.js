@@ -84,9 +84,9 @@ export default class ApexCharts {
           css = document.createElement('style')
           css.id = 'apexcharts-css'
           css.textContent = apexCSS
-          const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce;
+          const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce
           if (nonce) {
-            this.css.setAttribute('nonce', nonce);
+            css.setAttribute('nonce', nonce)
           }
 
           if (inShadowRoot) {
@@ -633,7 +633,7 @@ export default class ApexCharts {
   }
 
   isSeriesHidden(seriesName) {
-    this.series.isSeriesHidden(seriesName);
+    this.series.isSeriesHidden(seriesName)
   }
 
   resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
