@@ -129,12 +129,14 @@ class Range {
                 lowestY = Math.min(lowestY, gl.seriesCandleL[i][j])
               }
             }
+            break
             case 'boxPlot': {
               if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
                 maxY = Math.max(maxY, gl.seriesCandleC[i][j])
                 lowestY = Math.min(lowestY, gl.seriesCandleO[i][j])
               }
             }
+            break
           }
 
           // there is a combo chart and the specified series in not either
