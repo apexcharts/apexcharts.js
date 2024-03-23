@@ -536,6 +536,9 @@ class Line {
         (!this.w.config.chart.stackOnlyBar ||
           this.w.config.series[realIndex]?.type === 'bar'))
 
+    let pathState = 0
+    let segmentStartX
+
     for (let j = 0; j < iterations; j++) {
       const isNull =
         typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
@@ -622,6 +625,8 @@ class Line {
         y2Arrj,
         pX,
         pY,
+        pathState,
+        segmentStartX,
         linePath,
         areaPath,
         linePaths,
@@ -634,12 +639,23 @@ class Line {
       linePaths = calculatedPaths.linePaths
       pX = calculatedPaths.pX
       pY = calculatedPaths.pY
+      pathState = calculatedPaths.pathState
+      segmentStartX = calculatedPaths.segmentStartX
       areaPath = calculatedPaths.areaPath
       linePath = calculatedPaths.linePath
 
+      let curve
+      if (Array.isArray(w.config.stroke.curve)) {
+        if (Array.isArray(seriesIndex)) {
+          curve = w.config.stroke.curve[seriesIndex[i]]
+        } else {
+          curve = w.config.stroke.curve[i]
+        }
+      }
+
       if (
         this.appendPathFrom &&
-        !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')
+        !(curve === 'monotoneCubic' && type === 'rangeArea')
       ) {
         pathFromLine = pathFromLine + graphics.line(x, this.zeroY)
         pathFromArea = pathFromArea + graphics.line(x, this.zeroY)
@@ -722,6 +738,8 @@ class Line {
     y2Arrj,
     pX,
     pY,
+    pathState,
+    segmentStartX,
     linePath,
     areaPath,
     linePaths,
@@ -732,9 +750,9 @@ class Line {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let curve = w.config.stroke.curve
     const areaBottomY = this.areaBottomY
 
+    let curve = w.config.stroke.curve
     if (Array.isArray(w.config.stroke.curve)) {
       if (Array.isArray(seriesIndex)) {
         curve = w.config.stroke.curve[seriesIndex[i]]
@@ -751,7 +769,8 @@ class Line {
       curve = 'straight'
     }
 
-    if (curve === 'monotoneCubic') {
+    switch (curve) {
+    case 'monotoneCubic':
       const shouldRenderMonotone =
         type === 'rangeArea'
           ? xArrj.length === w.globals.dataPoints
@@ -808,33 +827,61 @@ class Line {
         linePaths.push(linePath)
         areaPaths.push(areaPath)
       }
-    } else if (curve === 'smooth') {
+      break
+    case 'smooth':
       let length = (x - pX) * 0.35
       if (w.globals.hasNullValues) {
-        if (series[i][j] !== null) {
-          if (series[i][j + 1] !== null) {
-            linePath =
-              graphics.move(pX, pY) +
-              graphics.curve(pX + length, pY, x - length, y, x + 1, y)
-            areaPath =
-              graphics.move(pX + 1, pY) +
-              graphics.curve(pX + length, pY, x - length, y, x + 1, y) +
-              graphics.line(x, areaBottomY) +
-              graphics.line(pX, areaBottomY) +
-              'z'
-          } else {
-            linePath = graphics.move(pX, pY)
-            areaPath = graphics.move(pX, pY) + 'z'
+        if (series[i][j] === null) {
+          pathState = 0
+        } else {
+          switch (pathState) {
+            case 0:
+              // Beginning of segment
+              segmentStartX = pX
+              linePath =
+                  graphics.move(pX, pY)
+                + graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+              areaPath =
+                  graphics.move(pX + 1, pY)
+                + graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+              pathState = 1
+            break
+          case 1:
+            // Continuing with segment
+            if (series[i][j + 1] === null) {
+              // Segment ends here
+              linePath +=
+                  graphics.move(pX, pY)
+              areaPath +=
+                  graphics.line(pX, areaBottomY)
+                + graphics.line(segmentStartX, areaBottomY)
+                + 'z'
+              linePaths.push(linePath)
+              areaPaths.push(areaPath)
+            } else {
+              linePath +=
+                  graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+              areaPath +=
+                  graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+              if (j >= series[i].length - 2) {
+                linePath +=
+                    graphics.move(x, y)
+                areaPath +=
+                    graphics.curve(x, y, x, y, x, areaBottomY)
+                  + graphics.move(x, y)
+                  + 'z'
+                linePaths.push(linePath)
+                areaPaths.push(areaPath)
+              }
+            }
+            break
           }
         }
-
-        linePaths.push(linePath)
-        areaPaths.push(areaPath)
       } else {
-        linePath =
-          linePath + graphics.curve(pX + length, pY, x - length, y, x, y)
-        areaPath =
-          areaPath + graphics.curve(pX + length, pY, x - length, y, x, y)
+        linePath +=
+            graphics.curve(pX + length, pY, x - length, y, x, y)
+        areaPath +=
+            graphics.curve(pX + length, pY, x - length, y, x, y)
       }
 
       pX = x
@@ -842,15 +889,13 @@ class Line {
 
       if (j === series[i].length - 2) {
         // last loop, close path
-        areaPath =
-          areaPath +
+        areaPath +=
           graphics.curve(pX, pY, x, y, x, areaBottomY) +
           graphics.move(x, y) +
           'z'
 
         if (type === 'rangeArea' && isRangeStart) {
-          linePath =
-            linePath +
+          linePath +=
             graphics.curve(pX, pY, x, y, x, y2) +
             graphics.move(x, y2) +
             'z'
@@ -861,7 +906,8 @@ class Line {
           }
         }
       }
-    } else {
+      break
+    default:
       if (series[i][j + 1] === null) {
         linePath = linePath + graphics.move(x, y)
 
@@ -879,19 +925,23 @@ class Line {
         areaPath = areaPath + graphics.move(x, areaBottomY)
       }
 
-      if (curve === 'stepline') {
+      switch (curve) {
+      case 'stepline':
         linePath =
           linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
         areaPath =
           areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
-      } else if (curve === 'linestep') {
+        break
+      case 'linestep':
         linePath =
           linePath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H')
         areaPath =
           areaPath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H')
-      } else if (curve === 'straight') {
+        break
+      case 'straight':
         linePath = linePath + graphics.line(x, y)
         areaPath = areaPath + graphics.line(x, y)
+        break
       }
 
       if (j === series[i].length - 2) {
@@ -907,6 +957,7 @@ class Line {
           areaPaths.push(areaPath)
         }
       }
+      break
     }
 
     return {
@@ -914,6 +965,8 @@ class Line {
       areaPaths,
       pX,
       pY,
+      pathState,
+      segmentStartX,
       linePath,
       areaPath,
     }
