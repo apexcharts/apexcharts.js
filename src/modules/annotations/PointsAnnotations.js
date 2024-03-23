@@ -11,6 +11,10 @@ export default class PointAnnotations {
   addPointAnnotation(anno, parent, index) {
     const w = this.w
 
+    if (w.globals.collapsedSeriesIndices.indexOf(anno.seriesIndex) > -1) {
+      return
+    }
+
     let result = this.helpers.getX1X2('x1', anno)
     let x = result.x
     let clipX = result.clipped
