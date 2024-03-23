@@ -131,6 +131,7 @@ class Line {
         series,
         i,
         realIndex,
+        translationsIndex,
         prevX,
         prevY,
         prevY2,
@@ -285,7 +286,7 @@ class Line {
     this.appendPathFrom = true
   }
 
-  _calculatePathsFrom({ type, series, i, realIndex, prevX, prevY, prevY2 }) {
+  _calculatePathsFrom({ type, series, i, realIndex, translationsIndex, prevX, prevY, prevY2 }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
     let linePath, areaPath, pathFromLine, pathFromArea
@@ -295,7 +296,7 @@ class Line {
       for (let s = 0; s < series[i].length; s++) {
         if (series[i][s] !== null) {
           prevX = this.xDivision * s
-          prevY = this.zeroY - series[i][s] / this.yRatio[realIndex]
+          prevY = this.zeroY - series[i][s] / this.yRatio[translationsIndex]
           linePath = graphics.move(prevX, prevY)
           areaPath = graphics.move(prevX, this.areaBottomY)
           break

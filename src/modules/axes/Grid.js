@@ -434,11 +434,12 @@ class Grid {
     }
 
     // Draw the grid using ticks from the first unhidden Yaxis,
-    // or yaxis[0] is all hidden.
+    // or yaxis[0] if all are hidden.
     let gridAxisIndex = 0
     while (
-      gridAxisIndex < w.globals.seriesYAxisMap.length &&
-      w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
+      w.globals.seriesYAxisMap[gridAxisIndex].length === 0
+      && gridAxisIndex < w.globals.seriesYAxisMap.length
+      && w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
     ) {
       gridAxisIndex++
     }
