@@ -161,21 +161,32 @@ class AxesTooltip {
   drawYaxisTooltipText(index, clientY, xyRatios) {
     const ttCtx = this.ttCtx
     const w = this.w
-
-    let lbFormatter = w.globals.yLabelFormatters[index]
+    const gl = w.globals
+    const yAxisSeriesArr = gl.seriesYAxisMap[index]
 
     if (ttCtx.yaxisTooltips[index]
-          && w.globals.seriesYAxisMap[index].length > 0
+          && yAxisSeriesArr.length > 0
     ) {
+      const lbFormatter = gl.yLabelFormatters[index]
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
 
       // We can use the index of any series referenced by the Yaxis
       // because they will all return the same value.
-      let seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
-      const hoverY = (clientY - seriesBound.top) * xyRatios.yRatio[seriesIndex]
-      const height = w.globals.maxYArr[seriesIndex] - w.globals.minYArr[seriesIndex]
-      const val = w.globals.minYArr[seriesIndex] + (height - hoverY)
+      const seriesIndex = yAxisSeriesArr[0]
+      const translationsIndex = 0
+      if (xyRatios.yRatio.length > 1) {
+        translationsIndex = seriesIndex
+      }
+      const hoverY =
+              (clientY - seriesBound.top)
+            * xyRatios.yRatio[translationsIndex]
+      const height =
+              gl.maxYArr[seriesIndex]
+            - gl.minYArr[seriesIndex]
+      const val =
+              gl.minYArr[seriesIndex]
+            + (height - hoverY)
 
       ttCtx.tooltipPosition.moveYCrosshairs(clientY - seriesBound.top)
       ttCtx.yaxisTooltipText[index].innerHTML = lbFormatter(val)
