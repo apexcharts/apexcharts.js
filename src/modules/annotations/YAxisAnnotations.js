@@ -119,17 +119,20 @@ export default class YAnnotations {
   }
 
   drawYAxisAnnotations() {
-    let w = this.w
+    const w = this.w
 
     let elg = this.annoCtx.graphics.group({
       class: 'apexcharts-yaxis-annotations'
     })
 
     w.config.annotations.yaxis.forEach((anno, index) => {
-        let seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
-        if (!this.axesUtils.isYAxisHidden(anno.yAxisIndex)) {
-          this.addYaxisAnnotation(anno, elg.node, index)
-        }
+      anno.yAxisIndex = this.axesUtils.translateYAxisIndex(anno.yAxisIndex)
+      if (
+            !(this.axesUtils.isYAxisHidden(anno.yAxisIndex)
+            && this.axesUtils.yAxisAllSeriesCollapsed(anno.yAxisIndex))
+      ) {
+        this.addYaxisAnnotation(anno, elg.node, index)
+      }
     })
 
     return elg
