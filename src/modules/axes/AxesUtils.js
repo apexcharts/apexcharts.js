@@ -176,20 +176,46 @@ export default class AxesUtils {
     return labels
   }
   
+  yAxisAllSeriesCollapsed(index) {
+    const gl = this.w.globals
+
+    return !gl.seriesYAxisMap[index].some((si) => {
+      return gl.collapsedSeriesIndices.indexOf(si) === -1
+    })
+    
+  }
+  
+  // Method to translate annotation.yAxisIndex values from
+  // seriesName-as-a-string values to seriesName-as-an-array values (old style
+  // series mapping to new style).
+  translateYAxisIndex(index) {
+    const w = this.w
+    const gl = w.globals
+    const yaxis = w.config.yaxis
+    let newStyle =
+          gl.series.length > yaxis.length
+          || yaxis.some((a) => Array.isArray(a.seriesName))
+    if (newStyle) {
+      return index
+    } else {
+      return gl.seriesYAxisReverseMap[index]
+    }
+  }
+
   isYAxisHidden(index) {
     const w = this.w
-    const coreUtils = new CoreUtils(this.ctx)
-    
-    let allCollapsed = !w.globals.seriesYAxisMap[index].some((si) => {
-      return w.globals.collapsedSeriesIndices.indexOf(si) === -1
-    })
+    const yaxis = w.config.yaxis[index]
 
-    return (
-      allCollapsed ||
-      !w.config.yaxis[index].show ||
-      (!w.config.yaxis[index].showForNullSeries &&
-        coreUtils.isSeriesNull(index))
-    )
+    if (!yaxis.show || this.yAxisAllSeriesCollapsed(index) 
+    ) {
+      return true
+    }
+    if (!yaxis.showForNullSeries) {
+      const seriesIndices = w.globals.seriesYAxisMap[index]
+      const coreUtils = new CoreUtils(this.ctx)
+      return seriesIndices.every((si) => coreUtils.isSeriesNull(si))
+    }
+    return false
   }
 
   // get the label color for y-axis
