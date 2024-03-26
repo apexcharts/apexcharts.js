@@ -409,6 +409,7 @@ class Grid {
   // actual grid rendering
   renderGrid() {
     let w = this.w
+    const gl = w.globals
     let graphics = new Graphics(this.ctx)
 
     this.elg = graphics.group({
@@ -437,34 +438,33 @@ class Grid {
     // or yaxis[0] if all are hidden.
     let gridAxisIndex = 0
     while (
-      w.globals.seriesYAxisMap[gridAxisIndex].length === 0
-      && gridAxisIndex < w.globals.seriesYAxisMap.length
-      && w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
+      gridAxisIndex < gl.seriesYAxisMap.length
+      && gl.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
     ) {
       gridAxisIndex++
     }
-    if (gridAxisIndex === w.globals.seriesYAxisMap.length) {
+    if (gridAxisIndex === gl.seriesYAxisMap.length) {
       gridAxisIndex = 0
     }
 
-    let yTickAmount = w.globals.yAxisScale[gridAxisIndex].result.length - 1
+    let yTickAmount = gl.yAxisScale[gridAxisIndex].result.length - 1
 
     let xCount
 
-    if (!w.globals.isBarHorizontal || this.isRangeBar) {
+    if (!gl.isBarHorizontal || this.isRangeBar) {
       xCount = this.xaxisLabels.length
 
       if (this.isRangeBar) {
         xCount--
-        yTickAmount = w.globals.labels.length
+        yTickAmount = gl.labels.length
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
           xCount = w.config.xaxis.tickAmount
         }
         if (
-          w.globals.yAxisScale?.[gridAxisIndex]?.result?.length > 0 &&
+          gl.yAxisScale?.[gridAxisIndex]?.result?.length > 0 &&
           w.config.xaxis.type !== 'datetime'
         ) {
-          xCount = w.globals.yAxisScale[gridAxisIndex].result.length - 1
+          xCount = gl.yAxisScale[gridAxisIndex].result.length - 1
         }
       }
 
@@ -476,7 +476,7 @@ class Grid {
       xCount = yTickAmount
 
       // for horizontal bar chart, get the xaxis tickamount
-      yTickAmount = w.globals.xTickAmount
+      yTickAmount = gl.xTickAmount
       this._drawInvertedXYLines({ xCount, tickAmount: yTickAmount })
     }
 
@@ -484,7 +484,7 @@ class Grid {
     return {
       el: this.elg,
       elGridBorders: this.elGridBorders,
-      xAxisTickWidth: w.globals.gridWidth / xCount,
+      xAxisTickWidth: gl.gridWidth / xCount,
     }
   }
 

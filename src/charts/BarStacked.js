@@ -47,7 +47,11 @@ class BarStacked extends Bar {
       this.groupCtx = this
 
       w.globals.seriesGroups.forEach((group, gIndex) => {
-        if (group.indexOf(w.config.series[i].name) > -1) {
+        // w.config.series[i].name may be undefined, so use
+        // w.globals.seriesNames[i], which has auto-generated names for those
+        // series. w.globals.seriesGroups[] uses the same auto-gen naming, so
+        // these will match.
+        if (group.indexOf(w.globals.seriesNames[i]) > -1) {
           groupIndex = gIndex
         }
       })
@@ -423,7 +427,7 @@ class BarStacked extends Bar {
 
     let gsi = i // an index to keep track of the series inside a group
     if (seriesGroup) {
-      gsi = seriesGroup.indexOf(w.config.series[i].name)
+      gsi = seriesGroup.indexOf(w.globals.seriesNames[i])
     }
     if (
       (gsi > 0 && !w.globals.isXNumeric) ||
@@ -483,7 +487,9 @@ class BarStacked extends Bar {
         barYPosition = bYP
       }
     } else {
-      // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
+      // the first series will not have prevY values, also if the prev index's
+      // series X doesn't matches the current index's series X, then start from
+      // zero
       barYPosition = zeroH
     }
 

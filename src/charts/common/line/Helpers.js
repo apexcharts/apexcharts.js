@@ -109,7 +109,8 @@ export default class Helpers {
       (w.config.chart.stacked &&
         w.globals.comboCharts &&
         (!this.w.config.chart.stackOnlyBar ||
-          this.w.config.series[i]?.type === 'bar'))
+          this.w.config.series[i]?.type === 'bar'
+          || this.w.config.series[i]?.type === 'column'))
 
     if (typeof series[i]?.[0] !== 'undefined') {
       if (stackSeries) {
