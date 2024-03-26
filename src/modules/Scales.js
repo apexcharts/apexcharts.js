@@ -47,7 +47,11 @@ export default class Scales {
     // Ensure subsequent series start with the same tickAmount as series[0],
     // because the tick lines are drawn based on series[0]. This does not
     // override user defined options for any yaxis.
-    if (gl.isMultipleYAxis && !gotTickAmount && gl.multiAxisTickAmount > 0) {
+    if (
+        gl.isMultipleYAxis
+        && !gotTickAmount
+        && gl.multiAxisTickAmount > 0
+    ) {
       ticks = gl.multiAxisTickAmount
       gotTickAmount = true
     }
@@ -312,7 +316,11 @@ export default class Scales {
 
     // Record final tiks for use by other series that call niceScale().
     // Note: some don't, like logarithmicScale(), etc.
-    if (gl.isMultipleYAxis && gl.multiAxisTickAmount == 0) {
+    if (
+        gl.isMultipleYAxis
+        && gl.multiAxisTickAmount == 0
+        && gl.ignoreYAxisIndexes.indexOf(index) < 0
+    ) {
       gl.multiAxisTickAmount = tiks
     }
 
@@ -536,7 +544,10 @@ export default class Scales {
         ? this.logarithmicScaleNice(minY, maxY, y.logBase)
         : this.logarithmicScale(minY, maxY, y.logBase)
     } else {
-      if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
+      if (
+          maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)
+          || minY === Number.MAX_VALUE || !Utils.isNumber(minY)
+      ) {
         // no data in the chart.
         // Either all series collapsed or user passed a blank array.
         // Show the user's yaxis with their scale options but with a range.
@@ -572,7 +583,7 @@ export default class Scales {
     return gl.xAxisScale
   }
 
-  setMultipleYScales() {
+  setSeriesYAxisMappings() {
     const gl = this.w.globals
     const cnf = this.w.config
 
@@ -731,48 +742,105 @@ export default class Scales {
     // for multi axis charts.
     gl.seriesYAxisMap = axisSeriesMap.map((x) => x)
     gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x)
-    this.sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap)
   }
 
-  sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap) {
+  scaleMultipleYAxes() {
     const cnf = this.w.config
     const gl = this.w.globals
 
+    this.setSeriesYAxisMappings()
+    
+    let axisSeriesMap = gl.seriesYAxisMap
+    let minYArr = gl.minYArr
+    let maxYArr = gl.maxYArr
+
     // Compute min..max for each yaxis
-    // 
+    gl.allSeriesCollapsed = true
+    gl.barGroups = []
     axisSeriesMap.forEach((axisSeries, ai) => {
+      let groupNames = []
+      axisSeries.forEach((as) => {
+        let group = cnf.series[as].group
+        if (groupNames.indexOf(group) < 0) {
+          groupNames.push(group)
+        }
+      })
       if (axisSeries.length > 0) {
         let minY = Number.MAX_VALUE
         let maxY = -Number.MAX_VALUE
+        let lowestY = minY
+        let highestY = maxY
+        let seriesType
+        let seriesGroupName
         if (cnf.chart.stacked) {
-          let sumSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
-          let posSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
-          let negSeries = gl.seriesX[axisSeries[0]].map((x) => Number.MIN_VALUE)
-          // The first series bound to the axis sets the type for stacked series
-          let seriesType = cnf.series[axisSeries[0]].type
+          // Series' on this axis with the same group name will be stacked.
+          // Sum series in each group separately
+          let mapSeries = gl.seriesX[axisSeries[0]]
+          let sumSeries = []
+          let posSeries = []
+          let negSeries = []
+          groupNames.forEach(() => {
+            sumSeries.push(mapSeries.map(() => Number.MIN_VALUE))
+            posSeries.push(mapSeries.map(() => Number.MIN_VALUE))
+            negSeries.push(mapSeries.map(() => Number.MIN_VALUE))
+          })
           for (let i = 0; i < axisSeries.length; i++) {
+            // Assume chart type but the first series that has a type overrides.
+            if (!seriesType && cnf.series[axisSeries[i]].type) {
+              seriesType = cnf.series[axisSeries[i]].type
+            }
             // Sum all series for this yaxis at each corresponding datapoint
             // For bar and column charts we need to keep positive and negative
-            // values separate.
+            // values separate, for each group separately.
             let si = axisSeries[i]
-            if (gl.collapsedSeriesIndices.indexOf(si) === -1) {
-              for (let j = 0; j < gl.series[si].length; j++) {
-                let val = gl.series[si][j]
-                if (val >= 0) {
-                  posSeries[j] += val
-                } else {
-                  negSeries[j] += val
+            if (cnf.series[si].group) {
+              seriesGroupName = cnf.series[si].group
+            } else {
+              seriesGroupName = 'axis-'.concat(ai)
+            }
+            let collapsed =
+                    !(gl.collapsedSeriesIndices.indexOf(si) < 0
+                      && gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0)
+            if (!collapsed) {
+              gl.allSeriesCollapsed = false
+              groupNames.forEach((gn, gni) => {
+                // Undefined group names will be grouped together as their own
+                // group.
+                if (cnf.series[si].group === gn) {
+                  for (let j = 0; j < gl.series[si].length; j++) {
+                    let val = gl.series[si][j]
+                    if (val >= 0) {
+                      posSeries[gni][j] += val
+                    } else {
+                      negSeries[gni][j] += val
+                    }
+                    sumSeries[gni][j] += val
+                    // For non bar-like series' we need these point max/min values.
+                    lowestY = Math.min(lowestY, val)
+                    highestY = Math.max(highestY, val)
+                  }
                 }
-                sumSeries[j] += val
-              }
+              })
+            }
+            if (seriesType === 'bar' || seriesType === 'column') {
+              gl.barGroups.push(seriesGroupName)
             }
           }
+          if (!seriesType) {
+            seriesType = cnf.chart.type
+          }
           if (seriesType === 'bar' || seriesType === 'column') {
-            minY = Math.min.apply(null, negSeries)
-            maxY = Math.max.apply(null, posSeries)
+            groupNames.forEach((gn, gni) => {
+              minY = Math.min(minY, Math.min.apply(null, negSeries[gni]))
+              maxY = Math.max(maxY, Math.max.apply(null, posSeries[gni]))
+            })
           } else {
-            minY = Math.min.apply(null, sumSeries)
-            maxY = Math.max.apply(null, sumSeries)
+            // We don't expect multiple groups per yaxis for line-like
+            // series, but we allow it anyway.
+            groupNames.forEach((gn, gni) => {
+              minY = Math.min(lowestY, Math.min.apply(null, sumSeries[gni]))
+              maxY = Math.max(highestY, Math.max.apply(null, sumSeries[gni]))
+            })
           }
           if (minY === Number.MIN_VALUE && maxY === Number.MIN_VALUE) {
             // No series data
@@ -780,10 +848,15 @@ export default class Scales {
           }
         } else {
           for (let i = 0; i < axisSeries.length; i++) {
-            minY = Math.min(minY, minYArr[axisSeries[i]])
-          }
-          for (let i = 0; i < axisSeries.length; i++) {
-            maxY = Math.max(maxY, maxYArr[axisSeries[i]])
+            let si = axisSeries[i]
+            minY = Math.min(minY, minYArr[si])
+            maxY = Math.max(maxY, maxYArr[si])
+            let collapsed =
+                  !(gl.collapsedSeriesIndices.indexOf(si) < 0
+                  && gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0)
+            if (!collapsed) {
+              gl.allSeriesCollapsed = false
+            }
           }
         }
         if (cnf.yaxis[ai].min !== undefined) {
@@ -800,6 +873,7 @@ export default class Scales {
             maxY = cnf.yaxis[ai].max
           }
         }
+        gl.barGroups = gl.barGroups.filter((v,i,a) => a.indexOf(v) === i)
         // Set the scale for this yaxis
         this.setYScaleForIndex(ai, minY, maxY)
         // Set individual series min and max to nice values
@@ -808,6 +882,7 @@ export default class Scales {
           maxYArr[si] = gl.yAxisScale[ai].niceMax
         })
       } else {
+        // No series referenced by this yaxis
         this.setYScaleForIndex(ai, 0, -Number.MAX_VALUE)
       }
     })

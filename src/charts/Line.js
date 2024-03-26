@@ -534,7 +534,8 @@ class Line {
       (w.config.chart.stacked &&
         w.globals.comboCharts &&
         (!this.w.config.chart.stackOnlyBar ||
-          this.w.config.series[realIndex]?.type === 'bar'))
+          this.w.config.series[realIndex]?.type === 'bar'
+          || this.w.config.series[realIndex]?.type === 'column'))
 
     let pathState = 0
     let segmentStartX
@@ -559,7 +560,9 @@ class Line {
           i > 0 &&
           w.globals.collapsedSeries.length < w.config.series.length - 1
         ) {
-          // a collapsed series in a stacked bar chart may provide wrong result for the next series, hence find the prevIndex of prev series which is not collapsed - fixes apexcharts.js#1372
+          // a collapsed series in a stacked chart may provide wrong result
+          // for the next series, hence find the prevIndex of prev series
+          // which is not collapsed - fixes apexcharts.js#1372
           const prevIndex = (pi) => {
             let pii = pi
             for (let cpi = 0; cpi < w.globals.series.length; cpi++) {
