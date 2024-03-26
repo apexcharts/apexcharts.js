@@ -46,7 +46,7 @@ export default class Scales {
     // In case we have a multi axis chart:
     // Ensure subsequent series start with the same tickAmount as series[0],
     // because the tick lines are drawn based on series[0]. This does not
-    // override user defined options for any series.
+    // override user defined options for any yaxis.
     if (gl.isMultipleYAxis && !gotTickAmount && gl.multiAxisTickAmount > 0) {
       ticks = gl.multiAxisTickAmount
       gotTickAmount = true
@@ -65,8 +65,19 @@ export default class Scales {
       (yMin === Number.MIN_VALUE && yMax === -Number.MAX_VALUE)
     ) {
       // when all values are 0
-      yMin = 0
-      yMax = ticks
+      if (gotMin && gotMax) {
+        yMin = gl.minY
+        yMax = gl.maxY
+      } else if (gotMin) {
+        yMin = gl.minY
+        yMax = yMin + ticks
+      } else if (gotMax) {
+        yMax = gl.maxY
+        yMin = yMax - ticks
+      } else {
+        yMin = 0
+        yMax = ticks
+      }
       gl.allSeriesCollapsed = false
     }
 
@@ -526,14 +537,10 @@ export default class Scales {
         : this.logarithmicScale(minY, maxY, y.logBase)
     } else {
       if (maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)) {
-        // no data in the chart. Either all series collapsed or user passed a blank array
-        gl.yAxisScale[index] = this.linearScale(
-          0,
-          10,
-          10,
-          index,
-          cnf.yaxis[index].stepSize
-        )
+        // no data in the chart.
+        // Either all series collapsed or user passed a blank array.
+        // Show the user's yaxis with their scale options but with a range.
+        gl.yAxisScale[index] = this.niceScale(Number.MIN_VALUE, 0, index)
       } else {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
@@ -760,12 +767,16 @@ export default class Scales {
               }
             }
           }
-          if (seriesType === 'bar') {
+          if (seriesType === 'bar' || seriesType === 'column') {
             minY = Math.min.apply(null, negSeries)
             maxY = Math.max.apply(null, posSeries)
           } else {
             minY = Math.min.apply(null, sumSeries)
             maxY = Math.max.apply(null, sumSeries)
+          }
+          if (minY === Number.MIN_VALUE && maxY === Number.MIN_VALUE) {
+            // No series data
+            maxY = -Number.MAX_VALUE
           }
         } else {
           for (let i = 0; i < axisSeries.length; i++) {
