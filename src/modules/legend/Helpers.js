@@ -167,44 +167,45 @@ export default class Helpers {
 
   hideSeries({ seriesEl, realIndex }) {
     const w = this.w
+    const gl = w.globals
 
     let series = Utils.clone(w.config.series)
 
-    if (w.globals.axisCharts) {
-      let yaxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]]
+    if (gl.axisCharts) {
+      let yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]]
 
       if (
         yaxis &&
         yaxis.show &&
         yaxis.showAlways
       ) {
-        if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
-          w.globals.ancillaryCollapsedSeries.push({
+        if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
+          gl.ancillaryCollapsedSeries.push({
             index: realIndex,
             data: series[realIndex].data.slice(),
             type: seriesEl.parentNode.className.baseVal.split('-')[1]
           })
-          w.globals.ancillaryCollapsedSeriesIndices.push(realIndex)
+          gl.ancillaryCollapsedSeriesIndices.push(realIndex)
         }
       } else {
-        if (w.globals.collapsedSeriesIndices.indexOf(realIndex) < 0) {
-          w.globals.collapsedSeries.push({
+        if (gl.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+          gl.collapsedSeries.push({
             index: realIndex,
             data: series[realIndex].data.slice(),
             type: seriesEl.parentNode.className.baseVal.split('-')[1]
           })
-          w.globals.collapsedSeriesIndices.push(realIndex)
+          gl.collapsedSeriesIndices.push(realIndex)
 
-          let removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex)
-          w.globals.risingSeries.splice(removeIndexOfRising, 1)
+          let removeIndexOfRising = gl.risingSeries.indexOf(realIndex)
+          gl.risingSeries.splice(removeIndexOfRising, 1)
         }
       }
     } else {
-      w.globals.collapsedSeries.push({
+      gl.collapsedSeries.push({
         index: realIndex,
         data: series[realIndex]
       })
-      w.globals.collapsedSeriesIndices.push(realIndex)
+      gl.collapsedSeriesIndices.push(realIndex)
     }
 
     let seriesChildren = seriesEl.childNodes
@@ -220,8 +221,9 @@ export default class Helpers {
       }
     }
 
-    w.globals.allSeriesCollapsed =
-      w.globals.collapsedSeries.length === w.config.series.length
+    gl.allSeriesCollapsed =
+      (gl.collapsedSeries.length
+        + gl.ancillaryCollapsedSeries.length) === w.config.series.length
 
     series = this._getSeriesBasedOnCollapsedState(series)
     this.lgCtx.ctx.updateHelpers._updateSeries(
@@ -262,20 +264,28 @@ export default class Helpers {
 
   _getSeriesBasedOnCollapsedState(series) {
     const w = this.w
+    let collapsed = 0
 
     if (w.globals.axisCharts) {
       series.forEach((s, sI) => {
-        if (w.globals.collapsedSeriesIndices.indexOf(sI) > -1) {
+        if (
+            !(w.globals.collapsedSeriesIndices.indexOf(sI) < 0 
+            &&  w.globals.ancillaryCollapsedSeriesIndices.indexOf(sI) < 0)
+        ) {
           series[sI].data = []
+          collapsed++
         }
       })
     } else {
       series.forEach((s, sI) => {
-        if (w.globals.collapsedSeriesIndices.indexOf(sI) > -1) {
+        if (!w.globals.collapsedSeriesIndices.indexOf(sI) < 0) {
           series[sI] = 0
+          collapsed++
         }
       })
     }
+    
+    w.globals.allSeriesCollapsed = collapsed === series.length
 
     return series
   }

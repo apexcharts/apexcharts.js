@@ -585,7 +585,7 @@ class Range {
     let seriesGroups = gl.seriesGroups
 
     if (!seriesGroups.length) {
-      seriesGroups = [this.w.config.series.map((serie) => serie.name)]
+      seriesGroups = [this.w.globals.seriesNames.map((name) => name)]
     }
     let stackedPoss = {}
     let stackedNegs = {}
@@ -594,7 +594,7 @@ class Range {
       stackedPoss[group] = []
       stackedNegs[group] = []
       const indicesOfSeriesInGroup = this.w.config.series
-        .map((serie, si) => (group.indexOf(serie.name) > -1 ? si : null))
+        .map((serie, si) => (group.indexOf(gl.seriesNames[si]) > -1 ? si : null))
         .filter((f) => f !== null)
 
       indicesOfSeriesInGroup.forEach((i) => {
@@ -609,7 +609,8 @@ class Range {
             (this.w.config.chart.stacked &&
               gl.comboCharts &&
               (!this.w.config.chart.stackOnlyBar ||
-                this.w.config.series?.[i]?.type === 'bar'))
+                this.w.config.series?.[i]?.type === 'bar'
+                || this.w.config.series?.[i]?.type === 'column'))
 
           if (stackSeries) {
             if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {

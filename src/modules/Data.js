@@ -412,7 +412,7 @@ export default class Data {
         let index = groups.indexOf(s.group)
         if (!buckets[index]) buckets[index] = []
 
-        buckets[index].push(s.name)
+        buckets[index].push(s.name ? s.name : 'series-'.concat(i+1))
       })
       gl.seriesGroups = buckets
     }
@@ -715,7 +715,6 @@ export default class Data {
 
   excludeCollapsedSeriesInYAxis() {
     const w = this.w
-    // fix issue #1215
     // Post revision 3.46.0 there is no longer a strict one-to-one
     // correspondence between series and Y axes.
     // An axis can be ignored only while all series referenced by it

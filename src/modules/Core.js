@@ -190,18 +190,18 @@ export default class Core {
       // true.
       if (typeof ser[st].type !== 'undefined') {
         if (ser[st].type === 'column' || ser[st].type === 'bar') {
-          if (gl.series.length > 1 && cnf.plotOptions.bar.horizontal) {
-            // horizontal bars not supported in mixed charts, hence show a warning
-            console.warn(
-              'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
-            )
-          }
           columnSeries.series.push(serie)
           columnSeries.i.push(st)
+          w.globals.columnSeries = columnSeries.series
           if (chartType !== 'bar') {
+            if (gl.series.length > 1 && cnf.plotOptions.bar.horizontal) {
+              // horizontal bars not supported in mixed charts, hence show a warning
+              console.warn(
+                'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
+              )
+            }
             comboCount++
           }
-          w.globals.columnSeries = columnSeries.series
         } else if (ser[st].type === 'area') {
           areaSeries.series.push(serie)
           areaSeries.i.push(st)

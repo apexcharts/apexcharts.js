@@ -102,7 +102,7 @@ class CoreUtils {
     w.globals.seriesGroups.forEach((sg) => {
       let includedIndexes = []
       w.config.series.forEach((s, si) => {
-        if (sg.indexOf(s.name) > -1) {
+        if (sg.indexOf(w.globals.seriesNames[si]) > -1) {
           includedIndexes.push(si)
         }
       })
