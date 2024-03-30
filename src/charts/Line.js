@@ -181,8 +181,16 @@ class Line {
           isRangeStart: false,
         })
 
-        paths.linePaths[0] = rangePaths.linePath + paths.linePath
-        paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
+        if (w.globals.hasNullValues) {
+          let segments = paths.linePaths.length / 2
+          for (let s = 0; s < segments; s++) {
+            paths.linePaths[s] = rangePaths.linePaths[s+2] + paths.linePaths[s]
+          }
+          paths.linePaths.splice(segments)
+        } else {
+          paths.linePaths[0] = rangePaths.linePath + paths.linePath
+          paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
+        }
       }
 
       this._handlePaths({ type, realIndex, i, paths })
@@ -838,20 +846,29 @@ class Line {
             case 0:
               // Beginning of segment
               segmentStartX = pX
-              linePath =
-                  graphics.move(pX, pY)
-                + graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+              if (type === 'rangeArea' && isRangeStart) {
+                linePath =
+                    graphics.move(pX, y2Arrj[j])
+                  + graphics.line(pX, pY)
+              } else {
+                linePath = graphics.move(pX, pY)
+              }
+              linePath += 
+                  graphics.curve(pX + length, pY, x - length, y, x, y)
               areaPath =
                   graphics.move(pX + 1, pY)
-                + graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+                + graphics.curve(pX + length, pY, x - length, y, x, y)
               pathState = 1
             break
           case 1:
             // Continuing with segment
             if (series[i][j + 1] === null) {
               // Segment ends here
-              linePath +=
-                  graphics.move(pX, pY)
+              if (type === 'rangeArea' && isRangeStart) {
+                linePath += graphics.line(pX, y2)
+              } else {
+                linePath += graphics.move(pX, pY)
+              }
               areaPath +=
                   graphics.line(pX, areaBottomY)
                 + graphics.line(segmentStartX, areaBottomY)
@@ -860,12 +877,18 @@ class Line {
               areaPaths.push(areaPath)
             } else {
               linePath +=
-                  graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+                  graphics.curve(pX + length, pY, x - length, y, x, y)
               areaPath +=
-                  graphics.curve(pX + length, pY, x - length, y, x + 1, y)
+                  graphics.curve(pX + length, pY, x - length, y, x, y)
               if (j >= series[i].length - 2) {
-                linePath +=
-                    graphics.move(x, y)
+                if (type === 'rangeArea' && isRangeStart) {
+                  linePath +=
+                      graphics.curve(x, y, x, y, x, y2)
+                    + graphics.move(x, y2)
+                } else {
+                  linePath +=
+                      graphics.move(x, y)
+                }
                 areaPath +=
                     graphics.curve(x, y, x, y, x, areaBottomY)
                   + graphics.move(x, y)
