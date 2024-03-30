@@ -182,9 +182,16 @@ class Line {
         })
 
         if (w.globals.hasNullValues && w.config.stroke.curve === 'smooth') {
+          // Path segmented by nulls in data.
+          // paths.linePaths should hold (segments * 2) paths (upper and lower)
+          // the first n segments belong to the lower and the last n segments
+          // belong to the upper.
+          // paths.linePaths and rangePaths.linepaths are actually equivalent
+          // but we retain the distinction below for consistency with the
+          // unsegmented paths conditional branch.
           let segments = paths.linePaths.length / 2
           for (let s = 0; s < segments; s++) {
-            paths.linePaths[s] = rangePaths.linePaths[s+2] + paths.linePaths[s]
+            paths.linePaths[s] = rangePaths.linePaths[s+segments] + paths.linePaths[s]
           }
           paths.linePaths.splice(segments)
         } else {
