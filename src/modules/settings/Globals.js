@@ -28,6 +28,7 @@ export default class Globals {
     gl.labels = []
     gl.hasXaxisGroups = false
     gl.groups = []
+    gl.barGroups = []
     gl.hasSeriesGroups = false
     gl.seriesGroups = []
     gl.categoryLabels = []

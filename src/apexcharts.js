@@ -160,7 +160,7 @@ export default class ApexCharts {
 
     const allSeriesAreEmpty = ser.every((s) => s.data && s.data.length === 0)
 
-    if (ser.length === 0 || allSeriesAreEmpty) {
+    if (ser.length === 0 || allSeriesAreEmpty && gl.collapsedSeries.length < 1) {
       this.series.handleNoData()
     }
 

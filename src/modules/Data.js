@@ -404,6 +404,14 @@ export default class Data {
       gl.groups = cnf.xaxis.group.groups
     }
 
+    ser.forEach((s, i) => {
+      if (s.name !== undefined) {
+        gl.seriesNames.push(s.name)
+      } else {
+        gl.seriesNames.push('series-' + parseInt(i + 1, 10))
+      }
+    })
+
     gl.hasSeriesGroups = ser[0]?.group
     if (gl.hasSeriesGroups) {
       let buckets = []
@@ -412,7 +420,7 @@ export default class Data {
         let index = groups.indexOf(s.group)
         if (!buckets[index]) buckets[index] = []
 
-        buckets[index].push(s.name)
+        buckets[index].push(gl.seriesNames[i])
       })
       gl.seriesGroups = buckets
     }
@@ -507,12 +515,6 @@ export default class Data {
       }
 
       gl.seriesZ.push(this.threeDSeries)
-
-      if (ser[i].name !== undefined) {
-        gl.seriesNames.push(ser[i].name)
-      } else {
-        gl.seriesNames.push('series-' + parseInt(i + 1, 10))
-      }
 
       // overrided default color if user inputs color with series data
       if (ser[i].color !== undefined) {
@@ -715,7 +717,6 @@ export default class Data {
 
   excludeCollapsedSeriesInYAxis() {
     const w = this.w
-    // fix issue #1215
     // Post revision 3.46.0 there is no longer a strict one-to-one
     // correspondence between series and Y axes.
     // An axis can be ignored only while all series referenced by it

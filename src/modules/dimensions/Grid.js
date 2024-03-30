@@ -8,8 +8,13 @@ export default class DimGrid {
 
   gridPadForColumnsInNumericAxis(gridWidth) {
     const w = this.w
+    const cnf = w.config
+    const gl = w.globals
 
-    if (w.globals.noData || w.globals.allSeriesCollapsed) {
+    if (gl.noData
+          || (gl.collapsedSeries.length
+              + gl.ancillaryCollapsedSeries.length) === cnf.series.length
+    ) {
       return 0
     }
 
@@ -22,44 +27,44 @@ export default class DimGrid {
       )
     }
 
-    const type = w.config.chart.type
+    const type = cnf.chart.type
 
     let barWidth = 0
-    let seriesLen = hasBar(type) ? w.config.series.length : 1
+    let seriesLen = hasBar(type) ? cnf.series.length : 1
 
-    if (w.globals.comboBarCount > 0) {
-      seriesLen = w.globals.comboBarCount
+    if (gl.comboBarCount > 0) {
+      seriesLen = gl.comboBarCount
     }
-    w.globals.collapsedSeries.forEach((c) => {
+    gl.collapsedSeries.forEach((c) => {
       if (hasBar(c.type)) {
         seriesLen = seriesLen - 1
       }
     })
-    if (w.config.chart.stacked) {
+    if (cnf.chart.stacked) {
       seriesLen = 1
     }
 
-    const barsPresent = hasBar(type) || w.globals.comboBarCount > 0
+    const barsPresent = hasBar(type) || gl.comboBarCount > 0
 
     if (
       barsPresent &&
-      w.globals.isXNumeric &&
-      !w.globals.isBarHorizontal &&
+      gl.isXNumeric &&
+      !gl.isBarHorizontal &&
       seriesLen > 0
     ) {
       let xRatio = 0
-      let xRange = Math.abs(w.globals.initialMaxX - w.globals.initialMinX)
+      let xRange = Math.abs(gl.initialMaxX - gl.initialMinX)
 
       if (xRange <= 3) {
-        xRange = w.globals.dataPoints
+        xRange = gl.dataPoints
       }
 
       xRatio = xRange / gridWidth
 
       let xDivision
       // max barwidth should be equal to minXDiff to avoid overlap
-      if (w.globals.minXDiff && w.globals.minXDiff / xRatio > 0) {
-        xDivision = w.globals.minXDiff / xRatio
+      if (gl.minXDiff && gl.minXDiff / xRatio > 0) {
+        xDivision = gl.minXDiff / xRatio
       }
 
       if (xDivision > gridWidth / 2) {
@@ -74,13 +79,13 @@ export default class DimGrid {
       // https://github.com/apexcharts/apexcharts.js/issues/4178
       // was to remove the division by seriesLen.
       barWidth =
-        (xDivision * parseInt(w.config.plotOptions.bar.columnWidth, 10)) / 100
+        (xDivision * parseInt(cnf.plotOptions.bar.columnWidth, 10)) / 100
 
       if (barWidth < 1) {
         barWidth = 1
       }
 
-      w.globals.barPadForNumericAxis = barWidth
+      gl.barPadForNumericAxis = barWidth
     }
     return barWidth
   }

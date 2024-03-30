@@ -329,9 +329,19 @@ class Range {
 
     // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
-      this.scales.setMultipleYScales()
+      this.scales.scaleMultipleYAxes()
       gl.minY = lowestYInAllSeries
     } else {
+      gl.barGroups = []
+      cnf.series.forEach((s) => {
+        if ((!s.type && cnf.chart.type === 'bar')
+              || s.type === 'bar'
+              || s.type === 'column'
+        ) {
+          gl.barGroups.push(s.group ? s.group : 'axis-0')
+        }
+      })
+      gl.barGroups = gl.barGroups.filter((v,i,a) => a.indexOf(v) === i)
       this.scales.setYScaleForIndex(0, gl.minY, gl.maxY)
       gl.minY = gl.yAxisScale[0].niceMin
       gl.maxY = gl.yAxisScale[0].niceMax
@@ -585,7 +595,7 @@ class Range {
     let seriesGroups = gl.seriesGroups
 
     if (!seriesGroups.length) {
-      seriesGroups = [this.w.config.series.map((serie) => serie.name)]
+      seriesGroups = [this.w.globals.seriesNames.map((name) => name)]
     }
     let stackedPoss = {}
     let stackedNegs = {}
@@ -594,7 +604,7 @@ class Range {
       stackedPoss[group] = []
       stackedNegs[group] = []
       const indicesOfSeriesInGroup = this.w.config.series
-        .map((serie, si) => (group.indexOf(serie.name) > -1 ? si : null))
+        .map((serie, si) => (group.indexOf(gl.seriesNames[si]) > -1 ? si : null))
         .filter((f) => f !== null)
 
       indicesOfSeriesInGroup.forEach((i) => {
@@ -609,7 +619,8 @@ class Range {
             (this.w.config.chart.stacked &&
               gl.comboCharts &&
               (!this.w.config.chart.stackOnlyBar ||
-                this.w.config.series?.[i]?.type === 'bar'))
+                this.w.config.series?.[i]?.type === 'bar'
+                || this.w.config.series?.[i]?.type === 'column'))
 
           if (stackSeries) {
             if (gl.series[i][j] !== null && Utils.isNumber(gl.series[i][j])) {

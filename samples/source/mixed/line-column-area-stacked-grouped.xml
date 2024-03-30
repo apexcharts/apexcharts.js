@@ -1,0 +1,219 @@
+<title>Multiple series types stacked</title>
+
+<style>
+#chart {
+  max-width: 650px;
+  margin: 35px auto;
+}
+.apexcharts-tooltip-title {
+  display: none;
+}
+#chart .apexcharts-tooltip {
+  display: flex;
+  border: 0;
+  box-shadow: none;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+    height: 350,
+    type: 'line',
+    stacked: true,
+    stackOnlyBar: false,
+    dropShadow: {
+      enabled: true,
+      enabledOnSeries: [0,1,2,3,4,5,10]
+    },
+
+  },
+  plotOptions: {
+    bar: {
+      columnWidth: '40%'
+    }
+  },
+  dataLabels: {
+    enabled: true,
+    enabledOnSeries: [10]
+  },
+  xaxis: {
+    categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016]
+  },
+  yaxis: [
+  {
+    seriesName: ['Series A','Series B','Series C',
+                 'Series D','Series E','Series F'],
+    axisTicks: {
+      show: true,
+      color: '#008FFB'
+    },
+    axisBorder: {
+      show: true,
+      color: '#008FFB'
+    },
+    title: {
+      text: "Columns (Stacked/Grouped)",
+      style: {
+        color: '#008FFB'
+      }
+    },
+    labels: {
+      style: {
+        colors: ['#008FFB']
+      }
+    }
+  },{
+    opposite: true,
+    seriesName: ['Series X', 'Series Y'],
+    axisTicks: {
+      show: true,
+      color: '#78909C'
+    },
+    axisBorder: {
+      show: true,
+      color: '#78909C'
+    },
+    title: {
+      text: "Columns (Stacked)",
+      style: {
+        color: '#78909C'
+      }
+    }
+  },{
+    seriesName: ['Series 1','Series 2'],
+    labels: {
+      style: {
+        colors: ['#88AA88']
+      }
+    },
+    axisTicks: {
+      show: true,
+      color: '#88AA88'
+    },
+    axisBorder: {
+      show: true,
+      color: '#88AA88'
+    },
+    title: {
+      text: "Areas (stacked)",
+      style: {
+        color: '#88AA88'
+      }
+    }
+  },{
+    opposite: true,
+    seriesName: 'Series 3',
+    labels: {
+      style: {
+        colors: ['#78909C']
+      }
+    },
+    axisTicks: {
+      show: true,
+      color: '#78909C'
+    },
+    axisBorder: {
+      show: true,
+      color: '#78909C'
+    },
+    title: {
+      text: "Line",
+      style: {
+        color: '#78909C'
+      }
+    }
+  }
+],
+fill: {
+  type: 'gradient',
+  gradient: {
+    shade: 'light'
+  }
+},
+stroke: {
+  width: [0,0,0,0,0,0,0,0,1,1,3],
+  colors: ['#fff','#fff','#fff','#fff','#fff','#fff',
+           '#DDDDDD','#888888',
+           '#fff','#fff',
+           '#222222']
+},
+colors: ['#00D8B6','#008FFB','#FEB019',
+         '#FF4560','#775DD0',"#95C11F",
+         '#DDDDDD','#888888',
+         '#88AA88','#DDEEDD',
+         '#AAAAAA'],
+tooltip: {
+  shared: true
+}
+</options>
+
+<series>
+[{
+    name: 'Series A',
+    type: 'bar',
+    group: 'Alpha',
+    data: [21.1, 23, 33.1, 34, 44.1, 44.9, 56.5, 58.5]
+  },
+  {
+    name: 'Series B',
+    type: 'bar',
+    group: 'Alpha',
+    data: [10, 19, 27, 26, 34, 35, 40, 38]
+  },
+  {
+    name: 'Series C',
+    type: 'bar',
+    group: 'Alpha',
+    data: [21.1, 23, 33.1, 34, 44.1, 44.9, 56.5, 58.5]
+  },
+  {
+    name: 'Series D',
+    type: 'bar',
+    group: 'Beta',
+    data: [10, 19, 27, 26, 34, 35, 40, 38]
+  },
+  {
+    name: 'Series E',
+    type: 'bar',
+    group: 'Beta',
+    data: [21.1, 23, 33.1, 34, 44.1, 44.9, 56.5, 58.5]
+  },
+  {
+    name: 'Series F',
+    type: 'bar',
+    group: 'Beta',
+    data: [10, 19, 27, 26, 34, 35, 40, 38]
+  },
+  {
+    name: 'Series X',
+    type: 'bar',
+    group: 'Gamma',
+    data: [51.6, 47.8, 33.8, 26.5, 28.5, 35.5, 30, 20.4]
+  },
+  {
+    name: 'Series Y',
+    type: 'bar',
+    group: 'Gamma',
+    data: [10, 19, 27, 26, 34, 35, 40, 38]
+  },
+  {
+    name: 'Series 1',
+    type: 'area',
+    group: 'Delta',
+    data: [51.6, 47.8, 33.8, 26.5, 28.5, 35.5, 30, 20.4]
+  },
+  {
+    name: 'Series 2',
+    type: 'area',
+    group: 'Delta',
+    data: [10, 19, 27, 26, 34, 35, 40, 38]
+  },
+  {
+    name: 'Series 3',
+    type: 'line',
+    group: 'Epsilon',
+    data: [1.4, 2, 2.5, 3.5, 3.5, 2.8, 3.8, 3.6]
+  }]
+</series>
+</chart>
