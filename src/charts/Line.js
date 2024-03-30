@@ -181,7 +181,7 @@ class Line {
           isRangeStart: false,
         })
 
-        if (w.globals.hasNullValues) {
+        if (w.globals.hasNullValues && w.config.stroke.curve === 'smooth') {
           let segments = paths.linePaths.length / 2
           for (let s = 0; s < segments; s++) {
             paths.linePaths[s] = rangePaths.linePaths[s+2] + paths.linePaths[s]
