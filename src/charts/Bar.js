@@ -319,10 +319,38 @@ class Bar {
     const graphics = new Graphics(this.ctx)
 
     if (!lineFill) {
+     // if user provided a function in colors, we need to eval here
+      // Note: the position of this function logic (ex. stroke: { colors: ["",function(){}] }) i.e array index 1 depicts the realIndex/seriesIndex.
+      function fetchColor(i) {
+        const exp = w.config.stroke.colors
+        let c
+        if (Array.isArray(exp) && exp.length > 0) {
+          c = exp[i]
+          if (!c) c = ''
+          if (typeof c === 'function') {
+            return c({
+              value: w.globals.axisCharts
+                ? w.globals.series[i][j]
+                  ? w.globals.series[i][j]
+                  : 0
+                : w.globals.series[i],
+              dataPointIndex: i,
+              w,
+            })
+          }
+        }
+        return c
+      }
+
+      const checkAvailableColor =
+        typeof w.globals.stroke.colors[realIndex] === 'function'
+          ? fetchColor(realIndex)
+          : w.globals.stroke.colors[realIndex]
+
       /* fix apexcharts#341 */
       lineFill = this.barOptions.distributed
         ? w.globals.stroke.colors[j]
-        : w.globals.stroke.colors[realIndex]
+        : checkAvailableColor
     }
 
     if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
