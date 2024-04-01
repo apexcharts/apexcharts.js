@@ -320,7 +320,7 @@ class Bar {
 
     if (!lineFill) {
      // if user provided a function in colors, we need to eval here
-      // Note: the position of this function logic (ex. stroke: { colors: ["",function(){}] }) i.e array index 1 depicts the realIndex/seriesIndex.
+     // Note: the position of this function logic (ex. stroke: { colors: ["",function(){}] }) i.e array index 1 depicts the realIndex/seriesIndex.
       function fetchColor(i) {
         const exp = w.config.stroke.colors
         let c
