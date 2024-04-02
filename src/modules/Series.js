@@ -133,7 +133,7 @@ export default class Series {
     if (!targetElement) targetElement = e.target
 
     let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
-      `.apexcharts-series, .apexcharts-datalabels`
+      `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
     )
 
     if (e.type === 'mousemove') {
@@ -141,6 +141,7 @@ export default class Series {
 
       let seriesEl = null
       let dataLabelEl = null
+      let yaxisEl = null
       if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
         if (w.globals.axisCharts) {
           seriesEl = w.globals.dom.baseEl.querySelector(
@@ -148,6 +149,10 @@ export default class Series {
           )
           dataLabelEl = w.globals.dom.baseEl.querySelector(
             `.apexcharts-datalabels[data\\:realIndex='${seriesCnt}']`
+          )
+          let yaxisIndex = w.globals.seriesYAxisReverseMap[seriesCnt]
+          yaxisEl = w.globals.dom.baseEl.querySelector(
+            `.apexcharts-yaxis[rel='${yaxisIndex}']`
           )
         } else {
           seriesEl = w.globals.dom.baseEl.querySelector(
@@ -172,6 +177,10 @@ export default class Series {
 
         if (dataLabelEl !== null) {
           dataLabelEl.classList.remove(this.legendInactiveClass)
+        }
+
+        if (yaxisEl !== null) {
+          yaxisEl.classList.remove(this.legendInactiveClass)
         }
       }
     } else if (e.type === 'mouseout') {
