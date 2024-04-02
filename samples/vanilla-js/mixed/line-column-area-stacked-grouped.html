@@ -130,133 +130,135 @@
             data: [1.4, 2, 2.5, 3.5, 3.5, 2.8, 3.8, 3.6]
           }],
           chart: {
-            height: 350,
-            type: 'line',
-            stacked: true,
-            stackOnlyBar: false,
-            dropShadow: {
-              enabled: true,
-              enabledOnSeries: [0,1,2,3,4,5,10]
-            },
-        
-          },
-          plotOptions: {
-            bar: {
-              columnWidth: '40%'
-            }
-          },
-          dataLabels: {
+          height: 350,
+          type: 'line',
+          stacked: true,
+          stackOnlyBar: false,
+          dropShadow: {
             enabled: true,
-            enabledOnSeries: [10]
+            enabledOnSeries: [0,1,2,3,4,5,6,7,10]
           },
-          xaxis: {
-            categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016]
+        
+        },
+        plotOptions: {
+          bar: {
+            columnWidth: '70%'
+          }
+        },
+        dataLabels: {
+          enabled: true,
+          enabledOnSeries: [10]
+        },
+        xaxis: {
+          categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016]
+        },
+        yaxis: [
+        {
+          seriesName: ['Series A','Series B','Series C',
+                       'Series D','Series E','Series F'],
+          axisTicks: {
+            show: true,
+            color: '#008FFB'
           },
-          yaxis: [
-          {
-            seriesName: ['Series A','Series B','Series C',
-                         'Series D','Series E','Series F'],
-            axisTicks: {
-              show: true,
+          axisBorder: {
+            show: true,
+            color: '#008FFB'
+          },
+          title: {
+            text: "Columns (Stacked/Grouped)",
+            style: {
               color: '#008FFB'
-            },
-            axisBorder: {
-              show: true,
-              color: '#008FFB'
-            },
-            title: {
-              text: "Columns (Stacked/Grouped)",
-              style: {
-                color: '#008FFB'
-              }
-            },
-            labels: {
-              style: {
-                colors: ['#008FFB']
-              }
             }
-          },{
-            opposite: true,
-            seriesName: ['Series X', 'Series Y'],
-            axisTicks: {
-              show: true,
-              color: '#78909C'
-            },
-            axisBorder: {
-              show: true,
-              color: '#78909C'
-            },
-            title: {
-              text: "Columns (Stacked)",
-              style: {
-                color: '#78909C'
-              }
-            }
-          },{
-            seriesName: ['Series 1','Series 2'],
-            labels: {
-              style: {
-                colors: ['#88AA88']
-              }
-            },
-            axisTicks: {
-              show: true,
-              color: '#88AA88'
-            },
-            axisBorder: {
-              show: true,
-              color: '#88AA88'
-            },
-            title: {
-              text: "Areas (stacked)",
-              style: {
-                color: '#88AA88'
-              }
-            }
-          },{
-            opposite: true,
-            seriesName: 'Series 3',
-            labels: {
-              style: {
-                colors: ['#78909C']
-              }
-            },
-            axisTicks: {
-              show: true,
-              color: '#78909C'
-            },
-            axisBorder: {
-              show: true,
-              color: '#78909C'
-            },
-            title: {
-              text: "Line",
-              style: {
-                color: '#78909C'
-              }
+          },
+          labels: {
+            style: {
+              colors: ['#008FFB']
             }
           }
+        },{
+          opposite: true,
+          seriesName: ['Series X', 'Series Y'],
+          axisTicks: {
+            show: true,
+            color: '#78909C'
+          },
+          axisBorder: {
+            show: true,
+            color: '#78909C'
+          },
+          title: {
+            text: "Columns (Stacked)",
+            style: {
+              color: '#78909C'
+            }
+          }
+        },{
+          seriesName: ['Series 1','Series 2'],
+          labels: {
+            style: {
+              colors: ['#88AA88']
+            }
+          },
+          axisTicks: {
+            show: true,
+            color: '#88AA88'
+          },
+          axisBorder: {
+            show: true,
+            color: '#88AA88'
+          },
+          title: {
+            text: "Areas (stacked)",
+            style: {
+              color: '#88AA88'
+            }
+          }
+        },{
+          opposite: true,
+          seriesName: 'Series 3',
+          labels: {
+            style: {
+              colors: ['#78909C']
+            }
+          },
+          axisTicks: {
+            show: true,
+            color: '#78909C'
+          },
+          axisBorder: {
+            show: true,
+            color: '#78909C'
+          },
+          title: {
+            text: "Line",
+            style: {
+              color: '#78909C'
+            }
+          }
+        }
         ],
         fill: {
-          type: 'gradient',
-          gradient: {
-            shade: 'light'
-          }
+        type: 'gradient',
+        gradient: {
+          shade: 'light'
+        }
         },
         stroke: {
-          width: [0,0,0,0,0,0,0,0,1,1,3],
-          colors: ['#fff','#fff','#fff','#fff','#fff','#fff',
-                   '#DDDDDD','#888888',
-                   '#fff','#fff',
-                   '#222222']
+        width: [4,4,4,4,4,4,4,4,1,1,3],
+        colors: ['rgba(0,0,0,0)','rgba(0,0,0,0)','rgba(0,0,0,0)',
+                 'rgba(0,0,0,0)','rgba(0,0,0,0)','rgba(0,0,0,0)',
+                 'rgba(0,0,0,0)','rgba(0,0,0,0)',
+                 '#fff','#fff',
+                 '#222222'],
+        curve: ['','','','','','','','','stepline','stepline','straight']
         },
         colors: ['#00D8B6','#008FFB','#FEB019',
-                 '#FF4560','#775DD0',"#95C11F",
-                 '#DDDDDD','#888888',
-                 '#88AA88','#DDEEDD',
-                 '#AAAAAA'],
+               '#FF4560','#775DD0',"#95C11F",
+               '#DDDDDD','#888888',
+               '#88AA88','#DDEEDD',
+               '#AAAAAA'],
         tooltip: {
-          shared: true
+        shared: true
         }
         };
 
