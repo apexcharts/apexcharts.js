@@ -155,49 +155,31 @@ export default class Helpers {
 
   initializeStackedPrevVars(ctx) {
     const w = ctx.w
-    if (w.globals.hasSeriesGroups) {
-      w.globals.seriesGroups.forEach((group) => {
-        if (!ctx[group]) ctx[group] = {}
+    w.globals.seriesGroups.forEach((group) => {
+      if (!ctx[group]) ctx[group] = {}
 
-        ctx[group].prevY = []
-        ctx[group].prevX = []
-        ctx[group].prevYF = []
-        ctx[group].prevXF = []
-        ctx[group].prevYVal = []
-        ctx[group].prevXVal = []
-      })
-    } else {
-      ctx.prevY = [] // y position on chart (in columns)
-      ctx.prevX = [] // x position on chart (in horz bars)
-      ctx.prevYF = [] // starting y and ending y (height) in columns
-      ctx.prevXF = [] // starting x and ending x (width) in bars
-      ctx.prevYVal = [] // y values (series[i][j]) in columns
-      ctx.prevXVal = [] // x values (series[i][j]) in bars
-    }
+      ctx[group].prevY = []
+      ctx[group].prevX = []
+      ctx[group].prevYF = []
+      ctx[group].prevXF = []
+      ctx[group].prevYVal = []
+      ctx[group].prevXVal = []
+    })
   }
 
   initializeStackedXYVars(ctx) {
     const w = ctx.w
 
-    if (w.globals.hasSeriesGroups) {
-      w.globals.seriesGroups.forEach((group) => {
-        if (!ctx[group]) ctx[group] = {}
+    w.globals.seriesGroups.forEach((group) => {
+      if (!ctx[group]) ctx[group] = {}
 
-        ctx[group].xArrj = []
-        ctx[group].xArrjF = []
-        ctx[group].xArrjVal = []
-        ctx[group].yArrj = []
-        ctx[group].yArrjF = []
-        ctx[group].yArrjVal = []
-      })
-    } else {
-      ctx.xArrj = [] // xj indicates x position on graph in bars
-      ctx.xArrjF = [] // xjF indicates bar's x position + x2 positions in bars
-      ctx.xArrjVal = [] // x val means the actual series's y values in horizontal/bars
-      ctx.yArrj = [] // yj indicates y position on graph in columns
-      ctx.yArrjF = [] // yjF indicates bar's y position + y2 positions in columns
-      ctx.yArrjVal = [] // y val means the actual series's y values in columns
-    }
+      ctx[group].xArrj = []
+      ctx[group].xArrjF = []
+      ctx[group].xArrjVal = []
+      ctx[group].yArrj = []
+      ctx[group].yArrjF = []
+      ctx[group].yArrjVal = []
+    })
   }
 
   getPathFillColor(series, i, j, realIndex) {
@@ -337,17 +319,20 @@ export default class Helpers {
       bW = barWidth + w.config.series[realIndex].data[j].columnWidthOffset
     }
 
-    const x1 = bXP
-    const x2 = bXP + bW
+    // Center the stroke on the coordinates
+    let strokeCenter = strokeWidth / 2
+
+    const x1 = bXP + strokeCenter
+    const x2 = bXP + bW - strokeCenter
 
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
-    y1 += 0.001
-    y2 += 0.001
-
+    y1 += 0.001 - strokeCenter
+    y2 += 0.001 + strokeCenter
+    
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
 
-    const sl = graphics.line(x2 - strokeWidth, y1)
+    const sl = graphics.line(x2, y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
     }
@@ -355,8 +340,8 @@ export default class Helpers {
     pathTo =
       pathTo +
       graphics.line(x1, y2) +
-      graphics.line(x2 - strokeWidth, y2) +
-      graphics.line(x2 - strokeWidth, y1) +
+      graphics.line(x2, y2) +
+      graphics.line(x2, y1) +
       (w.config.plotOptions.bar.borderRadiusApplication === 'around'
         ? ' Z'
         : ' z')
@@ -385,11 +370,9 @@ export default class Helpers {
 
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx
-      if (w.globals.hasSeriesGroups && seriesGroup) {
-        _ctx = this.barCtx[seriesGroup]
-      }
-      _ctx.yArrj.push(y2)
-      _ctx.yArrjF.push(Math.abs(y1 - y2))
+      _ctx = this.barCtx[seriesGroup]
+      _ctx.yArrj.push(y2 - strokeCenter)
+      _ctx.yArrjF.push(Math.abs(y1 - y2 + strokeWidth))
       _ctx.yArrjVal.push(this.barCtx.series[i][j])
     }
 
@@ -426,12 +409,15 @@ export default class Helpers {
       bH = barHeight + w.config.series[realIndex].data[j].barHeightOffset
     }
 
-    const y1 = bYP
-    const y2 = bYP + bH
+    // Center the stroke on the coordinates
+    let strokeCenter = strokeWidth / 2
+
+    const y1 = bYP + strokeCenter
+    const y2 = bYP + bH - strokeCenter
 
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
-    x1 += 0.001
-    x2 += 0.001
+    x1 += 0.001 - strokeCenter
+    x2 += 0.001 + strokeCenter
 
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
@@ -440,11 +426,11 @@ export default class Helpers {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
     }
 
-    const sl = graphics.line(x1, y2 - strokeWidth)
+    const sl = graphics.line(x1, y2)
     pathTo =
       pathTo +
       graphics.line(x2, y1) +
-      graphics.line(x2, y2 - strokeWidth) +
+      graphics.line(x2, y2) +
       sl +
       (w.config.plotOptions.bar.borderRadiusApplication === 'around'
         ? ' Z'
@@ -472,11 +458,8 @@ export default class Helpers {
 
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx
-      if (w.globals.hasSeriesGroups && seriesGroup) {
-        _ctx = this.barCtx[seriesGroup]
-      }
-
-      _ctx.xArrj.push(x2)
+      _ctx = this.barCtx[seriesGroup]
+      _ctx.xArrj.push(x2 + strokeCenter)
       _ctx.xArrjF.push(Math.abs(x1 - x2))
       _ctx.xArrjVal.push(this.barCtx.series[i][j])
     }
@@ -686,12 +669,17 @@ export default class Helpers {
 
     let nonZeroColumns = 0
     let zeroEncounters = 0
-    w.globals.seriesPercent.forEach((_s, _si) => {
-      if (_s[j]) {
+    let seriesIndices =
+          w.config.plotOptions.bar.horizontal
+            ? w.globals.series.map((_,_i) => _i)
+            : w.globals.columnSeries?.i.map((_i) => _i) || []
+
+    seriesIndices.forEach((_si) => {
+      let val = w.globals.seriesPercent[_si][j]
+      if (val) {
         nonZeroColumns++
       }
-
-      if (_si < i && _s[j] === 0) {
+      if (_si < i && val === 0) {
         zeroEncounters++
       }
     })
@@ -700,5 +688,25 @@ export default class Helpers {
       nonZeroColumns,
       zeroEncounters,
     }
+  }
+  
+  getGroupIndex(seriesIndex) {
+    const w = this.w
+    // groupIndex is the index of group buckets (group1, group2, ...)
+    let groupIndex = w.globals.seriesGroups.findIndex((group) => 
+      // w.config.series[i].name may be undefined, so use
+      // w.globals.seriesNames[i], which has default names for those
+      // series. w.globals.seriesGroups[] uses the same default naming.
+      group.indexOf(w.globals.seriesNames[seriesIndex]) > -1
+    )
+    // We need the column groups to be indexable as 0,1,2,... for their
+    // positioning relative to each other.
+    let cGI = this.barCtx.columnGroupIndices
+    let columnGroupIndex = cGI.indexOf(groupIndex)
+    if (columnGroupIndex < 0) {
+      cGI.push(groupIndex)
+      columnGroupIndex = cGI.length - 1
+    }
+    return {groupIndex, columnGroupIndex}
   }
 }

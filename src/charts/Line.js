@@ -54,8 +54,11 @@ class Line {
 
     series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
+    // We call draw() for each series group
+    this.prevSeriesY = []
 
-    // push all series in an array, so we can draw in reverse order (for stacked charts)
+    // push all series in an array, so we can draw in reverse order
+    // (for stacked charts)
     let allSeries = []
 
     for (let i = 0; i < series.length; i++) {
@@ -224,8 +227,8 @@ class Line {
     }
 
     if (w.config.chart.stacked) {
-      for (let s = allSeries.length; s > 0; s--) {
-        ret.add(allSeries[s - 1])
+      for (let s = allSeries.length - 1; s >= 0; s--) {
+        ret.add(allSeries[s])
       }
     } else {
       for (let s = 0; s < allSeries.length; s++) {
@@ -595,15 +598,16 @@ class Line {
           // for the next series, hence find the prevIndex of prev series
           // which is not collapsed - fixes apexcharts.js#1372
           const prevIndex = (pi) => {
-            let pii = pi
-            for (let cpi = 0; cpi < w.globals.series.length; cpi++) {
-              if (w.globals.collapsedSeriesIndices.indexOf(pi) > -1) {
+            for (let pii = pi; pii > 0; pii--) {
+              if (w.globals.collapsedSeriesIndices.indexOf(
+                    seriesIndex?.[pii] || pii
+              ) > -1) {
                 pii--
-                break
+              } else {
+                return pii
               }
             }
-
-            return pii >= 0 ? pii : 0
+            return 0
           }
           lineYPosition = this.prevSeriesY[prevIndex(i - 1)][j + 1]
         } else {

@@ -830,12 +830,12 @@ export default class Scales {
               maxY = Math.max(maxY, Math.max.apply(null, posSeries[gni]))
             })
           } else {
-            // We don't expect multiple groups per yaxis for line-like
-            // series, but we allow it anyway.
             groupNames.forEach((gn, gni) => {
-              minY = Math.min(lowestY, Math.min.apply(null, sumSeries[gni]))
-              maxY = Math.max(highestY, Math.max.apply(null, sumSeries[gni]))
+              lowestY = Math.min(lowestY, Math.min.apply(null, sumSeries[gni]))
+              highestY = Math.max(highestY, Math.max.apply(null, sumSeries[gni]))
             })
+            minY = lowestY
+            maxY = highestY
           }
           if (minY === Number.MIN_VALUE && maxY === Number.MIN_VALUE) {
             // No series data

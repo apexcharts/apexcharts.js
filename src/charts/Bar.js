@@ -52,6 +52,7 @@ class Bar {
       'column',
     ])
 
+    this.columnGroupIndices = []
     const barSeriesIndices = ser.getBarSeriesIndices()
     const coreUtils = new CoreUtils(this.ctx)
     this.stackedSeriesTotals = coreUtils.getStackedSeriesTotals(
@@ -108,6 +109,9 @@ class Bar {
       let xArrj = [] // hold x values of current iterating series
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+
+      let {columnGroupIndex} =
+              this.barHelpers.getGroupIndex(realIndex)
 
       // el to which series will be drawn
       let elSeries = graphics.group({
@@ -262,6 +266,7 @@ class Bar {
           pathFill,
           j,
           i,
+          columnGroupIndex,
           pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
           strokeWidth,
@@ -295,7 +300,7 @@ class Bar {
     lineFill,
     j,
     i,
-    groupIndex, // required in grouped-stacked bars
+    columnGroupIndex,
     pathFrom,
     pathTo,
     strokeWidth,
@@ -408,7 +413,7 @@ class Bar {
       j,
       series,
       realIndex,
-      groupIndex,
+      columnGroupIndex,
       barHeight,
       barWidth,
       barXPosition,

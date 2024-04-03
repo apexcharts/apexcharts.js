@@ -180,85 +180,101 @@ export default class Core {
 
     let chartType = cnf.chart.type !== undefined ? cnf.chart.type : 'line'
     // Check if the user has specified a type for any series.
+    let nonComboType = null
     let comboCount = 0
-    gl.series.map((serie, st) => {
+    gl.series.forEach((serie, st) => {
       // The default type for chart is "line" and the default for series is the
       // chart type, therefore, if the types of all series match the chart type,
       // this should not be considered a combo chart.
-      // Combo charts are explicitly excluded from stacking with the exception
-      // that series of type "bar" can be stacked if the user sets "stackOnlyBar"
-      // true.
-      if (typeof ser[st].type !== 'undefined') {
-        if (ser[st].type === 'column' || ser[st].type === 'bar') {
+      let seriesType = ser[st].type || chartType
+      switch (seriesType) {
+        case 'column':
+        case 'bar':
           columnSeries.series.push(serie)
           columnSeries.i.push(st)
-          w.globals.columnSeries = columnSeries.series
-          if (chartType !== 'bar') {
-            if (gl.series.length > 1 && cnf.plotOptions.bar.horizontal) {
-              // horizontal bars not supported in mixed charts, hence show a warning
-              console.warn(
-                'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
-              )
-            }
-            comboCount++
-          }
-        } else if (ser[st].type === 'area') {
+          w.globals.columnSeries = columnSeries
+          break
+        case 'area':
           areaSeries.series.push(serie)
           areaSeries.i.push(st)
-          if (chartType !== ser[st].type) {
-            comboCount++
-          }
-        } else if (ser[st].type === 'line') {
+          break
+        case 'line':
           lineSeries.series.push(serie)
           lineSeries.i.push(st)
-          if (chartType !== ser[st].type) {
-            comboCount++
-          }
-        } else if (ser[st].type === 'scatter') {
+          break
+        case 'scatter':
           scatterSeries.series.push(serie)
           scatterSeries.i.push(st)
-        } else if (ser[st].type === 'bubble') {
+          break
+        case 'bubble':
           bubbleSeries.series.push(serie)
           bubbleSeries.i.push(st)
-          if (chartType !== ser[st].type) {
-            comboCount++
-          }
-        } else if (ser[st].type === 'candlestick') {
+          break
+        case 'candlestick':
           candlestickSeries.series.push(serie)
           candlestickSeries.i.push(st)
-          if (chartType !== ser[st].type) {
-            comboCount++
-          }
-        } else if (ser[st].type === 'boxPlot') {
+          break
+        case 'boxPlot':
           boxplotSeries.series.push(serie)
           boxplotSeries.i.push(st)
-          if (chartType !== ser[st].type) {
-            comboCount++
-          }
-        } else if (ser[st].type === 'rangeBar') {
+          break
+        case 'rangeBar':
           rangeBarSeries.series.push(serie)
           rangeBarSeries.i.push(st)
-          if (chartType !== ser[st].type) {
-            comboCount++
-          }
-        } else if (ser[st].type === 'rangeArea') {
+          break
+        case 'rangeArea':
           rangeAreaSeries.series.push(gl.seriesRangeStart[st])
           rangeAreaSeries.seriesRangeEnd.push(gl.seriesRangeEnd[st])
           rangeAreaSeries.i.push(st)
-          if (chartType !== ser[st].type) {
-            comboCount++
-          }
-        } else {
-          // user has specified type, but it is not valid (other than line/area/column)
+          break
+        case 'heatmap':
+        case 'treemap':
+        case 'pie':
+        case 'donut':
+        case 'polarArea':
+        case 'radialBar':
+        case 'radar':
+          nonComboType = seriesType
+          break
+        default:
+          // user has specified an invalid type
           console.warn(
-            'You have specified an unrecognized chart type. Available types for this property are line/area/column/bar/scatter/bubble/candlestick/boxPlot/rangeBar/rangeArea'
+            'You have specified an unrecognized series type (',
+            seriesType,
+            ').'
           )
-        }
-      } else {
-        lineSeries.series.push(serie)
-        lineSeries.i.push(st)
+          break
+      }
+      if (chartType !== seriesType && seriesType !== 'scatter') {
+        comboCount++
       }
     })
+    if (comboCount > 0) {
+      if (nonComboType !== null) {
+        console.warn(
+            'Chart or series type ',
+            nonComboType,
+            ' can not appear with other chart or series types.'
+        )
+      }
+      if (columnSeries.series.length > 0
+          && cnf.plotOptions.bar.horizontal
+      ) {
+        // horizontal bars not supported in mixed charts
+        comboCount -= columnSeries.length
+        columnSeries = {
+          series: [],
+          i: [],
+        }
+        w.globals.columnSeries = {
+          series: [],
+          i: [],
+        }
+        console.warn(
+          'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
+        )
+      }
+    }
     gl.comboCharts ||= comboCount > 0
 
     let line = new Line(this.ctx, xyRatios)
@@ -270,8 +286,11 @@ export default class Core {
     let elGraph = []
 
     if (gl.comboCharts) {
+      const coreUtils = new CoreUtils(this.ctx)
       if (areaSeries.series.length > 0) {
-        elGraph.push(line.draw(areaSeries.series, 'area', areaSeries.i))
+        elGraph.push(
+          ...coreUtils.drawSeriesByGroup(areaSeries, gl.areaGroups, 'area', line)
+        )
       }
       if (columnSeries.series.length > 0) {
         if (w.config.chart.stacked) {
@@ -293,7 +312,9 @@ export default class Core {
         )
       }
       if (lineSeries.series.length > 0) {
-        elGraph.push(line.draw(lineSeries.series, 'line', lineSeries.i))
+        elGraph.push(
+          ...coreUtils.drawSeriesByGroup(lineSeries, gl.lineGroups, 'line', line)
+        )
       }
       if (candlestickSeries.series.length > 0) {
         elGraph.push(
