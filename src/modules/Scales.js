@@ -282,6 +282,11 @@ export default class Scales {
         } else {
           let yMaxPrev = yMax
           yMax = stepSize * Math.ceil(yMax / stepSize)
+          if (Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) > maxTicks) {
+            // Use default ticks to compute yMin then shrinkwrap
+            yMax = yMin + stepSize * ticks
+            yMax += stepSize * Math.ceil((yMaxPrev - yMax) / stepSize)
+          }
         }
       }
       range = Math.abs(yMax - yMin)
@@ -312,16 +317,6 @@ export default class Scales {
     ) {
       tiks = range
       stepSize = Math.round(range / tiks)
-    }
-
-    // Record final tiks for use by other series that call niceScale().
-    // Note: some don't, like logarithmicScale(), etc.
-    if (
-        gl.isMultipleYAxis
-        && gl.multiAxisTickAmount == 0
-        && gl.ignoreYAxisIndexes.indexOf(index) < 0
-    ) {
-      gl.multiAxisTickAmount = tiks
     }
 
     if (
@@ -386,6 +381,17 @@ export default class Scales {
       } else {
         stepSize = range / tt
       }
+      tiks = Math.round(range / stepSize)
+    }
+
+    // Record final tiks for use by other series that call niceScale().
+    // Note: some don't, like logarithmicScale(), etc.
+    if (
+        gl.isMultipleYAxis
+        && gl.multiAxisTickAmount == 0
+        && gl.ignoreYAxisIndexes.indexOf(index) < 0
+    ) {
+      gl.multiAxisTickAmount = tiks
     }
 
     // build Y label array.
