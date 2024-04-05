@@ -319,8 +319,8 @@ class Bar {
     const graphics = new Graphics(this.ctx)
 
     if (!lineFill) {
-     // if user provided a function in colors, we need to eval here
-     // Note: the position of this function logic (ex. stroke: { colors: ["",function(){}] }) i.e array index 1 depicts the realIndex/seriesIndex.
+      // if user provided a function in colors, we need to eval here
+      // Note: the position of this function logic (ex. stroke: { colors: ["",function(){}] }) i.e array index 1 depicts the realIndex/seriesIndex.
       function fetchColor(i) {
         const exp = w.config.stroke.colors
         let c
@@ -329,12 +329,8 @@ class Bar {
           if (!c) c = ''
           if (typeof c === 'function') {
             return c({
-              value: w.globals.axisCharts
-                ? w.globals.series[i][j]
-                  ? w.globals.series[i][j]
-                  : 0
-                : w.globals.series[i],
-              dataPointIndex: i,
+              value: w.globals.series[i][j],
+              dataPointIndex: j,
               w,
             })
           }
@@ -573,7 +569,11 @@ class Bar {
       }
     }
 
-    y = this.barHelpers.getYForValue(this.series[i][j], zeroH, translationsIndex)
+    y = this.barHelpers.getYForValue(
+      this.series[i][j],
+      zeroH,
+      translationsIndex
+    )
 
     const paths = this.barHelpers.getColumnPaths({
       barXPosition,
@@ -606,7 +606,14 @@ class Bar {
       pathFrom: paths.pathFrom,
       x,
       y,
-      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j, translationsIndex),
+      goalY: this.barHelpers.getGoalValues(
+        'y',
+        null,
+        zeroH,
+        i,
+        j,
+        translationsIndex
+      ),
       barXPosition,
       barWidth,
     }
