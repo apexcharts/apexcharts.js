@@ -137,7 +137,7 @@ export const spline = {
 
     if (start) {
       // Add additional 'C' points
-      if (pts[1].length < 6) {
+      if (end - start > 1 && pts[1].length < 6) {
         const n = pts[0].length
 
         pts[1] = [
