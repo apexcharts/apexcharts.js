@@ -933,11 +933,14 @@ class Line {
             }
             areaPath = graphics.move(pX, pY)
 
-            let p = graphics.curve(pX + length, pY, x - length, y, x, y)
-            linePath += p
-            areaPath += p
             pathState = 1
-          break
+            if (j < series[i].length - 2) {
+              let p = graphics.curve(pX + length, pY, x - length, y, x, y)
+              linePath += p
+              areaPath += p
+              break
+            }
+            // Continue on with pathState 1 to finish the path and exit
         case 1:
           // Continuing with segment
           if (series[i][j + 1] === null) {
@@ -1016,11 +1019,14 @@ class Line {
             }
             areaPath = graphics.move(pX, pY)
 
-            let p = pathToPoint(curve, x, y)
-            linePath += p
-            areaPath += p
             pathState = 1
-          break
+            if (j < series[i].length - 2) {
+              let p = pathToPoint(curve, x, y)
+              linePath += p
+              areaPath += p
+              break
+            }
+            // Continue on with pathState 1 to finish the path and exit
         case 1:
           // Continuing with segment
           if (series[i][j + 1] === null) {
