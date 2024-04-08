@@ -508,6 +508,9 @@ type ApexLocale = {
  * See https://apexcharts.com/docs/options/plotoptions/bar/
  */
 type ApexPlotOptions = {
+  line?: {
+    isSlopeChart?: boolean
+  }
   area?: {
     fillTo?: 'origin' | 'end'
   }

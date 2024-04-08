@@ -85,31 +85,31 @@ export default class Globals {
         selection: [],
         dataPointSelection: [],
         zoomed: [],
-        scrolled: []
+        scrolled: [],
       },
       colors: [],
       clientX: null,
       clientY: null,
       fill: {
-        colors: []
+        colors: [],
       },
       stroke: {
-        colors: []
+        colors: [],
       },
       dataLabels: {
         style: {
-          colors: []
-        }
+          colors: [],
+        },
       },
       radarPolygons: {
         fill: {
-          colors: []
-        }
+          colors: [],
+        },
       },
       markers: {
         colors: [],
         size: config.markers.size,
-        largestSize: 0
+        largestSize: 0,
       },
       animationEnded: false,
       isTouchDevice: 'ontouchstart' in window || navigator.msMaxTouchPoints,
@@ -163,7 +163,7 @@ export default class Globals {
       locale: {}, // the current locale values will be preserved here for global access
       dom: {}, // for storing all dom nodes in this particular property
       memory: {
-        methodsToExec: []
+        methodsToExec: [],
       },
       shouldAnimate: true,
       skipLastTimelinelabel: false, // when last label is cropped, skip drawing it
@@ -172,6 +172,7 @@ export default class Globals {
       axisCharts: true, // chart type = line or area or bar
       // (refer them also as plot charts in the code)
       isDataXYZ: false, // bool: data was provided in a {[x,y,z]} pattern
+      isSlopeChart: config.plotOptions.line.isSlopeChart,
       resized: false, // bool: user has resized
       resizeTimer: null, // timeout function to make a small delay before
       // drawing when user resized
@@ -222,20 +223,26 @@ export default class Globals {
       //       - to avoid clipping data point keep each array[][i] >= i
       // 2) each array[i][] contains 11 values, for all possible index values 0..10.
       //    array[][0] should not be needed (not proven) but ensures non-zero is returned.
-      // 
+      //
       // Users can effectively force their preferred "magMsd" through stepSize and
       // forceNiceScale. With forceNiceScale: true, stepSize becomes normalizable to the
       // axis's min..max range, which allows users to set stepSize to an integer 1..10, for
       // example, stepSize: 3. This value will be preferred to the value determined through
       // this array. The range-normalized value is checked for consistency with other
       // user defined options and will be ignored if inconsistent.
-      niceScaleAllowedMagMsd: [[1,1,2,5,5,5,10,10,10,10,10],[1,1,2,5,5,5,10,10,10,10,10]],
+      niceScaleAllowedMagMsd: [
+        [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10],
+        [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10],
+      ],
       // Default ticks based on SVG size. These values have high numbers
       // of divisors. The array is indexed using a calculated maxTicks value
       // divided by 2 simply to halve the array size. See Scales.niceScale().
-      niceScaleDefaultTicks: [1,2,4,4,6,6,6,6,6,6,6,6,6,6,6,6,6,6,12,12,12,12,12,12,12,12,12,24],
+      niceScaleDefaultTicks: [
+        1, 2, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 12, 12, 12, 12,
+        12, 12, 12, 12, 12, 24,
+      ],
       seriesYAxisMap: [], // Given yAxis index, return all series indices belonging to it. Multiple series can be referenced to each yAxis.
-      seriesYAxisReverseMap: [] // Given a Series index, return its yAxis index.
+      seriesYAxisReverseMap: [], // Given a Series index, return its yAxis index.
     }
   }
 

@@ -1,4 +1,5 @@
 import Utils from '../../utils/Utils'
+import Graphics from '../Graphics'
 
 export default class Helpers {
   constructor(dCtx) {
@@ -29,7 +30,7 @@ export default class Helpers {
 
     return {
       width,
-      height
+      height,
     }
   }
 
@@ -58,14 +59,14 @@ export default class Helpers {
         x: lgRect.x,
         y: lgRect.y,
         height: lgRect.height,
-        width: lgRect.height === 0 ? 0 : lgRect.width
+        width: lgRect.height === 0 ? 0 : lgRect.width,
       }
     } else {
       this.dCtx.lgRect = {
         x: 0,
         y: 0,
         height: 0,
-        width: 0
+        width: 0,
       }
     }
 
@@ -80,6 +81,49 @@ export default class Helpers {
     }
 
     return this.dCtx.lgRect
+  }
+
+  /**
+   * Get Y Axis Dimensions
+   * @memberof Dimensions
+   * @return {{width, height}}
+   **/
+  getDatalabelsRect() {
+    let w = this.w
+
+    let allLabels = []
+
+    w.config.series.forEach((serie, seriesIndex) => {
+      serie.data.forEach((datum, dataPointIndex) => {
+        const getText = (v) => {
+          return w.config.dataLabels.formatter(v, {
+            ctx: this.dCtx.ctx,
+            seriesIndex,
+            dataPointIndex,
+            w,
+          })
+        }
+
+        val = getText(w.globals.series[seriesIndex][dataPointIndex])
+
+        allLabels.push(val)
+      })
+    })
+
+    let val = Utils.getLargestStringFromArr(allLabels)
+
+    let graphics = new Graphics(this.dCtx.ctx)
+    const dataLabelsStyle = w.config.dataLabels.style
+    let labelrect = graphics.getTextRects(
+      val,
+      parseInt(dataLabelsStyle.fontSize),
+      dataLabelsStyle.fontFamily
+    )
+
+    return {
+      width: labelrect.width * 1.05,
+      height: labelrect.height,
+    }
   }
 
   getLargestStringFromMultiArr(val, arr) {

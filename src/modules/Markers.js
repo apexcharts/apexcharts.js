@@ -117,8 +117,8 @@ export default class Markers {
           }
 
           if (
-            p.x[q] < 0 ||
-            p.x[q] > w.globals.gridWidth ||
+            p.x[q] < -w.globals.markers.largestSize ||
+            p.x[q] > w.globals.gridWidth + w.globals.markers.largestSize ||
             p.y[q] < -w.globals.markers.largestSize ||
             p.y[q] > w.globals.gridHeight + w.globals.markers.largestSize
           ) {

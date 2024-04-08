@@ -81,7 +81,7 @@ class DataLabels {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
     // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
     let w = this.w
-    
+
     const graphics = new Graphics(this.ctx)
 
     let dataLabelsConfig = w.config.dataLabels
@@ -93,8 +93,7 @@ class DataLabels {
 
     let elDataLabelsWrap = null
 
-    const seriesCollapsed = 
-        w.globals.collapsedSeriesIndices.indexOf(i) !== -1
+    const seriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) !== -1
 
     if (seriesCollapsed || !dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
       return elDataLabelsWrap
@@ -152,6 +151,16 @@ class DataLabels {
           }
         }
 
+        let textAnchor = w.config.dataLabels.textAnchor
+
+        if (w.globals.isSlopeChart) {
+          if (dataPointIndex === 0) {
+            textAnchor = 'end'
+          } else {
+            textAnchor = 'start'
+          }
+        }
+
         this.plotDataLabelsText({
           x,
           y,
@@ -161,6 +170,7 @@ class DataLabels {
           parent: elDataLabelsWrap,
           offsetCorrection: true,
           dataLabelsConfig: w.config.dataLabels,
+          textAnchor,
         })
       }
     }
@@ -258,6 +268,10 @@ class DataLabels {
       // offsets becomes reversed
       offX = 0
       offY = 0
+    }
+
+    if (w.globals.isSlopeChart && j !== 0) {
+      offX = dataLabelsConfig.offsetX * -2 + 5
     }
 
     if (correctedLabels.drawnextLabel) {
