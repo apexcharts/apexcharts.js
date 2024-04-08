@@ -63,6 +63,10 @@ export default class Config {
         chartDefaults = defaults.brush(chartDefaults)
       }
 
+      if (opts.plotOptions?.line?.isSlopeChart) {
+        chartDefaults = defaults.slope()
+      }
+
       if (opts.chart.stacked && opts.chart.stackType === '100%') {
         opts = defaults.stacked100(opts)
       }

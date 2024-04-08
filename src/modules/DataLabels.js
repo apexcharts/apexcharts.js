@@ -270,8 +270,13 @@ class DataLabels {
       offY = 0
     }
 
-    if (w.globals.isSlopeChart && j !== 0) {
-      offX = dataLabelsConfig.offsetX * -2 + 5
+    if (w.globals.isSlopeChart) {
+      if (j !== 0) {
+        offX = dataLabelsConfig.offsetX * -2 + 5
+      }
+      if (j !== 0 && j !== w.config.series[i].data.length - 1) {
+        return
+      }
     }
 
     if (correctedLabels.drawnextLabel) {
