@@ -96,6 +96,7 @@ class Line {
       // the first value in the current series is not null or undefined
       let firstPrevY = this.lineHelpers.determineFirstPrevY({
         i,
+        realIndex,
         series,
         prevY,
         lineYPosition,
@@ -117,6 +118,7 @@ class Line {
       if (type === 'rangeArea') {
         firstPrevY2 = this.lineHelpers.determineFirstPrevY({
           i,
+          realIndex,
           series: seriesRangeEnd,
           prevY: prevY2,
           lineYPosition,
