@@ -267,6 +267,10 @@ export default class ApexCharts {
       me.annotations.drawImageAnnos()
       me.annotations.drawTextAnnos()
 
+      if (w.config.annotations.position === 'front') {
+        me.annotations.drawAxesAnnotations()
+      }
+
       if (w.config.grid.position === 'back') {
         if (elgrid) {
           w.globals.dom.elGraphical.add(elgrid.el)
@@ -318,7 +322,9 @@ export default class ApexCharts {
         })
       }
 
-      me.annotations.drawAxesAnnotations()
+      if (w.config.annotations.position === 'back') {
+        me.annotations.drawAxesAnnotations()
+      }
 
       if (!w.globals.noData) {
         // draw tooltips at the end
