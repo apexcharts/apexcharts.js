@@ -41,7 +41,7 @@ export default class Dimensions {
 
     this.lgRect = this.dimHelpers.getLegendsRect()
 
-    const maxStrokeWidth = Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width;
+    const maxStrokeWidth = Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width
 
     if (this.isSparkline) {
       if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
@@ -53,41 +53,40 @@ export default class Dimensions {
         })
       }
 
-      this.gridPad.top = Math.max(maxStrokeWidth / 2, this.gridPad.top);
-      this.gridPad.bottom = Math.max(maxStrokeWidth / 2, this.gridPad.bottom);
+      this.gridPad.top = Math.max(maxStrokeWidth / 2, this.gridPad.top)
+      this.gridPad.bottom = Math.max(maxStrokeWidth / 2, this.gridPad.bottom)
     }
 
     if (gl.axisCharts) {
-      // For line / area / scatter / column
-      this.setDimensionsForAxisCharts();
+      // for line / area / scatter / column
+      this.setDimensionsForAxisCharts()
     } else {
-      // For pie / donuts / circle
-      this.setDimensionsForNonAxisCharts();
+      // for pie / donuts / circle
+      this.setDimensionsForNonAxisCharts()
     }
 
-    this.dimGrid.gridPadFortitleSubtitle();
+    this.dimGrid.gridPadFortitleSubtitle()
 
     // After calculating everything, apply padding set by user
-    gl.gridHeight = gl.gridHeight - this.gridPad.top - this.gridPad.bottom;
+    gl.gridHeight = gl.gridHeight - this.gridPad.top - this.gridPad.bottom
     gl.gridWidth =
       gl.gridWidth -
       this.gridPad.left -
       this.gridPad.right -
       this.xPadRight -
-      this.xPadLeft;
+      this.xPadLeft
 
-    let barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth);
+    let barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth)
 
-    gl.gridWidth = gl.gridWidth - barWidth * 2;
+    gl.gridWidth = gl.gridWidth - barWidth * 2
 
     gl.translateX =
       gl.translateX +
       this.gridPad.left +
       this.xPadLeft +
-      (barWidth > 0 ? barWidth + 4 : 0);
-    gl.translateY = gl.translateY + this.gridPad.top;
+      (barWidth > 0 ? barWidth + 4 : 0)
+    gl.translateY = gl.translateY + this.gridPad.top
   }
-
 
   setDimensionsForAxisCharts() {
     let w = this.w
@@ -125,8 +124,8 @@ export default class Dimensions {
     gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX =
       w.globals.rotateXLabels &&
-        w.globals.isXNumeric &&
-        w.config.xaxis.labels.rotate <= -45
+      w.globals.isXNumeric &&
+      w.config.xaxis.labels.rotate <= -45
         ? -this.xAxisWidth / 4
         : 0
 
@@ -230,8 +229,8 @@ export default class Dimensions {
 
     const type =
       cnf.chart.type === 'pie' ||
-        cnf.chart.type === 'polarArea' ||
-        cnf.chart.type === 'donut'
+      cnf.chart.type === 'polarArea' ||
+      cnf.chart.type === 'donut'
         ? 'pie'
         : 'radialBar'
 
