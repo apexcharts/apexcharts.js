@@ -48,7 +48,7 @@ export default class Dimensions {
         Object.entries(this.gridPad).forEach(([k, v]) => {
           this.gridPad[k] = Math.max(
             v,
-            gl.markers.largestSize / 1.5
+            this.w.globals.markers.largestSize / 1.5
           )
         })
       }
@@ -67,8 +67,9 @@ export default class Dimensions {
 
     this.dimGrid.gridPadFortitleSubtitle()
 
-    // After calculating everything, apply padding set by user
+    // after calculating everything, apply padding set by user
     gl.gridHeight = gl.gridHeight - this.gridPad.top - this.gridPad.bottom
+    
     gl.gridWidth =
       gl.gridWidth -
       this.gridPad.left -
