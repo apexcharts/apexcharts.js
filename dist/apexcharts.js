@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.48.0
+ * ApexCharts v3.49.0
  * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
@@ -179,6 +179,10 @@
 
       return _possibleConstructorReturn(this, result);
     };
+  }
+
+  function _readOnlyError(name) {
+    throw new TypeError("\"" + name + "\" is read-only");
   }
 
   function _slicedToArray(arr, i) {
@@ -2367,7 +2371,7 @@
         w.globals.seriesGroups.forEach(function (sg) {
           var includedIndexes = [];
           w.config.series.forEach(function (s, si) {
-            if (sg.indexOf(s.name) > -1) {
+            if (sg.indexOf(w.globals.seriesNames[si]) > -1) {
               includedIndexes.push(si);
             }
           });
@@ -3714,14 +3718,51 @@
         return labels;
       }
     }, {
+      key: "yAxisAllSeriesCollapsed",
+      value: function yAxisAllSeriesCollapsed(index) {
+        var gl = this.w.globals;
+        return !gl.seriesYAxisMap[index].some(function (si) {
+          return gl.collapsedSeriesIndices.indexOf(si) === -1;
+        });
+      } // Method to translate annotation.yAxisIndex values from
+      // seriesName-as-a-string values to seriesName-as-an-array values (old style
+      // series mapping to new style).
+
+    }, {
+      key: "translateYAxisIndex",
+      value: function translateYAxisIndex(index) {
+        var w = this.w;
+        var gl = w.globals;
+        var yaxis = w.config.yaxis;
+        var newStyle = gl.series.length > yaxis.length || yaxis.some(function (a) {
+          return Array.isArray(a.seriesName);
+        });
+
+        if (newStyle) {
+          return index;
+        } else {
+          return gl.seriesYAxisReverseMap[index];
+        }
+      }
+    }, {
       key: "isYAxisHidden",
       value: function isYAxisHidden(index) {
         var w = this.w;
-        var coreUtils = new CoreUtils(this.ctx);
-        var allCollapsed = !w.globals.seriesYAxisMap[index].some(function (si) {
-          return w.globals.collapsedSeriesIndices.indexOf(si) === -1;
-        });
-        return allCollapsed || !w.config.yaxis[index].show || !w.config.yaxis[index].showForNullSeries && coreUtils.isSeriesNull(index);
+        var yaxis = w.config.yaxis[index];
+
+        if (!yaxis.show || this.yAxisAllSeriesCollapsed(index)) {
+          return true;
+        }
+
+        if (!yaxis.showForNullSeries) {
+          var seriesIndices = w.globals.seriesYAxisMap[index];
+          var coreUtils = new CoreUtils(this.ctx);
+          return seriesIndices.every(function (si) {
+            return coreUtils.isSeriesNull(si);
+          });
+        }
+
+        return false;
       } // get the label color for y-axis
       // realIndex is the actual series index, while i is the tick Index
 
@@ -3886,9 +3927,9 @@
           class: 'apexcharts-yaxis-annotations'
         });
         w.config.annotations.yaxis.forEach(function (anno, index) {
-          w.globals.seriesYAxisMap[anno.yAxisIndex][0];
+          anno.yAxisIndex = _this.axesUtils.translateYAxisIndex(anno.yAxisIndex);
 
-          if (!_this.axesUtils.isYAxisHidden(anno.yAxisIndex)) {
+          if (!(_this.axesUtils.isYAxisHidden(anno.yAxisIndex) && _this.axesUtils.yAxisAllSeriesCollapsed(anno.yAxisIndex))) {
             _this.addYaxisAnnotation(anno, elg.node, index);
           }
         });
@@ -3911,7 +3952,12 @@
     _createClass(PointAnnotations, [{
       key: "addPointAnnotation",
       value: function addPointAnnotation(anno, parent, index) {
-        this.w;
+        var w = this.w;
+
+        if (w.globals.collapsedSeriesIndices.indexOf(anno.seriesIndex) > -1) {
+          return;
+        }
+
         var result = this.helpers.getX1X2('x1', anno);
         var x = result.x;
         var clipX = result.clipped;
@@ -6955,6 +7001,7 @@
         gl.labels = [];
         gl.hasXaxisGroups = false;
         gl.groups = [];
+        gl.barGroups = [];
         gl.hasSeriesGroups = false;
         gl.seriesGroups = [];
         gl.categoryLabels = [];
@@ -8461,17 +8508,20 @@
       value: function toggleSeriesOnHover(e, targetElement) {
         var w = this.w;
         if (!targetElement) targetElement = e.target;
-        var allSeriesEls = w.globals.dom.baseEl.querySelectorAll(".apexcharts-series, .apexcharts-datalabels");
+        var allSeriesEls = w.globals.dom.baseEl.querySelectorAll(".apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis");
 
         if (e.type === 'mousemove') {
           var seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1;
           var seriesEl = null;
           var dataLabelEl = null;
+          var yaxisEl = null;
 
           if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
             if (w.globals.axisCharts) {
               seriesEl = w.globals.dom.baseEl.querySelector(".apexcharts-series[data\\:realIndex='".concat(seriesCnt, "']"));
               dataLabelEl = w.globals.dom.baseEl.querySelector(".apexcharts-datalabels[data\\:realIndex='".concat(seriesCnt, "']"));
+              var yaxisIndex = w.globals.seriesYAxisReverseMap[seriesCnt];
+              yaxisEl = w.globals.dom.baseEl.querySelector(".apexcharts-yaxis[rel='".concat(yaxisIndex, "']"));
             } else {
               seriesEl = w.globals.dom.baseEl.querySelector(".apexcharts-series[rel='".concat(seriesCnt + 1, "']"));
             }
@@ -8492,6 +8542,10 @@
 
             if (dataLabelEl !== null) {
               dataLabelEl.classList.remove(this.legendInactiveClass);
+            }
+
+            if (yaxisEl !== null) {
+              yaxisEl.classList.remove(this.legendInactiveClass);
             }
           }
         } else if (e.type === 'mouseout') {
@@ -9167,6 +9221,13 @@
           gl.groups = cnf.xaxis.group.groups;
         }
 
+        ser.forEach(function (s, i) {
+          if (s.name !== undefined) {
+            gl.seriesNames.push(s.name);
+          } else {
+            gl.seriesNames.push('series-' + parseInt(i + 1, 10));
+          }
+        });
         gl.hasSeriesGroups = (_ser$ = ser[0]) === null || _ser$ === void 0 ? void 0 : _ser$.group;
 
         if (gl.hasSeriesGroups) {
@@ -9179,7 +9240,7 @@
           ser.forEach(function (s, i) {
             var index = groups.indexOf(s.group);
             if (!buckets[index]) buckets[index] = [];
-            buckets[index].push(s.name);
+            buckets[index].push(gl.seriesNames[i]);
           });
           gl.seriesGroups = buckets;
         }
@@ -9262,14 +9323,7 @@
             gl.series.push(singleArray);
           }
 
-          gl.seriesZ.push(this.threeDSeries);
-
-          if (ser[i].name !== undefined) {
-            gl.seriesNames.push(ser[i].name);
-          } else {
-            gl.seriesNames.push('series-' + parseInt(i + 1, 10));
-          } // overrided default color if user inputs color with series data
-
+          gl.seriesZ.push(this.threeDSeries); // overrided default color if user inputs color with series data
 
           if (ser[i].color !== undefined) {
             gl.seriesColors.push(ser[i].color);
@@ -9466,8 +9520,7 @@
     }, {
       key: "excludeCollapsedSeriesInYAxis",
       value: function excludeCollapsedSeriesInYAxis() {
-        var w = this.w; // fix issue #1215
-        // Post revision 3.46.0 there is no longer a strict one-to-one
+        var w = this.w; // Post revision 3.46.0 there is no longer a strict one-to-one
         // correspondence between series and Y axes.
         // An axis can be ignored only while all series referenced by it
         // are collapsed.
@@ -10862,6 +10915,7 @@
       key: "renderGrid",
       value: function renderGrid() {
         var w = this.w;
+        var gl = w.globals;
         var graphics = new Graphics(this.ctx);
         this.elg = graphics.group({
           class: 'apexcharts-grid'
@@ -10883,37 +10937,37 @@
           this.elgridLinesH.hide();
           this.elGridBorders.hide();
         } // Draw the grid using ticks from the first unhidden Yaxis,
-        // or yaxis[0] is all hidden.
+        // or yaxis[0] if all are hidden.
 
 
         var gridAxisIndex = 0;
 
-        while (gridAxisIndex < w.globals.seriesYAxisMap.length && w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1) {
+        while (gridAxisIndex < gl.seriesYAxisMap.length && gl.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1) {
           gridAxisIndex++;
         }
 
-        if (gridAxisIndex === w.globals.seriesYAxisMap.length) {
+        if (gridAxisIndex === gl.seriesYAxisMap.length) {
           gridAxisIndex = 0;
         }
 
-        var yTickAmount = w.globals.yAxisScale[gridAxisIndex].result.length - 1;
+        var yTickAmount = gl.yAxisScale[gridAxisIndex].result.length - 1;
         var xCount;
 
-        if (!w.globals.isBarHorizontal || this.isRangeBar) {
+        if (!gl.isBarHorizontal || this.isRangeBar) {
           xCount = this.xaxisLabels.length;
 
           if (this.isRangeBar) {
-            var _w$globals$yAxisScale, _w$globals$yAxisScale2, _w$globals$yAxisScale3;
+            var _gl$yAxisScale, _gl$yAxisScale$gridAx, _gl$yAxisScale$gridAx2;
 
             xCount--;
-            yTickAmount = w.globals.labels.length;
+            yTickAmount = gl.labels.length;
 
             if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
               xCount = w.config.xaxis.tickAmount;
             }
 
-            if (((_w$globals$yAxisScale = w.globals.yAxisScale) === null || _w$globals$yAxisScale === void 0 ? void 0 : (_w$globals$yAxisScale2 = _w$globals$yAxisScale[gridAxisIndex]) === null || _w$globals$yAxisScale2 === void 0 ? void 0 : (_w$globals$yAxisScale3 = _w$globals$yAxisScale2.result) === null || _w$globals$yAxisScale3 === void 0 ? void 0 : _w$globals$yAxisScale3.length) > 0 && w.config.xaxis.type !== 'datetime') {
-              xCount = w.globals.yAxisScale[gridAxisIndex].result.length - 1;
+            if (((_gl$yAxisScale = gl.yAxisScale) === null || _gl$yAxisScale === void 0 ? void 0 : (_gl$yAxisScale$gridAx = _gl$yAxisScale[gridAxisIndex]) === null || _gl$yAxisScale$gridAx === void 0 ? void 0 : (_gl$yAxisScale$gridAx2 = _gl$yAxisScale$gridAx.result) === null || _gl$yAxisScale$gridAx2 === void 0 ? void 0 : _gl$yAxisScale$gridAx2.length) > 0 && w.config.xaxis.type !== 'datetime') {
+              xCount = gl.yAxisScale[gridAxisIndex].result.length - 1;
             }
           }
 
@@ -10924,7 +10978,7 @@
         } else {
           xCount = yTickAmount; // for horizontal bar chart, get the xaxis tickamount
 
-          yTickAmount = w.globals.xTickAmount;
+          yTickAmount = gl.xTickAmount;
 
           this._drawInvertedXYLines({
             xCount: xCount,
@@ -10936,7 +10990,7 @@
         return {
           el: this.elg,
           elGridBorders: this.elGridBorders,
-          xAxisTickWidth: w.globals.gridWidth / xCount
+          xAxisTickWidth: gl.gridWidth / xCount
         };
       }
     }, {
@@ -11045,7 +11099,7 @@
         var ticks = gotTickAmount ? axisCnf.tickAmount : !axisCnf.forceNiceScale ? 10 : gl.niceScaleDefaultTicks[Math.min(Math.round(maxTicks / 2), gl.niceScaleDefaultTicks.length - 1)]; // In case we have a multi axis chart:
         // Ensure subsequent series start with the same tickAmount as series[0],
         // because the tick lines are drawn based on series[0]. This does not
-        // override user defined options for any series.
+        // override user defined options for any yaxis.
 
         if (gl.isMultipleYAxis && !gotTickAmount && gl.multiAxisTickAmount > 0) {
           ticks = gl.multiAxisTickAmount;
@@ -11061,8 +11115,8 @@
 
         if (yMin === Number.MIN_VALUE && yMax === 0 || !Utils$1.isNumber(yMin) && !Utils$1.isNumber(yMax) || yMin === Number.MIN_VALUE && yMax === -Number.MAX_VALUE) {
           // when all values are 0
-          yMin = 0;
-          yMax = ticks;
+          yMin = Utils$1.isNumber(axisCnf.min) ? axisCnf.min : 0;
+          yMax = Utils$1.isNumber(axisCnf.max) ? axisCnf.max : yMin + ticks;
           gl.allSeriesCollapsed = false;
         }
 
@@ -11263,7 +11317,14 @@
             if (gotTickAmount) {
               yMax = yMin + stepSize * tiks;
             } else {
+              var yMaxPrev = yMax;
               yMax = stepSize * Math.ceil(yMax / stepSize);
+
+              if (Math.abs(yMax - yMin) / Utils$1.getGCD(range, stepSize) > maxTicks) {
+                // Use default ticks to compute yMin then shrinkwrap
+                yMax = yMin + stepSize * ticks;
+                yMax += stepSize * Math.ceil((yMaxPrev - yMax) / stepSize);
+              }
             }
           }
 
@@ -11291,12 +11352,6 @@
         if (!gotTickAmount && axisCnf.forceNiceScale && gl.yValueDecimal === 0 && tiks > range) {
           tiks = range;
           stepSize = Math.round(range / tiks);
-        } // Record final tiks for use by other series that call niceScale().
-        // Note: some don't, like logarithmicScale(), etc.
-
-
-        if (gl.isMultipleYAxis && gl.multiAxisTickAmount == 0) {
-          gl.multiAxisTickAmount = tiks;
         }
 
         if (tiks > maxTicks && (!(gotTickAmount || gotStepSize) || axisCnf.forceNiceScale)) {
@@ -11363,6 +11418,14 @@
           } else {
             stepSize = range / tt;
           }
+
+          tiks = Math.round(range / stepSize);
+        } // Record final tiks for use by other series that call niceScale().
+        // Note: some don't, like logarithmicScale(), etc.
+
+
+        if (gl.isMultipleYAxis && gl.multiAxisTickAmount == 0 && gl.ignoreYAxisIndexes.indexOf(index) < 0) {
+          gl.multiAxisTickAmount = tiks;
         } // build Y label array.
 
 
@@ -11509,9 +11572,11 @@
           gl.allSeriesCollapsed = false;
           gl.yAxisScale[index] = y.forceNiceScale ? this.logarithmicScaleNice(minY, maxY, y.logBase) : this.logarithmicScale(minY, maxY, y.logBase);
         } else {
-          if (maxY === -Number.MAX_VALUE || !Utils$1.isNumber(maxY)) {
-            // no data in the chart. Either all series collapsed or user passed a blank array
-            gl.yAxisScale[index] = this.linearScale(0, 10, 10, index, cnf.yaxis[index].stepSize);
+          if (maxY === -Number.MAX_VALUE || !Utils$1.isNumber(maxY) || minY === Number.MAX_VALUE || !Utils$1.isNumber(minY)) {
+            // no data in the chart.
+            // Either all series collapsed or user passed a blank array.
+            // Show the user's yaxis with their scale options but with a range.
+            gl.yAxisScale[index] = this.niceScale(Number.MIN_VALUE, 0, index);
           } else {
             // there is some data. Turn off the allSeriesCollapsed flag
             gl.allSeriesCollapsed = false;
@@ -11536,12 +11601,12 @@
         return gl.xAxisScale;
       }
     }, {
-      key: "setMultipleYScales",
-      value: function setMultipleYScales() {
+      key: "setSeriesYAxisMappings",
+      value: function setSeriesYAxisMappings() {
         var gl = this.w.globals;
         var cnf = this.w.config;
-        var minYArr = gl.minYArr;
-        var maxYArr = gl.maxYArr; // The current config method to map multiple series to a y axis is to
+        gl.minYArr;
+        gl.maxYArr; // The current config method to map multiple series to a y axis is to
         // include one yaxis config per series but set each yaxis seriesName to the
         // same series name. This relies on indexing equivalence to map series to
         // an axis: series[n] => yaxis[n]. This needs to be retained for compatibility.
@@ -11588,7 +11653,9 @@
         var axisSeriesMap = [];
         var seriesYAxisReverseMap = [];
         var unassignedSeriesIndices = [];
-        var assumeSeriesNameArrays = cnf.yaxis.length !== cnf.series.length;
+        var seriesNameArrayStyle = gl.series.length > cnf.yaxis.length || cnf.yaxis.some(function (a) {
+          return Array.isArray(a.seriesName);
+        });
         cnf.series.forEach(function (s, i) {
           unassignedSeriesIndices.push(i);
           seriesYAxisReverseMap.push(null);
@@ -11616,14 +11683,24 @@
             seriesNames.forEach(function (name) {
               cnf.series.forEach(function (s, si) {
                 if (s.name === name) {
-                  if (yi === si || assumeSeriesNameArrays) {
-                    axisSeriesMap[yi].push(si);
+                  var remove = si;
+
+                  if (yi === si || seriesNameArrayStyle) {
+                    // New style, don't allow series to be double referenced
+                    if (!seriesNameArrayStyle || unassignedSeriesIndices.indexOf(si) > -1) {
+                      axisSeriesMap[yi].push([yi, si]);
+                    } else {
+                      console.warn("Series '" + s.name + "' referenced more than once in what looks like the new style." + " That is, when using either seriesName: []," + " or when there are more series than yaxes.");
+                    }
                   } else {
-                    axisSeriesMap[si].push(yi);
+                    // The series index refers to the target yaxis and the current
+                    // yaxis index refers to the actual referenced series.
+                    axisSeriesMap[si].push([si, yi]);
+                    remove = yi;
                   }
 
                   assigned = true;
-                  var remove = unassignedSeriesIndices.indexOf(si);
+                  remove = unassignedSeriesIndices.indexOf(remove);
 
                   if (remove !== -1) {
                     unassignedSeriesIndices.splice(remove, 1);
@@ -11637,18 +11714,22 @@
             unassignedYAxisIndices.push(yi);
           }
         });
-        axisSeriesMap.forEach(function (yaxe, yi) {
-          yaxe.forEach(function (si) {
-            seriesYAxisReverseMap[si] = yi;
+        axisSeriesMap = axisSeriesMap.map(function (yaxe, yi) {
+          var ra = [];
+          yaxe.forEach(function (sa) {
+            seriesYAxisReverseMap[sa[1]] = sa[0];
+            ra.push(sa[1]);
           });
+          return ra;
         }); // All series referenced directly by yaxes have been assigned to those axes.
         // Any series so far unassigned will be assigned to any yaxes that have yet
         // to reference series directly, one-for-one in order of appearance, with
-        // all left-over series assigned to the last such yaxis. This captures the
+        // all left-over series assigned to either the last unassigned yaxis, or the
+        // last yaxis if all have assigned series. This captures the
         // default single and multiaxis config options which simply includes zero,
         // one or as many yaxes as there are series but do not reference them by name.
 
-        var lastUnassignedYAxis;
+        var lastUnassignedYAxis = cnf.yaxis.length - 1;
 
         for (var i = 0; i < unassignedYAxisIndices.length; i++) {
           lastUnassignedYAxis = unassignedYAxisIndices[i];
@@ -11664,14 +11745,12 @@
           }
         }
 
-        if (lastUnassignedYAxis) {
-          unassignedSeriesIndices.forEach(function (i) {
-            axisSeriesMap[lastUnassignedYAxis].push(i);
-            seriesYAxisReverseMap[i] = lastUnassignedYAxis;
-          });
-        } // We deliberately leave the zero-length yaxis array elements in for
-        // compatibility with the old equivalence in number between sereis and yaxes.
-
+        unassignedSeriesIndices.forEach(function (i) {
+          axisSeriesMap[lastUnassignedYAxis].push(i);
+          seriesYAxisReverseMap[i] = lastUnassignedYAxis;
+        }); // For the old-style seriesName-as-string-only, leave the zero-length yaxis
+        // array elements in for compatibility so that series.length == yaxes.length
+        // for multi axis charts.
 
         gl.seriesYAxisMap = axisSeriesMap.map(function (x) {
           return x;
@@ -11679,97 +11758,179 @@
         gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map(function (x) {
           return x;
         });
-        this.sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap);
       }
     }, {
-      key: "sameScaleInMultipleAxes",
-      value: function sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap) {
+      key: "scaleMultipleYAxes",
+      value: function scaleMultipleYAxes() {
         var _this = this;
 
         var cnf = this.w.config;
-        var gl = this.w.globals; // Compute min..max for each yaxis
-        // 
+        var gl = this.w.globals;
+        this.setSeriesYAxisMappings();
+        var axisSeriesMap = gl.seriesYAxisMap;
+        var minYArr = gl.minYArr;
+        var maxYArr = gl.maxYArr; // Compute min..max for each yaxis
 
+        gl.allSeriesCollapsed = true;
+        gl.barGroups = [];
         axisSeriesMap.forEach(function (axisSeries, ai) {
+          var groupNames = [];
+          axisSeries.forEach(function (as) {
+            var group = cnf.series[as].group;
+
+            if (groupNames.indexOf(group) < 0) {
+              groupNames.push(group);
+            }
+          });
+
           if (axisSeries.length > 0) {
-            var minY = Number.MAX_VALUE;
-            var maxY = -Number.MAX_VALUE;
+            (function () {
+              var minY = Number.MAX_VALUE;
+              var maxY = -Number.MAX_VALUE;
+              var lowestY = minY;
+              var highestY = maxY;
+              var seriesType;
+              var seriesGroupName;
 
-            if (cnf.chart.stacked) {
-              var sumSeries = gl.seriesX[axisSeries[0]].map(function (x) {
-                return Number.MIN_VALUE;
-              });
-              var posSeries = gl.seriesX[axisSeries[0]].map(function (x) {
-                return Number.MIN_VALUE;
-              });
-              var negSeries = gl.seriesX[axisSeries[0]].map(function (x) {
-                return Number.MIN_VALUE;
-              }); // The first series bound to the axis sets the type for stacked series
+              if (cnf.chart.stacked) {
+                (function () {
+                  // Series' on this axis with the same group name will be stacked.
+                  // Sum series in each group separately
+                  var mapSeries = gl.seriesX[axisSeries[0]];
+                  var sumSeries = [];
+                  var posSeries = [];
+                  var negSeries = [];
+                  groupNames.forEach(function () {
+                    sumSeries.push(mapSeries.map(function () {
+                      return Number.MIN_VALUE;
+                    }));
+                    posSeries.push(mapSeries.map(function () {
+                      return Number.MIN_VALUE;
+                    }));
+                    negSeries.push(mapSeries.map(function () {
+                      return Number.MIN_VALUE;
+                    }));
+                  });
 
-              var seriesType = cnf.series[axisSeries[0]].type;
+                  var _loop = function _loop(i) {
+                    // Assume chart type but the first series that has a type overrides.
+                    if (!seriesType && cnf.series[axisSeries[i]].type) {
+                      seriesType = cnf.series[axisSeries[i]].type;
+                    } // Sum all series for this yaxis at each corresponding datapoint
+                    // For bar and column charts we need to keep positive and negative
+                    // values separate, for each group separately.
 
-              for (var i = 0; i < axisSeries.length; i++) {
-                // Sum all series for this yaxis at each corresponding datapoint
-                // For bar and column charts we need to keep positive and negative
-                // values separate.
-                var si = axisSeries[i];
 
-                if (gl.collapsedSeriesIndices.indexOf(si) === -1) {
-                  for (var j = 0; j < gl.series[si].length; j++) {
-                    var val = gl.series[si][j];
+                    var si = axisSeries[i];
 
-                    if (val >= 0) {
-                      posSeries[j] += val;
+                    if (cnf.series[si].group) {
+                      seriesGroupName = cnf.series[si].group;
                     } else {
-                      negSeries[j] += val;
+                      seriesGroupName = 'axis-'.concat(ai);
                     }
 
-                    sumSeries[j] += val;
+                    var collapsed = !(gl.collapsedSeriesIndices.indexOf(si) < 0 && gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0);
+
+                    if (!collapsed) {
+                      gl.allSeriesCollapsed = false;
+                      groupNames.forEach(function (gn, gni) {
+                        // Undefined group names will be grouped together as their own
+                        // group.
+                        if (cnf.series[si].group === gn) {
+                          for (var j = 0; j < gl.series[si].length; j++) {
+                            var val = gl.series[si][j];
+
+                            if (val >= 0) {
+                              posSeries[gni][j] += val;
+                            } else {
+                              negSeries[gni][j] += val;
+                            }
+
+                            sumSeries[gni][j] += val; // For non bar-like series' we need these point max/min values.
+
+                            lowestY = Math.min(lowestY, val);
+                            highestY = Math.max(highestY, val);
+                          }
+                        }
+                      });
+                    }
+
+                    if (seriesType === 'bar' || seriesType === 'column') {
+                      gl.barGroups.push(seriesGroupName);
+                    }
+                  };
+
+                  for (var i = 0; i < axisSeries.length; i++) {
+                    _loop(i);
+                  }
+
+                  if (!seriesType) {
+                    seriesType = cnf.chart.type;
+                  }
+
+                  if (seriesType === 'bar' || seriesType === 'column') {
+                    groupNames.forEach(function (gn, gni) {
+                      minY = Math.min(minY, Math.min.apply(null, negSeries[gni]));
+                      maxY = Math.max(maxY, Math.max.apply(null, posSeries[gni]));
+                    });
+                  } else {
+                    // We don't expect multiple groups per yaxis for line-like
+                    // series, but we allow it anyway.
+                    groupNames.forEach(function (gn, gni) {
+                      minY = Math.min(lowestY, Math.min.apply(null, sumSeries[gni]));
+                      maxY = Math.max(highestY, Math.max.apply(null, sumSeries[gni]));
+                    });
+                  }
+
+                  if (minY === Number.MIN_VALUE && maxY === Number.MIN_VALUE) {
+                    // No series data
+                    maxY = -Number.MAX_VALUE;
+                  }
+                })();
+              } else {
+                for (var i = 0; i < axisSeries.length; i++) {
+                  var si = axisSeries[i];
+                  minY = Math.min(minY, minYArr[si]);
+                  maxY = Math.max(maxY, maxYArr[si]);
+                  var collapsed = !(gl.collapsedSeriesIndices.indexOf(si) < 0 && gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0);
+
+                  if (!collapsed) {
+                    gl.allSeriesCollapsed = false;
                   }
                 }
               }
 
-              if (seriesType === 'bar') {
-                minY = Math.min.apply(null, negSeries);
-                maxY = Math.max.apply(null, posSeries);
-              } else {
-                minY = Math.min.apply(null, sumSeries);
-                maxY = Math.max.apply(null, sumSeries);
-              }
-            } else {
-              for (var _i = 0; _i < axisSeries.length; _i++) {
-                minY = Math.min(minY, minYArr[axisSeries[_i]]);
+              if (cnf.yaxis[ai].min !== undefined) {
+                if (typeof cnf.yaxis[ai].min === 'function') {
+                  minY = cnf.yaxis[ai].min(minY);
+                } else {
+                  minY = cnf.yaxis[ai].min;
+                }
               }
 
-              for (var _i2 = 0; _i2 < axisSeries.length; _i2++) {
-                maxY = Math.max(maxY, maxYArr[axisSeries[_i2]]);
+              if (cnf.yaxis[ai].max !== undefined) {
+                if (typeof cnf.yaxis[ai].max === 'function') {
+                  maxY = cnf.yaxis[ai].max(maxY);
+                } else {
+                  maxY = cnf.yaxis[ai].max;
+                }
               }
-            }
 
-            if (cnf.yaxis[ai].min !== undefined) {
-              if (typeof cnf.yaxis[ai].min === 'function') {
-                minY = cnf.yaxis[ai].min(minY);
-              } else {
-                minY = cnf.yaxis[ai].min;
-              }
-            }
+              gl.barGroups = gl.barGroups.filter(function (v, i, a) {
+                return a.indexOf(v) === i;
+              }); // Set the scale for this yaxis
 
-            if (cnf.yaxis[ai].max !== undefined) {
-              if (typeof cnf.yaxis[ai].max === 'function') {
-                maxY = cnf.yaxis[ai].max(maxY);
-              } else {
-                maxY = cnf.yaxis[ai].max;
-              }
-            } // Set the scale for this yaxis
+              _this.setYScaleForIndex(ai, minY, maxY); // Set individual series min and max to nice values
 
 
-            _this.setYScaleForIndex(ai, minY, maxY); // Set individual series min and max to nice values
-
-
-            axisSeries.forEach(function (si) {
-              minYArr[si] = gl.yAxisScale[ai].niceMin;
-              maxYArr[si] = gl.yAxisScale[ai].niceMax;
-            });
+              axisSeries.forEach(function (si) {
+                minYArr[si] = gl.yAxisScale[ai].niceMin;
+                maxYArr[si] = gl.yAxisScale[ai].niceMax;
+              });
+            })();
+          } else {
+            // No series referenced by this yaxis
+            _this.setYScaleForIndex(ai, 0, -Number.MAX_VALUE);
           }
         });
       }
@@ -11904,6 +12065,7 @@
                       lowestY = Math.min(lowestY, gl.seriesCandleL[i][j]);
                     }
                   }
+                  break;
 
                 case 'boxPlot':
                   {
@@ -11912,6 +12074,7 @@
                       lowestY = Math.min(lowestY, gl.seriesCandleO[i][j]);
                     }
                   }
+                  break;
               } // there is a combo chart and the specified series in not either
               // candlestick, boxplot, or rangeArea/rangeBar; find the max there.
 
@@ -12074,9 +12237,18 @@
 
 
         if (gl.isMultipleYAxis) {
-          this.scales.setMultipleYScales();
+          this.scales.scaleMultipleYAxes();
           gl.minY = lowestYInAllSeries;
         } else {
+          gl.barGroups = [];
+          cnf.series.forEach(function (s) {
+            if (!s.type && cnf.chart.type === 'bar' || s.type === 'bar' || s.type === 'column') {
+              gl.barGroups.push(s.group ? s.group : 'axis-0');
+            }
+          });
+          gl.barGroups = gl.barGroups.filter(function (v, i, a) {
+            return a.indexOf(v) === i;
+          });
           this.scales.setYScaleForIndex(0, gl.minY, gl.maxY);
           gl.minY = gl.yAxisScale[0].niceMin;
           gl.maxY = gl.yAxisScale[0].niceMax;
@@ -12325,8 +12497,8 @@
         var seriesGroups = gl.seriesGroups;
 
         if (!seriesGroups.length) {
-          seriesGroups = [this.w.config.series.map(function (serie) {
-            return serie.name;
+          seriesGroups = [this.w.globals.seriesNames.map(function (name) {
+            return name;
           })];
         }
 
@@ -12337,21 +12509,21 @@
           stackedNegs[group] = [];
 
           var indicesOfSeriesInGroup = _this.w.config.series.map(function (serie, si) {
-            return group.indexOf(serie.name) > -1 ? si : null;
+            return group.indexOf(gl.seriesNames[si]) > -1 ? si : null;
           }).filter(function (f) {
             return f !== null;
           });
 
           indicesOfSeriesInGroup.forEach(function (i) {
             for (var j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
-              var _this$w$config$series, _this$w$config$series2;
+              var _this$w$config$series, _this$w$config$series2, _this$w$config$series3, _this$w$config$series4;
 
               if (typeof stackedPoss[group][j] === 'undefined') {
                 stackedPoss[group][j] = 0;
                 stackedNegs[group][j] = 0;
               }
 
-              var stackSeries = _this.w.config.chart.stacked && !gl.comboCharts || _this.w.config.chart.stacked && gl.comboCharts && (!_this.w.config.chart.stackOnlyBar || ((_this$w$config$series = _this.w.config.series) === null || _this$w$config$series === void 0 ? void 0 : (_this$w$config$series2 = _this$w$config$series[i]) === null || _this$w$config$series2 === void 0 ? void 0 : _this$w$config$series2.type) === 'bar');
+              var stackSeries = _this.w.config.chart.stacked && !gl.comboCharts || _this.w.config.chart.stacked && gl.comboCharts && (!_this.w.config.chart.stackOnlyBar || ((_this$w$config$series = _this.w.config.series) === null || _this$w$config$series === void 0 ? void 0 : (_this$w$config$series2 = _this$w$config$series[i]) === null || _this$w$config$series2 === void 0 ? void 0 : _this$w$config$series2.type) === 'bar' || ((_this$w$config$series3 = _this.w.config.series) === null || _this$w$config$series3 === void 0 ? void 0 : (_this$w$config$series4 = _this$w$config$series3[i]) === null || _this$w$config$series4 === void 0 ? void 0 : _this$w$config$series4.type) === 'column');
 
               if (stackSeries) {
                 if (gl.series[i][j] !== null && Utils$1.isNumber(gl.series[i][j])) {
@@ -14086,8 +14258,10 @@
       key: "gridPadForColumnsInNumericAxis",
       value: function gridPadForColumnsInNumericAxis(gridWidth) {
         var w = this.w;
+        var cnf = w.config;
+        var gl = w.globals;
 
-        if (w.globals.noData || w.globals.allSeriesCollapsed) {
+        if (gl.noData || gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === cnf.series.length) {
           return 0;
         }
 
@@ -14095,39 +14269,39 @@
           return type === 'bar' || type === 'rangeBar' || type === 'candlestick' || type === 'boxPlot';
         };
 
-        var type = w.config.chart.type;
+        var type = cnf.chart.type;
         var barWidth = 0;
-        var seriesLen = hasBar(type) ? w.config.series.length : 1;
+        var seriesLen = hasBar(type) ? cnf.series.length : 1;
 
-        if (w.globals.comboBarCount > 0) {
-          seriesLen = w.globals.comboBarCount;
+        if (gl.comboBarCount > 0) {
+          seriesLen = gl.comboBarCount;
         }
 
-        w.globals.collapsedSeries.forEach(function (c) {
+        gl.collapsedSeries.forEach(function (c) {
           if (hasBar(c.type)) {
             seriesLen = seriesLen - 1;
           }
         });
 
-        if (w.config.chart.stacked) {
+        if (cnf.chart.stacked) {
           seriesLen = 1;
         }
 
-        var barsPresent = hasBar(type) || w.globals.comboBarCount > 0;
+        var barsPresent = hasBar(type) || gl.comboBarCount > 0;
 
-        if (barsPresent && w.globals.isXNumeric && !w.globals.isBarHorizontal && seriesLen > 0) {
+        if (barsPresent && gl.isXNumeric && !gl.isBarHorizontal && seriesLen > 0) {
           var xRatio = 0;
-          var xRange = Math.abs(w.globals.initialMaxX - w.globals.initialMinX);
+          var xRange = Math.abs(gl.initialMaxX - gl.initialMinX);
 
           if (xRange <= 3) {
-            xRange = w.globals.dataPoints;
+            xRange = gl.dataPoints;
           }
 
           xRatio = xRange / gridWidth;
           var xDivision; // max barwidth should be equal to minXDiff to avoid overlap
 
-          if (w.globals.minXDiff && w.globals.minXDiff / xRatio > 0) {
-            xDivision = w.globals.minXDiff / xRatio;
+          if (gl.minXDiff && gl.minXDiff / xRatio > 0) {
+            xDivision = gl.minXDiff / xRatio;
           }
 
           if (xDivision > gridWidth / 2) {
@@ -14142,13 +14316,13 @@
           // was to remove the division by seriesLen.
 
 
-          barWidth = xDivision * parseInt(w.config.plotOptions.bar.columnWidth, 10) / 100;
+          barWidth = xDivision * parseInt(cnf.plotOptions.bar.columnWidth, 10) / 100;
 
           if (barWidth < 1) {
             barWidth = 1;
           }
 
-          w.globals.barPadForNumericAxis = barWidth;
+          gl.barPadForNumericAxis = barWidth;
         }
 
         return barWidth;
@@ -14594,38 +14768,39 @@
         var seriesEl = _ref.seriesEl,
             realIndex = _ref.realIndex;
         var w = this.w;
+        var gl = w.globals;
         var series = Utils$1.clone(w.config.series);
 
-        if (w.globals.axisCharts) {
-          var yaxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]];
+        if (gl.axisCharts) {
+          var yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]];
 
           if (yaxis && yaxis.show && yaxis.showAlways) {
-            if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
-              w.globals.ancillaryCollapsedSeries.push({
+            if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
+              gl.ancillaryCollapsedSeries.push({
                 index: realIndex,
                 data: series[realIndex].data.slice(),
                 type: seriesEl.parentNode.className.baseVal.split('-')[1]
               });
-              w.globals.ancillaryCollapsedSeriesIndices.push(realIndex);
+              gl.ancillaryCollapsedSeriesIndices.push(realIndex);
             }
           } else {
-            if (w.globals.collapsedSeriesIndices.indexOf(realIndex) < 0) {
-              w.globals.collapsedSeries.push({
+            if (gl.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+              gl.collapsedSeries.push({
                 index: realIndex,
                 data: series[realIndex].data.slice(),
                 type: seriesEl.parentNode.className.baseVal.split('-')[1]
               });
-              w.globals.collapsedSeriesIndices.push(realIndex);
-              var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
-              w.globals.risingSeries.splice(removeIndexOfRising, 1);
+              gl.collapsedSeriesIndices.push(realIndex);
+              var removeIndexOfRising = gl.risingSeries.indexOf(realIndex);
+              gl.risingSeries.splice(removeIndexOfRising, 1);
             }
           }
         } else {
-          w.globals.collapsedSeries.push({
+          gl.collapsedSeries.push({
             index: realIndex,
             data: series[realIndex]
           });
-          w.globals.collapsedSeriesIndices.push(realIndex);
+          gl.collapsedSeriesIndices.push(realIndex);
         }
 
         var seriesChildren = seriesEl.childNodes;
@@ -14640,7 +14815,7 @@
           }
         }
 
-        w.globals.allSeriesCollapsed = w.globals.collapsedSeries.length === w.config.series.length;
+        gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === w.config.series.length;
         series = this._getSeriesBasedOnCollapsedState(series);
 
         this.lgCtx.ctx.updateHelpers._updateSeries(series, w.config.chart.animations.dynamicAnimation.enabled);
@@ -14677,21 +14852,25 @@
       key: "_getSeriesBasedOnCollapsedState",
       value: function _getSeriesBasedOnCollapsedState(series) {
         var w = this.w;
+        var collapsed = 0;
 
         if (w.globals.axisCharts) {
           series.forEach(function (s, sI) {
-            if (w.globals.collapsedSeriesIndices.indexOf(sI) > -1) {
+            if (!(w.globals.collapsedSeriesIndices.indexOf(sI) < 0 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(sI) < 0)) {
               series[sI].data = [];
+              collapsed++;
             }
           });
         } else {
           series.forEach(function (s, sI) {
-            if (w.globals.collapsedSeriesIndices.indexOf(sI) > -1) {
+            if (!w.globals.collapsedSeriesIndices.indexOf(sI) < 0) {
               series[sI] = 0;
+              collapsed++;
             }
           });
         }
 
+        w.globals.allSeriesCollapsed = collapsed === series.length;
         return series;
       }
     }]);
@@ -16079,9 +16258,11 @@
         w.config.yaxis.forEach(function (yaxe, index) {
           // We can use the index of any series referenced by the Yaxis
           // because they will all return the same value.
-          var seriesIndex = w.globals.seriesYAxisMap[index][0];
-          yHighestValue.push(w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.startY);
-          yLowestValue.push(w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.endY);
+          if (w.globals.seriesYAxisMap[index].length > 0) {
+            var seriesIndex = w.globals.seriesYAxisMap[index][0];
+            yHighestValue.push(w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.startY);
+            yLowestValue.push(w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.endY);
+          }
         });
 
         if (me.dragged && (me.dragX > 10 || me.dragY > 10) && xLowestValue !== xHighestValue) {
@@ -18206,17 +18387,25 @@
       value: function drawYaxisTooltipText(index, clientY, xyRatios) {
         var ttCtx = this.ttCtx;
         var w = this.w;
-        var lbFormatter = w.globals.yLabelFormatters[index];
+        var gl = w.globals;
+        var yAxisSeriesArr = gl.seriesYAxisMap[index];
 
-        if (ttCtx.yaxisTooltips[index]) {
+        if (ttCtx.yaxisTooltips[index] && yAxisSeriesArr.length > 0) {
+          var lbFormatter = gl.yLabelFormatters[index];
           var elGrid = ttCtx.getElGrid();
           var seriesBound = elGrid.getBoundingClientRect(); // We can use the index of any series referenced by the Yaxis
           // because they will all return the same value.
 
-          var seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0];
-          var hoverY = (clientY - seriesBound.top) * xyRatios.yRatio[seriesIndex];
-          var height = w.globals.maxYArr[seriesIndex] - w.globals.minYArr[seriesIndex];
-          var val = w.globals.minYArr[seriesIndex] + (height - hoverY);
+          var seriesIndex = yAxisSeriesArr[0];
+          var translationsIndex = 0;
+
+          if (xyRatios.yRatio.length > 1) {
+            _readOnlyError("translationsIndex");
+          }
+
+          var hoverY = (clientY - seriesBound.top) * xyRatios.yRatio[translationsIndex];
+          var height = gl.maxYArr[seriesIndex] - gl.minYArr[seriesIndex];
+          var val = gl.minYArr[seriesIndex] + (height - hoverY);
           ttCtx.tooltipPosition.moveYCrosshairs(clientY - seriesBound.top);
           ttCtx.yaxisTooltipText[index].innerHTML = lbFormatter(val);
           ttCtx.tooltipPosition.moveYAxisTooltip(index);
@@ -20483,8 +20672,32 @@
         var graphics = new Graphics(this.ctx);
 
         if (!lineFill) {
+          // if user provided a function in colors, we need to eval here
+          // Note: the position of this function logic (ex. stroke: { colors: ["",function(){}] }) i.e array index 1 depicts the realIndex/seriesIndex.
+          var fetchColor = function fetchColor(i) {
+            var exp = w.config.stroke.colors;
+            var c;
+
+            if (Array.isArray(exp) && exp.length > 0) {
+              c = exp[i];
+              if (!c) c = '';
+
+              if (typeof c === 'function') {
+                return c({
+                  value: w.globals.series[i][j],
+                  dataPointIndex: j,
+                  w: w
+                });
+              }
+            }
+
+            return c;
+          };
+
+          var checkAvailableColor = typeof w.globals.stroke.colors[realIndex] === 'function' ? fetchColor(realIndex) : w.globals.stroke.colors[realIndex];
           /* fix apexcharts#341 */
-          lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : w.globals.stroke.colors[realIndex];
+
+          lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : checkAvailableColor;
         }
 
         if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
@@ -20847,7 +21060,11 @@
 
           _this.groupCtx = _this;
           w.globals.seriesGroups.forEach(function (group, gIndex) {
-            if (group.indexOf(w.config.series[i].name) > -1) {
+            // w.config.series[i].name may be undefined, so use
+            // w.globals.seriesNames[i], which has auto-generated names for those
+            // series. w.globals.seriesGroups[] uses the same auto-gen naming, so
+            // these will match.
+            if (group.indexOf(w.globals.seriesNames[i]) > -1) {
               groupIndex = gIndex;
             }
           });
@@ -21023,8 +21240,6 @@
     }, {
       key: "initialPositions",
       value: function initialPositions(x, y, xDivision, yDivision, zeroH, zeroW, translationsIndex) {
-        var _w$globals$seriesGrou, _w$globals$seriesGrou2;
-
         var w = this.w;
         var barHeight, barWidth;
 
@@ -21063,13 +21278,14 @@
           x = w.globals.padHorizontal + (xDivision - barWidth) / 2;
         }
 
+        var subDivisions = w.globals.barGroups.length ? w.globals.barGroups.length : 1;
         return {
           x: x,
           y: y,
           yDivision: yDivision,
           xDivision: xDivision,
-          barHeight: (_w$globals$seriesGrou = w.globals.seriesGroups) !== null && _w$globals$seriesGrou !== void 0 && _w$globals$seriesGrou.length ? barHeight / w.globals.seriesGroups.length : barHeight,
-          barWidth: (_w$globals$seriesGrou2 = w.globals.seriesGroups) !== null && _w$globals$seriesGrou2 !== void 0 && _w$globals$seriesGrou2.length ? barWidth / w.globals.seriesGroups.length : barWidth,
+          barHeight: barHeight / subDivisions,
+          barWidth: barWidth / subDivisions,
           zeroH: zeroH,
           zeroW: zeroW
         };
@@ -21179,8 +21395,8 @@
           if (!seriesVal) seriesVal = 0;
           x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2;
 
-          if (w.globals.seriesGroups.length) {
-            x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2 * w.globals.seriesGroups.length;
+          if (w.globals.barGroups.length) {
+            x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2 * w.globals.barGroups.length;
           }
         }
 
@@ -21197,7 +21413,7 @@
         var gsi = i; // an index to keep track of the series inside a group
 
         if (seriesGroup) {
-          gsi = seriesGroup.indexOf(w.config.series[i].name);
+          gsi = seriesGroup.indexOf(w.globals.seriesNames[i]);
         }
 
         if (gsi > 0 && !w.globals.isXNumeric || gsi > 0 && w.globals.isXNumeric && w.globals.seriesX[i - 1][j] === w.globals.seriesX[i][j]) {
@@ -21251,7 +21467,9 @@
             barYPosition = bYP;
           }
         } else {
-          // the first series will not have prevY values, also if the prev index's series X doesn't matches the current index's series X, then start from zero
+          // the first series will not have prevY values, also if the prev index's
+          // series X doesn't matches the current index's series X, then start from
+          // zero
           barYPosition = zeroH;
         }
 
@@ -22964,7 +23182,7 @@
           _this.angleArr[i] = [];
           s.forEach(function (dv, j) {
             var range = Math.abs(_this.maxValue - _this.minValue);
-            dv = dv + Math.abs(_this.minValue);
+            dv = dv - _this.minValue;
 
             if (_this.isLog) {
               dv = _this.coreUtils.getLogVal(_this.logBase, dv, 0);
@@ -24291,15 +24509,16 @@
     }, {
       key: "determineFirstPrevY",
       value: function determineFirstPrevY(_ref3) {
-        var _this$w$config$series, _series$i;
+        var _this$w$config$series, _this$w$config$series2, _series$i;
 
         var i = _ref3.i,
+            realIndex = _ref3.realIndex,
             series = _ref3.series,
             prevY = _ref3.prevY,
             lineYPosition = _ref3.lineYPosition,
             translationsIndex = _ref3.translationsIndex;
         var w = this.w;
-        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[i]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar');
+        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[realIndex]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar' || ((_this$w$config$series2 = this.w.config.series[realIndex]) === null || _this$w$config$series2 === void 0 ? void 0 : _this$w$config$series2.type) === 'column');
 
         if (typeof ((_series$i = series[i]) === null || _series$i === void 0 ? void 0 : _series$i[0]) !== 'undefined') {
           if (stackSeries) {
@@ -24465,7 +24684,7 @@
 
       if (start) {
         // Add additional 'C' points
-        if (pts[1].length < 6) {
+        if (end - start > 1 && pts[1].length < 6) {
           var n = pts[0].length;
           pts[1] = [pts[0][n - 2] * 2 - pts[0][n - 4], pts[0][n - 1] * 2 - pts[0][n - 3]].concat(pts[1]);
         } // Remove control points for 'M'
@@ -24589,6 +24808,7 @@
 
           var firstPrevY = this.lineHelpers.determineFirstPrevY({
             i: i,
+            realIndex: realIndex,
             series: series,
             prevY: prevY,
             lineYPosition: lineYPosition,
@@ -24596,8 +24816,9 @@
           });
           prevY = firstPrevY.prevY;
 
-          if (w.config.stroke.curve === 'monotonCubic' && series[i][0] === null) {
-            // we have to discard the y position if 1st dataPoint is null as it causes issues with monotoneCubic path creation
+          if (w.config.stroke.curve === 'monotoneCubic' && series[i][0] === null) {
+            // we have to discard the y position if 1st dataPoint is null as it
+            // causes issues with monotoneCubic path creation
             yArrj.push(null);
           } else {
             yArrj.push(prevY);
@@ -24610,6 +24831,7 @@
           if (type === 'rangeArea') {
             firstPrevY2 = this.lineHelpers.determineFirstPrevY({
               i: i,
+              realIndex: realIndex,
               series: seriesRangeEnd,
               prevY: prevY2,
               lineYPosition: lineYPosition,
@@ -24617,7 +24839,7 @@
             });
             prevY2 = firstPrevY2.prevY;
             pY2 = prevY2;
-            y2Arrj.push(prevY2);
+            y2Arrj.push(yArrj[0] !== null ? prevY2 : null);
           }
 
           var pathsFrom = this._calculatePathsFrom({
@@ -24625,11 +24847,15 @@
             series: series,
             i: i,
             realIndex: realIndex,
+            translationsIndex: translationsIndex,
             prevX: prevX,
             prevY: prevY,
             prevY2: prevY2
-          });
+          }); // RangeArea will resume with these for the upper path creation
 
+
+          var rYArrj = [yArrj[0]];
+          var rY2Arrj = [y2Arrj[0]];
           var iteratingOpts = {
             type: type,
             series: series,
@@ -24667,13 +24893,30 @@
 
             var rangePaths = this._iterateOverDataPoints(_objectSpread2(_objectSpread2({}, iteratingOpts), {}, {
               series: seriesRangeEnd,
+              xArrj: [x],
+              yArrj: rYArrj,
+              y2Arrj: rY2Arrj,
               pY: pY2,
+              areaPaths: paths.areaPaths,
               pathsFrom: pathsFrom2,
               iterations: seriesRangeEnd[i].length - 1,
               isRangeStart: false
-            }));
+            })); // Path may be segmented by nulls in data.
+            // paths.linePaths should hold (segments * 2) paths (upper and lower)
+            // the first n segments belong to the lower and the last n segments
+            // belong to the upper.
+            // paths.linePaths and rangePaths.linepaths are actually equivalent
+            // but we retain the distinction below for consistency with the
+            // unsegmented paths conditional branch.
 
-            paths.linePaths[0] = rangePaths.linePath + paths.linePath;
+
+            var segments = paths.linePaths.length / 2;
+
+            for (var s = 0; s < segments; s++) {
+              paths.linePaths[s] = rangePaths.linePaths[s + segments] + paths.linePaths[s];
+            }
+
+            paths.linePaths.splice(segments);
             paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine;
           }
 
@@ -24696,12 +24939,12 @@
         }
 
         if (w.config.chart.stacked) {
-          for (var s = allSeries.length; s > 0; s--) {
-            ret.add(allSeries[s - 1]);
+          for (var _s = allSeries.length; _s > 0; _s--) {
+            ret.add(allSeries[_s - 1]);
           }
         } else {
-          for (var _s = 0; _s < allSeries.length; _s++) {
-            ret.add(allSeries[_s]);
+          for (var _s2 = 0; _s2 < allSeries.length; _s2++) {
+            ret.add(allSeries[_s2]);
           }
         }
 
@@ -24763,6 +25006,7 @@
             series = _ref.series,
             i = _ref.i,
             realIndex = _ref.realIndex,
+            translationsIndex = _ref.translationsIndex,
             prevX = _ref.prevX,
             prevY = _ref.prevY,
             prevY2 = _ref.prevY2;
@@ -24775,7 +25019,7 @@
           for (var s = 0; s < series[i].length; s++) {
             if (series[i][s] !== null) {
               prevX = this.xDivision * s;
-              prevY = this.zeroY - series[i][s] / this.yRatio[realIndex];
+              prevY = this.zeroY - series[i][s] / this.yRatio[translationsIndex];
               linePath = graphics.move(prevX, prevY);
               areaPath = graphics.move(prevX, this.areaBottomY);
               break;
@@ -24940,7 +25184,8 @@
       key: "_iterateOverDataPoints",
       value: function _iterateOverDataPoints(_ref3) {
         var _this = this,
-            _this$w$config$series;
+            _this$w$config$series,
+            _this$w$config$series2;
 
         var type = _ref3.type,
             series = _ref3.series,
@@ -24981,7 +25226,19 @@
         };
 
         var y2 = y;
-        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[realIndex]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar');
+        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[realIndex]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar' || ((_this$w$config$series2 = this.w.config.series[realIndex]) === null || _this$w$config$series2 === void 0 ? void 0 : _this$w$config$series2.type) === 'column');
+        var curve = w.config.stroke.curve;
+
+        if (Array.isArray(curve)) {
+          if (Array.isArray(seriesIndex)) {
+            curve = curve[seriesIndex[i]];
+          } else {
+            curve = curve[i];
+          }
+        }
+
+        var pathState = 0;
+        var segmentStartX;
 
         for (var j = 0; j < iterations; j++) {
           var isNull = typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null;
@@ -25001,7 +25258,9 @@
 
           if (stackSeries) {
             if (i > 0 && w.globals.collapsedSeries.length < w.config.series.length - 1) {
-              // a collapsed series in a stacked bar chart may provide wrong result for the next series, hence find the prevIndex of prev series which is not collapsed - fixes apexcharts.js#1372
+              // a collapsed series in a stacked chart may provide wrong result
+              // for the next series, hence find the prevIndex of prev series
+              // which is not collapsed - fixes apexcharts.js#1372
               var prevIndex = function prevIndex(pi) {
                 var pii = pi;
 
@@ -25037,13 +25296,14 @@
 
           xArrj.push(x); // push current Y that will be used as next series's bottom position
 
-          if (isNull && w.config.stroke.curve === 'smooth') {
+          if (isNull && (w.config.stroke.curve === 'smooth' || w.config.stroke.curve === 'monotoneCubic')) {
             yArrj.push(null);
+            y2Arrj.push(null);
           } else {
             yArrj.push(y);
+            y2Arrj.push(y2);
           }
 
-          y2Arrj.push(y2);
           var pointsPos = this.lineHelpers.calculatePoints({
             series: series,
             x: x,
@@ -25068,11 +25328,13 @@
             y2Arrj: y2Arrj,
             pX: pX,
             pY: pY,
+            pathState: pathState,
+            segmentStartX: segmentStartX,
             linePath: linePath,
             areaPath: areaPath,
             linePaths: linePaths,
             areaPaths: areaPaths,
-            seriesIndex: seriesIndex,
+            curve: curve,
             isRangeStart: isRangeStart
           });
 
@@ -25080,10 +25342,12 @@
           linePaths = calculatedPaths.linePaths;
           pX = calculatedPaths.pX;
           pY = calculatedPaths.pY;
+          pathState = calculatedPaths.pathState;
+          segmentStartX = calculatedPaths.segmentStartX;
           areaPath = calculatedPaths.areaPath;
           linePath = calculatedPaths.linePath;
 
-          if (this.appendPathFrom && !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')) {
+          if (this.appendPathFrom && !(curve === 'monotoneCubic' && type === 'rangeArea')) {
             pathFromLine = pathFromLine + graphics.line(x, this.zeroY);
             pathFromArea = pathFromArea + graphics.line(x, this.zeroY);
           }
@@ -25160,9 +25424,9 @@
       value: function _createPaths(_ref5) {
         var type = _ref5.type,
             series = _ref5.series,
-            i = _ref5.i,
-            realIndex = _ref5.realIndex,
-            j = _ref5.j,
+            i = _ref5.i;
+            _ref5.realIndex;
+            var j = _ref5.j,
             x = _ref5.x,
             y = _ref5.y,
             xArrj = _ref5.xArrj,
@@ -25171,139 +25435,303 @@
             y2Arrj = _ref5.y2Arrj,
             pX = _ref5.pX,
             pY = _ref5.pY,
+            pathState = _ref5.pathState,
+            segmentStartX = _ref5.segmentStartX,
             linePath = _ref5.linePath,
             areaPath = _ref5.areaPath,
             linePaths = _ref5.linePaths,
             areaPaths = _ref5.areaPaths,
-            seriesIndex = _ref5.seriesIndex,
+            curve = _ref5.curve,
             isRangeStart = _ref5.isRangeStart;
-        var w = this.w;
+        this.w;
         var graphics = new Graphics(this.ctx);
-        var curve = w.config.stroke.curve;
         var areaBottomY = this.areaBottomY;
+        var rangeArea = type === 'rangeArea';
+        var isLowerRangeAreaPath = type === 'rangeArea' && isRangeStart;
 
-        if (Array.isArray(w.config.stroke.curve)) {
-          if (Array.isArray(seriesIndex)) {
-            curve = w.config.stroke.curve[seriesIndex[i]];
-          } else {
-            curve = w.config.stroke.curve[i];
-          }
-        }
+        switch (curve) {
+          case 'monotoneCubic':
+            var yAj = isRangeStart ? yArrj : y2Arrj;
 
-        if (type === 'rangeArea' && (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0) && curve === 'monotoneCubic') {
-          curve = 'straight';
-        }
-
-        if (curve === 'monotoneCubic') {
-          var shouldRenderMonotone = type === 'rangeArea' ? xArrj.length === w.globals.dataPoints : j === series[i].length - 2;
-          var smoothInputs = xArrj.map(function (_, i) {
-            return [xArrj[i], yArrj[i]];
-          }).filter(function (_) {
-            return _[1] !== null;
-          });
-
-          if (shouldRenderMonotone && smoothInputs.length > 1) {
-            var points = spline.points(smoothInputs);
-            linePath += svgPath(points);
-
-            if (series[i][0] === null) {
-              // if the first dataPoint is null, we use the linePath directly
-              areaPath = linePath;
-            } else {
-              // else, we append the areaPath
-              areaPath += svgPath(points);
-            }
-
-            if (type === 'rangeArea' && isRangeStart) {
-              // draw the line to connect y with y2; then draw the other end of range
-              linePath += graphics.line(xArrj[xArrj.length - 1], y2Arrj[y2Arrj.length - 1]);
-              var xArrjInversed = xArrj.slice().reverse();
-              var y2ArrjInversed = y2Arrj.slice().reverse();
-              var smoothInputsY2 = xArrjInversed.map(function (_, i) {
-                return [xArrjInversed[i], y2ArrjInversed[i]];
+            var getSmoothInputs = function getSmoothInputs(xArr, yArr) {
+              return xArr.map(function (_, i) {
+                return [_, yArr[i]];
+              }).filter(function (_) {
+                return _[1] !== null;
               });
-              var pointsY2 = spline.points(smoothInputsY2);
-              linePath += svgPath(pointsY2); // in range area, we don't have separate line and area path
+            };
 
-              areaPath = linePath;
-            } else {
-              areaPath += graphics.line(smoothInputs[smoothInputs.length - 1][0], areaBottomY) + graphics.line(smoothInputs[0][0], areaBottomY) + graphics.move(smoothInputs[0][0], smoothInputs[0][1]) + 'z';
+            var getSegmentLengths = function getSegmentLengths(yArr) {
+              // Get the segment lengths so the segments can be extracted from
+              // the null-filtered smoothInputs array
+              var segLens = [];
+              var count = 0;
+              yArr.forEach(function (_) {
+                if (_ !== null) {
+                  count++;
+                } else if (count > 0) {
+                  segLens.push(count);
+                  count = 0;
+                }
+              });
+
+              if (count > 0) {
+                segLens.push(count);
+              }
+
+              return segLens;
+            };
+
+            var getSegments = function getSegments(yArr, points) {
+              var segLens = getSegmentLengths(yArr);
+              var segments = [];
+
+              for (var _i = 0, len = 0; _i < segLens.length; len += segLens[_i++]) {
+                segments[_i] = spline.slice(points, len, len + segLens[_i]);
+              }
+
+              return segments;
+            };
+
+            switch (pathState) {
+              case 0:
+                // Find start of segment
+                if (yAj[j + 1] === null) {
+                  break;
+                }
+
+                pathState = 1;
+              // continue through to pathState 1
+
+              case 1:
+                if (!(rangeArea ? xArrj.length === series[i].length : j === series[i].length - 2)) {
+                  break;
+                }
+
+              // continue through to pathState 2
+
+              case 2:
+                // Interpolate the full series with nulls excluded then extract the
+                // null delimited segments with interpolated points included.
+                var _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
+
+                var _yAj = isRangeStart ? yAj : yAj.slice().reverse();
+
+                var smoothInputs = getSmoothInputs(_xAj, _yAj);
+                var points = smoothInputs.length > 1 ? spline.points(smoothInputs) : smoothInputs;
+                var smoothInputsLower = [];
+
+                if (rangeArea) {
+                  if (isLowerRangeAreaPath) {
+                    // As we won't be needing it, borrow areaPaths to retain our
+                    // rangeArea lower points.
+                    areaPaths = smoothInputs;
+                  } else {
+                    // Retrieve the corresponding lower raw interpolated points so we
+                    // can join onto its end points. Note: the upper Y2 segments will
+                    // be in the reverse order relative to the lower segments.
+                    smoothInputsLower = areaPaths.reverse();
+                  }
+                }
+
+                var segmentCount = 0;
+                var smoothInputsIndex = 0;
+                getSegments(_yAj, points).forEach(function (_) {
+                  segmentCount++;
+                  var svgPoints = svgPath(_);
+                  var _start = smoothInputsIndex;
+                  smoothInputsIndex += _.length;
+
+                  var _end = smoothInputsIndex - 1;
+
+                  if (isLowerRangeAreaPath) {
+                    linePath = graphics.move(smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints;
+                  } else if (rangeArea) {
+                    linePath = graphics.move(smoothInputsLower[_start][0], smoothInputsLower[_start][1]) + graphics.line(smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints + graphics.line(smoothInputsLower[_end][0], smoothInputsLower[_end][1]);
+                  } else {
+                    linePath = graphics.move(smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints;
+                    areaPath = linePath + graphics.line(smoothInputs[_end][0], areaBottomY) + graphics.line(smoothInputs[_start][0], areaBottomY) + 'z';
+                    areaPaths.push(areaPath);
+                  }
+
+                  linePaths.push(linePath);
+                });
+
+                if (rangeArea && segmentCount > 1 && !isLowerRangeAreaPath) {
+                  // Reverse the order of the upper path segments
+                  var upperLinePaths = linePaths.slice(segmentCount).reverse();
+                  linePaths.splice(segmentCount);
+                  upperLinePaths.forEach(function (u) {
+                    return linePaths.push(u);
+                  });
+                }
+
+                pathState = 0;
+                break;
             }
 
-            linePaths.push(linePath);
-            areaPaths.push(areaPath);
-          }
-        } else if (curve === 'smooth') {
-          var length = (x - pX) * 0.35;
+            break;
 
-          if (w.globals.hasNullValues) {
-            if (series[i][j] !== null) {
-              if (series[i][j + 1] !== null) {
-                linePath = graphics.move(pX, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y);
-                areaPath = graphics.move(pX + 1, pY) + graphics.curve(pX + length, pY, x - length, y, x + 1, y) + graphics.line(x, areaBottomY) + graphics.line(pX, areaBottomY) + 'z';
-              } else {
-                linePath = graphics.move(pX, pY);
-                areaPath = graphics.move(pX, pY) + 'z';
+          case 'smooth':
+            var length = (x - pX) * 0.35;
+
+            if (series[i][j] === null) {
+              pathState = 0;
+            } else {
+              switch (pathState) {
+                case 0:
+                  // Beginning of segment
+                  segmentStartX = pX;
+
+                  if (isLowerRangeAreaPath) {
+                    // Need to add path portion that will join to the upper path
+                    linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
+                  } else {
+                    linePath = graphics.move(pX, pY);
+                  }
+
+                  areaPath = graphics.move(pX, pY);
+                  pathState = 1;
+
+                  if (j < series[i].length - 2) {
+                    var p = graphics.curve(pX + length, pY, x - length, y, x, y);
+                    linePath += p;
+                    areaPath += p;
+                    break;
+                  }
+
+                // Continue on with pathState 1 to finish the path and exit
+
+                case 1:
+                  // Continuing with segment
+                  if (series[i][j + 1] === null) {
+                    // Segment ends here
+                    if (isLowerRangeAreaPath) {
+                      linePath += graphics.line(pX, y2);
+                    } else {
+                      linePath += graphics.move(pX, pY);
+                    }
+
+                    areaPath += graphics.line(pX, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                    linePaths.push(linePath);
+                    areaPaths.push(areaPath);
+                  } else {
+                    var _p2 = graphics.curve(pX + length, pY, x - length, y, x, y);
+
+                    linePath += _p2;
+                    areaPath += _p2;
+
+                    if (j >= series[i].length - 2) {
+                      if (isLowerRangeAreaPath) {
+                        // Need to add path portion that will join to the upper path
+                        linePath += graphics.curve(x, y, x, y, x, y2) + graphics.move(x, y2);
+                      } else {
+                        linePath += graphics.move(x, y);
+                      }
+
+                      areaPath += graphics.curve(x, y, x, y, x, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                      linePaths.push(linePath);
+                      areaPaths.push(areaPath);
+                    }
+                  }
+
+                  break;
               }
             }
 
-            linePaths.push(linePath);
-            areaPaths.push(areaPath);
-          } else {
-            linePath = linePath + graphics.curve(pX + length, pY, x - length, y, x, y);
-            areaPath = areaPath + graphics.curve(pX + length, pY, x - length, y, x, y);
-          }
+            pX = x;
+            pY = y;
+            break;
 
-          pX = x;
-          pY = y;
+          default:
+            var pathToPoint = function pathToPoint(curve, x, y) {
+              var path = [];
 
-          if (j === series[i].length - 2) {
-            // last loop, close path
-            areaPath = areaPath + graphics.curve(pX, pY, x, y, x, areaBottomY) + graphics.move(x, y) + 'z';
+              switch (curve) {
+                case 'stepline':
+                  path = graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
+                  break;
 
-            if (type === 'rangeArea' && isRangeStart) {
-              linePath = linePath + graphics.curve(pX, pY, x, y, x, y2) + graphics.move(x, y2) + 'z';
+                case 'linestep':
+                  path = graphics.line(null, y, 'V') + graphics.line(x, null, 'H');
+                  break;
+
+                case 'straight':
+                  path = graphics.line(x, y);
+                  break;
+              }
+
+              return path;
+            };
+
+            if (series[i][j] === null) {
+              pathState = 0;
             } else {
-              if (!w.globals.hasNullValues) {
-                linePaths.push(linePath);
-                areaPaths.push(areaPath);
+              switch (pathState) {
+                case 0:
+                  // Beginning of segment
+                  segmentStartX = pX;
+
+                  if (isLowerRangeAreaPath) {
+                    // Need to add path portion that will join to the upper path
+                    linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
+                  } else {
+                    linePath = graphics.move(pX, pY);
+                  }
+
+                  areaPath = graphics.move(pX, pY);
+                  pathState = 1;
+
+                  if (j < series[i].length - 2) {
+                    var _p3 = pathToPoint(curve, x, y);
+
+                    linePath += _p3;
+                    areaPath += _p3;
+                    break;
+                  }
+
+                // Continue on with pathState 1 to finish the path and exit
+
+                case 1:
+                  // Continuing with segment
+                  if (series[i][j + 1] === null) {
+                    // Segment ends here
+                    if (isLowerRangeAreaPath) {
+                      linePath += graphics.line(pX, y2);
+                    } else {
+                      linePath += graphics.move(pX, pY);
+                    }
+
+                    areaPath += graphics.line(pX, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                    linePaths.push(linePath);
+                    areaPaths.push(areaPath);
+                  } else {
+                    var _p4 = pathToPoint(curve, x, y);
+
+                    linePath += _p4;
+                    areaPath += _p4;
+
+                    if (j >= series[i].length - 2) {
+                      if (isLowerRangeAreaPath) {
+                        // Need to add path portion that will join to the upper path
+                        linePath += graphics.line(x, y2);
+                      } else {
+                        linePath += graphics.move(x, y);
+                      }
+
+                      areaPath += graphics.line(x, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                      linePaths.push(linePath);
+                      areaPaths.push(areaPath);
+                    }
+                  }
+
+                  break;
               }
             }
-          }
-        } else {
-          if (series[i][j + 1] === null) {
-            linePath = linePath + graphics.move(x, y);
-            var numericOrCatX = w.globals.isXNumeric ? (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio : x - this.xDivision;
-            areaPath = areaPath + graphics.line(numericOrCatX, areaBottomY) + graphics.move(x, y) + 'z';
-          }
 
-          if (series[i][j] === null) {
-            linePath = linePath + graphics.move(x, y);
-            areaPath = areaPath + graphics.move(x, areaBottomY);
-          }
-
-          if (curve === 'stepline') {
-            linePath = linePath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
-            areaPath = areaPath + graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
-          } else if (curve === 'linestep') {
-            linePath = linePath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H');
-            areaPath = areaPath + graphics.line(null, y, 'V') + graphics.line(x, null, 'H');
-          } else if (curve === 'straight') {
-            linePath = linePath + graphics.line(x, y);
-            areaPath = areaPath + graphics.line(x, y);
-          }
-
-          if (j === series[i].length - 2) {
-            // last loop, close path
-            areaPath = areaPath + graphics.line(x, areaBottomY) + graphics.move(x, y) + 'z';
-
-            if (type === 'rangeArea' && isRangeStart) {
-              linePath = linePath + graphics.line(x, y2) + graphics.move(x, y2) + 'z';
-            } else {
-              linePaths.push(linePath);
-              areaPaths.push(areaPath);
-            }
-          }
+            pX = x;
+            pY = y;
+            break;
         }
 
         return {
@@ -25311,6 +25739,8 @@
           areaPaths: areaPaths,
           pX: pX,
           pY: pY,
+          pathState: pathState,
+          segmentStartX: segmentStartX,
           linePath: linePath,
           areaPath: areaPath
         };
@@ -25321,8 +25751,14 @@
         var w = this.w;
 
         if (series[i][j] === null && w.config.markers.showNullDataPoints || series[i].length === 1) {
-          // fixes apexcharts.js#1282, #1252
-          var elPointsWrap = this.markers.plotChartMarkers(pointsPos, realIndex, j + 1, this.strokeWidth - w.config.markers.strokeWidth / 2, true);
+          var pSize = this.strokeWidth - w.config.markers.strokeWidth / 2;
+
+          if (!(pSize > 0)) {
+            pSize = 0;
+          } // fixes apexcharts.js#1282, #1252
+
+
+          var elPointsWrap = this.markers.plotChartMarkers(pointsPos, realIndex, j + 1, pSize, true);
 
           if (elPointsWrap !== null) {
             this.elPointsMain.add(elPointsWrap);
@@ -26936,19 +27372,18 @@
           // true.
           if (typeof ser[st].type !== 'undefined') {
             if (ser[st].type === 'column' || ser[st].type === 'bar') {
-              if (gl.series.length > 1 && cnf.plotOptions.bar.horizontal) {
-                // horizontal bars not supported in mixed charts, hence show a warning
-                console.warn('Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`');
-              }
-
               columnSeries.series.push(serie);
               columnSeries.i.push(st);
+              w.globals.columnSeries = columnSeries.series;
 
               if (chartType !== 'bar') {
+                if (gl.series.length > 1 && cnf.plotOptions.bar.horizontal) {
+                  // horizontal bars not supported in mixed charts, hence show a warning
+                  console.warn('Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`');
+                }
+
                 comboCount++;
               }
-
-              w.globals.columnSeries = columnSeries.series;
             } else if (ser[st].type === 'area') {
               areaSeries.series.push(serie);
               areaSeries.i.push(st);
@@ -33684,7 +34119,7 @@
           return s.data && s.data.length === 0;
         });
 
-        if (ser.length === 0 || allSeriesAreEmpty) {
+        if (ser.length === 0 || allSeriesAreEmpty && gl.collapsedSeries.length < 1) {
           this.series.handleNoData();
         }
 

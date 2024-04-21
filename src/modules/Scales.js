@@ -69,19 +69,8 @@ export default class Scales {
       (yMin === Number.MIN_VALUE && yMax === -Number.MAX_VALUE)
     ) {
       // when all values are 0
-      if (gotMin && gotMax) {
-        yMin = gl.minY
-        yMax = gl.maxY
-      } else if (gotMin) {
-        yMin = gl.minY
-        yMax = yMin + ticks
-      } else if (gotMax) {
-        yMax = gl.maxY
-        yMin = yMax - ticks
-      } else {
-        yMin = 0
-        yMax = ticks
-      }
+      yMin = Utils.isNumber(axisCnf.min) ? axisCnf.min : 0
+      yMax = Utils.isNumber(axisCnf.max) ? axisCnf.max : yMin + ticks
       gl.allSeriesCollapsed = false
     }
 

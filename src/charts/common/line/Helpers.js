@@ -102,15 +102,15 @@ export default class Helpers {
     }
   }
 
-  determineFirstPrevY({ i, series, prevY, lineYPosition, translationsIndex }) {
+  determineFirstPrevY({ i, realIndex, series, prevY, lineYPosition, translationsIndex }) {
     let w = this.w
     let stackSeries =
       (w.config.chart.stacked && !w.globals.comboCharts) ||
       (w.config.chart.stacked &&
         w.globals.comboCharts &&
         (!this.w.config.chart.stackOnlyBar ||
-          this.w.config.series[i]?.type === 'bar'
-          || this.w.config.series[i]?.type === 'column'))
+          this.w.config.series[realIndex]?.type === 'bar'
+          || this.w.config.series[realIndex]?.type === 'column'))
 
     if (typeof series[i]?.[0] !== 'undefined') {
       if (stackSeries) {

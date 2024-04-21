@@ -42,6 +42,10 @@ export default class Dimensions {
     this.lgRect = this.dimHelpers.getLegendsRect()
     this.datalabelsCoords = { width: 0, height: 0 }
 
+    const maxStrokeWidth = Array.isArray(w.config.stroke.width)
+      ? Math.max(...w.config.stroke.width)
+      : w.config.stroke.width
+
     if (this.isSparkline) {
       if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
         Object.entries(this.gridPad).forEach(([k, v]) => {
@@ -52,11 +56,8 @@ export default class Dimensions {
         })
       }
 
-      this.gridPad.top = Math.max(w.config.stroke.width / 2, this.gridPad.top)
-      this.gridPad.bottom = Math.max(
-        w.config.stroke.width / 2,
-        this.gridPad.bottom
-      )
+      this.gridPad.top = Math.max(maxStrokeWidth / 2, this.gridPad.top)
+      this.gridPad.bottom = Math.max(maxStrokeWidth / 2, this.gridPad.bottom)
     }
 
     if (gl.axisCharts) {

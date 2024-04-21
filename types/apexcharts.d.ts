@@ -344,7 +344,7 @@ type ApexStroke = {
   show?: boolean
   curve?: 'smooth' | 'straight' | 'stepline' | 'linestep' | 'monotoneCubic' | ('smooth' | 'straight' | 'stepline' | 'linestep' | 'monotoneCubic')[]
   lineCap?: 'butt' | 'square' | 'round'
-  colors?: string[]
+  colors?: any[] | string[]
   width?: number | number[]
   dashArray?: number | number[]
   fill?: ApexFill

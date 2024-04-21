@@ -256,6 +256,10 @@ class Exports {
         }
       }
 
+      // let the caller know the current category is null. this can happen for example
+      // when dealing with line charts having inconsistent time series data
+      if (cat === null) return 'nullvalue'
+
       if (Array.isArray(cat)) {
         cat = cat.join(' ')
       }
@@ -282,6 +286,10 @@ class Exports {
           columns = []
 
           let cat = getCat(i)
+
+          // current category is null, let's move on to the next one
+          if (cat === 'nullvalue') continue
+
           if (!cat) {
             if (dataFormat.isFormatXY()) {
               cat = series[sI].data[i].x
