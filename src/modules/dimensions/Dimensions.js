@@ -41,7 +41,9 @@ export default class Dimensions {
 
     this.lgRect = this.dimHelpers.getLegendsRect()
 
-    const maxStrokeWidth = Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width
+    const maxStrokeWidth = Array.isArray(w.config.stroke.width)
+      ? Math.max(...w.config.stroke.width)
+      : w.config.stroke.width
 
     if (this.isSparkline) {
       if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
@@ -69,7 +71,7 @@ export default class Dimensions {
 
     // after calculating everything, apply padding set by user
     gl.gridHeight = gl.gridHeight - this.gridPad.top - this.gridPad.bottom
-    
+
     gl.gridWidth =
       gl.gridWidth -
       this.gridPad.left -

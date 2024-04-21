@@ -258,8 +258,7 @@ class Exports {
 
       // let the caller know the current category is null. this can happen for example
       // when dealing with line charts having inconsistent time series data
-      if (cat === null)
-        return 'nullvalue'
+      if (cat === null) return 'nullvalue'
 
       if (Array.isArray(cat)) {
         cat = cat.join(' ')
@@ -289,8 +288,7 @@ class Exports {
           let cat = getCat(i)
 
           // current category is null, let's move on to the next one
-          if (cat === 'nullvalue')
-            continue
+          if (cat === 'nullvalue') continue
 
           if (!cat) {
             if (dataFormat.isFormatXY()) {
@@ -306,8 +304,8 @@ class Exports {
               isTimeStamp(cat)
                 ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
                 : Utils.isNumber(cat)
-                  ? cat
-                  : cat.split(columnDelimiter).join('')
+                ? cat
+                : cat.split(columnDelimiter).join('')
             )
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
@@ -390,8 +388,8 @@ class Exports {
             isTimeStamp(cat) && w.config.xaxis.type === 'datetime'
               ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
               : Utils.isNumber(cat)
-                ? cat
-                : cat.split(columnDelimiter).join(''),
+              ? cat
+              : cat.split(columnDelimiter).join(''),
             data[cat].join(columnDelimiter),
           ])
         })
@@ -456,7 +454,7 @@ class Exports {
 
     this.triggerDownload(
       'data:text/csv; charset=utf-8,' +
-      encodeURIComponent(universalBOM + result),
+        encodeURIComponent(universalBOM + result),
       fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
       '.csv'
     )
