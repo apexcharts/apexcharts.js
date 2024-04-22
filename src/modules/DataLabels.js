@@ -156,8 +156,10 @@ class DataLabels {
         if (w.globals.isSlopeChart) {
           if (dataPointIndex === 0) {
             textAnchor = 'end'
-          } else {
+          } else if (dataPointIndex === w.config.series[i].data.length - 1) {
             textAnchor = 'start'
+          } else {
+            textAnchor = 'middle'
           }
         }
 
@@ -275,7 +277,7 @@ class DataLabels {
         offX = dataLabelsConfig.offsetX * -2 + 5
       }
       if (j !== 0 && j !== w.config.series[i].data.length - 1) {
-        return
+        offX = 0
       }
     }
 

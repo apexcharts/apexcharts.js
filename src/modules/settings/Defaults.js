@@ -281,6 +281,7 @@ export default class Defaults {
       tooltip: {
         shared: false,
         intersect: true,
+        followCursor: true,
       },
       stroke: {
         width: 5,
