@@ -60,8 +60,6 @@ export default class YAxis {
     // labelsDivider is simply svg height/number of ticks
     let labelsDivider = w.globals.gridHeight / tickAmount
 
-    // initial label position = 0;
-    let l = w.globals.translateY
     let lbFormatter = w.globals.yLabelFormatters[realIndex]
 
     let labels = w.globals.yAxisScale[realIndex].result.slice()
@@ -70,6 +68,14 @@ export default class YAxis {
 
     let firstLabel = ''
     if (w.config.yaxis[realIndex].labels.show) {
+      // initial label position = 0;
+      let lY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY
+      if (w.globals.isBarHorizontal) {
+        lY = 0
+      } else if (w.config.chart.type === 'heatmap') {
+        lY -= labelsDivider / 2
+      }
+      lY += parseInt(w.config.yaxis[realIndex].labels.style.fontSize, 10) / 3
       for (let i = tickAmount; i >= 0; i--) {
         let val = labels[i]
 
@@ -99,17 +105,9 @@ export default class YAxis {
         const getForeColor = () => {
           return Array.isArray(yColors) ? yColors[i] : yColors
         }
-
-        let offsetY = w.config.yaxis[realIndex].labels.offsetY
-
-        if (w.config.chart.type === 'heatmap') {
-          const divisor = w.globals.gridHeight / w.globals.series.length - 1
-          offsetY = offsetY - divisor / 2
-        }
-
         let label = graphics.drawText({
           x: xPad,
-          y: l + tickAmount / 10 + offsetY + 1,
+          y: lY,
           text: val,
           textAnchor,
           fontSize: yaxisFontSize,
@@ -139,7 +137,7 @@ export default class YAxis {
             `rotate(${w.config.yaxis[realIndex].labels.rotate} ${firstabelRotatingCenter.x} ${labelRotatingCenter.y})`
           )
         }
-        l = l + labelsDivider
+        lY += labelsDivider
       }
     }
 
