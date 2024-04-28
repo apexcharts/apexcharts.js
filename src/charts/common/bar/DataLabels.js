@@ -30,7 +30,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
-      groupIndex,
+      columnGroupIndex,
       series,
       barHeight,
       barWidth,
@@ -46,12 +46,14 @@ export default class BarDataLabels {
       ? this.barCtx.strokeWidth[realIndex]
       : this.barCtx.strokeWidth
 
-    let bcx = x + parseFloat(barWidth * visibleSeries)
-    let bcy = y + parseFloat(barHeight * visibleSeries)
-
+    let bcx
+    let bcy
     if (w.globals.isXNumeric && !w.globals.isBarHorizontal) {
       bcx = x + parseFloat(barWidth * (visibleSeries + 1))
       bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth
+    } else {
+      bcx = x + parseFloat(barWidth * visibleSeries)
+      bcy = y + parseFloat(barHeight * visibleSeries)
     }
 
     let dataLabels = null
@@ -98,7 +100,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
-      groupIndex: !!groupIndex ? groupIndex : -1,
+      columnGroupIndex,
       renderedPath,
       bcx,
       bcy,
@@ -184,7 +186,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
-      groupIndex,
+      columnGroupIndex,
       y,
       bcx,
       barWidth,
@@ -203,23 +205,22 @@ export default class BarDataLabels {
     let totalDataLabelsY
     let totalDataLabelsX
     let totalDataLabelsAnchor = 'middle'
+    let totalDataLabelsBcx = bcx
     barHeight = Math.abs(barHeight)
 
     let vertical =
       w.config.plotOptions.bar.dataLabels.orientation === 'vertical'
 
-    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
-      i,
-      j,
-    })
+    const { zeroEncounters } =
+            this.barCtx.barHelpers.getZeroValueEncounters({i, j})
 
     bcx =
-      bcx - strokeWidth / 2 + (groupIndex !== -1 ? groupIndex * barWidth : 0)
+      bcx - strokeWidth / 2 + columnGroupIndex * barWidth
 
     let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
 
     if (this.barCtx.isVerticalGroupedRangeBar) {
-      dataLabelsX = dataLabelsX + barWidth / 2
+      dataLabelsX += barWidth / 2
     } else {
       if (w.globals.isXNumeric) {
         dataLabelsX = bcx - barWidth / 2 + offX
@@ -230,7 +231,7 @@ export default class BarDataLabels {
         zeroEncounters > 0 &&
         w.config.plotOptions.bar.hideZeroBarsWhenGrouped
       ) {
-        dataLabelsX = dataLabelsX - barWidth * zeroEncounters
+        dataLabelsX -= barWidth * zeroEncounters
       }
     }
 
@@ -244,7 +245,7 @@ export default class BarDataLabels {
 
     let newY = y
     if (this.barCtx.isReversed) {
-      newY = y - barHeight + (valIsNegative ? barHeight * 2 : 0)
+      newY = y + (valIsNegative ? barHeight : -barHeight)
       y = y - barHeight
     }
 
@@ -302,7 +303,7 @@ export default class BarDataLabels {
       this.barCtx.lastActiveBarSerieIndex === realIndex &&
       barTotalDataLabelsConfig.enabled
     ) {
-      const ADDITIONAL_OFFX = 18
+      const ADDITIONAL_OFFY = 18
 
       const graphics = new Graphics(this.barCtx.ctx)
       const totalLabeltextRects = graphics.getTextRects(
@@ -316,17 +317,28 @@ export default class BarDataLabels {
           totalLabeltextRects.height / 2 -
           offY -
           barTotalDataLabelsConfig.offsetY +
-          ADDITIONAL_OFFX
+          ADDITIONAL_OFFY
       } else {
         totalDataLabelsY =
           newY +
           totalLabeltextRects.height +
           offY +
           barTotalDataLabelsConfig.offsetY -
-          ADDITIONAL_OFFX
+          ADDITIONAL_OFFY
       }
 
-      totalDataLabelsX = dataLabelsX + barTotalDataLabelsConfig.offsetX
+      totalDataLabelsX =
+            totalDataLabelsBcx
+          + (w.globals.isXNumeric 
+              ? (barWidth * (w.globals.barGroups.length - 1)
+                 - barWidth / 2
+                )
+              : -(barWidth * w.globals.barGroups.length 
+                 - barWidth / 2 
+                 - strokeWidth * 2
+                )
+            )
+          + barTotalDataLabelsConfig.offsetX
     }
 
     if (!w.config.chart.stacked) {
@@ -355,7 +367,7 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
-      groupIndex,
+      columnGroupIndex,
       bcy,
       barHeight,
       barWidth,
@@ -373,7 +385,7 @@ export default class BarDataLabels {
 
     barWidth = Math.abs(barWidth)
 
-    bcy = bcy + (groupIndex !== -1 ? groupIndex * barHeight : 0)
+    bcy += columnGroupIndex * barHeight
 
     let dataLabelsY =
       bcy -
@@ -391,8 +403,9 @@ export default class BarDataLabels {
 
     let newX = x
     if (this.barCtx.isReversed) {
-      newX = x + barWidth - (valIsNegative ? barWidth * 2 : 0)
+      newX = x + (valIsNegative ? -barWidth : barWidth)
       x = w.globals.gridWidth - barWidth
+      totalDataLabelsAnchor = valIsNegative ? 'start' : 'end'
     }
 
     switch (barDataLabelsConfig.position) {
@@ -436,7 +449,6 @@ export default class BarDataLabels {
       this.barCtx.lastActiveBarSerieIndex === realIndex &&
       barTotalDataLabelsConfig.enabled
     ) {
-      const ADDITIONAL_OFFX = 15
       const graphics = new Graphics(this.barCtx.ctx)
       const totalLabeltextRects = graphics.getTextRects(
         this.getStackedTotalDataLabel({ realIndex, j }),
@@ -445,23 +457,26 @@ export default class BarDataLabels {
       if (valIsNegative) {
         totalDataLabelsX =
           newX -
-          strokeWidth +
-          Math.round(totalLabeltextRects.width / 2) -
+          strokeWidth -
           offX -
-          barTotalDataLabelsConfig.offsetX -
-          ADDITIONAL_OFFX
+          barTotalDataLabelsConfig.offsetX
 
         totalDataLabelsAnchor = 'end'
       } else {
         totalDataLabelsX =
-          newX -
-          strokeWidth -
-          Math.round(totalLabeltextRects.width / 2) +
+          newX +
           offX +
           barTotalDataLabelsConfig.offsetX +
-          ADDITIONAL_OFFX
+          (this.barCtx.isReversed
+            ? -(barWidth + strokeWidth)
+            : strokeWidth)
       }
-      totalDataLabelsY = dataLabelsY + barTotalDataLabelsConfig.offsetY
+      totalDataLabelsY =
+            dataLabelsY 
+          - textRects.height / 2 
+          + totalLabeltextRects.height / 2
+          + barTotalDataLabelsConfig.offsetY
+          + strokeWidth
     }
 
     if (!w.config.chart.stacked) {
@@ -626,15 +641,14 @@ export default class BarDataLabels {
       this.barCtx.lastActiveBarSerieIndex === realIndex
     ) {
       totalDataLabelText = graphics.drawText({
-        x:
-          x -
-          (!w.globals.isBarHorizontal && w.globals.seriesGroups.length
-            ? barWidth / w.globals.seriesGroups.length
+        // TODO: Add gap, visibleI
+        x: x
+          - (!w.globals.isBarHorizontal && w.globals.barGroups.length
+            ? barWidth * (w.globals.barGroups.length - 1) / 2
             : 0),
-        y:
-          y -
-          (w.globals.isBarHorizontal && w.globals.seriesGroups.length
-            ? barHeight / w.globals.seriesGroups.length
+        y: y
+          - (w.globals.isBarHorizontal && w.globals.barGroups.length
+            ? barHeight * (w.globals.barGroups.length - 1) / 2
             : 0),
         foreColor: barTotalDataLabelsConfig.style.color,
         text: val,

@@ -37,9 +37,14 @@ export default class Responsive {
       const width = window.innerWidth > 0 ? window.innerWidth : screen.width
 
       if (width > largestBreakpoint) {
+        let initialConfig = Utils.clone(w.globals.initialConfig)
+        // Retain state of series in case any have been collapsed
+        // (indicated by series.data === [], these series' will be zeroed later
+        // enabling stacking to work correctly)
+        initialConfig.series = Utils.clone(w.config.series)
         let options = CoreUtils.extendArrayProps(
           config,
-          w.globals.initialConfig,
+          initialConfig,
           w
         )
         newOptions = Utils.extend(options, newOptions)
@@ -48,7 +53,8 @@ export default class Responsive {
       } else {
         for (let i = 0; i < res.length; i++) {
           if (width < res[i].breakpoint) {
-            newOptions = CoreUtils.extendArrayProps(config, res[i].options, w)
+            let options = CoreUtils.extendArrayProps(config, res[i].options, w)
+            newOptions = Utils.extend(options, newOptions)
             newOptions = Utils.extend(w.config, newOptions)
             this.overrideResponsiveOptions(newOptions)
           }

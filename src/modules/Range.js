@@ -327,29 +327,39 @@ class Range {
       })
     }
 
-    // for multi y-axis we need different scales for each
     if (gl.isMultipleYAxis) {
       this.scales.scaleMultipleYAxes()
       gl.minY = lowestYInAllSeries
     } else {
-      gl.barGroups = []
-      cnf.series.forEach((s) => {
-        if ((!s.type && cnf.chart.type === 'bar')
-              || s.type === 'bar'
-              || s.type === 'column'
-        ) {
-          gl.barGroups.push(s.group ? s.group : 'axis-0')
-        }
-      })
-      gl.barGroups = gl.barGroups.filter((v,i,a) => a.indexOf(v) === i)
       this.scales.setYScaleForIndex(0, gl.minY, gl.maxY)
       gl.minY = gl.yAxisScale[0].niceMin
       gl.maxY = gl.yAxisScale[0].niceMax
-      gl.minYArr[0] = gl.yAxisScale[0].niceMin
-      gl.maxYArr[0] = gl.yAxisScale[0].niceMax
-      gl.seriesYAxisMap = [gl.series.map((x, i) => i)]
-      gl.seriesYAxisReverseMap = gl.series.map((x, i) => 0)
+      gl.minYArr[0] = gl.minY
+      gl.maxYArr[0] = gl.maxY
     }
+
+    gl.barGroups = []
+    gl.lineGroups = []
+    gl.areaGroups = []
+    cnf.series.forEach((s) => {
+      let type = s.type || cnf.chart.type
+      switch (type) {
+        case 'bar':
+        case 'column':
+          gl.barGroups.push(s.group)
+          break
+        case 'line':
+          gl.lineGroups.push(s.group)
+          break
+        case 'area':
+          gl.areaGroups.push(s.group)
+          break
+      }
+    })
+    // Uniquify the group names in each stackable chart type.
+    gl.barGroups = gl.barGroups.filter((v,i,a) => a.indexOf(v) === i)
+    gl.lineGroups = gl.lineGroups.filter((v,i,a) => a.indexOf(v) === i)
+    gl.areaGroups = gl.areaGroups.filter((v,i,a) => a.indexOf(v) === i)
 
     return {
       minY: gl.minY,

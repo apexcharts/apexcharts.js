@@ -48,6 +48,9 @@ class BoxCandleStick extends Bar {
       let xArrj = [] // hold x values of current iterating series
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      // As BoxCandleStick derives from Bar, we need this to render.
+      let {columnGroupIndex} =
+              this.barHelpers.getGroupIndex(realIndex)
 
       // el to which series will be drawn
       let elSeries = graphics.group({
@@ -161,6 +164,7 @@ class BoxCandleStick extends Bar {
             x,
             y,
             series,
+            columnGroupIndex,
             barHeight,
             barWidth,
             elDataLabelsWrap,

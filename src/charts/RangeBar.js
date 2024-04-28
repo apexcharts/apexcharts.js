@@ -34,6 +34,8 @@ class RangeBar extends Bar {
         zeroW // zeroW is the baseline where 0 meets x axis
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      let {columnGroupIndex} =
+              this.barHelpers.getGroupIndex(realIndex)
 
       // el to which series will be drawn
       let elSeries = graphics.group({
@@ -212,6 +214,7 @@ class RangeBar extends Bar {
           barXPosition,
           barYPosition,
           barWidth,
+          columnGroupIndex,
           elDataLabelsWrap,
           elGoalsMarkers,
           visibleSeries: this.visibleI,

@@ -31,7 +31,7 @@ export default class XAxis {
     if (w.config.xaxis.position === 'top') {
       this.offY = 0
     } else {
-      this.offY = w.globals.gridHeight + 1
+      this.offY = w.globals.gridHeight
     }
     this.offY = this.offY + w.config.xaxis.axisBorder.offsetY
     this.isCategoryBarHorizontal =

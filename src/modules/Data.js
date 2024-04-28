@@ -412,18 +412,20 @@ export default class Data {
       }
     })
 
-    gl.hasSeriesGroups = ser[0]?.group
-    if (gl.hasSeriesGroups) {
-      let buckets = []
-      let groups = [...new Set(ser.map((s) => s.group))]
-      ser.forEach((s, i) => {
-        let index = groups.indexOf(s.group)
-        if (!buckets[index]) buckets[index] = []
+    this.coreUtils.setSeriesYAxisMappings()
+    // At this point, every series that didn't have a user defined group name
+    // has been given a name according to the yaxis the series is referenced by.
+    // This fits the existing behaviour where all series associated with an axis
+    // are defacto presented as a single group. It is now formalised.
+    let buckets = []
+    let groups = [...new Set(cnf.series.map((s) => s.group))]
+    cnf.series.forEach((s, i) => {
+      let index = groups.indexOf(s.group)
+      if (!buckets[index]) buckets[index] = []
 
-        buckets[index].push(gl.seriesNames[i])
-      })
-      gl.seriesGroups = buckets
-    }
+      buckets[index].push(gl.seriesNames[i])
+    })
+    gl.seriesGroups = buckets
 
     const handleDates = () => {
       for (let j = 0; j < xlabels.length; j++) {
