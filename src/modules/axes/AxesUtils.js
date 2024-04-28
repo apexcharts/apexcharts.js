@@ -245,21 +245,17 @@ export default class AxesUtils {
     let graphics = new Graphics(this.ctx)
 
     // initial label position = 0;
-    let t = w.globals.translateY
+    let tY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY
+    if (w.globals.isBarHorizontal) {
+      tY = 0
+    } else if (w.config.chart.type === 'heatmap') {
+      tY += labelsDivider / 2
+    }
 
     if (axisTicks.show && tickAmount > 0) {
       if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width
 
       for (let i = tickAmount; i >= 0; i--) {
-        let tY =
-          t + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY - 1
-        if (w.globals.isBarHorizontal) {
-          tY = labelsDivider * i
-        }
-
-        if (w.config.chart.type === 'heatmap') {
-          tY = tY + labelsDivider / 2
-        }
         let elTick = graphics.drawLine(
           x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX,
           tY + axisTicks.offsetY,
@@ -268,7 +264,7 @@ export default class AxesUtils {
           axisTicks.color
         )
         elYaxis.add(elTick)
-        t = t + labelsDivider
+        tY += labelsDivider
       }
     }
   }
