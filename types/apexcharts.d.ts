@@ -1118,7 +1118,7 @@ type ApexYAxis = {
   show?: boolean
   showAlways?: boolean
   showForNullSeries?: boolean
-  seriesName?: string
+  seriesName?: string[]
   opposite?: boolean
   reversed?: boolean
   logarithmic?: boolean,
