@@ -208,6 +208,8 @@ class Line {
         }
         paths.linePaths.splice(segments)
         paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
+      } else {
+        paths.pathFromArea += graphics.line(0, this.zeroY)
       }
 
       this._handlePaths({ type, realIndex, i, paths })
@@ -337,8 +339,8 @@ class Line {
         graphics.move(prevX, this.areaBottomY) + graphics.line(prevX, prevY)
     }
 
-    pathFromLine = graphics.move(-1, this.zeroY) + graphics.line(-1, this.zeroY)
-    pathFromArea = graphics.move(-1, this.zeroY) + graphics.line(-1, this.zeroY)
+    pathFromLine = graphics.move(0, this.zeroY) + graphics.line(0, this.zeroY)
+    pathFromArea = graphics.move(0, this.zeroY) + graphics.line(0, this.zeroY)
 
     if (w.globals.previousPaths.length > 0) {
       const pathFrom = this.lineHelpers.checkPreviousPaths({
@@ -690,8 +692,8 @@ class Line {
         this.appendPathFrom &&
         !(curve === 'monotoneCubic' && type === 'rangeArea')
       ) {
-        pathFromLine = pathFromLine + graphics.line(x, this.zeroY)
-        pathFromArea = pathFromArea + graphics.line(x, this.zeroY)
+        pathFromLine += graphics.line(x, this.zeroY)
+        pathFromArea += graphics.line(x, this.zeroY)
       }
 
       this.handleNullDataPoints(series, pointsPos, i, j, realIndex)
@@ -972,9 +974,6 @@ class Line {
                 linePath +=
                     graphics.curve(x, y, x, y, x, y2)
                   + graphics.move(x, y2)
-              } else {
-                linePath +=
-                    graphics.move(x, y)
               }
               areaPath +=
                   graphics.curve(x, y, x, y, x, areaBottomY)
@@ -1056,8 +1055,6 @@ class Line {
               if (isLowerRangeAreaPath) {
               // Need to add path portion that will join to the upper path
                 linePath += graphics.line(x, y2)
-              } else {
-                linePath += graphics.move(x, y)
               }
               areaPath +=
                   graphics.line(x, areaBottomY)
