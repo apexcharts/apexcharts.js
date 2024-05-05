@@ -243,7 +243,7 @@ export default class Dimensions {
     if (!cnf.legend.show || cnf.legend.floating) {
       gl.gridHeight =
         gl.svgHeight - cnf.grid.padding.left + cnf.grid.padding.right
-      gl.gridWidth = gl.gridHeight
+      gl.gridWidth = Math.min(gl.svgWidth, gl.gridHeight)
 
       gl.translateY = offY
       gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
