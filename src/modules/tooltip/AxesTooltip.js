@@ -164,9 +164,7 @@ class AxesTooltip {
     const gl = w.globals
     const yAxisSeriesArr = gl.seriesYAxisMap[index]
 
-    if (ttCtx.yaxisTooltips[index]
-          && yAxisSeriesArr.length > 0
-    ) {
+    if (ttCtx.yaxisTooltips[index] && yAxisSeriesArr.length > 0) {
       const lbFormatter = gl.yLabelFormatters[index]
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
@@ -179,14 +177,13 @@ class AxesTooltip {
         translationsIndex = seriesIndex
       }
       const hoverY =
-              (clientY - seriesBound.top)
-            * xyRatios.yRatio[translationsIndex]
-      const height =
-              gl.maxYArr[seriesIndex]
-            - gl.minYArr[seriesIndex]
-      const val =
-              gl.minYArr[seriesIndex]
-            + (height - hoverY)
+        (clientY - seriesBound.top) * xyRatios.yRatio[translationsIndex]
+      const height = gl.maxYArr[seriesIndex] - gl.minYArr[seriesIndex]
+      let val = gl.minYArr[seriesIndex] + (height - hoverY)
+
+      if (w.config.yaxis[index].reversed) {
+        val = gl.maxYArr[seriesIndex] - (height - hoverY)
+      }
 
       ttCtx.tooltipPosition.moveYCrosshairs(clientY - seriesBound.top)
       ttCtx.yaxisTooltipText[index].innerHTML = lbFormatter(val)
