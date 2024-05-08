@@ -34,8 +34,7 @@ class RangeBar extends Bar {
         zeroW // zeroW is the baseline where 0 meets x axis
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
-      let {columnGroupIndex} =
-              this.barHelpers.getGroupIndex(realIndex)
+      let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex)
 
       // el to which series will be drawn
       let elSeries = graphics.group({
@@ -278,7 +277,7 @@ class RangeBar extends Bar {
         }
       }
     } else {
-      if (rowIndex > -1) {
+      if (rowIndex > -1 && !w.globals.timescaleLabels.length) {
         if (w.config.plotOptions.bar.rangeBarGroupRows) {
           barXPosition = srtx + xDivision * rowIndex
         } else {
@@ -376,12 +375,13 @@ class RangeBar extends Bar {
       x,
       y: y2,
       goalY: this.barHelpers.getGoalValues(
-              'y',
-              null,
-              zeroH,
-              i,
-              j,
-              indexes.translationsIndex),
+        'y',
+        null,
+        zeroH,
+        i,
+        j,
+        indexes.translationsIndex
+      ),
       barXPosition,
     }
   }
