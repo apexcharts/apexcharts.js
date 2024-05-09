@@ -219,6 +219,77 @@ export default class Defaults {
     return Utils.extend(defaults, ret)
   }
 
+  slope() {
+    this.hideYAxis()
+
+    return {
+      chart: {
+        toolbar: {
+          show: false,
+        },
+        zoom: {
+          enabled: false,
+        },
+      },
+      dataLabels: {
+        enabled: true,
+        formatter(val, opts) {
+          const seriesName = opts.w.config.series[opts.seriesIndex].name
+          return val !== null ? seriesName + ': ' + val : ''
+        },
+        background: {
+          enabled: false,
+        },
+        offsetX: -5,
+      },
+      grid: {
+        xaxis: {
+          lines: {
+            show: true,
+          },
+        },
+        yaxis: {
+          lines: {
+            show: false,
+          },
+        },
+      },
+      xaxis: {
+        position: 'top',
+        labels: {
+          style: {
+            fontSize: 14,
+            fontWeight: 900,
+          },
+        },
+        tooltip: {
+          enabled: false,
+        },
+        crosshairs: {
+          show: false,
+        },
+      },
+      markers: {
+        size: 8,
+        hover: {
+          sizeOffset: 1,
+        },
+      },
+      legend: {
+        show: false,
+      },
+      tooltip: {
+        shared: false,
+        intersect: true,
+        followCursor: true,
+      },
+      stroke: {
+        width: 5,
+        curve: 'straight',
+      },
+    }
+  }
+
   bar() {
     return {
       chart: {

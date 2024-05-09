@@ -402,6 +402,9 @@ export default class Options {
         },
       },
       plotOptions: {
+        line: {
+          isSlopeChart: false,
+        },
         area: {
           fillTo: 'origin',
         },

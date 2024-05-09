@@ -40,6 +40,7 @@ export default class Dimensions {
     let gl = w.globals
 
     this.lgRect = this.dimHelpers.getLegendsRect()
+    this.datalabelsCoords = { width: 0, height: 0 }
 
     const maxStrokeWidth = Array.isArray(w.config.stroke.width)
       ? Math.max(...w.config.stroke.width)
@@ -97,6 +98,10 @@ export default class Dimensions {
 
     let yaxisLabelCoords = this.dimYAxis.getyAxisLabelsCoords()
     let yTitleCoords = this.dimYAxis.getyAxisTitleCoords()
+
+    if (gl.isSlopeChart) {
+      this.datalabelsCoords = this.dimHelpers.getDatalabelsRect()
+    }
 
     w.globals.yLabelsCoords = []
     w.globals.yTitleCoords = []
@@ -172,7 +177,7 @@ export default class Dimensions {
     }
 
     const legendTopBottom = () => {
-      gl.translateX = yAxisWidth
+      gl.translateX = yAxisWidth + this.datalabelsCoords.width
       gl.gridHeight =
         gl.svgHeight -
         this.lgRect.height -
@@ -182,7 +187,7 @@ export default class Dimensions {
             ? 10
             : 15
           : 0)
-      gl.gridWidth = gl.svgWidth - yAxisWidth
+      gl.gridWidth = gl.svgWidth - yAxisWidth - this.datalabelsCoords.width * 2
     }
 
     if (w.config.xaxis.position === 'top')
@@ -199,15 +204,25 @@ export default class Dimensions {
         break
       case 'left':
         gl.translateY = translateY
-        gl.translateX = this.lgRect.width + yAxisWidth
+        gl.translateX =
+          this.lgRect.width + yAxisWidth + this.datalabelsCoords.width
         gl.gridHeight = gl.svgHeight - xAxisHeight - 12
-        gl.gridWidth = gl.svgWidth - this.lgRect.width - yAxisWidth
+        gl.gridWidth =
+          gl.svgWidth -
+          this.lgRect.width -
+          yAxisWidth -
+          this.datalabelsCoords.width * 2
         break
       case 'right':
         gl.translateY = translateY
-        gl.translateX = yAxisWidth
+        gl.translateX = yAxisWidth + this.datalabelsCoords.width
         gl.gridHeight = gl.svgHeight - xAxisHeight - 12
-        gl.gridWidth = gl.svgWidth - this.lgRect.width - yAxisWidth - 5
+        gl.gridWidth =
+          gl.svgWidth -
+          this.lgRect.width -
+          yAxisWidth -
+          this.datalabelsCoords.width * 2 -
+          5
         break
       default:
         throw new Error('Legend position not supported')
