@@ -343,7 +343,7 @@ class Pie {
         w.config.plotOptions.pie.expandOnClick &&
         this.chartType !== 'polarArea'
       ) {
-        elPath.click(this.pieClicked.bind(this, i))
+        elPath.node.addEventListener('mouseup', this.pieClicked.bind(this, i))
       }
 
       if (
@@ -614,6 +614,8 @@ class Pie {
           pieSlice.setAttribute('d', origPath)
         }
       })
+      w.globals.capturedDataPointIndex = i
+
       elPath.attr('data:pieClicked', 'true')
     }
 
@@ -729,11 +731,7 @@ class Pie {
     const gCircles = graphics.group()
     const gYAxis = graphics.group()
 
-    const yScale = scale.niceScale(
-      0,
-      Math.ceil(this.maxY),
-      0
-    )
+    const yScale = scale.niceScale(0, Math.ceil(this.maxY), 0)
 
     const yTexts = yScale.result.reverse()
     let len = yScale.result.length
