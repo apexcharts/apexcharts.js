@@ -134,7 +134,8 @@ export default class Helpers {
           ? this.barCtx.baseLineY[this.barCtx.translationsIndex] * 2
           : 0)
 
-      x = w.globals.padHorizontal +
+      x =
+        w.globals.padHorizontal +
         (xDivision - barWidth * this.barCtx.seriesLen) / 2
     }
 
@@ -328,7 +329,7 @@ export default class Helpers {
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
     y1 += 0.001 - strokeCenter
     y2 += 0.001 + strokeCenter
-    
+
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
 
@@ -669,10 +670,9 @@ export default class Helpers {
 
     let nonZeroColumns = 0
     let zeroEncounters = 0
-    let seriesIndices =
-          w.config.plotOptions.bar.horizontal
-            ? w.globals.series.map((_,_i) => _i)
-            : w.globals.columnSeries?.i.map((_i) => _i) || []
+    let seriesIndices = w.config.plotOptions.bar.horizontal
+      ? w.globals.series.map((_, _i) => _i)
+      : w.globals.columnSeries?.i.map((_i) => _i) || []
 
     seriesIndices.forEach((_si) => {
       let val = w.globals.seriesPercent[_si][j]
@@ -689,15 +689,16 @@ export default class Helpers {
       zeroEncounters,
     }
   }
-  
+
   getGroupIndex(seriesIndex) {
     const w = this.w
     // groupIndex is the index of group buckets (group1, group2, ...)
-    let groupIndex = w.globals.seriesGroups.findIndex((group) => 
-      // w.config.series[i].name may be undefined, so use
-      // w.globals.seriesNames[i], which has default names for those
-      // series. w.globals.seriesGroups[] uses the same default naming.
-      group.indexOf(w.globals.seriesNames[seriesIndex]) > -1
+    let groupIndex = w.globals.seriesGroups.findIndex(
+      (group) =>
+        // w.config.series[i].name may be undefined, so use
+        // w.globals.seriesNames[i], which has default names for those
+        // series. w.globals.seriesGroups[] uses the same default naming.
+        group.indexOf(w.globals.seriesNames[seriesIndex]) > -1
     )
     // We need the column groups to be indexable as 0,1,2,... for their
     // positioning relative to each other.
@@ -707,6 +708,6 @@ export default class Helpers {
       cGI.push(groupIndex)
       columnGroupIndex = cGI.length - 1
     }
-    return {groupIndex, columnGroupIndex}
+    return { groupIndex, columnGroupIndex }
   }
 }

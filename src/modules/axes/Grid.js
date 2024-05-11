@@ -438,8 +438,8 @@ class Grid {
     // or yaxis[0] if all are hidden.
     let gridAxisIndex = 0
     while (
-      gridAxisIndex < gl.seriesYAxisMap.length
-      && gl.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
+      gridAxisIndex < gl.seriesYAxisMap.length &&
+      gl.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
     ) {
       gridAxisIndex++
     }
@@ -455,7 +455,6 @@ class Grid {
       xCount = this.xaxisLabels.length
 
       if (this.isRangeBar) {
-        xCount--
         yTickAmount = gl.labels.length
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
           xCount = w.config.xaxis.tickAmount

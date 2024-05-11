@@ -320,11 +320,9 @@ class RangeBar extends Bar {
   }) {
     let w = this.w
 
-    let i = indexes.i
-    let j = indexes.j
+    const { i, j, realIndex, translationsIndex } = indexes
 
-    const yRatio = this.yRatio[indexes.translationsIndex]
-    let realIndex = indexes.realIndex
+    const yRatio = this.yRatio[translationsIndex]
 
     const range = this.getRangeValue(realIndex, j)
 
@@ -349,7 +347,7 @@ class RangeBar extends Bar {
       y2,
       strokeWidth: this.strokeWidth,
       series: this.seriesRangeEnd,
-      realIndex: indexes.realIndex,
+      realIndex: realIndex,
       i: realIndex,
       j,
       w,
@@ -373,14 +371,14 @@ class RangeBar extends Bar {
       pathFrom: paths.pathFrom,
       barHeight,
       x,
-      y: y2,
+      y: range.start < 0 && range.end < 0 ? y1 : y2,
       goalY: this.barHelpers.getGoalValues(
         'y',
         null,
         zeroH,
         i,
         j,
-        indexes.translationsIndex
+        translationsIndex
       ),
       barXPosition,
     }
@@ -398,8 +396,12 @@ class RangeBar extends Bar {
   }) {
     let w = this.w
 
+    const { realIndex, j } = indexes
+
     const x1 = zeroW + y1 / this.invertedYRatio
     const x2 = zeroW + y2 / this.invertedYRatio
+
+    const range = this.getRangeValue(realIndex, j)
 
     const barWidth = Math.abs(x2 - x1)
 
@@ -410,9 +412,9 @@ class RangeBar extends Bar {
       x2,
       strokeWidth: this.strokeWidth,
       series: this.seriesRangeEnd,
-      i: indexes.realIndex,
-      realIndex: indexes.realIndex,
-      j: indexes.j,
+      i: realIndex,
+      realIndex,
+      j,
       w,
     })
 
@@ -424,14 +426,8 @@ class RangeBar extends Bar {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
       barWidth,
-      x: x2,
-      goalX: this.barHelpers.getGoalValues(
-        'x',
-        zeroW,
-        null,
-        indexes.realIndex,
-        indexes.j
-      ),
+      x: range.start < 0 && range.end < 0 ? x1 : x2,
+      goalX: this.barHelpers.getGoalValues('x', zeroW, null, realIndex, j),
       y,
     }
   }
