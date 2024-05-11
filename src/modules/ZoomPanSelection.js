@@ -12,6 +12,7 @@ import Scales from './Scales'
 export default class ZoomPanSelection extends Toolbar {
   constructor(ctx) {
     super(ctx)
+
     this.ctx = ctx
     this.w = ctx.w
 
@@ -156,8 +157,9 @@ export default class ZoomPanSelection extends Toolbar {
         ? e.changedTouches[0].clientY
         : e.clientY
 
-    if ((e.type === 'mousedown' || e.type === 'touchmove') && e.which === 1) {
+    if (e.type === 'mousedown' && e.which === 1) {
       let gridRectDim = me.gridRect.getBoundingClientRect()
+
       me.startX = me.clientX - gridRectDim.left
       me.startY = me.clientY - gridRectDim.top
 
@@ -170,15 +172,7 @@ export default class ZoomPanSelection extends Toolbar {
 
       if (w.globals.panEnabled) {
         w.globals.selection = null
-        if (me.w.globals.mousedown || e.type === 'touchmove') {
-          if (e.type === 'touchmove' && !me.w.globals.mousedown) {
-            console.warn('me.w.globals.mousedown ', me.w.globals.mousedown)
-            let gridRectDim = me.gridRect.getBoundingClientRect()
-            me.startX = me.clientX - gridRectDim.left
-            me.startY = me.clientY - gridRectDim.top
-            me.w.globals.mousedown = true
-          }
-
+        if (me.w.globals.mousedown) {
           me.panDragging({
             context: me,
             zoomtype,
@@ -186,14 +180,6 @@ export default class ZoomPanSelection extends Toolbar {
           })
         }
       } else {
-        if (e.type === 'touchmove') {
-          if (!me.w.globals.mousedown) {
-            let gridRectDim = me.gridRect.getBoundingClientRect()
-            me.startX = me.clientX - gridRectDim.left
-            me.startY = me.clientY - gridRectDim.top
-          }
-          me.w.globals.mousedown = true
-        }
         if (
           (me.w.globals.mousedown && w.globals.zoomEnabled) ||
           (me.w.globals.mousedown && w.globals.selectionEnabled)
@@ -679,6 +665,7 @@ export default class ZoomPanSelection extends Toolbar {
   panDragging({ context }) {
     const w = this.w
     let me = context
+
     // check to make sure there is data to compare against
     if (typeof w.globals.lastClientPosition.x !== 'undefined') {
       // get the change from last position to this position
@@ -696,14 +683,17 @@ export default class ZoomPanSelection extends Toolbar {
         this.moveDirection = 'down'
       }
     }
+
     // set the new last position to the current for next time (to get the position of drag)
     w.globals.lastClientPosition = {
       x: me.clientX,
       y: me.clientY,
     }
+
     let xLowestValue = w.globals.isRangeBar ? w.globals.minY : w.globals.minX
 
     let xHighestValue = w.globals.isRangeBar ? w.globals.maxY : w.globals.maxX
+
     // on a category, we don't pan continuosly as it causes bugs
     if (!w.config.xaxis.convertedCatToNumeric) {
       me.panScrolled(xLowestValue, xHighestValue)
