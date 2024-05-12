@@ -526,7 +526,7 @@
 }
 
 .apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points {
-  opacity: 0
+  display: none;
 }
 
 .apexcharts-hidden-element-shown {
