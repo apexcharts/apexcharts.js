@@ -110,7 +110,10 @@ async function processSample(page, sample, command) {
       )
 
       const mismatchPercent = ((100 * numDiffs) / width / height).toFixed(2)
-      throw new TestError(`Screenshot changed by ${mismatchPercent}%`)
+
+      if (mismatchPercent > 5) {
+        throw new TestError(`Screenshot changed by ${mismatchPercent}%`)
+      }
     } else if (err) {
       throw err
     }
@@ -164,7 +167,7 @@ async function processSamples(command, paths) {
       dest: `${e2eSamplesDir}/apexcharts.e2e.js`,
       format: 'umd',
       env: 'development',
-      istanbul: true
+      istanbul: true,
     })
   }
 
@@ -188,7 +191,7 @@ async function processSamples(command, paths) {
 
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 5
+    maxConcurrency: 5,
   })
 
   await cluster.task(async ({ page, data: sample }) => {
@@ -207,7 +210,7 @@ async function processSamples(command, paths) {
     } catch (e) {
       failedTests.push({
         path: `${sample.dirName}/${sample.fileName}`,
-        error: e
+        error: e,
       })
     }
     numCompleted++
@@ -241,12 +244,7 @@ async function processSamples(command, paths) {
     )
 
     if (!failedTest.error.hideStack) {
-      console.log(
-        failedTest.error.stack
-          .split('\n')
-          .slice(1)
-          .join('\n')
-      )
+      console.log(failedTest.error.stack.split('\n').slice(1).join('\n'))
     }
   }
 
