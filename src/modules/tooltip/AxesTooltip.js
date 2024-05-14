@@ -172,7 +172,7 @@ class AxesTooltip {
       // We can use the index of any series referenced by the Yaxis
       // because they will all return the same value.
       const seriesIndex = yAxisSeriesArr[0]
-      const translationsIndex = 0
+      let translationsIndex = 0
       if (xyRatios.yRatio.length > 1) {
         translationsIndex = seriesIndex
       }
