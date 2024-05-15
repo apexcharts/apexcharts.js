@@ -209,7 +209,7 @@ class Line {
         paths.linePaths.splice(segments)
         paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
       } else {
-        paths.pathFromArea += graphics.line(0, this.zeroY)
+        paths.pathFromArea += 'z'
       }
 
       this._handlePaths({ type, realIndex, i, paths })
