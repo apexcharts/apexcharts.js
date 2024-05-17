@@ -328,16 +328,14 @@ export default class BarDataLabels {
           ADDITIONAL_OFFY
       }
 
+      // width divided into equal parts
+      let xDivision = w.globals.gridWidth / w.globals.dataPoints
+
       totalDataLabelsX =
-        totalDataLabelsBcx +
-        (w.globals.isXNumeric
-          ? barWidth * (w.globals.barGroups.length - 1) - barWidth / 2
-          : -(
-              barWidth * w.globals.barGroups.length -
-              barWidth / 2 -
-              strokeWidth * 2
-            )) +
-        barTotalDataLabelsConfig.offsetX
+          totalDataLabelsBcx
+        + barWidth * (w.globals.barGroups.length - 0.5)
+        - (w.globals.isXNumeric ? barWidth : xDivision)
+        + barTotalDataLabelsConfig.offsetX
     }
 
     if (!w.config.chart.stacked) {
