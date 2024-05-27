@@ -12,11 +12,11 @@ class CoreUtils {
     let comboCharts = false
     let comboBarCount = 0
     let comboCount = 0
-    
+
     if (chartType === undefined) {
       chartType = 'line'
     }
-    
+
     // Check if user specified a type in series that may make us a combo chart.
     // The default type for chart is "line" and the default for series is the
     // chart type, therefore, if the types of all series match the chart type,
@@ -167,9 +167,9 @@ class CoreUtils {
     let axisSeriesMap = []
     let seriesYAxisReverseMap = []
     let unassignedSeriesIndices = []
-    let seriesNameArrayStyle = 
-            gl.series.length > cnf.yaxis.length
-            || cnf.yaxis.some((a) => Array.isArray(a.seriesName))
+    let seriesNameArrayStyle =
+      gl.series.length > cnf.yaxis.length
+      || cnf.yaxis.some((a) => Array.isArray(a.seriesName))
 
     cnf.series.forEach((s, i) => {
       unassignedSeriesIndices.push(i)
@@ -202,9 +202,9 @@ class CoreUtils {
               if (yi === si || seriesNameArrayStyle) {
                 // New style, don't allow series to be double referenced
                 if (!seriesNameArrayStyle
-                      || unassignedSeriesIndices.indexOf(si) > -1
+                  || unassignedSeriesIndices.indexOf(si) > -1
                 ) {
-                  axisSeriesMap[yi].push([yi,si])
+                  axisSeriesMap[yi].push([yi, si])
                 } else {
                   console.warn(
                     "Series '"
@@ -216,7 +216,7 @@ class CoreUtils {
               } else {
                 // The series index refers to the target yaxis and the current
                 // yaxis index refers to the actual referenced series.
-                axisSeriesMap[si].push([si,yi])
+                axisSeriesMap[si].push([si, yi])
                 remove = yi
               }
               assigned = true

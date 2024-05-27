@@ -65,7 +65,7 @@ class Line {
       series = this.lineHelpers.sameValueSeriesFix(i, series)
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
-      let translationsIndex = this.yRatio.length > 1 ? realIndex: 0
+      let translationsIndex = this.yRatio.length > 1 ? realIndex : 0
 
 
       this._initSerieVariables(series, i, realIndex)
@@ -378,7 +378,7 @@ class Line {
     if (forecast.count > 0 && type !== 'rangeArea') {
       const forecastCutoff =
         w.globals.seriesXvalues[realIndex][
-          w.globals.seriesXvalues[realIndex].length - forecast.count - 1
+        w.globals.seriesXvalues[realIndex].length - forecast.count - 1
         ]
       const elForecastMask = graphics.drawRect(
         forecastCutoff,
@@ -602,7 +602,7 @@ class Line {
           const prevIndex = (pi) => {
             for (let pii = pi; pii > 0; pii--) {
               if (w.globals.collapsedSeriesIndices.indexOf(
-                    seriesIndex?.[pii] || pii
+                seriesIndex?.[pii] || pii
               ) > -1) {
                 pii--
               } else {
@@ -635,8 +635,8 @@ class Line {
 
       // push current Y that will be used as next series's bottom position
       if (isNull
-            && (w.config.stroke.curve === 'smooth'
-                || w.config.stroke.curve === 'monotoneCubic')
+        && (w.config.stroke.curve === 'smooth'
+          || w.config.stroke.curve === 'monotoneCubic')
       ) {
         yArrj.push(null)
         y2Arrj.push(null)
@@ -789,289 +789,289 @@ class Line {
     let isLowerRangeAreaPath = (type === 'rangeArea' && isRangeStart)
 
     switch (curve) {
-    case 'monotoneCubic':
-      let yAj = isRangeStart ? yArrj : y2Arrj
-      let getSmoothInputs = (xArr, yArr) => {
-        return xArr.map((_, i) => {
+      case 'monotoneCubic':
+        let yAj = isRangeStart ? yArrj : y2Arrj
+        let getSmoothInputs = (xArr, yArr) => {
+          return xArr.map((_, i) => {
             return [_, yArr[i]]
           })
-          .filter((_) => _[1] !== null)
-      }
-      let getSegmentLengths = (yArr) => {
-        // Get the segment lengths so the segments can be extracted from
-        // the null-filtered smoothInputs array
-        let segLens = []
-        let count = 0
-        yArr.forEach((_) => {
-          if (_ !== null) {
-            count++
-          } else if (count > 0) {
+            .filter((_) => _[1] !== null)
+        }
+        let getSegmentLengths = (yArr) => {
+          // Get the segment lengths so the segments can be extracted from
+          // the null-filtered smoothInputs array
+          let segLens = []
+          let count = 0
+          yArr.forEach((_) => {
+            if (_ !== null) {
+              count++
+            } else if (count > 0) {
+              segLens.push(count)
+              count = 0
+            }
+          })
+          if (count > 0) {
             segLens.push(count)
-            count = 0
           }
-        })
-        if (count > 0) {
-          segLens.push(count)
+          return segLens
         }
-        return segLens
-      }
-      let getSegments = (yArr, points) => {
-        let segLens = getSegmentLengths(yArr)
-        let segments = []
-        for (let i = 0, len = 0; i < segLens.length; len += segLens[i++]) {
-          segments[i] = spline.slice(points, len, len + segLens[i])
+        let getSegments = (yArr, points) => {
+          let segLens = getSegmentLengths(yArr)
+          let segments = []
+          for (let i = 0, len = 0; i < segLens.length; len += segLens[i++]) {
+            segments[i] = spline.slice(points, len, len + segLens[i])
+          }
+          return segments
         }
-        return segments
-      }
 
-      switch (pathState) {
-      case 0:
-        // Find start of segment
-        if (yAj[j + 1] === null) {
-          break
-        }
-        pathState = 1
-        // continue through to pathState 1
-      case 1:
-        if (!(rangeArea
+        switch (pathState) {
+          case 0:
+            // Find start of segment
+            if (yAj[j + 1] === null) {
+              break
+            }
+            pathState = 1
+          // continue through to pathState 1
+          case 1:
+            if (!(rangeArea
               ? xArrj.length === series[i].length
               : (j === series[i].length - 2))
-        ) {
-            break
-          }
-        // continue through to pathState 2
-      case 2:
-        // Interpolate the full series with nulls excluded then extract the
-        // null delimited segments with interpolated points included.
-        const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse()
-        const _yAj = isRangeStart ? yAj : yAj.slice().reverse()
+            ) {
+              break
+            }
+          // continue through to pathState 2
+          case 2:
+            // Interpolate the full series with nulls excluded then extract the
+            // null delimited segments with interpolated points included.
+            const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse()
+            const _yAj = isRangeStart ? yAj : yAj.slice().reverse()
 
-        const smoothInputs = getSmoothInputs(_xAj, _yAj)
-        const points = smoothInputs.length > 1
-                ? spline.points(smoothInputs)
-                : smoothInputs
+            const smoothInputs = getSmoothInputs(_xAj, _yAj)
+            const points = smoothInputs.length > 1
+              ? spline.points(smoothInputs)
+              : smoothInputs
 
-        let smoothInputsLower = []
-        if (rangeArea) {
-          if (isLowerRangeAreaPath) {
-            // As we won't be needing it, borrow areaPaths to retain our
-            // rangeArea lower points.
-            areaPaths = smoothInputs
-          } else {
-            // Retrieve the corresponding lower raw interpolated points so we
-            // can join onto its end points. Note: the upper Y2 segments will
-            // be in the reverse order relative to the lower segments.
-            smoothInputsLower = areaPaths.reverse()
-          }
-        }
+            let smoothInputsLower = []
+            if (rangeArea) {
+              if (isLowerRangeAreaPath) {
+                // As we won't be needing it, borrow areaPaths to retain our
+                // rangeArea lower points.
+                areaPaths = smoothInputs
+              } else {
+                // Retrieve the corresponding lower raw interpolated points so we
+                // can join onto its end points. Note: the upper Y2 segments will
+                // be in the reverse order relative to the lower segments.
+                smoothInputsLower = areaPaths.reverse()
+              }
+            }
 
-        let segmentCount = 0
-        let smoothInputsIndex = 0
-        getSegments(_yAj, points).forEach((_) => {
-          segmentCount++
-          let svgPoints = svgPath(_)
-          let _start = smoothInputsIndex
-          smoothInputsIndex += _.length
-          let _end = smoothInputsIndex - 1
-          if (isLowerRangeAreaPath) {
-            linePath = 
+            let segmentCount = 0
+            let smoothInputsIndex = 0
+            getSegments(_yAj, points).forEach((_) => {
+              segmentCount++
+              let svgPoints = svgPath(_)
+              let _start = smoothInputsIndex
+              smoothInputsIndex += _.length
+              let _end = smoothInputsIndex - 1
+              if (isLowerRangeAreaPath) {
+                linePath =
                   graphics.move(
                     smoothInputs[_start][0],
                     smoothInputs[_start][1]
                   )
-                + svgPoints
-          } else if (rangeArea) {
-            linePath =
+                  + svgPoints
+              } else if (rangeArea) {
+                linePath =
                   graphics.move(
                     smoothInputsLower[_start][0],
                     smoothInputsLower[_start][1]
                   )
-                + graphics.line(
+                  + graphics.line(
                     smoothInputs[_start][0],
                     smoothInputs[_start][1]
                   )
-                + svgPoints
-                + graphics.line(
+                  + svgPoints
+                  + graphics.line(
                     smoothInputsLower[_end][0],
                     smoothInputsLower[_end][1]
                   )
-          } else {
-            linePath =
+              } else {
+                linePath =
                   graphics.move(
                     smoothInputs[_start][0],
                     smoothInputs[_start][1]
                   )
-                + svgPoints
-            areaPath =
+                  + svgPoints
+                areaPath =
                   linePath
-                + graphics.line(smoothInputs[_end][0], areaBottomY)
-                + graphics.line(smoothInputs[_start][0], areaBottomY)
-                + 'z'
-            areaPaths.push(areaPath)
-          }
-          linePaths.push(linePath)
-        })
+                  + graphics.line(smoothInputs[_end][0], areaBottomY)
+                  + graphics.line(smoothInputs[_start][0], areaBottomY)
+                  + 'z'
+                areaPaths.push(areaPath)
+              }
+              linePaths.push(linePath)
+            })
 
-        if (rangeArea && segmentCount > 1 && !isLowerRangeAreaPath) {
-          // Reverse the order of the upper path segments
-          let upperLinePaths = linePaths.slice(segmentCount).reverse()
-          linePaths.splice(segmentCount)
-          upperLinePaths.forEach((u) => linePaths.push(u))
+            if (rangeArea && segmentCount > 1 && !isLowerRangeAreaPath) {
+              // Reverse the order of the upper path segments
+              let upperLinePaths = linePaths.slice(segmentCount).reverse()
+              linePaths.splice(segmentCount)
+              upperLinePaths.forEach((u) => linePaths.push(u))
+            }
+            pathState = 0
+            break
         }
-        pathState = 0
         break
-      }
-      break
-    case 'smooth':
-      let length = (x - pX) * 0.35
-      if (series[i][j] === null) {
-        pathState = 0
-      } else {
-        switch (pathState) {
-          case 0:
-            // Beginning of segment
-            segmentStartX = pX
-            if (isLowerRangeAreaPath) {
-              // Need to add path portion that will join to the upper path
-              linePath =
-                  graphics.move(pX, y2Arrj[j])
-                + graphics.line(pX, pY)
-            } else {
-              linePath = graphics.move(pX, pY)
-            }
-            areaPath = graphics.move(pX, pY)
-
-            pathState = 1
-            if (j < series[i].length - 2) {
-              let p = graphics.curve(pX + length, pY, x - length, y, x, y)
-              linePath += p
-              areaPath += p
-              break
-            }
-            // Continue on with pathState 1 to finish the path and exit
-        case 1:
-          // Continuing with segment
-          if (series[i][j + 1] === null) {
-            // Segment ends here
-            if (isLowerRangeAreaPath) {
-              linePath += graphics.line(pX, y2)
-            } else {
-              linePath += graphics.move(pX, pY)
-            }
-            areaPath +=
-                graphics.line(pX, areaBottomY)
-              + graphics.line(segmentStartX, areaBottomY)
-              + 'z'
-            linePaths.push(linePath)
-            areaPaths.push(areaPath)
-          } else {
-            let p = graphics.curve(pX + length, pY, x - length, y, x, y)
-            linePath += p
-            areaPath += p
-            if (j >= series[i].length - 2) {
+      case 'smooth':
+        let length = (x - pX) * 0.35
+        if (series[i][j] === null) {
+          pathState = 0
+        } else {
+          switch (pathState) {
+            case 0:
+              // Beginning of segment
+              segmentStartX = pX
               if (isLowerRangeAreaPath) {
                 // Need to add path portion that will join to the upper path
-                linePath +=
-                    graphics.curve(x, y, x, y, x, y2)
-                  + graphics.move(x, y2)
-              }
-              areaPath +=
-                  graphics.curve(x, y, x, y, x, areaBottomY)
-                + graphics.line(segmentStartX, areaBottomY)
-                + 'z'
-              linePaths.push(linePath)
-              areaPaths.push(areaPath)
-            }
-          }
-          break
-        }
-      }
-
-      pX = x
-      pY = y
-
-      break
-    default:
-      let pathToPoint = (curve, x, y) => {
-        let path = []
-        switch (curve) {
-        case 'stepline':
-          path = graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
-          break
-        case 'linestep':
-          path = graphics.line(null, y, 'V') + graphics.line(x, null, 'H')
-          break
-        case 'straight':
-          path = graphics.line(x, y)
-          break
-        }
-        return path
-      }
-      if (series[i][j] === null) {
-        pathState = 0
-      } else {
-        switch (pathState) {
-          case 0:
-            // Beginning of segment
-            segmentStartX = pX
-            if (isLowerRangeAreaPath) {
-              // Need to add path portion that will join to the upper path
-              linePath =
+                linePath =
                   graphics.move(pX, y2Arrj[j])
-                + graphics.line(pX, pY)
-            } else {
-              linePath = graphics.move(pX, pY)
-            }
-            areaPath = graphics.move(pX, pY)
-
-            pathState = 1
-            if (j < series[i].length - 2) {
-              let p = pathToPoint(curve, x, y)
-              linePath += p
-              areaPath += p
-              break
-            }
-            // Continue on with pathState 1 to finish the path and exit
-        case 1:
-          // Continuing with segment
-          if (series[i][j + 1] === null) {
-            // Segment ends here
-            if (isLowerRangeAreaPath) {
-              linePath += graphics.line(pX, y2)
-            } else {
-              linePath += graphics.move(pX, pY)
-            }
-            areaPath +=
-                graphics.line(pX, areaBottomY)
-              + graphics.line(segmentStartX, areaBottomY)
-              + 'z'
-            linePaths.push(linePath)
-            areaPaths.push(areaPath)
-          } else {
-            let p = pathToPoint(curve, x, y)
-            linePath += p
-            areaPath += p
-            if (j >= series[i].length - 2) {
-              if (isLowerRangeAreaPath) {
-              // Need to add path portion that will join to the upper path
-                linePath += graphics.line(x, y2)
+                  + graphics.line(pX, pY)
+              } else {
+                linePath = graphics.move(pX, pY)
               }
-              areaPath +=
-                  graphics.line(x, areaBottomY)
-                + graphics.line(segmentStartX, areaBottomY)
-                + 'z'
-              linePaths.push(linePath)
-              areaPaths.push(areaPath)
-            }
+              areaPath = graphics.move(pX, pY)
+
+              pathState = 1
+              if (j < series[i].length - 2) {
+                let p = graphics.curve(pX + length, pY, x - length, y, x, y)
+                linePath += p
+                areaPath += p
+                break
+              }
+            // Continue on with pathState 1 to finish the path and exit
+            case 1:
+              // Continuing with segment
+              if (series[i][j + 1] === null) {
+                // Segment ends here
+                if (isLowerRangeAreaPath) {
+                  linePath += graphics.line(pX, y2)
+                } else {
+                  linePath += graphics.move(pX, pY)
+                }
+                areaPath +=
+                  graphics.line(pX, areaBottomY)
+                  + graphics.line(segmentStartX, areaBottomY)
+                  + 'z'
+                linePaths.push(linePath)
+                areaPaths.push(areaPath)
+              } else {
+                let p = graphics.curve(pX + length, pY, x - length, y, x, y)
+                linePath += p
+                areaPath += p
+                if (j >= series[i].length - 2) {
+                  if (isLowerRangeAreaPath) {
+                    // Need to add path portion that will join to the upper path
+                    linePath +=
+                      graphics.curve(x, y, x, y, x, y2)
+                      + graphics.move(x, y2)
+                  }
+                  areaPath +=
+                    graphics.curve(x, y, x, y, x, areaBottomY)
+                    + graphics.line(segmentStartX, areaBottomY)
+                    + 'z'
+                  linePaths.push(linePath)
+                  areaPaths.push(areaPath)
+                }
+              }
+              break
           }
-          break
         }
-      }
 
-      pX = x
-      pY = y
+        pX = x
+        pY = y
 
-      break
+        break
+      default:
+        let pathToPoint = (curve, x, y) => {
+          let path = []
+          switch (curve) {
+            case 'stepline':
+              path = graphics.line(x, null, 'H') + graphics.line(null, y, 'V')
+              break
+            case 'linestep':
+              path = graphics.line(null, y, 'V') + graphics.line(x, null, 'H')
+              break
+            case 'straight':
+              path = graphics.line(x, y)
+              break
+          }
+          return path
+        }
+        if (series[i][j] === null) {
+          pathState = 0
+        } else {
+          switch (pathState) {
+            case 0:
+              // Beginning of segment
+              segmentStartX = pX
+              if (isLowerRangeAreaPath) {
+                // Need to add path portion that will join to the upper path
+                linePath =
+                  graphics.move(pX, y2Arrj[j])
+                  + graphics.line(pX, pY)
+              } else {
+                linePath = graphics.move(pX, pY)
+              }
+              areaPath = graphics.move(pX, pY)
+
+              pathState = 1
+              if (j < series[i].length - 2) {
+                let p = pathToPoint(curve, x, y)
+                linePath += p
+                areaPath += p
+                break
+              }
+            // Continue on with pathState 1 to finish the path and exit
+            case 1:
+              // Continuing with segment
+              if (series[i][j + 1] === null) {
+                // Segment ends here
+                if (isLowerRangeAreaPath) {
+                  linePath += graphics.line(pX, y2)
+                } else {
+                  linePath += graphics.move(pX, pY)
+                }
+                areaPath +=
+                  graphics.line(pX, areaBottomY)
+                  + graphics.line(segmentStartX, areaBottomY)
+                  + 'z'
+                linePaths.push(linePath)
+                areaPaths.push(areaPath)
+              } else {
+                let p = pathToPoint(curve, x, y)
+                linePath += p
+                areaPath += p
+                if (j >= series[i].length - 2) {
+                  if (isLowerRangeAreaPath) {
+                    // Need to add path portion that will join to the upper path
+                    linePath += graphics.line(x, y2)
+                  }
+                  areaPath +=
+                    graphics.line(x, areaBottomY)
+                    + graphics.line(segmentStartX, areaBottomY)
+                    + 'z'
+                  linePaths.push(linePath)
+                  areaPaths.push(areaPath)
+                }
+              }
+              break
+          }
+        }
+
+        pX = x
+        pY = y
+
+        break
     }
 
     return {
@@ -1093,7 +1093,7 @@ class Line {
       series[i].length === 1
     ) {
       let pSize = this.strokeWidth - w.config.markers.strokeWidth / 2
-      if (!(pSize > 0)) {pSize = 0}
+      if (!(pSize > 0)) { pSize = 0 }
       // fixes apexcharts.js#1282, #1252
       let elPointsWrap = this.markers.plotChartMarkers(
         pointsPos,

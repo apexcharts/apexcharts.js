@@ -212,7 +212,6 @@ class RangeBar extends Bar {
           barWidth,
           barXPosition,
           barYPosition,
-          barWidth,
           columnGroupIndex,
           elDataLabelsWrap,
           elGoalsMarkers,
@@ -270,8 +269,8 @@ class RangeBar extends Bar {
           barYPosition =
             barHeight * this.visibleI +
             (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
-              100 /
-              2 +
+            100 /
+            2 +
             barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
             yDivision * rowIndex
         }
@@ -294,8 +293,8 @@ class RangeBar extends Bar {
           barXPosition =
             barWidth * this.visibleI +
             (xDivision * (100 - parseInt(this.barOptions.barWidth, 10))) /
-              100 /
-              2 +
+            100 /
+            2 +
             barWidth * (this.visibleI + overlaps.indexOf(rangeName)) +
             xDivision * rowIndex
         }
@@ -384,6 +383,19 @@ class RangeBar extends Bar {
     }
   }
 
+  preventBarOverflow(val) {
+    const w = this.w
+
+    if (val < 0) {
+      val = 0
+    }
+    if (val > w.globals.gridWidth) {
+      val = w.globals.gridWidth
+    }
+
+    return val
+  }
+
   drawRangeBarPaths({
     indexes,
     y,
@@ -398,8 +410,8 @@ class RangeBar extends Bar {
 
     const { realIndex, j } = indexes
 
-    const x1 = zeroW + y1 / this.invertedYRatio
-    const x2 = zeroW + y2 / this.invertedYRatio
+    let x1 = this.preventBarOverflow(zeroW + y1 / this.invertedYRatio)
+    let x2 = this.preventBarOverflow(zeroW + y2 / this.invertedYRatio)
 
     const range = this.getRangeValue(realIndex, j)
 
