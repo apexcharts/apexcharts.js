@@ -518,14 +518,12 @@ class BarStacked extends Bar {
       elSeries,
     })
 
-    x = x + xDivision
-
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
       goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
       barXPosition,
-      x: w.globals.isXNumeric ? x - xDivision : x,
+      x: w.globals.isXNumeric ? x : x + xDivision,
       y,
     }
   }

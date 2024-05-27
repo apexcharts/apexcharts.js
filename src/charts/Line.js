@@ -209,7 +209,7 @@ class Line {
         paths.linePaths.splice(segments)
         paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
       } else {
-        paths.pathFromArea += graphics.line(0, this.zeroY)
+        paths.pathFromArea += 'z'
       }
 
       this._handlePaths({ type, realIndex, i, paths })
@@ -964,6 +964,7 @@ class Line {
                   + 'z'
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
+                pathState = -1
               } else {
                 let p = graphics.curve(pX + length, pY, x - length, y, x, y)
                 linePath += p
@@ -981,6 +982,7 @@ class Line {
                     + 'z'
                   linePaths.push(linePath)
                   areaPaths.push(areaPath)
+                  pathState = -1
                 }
               }
               break
@@ -1047,6 +1049,7 @@ class Line {
                   + 'z'
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
+                pathState = -1
               } else {
                 let p = pathToPoint(curve, x, y)
                 linePath += p
@@ -1062,6 +1065,7 @@ class Line {
                     + 'z'
                   linePaths.push(linePath)
                   areaPaths.push(areaPath)
+                  pathState = -1
                 }
               }
               break
