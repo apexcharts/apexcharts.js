@@ -393,7 +393,7 @@ class Radar {
           w,
         })
 
-        dataLabels.plotDataLabelsText({
+        const dataLabelText = dataLabels.plotDataLabelsText({
           x: textPos.newX,
           y: textPos.newY,
           text,
@@ -401,9 +401,10 @@ class Radar {
           i,
           j: i,
           parent: elXAxisWrap,
+          className: "apexcharts-xaxis-label",
           color:
             Array.isArray(xaxisLabelsConfig.style.colors) &&
-            xaxisLabelsConfig.style.colors[i]
+              xaxisLabelsConfig.style.colors[i]
               ? xaxisLabelsConfig.style.colors[i]
               : '#a8a8a8',
           dataLabelsConfig: {
@@ -413,6 +414,17 @@ class Radar {
           },
           offsetCorrection: false,
         })
+
+        dataLabelText.on('click', (e) => {
+          if (typeof w.config.chart.events.xAxisLabelClick === 'function') {
+            const opts = Object.assign({}, w, {
+              labelIndex: i,
+            })
+
+            w.config.chart.events.xAxisLabelClick(e, this.ctx, opts)
+          }
+        })
+
       }
     })
 
