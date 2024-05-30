@@ -582,9 +582,6 @@ export default class Scales {
     const gl = this.w.globals
     const cnf = this.w.config
 
-    const minYArr = gl.minYArr
-    const maxYArr = gl.maxYArr
-
     // The current config method to map multiple series to a y axis is to
     // include one yaxis config per series but set each yaxis seriesName to the
     // same series name. This relies on indexing equivalence to map series to
