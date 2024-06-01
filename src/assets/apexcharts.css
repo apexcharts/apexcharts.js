@@ -44,7 +44,10 @@
 rect.legend-mouseover-inactive,
 .legend-mouseover-inactive rect,
 .legend-mouseover-inactive path,
-.legend-mouseover-inactive circle {
+.legend-mouseover-inactive circle,
+.legend-mouseover-inactive line,
+.legend-mouseover-inactive text.apexcharts-yaxis-title-text,
+.legend-mouseover-inactive text.apexcharts-yaxis-label {
   transition: .15s ease all;
   opacity: .2
 }
