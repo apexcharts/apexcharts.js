@@ -195,7 +195,7 @@ export default class Theme {
         ? '#373d3f'
         : options.chart.foreColor || '#373d3f'
 
-    options.tooltip.theme = mode
+    options.tooltip.theme = mode || 'light'
     options.chart.foreColor = foreColor
     options.chart.background = background
     options.theme.palette = palette
