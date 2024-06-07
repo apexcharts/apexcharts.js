@@ -195,10 +195,12 @@ async function processSamples(command, paths) {
   })
 
   await cluster.task(async ({ page, data: sample }) => {
-    process.stdout.clearLine()
-    process.stdout.cursorTo(0)
-    const percentComplete = Math.round((100 * numCompleted) / samples.length)
-    process.stdout.write(`Processing samples: ${percentComplete}%`)
+    if (process.stdout.isTTY) {
+      process.stdout.clearLine()
+      process.stdout.cursorTo(0)
+      const percentComplete = Math.round((100 * numCompleted) / samples.length)
+      process.stdout.write(`Processing samples: ${percentComplete}%`)
+    }
 
     // BUG: some chart are animated - need special processing. Some just need to be skipped.
 
@@ -214,7 +216,9 @@ async function processSamples(command, paths) {
       })
     }
     numCompleted++
-    process.stdout.clearLine()
+    if (!process.stdout.isTTY) {
+      console.log(`Processed samples: ${numCompleted}/${samples.length}`)
+    }
   })
 
   for (const sample of samples) {
@@ -223,6 +227,12 @@ async function processSamples(command, paths) {
 
   await cluster.idle()
   await cluster.close()
+
+  if (process.stdout.isTTY) {
+    process.stdout.clearLine()
+  } else {
+    console.log('All samples have now been processed')
+  }
 
   console.log('')
 
