@@ -110,7 +110,7 @@ npm run test
 If this command ends with an error `Error: Unable to launch browser, error message: Chromium revision is not downloaded.` then calling puppeteer install may solve the problem:
 
 ```bash
-node node_modules/puppeteer/install.js
+node node_modules/puppeteer/install.mjs
 ```
 
 E2e tests will likely fail due to minor differences in OS and the browser version used to take screenshots. To address this, before working on a feature, recapture screenshots using this command:
