@@ -791,6 +791,7 @@ class Pie {
     g.node.style.opacity = opts.opacity
 
     let x = opts.centerX
+    // Adjust the y value if hideLabel flag is set
     let y = this.donutDataLabels.total.hideLabel ? (opts.centerY - (opts.centerY / 6)) : opts.centerY
 
     let labelColor, valueColor
@@ -819,6 +820,7 @@ class Pie {
       labelFontSize = dataLabelsConfig.total.fontSize
       labelFontFamily = dataLabelsConfig.total.fontFamily
       labelFontWeight = dataLabelsConfig.total.fontWeight
+      // Assign total label only if hideLabel flag is not set
       name = this.donutDataLabels.total.hideLabel ? '' : dataLabelsConfig.total.label
       val = dataLabelsConfig.total.formatter(w)
     } else {
@@ -915,6 +917,7 @@ class Pie {
     }
 
     const isTotal = name === labelsConfig.total.label
+    // Assign total label only if hideLabel flag is not set
     name = this.donutDataLabels.total.hideLabel ? '' : labelsConfig.name.formatter(name, isTotal, w)
 
     if (elLabel !== null) {
