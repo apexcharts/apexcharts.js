@@ -53,8 +53,7 @@ export default class Responsive {
       } else {
         for (let i = 0; i < res.length; i++) {
           if (width < res[i].breakpoint) {
-            let options = CoreUtils.extendArrayProps(config, res[i].options, w)
-            newOptions = Utils.extend(options, newOptions)
+            newOptions = CoreUtils.extendArrayProps(config, res[i].options, w)
             newOptions = Utils.extend(w.config, newOptions)
             this.overrideResponsiveOptions(newOptions)
           }

@@ -5,6 +5,7 @@ const path = require('path')
 const pixelmatch = require('pixelmatch')
 const { PNG } = require('pngjs')
 const { Cluster } = require('puppeteer-cluster')
+const os = require('os')
 
 const { builds, executeBuildEntry } = require('../../build/config')
 const { extractSampleInfo } = require('../../samples/source')
@@ -42,10 +43,66 @@ async function processSample(page, sample, command) {
   const consoleErrors = []
   page.on('pageerror', (error) => consoleErrors.push(error.message))
 
+  await page.evaluateOnNewDocument(() => {
+    //Keep track of running timers and intervals in the page
+    window.activeTimerCount = 0
+    window.activeIntervalCount = 0
+
+    var originalSetTimeout = window.setTimeout
+    var originalClearTimeout = window.clearTimeout
+    var originalSetInterval = window.setInterval
+    var originalClearInterval = window.clearInterval
+
+    window.setTimeout = function () {
+      window.activeTimerCount++
+      var timeoutArguments = arguments
+      var originalFunction = timeoutArguments[0]
+
+      //Decrement activeTimerCount once timer has executed
+      timeoutArguments[0] = function () {
+        originalFunction()
+        window.activeTimerCount--
+      }
+
+      //Call the original window.setTimeout function with the provided arguments and modified function
+      return originalSetTimeout.apply(null, timeoutArguments)
+    }
+
+    window.clearTimeout = function (id) {
+      //Prevent calls to clearTimeout with an undefined timerID decremeneting window.activeTimerCount
+      if (id) {
+        originalClearTimeout(id)
+        window.activeTimerCount--
+      }
+    }
+
+    window.setInterval = function () {
+      window.activeIntervalCount++
+      return originalSetInterval.apply(null, arguments)
+    }
+
+    window.clearInterval = function (id) {
+      //Prevent calls to clearInterval with an undefined intervalID decrementing window.activeIntervalCount
+      if (id) {
+        window.activeIntervalCount--
+        originalClearInterval(id)
+      }
+    }
+  })
+
   await page.goto(`file://${htmlPath}`)
 
-  // BUG: can be longer for some tests. Compare consequent screenshots to make sure it stabilized?
-  await page.waitFor(2200)
+  //Wait for all network requests to finish
+  await page.waitForNetworkIdle()
+
+  //Wait for all intervals in the page to have been cleared
+  await page.waitForFunction(() => window.activeIntervalCount === 0)
+
+  //Wait for all timers in the page to have all executed
+  await page.waitForFunction(() => window.activeTimerCount === 0)
+
+  //Wait for the chart animation to end
+  await page.waitForFunction(() => chart.w.globals.animationEnded)
 
   // Check that there are no console errors
   if (consoleErrors.length > 0) {
@@ -190,15 +247,17 @@ async function processSamples(command, paths) {
   }
 
   const cluster = await Cluster.launch({
-    concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 5,
+    concurrency: Cluster.CONCURRENCY_BROWSER,
+    maxConcurrency: os.availableParallelism(),
   })
 
   await cluster.task(async ({ page, data: sample }) => {
-    process.stdout.clearLine()
-    process.stdout.cursorTo(0)
-    const percentComplete = Math.round((100 * numCompleted) / samples.length)
-    process.stdout.write(`Processing samples: ${percentComplete}%`)
+    if (process.stdout.isTTY) {
+      process.stdout.clearLine()
+      process.stdout.cursorTo(0)
+      const percentComplete = Math.round((100 * numCompleted) / samples.length)
+      process.stdout.write(`Processing samples: ${percentComplete}%`)
+    }
 
     // BUG: some chart are animated - need special processing. Some just need to be skipped.
 
@@ -214,7 +273,9 @@ async function processSamples(command, paths) {
       })
     }
     numCompleted++
-    process.stdout.clearLine()
+    if (!process.stdout.isTTY) {
+      console.log(`Processed samples: ${numCompleted}/${samples.length}`)
+    }
   })
 
   for (const sample of samples) {
@@ -223,6 +284,12 @@ async function processSamples(command, paths) {
 
   await cluster.idle()
   await cluster.close()
+
+  if (process.stdout.isTTY) {
+    process.stdout.clearLine()
+  } else {
+    console.log('All samples have now been processed')
+  }
 
   console.log('')
 
