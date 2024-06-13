@@ -594,7 +594,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-canvas .apexcharts-element-hidden,
 .apexcharts-datalabel.apexcharts-element-hidden,
 .apexcharts-hide .apexcharts-series-points {
-  display: none;
+  opacity: 0;
 }
 
 .apexcharts-hidden-element-shown {
