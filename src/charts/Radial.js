@@ -243,12 +243,20 @@ class Radial extends Pie {
     let dataLabels = null
 
     if (this.radialDataLabels.show) {
-      dataLabels = this.renderInnerDataLabels(this.radialDataLabels, {
-        hollowSize,
-        centerX: opts.centerX,
-        centerY: opts.centerY,
-        opacity: shown,
-      })
+      let dataLabelsGroup = w.globals.dom.Paper.select(
+        `.apexcharts-datalabels-group`
+      ).members[0]
+
+      dataLabels = this.renderInnerDataLabels(
+        dataLabelsGroup,
+        this.radialDataLabels,
+        {
+          hollowSize,
+          centerX: opts.centerX,
+          centerY: opts.centerY,
+          opacity: shown,
+        }
+      )
     }
 
     if (w.config.plotOptions.radialBar.hollow.position === 'back') {

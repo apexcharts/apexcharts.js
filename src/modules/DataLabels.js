@@ -47,8 +47,8 @@ class DataLabels {
     let lastDrawnIndex =
       typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined'
         ? w.globals.lastDrawnDataLabelsIndexes[i][
-            w.globals.lastDrawnDataLabelsIndexes[i].length - 1
-          ]
+        w.globals.lastDrawnDataLabelsIndexes[i].length - 1
+        ]
         : 0
 
     if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
@@ -196,11 +196,13 @@ class DataLabels {
       color,
       alwaysDrawDataLabel,
       offsetCorrection,
+      className
     } = opts
 
+    let dataLabelText = null
     if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
       if (w.config.dataLabels.enabledOnSeries.indexOf(i) < 0) {
-        return
+        return dataLabelText
       }
     }
 
@@ -282,7 +284,7 @@ class DataLabels {
     }
 
     if (correctedLabels.drawnextLabel) {
-      let dataLabelText = graphics.drawText({
+      dataLabelText = graphics.drawText({
         width: 100,
         height: parseInt(dataLabelsConfig.style.fontSize, 10),
         x: x + offX,
@@ -296,7 +298,7 @@ class DataLabels {
       })
 
       dataLabelText.attr({
-        class: 'apexcharts-datalabel',
+        class: className || 'apexcharts-datalabel',
         cx: x,
         cy: y,
       })
@@ -315,6 +317,8 @@ class DataLabels {
 
       w.globals.lastDrawnDataLabelsIndexes[i].push(j)
     }
+
+    return dataLabelText
   }
 
   addBackgroundToDataLabel(el, coords) {

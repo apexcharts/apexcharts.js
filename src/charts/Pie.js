@@ -57,6 +57,17 @@ class Pie {
         parseInt(w.config.plotOptions.pie.donut.size, 10)) /
       100
 
+    let scaleSize = w.config.plotOptions.pie.customScale
+    let halfW = w.globals.gridWidth / 2
+    let halfH = w.globals.gridHeight / 2
+    this.translateX = halfW - halfW * scaleSize
+    this.translateY = halfH - halfH * scaleSize
+
+    this.dataLabelsGroup = new Graphics(this.ctx).group({
+      class: 'apexcharts-datalabels-group',
+      transform: `translate(${this.translateX}, ${this.translateY}) scale(${scaleSize})`,
+    })
+
     this.maxY = 0
     this.sliceLabels = []
     this.sliceSizes = []
@@ -70,11 +81,11 @@ class Pie {
 
     const graphics = new Graphics(this.ctx)
 
-    this.ret = graphics.group({
+    let elPie = graphics.group({
       class: 'apexcharts-pie',
     })
 
-    if (w.globals.noData) return this.ret
+    if (w.globals.noData) return elPie
 
     let total = 0
     for (let k = 0; k < series.length; k++) {
@@ -102,7 +113,7 @@ class Pie {
     }
 
     if (w.config.grid.position === 'back' && this.chartType === 'polarArea') {
-      this.drawPolarElements(this.ret)
+      this.drawPolarElements(elPie)
     }
 
     for (let i = 0; i < series.length; i++) {
@@ -141,12 +152,6 @@ class Pie {
       this.donutSize = 0
     }
 
-    let scaleSize = w.config.plotOptions.pie.customScale
-    let halfW = w.globals.gridWidth / 2
-    let halfH = w.globals.gridHeight / 2
-    let translateX = halfW - (w.globals.gridWidth / 2) * scaleSize
-    let translateY = halfH - (w.globals.gridHeight / 2) * scaleSize
-
     if (this.chartType === 'donut') {
       // draw the inner circle and add some text to it
       const circle = graphics.drawCircle(this.donutSize)
@@ -170,31 +175,33 @@ class Pie {
     })
 
     elSeries.attr({
-      transform: `translate(${translateX}, ${translateY}) scale(${scaleSize})`,
+      transform: `translate(${this.translateX}, ${this.translateY}) scale(${w.config.plotOptions.pie.customScale})`,
     })
 
     elSeries.add(elG)
 
-    this.ret.add(elSeries)
+    elPie.add(elSeries)
 
     if (this.donutDataLabels.show) {
-      let dataLabels = this.renderInnerDataLabels(this.donutDataLabels, {
-        hollowSize: this.donutSize,
-        centerX: this.centerX,
-        centerY: this.centerY,
-        opacity: this.donutDataLabels.show,
-        translateX,
-        translateY,
-      })
+      let dataLabels = this.renderInnerDataLabels(
+        this.dataLabelsGroup,
+        this.donutDataLabels,
+        {
+          hollowSize: this.donutSize,
+          centerX: this.centerX,
+          centerY: this.centerY,
+          opacity: this.donutDataLabels.show,
+        }
+      )
 
-      this.ret.add(dataLabels)
+      elPie.add(dataLabels)
     }
 
     if (w.config.grid.position === 'front' && this.chartType === 'polarArea') {
-      this.drawPolarElements(this.ret)
+      this.drawPolarElements(elPie)
     }
 
-    return this.ret
+    return elPie
   }
 
   // core function for drawing pie arcs
@@ -776,19 +783,14 @@ class Pie {
     parent.add(gYAxis)
   }
 
-  renderInnerDataLabels(dataLabelsConfig, opts) {
+  renderInnerDataLabels(dataLabelsGroup, dataLabelsConfig, opts) {
     let w = this.w
     const graphics = new Graphics(this.ctx)
 
-    let g = graphics.group({
-      class: 'apexcharts-datalabels-group',
-      transform: `translate(${opts.translateX ? opts.translateX : 0}, ${opts.translateY ? opts.translateY : 0
-        }) scale(${w.config.plotOptions.pie.customScale})`,
-    })
-
     const showTotal = dataLabelsConfig.total.show
 
-    g.node.style.opacity = opts.opacity
+    dataLabelsGroup.node.innerHTML = ''
+    dataLabelsGroup.node.style.opacity = opts.opacity
 
     let x = opts.centerX
     // Adjust the y value if hideLabel flag is set
@@ -850,7 +852,7 @@ class Pie {
         fontFamily: labelFontFamily,
       })
       elLabel.node.classList.add('apexcharts-datalabel-label')
-      g.add(elLabel)
+      dataLabelsGroup.add(elLabel)
     }
 
     if (dataLabelsConfig.value.show) {
@@ -869,12 +871,12 @@ class Pie {
         fontFamily: dataLabelsConfig.value.fontFamily,
       })
       elValue.node.classList.add('apexcharts-datalabel-value')
-      g.add(elValue)
+      dataLabelsGroup.add(elValue)
     }
 
     // for a multi-series circle chart, we need to show total value instead of first series labels
 
-    return g
+    return dataLabelsGroup
   }
 
   /**
@@ -987,69 +989,28 @@ class Pie {
     })
   }
 
-  revertDataLabelsInner(elem, dataLabelsConfig, event) {
-    let w = this.w
-    let dataLabelsGroup = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-datalabels-group'
-    )
+  revertDataLabelsInner() {
+    const w = this.w
+    if (this.donutDataLabels.show) {
+      let dataLabelsGroup = w.globals.dom.Paper.select(
+        `.apexcharts-datalabels-group`
+      ).members[0]
 
-    let sliceOut = false
-    const slices =
-      w.globals.dom.baseEl.getElementsByClassName(`apexcharts-pie-area`)
-
-    const selectSlice = ({ makeSliceOut, printLabel }) => {
-      Array.prototype.forEach.call(slices, (s) => {
-        if (s.getAttribute('data:pieClicked') === 'true') {
-          if (makeSliceOut) {
-            sliceOut = true
-          }
-          if (printLabel) {
-            this.printDataLabelsInner(s, dataLabelsConfig)
-          }
+      let dataLabels = this.renderInnerDataLabels(
+        dataLabelsGroup,
+        this.donutDataLabels,
+        {
+          hollowSize: this.donutSize,
+          centerX: this.centerX,
+          centerY: this.centerY,
+          opacity: this.donutDataLabels.show,
         }
-      })
-    }
+      )
 
-    selectSlice({ makeSliceOut: true, printLabel: false })
-
-    if (dataLabelsConfig.total.show && w.globals.series.length > 1) {
-      if (sliceOut && !dataLabelsConfig.total.showAlways) {
-        selectSlice({ makeSliceOut: false, printLabel: true })
-      } else {
-        this.printInnerLabels(
-          dataLabelsConfig,
-          dataLabelsConfig.total.label,
-          dataLabelsConfig.total.formatter(w)
-        )
-      }
-    } else {
-      selectSlice({ makeSliceOut: false, printLabel: true })
-
-      if (!sliceOut) {
-        if (
-          w.globals.selectedDataPoints.length &&
-          w.globals.series.length > 1
-        ) {
-          if (w.globals.selectedDataPoints[0].length > 0) {
-            const index = w.globals.selectedDataPoints[0]
-            const el = w.globals.dom.baseEl.querySelector(
-              `.apexcharts-${this.chartType.toLowerCase()}-slice-${index}`
-            )
-
-            this.printDataLabelsInner(el, dataLabelsConfig)
-          } else if (
-            dataLabelsGroup &&
-            w.globals.selectedDataPoints.length &&
-            w.globals.selectedDataPoints[0].length === 0
-          ) {
-            dataLabelsGroup.style.opacity = 0
-          }
-        } else {
-          if (dataLabelsGroup && w.globals.series.length > 1) {
-            dataLabelsGroup.style.opacity = 0
-          }
-        }
-      }
+      let elPie = w.globals.dom.Paper.select(
+        '.apexcharts-radialbar, .apexcharts-pie'
+      ).members[0]
+      elPie.add(dataLabels)
     }
   }
 }
