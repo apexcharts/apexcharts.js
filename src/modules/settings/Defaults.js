@@ -907,6 +907,7 @@ export default class Defaults {
         show: false,
       },
       fill: {
+        opacity: 1,
         gradient: {
           stops: [0, 100],
         },
