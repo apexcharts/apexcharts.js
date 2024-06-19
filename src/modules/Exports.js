@@ -309,11 +309,8 @@ class Exports {
             )
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
-              if (dataFormat.isFormatXY()) {
-                columns.push(series[ci].data[i]?.y)
-              } else {
-                columns.push(gSeries[ci][i])
-              }
+              const value = dataFormat.isFormatXY() ? series[ci].data[i]?.y : gSeries[ci][i];
+              columns.push(Utils.isNumber(value) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value)
             }
           }
 
