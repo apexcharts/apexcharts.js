@@ -304,7 +304,7 @@ class Exports {
               isTimeStamp(cat)
                 ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
                 : Utils.isNumber(cat)
-                ? cat
+                ? w.config.chart.toolbar.export.csv.numberFormatter(cat)
                 : cat.split(columnDelimiter).join('')
             )
 
@@ -385,7 +385,7 @@ class Exports {
             isTimeStamp(cat) && w.config.xaxis.type === 'datetime'
               ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
               : Utils.isNumber(cat)
-              ? cat
+              ? w.config.chart.toolbar.export.csv.numberFormatter(cat)
               : cat.split(columnDelimiter).join(''),
             data[cat].join(columnDelimiter),
           ])
