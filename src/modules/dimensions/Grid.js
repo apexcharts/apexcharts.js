@@ -11,9 +11,10 @@ export default class DimGrid {
     const cnf = w.config
     const gl = w.globals
 
-    if (gl.noData
-          || (gl.collapsedSeries.length
-              + gl.ancillaryCollapsedSeries.length) === cnf.series.length
+    if (
+      gl.noData ||
+      gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length ===
+        cnf.series.length
     ) {
       return 0
     }
@@ -45,15 +46,16 @@ export default class DimGrid {
     }
 
     const barsPresent = hasBar(type) || gl.comboBarCount > 0
+    let xRange = Math.abs(gl.initialMaxX - gl.initialMinX)
 
     if (
       barsPresent &&
       gl.isXNumeric &&
       !gl.isBarHorizontal &&
-      seriesLen > 0
+      seriesLen > 0 &&
+      xRange !== 0
     ) {
       let xRatio = 0
-      let xRange = Math.abs(gl.initialMaxX - gl.initialMinX)
 
       if (xRange <= 3) {
         xRange = gl.dataPoints
