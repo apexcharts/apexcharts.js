@@ -369,7 +369,7 @@ class Exports {
           if (!data[cat]) {
             data[cat] = Array(series.length).fill('')
           }
-          data[cat][sI] = value
+          data[cat][sI] = Utils.isNumber(value) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value
           categories.add(cat)
         })
       })
@@ -441,7 +441,7 @@ class Exports {
           columns = []
 
           columns.push(w.globals.labels[sI].split(columnDelimiter).join(''))
-          columns.push(gSeries[sI])
+          columns.push(gSeries[sI].map(x => Utils.isNumber(x) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value))
           rows.push(columns.join(columnDelimiter))
         }
       })

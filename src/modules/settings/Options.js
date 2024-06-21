@@ -372,6 +372,9 @@ export default class Options {
               dateFormatter(timestamp) {
                 return new Date(timestamp).toDateString()
               },
+              numberFormatter(value) {
+                return value;
+              }
             },
             png: {
               filename: undefined,
