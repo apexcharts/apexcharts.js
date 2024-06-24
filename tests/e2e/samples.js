@@ -92,8 +92,8 @@ async function processSample(page, sample, command) {
 
   await page.goto(`file://${htmlPath}`)
 
-  let wait = true;
-  while (wait) {
+  let wait;
+  do {
     //Wait for all intervals in the page to have been cleared
     await page.waitForFunction(() => window.activeIntervalCount === 0)
 
@@ -111,7 +111,7 @@ async function processSample(page, sample, command) {
     wait = await page.evaluate(() => {
       return !(window.activeIntervalCount === 0 && window.activeTimerCount === 0 && chart.w.globals.animationEnded)
     })
-  }
+  } while (wait)
 
   // Check that there are no console errors
   if (consoleErrors.length > 0) {
