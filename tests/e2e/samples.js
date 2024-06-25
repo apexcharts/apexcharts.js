@@ -92,17 +92,26 @@ async function processSample(page, sample, command) {
 
   await page.goto(`file://${htmlPath}`)
 
-  //Wait for all network requests to finish
-  await page.waitForNetworkIdle()
+  let wait;
+  do {
+    //Wait for all intervals in the page to have been cleared
+    await page.waitForFunction(() => window.activeIntervalCount === 0)
 
-  //Wait for all intervals in the page to have been cleared
-  await page.waitForFunction(() => window.activeIntervalCount === 0)
+    //Wait for all timers in the page to have all executed
+    await page.waitForFunction(() => window.activeTimerCount === 0)
 
-  //Wait for all timers in the page to have all executed
-  await page.waitForFunction(() => window.activeTimerCount === 0)
+    //Wait for the chart animation to end
+    await page.waitForFunction(() => chart.w.globals.animationEnded)
 
-  //Wait for the chart animation to end
-  await page.waitForFunction(() => chart.w.globals.animationEnded)
+    //Wait for all network requests to finish
+    await page.waitForNetworkIdle()
+
+    //After the network requests, timers, and intervals finish, if another request, timer, or interval is created then we need
+    //to wait for that to finish before continuing on.
+    wait = await page.evaluate(() => {
+      return !(window.activeIntervalCount === 0 && window.activeTimerCount === 0 && chart.w.globals.animationEnded)
+    })
+  } while (wait)
 
   // Check that there are no console errors
   if (consoleErrors.length > 0) {
