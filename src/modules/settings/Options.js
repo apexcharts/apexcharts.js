@@ -270,7 +270,7 @@ export default class Options {
             speed: 350,
           },
         },
-        background: 'transparent',
+        background: '',
         locales: [en],
         defaultLocale: 'en',
         dropShadow: {
@@ -1115,7 +1115,7 @@ export default class Options {
       },
       yaxis: this.yAxis,
       theme: {
-        mode: 'light',
+        mode: '',
         palette: 'palette1', // If defined, it will overwrite globals.colors variable
         monochrome: {
           // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
