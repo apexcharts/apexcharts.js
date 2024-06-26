@@ -192,6 +192,7 @@ type ApexChart = {
         headerCategory?: string
         headerValue?: string
         dateFormatter?(timestamp?: number): any
+        numberFormatter?(value?: number): any
       },
       svg?: {
         filename?: undefined | string

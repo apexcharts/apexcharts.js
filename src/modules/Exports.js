@@ -304,16 +304,13 @@ class Exports {
               isTimeStamp(cat)
                 ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
                 : Utils.isNumber(cat)
-                ? cat
+                ? w.config.chart.toolbar.export.csv.numberFormatter(cat)
                 : cat.split(columnDelimiter).join('')
             )
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
-              if (dataFormat.isFormatXY()) {
-                columns.push(series[ci].data[i]?.y)
-              } else {
-                columns.push(gSeries[ci][i])
-              }
+              const value = dataFormat.isFormatXY() ? series[ci].data[i]?.y : gSeries[ci][i];
+              columns.push(Utils.isNumber(value) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value)
             }
           }
 
@@ -372,7 +369,7 @@ class Exports {
           if (!data[cat]) {
             data[cat] = Array(series.length).fill('')
           }
-          data[cat][sI] = value
+          data[cat][sI] = Utils.isNumber(value) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value
           categories.add(cat)
         })
       })
@@ -388,7 +385,7 @@ class Exports {
             isTimeStamp(cat) && w.config.xaxis.type === 'datetime'
               ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
               : Utils.isNumber(cat)
-              ? cat
+              ? w.config.chart.toolbar.export.csv.numberFormatter(cat)
               : cat.split(columnDelimiter).join(''),
             data[cat].join(columnDelimiter),
           ])
@@ -444,7 +441,7 @@ class Exports {
           columns = []
 
           columns.push(w.globals.labels[sI].split(columnDelimiter).join(''))
-          columns.push(gSeries[sI])
+          columns.push(gSeries[sI].map(x => Utils.isNumber(x) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value))
           rows.push(columns.join(columnDelimiter))
         }
       })
