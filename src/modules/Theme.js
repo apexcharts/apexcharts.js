@@ -179,11 +179,6 @@ export default class Theme {
     options.chart = options.chart || {}
     options.tooltip = options.tooltip || {}
     const mode = options.theme.mode
-    const background = mode === 'dark'
-      ? '#424242'
-      : mode === 'light'
-        ? '#fff'
-        : options.chart.background || '#fff'
     const palette = mode === 'dark'
       ? 'palette4'
       : mode === 'light'
@@ -197,7 +192,6 @@ export default class Theme {
 
     options.tooltip.theme = mode || 'light'
     options.chart.foreColor = foreColor
-    options.chart.background = background
     options.theme.palette = palette
 
     return options

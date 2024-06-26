@@ -96,8 +96,10 @@ export default class Core {
     })
 
     gl.dom.Paper.node.style.background =
-      cnf.theme.mode === 'dark' && !cnf.chart.background
-        ? 'rgba(0, 0, 0, 0.8)'
+    cnf.theme.mode === 'dark' && !cnf.chart.background
+      ? '#424242'
+      : cnf.theme.mode === 'light' && !cnf.chart.background
+        ? '#fff'
         : cnf.chart.background
 
     this.setSVGDimensions()
