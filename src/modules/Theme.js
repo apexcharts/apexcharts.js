@@ -179,11 +179,11 @@ export default class Theme {
     options.chart = options.chart || {}
     options.tooltip = options.tooltip || {}
     const mode = options.theme.mode
-    const background = mode === 'dark'
-      ? '#424242'
-      : mode === 'light'
-        ? '#fff'
-        : options.chart.background || '#fff'
+    const background = options.chart.background
+      ? options.chart.background
+      : mode === 'dark'
+        ? '#424242'
+        : '#fff'
     const palette = mode === 'dark'
       ? 'palette4'
       : mode === 'light'
