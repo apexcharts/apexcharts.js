@@ -191,8 +191,8 @@ type ApexChart = {
         columnDelimiter?: string
         headerCategory?: string
         headerValue?: string
-        dateFormatter?(timestamp?: number): any
-        numberFormatter?(value?: number): any
+        categoryFormatter?(value?: number): any
+        valueFormatter?(value?: number): any
       },
       svg?: {
         filename?: undefined | string

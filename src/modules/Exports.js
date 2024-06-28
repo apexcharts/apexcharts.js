@@ -201,9 +201,27 @@ class Exports {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
     })
 
-    const isTimeStamp = (num) => {
-      return w.config.xaxis.type === 'datetime' && String(num).length >= 10
+    const getFormattedCategory = (cat) => {
+      if (
+        typeof w.config.chart.toolbar.export.csv.categoryFormatter ===
+        'function'
+      ) {
+        return w.config.chart.toolbar.export.csv.categoryFormatter(cat)
+      }
+
+      if (w.config.xaxis.type === 'datetime' && String(cat).length >= 10) {
+        return new Date(cat).toDateString()
+      }
+      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
     }
+
+    const getFormattedValue = (value) => {
+      return typeof w.config.chart.toolbar.export.csv.valueFormatter ===
+        'function'
+        ? w.config.chart.toolbar.export.csv.valueFormatter(value)
+        : value
+    }
+
     const seriesMaxDataLength = Math.max(
       ...series.map((s) => {
         return s.data ? s.data.length : 0
@@ -300,17 +318,13 @@ class Exports {
 
           if (sI === 0) {
             // It's the first series.  Also handle the category.
-            columns.push(
-              isTimeStamp(cat)
-                ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
-                : Utils.isNumber(cat)
-                ? w.config.chart.toolbar.export.csv.numberFormatter(cat)
-                : cat.split(columnDelimiter).join('')
-            )
+            columns.push(getFormattedCategory(cat))
 
             for (let ci = 0; ci < w.globals.series.length; ci++) {
-              const value = dataFormat.isFormatXY() ? series[ci].data[i]?.y : gSeries[ci][i];
-              columns.push(Utils.isNumber(value) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value)
+              const value = dataFormat.isFormatXY()
+                ? series[ci].data[i]?.y
+                : gSeries[ci][i]
+              columns.push(getFormattedValue(value))
             }
           }
 
@@ -369,7 +383,7 @@ class Exports {
           if (!data[cat]) {
             data[cat] = Array(series.length).fill('')
           }
-          data[cat][sI] = Utils.isNumber(value) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value
+          data[cat][sI] = getFormattedValue(value)
           categories.add(cat)
         })
       })
@@ -382,11 +396,7 @@ class Exports {
         .sort()
         .forEach((cat) => {
           rows.push([
-            isTimeStamp(cat) && w.config.xaxis.type === 'datetime'
-              ? w.config.chart.toolbar.export.csv.dateFormatter(cat)
-              : Utils.isNumber(cat)
-              ? w.config.chart.toolbar.export.csv.numberFormatter(cat)
-              : cat.split(columnDelimiter).join(''),
+            getFormattedCategory(cat),
             data[cat].join(columnDelimiter),
           ])
         })
@@ -440,8 +450,8 @@ class Exports {
         } else {
           columns = []
 
-          columns.push(w.globals.labels[sI].split(columnDelimiter).join(''))
-          columns.push(gSeries[sI].map(x => Utils.isNumber(x) ? w.config.chart.toolbar.export.csv.numberFormatter(value) : value))
+          columns.push(getFormattedCategory(w.globals.labels[sI]))
+          columns.push(getFormattedValue(gSeries[sI]))
           rows.push(columns.join(columnDelimiter))
         }
       })

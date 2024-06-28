@@ -369,12 +369,8 @@ export default class Options {
               columnDelimiter: ',',
               headerCategory: 'category',
               headerValue: 'value',
-              dateFormatter(timestamp) {
-                return new Date(timestamp).toDateString()
-              },
-              numberFormatter(value) {
-                return value;
-              }
+              categoryFormatter: undefined,
+              valueFormatter: undefined,
             },
             png: {
               filename: undefined,

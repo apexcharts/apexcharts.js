@@ -2,6 +2,20 @@ import { createChart, createChartWithOptions } from './utils/utils.js'
 import Exports from './../../src/modules/Exports'
 
 describe('Export Csv', () => {
+  it('export csv from simple pie chart should call triggerDownload with csv encoded file data', () => {
+    const series = [0, 1]
+    const csvData = 'category,value\n1,0\n2,1'
+    const chart = createChart('pie', series)
+    const exports = new Exports(chart.ctx)
+    jest.spyOn(Exports.prototype, 'triggerDownload')
+    exports.exportToCSV(chart.w.config.series, 'fileName')
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(csvData)),
+      expect.toBeUndefined,
+      expect.stringContaining('.csv')
+    )
+  })
   it('export csv from simple line chart with one series should call triggerDownload with csv encoded file data', () => {
     const series = [{ data: [0, 1] }]
     const csvData = 'category,series-0\n1,0\n2,1'
@@ -51,6 +65,51 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
+
+  it('export csv from simple bar chart with two series with formatted category and formatted values should call triggerDownload with csv encoded file data', () => {
+    var options = {
+      chart: {
+        type: 'bar',
+        toolbar: {
+          export: {
+            csv: {
+              categoryFormatter: (cat) => `*${cat}*`,
+              valueFormatter: (val) => `@${val}@`,
+            },
+          },
+        },
+      },
+      series: [
+        {
+          name: 'Series 1',
+          data: [1, 2],
+        },
+        {
+          name: 'Series 2',
+          data: [2, 3],
+        },
+      ],
+      xaxis: {
+        categories: ['Apples', 'Bananas'],
+      },
+    }
+    const csvData =
+      'category,Series 1,Series 2\n' +
+      '*Apples*,@undefined@,@2@\n' +
+      '*Bananas*,@undefined@,@3@'
+    const chart = createChartWithOptions(options)
+    chart.w.globals.collapsedSeriesIndices = [0]
+    const exports = new Exports(chart.ctx)
+    jest.spyOn(Exports.prototype, 'triggerDownload')
+    exports.exportToCSV(chart.w.config.series, 'fileName')
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(csvData)),
+      expect.toBeUndefined,
+      expect.stringContaining('.csv')
+    )
+  })
+
   it('export csv from simple bar chart with numeric series names should call triggerDownload with csv encoded file data', () => {
     var options = {
       chart: {
