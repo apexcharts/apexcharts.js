@@ -328,7 +328,7 @@ async function processSamples(command, paths) {
     const { status } = spawnSync(
       `${rootDir}/node_modules/.bin/nyc`,
       ['report', '--reporter=html'],
-      { cwd: rootDir }
+      { cwd: rootDir, shell: process.platform === 'win32' }
     )
 
     if (status === 0) {
