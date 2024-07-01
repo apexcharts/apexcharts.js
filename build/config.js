@@ -8,7 +8,7 @@ const json = require('@rollup/plugin-json')
 const resolve = require('@rollup/plugin-node-resolve')
 const svgo = require('rollup-plugin-svgo')
 const strip = require('@rollup/plugin-strip')
-const { terser } = require('rollup-plugin-terser')
+const terser = require('@rollup/plugin-terser').default
 
 const version = require('../package.json').version
 
@@ -98,9 +98,6 @@ function rollupConfig(opts) {
       terser({
         output: {
           ascii_only: true
-        },
-        compress: {
-          pure_funcs: ['makeMap']
         }
       })
     )
