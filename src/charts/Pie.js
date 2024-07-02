@@ -293,7 +293,7 @@ class Pie {
           this.centerX,
           this.centerY,
           w.globals.radialSize / 1.25 +
-            w.config.plotOptions.pie.dataLabels.offset,
+          w.config.plotOptions.pie.dataLabels.offset,
           (startAngle + angle / 2) % this.fullAngle
         )
       } else if (this.chartType === 'donut') {
@@ -301,7 +301,7 @@ class Pie {
           this.centerX,
           this.centerY,
           (w.globals.radialSize + this.donutSize) / 2 +
-            w.config.plotOptions.pie.dataLabels.offset,
+          w.config.plotOptions.pie.dataLabels.offset,
           (startAngle + angle / 2) % this.fullAngle
         )
       }
@@ -368,7 +368,7 @@ class Pie {
         if (
           angle !== 0 &&
           w.config.plotOptions.pie.dataLabels.minAngleToShowLabel <
-            sectorAngleArr[i]
+          sectorAngleArr[i]
         ) {
           let formatter = w.config.dataLabels.formatter
           if (formatter !== undefined) {
@@ -666,7 +666,7 @@ class Pie {
     if (
       Math.ceil(endDeg) >=
       this.fullAngle +
-        (this.w.config.plotOptions.pie.startAngle % this.fullAngle)
+      (this.w.config.plotOptions.pie.startAngle % this.fullAngle)
     ) {
       endDeg =
         this.fullAngle +
@@ -763,8 +763,8 @@ class Pie {
         const yLabel = helpers.drawYAxisTexts(
           this.centerX,
           this.centerY -
-            circleSize +
-            parseInt(w.config.yaxis[0].labels.style.fontSize, 10) / 2,
+          circleSize +
+          parseInt(w.config.yaxis[0].labels.style.fontSize, 10) / 2,
           i,
           yTexts[i]
         )
@@ -793,7 +793,8 @@ class Pie {
     dataLabelsGroup.node.style.opacity = opts.opacity
 
     let x = opts.centerX
-    let y = opts.centerY
+    // Adjust the y value if hideLabel flag is set
+    let y = this.donutDataLabels.total.hideLabel ? (opts.centerY - (opts.centerY / 6)) : opts.centerY
 
     let labelColor, valueColor
 
@@ -821,7 +822,8 @@ class Pie {
       labelFontSize = dataLabelsConfig.total.fontSize
       labelFontFamily = dataLabelsConfig.total.fontFamily
       labelFontWeight = dataLabelsConfig.total.fontWeight
-      name = dataLabelsConfig.total.label
+      // Assign total label only if hideLabel flag is not set
+      name = this.donutDataLabels.total.hideLabel ? '' : dataLabelsConfig.total.label
       val = dataLabelsConfig.total.formatter(w)
     } else {
       if (w.globals.series.length === 1) {
@@ -917,7 +919,8 @@ class Pie {
     }
 
     const isTotal = name === labelsConfig.total.label
-    name = labelsConfig.name.formatter(name, isTotal, w)
+    // Assign total label only if hideLabel flag is not set
+    name = this.donutDataLabels.total.hideLabel ? '' : labelsConfig.name.formatter(name, isTotal, w)
 
     if (elLabel !== null) {
       elLabel.textContent = name
