@@ -47,8 +47,8 @@ class DataLabels {
     let lastDrawnIndex =
       typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined'
         ? w.globals.lastDrawnDataLabelsIndexes[i][
-        w.globals.lastDrawnDataLabelsIndexes[i].length - 1
-        ]
+            w.globals.lastDrawnDataLabelsIndexes[i].length - 1
+          ]
         : 0
 
     if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
@@ -196,7 +196,7 @@ class DataLabels {
       color,
       alwaysDrawDataLabel,
       offsetCorrection,
-      className
+      className,
     } = opts
 
     let dataLabelText = null
@@ -338,7 +338,7 @@ class DataLabels {
       width + paddingH * 2,
       height + paddingV,
       bCnf.borderRadius,
-      w.config.chart.background === 'transparent'
+      w.config.chart.background === 'transparent' || !w.config.chart.background
         ? '#fff'
         : w.config.chart.background,
       bCnf.opacity,

@@ -113,7 +113,8 @@ class Exports {
       canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) * scale // because of resizeNonAxisCharts
 
       const canvasBg =
-        w.config.chart.background === 'transparent'
+        w.config.chart.background === 'transparent' ||
+        !w.config.chart.background
           ? '#fff'
           : w.config.chart.background
 
