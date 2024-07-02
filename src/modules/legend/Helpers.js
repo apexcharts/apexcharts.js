@@ -10,9 +10,10 @@ export default class Helpers {
   getLegendStyles() {
     let stylesheet = document.createElement('style')
     stylesheet.setAttribute('type', 'text/css')
-    const nonce = this.lgCtx.ctx?.opts?.chart?.nonce || this.w.config.chart.nonce;
+    const nonce =
+      this.lgCtx.ctx?.opts?.chart?.nonce || this.w.config.chart.nonce
     if (nonce) {
-      stylesheet.setAttribute('nonce', nonce);
+      stylesheet.setAttribute('nonce', nonce)
     }
 
     const text = `
@@ -44,6 +45,7 @@ export default class Helpers {
       .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{
         display: flex;
         align-items: center;
+        overflow: hidden;
       }
       .apexcharts-legend-text {
         position: relative;
@@ -54,7 +56,9 @@ export default class Helpers {
       }
       .apexcharts-legend-marker {
         position: relative;
-        display: inline-block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
         margin-right: 3px;
         border-style: solid;
@@ -82,9 +86,8 @@ export default class Helpers {
 
   getLegendBBox() {
     const w = this.w
-    let currLegendsWrap = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-legend'
-    )
+    let currLegendsWrap =
+      w.globals.dom.baseEl.querySelector('.apexcharts-legend')
     let currLegendsWrapRect = currLegendsWrap.getBoundingClientRect()
 
     let currLegendsWrapWidth = currLegendsWrapRect.width
@@ -92,7 +95,7 @@ export default class Helpers {
 
     return {
       clwh: currLegendsWrapHeight,
-      clww: currLegendsWrapWidth
+      clww: currLegendsWrapWidth,
     }
   }
 
@@ -130,12 +133,12 @@ export default class Helpers {
         const seriesToMakeVisible = [
           {
             cs: w.globals.collapsedSeries,
-            csi: w.globals.collapsedSeriesIndices
+            csi: w.globals.collapsedSeriesIndices,
           },
           {
             cs: w.globals.ancillaryCollapsedSeries,
-            csi: w.globals.ancillaryCollapsedSeriesIndices
-          }
+            csi: w.globals.ancillaryCollapsedSeriesIndices,
+          },
         ]
         seriesToMakeVisible.forEach((r) => {
           this.riseCollapsedSeries(r.cs, r.csi, realIndex)
@@ -174,16 +177,12 @@ export default class Helpers {
     if (gl.axisCharts) {
       let yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]]
 
-      if (
-        yaxis &&
-        yaxis.show &&
-        yaxis.showAlways
-      ) {
+      if (yaxis && yaxis.show && yaxis.showAlways) {
         if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
           gl.ancillaryCollapsedSeries.push({
             index: realIndex,
             data: series[realIndex].data.slice(),
-            type: seriesEl.parentNode.className.baseVal.split('-')[1]
+            type: seriesEl.parentNode.className.baseVal.split('-')[1],
           })
           gl.ancillaryCollapsedSeriesIndices.push(realIndex)
         }
@@ -192,7 +191,7 @@ export default class Helpers {
           gl.collapsedSeries.push({
             index: realIndex,
             data: series[realIndex].data.slice(),
-            type: seriesEl.parentNode.className.baseVal.split('-')[1]
+            type: seriesEl.parentNode.className.baseVal.split('-')[1],
           })
           gl.collapsedSeriesIndices.push(realIndex)
 
@@ -203,7 +202,7 @@ export default class Helpers {
     } else {
       gl.collapsedSeries.push({
         index: realIndex,
-        data: series[realIndex]
+        data: series[realIndex],
       })
       gl.collapsedSeriesIndices.push(realIndex)
     }
@@ -222,8 +221,8 @@ export default class Helpers {
     }
 
     gl.allSeriesCollapsed =
-      (gl.collapsedSeries.length
-        + gl.ancillaryCollapsedSeries.length) === w.config.series.length
+      gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length ===
+      w.config.series.length
 
     series = this._getSeriesBasedOnCollapsedState(series)
     this.lgCtx.ctx.updateHelpers._updateSeries(
@@ -269,8 +268,10 @@ export default class Helpers {
     if (w.globals.axisCharts) {
       series.forEach((s, sI) => {
         if (
-            !(w.globals.collapsedSeriesIndices.indexOf(sI) < 0 
-            &&  w.globals.ancillaryCollapsedSeriesIndices.indexOf(sI) < 0)
+          !(
+            w.globals.collapsedSeriesIndices.indexOf(sI) < 0 &&
+            w.globals.ancillaryCollapsedSeriesIndices.indexOf(sI) < 0
+          )
         ) {
           series[sI].data = []
           collapsed++
@@ -284,7 +285,7 @@ export default class Helpers {
         }
       })
     }
-    
+
     w.globals.allSeriesCollapsed = collapsed === series.length
 
     return series

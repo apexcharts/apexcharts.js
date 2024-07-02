@@ -125,6 +125,7 @@ class Legend {
       let elMarker = document.createElement('span')
       elMarker.classList.add('apexcharts-legend-marker')
 
+      let mShape = w.config.legend.markers.shape || w.config.markers.shape
       let mOffsetX = w.config.legend.markers.offsetX
       let mOffsetY = w.config.legend.markers.offsetY
       let mHeight = w.config.legend.markers.height
@@ -178,6 +179,7 @@ class Legend {
         : parseFloat(mBorderRadius) + 'px'
 
       if (w.config.legend.markers.customHTML) {
+        mStyle.background = 'transparent'
         if (Array.isArray(w.config.legend.markers.customHTML)) {
           if (w.config.legend.markers.customHTML[i]) {
             elMarker.innerHTML = w.config.legend.markers.customHTML[i]()
@@ -185,6 +187,18 @@ class Legend {
         } else {
           elMarker.innerHTML = w.config.legend.markers.customHTML()
         }
+      }
+
+      let shape = mShape
+      if (Array.isArray(mShape)) {
+        shape = mShape[i]
+      }
+
+      if (shape === 'plus' || shape === '+' || shape === 'x' || shape === 'X') {
+        mStyle.background = 'transparent'
+        mStyle.fontSize = Math.max(mWidth, mHeight) + 'px'
+        elMarker.innerHTML =
+          shape === 'plus' || shape === '+' ? '+' : '&#x2715;'
       }
 
       Graphics.setAttrs(elMarker, {

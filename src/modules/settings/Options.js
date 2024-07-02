@@ -809,6 +809,7 @@ export default class Options {
           width: 12,
           height: 12,
           strokeWidth: 0,
+          shape: undefined,
           fillColors: undefined,
           strokeColor: '#fff',
           radius: 12,

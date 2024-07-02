@@ -818,9 +818,15 @@ class Graphics {
 
     let elPoint = null
     if (opts?.shape === 'X' || opts?.shape === 'x') {
-      elPoint = this.drawX(x, y, size, opts)
+      elPoint = this.drawX(x, y, size, {
+        ...opts,
+        pointStrokeColor: opts.pointFillColor,
+      })
     } else if (opts?.shape === 'plus' || opts?.shape === '+') {
-      elPoint = this.drawPlus(x, y, size, opts)
+      elPoint = this.drawPlus(x, y, size, {
+        ...opts,
+        pointStrokeColor: opts.pointFillColor,
+      })
     } else if (opts.shape === 'square' || opts.shape === 'rect') {
       let radius = opts.pRadius === undefined ? size / 2 : opts.pRadius
 

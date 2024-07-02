@@ -260,8 +260,8 @@ export default class Position {
       return
     }
 
-    cx = pointsArr[capturedSeries][j][0]
-    cy = pointsArr[capturedSeries][j][1] ? pointsArr[capturedSeries][j][1] : 0
+    cx = pointsArr[capturedSeries][j]?.[0]
+    cy = pointsArr[capturedSeries][j]?.[1] || 0
 
     let point = w.globals.dom.baseEl.querySelector(
       `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers circle`

@@ -15,9 +15,6 @@ export default class Scatter {
     this.w = ctx.w
 
     this.initialAnim = this.w.config.chart.animations.enabled
-    this.dynamicAnim =
-      this.initialAnim &&
-      this.w.config.chart.animations.dynamicAnimation.enabled
   }
 
   draw(elSeries, j, opts) {
@@ -31,7 +28,7 @@ export default class Scatter {
     let elPointsMain = opts.elParent
 
     let elPointsWrap = graphics.group({
-      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
+      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`,
     })
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
@@ -45,29 +42,24 @@ export default class Scatter {
         if (j === 0 && q === 0) dataPointIndex = 0
         if (j === 0 && q === 1) dataPointIndex = 1
 
-        let radius = 0
-        let finishRadius = w.globals.markers.size[realIndex]
+        let radius = w.globals.markers.size[realIndex]
 
         if (zRatio !== Infinity) {
           // means we have a bubble
           const bubble = w.config.plotOptions.bubble
-          finishRadius = w.globals.seriesZ[realIndex][dataPointIndex]
+          radius = w.globals.seriesZ[realIndex][dataPointIndex]
 
           if (bubble.zScaling) {
-            finishRadius /= zRatio
+            radius /= zRatio
           }
 
-          if (bubble.minBubbleRadius && finishRadius < bubble.minBubbleRadius) {
-            finishRadius = bubble.minBubbleRadius
+          if (bubble.minBubbleRadius && radius < bubble.minBubbleRadius) {
+            radius = bubble.minBubbleRadius
           }
 
-          if (bubble.maxBubbleRadius && finishRadius > bubble.maxBubbleRadius) {
-            finishRadius = bubble.maxBubbleRadius
+          if (bubble.maxBubbleRadius && radius > bubble.maxBubbleRadius) {
+            radius = bubble.maxBubbleRadius
           }
-        }
-
-        if (!w.config.chart.animations.enabled) {
-          radius = finishRadius
         }
 
         let x = pointsPos.x[q]
@@ -87,7 +79,6 @@ export default class Scatter {
             x,
             y,
             radius,
-            finishRadius,
             realIndex,
             dataPointIndex,
             j
@@ -100,7 +91,7 @@ export default class Scatter {
     }
   }
 
-  drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j) {
+  drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
     const w = this.w
 
     let i = realIndex
@@ -114,40 +105,32 @@ export default class Scatter {
       cssClass: 'apexcharts-marker',
       seriesIndex: i,
       dataPointIndex,
-      finishRadius:
+      radius:
         w.config.chart.type === 'bubble' ||
         (w.globals.comboCharts &&
           w.config.series[realIndex] &&
           w.config.series[realIndex].type === 'bubble')
-          ? finishRadius
-          : null
+          ? radius
+          : null,
     })
 
-    finishRadius = markerConfig.pSize
+    radius = markerConfig.pSize
 
     let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex,
       dataPointIndex,
       color: markerConfig.pointFillColor,
       patternUnits: 'objectBoundingBox',
-      value: w.globals.series[realIndex][j]
+      value: w.globals.series[realIndex][j],
     })
 
-    let el
-    if (markerConfig.shape === 'circle') {
-      el = graphics.drawCircle(radius)
-    } else if (
-      markerConfig.shape === 'square' ||
-      markerConfig.shape === 'rect'
-    ) {
-      el = graphics.drawRect(
-        0,
-        0,
-        markerConfig.width - markerConfig.pointStrokeWidth / 2,
-        markerConfig.height - markerConfig.pointStrokeWidth / 2,
-        markerConfig.pRadius
-      )
-    }
+    let opts = markers.getMarkerConfig({
+      cssClass: 'apexcharts-marker',
+      seriesIndex: i,
+      dataPointIndex: j,
+    })
+
+    let el = graphics.drawMarker(x, y, opts)
 
     if (w.config.series[i].data[dataPointIndex]) {
       if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -156,17 +139,8 @@ export default class Scatter {
     }
 
     el.attr({
-      x: x - markerConfig.width / 2 - markerConfig.pointStrokeWidth / 2,
-      y: y - markerConfig.height / 2 - markerConfig.pointStrokeWidth / 2,
-      cx: x,
-      cy: y,
       fill: pathFillCircle,
-      'fill-opacity': markerConfig.pointFillOpacity,
-      stroke: markerConfig.pointStrokeColor,
-      r: finishRadius,
-      'stroke-width': markerConfig.pointStrokeWidth,
-      'stroke-dasharray': markerConfig.pointStrokeDashArray,
-      'stroke-opacity': markerConfig.pointStrokeOpacity
+      r: radius,
     })
 
     if (w.config.chart.dropShadow.enabled) {
@@ -181,7 +155,7 @@ export default class Scatter {
         el,
         0,
         markerConfig.shape === 'circle'
-          ? finishRadius
+          ? radius
           : { width: markerConfig.width, height: markerConfig.height },
         speed,
         w.globals.easing,
@@ -195,61 +169,11 @@ export default class Scatter {
       w.globals.animationEnded = true
     }
 
-    if (w.globals.dataChanged && markerConfig.shape === 'circle') {
-      if (this.dynamicAnim) {
-        let speed = w.config.chart.animations.dynamicAnimation.speed
-        let prevX, prevY, prevR
-
-        let prevPathJ = null
-
-        prevPathJ =
-          w.globals.previousPaths[realIndex] &&
-          w.globals.previousPaths[realIndex][j]
-
-        if (typeof prevPathJ !== 'undefined' && prevPathJ !== null) {
-          // series containing less elements will ignore these values and revert to 0
-          prevX = prevPathJ.x
-          prevY = prevPathJ.y
-          prevR =
-            typeof prevPathJ.r !== 'undefined' ? prevPathJ.r : finishRadius
-        }
-
-        for (let cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
-          if (w.globals.collapsedSeries[cs].index === realIndex) {
-            speed = 1
-            finishRadius = 0
-          }
-        }
-
-        if (x === 0 && y === 0) finishRadius = 0
-
-        anim.animateCircle(
-          el,
-          {
-            cx: prevX,
-            cy: prevY,
-            r: prevR
-          },
-          {
-            cx: x,
-            cy: y,
-            r: finishRadius
-          },
-          speed,
-          w.globals.easing
-        )
-      } else {
-        el.attr({
-          r: finishRadius
-        })
-      }
-    }
-
     el.attr({
       rel: dataPointIndex,
       j: dataPointIndex,
       index: realIndex,
-      'default-marker-size': finishRadius
+      'default-marker-size': radius,
     })
 
     filters.setSelectionFilter(el, realIndex, dataPointIndex)
@@ -265,7 +189,7 @@ export default class Scatter {
     y = y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4
 
     return {
-      y
+      y,
     }
   }
 }

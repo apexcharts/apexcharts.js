@@ -156,7 +156,7 @@ export default class Markers {
     cssClass,
     seriesIndex,
     dataPointIndex = null,
-    finishRadius = null,
+    radius = null,
   }) {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
@@ -181,7 +181,7 @@ export default class Markers {
     }
 
     return {
-      pSize: finishRadius === null ? pSize : finishRadius,
+      pSize: radius === null ? pSize : radius,
       pRadius: m.radius,
       width: Array.isArray(m.width) ? m.width[seriesIndex] : m.width,
       height: Array.isArray(m.height) ? m.height[seriesIndex] : m.height,

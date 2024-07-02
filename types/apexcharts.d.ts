@@ -829,6 +829,7 @@ type ApexLegend = {
     strokeColor?: string
     strokeWidth?: number
     fillColors?: string[]
+    shape?: string | string[]
     offsetX?: number
     offsetY?: number
     radius?: number
