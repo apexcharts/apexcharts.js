@@ -151,9 +151,8 @@
         var chart = new ApexCharts(document.querySelector("#chart"), options);
         chart.render();
       
-        var intervalRuns = 0;
-        var interval = window.setInterval(function () {
-        intervalRuns++
+      
+        window.setInterval(function () {
         getNewSeries(lastDate, {
           min: 10,
           max: 90
@@ -162,10 +161,6 @@
         chart.updateSeries([{
           data: data
         }])
-
-        if (intervalRuns === 2) {
-          clearInterval(interval)
-        }
       }, 1000)
       
     </script>
