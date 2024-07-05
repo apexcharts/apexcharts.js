@@ -41,11 +41,10 @@ export default class Helpers {
       .apexcharts-legend-series {
         cursor: pointer;
         line-height: normal;
+        display: flex;
       }
       .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{
-        display: flex;
         align-items: center;
-        overflow: hidden;
       }
       .apexcharts-legend-text {
         position: relative;
@@ -61,12 +60,8 @@ export default class Helpers {
         justify-content: center;
         cursor: pointer;
         margin-right: 3px;
-        border-style: solid;
       }
 
-      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{
-        display: inline-block;
-      }
       .apexcharts-legend-series.apexcharts-no-click {
         cursor: auto;
       }

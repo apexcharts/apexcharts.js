@@ -806,21 +806,21 @@ export default class Options {
           useSeriesColors: false,
         },
         markers: {
-          width: 12,
-          height: 12,
-          strokeWidth: 0,
-          shape: undefined,
+          size: 6,
           fillColors: undefined,
-          strokeColor: '#fff',
-          radius: 12,
-          customHTML: undefined,
+          // width: 12, // [DEPRECATED]
+          // height: 12, // [DEPRECATED]
+          strokeWidth: 2,
+          shape: undefined, // circle, square, line, plus, cross, star
+          radius: 2,
           offsetX: 0,
           offsetY: 0,
+          customHTML: undefined,
           onClick: undefined,
         },
         itemMargin: {
           horizontal: 5,
-          vertical: 2,
+          vertical: 4,
         },
         onItemClick: {
           toggleDataSeries: true,
@@ -833,21 +833,21 @@ export default class Options {
         discrete: [],
         size: 0,
         colors: undefined,
-        //strokeColor: '#fff', // TODO: deprecate in major version 4.0
+        // strokeColor: '#fff', // [DEPRECATED]
         strokeColors: '#fff',
         strokeWidth: 2,
         strokeOpacity: 0.9,
         strokeDashArray: 0,
         fillOpacity: 1,
-        shape: 'circle',
-        width: 8, // only applicable when shape is rect/square
-        height: 8, // only applicable when shape is rect/square
+        // width: 8, // only applicable when shape is rect/square [DEPRECATED]
+        // height: 8, // only applicable when shape is rect/square [DEPRECATED]
+        shape: 'circle', // circle, square, line, plus, cross
         radius: 2,
         offsetX: 0,
         offsetY: 0,
+        showNullDataPoints: true,
         onClick: undefined,
         onDblClick: undefined,
-        showNullDataPoints: true,
         hover: {
           size: undefined,
           sizeOffset: 3,

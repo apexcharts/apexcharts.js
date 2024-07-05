@@ -124,13 +124,7 @@ export default class Scatter {
       value: w.globals.series[realIndex][j],
     })
 
-    let opts = markers.getMarkerConfig({
-      cssClass: 'apexcharts-marker',
-      seriesIndex: i,
-      dataPointIndex: j,
-    })
-
-    let el = graphics.drawMarker(x, y, opts)
+    let el = graphics.drawMarker(x, y, markerConfig)
 
     if (w.config.series[i].data[dataPointIndex]) {
       if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -151,20 +145,11 @@ export default class Scatter {
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
       let speed = w.config.chart.animations.speed
 
-      anim.animateMarker(
-        el,
-        0,
-        markerConfig.shape === 'circle'
-          ? radius
-          : { width: markerConfig.width, height: markerConfig.height },
-        speed,
-        w.globals.easing,
-        () => {
-          window.setTimeout(() => {
-            anim.animationCompleted(el)
-          }, 100)
-        }
-      )
+      anim.animateMarker(el, 0, radius, speed, w.globals.easing, () => {
+        window.setTimeout(() => {
+          anim.animationCompleted(el)
+        }, 100)
+      })
     } else {
       w.globals.animationEnded = true
     }

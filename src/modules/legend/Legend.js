@@ -4,6 +4,7 @@ import Graphics from '../Graphics'
 import Series from '../Series'
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
+import Markers from '../Markers'
 
 /**
  * ApexCharts Legend Class to draw legend.
@@ -65,6 +66,114 @@ class Legend {
     }
   }
 
+  createLegendMarker({ i, fillcolor }) {
+    const w = this.w
+    const elMarker = document.createElement('span')
+    elMarker.classList.add('apexcharts-legend-marker')
+
+    let mShape = w.config.legend.markers.shape || w.config.markers.shape
+    let mSize = w.config.legend.markers.size
+    let mOffsetX = w.config.legend.markers.offsetX
+    let mOffsetY = w.config.legend.markers.offsetY
+    let mBorderWidth = w.config.legend.markers.strokeWidth
+    let mBorderColor = w.config.legend.markers.strokeColor
+    let mBorderRadius = w.config.legend.markers.radius
+
+    let mStyle = elMarker.style
+
+    mStyle.height =
+      (Array.isArray(mSize)
+        ? parseFloat(mSize[i]) * 2
+        : parseFloat(mSize) * 2) + 'px'
+    mStyle.width =
+      (Array.isArray(mSize)
+        ? parseFloat(mSize[i]) * 2
+        : parseFloat(mSize) * 2) + 'px'
+    mStyle.left =
+      (Array.isArray(mOffsetX)
+        ? parseFloat(mOffsetX[i])
+        : parseFloat(mOffsetX)) + 'px'
+    mStyle.top =
+      (Array.isArray(mOffsetY)
+        ? parseFloat(mOffsetY[i])
+        : parseFloat(mOffsetY)) + 'px'
+    mStyle.borderWidth = Array.isArray(mBorderWidth)
+      ? mBorderWidth[i]
+      : mBorderWidth
+    mStyle.borderColor = Array.isArray(mBorderColor)
+      ? mBorderColor[i]
+      : mBorderColor
+    mStyle.borderRadius = Array.isArray(mBorderRadius)
+      ? parseFloat(mBorderRadius[i]) + 'px'
+      : parseFloat(mBorderRadius) + 'px'
+
+    if (w.config.legend.markers.customHTML) {
+      mStyle.background = 'transparent'
+      if (Array.isArray(w.config.legend.markers.customHTML)) {
+        if (w.config.legend.markers.customHTML[i]) {
+          elMarker.innerHTML = w.config.legend.markers.customHTML[i]()
+        }
+      } else {
+        elMarker.innerHTML = w.config.legend.markers.customHTML()
+      }
+    }
+
+    let shape = mShape
+    if (Array.isArray(mShape)) {
+      shape = mShape[i]
+    }
+
+    if (shape !== 'circle') {
+      let markers = new Markers(this.ctx)
+
+      const markerConfig = markers.getMarkerConfig({
+        cssClass: 'apexcharts-marker',
+        seriesIndex: i,
+        size: mSize,
+        pRadius: Array.isArray(mBorderRadius)
+          ? mBorderRadius[i]
+          : mBorderRadius,
+        strokeWidth:
+          shape === 'plus' || shape === 'cross' || shape === 'line'
+            ? Array.isArray(mBorderWidth)
+              ? mBorderWidth[i]
+              : mBorderWidth
+            : 0,
+      })
+
+      const SVGMarker = SVG(elMarker).size('100%', '100%')
+      const marker = new Graphics(this.ctx).drawMarker(0, 0, {
+        ...markerConfig,
+        pointFillColor: Array.isArray(w.config.legend.markers.fillColors)
+          ? fillcolor[i]
+          : markerConfig.pointFillColor,
+        shape,
+      })
+
+      const shapes = SVG.select('.apexcharts-marker').members
+      shapes.forEach((shape) => {
+        shape.node.style.transform = 'translate(50%, 50%)'
+      })
+      SVGMarker.add(marker)
+    } else {
+      mStyle.color = fillcolor[i]
+      mStyle.borderRadius = '100%'
+
+      if (!w.config.legend.markers.customHTML) {
+        mStyle.background = fillcolor[i]
+        mStyle.setProperty('background', fillcolor[i], 'important')
+
+        // override with data color
+        if (w.globals.seriesColors[i] !== undefined) {
+          mStyle.background = w.globals.seriesColors[i]
+          mStyle.color = w.globals.seriesColors[i]
+        }
+      }
+    }
+
+    return elMarker
+  }
+
   drawLegends() {
     let me = this
     let w = this.w
@@ -72,7 +181,9 @@ class Legend {
     let fontFamily = w.config.legend.fontFamily
 
     let legendNames = w.globals.seriesNames
-    let fillcolor = w.globals.colors.slice()
+    let fillcolor = w.config.legend.markers.fillColors
+      ? w.config.legend.markers.fillColors.slice()
+      : w.globals.colors.slice()
 
     if (w.config.chart.type === 'heatmap') {
       const ranges = w.config.plotOptions.heatmap.colorScale.ranges
@@ -122,84 +233,7 @@ class Legend {
         }
       }
 
-      let elMarker = document.createElement('span')
-      elMarker.classList.add('apexcharts-legend-marker')
-
-      let mShape = w.config.legend.markers.shape || w.config.markers.shape
-      let mOffsetX = w.config.legend.markers.offsetX
-      let mOffsetY = w.config.legend.markers.offsetY
-      let mHeight = w.config.legend.markers.height
-      let mWidth = w.config.legend.markers.width
-      let mBorderWidth = w.config.legend.markers.strokeWidth
-      let mBorderColor = w.config.legend.markers.strokeColor
-      let mBorderRadius = w.config.legend.markers.radius
-
-      let mStyle = elMarker.style
-
-      mStyle.background = fillcolor[i]
-      mStyle.color = fillcolor[i]
-      mStyle.setProperty('background', fillcolor[i], 'important')
-
-      // override fill color with custom legend.markers.fillColors
-      if (
-        w.config.legend.markers.fillColors &&
-        w.config.legend.markers.fillColors[i]
-      ) {
-        mStyle.background = w.config.legend.markers.fillColors[i]
-      }
-
-      // override with data color
-      if (w.globals.seriesColors[i] !== undefined) {
-        mStyle.background = w.globals.seriesColors[i]
-        mStyle.color = w.globals.seriesColors[i]
-      }
-
-      mStyle.height = Array.isArray(mHeight)
-        ? parseFloat(mHeight[i]) + 'px'
-        : parseFloat(mHeight) + 'px'
-      mStyle.width = Array.isArray(mWidth)
-        ? parseFloat(mWidth[i]) + 'px'
-        : parseFloat(mWidth) + 'px'
-      mStyle.left =
-        (Array.isArray(mOffsetX)
-          ? parseFloat(mOffsetX[i])
-          : parseFloat(mOffsetX)) + 'px'
-      mStyle.top =
-        (Array.isArray(mOffsetY)
-          ? parseFloat(mOffsetY[i])
-          : parseFloat(mOffsetY)) + 'px'
-      mStyle.borderWidth = Array.isArray(mBorderWidth)
-        ? mBorderWidth[i]
-        : mBorderWidth
-      mStyle.borderColor = Array.isArray(mBorderColor)
-        ? mBorderColor[i]
-        : mBorderColor
-      mStyle.borderRadius = Array.isArray(mBorderRadius)
-        ? parseFloat(mBorderRadius[i]) + 'px'
-        : parseFloat(mBorderRadius) + 'px'
-
-      if (w.config.legend.markers.customHTML) {
-        mStyle.background = 'transparent'
-        if (Array.isArray(w.config.legend.markers.customHTML)) {
-          if (w.config.legend.markers.customHTML[i]) {
-            elMarker.innerHTML = w.config.legend.markers.customHTML[i]()
-          }
-        } else {
-          elMarker.innerHTML = w.config.legend.markers.customHTML()
-        }
-      }
-
-      let shape = mShape
-      if (Array.isArray(mShape)) {
-        shape = mShape[i]
-      }
-
-      if (shape === 'plus' || shape === '+' || shape === 'x' || shape === 'X') {
-        mStyle.background = 'transparent'
-        mStyle.fontSize = Math.max(mWidth, mHeight) + 'px'
-        elMarker.innerHTML =
-          shape === 'plus' || shape === '+' ? '+' : '&#x2715;'
-      }
+      let elMarker = this.createLegendMarker({ i, fillcolor })
 
       Graphics.setAttrs(elMarker, {
         rel: i + 1,

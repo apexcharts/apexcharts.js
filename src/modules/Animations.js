@@ -94,15 +94,11 @@ export default class Animations {
 
     el.attr({
       r: from,
-      width: from,
-      height: from,
       opacity: 0,
     })
       .animate(speed, easing)
       .attr({
         r: to,
-        width: to.width,
-        height: to.height,
         opacity: 1,
       })
       .afterAll(() => {

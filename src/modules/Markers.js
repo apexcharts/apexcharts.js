@@ -157,10 +157,12 @@ export default class Markers {
     seriesIndex,
     dataPointIndex = null,
     radius = null,
+    size = null,
+    strokeWidth = null,
   }) {
     const w = this.w
     let pStyle = this.getMarkerStyle(seriesIndex)
-    let pSize = w.globals.markers.size[seriesIndex]
+    let pSize = size === null ? w.globals.markers.size[seriesIndex] : size
 
     const m = w.config.markers
 
@@ -182,12 +184,13 @@ export default class Markers {
 
     return {
       pSize: radius === null ? pSize : radius,
-      pRadius: m.radius,
-      width: Array.isArray(m.width) ? m.width[seriesIndex] : m.width,
-      height: Array.isArray(m.height) ? m.height[seriesIndex] : m.height,
-      pointStrokeWidth: Array.isArray(m.strokeWidth)
-        ? m.strokeWidth[seriesIndex]
-        : m.strokeWidth,
+      pRadius: radius !== null ? radius : m.radius,
+      pointStrokeWidth:
+        strokeWidth !== null
+          ? strokeWidth
+          : Array.isArray(m.strokeWidth)
+          ? m.strokeWidth[seriesIndex]
+          : m.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
       shape:

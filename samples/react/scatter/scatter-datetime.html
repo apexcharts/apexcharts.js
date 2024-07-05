@@ -93,40 +93,61 @@
 
           this.state = {
           
-            series: [{
-                name: 'TEAM 1',
-                data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                  min: 10,
-                  max: 60
-                })
+            series: [
+              {
+                name: 'CIRCLE',
+                data: generateDayWiseTimeSeries(
+                  new Date('01 Feb 2017 GMT').getTime(),
+                  20,
+                  {
+                    min: 5,
+                    max: 24,
+                  }
+                ),
               },
               {
-                name: 'TEAM 2',
-                data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                  min: 10,
-                  max: 60
-                })
+                name: 'SQUARE',
+                data: generateDayWiseTimeSeries(
+                  new Date('11 Feb 2017 GMT').getTime(),
+                  18,
+                  {
+                    min: 14,
+                    max: 50,
+                  }
+                ),
               },
               {
-                name: 'TEAM 3',
-                data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
-                  min: 10,
-                  max: 60
-                })
+                name: 'CROSS',
+                data: generateDayWiseTimeSeries(
+                  new Date('19 Feb 2017 GMT').getTime(),
+                  30,
+                  {
+                    min: 15,
+                    max: 60,
+                  }
+                ),
               },
               {
-                name: 'TEAM 4',
-                data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-                  min: 10,
-                  max: 60
-                })
+                name: 'PLUS',
+                data: generateDayWiseTimeSeries(
+                  new Date('28 Feb 2017 GMT').getTime(),
+                  15,
+                  {
+                    min: 10,
+                    max: 80,
+                  }
+                ),
               },
               {
-                name: 'TEAM 5',
-                data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 30, {
-                  min: 10,
-                  max: 60
-                })
+                name: 'LINE',
+                data: generateDayWiseTimeSeries(
+                  new Date('10 Mar 2017 GMT').getTime(),
+                  20,
+                  {
+                    min: 20,
+                    max: 90,
+                  }
+                ),
               },
             ],
             options: {
@@ -156,8 +177,14 @@
                 type: 'datetime',
               },
               yaxis: {
-                max: 70
-              }
+                max: 90,
+              },
+              markers: {
+                shape: ['circle', 'square', 'cross', 'plus', 'line'],
+                size: 6,
+                strokeWidth: [0, 2, 2, 2, 2],
+                radius: 2,
+              },
             },
           
           

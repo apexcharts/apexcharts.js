@@ -324,7 +324,6 @@ export default class Defaults {
         markers: {
           shape: 'square',
           radius: 2,
-          size: 8,
         },
       },
       tooltip: {
@@ -872,8 +871,6 @@ export default class Defaults {
         position: 'top',
         markers: {
           shape: 'square',
-          size: 10,
-          offsetY: 2,
         },
       },
       grid: {

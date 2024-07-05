@@ -824,12 +824,10 @@ type ApexLegend = {
     useSeriesColors?: boolean
   }
   markers?: {
-    width?: number
-    height?: number
     strokeColor?: string
     strokeWidth?: number
     fillColors?: string[]
-    shape?: string | string[]
+    shape?: ApexMarkerShape
     offsetX?: number
     offsetY?: number
     radius?: number
@@ -852,7 +850,7 @@ type ApexLegend = {
   }
 }
 
-type MarkerShapeOptions = "circle" | "square" | "rect" | 'x' | 'X' | 'plus' | '+'
+type MarkerShapeOptions = "circle" | "square" | "rect" | "line" | 'cross' | 'plus'
 
 type ApexMarkerShape = MarkerShapeOptions | MarkerShapeOptions[]
 
@@ -875,8 +873,6 @@ type ApexMarkers = {
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
   shape?: ApexMarkerShape
-  width?: number | number[]
-  height?: number | number[]
   radius?: number
   offsetX?: number
   offsetY?: number
