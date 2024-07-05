@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.49.2
+ * ApexCharts v3.50.0
  * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
@@ -752,31 +752,12 @@
         if (!from) from = 0;
         el.attr({
           r: from,
-          width: from,
-          height: from
+          opacity: 0
         }).animate(speed, easing).attr({
           r: to,
-          width: to.width,
-          height: to.height
+          opacity: 1
         }).afterAll(function () {
           cb();
-        });
-      }
-
-      /*
-       ** Animate radius and position of a circle element
-       */
-    }, {
-      key: "animateCircle",
-      value: function animateCircle(el, from, to, speed, easing) {
-        el.attr({
-          r: from.r,
-          cx: from.cx,
-          cy: from.cy
-        }).animate(speed, easing).attr({
-          r: to.r,
-          cx: to.cx,
-          cy: to.cy
         });
       }
 
@@ -1758,46 +1739,6 @@
       }
 
       /**
-       * Creates a group with given attributes.
-       * @param {number} x - The x-coordinate of the group.
-       * @param {number} y - The y-coordinate of the group.
-       * @param {Array} lines - The lines to be added to the group.
-       * @param {Object} opts - The options for the group.
-       * @returns {Object} The created group.
-       */
-    }, {
-      key: "createGroupWithAttributes",
-      value: function createGroupWithAttributes(x, y, lines, opts) {
-        var elPoint = this.group();
-        lines.forEach(function (line) {
-          return elPoint.add(line);
-        });
-        elPoint.attr({
-          class: opts.class ? opts.class : '',
-          cy: y,
-          cx: x
-        });
-        return elPoint;
-      }
-
-      /**
-       * Draws a plus sign at the given coordinates.
-       * @param {number} x - The x-coordinate of the plus sign.
-       * @param {number} y - The y-coordinate of the plus sign.
-       * @param {number} size - The size of the plus sign.
-       * @param {Object} opts - The options for the plus sign.
-       * @returns {Object} The created plus sign.
-       */
-    }, {
-      key: "drawPlus",
-      value: function drawPlus(x, y, size, opts) {
-        var halfSize = size / 2;
-        var line1 = this.drawLine(x, y - halfSize, x, y + halfSize, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
-        var line2 = this.drawLine(x - halfSize, y, x + halfSize, y, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
-        return this.createGroupWithAttributes(x, y, [line1, line2], opts);
-      }
-
-      /**
        * Draws an 'X' at the given coordinates.
        * @param {number} x - The x-coordinate of the 'X'.
        * @param {number} y - The y-coordinate of the 'X'.
@@ -1806,12 +1747,23 @@
        * @returns {Object} The created 'X'.
        */
     }, {
-      key: "drawX",
-      value: function drawX(x, y, size, opts) {
+      key: "drawXMarker",
+      value: function drawXMarker(x, y, type, size, opts) {
         var halfSize = size / 2;
-        var line1 = this.drawLine(x - halfSize, y - halfSize, x + halfSize, y + halfSize, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
-        var line2 = this.drawLine(x - halfSize, y + halfSize, x + halfSize, y - halfSize, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
-        return this.createGroupWithAttributes(x, y, [line1, line2], opts);
+        var d = type === 'cross' ? "M ".concat(x - halfSize, " ").concat(y - halfSize, " L ").concat(x + halfSize, " ").concat(y + halfSize, "  M ").concat(x - halfSize, " ").concat(y + halfSize, " L ").concat(x + halfSize, " ").concat(y - halfSize) : "M ".concat(x - halfSize, " ").concat(y, " L ").concat(x + halfSize, " ").concat(y, "  M ").concat(x, " ").concat(y - halfSize, " L ").concat(x, " ").concat(y + halfSize);
+        var path = this.drawPath({
+          d: d,
+          stroke: opts.pointStrokeColor,
+          strokeDashArray: opts.pointStrokeDashArray,
+          strokeWidth: opts.pointStrokeWidth,
+          fill: opts.pointFillColor
+        });
+        path.attr({
+          cx: x,
+          cy: y,
+          class: opts.class ? opts.class : ''
+        });
+        return path;
       }
     }, {
       key: "drawMarker",
@@ -1819,17 +1771,28 @@
         x = x || 0;
         var size = opts.pSize || 0;
         var elPoint = null;
-        if ((opts === null || opts === void 0 ? void 0 : opts.shape) === 'X' || (opts === null || opts === void 0 ? void 0 : opts.shape) === 'x') {
-          elPoint = this.drawX(x, y, size, opts);
-        } else if ((opts === null || opts === void 0 ? void 0 : opts.shape) === 'plus' || (opts === null || opts === void 0 ? void 0 : opts.shape) === '+') {
-          elPoint = this.drawPlus(x, y, size, opts);
+        if ((opts === null || opts === void 0 ? void 0 : opts.shape) === 'cross') {
+          elPoint = this.drawXMarker(x, y, opts === null || opts === void 0 ? void 0 : opts.shape, size * 1.8, _objectSpread2(_objectSpread2({}, opts), {}, {
+            pointStrokeColor: opts.pointFillColor
+          }));
+        } else if ((opts === null || opts === void 0 ? void 0 : opts.shape) === 'plus') {
+          elPoint = this.drawXMarker(x, y, opts === null || opts === void 0 ? void 0 : opts.shape, size * 2, _objectSpread2(_objectSpread2({}, opts), {}, {
+            pointStrokeColor: opts.pointFillColor
+          }));
+        } else if ((opts === null || opts === void 0 ? void 0 : opts.shape) === 'line') {
+          elPoint = this.drawLine(x - size, y, x + size, y, opts.pointFillColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
+          elPoint.attr({
+            cx: x,
+            cy: y,
+            class: opts.class ? opts.class : ''
+          });
         } else if (opts.shape === 'square' || opts.shape === 'rect') {
-          var radius = opts.pRadius === undefined ? size / 2 : opts.pRadius;
+          var radius = opts.pRadius === undefined ? size : opts.pRadius;
           if (y === null || !size) {
             size = 0;
             radius = 0;
           }
-          var nSize = size * 1.2 + radius;
+          var nSize = size * 2;
           var p = this.drawRect(nSize, nSize, nSize, nSize, radius);
           p.attr({
             x: x - nSize / 2,
@@ -1849,9 +1812,6 @@
             size = 0;
             y = 0;
           }
-
-          // let nSize = size - opts.pRadius / 2 < 0 ? 0 : size - opts.pRadius / 2
-
           elPoint = this.drawCircle(size, {
             cx: x,
             cy: y,
@@ -4190,7 +4150,7 @@
                 speed: 350
               }
             },
-            background: 'transparent',
+            background: '',
             locales: [en],
             defaultLocale: 'en',
             dropShadow: {
@@ -4290,9 +4250,8 @@
                   columnDelimiter: ',',
                   headerCategory: 'category',
                   headerValue: 'value',
-                  dateFormatter: function dateFormatter(timestamp) {
-                    return new Date(timestamp).toDateString();
-                  }
+                  categoryFormatter: undefined,
+                  valueFormatter: undefined
                 },
                 png: {
                   filename: undefined
@@ -4745,20 +4704,22 @@
               useSeriesColors: false
             },
             markers: {
-              width: 12,
-              height: 12,
-              strokeWidth: 0,
+              size: 6,
               fillColors: undefined,
-              strokeColor: '#fff',
-              radius: 12,
-              customHTML: undefined,
+              // width: 12, // [DEPRECATED]
+              // height: 12, // [DEPRECATED]
+              strokeWidth: 2,
+              shape: undefined,
+              // circle, square, line, plus, cross, star
+              radius: 2,
               offsetX: 0,
               offsetY: 0,
+              customHTML: undefined,
               onClick: undefined
             },
             itemMargin: {
               horizontal: 5,
-              vertical: 2
+              vertical: 4
             },
             onItemClick: {
               toggleDataSeries: true
@@ -4771,23 +4732,22 @@
             discrete: [],
             size: 0,
             colors: undefined,
-            //strokeColor: '#fff', // TODO: deprecate in major version 4.0
+            // strokeColor: '#fff', // [DEPRECATED]
             strokeColors: '#fff',
             strokeWidth: 2,
             strokeOpacity: 0.9,
             strokeDashArray: 0,
             fillOpacity: 1,
+            // width: 8, // only applicable when shape is rect/square [DEPRECATED]
+            // height: 8, // only applicable when shape is rect/square [DEPRECATED]
             shape: 'circle',
-            width: 8,
-            // only applicable when shape is rect/square
-            height: 8,
-            // only applicable when shape is rect/square
+            // circle, square, line, plus, cross
             radius: 2,
             offsetX: 0,
             offsetY: 0,
+            showNullDataPoints: true,
             onClick: undefined,
             onDblClick: undefined,
-            showNullDataPoints: true,
             hover: {
               size: undefined,
               sizeOffset: 3
@@ -5070,7 +5030,7 @@
           },
           yaxis: this.yAxis,
           theme: {
-            mode: 'light',
+            mode: '',
             palette: 'palette1',
             // If defined, it will overwrite globals.colors variable
             monochrome: {
@@ -5666,8 +5626,7 @@
           legend: {
             markers: {
               shape: 'square',
-              radius: 2,
-              size: 8
+              radius: 2
             }
           },
           tooltip: {
@@ -6210,9 +6169,7 @@
           legend: {
             position: 'top',
             markers: {
-              shape: 'square',
-              size: 10,
-              offsetY: 2
+              shape: 'square'
             }
           },
           grid: {
@@ -6702,9 +6659,6 @@
           }
           if (!opts.chart.foreColor) {
             opts.chart.foreColor = '#f6f7f8';
-          }
-          if (!opts.chart.background) {
-            opts.chart.background = '#424242';
           }
           if (!opts.theme.palette) {
             opts.theme.palette = 'palette4';
@@ -7497,11 +7451,15 @@
           seriesIndex = _ref.seriesIndex,
           _ref$dataPointIndex = _ref.dataPointIndex,
           dataPointIndex = _ref$dataPointIndex === void 0 ? null : _ref$dataPointIndex,
-          _ref$finishRadius = _ref.finishRadius,
-          finishRadius = _ref$finishRadius === void 0 ? null : _ref$finishRadius;
+          _ref$radius = _ref.radius,
+          radius = _ref$radius === void 0 ? null : _ref$radius,
+          _ref$size = _ref.size,
+          size = _ref$size === void 0 ? null : _ref$size,
+          _ref$strokeWidth = _ref.strokeWidth,
+          strokeWidth = _ref$strokeWidth === void 0 ? null : _ref$strokeWidth;
         var w = this.w;
         var pStyle = this.getMarkerStyle(seriesIndex);
-        var pSize = w.globals.markers.size[seriesIndex];
+        var pSize = size === null ? w.globals.markers.size[seriesIndex] : size;
         var m = w.config.markers;
 
         // discrete markers is an option where user can specify a particular marker with different shape, size and color
@@ -7517,11 +7475,9 @@
           });
         }
         return {
-          pSize: finishRadius === null ? pSize : finishRadius,
-          pRadius: m.radius,
-          width: Array.isArray(m.width) ? m.width[seriesIndex] : m.width,
-          height: Array.isArray(m.height) ? m.height[seriesIndex] : m.height,
-          pointStrokeWidth: Array.isArray(m.strokeWidth) ? m.strokeWidth[seriesIndex] : m.strokeWidth,
+          pSize: radius === null ? pSize : radius,
+          pRadius: radius !== null ? radius : m.radius,
+          pointStrokeWidth: strokeWidth !== null ? strokeWidth : Array.isArray(m.strokeWidth) ? m.strokeWidth[seriesIndex] : m.strokeWidth,
           pointStrokeColor: pStyle.pointStrokeColor,
           pointFillColor: pStyle.pointFillColor,
           shape: pStyle.pointShape || (Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape),
@@ -7574,7 +7530,6 @@
       this.ctx = ctx;
       this.w = ctx.w;
       this.initialAnim = this.w.config.chart.animations.enabled;
-      this.dynamicAnim = this.initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
     }
     _createClass(Scatter, [{
       key: "draw",
@@ -7597,24 +7552,20 @@
             // a small hack as we have 2 points for the first val to connect it
             if (j === 0 && q === 0) dataPointIndex = 0;
             if (j === 0 && q === 1) dataPointIndex = 1;
-            var radius = 0;
-            var finishRadius = w.globals.markers.size[realIndex];
+            var radius = w.globals.markers.size[realIndex];
             if (zRatio !== Infinity) {
               // means we have a bubble
               var bubble = w.config.plotOptions.bubble;
-              finishRadius = w.globals.seriesZ[realIndex][dataPointIndex];
+              radius = w.globals.seriesZ[realIndex][dataPointIndex];
               if (bubble.zScaling) {
-                finishRadius /= zRatio;
+                radius /= zRatio;
               }
-              if (bubble.minBubbleRadius && finishRadius < bubble.minBubbleRadius) {
-                finishRadius = bubble.minBubbleRadius;
+              if (bubble.minBubbleRadius && radius < bubble.minBubbleRadius) {
+                radius = bubble.minBubbleRadius;
               }
-              if (bubble.maxBubbleRadius && finishRadius > bubble.maxBubbleRadius) {
-                finishRadius = bubble.maxBubbleRadius;
+              if (bubble.maxBubbleRadius && radius > bubble.maxBubbleRadius) {
+                radius = bubble.maxBubbleRadius;
               }
-            }
-            if (!w.config.chart.animations.enabled) {
-              radius = finishRadius;
             }
             var x = pointsPos.x[q];
             var y = pointsPos.y[q];
@@ -7623,7 +7574,7 @@
               shouldDraw = false;
             }
             if (shouldDraw) {
-              var point = this.drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j);
+              var point = this.drawPoint(x, y, radius, realIndex, dataPointIndex, j);
               elPointsWrap.add(point);
             }
             elPointsMain.add(elPointsWrap);
@@ -7632,7 +7583,7 @@
       }
     }, {
       key: "drawPoint",
-      value: function drawPoint(x, y, radius, finishRadius, realIndex, dataPointIndex, j) {
+      value: function drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
         var w = this.w;
         var i = realIndex;
         var anim = new Animations(this.ctx);
@@ -7644,9 +7595,9 @@
           cssClass: 'apexcharts-marker',
           seriesIndex: i,
           dataPointIndex: dataPointIndex,
-          finishRadius: w.config.chart.type === 'bubble' || w.globals.comboCharts && w.config.series[realIndex] && w.config.series[realIndex].type === 'bubble' ? finishRadius : null
+          radius: w.config.chart.type === 'bubble' || w.globals.comboCharts && w.config.series[realIndex] && w.config.series[realIndex].type === 'bubble' ? radius : null
         });
-        finishRadius = markerConfig.pSize;
+        radius = markerConfig.pSize;
         var pathFillCircle = fill.fillPath({
           seriesNumber: realIndex,
           dataPointIndex: dataPointIndex,
@@ -7654,29 +7605,15 @@
           patternUnits: 'objectBoundingBox',
           value: w.globals.series[realIndex][j]
         });
-        var el;
-        if (markerConfig.shape === 'circle') {
-          el = graphics.drawCircle(radius);
-        } else if (markerConfig.shape === 'square' || markerConfig.shape === 'rect') {
-          el = graphics.drawRect(0, 0, markerConfig.width - markerConfig.pointStrokeWidth / 2, markerConfig.height - markerConfig.pointStrokeWidth / 2, markerConfig.pRadius);
-        }
+        var el = graphics.drawMarker(x, y, markerConfig);
         if (w.config.series[i].data[dataPointIndex]) {
           if (w.config.series[i].data[dataPointIndex].fillColor) {
             pathFillCircle = w.config.series[i].data[dataPointIndex].fillColor;
           }
         }
         el.attr({
-          x: x - markerConfig.width / 2 - markerConfig.pointStrokeWidth / 2,
-          y: y - markerConfig.height / 2 - markerConfig.pointStrokeWidth / 2,
-          cx: x,
-          cy: y,
           fill: pathFillCircle,
-          'fill-opacity': markerConfig.pointFillOpacity,
-          stroke: markerConfig.pointStrokeColor,
-          r: finishRadius,
-          'stroke-width': markerConfig.pointStrokeWidth,
-          'stroke-dasharray': markerConfig.pointStrokeDashArray,
-          'stroke-opacity': markerConfig.pointStrokeOpacity
+          r: radius
         });
         if (w.config.chart.dropShadow.enabled) {
           var dropShadow = w.config.chart.dropShadow;
@@ -7684,10 +7621,7 @@
         }
         if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
           var speed = w.config.chart.animations.speed;
-          anim.animateMarker(el, 0, markerConfig.shape === 'circle' ? finishRadius : {
-            width: markerConfig.width,
-            height: markerConfig.height
-          }, speed, w.globals.easing, function () {
+          anim.animateMarker(el, 0, radius, speed, w.globals.easing, function () {
             window.setTimeout(function () {
               anim.animationCompleted(el);
             }, 100);
@@ -7695,45 +7629,11 @@
         } else {
           w.globals.animationEnded = true;
         }
-        if (w.globals.dataChanged && markerConfig.shape === 'circle') {
-          if (this.dynamicAnim) {
-            var _speed = w.config.chart.animations.dynamicAnimation.speed;
-            var prevX, prevY, prevR;
-            var prevPathJ = null;
-            prevPathJ = w.globals.previousPaths[realIndex] && w.globals.previousPaths[realIndex][j];
-            if (typeof prevPathJ !== 'undefined' && prevPathJ !== null) {
-              // series containing less elements will ignore these values and revert to 0
-              prevX = prevPathJ.x;
-              prevY = prevPathJ.y;
-              prevR = typeof prevPathJ.r !== 'undefined' ? prevPathJ.r : finishRadius;
-            }
-            for (var cs = 0; cs < w.globals.collapsedSeries.length; cs++) {
-              if (w.globals.collapsedSeries[cs].index === realIndex) {
-                _speed = 1;
-                finishRadius = 0;
-              }
-            }
-            if (x === 0 && y === 0) finishRadius = 0;
-            anim.animateCircle(el, {
-              cx: prevX,
-              cy: prevY,
-              r: prevR
-            }, {
-              cx: x,
-              cy: y,
-              r: finishRadius
-            }, _speed, w.globals.easing);
-          } else {
-            el.attr({
-              r: finishRadius
-            });
-          }
-        }
         el.attr({
           rel: dataPointIndex,
           j: dataPointIndex,
           index: realIndex,
-          'default-marker-size': finishRadius
+          'default-marker-size': radius
         });
         filters.setSelectionFilter(el, realIndex, dataPointIndex);
         markers.addEvents(el);
@@ -8020,7 +7920,7 @@
         var width = coords.width;
         var height = coords.height;
         var graphics = new Graphics(this.ctx);
-        var elRect = graphics.drawRect(coords.x - paddingH, coords.y - paddingV / 2, width + paddingH * 2, height + paddingV, bCnf.borderRadius, w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background, bCnf.opacity, bCnf.borderWidth, bCnf.borderColor);
+        var elRect = graphics.drawRect(coords.x - paddingH, coords.y - paddingV / 2, width + paddingH * 2, height + paddingV, bCnf.borderRadius, w.config.chart.background === 'transparent' || !w.config.chart.background ? '#fff' : w.config.chart.background, bCnf.opacity, bCnf.borderWidth, bCnf.borderColor);
         if (bCnf.dropShadow.enabled) {
           var filters = new Filters(this.ctx);
           filters.dropShadow(elRect, bCnf.dropShadow);
@@ -9227,7 +9127,7 @@
           canvas.width = w.globals.svgWidth * scale;
           canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) * scale; // because of resizeNonAxisCharts
 
-          var canvasBg = w.config.chart.background === 'transparent' ? '#fff' : w.config.chart.background;
+          var canvasBg = w.config.chart.background === 'transparent' || !w.config.chart.background ? '#fff' : w.config.chart.background;
           var ctx = canvas.getContext('2d');
           ctx.fillStyle = canvasBg;
           ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
@@ -9308,8 +9208,17 @@
         var gSeries = w.globals.series.map(function (s, i) {
           return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : [];
         });
-        var isTimeStamp = function isTimeStamp(num) {
-          return w.config.xaxis.type === 'datetime' && String(num).length >= 10;
+        var getFormattedCategory = function getFormattedCategory(cat) {
+          if (typeof w.config.chart.toolbar.export.csv.categoryFormatter === 'function') {
+            return w.config.chart.toolbar.export.csv.categoryFormatter(cat);
+          }
+          if (w.config.xaxis.type === 'datetime' && String(cat).length >= 10) {
+            return new Date(cat).toDateString();
+          }
+          return Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join('');
+        };
+        var getFormattedValue = function getFormattedValue(value) {
+          return typeof w.config.chart.toolbar.export.csv.valueFormatter === 'function' ? w.config.chart.toolbar.export.csv.valueFormatter(value) : value;
         };
         var seriesMaxDataLength = Math.max.apply(Math, _toConsumableArray(series.map(function (s) {
           return s.data ? s.data.length : 0;
@@ -9390,14 +9299,11 @@
               }
               if (sI === 0) {
                 // It's the first series.  Also handle the category.
-                columns.push(isTimeStamp(cat) ? w.config.chart.toolbar.export.csv.dateFormatter(cat) : Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join(''));
+                columns.push(getFormattedCategory(cat));
                 for (var ci = 0; ci < w.globals.series.length; ci++) {
-                  if (dataFormat.isFormatXY()) {
-                    var _series$ci$data$i;
-                    columns.push((_series$ci$data$i = series[ci].data[i]) === null || _series$ci$data$i === void 0 ? void 0 : _series$ci$data$i.y);
-                  } else {
-                    columns.push(gSeries[ci][i]);
-                  }
+                  var _series$ci$data$i;
+                  var value = dataFormat.isFormatXY() ? (_series$ci$data$i = series[ci].data[i]) === null || _series$ci$data$i === void 0 ? void 0 : _series$ci$data$i.y : gSeries[ci][i];
+                  columns.push(getFormattedValue(value));
                 }
               }
               if (w.config.chart.type === 'candlestick' || s.type && s.type === 'candlestick') {
@@ -9444,7 +9350,7 @@
               if (!data[cat]) {
                 data[cat] = Array(series.length).fill('');
               }
-              data[cat][sI] = value;
+              data[cat][sI] = getFormattedValue(value);
               categories.add(cat);
             });
           });
@@ -9452,7 +9358,7 @@
             rows.push(columns.join(columnDelimiter));
           }
           Array.from(categories).sort().forEach(function (cat) {
-            rows.push([isTimeStamp(cat) && w.config.xaxis.type === 'datetime' ? w.config.chart.toolbar.export.csv.dateFormatter(cat) : Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join(''), data[cat].join(columnDelimiter)]);
+            rows.push([getFormattedCategory(cat), data[cat].join(columnDelimiter)]);
           });
         };
         columns.push(w.config.chart.toolbar.export.csv.headerCategory);
@@ -9490,8 +9396,8 @@
               handleAxisRowsColumns(s, sI);
             } else {
               columns = [];
-              columns.push(w.globals.labels[sI].split(columnDelimiter).join(''));
-              columns.push(gSeries[sI]);
+              columns.push(getFormattedCategory(w.globals.labels[sI]));
+              columns.push(getFormattedValue(gSeries[sI]));
               rows.push(columns.join(columnDelimiter));
             }
           });
@@ -12739,12 +12645,10 @@
         options.chart = options.chart || {};
         options.tooltip = options.tooltip || {};
         var mode = options.theme.mode;
-        var background = mode === 'dark' ? '#424242' : mode === 'light' ? '#fff' : options.chart.background || '#fff';
         var palette = mode === 'dark' ? 'palette4' : mode === 'light' ? 'palette1' : options.theme.palette || 'palette1';
         var foreColor = mode === 'dark' ? '#f6f7f8' : mode === 'light' ? '#373d3f' : options.chart.foreColor || '#373d3f';
         options.tooltip.theme = mode || 'light';
         options.chart.foreColor = foreColor;
-        options.chart.background = background;
         options.theme.palette = palette;
         return options;
       }
@@ -13667,8 +13571,9 @@
         var offY = cnf.plotOptions[type].offsetY;
         var offX = cnf.plotOptions[type].offsetX;
         if (!cnf.legend.show || cnf.legend.floating) {
-          gl.gridHeight = gl.svgHeight - cnf.grid.padding.left + cnf.grid.padding.right;
-          gl.gridWidth = Math.min(gl.svgWidth, gl.gridHeight);
+          gl.gridHeight = gl.svgHeight - cnf.grid.padding.top - cnf.grid.padding.bottom;
+          var maxWidth = gl.dom.elWrap.getBoundingClientRect().width;
+          gl.gridWidth = Math.min(maxWidth, gl.gridHeight) - cnf.grid.padding.left - cnf.grid.padding.right;
           gl.translateY = offY;
           gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2;
           return;
@@ -13756,7 +13661,7 @@
         if (nonce) {
           stylesheet.setAttribute('nonce', nonce);
         }
-        var text = "\n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        justify-content: flex-start;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n        justify-content: center;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n        justify-content: flex-end;\n      }\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n      }\n      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{\n        display: flex;\n        align-items: center;\n      }\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n      .apexcharts-legend-marker {\n        position: relative;\n        display: inline-block;\n        cursor: pointer;\n        margin-right: 3px;\n        border-style: solid;\n      }\n\n      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{\n        display: inline-block;\n      }\n      .apexcharts-legend-series.apexcharts-no-click {\n        cursor: auto;\n      }\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n      .apexcharts-inactive-legend {\n        opacity: 0.45;\n      }";
+        var text = "\n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        justify-content: flex-start;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n        justify-content: center;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n        justify-content: flex-end;\n      }\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n        display: flex;\n      }\n      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{\n        align-items: center;\n      }\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n      .apexcharts-legend-marker {\n        position: relative;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        cursor: pointer;\n        margin-right: 3px;\n      }\n\n      .apexcharts-legend-series.apexcharts-no-click {\n        cursor: auto;\n      }\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n      .apexcharts-inactive-legend {\n        opacity: 0.45;\n      }";
         var rules = document.createTextNode(text);
         stylesheet.appendChild(rules);
         return stylesheet;
@@ -13975,13 +13880,85 @@
         }
       }
     }, {
+      key: "createLegendMarker",
+      value: function createLegendMarker(_ref) {
+        var i = _ref.i,
+          fillcolor = _ref.fillcolor;
+        var w = this.w;
+        var elMarker = document.createElement('span');
+        elMarker.classList.add('apexcharts-legend-marker');
+        var mShape = w.config.legend.markers.shape || w.config.markers.shape;
+        var mSize = w.config.legend.markers.size;
+        var mOffsetX = w.config.legend.markers.offsetX;
+        var mOffsetY = w.config.legend.markers.offsetY;
+        var mBorderWidth = w.config.legend.markers.strokeWidth;
+        var mBorderColor = w.config.legend.markers.strokeColor;
+        var mBorderRadius = w.config.legend.markers.radius;
+        var mStyle = elMarker.style;
+        mStyle.height = (Array.isArray(mSize) ? parseFloat(mSize[i]) * 2 : parseFloat(mSize) * 2) + 'px';
+        mStyle.width = (Array.isArray(mSize) ? parseFloat(mSize[i]) * 2 : parseFloat(mSize) * 2) + 'px';
+        mStyle.left = (Array.isArray(mOffsetX) ? parseFloat(mOffsetX[i]) : parseFloat(mOffsetX)) + 'px';
+        mStyle.top = (Array.isArray(mOffsetY) ? parseFloat(mOffsetY[i]) : parseFloat(mOffsetY)) + 'px';
+        mStyle.borderWidth = Array.isArray(mBorderWidth) ? mBorderWidth[i] : mBorderWidth;
+        mStyle.borderColor = Array.isArray(mBorderColor) ? mBorderColor[i] : mBorderColor;
+        mStyle.borderRadius = Array.isArray(mBorderRadius) ? parseFloat(mBorderRadius[i]) + 'px' : parseFloat(mBorderRadius) + 'px';
+        if (w.config.legend.markers.customHTML) {
+          mStyle.background = 'transparent';
+          if (Array.isArray(w.config.legend.markers.customHTML)) {
+            if (w.config.legend.markers.customHTML[i]) {
+              elMarker.innerHTML = w.config.legend.markers.customHTML[i]();
+            }
+          } else {
+            elMarker.innerHTML = w.config.legend.markers.customHTML();
+          }
+        }
+        var shape = mShape;
+        if (Array.isArray(mShape)) {
+          shape = mShape[i];
+        }
+        if (shape !== 'circle') {
+          var markers = new Markers(this.ctx);
+          var markerConfig = markers.getMarkerConfig({
+            cssClass: 'apexcharts-marker',
+            seriesIndex: i,
+            size: mSize,
+            pRadius: Array.isArray(mBorderRadius) ? mBorderRadius[i] : mBorderRadius,
+            strokeWidth: shape === 'plus' || shape === 'cross' || shape === 'line' ? Array.isArray(mBorderWidth) ? mBorderWidth[i] : mBorderWidth : 0
+          });
+          var SVGMarker = SVG(elMarker).size('100%', '100%');
+          var marker = new Graphics(this.ctx).drawMarker(0, 0, _objectSpread2(_objectSpread2({}, markerConfig), {}, {
+            pointFillColor: Array.isArray(w.config.legend.markers.fillColors) ? fillcolor[i] : markerConfig.pointFillColor,
+            shape: shape
+          }));
+          var shapes = SVG.select('.apexcharts-marker').members;
+          shapes.forEach(function (shape) {
+            shape.node.style.transform = 'translate(50%, 50%)';
+          });
+          SVGMarker.add(marker);
+        } else {
+          mStyle.color = fillcolor[i];
+          mStyle.borderRadius = '100%';
+          if (!w.config.legend.markers.customHTML) {
+            mStyle.background = fillcolor[i];
+            mStyle.setProperty('background', fillcolor[i], 'important');
+
+            // override with data color
+            if (w.globals.seriesColors[i] !== undefined) {
+              mStyle.background = w.globals.seriesColors[i];
+              mStyle.color = w.globals.seriesColors[i];
+            }
+          }
+        }
+        return elMarker;
+      }
+    }, {
       key: "drawLegends",
       value: function drawLegends() {
         var me = this;
         var w = this.w;
         var fontFamily = w.config.legend.fontFamily;
         var legendNames = w.globals.seriesNames;
-        var fillcolor = w.globals.colors.slice();
+        var fillcolor = w.config.legend.markers.fillColors ? w.config.legend.markers.fillColors.slice() : w.globals.colors.slice();
         if (w.config.chart.type === 'heatmap') {
           var ranges = w.config.plotOptions.heatmap.colorScale.ranges;
           legendNames = ranges.map(function (colorScale) {
@@ -14020,46 +13997,10 @@
               }
             }
           }
-          var elMarker = document.createElement('span');
-          elMarker.classList.add('apexcharts-legend-marker');
-          var mOffsetX = w.config.legend.markers.offsetX;
-          var mOffsetY = w.config.legend.markers.offsetY;
-          var mHeight = w.config.legend.markers.height;
-          var mWidth = w.config.legend.markers.width;
-          var mBorderWidth = w.config.legend.markers.strokeWidth;
-          var mBorderColor = w.config.legend.markers.strokeColor;
-          var mBorderRadius = w.config.legend.markers.radius;
-          var mStyle = elMarker.style;
-          mStyle.background = fillcolor[i];
-          mStyle.color = fillcolor[i];
-          mStyle.setProperty('background', fillcolor[i], 'important');
-
-          // override fill color with custom legend.markers.fillColors
-          if (w.config.legend.markers.fillColors && w.config.legend.markers.fillColors[i]) {
-            mStyle.background = w.config.legend.markers.fillColors[i];
-          }
-
-          // override with data color
-          if (w.globals.seriesColors[i] !== undefined) {
-            mStyle.background = w.globals.seriesColors[i];
-            mStyle.color = w.globals.seriesColors[i];
-          }
-          mStyle.height = Array.isArray(mHeight) ? parseFloat(mHeight[i]) + 'px' : parseFloat(mHeight) + 'px';
-          mStyle.width = Array.isArray(mWidth) ? parseFloat(mWidth[i]) + 'px' : parseFloat(mWidth) + 'px';
-          mStyle.left = (Array.isArray(mOffsetX) ? parseFloat(mOffsetX[i]) : parseFloat(mOffsetX)) + 'px';
-          mStyle.top = (Array.isArray(mOffsetY) ? parseFloat(mOffsetY[i]) : parseFloat(mOffsetY)) + 'px';
-          mStyle.borderWidth = Array.isArray(mBorderWidth) ? mBorderWidth[i] : mBorderWidth;
-          mStyle.borderColor = Array.isArray(mBorderColor) ? mBorderColor[i] : mBorderColor;
-          mStyle.borderRadius = Array.isArray(mBorderRadius) ? parseFloat(mBorderRadius[i]) + 'px' : parseFloat(mBorderRadius) + 'px';
-          if (w.config.legend.markers.customHTML) {
-            if (Array.isArray(w.config.legend.markers.customHTML)) {
-              if (w.config.legend.markers.customHTML[i]) {
-                elMarker.innerHTML = w.config.legend.markers.customHTML[i]();
-              }
-            } else {
-              elMarker.innerHTML = w.config.legend.markers.customHTML();
-            }
-          }
+          var elMarker = this.createLegendMarker({
+            i: i,
+            fillcolor: fillcolor
+          });
           Graphics.setAttrs(elMarker, {
             rel: i + 1,
             'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
@@ -16326,6 +16267,7 @@
     }, {
       key: "moveDynamicPointOnHover",
       value: function moveDynamicPointOnHover(j, capturedSeries) {
+        var _pointsArr$capturedSe, _pointsArr$capturedSe2;
         var w = this.w;
         var ttCtx = this.ttCtx;
         var cx = 0;
@@ -16337,8 +16279,8 @@
           // fix error mentioned in #811
           return;
         }
-        cx = pointsArr[capturedSeries][j][0];
-        cy = pointsArr[capturedSeries][j][1] ? pointsArr[capturedSeries][j][1] : 0;
+        cx = (_pointsArr$capturedSe = pointsArr[capturedSeries][j]) === null || _pointsArr$capturedSe === void 0 ? void 0 : _pointsArr$capturedSe[0];
+        cy = ((_pointsArr$capturedSe2 = pointsArr[capturedSeries][j]) === null || _pointsArr$capturedSe2 === void 0 ? void 0 : _pointsArr$capturedSe2[1]) || 0;
         var point = w.globals.dom.baseEl.querySelector(".apexcharts-series[data\\:realIndex='".concat(capturedSeries, "'] .apexcharts-series-markers circle"));
         if (point && cy < w.globals.gridHeight && cy > 0) {
           point.setAttribute('r', hoverSize);
@@ -25002,7 +24944,7 @@
           'xmlns:data': 'ApexChartsNS',
           transform: "translate(".concat(cnf.chart.offsetX, ", ").concat(cnf.chart.offsetY, ")")
         });
-        gl.dom.Paper.node.style.background = cnf.theme.mode === 'dark' && !cnf.chart.background ? 'rgba(0, 0, 0, 0.8)' : cnf.chart.background;
+        gl.dom.Paper.node.style.background = cnf.theme.mode === 'dark' && !cnf.chart.background ? '#424242' : cnf.theme.mode === 'light' && !cnf.chart.background ? '#fff' : cnf.chart.background;
         this.setSVGDimensions();
 
         // append foreignElement (legend's parent)
