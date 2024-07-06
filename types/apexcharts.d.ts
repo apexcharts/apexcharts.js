@@ -750,7 +750,8 @@ type ApexPlotOptions = {
     }
     barLabels?: {
       enabled?: boolean
-      margin?: number
+      offsetX?: number
+      offsetY?: number
       useSeriesColors?: boolean
       fontFamily?: string
       fontWeight?: string | number

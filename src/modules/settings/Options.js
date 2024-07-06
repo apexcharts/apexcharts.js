@@ -583,7 +583,8 @@ export default class Options {
           },
           barLabels: {
             enabled: false,
-            margin: 5,
+            offsetX: 0,
+            offsetY: 0,
             useSeriesColors: true,
             fontFamily: undefined,
             fontWeight: 600,

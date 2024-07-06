@@ -386,8 +386,8 @@ class Radial extends Pie {
           textColor = w.config.chart.foreColor
         }
 
-        const x = barStartCords.x - this.barLabels.margin
-        const y = barStartCords.y
+        const x = barStartCords.x + this.barLabels.offsetX
+        const y = barStartCords.y + this.barLabels.offsetY
         let elText = graphics.drawText({
           x,
           y,
