@@ -44,6 +44,8 @@ async function processSample(page, sample, command) {
   page.on('pageerror', (error) => consoleErrors.push(error.message))
 
   await page.evaluateOnNewDocument(() => {
+    window.isATest = true
+
     //Keep track of running timers and intervals in the page
     window.activeTimerCount = 0
     window.activeIntervalCount = 0

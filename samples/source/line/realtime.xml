@@ -104,7 +104,9 @@ legend: {
 </chart>
 
 <vanilla-js-script>
-window.setInterval(function () {
+var intervalRuns = 0;
+var interval = window.setInterval(function () {
+  intervalRuns++
   getNewSeries(lastDate, {
     min: 10,
     max: 90
@@ -113,6 +115,10 @@ window.setInterval(function () {
   chart.updateSeries([{
     data: data
   }])
+
+  if (intervalRuns === 2 && window.isATest === true) {
+    clearInterval(interval)
+  }
 }, 1000)
 </vanilla-js-script>
 
