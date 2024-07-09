@@ -25,8 +25,8 @@ class BarStacked extends Bar {
 
     if (w.config.chart.stackType === '100%') {
       series = w.globals.comboCharts
-                ? seriesIndex.map((_) => w.globals.seriesPercent[_])
-                : w.globals.seriesPercent.slice()
+        ? seriesIndex.map((_) => w.globals.seriesPercent[_])
+        : w.globals.seriesPercent.slice()
     }
 
     this.series = series
@@ -46,8 +46,8 @@ class BarStacked extends Bar {
       let zeroW // zeroW is the baseline where 0 meets x axis
 
       let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
-      let {groupIndex, columnGroupIndex} =
-              this.barHelpers.getGroupIndex(realIndex)
+      let { groupIndex, columnGroupIndex } =
+        this.barHelpers.getGroupIndex(realIndex)
       this.groupCtx = this[w.globals.seriesGroups[groupIndex]]
 
       let xArrValues = []
@@ -209,7 +209,15 @@ class BarStacked extends Bar {
     return ret
   }
 
-  initialPositions(x, y, xDivision, yDivision, zeroH, zeroW, translationsIndex) {
+  initialPositions(
+    x,
+    y,
+    xDivision,
+    yDivision,
+    zeroH,
+    zeroW,
+    translationsIndex
+  ) {
     let w = this.w
 
     let barHeight, barWidth
@@ -221,13 +229,13 @@ class BarStacked extends Bar {
       if (String(userBarHeight).indexOf('%') === -1) {
         barHeight = parseInt(userBarHeight, 10)
       } else {
-        barHeight = yDivision * parseInt(userBarHeight, 10) / 100
+        barHeight = (yDivision * parseInt(userBarHeight, 10)) / 100
       }
       zeroW =
-          w.globals.padHorizontal
-        + (this.isReversed
-            ? w.globals.gridWidth - this.baseLineInvertedY
-            : this.baseLineInvertedY)
+        w.globals.padHorizontal +
+        (this.isReversed
+          ? w.globals.gridWidth - this.baseLineInvertedY
+          : this.baseLineInvertedY)
 
       // initial y position is half of barHeight * half of number of Bars
       y = (yDivision - barHeight) / 2
@@ -256,7 +264,7 @@ class BarStacked extends Bar {
       // the left-most side of the grid area.
       x = w.globals.padHorizontal + (xDivision - barWidth) / 2
     }
-    
+
     // Up to this point, barWidth is the width that will accommodate all bars
     // at each datapoint or category.
 
@@ -368,7 +376,14 @@ class BarStacked extends Bar {
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
-      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j, translationsIndex),
+      goalX: this.barHelpers.getGoalValues(
+        'x',
+        zeroW,
+        null,
+        i,
+        j,
+        translationsIndex
+      ),
       barXPosition,
       barYPosition,
       x,
@@ -398,7 +413,9 @@ class BarStacked extends Bar {
       let seriesVal = w.globals.seriesX[realIndex][j]
       if (!seriesVal) seriesVal = 0
       // TODO: move the barWidth factor to barXPosition
-      x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2 * w.globals.barGroups.length
+      x =
+        (seriesVal - w.globals.minX) / this.xRatio -
+        (barWidth / 2) * w.globals.barGroups.length
     }
 
     let barXPosition = x + columnGroupIndex * barWidth

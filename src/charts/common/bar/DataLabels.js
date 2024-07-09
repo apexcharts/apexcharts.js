@@ -247,7 +247,6 @@ export default class BarDataLabels {
     let newY = y
     if (this.barCtx.isReversed) {
       newY = y + (valIsNegative ? barHeight : -barHeight)
-      y = y - barHeight
     }
 
     switch (barDataLabelsConfig.position) {
@@ -332,10 +331,10 @@ export default class BarDataLabels {
       let xDivision = w.globals.gridWidth / w.globals.dataPoints
 
       totalDataLabelsX =
-          totalDataLabelsBcx
-        + barWidth * (w.globals.barGroups.length - 0.5)
-        - (w.globals.isXNumeric ? barWidth : xDivision)
-        + barTotalDataLabelsConfig.offsetX
+        totalDataLabelsBcx +
+        barWidth * (w.globals.barGroups.length - 0.5) -
+        (w.globals.isXNumeric ? barWidth : xDivision) +
+        barTotalDataLabelsConfig.offsetX
     }
 
     if (!w.config.chart.stacked) {
@@ -401,7 +400,6 @@ export default class BarDataLabels {
     let newX = x
     if (this.barCtx.isReversed) {
       newX = x + (valIsNegative ? -barWidth : barWidth)
-      x = w.globals.gridWidth - barWidth
       totalDataLabelsAnchor = valIsNegative ? 'start' : 'end'
     }
 
