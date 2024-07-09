@@ -339,7 +339,7 @@ var optionsCircle4 = {
     floating: true,
     position: 'right',
     offsetX: 70,
-    offsetY: 240
+    offsetY: 200
   },
 }
 

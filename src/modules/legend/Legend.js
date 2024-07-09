@@ -127,7 +127,7 @@ class Legend {
       let markers = new Markers(this.ctx)
 
       const markerConfig = markers.getMarkerConfig({
-        cssClass: 'apexcharts-marker',
+        cssClass: 'apexcharts-legend-marker apexcharts-marker',
         seriesIndex: i,
         size: mSize,
         pRadius: Array.isArray(mBorderRadius)
@@ -150,7 +150,9 @@ class Legend {
         shape,
       })
 
-      const shapes = SVG.select('.apexcharts-marker').members
+      const shapes = SVG.select(
+        '.apexcharts-legend-marker.apexcharts-marker'
+      ).members
       shapes.forEach((shape) => {
         shape.node.style.transform = 'translate(50%, 50%)'
       })
