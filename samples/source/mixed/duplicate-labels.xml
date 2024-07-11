@@ -15,6 +15,11 @@ markers: {
 tooltip: {
   shared: false,
   intersect: true,
+  y: {
+     formatter: function(val) {
+      return val.toFixed(1)
+    }
+  }
 },
 legend: {
   show: false
@@ -22,10 +27,7 @@ legend: {
 yaxis: {
   labels: {
     formatter: function(val) {
-      <!--Removal of duplicate labels can only be done within the formatter itself-->
-      let ref = val;
-      val = ref.toFixed(0);
-      return val == ref ? val : ''; <!--Don't use '===' here-->
+      return val.toFixed(0)
     }
   }
 },
