@@ -187,7 +187,7 @@ class BarStacked extends Bar {
           elDataLabelsWrap,
           elGoalsMarkers,
           type: 'bar',
-          visibleSeries: 0,
+          visibleSeries: columnGroupIndex,
         })
       }
 

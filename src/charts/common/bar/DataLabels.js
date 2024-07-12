@@ -216,7 +216,7 @@ export default class BarDataLabels {
       j,
     })
 
-    bcx = bcx - strokeWidth / 2 + columnGroupIndex * barWidth
+    bcx = bcx - strokeWidth / 2
 
     let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
 
@@ -328,12 +328,15 @@ export default class BarDataLabels {
       }
 
       // width divided into equal parts
-      let xDivision = w.globals.gridWidth / w.globals.dataPoints
+      let xDivision = dataPointsDividedWidth
 
       totalDataLabelsX =
         totalDataLabelsBcx +
-        barWidth * (w.globals.barGroups.length - 0.5) -
-        (w.globals.isXNumeric ? barWidth : xDivision) +
+        (w.globals.isXNumeric 
+          ? -barWidth * w.globals.barGroups.length / 2
+          : w.globals.barGroups.length * barWidth / 2
+            - (w.globals.barGroups.length - 1) * barWidth
+            - xDivision) +
         barTotalDataLabelsConfig.offsetX
     }
 
@@ -380,8 +383,6 @@ export default class BarDataLabels {
     let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
 
     barWidth = Math.abs(barWidth)
-
-    bcy += columnGroupIndex * barHeight
 
     let dataLabelsY =
       bcy -
@@ -631,17 +632,8 @@ export default class BarDataLabels {
       this.barCtx.lastActiveBarSerieIndex === realIndex
     ) {
       totalDataLabelText = graphics.drawText({
-        // TODO: Add gap, visibleI
-        x:
-          x -
-          (!w.globals.isBarHorizontal && w.globals.barGroups.length
-            ? (barWidth * (w.globals.barGroups.length - 1)) / 2
-            : 0),
-        y:
-          y -
-          (w.globals.isBarHorizontal && w.globals.barGroups.length
-            ? (barHeight * (w.globals.barGroups.length - 1)) / 2
-            : 0),
+        x: x,
+        y: y,
         foreColor: barTotalDataLabelsConfig.style.color,
         text: val,
         textAnchor,
