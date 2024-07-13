@@ -39,7 +39,7 @@ export default class Destroy {
     draw.each(function(i, children) {
       this.removeClass('*')
       this.off()
-      this.stop()
+      // this.stop()
     }, true)
     draw.ungroup()
     draw.clear()

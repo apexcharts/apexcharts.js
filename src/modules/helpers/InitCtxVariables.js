@@ -23,12 +23,22 @@ import Core from '../Core'
 import Data from '../Data'
 import UpdateHelpers from './UpdateHelpers'
 
-import '../../svgjs/svg.js'
-import 'svg.filter.js'
-import 'svg.pathmorphing.js'
-import 'svg.draggable.js'
-import 'svg.select.js'
-import 'svg.resize.js'
+import {SVG} from '@svgdotjs/svg.js'
+// import '../../svgjs/svg.js'
+import '../../svgjs/svg.pathmorphing.js'
+// import 'svg.filter.js'
+// import 'svg.pathmorphing.js'
+// import 'svg.draggable.js'
+// import 'svg.select.js'
+// import 'svg.resize.js'
+import '@svgdotjs/svg.filter.js'
+import '@svgdotjs/svg.draggable.js'
+import '@svgdotjs/svg.select.js'
+import '@svgdotjs/svg.resize.js'
+
+if (typeof window.SVG === 'undefined') {
+  window.SVG = SVG;
+}
 
 // global Apex object which user can use to override chart's defaults globally
 if (typeof window.Apex === 'undefined') {
