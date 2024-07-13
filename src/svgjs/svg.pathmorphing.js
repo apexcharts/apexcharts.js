@@ -12,7 +12,7 @@ import * as SVG from '@svgdotjs/svg.js'
     "use strict";
     
     SVG.extend(SVG.PathArray, {
-      morph: function(fromArray, toArray) {
+      morph: function(fromArray, toArray, pos, stepper, context) {
         var startArr = this.parse(fromArray)
         ,  destArr = this.parse(toArray)
         
@@ -72,7 +72,16 @@ import * as SVG from '@svgdotjs/svg.js'
         this.destination = new SVG.PathArray()
         this.destination._array = destArr;
 
-        return this.fromArray(destArr);
+        const finalArr = this.fromArray(startArr.map(function (from, fromIndex) {
+
+          const step = destArr[fromIndex].map((to, toIndex) => {
+            if (toIndex === 0) return to;
+            return stepper.step(from[toIndex], destArr[fromIndex][toIndex], pos, context[fromIndex], context);
+          });
+          return step;
+        }));
+        
+        return finalArr;
       }
     })
     
