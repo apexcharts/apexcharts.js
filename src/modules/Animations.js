@@ -207,9 +207,9 @@ export default class Animations {
     }
 
     el.plot(pathFrom)
-      .animate(100, 100)
+      .animate(1, delay)
       .plot(pathFrom)
-      .animate(2000, 100)
+      .animate(speed, delay)
       .plot(pathTo)
       .after(() => {
         // a flag to indicate that the original mount function can return true now as animation finished here
