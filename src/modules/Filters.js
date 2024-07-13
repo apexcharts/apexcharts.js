@@ -1,3 +1,5 @@
+import Filter from '@svgdotjs/svg.filter.js'
+
 import Utils from './../utils/Utils'
 
 /**
@@ -16,7 +18,7 @@ class Filters {
     const w = this.w
     el.unfilter(true)
 
-    let filter = new window.SVG.Filter()
+    let filter = new Filter()
     filter.size('120%', '180%', '-5%', '-40%')
 
     if (w.config.states.normal.filter !== 'none') {
@@ -53,9 +55,9 @@ class Filters {
 
     el.unfilter(true)
 
-    let filter = new window.SVG.Filter()
+    let filter = new Filter()
 
-    el.filter((add) => {
+    el.filterWith((add) => {
       const shadowAttr = w.config.chart.dropShadow
       if (shadowAttr.enabled) {
         filter = this.addShadow(add, i, shadowAttr)
@@ -66,9 +68,9 @@ class Filters {
         rgb: { type: 'linear', slope: 1.5, intercept: intensity },
       })
     })
-    el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
+    el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse')
 
-    this._scaleFilterSize(el.filterer.node)
+    this._scaleFilterSize(el.filterer().node)
   }
 
   // appends dropShadow to the filter object which can be chained with other filter effects
@@ -78,9 +80,9 @@ class Filters {
 
     el.unfilter(true)
 
-    let filter = new window.SVG.Filter()
+    let filter = new Filter()
 
-    el.filter((add) => {
+    el.filterWith((add) => {
       const shadowAttr = w.config.chart.dropShadow
       if (shadowAttr.enabled) {
         filter = this.addShadow(add, i, shadowAttr)
@@ -91,8 +93,8 @@ class Filters {
         rgb: { type: 'linear', slope: intensity },
       })
     })
-    el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
-    this._scaleFilterSize(el.filterer.node)
+    el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse')
+    this._scaleFilterSize(el.filterer().node)
   }
 
   applyFilter(el, i, filter, intensity = 0.5) {
@@ -135,7 +137,7 @@ class Filters {
       .composite(add.sourceAlpha, 'in')
       .offset(left, top)
       .gaussianBlur(blur)
-      .merge(add.source)
+      .merge(add.$source)
     return add.blend(add.source, shadowBlur)
   }
 
@@ -160,7 +162,7 @@ class Filters {
 
     color = Array.isArray(color) ? color[i] : color
 
-    el.filter((add) => {
+    el.filterWith((add) => {
       let shadowBlur = null
       if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
         // safari/firefox/IE have some alternative way to use this filter
@@ -175,17 +177,17 @@ class Filters {
           .composite(add.sourceAlpha, 'in')
           .offset(left, top)
           .gaussianBlur(blur)
-          .merge(add.source)
+          .merge(add.$source)
       }
 
       add.blend(add.source, shadowBlur)
     })
 
     if (!noUserSpaceOnUse) {
-      el.filterer.node.setAttribute('filterUnits', 'userSpaceOnUse')
+      el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse')
     }
 
-    this._scaleFilterSize(el.filterer.node)
+    this._scaleFilterSize(el.filterer().node)
 
     return el
   }

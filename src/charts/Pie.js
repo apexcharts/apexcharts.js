@@ -526,8 +526,8 @@ class Pie {
     }
 
     if (opts.dur !== 0) {
-      el.animate(opts.dur, w.globals.easing, opts.animBeginArr[opts.i])
-        .afterAll(function () {
+      el.animate(opts.dur, opts.animBeginArr[opts.i])
+        .after(function () {
           if (
             me.chartType === 'pie' ||
             me.chartType === 'donut' ||
