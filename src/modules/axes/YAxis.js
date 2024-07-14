@@ -105,10 +105,17 @@ export default class YAxis {
         const getForeColor = () => {
           return Array.isArray(yColors) ? yColors[i] : yColors
         }
+
+        let existingYLabels = Utils.listToArray(
+          w.globals.dom.baseEl.querySelectorAll(
+            `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-label tspan`
+          )
+        ).map((_) => _.textContent)
+
         let label = graphics.drawText({
           x: xPad,
           y: lY,
-          text: val,
+          text: existingYLabels.indexOf(val) >= 0 ? '' : val,
           textAnchor,
           fontSize: yaxisFontSize,
           fontFamily: yaxisFontFamily,

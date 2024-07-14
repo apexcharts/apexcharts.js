@@ -197,7 +197,7 @@ class Intersect {
       ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
       : w.config.yaxis[0].reversed
 
-    if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth && !isReversed) {
+    if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
       x = x - ttCtx.tooltipRect.ttWidth
     } else if (x < 0) {
       x = 0
@@ -228,19 +228,6 @@ class Intersect {
       (!w.config.tooltip.shared ||
         (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()))
     ) {
-      if (isReversed) {
-        x = x - ttCtx.tooltipRect.ttWidth
-        if (x < 0) {
-          x = 0
-        }
-      }
-      if (
-        isReversed &&
-        !(w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars())
-      ) {
-        y = y + barHeight - (w.globals.series[i][j] < 0 ? barHeight : 0) * 2
-      }
-
       y = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2
 
       tooltipEl.style.left = x + w.globals.translateX + 'px'
