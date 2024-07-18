@@ -1,4 +1,8 @@
-# This workflow will do a clean install of node dependencies, build samples from both the upstream and downstream repositories, 
+# This workflow will do the following when a pull request is made against the main branch:
+# 1. Clone base repository (apexcharts/apexcharts.js), install npm packages, build samples, and then generate e2e snapshots
+# 2. Clone head repository (the repository with the code in the pull request), install npm packages, build samples, get snapshots generated from the base repository, run tests, and then generate an apexcharts build
+# Test coverage results, base repository snapshots, head repository snapshots and diffs, sample HTML, and the apexcharts build are all uploaded to the workflow artifacts as they get created
+# The diffs, build, and coverage results get uploaded even if the test fails for manual inspection and to make debugging easier
 
 name: Node.js CI
 
@@ -18,11 +22,66 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Pull base repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.event.pull_request.base.repo.full_name }}
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-    - run: npm ci
-    - run: npm run test:ci
-    - run: npm run build --if-present
+    - name: Install base repository's packages
+      run: npm ci
+    - name: Generate base repository's samples
+      run: npm build:samples
+    - name: Upload Base Repository Samples
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'Base Repository Vanilla JS Samples'
+        path: samples/vanilla-js
+    - name: Generate base repository's e2e snapshots
+      run: npm run e2e:update
+    - name: Upload Base Repository e2e Snapshots
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'Base Repository Snapshots'
+        path: tests/e2e/snapshots
+    - name: Copy snapshots to temp folder
+      run: cp -r tests/e2e/snapshots ${{ runner.temp }}/snapshots
+
+    - name: Checkout head repository
+      uses: actions/checkout@v4
+    - name: Install head repository's packages
+      run: npm ci
+    - name: Generate head repository's samples
+      run: npm build:samples
+    - name: Upload Head Repository Samples
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'Head Repository Vanilla JS Samples'
+        path: samples/vanilla-js
+    - name: Delete snapshots folder
+      run: rm -rf tests/e2e/snapshots
+    - name: Copy snapshots from temp folder
+      run: cp -r ${{ runner.temp }}/snapshots tests/e2e
+    - name: Run tests
+      run: npm run test:ci
+    - name: Upload Head Repository Diffs
+      if: '!cancelled()'
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'Snapshot Diffs'
+        path: tests/e2e/diffs
+        if-no-files-found: ignore
+    - name: Build apexcharts
+      run: npm run build --if-present
+    - name: Upload Head Repository Build
+      if: '!cancelled()'
+      with:
+        name: 'Build'
+        path: dist
+    - name: Upload Head Repository Coverage
+      if: '!cancelled()'
+      with:
+        name: 'Coverage'
+        path: coverage
