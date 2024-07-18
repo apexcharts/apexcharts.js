@@ -27,9 +27,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "npm run e2e && npm run unit",
+    "test:ci": "npm run e2e:ci && npm run unit",
     "unit": "jest tests/unit/",
     "e2e": "node tests/e2e/samples.js test",
     "e2e:update": "node tests/e2e/samples.js update",
+    "e2e:ci": "node tests/e2e/samples.js test:ci",
     "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
