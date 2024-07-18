@@ -323,7 +323,6 @@ export default class Defaults {
       legend: {
         markers: {
           shape: 'square',
-          radius: 2,
         },
       },
       tooltip: {
@@ -468,7 +467,7 @@ export default class Defaults {
         },
       },
       markers: {
-        size: 5,
+        size: 7,
         strokeWidth: 1,
         strokeColors: '#111',
       },
@@ -1072,7 +1071,7 @@ export default class Defaults {
         width: 2,
       },
       markers: {
-        size: 3,
+        size: 5,
         strokeWidth: 1,
         strokeOpacity: 1,
       },

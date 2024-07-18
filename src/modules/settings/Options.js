@@ -98,7 +98,7 @@ export default class Options {
         shape: 'circle',
         offsetX: 0,
         offsetY: 0,
-        radius: 2,
+        // radius: 2, // DEPRECATED
         cssClass: '',
       },
       label: {
@@ -128,7 +128,7 @@ export default class Options {
         },
       },
       customSVG: {
-        // this will be deprecated in the next major version as it is going to be replaced with a better alternative below
+        // this will be deprecated in the next major version as it is going to be replaced with a better alternative below (image)
         SVG: undefined,
         cssClass: undefined,
         offsetX: 0,
@@ -807,13 +807,13 @@ export default class Options {
           useSeriesColors: false,
         },
         markers: {
-          size: 6,
+          size: 7,
           fillColors: undefined,
           // width: 12, // [DEPRECATED]
           // height: 12, // [DEPRECATED]
-          strokeWidth: 2,
+          strokeWidth: 1,
           shape: undefined, // circle, square, line, plus, cross, star
-          radius: 2,
+          // radius: 2, // DEPRECATED
           offsetX: 0,
           offsetY: 0,
           customHTML: undefined,
@@ -843,7 +843,7 @@ export default class Options {
         // width: 8, // only applicable when shape is rect/square [DEPRECATED]
         // height: 8, // only applicable when shape is rect/square [DEPRECATED]
         shape: 'circle', // circle, square, line, plus, cross
-        radius: 2,
+        // radius: 2, // DEPRECATED
         offsetX: 0,
         offsetY: 0,
         showNullDataPoints: true,

@@ -61,7 +61,7 @@ export default class Marker {
 
         let elPointOptions = marker.getMarkerConfig({
           cssClass: PointClasses,
-          seriesIndex: Number(pointsMain.getAttribute('data:realIndex')) // fixes apexcharts/apexcharts.js #1427
+          seriesIndex: Number(pointsMain.getAttribute('data:realIndex')), // fixes apexcharts/apexcharts.js #1427
         })
 
         point = graphics.drawMarker(0, 0, elPointOptions)
@@ -159,14 +159,19 @@ export default class Marker {
           w.globals.markers.size[index] + w.config.markers.hover.sizeOffset
       }
 
-      if (newSize < 0) newSize = 0
-      elPoint.setAttribute('r', newSize)
+      if (newSize < 0) {
+        newSize = 0
+      }
+
+      const path = this.ttCtx.tooltipUtil.getPathFromPoint(point, newSize)
+      point.setAttribute('d', path)
     }
   }
 
   oldPointSize(point) {
     const size = parseFloat(point.getAttribute('default-marker-size'))
-    point.setAttribute('r', size)
+    const path = this.ttCtx.tooltipUtil.getPathFromPoint(point, size)
+    point.setAttribute('d', path)
   }
 
   resetPointsSize() {
@@ -178,10 +183,12 @@ export default class Marker {
 
     for (let p = 0; p < points.length; p++) {
       const size = parseFloat(points[p].getAttribute('default-marker-size'))
+
       if (Utils.isNumber(size) && size >= 0) {
-        points[p].setAttribute('r', size)
+        const path = this.ttCtx.tooltipUtil.getPathFromPoint(points[p], size)
+        points[p].setAttribute('d', path)
       } else {
-        points[p].setAttribute('r', 0)
+        points[p].setAttribute('d', 'M0,0')
       }
     }
   }

@@ -630,7 +630,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-line,
 .apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,
 .apexcharts-point-annotation-label,
-.apexcharts-radar-series path,
+.apexcharts-radar-series path:not(.apexcharts-marker),
 .apexcharts-radar-series polygon,
 .apexcharts-toolbar svg,
 .apexcharts-tooltip .apexcharts-marker,
@@ -640,7 +640,7 @@ rect.legend-mouseover-inactive,
   pointer-events: none
 }
 
-.apexcharts-marker {
+.apexcharts-tooltip-active .apexcharts-marker {
   transition: .15s ease all
 }
 

@@ -114,8 +114,6 @@ export default class Scatter {
           : null,
     })
 
-    radius = markerConfig.pSize
-
     let pathFillCircle = fill.fillPath({
       seriesNumber: realIndex,
       dataPointIndex,
@@ -134,7 +132,6 @@ export default class Scatter {
 
     el.attr({
       fill: pathFillCircle,
-      r: radius,
     })
 
     if (w.config.chart.dropShadow.enabled) {
@@ -145,7 +142,7 @@ export default class Scatter {
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
       let speed = w.config.chart.animations.speed
 
-      anim.animateMarker(el, 0, radius, speed, w.globals.easing, () => {
+      anim.animateMarker(el, speed, w.globals.easing, () => {
         window.setTimeout(() => {
           anim.animationCompleted(el)
         }, 100)
@@ -158,7 +155,7 @@ export default class Scatter {
       rel: dataPointIndex,
       j: dataPointIndex,
       index: realIndex,
-      'default-marker-size': radius,
+      'default-marker-size': markerConfig.pSize,
     })
 
     filters.setSelectionFilter(el, realIndex, dataPointIndex)
