@@ -28,10 +28,11 @@ jobs:
     - name: Create head repository artifacts folder
       run: mkdir -p ${{ runner.temp }}/artifacts/head-repository
 
-    - name: Pull base repository
+    - name: Checkout base repository
       uses: actions/checkout@v4
       with:
         repository: ${{ github.event.pull_request.base.repo.full_name }}
+        ref: ${{ github.event.pull_request.base.ref }}
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
