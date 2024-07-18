@@ -59,7 +59,7 @@ jobs:
     - name: Copy Head Repository Samples To Artifacts Folder
       run: cp -r samples/vanilla-js ${{ runner.temp }}/artifacts/head-repository/samples
     - name: Delete snapshots folder
-      run: rm -rf tests/e2e/snapshots
+      run: rm -r tests/e2e/snapshots
     - name: Copy snapshots from temp folder
       run: cp -r ${{ runner.temp }}/snapshots tests/e2e
     - name: Run tests
