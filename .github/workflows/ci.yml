@@ -1,7 +1,7 @@
 # This workflow will do the following when a pull request is made against the main branch:
 # 1. Clone base repository (apexcharts/apexcharts.js), install npm packages, build samples, and then generate e2e snapshots
 # 2. Clone head repository (the repository with the code in the pull request), install npm packages, build samples, get snapshots generated from the base repository, run tests, and then generate an apexcharts build
-# Test coverage results, base repository snapshots, head repository snapshots and diffs, sample HTML, and the apexcharts build are all uploaded to the workflow artifacts as they get created
+# Test coverage results, base repository snapshots, head repository snapshots and diffs, sample HTML, and the apexcharts build are all uploaded to the workflow artifacts
 # The diffs, build, and coverage results get uploaded even if the test fails for manual inspection and to make debugging easier
 
 name: Node.js CI
@@ -23,6 +23,9 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
+    - name: Create artifacts folders
+      run: mkdir ${{ runner.temp }}/artifacts ${{ runner.temp }}/artifacts/base-repository ${{ runner.temp }}/artifacts/head-repository
+
     - name: Pull base repository
       uses: actions/checkout@v4
       with:
@@ -35,18 +38,12 @@ jobs:
       run: npm ci
     - name: Generate base repository's samples
       run: npm run build:samples
-    - name: Upload Base Repository Samples
-      uses: actions/upload-artifact@v4
-      with:
-        name: 'Base Repository Vanilla JS Samples'
-        path: samples/vanilla-js
+    - name: Copy Base Repository Samples To Artifacts Folder
+      run: cp -r samples/vanilla-js ${{ runner.temp }}/artifacts/base-repository/samples
     - name: Generate base repository's e2e snapshots
       run: npm run e2e:update
-    - name: Upload Base Repository e2e Snapshots
-      uses: actions/upload-artifact@v4
-      with:
-        name: 'Base Repository Snapshots'
-        path: tests/e2e/snapshots
+    - name: Copy Base Repository e2e Snapshots To Artifacts Folder
+      run: cp -r tests/e2e/snapshots ${{ runner.temp }}/artifacts/base-repository/snapshots
     - name: Copy snapshots to temp folder
       run: cp -r tests/e2e/snapshots ${{ runner.temp }}/snapshots
 
@@ -56,35 +53,29 @@ jobs:
       run: npm ci
     - name: Generate head repository's samples
       run: npm run build:samples
-    - name: Upload Head Repository Samples
-      uses: actions/upload-artifact@v4
-      with:
-        name: 'Head Repository Vanilla JS Samples'
-        path: samples/vanilla-js
+    - name: Copy Head Repository Samples To Artifacts Folder
+      run: cp -r samples/vanilla-js ${{ runner.temp }}/artifacts/head-repository/samples
     - name: Delete snapshots folder
       run: rm -rf tests/e2e/snapshots
     - name: Copy snapshots from temp folder
       run: cp -r ${{ runner.temp }}/snapshots tests/e2e
     - name: Run tests
       run: npm run test:ci
-    - name: Upload Head Repository Diffs
+    - name: Copy Head Repository Diffs To Artifacts Folder
       if: '!cancelled()'
-      uses: actions/upload-artifact@v4
-      with:
-        name: 'Snapshot Diffs'
-        path: tests/e2e/diffs
-        if-no-files-found: ignore
+      run: cp -r tests/e2e/diffs ${{ runner.temp }}/artifacts/head-repository/diffs
     - name: Build apexcharts
+      if: '!cancelled()'
       run: npm run build --if-present
-    - name: Upload Head Repository Build
+    - name: Copy Head Repository Build To Artifacts Folder
+      if: '!cancelled()'
+      run: cp -r dist ${{ runner.temp }}/artifacts/head-repository/build
+    - name: Copy Head Repository Test Coverage To Artifacts Folder
+      if: '!cancelled()'
+      run: cp -r coverage ${{ runner.temp }}/artifacts/head-repository/coverage
+    - name: Upload Artifacts
       if: '!cancelled()'
       uses: actions/upload-artifact@v4
       with:
-        name: 'Build'
-        path: dist
-    - name: Upload Head Repository Coverage
-      if: '!cancelled()'
-      uses: actions/upload-artifact@v4
-      with:
-        name: 'Coverage'
-        path: coverage
+        name: node${{ matrix.node-version }}${{ runner.os }}results
+        path: ${{ runner.temp }}/artifacts
