@@ -1,0 +1,28 @@
+# This workflow will do a clean install of node dependencies, build samples from both the upstream and downstream repositories, 
+
+name: Node.js CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm ci
+    - run: npm test
+    - run: npm run build --if-present
