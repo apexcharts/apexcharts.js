@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Timeline Scatter Chart</title>
+    <title>Scatter chart with different marker shapes</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
       
         #chart {
-      max-width: 650px;
+      max-width: 700px;
       margin: 35px auto;
     }
       
@@ -98,35 +98,35 @@
           
           series: [
             {
-              name: 'CIRCLE',
+              name: 'DIAMOND',
               data: generateDayWiseTimeSeries(
                 new Date('01 Feb 2017 GMT').getTime(),
-                20,
+                10,
                 {
                   min: 5,
-                  max: 24,
+                  max: 60,
                 }
               ),
             },
             {
-              name: 'SQUARE',
+              name: 'TRIANGLE',
               data: generateDayWiseTimeSeries(
                 new Date('11 Feb 2017 GMT').getTime(),
-                18,
+                10,
                 {
-                  min: 14,
-                  max: 50,
+                  min: 54,
+                  max: 90,
                 }
               ),
             },
             {
               name: 'CROSS',
               data: generateDayWiseTimeSeries(
-                new Date('19 Feb 2017 GMT').getTime(),
-                30,
+                new Date('20 Feb 2017 GMT').getTime(),
+                8,
                 {
-                  min: 15,
-                  max: 60,
+                  min: 10,
+                  max: 50,
                 }
               ),
             },
@@ -134,21 +134,67 @@
               name: 'PLUS',
               data: generateDayWiseTimeSeries(
                 new Date('28 Feb 2017 GMT').getTime(),
-                15,
+                16,
                 {
-                  min: 10,
-                  max: 80,
+                  min: 30,
+                  max: 99,
+                }
+              ),
+            },
+          
+            {
+              name: 'SQUARE',
+              data: generateDayWiseTimeSeries(
+                new Date('20 Mar 2017 GMT').getTime(),
+                10,
+                {
+                  min: 0,
+                  max: 59,
                 }
               ),
             },
             {
               name: 'LINE',
               data: generateDayWiseTimeSeries(
-                new Date('10 Mar 2017 GMT').getTime(),
-                20,
+                new Date('29 Mar 2017 GMT').getTime(),
+                10,
                 {
-                  min: 20,
+                  min: 0,
                   max: 90,
+                }
+              ),
+            },
+            {
+              name: 'CIRCLE',
+              data: generateDayWiseTimeSeries(
+                new Date('10 Apr 2017 GMT').getTime(),
+                10,
+                {
+                  min: 5,
+                  max: 35,
+                }
+              ),
+            },
+          
+            {
+              name: 'STAR',
+              data: generateDayWiseTimeSeries(
+                new Date('20 Apr 2017 GMT').getTime(),
+                10,
+                {
+                  min: 15,
+                  max: 60,
+                }
+              ),
+            },
+            {
+              name: 'SPARKLE',
+              data: generateDayWiseTimeSeries(
+                new Date('29 Apr 2017 GMT').getTime(),
+                10,
+                {
+                  min: 45,
+                  max: 99,
                 }
               ),
             },
@@ -158,35 +204,61 @@
               height: 350,
               type: 'scatter',
               zoom: {
-                type: 'xy'
-              }
+                type: 'xy',
+              },
             },
+            colors: [
+              '#FF5733',
+              '#33FF57',
+              '#3357FF',
+              '#FF33A1',
+              '#33FFF6', 
+              '#1E90FF', 
+              '#FFFF33',
+              '#A133FF',
+              '#FF9933',
+              '#FF3388',
+            ],
             dataLabels: {
-              enabled: false
+              enabled: false,
             },
             grid: {
               xaxis: {
                 lines: {
-                  show: true
-                }
+                  show: true,
+                },
               },
               yaxis: {
                 lines: {
-                  show: true
-                }
+                  show: true,
+                },
               },
             },
             xaxis: {
               type: 'datetime',
             },
-            yaxis: {
-              max: 90,
+            yaxis: {},
+            legend: {
+              markers: {
+                strokeWidth: [1, 1, 3, 3, 1, 4, 1, 1, 1],
+              },
             },
             markers: {
-              shape: ['circle', 'square', 'cross', 'plus', 'line'],
-              size: 6,
-              strokeWidth: [0, 2, 2, 2, 2],
-              radius: 2,
+              shape: [
+                'diamond',
+                'triangle',
+                'cross',
+                'plus',
+                'square',
+                'line',
+                'circle',
+                'star',
+                'sparkle',
+              ],
+              size: 10,
+              fillOpacity: 0.8,
+              strokeColors: '#333',
+              strokeWidth: [1, 1, 3, 3, 1, 4, 1, 1, 1],
             },
           },
           
