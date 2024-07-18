@@ -23,8 +23,10 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-    - name: Create artifacts folders
-      run: mkdir ${{ runner.temp }}/artifacts ${{ runner.temp }}/artifacts/base-repository ${{ runner.temp }}/artifacts/head-repository
+    - name: Create base repository artifacts folder
+      run: mkdir -p ${{ runner.temp }}/artifacts/base-repository
+    - name: Create head repository artifacts folder
+      run: mkdir -p ${{ runner.temp }}/artifacts/head-repository
 
     - name: Pull base repository
       uses: actions/checkout@v4
