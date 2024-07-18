@@ -77,11 +77,13 @@ jobs:
       run: npm run build --if-present
     - name: Upload Head Repository Build
       if: '!cancelled()'
+      uses: actions/upload-artifact@v4
       with:
         name: 'Build'
         path: dist
     - name: Upload Head Repository Coverage
       if: '!cancelled()'
+      uses: actions/upload-artifact@v4
       with:
         name: 'Coverage'
         path: coverage
