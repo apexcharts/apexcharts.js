@@ -34,7 +34,7 @@ jobs:
     - name: Install base repository's packages
       run: npm ci
     - name: Generate base repository's samples
-      run: npm build:samples
+      run: npm run build:samples
     - name: Upload Base Repository Samples
       uses: actions/upload-artifact@v4
       with:
@@ -55,7 +55,7 @@ jobs:
     - name: Install head repository's packages
       run: npm ci
     - name: Generate head repository's samples
-      run: npm build:samples
+      run: npm run build:samples
     - name: Upload Head Repository Samples
       uses: actions/upload-artifact@v4
       with:
