@@ -47,8 +47,6 @@ jobs:
       run: npm run e2e:update
     - name: Copy Base Repository e2e Snapshots To Artifacts Folder
       run: cp -r tests/e2e/snapshots ${{ runner.temp }}/artifacts/base-repository/snapshots
-    - name: Copy snapshots to temp folder
-      run: cp -r tests/e2e/snapshots ${{ runner.temp }}/snapshots
 
     - name: Checkout head repository
       uses: actions/checkout@v4
@@ -60,8 +58,8 @@ jobs:
       run: cp -r samples/vanilla-js ${{ runner.temp }}/artifacts/head-repository/samples
     - name: Delete snapshots folder
       run: rm -r tests/e2e/snapshots
-    - name: Copy snapshots from temp folder
-      run: cp -r ${{ runner.temp }}/snapshots tests/e2e
+    - name: Copy snapshots from base repository
+      run: cp -r ${{ runner.temp }}/artifacts/base-repository/snapshots tests/e2e
     - name: Run tests
       run: npm run test:ci
     - name: Copy Head Repository Diffs To Artifacts Folder
