@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-
+    name: Test & Build
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -82,3 +82,30 @@ jobs:
       with:
         name: node${{ matrix.node-version }}${{ runner.os }}results
         path: ${{ runner.temp }}/artifacts
+
+  test-reproducibility:
+    name: Test Reproducibility
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install packages
+        run: npm ci
+      - name: Build samples
+        run: npm run build:samples
+      - name: Generate snapshots
+        run: npm run e2e:update
+      - name: Run tests
+        run: npm run test:ci
+
