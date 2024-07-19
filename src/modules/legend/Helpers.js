@@ -77,14 +77,12 @@ export default class Helpers {
     return stylesheet
   }
 
-  getLegendBBox() {
+  getLegendDimensions() {
     const w = this.w
     let currLegendsWrap =
       w.globals.dom.baseEl.querySelector('.apexcharts-legend')
-    let currLegendsWrapRect = currLegendsWrap.getBoundingClientRect()
-
-    let currLegendsWrapWidth = currLegendsWrapRect.width
-    let currLegendsWrapHeight = currLegendsWrapRect.height
+    let currLegendsWrapWidth = currLegendsWrap.offsetWidth
+    let currLegendsWrapHeight = currLegendsWrap.offsetHeight
 
     return {
       clwh: currLegendsWrapHeight,

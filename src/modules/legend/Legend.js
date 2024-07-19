@@ -374,7 +374,7 @@ class Legend {
 
     elLegendWrap.style.right = 0
 
-    let lRect = this.legendHelpers.getLegendBBox()
+    let lRect = this.legendHelpers.getLegendDimensions()
 
     let dimensions = new Dimensions(this.ctx)
     let titleRect = dimensions.dimHelpers.getTitleSubtitleCoords('title')
@@ -401,7 +401,7 @@ class Legend {
   legendAlignVertical() {
     let w = this.w
 
-    let lRect = this.legendHelpers.getLegendBBox()
+    let lRect = this.legendHelpers.getLegendDimensions()
 
     let offsetY = 20
     let offsetX = 0

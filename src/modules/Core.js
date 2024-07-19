@@ -522,7 +522,7 @@ export default class Core {
       !w.config.legend.floating
     ) {
       legendHeight =
-        new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10
+        new Legend(this.ctx).legendHelpers.getLegendDimensions().clwh + 10
     }
 
     let el = w.globals.dom.baseEl.querySelector(
