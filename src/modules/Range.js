@@ -36,37 +36,6 @@ class Range {
     if (endingSeriesIndex === null) {
       endingSeriesIndex = startingSeriesIndex + 1
     }
-
-    let firstXIndex = 0
-    let lastXIndex = 0
-    let  seriesX = undefined
-    if (gl.seriesX.length >= endingSeriesIndex) {
-      seriesX = [...new Set([].concat(...gl.seriesX.slice(startingSeriesIndex, endingSeriesIndex)))]
-      firstXIndex = 0
-      lastXIndex = seriesX.length - 1
-      // Eventually brushSource will be set if the current chart is a target.
-      // That is, after the appropriate event causes us to update.
-      let brush = gl.brushSource?.w.config.chart.brush
-      if ((cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis)
-              || (brush?.enabled && brush?.autoScaleYaxis)
-      ) {
-        // Scale the Y axis to the min..max within the zoomed X axis domain.
-        if (cnf.xaxis.min) {
-          for (
-            firstXIndex = 0;
-            firstXIndex < lastXIndex && seriesX[firstXIndex] < cnf.xaxis.min;
-            firstXIndex++
-          ) {}
-        }
-        if (cnf.xaxis.max) {
-          for (
-            ;
-            lastXIndex > firstXIndex && seriesX[lastXIndex] > cnf.xaxis.max;
-            lastXIndex--
-          ) {}
-        }
-      }
-    }
     
     let series = gl.series
     let seriesMin = series
@@ -81,6 +50,17 @@ class Range {
     } else if (gl.isRangeData) {
       seriesMin = gl.seriesRangeStart
       seriesMax = gl.seriesRangeEnd
+    }
+    let autoScaleYaxis = false
+    if (gl.seriesX.length >= endingSeriesIndex) {
+      // Eventually brushSource will be set if the current chart is a target.
+      // That is, after the appropriate event causes us to update.
+      let brush = gl.brushSource?.w.config.chart.brush
+      if ((cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis)
+              || (brush?.enabled && brush?.autoScaleYaxis)
+      ) {
+        autoScaleYaxis = true
+      }
     }
 
     for (let i = startingSeriesIndex; i < endingSeriesIndex; i++) {
@@ -102,9 +82,24 @@ class Range {
         // the condition cnf.xaxis.type !== 'datetime' fixes #3897 and #3905
         gl.dataPoints = Math.max(gl.dataPoints, gl.labels.length)
       }
-      if (!seriesX) {
-        firstXIndex = 0
-        lastXIndex = gl.series[i].length
+      let firstXIndex = 0
+      let lastXIndex = series[i].length - 1
+      if (autoScaleYaxis) {
+        // Scale the Y axis to the min..max within the possibly zoomed X axis domain.
+        if (cnf.xaxis.min) {
+          for (
+            ;
+            firstXIndex < lastXIndex && gl.seriesX[i][firstXIndex] < cnf.xaxis.min;
+            firstXIndex++
+          ) {}
+        }
+        if (cnf.xaxis.max) {
+          for (
+            ;
+            lastXIndex > firstXIndex && gl.seriesX[i][lastXIndex] > cnf.xaxis.max;
+            lastXIndex--
+          ) {}
+        }
       }
       for (let j = firstXIndex; j <= lastXIndex && j < gl.series[i].length; j++) {
         let val = series[i][j]
