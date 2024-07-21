@@ -86,7 +86,7 @@ export default class BarDataLabels {
       height: 0,
     }
     if (w.config.dataLabels.enabled) {
-      const yLabel = this.barCtx.series[i][j]
+      const yLabel = w.globals.series[i][j]
 
       textRects = graphics.getTextRects(
         w.globals.yLabelFormatters[0](yLabel),
@@ -127,7 +127,7 @@ export default class BarDataLabels {
       cy: dataLabelsPos.bcy,
       cx: dataLabelsPos.bcx,
       j,
-      val: series[i][j],
+      val: w.globals.series[i][j],
       barHeight,
       barWidth,
     })
@@ -135,7 +135,7 @@ export default class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: this.barCtx.isRangeBar ? [y1, y2] : series[i][j],
+      val: this.barCtx.isRangeBar ? [y1, y2] : w.globals.series[i][j],
       i: realIndex,
       j,
       barWidth,
@@ -242,7 +242,7 @@ export default class BarDataLabels {
         dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX
     }
 
-    let valIsNegative = this.barCtx.series[i][j] < 0
+    let valIsNegative = w.globals.series[i][j] < 0
 
     let newY = y
     if (this.barCtx.isReversed) {
@@ -332,11 +332,11 @@ export default class BarDataLabels {
 
       totalDataLabelsX =
         totalDataLabelsBcx +
-        (w.globals.isXNumeric 
-          ? -barWidth * w.globals.barGroups.length / 2
-          : w.globals.barGroups.length * barWidth / 2
-            - (w.globals.barGroups.length - 1) * barWidth
-            - xDivision) +
+        (w.globals.isXNumeric
+          ? (-barWidth * w.globals.barGroups.length) / 2
+          : (w.globals.barGroups.length * barWidth) / 2 -
+            (w.globals.barGroups.length - 1) * barWidth -
+            xDivision) +
         barTotalDataLabelsConfig.offsetX
     }
 
@@ -396,7 +396,7 @@ export default class BarDataLabels {
     let totalDataLabelsY
     let totalDataLabelsAnchor = 'start'
 
-    let valIsNegative = this.barCtx.series[i][j] < 0
+    let valIsNegative = w.globals.series[i][j] < 0
 
     let newX = x
     if (this.barCtx.isReversed) {
