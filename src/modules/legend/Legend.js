@@ -120,10 +120,9 @@ class Legend {
       const SVGMarker = SVG(elMarker).size('100%', '100%')
       const marker = new Graphics(this.ctx).drawMarker(0, 0, {
         ...markerConfig,
-        pointFillColor: Array.isArray(w.config.legend.markers.fillColors)
+        pointFillColor: Array.isArray(fillcolor)
           ? fillcolor[i]
           : markerConfig.pointFillColor,
-
         shape,
       })
 
