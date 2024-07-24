@@ -120,10 +120,9 @@ class Legend {
       const SVGMarker = SVG(elMarker).size('100%', '100%')
       const marker = new Graphics(this.ctx).drawMarker(0, 0, {
         ...markerConfig,
-        pointFillColor: Array.isArray(w.config.legend.markers.fillColors)
+        pointFillColor: Array.isArray(fillcolor)
           ? fillcolor[i]
           : markerConfig.pointFillColor,
-
         shape,
       })
 
@@ -374,7 +373,7 @@ class Legend {
 
     elLegendWrap.style.right = 0
 
-    let lRect = this.legendHelpers.getLegendBBox()
+    let lRect = this.legendHelpers.getLegendDimensions()
 
     let dimensions = new Dimensions(this.ctx)
     let titleRect = dimensions.dimHelpers.getTitleSubtitleCoords('title')
@@ -401,7 +400,7 @@ class Legend {
   legendAlignVertical() {
     let w = this.w
 
-    let lRect = this.legendHelpers.getLegendBBox()
+    let lRect = this.legendHelpers.getLegendDimensions()
 
     let offsetY = 20
     let offsetX = 0

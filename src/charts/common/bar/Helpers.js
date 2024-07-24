@@ -199,7 +199,7 @@ export default class Helpers {
       })
     }
 
-    if (w.config.series[i].data[j] && w.config.series[i].data[j].fillColor) {
+    if (w.config.series[i].data[j]?.fillColor) {
       fillColor = w.config.series[i].data[j].fillColor
     }
 
@@ -214,7 +214,7 @@ export default class Helpers {
       fillType: w.config.series[i].data[j]?.fill?.type
         ? w.config.series[i].data[j]?.fill.type
         : Array.isArray(w.config.fill.type)
-        ? w.config.fill.type[i]
+        ? w.config.fill.type[realIndex]
         : w.config.fill.type,
     })
 
