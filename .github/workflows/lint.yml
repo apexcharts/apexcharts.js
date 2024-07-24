@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 22.4.1
+      - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: 22.4.1
+          node-version: 22.x
       - run: npm ci
       - name: Lint
         run: npm run lint
