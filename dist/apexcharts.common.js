@@ -1,6 +1,6 @@
 /*!
- * ApexCharts v1.0.4
- * (c) 2018-2019 Juned Chhipa
+ * ApexCharts v1.0.5
+ * (c) 2018-2024 Juned Chhipa
  * Released under the MIT License.
  */
 'use strict';
@@ -7763,6 +7763,7 @@ function () {
   _createClass(HeatMap, [{
     key: "draw",
     value: function draw(series) {
+      //console.log('draw series dude')
       var w = this.w;
       var graphics = new Graphics(this.ctx);
       var ret = graphics.group({
@@ -7999,11 +8000,10 @@ function () {
     }
   }, {
     key: "formatDisplayValue",
-    value: function formatDisplayValue(displayValue, valueSymbol) {
-      // console.log(valueSymbol)
+    value: function formatDisplayValue(displayValue, valueSymbol, modalData) {
       var finalValue;
 
-      if (displayValue === '0%' || displayValue === 0) {
+      if (Object.keys(modalData).length === 0 && modalData.constructor === Object) {
         finalValue = '-';
       } else if (valueSymbol !== '' & valueSymbol !== '%') {
         finalValue = valueSymbol + displayValue;
@@ -8047,11 +8047,12 @@ function () {
         });
         var displayValue = this.w.config.series[i].data[j].displayValue;
         var valueSymbol = this.w.config.series[i].data[j].valueSymbol;
+        var modalData = this.w.config.series[i].data[j].modalData;
         dataLabels.plotDataLabelsText({
           x: dataLabelsX,
           y: dataLabelsY,
           // todo: pass in as props
-          text: this.formatDisplayValue(displayValue, valueSymbol),
+          text: this.formatDisplayValue(displayValue, valueSymbol, modalData),
           i: i,
           j: j,
           parent: elDataLabelsWrap,
@@ -19204,6 +19205,16 @@ function () {
       return newRange;
     }
   }, {
+    key: "getPng",
+    value: function getPng() {
+      var _this2 = this;
+
+      var downloadPNG = new Exports(this.ctx);
+      return function () {
+        return downloadPNG.exportToPng(_this2.ctx);
+      };
+    }
+  }, {
     key: "toggleMenu",
     value: function toggleMenu() {
       if (this.elMenu.classList.contains('open')) {
@@ -19229,7 +19240,7 @@ function () {
   }, {
     key: "handleZoomReset",
     value: function handleZoomReset(e) {
-      var _this2 = this;
+      var _this3 = this;
 
       var charts = this.ctx.getSyncedCharts();
       charts.forEach(function (ch) {
@@ -19239,7 +19250,7 @@ function () {
           ch.revertDefaultAxisMinMax();
 
           if (typeof w.config.chart.events.zoomed === 'function') {
-            _this2.zoomCallback({
+            _this3.zoomCallback({
               min: w.config.xaxis.min,
               max: w.config.xaxis.max
             });
@@ -27781,6 +27792,10 @@ function () {
 
           if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
             me.toolbar.createToolbar();
+          }
+
+          if (w.config.chart.toolbar.getPng) {
+            w.config.chart.toolbar.getPng(me.toolbar.getPng());
           }
         }
 

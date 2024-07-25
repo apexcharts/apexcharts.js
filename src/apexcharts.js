@@ -359,6 +359,10 @@ export default class ApexCharts {
         if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
           me.toolbar.createToolbar()
         }
+
+        if (w.config.chart.toolbar.getPng) {
+          w.config.chart.toolbar.getPng(me.toolbar.getPng());
+        }
       }
 
       if (w.globals.memory.methodsToExec.length > 0) {

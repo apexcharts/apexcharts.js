@@ -362,6 +362,11 @@ export default class Toolbar {
 
     return newRange
   }
+  
+  getPng() {
+    const downloadPNG = new Exports(this.ctx);
+    return () => downloadPNG.exportToPng(this.ctx);
+  }
 
   toggleMenu() {
     if (this.elMenu.classList.contains('open')) {

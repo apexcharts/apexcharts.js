@@ -1,6 +1,6 @@
 /*!
- * ApexCharts v1.0.4
- * (c) 2018-2020 Juned Chhipa
+ * ApexCharts v1.0.5
+ * (c) 2018-2024 Juned Chhipa
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -19211,6 +19211,16 @@
         return newRange;
       }
     }, {
+      key: "getPng",
+      value: function getPng() {
+        var _this2 = this;
+
+        var downloadPNG = new Exports(this.ctx);
+        return function () {
+          return downloadPNG.exportToPng(_this2.ctx);
+        };
+      }
+    }, {
       key: "toggleMenu",
       value: function toggleMenu() {
         if (this.elMenu.classList.contains('open')) {
@@ -19236,7 +19246,7 @@
     }, {
       key: "handleZoomReset",
       value: function handleZoomReset(e) {
-        var _this2 = this;
+        var _this3 = this;
 
         var charts = this.ctx.getSyncedCharts();
         charts.forEach(function (ch) {
@@ -19246,7 +19256,7 @@
             ch.revertDefaultAxisMinMax();
 
             if (typeof w.config.chart.events.zoomed === 'function') {
-              _this2.zoomCallback({
+              _this3.zoomCallback({
                 min: w.config.xaxis.min,
                 max: w.config.xaxis.max
               });
@@ -27788,6 +27798,10 @@
 
             if (w.config.chart.toolbar.show && !w.globals.allSeriesCollapsed) {
               me.toolbar.createToolbar();
+            }
+
+            if (w.config.chart.toolbar.getPng) {
+              w.config.chart.toolbar.getPng(me.toolbar.getPng());
             }
           }
 
