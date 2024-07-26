@@ -346,6 +346,15 @@ class Utils {
       }
     }
   }
+  // prevents JS prevision errors when adding
+  static preciseAddition(a, b) {
+    let aDecimals = (String(a).split('.')[1] || '').length
+    let bDecimals = (String(b).split('.')[1] || '').length
+
+    let factor = Math.pow(10, Math.max(aDecimals, bDecimals))
+
+    return (Math.round(a * factor) + Math.round(b * factor)) / factor
+  }
 
   static isNumber(value) {
     return (
@@ -401,11 +410,11 @@ class Utils {
     // other browser
     return false
   }
-  // 
+  //
   // Find the Greatest Common Divisor of two numbers
   //
   static getGCD(a, b, p = 7) {
-    let big = Math.pow(10, (p - Math.floor(Math.log10(Math.max(a, b)))))
+    let big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))))
     a = Math.round(Math.abs(a) * big)
     b = Math.round(Math.abs(b) * big)
 
@@ -416,7 +425,7 @@ class Utils {
     }
     return a / big
   }
-  
+
   static getPrimeFactors(n) {
     const factors = []
     let divisor = 2
@@ -433,7 +442,7 @@ class Utils {
   }
 
   static mod(a, b, p = 7) {
-    let big = Math.pow(10, (p - Math.floor(Math.log10(Math.max(a, b)))))
+    let big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))))
     a = Math.round(Math.abs(a) * big)
     b = Math.round(Math.abs(b) * big)
 

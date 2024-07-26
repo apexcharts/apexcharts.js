@@ -35,23 +35,22 @@ export default class Scales {
       axisCnf.stepSize !== undefined && axisCnf.stepSize !== null
     let gotTickAmount =
       axisCnf.tickAmount !== undefined && axisCnf.tickAmount !== null
-    let ticks = gotTickAmount ?
-                  axisCnf.tickAmount :
-                    !axisCnf.forceNiceScale ?
-                      10 :
-                      gl.niceScaleDefaultTicks[
-                        Math.min(Math.round(maxTicks/2),
-                          gl.niceScaleDefaultTicks.length - 1)]
+    let ticks = gotTickAmount
+      ? axisCnf.tickAmount
+      : !axisCnf.forceNiceScale
+      ? 10
+      : gl.niceScaleDefaultTicks[
+          Math.min(
+            Math.round(maxTicks / 2),
+            gl.niceScaleDefaultTicks.length - 1
+          )
+        ]
 
     // In case we have a multi axis chart:
     // Ensure subsequent series start with the same tickAmount as series[0],
     // because the tick lines are drawn based on series[0]. This does not
     // override user defined options for any yaxis.
-    if (
-        gl.isMultipleYAxis
-        && !gotTickAmount
-        && gl.multiAxisTickAmount > 0
-    ) {
+    if (gl.isMultipleYAxis && !gotTickAmount && gl.multiAxisTickAmount > 0) {
       ticks = gl.multiAxisTickAmount
       gotTickAmount = true
     }
@@ -116,7 +115,7 @@ export default class Scales {
     }
 
     // Calculate a pretty step value based on ticks
-    
+
     // Initial stepSize
     let stepSize = range / tiks
     let niceStep = stepSize
@@ -135,11 +134,7 @@ export default class Scales {
     stepSize = niceStep
 
     // Get step value
-    if (
-      gl.isBarHorizontal &&
-      axisCnf.stepSize &&
-      axisCnf.type !== 'datetime'
-    ) {
+    if (gl.isBarHorizontal && axisCnf.stepSize && axisCnf.type !== 'datetime') {
       stepSize = axisCnf.stepSize
       gotStepSize = true
     } else if (gotStepSize) {
@@ -240,7 +235,7 @@ export default class Scales {
           // Allow a half-stepSize shift if series doesn't cross the X axis
           // to ensure graph doesn't clip. Not if it does cross, in order
           // to keep the 0 aligned with a grid line in multi axis charts.
-          let shift = stepSize / ((yMax - yMin > yMax) ? 1 : 2)
+          let shift = stepSize / (yMax - yMin > yMax ? 1 : 2)
           let tMin = shift * Math.floor(yMin / shift)
           if (Math.abs(tMin - yMin) <= shift / 2) {
             yMin = tMin
@@ -259,7 +254,10 @@ export default class Scales {
         } else {
           let yMinPrev = yMin
           yMin = stepSize * Math.floor(yMin / stepSize)
-          if (Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) > maxTicks) {
+          if (
+            Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) >
+            maxTicks
+          ) {
             // Use default ticks to compute yMin then shrinkwrap
             yMin = yMax - stepSize * ticks
             yMin += stepSize * Math.floor((yMinPrev - yMin) / stepSize)
@@ -271,7 +269,10 @@ export default class Scales {
         } else {
           let yMaxPrev = yMax
           yMax = stepSize * Math.ceil(yMax / stepSize)
-          if (Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) > maxTicks) {
+          if (
+            Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) >
+            maxTicks
+          ) {
             // Use default ticks to compute yMin then shrinkwrap
             yMax = yMin + stepSize * ticks
             yMax += stepSize * Math.ceil((yMaxPrev - yMax) / stepSize)
@@ -294,15 +295,16 @@ export default class Scales {
         tiks++
       }
     }
-    
+
     // Prune tiks down to range if series is all integers. Since tiks > range,
     // range is very low (< 10 or so). Skip this step if tickAmount is true
     // because, either the user set it, or the chart is multiscale and this
     // axis is not determining the number of grid lines.
-    if (!gotTickAmount &&
-          axisCnf.forceNiceScale &&
-            gl.yValueDecimal === 0 &&
-              tiks > range
+    if (
+      !gotTickAmount &&
+      axisCnf.forceNiceScale &&
+      gl.yValueDecimal === 0 &&
+      tiks > range
     ) {
       tiks = range
       stepSize = Math.round(range / tiks)
@@ -376,9 +378,9 @@ export default class Scales {
     // Record final tiks for use by other series that call niceScale().
     // Note: some don't, like logarithmicScale(), etc.
     if (
-        gl.isMultipleYAxis
-        && gl.multiAxisTickAmount == 0
-        && gl.ignoreYAxisIndexes.indexOf(index) < 0
+      gl.isMultipleYAxis &&
+      gl.multiAxisTickAmount == 0 &&
+      gl.ignoreYAxisIndexes.indexOf(index) < 0
     ) {
       gl.multiAxisTickAmount = tiks
     }
@@ -540,8 +542,10 @@ export default class Scales {
         : this.logarithmicScale(minY, maxY, y.logBase)
     } else {
       if (
-          maxY === -Number.MAX_VALUE || !Utils.isNumber(maxY)
-          || minY === Number.MAX_VALUE || !Utils.isNumber(minY)
+        maxY === -Number.MAX_VALUE ||
+        !Utils.isNumber(maxY) ||
+        minY === Number.MAX_VALUE ||
+        !Utils.isNumber(minY)
       ) {
         // no data in the chart.
         // Either all series collapsed or user passed a blank array.
@@ -605,7 +609,7 @@ export default class Scales {
     // 1: [1,2,3,4]
     // If the chart is stacked, it can be assumed that any axis with multiple
     // series is stacked.
-    // 
+    //
     // If this is an old chart and we are being backward compatible, it will be
     // expected that each series is associated with it's corresponding yaxis
     // through their indices, one-to-one.
@@ -613,13 +617,13 @@ export default class Scales {
     // A name match where yi != si is interpretted as yaxis[yi] and yaxis[si]
     // will both be scaled to fit the combined series[si] and series[yi].
     // Consider series named: S0,S1,S2 and yaxes A0,A1,A2.
-    // 
+    //
     // Example 1: A0 and A1 scaled the same.
     // A0.seriesName: S0
     // A1.seriesName: S0
     // A2.seriesName: S2
     // Then A1 <-> A0
-    // 
+    //
     // Example 2: A0, A1 and A2 all scaled the same.
     // A0.seriesName: S2
     // A1.seriesName: S0
@@ -629,9 +633,9 @@ export default class Scales {
     let axisSeriesMap = []
     let seriesYAxisReverseMap = []
     let unassignedSeriesIndices = []
-    let seriesNameArrayStyle = 
-            gl.series.length > cnf.yaxis.length
-            || cnf.yaxis.some((a) => Array.isArray(a.seriesName))
+    let seriesNameArrayStyle =
+      gl.series.length > cnf.yaxis.length ||
+      cnf.yaxis.some((a) => Array.isArray(a.seriesName))
 
     cnf.series.forEach((s, i) => {
       unassignedSeriesIndices.push(i)
@@ -663,22 +667,24 @@ export default class Scales {
               let remove = si
               if (yi === si || seriesNameArrayStyle) {
                 // New style, don't allow series to be double referenced
-                if (!seriesNameArrayStyle
-                      || unassignedSeriesIndices.indexOf(si) > -1
+                if (
+                  !seriesNameArrayStyle ||
+                  unassignedSeriesIndices.indexOf(si) > -1
                 ) {
-                  axisSeriesMap[yi].push([yi,si])
+                  axisSeriesMap[yi].push([yi, si])
                 } else {
                   console.warn(
-                    "Series '"
-                    + s.name
-                    + "' referenced more than once in what looks like the new style."
-                    + " That is, when using either seriesName: [],"
-                    + " or when there are more series than yaxes.")
+                    "Series '" +
+                      s.name +
+                      "' referenced more than once in what looks like the new style." +
+                      ' That is, when using either seriesName: [],' +
+                      ' or when there are more series than yaxes.'
+                  )
                 }
               } else {
                 // The series index refers to the target yaxis and the current
                 // yaxis index refers to the actual referenced series.
-                axisSeriesMap[si].push([si,yi])
+                axisSeriesMap[si].push([si, yi])
                 remove = yi
               }
               assigned = true
@@ -741,7 +747,7 @@ export default class Scales {
     const gl = this.w.globals
 
     this.setSeriesYAxisMappings()
-    
+
     let axisSeriesMap = gl.seriesYAxisMap
     let minYArr = gl.minYArr
     let maxYArr = gl.maxYArr
@@ -790,9 +796,10 @@ export default class Scales {
             } else {
               seriesGroupName = 'axis-'.concat(ai)
             }
-            let collapsed =
-                    !(gl.collapsedSeriesIndices.indexOf(si) < 0
-                      && gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0)
+            let collapsed = !(
+              gl.collapsedSeriesIndices.indexOf(si) < 0 &&
+              gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0
+            )
             if (!collapsed) {
               gl.allSeriesCollapsed = false
               groupNames.forEach((gn, gni) => {
@@ -829,7 +836,10 @@ export default class Scales {
           } else {
             groupNames.forEach((gn, gni) => {
               lowestY = Math.min(lowestY, Math.min.apply(null, sumSeries[gni]))
-              highestY = Math.max(highestY, Math.max.apply(null, sumSeries[gni]))
+              highestY = Math.max(
+                highestY,
+                Math.max.apply(null, sumSeries[gni])
+              )
             })
             minY = lowestY
             maxY = highestY
@@ -843,9 +853,10 @@ export default class Scales {
             let si = axisSeries[i]
             minY = Math.min(minY, minYArr[si])
             maxY = Math.max(maxY, maxYArr[si])
-            let collapsed =
-                  !(gl.collapsedSeriesIndices.indexOf(si) < 0
-                  && gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0)
+            let collapsed = !(
+              gl.collapsedSeriesIndices.indexOf(si) < 0 &&
+              gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0
+            )
             if (!collapsed) {
               gl.allSeriesCollapsed = false
             }
@@ -865,7 +876,7 @@ export default class Scales {
             maxY = cnf.yaxis[ai].max
           }
         }
-        gl.barGroups = gl.barGroups.filter((v,i,a) => a.indexOf(v) === i)
+        gl.barGroups = gl.barGroups.filter((v, i, a) => a.indexOf(v) === i)
         // Set the scale for this yaxis
         this.setYScaleForIndex(ai, minY, maxY)
         // Set individual series min and max to nice values
