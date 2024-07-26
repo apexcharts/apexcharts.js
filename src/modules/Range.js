@@ -501,8 +501,6 @@ class Range {
     return {
       minX: gl.minX,
       maxX: gl.maxX,
-      xAxisScale: gl.xAxisScale,
-      xTickAmount: gl.xTickAmount,
     }
   }
 

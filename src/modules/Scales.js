@@ -406,6 +406,17 @@ export default class Scales {
 
   linearScale(yMin, yMax, ticks = 10, index = 0, step = undefined) {
     let range = Math.abs(yMax - yMin)
+    let result = []
+
+    if (yMin === yMax) {
+      result = [yMin]
+
+      return {
+        result,
+        niceMin: result[0],
+        niceMax: result[result.length - 1],
+      }
+    }
 
     ticks = this._adjustTicksForSmallRange(ticks, index, range)
 
@@ -417,17 +428,18 @@ export default class Scales {
       step = range / ticks
     }
 
+    step = Math.round((step + Number.EPSILON) * 10) / 10
+
     if (ticks === Number.MAX_VALUE) {
       ticks = 5
       step = 1
     }
 
-    let result = []
     let v = yMin
 
     while (ticks >= 0) {
       result.push(v)
-      v = v + step
+      v = Utils.preciseAddition(v, step)
       ticks -= 1
     }
 
@@ -567,14 +579,15 @@ export default class Scales {
       // no data in the chart. Either all series collapsed or user passed a blank array
       gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
+      let ticks = gl.xTickAmount + 1
+
+      if (diff < 10 && diff > 1) {
+        ticks = diff
+      }
       gl.xAxisScale = this.linearScale(
         minX,
         maxX,
-        w.config.xaxis.tickAmount
-          ? w.config.xaxis.tickAmount
-          : diff < 10 && diff > 1
-          ? diff + 1
-          : 10,
+        ticks,
         0,
         w.config.xaxis.stepSize
       )
