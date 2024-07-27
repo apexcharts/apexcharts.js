@@ -98,7 +98,6 @@ class Filters {
   }
 
   applyFilter(el, i, filter, intensity = 0.5) {
-    console.log('apply filter', filter, el, i, intensity);
     switch (filter) {
       case 'none': {
         this.addNormalFilter(el, i)
