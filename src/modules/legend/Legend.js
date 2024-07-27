@@ -119,7 +119,7 @@ class Legend {
         size: mSize,
       })
 
-      const SVGMarker = SVG(elMarker, true)//.size('100%', '100%')
+      const SVGMarker = SVG().addTo(elMarker).size('100%', '100%')
       const marker = new Graphics(this.ctx).drawMarker(0, 0, {
         ...markerConfig,
         pointFillColor: Array.isArray(fillcolor)
