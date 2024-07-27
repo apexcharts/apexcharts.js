@@ -98,6 +98,7 @@ class Filters {
   }
 
   applyFilter(el, i, filter, intensity = 0.5) {
+    console.log('apply filter', filter, el, i, intensity);
     switch (filter) {
       case 'none': {
         this.addNormalFilter(el, i)
@@ -134,11 +135,11 @@ class Filters {
 
     let shadowBlur = add
       .flood(Array.isArray(color) ? color[i] : color, opacity)
-      .composite(add.sourceAlpha, 'in')
+      .composite(add.$sourceAlpha, 'in')
       .offset(left, top)
       .gaussianBlur(blur)
       .merge(add.$source)
-    return add.blend(add.source, shadowBlur)
+    return add.blend(add.$source, shadowBlur)
   }
 
   // directly adds dropShadow to the element and returns the same element.
@@ -168,19 +169,19 @@ class Filters {
         // safari/firefox/IE have some alternative way to use this filter
         shadowBlur = add
           .flood(color, opacity)
-          .composite(add.sourceAlpha, 'in')
+          .composite(add.$sourceAlpha, 'in')
           .offset(left, top)
           .gaussianBlur(blur)
       } else {
         shadowBlur = add
           .flood(color, opacity)
-          .composite(add.sourceAlpha, 'in')
+          .composite(add.$sourceAlpha, 'in')
           .offset(left, top)
           .gaussianBlur(blur)
           .merge(add.$source)
       }
 
-      add.blend(add.source, shadowBlur)
+      add.blend(add.$source, shadowBlur)
     })
 
     if (!noUserSpaceOnUse) {
