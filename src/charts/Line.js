@@ -440,7 +440,6 @@ class Line {
           strokeLineCap: null,
           fill: pathFill,
         })
-        console.log('rendered path', renderedPath);
         this.elSeries.add(renderedPath)
       }
     }

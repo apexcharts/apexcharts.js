@@ -989,9 +989,9 @@ class Pie {
   revertDataLabelsInner() {
     const w = this.w
     if (this.donutDataLabels.show) {
-      let dataLabelsGroup = w.globals.dom.Paper.select(
+      let dataLabelsGroup = w.globals.dom.Paper.findOne(
         `.apexcharts-datalabels-group`
-      ).members[0]
+      )
 
       let dataLabels = this.renderInnerDataLabels(
         dataLabelsGroup,
@@ -1004,9 +1004,9 @@ class Pie {
         }
       )
 
-      let elPie = w.globals.dom.Paper.select(
+      let elPie = w.globals.dom.Paper.findOne(
         '.apexcharts-radialbar, .apexcharts-pie'
-      ).members[0]
+      )
       elPie.add(dataLabels)
     }
   }

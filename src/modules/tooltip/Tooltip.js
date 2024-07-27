@@ -872,7 +872,7 @@ export default class Tooltip {
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
           let graphics = new Graphics(this.ctx)
-          let paths = w.globals.dom.Paper.select(
+          let paths = w.globals.dom.Paper.find(
             `.apexcharts-bar-area[j='${j}']`
           )
 

@@ -240,7 +240,7 @@ export default class ZoomPanSelection extends Toolbar {
       this.slDraggableRect
         .select({
           points: 'l, r',
-          pointSize: 8,
+          pointSize: 10,
           pointType: 'rect',
         })
         .resize({

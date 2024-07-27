@@ -829,7 +829,11 @@
           pathTo = el.attr('pathTo');
         }
         var disableAnimationForCorrupPath = function disableAnimationForCorrupPath(path) {
-          if (w.config.chart.type === 'radar') ;
+          if (w.config.chart.type === 'radar') {
+            // radar chart drops the path to bottom and hence a corrup path looks ugly
+            // therefore, disable animation for such a case
+            speed = 1;
+          }
           return "M 0 ".concat(w.globals.gridHeight);
         };
         if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
@@ -838,8 +842,10 @@
         if (!pathTo || pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
           pathTo = disableAnimationForCorrupPath();
         }
-        if (!w.globals.shouldAnimate) ;
-        el.plot(pathFrom).animate(100, 100).plot(pathFrom).animate(2000, 100).plot(pathTo).after(function () {
+        if (!w.globals.shouldAnimate) {
+          speed = 1;
+        }
+        el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo).after(function () {
           // a flag to indicate that the original mount function can return true now as animation finished here
           if (Utils$1.isNumber(j)) {
             if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
@@ -8542,7 +8548,7 @@
   register(Use, 'Use');
 
   /* Optional Modules */
-  const SVG$1 = makeInstance;
+  const SVG = makeInstance;
 
   extend([Svg, Symbol$1, Image$1, Pattern, Marker$1], getMethodsFor('viewbox'));
 
@@ -9163,8 +9169,8 @@
             return add;
           }
         }
-        var shadowBlur = add.flood(Array.isArray(color) ? color[i] : color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.$source);
-        return add.blend(add.source, shadowBlur);
+        var shadowBlur = add.flood(Array.isArray(color) ? color[i] : color, opacity).composite(add.$sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.$source);
+        return add.blend(add.$source, shadowBlur);
       }
 
       // directly adds dropShadow to the element and returns the same element.
@@ -9197,11 +9203,11 @@
           var shadowBlur = null;
           if (Utils$1.isSafari() || Utils$1.isFirefox() || Utils$1.isIE()) {
             // safari/firefox/IE have some alternative way to use this filter
-            shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur);
+            shadowBlur = add.flood(color, opacity).composite(add.$sourceAlpha, 'in').offset(left, top).gaussianBlur(blur);
           } else {
-            shadowBlur = add.flood(color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.$source);
+            shadowBlur = add.flood(color, opacity).composite(add.$sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.$source);
           }
-          add.blend(add.source, shadowBlur);
+          add.blend(add.$source, shadowBlur);
         });
         if (!noUserSpaceOnUse) {
           el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse');
@@ -22084,12 +22090,12 @@
             strokeWidth: mBorderWidth,
             size: mSize
           });
-          var SVGMarker = SVG(elMarker).size('100%', '100%');
+          var SVGMarker = SVG().addTo(elMarker).size('100%', '100%');
           var marker = new Graphics(this.ctx).drawMarker(0, 0, _objectSpread2(_objectSpread2({}, markerConfig), {}, {
             pointFillColor: Array.isArray(w.config.legend.markers.fillColors) ? fillcolor[i] : markerConfig.pointFillColor,
             shape: shape
           }));
-          var shapesEls = SVG.select('.apexcharts-legend-marker.apexcharts-marker').members;
+          var shapesEls = w.globals.dom.Paper.find('.apexcharts-legend-marker.apexcharts-marker');
           shapesEls.forEach(function (shapeEl) {
             if (shapeEl.node.classList.contains('apexcharts-marker-triangle')) {
               shapeEl.node.style.transform = 'translate(50%, 45%)';
@@ -22954,9 +22960,9 @@
         if (!this.selectionRect) return;
         var rectDim = this.selectionRect.node.getBoundingClientRect();
         if (rectDim.width > 0 && rectDim.height > 0) {
-          this.slDraggableRect.selectize({
+          this.slDraggableRect.select({
             points: 'l, r',
-            pointSize: 8,
+            pointSize: 10,
             pointType: 'rect'
           }).resize({
             constraint: {
@@ -25758,7 +25764,7 @@
       value: function deactivateHoverFilter() {
         var w = this.w;
         var graphics = new Graphics(this.ctx);
-        var allPaths = w.globals.dom.Paper.select(".apexcharts-bar-area");
+        var allPaths = w.globals.dom.Paper.find(".apexcharts-bar-area");
         for (var b = 0; b < allPaths.length; b++) {
           graphics.pathMouseLeave(allPaths[b]);
         }
@@ -25882,7 +25888,7 @@
             if (this.barSeriesHeight > 0) {
               // hover state, activate snap filter
               var graphics = new Graphics(this.ctx);
-              var paths = w.globals.dom.Paper.select(".apexcharts-bar-area[j='".concat(j, "']"));
+              var paths = w.globals.dom.Paper.find(".apexcharts-bar-area[j='".concat(j, "']"));
 
               // de-activate first
               this.deactivateHoverFilter();
@@ -29309,14 +29315,14 @@
       value: function revertDataLabelsInner() {
         var w = this.w;
         if (this.donutDataLabels.show) {
-          var dataLabelsGroup = w.globals.dom.Paper.select(".apexcharts-datalabels-group").members[0];
+          var dataLabelsGroup = w.globals.dom.Paper.findOne(".apexcharts-datalabels-group");
           var dataLabels = this.renderInnerDataLabels(dataLabelsGroup, this.donutDataLabels, {
             hollowSize: this.donutSize,
             centerX: this.centerX,
             centerY: this.centerY,
             opacity: this.donutDataLabels.show
           });
-          var elPie = w.globals.dom.Paper.select('.apexcharts-radialbar, .apexcharts-pie').members[0];
+          var elPie = w.globals.dom.Paper.findOne('.apexcharts-radialbar, .apexcharts-pie');
           elPie.add(dataLabels);
         }
       }
@@ -29908,7 +29914,7 @@
         }
         var dataLabels = null;
         if (this.radialDataLabels.show) {
-          var dataLabelsGroup = w.globals.dom.Paper.select(".apexcharts-datalabels-group").members[0];
+          var dataLabelsGroup = w.globals.dom.Paper.findOne(".apexcharts-datalabels-group");
           dataLabels = this.renderInnerDataLabels(dataLabelsGroup, this.radialDataLabels, {
             hollowSize: hollowSize,
             centerX: opts.centerX,
@@ -30092,12 +30098,12 @@
           var imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth;
           var imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight;
           if (imgWidth === undefined && imgHeight === undefined) {
-            var image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
+            var image = w.globals.dom.Paper.image(hollowFillImg, function (loader) {
               this.move(opts.centerX - loader.width / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX, opts.centerY - loader.height / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY);
             });
             g.add(image);
           } else {
-            var _image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (loader) {
+            var _image = w.globals.dom.Paper.image(hollowFillImg, function (loader) {
               this.move(opts.centerX - imgWidth / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX, opts.centerY - imgHeight / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY);
               this.size(imgWidth, imgHeight);
             });
@@ -31173,7 +31179,6 @@
               strokeLineCap: null,
               fill: pathFill
             }));
-            console.log('rendered path', renderedPath);
             this.elSeries.add(renderedPath);
           }
         }
@@ -33094,7 +33099,6 @@
 
         // gl.dom.Paper = new window.SVG.Doc(gl.dom.elWrap)
         gl.dom.Paper = window.SVG().addTo(gl.dom.elWrap);
-        console.log('paper', gl.dom.Paper);
         gl.dom.Paper.attr({
           class: 'apexcharts-svg',
           'xmlns:data': 'ApexChartsNS',
@@ -33836,7 +33840,7 @@
   (function () {
 
     extend(PathArray, {
-      morph: function morph(fromArray, toArray) {
+      morph: function morph(fromArray, toArray, pos, stepper, context) {
         var startArr = this.parse(fromArray),
           destArr = this.parse(toArray);
         var startOffsetM = 0,
@@ -33890,7 +33894,14 @@
         this._array = startArr;
         this.destination = new PathArray();
         this.destination._array = destArr;
-        return this.fromArray(destArr);
+        var finalArr = this.fromArray(startArr.map(function (from, fromIndex) {
+          var step = destArr[fromIndex].map(function (to, toIndex) {
+            if (toIndex === 0) return to;
+            return stepper.step(from[toIndex], destArr[fromIndex][toIndex], pos, context[fromIndex], context);
+          });
+          return step;
+        }));
+        return finalArr;
       }
     });
 
@@ -35092,7 +35103,7 @@
   });
 
   if (typeof window.SVG === 'undefined') {
-    window.SVG = SVG$1;
+    window.SVG = SVG;
   }
 
   // global Apex object which user can use to override chart's defaults globally
@@ -35188,7 +35199,7 @@
           this.off();
           // this.stop()
         }, true);
-        draw.ungroup();
+        // draw.ungroup()
         draw.clear();
       }
     }, {
