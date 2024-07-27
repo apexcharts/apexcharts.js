@@ -727,7 +727,7 @@ export default class Tooltip {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let allPaths = w.globals.dom.Paper.select(`.apexcharts-bar-area`)
+    let allPaths = w.globals.dom.Paper.find(`.apexcharts-bar-area`)
 
     for (let b = 0; b < allPaths.length; b++) {
       graphics.pathMouseLeave(allPaths[b])
