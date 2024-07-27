@@ -936,12 +936,12 @@ class Graphics {
         w.globals.selectedDataPoints.length > 0
       ) {
         w.globals.selectedDataPoints = []
-        const elPaths = w.globals.dom.Paper.select(
+        const elPaths = w.globals.dom.Paper.find(
           '.apexcharts-series path'
-        ).members
-        const elCircles = w.globals.dom.Paper.select(
+        )
+        const elCircles = w.globals.dom.Paper.find(
           '.apexcharts-series circle, .apexcharts-series rect'
-        ).members
+        )
 
         const deSelect = (els) => {
           Array.prototype.forEach.call(els, (el) => {

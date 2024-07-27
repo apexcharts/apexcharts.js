@@ -594,9 +594,9 @@ class Pie {
 
     let size =
       me.sliceSizes[i] + (w.config.plotOptions.pie.expandOnClick ? 4 : 0)
-    let elPath = w.globals.dom.Paper.select(
+    let elPath = w.globals.dom.Paper.findOne(
       `.apexcharts-${me.chartType.toLowerCase()}-slice-${i}`
-    ).members[0]
+    )
 
     if (elPath.attr('data:pieClicked') === 'true') {
       elPath.attr({
