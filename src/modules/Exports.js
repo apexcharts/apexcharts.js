@@ -77,19 +77,19 @@ class Exports {
   }
 
   exportToSVG() {
-    this.triggerDownload(this.svgUrl(), '.svg')
+    this.triggerDownload(this.svgUrl(), this.w.config.chart.toolbar.export.svg.filename, '.svg')
   }
 
   exportToPng() {
     this.dataURI().then((imgURI) => {
-      this.triggerDownload(imgURI, '.png')
+      this.triggerDownload(imgURI, this.w.config.chart.toolbar.export.png.filename, '.png')
     })
   }
 
-  triggerDownload(href, ext) {
+  triggerDownload(href,filename, ext) {
     const downloadLink = document.createElement('a')
     downloadLink.href = href
-    downloadLink.download = this.w.globals.chartID + ext
+    downloadLink.download = (filename ? filename: this.w.globals.chartID) + ext
     document.body.appendChild(downloadLink)
     downloadLink.click()
     document.body.removeChild(downloadLink)
