@@ -9194,12 +9194,12 @@
         var _this2 = this;
         var scale = this.w.config.chart.toolbar.export.png.scale;
         var width = this.w.config.chart.toolbar.export.png.width;
-        var options = scale ? {
+        var option = scale ? {
           scale: scale
         } : width ? {
           width: width
         } : undefined;
-        this.dataURI(options).then(function (_ref) {
+        this.dataURI(option).then(function (_ref) {
           var imgURI = _ref.imgURI,
             blob = _ref.blob;
           if (blob) {
