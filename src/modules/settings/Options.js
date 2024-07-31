@@ -809,11 +809,8 @@ export default class Options {
         markers: {
           size: 7,
           fillColors: undefined,
-          // width: 12, // [DEPRECATED]
-          // height: 12, // [DEPRECATED]
           strokeWidth: 1,
-          shape: undefined, // circle, square, line, plus, cross, star
-          // radius: 2, // DEPRECATED
+          shape: undefined,
           offsetX: 0,
           offsetY: 0,
           customHTML: undefined,
@@ -834,16 +831,12 @@ export default class Options {
         discrete: [],
         size: 0,
         colors: undefined,
-        // strokeColor: '#fff', // [DEPRECATED]
         strokeColors: '#fff',
         strokeWidth: 2,
         strokeOpacity: 0.9,
         strokeDashArray: 0,
         fillOpacity: 1,
-        // width: 8, // only applicable when shape is rect/square [DEPRECATED]
-        // height: 8, // only applicable when shape is rect/square [DEPRECATED]
-        shape: 'circle', // circle, square, line, plus, cross
-        // radius: 2, // DEPRECATED
+        shape: 'circle',
         offsetX: 0,
         offsetY: 0,
         showNullDataPoints: true,
