@@ -198,9 +198,9 @@ export default class ZoomPanSelection extends Toolbar {
       e.type === 'mouseleave'
     ) {
       // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-      let gridRectDim = me.gridRect.getBoundingClientRect()
+      let gridRectDim = me.gridRect?.getBoundingClientRect()
 
-      if (me.w.globals.mousedown) {
+      if (gridRectDim && me.w.globals.mousedown) {
         // user released the drag, now do all the calculations
         me.endX = me.clientX - gridRectDim.left
         me.endY = me.clientY - gridRectDim.top
