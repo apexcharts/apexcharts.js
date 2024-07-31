@@ -561,15 +561,6 @@
           }
         }
       }
-      // prevents JS prevision errors when adding
-    }, {
-      key: "preciseAddition",
-      value: function preciseAddition(a, b) {
-        var aDecimals = (String(a).split('.')[1] || '').length;
-        var bDecimals = (String(b).split('.')[1] || '').length;
-        var factor = Math.pow(10, Math.max(aDecimals, bDecimals));
-        return (Math.round(a * factor) + Math.round(b * factor)) / factor;
-      }
     }, {
       key: "isNumber",
       value: function isNumber(value) {
@@ -621,7 +612,7 @@
         // other browser
         return false;
       }
-      //
+      // 
       // Find the Greatest Common Divisor of two numbers
       //
     }, {
@@ -9192,14 +9183,7 @@
       key: "exportToPng",
       value: function exportToPng() {
         var _this2 = this;
-        var scale = this.w.config.chart.toolbar.export.scale;
-        var width = this.w.config.chart.toolbar.export.width;
-        var option = scale ? {
-          scale: scale
-        } : width ? {
-          width: width
-        } : undefined;
-        this.dataURI(option).then(function (_ref) {
+        this.dataURI().then(function (_ref) {
           var imgURI = _ref.imgURI,
             blob = _ref.blob;
           if (blob) {
@@ -10764,15 +10748,6 @@
         var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
         var step = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
         var range = Math.abs(yMax - yMin);
-        var result = [];
-        if (yMin === yMax) {
-          result = [yMin];
-          return {
-            result: result,
-            niceMin: result[0],
-            niceMax: result[result.length - 1]
-          };
-        }
         ticks = this._adjustTicksForSmallRange(ticks, index, range);
         if (ticks === 'dataPoints') {
           ticks = this.w.globals.dataPoints - 1;
@@ -10780,15 +10755,15 @@
         if (!step) {
           step = range / ticks;
         }
-        step = Math.round((step + Number.EPSILON) * 10) / 10;
         if (ticks === Number.MAX_VALUE) {
           ticks = 5;
           step = 1;
         }
+        var result = [];
         var v = yMin;
         while (ticks >= 0) {
           result.push(v);
-          v = Utils$1.preciseAddition(v, step);
+          v = v + step;
           ticks -= 1;
         }
         return {
@@ -10905,11 +10880,7 @@
           // no data in the chart. Either all series collapsed or user passed a blank array
           gl.xAxisScale = this.linearScale(0, 10, 10);
         } else {
-          var ticks = gl.xTickAmount + 1;
-          if (diff < 10 && diff > 1) {
-            ticks = diff;
-          }
-          gl.xAxisScale = this.linearScale(minX, maxX, ticks, 0, w.config.xaxis.stepSize);
+          gl.xAxisScale = this.linearScale(minX, maxX, w.config.xaxis.tickAmount ? w.config.xaxis.tickAmount : diff < 10 && diff > 1 ? diff + 1 : 10, 0, w.config.xaxis.stepSize);
         }
         return gl.xAxisScale;
       }
@@ -10942,7 +10913,7 @@
         // 1: [1,2,3,4]
         // If the chart is stacked, it can be assumed that any axis with multiple
         // series is stacked.
-        //
+        // 
         // If this is an old chart and we are being backward compatible, it will be
         // expected that each series is associated with it's corresponding yaxis
         // through their indices, one-to-one.
@@ -10950,13 +10921,13 @@
         // A name match where yi != si is interpretted as yaxis[yi] and yaxis[si]
         // will both be scaled to fit the combined series[si] and series[yi].
         // Consider series named: S0,S1,S2 and yaxes A0,A1,A2.
-        //
+        // 
         // Example 1: A0 and A1 scaled the same.
         // A0.seriesName: S0
         // A1.seriesName: S0
         // A2.seriesName: S2
         // Then A1 <-> A0
-        //
+        // 
         // Example 2: A0, A1 and A2 all scaled the same.
         // A0.seriesName: S2
         // A1.seriesName: S0
@@ -11001,7 +10972,7 @@
                     if (!seriesNameArrayStyle || unassignedSeriesIndices.indexOf(si) > -1) {
                       axisSeriesMap[yi].push([yi, si]);
                     } else {
-                      console.warn("Series '" + s.name + "' referenced more than once in what looks like the new style." + ' That is, when using either seriesName: [],' + ' or when there are more series than yaxes.');
+                      console.warn("Series '" + s.name + "' referenced more than once in what looks like the new style." + " That is, when using either seriesName: []," + " or when there are more series than yaxes.");
                     }
                   } else {
                     // The series index refers to the target yaxis and the current
@@ -13952,7 +13923,7 @@
           });
           var SVGMarker = SVG(elMarker).size('100%', '100%');
           var marker = new Graphics(this.ctx).drawMarker(0, 0, _objectSpread2(_objectSpread2({}, markerConfig), {}, {
-            pointFillColor: Array.isArray(fillcolor) ? fillcolor[i] : markerConfig.pointFillColor,
+            pointFillColor: Array.isArray(w.config.legend.markers.fillColors) ? fillcolor[i] : markerConfig.pointFillColor,
             shape: shape
           }));
           var shapesEls = SVG.select('.apexcharts-legend-marker.apexcharts-marker').members;
