@@ -135,7 +135,11 @@ export default class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: this.barCtx.isRangeBar ? [y1, y2] : w.globals.series[i][j],
+      val: this.barCtx.isRangeBar
+        ? [y1, y2]
+        : w.config.chart.stackType === '100%'
+        ? series[i][j]
+        : w.globals.series[i][j],
       i: realIndex,
       j,
       barWidth,
