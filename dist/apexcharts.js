@@ -9192,8 +9192,8 @@
       key: "exportToPng",
       value: function exportToPng() {
         var _this2 = this;
-        var scale = this.w.config.chart.toolbar.export.png.scale;
-        var width = this.w.config.chart.toolbar.export.png.width;
+        var scale = this.w.config.chart.toolbar.export.scale;
+        var width = this.w.config.chart.toolbar.export.width;
         var option = scale ? {
           scale: scale
         } : width ? {

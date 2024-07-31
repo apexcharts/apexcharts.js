@@ -171,8 +171,8 @@ class Exports {
   }
 
   exportToPng() {
-    const scale = this.w.config.chart.toolbar.export.png.scale
-    const width = this.w.config.chart.toolbar.export.png.width
+    const scale = this.w.config.chart.toolbar.export.scale
+    const width = this.w.config.chart.toolbar.export.width
     const option = scale ? {scale: scale}: width? {width: width}: undefined
     this.dataURI(option).then(({ imgURI, blob }) => {
       if (blob) {
