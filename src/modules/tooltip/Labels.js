@@ -23,7 +23,7 @@ export default class Labels {
     if (w.config.tooltip.custom !== undefined) {
       this.handleCustomTooltip({ i, j, y1, y2, w })
     } else {
-      this.toggleActiveInactiveSeries(shared)
+      this.toggleActiveInactiveSeries(shared, i)
     }
 
     let values = this.getValuesToPrint({
@@ -376,17 +376,26 @@ export default class Labels {
         typeof val === 'undefined' ||
         val === null ||
         w.globals.ancillaryCollapsedSeriesIndices.indexOf(t) > -1 ||
-        w.globals.collapsedSeriesIndices.indexOf(t) > -1
+        w.globals.collapsedSeriesIndices.indexOf(t) > -1 ||
+        (Array.isArray(ttCtx.tConfig.enabledOnSeries) &&
+          ttCtx.tConfig.enabledOnSeries.indexOf(t) === -1)
       ) {
         ttItemsChildren[0].parentNode.style.display = 'none'
       } else {
         ttItemsChildren[0].parentNode.style.display =
           w.config.tooltip.items.display
       }
+    } else {
+      if (
+        Array.isArray(ttCtx.tConfig.enabledOnSeries) &&
+        ttCtx.tConfig.enabledOnSeries.indexOf(t) === -1
+      ) {
+        ttItemsChildren[0].parentNode.style.display = 'none'
+      }
     }
   }
 
-  toggleActiveInactiveSeries(shared) {
+  toggleActiveInactiveSeries(shared, i) {
     const w = this.w
     if (shared) {
       // make all tooltips active
@@ -397,7 +406,7 @@ export default class Labels {
 
       // enable the first tooltip text group
       let firstTooltipSeriesGroup = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-tooltip-series-group'
+        `.apexcharts-tooltip-series-group-${i}`
       )
 
       if (firstTooltipSeriesGroup) {

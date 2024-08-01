@@ -173,13 +173,6 @@ rect.legend-mouseover-inactive,
   padding-bottom: 4px
 }
 
-.apexcharts-tooltip-series-group-hidden {
-  opacity: 0;
-  height: 0;
-  line-height: 0;
-  padding: 0 !important
-}
-
 .apexcharts-tooltip-y-group {
   padding: 6px 0 5px
 }

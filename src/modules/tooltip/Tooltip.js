@@ -138,17 +138,12 @@ export default class Tooltip {
     const tooltipEl = this.getElTooltip()
     for (let i = 0; i < ttItemsCnt; i++) {
       let gTxt = document.createElement('div')
-      gTxt.classList.add('apexcharts-tooltip-series-group')
+
+      gTxt.classList.add(
+        'apexcharts-tooltip-series-group',
+        `apexcharts-tooltip-series-group-${i}`
+      )
       gTxt.style.order = w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1
-      if (
-        this.tConfig.shared &&
-        this.tConfig.enabledOnSeries &&
-        Array.isArray(this.tConfig.enabledOnSeries)
-      ) {
-        if (this.tConfig.enabledOnSeries.indexOf(i) < 0) {
-          gTxt.classList.add('apexcharts-tooltip-series-group-hidden')
-        }
-      }
 
       let point = document.createElement('span')
       point.classList.add('apexcharts-tooltip-marker')
