@@ -823,6 +823,7 @@ type ApexLegend = {
     useSeriesColors?: boolean
   }
   markers?: {
+    size?: number
     strokeWidth?: number
     fillColors?: string[]
     shape?: ApexMarkerShape
@@ -865,7 +866,7 @@ type ApexMarkers = {
   strokeDashArray?: number | number[]
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
-  shape?: ApexMarkerShape 
+  shape?: ApexMarkerShape
   offsetX?: number
   offsetY?: number
   showNullDataPoints?: boolean
