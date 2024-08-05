@@ -817,14 +817,12 @@ type ApexLegend = {
   offsetY?: number
   formatter?(legendName: string, opts?: any): string
   tooltipHoverFormatter?(legendName: string, opts?: any): string
-  textAnchor?: string
   customLegendItems?: string[]
   labels?: {
     colors?: string | string[]
     useSeriesColors?: boolean
   }
   markers?: {
-    strokeColor?: string
     strokeWidth?: number
     fillColors?: string[]
     shape?: ApexMarkerShape
@@ -836,10 +834,6 @@ type ApexLegend = {
   itemMargin?: {
     horizontal?: number
     vertical?: number
-  }
-  containerMargin?: {
-    left?: number
-    top?: number
   }
   onItemClick?: {
     toggleDataSeries?: boolean
