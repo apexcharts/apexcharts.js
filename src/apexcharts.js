@@ -160,7 +160,10 @@ export default class ApexCharts {
 
     const allSeriesAreEmpty = ser.every((s) => s.data && s.data.length === 0)
 
-    if (ser.length === 0 || allSeriesAreEmpty && gl.collapsedSeries.length < 1) {
+    if (
+      ser.length === 0 ||
+      (allSeriesAreEmpty && gl.collapsedSeries.length < 1)
+    ) {
       this.series.handleNoData()
     }
 
@@ -630,6 +633,10 @@ export default class ApexCharts {
 
   hideSeries(seriesName) {
     this.series.hideSeries(seriesName)
+  }
+
+  highlightSeries(seriesName) {
+    this.series.highlightSeries(seriesName)
   }
 
   isSeriesHidden(seriesName) {

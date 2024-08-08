@@ -127,6 +127,63 @@ export default class Series {
     }
     return series
   }
+
+  highlightSeries(seriesName) {
+    const w = this.w
+
+    const targetElement = this.getSeriesByName(seriesName)
+    let realIndex = parseInt(targetElement.getAttribute('data:realIndex'), 10)
+
+    let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
+      `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
+    )
+
+    let seriesEl = null
+    let dataLabelEl = null
+    let yaxisEl = null
+    if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
+      if (w.globals.axisCharts) {
+        seriesEl = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-series[data\\:realIndex='${realIndex}']`
+        )
+        dataLabelEl = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-datalabels[data\\:realIndex='${realIndex}']`
+        )
+        let yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex]
+        yaxisEl = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-yaxis[rel='${yaxisIndex}']`
+        )
+      } else {
+        seriesEl = w.globals.dom.baseEl.querySelector(
+          `.apexcharts-series[rel='${realIndex + 1}']`
+        )
+      }
+    } else {
+      seriesEl = w.globals.dom.baseEl.querySelector(
+        `.apexcharts-series[rel='${realIndex + 1}'] path`
+      )
+    }
+
+    for (let se = 0; se < allSeriesEls.length; se++) {
+      allSeriesEls[se].classList.add(this.legendInactiveClass)
+    }
+
+    if (seriesEl !== null) {
+      if (!w.globals.axisCharts) {
+        seriesEl.parentNode.classList.remove(this.legendInactiveClass)
+      }
+      seriesEl.classList.remove(this.legendInactiveClass)
+
+      if (dataLabelEl !== null) {
+        dataLabelEl.classList.remove(this.legendInactiveClass)
+      }
+
+      if (yaxisEl !== null) {
+        yaxisEl.classList.remove(this.legendInactiveClass)
+      }
+    }
+  }
+
   toggleSeriesOnHover(e, targetElement) {
     const w = this.w
 
@@ -137,52 +194,9 @@ export default class Series {
     )
 
     if (e.type === 'mousemove') {
-      let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
+      let realIndex = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
-      let seriesEl = null
-      let dataLabelEl = null
-      let yaxisEl = null
-      if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
-        if (w.globals.axisCharts) {
-          seriesEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
-          )
-          dataLabelEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-datalabels[data\\:realIndex='${seriesCnt}']`
-          )
-          let yaxisIndex = w.globals.seriesYAxisReverseMap[seriesCnt]
-          yaxisEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-yaxis[rel='${yaxisIndex}']`
-          )
-        } else {
-          seriesEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-series[rel='${seriesCnt + 1}']`
-          )
-        }
-      } else {
-        seriesEl = w.globals.dom.baseEl.querySelector(
-          `.apexcharts-series[rel='${seriesCnt + 1}'] path`
-        )
-      }
-
-      for (let se = 0; se < allSeriesEls.length; se++) {
-        allSeriesEls[se].classList.add(this.legendInactiveClass)
-      }
-
-      if (seriesEl !== null) {
-        if (!w.globals.axisCharts) {
-          seriesEl.parentNode.classList.remove(this.legendInactiveClass)
-        }
-        seriesEl.classList.remove(this.legendInactiveClass)
-
-        if (dataLabelEl !== null) {
-          dataLabelEl.classList.remove(this.legendInactiveClass)
-        }
-
-        if (yaxisEl !== null) {
-          yaxisEl.classList.remove(this.legendInactiveClass)
-        }
-      }
+      this.highlightSeries(realIndex)
     } else if (e.type === 'mouseout') {
       for (let se = 0; se < allSeriesEls.length; se++) {
         allSeriesEls[se].classList.remove(this.legendInactiveClass)
@@ -289,14 +303,14 @@ export default class Series {
       let dArr = {
         type,
         paths: [],
-        realIndex: seriesEls[i].getAttribute('data:realIndex')
+        realIndex: seriesEls[i].getAttribute('data:realIndex'),
       }
 
       for (let j = 0; j < paths.length; j++) {
         if (paths[j].hasAttribute('pathTo')) {
           let d = paths[j].getAttribute('pathTo')
           dArr.paths.push({
-            d
+            d,
           })
         }
       }
@@ -317,7 +331,7 @@ export default class Series {
       'rangebar',
       'rangeArea',
       'candlestick',
-      'radar'
+      'radar',
     ]
     chartTypes.forEach((type) => {
       const paths = getPaths(type)
@@ -349,11 +363,11 @@ export default class Series {
             x: parseFloat(getAttr('x')),
             y: parseFloat(getAttr('y')),
             width: parseFloat(getAttr('width')),
-            height: parseFloat(getAttr('height'))
+            height: parseFloat(getAttr('height')),
           }
           dArr.push({
             rect,
-            color: seriesEls[i].getAttribute('color')
+            color: seriesEls[i].getAttribute('color'),
           })
         }
         w.globals.previousPaths.push(dArr)
@@ -382,7 +396,7 @@ export default class Series {
           dArr.push({
             x: seriesEls[i].getAttribute('cx'),
             y: seriesEls[i].getAttribute('cy'),
-            r: seriesEls[i].getAttribute('r')
+            r: seriesEls[i].getAttribute('r'),
           })
         }
         w.globals.previousPaths.push(dArr)
@@ -437,7 +451,7 @@ export default class Series {
         fontFamily: noDataOpts.style.fontFamily,
         foreColor: noDataOpts.style.color,
         opacity: 1,
-        class: 'apexcharts-text-nodata'
+        class: 'apexcharts-text-nodata',
       })
 
       w.globals.dom.Paper.add(titleText)

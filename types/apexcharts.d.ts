@@ -27,6 +27,7 @@ declare class ApexCharts {
   ): Promise<void>
   appendData(data: any[], overwriteInitialSeries?: boolean): void
   toggleSeries(seriesName: string): any
+  highlightSeries(seriesName: string): any
   showSeries(seriesName: string): void
   hideSeries(seriesName: string): void
   resetSeries(): void
