@@ -171,7 +171,10 @@ class Exports {
   }
 
   exportToPng() {
-    this.dataURI().then(({ imgURI, blob }) => {
+    const scale = this.w.config.chart.toolbar.export.scale
+    const width = this.w.config.chart.toolbar.export.width
+    const option = scale ? {scale: scale}: width? {width: width}: undefined
+    this.dataURI(option).then(({ imgURI, blob }) => {
       if (blob) {
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
       } else {
