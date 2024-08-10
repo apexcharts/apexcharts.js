@@ -48,6 +48,7 @@ export default class InitCtxVariables {
       'appendData',
       'appendSeries',
       'isSeriesHidden',
+      'highlightSeries',
       'toggleSeries',
       'showSeries',
       'hideSeries',
@@ -63,7 +64,7 @@ export default class InitCtxVariables {
       'clearAnnotations',
       'removeAnnotation',
       'paper',
-      'destroy'
+      'destroy',
     ]
 
     this.ctx.eventList = [
@@ -75,7 +76,7 @@ export default class InitCtxVariables {
       'touchmove',
       'touchleave',
       'mouseup',
-      'touchend'
+      'touchend',
     ]
 
     this.ctx.animations = new Animations(this.ctx)

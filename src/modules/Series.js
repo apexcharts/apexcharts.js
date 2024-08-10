@@ -196,7 +196,7 @@ export default class Series {
     if (e.type === 'mousemove') {
       let realIndex = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
-      this.highlightSeries(realIndex)
+      this.highlightSeries(w.config.series[realIndex].name)
     } else if (e.type === 'mouseout') {
       for (let se = 0; se < allSeriesEls.length; se++) {
         allSeriesEls[se].classList.remove(this.legendInactiveClass)
