@@ -157,7 +157,7 @@ export default class ApexCharts {
     let series = ser
     ser.forEach((s, realIndex) => {
       if (s.hidden) {
-        series = this.legend.legendHelpers.collapseHiddenSeries({
+        series = this.legend.legendHelpers.getSeriesAfterCollapsing({
           realIndex,
         })
       }
