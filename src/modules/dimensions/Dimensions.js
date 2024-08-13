@@ -172,7 +172,7 @@ export default class Dimensions {
       translateY = 0
     }
 
-    if (!this.isSparkline) {
+    if (!this.isSparkline && w.config.chart.type !== 'treemap') {
       this.dimXAxis.additionalPaddingXLabels(xaxisLabelCoords)
     }
 
