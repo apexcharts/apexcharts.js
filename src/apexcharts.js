@@ -154,14 +154,23 @@ export default class ApexCharts {
       return null
     }
 
-    const combo = CoreUtils.checkComboSeries(ser, w.config.chart.type)
+    let series = ser
+    ser.forEach((s, realIndex) => {
+      if (s.hidden) {
+        series = this.legend.legendHelpers.collapseHiddenSeries({
+          realIndex,
+        })
+      }
+    })
+
+    const combo = CoreUtils.checkComboSeries(series, w.config.chart.type)
     gl.comboCharts = combo.comboCharts
     gl.comboBarCount = combo.comboBarCount
 
-    const allSeriesAreEmpty = ser.every((s) => s.data && s.data.length === 0)
+    const allSeriesAreEmpty = series.every((s) => s.data && s.data.length === 0)
 
     if (
-      ser.length === 0 ||
+      series.length === 0 ||
       (allSeriesAreEmpty && gl.collapsedSeries.length < 1)
     ) {
       this.series.handleNoData()
@@ -170,7 +179,7 @@ export default class ApexCharts {
     this.events.setupEventHandlers()
 
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
-    this.data.parseData(ser)
+    this.data.parseData(series)
 
     // this is a good time to set theme colors first
     this.theme.init()
@@ -222,7 +231,7 @@ export default class ApexCharts {
 
     this.grid.createGridMask()
 
-    const elGraph = this.core.plotChartType(ser, xyRatios)
+    const elGraph = this.core.plotChartType(series, xyRatios)
 
     const dataLabels = new DataLabels(this)
     dataLabels.bringForward()
