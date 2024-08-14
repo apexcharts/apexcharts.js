@@ -255,10 +255,11 @@ class BarStacked extends Bar {
         barWidth *= parseInt(userColumnWidth, 10) / 100
       }
 
-      zeroH =
-        w.globals.gridHeight -
-        this.baseLineY[translationsIndex] -
-        (this.isReversed ? w.globals.gridHeight : 0)
+      if (this.isReversed) {
+        zeroH = this.baseLineY[translationsIndex]
+      } else {
+        zeroH = w.globals.gridHeight - this.baseLineY[translationsIndex]
+      }
 
       // initial x position is the left-most edge of the first bar relative to
       // the left-most side of the grid area.
