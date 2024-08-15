@@ -298,13 +298,19 @@
                 }
               }
             },
+            // In order to align the ticks of multiple yaxes with the charts horizontal grid
+            // lines, the scaling of the first [unhidden] yaxis determines the number
+            // of grid lines and hence the number of ticks for all subsequent yaxes, unless
+            // they specify a tickAmount.
+            // We want the stacked bars to have the best possible resolution
+            // visually so they have been listed first.
             yaxis: [
+              {
+                seriesName: ['Bar1','Bar2','Bar3','bar4']
+              },
               {
                 seriesName: 'Line',
                 opposite: true
-              },
-              {
-                seriesName: ['Bar1','Bar2','Bar3','bar4']
               }
             ],
             legend: {

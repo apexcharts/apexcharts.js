@@ -139,6 +139,7 @@ describe('yaxis scale to ignore duplication if fractions are present in series',
         ],
       },
       yaxis: {
+        tickAmount: 8,
         labels: {
           formatter: (val) => {
             return val.toFixed(2)
