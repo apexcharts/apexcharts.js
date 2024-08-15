@@ -29,6 +29,9 @@ export default class Scales {
       axisCnf = w.config.yaxis[index]
       maxTicks = Math.max((gl.svgHeight - 100) / 15, 2)
     }
+    if (!Utils.isNumber(maxTicks)) {
+      maxTicks = 10
+    }
     gotMin = axisCnf.min !== undefined && axisCnf.min !== null
     gotMax = axisCnf.max !== undefined && axisCnf.min !== null
     let gotStepSize =
@@ -37,8 +40,6 @@ export default class Scales {
       axisCnf.tickAmount !== undefined && axisCnf.tickAmount !== null
     let ticks = gotTickAmount
       ? axisCnf.tickAmount
-      : !axisCnf.forceNiceScale
-      ? 10
       : gl.niceScaleDefaultTicks[
           Math.min(
             Math.round(maxTicks / 2),
@@ -100,19 +101,17 @@ export default class Scales {
     // Determine Range
     let range = Math.abs(yMax - yMin)
 
-    if (axisCnf.forceNiceScale) {
-      // Snap min or max to zero if close
-      let proximityRatio = 0.15
-      if (!gotMin && yMin > 0 && yMin / range < proximityRatio) {
-        yMin = 0
-        gotMin = true
-      }
-      if (!gotMax && yMax < 0 && -yMax / range < proximityRatio) {
-        yMax = 0
-        gotMax = true
-      }
-      range = Math.abs(yMax - yMin)
+    // Snap min or max to zero if close
+    let proximityRatio = 0.15
+    if (!gotMin && yMin > 0 && yMin / range < proximityRatio) {
+      yMin = 0
+      gotMin = true
     }
+    if (!gotMax && yMax < 0 && -yMax / range < proximityRatio) {
+      yMax = 0
+      gotMax = true
+    }
+    range = Math.abs(yMax - yMin)
 
     // Calculate a pretty step value based on ticks
 
@@ -231,18 +230,25 @@ export default class Scales {
     } else {
       // Snap range to ticks
       if (!gotMin && !gotMax) {
-        if (gotTickAmount) {
-          // Allow a half-stepSize shift if series doesn't cross the X axis
-          // to ensure graph doesn't clip. Not if it does cross, in order
-          // to keep the 0 aligned with a grid line in multi axis charts.
-          let shift = stepSize / (yMax - yMin > yMax ? 1 : 2)
-          let tMin = shift * Math.floor(yMin / shift)
-          if (Math.abs(tMin - yMin) <= shift / 2) {
-            yMin = tMin
-            yMax = yMin + stepSize * tiks
-          } else {
-            yMax = shift * Math.ceil(yMax / shift)
-            yMin = yMax - stepSize * tiks
+        if (gl.isMultipleYAxis && gotTickAmount) {
+          // Ensure graph doesn't clip.
+          let tMin = stepSize * Math.floor(yMin / stepSize)
+          let tMax = tMin + stepSize * tiks
+          if (tMax < yMax) {
+            stepSize *= 2
+          }
+          yMin = tMin
+          tMax = yMax
+          yMax = yMin + stepSize * tiks
+          // Snap min or max to zero if possible
+          range = Math.abs(yMax - yMin)
+          if (yMin > 0 && yMin < Math.abs(tMax - yMax)) {
+            yMin = 0
+            yMax = stepSize * tiks
+          }
+          if (yMax < 0 && -yMax < Math.abs(tMin - yMin)) {
+            yMax = 0
+            yMin = -stepSize * tiks
           }
         } else {
           yMin = stepSize * Math.floor(yMin / stepSize)
@@ -297,9 +303,9 @@ export default class Scales {
     }
 
     // Prune tiks down to range if series is all integers. Since tiks > range,
-    // range is very low (< 10 or so). Skip this step if tickAmount is true
-    // because, either the user set it, or the chart is multiscale and this
-    // axis is not determining the number of grid lines.
+    // range is very low (< 10 or so). Skip this step if gotTickAmount is true
+    // because either the user set tickAmount or the chart is multiscale and
+    // this axis is not determining the number of grid lines.
     if (
       !gotTickAmount &&
       axisCnf.forceNiceScale &&
