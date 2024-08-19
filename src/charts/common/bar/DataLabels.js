@@ -145,8 +145,8 @@ export default class BarDataLabels {
       val: this.barCtx.isRangeBar
         ? [y1, y2]
         : w.config.chart.stackType === '100%'
-        ? series[i][j]
-        : w.globals.series[i][j],
+        ? series[realIndex][j]
+        : w.globals.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,
