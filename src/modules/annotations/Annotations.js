@@ -286,11 +286,14 @@ export default class Annotations {
     )
 
     // annotations added externally should be cleared out too
-    w.globals.memory.methodsToExec.map((m, i) => {
-      if (m.label === 'addText' || m.label === 'addAnnotation') {
+    for (let i = w.globals.memory.methodsToExec.length - 1; i >= 0; i--) {
+      if (
+        w.globals.memory.methodsToExec[i].label === 'addText' ||
+        w.globals.memory.methodsToExec[i].label === 'addAnnotation'
+      ) {
         w.globals.memory.methodsToExec.splice(i, 1)
       }
-    })
+    }
 
     annos = Utils.listToArray(annos)
 
