@@ -201,6 +201,8 @@ type ApexChart = {
       png?: {
         filename?: undefined | string
       }
+      width?: number
+      scale?: number
     }
     autoSelected?: 'zoom' | 'selection' | 'pan'
   }

@@ -378,6 +378,8 @@ export default class Options {
             svg: {
               filename: undefined,
             },
+            scale: undefined,
+            width: undefined,
           },
           autoSelected: 'zoom', // accepts -> zoom, pan, selection
         },

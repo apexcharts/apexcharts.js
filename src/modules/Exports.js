@@ -46,8 +46,13 @@ class Exports {
     return result
   }
 
-  getSvgString(scale) {
-    if (scale == undefined) {
+  getSvgString() {
+    const w = this.w
+    const width = w.config.chart.toolbar.export.width
+    let scale =
+      w.config.chart.toolbar.export.scale || width / w.globals.svgWidth
+
+    if (!scale) {
       scale = 1 // if no scale is specified, don't scale...
     }
     let svgString = this.w.globals.dom.Paper.svg()
@@ -122,7 +127,7 @@ class Exports {
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
 
-      const svgData = this.getSvgString(scale)
+      const svgData = this.getSvgString()
 
       if (window.canvg && Utils.isIE11()) {
         // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
@@ -173,7 +178,11 @@ class Exports {
   exportToPng() {
     const scale = this.w.config.chart.toolbar.export.scale
     const width = this.w.config.chart.toolbar.export.width
-    const option = scale ? {scale: scale}: width? {width: width}: undefined
+    const option = scale
+      ? { scale: scale }
+      : width
+      ? { width: width }
+      : undefined
     this.dataURI(option).then(({ imgURI, blob }) => {
       if (blob) {
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
