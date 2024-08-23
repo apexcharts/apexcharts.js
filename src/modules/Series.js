@@ -216,10 +216,13 @@ export default class Series {
       }
     }
 
-    const removeInactiveClassFromHoveredRange = (range) => {
+    const removeInactiveClassFromHoveredRange = (range, rangeMax) => {
       for (let i = 0; i < allHeatMapElements.length; i++) {
-        const val = parseInt(allHeatMapElements[i].getAttribute('val'), 10)
-        if (val >= range.from && val <= range.to) {
+        const val = Number(allHeatMapElements[i].getAttribute('val'))
+        if (
+          val >= range.from &&
+          (val < range.to || (range.to === rangeMax && val === rangeMax))
+        ) {
           allHeatMapElements[i].classList.remove(this.legendInactiveClass)
         }
       }
@@ -229,9 +232,11 @@ export default class Series {
       let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
       activeInactive('add')
 
-      const range = w.config.plotOptions.heatmap.colorScale.ranges[seriesCnt]
+      const ranges = w.config.plotOptions.heatmap.colorScale.ranges
+      const range = ranges[seriesCnt]
+      const rangeMax = ranges.reduce((acc, cur) => Math.max(acc, cur.to), 0)
 
-      removeInactiveClassFromHoveredRange(range)
+      removeInactiveClassFromHoveredRange(range, rangeMax)
     } else if (e.type === 'mouseout') {
       activeInactive('remove')
     }
