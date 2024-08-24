@@ -246,8 +246,6 @@ class Grid {
     const graphics = new Graphics(this.ctx)
     const offX = w.globals.barPadForNumericAxis
 
-    if (type === 'column' && w.config.xaxis.type === 'datetime') return
-
     const color = w.config.grid[type].colors[c]
 
     let rect = graphics.drawRect(
@@ -522,13 +520,17 @@ class Grid {
       w.config.grid.column.colors !== undefined &&
       w.config.grid.column.colors.length > 0
     ) {
-      const xc =
+      let xc =
         !w.globals.isBarHorizontal &&
         w.config.xaxis.tickPlacement === 'on' &&
         (w.config.xaxis.type === 'category' ||
           w.config.xaxis.convertedCatToNumeric)
           ? xCount - 1
           : xCount
+
+      if (w.globals.isXNumeric) {
+        xc = w.globals.xAxisScale.result.length - 1
+      }
       let x1 = w.globals.padHorizontal
       let y1 = 0
       let x2 = w.globals.padHorizontal + w.globals.gridWidth / xc
@@ -536,6 +538,13 @@ class Grid {
       for (let i = 0, c = 0; i < xCount; i++, c++) {
         if (c >= w.config.grid.column.colors.length) {
           c = 0
+        }
+
+        if (w.config.xaxis.type === 'datetime') {
+          x1 = this.xaxisLabels[i].position
+          x2 =
+            (this.xaxisLabels[i + 1]?.position || w.globals.gridWidth) -
+            this.xaxisLabels[i].position
         }
         this._drawGridBandRect({
           c,
