@@ -432,7 +432,7 @@ export default class Tooltip {
 
   seriesHoverByContext({ chartCtx, ttCtx, opt, e }) {
     let w = chartCtx.w
-    const tooltipEl = this.getElTooltip()
+    const tooltipEl = this.getElTooltip(chartCtx)
 
     if (!tooltipEl) return
 
@@ -515,6 +515,12 @@ export default class Tooltip {
     const tooltipEl = this.getElTooltip()
     const xcrosshairs = this.getElXCrosshairs()
 
+    let syncedCharts = []
+    if (w.config.chart.group) {
+      // we need to fallback to sticky tooltip in case charts are synced
+      syncedCharts = this.ctx.getSyncedCharts()
+    }
+
     let isStickyTooltip =
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
@@ -548,7 +554,10 @@ export default class Tooltip {
         this.ycrosshairs.classList.add('apexcharts-active')
       }
 
-      if (isStickyTooltip && !this.showOnIntersect) {
+      if (
+        (isStickyTooltip && !this.showOnIntersect) ||
+        syncedCharts.length > 1
+      ) {
         this.handleStickyTooltip(e, clientX, clientY, opt)
       } else {
         if (
