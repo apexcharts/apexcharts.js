@@ -14,6 +14,7 @@ class Fill {
 
     this.opts = null
     this.seriesIndex = 0
+    this.patternIDs = []
   }
 
   clippedImgArea(params) {
@@ -176,23 +177,29 @@ class Fill {
       let imgSrc = cnf.fill.image.src
 
       let patternID = opts.patternID ? opts.patternID : ''
-      this.clippedImgArea({
-        opacity: fillOpacity,
-        image: Array.isArray(imgSrc)
-          ? opts.seriesNumber < imgSrc.length
-            ? imgSrc[opts.seriesNumber]
-            : imgSrc[0]
-          : imgSrc,
-        width: opts.width ? opts.width : undefined,
-        height: opts.height ? opts.height : undefined,
-        patternUnits: opts.patternUnits,
-        patternID: `pattern${w.globals.cuid}${
-          opts.seriesNumber + 1
-        }${patternID}`,
-      })
-      pathFill = `url(#pattern${w.globals.cuid}${
+      const patternKey = `pattern${w.globals.cuid}${
         opts.seriesNumber + 1
-      }${patternID})`
+      }${patternID}`
+
+      if (this.patternIDs.indexOf(patternKey) === -1) {
+        console.log('patternKey', patternKey)
+        this.clippedImgArea({
+          opacity: fillOpacity,
+          image: Array.isArray(imgSrc)
+            ? opts.seriesNumber < imgSrc.length
+              ? imgSrc[opts.seriesNumber]
+              : imgSrc[0]
+            : imgSrc,
+          width: opts.width ? opts.width : undefined,
+          height: opts.height ? opts.height : undefined,
+          patternUnits: opts.patternUnits,
+          patternID: patternKey,
+        })
+
+        this.patternIDs.push(patternKey)
+      }
+
+      pathFill = `url(#${patternKey})`
     } else if (fillType === 'gradient') {
       pathFill = gradientFill
     } else if (fillType === 'pattern') {

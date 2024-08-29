@@ -20,25 +20,67 @@ class Exports {
   }
 
   getSvgString() {
-    const w = this.w
-    const width = w.config.chart.toolbar.export.width
-    let scale =
-      w.config.chart.toolbar.export.scale || width / w.globals.svgWidth
+    return new Promise((resolve) => {
+      const w = this.w
+      const width = w.config.chart.toolbar.export.width
+      let scale =
+        w.config.chart.toolbar.export.scale || width / w.globals.svgWidth
 
-    if (!scale) {
-      scale = 1 // if no scale is specified, don't scale...
-    }
-    let svgString = this.w.globals.dom.Paper.svg()
-    // in case the scale is different than 1, the svg needs to be rescaled
-    if (scale !== 1) {
+      if (!scale) {
+        scale = 1 // if no scale is specified, don't scale...
+      }
+      let svgString = this.w.globals.dom.Paper.svg()
+
       // clone the svg node so it remains intact in the UI
       const svgNode = this.w.globals.dom.Paper.node.cloneNode(true)
-      // scale the image
-      this.scaleSvgNode(svgNode, scale)
-      // get the string representation of the svgNode
-      svgString = new XMLSerializer().serializeToString(svgNode)
-    }
-    return svgString.replace(/&nbsp;/g, '&#160;')
+
+      // in case the scale is different than 1, the svg needs to be rescaled
+
+      if (scale !== 1) {
+        // scale the image
+        this.scaleSvgNode(svgNode, scale)
+      }
+      // Convert image URLs to base64
+      this.convertImagesToBase64(svgNode).then(() => {
+        svgString = new XMLSerializer().serializeToString(svgNode)
+        resolve(svgString.replace(/&nbsp;/g, '&#160;'))
+      })
+    })
+  }
+
+  convertImagesToBase64(svgNode) {
+    const images = svgNode.getElementsByTagName('image')
+    const promises = Array.from(images).map((img) => {
+      const href = img.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
+      if (href && !href.startsWith('data:')) {
+        return this.getBase64FromUrl(href)
+          .then((base64) => {
+            img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', base64)
+          })
+          .catch((error) => {
+            console.error('Error converting image to base64:', error)
+          })
+      }
+      return Promise.resolve()
+    })
+    return Promise.all(promises)
+  }
+
+  getBase64FromUrl(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'Anonymous'
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        resolve(canvas.toDataURL())
+      }
+      img.onerror = reject
+      img.src = url
+    })
   }
 
   cleanup() {
@@ -70,11 +112,15 @@ class Exports {
   }
 
   svgUrl() {
-    this.cleanup()
-
-    const svgData = this.getSvgString()
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-    return URL.createObjectURL(svgBlob)
+    return new Promise((resolve) => {
+      this.cleanup()
+      this.getSvgString().then((svgData) => {
+        const svgBlob = new Blob([svgData], {
+          type: 'image/svg+xml;charset=utf-8',
+        })
+        resolve(URL.createObjectURL(svgBlob))
+      })
+    })
   }
 
   dataURI(options) {
@@ -100,35 +146,37 @@ class Exports {
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
 
-      const svgData = this.getSvgString()
+      this.getSvgString().then((svgData) => {
+        const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
+        let img = new Image()
+        img.crossOrigin = 'anonymous'
 
-      const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
-      let img = new Image()
-      img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0)
 
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0)
-
-        if (canvas.msToBlob) {
-          // Microsoft Edge can't navigate to data urls, so we return the blob instead
-          let blob = canvas.msToBlob()
-          resolve({ blob })
-        } else {
-          let imgURI = canvas.toDataURL('image/png')
-          resolve({ imgURI })
+          if (canvas.msToBlob) {
+            // Microsoft Edge can't navigate to data urls, so we return the blob instead
+            let blob = canvas.msToBlob()
+            resolve({ blob })
+          } else {
+            let imgURI = canvas.toDataURL('image/png')
+            resolve({ imgURI })
+          }
         }
-      }
 
-      img.src = svgUrl
+        img.src = svgUrl
+      })
     })
   }
 
   exportToSVG() {
-    this.triggerDownload(
-      this.svgUrl(),
-      this.w.config.chart.toolbar.export.svg.filename,
-      '.svg'
-    )
+    this.svgUrl().then((url) => {
+      this.triggerDownload(
+        url,
+        this.w.config.chart.toolbar.export.svg.filename,
+        '.svg'
+      )
+    })
   }
 
   exportToPng() {

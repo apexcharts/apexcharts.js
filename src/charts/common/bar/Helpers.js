@@ -185,7 +185,7 @@ export default class Helpers {
 
   getPathFillColor(series, i, j, realIndex) {
     const w = this.w
-    let fill = new Fill(this.barCtx.ctx)
+    let fill = this.barCtx.ctx.fill
 
     let fillColor = null
     let seriesNumber = this.barCtx.barOptions.distributed ? j : i
