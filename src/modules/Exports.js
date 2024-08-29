@@ -19,33 +19,6 @@ class Exports {
     svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight)
   }
 
-  fixSvgStringForIe11(svgData) {
-    // IE11 generates broken SVG that we have to fix by using regex
-    if (!Utils.isIE11()) {
-      // not IE11 - noop
-      return svgData.replace(/&nbsp;/g, '&#160;')
-    }
-
-    // replace second occurrence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
-    let nXmlnsSeen = 0
-    let result = svgData.replace(
-      /xmlns="http:\/\/www.w3.org\/2000\/svg"/g,
-      (match) => {
-        nXmlnsSeen++
-        return nXmlnsSeen === 2
-          ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.dev"'
-          : match
-      }
-    )
-
-    // remove the invalid empty namespace declarations
-    result = result.replace(/xmlns:NS\d+=""/g, '')
-    // remove these broken namespaces from attributes
-    result = result.replace(/NS\d+:(\w+:\w+=")/g, '$1')
-
-    return result
-  }
-
   getSvgString() {
     const w = this.w
     const width = w.config.chart.toolbar.export.width
@@ -65,7 +38,7 @@ class Exports {
       // get the string representation of the svgNode
       svgString = new XMLSerializer().serializeToString(svgNode)
     }
-    return this.fixSvgStringForIe11(svgString)
+    return svgString.replace(/&nbsp;/g, '&#160;')
   }
 
   cleanup() {
@@ -129,41 +102,24 @@ class Exports {
 
       const svgData = this.getSvgString()
 
-      if (window.canvg && Utils.isIE11()) {
-        // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
-        // without ignoreClear we lose our background color; without ignoreDimensions some grid lines become invisible
-        let v = window.canvg.Canvg.fromString(ctx, svgData, {
-          ignoreClear: true,
-          ignoreDimensions: true,
-        })
-        // render the svg to canvas
-        v.start()
+      const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
+      let img = new Image()
+      img.crossOrigin = 'anonymous'
 
-        let blob = canvas.msToBlob()
-        // dispose - missing this will cause a memory leak
-        v.stop()
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0)
 
-        resolve({ blob })
-      } else {
-        const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
-        let img = new Image()
-        img.crossOrigin = 'anonymous'
-
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0)
-
-          if (canvas.msToBlob) {
-            // IE and Edge can't navigate to data urls, so we return the blob instead
-            let blob = canvas.msToBlob()
-            resolve({ blob })
-          } else {
-            let imgURI = canvas.toDataURL('image/png')
-            resolve({ imgURI })
-          }
+        if (canvas.msToBlob) {
+          // Microsoft Edge can't navigate to data urls, so we return the blob instead
+          let blob = canvas.msToBlob()
+          resolve({ blob })
+        } else {
+          let imgURI = canvas.toDataURL('image/png')
+          resolve({ imgURI })
         }
-
-        img.src = svgUrl
       }
+
+      img.src = svgUrl
     })
   }
 

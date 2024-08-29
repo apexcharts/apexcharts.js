@@ -147,7 +147,7 @@ class Filters {
 
     el.unfilter(true)
 
-    if (Utils.isIE() && w.config.chart.type === 'radialBar') {
+    if (Utils.isMsEdge() && w.config.chart.type === 'radialBar') {
       // in radialbar charts, dropshadow is clipping actual drawing in IE
       return el
     }
@@ -162,7 +162,7 @@ class Filters {
 
     el.filter((add) => {
       let shadowBlur = null
-      if (Utils.isSafari() || Utils.isFirefox() || Utils.isIE()) {
+      if (Utils.isSafari() || Utils.isFirefox() || Utils.isMsEdge()) {
         // safari/firefox/IE have some alternative way to use this filter
         shadowBlur = add
           .flood(color, opacity)

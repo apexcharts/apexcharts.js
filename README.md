@@ -24,12 +24,6 @@
 
 <br />
 
-## Browsers support
-
-| [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_48x48.png" alt="Firefox" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Firefox | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_48x48.png" alt="Chrome" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Chrome | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_48x48.png" alt="Safari" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/>Safari | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_48x48.png" alt="Edge" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> Edge | [<img src="https://user-images.githubusercontent.com/17712401/124668393-30772d00-de87-11eb-9360-3199c3b68b95.png" alt="IE" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br/> IE11 |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 31+ ✔                                                                                                                                                                                                             | 35+ ✔                                                                                                                                                                                                         | 6+ ✔                                                                                                                                                                                                          | Edge ✔                                                                                                                                                                                                 | [(IE11)](#using-it-with-ie11) ✔                                                                                                                                                                  |
-
 ## Download and Installation
 
 ##### Installing via npm
@@ -179,16 +173,6 @@ apexcharts/
 │   └── apexcharts.js
 └── samples/
 ```
-
-## Using it with IE11
-
-If you need to make it work with IE11, you need to include these polyfills before including ApexCharts
-
-- [promise-polyfill](https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js)
-- [classlist.js](https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill)
-- [ResizeObserver polyfill](https://cdn.jsdelivr.net/npm/@juggle/resize-observer)
-- [findIndex](https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn) - You will need this only if you require timeline/rangebar charts
-- [canvg](https://unpkg.com/canvg@3.0.4/lib/umd.js) - You will need this only if you require PNG download of your charts
 
 ## Development
 
