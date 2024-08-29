@@ -38,6 +38,7 @@ export default class Globals {
     gl.noLabelsProvided = false
     gl.resizeTimer = null
     gl.selectionResizeTimer = null
+    gl.lastWheelExecution = 0
     gl.delayedElements = []
     gl.pointsArray = []
     gl.dataLabelsRects = []

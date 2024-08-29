@@ -210,6 +210,7 @@ type ApexChart = {
     enabled?: boolean
     type?: 'x' | 'y' | 'xy'
     autoScaleYaxis?: boolean
+    allowMouseWheelZoom?: boolean
     zoomedArea?: {
       fill?: {
         color?: string

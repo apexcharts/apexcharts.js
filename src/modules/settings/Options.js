@@ -389,6 +389,7 @@ export default class Options {
           enabled: true,
           type: 'x',
           autoScaleYaxis: false,
+          allowMouseWheelZoom: true,
           zoomedArea: {
             fill: {
               color: '#90CAF9',
