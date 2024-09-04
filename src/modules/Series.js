@@ -132,7 +132,7 @@ export default class Series {
     const w = this.w
 
     const targetElement = this.getSeriesByName(seriesName)
-    let realIndex = parseInt(targetElement.getAttribute('data:realIndex'), 10)
+    let realIndex = parseInt(targetElement?.getAttribute('data:realIndex'), 10)
 
     let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
       `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
@@ -168,7 +168,7 @@ export default class Series {
       allSeriesEls[se].classList.add(this.legendInactiveClass)
     }
 
-    if (seriesEl !== null) {
+    if (seriesEl) {
       if (!w.globals.axisCharts) {
         seriesEl.parentNode.classList.remove(this.legendInactiveClass)
       }
@@ -180,6 +180,10 @@ export default class Series {
 
       if (yaxisEl !== null) {
         yaxisEl.classList.remove(this.legendInactiveClass)
+      }
+    } else {
+      for (let se = 0; se < allSeriesEls.length; se++) {
+        allSeriesEls[se].classList.remove(this.legendInactiveClass)
       }
     }
   }
@@ -196,7 +200,7 @@ export default class Series {
     if (e.type === 'mousemove') {
       let realIndex = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
-      this.highlightSeries(w.config.series[realIndex].name)
+      this.highlightSeries(w.globals.seriesNames[realIndex])
     } else if (e.type === 'mouseout') {
       for (let se = 0; se < allSeriesEls.length; se++) {
         allSeriesEls[se].classList.remove(this.legendInactiveClass)
