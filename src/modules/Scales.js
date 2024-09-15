@@ -1,9 +1,11 @@
+import CoreUtils from './CoreUtils'
 import Utils from '../utils/Utils'
 
 export default class Scales {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
+    this.coreUtils = new CoreUtils(this.ctx)
   }
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
@@ -601,171 +603,11 @@ export default class Scales {
     return gl.xAxisScale
   }
 
-  setSeriesYAxisMappings() {
-    const gl = this.w.globals
-    const cnf = this.w.config
-
-    // The current config method to map multiple series to a y axis is to
-    // include one yaxis config per series but set each yaxis seriesName to the
-    // same series name. This relies on indexing equivalence to map series to
-    // an axis: series[n] => yaxis[n]. This needs to be retained for compatibility.
-    // But we introduce an alternative that explicitly configures yaxis elements
-    // with the series that will be referenced to them (seriesName: []). This
-    // only requires including the yaxis elements that will be seen on the chart.
-    // Old way:
-    // ya: s
-    // 0: 0
-    // 1: 1
-    // 2: 1
-    // 3: 1
-    // 4: 1
-    // Axes 0..4 are all scaled and all will be rendered unless the axes are
-    // show: false. If the chart is stacked, it's assumed that series 1..4 are
-    // the contributing series. This is not particularly intuitive.
-    // New way:
-    // ya: s
-    // 0: [0]
-    // 1: [1,2,3,4]
-    // If the chart is stacked, it can be assumed that any axis with multiple
-    // series is stacked.
-    //
-    // If this is an old chart and we are being backward compatible, it will be
-    // expected that each series is associated with it's corresponding yaxis
-    // through their indices, one-to-one.
-    // If yaxis.seriesName matches series.name, we have indices yi and si.
-    // A name match where yi != si is interpretted as yaxis[yi] and yaxis[si]
-    // will both be scaled to fit the combined series[si] and series[yi].
-    // Consider series named: S0,S1,S2 and yaxes A0,A1,A2.
-    //
-    // Example 1: A0 and A1 scaled the same.
-    // A0.seriesName: S0
-    // A1.seriesName: S0
-    // A2.seriesName: S2
-    // Then A1 <-> A0
-    //
-    // Example 2: A0, A1 and A2 all scaled the same.
-    // A0.seriesName: S2
-    // A1.seriesName: S0
-    // A2.seriesName: S1
-    // A0 <-> A2, A1 <-> A0, A2 <-> A1 --->>> A0 <-> A1 <-> A2
-
-    let axisSeriesMap = []
-    let seriesYAxisReverseMap = []
-    let unassignedSeriesIndices = []
-    let seriesNameArrayStyle =
-      gl.series.length > cnf.yaxis.length ||
-      cnf.yaxis.some((a) => Array.isArray(a.seriesName))
-
-    cnf.series.forEach((s, i) => {
-      unassignedSeriesIndices.push(i)
-      seriesYAxisReverseMap.push(null)
-    })
-    cnf.yaxis.forEach((yaxe, yi) => {
-      axisSeriesMap[yi] = []
-    })
-
-    let unassignedYAxisIndices = []
-
-    // here, we loop through the yaxis array and find the item which has "seriesName" property
-    cnf.yaxis.forEach((yaxe, yi) => {
-      let assigned = false
-      // Allow seriesName to be either a string (for backward compatibility),
-      // in which case, handle multiple yaxes referencing the same series.
-      // or an array of strings so that a yaxis can reference multiple series.
-      // Feature request #4237
-      if (yaxe.seriesName) {
-        let seriesNames = []
-        if (Array.isArray(yaxe.seriesName)) {
-          seriesNames = yaxe.seriesName
-        } else {
-          seriesNames.push(yaxe.seriesName)
-        }
-        seriesNames.forEach((name) => {
-          cnf.series.forEach((s, si) => {
-            if (s.name === name) {
-              let remove = si
-              if (yi === si || seriesNameArrayStyle) {
-                // New style, don't allow series to be double referenced
-                if (
-                  !seriesNameArrayStyle ||
-                  unassignedSeriesIndices.indexOf(si) > -1
-                ) {
-                  axisSeriesMap[yi].push([yi, si])
-                } else {
-                  console.warn(
-                    "Series '" +
-                      s.name +
-                      "' referenced more than once in what looks like the new style." +
-                      ' That is, when using either seriesName: [],' +
-                      ' or when there are more series than yaxes.'
-                  )
-                }
-              } else {
-                // The series index refers to the target yaxis and the current
-                // yaxis index refers to the actual referenced series.
-                axisSeriesMap[si].push([si, yi])
-                remove = yi
-              }
-              assigned = true
-              remove = unassignedSeriesIndices.indexOf(remove)
-              if (remove !== -1) {
-                unassignedSeriesIndices.splice(remove, 1)
-              }
-            }
-          })
-        })
-      }
-      if (!assigned) {
-        unassignedYAxisIndices.push(yi)
-      }
-    })
-    axisSeriesMap = axisSeriesMap.map((yaxe, yi) => {
-      let ra = []
-      yaxe.forEach((sa) => {
-        seriesYAxisReverseMap[sa[1]] = sa[0]
-        ra.push(sa[1])
-      })
-      return ra
-    })
-
-    // All series referenced directly by yaxes have been assigned to those axes.
-    // Any series so far unassigned will be assigned to any yaxes that have yet
-    // to reference series directly, one-for-one in order of appearance, with
-    // all left-over series assigned to either the last unassigned yaxis, or the
-    // last yaxis if all have assigned series. This captures the
-    // default single and multiaxis config options which simply includes zero,
-    // one or as many yaxes as there are series but do not reference them by name.
-    let lastUnassignedYAxis = cnf.yaxis.length - 1
-    for (let i = 0; i < unassignedYAxisIndices.length; i++) {
-      lastUnassignedYAxis = unassignedYAxisIndices[i]
-      axisSeriesMap[lastUnassignedYAxis] = []
-      if (unassignedSeriesIndices) {
-        let si = unassignedSeriesIndices[0]
-        unassignedSeriesIndices.shift()
-        axisSeriesMap[lastUnassignedYAxis].push(si)
-        seriesYAxisReverseMap[si] = lastUnassignedYAxis
-      } else {
-        break
-      }
-    }
-
-    unassignedSeriesIndices.forEach((i) => {
-      axisSeriesMap[lastUnassignedYAxis].push(i)
-      seriesYAxisReverseMap[i] = lastUnassignedYAxis
-    })
-
-    // For the old-style seriesName-as-string-only, leave the zero-length yaxis
-    // array elements in for compatibility so that series.length == yaxes.length
-    // for multi axis charts.
-    gl.seriesYAxisMap = axisSeriesMap.map((x) => x)
-    gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x)
-  }
-
   scaleMultipleYAxes() {
     const cnf = this.w.config
     const gl = this.w.globals
 
-    this.setSeriesYAxisMappings()
+    this.coreUtils.setSeriesYAxisMappings()
 
     let axisSeriesMap = gl.seriesYAxisMap
     let minYArr = gl.minYArr
@@ -792,7 +634,7 @@ export default class Scales {
         if (cnf.chart.stacked) {
           // Series' on this axis with the same group name will be stacked.
           // Sum series in each group separately
-          let mapSeries = gl.seriesX[axisSeries[0]]
+          let mapSeries = new Array(gl.dataPoints).fill(0)
           let sumSeries = []
           let posSeries = []
           let negSeries = []
