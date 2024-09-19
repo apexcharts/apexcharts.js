@@ -794,7 +794,6 @@ class Line {
     curve,
     isRangeStart,
   }) {
-    let w = this.w
     let graphics = new Graphics(this.ctx)
     const areaBottomY = this.areaBottomY
     let rangeArea = type === 'rangeArea'
@@ -952,6 +951,13 @@ class Line {
               }
               areaPath = graphics.move(pX, pY)
 
+              // Check for single isolated point
+              if (series[i][j + 1] === null) {
+                linePaths.push(linePath);
+                areaPaths.push(areaPath);
+                // Stay in pathState = 0;
+                break
+              }
               pathState = 1
               if (j < series[i].length - 2) {
                 let p = graphics.curve(pX + length, pY, x - length, y, x, y)
@@ -1034,6 +1040,13 @@ class Line {
               }
               areaPath = graphics.move(pX, pY)
 
+              // Check for single isolated point
+              if (series[i][j + 1] === null) {
+                linePaths.push(linePath);
+                areaPaths.push(areaPath);
+                // Stay in pathState = 0
+                break
+              }
               pathState = 1
               if (j < series[i].length - 2) {
                 let p = pathToPoint(curve, x, y)
