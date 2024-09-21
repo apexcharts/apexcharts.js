@@ -106,7 +106,12 @@ export default class Core {
     gl.dom.elLegendWrap.classList.add('apexcharts-legend')
 
     gl.dom.elLegendContainer = document.createElement('div')
-    gl.dom.elLegendContainer.style.position = 'relative'
+    Object.assign(gl.dom.elLegendContainer.style, {
+      position: 'relative',
+      height: '100%',
+      width: '100%',
+    })
+
     gl.dom.elLegendContainer.setAttribute(
       'xmlns',
       'http://www.w3.org/1999/xhtml'
