@@ -398,7 +398,7 @@ class Grid {
       gridAxisIndex = 0
     }
 
-    const yTickAmount = gl.yAxisScale[gridAxisIndex].result.length - 1
+    let yTickAmount = gl.yAxisScale[gridAxisIndex].result.length - 1
 
     let xCount
 
@@ -406,15 +406,26 @@ class Grid {
       xCount = this.xaxisLabels.length
 
       if (this.isRangeBar) {
-        xCount =
-          w.config.xaxis.tickAmount ||
-          gl.yAxisScale[gridAxisIndex].result.length - 1
+        yTickAmount = gl.labels.length
+
+        if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
+          xCount = w.config.xaxis.tickAmount
+        }
+        if (
+          gl.yAxisScale?.[gridAxisIndex]?.result?.length > 0 &&
+          w.config.xaxis.type !== 'datetime'
+        ) {
+          xCount = gl.yAxisScale[gridAxisIndex].result.length - 1
+        }
       }
 
       this._drawXYLines({ xCount, tickAmount: yTickAmount })
     } else {
       xCount = yTickAmount
-      this._drawInvertedXYLines({ xCount, tickAmount: gl.xTickAmount })
+
+      // for horizontal bar chart, get the xaxis tickamount
+      yTickAmount = gl.xTickAmount
+      this._drawInvertedXYLines({ xCount, tickAmount: yTickAmount })
     }
 
     this.drawGridBands(xCount, yTickAmount)
