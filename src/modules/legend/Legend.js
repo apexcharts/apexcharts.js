@@ -323,7 +323,7 @@ class Legend {
     let y = 0
 
     if (w.config.legend.position === 'bottom') {
-      y = w.globals.svgHeight - legendRect.height / 1.8
+      y = w.globals.svgHeight - legendRect.height - 5
     } else if (w.config.legend.position === 'top') {
       const dim = new Dimensions(this.ctx)
       const titleH = dim.dimHelpers.getTitleSubtitleCoords('title').height
