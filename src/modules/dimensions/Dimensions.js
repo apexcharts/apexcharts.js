@@ -36,104 +36,92 @@ export default class Dimensions {
    * @param {object} w - chart context
    **/
   plotCoords() {
-    const { w, dimHelpers, dimGrid, isSparkline } = this
-    const { globals: gl, config } = w
+    let w = this.w
+    let gl = w.globals
 
-    this.lgRect = dimHelpers.getLegendsRect()
+    this.lgRect = this.dimHelpers.getLegendsRect()
     this.datalabelsCoords = { width: 0, height: 0 }
 
-    const maxStrokeWidth = Array.isArray(config.stroke.width)
-      ? Math.max(...config.stroke.width)
-      : config.stroke.width
+    const maxStrokeWidth = Array.isArray(w.config.stroke.width)
+      ? Math.max(...w.config.stroke.width)
+      : w.config.stroke.width
 
-    if (isSparkline) {
-      this.adjustSparklineGridPadding(maxStrokeWidth)
+    if (this.isSparkline) {
+      if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
+        Object.entries(this.gridPad).forEach(([k, v]) => {
+          this.gridPad[k] = Math.max(
+            v,
+            this.w.globals.markers.largestSize / 1.5
+          )
+        })
+      }
+
+      this.gridPad.top = Math.max(maxStrokeWidth / 2, this.gridPad.top)
+      this.gridPad.bottom = Math.max(maxStrokeWidth / 2, this.gridPad.bottom)
     }
 
     if (gl.axisCharts) {
+      // for line / area / scatter / column
       this.setDimensionsForAxisCharts()
     } else {
+      // for pie / donuts / circle
       this.setDimensionsForNonAxisCharts()
     }
 
-    if (w.config.legend.position === 'bottom') {
-      w.globals.dom.elLegendWrap.style.top =
-        parseFloat(w.globals.dom.elLegendWrap.style.top) -
-        w.globals.translateY +
-        'px'
-    }
-    dimGrid.gridPadFortitleSubtitle()
+    this.dimGrid.gridPadFortitleSubtitle()
 
-    this.applyUserPadding(gl)
-    this.calculateBarWidth(gl)
-    this.setTranslation(gl)
-  }
+    // after calculating everything, apply padding set by user
+    gl.gridHeight = gl.gridHeight - this.gridPad.top - this.gridPad.bottom
 
-  adjustSparklineGridPadding(maxStrokeWidth) {
-    const { config, globals } = this.w
+    gl.gridWidth =
+      gl.gridWidth -
+      this.gridPad.left -
+      this.gridPad.right -
+      this.xPadRight -
+      this.xPadLeft
 
-    if (config.markers.discrete.length > 0 || config.markers.size > 0) {
-      this.adjustGridPadForMarkers()
-    }
+    let barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth)
 
-    this.gridPad.top = Math.max(maxStrokeWidth / 2, this.gridPad.top)
-    this.gridPad.bottom = Math.max(maxStrokeWidth / 2, this.gridPad.bottom)
-  }
+    gl.gridWidth = gl.gridWidth - barWidth * 2
 
-  adjustGridPadForMarkers() {
-    Object.entries(this.gridPad).forEach(([key, value]) => {
-      this.gridPad[key] = Math.max(
-        value,
-        this.w.globals.markers.largestSize / 1.5
-      )
-    })
-  }
-
-  applyUserPadding(gl) {
-    gl.gridHeight -= this.gridPad.top + this.gridPad.bottom
-    gl.gridWidth -=
-      this.gridPad.left + this.gridPad.right + this.xPadRight + this.xPadLeft
-  }
-
-  calculateBarWidth(gl) {
-    const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth)
-    gl.gridWidth -= barWidth * 2
-    return barWidth
-  }
-
-  setTranslation(gl) {
-    const barWidth = this.calculateBarWidth(gl)
-    gl.translateX +=
-      this.gridPad.left + this.xPadLeft + (barWidth > 0 ? barWidth : 0)
-    gl.translateY += this.gridPad.top
+    gl.translateX =
+      gl.translateX +
+      this.gridPad.left +
+      this.xPadLeft +
+      (barWidth > 0 ? barWidth : 0)
+    gl.translateY = gl.translateY + this.gridPad.top
   }
 
   setDimensionsForAxisCharts() {
-    const { w } = this
-    const { globals: gl, config: cnf } = w
+    let w = this.w
+    let gl = w.globals
 
-    const yaxisLabelCoords = this.dimYAxis.getyAxisLabelsCoords()
-    const yTitleCoords = this.dimYAxis.getyAxisTitleCoords()
+    let yaxisLabelCoords = this.dimYAxis.getyAxisLabelsCoords()
+    let yTitleCoords = this.dimYAxis.getyAxisTitleCoords()
 
     if (gl.isSlopeChart) {
       this.datalabelsCoords = this.dimHelpers.getDatalabelsRect()
     }
 
-    gl.yLabelsCoords = yaxisLabelCoords.map((coord, index) => ({
-      width: coord.width,
-      index,
-    }))
-
-    gl.yTitleCoords = yTitleCoords.map((coord, index) => ({
-      width: coord.width,
-      index,
-    }))
+    w.globals.yLabelsCoords = []
+    w.globals.yTitleCoords = []
+    w.config.yaxis.map((yaxe, index) => {
+      // store the labels and titles coords in global vars
+      w.globals.yLabelsCoords.push({
+        width: yaxisLabelCoords[index].width,
+        index,
+      })
+      w.globals.yTitleCoords.push({
+        width: yTitleCoords[index].width,
+        index,
+      })
+    })
 
     this.yAxisWidth = this.dimYAxis.getTotalYAxisWidth()
 
-    const xaxisLabelCoords = this.dimXAxis.getxAxisLabelsCoords()
-    const xaxisGroupLabelCoords = this.dimXAxis.getxAxisGroupLabelsCoords()
-    const xtitleCoords = this.dimXAxis.getxAxisTitleCoords()
+    let xaxisLabelCoords = this.dimXAxis.getxAxisLabelsCoords()
+    let xaxisGroupLabelCoords = this.dimXAxis.getxAxisGroupLabelsCoords()
+    let xtitleCoords = this.dimXAxis.getxAxisTitleCoords()
 
     this.conditionalChecksForAxisCoords(
       xaxisLabelCoords,
@@ -141,20 +129,22 @@ export default class Dimensions {
       xaxisGroupLabelCoords
     )
 
-    gl.translateXAxisY = gl.rotateXLabels ? this.xAxisHeight / 8 : -4
+    gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX =
-      gl.rotateXLabels && gl.isXNumeric && cnf.xaxis.labels.rotate <= -45
+      w.globals.rotateXLabels &&
+      w.globals.isXNumeric &&
+      w.config.xaxis.labels.rotate <= -45
         ? -this.xAxisWidth / 4
         : 0
 
-    if (gl.isBarHorizontal) {
+    if (w.globals.isBarHorizontal) {
       gl.rotateXLabels = false
       gl.translateXAxisY =
-        -1 * (parseInt(cnf.xaxis.labels.style.fontSize, 10) / 1.5)
+        -1 * (parseInt(w.config.xaxis.labels.style.fontSize, 10) / 1.5)
     }
 
-    gl.translateXAxisY += cnf.xaxis.labels.offsetY
-    gl.translateXAxisX += cnf.xaxis.labels.offsetX
+    gl.translateXAxisY = gl.translateXAxisY + w.config.xaxis.labels.offsetY
+    gl.translateXAxisX = gl.translateXAxisX + w.config.xaxis.labels.offsetX
 
     let yAxisWidth = this.yAxisWidth
     let xAxisHeight = this.xAxisHeight
@@ -164,22 +154,25 @@ export default class Dimensions {
     gl.xAxisHeight = this.xAxisHeight
     let translateY = 10
 
-    if (cnf.chart.type === 'radar' || this.isSparkline) {
+    if (w.config.chart.type === 'radar' || this.isSparkline) {
       yAxisWidth = 0
       xAxisHeight = gl.goldenPadding
     }
 
     if (this.isSparkline) {
-      this.lgRect = { height: 0, width: 0 }
+      this.lgRect = {
+        height: 0,
+        width: 0,
+      }
     }
 
-    if (this.isSparkline || cnf.chart.type === 'treemap') {
+    if (this.isSparkline || w.config.chart.type === 'treemap') {
       yAxisWidth = 0
       xAxisHeight = 0
       translateY = 0
     }
 
-    if (!this.isSparkline && cnf.chart.type !== 'treemap') {
+    if (!this.isSparkline && w.config.chart.type !== 'treemap') {
       this.dimXAxis.additionalPaddingXLabels(xaxisLabelCoords)
     }
 
@@ -189,19 +182,18 @@ export default class Dimensions {
         gl.svgHeight -
         this.lgRect.height -
         xAxisHeight -
-        (!this.isSparkline && cnf.chart.type !== 'treemap'
-          ? gl.rotateXLabels
+        (!this.isSparkline && w.config.chart.type !== 'treemap'
+          ? w.globals.rotateXLabels
             ? 10
             : 15
           : 0)
       gl.gridWidth = gl.svgWidth - yAxisWidth - this.datalabelsCoords.width * 2
     }
 
-    if (cnf.xaxis.position === 'top') {
-      translateY = gl.xAxisHeight - cnf.xaxis.axisTicks.height - 5
-    }
+    if (w.config.xaxis.position === 'top')
+      translateY = gl.xAxisHeight - w.config.xaxis.axisTicks.height - 5
 
-    switch (cnf.legend.position) {
+    switch (w.config.legend.position) {
       case 'bottom':
         gl.translateY = translateY
         legendTopBottom()
@@ -239,7 +231,7 @@ export default class Dimensions {
     this.dimGrid.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
 
     // after drawing everything, set the Y axis positions
-    const objyAxis = new YAxis(this.ctx)
+    let objyAxis = new YAxis(this.ctx)
     objyAxis.setYAxisXPosition(yaxisLabelCoords, yTitleCoords)
   }
 
