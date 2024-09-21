@@ -182,7 +182,6 @@ class Fill {
       }${patternID}`
 
       if (this.patternIDs.indexOf(patternKey) === -1) {
-        console.log('patternKey', patternKey)
         this.clippedImgArea({
           opacity: fillOpacity,
           image: Array.isArray(imgSrc)

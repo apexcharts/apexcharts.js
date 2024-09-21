@@ -25,19 +25,15 @@ class Grid {
     }
   }
 
-  // when using sparklines or when showing no grid, we need to have a grid area which is reused at many places for other calculations as well
   drawGridArea(elGrid = null) {
-    let w = this.w
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
 
-    let graphics = new Graphics(this.ctx)
-
-    if (elGrid === null) {
-      elGrid = graphics.group({
-        class: 'apexcharts-grid',
-      })
+    if (!elGrid) {
+      elGrid = graphics.group({ class: 'apexcharts-grid' })
     }
 
-    let elVerticalLine = graphics.drawLine(
+    const elVerticalLine = graphics.drawLine(
       w.globals.padHorizontal,
       1,
       w.globals.padHorizontal,
@@ -45,7 +41,7 @@ class Grid {
       'transparent'
     )
 
-    let elHorzLine = graphics.drawLine(
+    const elHorzLine = graphics.drawLine(
       w.globals.padHorizontal,
       w.globals.gridHeight,
       w.globals.gridWidth,
@@ -60,73 +56,54 @@ class Grid {
   }
 
   drawGrid() {
-    let gl = this.w.globals
-
-    let elgrid = null
+    const gl = this.w.globals
 
     if (gl.axisCharts) {
-      // grid is drawn after xaxis and yaxis are drawn
-      elgrid = this.renderGrid()
-
+      const elgrid = this.renderGrid()
       this.drawGridArea(elgrid.el)
+      return elgrid
     }
-    return elgrid
+    return null
   }
 
-  // This mask will clip off overflowing graphics from the drawable area
   createGridMask() {
-    let w = this.w
-    let gl = w.globals
+    const w = this.w
+    const gl = w.globals
     const graphics = new Graphics(this.ctx)
 
-    let strokeSize = Array.isArray(w.config.stroke.width)
-      ? 0
+    const strokeSize = Array.isArray(w.config.stroke.width)
+      ? Math.max(...w.config.stroke.width)
       : w.config.stroke.width
 
-    if (Array.isArray(w.config.stroke.width)) {
-      let strokeMaxSize = 0
-      w.config.stroke.width.forEach((m) => {
-        strokeMaxSize = Math.max(strokeMaxSize, m)
-      })
-      strokeSize = strokeMaxSize
+    const createClipPath = (id) => {
+      const clipPath = document.createElementNS(gl.SVGNS, 'clipPath')
+      clipPath.setAttribute('id', id)
+      return clipPath
     }
 
-    gl.dom.elGridRectMask = document.createElementNS(gl.SVGNS, 'clipPath')
-    gl.dom.elGridRectMask.setAttribute('id', `gridRectMask${gl.cuid}`)
+    gl.dom.elGridRectMask = createClipPath(`gridRectMask${gl.cuid}`)
+    gl.dom.elGridRectMarkerMask = createClipPath(`gridRectMarkerMask${gl.cuid}`)
+    gl.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`)
+    gl.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
 
-    gl.dom.elGridRectMarkerMask = document.createElementNS(gl.SVGNS, 'clipPath')
-    gl.dom.elGridRectMarkerMask.setAttribute(
-      'id',
-      `gridRectMarkerMask${gl.cuid}`
-    )
-
-    gl.dom.elForecastMask = document.createElementNS(gl.SVGNS, 'clipPath')
-    gl.dom.elForecastMask.setAttribute('id', `forecastMask${gl.cuid}`)
-
-    gl.dom.elNonForecastMask = document.createElementNS(gl.SVGNS, 'clipPath')
-    gl.dom.elNonForecastMask.setAttribute('id', `nonForecastMask${gl.cuid}`)
-
-    // let barHalfWidth = 0
-
-    const type = w.config.chart.type
     const hasBar =
-      type === 'bar' ||
-      type === 'rangeBar' ||
-      type === 'candlestick' ||
-      type === 'boxPlot' ||
-      w.globals.comboBarCount > 0
+      ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(
+        w.config.chart.type
+      ) || w.globals.comboBarCount > 0
 
     let barWidthLeft = 0
     let barWidthRight = 0
     if (hasBar && w.globals.isXNumeric && !w.globals.isBarHorizontal) {
-      barWidthLeft = w.config.grid.padding.left
-      barWidthRight = w.config.grid.padding.right
-
-      if (gl.barPadForNumericAxis > barWidthLeft) {
-        barWidthLeft = gl.barPadForNumericAxis
-        barWidthRight = gl.barPadForNumericAxis
-      }
+      barWidthLeft = Math.max(
+        w.config.grid.padding.left,
+        gl.barPadForNumericAxis
+      )
+      barWidthRight = Math.max(
+        w.config.grid.padding.right,
+        gl.barPadForNumericAxis
+      )
     }
+
     gl.dom.elGridRect = graphics.drawRect(
       -strokeSize / 2 - barWidthLeft - 2,
       -strokeSize / 2 - 2,
@@ -136,7 +113,7 @@ class Grid {
       '#fff'
     )
 
-    let markerSize = w.globals.markers.largestSize + 1
+    const markerSize = w.globals.markers.largestSize + 1
 
     gl.dom.elGridRectMarker = graphics.drawRect(
       -markerSize * 2,
@@ -146,10 +123,11 @@ class Grid {
       0,
       '#fff'
     )
+
     gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node)
     gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node)
 
-    let defs = gl.dom.baseEl.querySelector('defs')
+    const defs = gl.dom.baseEl.querySelector('defs')
     defs.appendChild(gl.dom.elGridRectMask)
     defs.appendChild(gl.dom.elForecastMask)
     defs.appendChild(gl.dom.elNonForecastMask)
@@ -160,20 +138,14 @@ class Grid {
     const w = this.w
 
     const shouldDraw = () => {
-      if (i === 0 && w.globals.skipFirstTimelinelabel) {
-        return false
-      }
-
+      if (i === 0 && w.globals.skipFirstTimelinelabel) return false
       if (
         i === xCount - 1 &&
         w.globals.skipLastTimelinelabel &&
         !w.config.xaxis.labels.formatter
-      ) {
+      )
         return false
-      }
-      if (w.config.chart.type === 'radar') {
-        return false
-      }
+      if (w.config.chart.type === 'radar') return false
       return true
     }
 
@@ -181,6 +153,7 @@ class Grid {
       if (w.config.grid.xaxis.lines.show) {
         this._drawGridLine({ i, x1, y1, x2, y2, xCount, parent })
       }
+
       let y_2 = 0
       if (
         w.globals.hasXaxisGroups &&
@@ -198,39 +171,32 @@ class Grid {
         }
       }
 
-      let xAxis = new XAxis(this.ctx)
+      const xAxis = new XAxis(this.ctx)
       xAxis.drawXaxisTicks(x1, y_2, w.globals.dom.elGraphical)
     }
   }
 
   _drawGridLine({ i, x1, y1, x2, y2, xCount, parent }) {
     const w = this.w
-    let excludeBorders = false
-
     const isHorzLine = parent.node.classList.contains(
       'apexcharts-gridlines-horizontal'
     )
-
-    let strokeDashArray = w.config.grid.strokeDashArray
     const offX = w.globals.barPadForNumericAxis
-    if ((y1 === 0 && y2 === 0) || (x1 === 0 && x2 === 0)) {
-      excludeBorders = true
-    }
-    if (y1 === w.globals.gridHeight && y2 === w.globals.gridHeight) {
-      excludeBorders = true
-    }
-    if (w.globals.isBarHorizontal && (i === 0 || i === xCount - 1)) {
-      excludeBorders = true
-    }
+
+    const excludeBorders =
+      (y1 === 0 && y2 === 0) ||
+      (x1 === 0 && x2 === 0) ||
+      (y1 === w.globals.gridHeight && y2 === w.globals.gridHeight) ||
+      (w.globals.isBarHorizontal && (i === 0 || i === xCount - 1))
 
     const graphics = new Graphics(this)
-    let line = graphics.drawLine(
+    const line = graphics.drawLine(
       x1 - (isHorzLine ? offX : 0),
       y1,
       x2 + (isHorzLine ? offX : 0),
       y2,
       w.config.grid.borderColor,
-      strokeDashArray
+      w.config.grid.strokeDashArray
     )
     line.node.classList.add('apexcharts-gridline')
 
@@ -248,7 +214,7 @@ class Grid {
 
     const color = w.config.grid[type].colors[c]
 
-    let rect = graphics.drawRect(
+    const rect = graphics.drawRect(
       x1 - (type === 'row' ? offX : 0),
       y1,
       x2 + (type === 'row' ? offX * 2 : 0),
@@ -285,7 +251,6 @@ class Grid {
     const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
       for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
         if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
-          // single datapoint
           x1 = w.globals.gridWidth / 2
           x2 = x1
         }
@@ -299,12 +264,11 @@ class Grid {
           parent: this.elgridLinesV,
         })
 
-        x1 = x1 + w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
+        x1 += w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
         x2 = x1
       }
     }
 
-    // draw vertical lines
     if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
       let x1 = w.globals.padHorizontal
       let y1 = 0
@@ -321,7 +285,6 @@ class Grid {
       }
     }
 
-    // draw horizontal lines
     if (w.config.grid.yaxis.lines.show) {
       let x1 = 0
       let y1 = 0
@@ -344,8 +307,7 @@ class Grid {
           parent: this.elgridLinesH,
         })
 
-        y1 = y1 + w.globals.gridHeight / (this.isRangeBar ? tA : tickAmount)
-
+        y1 += w.globals.gridHeight / (this.isRangeBar ? tA : tickAmount)
         y2 = y1
       }
     }
@@ -354,7 +316,6 @@ class Grid {
   _drawInvertedXYLines({ xCount }) {
     const w = this.w
 
-    // draw vertical lines
     if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
       let x1 = w.globals.padHorizontal
       let y1 = 0
@@ -373,14 +334,13 @@ class Grid {
           })
         }
 
-        let xAxis = new XAxis(this.ctx)
+        const xAxis = new XAxis(this.ctx)
         xAxis.drawXaxisTicks(x1, 0, w.globals.dom.elGraphical)
-        x1 = x1 + w.globals.gridWidth / xCount
+        x1 += w.globals.gridWidth / xCount
         x2 = x1
       }
     }
 
-    // draw horizontal lines
     if (w.config.grid.yaxis.lines.show) {
       let x1 = 0
       let y1 = 0
@@ -398,30 +358,25 @@ class Grid {
           parent: this.elgridLinesH,
         })
 
-        y1 = y1 + w.globals.gridHeight / w.globals.dataPoints
+        y1 += w.globals.gridHeight / w.globals.dataPoints
         y2 = y1
       }
     }
   }
 
-  // actual grid rendering
   renderGrid() {
-    let w = this.w
+    const w = this.w
     const gl = w.globals
-    let graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.ctx)
 
-    this.elg = graphics.group({
-      class: 'apexcharts-grid',
-    })
+    this.elg = graphics.group({ class: 'apexcharts-grid' })
     this.elgridLinesH = graphics.group({
       class: 'apexcharts-gridlines-horizontal',
     })
     this.elgridLinesV = graphics.group({
       class: 'apexcharts-gridlines-vertical',
     })
-    this.elGridBorders = graphics.group({
-      class: 'apexcharts-grid-borders',
-    })
+    this.elGridBorders = graphics.group({ class: 'apexcharts-grid-borders' })
 
     this.elg.add(this.elgridLinesH)
     this.elg.add(this.elgridLinesV)
@@ -432,12 +387,10 @@ class Grid {
       this.elGridBorders.hide()
     }
 
-    // Draw the grid using ticks from the first unhidden Yaxis,
-    // or yaxis[0] if all are hidden.
     let gridAxisIndex = 0
     while (
       gridAxisIndex < gl.seriesYAxisMap.length &&
-      gl.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1
+      gl.ignoreYAxisIndexes.includes(gridAxisIndex)
     ) {
       gridAxisIndex++
     }
@@ -445,7 +398,7 @@ class Grid {
       gridAxisIndex = 0
     }
 
-    let yTickAmount = gl.yAxisScale[gridAxisIndex].result.length - 1
+    const yTickAmount = gl.yAxisScale[gridAxisIndex].result.length - 1
 
     let xCount
 
@@ -453,28 +406,15 @@ class Grid {
       xCount = this.xaxisLabels.length
 
       if (this.isRangeBar) {
-        yTickAmount = gl.labels.length
-        if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
-          xCount = w.config.xaxis.tickAmount
-        }
-        if (
-          gl.yAxisScale?.[gridAxisIndex]?.result?.length > 0 &&
-          w.config.xaxis.type !== 'datetime'
-        ) {
-          xCount = gl.yAxisScale[gridAxisIndex].result.length - 1
-        }
+        xCount =
+          w.config.xaxis.tickAmount ||
+          gl.yAxisScale[gridAxisIndex].result.length - 1
       }
 
-      this._drawXYLines({
-        xCount,
-        tickAmount: yTickAmount,
-      })
+      this._drawXYLines({ xCount, tickAmount: yTickAmount })
     } else {
       xCount = yTickAmount
-
-      // for horizontal bar chart, get the xaxis tickamount
-      yTickAmount = gl.xTickAmount
-      this._drawInvertedXYLines({ xCount, tickAmount: yTickAmount })
+      this._drawInvertedXYLines({ xCount, tickAmount: gl.xTickAmount })
     }
 
     this.drawGridBands(xCount, yTickAmount)
@@ -488,38 +428,28 @@ class Grid {
   drawGridBands(xCount, tickAmount) {
     const w = this.w
 
-    // rows background bands
-    if (
-      w.config.grid.row.colors !== undefined &&
-      w.config.grid.row.colors.length > 0
-    ) {
-      let x1 = 0
-      let y1 = 0
-      let y2 = w.globals.gridHeight / tickAmount
-      let x2 = w.globals.gridWidth
-
-      for (let i = 0, c = 0; i < tickAmount; i++, c++) {
-        if (c >= w.config.grid.row.colors.length) {
+    const drawBands = (type, count, x1, y1, x2, y2) => {
+      for (let i = 0, c = 0; i < count; i++, c++) {
+        if (c >= w.config.grid[type].colors.length) {
           c = 0
         }
-        this._drawGridBandRect({
-          c,
-          x1,
-          y1,
-          x2,
-          y2,
-          type: 'row',
-        })
-
-        y1 = y1 + w.globals.gridHeight / tickAmount
+        this._drawGridBandRect({ c, x1, y1, x2, y2, type })
+        y1 += w.globals.gridHeight / tickAmount
       }
     }
 
-    // columns background bands
-    if (
-      w.config.grid.column.colors !== undefined &&
-      w.config.grid.column.colors.length > 0
-    ) {
+    if (w.config.grid.row.colors?.length > 0) {
+      drawBands(
+        'row',
+        tickAmount,
+        0,
+        0,
+        w.globals.gridWidth,
+        w.globals.gridHeight / tickAmount
+      )
+    }
+
+    if (w.config.grid.column.colors?.length > 0) {
       let xc =
         !w.globals.isBarHorizontal &&
         w.config.xaxis.tickPlacement === 'on' &&
@@ -531,10 +461,12 @@ class Grid {
       if (w.globals.isXNumeric) {
         xc = w.globals.xAxisScale.result.length - 1
       }
+
       let x1 = w.globals.padHorizontal
       let y1 = 0
       let x2 = w.globals.padHorizontal + w.globals.gridWidth / xc
       let y2 = w.globals.gridHeight
+
       for (let i = 0, c = 0; i < xCount; i++, c++) {
         if (c >= w.config.grid.column.colors.length) {
           c = 0
@@ -546,16 +478,9 @@ class Grid {
             (this.xaxisLabels[i + 1]?.position || w.globals.gridWidth) -
             this.xaxisLabels[i].position
         }
-        this._drawGridBandRect({
-          c,
-          x1,
-          y1,
-          x2,
-          y2,
-          type: 'column',
-        })
 
-        x1 = x1 + w.globals.gridWidth / xc
+        this._drawGridBandRect({ c, x1, y1, x2, y2, type: 'column' })
+        x1 += w.globals.gridWidth / xc
       }
     }
   }

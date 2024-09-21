@@ -7,11 +7,11 @@ export default class Helpers {
   }
 
   setOrientations(anno, annoIndex = null) {
-    let w = this.w
+    const w = this.w
 
     if (anno.label.orientation === 'vertical') {
       const i = annoIndex !== null ? annoIndex : 0
-      let xAnno = w.globals.dom.baseEl.querySelector(
+      const xAnno = w.globals.dom.baseEl.querySelector(
         `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`
       )
 
@@ -22,22 +22,11 @@ export default class Helpers {
           parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4
         )
 
-        if (anno.label.position === 'top') {
-          xAnno.setAttribute(
-            'y',
-            parseFloat(xAnno.getAttribute('y')) + xAnnoCoord.width
-          )
-        } else {
-          xAnno.setAttribute(
-            'y',
-            parseFloat(xAnno.getAttribute('y')) - xAnnoCoord.width
-          )
-        }
+        const yOffset =
+          anno.label.position === 'top' ? xAnnoCoord.width : -xAnnoCoord.width
+        xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) + yOffset)
 
-        let annoRotatingCenter = this.annoCtx.graphics.rotateAroundCenter(xAnno)
-        const x = annoRotatingCenter.x
-        const y = annoRotatingCenter.y
-
+        const { x, y } = this.annoCtx.graphics.rotateAroundCenter(xAnno)
         xAnno.setAttribute('transform', `rotate(-90 ${x} ${y})`)
       }
     }
@@ -46,13 +35,9 @@ export default class Helpers {
   addBackgroundToAnno(annoEl, anno) {
     const w = this.w
 
-    if (
-      !annoEl ||
-      typeof anno.label.text === 'undefined' ||
-      (typeof anno.label.text !== 'undefined' &&
-        !String(anno.label.text).trim())
-    )
+    if (!annoEl || !anno.label.text || !String(anno.label.text).trim()) {
       return null
+    }
 
     const elGridRect = w.globals.dom.baseEl
       .querySelector('.apexcharts-grid')
@@ -60,16 +45,15 @@ export default class Helpers {
 
     const coords = annoEl.getBoundingClientRect()
 
-    let pleft = anno.label.style.padding.left
-    let pright = anno.label.style.padding.right
-    let ptop = anno.label.style.padding.top
-    let pbottom = anno.label.style.padding.bottom
+    let {
+      left: pleft,
+      right: pright,
+      top: ptop,
+      bottom: pbottom,
+    } = anno.label.style.padding
 
     if (anno.label.orientation === 'vertical') {
-      ptop = anno.label.style.padding.left
-      pbottom = anno.label.style.padding.right
-      pleft = anno.label.style.padding.top
-      pright = anno.label.style.padding.bottom
+      ;[ptop, pbottom, pleft, pright] = [pleft, pright, ptop, pbottom]
     }
 
     const x1 = coords.left - elGridRect.left - pleft
@@ -88,7 +72,6 @@ export default class Helpers {
     )
 
     if (anno.id) {
-      // don't escapeString for this ID as it causes duplicate rects
       elRect.node.classList.add(anno.id)
     }
 
@@ -99,7 +82,7 @@ export default class Helpers {
     const w = this.w
 
     const add = (anno, i, type) => {
-      let annoLabel = w.globals.dom.baseEl.querySelector(
+      const annoLabel = w.globals.dom.baseEl.querySelector(
         `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
       )
 
@@ -132,115 +115,80 @@ export default class Helpers {
       }
     }
 
-    w.config.annotations.xaxis.map((anno, i) => {
-      add(anno, i, 'xaxis')
-    })
-
-    w.config.annotations.yaxis.map((anno, i) => {
-      add(anno, i, 'yaxis')
-    })
-
-    w.config.annotations.points.map((anno, i) => {
-      add(anno, i, 'point')
-    })
+    w.config.annotations.xaxis.forEach((anno, i) => add(anno, i, 'xaxis'))
+    w.config.annotations.yaxis.forEach((anno, i) => add(anno, i, 'yaxis'))
+    w.config.annotations.points.forEach((anno, i) => add(anno, i, 'point'))
   }
 
   getY1Y2(type, anno) {
+    const w = this.w
     let y = type === 'y1' ? anno.y : anno.y2
     let yP
     let clipped = false
 
-    const w = this.w
     if (this.annoCtx.invertAxis) {
-      let labels = w.globals.labels
-      if (w.config.xaxis.convertedCatToNumeric) {
-        labels = w.globals.categoryLabels
-      }
-
-      let catIndex = labels.indexOf(y)
-
+      const labels = w.config.xaxis.convertedCatToNumeric
+        ? w.globals.categoryLabels
+        : w.globals.labels
+      const catIndex = labels.indexOf(y)
       const xLabel = w.globals.dom.baseEl.querySelector(
-        '.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
       )
 
-      if (xLabel) {
-        yP = parseFloat(xLabel.getAttribute('y'))
-      } else {
-        yP =
-          (w.globals.gridHeight / labels.length - 1) * (catIndex + 1) -
+      yP = xLabel
+        ? parseFloat(xLabel.getAttribute('y'))
+        : (w.globals.gridHeight / labels.length - 1) * (catIndex + 1) -
           w.globals.barHeight
-      }
 
-      if (typeof anno.seriesIndex !== 'undefined') {
-        if (w.globals.barHeight) {
-          yP =
-            yP -
-            (w.globals.barHeight / 2) * (w.globals.series.length - 1) +
-            w.globals.barHeight * anno.seriesIndex
-        }
+      if (anno.seriesIndex !== undefined && w.globals.barHeight) {
+        yP -=
+          (w.globals.barHeight / 2) * (w.globals.series.length - 1) -
+          w.globals.barHeight * anno.seriesIndex
       }
     } else {
-      let yPos
-      // We can use the index of any series referenced by the Yaxis
-      // because they will all return the same value.
-      let seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
-      if (w.config.yaxis[anno.yAxisIndex].logarithmic) {
-        const coreUtils = new CoreUtils(this.annoCtx.ctx)
-        y = coreUtils.getLogVal(
-                w.config.yaxis[anno.yAxisIndex].logBase,
-                y,
-                seriesIndex)
-        yPos = y / w.globals.yLogRatio[seriesIndex]
-      } else {
-        yPos =
-          (y - w.globals.minYArr[seriesIndex]) /
+      const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
+      const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic
+        ? new CoreUtils(this.annoCtx.ctx).getLogVal(
+            w.config.yaxis[anno.yAxisIndex].logBase,
+            y,
+            seriesIndex
+          ) / w.globals.yLogRatio[seriesIndex]
+        : (y - w.globals.minYArr[seriesIndex]) /
           (w.globals.yRange[seriesIndex] / w.globals.gridHeight)
-      }
-      if (yPos > w.globals.gridHeight) {
-        yPos = w.globals.gridHeight
-        clipped = true
-      } else if (yPos < 0) {
-        yPos = 0
-        clipped = true
-      }
-      yP = w.globals.gridHeight - yPos
+
+      yP =
+        w.globals.gridHeight - Math.min(Math.max(yPos, 0), w.globals.gridHeight)
+      clipped = yPos > w.globals.gridHeight || yPos < 0
 
       if (anno.marker && (anno.y === undefined || anno.y === null)) {
-        // point annotation
         yP = 0
       }
 
-      if (
-        w.config.yaxis[anno.yAxisIndex] &&
-        w.config.yaxis[anno.yAxisIndex].reversed
-      ) {
+      if (w.config.yaxis[anno.yAxisIndex]?.reversed) {
         yP = yPos
       }
     }
 
-    if (typeof y === 'string' && y.indexOf('px') > -1) {
+    if (typeof y === 'string' && y.includes('px')) {
       yP = parseFloat(y)
     }
 
-    return {'yP': yP, 'clipped': clipped}
+    return { yP, clipped }
   }
 
   getX1X2(type, anno) {
-    let x = type === 'x1' ? anno.x : anno.x2
     const w = this.w
-    let min = this.annoCtx.invertAxis ? w.globals.minY : w.globals.minX
-    let max = this.annoCtx.invertAxis ? w.globals.maxY : w.globals.maxX
+    const x = type === 'x1' ? anno.x : anno.x2
+    const min = this.annoCtx.invertAxis ? w.globals.minY : w.globals.minX
+    const max = this.annoCtx.invertAxis ? w.globals.maxY : w.globals.maxX
     const range = this.annoCtx.invertAxis
       ? w.globals.yRange[0]
       : w.globals.xRange
     let clipped = false
 
-    let xP
-    if (this.annoCtx.inversedReversedAxis) {
-      xP = (max - x) / (range / w.globals.gridWidth)
-    } else {
-      xP = (x - min) / (range / w.globals.gridWidth)
-    }
+    let xP = this.annoCtx.inversedReversedAxis
+      ? (max - x) / (range / w.globals.gridWidth)
+      : (x - min) / (range / w.globals.gridWidth)
 
     if (
       (w.config.xaxis.type === 'category' ||
@@ -253,35 +201,28 @@ export default class Helpers {
       }
     }
 
-    if (
-      typeof x === 'string' &&
-      x.indexOf('px') > -1
-    ) {
+    if (typeof x === 'string' && x.includes('px')) {
       xP = parseFloat(x)
     }
 
     if ((x === undefined || x === null) && anno.marker) {
-      // point annotation in a horizontal chart
       xP = w.globals.gridWidth
     }
 
-    if (typeof anno.seriesIndex !== 'undefined') {
-      if (w.globals.barWidth && !this.annoCtx.invertAxis) {
-        xP = xP -
-              (w.globals.barWidth / 2) * (w.globals.series.length - 1) +
-              w.globals.barWidth * anno.seriesIndex
-      }
+    if (
+      anno.seriesIndex !== undefined &&
+      w.globals.barWidth &&
+      !this.annoCtx.invertAxis
+    ) {
+      xP -=
+        (w.globals.barWidth / 2) * (w.globals.series.length - 1) -
+        w.globals.barWidth * anno.seriesIndex
     }
 
-    if (xP > w.globals.gridWidth) {
-      xP = w.globals.gridWidth
-      clipped = true
-    } else if (xP < 0) {
-      xP = 0
-      clipped = true
-    }
+    xP = Math.min(Math.max(xP, 0), w.globals.gridWidth)
+    clipped = xP === 0 || xP === w.globals.gridWidth
 
-    return {'x': xP, 'clipped': clipped}
+    return { x: xP, clipped }
   }
 
   getStringX(x) {
@@ -295,10 +236,9 @@ export default class Helpers {
       x = w.globals.categoryLabels.indexOf(x) + 1
     }
 
-    let catIndex = w.globals.labels.indexOf(x)
-
+    const catIndex = w.globals.labels.indexOf(x)
     const xLabel = w.globals.dom.baseEl.querySelector(
-      '.apexcharts-xaxis-texts-g text:nth-child(' + (catIndex + 1) + ')'
+      `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`
     )
 
     if (xLabel) {
