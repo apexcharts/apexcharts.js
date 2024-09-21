@@ -217,7 +217,7 @@ export default class YAxis {
 
     elXaxis.add(elXaxisTexts)
 
-    const tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
+    let tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
     const labelsDivider = w.globals.gridWidth / tickAmount + 0.1
     let l = labelsDivider + w.config.xaxis.labels.offsetX
     const lbFormatter = w.globals.xLabelFormatter

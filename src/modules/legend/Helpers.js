@@ -81,8 +81,8 @@ export default class Helpers {
     const w = this.w
     let currLegendsWrap =
       w.globals.dom.baseEl.querySelector('.apexcharts-legend')
-    let currLegendsWrapWidth = currLegendsWrap.offsetWidth
-    let currLegendsWrapHeight = currLegendsWrap.offsetHeight
+    let { width: currLegendsWrapWidth, height: currLegendsWrapHeight } =
+      currLegendsWrap.getBoundingClientRect()
 
     return {
       clwh: currLegendsWrapHeight,
