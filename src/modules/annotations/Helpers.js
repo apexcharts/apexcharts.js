@@ -236,7 +236,11 @@ export default class Helpers {
       x = w.globals.categoryLabels.indexOf(x) + 1
     }
 
-    const catIndex = w.globals.labels.indexOf(x)
+    const catIndex = w.globals.labels
+      .map((item) => (Array.isArray(item) ? item.join(' ') : item))
+      .indexOf(x)
+
+    console.log(catIndex)
     const xLabel = w.globals.dom.baseEl.querySelector(
       `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`
     )
