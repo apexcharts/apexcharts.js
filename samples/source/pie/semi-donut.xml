@@ -22,7 +22,7 @@ plotOptions: {
 },
 grid: {
   padding: {
-    bottom: -80
+    bottom: -100
   }
 },
 responsive: [{

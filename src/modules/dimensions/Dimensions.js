@@ -156,7 +156,7 @@ export default class Dimensions {
 
     if (w.config.chart.type === 'radar' || this.isSparkline) {
       yAxisWidth = 0
-      xAxisHeight = gl.goldenPadding
+      xAxisHeight = 0
     }
 
     if (this.isSparkline) {
@@ -256,30 +256,25 @@ export default class Dimensions {
     let offX = cnf.plotOptions[type].offsetX
 
     if (!cnf.legend.show || cnf.legend.floating) {
-      gl.gridHeight =
-        gl.svgHeight - cnf.grid.padding.top - cnf.grid.padding.bottom
+      gl.gridHeight = gl.svgHeight
 
       const maxWidth = gl.dom.elWrap.getBoundingClientRect().width
-      gl.gridWidth =
-        Math.min(maxWidth, gl.gridHeight) -
-        cnf.grid.padding.left -
-        cnf.grid.padding.right
+      gl.gridWidth = Math.min(maxWidth, gl.gridHeight)
 
       gl.translateY = offY
       gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
-
       return
     }
 
     switch (cnf.legend.position) {
       case 'bottom':
-        gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding
+        gl.gridHeight = gl.svgHeight - this.lgRect.height
         gl.gridWidth = gl.svgWidth
         gl.translateY = offY - 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
         break
       case 'top':
-        gl.gridHeight = gl.svgHeight - this.lgRect.height - gl.goldenPadding
+        gl.gridHeight = gl.svgHeight - this.lgRect.height
         gl.gridWidth = gl.svgWidth
         gl.translateY = this.lgRect.height + offY + 10
         gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2

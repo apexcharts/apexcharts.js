@@ -36,7 +36,7 @@ class Radar {
 
     this.defaultSize =
       w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.gridHeight + w.globals.goldenPadding * 1.5
+        ? w.globals.gridHeight
         : w.globals.gridWidth
 
     this.isLog = w.config.yaxis[0].logarithmic
@@ -401,10 +401,10 @@ class Radar {
           i,
           j: i,
           parent: elXAxisWrap,
-          className: "apexcharts-xaxis-label",
+          className: 'apexcharts-xaxis-label',
           color:
             Array.isArray(xaxisLabelsConfig.style.colors) &&
-              xaxisLabelsConfig.style.colors[i]
+            xaxisLabelsConfig.style.colors[i]
               ? xaxisLabelsConfig.style.colors[i]
               : '#a8a8a8',
           dataLabelsConfig: {
@@ -424,7 +424,6 @@ class Radar {
             w.config.chart.events.xAxisLabelClick(e, this.ctx, opts)
           }
         })
-
       }
     })
 

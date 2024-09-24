@@ -446,7 +446,7 @@ export default class Core {
       !w.config.legend.floating
     ) {
       legendHeight =
-        new Legend(this.ctx).legendHelpers.getLegendDimensions().clwh + 10
+        new Legend(this.ctx).legendHelpers.getLegendDimensions().clwh + 7
     }
 
     const el = w.globals.dom.baseEl.querySelector(
@@ -465,7 +465,9 @@ export default class Core {
       chartInnerDimensions = Math.max(w.globals.radialSize * 2.05, maxHeight)
     }
 
-    const newHeight = chartInnerDimensions + gl.translateY + legendHeight + offY
+    const newHeight = Math.ceil(
+      chartInnerDimensions + gl.translateY + legendHeight + offY
+    )
 
     if (gl.dom.elLegendForeign) {
       gl.dom.elLegendForeign.setAttribute('height', newHeight)
