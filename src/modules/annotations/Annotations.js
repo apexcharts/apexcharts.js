@@ -35,7 +35,8 @@ export default class Annotations {
 
   drawAxesAnnotations() {
     const w = this.w
-    if (w.globals.axisCharts) {
+    if (w.globals.axisCharts && w.globals.dataPoints) {
+      // w.globals.dataPoints check added to fix  #1832
       let yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations()
       let xAnnotations = this.xAxisAnnotations.drawXAxisAnnotations()
       let pointAnnotations = this.pointsAnnotations.drawPointAnnotations()
