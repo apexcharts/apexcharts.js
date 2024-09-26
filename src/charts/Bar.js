@@ -380,9 +380,10 @@ class Bar {
       initialSpeed: w.config.chart.animations.speed,
       dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
       className: `apexcharts-${type}-area`,
+      chartType: type,
     })
 
-    renderedPath.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
+    renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
 
     const forecast = w.config.forecastDataPoints
     if (forecast.count > 0) {

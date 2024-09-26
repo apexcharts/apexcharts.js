@@ -82,6 +82,7 @@ class Grid {
     }
 
     gl.dom.elGridRectMask = createClipPath(`gridRectMask${gl.cuid}`)
+    gl.dom.elGridRectBarMask = createClipPath(`gridRectBarMask${gl.cuid}`)
     gl.dom.elGridRectMarkerMask = createClipPath(`gridRectMarkerMask${gl.cuid}`)
     gl.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`)
     gl.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
@@ -105,6 +106,15 @@ class Grid {
     }
 
     gl.dom.elGridRect = graphics.drawRect(
+      0,
+      0,
+      gl.gridWidth,
+      gl.gridHeight,
+      0,
+      '#fff'
+    )
+
+    gl.dom.elGridRectBar = graphics.drawRect(
       -strokeSize / 2 - barWidthLeft - 2,
       -strokeSize / 2 - 2,
       gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
@@ -113,7 +123,7 @@ class Grid {
       '#fff'
     )
 
-    const markerSize = w.globals.markers.largestSize + 1
+    const markerSize = w.globals.markers.largestSize
 
     gl.dom.elGridRectMarker = graphics.drawRect(
       -markerSize,
@@ -125,13 +135,15 @@ class Grid {
     )
 
     gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node)
+    gl.dom.elGridRectBarMask.appendChild(gl.dom.elGridRectBar.node)
     gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node)
 
     const defs = gl.dom.baseEl.querySelector('defs')
     defs.appendChild(gl.dom.elGridRectMask)
+    defs.appendChild(gl.dom.elGridRectBarMask)
+    defs.appendChild(gl.dom.elGridRectMarkerMask)
     defs.appendChild(gl.dom.elForecastMask)
     defs.appendChild(gl.dom.elNonForecastMask)
-    defs.appendChild(gl.dom.elGridRectMarkerMask)
   }
 
   _drawGridLines({ i, x1, y1, x2, y2, xCount, parent }) {

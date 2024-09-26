@@ -81,6 +81,7 @@ export default class Destroy {
     domEls.baseEl = null
     domEls.elGridRect = null
     domEls.elGridRectMask = null
+    domEls.elGridRectBarMask = null
     domEls.elGridRectMarkerMask = null
     domEls.elForecastMask = null
     domEls.elNonForecastMask = null

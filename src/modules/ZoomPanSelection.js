@@ -298,15 +298,17 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     // Constrain within original chart bounds
-    newMinX = Math.max(newMinX, w.globals.initialMinX)
-    newMaxX = Math.min(newMaxX, w.globals.initialMaxX)
+    if (!w.globals.isRangeBar) {
+      newMinX = Math.max(newMinX, w.globals.initialMinX)
+      newMaxX = Math.min(newMaxX, w.globals.initialMaxX)
 
-    // Ensure minimum range
-    const minRange = (w.globals.initialMaxX - w.globals.initialMinX) * 0.01
-    if (newMaxX - newMinX < minRange) {
-      const midPoint = (newMinX + newMaxX) / 2
-      newMinX = midPoint - minRange / 2
-      newMaxX = midPoint + minRange / 2
+      // Ensure minimum range
+      const minRange = (w.globals.initialMaxX - w.globals.initialMinX) * 0.01
+      if (newMaxX - newMinX < minRange) {
+        const midPoint = (newMinX + newMaxX) / 2
+        newMinX = midPoint - minRange / 2
+        newMaxX = midPoint + minRange / 2
+      }
     }
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
