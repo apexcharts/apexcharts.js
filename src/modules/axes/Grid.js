@@ -116,10 +116,10 @@ class Grid {
     const markerSize = w.globals.markers.largestSize + 1
 
     gl.dom.elGridRectMarker = graphics.drawRect(
-      -markerSize * 2,
-      -markerSize * 2,
-      gl.gridWidth + markerSize * 4,
-      gl.gridHeight + markerSize * 4,
+      -markerSize,
+      -markerSize,
+      gl.gridWidth + markerSize * 2,
+      gl.gridHeight + markerSize * 2,
       0,
       '#fff'
     )
