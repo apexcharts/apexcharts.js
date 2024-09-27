@@ -152,7 +152,12 @@ export default class Core {
     gl.series.forEach((serie, st) => {
       const seriesType = ser[st].type || chartType
       if (seriesTypes[seriesType]) {
-        seriesTypes[seriesType].series.push(serie)
+        if (seriesType === 'rangeArea') {
+          seriesTypes[seriesType].series.push(gl.seriesRangeStart[st])
+          seriesTypes[seriesType].seriesRangeEnd.push(gl.seriesRangeEnd[st])
+        } else {
+          seriesTypes[seriesType].series.push(serie)
+        }
         seriesTypes[seriesType].i.push(st)
 
         if (seriesType === 'column' || seriesType === 'bar')
