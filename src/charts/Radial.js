@@ -317,12 +317,12 @@ class Radial extends Pie {
       }
 
       const currFullAngle = Math.abs(endAngle) + Math.abs(startAngle)
-      if (currFullAngle >= 360) {
+      if (currFullAngle > 360) {
         endAngle = endAngle - 0.01
       }
 
       const prevFullAngle = Math.abs(prevEndAngle) + Math.abs(prevStartAngle)
-      if (prevFullAngle >= 360) {
+      if (prevFullAngle > 360) {
         prevEndAngle = prevEndAngle - 0.01
       }
 
