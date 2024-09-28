@@ -52,7 +52,7 @@ export default class ZoomPanSelection extends Toolbar {
 
     this.zoomRect.node.classList.add('apexcharts-zoom-rect')
     this.selectionRect.node.classList.add('apexcharts-selection-rect')
-    w.globals.dom.Paper.add(this.zoomRect)
+    w.globals.dom.elGraphical.add(this.zoomRect)
     w.globals.dom.Paper.add(this.selectionRect)
 
     if (w.config.chart.selection.type === 'x') {
