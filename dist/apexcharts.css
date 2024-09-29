@@ -18,6 +18,7 @@
 
 .apexcharts-canvas {
   position: relative;
+  direction: ltr !important;
   user-select: none
 }
 
