@@ -219,8 +219,13 @@ export default class Helpers {
         w.globals.barWidth * anno.seriesIndex
     }
 
-    xP = Math.min(Math.max(xP, 0), w.globals.gridWidth)
-    clipped = xP === 0 || xP === w.globals.gridWidth
+    if (xP > w.globals.gridWidth) {
+      xP = w.globals.gridWidth
+      clipped = true
+    } else if (xP < 0) {
+      xP = 0
+      clipped = true
+    }
 
     return { x: xP, clipped }
   }
