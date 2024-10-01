@@ -317,13 +317,16 @@ class Legend {
 
     let elLegendWrap = w.globals.dom.elLegendWrap
 
-    const legendRect = elLegendWrap.getBoundingClientRect()
+    const legendHeight = elLegendWrap.clientHeight
 
     let x = 0
     let y = 0
 
     if (w.config.legend.position === 'bottom') {
-      y = w.globals.svgHeight - legendRect.height - 5
+      y =
+        w.globals.svgHeight -
+        Math.min(legendHeight, w.globals.svgHeight / 2) -
+        5
     } else if (w.config.legend.position === 'top') {
       const dim = new Dimensions(this.ctx)
       const titleH = dim.dimHelpers.getTitleSubtitleCoords('title').height
