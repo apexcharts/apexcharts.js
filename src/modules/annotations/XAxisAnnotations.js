@@ -84,9 +84,9 @@ export default class XAnnotations {
         anno.label.position === 'top'
           ? 4
           : anno.label.position === 'center'
-            ? w.globals.gridHeight / 2 +
+          ? w.globals.gridHeight / 2 +
             (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
-            : w.globals.gridHeight
+          : w.globals.gridHeight
 
       let elText = this.annoCtx.graphics.drawText({
         x: x1 + anno.label.offsetX,
@@ -106,7 +106,7 @@ export default class XAnnotations {
         foreColor: anno.label.style.color,
         cssClass: `apexcharts-xaxis-annotation-label ${
           anno.label.style.cssClass
-          } ${anno.id ? anno.id : ''}`
+        } ${anno.id ? anno.id : ''}`
       })
 
       if (anno.label.mouseEnter) {
