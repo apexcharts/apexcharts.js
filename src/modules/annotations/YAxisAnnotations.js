@@ -81,8 +81,8 @@ export default class YAnnotations {
         anno.label.position === 'right'
           ? w.globals.gridWidth
           : anno.label.position === 'center'
-          ? w.globals.gridWidth / 2
-          : 0
+            ? w.globals.gridWidth / 2
+            : 0
 
       let elText = this.annoCtx.graphics.drawText({
         x: textX + anno.label.offsetX,
@@ -95,8 +95,27 @@ export default class YAnnotations {
         foreColor: anno.label.style.color,
         cssClass: `apexcharts-yaxis-annotation-label ${
           anno.label.style.cssClass
-        } ${anno.id ? anno.id : ''}`
+          } ${anno.id ? anno.id : ''}`
       })
+
+      if (anno.label.mouseEnter) {
+        elText.node.addEventListener(
+          'mouseenter',
+          anno.label.mouseEnter.bind(this, anno)
+        )
+      }
+      if (anno.label.mouseLeave) {
+        elText.node.addEventListener(
+          'mouseleave',
+          anno.label.mouseLeave.bind(this, anno)
+        )
+      }
+      if (anno.label.click) {
+        elText.node.addEventListener(
+          'click',
+          anno.label.click.bind(this, anno)
+        );
+      }
 
       elText.attr({
         rel: index
@@ -128,8 +147,8 @@ export default class YAnnotations {
     w.config.annotations.yaxis.forEach((anno, index) => {
       anno.yAxisIndex = this.axesUtils.translateYAxisIndex(anno.yAxisIndex)
       if (
-            !(this.axesUtils.isYAxisHidden(anno.yAxisIndex)
-            && this.axesUtils.yAxisAllSeriesCollapsed(anno.yAxisIndex))
+        !(this.axesUtils.isYAxisHidden(anno.yAxisIndex)
+          && this.axesUtils.yAxisAllSeriesCollapsed(anno.yAxisIndex))
       ) {
         this.addYaxisAnnotation(anno, elg.node, index)
       }

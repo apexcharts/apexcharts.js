@@ -46,7 +46,7 @@ export default class XAnnotations {
       let result = this.helpers.getX1X2('x2', anno)
       x2 = result.x
       clipX2 = result.clipped
-      
+
       if (!(clipX1 && clipX2)) {
         if (x2 < x1) {
           let temp = x1
@@ -84,9 +84,9 @@ export default class XAnnotations {
         anno.label.position === 'top'
           ? 4
           : anno.label.position === 'center'
-          ? w.globals.gridHeight / 2 +
+            ? w.globals.gridHeight / 2 +
             (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
-          : w.globals.gridHeight
+            : w.globals.gridHeight
 
       let elText = this.annoCtx.graphics.drawText({
         x: x1 + anno.label.offsetX,
@@ -106,8 +106,27 @@ export default class XAnnotations {
         foreColor: anno.label.style.color,
         cssClass: `apexcharts-xaxis-annotation-label ${
           anno.label.style.cssClass
-        } ${anno.id ? anno.id : ''}`
+          } ${anno.id ? anno.id : ''}`
       })
+
+      if (anno.label.mouseEnter) {
+        elText.node.addEventListener(
+          'mouseenter',
+          anno.label.mouseEnter.bind(this, anno)
+        )
+      }
+      if (anno.label.mouseLeave) {
+        elText.node.addEventListener(
+          'mouseleave',
+          anno.label.mouseLeave.bind(this, anno)
+        )
+      }
+      if (anno.label.click) {
+        elText.node.addEventListener(
+          'click',
+          anno.label.click.bind(this, anno)
+        );
+      }
 
       elText.attr({
         rel: index
