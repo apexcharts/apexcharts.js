@@ -34,7 +34,7 @@ export default class PointAnnotations {
         pRadius: anno.marker.radius,
         class: `apexcharts-point-annotation-marker ${anno.marker.cssClass} ${
           anno.id ? anno.id : ''
-          }`,
+        }`,
       }
 
       let point = this.annoCtx.graphics.drawMarker(
@@ -62,7 +62,7 @@ export default class PointAnnotations {
         foreColor: anno.label.style.color,
         cssClass: `apexcharts-point-annotation-label ${
           anno.label.style.cssClass
-          } ${anno.id ? anno.id : ''}`,
+        } ${anno.id ? anno.id : ''}`,
       })
 
       elText.attr({
@@ -81,7 +81,7 @@ export default class PointAnnotations {
         g.attr({
           transform: `translate(${x + anno.customSVG.offsetX}, ${
             y + anno.customSVG.offsetY
-            })`,
+          })`,
         })
 
         g.node.innerHTML = anno.customSVG.SVG
