@@ -163,22 +163,22 @@ export default class Position {
    * @memberof Position
    * @param {int} - cx = point's x position, wherever point's x is, you need to move tooltip
    * @param {int} - cy = point's y position, wherever point's y is, you need to move tooltip
-   * @param {int} - r = point's radius
+   * @param {int} - markerSize = point's size
    */
-  moveTooltip(cx, cy, r = null) {
+  moveTooltip(cx, cy, markerSize = null) {
     let w = this.w
 
     let ttCtx = this.ttCtx
     const tooltipEl = ttCtx.getElTooltip()
     let tooltipRect = ttCtx.tooltipRect
 
-    let pointR = r !== null ? parseFloat(r) : 1
+    let pointSize = markerSize !== null ? parseFloat(markerSize) : 1
 
-    let x = parseFloat(cx) + pointR + 5
-    let y = parseFloat(cy) + pointR / 2 // - tooltipRect.ttHeight / 2
+    let x = parseFloat(cx) + pointSize + 5
+    let y = parseFloat(cy) + pointSize / 2 // - tooltipRect.ttHeight / 2
 
     if (x > w.globals.gridWidth / 2) {
-      x = x - tooltipRect.ttWidth - pointR - 10
+      x = x - tooltipRect.ttWidth - pointSize - 10
     }
 
     if (x > w.globals.gridWidth - tooltipRect.ttWidth - 10) {
@@ -244,6 +244,7 @@ export default class Position {
     let ttCtx = this.ttCtx
     let cx = 0
     let cy = 0
+    const graphics = new Graphics(this.ctx)
 
     let pointsArr = w.globals.pointsArray
 
@@ -264,17 +265,15 @@ export default class Position {
     cy = pointsArr[capturedSeries][j]?.[1] || 0
 
     let point = w.globals.dom.baseEl.querySelector(
-      `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers circle`
+      `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers path`
     )
 
     if (point && cy < w.globals.gridHeight && cy > 0) {
-      point.setAttribute('r', hoverSize)
+      const shape = point.getAttribute('shape')
 
-      point.setAttribute('cx', cx)
-      point.setAttribute('cy', cy)
+      const path = graphics.getMarkerPath(cx, cy, shape, hoverSize * 1.5)
+      point.setAttribute('d', path)
     }
-
-    // point.style.opacity = w.config.markers.hover.opacity
 
     this.moveXCrosshairs(cx)
 
@@ -295,6 +294,8 @@ export default class Position {
     let pointsArr = w.globals.pointsArray
 
     let series = new Series(this.ctx)
+    const graphics = new Graphics(this.ctx)
+
     activeSeries = series.getActiveConfigSeriesIndex('asc', [
       'line',
       'area',
@@ -327,6 +328,8 @@ export default class Position {
           let pcy2
           points[p].setAttribute('cx', cx)
 
+          const shape = points[p].getAttribute('shape')
+
           if (w.config.chart.type === 'rangeArea' && !w.globals.comboCharts) {
             const rangeStartIndex = j + w.globals.series[p].length
             pcy2 = pointsArr[p][rangeStartIndex][1]
@@ -340,10 +343,10 @@ export default class Position {
             pcy < w.globals.gridHeight + hoverSize &&
             pcy + hoverSize > 0
           ) {
-            points[p] && points[p].setAttribute('r', hoverSize)
-            points[p] && points[p].setAttribute('cy', pcy)
+            const path = graphics.getMarkerPath(cx, pcy, shape, hoverSize)
+            points[p].setAttribute('d', path)
           } else {
-            points[p] && points[p].setAttribute('r', 0)
+            points[p].setAttribute('d', '')
           }
         }
       }

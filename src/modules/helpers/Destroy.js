@@ -41,7 +41,7 @@ export default class Destroy {
       this.off()
       // this.stop()
     }, true)
-    draw.ungroup()
+    // draw.ungroup()
     draw.clear()
   }
 

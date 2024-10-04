@@ -53,7 +53,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.zoomRect.node.classList.add('apexcharts-zoom-rect')
     this.selectionRect.node.classList.add('apexcharts-selection-rect')
     w.globals.dom.elGraphical.add(this.zoomRect)
-    w.globals.dom.elGraphical.add(this.selectionRect)
+    w.globals.dom.Paper.add(this.selectionRect)
 
     if (w.config.chart.selection.type === 'x') {
       this.slDraggableRect = this.selectionRect
@@ -237,20 +237,13 @@ export default class ZoomPanSelection extends Toolbar {
 
     const rectDim = this.selectionRect.node.getBoundingClientRect()
     if (rectDim.width > 0 && rectDim.height > 0) {
-      this.slDraggableRect
-        .selectize({
-          points: 'l, r',
-          pointSize: 8,
-          pointType: 'rect',
+      this.selectionRect.select(false).resize(false)
+      this.selectionRect
+        .select({
+          createRot: () => {},
+          updateRot: () => {}
         })
-        .resize({
-          constraint: {
-            minX: 0,
-            minY: 0,
-            maxX: w.globals.gridWidth,
-            maxY: w.globals.gridHeight,
-          },
-        })
+        .resize()
         .on('resizing', this.selectionDragging.bind(this, 'resizing'))
     }
   }
@@ -294,8 +287,8 @@ export default class ZoomPanSelection extends Toolbar {
             y: 0,
             width,
             height: w.globals.gridHeight,
-            translateX: 0,
-            translateY: 0,
+            translateX: w.globals.translateX,
+            translateY: w.globals.translateY,
             selectionEnabled: true,
           }
           this.drawSelectionRect(selectionRect)
@@ -386,7 +379,10 @@ export default class ZoomPanSelection extends Toolbar {
     let selectionWidth = me.clientX - gridRectDim.left - startX
     let selectionHeight = me.clientY - gridRectDim.top - startY
 
-    let selectionRect = {}
+    let selectionRect = {
+      translateX: w.globals.translateX,
+      translateY: w.globals.translateY
+    }
 
     if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
       // user dragged the mouse outside drawing area to the right
@@ -559,16 +555,14 @@ export default class ZoomPanSelection extends Toolbar {
 
     w.config.yaxis.forEach((yaxe, index) => {
       // We can use the index of any series referenced by the Yaxis
-      // because they will all return the same value.
-      if (w.globals.seriesYAxisMap[index].length > 0) {
-        let seriesIndex = w.globals.seriesYAxisMap[index][0]
-        yHighestValue.push(
-          w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.startY
-        )
-        yLowestValue.push(
-          w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.endY
-        )
-      }
+      // because they will all return the same value, so we choose the first.
+      let seriesIndex = w.globals.seriesYAxisMap[index][0]
+      yHighestValue.push(
+        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.startY
+      )
+      yLowestValue.push(
+        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.endY
+      )
     })
 
     if (

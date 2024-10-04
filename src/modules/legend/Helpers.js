@@ -42,8 +42,6 @@ export default class Helpers {
         cursor: pointer;
         line-height: normal;
         display: flex;
-      }
-      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{
         align-items: center;
       }
       .apexcharts-legend-text {
@@ -59,7 +57,7 @@ export default class Helpers {
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        margin-right: 3px;
+        margin-right: 1px;
       }
 
       .apexcharts-legend-series.apexcharts-no-click {
@@ -79,14 +77,12 @@ export default class Helpers {
     return stylesheet
   }
 
-  getLegendBBox() {
+  getLegendDimensions() {
     const w = this.w
     let currLegendsWrap =
       w.globals.dom.baseEl.querySelector('.apexcharts-legend')
-    let currLegendsWrapRect = currLegendsWrap.getBoundingClientRect()
-
-    let currLegendsWrapWidth = currLegendsWrapRect.width
-    let currLegendsWrapHeight = currLegendsWrapRect.height
+    let currLegendsWrapWidth = currLegendsWrap.offsetWidth
+    let currLegendsWrapHeight = currLegendsWrap.offsetHeight
 
     return {
       clwh: currLegendsWrapHeight,
@@ -143,7 +139,7 @@ export default class Helpers {
       }
     } else {
       // for non-axis charts i.e pie / donuts
-      let seriesEl = w.globals.dom.Paper.select(
+      let seriesEl = w.globals.dom.Paper.findOne(
         ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
       )
 
@@ -152,9 +148,9 @@ export default class Helpers {
         let dataLabels = w.config.plotOptions.pie.donut.labels
 
         const graphics = new Graphics(this.lgCtx.ctx)
-        graphics.pathMouseDown(seriesEl.members[0], null)
+        graphics.pathMouseDown(seriesEl, null)
         this.lgCtx.ctx.pie.printDataLabelsInner(
-          seriesEl.members[0].node,
+          seriesEl.node,
           dataLabels
         )
       }

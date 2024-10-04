@@ -437,7 +437,6 @@ type PointAnnotations = {
     shape?: string
     offsetX?: number
     offsetY?: number
-    radius?: number
     cssClass?: string
   }
   label?: AnnotationLabel
@@ -831,7 +830,6 @@ type ApexLegend = {
     shape?: ApexMarkerShape
     offsetX?: number
     offsetY?: number
-    radius?: number
     customHTML?(): any
     onClick?(): void
   }
@@ -851,7 +849,7 @@ type ApexLegend = {
   }
 }
 
-type MarkerShapeOptions = "circle" | "square" | "rect" | "line" | 'cross' | 'plus'
+type MarkerShapeOptions = "circle" | "square" | "rect" | "line" | 'cross' | 'plus' | 'star' | 'sparkle' | 'diamond' | 'triangle'
 
 type ApexMarkerShape = MarkerShapeOptions | MarkerShapeOptions[]
 
@@ -873,8 +871,7 @@ type ApexMarkers = {
   strokeDashArray?: number | number[]
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
-  shape?: ApexMarkerShape
-  radius?: number
+  shape?: ApexMarkerShape 
   offsetX?: number
   offsetY?: number
   showNullDataPoints?: boolean

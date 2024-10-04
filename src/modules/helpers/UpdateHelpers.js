@@ -182,15 +182,15 @@ export default class UpdateHelpers {
     const parent = `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
 
     if (w.globals.axisCharts) {
-      elPath = w.globals.dom.Paper.select(
+      elPath = w.globals.dom.Paper.findOne(
         `${parent} path[j='${dataPointIndex}'], ${parent} circle[j='${dataPointIndex}'], ${parent} rect[j='${dataPointIndex}']`
-      ).members[0]
+      )
     } else {
       // dataPointIndex will be undefined here, hence using seriesIndex
       if (typeof dataPointIndex === 'undefined') {
-        elPath = w.globals.dom.Paper.select(
+        elPath = w.globals.dom.Paper.findOne(
           `${parent} path[j='${seriesIndex}']`
-        ).members[0]
+        )
 
         if (
           w.config.chart.type === 'pie' ||

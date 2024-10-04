@@ -90,7 +90,7 @@ export default class Core {
 
     // gl.dom.Paper = new window.SVG.Doc(gl.dom.elWrap)
     gl.dom.Paper = window.SVG().addTo(gl.dom.elWrap)
-    console.log('paper', gl.dom.Paper);
+
     gl.dom.Paper.attr({
       class: 'apexcharts-svg',
       'xmlns:data': 'ApexChartsNS',
@@ -98,9 +98,9 @@ export default class Core {
     })
 
     gl.dom.Paper.node.style.background =
-    cnf.theme.mode === 'dark' && !cnf.chart.background
-      ? '#424242'
-      : cnf.theme.mode === 'light' && !cnf.chart.background
+      cnf.theme.mode === 'dark' && !cnf.chart.background
+        ? '#424242'
+        : cnf.theme.mode === 'light' && !cnf.chart.background
         ? '#fff'
         : cnf.chart.background
 
@@ -256,14 +256,12 @@ export default class Core {
     if (comboCount > 0) {
       if (nonComboType !== null) {
         console.warn(
-            'Chart or series type ',
-            nonComboType,
-            ' can not appear with other chart or series types.'
+          'Chart or series type ',
+          nonComboType,
+          ' can not appear with other chart or series types.'
         )
       }
-      if (columnSeries.series.length > 0
-          && cnf.plotOptions.bar.horizontal
-      ) {
+      if (columnSeries.series.length > 0 && cnf.plotOptions.bar.horizontal) {
         // horizontal bars not supported in mixed charts
         comboCount -= columnSeries.length
         columnSeries = {
@@ -293,7 +291,12 @@ export default class Core {
       const coreUtils = new CoreUtils(this.ctx)
       if (areaSeries.series.length > 0) {
         elGraph.push(
-          ...coreUtils.drawSeriesByGroup(areaSeries, gl.areaGroups, 'area', line)
+          ...coreUtils.drawSeriesByGroup(
+            areaSeries,
+            gl.areaGroups,
+            'area',
+            line
+          )
         )
       }
       if (columnSeries.series.length > 0) {
@@ -317,7 +320,12 @@ export default class Core {
       }
       if (lineSeries.series.length > 0) {
         elGraph.push(
-          ...coreUtils.drawSeriesByGroup(lineSeries, gl.lineGroups, 'line', line)
+          ...coreUtils.drawSeriesByGroup(
+            lineSeries,
+            gl.lineGroups,
+            'line',
+            line
+          )
         )
       }
       if (candlestickSeries.series.length > 0) {
@@ -419,6 +427,9 @@ export default class Core {
     let gl = this.w.globals
     let cnf = this.w.config
 
+    if (!cnf.chart.width) cnf.chart.width = '100%'
+    if (!cnf.chart.height) cnf.chart.height = 'auto'
+
     gl.svgWidth = cnf.chart.width
     gl.svgHeight = cnf.chart.height
 
@@ -441,7 +452,7 @@ export default class Core {
       gl.svgWidth = parseInt(cnf.chart.width, 10)
     }
 
-    let heightUnit = cnf.chart.height
+    let heightUnit = String(cnf.chart.height)
       .toString()
       .split(/[0-9]+/g)
       .pop()
@@ -513,7 +524,7 @@ export default class Core {
       !w.config.legend.floating
     ) {
       legendHeight =
-        new Legend(this.ctx).legendHelpers.getLegendBBox().clwh + 10
+        new Legend(this.ctx).legendHelpers.getLegendDimensions().clwh + 10
     }
 
     let el = w.globals.dom.baseEl.querySelector(
@@ -658,9 +669,9 @@ export default class Core {
     // if user has not defined a custom function for selection - we handle the brush chart
     // otherwise we leave it to the user to define the functionality for selection
     if (typeof w.config.chart.events.selection !== 'function') {
-      let targets = Array.isArray(w.config.chart.brush.targets) ? w.config.chart.brush.targets : [
-        w.config.chart.brush.target,
-      ]
+      let targets = Array.isArray(w.config.chart.brush.targets)
+        ? w.config.chart.brush.targets
+        : [w.config.chart.brush.target]
       // retro compatibility with single target option
       targets.forEach((target) => {
         let targetChart = ApexCharts.getChartByID(target)
@@ -687,7 +698,7 @@ export default class Core {
               xaxis: {
                 min: e.xaxis.min,
                 max: e.xaxis.max,
-              }
+              },
             },
             false,
             false,

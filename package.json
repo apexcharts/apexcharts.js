@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "3.50.0",
+  "version": "3.51.0",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -27,9 +27,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "npm run e2e && npm run unit",
+    "test:ci": "npm run e2e:ci && npm run unit",
     "unit": "jest tests/unit/",
     "e2e": "node tests/e2e/samples.js test",
     "e2e:update": "node tests/e2e/samples.js update",
+    "e2e:ci": "node tests/e2e/samples.js test:ci",
     "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
@@ -38,13 +40,7 @@
     "@svgdotjs/svg.js": "^3.2.4",
     "@svgdotjs/svg.resize.js": "^2.0.2",
     "@svgdotjs/svg.select.js": "^4.0.1",
-    "@yr/monotone-cubic-spline": "^1.0.3",
-    "svg.draggable.js": "^2.2.2",
-    "svg.easing.js": "^2.0.0",
-    "svg.filter.js": "^2.0.2",
-    "svg.pathmorphing.js": "^0.1.3",
-    "svg.resize.js": "^1.4.3",
-    "svg.select.js": "^3.0.1"
+    "@yr/monotone-cubic-spline": "^1.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",

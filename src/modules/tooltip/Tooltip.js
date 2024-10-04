@@ -598,6 +598,7 @@ export default class Tooltip {
         }
       }
 
+      w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
       opt.tooltipEl.classList.add('apexcharts-active')
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       this.handleMouseOut(opt)
@@ -614,6 +615,7 @@ export default class Tooltip {
     let seriesBound = w.globals.dom.elWrap.getBoundingClientRect()
 
     if (e.type === 'mousemove' || e.type === 'touchmove') {
+      w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
       tooltipEl.classList.add('apexcharts-active')
 
       this.tooltipLabels.drawSeriesTexts({
@@ -645,6 +647,7 @@ export default class Tooltip {
       }
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       tooltipEl.classList.remove('apexcharts-active')
+      w.globals.dom.baseEl.classList.remove('apexcharts-tooltip-active')
       if (w.config.legend.tooltipHoverFormatter) {
         this.legendLabels.forEach((l) => {
           const defaultText = l.getAttribute('data:default-text')
@@ -724,7 +727,7 @@ export default class Tooltip {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    let allPaths = w.globals.dom.Paper.select(`.apexcharts-bar-area`)
+    let allPaths = w.globals.dom.Paper.find(`.apexcharts-bar-area`)
 
     for (let b = 0; b < allPaths.length; b++) {
       graphics.pathMouseLeave(allPaths[b])
@@ -735,6 +738,7 @@ export default class Tooltip {
     const w = this.w
 
     const xcrosshairs = this.getElXCrosshairs()
+    w.globals.dom.baseEl.classList.remove('apexcharts-tooltip-active')
 
     opt.tooltipEl.classList.remove('apexcharts-active')
     this.deactivateHoverFilter()
@@ -868,7 +872,7 @@ export default class Tooltip {
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
           let graphics = new Graphics(this.ctx)
-          let paths = w.globals.dom.Paper.select(
+          let paths = w.globals.dom.Paper.find(
             `.apexcharts-bar-area[j='${j}']`
           )
 

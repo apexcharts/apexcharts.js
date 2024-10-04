@@ -1,3 +1,5 @@
+import {SVG} from '@svgdotjs/svg.js'
+
 import CoreUtils from '../CoreUtils'
 import Dimensions from '../dimensions/Dimensions'
 import Graphics from '../Graphics'
@@ -72,43 +74,34 @@ class Legend {
     elMarker.classList.add('apexcharts-legend-marker')
 
     let mShape = w.config.legend.markers.shape || w.config.markers.shape
-    let mSize = w.config.legend.markers.size
-    let mOffsetX = w.config.legend.markers.offsetX
-    let mOffsetY = w.config.legend.markers.offsetY
-    let mBorderWidth = w.config.legend.markers.strokeWidth
-    let mBorderColor = w.config.legend.markers.strokeColor
-    let mBorderRadius = w.config.legend.markers.radius
+    let shape = mShape
+    if (Array.isArray(mShape)) {
+      shape = mShape[i]
+    }
+    let mSize = Array.isArray(w.config.legend.markers.size)
+      ? parseFloat(w.config.legend.markers.size[i])
+      : parseFloat(w.config.legend.markers.size)
+    let mOffsetX = Array.isArray(w.config.legend.markers.offsetX)
+      ? parseFloat(w.config.legend.markers.offsetX[i])
+      : parseFloat(w.config.legend.markers.offsetX)
+    let mOffsetY = Array.isArray(w.config.legend.markers.offsetY)
+      ? parseFloat(w.config.legend.markers.offsetY[i])
+      : parseFloat(w.config.legend.markers.offsetY)
+    let mBorderWidth = Array.isArray(w.config.legend.markers.strokeWidth)
+      ? parseFloat(w.config.legend.markers.strokeWidth[i])
+      : parseFloat(w.config.legend.markers.strokeWidth)
 
     let mStyle = elMarker.style
 
-    mStyle.height =
-      (Array.isArray(mSize)
-        ? parseFloat(mSize[i]) * 2
-        : parseFloat(mSize) * 2) + 'px'
-    mStyle.width =
-      (Array.isArray(mSize)
-        ? parseFloat(mSize[i]) * 2
-        : parseFloat(mSize) * 2) + 'px'
-    mStyle.left =
-      (Array.isArray(mOffsetX)
-        ? parseFloat(mOffsetX[i])
-        : parseFloat(mOffsetX)) + 'px'
-    mStyle.top =
-      (Array.isArray(mOffsetY)
-        ? parseFloat(mOffsetY[i])
-        : parseFloat(mOffsetY)) + 'px'
-    mStyle.borderWidth = Array.isArray(mBorderWidth)
-      ? mBorderWidth[i]
-      : mBorderWidth
-    mStyle.borderColor = Array.isArray(mBorderColor)
-      ? mBorderColor[i]
-      : mBorderColor
-    mStyle.borderRadius = Array.isArray(mBorderRadius)
-      ? parseFloat(mBorderRadius[i]) + 'px'
-      : parseFloat(mBorderRadius) + 'px'
+    mStyle.height = (mSize + mBorderWidth) * 2 + 'px'
+    mStyle.width = (mSize + mBorderWidth) * 2 + 'px'
+    mStyle.left = mOffsetX + 'px'
+    mStyle.top = mOffsetY + 'px'
 
     if (w.config.legend.markers.customHTML) {
       mStyle.background = 'transparent'
+      mStyle.color = fillcolor[i]
+
       if (Array.isArray(w.config.legend.markers.customHTML)) {
         if (w.config.legend.markers.customHTML[i]) {
           elMarker.innerHTML = w.config.legend.markers.customHTML[i]()
@@ -116,63 +109,35 @@ class Legend {
       } else {
         elMarker.innerHTML = w.config.legend.markers.customHTML()
       }
-    }
-
-    let shape = mShape
-    if (Array.isArray(mShape)) {
-      shape = mShape[i]
-    }
-
-    if (shape !== 'circle') {
+    } else {
       let markers = new Markers(this.ctx)
 
       const markerConfig = markers.getMarkerConfig({
-        cssClass: 'apexcharts-legend-marker apexcharts-marker',
+        cssClass: `apexcharts-legend-marker apexcharts-marker apexcharts-marker-${shape}`,
         seriesIndex: i,
+        strokeWidth: mBorderWidth,
         size: mSize,
-        pRadius: Array.isArray(mBorderRadius)
-          ? mBorderRadius[i]
-          : mBorderRadius,
-        strokeWidth:
-          shape === 'plus' || shape === 'cross' || shape === 'line'
-            ? Array.isArray(mBorderWidth)
-              ? mBorderWidth[i]
-              : mBorderWidth
-            : 0,
       })
 
-      const SVGMarker = SVG(elMarker).size('100%', '100%')
+      const SVGMarker = SVG().addTo(elMarker).size('100%', '100%')
       const marker = new Graphics(this.ctx).drawMarker(0, 0, {
         ...markerConfig,
-        pointFillColor: Array.isArray(w.config.legend.markers.fillColors)
+        pointFillColor: Array.isArray(fillcolor)
           ? fillcolor[i]
           : markerConfig.pointFillColor,
         shape,
       })
 
-      const shapes = SVG.select(
-        '.apexcharts-legend-marker.apexcharts-marker'
-      ).members
-      shapes.forEach((shape) => {
-        shape.node.style.transform = 'translate(50%, 50%)'
+      const shapesEls = w.globals.dom.Paper.find('.apexcharts-legend-marker.apexcharts-marker')
+      shapesEls.forEach((shapeEl) => {
+        if (shapeEl.node.classList.contains('apexcharts-marker-triangle')) {
+          shapeEl.node.style.transform = 'translate(50%, 45%)'
+        } else {
+          shapeEl.node.style.transform = 'translate(50%, 50%)'
+        }
       })
       SVGMarker.add(marker)
-    } else {
-      mStyle.color = fillcolor[i]
-      mStyle.borderRadius = '100%'
-
-      if (!w.config.legend.markers.customHTML) {
-        mStyle.background = fillcolor[i]
-        mStyle.setProperty('background', fillcolor[i], 'important')
-
-        // override with data color
-        if (w.globals.seriesColors[i] !== undefined) {
-          mStyle.background = w.globals.seriesColors[i]
-          mStyle.color = w.globals.seriesColors[i]
-        }
-      }
     }
-
     return elMarker
   }
 
@@ -408,7 +373,7 @@ class Legend {
 
     elLegendWrap.style.right = 0
 
-    let lRect = this.legendHelpers.getLegendBBox()
+    let lRect = this.legendHelpers.getLegendDimensions()
 
     let dimensions = new Dimensions(this.ctx)
     let titleRect = dimensions.dimHelpers.getTitleSubtitleCoords('title')
@@ -435,7 +400,7 @@ class Legend {
   legendAlignVertical() {
     let w = this.w
 
-    let lRect = this.legendHelpers.getLegendBBox()
+    let lRect = this.legendHelpers.getLegendDimensions()
 
     let offsetY = 20
     let offsetX = 0

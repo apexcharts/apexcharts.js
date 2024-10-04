@@ -24,6 +24,12 @@ class TestError extends Error {
   }
 }
 
+class MissingSnapshotError extends Error {
+  constructor(message) {
+    super(message)
+  }
+}
+
 async function processSample(page, sample, command) {
   const relPath = `${sample.dirName}/${sample.fileName}`
   const vanillaJsHtml = `${rootDir}/samples/vanilla-js/${relPath}.html`
@@ -145,7 +151,16 @@ async function processSample(page, sample, command) {
     // Compare screenshot to the original and throw error on differences
     const testImg = PNG.sync.read(testImgBuffer)
     // BUG: copy if original image doesn't exist and report in test results?
-    const originalImg = PNG.sync.read(fs.readFileSync(originalImgPath))
+    let originalImg;
+    try {
+      originalImg = PNG.sync.read(fs.readFileSync(originalImgPath))
+    } catch (e) {
+      if (e.code === 'ENOENT') {
+        //The file could not be found so throw a MissingSnapshotError
+        throw new MissingSnapshotError(relPath)
+      }
+      throw e
+    }
     const { width, height } = testImg
     const diffImg = new PNG({ width, height })
 
@@ -219,7 +234,7 @@ async function updateBundle(config) {
   }
 }
 
-async function processSamples(command, paths) {
+async function processSamples(command, paths, isCI) {
   const startTime = Date.now()
 
   await updateBundle(builds['web-umd-dev'])
@@ -241,6 +256,7 @@ async function processSamples(command, paths) {
 
   let numCompleted = 0
   const failedTests = [] // {path, error}
+  const testsMissingSnapshots = [] // 'pathForSnapshot'
 
   // Build a list of samples to process
   let samples = extractSampleInfo()
@@ -278,10 +294,14 @@ async function processSamples(command, paths) {
     try {
       await processSample(page, sample, command)
     } catch (e) {
-      failedTests.push({
-        path: `${sample.dirName}/${sample.fileName}`,
-        error: e,
-      })
+      if (e instanceof MissingSnapshotError) {
+        testsMissingSnapshots.push(e.message)
+      } else {
+        failedTests.push({
+          path: `${sample.dirName}/${sample.fileName}`,
+          error: e,
+        })
+      }
     }
     numCompleted++
     if (!process.stdout.isTTY) {
@@ -309,6 +329,13 @@ async function processSamples(command, paths) {
     console.log(
       chalk.green.bold(`${samples.length} tests completed in ${duration} sec.`)
     )
+
+    if (testsMissingSnapshots.length > 0) {
+      console.log(chalk.yellow.bold(`${testsMissingSnapshots.length} tests were missing snapshots to compare against. Those tests are:`))
+      for (const testMissingSnapshot of testsMissingSnapshots) {
+        console.log(chalk.yellow.bold(`${testMissingSnapshot}\n`))
+      }
+    }
 
     if (failedTests.length > 0) {
       console.log(chalk.red.bold(`${failedTests.length} tests failed`))
@@ -340,18 +367,32 @@ async function processSamples(command, paths) {
       throw new Error('Code coverage report failed to generate')
     }
   }
+
+  if (failedTests.length > 0 && isCI) {
+    //Exit with error code to fail CI if a test failed
+    process.exit(1)
+  }
 }
 
 // Run as 'node samples.js <command> <path1> <path2> ...'
-// Supports two commands:
+// Supports three commands:
 // - 'test' for running e2e tests
+// - 'test:ci' for running e2e tests in CI - 'test:ci' exits with status code 1 if a test fails, while 'test' always exits with status code 0
 // - 'update' for updating samples screenshots used for e2e tests comparison
 // Path options have the format 'bar/basic-bar'. Paths are optional for 'test' command.
 // For 'update' command 'all' path can be used to update all screenshots.
-const command = process.argv[2]
-if (['update', 'test'].includes(command)) {
-  processSamples(command, process.argv.slice(3))
-    .catch((e) => console.log(e))
+const commandInput = process.argv[2]
+if (['update', 'test', 'test:ci'].includes(commandInput)) {
+  const isCI = commandInput === 'test:ci'
+  const command = isCI ? 'test' : commandInput
+  processSamples(command, process.argv.slice(3), isCI)
+    .catch((e) => {
+      console.error(e)
+      if (isCI) {
+        //Exit with error code to fail CI if something failed
+        process.exit(1)
+      }
+    })
     .then(() => {
       if (browser) {
         return browser.close()

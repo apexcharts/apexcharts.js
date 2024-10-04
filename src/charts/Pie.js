@@ -594,9 +594,9 @@ class Pie {
 
     let size =
       me.sliceSizes[i] + (w.config.plotOptions.pie.expandOnClick ? 4 : 0)
-    let elPath = w.globals.dom.Paper.select(
+    let elPath = w.globals.dom.Paper.findOne(
       `.apexcharts-${me.chartType.toLowerCase()}-slice-${i}`
-    ).members[0]
+    )
 
     if (elPath.attr('data:pieClicked') === 'true') {
       elPath.attr({
@@ -989,9 +989,9 @@ class Pie {
   revertDataLabelsInner() {
     const w = this.w
     if (this.donutDataLabels.show) {
-      let dataLabelsGroup = w.globals.dom.Paper.select(
+      let dataLabelsGroup = w.globals.dom.Paper.findOne(
         `.apexcharts-datalabels-group`
-      ).members[0]
+      )
 
       let dataLabels = this.renderInnerDataLabels(
         dataLabelsGroup,
@@ -1004,9 +1004,9 @@ class Pie {
         }
       )
 
-      let elPie = w.globals.dom.Paper.select(
+      let elPie = w.globals.dom.Paper.findOne(
         '.apexcharts-radialbar, .apexcharts-pie'
-      ).members[0]
+      )
       elPie.add(dataLabels)
     }
   }

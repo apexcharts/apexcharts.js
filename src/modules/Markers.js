@@ -112,7 +112,7 @@ export default class Markers {
             }
           }
 
-          if (pSize) {
+          if (typeof pSize !== 'undefined') {
             opts.pSize = pSize
           }
 
@@ -210,30 +210,30 @@ export default class Markers {
     }
   }
 
-  addEvents(circle) {
+  addEvents(marker) {
     const w = this.w
 
     const graphics = new Graphics(this.ctx)
-    circle.node.addEventListener(
+    marker.node.addEventListener(
       'mouseenter',
-      graphics.pathMouseEnter.bind(this.ctx, circle)
+      graphics.pathMouseEnter.bind(this.ctx, marker)
     )
-    circle.node.addEventListener(
+    marker.node.addEventListener(
       'mouseleave',
-      graphics.pathMouseLeave.bind(this.ctx, circle)
+      graphics.pathMouseLeave.bind(this.ctx, marker)
     )
 
-    circle.node.addEventListener(
+    marker.node.addEventListener(
       'mousedown',
-      graphics.pathMouseDown.bind(this.ctx, circle)
+      graphics.pathMouseDown.bind(this.ctx, marker)
     )
 
-    circle.node.addEventListener('click', w.config.markers.onClick)
-    circle.node.addEventListener('dblclick', w.config.markers.onDblClick)
+    marker.node.addEventListener('click', w.config.markers.onClick)
+    marker.node.addEventListener('dblclick', w.config.markers.onDblClick)
 
-    circle.node.addEventListener(
+    marker.node.addEventListener(
       'touchstart',
-      graphics.pathMouseDown.bind(this.ctx, circle),
+      graphics.pathMouseDown.bind(this.ctx, marker),
       { passive: true }
     )
   }
