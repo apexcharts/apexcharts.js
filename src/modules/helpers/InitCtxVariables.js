@@ -24,7 +24,7 @@ import Core from '../Core'
 import Data from '../Data'
 import UpdateHelpers from './UpdateHelpers'
 
-import {SVG} from '@svgdotjs/svg.js'
+import { SVG } from '@svgdotjs/svg.js'
 import '../../svgjs/svg.pathmorphing.js'
 import '@svgdotjs/svg.filter.js'
 import '@svgdotjs/svg.draggable.js'
@@ -32,7 +32,7 @@ import '@svgdotjs/svg.select.js'
 import '@svgdotjs/svg.resize.js'
 
 if (typeof window.SVG === 'undefined') {
-  window.SVG = SVG;
+  window.SVG = SVG
 }
 
 // global Apex object which user can use to override chart's defaults globally
