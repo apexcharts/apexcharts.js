@@ -318,6 +318,7 @@ class Bar {
     elBarShadows,
     visibleSeries,
     type,
+    classes,
   }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
@@ -379,7 +380,7 @@ class Bar {
       animationDelay: delay,
       initialSpeed: w.config.chart.animations.speed,
       dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-      className: `apexcharts-${type}-area`,
+      className: `apexcharts-${type}-area ${classes}`,
       chartType: type,
     })
 

@@ -953,8 +953,8 @@ class Line {
 
               // Check for single isolated point
               if (series[i][j + 1] === null) {
-                linePaths.push(linePath);
-                areaPaths.push(areaPath);
+                linePaths.push(linePath)
+                areaPaths.push(areaPath)
                 // Stay in pathState = 0;
                 break
               }
@@ -1042,8 +1042,8 @@ class Line {
 
               // Check for single isolated point
               if (series[i][j + 1] === null) {
-                linePaths.push(linePath);
-                areaPaths.push(areaPath);
+                linePaths.push(linePath)
+                areaPaths.push(areaPath)
                 // Stay in pathState = 0
                 break
               }

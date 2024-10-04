@@ -119,10 +119,8 @@ class BarStacked extends Bar {
       }
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
-        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
         const commonPathOpts = {
           indexes: { i, j, realIndex, translationsIndex, bc },
-          strokeWidth,
           x,
           y,
           elSeries,
@@ -169,6 +167,23 @@ class BarStacked extends Bar {
 
         let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
+        let classes = ''
+
+        if (w.globals.isBarHorizontal) {
+          if (
+            this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' &&
+            w.globals.series[realIndex][j] > 0
+          ) {
+            classes = 'apexcharts-flip-x'
+          }
+        } else {
+          if (
+            this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' &&
+            w.globals.series[realIndex][j] > 0
+          ) {
+            classes = 'apexcharts-flip-y'
+          }
+        }
         elSeries = this.renderSeries({
           realIndex,
           pathFill,
@@ -177,7 +192,7 @@ class BarStacked extends Bar {
           columnGroupIndex,
           pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
-          strokeWidth,
+          strokeWidth: this.barHelpers.getStrokeWidth(i, j, realIndex),
           elSeries,
           x,
           y,
@@ -188,6 +203,7 @@ class BarStacked extends Bar {
           elGoalsMarkers,
           type: 'bar',
           visibleSeries: columnGroupIndex,
+          classes,
         })
       }
 
@@ -291,7 +307,6 @@ class BarStacked extends Bar {
   drawStackedBarPaths({
     indexes,
     barHeight,
-    strokeWidth,
     zeroW,
     x,
     y,
@@ -355,7 +370,6 @@ class BarStacked extends Bar {
       barHeight,
       x1: barXPosition,
       x2: x,
-      strokeWidth,
       series: this.series,
       realIndex: indexes.realIndex,
       seriesGroup,
@@ -518,7 +532,6 @@ class BarStacked extends Bar {
       y1: barYPosition,
       y2: y,
       yRatio: this.yRatio[translationsIndex],
-      strokeWidth: this.strokeWidth,
       series: this.series,
       seriesGroup,
       realIndex: indexes.realIndex,
