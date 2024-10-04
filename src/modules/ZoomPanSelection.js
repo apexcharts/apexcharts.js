@@ -1,7 +1,6 @@
 import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
-import Scales from './Scales'
 
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
@@ -27,6 +26,7 @@ export default class ZoomPanSelection extends Toolbar {
       'touchmove',
       'mouseup',
       'touchend',
+      'wheel',
     ]
 
     this.clientX = 0
@@ -38,6 +38,10 @@ export default class ZoomPanSelection extends Toolbar {
     this.endY = 0
     this.dragY = 0
     this.moveDirection = 'none'
+
+    this.debounceTimer = null
+    this.debounceDelay = 100
+    this.wheelDelay = 400
   }
 
   init({ xyRatios }) {
@@ -93,6 +97,13 @@ export default class ZoomPanSelection extends Toolbar {
         }
       )
     })
+
+    if (w.config.chart.zoom.allowMouseWheelZoom) {
+      this.hoverArea.addEventListener('wheel', me.mouseWheelEvent.bind(me), {
+        capture: false,
+        passive: false,
+      })
+    }
   }
 
   // remove the event listeners which were previously added on hover area
@@ -198,9 +209,9 @@ export default class ZoomPanSelection extends Toolbar {
       e.type === 'mouseleave'
     ) {
       // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-      let gridRectDim = me.gridRect.getBoundingClientRect()
+      let gridRectDim = me.gridRect?.getBoundingClientRect()
 
-      if (me.w.globals.mousedown) {
+      if (gridRectDim && me.w.globals.mousedown) {
         // user released the drag, now do all the calculations
         me.endX = me.clientX - gridRectDim.left
         me.endY = me.clientY - gridRectDim.top
@@ -228,6 +239,84 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     this.makeSelectionRectDraggable()
+  }
+
+  mouseWheelEvent(e) {
+    const w = this.w
+    e.preventDefault()
+
+    const now = Date.now()
+
+    // Execute immediately if it's the first action or enough time has passed
+    if (now - w.globals.lastWheelExecution > this.wheelDelay) {
+      this.executeMouseWheelZoom(e)
+      w.globals.lastWheelExecution = now
+    }
+
+    if (this.debounceTimer) clearTimeout(this.debounceTimer)
+
+    this.debounceTimer = setTimeout(() => {
+      if (now - w.globals.lastWheelExecution > this.wheelDelay) {
+        this.executeMouseWheelZoom(e)
+        w.globals.lastWheelExecution = now
+      }
+    }, this.debounceDelay)
+  }
+
+  executeMouseWheelZoom(e) {
+    const w = this.w
+    this.minX = w.globals.isRangeBar ? w.globals.minY : w.globals.minX
+    this.maxX = w.globals.isRangeBar ? w.globals.maxY : w.globals.maxX
+
+    // Calculate the relative position of the mouse on the chart
+    const gridRectDim = this.gridRect?.getBoundingClientRect()
+    if (!gridRectDim) return
+
+    const mouseX = (e.clientX - gridRectDim.left) / gridRectDim.width
+
+    const currentMinX = this.minX
+    const currentMaxX = this.maxX
+    const totalX = currentMaxX - currentMinX
+
+    // Determine zoom factor
+    const zoomFactorIn = 0.5
+    const zoomFactorOut = 1.5
+    let zoomRange
+
+    let newMinX, newMaxX
+    if (e.deltaY < 0) {
+      // Zoom In
+      zoomRange = zoomFactorIn * totalX
+      const midPoint = currentMinX + mouseX * totalX
+      newMinX = midPoint - zoomRange / 2
+      newMaxX = midPoint + zoomRange / 2
+    } else {
+      // Zoom Out
+      zoomRange = zoomFactorOut * totalX
+      newMinX = currentMinX - zoomRange / 2
+      newMaxX = currentMaxX + zoomRange / 2
+    }
+
+    // Constrain within original chart bounds
+    if (!w.globals.isRangeBar) {
+      newMinX = Math.max(newMinX, w.globals.initialMinX)
+      newMaxX = Math.min(newMaxX, w.globals.initialMaxX)
+
+      // Ensure minimum range
+      const minRange = (w.globals.initialMaxX - w.globals.initialMinX) * 0.01
+      if (newMaxX - newMinX < minRange) {
+        const midPoint = (newMinX + newMaxX) / 2
+        newMinX = midPoint - minRange / 2
+        newMaxX = midPoint + minRange / 2
+      }
+    }
+
+    const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
+
+    // Apply zoom if valid
+    if (!isNaN(newMinXMaxX.minX) && !isNaN(newMinXMaxX.maxX)) {
+      this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX)
+    }
   }
 
   makeSelectionRectDraggable() {
@@ -558,10 +647,12 @@ export default class ZoomPanSelection extends Toolbar {
       // because they will all return the same value, so we choose the first.
       let seriesIndex = w.globals.seriesYAxisMap[index][0]
       yHighestValue.push(
-        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.startY
+        w.globals.yAxisScale[index].niceMax -
+          xyRatios.yRatio[seriesIndex] * me.startY
       )
       yLowestValue.push(
-        w.globals.yAxisScale[index].niceMax - xyRatios.yRatio[seriesIndex] * me.endY
+        w.globals.yAxisScale[index].niceMax -
+          xyRatios.yRatio[seriesIndex] * me.endY
       )
     })
 

@@ -18,6 +18,7 @@
 
 .apexcharts-canvas {
   position: relative;
+  direction: ltr !important;
   user-select: none
 }
 
@@ -171,13 +172,6 @@ rect.legend-mouseover-inactive,
 .apexcharts-tooltip-series-group.apexcharts-active,
 .apexcharts-tooltip-series-group:last-child {
   padding-bottom: 4px
-}
-
-.apexcharts-tooltip-series-group-hidden {
-  opacity: 0;
-  height: 0;
-  line-height: 0;
-  padding: 0 !important
 }
 
 .apexcharts-tooltip-y-group {

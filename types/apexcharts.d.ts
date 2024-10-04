@@ -27,6 +27,7 @@ declare class ApexCharts {
   ): Promise<void>
   appendData(data: any[], overwriteInitialSeries?: boolean): void
   toggleSeries(seriesName: string): any
+  highlightSeries(seriesName: string): any
   showSeries(seriesName: string): void
   hideSeries(seriesName: string): void
   resetSeries(): void
@@ -200,6 +201,8 @@ type ApexChart = {
       png?: {
         filename?: undefined | string
       }
+      width?: number
+      scale?: number
     }
     autoSelected?: 'zoom' | 'selection' | 'pan'
   }
@@ -207,6 +210,7 @@ type ApexChart = {
     enabled?: boolean
     type?: 'x' | 'y' | 'xy'
     autoScaleYaxis?: boolean
+    allowMouseWheelZoom?: boolean
     zoomedArea?: {
       fill?: {
         color?: string
@@ -316,6 +320,7 @@ type ApexAxisChartSeries = {
   type?: string
   color?: string
   group?: string
+  hidden?: boolean
   zIndex?: number
   data:
     | (number | null)[]
@@ -817,14 +822,13 @@ type ApexLegend = {
   offsetY?: number
   formatter?(legendName: string, opts?: any): string
   tooltipHoverFormatter?(legendName: string, opts?: any): string
-  textAnchor?: string
   customLegendItems?: string[]
   labels?: {
     colors?: string | string[]
     useSeriesColors?: boolean
   }
   markers?: {
-    strokeColor?: string
+    size?: number
     strokeWidth?: number
     fillColors?: string[]
     shape?: ApexMarkerShape
@@ -836,10 +840,6 @@ type ApexLegend = {
   itemMargin?: {
     horizontal?: number
     vertical?: number
-  }
-  containerMargin?: {
-    left?: number
-    top?: number
   }
   onItemClick?: {
     toggleDataSeries?: boolean
@@ -871,7 +871,7 @@ type ApexMarkers = {
   strokeDashArray?: number | number[]
   fillOpacity?: number | number[]
   discrete?: ApexDiscretePoint[]
-  shape?: ApexMarkerShape 
+  shape?: ApexMarkerShape
   offsetX?: number
   offsetY?: number
   showNullDataPoints?: boolean

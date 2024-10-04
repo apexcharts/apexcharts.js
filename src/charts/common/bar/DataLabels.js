@@ -89,7 +89,14 @@ export default class BarDataLabels {
       const yLabel = w.globals.series[i][j]
 
       textRects = graphics.getTextRects(
-        w.globals.yLabelFormatters[0](yLabel),
+        w.config.dataLabels.formatter
+          ? w.config.dataLabels.formatter(yLabel, {
+              ...w,
+              seriesIndex: i,
+              dataPointIndex: j,
+              w,
+            })
+          : w.globals.yLabelFormatters[0](yLabel),
         parseFloat(dataLabelsConfig.style.fontSize)
       )
     }
@@ -135,7 +142,11 @@ export default class BarDataLabels {
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: this.barCtx.isRangeBar ? [y1, y2] : w.globals.series[i][j],
+      val: this.barCtx.isRangeBar
+        ? [y1, y2]
+        : w.config.chart.stackType === '100%'
+        ? series[realIndex][j]
+        : w.globals.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,
@@ -366,7 +377,6 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
-      columnGroupIndex,
       bcy,
       barHeight,
       barWidth,
@@ -415,28 +425,16 @@ export default class BarDataLabels {
         break
       case 'bottom':
         if (valIsNegative) {
-          dataLabelsX =
-            newX +
-            barWidth -
-            strokeWidth -
-            Math.round(textRects.width / 2) -
-            offX
+          dataLabelsX = newX + barWidth - strokeWidth - offX
         } else {
-          dataLabelsX =
-            newX -
-            barWidth +
-            strokeWidth +
-            Math.round(textRects.width / 2) +
-            offX
+          dataLabelsX = newX - barWidth + strokeWidth + offX
         }
         break
       case 'top':
         if (valIsNegative) {
-          dataLabelsX =
-            newX - strokeWidth + Math.round(textRects.width / 2) - offX
+          dataLabelsX = newX - strokeWidth - offX
         } else {
-          dataLabelsX =
-            newX - strokeWidth - Math.round(textRects.width / 2) + offX
+          dataLabelsX = newX - strokeWidth + offX
         }
         break
     }
@@ -471,10 +469,28 @@ export default class BarDataLabels {
     }
 
     if (!w.config.chart.stacked) {
-      if (dataLabelsX < 0) {
-        dataLabelsX = dataLabelsX + textRects.width + strokeWidth
-      } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
-        dataLabelsX = w.globals.gridWidth - textRects.width - strokeWidth
+      if (dataLabelsConfig.textAnchor === 'start') {
+        if (dataLabelsX - textRects.width < 0) {
+          dataLabelsX = valIsNegative
+            ? textRects.width + strokeWidth
+            : strokeWidth
+        } else if (dataLabelsX + textRects.width > w.globals.gridWidth) {
+          dataLabelsX = valIsNegative
+            ? w.globals.gridWidth - strokeWidth
+            : w.globals.gridWidth - textRects.width - strokeWidth
+        }
+      } else if (dataLabelsConfig.textAnchor === 'middle') {
+        if (dataLabelsX - textRects.width / 2 < 0) {
+          dataLabelsX = textRects.width / 2 + strokeWidth
+        } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
+          dataLabelsX = w.globals.gridWidth - textRects.width / 2 - strokeWidth
+        }
+      } else if (dataLabelsConfig.textAnchor === 'end') {
+        if (dataLabelsX < 1) {
+          dataLabelsX = textRects.width + strokeWidth
+        } else if (dataLabelsX + 1 > w.globals.gridWidth) {
+          dataLabelsX = w.globals.gridWidth - textRects.width - strokeWidth
+        }
       }
     }
 
@@ -614,8 +630,6 @@ export default class BarDataLabels {
     x,
     y,
     val,
-    barWidth,
-    barHeight,
     realIndex,
     textAnchor,
     barTotalDataLabelsConfig,

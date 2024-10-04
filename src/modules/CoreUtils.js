@@ -143,7 +143,7 @@ class CoreUtils {
     // 1: [1,2,3,4]
     // If the chart is stacked, it can be assumed that any axis with multiple
     // series is stacked.
-    // 
+    //
     // If this is an old chart and we are being backward compatible, it will be
     // expected that each series is associated with it's corresponding yaxis
     // through their indices, one-to-one.
@@ -151,13 +151,13 @@ class CoreUtils {
     // A name match where yi != si is interpretted as yaxis[yi] and yaxis[si]
     // will both be scaled to fit the combined series[si] and series[yi].
     // Consider series named: S0,S1,S2 and yaxes A0,A1,A2.
-    // 
+    //
     // Example 1: A0 and A1 scaled the same.
     // A0.seriesName: S0
     // A1.seriesName: S0
     // A2.seriesName: S2
     // Then A1 <-> A0
-    // 
+    //
     // Example 2: A0, A1 and A2 all scaled the same.
     // A0.seriesName: S2
     // A1.seriesName: S0
@@ -168,8 +168,8 @@ class CoreUtils {
     let seriesYAxisReverseMap = []
     let unassignedSeriesIndices = []
     let seriesNameArrayStyle =
-      gl.series.length > cnf.yaxis.length
-      || cnf.yaxis.some((a) => Array.isArray(a.seriesName))
+      gl.series.length > cnf.yaxis.length ||
+      cnf.yaxis.some((a) => Array.isArray(a.seriesName))
 
     cnf.series.forEach((s, i) => {
       unassignedSeriesIndices.push(i)
@@ -201,17 +201,19 @@ class CoreUtils {
               let remove = si
               if (yi === si || seriesNameArrayStyle) {
                 // New style, don't allow series to be double referenced
-                if (!seriesNameArrayStyle
-                  || unassignedSeriesIndices.indexOf(si) > -1
+                if (
+                  !seriesNameArrayStyle ||
+                  unassignedSeriesIndices.indexOf(si) > -1
                 ) {
                   axisSeriesMap[yi].push([yi, si])
                 } else {
                   console.warn(
-                    "Series '"
-                    + s.name
-                    + "' referenced more than once in what looks like the new style."
-                    + " That is, when using either seriesName: [],"
-                    + " or when there are more series than yaxes.")
+                    "Series '" +
+                      s.name +
+                      "' referenced more than once in what looks like the new style." +
+                      ' That is, when using either seriesName: [],' +
+                      ' or when there are more series than yaxes.'
+                  )
                 }
               } else {
                 // The series index refers to the target yaxis and the current
@@ -340,7 +342,11 @@ class CoreUtils {
     }
 
     if (size > 0) {
-      size += w.config.markers.hover.sizeOffset + 1
+      if (w.config.markers.hover.size > 0) {
+        size = w.config.markers.hover.size
+      } else {
+        size += w.config.markers.hover.sizeOffset
+      }
     }
 
     w.globals.markers.largestSize = size
@@ -478,7 +484,7 @@ class CoreUtils {
         if (yAxis.logarithmic) {
           y = this.getBaseLog(yAxis.logBase, y)
         }
-        return -sign * y / yRatio[i]
+        return (-sign * y) / yRatio[i]
       }
       if (gl.isMultipleYAxis) {
         baseLineY = []
@@ -519,7 +525,10 @@ class CoreUtils {
 
     w.globals.seriesLog = series.map((s, i) => {
       let yAxisIndex = w.globals.seriesYAxisReverseMap[i]
-      if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
+      if (
+        w.config.yaxis[yAxisIndex] &&
+        w.config.yaxis[yAxisIndex].logarithmic
+      ) {
         return s.map((d) => {
           if (d === null) return null
           return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, d, i)
@@ -559,9 +568,12 @@ class CoreUtils {
 
     gl.yLogRatio = yRatio.slice()
 
-    gl.logYRange = gl.yRange.map((yRange, i) => {
+    gl.logYRange = gl.yRange.map((_, i) => {
       let yAxisIndex = w.globals.seriesYAxisReverseMap[i]
-      if (w.config.yaxis[yAxisIndex] && this.w.config.yaxis[yAxisIndex].logarithmic) {
+      if (
+        w.config.yaxis[yAxisIndex] &&
+        this.w.config.yaxis[yAxisIndex].logarithmic
+      ) {
         let maxY = -Number.MAX_VALUE
         let minY = Number.MIN_VALUE
         let range = 1

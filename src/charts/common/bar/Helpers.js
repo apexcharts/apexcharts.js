@@ -37,6 +37,8 @@ export default class Helpers {
       }
     }
 
+    this.arrBorderRadius = this.createBorderRadiusArr(w.globals.seriesPercent)
+
     if (this.barCtx.seriesLen === 0) {
       // A small adjustment when combo charts are used
       this.barCtx.seriesLen = 1
@@ -185,7 +187,7 @@ export default class Helpers {
 
   getPathFillColor(series, i, j, realIndex) {
     const w = this.w
-    let fill = new Fill(this.barCtx.ctx)
+    let fill = this.barCtx.ctx.fill
 
     let fillColor = null
     let seriesNumber = this.barCtx.barOptions.distributed ? j : i
@@ -243,24 +245,37 @@ export default class Helpers {
     return strokeWidth
   }
 
-  shouldApplyRadius(realIndex) {
+  createBorderRadiusArr(seriesPercent) {
     const w = this.w
-    let applyRadius = false
 
-    if (w.config.plotOptions.bar.borderRadius > 0) {
-      if (w.config.chart.stacked) {
-        if (w.config.plotOptions.bar.borderRadiusWhenStacked === 'last') {
-          if (this.barCtx.lastActiveBarSerieIndex === realIndex) {
-            applyRadius = true
-          }
+    const alwaysApplyRadius =
+      !this.w.config.chart.stacked ||
+      w.config.plotOptions.bar.borderRadiusWhenStacked !== 'last' ||
+      w.config.plotOptions.bar.borderRadius <= 0
+
+    const numRows = seriesPercent.length
+    const numCols = seriesPercent[0].length
+
+    const resultArr = Array.from({ length: numRows }, () =>
+      Array.from({ length: numCols }, () => alwaysApplyRadius)
+    )
+
+    if (alwaysApplyRadius) return resultArr
+
+    // For each column
+    for (let j = 0; j < numCols; j++) {
+      // Iterate from the last row upwards
+      for (let i = numRows - 1, found = false; i >= 0; i--) {
+        if (!found && seriesPercent[i][j] !== 0) {
+          resultArr[i][j] = true
+          found = true
         } else {
-          applyRadius = true
+          resultArr[i][j] = false
         }
-      } else {
-        applyRadius = true
       }
     }
-    return applyRadius
+
+    return resultArr
   }
 
   barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
@@ -362,7 +377,7 @@ export default class Helpers {
         ? ' Z'
         : ' z')
 
-    if (this.shouldApplyRadius(realIndex)) {
+    if (this.arrBorderRadius[realIndex][j]) {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
@@ -450,7 +465,7 @@ export default class Helpers {
         ? ' Z'
         : ' z')
 
-    if (this.shouldApplyRadius(realIndex)) {
+    if (this.arrBorderRadius[realIndex][j]) {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius

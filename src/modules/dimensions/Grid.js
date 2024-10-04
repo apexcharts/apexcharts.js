@@ -7,9 +7,8 @@ export default class DimGrid {
   }
 
   gridPadForColumnsInNumericAxis(gridWidth) {
-    const w = this.w
-    const cnf = w.config
-    const gl = w.globals
+    const { w } = this
+    const { config: cnf, globals: gl } = w
 
     if (
       gl.noData ||
@@ -19,28 +18,23 @@ export default class DimGrid {
       return 0
     }
 
-    const hasBar = (type) => {
-      return (
-        type === 'bar' ||
-        type === 'rangeBar' ||
-        type === 'candlestick' ||
-        type === 'boxPlot'
-      )
-    }
+    const hasBar = (type) =>
+      ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(type)
 
     const type = cnf.chart.type
-
     let barWidth = 0
     let seriesLen = hasBar(type) ? cnf.series.length : 1
 
     if (gl.comboBarCount > 0) {
       seriesLen = gl.comboBarCount
     }
+
     gl.collapsedSeries.forEach((c) => {
       if (hasBar(c.type)) {
-        seriesLen = seriesLen - 1
+        seriesLen -= 1
       }
     })
+
     if (cnf.chart.stacked) {
       seriesLen = 1
     }
@@ -55,22 +49,16 @@ export default class DimGrid {
       seriesLen > 0 &&
       xRange !== 0
     ) {
-      let xRatio = 0
-
       if (xRange <= 3) {
         xRange = gl.dataPoints
       }
 
-      xRatio = xRange / gridWidth
-
-      let xDivision
-      // max barwidth should be equal to minXDiff to avoid overlap
-      if (gl.minXDiff && gl.minXDiff / xRatio > 0) {
-        xDivision = gl.minXDiff / xRatio
-      }
+      const xRatio = xRange / gridWidth
+      let xDivision =
+        gl.minXDiff && gl.minXDiff / xRatio > 0 ? gl.minXDiff / xRatio : 0
 
       if (xDivision > gridWidth / 2) {
-        xDivision = xDivision / 2
+        xDivision /= 2
       }
       // Here, barWidth is assumed to be the width occupied by a group of bars.
       // There will be one bar in the group for each series plotted.
@@ -89,14 +77,14 @@ export default class DimGrid {
 
       gl.barPadForNumericAxis = barWidth
     }
+
     return barWidth
   }
 
   gridPadFortitleSubtitle() {
-    const w = this.w
-    const gl = w.globals
-    let gridShrinkOffset =
-      this.dCtx.isSparkline || !w.globals.axisCharts ? 0 : 10
+    const { w } = this
+    const { globals: gl } = w
+    let gridShrinkOffset = this.dCtx.isSparkline || !gl.axisCharts ? 0 : 10
 
     const titleSubtitle = ['title', 'subtitle']
 
@@ -104,8 +92,7 @@ export default class DimGrid {
       if (w.config[t].text !== undefined) {
         gridShrinkOffset += w.config[t].margin
       } else {
-        gridShrinkOffset +=
-          this.dCtx.isSparkline || !w.globals.axisCharts ? 0 : 5
+        gridShrinkOffset += this.dCtx.isSparkline || !gl.axisCharts ? 0 : 5
       }
     })
 
@@ -113,42 +100,36 @@ export default class DimGrid {
       w.config.legend.show &&
       w.config.legend.position === 'bottom' &&
       !w.config.legend.floating &&
-      !w.globals.axisCharts
+      !gl.axisCharts
     ) {
       gridShrinkOffset += 10
     }
 
-    let titleCoords = this.dCtx.dimHelpers.getTitleSubtitleCoords('title')
-    let subtitleCoords = this.dCtx.dimHelpers.getTitleSubtitleCoords('subtitle')
+    const titleCoords = this.dCtx.dimHelpers.getTitleSubtitleCoords('title')
+    const subtitleCoords =
+      this.dCtx.dimHelpers.getTitleSubtitleCoords('subtitle')
 
-    gl.gridHeight =
-      gl.gridHeight -
-      titleCoords.height -
-      subtitleCoords.height -
-      gridShrinkOffset
-
-    gl.translateY =
-      gl.translateY +
-      titleCoords.height +
-      subtitleCoords.height +
-      gridShrinkOffset
+    gl.gridHeight -=
+      titleCoords.height + subtitleCoords.height + gridShrinkOffset
+    gl.translateY +=
+      titleCoords.height + subtitleCoords.height + gridShrinkOffset
   }
 
   setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords) {
-    let w = this.w
+    const { w } = this
     const axesUtils = new AxesUtils(this.dCtx.ctx)
 
-    w.config.yaxis.map((yaxe, index) => {
+    w.config.yaxis.forEach((yaxe, index) => {
       if (
         w.globals.ignoreYAxisIndexes.indexOf(index) === -1 &&
         !yaxe.floating &&
         !axesUtils.isYAxisHidden(index)
       ) {
         if (yaxe.opposite) {
-          w.globals.translateX =
-            w.globals.translateX -
-            (yaxisLabelCoords[index].width + yTitleCoords[index].width) -
-            parseInt(w.config.yaxis[index].labels.style.fontSize, 10) / 1.2 -
+          w.globals.translateX -=
+            yaxisLabelCoords[index].width +
+            yTitleCoords[index].width +
+            parseInt(yaxe.labels.style.fontSize, 10) / 1.2 +
             12
         }
 

@@ -19,48 +19,68 @@ class Exports {
     svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight)
   }
 
-  fixSvgStringForIe11(svgData) {
-    // IE11 generates broken SVG that we have to fix by using regex
-    if (!Utils.isIE11()) {
-      // not IE11 - noop
-      return svgData.replace(/&nbsp;/g, '&#160;')
-    }
+  getSvgString() {
+    return new Promise((resolve) => {
+      const w = this.w
+      const width = w.config.chart.toolbar.export.width
+      let scale =
+        w.config.chart.toolbar.export.scale || width / w.globals.svgWidth
 
-    // replace second occurrence of "xmlns" attribute with "xmlns:xlink" with correct url + add xmlns:svgjs
-    let nXmlnsSeen = 0
-    let result = svgData.replace(
-      /xmlns="http:\/\/www.w3.org\/2000\/svg"/g,
-      (match) => {
-        nXmlnsSeen++
-        return nXmlnsSeen === 2
-          ? 'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.dev"'
-          : match
+      if (!scale) {
+        scale = 1 // if no scale is specified, don't scale...
       }
-    )
+      let svgString = this.w.globals.dom.Paper.svg()
 
-    // remove the invalid empty namespace declarations
-    result = result.replace(/xmlns:NS\d+=""/g, '')
-    // remove these broken namespaces from attributes
-    result = result.replace(/NS\d+:(\w+:\w+=")/g, '$1')
-
-    return result
-  }
-
-  getSvgString(scale) {
-    if (scale == undefined) {
-      scale = 1 // if no scale is specified, don't scale...
-    }
-    let svgString = this.w.globals.dom.Paper.svg()
-    // in case the scale is different than 1, the svg needs to be rescaled
-    if (scale !== 1) {
       // clone the svg node so it remains intact in the UI
       const svgNode = this.w.globals.dom.Paper.node.cloneNode(true)
-      // scale the image
-      this.scaleSvgNode(svgNode, scale)
-      // get the string representation of the svgNode
-      svgString = new XMLSerializer().serializeToString(svgNode)
-    }
-    return this.fixSvgStringForIe11(svgString)
+
+      // in case the scale is different than 1, the svg needs to be rescaled
+
+      if (scale !== 1) {
+        // scale the image
+        this.scaleSvgNode(svgNode, scale)
+      }
+      // Convert image URLs to base64
+      this.convertImagesToBase64(svgNode).then(() => {
+        svgString = new XMLSerializer().serializeToString(svgNode)
+        resolve(svgString.replace(/&nbsp;/g, '&#160;'))
+      })
+    })
+  }
+
+  convertImagesToBase64(svgNode) {
+    const images = svgNode.getElementsByTagName('image')
+    const promises = Array.from(images).map((img) => {
+      const href = img.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
+      if (href && !href.startsWith('data:')) {
+        return this.getBase64FromUrl(href)
+          .then((base64) => {
+            img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', base64)
+          })
+          .catch((error) => {
+            console.error('Error converting image to base64:', error)
+          })
+      }
+      return Promise.resolve()
+    })
+    return Promise.all(promises)
+  }
+
+  getBase64FromUrl(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'Anonymous'
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        resolve(canvas.toDataURL())
+      }
+      img.onerror = reject
+      img.src = url
+    })
   }
 
   cleanup() {
@@ -92,11 +112,15 @@ class Exports {
   }
 
   svgUrl() {
-    this.cleanup()
-
-    const svgData = this.getSvgString()
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-    return URL.createObjectURL(svgBlob)
+    return new Promise((resolve) => {
+      this.cleanup()
+      this.getSvgString().then((svgData) => {
+        const svgBlob = new Blob([svgData], {
+          type: 'image/svg+xml;charset=utf-8',
+        })
+        resolve(URL.createObjectURL(svgBlob))
+      })
+    })
   }
 
   dataURI(options) {
@@ -122,24 +146,7 @@ class Exports {
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
 
-      const svgData = this.getSvgString(scale)
-
-      if (window.canvg && Utils.isIE11()) {
-        // use canvg as a polyfill to workaround ie11 considering a canvas with loaded svg 'unsafe'
-        // without ignoreClear we lose our background color; without ignoreDimensions some grid lines become invisible
-        let v = window.canvg.Canvg.fromString(ctx, svgData, {
-          ignoreClear: true,
-          ignoreDimensions: true,
-        })
-        // render the svg to canvas
-        v.start()
-
-        let blob = canvas.msToBlob()
-        // dispose - missing this will cause a memory leak
-        v.stop()
-
-        resolve({ blob })
-      } else {
+      this.getSvgString().then((svgData) => {
         const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
         let img = new Image()
         img.crossOrigin = 'anonymous'
@@ -148,7 +155,7 @@ class Exports {
           ctx.drawImage(img, 0, 0)
 
           if (canvas.msToBlob) {
-            // IE and Edge can't navigate to data urls, so we return the blob instead
+            // Microsoft Edge can't navigate to data urls, so we return the blob instead
             let blob = canvas.msToBlob()
             resolve({ blob })
           } else {
@@ -158,20 +165,29 @@ class Exports {
         }
 
         img.src = svgUrl
-      }
+      })
     })
   }
 
   exportToSVG() {
-    this.triggerDownload(
-      this.svgUrl(),
-      this.w.config.chart.toolbar.export.svg.filename,
-      '.svg'
-    )
+    this.svgUrl().then((url) => {
+      this.triggerDownload(
+        url,
+        this.w.config.chart.toolbar.export.svg.filename,
+        '.svg'
+      )
+    })
   }
 
   exportToPng() {
-    this.dataURI().then(({ imgURI, blob }) => {
+    const scale = this.w.config.chart.toolbar.export.scale
+    const width = this.w.config.chart.toolbar.export.width
+    const option = scale
+      ? { scale: scale }
+      : width
+      ? { width: width }
+      : undefined
+    this.dataURI(option).then(({ imgURI, blob }) => {
       if (blob) {
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
       } else {

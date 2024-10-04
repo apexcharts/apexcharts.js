@@ -48,14 +48,7 @@ class Legend {
 
       this.drawLegends()
 
-      if (!Utils.isIE11()) {
-        this.legendHelpers.appendToForeignObject()
-      } else {
-        // IE11 doesn't supports foreignObject, hence append it to <head>
-        document
-          .getElementsByTagName('head')[0]
-          .appendChild(this.legendHelpers.getLegendStyles())
-      }
+      this.legendHelpers.appendToForeignObject()
 
       if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
         this.legendAlignHorizontal()
@@ -324,22 +317,22 @@ class Legend {
 
     let elLegendWrap = w.globals.dom.elLegendWrap
 
-    const legendRect = elLegendWrap.getBoundingClientRect()
+    const legendHeight = elLegendWrap.clientHeight
 
     let x = 0
     let y = 0
 
     if (w.config.legend.position === 'bottom') {
-      y = y + (w.globals.svgHeight - legendRect.height / 2)
+      y =
+        w.globals.svgHeight -
+        Math.min(legendHeight, w.globals.svgHeight / 2) -
+        5
     } else if (w.config.legend.position === 'top') {
       const dim = new Dimensions(this.ctx)
       const titleH = dim.dimHelpers.getTitleSubtitleCoords('title').height
       const subtitleH = dim.dimHelpers.getTitleSubtitleCoords('subtitle').height
 
-      y =
-        y +
-        (titleH > 0 ? titleH - 10 : 0) +
-        (subtitleH > 0 ? subtitleH - 10 : 0)
+      y = (titleH > 0 ? titleH - 10 : 0) + (subtitleH > 0 ? subtitleH - 10 : 0)
     }
 
     elLegendWrap.style.position = 'absolute'
@@ -350,10 +343,7 @@ class Legend {
     elLegendWrap.style.left = x + 'px'
     elLegendWrap.style.top = y + 'px'
 
-    if (w.config.legend.position === 'bottom') {
-      elLegendWrap.style.top = 'auto'
-      elLegendWrap.style.bottom = 5 - w.config.legend.offsetY + 'px'
-    } else if (w.config.legend.position === 'right') {
+    if (w.config.legend.position === 'right') {
       elLegendWrap.style.left = 'auto'
       elLegendWrap.style.right = 25 + w.config.legend.offsetX + 'px'
     }
@@ -373,8 +363,6 @@ class Legend {
 
     elLegendWrap.style.right = 0
 
-    let lRect = this.legendHelpers.getLegendDimensions()
-
     let dimensions = new Dimensions(this.ctx)
     let titleRect = dimensions.dimHelpers.getTitleSubtitleCoords('title')
     let subtitleRect = dimensions.dimHelpers.getTitleSubtitleCoords('subtitle')
@@ -382,10 +370,7 @@ class Legend {
     let offsetX = 20
     let offsetY = 0
 
-    // the whole legend box is set to bottom
-    if (w.config.legend.position === 'bottom') {
-      offsetY = -lRect.clwh / 1.8
-    } else if (w.config.legend.position === 'top') {
+    if (w.config.legend.position === 'top') {
       offsetY =
         titleRect.height +
         subtitleRect.height +

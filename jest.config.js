@@ -1,6 +1,8 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 module.exports = {
+  preset: 'jest-puppeteer',
+
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 
@@ -46,7 +48,7 @@ module.exports = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/tests/unit/data/',
-    '/tests/unit/utils/'
+    '/tests/unit/utils/',
   ],
 
   // The regexp pattern Jest uses to detect test files
@@ -54,8 +56,8 @@ module.exports = {
 
   transform: {
     '^.+\\.js$': 'babel-jest',
-    '^.+\\.svg$': '<rootDir>/tests/unit/utils/svg-transform.js'
-  }
+    '^.+\\.svg$': '<rootDir>/tests/unit/utils/svg-transform.js',
+  },
 
   // transformIgnorePatterns: ['<rootDir>/build/']
 }

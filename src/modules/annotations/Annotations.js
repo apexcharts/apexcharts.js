@@ -35,7 +35,8 @@ export default class Annotations {
 
   drawAxesAnnotations() {
     const w = this.w
-    if (w.globals.axisCharts) {
+    if (w.globals.axisCharts && w.globals.dataPoints) {
+      // w.globals.dataPoints check added to fix  #1832
       let yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations()
       let xAnnotations = this.xAxisAnnotations.drawXAxisAnnotations()
       let pointAnnotations = this.pointsAnnotations.drawPointAnnotations()
@@ -286,11 +287,14 @@ export default class Annotations {
     )
 
     // annotations added externally should be cleared out too
-    w.globals.memory.methodsToExec.map((m, i) => {
-      if (m.label === 'addText' || m.label === 'addAnnotation') {
+    for (let i = w.globals.memory.methodsToExec.length - 1; i >= 0; i--) {
+      if (
+        w.globals.memory.methodsToExec[i].label === 'addText' ||
+        w.globals.memory.methodsToExec[i].label === 'addAnnotation'
+      ) {
         w.globals.memory.methodsToExec.splice(i, 1)
       }
-    })
+    }
 
     annos = Utils.listToArray(annos)
 

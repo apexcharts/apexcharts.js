@@ -408,7 +408,7 @@ class Range {
     }
 
     if (gl.isXNumeric || gl.noLabelsProvided || gl.dataFormatXNumeric) {
-      let ticks
+      let ticks = 10
 
       if (cnf.xaxis.tickAmount === undefined) {
         ticks = Math.round(gl.svgWidth / 150)
@@ -427,7 +427,10 @@ class Range {
           ticks = gl.series[gl.maxValsInArrayIndex].length - 1
         }
         if (gl.isXNumeric) {
-          ticks = gl.maxX - gl.minX - 1
+          const diff = gl.maxX - gl.minX
+          if (diff < 30) {
+            ticks = diff - 1
+          }
         }
       } else {
         ticks = cnf.xaxis.tickAmount

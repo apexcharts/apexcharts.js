@@ -72,6 +72,9 @@ describe('Exponential values should parse', () => {
           ]
         }
       ],
+      yaxis: {
+        tickAmount: 10
+      },
       xaxis: {
         type: 'datetime'
       }

@@ -392,6 +392,7 @@ class Graphics {
     initialSpeed,
     dataChangeSpeed,
     className,
+    chartType,
     shouldClipToGrid = true,
     bindEventsOnPaths = true,
     drawShadow = true,
@@ -439,9 +440,18 @@ class Graphics {
     el.attr('index', realIndex)
 
     if (shouldClipToGrid) {
-      el.attr({
-        'clip-path': `url(#gridRectMask${w.globals.cuid})`,
-      })
+      if (
+        (chartType === 'bar' && !w.globals.isHorizontal) ||
+        w.globals.comboCharts
+      ) {
+        el.attr({
+          'clip-path': `url(#gridRectBarMask${w.globals.cuid})`,
+        })
+      } else {
+        el.attr({
+          'clip-path': `url(#gridRectMask${w.globals.cuid})`,
+        })
+      }
     }
 
     // const defaultFilter = el.filterer

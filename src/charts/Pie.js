@@ -793,7 +793,9 @@ class Pie {
     dataLabelsGroup.node.style.opacity = opts.opacity
 
     let x = opts.centerX
-    let y = opts.centerY
+    let y = !this.donutDataLabels.total.label
+      ? opts.centerY - opts.centerY / 6
+      : opts.centerY
 
     let labelColor, valueColor
 
@@ -821,7 +823,9 @@ class Pie {
       labelFontSize = dataLabelsConfig.total.fontSize
       labelFontFamily = dataLabelsConfig.total.fontFamily
       labelFontWeight = dataLabelsConfig.total.fontWeight
-      name = dataLabelsConfig.total.label
+      name = !this.donutDataLabels.total.label
+        ? ''
+        : dataLabelsConfig.total.label
       val = dataLabelsConfig.total.formatter(w)
     } else {
       if (w.globals.series.length === 1) {
@@ -917,7 +921,9 @@ class Pie {
     }
 
     const isTotal = name === labelsConfig.total.label
-    name = labelsConfig.name.formatter(name, isTotal, w)
+    name = !this.donutDataLabels.total.label
+      ? ''
+      : labelsConfig.name.formatter(name, isTotal, w)
 
     if (elLabel !== null) {
       elLabel.textContent = name

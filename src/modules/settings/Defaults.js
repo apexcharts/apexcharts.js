@@ -978,6 +978,14 @@ export default class Defaults {
       legend: {
         position: 'right',
       },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
+      },
     }
   }
 
@@ -1022,6 +1030,14 @@ export default class Defaults {
       legend: {
         position: 'right',
       },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
+      },
     }
   }
 
@@ -1051,6 +1067,14 @@ export default class Defaults {
       },
       legend: {
         position: 'right',
+      },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
       },
     }
   }
@@ -1085,6 +1109,12 @@ export default class Defaults {
       },
       grid: {
         show: false,
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
       },
       xaxis: {
         labels: {
@@ -1135,6 +1165,14 @@ export default class Defaults {
       tooltip: {
         enabled: false,
         fillSeriesColor: true,
+      },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
       },
     }
   }
