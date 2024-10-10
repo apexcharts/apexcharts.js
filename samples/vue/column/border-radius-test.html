@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Basic Column - Grouped</title>
+    <title>Stacked Column with negatives - Border radius test</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -74,54 +74,86 @@
         },
         data: {
           
-          series: [{
-            name: 'Net Profit',
-            data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
-          }, {
-            name: 'Revenue',
-            data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
-          }, {
-            name: 'Free Cash Flow',
-            data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
-          }],
+          series: [
+            {
+              name: 'PRODUCT A',
+              data: [0, 0, 41, 67, 22, 0],
+            },
+            {
+              name: 'PRODUCT B',
+              data: [20, 0, -20, 0, 13, 0],
+            },
+            {
+              name: 'PRODUCT C',
+              data: [20, 17, -15, 0, 21, 14],
+            },
+            {
+              name: 'PRODUCT D',
+              data: [30, 7, 25, 13, 10, 8],
+            },
+          ],
           chartOptions: {
             chart: {
               type: 'bar',
-              height: 350
+              height: 350,
+              stacked: true,
+              toolbar: {
+                show: true,
+              },
+            },
+            stroke: {
+              width: 0,
+              colors: ['#fff'],
             },
             plotOptions: {
               bar: {
                 horizontal: false,
-                columnWidth: '55%',
-                borderRadius: 5,
-                borderRadiusApplication: 'end'
+                borderRadius: 10,
+                borderRadiusApplication: 'end',
+                borderRadiusWhenStacked: 'last', 
+                dataLabels: {
+                  total: {
+                    enabled: true,
+                    style: {
+                      fontSize: '13px',
+                      fontWeight: 900,
+                    },
+                  },
+                },
               },
             },
-            dataLabels: {
-              enabled: false
-            },
-            stroke: {
-              show: true,
-              width: 2,
-              colors: ['#fff']
-            },
             xaxis: {
-              categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+              stepSize: 11,
+              categories: [
+                '01/01/2011',
+                '01/02/2011',
+                '01/03/2011',
+                '01/04/2011',
+                '01/05/2011',
+                '01/06/2011',
+              ],
             },
             yaxis: {
-              title: {
-                text: '$ (thousands)'
-              }
+              stepSize: 11,
+            },
+            legend: {
+              position: 'right',
+              offsetY: 40,
             },
             fill: {
-              opacity: 1
+              opacity: 1,
             },
-            tooltip: {
-              y: {
-                formatter: function (val) {
-                  return "$ " + val + " thousands"
-                }
-              }
+            grid: {
+              xaxis: {
+                lines: {
+                  show: true,
+                },
+              },
+              yaxis: {
+                lines: {
+                  show: true,
+                },
+              },
             }
           },
           
