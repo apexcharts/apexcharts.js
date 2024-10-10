@@ -50,7 +50,7 @@ export default class Theme {
     )
 
     // Create a copy of config.colors array to avoid mutating the original config.colors
-    const configColors = [...(w.config.colors || w.config.fill.colors)]
+    const configColors = [...(w.config.colors || w.config.fill.colors || [])]
     w.globals.colors = this.getColors(configColors)
 
     this.applySeriesColors(w.globals.seriesColors, w.globals.colors)
