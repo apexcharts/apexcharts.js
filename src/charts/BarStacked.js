@@ -119,8 +119,10 @@ class BarStacked extends Bar {
       }
 
       for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
         const commonPathOpts = {
           indexes: { i, j, realIndex, translationsIndex, bc },
+          strokeWidth,
           x,
           y,
           elSeries,
@@ -192,7 +194,7 @@ class BarStacked extends Bar {
           columnGroupIndex,
           pathFrom: paths.pathFrom,
           pathTo: paths.pathTo,
-          strokeWidth: this.barHelpers.getStrokeWidth(i, j, realIndex),
+          strokeWidth,
           elSeries,
           x,
           y,
@@ -307,6 +309,7 @@ class BarStacked extends Bar {
   drawStackedBarPaths({
     indexes,
     barHeight,
+    strokeWidth,
     zeroW,
     x,
     y,
@@ -370,6 +373,8 @@ class BarStacked extends Bar {
       barHeight,
       x1: barXPosition,
       x2: x,
+      strokeWidth,
+      isReversed: this.isReversed,
       series: this.series,
       realIndex: indexes.realIndex,
       seriesGroup,
@@ -532,6 +537,8 @@ class BarStacked extends Bar {
       y1: barYPosition,
       y2: y,
       yRatio: this.yRatio[translationsIndex],
+      strokeWidth: this.strokeWidth,
+      isReversed: this.isReversed,
       series: this.series,
       seriesGroup,
       realIndex: indexes.realIndex,
