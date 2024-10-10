@@ -14,7 +14,7 @@ chart: {
   }
 },
 responsive: [{
-  breakpoint: 480,
+  breakpoint: 650,
   options: {
     legend: {
       position: 'bottom',
@@ -40,6 +40,15 @@ plotOptions: {
     }
   },
 },
+stroke: {
+  show: true,
+  width: 4
+},
+dataLabels:{
+  style: {
+    colors: ['black']
+  }
+},
 xaxis: {
   type: 'datetime',
   categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT', '01/04/2011 GMT',
@@ -51,23 +60,23 @@ legend: {
   offsetY: 40
 },
 fill: {
-  opacity: 1
+  opacity: 0
 }
 </options>
 
 <series>
 [{
   name: 'PRODUCT A',
-  data: [40, 50, 30, 60, 20, 45]
+  data: [40, 50, 30, 60, 20, 40]
 }, {
   name: 'PRODUCT B',
-  data: [15, 25, 20, 5, 15, 25]
+  data: [10, 20, 20, 0, 10, 20]
 }, {
   name: 'PRODUCT C',
-  data: [15, 15, 15, 15, 20, 15]
+  data: [10, 10, 10, 10, 20, 10]
 }, {
   name: 'PRODUCT D',
-  data: [20, 5, 25, 15, 20, 5]
+  data: [10, 10, 20, 10, 20, 10]
 }]
 </series>
 </chart>
