@@ -146,12 +146,16 @@ export default class Labels {
           // get a color from a hover area (if it's a line pattern then get from a first line)
           const targetFill = e?.target?.getAttribute('fill')
           if (targetFill) {
-            pColor =
-              targetFill.indexOf('url') !== -1
-                ? document
-                    .querySelector(targetFill.substr(4).slice(0, -1))
-                    .childNodes[0].getAttribute('stroke')
-                : targetFill
+            if (targetFill.indexOf('url') !== -1) {
+              // pattern fill
+              if (targetFill.indexOf('Pattern') !== -1) {
+                pColor = w.globals.dom.baseEl
+                  .querySelector(targetFill.substr(4).slice(0, -1))
+                  .childNodes[0].getAttribute('stroke')
+              }
+            } else {
+              pColor = targetFill
+            }
           }
           val = getValBySeriesIndex(i)
           if (hasGoalValues(i) && Array.isArray(w.globals.seriesGoals[i][j])) {
