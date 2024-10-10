@@ -49,7 +49,9 @@ export default class Theme {
       `apexcharts-theme-${w.config.theme.mode}`
     )
 
-    w.globals.colors = this.getColors(w.config.colors || w.config.fill.colors)
+    // Create a copy of config.colors array to avoid mutating the original config.colors
+    const configColors = [...(w.config.colors || w.config.fill.colors)]
+    w.globals.colors = this.getColors(configColors)
 
     this.applySeriesColors(w.globals.seriesColors, w.globals.colors)
 
