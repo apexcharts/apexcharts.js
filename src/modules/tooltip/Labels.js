@@ -1,6 +1,7 @@
 import Formatters from '../Formatters'
 import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
+import Data from '../Data'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
@@ -450,8 +451,18 @@ export default class Labels {
           xVal = filteredSeriesX[firstActiveSeriesIndex][j]
         }
       } else {
-        xVal =
-          typeof w.globals.labels[j] !== 'undefined' ? w.globals.labels[j] : ''
+        const dataFormat = new Data(this.ctx)
+        if (dataFormat.isFormatXY()) {
+          xVal =
+            typeof w.config.series[i].data[j] !== 'undefined'
+              ? w.config.series[i].data[j].x
+              : ''
+        } else {
+          xVal =
+            typeof w.globals.labels[j] !== 'undefined'
+              ? w.globals.labels[j]
+              : ''
+        }
       }
     }
 

@@ -37,7 +37,8 @@ tooltip: {
     const toYear = new Date(opts.y2).getFullYear()
 
     const w = opts.ctx.w
-    let ylabel = w.globals.labels[opts.dataPointIndex]
+    let ylabel =
+      w.config.series[opts.seriesIndex].data?.[opts.dataPointIndex]?.x
     let seriesName = w.config.series[opts.seriesIndex].name
       ? w.config.series[opts.seriesIndex].name
       : ''
