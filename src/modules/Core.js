@@ -108,8 +108,6 @@ export default class Core {
     gl.dom.elLegendContainer = document.createElement('div')
     Object.assign(gl.dom.elLegendContainer.style, {
       position: 'relative',
-      height: '100%',
-      width: '100%',
     })
 
     gl.dom.elLegendContainer.setAttribute(
