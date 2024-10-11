@@ -75,7 +75,6 @@ export default class Destroy {
 
     domEls.elWrap = null
     domEls.elGraphical = null
-    domEls.elLegendContainer = null
     domEls.elLegendWrap = null
     domEls.elLegendForeign = null
     domEls.baseEl = null
