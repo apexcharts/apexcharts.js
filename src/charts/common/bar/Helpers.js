@@ -378,6 +378,9 @@ export default class Helpers {
     barXPosition,
     y1,
     y2,
+    strokeWidth,
+    isReversed,
+    series,
     seriesGroup,
     realIndex,
     i,
@@ -385,6 +388,10 @@ export default class Helpers {
     w,
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
+    strokeWidth = Array.isArray(strokeWidth)
+      ? strokeWidth[realIndex]
+      : strokeWidth
+    if (!strokeWidth) strokeWidth = 0
 
     let bW = barWidth
     let bXP = barXPosition
@@ -395,12 +402,17 @@ export default class Helpers {
       bW = barWidth + w.config.series[realIndex].data[j].columnWidthOffset
     }
 
-    const x1 = bXP
-    const x2 = bXP + bW
+    // Center the stroke on the coordinates
+    let strokeCenter = strokeWidth / 2
+    
+    const x1 = bXP + strokeCenter
+    const x2 = bXP + bW - strokeCenter
 
+    let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
+    
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
-    y1 += 0.001
-    y2 += 0.001
+    y1 += 0.001 - strokeCenter * direction
+    y2 += 0.001 + strokeCenter * direction
 
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
@@ -446,8 +458,8 @@ export default class Helpers {
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx
       _ctx = this.barCtx[seriesGroup]
-      _ctx.yArrj.push(y2)
-      _ctx.yArrjF.push(Math.abs(y1 - y2))
+      _ctx.yArrj.push(y2 - strokeCenter * direction)
+      _ctx.yArrjF.push(Math.abs(y1 - y2 + strokeWidth * direction))
       _ctx.yArrjVal.push(this.barCtx.series[i][j])
     }
 
@@ -462,6 +474,9 @@ export default class Helpers {
     barHeight,
     x1,
     x2,
+    strokeWidth,
+    isReversed,
+    series,
     seriesGroup,
     realIndex,
     i,
@@ -469,6 +484,10 @@ export default class Helpers {
     w,
   }) {
     const graphics = new Graphics(this.barCtx.ctx)
+    strokeWidth = Array.isArray(strokeWidth)
+      ? strokeWidth[realIndex]
+      : strokeWidth
+    if (!strokeWidth) strokeWidth = 0
 
     let bYP = barYPosition
     let bH = barHeight
@@ -479,12 +498,17 @@ export default class Helpers {
       bH = barHeight + w.config.series[realIndex].data[j].barHeightOffset
     }
 
-    const y1 = bYP
-    const y2 = bYP + bH
+    // Center the stroke on the coordinates
+    let strokeCenter = strokeWidth / 2
+
+    const y1 = bYP + strokeCenter
+    const y2 = bYP + bH - strokeCenter
+
+    let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
 
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
-    x1 += 0.001
-    x2 += 0.001
+    x1 += 0.001 + strokeCenter * direction
+    x2 += 0.001 - strokeCenter * direction
 
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
@@ -528,8 +552,8 @@ export default class Helpers {
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx
       _ctx = this.barCtx[seriesGroup]
-      _ctx.xArrj.push(x2)
-      _ctx.xArrjF.push(Math.abs(x1 - x2))
+      _ctx.xArrj.push(x2 + strokeCenter * direction)
+      _ctx.xArrjF.push(Math.abs(x1 - x2 - strokeWidth * direction))
       _ctx.xArrjVal.push(this.barCtx.series[i][j])
     }
     return {
