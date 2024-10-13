@@ -1131,6 +1131,7 @@ type ApexYAxis = {
   decimalsInFloat?: number
   labels?: {
     show?: boolean
+    showDuplicate?: boolean
     minWidth?: number
     maxWidth?: number
     offsetX?: number

@@ -86,7 +86,11 @@ export default class YAxis {
         const label = graphics.drawText({
           x: xPad,
           y: lY,
-          text: existingYLabels.includes(val) ? '' : val,
+          text:
+            existingYLabels.includes(val) &&
+            !w.config.yaxis[realIndex].labels.showDuplicate
+              ? ''
+              : val,
           textAnchor,
           fontSize: yaxisFontSize,
           fontFamily: yaxisFontFamily,
