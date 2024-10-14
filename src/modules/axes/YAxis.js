@@ -88,7 +88,7 @@ export default class YAxis {
           y: lY,
           text:
             existingYLabels.includes(val) &&
-            !w.config.yaxis[realIndex].labels.showDuplicate
+            !w.config.yaxis[realIndex].labels.showDuplicates
               ? ''
               : val,
           textAnchor,
