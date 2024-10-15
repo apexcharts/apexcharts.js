@@ -171,20 +171,16 @@ class BarStacked extends Bar {
 
         let classes = ''
 
-        if (w.globals.isBarHorizontal) {
-          if (
-            this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' &&
-            w.globals.series[realIndex][j] > 0
-          ) {
-            classes = 'apexcharts-flip-x'
-          }
-        } else {
-          if (
-            this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' &&
-            w.globals.series[realIndex][j] > 0
-          ) {
-            classes = 'apexcharts-flip-y'
-          }
+        const flipClass = w.globals.isBarHorizontal
+          ? 'apexcharts-flip-x'
+          : 'apexcharts-flip-y'
+        if (
+          (this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' &&
+            w.globals.series[realIndex][j] > 0) ||
+          (this.barHelpers.arrBorderRadius[realIndex][j] === 'top' &&
+            w.globals.series[realIndex][j] < 0)
+        ) {
+          classes = flipClass
         }
         elSeries = this.renderSeries({
           realIndex,

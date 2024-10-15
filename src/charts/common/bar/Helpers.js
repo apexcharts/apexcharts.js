@@ -301,13 +301,13 @@ export default class Helpers {
           output[negativeIndices[0]][j] = 'both'
         } else {
           // Multiple negative values
-          const firstNegativeIndex = negativeIndices[0]
-          const lastNegativeIndex = negativeIndices[negativeIndices.length - 1]
+          const highestNegativeIndex = Math.max(...negativeIndices)
+          const lowestNegativeIndex = Math.min(...negativeIndices)
           for (let i of negativeIndices) {
-            if (i === firstNegativeIndex) {
-              output[i][j] = 'bottom'
-            } else if (i === lastNegativeIndex) {
-              output[i][j] = 'top'
+            if (i === highestNegativeIndex) {
+              output[i][j] = 'bottom' // Closest to axis
+            } else if (i === lowestNegativeIndex) {
+              output[i][j] = 'top' // Farthest from axis
             } else {
               output[i][j] = 'none'
             }
@@ -324,10 +324,10 @@ export default class Helpers {
             output[i][j] = 'none'
           }
         }
-        // Assign 'bottom' to the last negative bar (closest to axis)
-        const lastNegativeIndex = negativeIndices[negativeIndices.length - 1]
+        // Assign 'bottom' to the highest negative index (closest to axis)
+        const highestNegativeIndex = Math.max(...negativeIndices)
         for (let i of negativeIndices) {
-          if (i === lastNegativeIndex) {
+          if (i === highestNegativeIndex) {
             output[i][j] = 'bottom'
           } else {
             output[i][j] = 'none'
@@ -404,12 +404,12 @@ export default class Helpers {
 
     // Center the stroke on the coordinates
     let strokeCenter = strokeWidth / 2
-    
+
     const x1 = bXP + strokeCenter
     const x2 = bXP + bW - strokeCenter
 
     let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
-    
+
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
     y1 += 0.001 - strokeCenter * direction
     y2 += 0.001 + strokeCenter * direction
