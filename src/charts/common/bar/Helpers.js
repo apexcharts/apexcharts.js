@@ -251,7 +251,7 @@ export default class Helpers {
       w.config.plotOptions.bar.borderRadius <= 0
 
     const numSeries = series.length
-    const numColumns = series[0].length
+    const numColumns = series[0]?.length | 0
     const output = Array.from({ length: numSeries }, () =>
       Array(numColumns).fill(alwaysApplyRadius ? 'top' : 'none')
     )
