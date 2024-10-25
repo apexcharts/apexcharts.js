@@ -924,7 +924,7 @@ type ApexDataLabels = {
     dropShadow?: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
-  formatter?(val: string | number | number[], opts?: any): string | number
+  formatter?(val: string | number | number[], opts?: any): string | number | string[]
 }
 
 type ApexResponsive = {
@@ -934,7 +934,7 @@ type ApexResponsive = {
 
 type ApexTooltipY = {
   title?: {
-    formatter?(seriesName: string): string
+    formatter?(seriesName: string, opts?: any): string
   }
   formatter?(val: number, opts?: any): string
 }
