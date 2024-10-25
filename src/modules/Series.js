@@ -349,9 +349,6 @@ export default class Series {
       }
     })
 
-    this.handlePrevBubbleScatterPaths('bubble')
-    this.handlePrevBubbleScatterPaths('scatter')
-
     let heatTreeSeries = w.globals.dom.baseEl.querySelectorAll(
       `.apexcharts-${w.config.chart.type} .apexcharts-series`
     )
@@ -386,30 +383,6 @@ export default class Series {
     if (!w.globals.axisCharts) {
       // for non-axis charts (i.e., circular charts, pathFrom is not usable. We need whole series)
       w.globals.previousPaths = w.globals.series
-    }
-  }
-
-  handlePrevBubbleScatterPaths(type) {
-    const w = this.w
-    let paths = w.globals.dom.baseEl.querySelectorAll(
-      `.apexcharts-${type}-series .apexcharts-series`
-    )
-    if (paths.length > 0) {
-      for (let s = 0; s < paths.length; s++) {
-        let seriesEls = w.globals.dom.baseEl.querySelectorAll(
-          `.apexcharts-${type}-series .apexcharts-series[data\\:realIndex='${s}'] circle`
-        )
-        let dArr = []
-
-        for (let i = 0; i < seriesEls.length; i++) {
-          dArr.push({
-            x: seriesEls[i].getAttribute('cx'),
-            y: seriesEls[i].getAttribute('cy'),
-            r: seriesEls[i].getAttribute('r'),
-          })
-        }
-        w.globals.previousPaths.push(dArr)
-      }
     }
   }
 
