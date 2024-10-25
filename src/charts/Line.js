@@ -348,8 +348,10 @@ class Line {
         graphics.move(prevX, this.areaBottomY) + graphics.line(prevX, prevY)
     }
 
-    pathFromLine = graphics.move(0, this.zeroY) + graphics.line(0, this.zeroY)
-    pathFromArea = graphics.move(0, this.zeroY) + graphics.line(0, this.zeroY)
+    pathFromLine =
+      graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY)
+    pathFromArea =
+      graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY)
 
     if (w.globals.previousPaths.length > 0) {
       const pathFrom = this.lineHelpers.checkPreviousPaths({
@@ -704,8 +706,8 @@ class Line {
         this.appendPathFrom &&
         !(curve === 'monotoneCubic' && type === 'rangeArea')
       ) {
-        pathFromLine += graphics.line(x, this.zeroY)
-        pathFromArea += graphics.line(x, this.zeroY)
+        pathFromLine += graphics.line(x, this.areaBottomY)
+        pathFromArea += graphics.line(x, this.areaBottomY)
       }
 
       this.handleNullDataPoints(series, pointsPos, i, j, realIndex)
