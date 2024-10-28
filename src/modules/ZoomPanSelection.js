@@ -1,6 +1,7 @@
 import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
+import { Box } from '@svgdotjs/svg.js'
 
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
@@ -52,6 +53,7 @@ export default class ZoomPanSelection extends Toolbar {
 
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0)
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0)
+
     this.gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
 
     this.zoomRect.node.classList.add('apexcharts-zoom-rect')
@@ -67,18 +69,18 @@ export default class ZoomPanSelection extends Toolbar {
           maxX: w.globals.gridWidth,
           maxY: w.globals.gridHeight,
         })
-        .on('dragmove', this.selectionDragging.bind(this, 'dragging'))
+        .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     } else if (w.config.chart.selection.type === 'y') {
       this.slDraggableRect = this.selectionRect
         .draggable({
           minX: 0,
           maxX: w.globals.gridWidth,
         })
-        .on('dragmove', this.selectionDragging.bind(this, 'dragging'))
+        .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     } else {
       this.slDraggableRect = this.selectionRect
         .draggable()
-        .on('dragmove', this.selectionDragging.bind(this, 'dragging'))
+        .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     }
     this.preselectedSelection()
 
@@ -330,7 +332,17 @@ export default class ZoomPanSelection extends Toolbar {
       this.selectionRect
         .select({
           createRot: () => {},
-          updateRot: () => {}
+          updateRot: () => {},
+          createHandle: (group, p, index, pointArr, handleName) => {
+            if (handleName === 'l' || handleName === 'r')
+              return group
+                .circle(8)
+                .css({ 'stroke-width': 1, stroke: '#333', fill: '#fff' })
+            return group.circle(0)
+          },
+          updateHandle: (group, p) => {
+            return group.center(p[0], p[1])
+          },
         })
         .resize()
         .on('resizing', this.selectionDragging.bind(this, 'resizing'))
@@ -346,7 +358,11 @@ export default class ZoomPanSelection extends Toolbar {
         typeof w.globals.selection !== 'undefined' &&
         w.globals.selection !== null
       ) {
-        this.drawSelectionRect(w.globals.selection)
+        this.drawSelectionRect({
+          ...w.globals.selection,
+          translateX: w.globals.translateX,
+          translateY: w.globals.translateY,
+        })
       } else {
         if (
           w.config.chart.selection.xaxis.min !== undefined &&
@@ -470,7 +486,7 @@ export default class ZoomPanSelection extends Toolbar {
 
     let selectionRect = {
       translateX: w.globals.translateX,
-      translateY: w.globals.translateY
+      translateY: w.globals.translateY,
     }
 
     if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
@@ -516,6 +532,12 @@ export default class ZoomPanSelection extends Toolbar {
       }
     }
 
+    selectionRect = {
+      ...selectionRect,
+      translateX: w.globals.translateX,
+      translateY: w.globals.translateY,
+    }
+
     me.drawSelectionRect(selectionRect)
     me.selectionDragging('resizing')
     return selectionRect
@@ -523,6 +545,33 @@ export default class ZoomPanSelection extends Toolbar {
 
   selectionDragging(type, e) {
     const w = this.w
+    if (!e) return
+
+    e.preventDefault()
+
+    const { handler, box } = e.detail
+    const constraints = new Box(0, 0, w.globals.gridWidth, w.globals.gridHeight)
+
+    let { x, y } = box
+
+    if (x < constraints.x) {
+      x = constraints.x
+    }
+
+    if (y < constraints.y) {
+      y = constraints.y
+    }
+
+    if (box.x2 > constraints.x2) {
+      x = constraints.x2 - box.w
+    }
+
+    if (box.y2 > constraints.y2) {
+      y = constraints.y2 - box.h
+    }
+
+    handler.move(x - (x % 50), y - (y % 50))
+
     const xyRatios = this.xyRatios
 
     const selRect = this.selectionRect
