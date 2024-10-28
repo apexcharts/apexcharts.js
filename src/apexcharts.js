@@ -13,9 +13,6 @@ import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import Destroy from './modules/helpers/Destroy'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
-import apexCSS from './assets/apexcharts.css'
-import selectCSS from '@svgdotjs/svg.select.js/dist/svg.select.css'
-import resizeCSS from '@svgdotjs/svg.resize.js/dist/svg.resize.css'
 
 /**
  *
@@ -85,7 +82,6 @@ export default class ApexCharts {
         if (!css) {
           css = document.createElement('style')
           css.id = 'apexcharts-css'
-          css.textContent = apexCSS.concat(selectCSS, resizeCSS)
           const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce
           if (nonce) {
             css.setAttribute('nonce', nonce)
