@@ -55,6 +55,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0)
 
     this.gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
+    this.constraints = new Box(0, 0, w.globals.gridWidth, w.globals.gridHeight)
 
     this.zoomRect.node.classList.add('apexcharts-zoom-rect')
     this.selectionRect.node.classList.add('apexcharts-selection-rect')
@@ -550,27 +551,26 @@ export default class ZoomPanSelection extends Toolbar {
     e.preventDefault()
 
     const { handler, box } = e.detail
-    const constraints = new Box(0, 0, w.globals.gridWidth, w.globals.gridHeight)
 
     let { x, y } = box
 
-    if (x < constraints.x) {
-      x = constraints.x
+    if (x < this.constraints.x) {
+      x = this.constraints.x
     }
 
-    if (y < constraints.y) {
-      y = constraints.y
+    if (y < this.constraints.y) {
+      y = this.constraints.y
     }
 
-    if (box.x2 > constraints.x2) {
-      x = constraints.x2 - box.w
+    if (box.x2 > this.constraints.x2) {
+      x = this.constraints.x2 - box.w
     }
 
-    if (box.y2 > constraints.y2) {
-      y = constraints.y2 - box.h
+    if (box.y2 > this.constraints.y2) {
+      y = this.constraints.y2 - box.h
     }
 
-    handler.move(x - (x % 50), y - (y % 50))
+    handler.move(x, y)
 
     const xyRatios = this.xyRatios
 
