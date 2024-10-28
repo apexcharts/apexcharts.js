@@ -79,29 +79,7 @@ export default class Helpers {
       .apexcharts-inactive-legend {
         opacity: 0.45;
       }
-            
-      .svg_select_shape {
-        stroke-width: 1;
-        stroke-dasharray: 10 10;
-        stroke: black;
-        stroke-opacity: 0.1;
-        pointer-events: none;
-        fill: none;
-      }
-        
-      .svg_select_handle {
-        stroke-width: 3;
-        stroke: black;
-        fill: none;
-      }
 
-      .svg_select_handle_r {
-        cursor: e-resize;
-      }
-
-      .svg_select_handle_l {
-        cursor: w-resize;
-      }
     `
 
     let rules = document.createTextNode(text)
