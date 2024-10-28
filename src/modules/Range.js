@@ -279,7 +279,10 @@ class Range {
         gl.minY = lowestYInAllSeries
       }
     } else {
-      gl.minY = minYMaxY.minY
+      gl.minY =
+        gl.minY !== Number.MIN_VALUE
+          ? Math.min(minYMaxY.minY, gl.minY)
+          : minYMaxY.minY
     }
 
     cnf.yaxis.forEach((yaxe, index) => {

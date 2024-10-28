@@ -107,19 +107,9 @@ export default class Core {
     gl.dom.elLegendWrap = document.createElement('div')
     gl.dom.elLegendWrap.classList.add('apexcharts-legend')
 
-    gl.dom.elLegendContainer = document.createElement('div')
-    Object.assign(gl.dom.elLegendContainer.style, {
-      position: 'relative',
-      height: '100%',
-      width: '100%',
-    })
+    gl.dom.elLegendWrap.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml')
+    gl.dom.elLegendForeign.appendChild(gl.dom.elLegendWrap)
 
-    gl.dom.elLegendContainer.setAttribute(
-      'xmlns',
-      'http://www.w3.org/1999/xhtml'
-    )
-    gl.dom.elLegendContainer.appendChild(gl.dom.elLegendWrap)
-    gl.dom.elLegendForeign.appendChild(gl.dom.elLegendContainer)
     gl.dom.Paper.node.appendChild(gl.dom.elLegendForeign)
 
     gl.dom.elGraphical = gl.dom.Paper.group().attr({

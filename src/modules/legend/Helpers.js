@@ -17,6 +17,16 @@ export default class Helpers {
     }
 
     const text = `
+      .apexcharts-flip-y {
+        transform: scaleY(-1) translateY(-100%);
+        transform-origin: top;
+        transform-box: fill-box;
+      }
+      .apexcharts-flip-x {
+        transform: scaleX(-1);
+        transform-origin: center;
+        transform-box: fill-box;
+      }
       .apexcharts-legend {
         display: flex;
         overflow: auto;

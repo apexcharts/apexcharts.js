@@ -37,7 +37,7 @@ export default class Helpers {
       }
     }
 
-    this.arrBorderRadius = this.createBorderRadiusArr(w.globals.seriesPercent)
+    this.arrBorderRadius = this.createBorderRadiusArr(w.globals.series)
 
     if (this.barCtx.seriesLen === 0) {
       // A small adjustment when combo charts are used
@@ -227,10 +227,7 @@ export default class Helpers {
     let strokeWidth = 0
     const w = this.w
 
-    if (
-      typeof this.barCtx.series[i][j] === 'undefined' ||
-      this.barCtx.series[i][j] === null
-    ) {
+    if (!this.barCtx.series[i][j]) {
       this.barCtx.isNullValue = true
     } else {
       this.barCtx.isNullValue = false
@@ -245,7 +242,7 @@ export default class Helpers {
     return strokeWidth
   }
 
-  createBorderRadiusArr(seriesPercent) {
+  createBorderRadiusArr(series) {
     const w = this.w
 
     const alwaysApplyRadius =
@@ -253,29 +250,97 @@ export default class Helpers {
       w.config.plotOptions.bar.borderRadiusWhenStacked !== 'last' ||
       w.config.plotOptions.bar.borderRadius <= 0
 
-    const numRows = seriesPercent.length
-    const numCols = seriesPercent[0].length
-
-    const resultArr = Array.from({ length: numRows }, () =>
-      Array.from({ length: numCols }, () => alwaysApplyRadius)
+    const numSeries = series.length
+    const numColumns = series[0]?.length | 0
+    const output = Array.from({ length: numSeries }, () =>
+      Array(numColumns).fill(alwaysApplyRadius ? 'top' : 'none')
     )
 
-    if (alwaysApplyRadius) return resultArr
+    if (alwaysApplyRadius) return output
 
-    // For each column
-    for (let j = 0; j < numCols; j++) {
-      // Iterate from the last row upwards
-      for (let i = numRows - 1, found = false; i >= 0; i--) {
-        if (!found && seriesPercent[i][j] !== 0) {
-          resultArr[i][j] = true
-          found = true
-        } else {
-          resultArr[i][j] = false
+    for (let j = 0; j < numColumns; j++) {
+      let positiveIndices = []
+      let negativeIndices = []
+      let nonZeroCount = 0
+
+      // Collect positive and negative indices
+      for (let i = 0; i < numSeries; i++) {
+        const value = series[i][j]
+        if (value > 0) {
+          positiveIndices.push(i)
+          nonZeroCount++
+        } else if (value < 0) {
+          negativeIndices.push(i)
+          nonZeroCount++
         }
+      }
+
+      if (positiveIndices.length > 0 && negativeIndices.length === 0) {
+        // Only positive values in this column
+        if (positiveIndices.length === 1) {
+          // Single positive value
+          output[positiveIndices[0]][j] = 'both'
+        } else {
+          // Multiple positive values
+          const firstPositiveIndex = positiveIndices[0]
+          const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
+          for (let i of positiveIndices) {
+            if (i === firstPositiveIndex) {
+              output[i][j] = 'bottom'
+            } else if (i === lastPositiveIndex) {
+              output[i][j] = 'top'
+            } else {
+              output[i][j] = 'none'
+            }
+          }
+        }
+      } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
+        // Only negative values in this column
+        if (negativeIndices.length === 1) {
+          // Single negative value
+          output[negativeIndices[0]][j] = 'both'
+        } else {
+          // Multiple negative values
+          const highestNegativeIndex = Math.max(...negativeIndices)
+          const lowestNegativeIndex = Math.min(...negativeIndices)
+          for (let i of negativeIndices) {
+            if (i === highestNegativeIndex) {
+              output[i][j] = 'bottom' // Closest to axis
+            } else if (i === lowestNegativeIndex) {
+              output[i][j] = 'top' // Farthest from axis
+            } else {
+              output[i][j] = 'none'
+            }
+          }
+        }
+      } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
+        // Mixed positive and negative values
+        // Assign 'top' to the last positive bar
+        const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
+        for (let i of positiveIndices) {
+          if (i === lastPositiveIndex) {
+            output[i][j] = 'top'
+          } else {
+            output[i][j] = 'none'
+          }
+        }
+        // Assign 'bottom' to the highest negative index (closest to axis)
+        const highestNegativeIndex = Math.max(...negativeIndices)
+        for (let i of negativeIndices) {
+          if (i === highestNegativeIndex) {
+            output[i][j] = 'bottom'
+          } else {
+            output[i][j] = 'none'
+          }
+        }
+      } else if (nonZeroCount === 1) {
+        // Only one non-zero value (either positive or negative)
+        const index = positiveIndices[0] || negativeIndices[0]
+        output[index][j] = 'both'
       }
     }
 
-    return resultArr
+    return output
   }
 
   barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
@@ -314,6 +379,8 @@ export default class Helpers {
     y1,
     y2,
     strokeWidth,
+    isReversed,
+    series,
     seriesGroup,
     realIndex,
     i,
@@ -341,9 +408,11 @@ export default class Helpers {
     const x1 = bXP + strokeCenter
     const x2 = bXP + bW - strokeCenter
 
+    let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
+
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
-    y1 += 0.001 - strokeCenter
-    y2 += 0.001 + strokeCenter
+    y1 += 0.001 - strokeCenter * direction
+    y2 += 0.001 + strokeCenter * direction
 
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
@@ -357,8 +426,9 @@ export default class Helpers {
       pathTo +
       graphics.line(x1, y2) +
       graphics.line(x2, y2) +
-      graphics.line(x2, y1) +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around'
+      sl +
+      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
+      this.arrBorderRadius[realIndex][j] === 'both'
         ? ' Z'
         : ' z')
 
@@ -373,11 +443,12 @@ export default class Helpers {
       sl +
       sl +
       graphics.line(x1, y1) +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around'
+      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
+      this.arrBorderRadius[realIndex][j] === 'both'
         ? ' Z'
         : ' z')
 
-    if (this.arrBorderRadius[realIndex][j]) {
+    if (this.arrBorderRadius[realIndex][j] !== 'none') {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
@@ -387,8 +458,8 @@ export default class Helpers {
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx
       _ctx = this.barCtx[seriesGroup]
-      _ctx.yArrj.push(y2 - strokeCenter)
-      _ctx.yArrjF.push(Math.abs(y1 - y2 + strokeWidth))
+      _ctx.yArrj.push(y2 - strokeCenter * direction)
+      _ctx.yArrjF.push(Math.abs(y1 - y2 + strokeWidth * direction))
       _ctx.yArrjVal.push(this.barCtx.series[i][j])
     }
 
@@ -404,6 +475,8 @@ export default class Helpers {
     x1,
     x2,
     strokeWidth,
+    isReversed,
+    series,
     seriesGroup,
     realIndex,
     i,
@@ -431,9 +504,11 @@ export default class Helpers {
     const y1 = bYP + strokeCenter
     const y2 = bYP + bH - strokeCenter
 
+    let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
+
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
-    x1 += 0.001 - strokeCenter
-    x2 += 0.001 + strokeCenter
+    x1 += 0.001 + strokeCenter * direction
+    x2 += 0.001 - strokeCenter * direction
 
     let pathTo = graphics.move(x1, y1)
     let pathFrom = graphics.move(x1, y1)
@@ -448,7 +523,8 @@ export default class Helpers {
       graphics.line(x2, y1) +
       graphics.line(x2, y2) +
       sl +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around'
+      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
+      this.arrBorderRadius[realIndex][j] === 'both'
         ? ' Z'
         : ' z')
 
@@ -461,11 +537,12 @@ export default class Helpers {
       sl +
       sl +
       graphics.line(x1, y1) +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around'
+      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
+      this.arrBorderRadius[realIndex][j] === 'both'
         ? ' Z'
         : ' z')
 
-    if (this.arrBorderRadius[realIndex][j]) {
+    if (this.arrBorderRadius[realIndex][j] !== 'none') {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
@@ -475,8 +552,8 @@ export default class Helpers {
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx
       _ctx = this.barCtx[seriesGroup]
-      _ctx.xArrj.push(x2 + strokeCenter)
-      _ctx.xArrjF.push(Math.abs(x1 - x2))
+      _ctx.xArrj.push(x2 + strokeCenter * direction)
+      _ctx.xArrjF.push(Math.abs(x1 - x2 - strokeWidth * direction))
       _ctx.xArrjVal.push(this.barCtx.series[i][j])
     }
     return {
@@ -666,7 +743,8 @@ export default class Helpers {
       graphics.line(currX2, currY1) +
       graphics.line(currX1, currY1) +
       graphics.line(prevX1, prevY2) +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around'
+      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
+      this.arrBorderRadius[realIndex][j] === 'both'
         ? ' Z'
         : ' z')
 

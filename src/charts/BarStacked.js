@@ -169,6 +169,19 @@ class BarStacked extends Bar {
 
         let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
+        let classes = ''
+
+        const flipClass = w.globals.isBarHorizontal
+          ? 'apexcharts-flip-x'
+          : 'apexcharts-flip-y'
+        if (
+          (this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' &&
+            w.globals.series[realIndex][j] > 0) ||
+          (this.barHelpers.arrBorderRadius[realIndex][j] === 'top' &&
+            w.globals.series[realIndex][j] < 0)
+        ) {
+          classes = flipClass
+        }
         elSeries = this.renderSeries({
           realIndex,
           pathFill,
@@ -188,6 +201,7 @@ class BarStacked extends Bar {
           elGoalsMarkers,
           type: 'bar',
           visibleSeries: columnGroupIndex,
+          classes,
         })
       }
 
@@ -356,6 +370,7 @@ class BarStacked extends Bar {
       x1: barXPosition,
       x2: x,
       strokeWidth,
+      isReversed: this.isReversed,
       series: this.series,
       realIndex: indexes.realIndex,
       seriesGroup,
@@ -519,6 +534,7 @@ class BarStacked extends Bar {
       y2: y,
       yRatio: this.yRatio[translationsIndex],
       strokeWidth: this.strokeWidth,
+      isReversed: this.isReversed,
       series: this.series,
       seriesGroup,
       realIndex: indexes.realIndex,

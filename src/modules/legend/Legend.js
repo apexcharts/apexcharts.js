@@ -41,14 +41,14 @@ class Legend {
       this.isBarsDistributed ||
       gl.series.length > 1
 
+    this.legendHelpers.appendToForeignObject()
+
     if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
       while (gl.dom.elLegendWrap.firstChild) {
         gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild)
       }
 
       this.drawLegends()
-
-      this.legendHelpers.appendToForeignObject()
 
       if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
         this.legendAlignHorizontal()

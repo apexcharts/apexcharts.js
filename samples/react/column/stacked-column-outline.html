@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Basic Column - Grouped</title>
+    <title>Stacked Column</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -72,53 +72,82 @@
           this.state = {
           
             series: [{
-              name: 'Net Profit',
-              data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
+              name: 'PRODUCT A',
+              data: [40, 50, -27, 60, 20, 40]
             }, {
-              name: 'Revenue',
-              data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
+              name: 'PRODUCT B',
+              data: [10, 20, 20, 0, 10, 20]
             }, {
-              name: 'Free Cash Flow',
-              data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
+              name: 'PRODUCT C',
+              data: [10, 10, -10, 10, 20, 10]
+            }, {
+              name: 'PRODUCT D',
+              data: [10, 10, 20, 10, 20, 10]
             }],
             options: {
               chart: {
                 type: 'bar',
-                height: 350
+                height: 350,
+                stacked: true,
+                toolbar: {
+                  show: true
+                },
+                zoom: {
+                  enabled: true
+                }
               },
+              responsive: [{
+                breakpoint: 650,
+                options: {
+                  legend: {
+                    position: 'bottom',
+                    offsetX: -10,
+                    offsetY: 0
+                  }
+                }
+              }],
               plotOptions: {
                 bar: {
                   horizontal: false,
-                  columnWidth: '55%',
-                  borderRadius: 5,
-                  borderRadiusApplication: 'end'
+                  borderRadius: 10,
+                  borderRadiusApplication: 'end', // 'around', 'end'
+                  borderRadiusWhenStacked: 'last', // 'all', 'last'
+                  dataLabels: {
+                    total: {
+                      enabled: true,
+                      style: {
+                        fontSize: '13px',
+                        fontWeight: 900
+                      }
+                    }
+                  }
                 },
-              },
-              dataLabels: {
-                enabled: false
               },
               stroke: {
                 show: true,
-                width: 2,
-                colors: ['transparent']
+                width: 4
+              },
+              dataLabels:{
+                style: {
+                  colors: ['black']
+                }
               },
               xaxis: {
-                categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                type: 'datetime',
+                categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT', '01/04/2011 GMT',
+                  '01/05/2011 GMT', '01/06/2011 GMT'
+                ],
               },
               yaxis: {
-                title: {
-                  text: '$ (thousands)'
-                }
+                reversed: false,
+                stepSize: 10
+              },
+              legend: {
+                position: 'right',
+                offsetY: 40
               },
               fill: {
-                opacity: 1
-              },
-              tooltip: {
-                y: {
-                  formatter: function (val) {
-                    return "$ " + val + " thousands"
-                  }
-                }
+                opacity: 0.25
               }
             },
           

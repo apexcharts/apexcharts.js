@@ -150,6 +150,9 @@ class Fill {
     } else {
       if (fillColor.indexOf('rgba') > -1) {
         fillOpacity = Utils.getOpacityFromRGBA(fillColor)
+      } else {
+        // if rgb color, apply opacity
+        defaultColor = Utils.hexToRgba(Utils.rgb2hex(fillColor), fillOpacity)
       }
     }
     if (opts.opacity) fillOpacity = opts.opacity

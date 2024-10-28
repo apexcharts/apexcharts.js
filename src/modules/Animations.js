@@ -196,7 +196,7 @@ export default class Animations {
     }
 
     if (
-      !pathTo ||
+      !pathTo.trim() ||
       pathTo.indexOf('undefined') > -1 ||
       pathTo.indexOf('NaN') > -1
     ) {

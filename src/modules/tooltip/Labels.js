@@ -1,6 +1,7 @@
 import Formatters from '../Formatters'
 import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
+import Data from '../Data'
 
 /**
  * ApexCharts Tooltip.Labels Class to draw texts on the tooltip.
@@ -146,12 +147,16 @@ export default class Labels {
           // get a color from a hover area (if it's a line pattern then get from a first line)
           const targetFill = e?.target?.getAttribute('fill')
           if (targetFill) {
-            pColor =
-              targetFill.indexOf('url') !== -1
-                ? document
-                    .querySelector(targetFill.substr(4).slice(0, -1))
-                    .childNodes[0].getAttribute('stroke')
-                : targetFill
+            if (targetFill.indexOf('url') !== -1) {
+              // pattern fill
+              if (targetFill.indexOf('Pattern') !== -1) {
+                pColor = w.globals.dom.baseEl
+                  .querySelector(targetFill.substr(4).slice(0, -1))
+                  .childNodes[0].getAttribute('stroke')
+              }
+            } else {
+              pColor = targetFill
+            }
           }
           val = getValBySeriesIndex(i)
           if (hasGoalValues(i) && Array.isArray(w.globals.seriesGoals[i][j])) {
@@ -446,8 +451,18 @@ export default class Labels {
           xVal = filteredSeriesX[firstActiveSeriesIndex][j]
         }
       } else {
-        xVal =
-          typeof w.globals.labels[j] !== 'undefined' ? w.globals.labels[j] : ''
+        const dataFormat = new Data(this.ctx)
+        if (dataFormat.isFormatXY()) {
+          xVal =
+            typeof w.config.series[i].data[j] !== 'undefined'
+              ? w.config.series[i].data[j].x
+              : ''
+        } else {
+          xVal =
+            typeof w.globals.labels[j] !== 'undefined'
+              ? w.globals.labels[j]
+              : ''
+        }
       }
     }
 

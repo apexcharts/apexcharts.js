@@ -1,0 +1,88 @@
+<title>Stacked Column with negatives - Border radius test</title>
+
+<chart>
+<options>
+chart: {
+  type: 'bar',
+  height: 350,
+  stacked: true,
+  toolbar: {
+    show: true,
+  },
+},
+stroke: {
+  width: 4,
+},
+plotOptions: {
+  bar: {
+    horizontal: false,
+    borderRadius: 10,
+    borderRadiusApplication: 'end',
+    borderRadiusWhenStacked: 'last', 
+    dataLabels: {
+      total: {
+        enabled: true,
+        style: {
+          fontSize: '13px',
+          fontWeight: 900,
+        },
+      },
+    },
+  },
+},
+xaxis: {
+  stepSize: 11,
+  categories: [
+    '01/01/2011',
+    '01/02/2011',
+    '01/03/2011',
+    '01/04/2011',
+    '01/05/2011',
+    '01/06/2011',
+  ],
+},
+yaxis: {
+  stepSize: 11,
+},
+legend: {
+  position: 'right',
+  offsetY: 40,
+},
+fill: {
+  opacity: 0.4,
+},
+grid: {
+  xaxis: {
+    lines: {
+      show: true,
+    },
+  },
+  yaxis: {
+    lines: {
+      show: true,
+    },
+  },
+}
+</options>
+
+<series>
+[
+  {
+    name: 'PRODUCT A',
+    data: [0, 0, 41, 67, 22, 0],
+  },
+  {
+    name: 'PRODUCT B',
+    data: [20, 0, -20, 0, 13, 0],
+  },
+  {
+    name: 'PRODUCT C',
+    data: [20, 17, -15, 0, 21, 14],
+  },
+  {
+    name: 'PRODUCT D',
+    data: [30, 7, 25, 13, 10, 8],
+  },
+]
+</series>
+</chart>

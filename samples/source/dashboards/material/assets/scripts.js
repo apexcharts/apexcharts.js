@@ -185,7 +185,7 @@ var optionsBar = {
         enabled: false
       },
       columnWidth: '75%',
-      endingShape: 'rounded'
+      borderRadius: 7
     }
   },
   colors: ["#00C5A4", '#F3F2FC'],

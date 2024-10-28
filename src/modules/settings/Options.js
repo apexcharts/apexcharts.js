@@ -23,6 +23,7 @@ export default class Options {
       decimalsInFloat: undefined,
       labels: {
         show: true,
+        showDuplicates: false,
         minWidth: 0,
         maxWidth: 160,
         offsetX: 0,

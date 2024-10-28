@@ -318,6 +318,7 @@ class Bar {
     elBarShadows,
     visibleSeries,
     type,
+    classes,
   }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
@@ -379,7 +380,7 @@ class Bar {
       animationDelay: delay,
       initialSpeed: w.config.chart.animations.speed,
       dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-      className: `apexcharts-${type}-area`,
+      className: `apexcharts-${type}-area ${classes}`,
       chartType: type,
     })
 
@@ -500,6 +501,7 @@ class Bar {
       x1: zeroW,
       x2: x,
       strokeWidth,
+      isReversed: this.isReversed,
       series: this.series,
       realIndex: indexes.realIndex,
       i,
@@ -586,6 +588,7 @@ class Bar {
       y1: zeroH,
       y2: y,
       strokeWidth,
+      isReversed: this.isReversed,
       series: this.series,
       realIndex: realIndex,
       i,
