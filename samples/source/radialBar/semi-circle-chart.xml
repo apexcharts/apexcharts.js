@@ -29,7 +29,7 @@ plotOptions: {
         enabled: true,
         top: 2,
         left: 0,
-        color: '#999',
+        color: '#444',
         opacity: 1,
         blur: 2
       }

@@ -19,7 +19,7 @@ chart: {
     top: -1,
     left: 3,
     blur: 3,
-    opacity: 0.2
+    opacity: 0.5
   }
 },
 stroke: {
@@ -42,7 +42,7 @@ labels: ["Comedy", "Action", "SciFi", "Drama", "Horror"],
 dataLabels: {
   dropShadow: {
     blur: 3,
-    opacity: 0.8
+    opacity: 1
   }
 },
 fill: {

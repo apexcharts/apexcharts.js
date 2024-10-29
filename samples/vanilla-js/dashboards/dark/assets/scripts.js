@@ -38,7 +38,7 @@ var spark1 = {
       top: 1,
       left: 1,
       blur: 2,
-      opacity: 0.2,
+      opacity: 0.5,
     }
   },
   series: [{
@@ -86,7 +86,7 @@ var spark2 = {
       top: 1,
       left: 1,
       blur: 2,
-      opacity: 0.2,
+      opacity: 0.5,
     }
   },
   series: [{
@@ -134,7 +134,7 @@ var spark3 = {
       top: 1,
       left: 1,
       blur: 2,
-      opacity: 0.2,
+      opacity: 0.5,
     }
   },
   series: [{
@@ -187,7 +187,7 @@ var spark4 = {
       top: 1,
       left: 1,
       blur: 2,
-      opacity: 0.2,
+      opacity: 0.5,
     }
   },
   series: [{

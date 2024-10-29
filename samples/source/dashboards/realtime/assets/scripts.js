@@ -188,7 +188,7 @@ var optionsLine = {
     },
     dropShadow: {
       enabled: true,
-      opacity: 0.3,
+      opacity: 0.6,
       blur: 5,
       left: -7,
       top: 22

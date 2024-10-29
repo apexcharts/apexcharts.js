@@ -280,7 +280,7 @@ export default class Options {
           left: 2,
           blur: 4,
           color: '#000',
-          opacity: 0.35,
+          opacity: 0.7,
         },
         events: {
           animationEnd: undefined,
