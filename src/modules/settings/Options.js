@@ -709,7 +709,7 @@ export default class Options {
             left: 1,
             blur: 1,
             color: '#000',
-            opacity: 0.45,
+            opacity: 0.8,
           },
         },
         dropShadow: {
@@ -718,7 +718,7 @@ export default class Options {
           left: 1,
           blur: 1,
           color: '#000',
-          opacity: 0.45,
+          opacity: 0.8,
         },
       },
       fill: {
@@ -1097,7 +1097,7 @@ export default class Options {
             left: 0,
             top: 0,
             blur: 1,
-            opacity: 0.4,
+            opacity: 0.8,
           },
         },
         tooltip: {
