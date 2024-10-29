@@ -188,7 +188,6 @@ export default class Globals {
       dataLabelsRects: [], // store the positions of datalabels to prevent collision
       lastDrawnDataLabelsIndexes: [],
       hasNullValues: false, // bool: whether series contains null values
-      easing: null, // function: animation effect to apply
       zoomed: false, // whether user has zoomed or not
       gridWidth: 0, // drawable width of actual graphs (series paths)
       gridHeight: 0, // drawable height of actual graphs (series paths)
