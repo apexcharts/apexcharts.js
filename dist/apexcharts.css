@@ -398,30 +398,27 @@ rect.legend-mouseover-inactive,
   cursor: move
 }
 
-.svg_select_boundingRect,
-.svg_select_points_rot {
+.svg_select_shape {
+  stroke-width: 1;
+  stroke-dasharray: 10 10;
+  stroke: black;
+  stroke-opacity: 0.1;
   pointer-events: none;
-  opacity: 0;
-  visibility: hidden
+  fill: none;
 }
 
-.apexcharts-selection-rect+g .svg_select_boundingRect,
-.apexcharts-selection-rect+g .svg_select_points_rot {
-  opacity: 0;
-  visibility: hidden
+.svg_select_handle {
+  stroke-width: 3;
+  stroke: black;
+  fill: none;
 }
 
-.apexcharts-selection-rect+g .svg_select_points_l,
-.apexcharts-selection-rect+g .svg_select_points_r {
-  cursor: ew-resize;
-  opacity: 1;
-  visibility: visible
+.svg_select_handle_r {
+  cursor: e-resize;
 }
 
-.svg_select_points {
-  fill: #efefef;
-  stroke: #333;
-  rx: 2
+.svg_select_handle_l {
+  cursor: w-resize;
 }
 
 .apexcharts-svg.apexcharts-zoomable.hovering-zoom {

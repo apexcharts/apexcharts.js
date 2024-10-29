@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v3.54.1
+ * ApexCharts v4.0.0
  * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
@@ -674,77 +674,8 @@
       _classCallCheck(this, Animations);
       this.ctx = ctx;
       this.w = ctx.w;
-      this.setEasingFunctions();
     }
     _createClass(Animations, [{
-      key: "setEasingFunctions",
-      value: function setEasingFunctions() {
-        var easing;
-        if (this.w.globals.easing) return;
-        var userDefinedEasing = this.w.config.chart.animations.easing;
-        switch (userDefinedEasing) {
-          case 'linear':
-            {
-              easing = '-';
-              break;
-            }
-          case 'easein':
-            {
-              easing = '<';
-              break;
-            }
-          case 'easeout':
-            {
-              easing = '>';
-              break;
-            }
-          case 'easeinout':
-            {
-              easing = '<>';
-              break;
-            }
-          case 'swing':
-            {
-              easing = function easing(pos) {
-                var s = 1.70158;
-                var ret = (pos -= 1) * pos * ((s + 1) * pos + s) + 1;
-                return ret;
-              };
-              break;
-            }
-          case 'bounce':
-            {
-              easing = function easing(pos) {
-                var ret = '';
-                if (pos < 1 / 2.75) {
-                  ret = 7.5625 * pos * pos;
-                } else if (pos < 2 / 2.75) {
-                  ret = 7.5625 * (pos -= 1.5 / 2.75) * pos + 0.75;
-                } else if (pos < 2.5 / 2.75) {
-                  ret = 7.5625 * (pos -= 2.25 / 2.75) * pos + 0.9375;
-                } else {
-                  ret = 7.5625 * (pos -= 2.625 / 2.75) * pos + 0.984375;
-                }
-                return ret;
-              };
-              break;
-            }
-          case 'elastic':
-            {
-              easing = function easing(pos) {
-                if (pos === !!pos) return pos;
-                return Math.pow(2, -10 * pos) * Math.sin((pos - 0.075) * (2 * Math.PI) / 0.3) + 1;
-              };
-              break;
-            }
-          default:
-            {
-              easing = '<>';
-            }
-        }
-        this.w.globals.easing = easing;
-      }
-    }, {
       key: "animateLine",
       value: function animateLine(el, from, to, speed) {
         el.attr(from).animate(speed).attr(to);
@@ -12291,8 +12222,6 @@
           chart: {
             animations: {
               enabled: true,
-              easing: 'easeinout',
-              // linear, easeout, easein, easeinout, swing, bounce, elastic
               speed: 800,
               animateGradually: {
                 delay: 150,
@@ -12313,7 +12242,7 @@
               left: 2,
               blur: 4,
               color: '#000',
-              opacity: 0.35
+              opacity: 0.7
             },
             events: {
               animationEnd: undefined,
@@ -12750,7 +12679,7 @@
                 left: 1,
                 blur: 1,
                 color: '#000',
-                opacity: 0.45
+                opacity: 0.8
               }
             },
             dropShadow: {
@@ -12759,7 +12688,7 @@
               left: 1,
               blur: 1,
               color: '#000',
-              opacity: 0.45
+              opacity: 0.8
             }
           },
           fill: {
@@ -13159,7 +13088,7 @@
                 left: 0,
                 top: 0,
                 blur: 1,
-                opacity: 0.4
+                opacity: 0.8
               }
             },
             tooltip: {
@@ -13595,11 +13524,6 @@
       key: "line",
       value: function line() {
         return {
-          chart: {
-            animations: {
-              easing: 'swing'
-            }
-          },
           dataLabels: {
             enabled: false
           },
@@ -13741,10 +13665,7 @@
       value: function bar() {
         return {
           chart: {
-            stacked: false,
-            animations: {
-              easing: 'swing'
-            }
+            stacked: false
           },
           plotOptions: {
             bar: {
@@ -13805,7 +13726,6 @@
         return _objectSpread2(_objectSpread2({}, this.bar()), {}, {
           chart: {
             animations: {
-              easing: 'linear',
               speed: 800,
               animateGradually: {
                 enabled: false
@@ -15112,8 +15032,6 @@
           lastDrawnDataLabelsIndexes: [],
           hasNullValues: false,
           // bool: whether series contains null values
-          easing: null,
-          // function: animation effect to apply
           zoomed: false,
           // whether user has zoomed or not
           gridWidth: 0,
@@ -29929,8 +29847,7 @@
             totalItems: 2,
             animBeginArr: 0,
             dur: 0,
-            isTrack: true,
-            easing: w.globals.easing
+            isTrack: true
           });
         }
         return g;
@@ -30110,8 +30027,7 @@
             totalItems: 2,
             animBeginArr: this.animBeginArr,
             dur: dur,
-            shouldSetPrevPaths: true,
-            easing: w.globals.easing
+            shouldSetPrevPaths: true
           });
         }
         return {
