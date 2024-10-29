@@ -1,3 +1,5 @@
+import {SVG} from '@svgdotjs/svg.js'
+
 import CoreUtils from '../CoreUtils'
 import Dimensions from '../dimensions/Dimensions'
 import Graphics from '../Graphics'
@@ -110,7 +112,7 @@ class Legend {
         size: mSize,
       })
 
-      const SVGMarker = SVG(elMarker).size('100%', '100%')
+      const SVGMarker = SVG().addTo(elMarker).size('100%', '100%')
       const marker = new Graphics(this.ctx).drawMarker(0, 0, {
         ...markerConfig,
         pointFillColor: Array.isArray(fillcolor)
@@ -119,9 +121,7 @@ class Legend {
         shape,
       })
 
-      const shapesEls = SVG.select(
-        '.apexcharts-legend-marker.apexcharts-marker'
-      ).members
+      const shapesEls = w.globals.dom.Paper.find('.apexcharts-legend-marker.apexcharts-marker')
       shapesEls.forEach((shapeEl) => {
         if (shapeEl.node.classList.contains('apexcharts-marker-triangle')) {
           shapeEl.node.style.transform = 'translate(50%, 45%)'

@@ -78,7 +78,9 @@ export default class Helpers {
       }
       .apexcharts-inactive-legend {
         opacity: 0.45;
-      }`
+      }
+
+    `
 
     let rules = document.createTextNode(text)
 
@@ -149,7 +151,7 @@ export default class Helpers {
       }
     } else {
       // for non-axis charts i.e pie / donuts
-      let seriesEl = w.globals.dom.Paper.select(
+      let seriesEl = w.globals.dom.Paper.findOne(
         ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
       )
 
@@ -158,11 +160,8 @@ export default class Helpers {
         let dataLabels = w.config.plotOptions.pie.donut.labels
 
         const graphics = new Graphics(this.lgCtx.ctx)
-        graphics.pathMouseDown(seriesEl.members[0], null)
-        this.lgCtx.ctx.pie.printDataLabelsInner(
-          seriesEl.members[0].node,
-          dataLabels
-        )
+        graphics.pathMouseDown(seriesEl, null)
+        this.lgCtx.ctx.pie.printDataLabelsInner(seriesEl.node, dataLabels)
       }
 
       seriesEl.fire('click')

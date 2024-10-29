@@ -188,7 +188,6 @@ class Radial extends Pie {
         animBeginArr: 0,
         dur: 0,
         isTrack: true,
-        easing: w.globals.easing,
       })
     }
 
@@ -243,9 +242,9 @@ class Radial extends Pie {
     let dataLabels = null
 
     if (this.radialDataLabels.show) {
-      let dataLabelsGroup = w.globals.dom.Paper.select(
+      let dataLabelsGroup = w.globals.dom.Paper.findOne(
         `.apexcharts-datalabels-group`
-      ).members[0]
+      )
 
       dataLabels = this.renderInnerDataLabels(
         dataLabelsGroup,
@@ -441,7 +440,6 @@ class Radial extends Pie {
         animBeginArr: this.animBeginArr,
         dur,
         shouldSetPrevPaths: true,
-        easing: w.globals.easing,
       })
     }
 
@@ -487,9 +485,7 @@ class Radial extends Pie {
       const imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth
       const imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight
       if (imgWidth === undefined && imgHeight === undefined) {
-        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (
-          loader
-        ) {
+        let image = w.globals.dom.Paper.image(hollowFillImg, function (loader) {
           this.move(
             opts.centerX -
               loader.width / 2 +
@@ -501,9 +497,7 @@ class Radial extends Pie {
         })
         g.add(image)
       } else {
-        let image = w.globals.dom.Paper.image(hollowFillImg).loaded(function (
-          loader
-        ) {
+        let image = w.globals.dom.Paper.image(hollowFillImg, function (loader) {
           this.move(
             opts.centerX -
               imgWidth / 2 +

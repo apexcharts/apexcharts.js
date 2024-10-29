@@ -1,6 +1,7 @@
 import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
+import { Box } from '@svgdotjs/svg.js'
 
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
@@ -52,12 +53,14 @@ export default class ZoomPanSelection extends Toolbar {
 
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0)
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0)
+
     this.gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
+    this.constraints = new Box(0, 0, w.globals.gridWidth, w.globals.gridHeight)
 
     this.zoomRect.node.classList.add('apexcharts-zoom-rect')
     this.selectionRect.node.classList.add('apexcharts-selection-rect')
-    w.globals.dom.elGraphical.add(this.zoomRect)
-    w.globals.dom.elGraphical.add(this.selectionRect)
+    w.globals.dom.Paper.add(this.zoomRect)
+    w.globals.dom.Paper.add(this.selectionRect)
 
     if (w.config.chart.selection.type === 'x') {
       this.slDraggableRect = this.selectionRect
@@ -67,18 +70,18 @@ export default class ZoomPanSelection extends Toolbar {
           maxX: w.globals.gridWidth,
           maxY: w.globals.gridHeight,
         })
-        .on('dragmove', this.selectionDragging.bind(this, 'dragging'))
+        .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     } else if (w.config.chart.selection.type === 'y') {
       this.slDraggableRect = this.selectionRect
         .draggable({
           minX: 0,
           maxX: w.globals.gridWidth,
         })
-        .on('dragmove', this.selectionDragging.bind(this, 'dragging'))
+        .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     } else {
       this.slDraggableRect = this.selectionRect
         .draggable()
-        .on('dragmove', this.selectionDragging.bind(this, 'dragging'))
+        .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     }
     this.preselectedSelection()
 
@@ -326,20 +329,23 @@ export default class ZoomPanSelection extends Toolbar {
 
     const rectDim = this.selectionRect.node.getBoundingClientRect()
     if (rectDim.width > 0 && rectDim.height > 0) {
-      this.slDraggableRect
-        .selectize({
-          points: 'l, r',
-          pointSize: 8,
-          pointType: 'rect',
-        })
-        .resize({
-          constraint: {
-            minX: 0,
-            minY: 0,
-            maxX: w.globals.gridWidth,
-            maxY: w.globals.gridHeight,
+      this.selectionRect.select(false).resize(false)
+      this.selectionRect
+        .select({
+          createRot: () => {},
+          updateRot: () => {},
+          createHandle: (group, p, index, pointArr, handleName) => {
+            if (handleName === 'l' || handleName === 'r')
+              return group
+                .circle(8)
+                .css({ 'stroke-width': 1, stroke: '#333', fill: '#fff' })
+            return group.circle(0)
+          },
+          updateHandle: (group, p) => {
+            return group.center(p[0], p[1])
           },
         })
+        .resize()
         .on('resizing', this.selectionDragging.bind(this, 'resizing'))
     }
   }
@@ -353,7 +359,11 @@ export default class ZoomPanSelection extends Toolbar {
         typeof w.globals.selection !== 'undefined' &&
         w.globals.selection !== null
       ) {
-        this.drawSelectionRect(w.globals.selection)
+        this.drawSelectionRect({
+          ...w.globals.selection,
+          translateX: w.globals.translateX,
+          translateY: w.globals.translateY,
+        })
       } else {
         if (
           w.config.chart.selection.xaxis.min !== undefined &&
@@ -383,8 +393,8 @@ export default class ZoomPanSelection extends Toolbar {
             y: 0,
             width,
             height: w.globals.gridHeight,
-            translateX: 0,
-            translateY: 0,
+            translateX: w.globals.translateX,
+            translateY: w.globals.translateY,
             selectionEnabled: true,
           }
           this.drawSelectionRect(selectionRect)
@@ -475,7 +485,10 @@ export default class ZoomPanSelection extends Toolbar {
     let selectionWidth = me.clientX - gridRectDim.left - startX
     let selectionHeight = me.clientY - gridRectDim.top - startY
 
-    let selectionRect = {}
+    let selectionRect = {
+      translateX: w.globals.translateX,
+      translateY: w.globals.translateY,
+    }
 
     if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
       // user dragged the mouse outside drawing area to the right
@@ -520,6 +533,12 @@ export default class ZoomPanSelection extends Toolbar {
       }
     }
 
+    selectionRect = {
+      ...selectionRect,
+      translateX: w.globals.translateX,
+      translateY: w.globals.translateY,
+    }
+
     me.drawSelectionRect(selectionRect)
     me.selectionDragging('resizing')
     return selectionRect
@@ -527,6 +546,32 @@ export default class ZoomPanSelection extends Toolbar {
 
   selectionDragging(type, e) {
     const w = this.w
+    if (!e) return
+
+    e.preventDefault()
+
+    const { handler, box } = e.detail
+
+    let { x, y } = box
+
+    if (x < this.constraints.x) {
+      x = this.constraints.x
+    }
+
+    if (y < this.constraints.y) {
+      y = this.constraints.y
+    }
+
+    if (box.x2 > this.constraints.x2) {
+      x = this.constraints.x2 - box.w
+    }
+
+    if (box.y2 > this.constraints.y2) {
+      y = this.constraints.y2 - box.h
+    }
+
+    handler.move(x, y)
+
     const xyRatios = this.xyRatios
 
     const selRect = this.selectionRect

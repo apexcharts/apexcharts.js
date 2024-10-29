@@ -148,11 +148,6 @@ export default class Defaults {
 
   line() {
     return {
-      chart: {
-        animations: {
-          easing: 'swing',
-        },
-      },
       dataLabels: {
         enabled: false,
       },
@@ -294,9 +289,6 @@ export default class Defaults {
     return {
       chart: {
         stacked: false,
-        animations: {
-          easing: 'swing',
-        },
       },
       plotOptions: {
         bar: {
@@ -358,7 +350,6 @@ export default class Defaults {
       ...this.bar(),
       chart: {
         animations: {
-          easing: 'linear',
           speed: 800,
           animateGradually: {
             enabled: false,

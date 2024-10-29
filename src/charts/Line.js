@@ -442,7 +442,6 @@ class Line {
           strokeLineCap: null,
           fill: pathFill,
         })
-
         this.elSeries.add(renderedPath)
       }
     }

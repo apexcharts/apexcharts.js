@@ -35,13 +35,12 @@
     "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
-    "@yr/monotone-cubic-spline": "^1.0.3",
-    "svg.draggable.js": "^2.2.2",
-    "svg.easing.js": "^2.0.0",
-    "svg.filter.js": "^2.0.2",
-    "svg.pathmorphing.js": "^0.1.3",
-    "svg.resize.js": "^1.4.3",
-    "svg.select.js": "^3.0.1"
+    "@svgdotjs/svg.draggable.js": "^3.0.4",
+    "@svgdotjs/svg.filter.js": "^3.0.8",
+    "@svgdotjs/svg.js": "^3.2.4",
+    "@svgdotjs/svg.resize.js": "^2.0.2",
+    "@svgdotjs/svg.select.js": "^4.0.1",
+    "@yr/monotone-cubic-spline": "^1.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",
