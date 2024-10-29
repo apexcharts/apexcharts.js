@@ -368,14 +368,6 @@ class Utils {
     return Number(n) === n && n % 1 !== 0
   }
 
-  static isSafari() {
-    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-  }
-
-  static isFirefox() {
-    return navigator.userAgent.toLowerCase().indexOf('firefox') > -1
-  }
-
   static isMsEdge() {
     let ua = window.navigator.userAgent
 

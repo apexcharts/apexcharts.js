@@ -246,9 +246,7 @@ export default class Helpers {
     const w = this.w
 
     const alwaysApplyRadius =
-      !this.w.config.chart.stacked ||
-      w.config.plotOptions.bar.borderRadiusWhenStacked !== 'last' ||
-      w.config.plotOptions.bar.borderRadius <= 0
+      !this.w.config.chart.stacked || w.config.plotOptions.bar.borderRadius <= 0
 
     const numSeries = series.length
     const numColumns = series[0]?.length | 0

@@ -163,22 +163,11 @@ class Filters {
     color = Array.isArray(color) ? color[i] : color
 
     el.filterWith((add) => {
-      let shadowBlur = null
-      if (Utils.isSafari() || Utils.isFirefox() || Utils.isMsEdge()) {
-        // safari/firefox/IE have some alternative way to use this filter
-        shadowBlur = add
-          .flood(color, opacity)
-          .composite(add.$sourceAlpha, 'in')
-          .offset(left, top)
-          .gaussianBlur(blur)
-      } else {
-        shadowBlur = add
-          .flood(color, opacity)
-          .composite(add.$sourceAlpha, 'in')
-          .offset(left, top)
-          .gaussianBlur(blur)
-          .merge(add.$source)
-      }
+      let shadowBlur = add
+        .flood(color, opacity)
+        .composite(add.$sourceAlpha, 'in')
+        .offset(left, top)
+        .gaussianBlur(blur)
 
       add.blend(add.$source, shadowBlur)
     })
