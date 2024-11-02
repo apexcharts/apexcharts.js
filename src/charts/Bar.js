@@ -151,7 +151,7 @@ class Bar {
       xDivision = initPositions.xDivision
       zeroH = initPositions.zeroH
 
-      if (!this.horizontal) {
+      if (!this.isHorizontal) {
         xArrj.push(x + barWidth / 2)
       }
 

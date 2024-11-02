@@ -94,6 +94,10 @@ class BoxCandleStick extends Bar {
         'data:realIndex': realIndex,
       })
 
+      let elGoalsMarkers = graphics.group({
+        class: 'apexcharts-bar-goals-markers',
+      })
+
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
@@ -129,6 +133,19 @@ class BoxCandleStick extends Bar {
 
         y = paths.y
         x = paths.x
+
+        const barGoalLine = this.barHelpers.drawGoalLine({
+          barXPosition: paths.barXPosition,
+          barYPosition: paths.barYPosition,
+          goalX: paths.goalX,
+          goalY: paths.goalY,
+          barHeight,
+          barWidth,
+        })
+
+        if (barGoalLine) {
+          elGoalsMarkers.add(barGoalLine)
+        }
 
         // push current X
         if (j > 0) {
@@ -167,6 +184,7 @@ class BoxCandleStick extends Bar {
             barHeight,
             barWidth,
             elDataLabelsWrap,
+            elGoalsMarkers,
             visibleSeries: this.visibleI,
             type: w.config.chart.type,
           })
@@ -304,6 +322,14 @@ class BoxCandleStick extends Bar {
       pathFrom,
       x,
       y: y2,
+      goalY: this.barHelpers.getGoalValues(
+        'y',
+        null,
+        zeroH,
+        i,
+        j,
+        indexes.translationsIndex
+      ),
       barXPosition,
       color: this.isBoxPlot ? color : isPositive ? [colorPos] : [colorNeg],
     }
@@ -407,6 +433,7 @@ class BoxCandleStick extends Bar {
       pathFrom,
       x: x2,
       y,
+      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
       barYPosition,
       color,
     }
