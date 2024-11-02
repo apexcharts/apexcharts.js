@@ -1,4 +1,4 @@
-<title>Horizontal BoxPlot Chart</title>
+<title>Horizontal BoxPlot with Outliers</title>
 
 <chart>
 <options>
@@ -7,23 +7,23 @@ chart: {
   height: 350
 },
 title: {
-  text: 'Horizontal BoxPlot Chart',
+  text: 'Horizontal BoxPlot with Outliers',
   align: 'left'
 },
 plotOptions: {
   bar: {
     horizontal: true,
-    barHeight: '50%'
+    barHeight: '40%'
   },
   boxPlot: {
     colors: {
-      upper: '#e9ecef',
-      lower: '#f8f9fa'
+      upper: '#B6C454',
+      lower: '#EDBFB7'
     }
   }
 },
 stroke: {
-  colors: ['#6c757d']
+  colors: ['#333']
 }
 </options>
 
@@ -33,34 +33,66 @@ stroke: {
     data: [
       {
         x: 'Category A',
-        y: [54, 66, 69, 75, 88]
+        y: [54, 66, 69, 75, 88],
+        goals: [
+          {
+            value: 90,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+          {
+            value: 93,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+        ],
       },
       {
         x: 'Category B',
-        y: [43, 65, 69, 76, 81]
+        y: [43, 65, 69, 76, 81],
       },
       {
         x: 'Category C',
-        y: [31, 39, 45, 51, 59]
+        y: [31, 39, 45, 51, 59],
       },
       {
         x: 'Category D',
-        y: [39, 46, 55, 65, 71]
+        y: [39, 46, 55, 65, 71],
+        goals: [
+          {
+            value: 30,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+          {
+            value: 32,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+          {
+            value: 76,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+        ],
       },
       {
         x: 'Category E',
-        y: [29, 31, 35, 39, 44]
+        y: [41, 49, 58, 61, 67],
       },
-      {
-        x: 'Category F',
-        y: [41, 49, 58, 61, 67]
-      },
-      {
-        x: 'Category G',
-        y: [54, 59, 66, 71, 88]
-      }
-    ]
-  }
-]  
+      
+    ],
+  },
+]
 </series>
 </chart>
