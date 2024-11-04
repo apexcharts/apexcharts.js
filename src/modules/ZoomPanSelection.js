@@ -101,7 +101,10 @@ export default class ZoomPanSelection extends Toolbar {
       )
     })
 
-    if (w.config.chart.zoom.allowMouseWheelZoom) {
+    if (
+      w.config.chart.zoom.enabled &&
+      w.config.chart.zoom.allowMouseWheelZoom
+    ) {
       this.hoverArea.addEventListener('wheel', me.mouseWheelEvent.bind(me), {
         capture: false,
         passive: false,
