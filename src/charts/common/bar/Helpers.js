@@ -752,7 +752,7 @@ export default class Helpers {
       stroke: 'none',
       strokeWidth: 0,
       fillOpacity: 1,
-      classes: 'apexcharts-bar-shadows',
+      classes: 'apexcharts-bar-shadow',
     })
   }
 

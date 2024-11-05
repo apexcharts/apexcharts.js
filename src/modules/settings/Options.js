@@ -865,23 +865,15 @@ export default class Options {
       responsive: [], // breakpoints should follow ascending order 400, then 700, then 1000
       series: undefined,
       states: {
-        normal: {
-          filter: {
-            type: 'none',
-            value: 0,
-          },
-        },
         hover: {
           filter: {
             type: 'lighten',
-            value: 0.1,
           },
         },
         active: {
           allowMultipleDataPointsSelection: false,
           filter: {
             type: 'darken',
-            value: 0.5,
           },
         },
       },

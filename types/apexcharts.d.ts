@@ -260,23 +260,15 @@ type ApexChart = {
 }
 
 type ApexStates = {
-  normal?: {
-    filter?: {
-      type?: string
-      value?: number
-    }
-  }
   hover?: {
     filter?: {
       type?: string
-      value?: number
     }
   }
   active?: {
     allowMultipleDataPointsSelection?: boolean
     filter?: {
       type?: string
-      value?: number
     }
   }
 }

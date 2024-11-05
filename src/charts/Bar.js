@@ -233,6 +233,8 @@ class Bar {
 
           if (barShadow) {
             elBarShadows.add(barShadow)
+            const filters = new Filters(this.ctx)
+            filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex)
           }
         }
         this.pathArr.push(paths)
