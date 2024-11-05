@@ -249,7 +249,9 @@ export default class Helpers {
           } else {
             series[realIndex] = collapsedSeries[c].data
           }
-          series[realIndex].hidden = false
+          if (typeof series[realIndex] !== 'number') {
+            series[realIndex].hidden = false
+          }
           collapsedSeries.splice(c, 1)
           seriesIndices.splice(c, 1)
           w.globals.risingSeries.push(realIndex)
