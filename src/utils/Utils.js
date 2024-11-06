@@ -161,6 +161,13 @@ class Utils {
     return str + z
   }
 
+  static elementExists(element) {
+    if (!element || !element.isConnected) {
+      return false
+    }
+    return true
+  }
+
   static getDimensions(el) {
     const computedStyle = getComputedStyle(el, null)
 

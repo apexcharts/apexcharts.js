@@ -50,7 +50,7 @@ export default class ApexCharts {
     // main method
     return new Promise((resolve, reject) => {
       // only draw chart, if element found
-      if (this.el !== null) {
+      if (Utils.elementExists(this.el)) {
         if (typeof Apex._chartInstances === 'undefined') {
           Apex._chartInstances = []
         }
@@ -129,16 +129,17 @@ export default class ApexCharts {
     gl.noData = false
     gl.animationEnded = false
 
+    if (!Utils.elementExists(this.el)) {
+      gl.animationEnded = true
+      this.destroy()
+      return null
+    }
+
     this.responsive.checkResponsiveConfig(opts)
 
     if (w.config.xaxis.convertedCatToNumeric) {
       const defaults = new Defaults(w.config)
       defaults.convertCatToNumericXaxis(w.config, this.ctx)
-    }
-
-    if (this.el === null) {
-      gl.animationEnded = true
-      return null
     }
 
     this.core.setupElements()
