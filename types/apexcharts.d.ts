@@ -514,6 +514,11 @@ type ApexLocale = {
 type ApexPlotOptions = {
   line?: {
     isSlopeChart?: boolean
+    colors?: {
+      threshold?: number,
+      colorAboveThreshold?: string,
+      colorBelowThreshold?: string,
+    },
   }
   area?: {
     fillTo?: 'origin' | 'end'

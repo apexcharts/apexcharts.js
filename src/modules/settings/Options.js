@@ -406,6 +406,11 @@ export default class Options {
       plotOptions: {
         line: {
           isSlopeChart: false,
+          colors: {
+            threshold: 0,
+            colorAboveThreshold: undefined,
+            colorBelowThreshold: undefined,
+          },
         },
         area: {
           fillTo: 'origin',

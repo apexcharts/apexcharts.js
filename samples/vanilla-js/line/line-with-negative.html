@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Area with different negative color</title>
+    <title>Line with different negative color</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -57,12 +57,12 @@
         var options = {
           series: [
           {
-            data: [0, -41, 35, -51, 0, 62, -69, 32, -32, 54, 16, -50],
+            data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36]
           }
         ],
           chart: {
           height: 350,
-          type: 'area',
+          type: 'line',
           zoom: {
             enabled: false,
           },
@@ -91,7 +91,8 @@
           ],
         },
         stroke: {
-          width: 0,
+          width: 5,
+          curve: "monotoneCubic"
         },
         plotOptions: {
           line: {

@@ -549,7 +549,7 @@ class Graphics {
     opacityTo,
     size = null,
     stops = null,
-    colorStops = null,
+    colorStops = [],
     i = 0
   ) {
     let w = this.w
@@ -582,7 +582,7 @@ class Graphics {
       w.config.chart.type === 'bubble'
     )
 
-    if (colorStops === null || colorStops.length === 0) {
+    if (!colorStops || colorStops.length === 0) {
       g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
         add.stop(stop1, gfrom, opacityFrom)
         add.stop(stop2, gto, opacityTo)

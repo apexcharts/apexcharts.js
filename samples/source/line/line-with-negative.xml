@@ -1,10 +1,10 @@
-<title>Area with different negative color</title>
+<title>Line with different negative color</title>
 
 <chart>
 <options>
 chart: {
   height: 350,
-  type: 'area',
+  type: 'line',
   zoom: {
     enabled: false,
   },
@@ -33,7 +33,8 @@ xaxis: {
   ],
 },
 stroke: {
-  width: 0,
+  width: 5,
+  curve: "monotoneCubic"
 },
 plotOptions: {
   line: {
@@ -49,7 +50,7 @@ plotOptions: {
 <series>
 [
   {
-    data: [0, -41, 35, -51, 0, 62, -69, 32, -32, 54, 16, -50],
+    data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36]
   }
 ]
 </series>
