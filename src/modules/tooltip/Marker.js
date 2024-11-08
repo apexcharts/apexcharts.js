@@ -184,7 +184,7 @@ export default class Marker {
     for (let p = 0; p < points.length; p++) {
       const size = parseFloat(points[p].getAttribute('default-marker-size'))
 
-      if (Utils.isNumber(size) && size >= 0) {
+      if (Utils.isNumber(size) && size > 0) {
         const path = this.ttCtx.tooltipUtil.getPathFromPoint(points[p], size)
         points[p].setAttribute('d', path)
       } else {
