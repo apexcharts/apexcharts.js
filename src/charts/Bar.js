@@ -231,8 +231,9 @@ class Bar {
             currPaths: paths,
           })
 
-          if (barShadow) {
-            elBarShadows.add(barShadow)
+          elBarShadows.add(barShadow)
+
+          if (w.config.chart.dropShadow.enabled) {
             const filters = new Filters(this.ctx)
             filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex)
           }

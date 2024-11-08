@@ -455,8 +455,7 @@ class Graphics {
     }
 
     if (w.config.chart.dropShadow.enabled && drawShadow) {
-      const shadow = w.config.chart.dropShadow
-      filters.dropShadow(el, shadow, realIndex)
+      filters.dropShadow(el, w.config.chart.dropShadow, realIndex)
     }
 
     if (bindEventsOnPaths) {
@@ -940,9 +939,11 @@ class Graphics {
         w.globals.selectedDataPoints.length > 0
       ) {
         w.globals.selectedDataPoints = []
-        const elPaths = w.globals.dom.Paper.find('.apexcharts-series path')
+        const elPaths = w.globals.dom.Paper.find(
+          '.apexcharts-series path:not(.apexcharts-decoration-element)'
+        )
         const elCircles = w.globals.dom.Paper.find(
-          '.apexcharts-series circle, .apexcharts-series rect'
+          '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)'
         )
 
         const deSelect = (els) => {
