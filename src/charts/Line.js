@@ -703,6 +703,7 @@ class Line {
 
       if (
         this.appendPathFrom &&
+        !w.globals.hasNullValues &&
         !(curve === 'monotoneCubic' && type === 'rangeArea')
       ) {
         pathFromLine += graphics.line(x, this.areaBottomY)
@@ -953,7 +954,10 @@ class Line {
               areaPath = graphics.move(pX, pY)
 
               // Check for single isolated point
-              if (series[i][j + 1] === null || typeof series[i][j + 1] === 'undefined') {
+              if (
+                series[i][j + 1] === null ||
+                typeof series[i][j + 1] === 'undefined'
+              ) {
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
                 // Stay in pathState = 0;
@@ -1042,7 +1046,10 @@ class Line {
               areaPath = graphics.move(pX, pY)
 
               // Check for single isolated point
-              if (series[i][j + 1] === null || typeof series[i][j + 1] === 'undefined') {
+              if (
+                series[i][j + 1] === null ||
+                typeof series[i][j + 1] === 'undefined'
+              ) {
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
                 // Stay in pathState = 0
