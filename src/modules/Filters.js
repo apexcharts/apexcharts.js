@@ -57,11 +57,11 @@ class Filters {
     })
 
     if (!shadowAttr.noUserSpaceOnUse) {
-      el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse')
+      el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
     }
 
     // this scales the filter to a bigger size so that the dropshadow doesn't crops
-    this._scaleFilterSize(el.filterer().node)
+    this._scaleFilterSize(el.filterer()?.node)
   }
 
   // appends dropShadow to the filter object which can be chained with other filter effects
@@ -131,7 +131,7 @@ class Filters {
     }
 
     // this scales the filter to a bigger size so that the dropshadow doesn't crops
-    this._scaleFilterSize(el.filterer().node)
+    this._scaleFilterSize(el.filterer()?.node)
 
     return el
   }
@@ -152,6 +152,7 @@ class Filters {
   }
 
   _scaleFilterSize(el) {
+    if (!el) return
     const setAttributes = (attrs) => {
       for (let key in attrs) {
         if (attrs.hasOwnProperty(key)) {

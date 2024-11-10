@@ -354,7 +354,7 @@ export default class Tooltip {
   onSeriesHover(opt, e) {
     // If a user is moving their mouse quickly, don't bother updating the tooltip every single frame
 
-    const targetDelay = 100
+    const targetDelay = 20
     const timeSinceLastUpdate = Date.now() - this.lastHoverTime
     if (timeSinceLastUpdate >= targetDelay) {
       // The tooltip was last updated over 100ms ago - redraw it even if the user is still moving their
@@ -876,9 +876,7 @@ export default class Tooltip {
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
           let graphics = new Graphics(this.ctx)
-          let paths = w.globals.dom.Paper.find(
-            `.apexcharts-bar-area[j='${j}']`
-          )
+          let paths = w.globals.dom.Paper.find(`.apexcharts-bar-area[j='${j}']`)
 
           // de-activate first
           this.deactivateHoverFilter()
