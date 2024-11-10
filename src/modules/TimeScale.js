@@ -635,6 +635,8 @@ class TimeScale {
       hour = 0
       date += 1
       unit = 'day'
+      // Unit changed to day , Value should align unit 
+      firstTickValue = date
     }
 
     const checkNextMonth = changeDate(date, currentMonth)
