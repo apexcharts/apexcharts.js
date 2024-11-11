@@ -256,7 +256,7 @@ describe('User defined X-axis min/max', () => {
 })
 
 describe('Timeline Series', () => {
-  it.only('globals.seriesXvalues[index] should have a correct length', () => {
+  it('globals.seriesXvalues[index] should have a correct length', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
