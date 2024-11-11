@@ -254,3 +254,81 @@ describe('User defined X-axis min/max', () => {
     expect(xRange.maxX).toEqual(40)
   })
 })
+
+describe('Timeline Series', () => {
+  it.only('globals.seriesXvalues[index] should have a correct length', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line',
+      },
+      series: [
+        {
+          name: "blue",
+          data: [[1697511654207, 2.46]]
+        },
+        {
+          name: "green",
+          data: [[1697511328360, 2.53]]
+        },
+        {
+          name: "yellow",
+          data: [[1697511328360, 2.33]]
+        }
+      ],
+      xaxis: {
+        type: 'datetime',
+        max: 1697522893476,
+        min: 1697263693476,
+        tickAmount: 10,
+        convertedCatToNumeric: false,
+        labels: {
+          datetimeUTC: false,
+          formatter: undefined,
+          datetimeFormatter: {
+            year: 'yyyy',
+            month: 'MMM yyyy',
+            day: 'dd MMM',
+            hour: 'HH:mm'
+          }
+        }
+      },
+      yaxis: {
+        tickAmount: 10,
+        title: {
+          text: 'Odds'
+        },
+        labels: {
+          formatter: (val) => {
+            return parseFloat(val).toFixed(2)
+          }
+        },
+        min: (min) => min - 0.5,
+        max: 3.03
+      },
+      grid: {
+        xaxis: {
+          lines: {
+            show: true
+          }
+        },
+        yaxis: {
+          lines: {
+            show: true
+          }
+        }
+      },
+      stroke: {
+        width: 3,
+        curve: 'stepline',
+        dashArray: [0, 0, 0, 4],
+        show: true
+      }
+    })
+    const iterations = chart.w.globals.dataPoints > 1
+      ? chart.w.globals.dataPoints - 1
+      : chart.w.globals.dataPoints
+    chart.w.globals.seriesXvalues.forEach(item => {
+      expect(item.length === iterations)
+    })
+  })
+})
