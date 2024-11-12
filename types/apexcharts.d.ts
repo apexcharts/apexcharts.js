@@ -43,7 +43,7 @@ declare class ApexCharts {
   clearAnnotations(options?: any): void
   dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
   static exec(chartID: string, fn: string, ...args: Array<any>): any
-  static getChartByID(chartID: string): ApexCharts|undefined
+  static getChartByID(chartID: string): ApexCharts | undefined
   static initOnLoad(): void
   exports: {
     cleanup(): string
@@ -101,22 +101,22 @@ type ApexChart = {
   width?: string | number
   height?: string | number
   type?:
-    | 'line'
-    | 'area'
-    | 'bar'
-    | 'pie'
-    | 'donut'
-    | 'radialBar'
-    | 'scatter'
-    | 'bubble'
-    | 'heatmap'
-    | 'candlestick'
-    | 'boxPlot'
-    | 'radar'
-    | 'polarArea'
-    | 'rangeBar'
-    | 'rangeArea'
-    | 'treemap'
+  | 'line'
+  | 'area'
+  | 'bar'
+  | 'pie'
+  | 'donut'
+  | 'radialBar'
+  | 'scatter'
+  | 'bubble'
+  | 'heatmap'
+  | 'candlestick'
+  | 'boxPlot'
+  | 'radar'
+  | 'polarArea'
+  | 'rangeBar'
+  | 'rangeArea'
+  | 'treemap'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -314,29 +314,29 @@ type ApexAxisChartSeries = {
   hidden?: boolean
   zIndex?: number
   data:
-    | (number | null)[]
-    | {
-        x: any;
-        y: any;
-        fill?: ApexFill;
-        fillColor?: string;
-        strokeColor?: string;
-        meta?: any;
-        goals?: {
-          name?: string,
-          value: number,
-          strokeHeight?: number;
-          strokeWidth?: number;
-          strokeColor?: string;
-          strokeDashArray?: number;
-          strokeLineCap?: 'butt' | 'square' | 'round' 
-        }[];
-        barHeightOffset?: number;
-        columnWidthOffset?: number;
-      }[]
-    | [number, number | null][]
-    | [number, (number | null)[]][]
-    | number[][];
+  | (number | null)[]
+  | {
+    x: any;
+    y: any;
+    fill?: ApexFill;
+    fillColor?: string;
+    strokeColor?: string;
+    meta?: any;
+    goals?: {
+      name?: string,
+      value: number,
+      strokeHeight?: number;
+      strokeWidth?: number;
+      strokeColor?: string;
+      strokeDashArray?: number;
+      strokeLineCap?: 'butt' | 'square' | 'round'
+    }[];
+    barHeightOffset?: number;
+    columnWidthOffset?: number;
+  }[]
+  | [number, number | null][]
+  | [number, (number | null)[]][]
+  | number[][];
 }[]
 
 type ApexNonAxisChartSeries = number[]
@@ -928,7 +928,7 @@ type ApexDataLabels = {
     dropShadow?: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
-  formatter?(val: string | number | number[], opts?: any): string | number | string[]
+  formatter?(val: string | number | number[], opts?: any): string | number | (string | string)[]
 }
 
 type ApexResponsive = {
@@ -1021,7 +1021,7 @@ type ApexXAxis = {
     offsetX?: number
     offsetY?: number
     format?: string
-    formatter?(value: string, timestamp?: number, opts?:any): string | string[]
+    formatter?(value: string, timestamp?: number, opts?: any): string | string[]
     datetimeUTC?: boolean
     datetimeFormatter?: {
       year?: string
@@ -1033,14 +1033,14 @@ type ApexXAxis = {
     }
   }
   group?: {
-      groups?: { title: string, cols: number }[],
-      style?:  {
-        colors?: string | string[]
-        fontSize?: string
-        fontFamily?: string
-        fontWeight?: string | number
-        cssClass?: string
-      }
+    groups?: { title: string, cols: number }[],
+    style?: {
+      colors?: string | string[]
+      fontSize?: string
+      fontFamily?: string
+      fontWeight?: string | number
+      cssClass?: string
+    }
   }
   axisBorder?: {
     show?: boolean
