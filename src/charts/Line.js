@@ -387,7 +387,7 @@ class Line {
     if (forecast.count > 0 && type !== 'rangeArea') {
       const forecastCutoff =
         w.globals.seriesXvalues[realIndex][
-          w.globals.seriesXvalues[realIndex].length - forecast.count - 1
+        w.globals.seriesXvalues[realIndex].length - forecast.count - 1
         ]
       const elForecastMask = graphics.drawRect(
         forecastCutoff,
@@ -641,8 +641,10 @@ class Line {
         }
       }
 
-      // push current X
-      xArrj.push(x)
+      if (typeof w.globals.seriesX[realIndex][j + 1] !== 'undefined') {
+        // push current X
+        xArrj.push(x)
+      }
 
       // push current Y that will be used as next series's bottom position
       if (
