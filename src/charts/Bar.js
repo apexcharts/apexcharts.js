@@ -357,8 +357,14 @@ class Bar {
         : checkAvailableColor
     }
 
-    if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
-      lineFill = w.config.series[i].data[j].strokeColor
+    if (w.config.series[i].data[j]) {
+      if (w.config.series[i].data[j].strokeColor) {
+        lineFill = w.config.series[i].data[j].strokeColor
+      }
+
+      if (w.config.series[i].data[j].fillColor) {
+        pathFill = w.config.series[i].data[j].fillColor
+      }
     }
 
     if (this.isNullValue) {
