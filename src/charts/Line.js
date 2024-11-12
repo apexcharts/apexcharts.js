@@ -641,7 +641,7 @@ class Line {
         }
       }
 
-      if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
+      if (typeof w.globals.seriesX[realIndex][j + 1] !== 'undefined') {
         // push current X
         xArrj.push(x)
       }
