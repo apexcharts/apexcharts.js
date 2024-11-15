@@ -237,7 +237,7 @@ export default class Labels {
 
     if (typeof yLbTitleFormatter !== 'function') {
       yLbTitleFormatter = function (label) {
-        return label
+         return label ? label + ': ' : ''
       }
     }
 
