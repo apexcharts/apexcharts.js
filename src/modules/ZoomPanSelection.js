@@ -174,7 +174,7 @@ export default class ZoomPanSelection extends Toolbar {
         ? e.changedTouches[0].clientY
         : e.clientY
 
-    if (e.type === 'mousedown' && e.which === 1) {
+    if ((e.type === 'mousedown' && e.which === 1) || e.type === 'touchstart') {
       let gridRectDim = me.gridRect.getBoundingClientRect()
 
       me.startX = me.clientX - gridRectDim.left
