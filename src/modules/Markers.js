@@ -107,18 +107,17 @@ export default class Markers {
           }
 
           if (!invalidMarker) {
-            if (
+            const shouldCreateMarkerWrap =
               w.globals.markers.size[seriesIndex] > 0 ||
               alwaysDrawMarker ||
               hasDiscreteMarkers
-            ) {
+            if (shouldCreateMarkerWrap && !elMarkersWrap) {
               elMarkersWrap = graphics.group({
                 class:
                   alwaysDrawMarker || hasDiscreteMarkers
                     ? ''
                     : 'apexcharts-series-markers',
               })
-
               elMarkersWrap.attr(
                 'clip-path',
                 `url(#gridRectMarkerMask${w.globals.cuid})`
