@@ -112,12 +112,6 @@ export default class TreemapChart {
         )
         let color = colorProps.color
 
-        if (
-          typeof w.config.series[i].data[j] !== 'undefined' &&
-          w.config.series[i].data[j].fillColor
-        ) {
-          color = w.config.series[i].data[j].fillColor
-        }
         let pathFill = fill.fillPath({
           color,
           seriesNumber: i,

@@ -201,10 +201,6 @@ export default class Helpers {
       })
     }
 
-    if (w.config.series[i].data[j]?.fillColor) {
-      fillColor = w.config.series[i].data[j].fillColor
-    }
-
     let pathFill = fill.fillPath({
       seriesNumber: this.barCtx.barOptions.distributed
         ? seriesNumber

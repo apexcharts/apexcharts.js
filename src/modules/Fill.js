@@ -195,6 +195,13 @@ class Fill {
       fillColor = opts.color
     }
 
+    if (
+      w.config.series[this.seriesIndex]?.data[opts.dataPointIndex]?.fillColor
+    ) {
+      fillColor =
+        w.config.series[this.seriesIndex]?.data[opts.dataPointIndex]?.fillColor
+    }
+
     // in case a color is undefined, fallback to white color to prevent runtime error
     if (!fillColor) {
       fillColor = '#fff'
@@ -204,7 +211,9 @@ class Fill {
     let defaultColor = fillColor
 
     if (fillColor.indexOf('rgb') === -1) {
-      if (fillColor.length < 9) {
+      if (fillColor.indexOf('#') === -1) {
+        defaultColor = fillColor
+      } else if (fillColor.length < 9) {
         // if the hex contains alpha and is of 9 digit, skip the opacity
         defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
       }
@@ -212,7 +221,6 @@ class Fill {
       if (fillColor.indexOf('rgba') > -1) {
         fillOpacity = Utils.getOpacityFromRGBA(fillColor)
       } else {
-        // if rgb color, apply opacity
         defaultColor = Utils.hexToRgba(Utils.rgb2hex(fillColor), fillOpacity)
       }
     }
