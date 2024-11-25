@@ -616,10 +616,8 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-annotation-rect,
 .apexcharts-area-series .apexcharts-area,
-.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,
 .apexcharts-gridline,
 .apexcharts-line,
-.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,
 .apexcharts-point-annotation-label,
 .apexcharts-radar-series path:not(.apexcharts-marker),
 .apexcharts-radar-series polygon,
@@ -627,7 +625,8 @@ rect.legend-mouseover-inactive,
 .apexcharts-tooltip .apexcharts-marker,
 .apexcharts-xaxis-annotation-label,
 .apexcharts-yaxis-annotation-label,
-.apexcharts-zoom-rect {
+.apexcharts-zoom-rect,
+.no-pointer-events {
   pointer-events: none
 }
 

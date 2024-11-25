@@ -38,7 +38,15 @@
       "vrijdag",
       "zaterdag"
     ],
-    "shortDays": ["zo.", "ma.", "di.", "wo.", "do.", "vr.", "za."],
+    "shortDays": [
+      "zo.",
+      "ma.",
+      "di.",
+      "wo.",
+      "do.",
+      "vr.",
+      "za."
+    ],
     "toolbar": {
       "exportToSVG": "Download SVG",
       "exportToPNG": "Download PNG",
