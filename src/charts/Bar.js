@@ -636,7 +636,7 @@ class Bar {
     if (!w.globals.seriesX[realIndex].length) {
       sxI = w.globals.maxValsInArrayIndex
     }
-    if (w.globals.seriesX[sxI][j]) {
+    if (Utils.isNumber(w.globals.seriesX[sxI][j])) {
       x =
         (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
         (barWidth * this.seriesLen) / 2
