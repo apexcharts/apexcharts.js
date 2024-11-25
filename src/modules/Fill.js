@@ -196,10 +196,11 @@ class Fill {
     }
 
     if (
-      w.config.series[this.seriesIndex]?.data[opts.dataPointIndex]?.fillColor
+      w.config.series[this.seriesIndex]?.data?.[opts.dataPointIndex]?.fillColor
     ) {
       fillColor =
-        w.config.series[this.seriesIndex]?.data[opts.dataPointIndex]?.fillColor
+        w.config.series[this.seriesIndex]?.data?.[opts.dataPointIndex]
+          ?.fillColor
     }
 
     // in case a color is undefined, fallback to white color to prevent runtime error
