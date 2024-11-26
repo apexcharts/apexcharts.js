@@ -440,21 +440,26 @@ class BoxCandleStick extends Bar {
   }
   getOHLCValue(i, j) {
     const w = this.w
-
+    const coreUtils = new CoreUtils(this.ctx, w)
+    const h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i);
+    const o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i);
+    const m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i);
+    const c = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleC[i][j], i);
+    const l = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleL[i][j], i);
     return {
       o: this.isBoxPlot
-        ? w.globals.seriesCandleH[i][j]
-        : w.globals.seriesCandleO[i][j],
+        ? h
+        : o,
       h: this.isBoxPlot
-        ? w.globals.seriesCandleO[i][j]
-        : w.globals.seriesCandleH[i][j],
-      m: w.globals.seriesCandleM[i][j],
+        ? o
+        : h,
+      m: m,
       l: this.isBoxPlot
-        ? w.globals.seriesCandleC[i][j]
-        : w.globals.seriesCandleL[i][j],
+        ? c
+        : l,
       c: this.isBoxPlot
-        ? w.globals.seriesCandleL[i][j]
-        : w.globals.seriesCandleC[i][j],
+        ? l
+        : c,
     }
   }
 }
