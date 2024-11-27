@@ -154,7 +154,6 @@ class Range {
             maxY = Math.max(maxY, gl.series[i][j])
             lowestY = Math.min(lowestY, gl.series[i][j])
           }
-          highestY = maxY
 
           if (
             gl.seriesGoals[i] &&
@@ -162,14 +161,11 @@ class Range {
             Array.isArray(gl.seriesGoals[i][j])
           ) {
             gl.seriesGoals[i][j].forEach((g) => {
-              if (minY !== Number.MIN_VALUE) {
-                minY = Math.min(minY, g.value)
-                lowestY = minY
-              }
               maxY = Math.max(maxY, g.value)
-              highestY = maxY
+              lowestY = Math.min(lowestY, g.value)
             })
           }
+          highestY = maxY
 
           if (Utils.isFloat(val)) {
             val = Utils.noExponents(val)
