@@ -407,8 +407,7 @@ export default class Position {
 
       if (
         jBar && // fixes apexcharts.js#2354
-        isBoxOrCandle &&
-        w.globals.comboCharts
+        isBoxOrCandle
       ) {
         bcx = bcx - bw / 2
       }
