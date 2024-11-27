@@ -61,74 +61,126 @@
             type: 'boxPlot',
             data: [
               {
-                x: new Date('2017-01-01').getTime(),
-                y: [54, 66, 69, 75, 88]
+                x: 'Alice',
+                y: [54, 66, 69, 75, 88],
+                goals: [
+                  {
+                    value: 32,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                ],
               },
               {
-                x: new Date('2018-01-01').getTime(),
-                y: [43, 65, 69, 76, 81]
+                x: 'Bob',
+                y: [43, 65, 69, 76, 81],
+                goals: [
+                  {
+                    value: 35,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                  {
+                    value: 95,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                ],
               },
               {
-                x: new Date('2019-01-01').getTime(),
-                y: [31, 39, 45, 51, 59]
+                x: 'Charlie',
+                y: [31, 39, 45, 51, 59],
+                goals: [
+                  {
+                    value: 64,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                  {
+                    value: 75,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                ],
               },
               {
-                x: new Date('2020-01-01').getTime(),
-                y: [39, 46, 55, 65, 71]
+                x: 'David',
+                y: [39, 46, 55, 65, 71],
+                goals: [
+                  {
+                    value: 27,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                  {
+                    value: 77,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                ],
               },
               {
-                x: new Date('2021-01-01').getTime(),
-                y: [29, 31, 35, 39, 44]
-              }
-            ]
+                x: 'Ahmed',
+                y: [29, 31, 35, 39, 44],
+                goals: [
+                  {
+                    value: 10,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                  {
+                    value: 56,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                  {
+                    value: 62,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                  {
+                    value: 98,
+                    strokeWidth: 0,
+                    strokeHeight: 13,
+                    strokeLineCap: 'round',
+                    strokeColor: '#FEB019',
+                  },
+                ],
+              },
+            ],
           },
-          {
-            name: 'outliers',
-            type: 'scatter',
-            data: [
-              {
-                x: new Date('2017-01-01').getTime(),
-                y: 32
-              },
-              {
-                x: new Date('2018-01-01').getTime(),
-                y: 25
-              },
-              {
-                x: new Date('2019-01-01').getTime(),
-                y: 64
-              },
-              {
-                x: new Date('2020-01-01').getTime(),
-                y: 27
-              },
-              {
-                x: new Date('2021-01-01').getTime(),
-                y: 15
-              }
-            ]
-          }
         ],
           chart: {
           type: 'boxPlot',
-          height: 350
+          height: 350,
         },
         colors: ['#008FFB', '#FEB019'],
         title: {
-          text: 'BoxPlot - Scatter Chart',
-          align: 'left'
+          text: 'BoxPlot chart with outliers',
+          align: 'left',
         },
         xaxis: {
-          type: 'datetime',
-          tooltip: {
-            formatter: function(val) {
-              return new Date(val).getFullYear()
-            }
-          }
-        },
-        tooltip: {
-          shared: false,
-          intersect: true
+          type: 'category',
         }
         };
 
