@@ -12,7 +12,6 @@ import Filters from '../modules/Filters'
 
 export default class HeatMap {
   constructor(ctx, xyRatios) {
-
     this.ctx = ctx
     this.w = ctx.w
 
