@@ -12,6 +12,7 @@ import Filters from '../modules/Filters'
 
 export default class HeatMap {
   constructor(ctx, xyRatios) {
+
     this.ctx = ctx
     this.w = ctx.w
 
@@ -76,7 +77,16 @@ export default class HeatMap {
       let x1 = 0
       let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
 
-      for (let j = 0; j < heatSeries[i].length; j++) {
+      let j = 0;
+      for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
+
+        if ((w.globals.minX + (w.globals.minXDiff * dIndex)) < w.globals.seriesX[i][j]) {
+          x1 = x1 + xDivision;
+          continue;
+        }
+
+        if (j >= heatSeries[i].length) break;
+
         let heatColor = this.helpers.getShadeColor(
           w.config.chart.type,
           i,
@@ -114,7 +124,6 @@ export default class HeatMap {
           cx: x1,
           cy: y1,
         })
-
         rect.node.classList.add('apexcharts-heatmap-rect')
         elSeries.add(rect)
 
@@ -186,6 +195,7 @@ export default class HeatMap {
         }
 
         x1 = x1 + xDivision
+        j++;
       }
 
       y1 = y1 + yDivision
