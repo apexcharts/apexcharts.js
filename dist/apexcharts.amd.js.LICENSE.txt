@@ -1,12 +1,12 @@
 /*!
 * @svgdotjs/svg.resize.js - An extension for svg.js which allows to resize elements which are selected
-* @version 2.0.2
+* @version 2.0.4
 * https://github.com/svgdotjs/svg.resize.js
 *
 * @copyright [object Object]
 * @license MIT
 *
-* BUILT: Mon Jul 01 2024 15:05:58 GMT+0200 (Central European Summer Time)
+* BUILT: Fri Sep 13 2024 12:43:14 GMT+0200 (Central European Summer Time)
 */
 
 /*!

@@ -10598,17 +10598,6 @@
         return w.globals.invalidLogScale ? series : w.globals.seriesLog;
       }
     }, {
-      key: "getLogValAtSeriesIndex",
-      value: function getLogValAtSeriesIndex(val, seriesIndex) {
-        if (val === null) return null;
-        var w = this.w;
-        var yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex];
-        if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
-          return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, val, seriesIndex);
-        }
-        return val;
-      }
-    }, {
       key: "getBaseLog",
       value: function getBaseLog(base, value) {
         return Math.log(value) / Math.log(base);
@@ -19296,13 +19285,17 @@
                 maxY = Math.max(maxY, gl.series[i][j]);
                 lowestY = Math.min(lowestY, gl.series[i][j]);
               }
+              highestY = maxY;
               if (gl.seriesGoals[i] && gl.seriesGoals[i][j] && Array.isArray(gl.seriesGoals[i][j])) {
                 gl.seriesGoals[i][j].forEach(function (g) {
+                  if (minY !== Number.MIN_VALUE) {
+                    minY = Math.min(minY, g.value);
+                    lowestY = minY;
+                  }
                   maxY = Math.max(maxY, g.value);
-                  lowestY = Math.min(lowestY, g.value);
+                  highestY = maxY;
                 });
               }
-              highestY = maxY;
               if (Utils$1.isFloat(val)) {
                 val = Utils$1.noExponents(val);
                 gl.yValueDecimal = Math.max(gl.yValueDecimal, val.toString().split('.')[1].length);
@@ -24401,7 +24394,7 @@
           }
           if (jBar &&
           // fixes apexcharts.js#2354
-          isBoxOrCandle) {
+          isBoxOrCandle && w.globals.comboCharts) {
             bcx = bcx - bw / 2;
           }
         } else {
@@ -28154,14 +28147,14 @@
         var i = indexes.i;
         var j = indexes.j;
         var isPositive = true;
-        var realIndex = indexes.realIndex;
-        var colorPos = w.config.plotOptions.candlestick.colors.upward[realIndex];
-        var colorNeg = w.config.plotOptions.candlestick.colors.downward[realIndex];
+        var colorPos = w.config.plotOptions.candlestick.colors.upward;
+        var colorNeg = w.config.plotOptions.candlestick.colors.downward;
         var color = '';
         if (this.isBoxPlot) {
           color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper];
         }
         var yRatio = this.yRatio[indexes.translationsIndex];
+        var realIndex = indexes.realIndex;
         var ohlc = this.getOHLCValue(realIndex, j);
         var l1 = zeroH;
         var l2 = zeroH;
@@ -28274,18 +28267,12 @@
       key: "getOHLCValue",
       value: function getOHLCValue(i, j) {
         var w = this.w;
-        var coreUtils = new CoreUtils(this.ctx, w);
-        var h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i);
-        var o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i);
-        var m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i);
-        var c = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleC[i][j], i);
-        var l = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleL[i][j], i);
         return {
-          o: this.isBoxPlot ? h : o,
-          h: this.isBoxPlot ? o : h,
-          m: m,
-          l: this.isBoxPlot ? c : l,
-          c: this.isBoxPlot ? l : c
+          o: this.isBoxPlot ? w.globals.seriesCandleH[i][j] : w.globals.seriesCandleO[i][j],
+          h: this.isBoxPlot ? w.globals.seriesCandleO[i][j] : w.globals.seriesCandleH[i][j],
+          m: w.globals.seriesCandleM[i][j],
+          l: this.isBoxPlot ? w.globals.seriesCandleC[i][j] : w.globals.seriesCandleL[i][j],
+          c: this.isBoxPlot ? w.globals.seriesCandleL[i][j] : w.globals.seriesCandleC[i][j]
         };
       }
     }]);
@@ -34579,13 +34566,13 @@
 
   /*!
   * @svgdotjs/svg.resize.js - An extension for svg.js which allows to resize elements which are selected
-  * @version 2.0.2
+  * @version 2.0.4
   * https://github.com/svgdotjs/svg.resize.js
   *
   * @copyright [object Object]
   * @license MIT
   *
-  * BUILT: Mon Jul 01 2024 15:05:58 GMT+0200 (Central European Summer Time)
+  * BUILT: Fri Sep 13 2024 12:43:14 GMT+0200 (Central European Summer Time)
   */
   /*!
   * @svgdotjs/svg.select.js - An extension of svg.js which allows to select elements with mouse
@@ -34862,7 +34849,6 @@
       this.lastCoordinates = null;
       this.eventType = "";
       this.lastEvent = null;
-      this.angle = 0;
       this.handleResize = this.handleResize.bind(this);
       this.resize = this.resize.bind(this);
       this.endResize = this.endResize.bind(this);
@@ -34932,7 +34918,6 @@
       const endPoint = this.snapToGrid(this.el.point(getCoordsFromEvent(e)));
       let dx = endPoint.x - this.startPoint.x;
       let dy = endPoint.y - this.startPoint.y;
-      console.log("endPoint", endPoint, "startPoint", this.startPoint, dx, dy);
       if (this.preserveAspectRatio && this.aroundCenter) {
         dx *= 2;
         dy *= 2;
@@ -34979,7 +34964,7 @@
       }).defaultPrevented) {
         return;
       }
-      this.el.move(box.x, box.y).size(box.width, box.height);
+      this.el.size(box.width, box.height).move(box.x, box.y);
     }
     movePoint(e) {
       this.lastEvent = e;
@@ -34999,11 +34984,11 @@
     }
     rotate(e) {
       this.lastEvent = e;
+      const startPoint = this.startPoint;
       const endPoint = this.el.point(getCoordsFromEvent(e));
-      const cx = this.box.cx;
-      const cy = this.box.cy;
-      const dx1 = this.startPoint.x - cx;
-      const dy1 = this.startPoint.y - cy;
+      const { cx, cy } = this.box;
+      const dx1 = startPoint.x - cx;
+      const dy1 = startPoint.y - cy;
       const dx2 = endPoint.x - cx;
       const dy2 = endPoint.y - cy;
       const c = Math.sqrt(dx1 * dx1 + dy1 * dy1) * Math.sqrt(dx2 * dx2 + dy2 * dy2);
@@ -35011,20 +34996,24 @@
         return;
       }
       let angle = Math.acos((dx1 * dx2 + dy1 * dy2) / c) / Math.PI * 180;
-      if (endPoint.x < this.startPoint.x) {
+      if (!angle) return;
+      if (endPoint.x < startPoint.x) {
         angle = -angle;
       }
-      this.angle = this.snapToAngle(this.angle + angle);
+      const matrix = new Matrix(this.el);
+      const { x: ox, y: oy } = new Point(cx, cy).transformO(matrix);
+      const { rotate } = matrix.decompose();
+      const resultAngle = this.snapToAngle(rotate + angle) - rotate;
       if (this.el.dispatch("resize", {
-        box: this.startBox,
-        angle: this.angle,
+        box: this.box,
+        angle: resultAngle,
         eventType: this.eventType,
         event: e,
         handler: this
       }).defaultPrevented) {
         return;
       }
-      this.el.transform({ rotate: this.angle });
+      this.el.transform(matrix.rotateO(resultAngle, ox, oy));
     }
     endResize(ev) {
       if (this.eventType !== "rot" && this.eventType !== "point") {
