@@ -177,7 +177,7 @@ export default class ZoomPanSelection extends Toolbar {
     if ((e.type === 'mousedown' && e.which === 1) || e.type === 'touchstart') {
       let gridRectDim = me.gridRect.getBoundingClientRect()
 
-      me.startX = me.clientX - gridRectDim.left
+      me.startX = me.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
       me.startY = me.clientY - gridRectDim.top
 
       me.dragged = false
@@ -219,7 +219,7 @@ export default class ZoomPanSelection extends Toolbar {
 
       if (gridRectDim && me.w.globals.mousedown) {
         // user released the drag, now do all the calculations
-        me.endX = me.clientX - gridRectDim.left
+        me.endX = me.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
         me.endY = me.clientY - gridRectDim.top
         me.dragX = Math.abs(me.endX - me.startX)
         me.dragY = Math.abs(me.endY - me.startY)
@@ -485,8 +485,11 @@ export default class ZoomPanSelection extends Toolbar {
     let inversedX = false
     let inversedY = false
 
-    let selectionWidth = me.clientX - gridRectDim.left - startX
-    let selectionHeight = me.clientY - gridRectDim.top - startY
+    const left = me.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
+    const top = me.clientY - gridRectDim.top
+
+    let selectionWidth = left - startX
+    let selectionHeight = top - startY
 
     let selectionRect = {
       translateX: w.globals.translateX,
@@ -496,19 +499,19 @@ export default class ZoomPanSelection extends Toolbar {
     if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
       // user dragged the mouse outside drawing area to the right
       selectionWidth = w.globals.gridWidth - startX
-    } else if (me.clientX - gridRectDim.left < 0) {
+    } else if (left < 0) {
       // user dragged the mouse outside drawing area to the left
       selectionWidth = startX
     }
 
     // inverse selection X
-    if (startX > me.clientX - gridRectDim.left) {
+    if (startX > left) {
       inversedX = true
       selectionWidth = Math.abs(selectionWidth)
     }
 
     // inverse selection Y
-    if (startY > me.clientY - gridRectDim.top) {
+    if (startY > top) {
       inversedY = true
       selectionHeight = Math.abs(selectionHeight)
     }
@@ -595,6 +598,7 @@ export default class ZoomPanSelection extends Toolbar {
       width: getSelAttr('width'),
       height: getSelAttr('height'),
     }
+
     w.globals.selection = draggedProps
     // update selection ends
 
