@@ -166,6 +166,28 @@ class Legend {
 
     let isLegendInversed = w.config.legend.inverseOrder
 
+    let legendGroups = []
+
+    if (
+      w.globals.seriesGroups.length > 1 &&
+      w.config.legend.clusterGroupedSeries
+    ) {
+      w.globals.seriesGroups.forEach((_, gi) => {
+        legendGroups[gi] = document.createElement('div')
+        legendGroups[gi].classList.add(
+          'apexcharts-legend-group',
+          `apexcharts-legend-group-${gi}`
+        )
+        if (w.config.legend.clusterGroupedSeriesOrientation === 'horizontal') {
+          w.globals.dom.elLegendWrap.classList.add(
+            'apexcharts-legend-group-horizontal'
+          )
+        } else {
+          legendGroups[gi].classList.add('apexcharts-legend-group-vertical')
+        }
+      })
+    }
+
     for (
       let i = isLegendInversed ? legendNames.length - 1 : 0;
       isLegendInversed ? i >= 0 : i <= legendNames.length - 1;
@@ -263,7 +285,17 @@ class Legend {
         }
       }
 
-      w.globals.dom.elLegendWrap.appendChild(elLegend)
+      if (legendGroups.length) {
+        w.globals.seriesGroups.forEach((group, gi) => {
+          if (group.includes(w.config.series[i]?.name)) {
+            w.globals.dom.elLegendWrap.appendChild(legendGroups[gi])
+            legendGroups[gi].appendChild(elLegend)
+          }
+        })
+      } else {
+        w.globals.dom.elLegendWrap.appendChild(elLegend)
+      }
+
       w.globals.dom.elLegendWrap.classList.add(
         `apexcharts-align-${w.config.legend.horizontalAlign}`
       )

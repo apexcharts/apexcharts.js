@@ -827,6 +827,8 @@ type ApexLegend = {
   formatter?(legendName: string, opts?: any): string
   tooltipHoverFormatter?(legendName: string, opts?: any): string
   customLegendItems?: string[]
+  clusterGroupedSeries?: boolean;
+  clusterGroupedSeriesOrientation?: string;
   labels?: {
     colors?: string | string[]
     useSeriesColors?: boolean

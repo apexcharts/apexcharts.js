@@ -32,6 +32,15 @@ export default class Helpers {
         overflow: auto;
         padding: 0 10px;
       }
+      .apexcharts-legend.apexcharts-legend-group-horizontal {
+        flex-direction: column;
+      }
+      .apexcharts-legend-group {
+        display: flex;
+      }
+      .apexcharts-legend-group-vertical {
+        flex-direction: column-reverse;
+      }
       .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {
         flex-wrap: wrap
       }
@@ -41,12 +50,15 @@ export default class Helpers {
       }
       .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {
         justify-content: flex-start;
+        align-items: flex-start;
       }
       .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {
         justify-content: center;
+        align-items: center;
       }
       .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {
         justify-content: flex-end;
+        align-items: flex-end;
       }
       .apexcharts-legend-series {
         cursor: pointer;

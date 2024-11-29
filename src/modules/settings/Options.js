@@ -810,6 +810,8 @@ export default class Options {
         offsetX: -20,
         offsetY: 4,
         customLegendItems: [],
+        clusterGroupedSeries: true,
+        clusterGroupedSeriesOrientation: 'vertical',
         labels: {
           colors: undefined,
           useSeriesColors: false,
