@@ -216,10 +216,15 @@ class BoxCandleStick extends Bar {
     let i = indexes.i
     let j = indexes.j
 
+    const candleColors = w.config.plotOptions.candlestick.colors
     let isPositive = true
     let realIndex = indexes.realIndex
-    let colorPos = w.config.plotOptions.candlestick.colors.upward[realIndex]
-    let colorNeg = w.config.plotOptions.candlestick.colors.downward[realIndex]
+    let colorPos = Array.isArray(candleColors.upward)
+      ? candleColors.upward[realIndex]
+      : candleColors.upward
+    let colorNeg = Array.isArray(candleColors.downward)
+      ? candleColors.downward[realIndex]
+      : candleColors.downward
     let color = ''
 
     if (this.isBoxPlot) {
@@ -441,25 +446,17 @@ class BoxCandleStick extends Bar {
   getOHLCValue(i, j) {
     const w = this.w
     const coreUtils = new CoreUtils(this.ctx, w)
-    const h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i);
-    const o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i);
-    const m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i);
-    const c = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleC[i][j], i);
-    const l = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleL[i][j], i);
+    const h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i)
+    const o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i)
+    const m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i)
+    const c = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleC[i][j], i)
+    const l = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleL[i][j], i)
     return {
-      o: this.isBoxPlot
-        ? h
-        : o,
-      h: this.isBoxPlot
-        ? o
-        : h,
+      o: this.isBoxPlot ? h : o,
+      h: this.isBoxPlot ? o : h,
       m: m,
-      l: this.isBoxPlot
-        ? c
-        : l,
-      c: this.isBoxPlot
-        ? l
-        : c,
+      l: this.isBoxPlot ? c : l,
+      c: this.isBoxPlot ? l : c,
     }
   }
 }
