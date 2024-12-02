@@ -217,8 +217,9 @@ class BoxCandleStick extends Bar {
     let j = indexes.j
 
     let isPositive = true
-    let colorPos = w.config.plotOptions.candlestick.colors.upward
-    let colorNeg = w.config.plotOptions.candlestick.colors.downward
+    let realIndex = indexes.realIndex
+    let colorPos = w.config.plotOptions.candlestick.colors.upward[realIndex]
+    let colorNeg = w.config.plotOptions.candlestick.colors.downward[realIndex]
     let color = ''
 
     if (this.isBoxPlot) {
@@ -226,7 +227,6 @@ class BoxCandleStick extends Bar {
     }
 
     const yRatio = this.yRatio[indexes.translationsIndex]
-    let realIndex = indexes.realIndex
 
     const ohlc = this.getOHLCValue(realIndex, j)
     let l1 = zeroH
