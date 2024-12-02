@@ -127,7 +127,7 @@ class Filters {
     })
 
     if (!attrs.noUserSpaceOnUse) {
-      el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse')
+      el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
     }
 
     // this scales the filter to a bigger size so that the dropshadow doesn't crops
