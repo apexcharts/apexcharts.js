@@ -216,20 +216,15 @@ class BoxCandleStick extends Bar {
     let i = indexes.i
     let j = indexes.j
 
-    const candleColors = w.config.plotOptions.candlestick.colors
-    let isPositive = true
-    let realIndex = indexes.realIndex
-    let colorPos = Array.isArray(candleColors.upward)
-      ? candleColors.upward[realIndex]
-      : candleColors.upward
-    let colorNeg = Array.isArray(candleColors.downward)
-      ? candleColors.downward[realIndex]
-      : candleColors.downward
-    let color = ''
+    const { colors: candleColors } = w.config.plotOptions.candlestick
+    const { colors: boxColors } = this.boxOptions
+    const realIndex = indexes.realIndex
 
-    if (this.isBoxPlot) {
-      color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper]
-    }
+    const getColor = (color) =>
+      Array.isArray(color) ? color[realIndex] : color
+
+    const colorPos = getColor(candleColors.upward)
+    const colorNeg = getColor(candleColors.downward)
 
     const yRatio = this.yRatio[indexes.translationsIndex]
 
@@ -237,8 +232,10 @@ class BoxCandleStick extends Bar {
     let l1 = zeroH
     let l2 = zeroH
 
-    if (ohlc.o > ohlc.c) {
-      isPositive = false
+    let color = ohlc.o < ohlc.c ? [colorPos] : [colorNeg]
+
+    if (this.isBoxPlot) {
+      color = [getColor(boxColors.lower), getColor(boxColors.upper)]
     }
 
     let y1 = Math.min(ohlc.o, ohlc.c)
@@ -336,7 +333,7 @@ class BoxCandleStick extends Bar {
         indexes.translationsIndex
       ),
       barXPosition,
-      color: this.isBoxPlot ? color : isPositive ? [colorPos] : [colorNeg],
+      color,
     }
   }
 

@@ -574,8 +574,8 @@ type ApexPlotOptions = {
   }
   candlestick?: {
     colors?: {
-      upward?: string
-      downward?: string
+      upward?: string | string[]
+      downward?: string | string[]
     }
     wick?: {
       useFillColor?: boolean
@@ -583,8 +583,8 @@ type ApexPlotOptions = {
   }
   boxPlot?: {
     colors?: {
-      upper?: string,
-      lower?: string
+      upper?: string | string[]
+      lower?: string | string[]
     }
   }
   heatmap?: {
