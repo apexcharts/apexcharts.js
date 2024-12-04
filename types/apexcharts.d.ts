@@ -998,7 +998,7 @@ type ApexTooltip = {
  * See https://apexcharts.com/docs/options/xaxis/
  */
 type ApexXAxis = {
-  type?: 'category' | 'datetime' | 'numeric'
+  type?: 'category' | 'datetime' | 'numeric' | 'date'
   categories?: any;
   overwriteCategories?: number[] | string[] | undefined;
   offsetX?: number;
