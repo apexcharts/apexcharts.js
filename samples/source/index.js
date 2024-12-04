@@ -36,7 +36,7 @@ function parseSampleXML(xmlPath) {
     'react-state',
     'react-script',
     'vue-data',
-    'vue-script'
+    'vue-script',
   ]
   const info = extractXMLSections(data, globalSections, xmlPath)
   info.charts = []
@@ -125,7 +125,7 @@ function extractSampleInfo() {
           samples.push({
             dirName,
             fileName: fileName.slice(0, -4),
-            info
+            info,
           })
         }
       }
@@ -144,7 +144,7 @@ async function generateSampleHtml() {
   const sourceDir = path.join(samplesDir, 'source')
   const env = nunjucks.configure(sourceDir, {
     autoescape: false,
-    noCache: true
+    noCache: true,
   })
   env.addFilter('indent', (str, indent) => {
     return str
@@ -201,7 +201,7 @@ async function generateSampleHtml() {
             } else if (format === 'react') {
               chartHtml =
                 `<div id="${chart.elemId}">\n` +
-                `  <ReactApexChart options={this.state.options${chart.varName}} series={this.state.series${chart.varName}} type="${chart.type}" ${attrs}/>\n` +
+                `  <ReactApexChart options={state.options${chart.varName}} series={state.series${chart.varName}} type="${chart.type}" ${attrs}/>\n` +
                 `</div>`
             } else if (format === 'vue') {
               if (info.vue_script.includes('.$refs')) {

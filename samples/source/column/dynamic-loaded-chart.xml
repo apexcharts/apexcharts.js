@@ -269,7 +269,7 @@ function updateQuarterChart(sourceChart, destChartIDToUpdate) {
 <html>
 <div id="wrap">
   <select id="model" class="flat-select"
-      {% if format == 'react' %}onChange={() => this.changeData()}{% endif %}
+      {% if format == 'react' %}onChange={() => changeData()}{% endif %}
       {% if format == 'vue' %}@change="changeData"{% endif %}>
     <option value="iphone5">iPhone 5</option>
     <option value="iphone6">iPhone 6</option>
@@ -493,7 +493,7 @@ document.querySelector("#model").addEventListener("change", function (e) {
 </vanilla-js-script>
 
 <react-script>
-changeData() {
+function changeData() {
   Apex.exec('barYear', 'updateSeries', [{
     data: makeData()
   }])

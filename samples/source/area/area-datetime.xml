@@ -36,32 +36,32 @@
   <div class="toolbar">
     <button id="one_month"
         {% if format == 'vue' %}@click="updateData('one_month')" :class="{active: selection==='one_month'}"{% endif %}
-        {% if format == 'react' %}onClick={()=>this.updateData('one_month')} className={ (this.state.selection==='one_month' ? 'active' : '')}{% endif %}>
+        {% if format == 'react' %}onClick={()=>updateData('one_month')} className={ (state.selection==='one_month' ? 'active' : '')}{% endif %}>
       1M
     </button>
     {% if format == 'react' %}&nbsp;{% endif %}
     <button id="six_months"
         {% if format == 'vue' %}@click="updateData('six_months')" :class="{active: selection==='six_months'}"{% endif %}
-        {% if format == 'react' %}onClick={()=>this.updateData('six_months')} className={ (this.state.selection==='six_months' ? 'active' : '')}{% endif %}>
+        {% if format == 'react' %}onClick={()=>updateData('six_months')} className={ (state.selection==='six_months' ? 'active' : '')}{% endif %}>
       6M
     </button>
     {% if format == 'react' %}&nbsp;{% endif %}
     <button id="one_year"
         {% if format == 'vanilla-js' %}class="active"{% endif %}
         {% if format == 'vue' %}@click="updateData('one_year')" :class="{active: selection==='one_year'}"{% endif %}
-        {% if format == 'react' %}onClick={()=>this.updateData('one_year')} className={ (this.state.selection==='one_year' ? 'active' : '')}{% endif %}>
+        {% if format == 'react' %}onClick={()=>updateData('one_year')} className={ (state.selection==='one_year' ? 'active' : '')}{% endif %}>
       1Y
     </button>
     {% if format == 'react' %}&nbsp;{% endif %}
     <button id="ytd"
         {% if format == 'vue' %}@click="updateData('ytd')" :class="{active: selection==='ytd'}"{% endif %}
-        {% if format == 'react' %}onClick={()=>this.updateData('ytd')} className={ (this.state.selection==='ytd' ? 'active' : '')}{% endif %}>
+        {% if format == 'react' %}onClick={()=>updateData('ytd')} className={ (state.selection==='ytd' ? 'active' : '')}{% endif %}>
       YTD
     </button>
     {% if format == 'react' %}&nbsp;{% endif %}
     <button id="all"
         {% if format == 'vue' %}@click="updateData('all')" :class="{active: selection==='all'}"{% endif %}
-        {% if format == 'react' %}onClick={()=>this.updateData('all')} className={ (this.state.selection==='all' ? 'active' : '')}{% endif %}>
+        {% if format == 'react' %}onClick={()=>updateData('all')} className={ (state.selection==='all' ? 'active' : '')}{% endif %}>
       ALL
     </button>
   </div>
@@ -486,8 +486,8 @@ selection: 'one_year',
 </react-state>
 
 <react-script>
-updateData(timeline) {
-  this.setState({
+const updateData = (timeline) => {
+  setState({
     selection: timeline
   })
 
