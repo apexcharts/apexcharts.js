@@ -57,12 +57,12 @@
     </script>
 
     
-    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
     
 
     <script>
@@ -87,48 +87,45 @@
   &lt;div class=&quot;toolbar&quot;&gt;
     &lt;button id=&quot;one_month&quot;
         
-        onClick={()=&gt;this.updateData(&#39;one_month&#39;)} className={ (this.state.selection===&#39;one_month&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
+        onClick={()=&gt;updateData(&#39;one_month&#39;)} className={ (state.selection===&#39;one_month&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
       1M
     &lt;/button&gt;
     &amp;nbsp;
     &lt;button id=&quot;six_months&quot;
         
-        onClick={()=&gt;this.updateData(&#39;six_months&#39;)} className={ (this.state.selection===&#39;six_months&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
+        onClick={()=&gt;updateData(&#39;six_months&#39;)} className={ (state.selection===&#39;six_months&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
       6M
     &lt;/button&gt;
     &amp;nbsp;
     &lt;button id=&quot;one_year&quot;
         
         
-        onClick={()=&gt;this.updateData(&#39;one_year&#39;)} className={ (this.state.selection===&#39;one_year&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
+        onClick={()=&gt;updateData(&#39;one_year&#39;)} className={ (state.selection===&#39;one_year&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
       1Y
     &lt;/button&gt;
     &amp;nbsp;
     &lt;button id=&quot;ytd&quot;
         
-        onClick={()=&gt;this.updateData(&#39;ytd&#39;)} className={ (this.state.selection===&#39;ytd&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
+        onClick={()=&gt;updateData(&#39;ytd&#39;)} className={ (state.selection===&#39;ytd&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
       YTD
     &lt;/button&gt;
     &amp;nbsp;
     &lt;button id=&quot;all&quot;
         
-        onClick={()=&gt;this.updateData(&#39;all&#39;)} className={ (this.state.selection===&#39;all&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
+        onClick={()=&gt;updateData(&#39;all&#39;)} className={ (state.selection===&#39;all&#39; ? &#39;active&#39; : &#39;&#39;)}&gt;
       ALL
     &lt;/button&gt;
   &lt;/div&gt;
 
   &lt;div id=&quot;chart-timeline&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height={350} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;area&quot; height={350} /&gt;
 &lt;/div&gt;
 &lt;/div&gt;
     </div>
 
     <script type="text/babel">
-      class ApexChart extends React.Component {
-        constructor(props) {
-          super(props);
-
-          this.state = {
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
           
             series: [{
               data: [
@@ -476,12 +473,11 @@
           
             selection: 'one_year',
           
-          };
-        }
+        });
 
-      
-        updateData(timeline) {
-          this.setState({
+        
+          const updateData = (timeline) => {
+          setState({
             selection: timeline
           })
         
@@ -529,57 +525,55 @@
             default:
           }
         }
-      
+        
 
-        render() {
-          return (
-            <div>
-              <div id="chart">
+        return (
+          <div>
+            <div id="chart">
                 <div class="toolbar">
                   <button id="one_month"
                       
-                      onClick={()=>this.updateData('one_month')} className={ (this.state.selection==='one_month' ? 'active' : '')}>
+                      onClick={()=>updateData('one_month')} className={ (state.selection==='one_month' ? 'active' : '')}>
                     1M
                   </button>
                   &nbsp;
                   <button id="six_months"
                       
-                      onClick={()=>this.updateData('six_months')} className={ (this.state.selection==='six_months' ? 'active' : '')}>
+                      onClick={()=>updateData('six_months')} className={ (state.selection==='six_months' ? 'active' : '')}>
                     6M
                   </button>
                   &nbsp;
                   <button id="one_year"
                       
                       
-                      onClick={()=>this.updateData('one_year')} className={ (this.state.selection==='one_year' ? 'active' : '')}>
+                      onClick={()=>updateData('one_year')} className={ (state.selection==='one_year' ? 'active' : '')}>
                     1Y
                   </button>
                   &nbsp;
                   <button id="ytd"
                       
-                      onClick={()=>this.updateData('ytd')} className={ (this.state.selection==='ytd' ? 'active' : '')}>
+                      onClick={()=>updateData('ytd')} className={ (state.selection==='ytd' ? 'active' : '')}>
                     YTD
                   </button>
                   &nbsp;
                   <button id="all"
                       
-                      onClick={()=>this.updateData('all')} className={ (this.state.selection==='all' ? 'active' : '')}>
+                      onClick={()=>updateData('all')} className={ (state.selection==='all' ? 'active' : '')}>
                     ALL
                   </button>
                 </div>
               
                 <div id="chart-timeline">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="area" height={350} />
+                <ReactApexChart options={state.options} series={state.series} type="area" height={350} />
               </div>
               </div>
-              <div id="html-dist"></div>
-            </div>
-          );
-        }
+            <div id="html-dist"></div>
+          </div>
+        );
       }
 
       const domContainer = document.querySelector('#app');
-      ReactDOM.render(React.createElement(ApexChart), domContainer);
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
 
     

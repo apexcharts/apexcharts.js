@@ -97,12 +97,12 @@
     </script>
 
     
-    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
     
 
     <script>
@@ -316,27 +316,24 @@
     <div id="html">
       &lt;div id=&quot;wrap&quot;&gt;
   &lt;select id=&quot;model&quot; class=&quot;flat-select&quot;
-      onChange={() =&gt; this.changeData()}
+      onChange={() =&gt; changeData()}
       &gt;
     &lt;option value=&quot;iphone5&quot;&gt;iPhone 5&lt;/option&gt;
     &lt;option value=&quot;iphone6&quot;&gt;iPhone 6&lt;/option&gt;
     &lt;option value=&quot;iphone7&quot;&gt;iPhone 7&lt;/option&gt;
   &lt;/select&gt;
   &lt;div id=&quot;chart-year&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;bar&quot; height={400} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={400} /&gt;
 &lt;/div&gt;
   &lt;div id=&quot;chart-quarter&quot;&gt;
-  &lt;ReactApexChart options={this.state.optionsQuarter} series={this.state.seriesQuarter} type=&quot;bar&quot; height={400} /&gt;
+  &lt;ReactApexChart options={state.optionsQuarter} series={state.seriesQuarter} type=&quot;bar&quot; height={400} /&gt;
 &lt;/div&gt;
 &lt;/div&gt;
     </div>
 
     <script type="text/babel">
-      class ApexChart extends React.Component {
-        constructor(props) {
-          super(props);
-
-          this.state = {
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
           
             series: [{
               data: makeData()
@@ -501,43 +498,40 @@
             },
           
           
-          };
-        }
+        });
 
-      
-        changeData() {
+        
+          function changeData() {
           Apex.exec('barYear', 'updateSeries', [{
             data: makeData()
           }])
         }
-      
+        
 
-        render() {
-          return (
-            <div>
-              <div id="wrap">
+        return (
+          <div>
+            <div id="wrap">
                 <select id="model" class="flat-select"
-                    onChange={() => this.changeData()}
+                    onChange={() => changeData()}
                     >
                   <option value="iphone5">iPhone 5</option>
                   <option value="iphone6">iPhone 6</option>
                   <option value="iphone7">iPhone 7</option>
                 </select>
                 <div id="chart-year">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="bar" height={400} />
+                <ReactApexChart options={state.options} series={state.series} type="bar" height={400} />
               </div>
                 <div id="chart-quarter">
-                <ReactApexChart options={this.state.optionsQuarter} series={this.state.seriesQuarter} type="bar" height={400} />
+                <ReactApexChart options={state.optionsQuarter} series={state.seriesQuarter} type="bar" height={400} />
               </div>
               </div>
-              <div id="html-dist"></div>
-            </div>
-          );
-        }
+            <div id="html-dist"></div>
+          </div>
+        );
       }
 
       const domContainer = document.querySelector('#app');
-      ReactDOM.render(React.createElement(ApexChart), domContainer);
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
 
     

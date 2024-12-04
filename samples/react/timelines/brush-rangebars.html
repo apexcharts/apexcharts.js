@@ -38,12 +38,12 @@
     </script>
 
     
-    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
     
 
     <script>
@@ -108,20 +108,17 @@
     <div id="html">
       &lt;div id=&quot;wrapper&quot;&gt;
   &lt;div id=&quot;chart-TopChart&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;rangeBar&quot; height={230} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;rangeBar&quot; height={230} /&gt;
 &lt;/div&gt;
   &lt;div id=&quot;chart-BrushChart&quot;&gt;
-  &lt;ReactApexChart options={this.state.optionsBrushChart} series={this.state.seriesBrushChart} type=&quot;rangeBar&quot; height={100} /&gt;
+  &lt;ReactApexChart options={state.optionsBrushChart} series={state.seriesBrushChart} type=&quot;rangeBar&quot; height={100} /&gt;
 &lt;/div&gt;
 &lt;/div&gt;
     </div>
 
     <script type="text/babel">
-      class ApexChart extends React.Component {
-        constructor(props) {
-          super(props);
-
-          this.state = {
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
           
             series: dataSeries,
             options: {
@@ -266,30 +263,27 @@
             },
           
           
-          };
-        }
+        });
 
-      
+        
 
-        render() {
-          return (
-            <div>
-              <div id="wrapper">
+        return (
+          <div>
+            <div id="wrapper">
                 <div id="chart-TopChart">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="rangeBar" height={230} />
+                <ReactApexChart options={state.options} series={state.series} type="rangeBar" height={230} />
               </div>
                 <div id="chart-BrushChart">
-                <ReactApexChart options={this.state.optionsBrushChart} series={this.state.seriesBrushChart} type="rangeBar" height={100} />
+                <ReactApexChart options={state.optionsBrushChart} series={state.seriesBrushChart} type="rangeBar" height={100} />
               </div>
               </div>
-              <div id="html-dist"></div>
-            </div>
-          );
-        }
+            <div id="html-dist"></div>
+          </div>
+        );
       }
 
       const domContainer = document.querySelector('#app');
-      ReactDOM.render(React.createElement(ApexChart), domContainer);
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
 
     

@@ -68,12 +68,12 @@
     </script>
 
     
-    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
     
 
     <script>
@@ -96,7 +96,7 @@
     <div id="html">
       &lt;div id=&quot;wrapper&quot;&gt;
   &lt;div id=&quot;chart-months&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height={180} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;area&quot; height={180} /&gt;
 &lt;/div&gt;
 
   &lt;h5 class=&quot;github-style&quot;&gt;
@@ -110,17 +110,14 @@
   &lt;/h5&gt;
 
   &lt;div id=&quot;chart-years&quot;&gt;
-  &lt;ReactApexChart options={this.state.optionsYears} series={this.state.seriesYears} type=&quot;area&quot; height={150} /&gt;
+  &lt;ReactApexChart options={state.optionsYears} series={state.seriesYears} type=&quot;area&quot; height={150} /&gt;
 &lt;/div&gt;
 &lt;/div&gt;
     </div>
 
     <script type="text/babel">
-      class ApexChart extends React.Component {
-        constructor(props) {
-          super(props);
-
-          this.state = {
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
           
             series: [{
               name: 'commits',
@@ -218,17 +215,15 @@
             },
           
           
-          };
-        }
+        });
 
-      
+        
 
-        render() {
-          return (
-            <div>
-              <div id="wrapper">
+        return (
+          <div>
+            <div id="wrapper">
                 <div id="chart-months">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="area" height={180} />
+                <ReactApexChart options={state.options} series={state.series} type="area" height={180} />
               </div>
               
                 <h5 class="github-style">
@@ -242,17 +237,16 @@
                 </h5>
               
                 <div id="chart-years">
-                <ReactApexChart options={this.state.optionsYears} series={this.state.seriesYears} type="area" height={150} />
+                <ReactApexChart options={state.optionsYears} series={state.seriesYears} type="area" height={150} />
               </div>
               </div>
-              <div id="html-dist"></div>
-            </div>
-          );
-        }
+            <div id="html-dist"></div>
+          </div>
+        );
       }
 
       const domContainer = document.querySelector('#app');
-      ReactDOM.render(React.createElement(ApexChart), domContainer);
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
 
     
