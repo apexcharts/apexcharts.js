@@ -421,6 +421,7 @@ export default class ApexCharts {
     overwriteInitialConfig = true
   ) {
     const w = this.w
+    this.opts = options
 
     // when called externally, clear some global variables
     // fixes apexcharts.js#1488

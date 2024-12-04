@@ -76,17 +76,21 @@ export default class HeatMap {
       let x1 = 0
       let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity
 
-      let j = 0;
+      let j = 0
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
-
         // Recognize gaps and align values based on x axis
-        if ((w.globals.minX + (w.globals.minXDiff * dIndex)) < w.globals.seriesX[i][j]) {
-          x1 = x1 + xDivision;
-          continue;
+        if (w.globals.seriesX.length) {
+          if (
+            w.globals.minX + w.globals.minXDiff * dIndex <
+            w.globals.seriesX[i][j]
+          ) {
+            x1 = x1 + xDivision
+            continue
+          }
         }
 
         // Stop loop if index is out of array length
-        if (j >= heatSeries[i].length) break;
+        if (j >= heatSeries[i].length) break
 
         let heatColor = this.helpers.getShadeColor(
           w.config.chart.type,
@@ -196,7 +200,7 @@ export default class HeatMap {
         }
 
         x1 = x1 + xDivision
-        j++;
+        j++
       }
 
       y1 = y1 + yDivision
