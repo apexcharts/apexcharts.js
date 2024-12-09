@@ -954,10 +954,7 @@ class Line {
               areaPath = graphics.move(pX, pY)
 
               // Check for single isolated point
-              if (
-                series[i][j + 1] === null ||
-                typeof series[i][j + 1] === 'undefined'
-              ) {
+              if (series[i][j + 1] === null) {
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
                 // Stay in pathState = 0;
@@ -1046,10 +1043,7 @@ class Line {
               areaPath = graphics.move(pX, pY)
 
               // Check for single isolated point
-              if (
-                series[i][j + 1] === null ||
-                typeof series[i][j + 1] === 'undefined'
-              ) {
+              if (series[i][j + 1] === null) {
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
                 // Stay in pathState = 0
