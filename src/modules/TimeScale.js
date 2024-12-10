@@ -545,6 +545,10 @@ class TimeScale {
       val = firstTickValue
       // in case it's the last date of month, we need to check it
       month = changeMonth(date, currentMonth, currentYear)
+
+      if (val !== 1) {
+        unit = 'day'
+      }
     }
 
     // push the first tick in the array
@@ -635,7 +639,7 @@ class TimeScale {
       hour = 0
       date += 1
       unit = 'day'
-      // Unit changed to day , Value should align unit 
+      // Unit changed to day , Value should align unit
       firstTickValue = date
     }
 
