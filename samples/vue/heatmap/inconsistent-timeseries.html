@@ -33,7 +33,9 @@
     </script>
 
     
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
     
 
     <script>
@@ -84,53 +86,70 @@
   </head>
 
   <body>
-     <div id="chart"></div>
+    
+    <div id="app">
+      <div id="chart">
+      <apexchart type="heatmap" height="200" width="630" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;heatmap&quot; height=&quot;200&quot; width=&quot;630&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+    </div>
 
     <script>
-      
-        var options = {
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
           series: data,
-          chart: {
-          height: 200,
-          width: 630,
-          type: 'heatmap',
-        },
-        tooltip: {
-          x: { show: true, format: 'MMM dd HH:mm' },
-        },
-        xaxis: {
-          labels: {
-            datetimeFormatter: {
-              year: 'yyyy',
-              month: 'yyyy MMM',
-              day: 'MMM dd',
-              hour: 'HH:mm',
+          chartOptions: {
+            chart: {
+              height: 200,
+              width: 630,
+              type: 'heatmap',
             },
-          },
-          type: 'datetime',
-        },
-        plotOptions: {
-          heatmap: {
-            colorScale: {
-              ranges: [
-                {
-                  from: 0,
-                  to: 100,
-                  name: 'orange',
-                  color: '#FFB200',
+            tooltip: {
+              x: { show: true, format: 'MMM dd HH:mm' },
+            },
+            xaxis: {
+              labels: {
+                datetimeFormatter: {
+                  year: 'yyyy',
+                  month: 'yyyy MMM',
+                  day: 'MMM dd',
+                  hour: 'HH:mm',
                 },
-              ],
+              },
+              type: 'datetime',
+            },
+            plotOptions: {
+              heatmap: {
+                colorScale: {
+                  ranges: [
+                    {
+                      from: 0,
+                      to: 100,
+                      name: 'orange',
+                      color: '#FFB200',
+                    },
+                  ],
+                },
+              },
             },
           },
+          
+          
         },
-        };
-
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+        
+      })
     </script>
-
     
   </body>
 </html>
