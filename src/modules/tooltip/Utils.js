@@ -98,13 +98,13 @@ export default class Utils {
       capturedSeries = closest.index
       j = closest.j
 
-      if (capturedSeries !== null) {
+      if (capturedSeries !== null && w.globals.hasNullValues) {
         // initial push, it should be a little smaller than the 1st val
         seriesXValArr = w.globals.seriesXvalues[capturedSeries]
 
         closest = this.closestInArray(transformedHoverX, seriesXValArr)
 
-        j = closest.index
+        j = closest.j
       }
     }
 
@@ -158,7 +158,6 @@ export default class Utils {
         const xVal = xArr[j]
         const yVal = yArr[j]
 
-        // Compute Euclidean distance from hover point
         const distX = hoverX - xVal
         const distY = hoverY - yVal
         const dist = Math.sqrt(distX * distX + distY * distY)
@@ -191,7 +190,7 @@ export default class Utils {
     }
 
     return {
-      index: currIndex,
+      j: currIndex,
     }
   }
 
