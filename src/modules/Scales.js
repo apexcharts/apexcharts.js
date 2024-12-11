@@ -587,7 +587,7 @@ export default class Scales {
       // no data in the chart. Either all series collapsed or user passed a blank array
       gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
-      let ticks = gl.xTickAmount + 1
+      let ticks = gl.xTickAmount
 
       if (diff < 10 && diff > 1) {
         ticks = diff
