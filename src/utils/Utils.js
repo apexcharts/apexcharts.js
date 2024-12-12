@@ -92,29 +92,35 @@ class Utils {
     return month % 12
   }
 
-  static clone(source) {
-    if (Utils.is('Array', source)) {
-      let cloneResult = []
-      for (let i = 0; i < source.length; i++) {
-        cloneResult[i] = this.clone(source[i])
-      }
-      return cloneResult
-    } else if (Utils.is('Null', source)) {
-      // fixes an issue where null values were converted to {}
-      return null
-    } else if (Utils.is('Date', source)) {
-      return source
-    } else if (typeof source === 'object') {
-      let cloneResult = {}
-      for (let prop in source) {
-        if (source.hasOwnProperty(prop)) {
-          cloneResult[prop] = this.clone(source[prop])
-        }
-      }
-      return cloneResult
-    } else {
+  static clone(source, visited = new WeakMap()) {
+    if (source === null || typeof source !== 'object') {
       return source
     }
+
+    if (visited.has(source)) {
+      return visited.get(source)
+    }
+
+    let cloneResult
+
+    if (Array.isArray(source)) {
+      cloneResult = []
+      visited.set(source, cloneResult)
+      for (let i = 0; i < source.length; i++) {
+        cloneResult[i] = this.clone(source[i], visited)
+      }
+    } else if (source instanceof Date) {
+      cloneResult = new Date(source.getTime())
+    } else {
+      cloneResult = {}
+      visited.set(source, cloneResult)
+      for (let prop in source) {
+        if (source.hasOwnProperty(prop)) {
+          cloneResult[prop] = this.clone(source[prop], visited)
+        }
+      }
+    }
+    return cloneResult
   }
 
   static log10(x) {
