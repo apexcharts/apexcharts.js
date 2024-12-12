@@ -20,7 +20,11 @@ xaxis: {
 },
 yaxis: {
   tickAmount: 7
-}
+},
+tooltip: {
+  shared: true,
+  intersect: false
+},
 </options>
 
 <series>

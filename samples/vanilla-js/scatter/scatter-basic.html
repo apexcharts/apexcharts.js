@@ -86,7 +86,11 @@
         },
         yaxis: {
           tickAmount: 7
-        }
+        },
+        tooltip: {
+          shared: true,
+          intersect: false
+        },
         };
 
         var chart = new ApexCharts(document.querySelector("#chart"), options);
