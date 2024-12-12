@@ -312,7 +312,7 @@ export default class Position {
 
     let points = ttCtx.tooltipUtil.getAllMarkers()
 
-    if (points !== null) {
+    if (points.length) {
       for (let p = 0; p < w.globals.series.length; p++) {
         let pointArr = pointsArr[p]
 

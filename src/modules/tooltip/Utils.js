@@ -264,7 +264,7 @@ export default class Utils {
     )
   }
 
-  getAllMarkers() {
+  getAllMarkers(filterCollapsed = false) {
     // first get all marker parents. This parent class contains series-index
     // which helps to sort the markers as they are dynamic
     let markersWraps = this.w.globals.dom.baseEl.querySelectorAll(
@@ -272,6 +272,14 @@ export default class Utils {
     )
 
     markersWraps = [...markersWraps]
+
+    if (filterCollapsed) {
+      markersWraps = markersWraps.filter((m) => {
+        const realIndex = Number(m.getAttribute('data:realIndex'))
+        return this.w.globals.collapsedSeriesIndices.indexOf(realIndex) === -1
+      })
+    }
+
     markersWraps.sort((a, b) => {
       var indexA = Number(a.getAttribute('data:realIndex'))
       var indexB = Number(b.getAttribute('data:realIndex'))

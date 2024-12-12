@@ -807,6 +807,14 @@ export default class Tooltip {
 
     const bars = this.tooltipUtil.getElBars()
 
+    const handlePoints = () => {
+      if (w.globals.markers.largestSize > 0) {
+        ttCtx.marker.enlargePoints(j)
+      } else {
+        ttCtx.tooltipPosition.moveDynamicPointsOnHover(j)
+      }
+    }
+
     if (w.config.legend.tooltipHoverFormatter) {
       let legendFormatter = w.config.legend.tooltipHoverFormatter
 
@@ -866,11 +874,7 @@ export default class Tooltip {
       })
 
       if (hasMarkers) {
-        if (w.globals.markers.largestSize > 0) {
-          ttCtx.marker.enlargePoints(j)
-        } else {
-          ttCtx.tooltipPosition.moveDynamicPointsOnHover(j)
-        }
+        handlePoints()
       } else if (this.tooltipUtil.hasBars()) {
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars)
         if (this.barSeriesHeight > 0) {
@@ -881,7 +885,12 @@ export default class Tooltip {
           // de-activate first
           this.deactivateHoverFilter()
 
-          this.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+          let points = ttCtx.tooltipUtil.getAllMarkers(true)
+
+          if (points.length) {
+            handlePoints()
+          }
 
           for (let b = 0; b < paths.length; b++) {
             graphics.pathMouseEnter(paths[b])
