@@ -648,6 +648,12 @@ class TimeScale {
     let month = checkNextMonth.month
     month = changeMonth(date, month)
 
+    // Check if date is greater than 31 and change month if it is
+    if (firstTickValue > 31) {
+      date = 1
+      firstTickValue = date
+    }
+
     // push the first tick in the array
     this.timeScaleArray.push({
       position: firstTickPosition,
