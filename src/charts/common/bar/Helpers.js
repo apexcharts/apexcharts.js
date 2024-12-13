@@ -191,12 +191,14 @@ export default class Helpers {
 
     let fillColor = null
     let seriesNumber = this.barCtx.barOptions.distributed ? j : i
+    let useRangeColor = false
 
     if (this.barCtx.barOptions.colors.ranges.length > 0) {
       const colorRange = this.barCtx.barOptions.colors.ranges
       colorRange.map((range) => {
         if (series[i][j] >= range.from && series[i][j] <= range.to) {
           fillColor = range.color
+          useRangeColor = true
         }
       })
     }
@@ -216,7 +218,10 @@ export default class Helpers {
         : w.config.fill.type,
     })
 
-    return pathFill
+    return {
+      color: pathFill,
+      useRangeColor,
+    }
   }
 
   getStrokeWidth(i, j, realIndex) {

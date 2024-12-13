@@ -224,8 +224,9 @@ class Bar {
         ) {
           const barShadow = this.barHelpers.drawBarShadow({
             color:
-              typeof pathFill === 'string' && pathFill?.indexOf('url') === -1
-                ? pathFill
+              typeof pathFill.color === 'string' &&
+              pathFill.color?.indexOf('url') === -1
+                ? pathFill.color
                 : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
@@ -265,7 +266,8 @@ class Bar {
 
         this.renderSeries({
           realIndex,
-          pathFill,
+          pathFill: pathFill.color,
+          ...(pathFill.useRangeColor ? { lineFill: pathFill.color } : {}),
           j,
           i,
           columnGroupIndex,
