@@ -540,6 +540,21 @@ class CoreUtils {
 
     return w.globals.invalidLogScale ? series : w.globals.seriesLog
   }
+
+  getLogValAtSeriesIndex(val, seriesIndex) {
+    if (val === null) return null
+    const w = this.w
+    let yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex]
+    if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
+      return this.getLogVal(
+        w.config.yaxis[yAxisIndex].logBase,
+        val,
+        seriesIndex
+      )
+    }
+    return val
+  }
+
   getBaseLog(base, value) {
     return Math.log(value) / Math.log(base)
   }

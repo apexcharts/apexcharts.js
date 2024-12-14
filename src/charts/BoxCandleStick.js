@@ -94,6 +94,10 @@ class BoxCandleStick extends Bar {
         'data:realIndex': realIndex,
       })
 
+      let elGoalsMarkers = graphics.group({
+        class: 'apexcharts-bar-goals-markers',
+      })
+
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
@@ -129,6 +133,19 @@ class BoxCandleStick extends Bar {
 
         y = paths.y
         x = paths.x
+
+        const barGoalLine = this.barHelpers.drawGoalLine({
+          barXPosition: paths.barXPosition,
+          barYPosition: paths.barYPosition,
+          goalX: paths.goalX,
+          goalY: paths.goalY,
+          barHeight,
+          barWidth,
+        })
+
+        if (barGoalLine) {
+          elGoalsMarkers.add(barGoalLine)
+        }
 
         // push current X
         if (j > 0) {
@@ -167,6 +184,7 @@ class BoxCandleStick extends Bar {
             barHeight,
             barWidth,
             elDataLabelsWrap,
+            elGoalsMarkers,
             visibleSeries: this.visibleI,
             type: w.config.chart.type,
           })
@@ -198,24 +216,26 @@ class BoxCandleStick extends Bar {
     let i = indexes.i
     let j = indexes.j
 
-    let isPositive = true
-    let colorPos = w.config.plotOptions.candlestick.colors.upward
-    let colorNeg = w.config.plotOptions.candlestick.colors.downward
-    let color = ''
+    const { colors: candleColors } = w.config.plotOptions.candlestick
+    const { colors: boxColors } = this.boxOptions
+    const realIndex = indexes.realIndex
 
-    if (this.isBoxPlot) {
-      color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper]
-    }
+    const getColor = (color) =>
+      Array.isArray(color) ? color[realIndex] : color
+
+    const colorPos = getColor(candleColors.upward)
+    const colorNeg = getColor(candleColors.downward)
 
     const yRatio = this.yRatio[indexes.translationsIndex]
-    let realIndex = indexes.realIndex
 
     const ohlc = this.getOHLCValue(realIndex, j)
     let l1 = zeroH
     let l2 = zeroH
 
-    if (ohlc.o > ohlc.c) {
-      isPositive = false
+    let color = ohlc.o < ohlc.c ? [colorPos] : [colorNeg]
+
+    if (this.isBoxPlot) {
+      color = [getColor(boxColors.lower), getColor(boxColors.upper)]
     }
 
     let y1 = Math.min(ohlc.o, ohlc.c)
@@ -304,8 +324,16 @@ class BoxCandleStick extends Bar {
       pathFrom,
       x,
       y: y2,
+      goalY: this.barHelpers.getGoalValues(
+        'y',
+        null,
+        zeroH,
+        i,
+        j,
+        indexes.translationsIndex
+      ),
       barXPosition,
-      color: this.isBoxPlot ? color : isPositive ? [colorPos] : [colorNeg],
+      color,
     }
   }
 
@@ -407,27 +435,25 @@ class BoxCandleStick extends Bar {
       pathFrom,
       x: x2,
       y,
+      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
       barYPosition,
       color,
     }
   }
   getOHLCValue(i, j) {
     const w = this.w
-
+    const coreUtils = new CoreUtils(this.ctx, w)
+    const h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i)
+    const o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i)
+    const m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i)
+    const c = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleC[i][j], i)
+    const l = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleL[i][j], i)
     return {
-      o: this.isBoxPlot
-        ? w.globals.seriesCandleH[i][j]
-        : w.globals.seriesCandleO[i][j],
-      h: this.isBoxPlot
-        ? w.globals.seriesCandleO[i][j]
-        : w.globals.seriesCandleH[i][j],
-      m: w.globals.seriesCandleM[i][j],
-      l: this.isBoxPlot
-        ? w.globals.seriesCandleC[i][j]
-        : w.globals.seriesCandleL[i][j],
-      c: this.isBoxPlot
-        ? w.globals.seriesCandleL[i][j]
-        : w.globals.seriesCandleC[i][j],
+      o: this.isBoxPlot ? h : o,
+      h: this.isBoxPlot ? o : h,
+      m: m,
+      l: this.isBoxPlot ? c : l,
+      c: this.isBoxPlot ? l : c,
     }
   }
 }

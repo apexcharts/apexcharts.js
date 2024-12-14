@@ -96,6 +96,60 @@ class Fill {
     return this.seriesIndex
   }
 
+  computeColorStops(data, multiColorConfig) {
+    const w = this.w
+    let maxPositive = null
+    let minNegative = null
+
+    for (let value of data) {
+      if (value >= multiColorConfig.threshold) {
+        if (maxPositive === null || value > maxPositive) {
+          maxPositive = value
+        }
+      } else {
+        if (minNegative === null || value < minNegative) {
+          minNegative = value
+        }
+      }
+    }
+
+    if (maxPositive === null) {
+      maxPositive = multiColorConfig.threshold
+    }
+    if (minNegative === null) {
+      minNegative = multiColorConfig.threshold
+    }
+
+    let totalRange =
+      maxPositive -
+      multiColorConfig.threshold +
+      (multiColorConfig.threshold - minNegative)
+
+    if (totalRange === 0) {
+      totalRange = 1
+    }
+
+    let negativePercentage =
+      ((multiColorConfig.threshold - minNegative) / totalRange) * 100
+
+    let offset = 100 - negativePercentage
+
+    offset = Math.max(0, Math.min(offset, 100))
+
+    return [
+      {
+        offset: offset,
+        color: multiColorConfig.colorAboveThreshold,
+        opacity: w.config.fill.opacity,
+      },
+      {
+        offset: 0,
+        color: multiColorConfig.colorBelowThreshold,
+        opacity: w.config.fill.opacity,
+      },
+    ]
+  }
+
   fillPath(opts) {
     let w = this.w
     this.opts = opts
@@ -106,6 +160,10 @@ class Fill {
     let patternFill, gradientFill
 
     this.seriesIndex = this.getSeriesIndex(opts)
+
+    const drawMultiColorLine =
+      cnf.plotOptions.line.colors.colorAboveThreshold &&
+      cnf.plotOptions.line.colors.colorBelowThreshold
 
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
@@ -130,8 +188,19 @@ class Fill {
       ? cnf.fill.opacity[this.seriesIndex]
       : cnf.fill.opacity
 
+    // when line colors needs to be different based on values, we use gradient config to achieve this
+    const useGradient = fillType === 'gradient' || drawMultiColorLine
+
     if (opts.color) {
       fillColor = opts.color
+    }
+
+    if (
+      w.config.series[this.seriesIndex]?.data?.[opts.dataPointIndex]?.fillColor
+    ) {
+      fillColor =
+        w.config.series[this.seriesIndex]?.data?.[opts.dataPointIndex]
+          ?.fillColor
     }
 
     // in case a color is undefined, fallback to white color to prevent runtime error
@@ -143,7 +212,9 @@ class Fill {
     let defaultColor = fillColor
 
     if (fillColor.indexOf('rgb') === -1) {
-      if (fillColor.length < 9) {
+      if (fillColor.indexOf('#') === -1) {
+        defaultColor = fillColor
+      } else if (fillColor.length < 9) {
         // if the hex contains alpha and is of 9 digit, skip the opacity
         defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
       }
@@ -151,7 +222,6 @@ class Fill {
       if (fillColor.indexOf('rgba') > -1) {
         fillOpacity = Utils.getOpacityFromRGBA(fillColor)
       } else {
-        // if rgb color, apply opacity
         defaultColor = Utils.hexToRgba(Utils.rgb2hex(fillColor), fillOpacity)
       }
     }
@@ -167,11 +237,23 @@ class Fill {
       })
     }
 
-    if (fillType === 'gradient') {
+    if (useGradient) {
+      let colorStops = [...cnf.fill.gradient.colorStops] || []
+      let type = cnf.fill.gradient.type
+      if (drawMultiColorLine) {
+        colorStops[this.seriesIndex] = this.computeColorStops(
+          w.globals.series[this.seriesIndex],
+          cnf.plotOptions.line.colors
+        )
+        type = 'vertical'
+      }
+
       gradientFill = this.handleGradientFill({
+        type,
         fillConfig: opts.fillConfig,
         fillColor,
         fillOpacity,
+        colorStops,
         i: this.seriesIndex,
       })
     }
@@ -202,7 +284,7 @@ class Fill {
       }
 
       pathFill = `url(#${patternKey})`
-    } else if (fillType === 'gradient') {
+    } else if (useGradient) {
       pathFill = gradientFill
     } else if (fillType === 'pattern') {
       pathFill = patternFill
@@ -326,7 +408,14 @@ class Fill {
     return patternFill
   }
 
-  handleGradientFill({ fillColor, fillOpacity, fillConfig, i }) {
+  handleGradientFill({
+    type,
+    fillColor,
+    fillOpacity,
+    fillConfig,
+    colorStops,
+    i,
+  }) {
     let fillCnf = this.w.config.fill
 
     if (fillConfig) {
@@ -339,7 +428,7 @@ class Fill {
     let graphics = new Graphics(this.ctx)
     let utils = new Utils()
 
-    let type = fillCnf.gradient.type
+    type = type || fillCnf.gradient.type
     let gradientFrom = fillColor
     let gradientTo
     let opacityFrom =
@@ -414,7 +503,7 @@ class Fill {
       opacityTo,
       opts.size,
       fillCnf.gradient.stops,
-      fillCnf.gradient.colorStops,
+      colorStops,
       i
     )
   }

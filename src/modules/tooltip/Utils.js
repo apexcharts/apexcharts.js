@@ -98,13 +98,13 @@ export default class Utils {
       capturedSeries = closest.index
       j = closest.j
 
-      if (capturedSeries !== null) {
+      if (capturedSeries !== null && w.globals.hasNullValues) {
         // initial push, it should be a little smaller than the 1st val
         seriesXValArr = w.globals.seriesXvalues[capturedSeries]
 
         closest = this.closestInArray(transformedHoverX, seriesXValArr)
 
-        j = closest.index
+        j = closest.j
       }
     }
 
@@ -128,72 +128,52 @@ export default class Utils {
   }
 
   closestInMultiArray(hoverX, hoverY, Xarrays, Yarrays) {
-    let w = this.w
-    let activeIndex = 0
-    let currIndex = null
-    let j = -1
-
-    if (w.globals.series.length > 1) {
-      activeIndex = this.getFirstActiveXArray(Xarrays)
-    } else {
-      currIndex = 0
-    }
-
-    let currX = Xarrays[activeIndex][0]
-    let diffX = Math.abs(hoverX - currX)
-
-    // find nearest point on x-axis
-    Xarrays.forEach((arrX) => {
-      arrX.forEach((x, iX) => {
-        const newDiff = Math.abs(hoverX - x)
-        if (newDiff <= diffX) {
-          diffX = newDiff
-          j = iX
-        }
-      })
-    })
-
-    if (j !== -1) {
-      // find nearest graph on y-axis relevanted to nearest point on x-axis
-      let currY = Yarrays[activeIndex][j]
-      let diffY = Math.abs(hoverY - currY)
-      currIndex = activeIndex
-
-      Yarrays.forEach((arrY, iAY) => {
-        const newDiff = Math.abs(hoverY - arrY[j])
-        if (newDiff <= diffY) {
-          diffY = newDiff
-          currIndex = iAY
-        }
-      })
-    }
-
-    return {
-      index: currIndex,
-      j,
-    }
-  }
-
-  getFirstActiveXArray(Xarrays) {
     const w = this.w
-    let activeIndex = 0
 
-    let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
-      return xarr.length > 0 ? index : -1
-    })
+    // Determine which series are active (not collapsed)
+    const isActiveSeries = (seriesIndex) => {
+      return (
+        w.globals.collapsedSeriesIndices.indexOf(seriesIndex) === -1 &&
+        w.globals.ancillaryCollapsedSeriesIndices.indexOf(seriesIndex) === -1
+      )
+    }
 
-    for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
-      if (
-        firstActiveSeriesIndex[a] !== -1 &&
-        w.globals.collapsedSeriesIndices.indexOf(a) === -1 &&
-        w.globals.ancillaryCollapsedSeriesIndices.indexOf(a) === -1
-      ) {
-        activeIndex = firstActiveSeriesIndex[a]
-        break
+    let closestDist = Infinity
+    let closestSeriesIndex = null
+    let closestPointIndex = null
+
+    // Iterate through all series and points to find the closest (x,y) to (hoverX, hoverY)
+    for (let i = 0; i < Xarrays.length; i++) {
+      if (!isActiveSeries(i)) {
+        continue
+      }
+
+      const xArr = Xarrays[i]
+      const yArr = Yarrays[i]
+
+      // Ensure both xArr and yArr have equal lengths and valid data
+      const len = Math.min(xArr.length, yArr.length)
+
+      for (let j = 0; j < len; j++) {
+        const xVal = xArr[j]
+        const yVal = yArr[j]
+
+        const distX = hoverX - xVal
+        const distY = hoverY - yVal
+        const dist = Math.sqrt(distX * distX + distY * distY)
+
+        if (dist < closestDist) {
+          closestDist = dist
+          closestSeriesIndex = i
+          closestPointIndex = j
+        }
       }
     }
 
-    return activeIndex
+    return {
+      index: closestSeriesIndex,
+      j: closestPointIndex,
+    }
   }
 
   closestInArray(val, arr) {
@@ -210,7 +190,7 @@ export default class Utils {
     }
 
     return {
-      index: currIndex,
+      j: currIndex,
     }
   }
 
@@ -284,7 +264,7 @@ export default class Utils {
     )
   }
 
-  getAllMarkers() {
+  getAllMarkers(filterCollapsed = false) {
     // first get all marker parents. This parent class contains series-index
     // which helps to sort the markers as they are dynamic
     let markersWraps = this.w.globals.dom.baseEl.querySelectorAll(
@@ -292,6 +272,14 @@ export default class Utils {
     )
 
     markersWraps = [...markersWraps]
+
+    if (filterCollapsed) {
+      markersWraps = markersWraps.filter((m) => {
+        const realIndex = Number(m.getAttribute('data:realIndex'))
+        return this.w.globals.collapsedSeriesIndices.indexOf(realIndex) === -1
+      })
+    }
+
     markersWraps.sort((a, b) => {
       var indexA = Number(a.getAttribute('data:realIndex'))
       var indexB = Number(b.getAttribute('data:realIndex'))

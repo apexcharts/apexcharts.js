@@ -184,7 +184,8 @@ class BarStacked extends Bar {
         }
         elSeries = this.renderSeries({
           realIndex,
-          pathFill,
+          pathFill: pathFill.color,
+          ...(pathFill.useRangeColor ? { lineFill: pathFill.color } : {}),
           j,
           i,
           columnGroupIndex,

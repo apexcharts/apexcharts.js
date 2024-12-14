@@ -454,15 +454,8 @@ class Graphics {
       }
     }
 
-    // const defaultFilter = el.filterer
-
-    if (w.config.states.normal.filter.type !== 'none') {
-      filters.getDefaultFilter(el, realIndex)
-    } else {
-      if (w.config.chart.dropShadow.enabled && drawShadow) {
-        const shadow = w.config.chart.dropShadow
-        filters.dropShadow(el, shadow, realIndex)
-      }
+    if (w.config.chart.dropShadow.enabled && drawShadow) {
+      filters.dropShadow(el, w.config.chart.dropShadow, realIndex)
     }
 
     if (bindEventsOnPaths) {
@@ -555,7 +548,7 @@ class Graphics {
     opacityTo,
     size = null,
     stops = null,
-    colorStops = null,
+    colorStops = [],
     i = 0
   ) {
     let w = this.w
@@ -588,7 +581,7 @@ class Graphics {
       w.config.chart.type === 'bubble'
     )
 
-    if (colorStops === null || colorStops.length === 0) {
+    if (!colorStops || colorStops.length === 0) {
       g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
         add.stop(stop1, gfrom, opacityFrom)
         add.stop(stop2, gto, opacityTo)
@@ -889,7 +882,7 @@ class Graphics {
     if (w.config.states.hover.filter.type !== 'none') {
       if (!w.globals.isTouchDevice) {
         let hoverFilter = w.config.states.hover.filter
-        filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
+        filters.applyFilter(path, i, hoverFilter.type)
       }
     }
   }
@@ -947,10 +940,10 @@ class Graphics {
       ) {
         w.globals.selectedDataPoints = []
         const elPaths = w.globals.dom.Paper.find(
-          '.apexcharts-series path'
+          '.apexcharts-series path:not(.apexcharts-decoration-element)'
         )
         const elCircles = w.globals.dom.Paper.find(
-          '.apexcharts-series circle, .apexcharts-series rect'
+          '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)'
         )
 
         const deSelect = (els) => {
@@ -975,13 +968,13 @@ class Graphics {
     if (selected === 'true') {
       let activeFilter = w.config.states.active.filter
       if (activeFilter !== 'none') {
-        filters.applyFilter(path, i, activeFilter.type, activeFilter.value)
+        filters.applyFilter(path, i, activeFilter.type)
       } else {
         // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
         if (w.config.states.hover.filter !== 'none') {
           if (!w.globals.isTouchDevice) {
             var hoverFilter = w.config.states.hover.filter
-            filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
+            filters.applyFilter(path, i, hoverFilter.type)
           }
         }
       }
@@ -993,7 +986,7 @@ class Graphics {
           !w.globals.isTouchDevice
         ) {
           var hoverFilter = w.config.states.hover.filter
-          filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
+          filters.applyFilter(path, i, hoverFilter.type)
         } else {
           filters.getDefaultFilter(path, i)
         }

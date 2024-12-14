@@ -3,7 +3,7 @@ import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 
 /**
- * ApexCharts Markers Class for drawing points on y values in axes charts.
+ * ApexCharts Markers Class for drawing markers on y values in axes charts.
  *
  * @module Markers
  **/
@@ -39,48 +39,31 @@ export default class Markers {
 
     let i = seriesIndex
     let p = pointsPos
-    let elPointsWrap = null
+    let elMarkersWrap = null
 
     let graphics = new Graphics(this.ctx)
-
-    let point
 
     const hasDiscreteMarkers =
       w.config.markers.discrete && w.config.markers.discrete.length
 
-    if (
-      w.globals.markers.size[seriesIndex] > 0 ||
-      alwaysDrawMarker ||
-      hasDiscreteMarkers
-    ) {
-      elPointsWrap = graphics.group({
-        class:
-          alwaysDrawMarker || hasDiscreteMarkers
-            ? ''
-            : 'apexcharts-series-markers',
-      })
-
-      elPointsWrap.attr(
-        'clip-path',
-        `url(#gridRectMarkerMask${w.globals.cuid})`
-      )
-    }
-
     if (Array.isArray(p.x)) {
       for (let q = 0; q < p.x.length; q++) {
+        let markerElement
+
         let dataPointIndex = j
+        const invalidMarker = !Utils.isNumber(p.y[q])
 
         // a small hack as we have 2 points for the first val to connect it
         if (j === 1 && q === 0) dataPointIndex = 0
         if (j === 1 && q === 1) dataPointIndex = 1
 
-        let PointClasses = 'apexcharts-marker'
+        let markerClasses = 'apexcharts-marker'
         if (
           (w.config.chart.type === 'line' || w.config.chart.type === 'area') &&
           !w.globals.comboCharts &&
           !w.config.tooltip.intersect
         ) {
-          PointClasses += ' no-pointer-events'
+          markerClasses += ' no-pointer-events'
         }
 
         const shouldMarkerDraw = Array.isArray(w.config.markers.size)
@@ -88,14 +71,12 @@ export default class Markers {
           : w.config.markers.size > 0
 
         if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
-          if (Utils.isNumber(p.y[q])) {
-            PointClasses += ` w${Utils.randomId()}`
-          } else {
-            PointClasses = 'apexcharts-nullpoint'
+          if (!invalidMarker) {
+            markerClasses += ` w${Utils.randomId()}`
           }
 
           let opts = this.getMarkerConfig({
-            cssClass: PointClasses,
+            cssClass: markerClasses,
             seriesIndex,
             dataPointIndex,
           })
@@ -125,19 +106,41 @@ export default class Markers {
             opts.pSize = 0
           }
 
-          point = graphics.drawMarker(p.x[q], p.y[q], opts)
+          if (!invalidMarker) {
+            const shouldCreateMarkerWrap =
+              w.globals.markers.size[seriesIndex] > 0 ||
+              alwaysDrawMarker ||
+              hasDiscreteMarkers
+            if (shouldCreateMarkerWrap && !elMarkersWrap) {
+              elMarkersWrap = graphics.group({
+                class:
+                  alwaysDrawMarker || hasDiscreteMarkers
+                    ? ''
+                    : 'apexcharts-series-markers',
+              })
+              elMarkersWrap.attr(
+                'clip-path',
+                `url(#gridRectMarkerMask${w.globals.cuid})`
+              )
+            }
+            markerElement = graphics.drawMarker(p.x[q], p.y[q], opts)
 
-          point.attr('rel', dataPointIndex)
-          point.attr('j', dataPointIndex)
-          point.attr('index', seriesIndex)
-          point.node.setAttribute('default-marker-size', opts.pSize)
+            markerElement.attr('rel', dataPointIndex)
+            markerElement.attr('j', dataPointIndex)
+            markerElement.attr('index', seriesIndex)
+            markerElement.node.setAttribute('default-marker-size', opts.pSize)
 
-          const filters = new Filters(this.ctx)
-          filters.setSelectionFilter(point, seriesIndex, dataPointIndex)
-          this.addEvents(point)
+            const filters = new Filters(this.ctx)
+            filters.setSelectionFilter(
+              markerElement,
+              seriesIndex,
+              dataPointIndex
+            )
+            this.addEvents(markerElement)
 
-          if (elPointsWrap) {
-            elPointsWrap.add(point)
+            if (elMarkersWrap) {
+              elMarkersWrap.add(markerElement)
+            }
           }
         } else {
           // dynamic array creation - multidimensional
@@ -149,7 +152,7 @@ export default class Markers {
       }
     }
 
-    return elPointsWrap
+    return elMarkersWrap
   }
 
   getMarkerConfig({

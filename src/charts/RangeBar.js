@@ -191,12 +191,12 @@ class RangeBar extends Bar {
 
         let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
-        let lineFill = w.globals.stroke.colors[realIndex]
-
         this.renderSeries({
           realIndex,
-          pathFill,
-          lineFill,
+          pathFill: pathFill.color,
+          lineFill: pathFill.useRangeColor
+            ? pathFill.color
+            : w.globals.stroke.colors[realIndex],
           j,
           i,
           x,
@@ -269,8 +269,8 @@ class RangeBar extends Bar {
           barYPosition =
             barHeight * this.visibleI +
             (yDivision * (100 - parseInt(this.barOptions.barHeight, 10))) /
-            100 /
-            2 +
+              100 /
+              2 +
             barHeight * (this.visibleI + overlaps.indexOf(rangeName)) +
             yDivision * rowIndex
         }
@@ -293,8 +293,8 @@ class RangeBar extends Bar {
           barXPosition =
             barWidth * this.visibleI +
             (xDivision * (100 - parseInt(this.barOptions.barWidth, 10))) /
-            100 /
-            2 +
+              100 /
+              2 +
             barWidth * (this.visibleI + overlaps.indexOf(rangeName)) +
             xDivision * rowIndex
         }

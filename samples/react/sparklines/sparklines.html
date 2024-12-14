@@ -85,12 +85,12 @@
     </script>
 
     
-    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
     
 
     <script>
@@ -150,17 +150,17 @@
   &lt;div class=&quot;row&quot;&gt;
     &lt;div class=&quot;col-md-4&quot;&gt;
       &lt;div id=&quot;chart-spark1&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;area&quot; height={160} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;area&quot; height={160} /&gt;
 &lt;/div&gt;
     &lt;/div&gt;
     &lt;div class=&quot;col-md-4&quot;&gt;
       &lt;div id=&quot;chart-spark2&quot;&gt;
-  &lt;ReactApexChart options={this.state.optionsSpark2} series={this.state.seriesSpark2} type=&quot;area&quot; height={160} /&gt;
+  &lt;ReactApexChart options={state.optionsSpark2} series={state.seriesSpark2} type=&quot;area&quot; height={160} /&gt;
 &lt;/div&gt;
     &lt;/div&gt;
     &lt;div class=&quot;col-md-4&quot;&gt;
       &lt;div id=&quot;chart-spark3&quot;&gt;
-  &lt;ReactApexChart options={this.state.optionsSpark3} series={this.state.seriesSpark3} type=&quot;area&quot; height={160} /&gt;
+  &lt;ReactApexChart options={state.optionsSpark3} series={state.seriesSpark3} type=&quot;area&quot; height={160} /&gt;
 &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
@@ -179,12 +179,12 @@
           &lt;td&gt;15%&lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-1&quot;&gt;
-  &lt;ReactApexChart options={this.state.options1} series={this.state.series1} type=&quot;line&quot; height={35} width={100} /&gt;
+  &lt;ReactApexChart options={state.options1} series={state.series1} type=&quot;line&quot; height={35} width={100} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-5&quot;&gt;
-  &lt;ReactApexChart options={this.state.options5} series={this.state.series5} type=&quot;bar&quot; height={35} width={100} /&gt;
+  &lt;ReactApexChart options={state.options5} series={state.series5} type=&quot;bar&quot; height={35} width={100} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
@@ -193,12 +193,12 @@
           &lt;td&gt;7%&lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-2&quot;&gt;
-  &lt;ReactApexChart options={this.state.options2} series={this.state.series2} type=&quot;line&quot; height={35} width={100} /&gt;
+  &lt;ReactApexChart options={state.options2} series={state.series2} type=&quot;line&quot; height={35} width={100} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-6&quot;&gt;
-  &lt;ReactApexChart options={this.state.options6} series={this.state.series6} type=&quot;bar&quot; height={35} width={100} /&gt;
+  &lt;ReactApexChart options={state.options6} series={state.series6} type=&quot;bar&quot; height={35} width={100} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
@@ -207,12 +207,12 @@
           &lt;td&gt;9%&lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-3&quot;&gt;
-  &lt;ReactApexChart options={this.state.options3} series={this.state.series3} type=&quot;pie&quot; height={40} width={40} /&gt;
+  &lt;ReactApexChart options={state.options3} series={state.series3} type=&quot;pie&quot; height={40} width={40} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-7&quot;&gt;
-  &lt;ReactApexChart options={this.state.options7} series={this.state.series7} type=&quot;radialBar&quot; height={50} width={50} /&gt;
+  &lt;ReactApexChart options={state.options7} series={state.series7} type=&quot;radialBar&quot; height={50} width={50} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
@@ -221,12 +221,12 @@
           &lt;td&gt;2%&lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-4&quot;&gt;
-  &lt;ReactApexChart options={this.state.options4} series={this.state.series4} type=&quot;donut&quot; height={40} width={40} /&gt;
+  &lt;ReactApexChart options={state.options4} series={state.series4} type=&quot;donut&quot; height={40} width={40} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
           &lt;td&gt;
             &lt;div id=&quot;chart-8&quot;&gt;
-  &lt;ReactApexChart options={this.state.options8} series={this.state.series8} type=&quot;radialBar&quot; height={40} width={40} /&gt;
+  &lt;ReactApexChart options={state.options8} series={state.series8} type=&quot;radialBar&quot; height={40} width={40} /&gt;
 &lt;/div&gt;
           &lt;/td&gt;
         &lt;/tr&gt;
@@ -237,11 +237,8 @@
     </div>
 
     <script type="text/babel">
-      class ApexChart extends React.Component {
-        constructor(props) {
-          super(props);
-
-          this.state = {
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
           
             series: [{
               data: randomizeArray(sparklineData)
@@ -607,29 +604,27 @@
             },
           
           
-          };
-        }
+        });
 
-      
+        
 
-        render() {
-          return (
+        return (
+          <div>
             <div>
-              <div>
                 <div class="row">
                   <div class="col-md-4">
                     <div id="chart-spark1">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="area" height={160} />
+                <ReactApexChart options={state.options} series={state.series} type="area" height={160} />
               </div>
                   </div>
                   <div class="col-md-4">
                     <div id="chart-spark2">
-                <ReactApexChart options={this.state.optionsSpark2} series={this.state.seriesSpark2} type="area" height={160} />
+                <ReactApexChart options={state.optionsSpark2} series={state.seriesSpark2} type="area" height={160} />
               </div>
                   </div>
                   <div class="col-md-4">
                     <div id="chart-spark3">
-                <ReactApexChart options={this.state.optionsSpark3} series={this.state.seriesSpark3} type="area" height={160} />
+                <ReactApexChart options={state.optionsSpark3} series={state.seriesSpark3} type="area" height={160} />
               </div>
                   </div>
                 </div>
@@ -648,12 +643,12 @@
                         <td>15%</td>
                         <td>
                           <div id="chart-1">
-                <ReactApexChart options={this.state.options1} series={this.state.series1} type="line" height={35} width={100} />
+                <ReactApexChart options={state.options1} series={state.series1} type="line" height={35} width={100} />
               </div>
                         </td>
                         <td>
                           <div id="chart-5">
-                <ReactApexChart options={this.state.options5} series={this.state.series5} type="bar" height={35} width={100} />
+                <ReactApexChart options={state.options5} series={state.series5} type="bar" height={35} width={100} />
               </div>
                         </td>
                       </tr>
@@ -662,12 +657,12 @@
                         <td>7%</td>
                         <td>
                           <div id="chart-2">
-                <ReactApexChart options={this.state.options2} series={this.state.series2} type="line" height={35} width={100} />
+                <ReactApexChart options={state.options2} series={state.series2} type="line" height={35} width={100} />
               </div>
                         </td>
                         <td>
                           <div id="chart-6">
-                <ReactApexChart options={this.state.options6} series={this.state.series6} type="bar" height={35} width={100} />
+                <ReactApexChart options={state.options6} series={state.series6} type="bar" height={35} width={100} />
               </div>
                         </td>
                       </tr>
@@ -676,12 +671,12 @@
                         <td>9%</td>
                         <td>
                           <div id="chart-3">
-                <ReactApexChart options={this.state.options3} series={this.state.series3} type="pie" height={40} width={40} />
+                <ReactApexChart options={state.options3} series={state.series3} type="pie" height={40} width={40} />
               </div>
                         </td>
                         <td>
                           <div id="chart-7">
-                <ReactApexChart options={this.state.options7} series={this.state.series7} type="radialBar" height={50} width={50} />
+                <ReactApexChart options={state.options7} series={state.series7} type="radialBar" height={50} width={50} />
               </div>
                         </td>
                       </tr>
@@ -690,12 +685,12 @@
                         <td>2%</td>
                         <td>
                           <div id="chart-4">
-                <ReactApexChart options={this.state.options4} series={this.state.series4} type="donut" height={40} width={40} />
+                <ReactApexChart options={state.options4} series={state.series4} type="donut" height={40} width={40} />
               </div>
                         </td>
                         <td>
                           <div id="chart-8">
-                <ReactApexChart options={this.state.options8} series={this.state.series8} type="radialBar" height={40} width={40} />
+                <ReactApexChart options={state.options8} series={state.series8} type="radialBar" height={40} width={40} />
               </div>
                         </td>
                       </tr>
@@ -703,14 +698,13 @@
                   </table>
                 </div>
               </div>
-              <div id="html-dist"></div>
-            </div>
-          );
-        }
+            <div id="html-dist"></div>
+          </div>
+        );
       }
 
       const domContainer = document.querySelector('#app');
-      ReactDOM.render(React.createElement(ApexChart), domContainer);
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
 
     

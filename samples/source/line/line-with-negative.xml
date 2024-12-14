@@ -1,0 +1,57 @@
+<title>Line with different negative color</title>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'line',
+  zoom: {
+    enabled: false,
+  },
+},
+dataLabels: {
+  enabled: false,
+},
+title: {
+  text: 'Negative color for values less than 0',
+  align: 'left',
+},
+xaxis: {
+  categories: [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ],
+},
+stroke: {
+  width: 5,
+  curve: "monotoneCubic"
+},
+plotOptions: {
+  line: {
+    colors: {
+      threshold: 0,
+      colorAboveThreshold: '#0088ee',
+      colorBelowThreshold: '#ff0000',
+    },
+  },
+}
+</options>
+
+<series>
+[
+  {
+    data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36]
+  }
+]
+</series>
+</chart>

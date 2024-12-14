@@ -59,23 +59,27 @@
           {
             name: 'Q1 Budget',
             group: 'budget',
-            data: [44000, 55000, 41000, 67000, 22000]
+            color: '#80c7fd',
+            data: [44000, 55000, 41000, 67000, 22000],
           },
           {
             name: 'Q1 Actual',
             group: 'actual',
-            data: [48000, 50000, 40000, 65000, 25000]
+            color: '#008FFB',
+            data: [48000, 50000, 40000, 65000, 25000],
           },
           {
             name: 'Q2 Budget',
             group: 'budget',
-            data: [13000, 36000, 20000, 8000, 13000]
+            color: '#80f1cb',
+            data: [13000, 36000, 20000, 8000, 13000],
           },
           {
             name: 'Q2 Actual',
             group: 'actual',
-            data: [20000, 40000, 25000, 10000, 12000]
-          }
+            color: '#00E396',
+            data: [20000, 40000, 25000, 10000, 12000],
+          },
         ],
           chart: {
           type: 'bar',
@@ -113,10 +117,10 @@
         fill: {
           opacity: 1,
         },
-        colors: ['#80c7fd', '#008FFB', '#80f1cb', '#00E396'],
         legend: {
           position: 'top',
-          horizontalAlign: 'left'
+          clusterGroupedSeriesOrientation: "horizontal",
+          horizontalAlign: "left"
         }
         };
 

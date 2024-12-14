@@ -160,7 +160,7 @@ ApexCharts.exec('chart', 'removeAnnotation', 'yaxis-anno')
 </vanilla-js-script>
 
 <react-script>
-componentDidMount() {
+React.useEffect(() => {
   ApexCharts.exec('chart', 'addYaxisAnnotation', {
     id: 'yaxis-anno',
     y: 9000,
@@ -210,7 +210,7 @@ componentDidMount() {
   });
 
   ApexCharts.exec('chart', 'removeAnnotation', 'point-anno');
-}
+}, [])  
 </react-script>
 
 <vue-script>

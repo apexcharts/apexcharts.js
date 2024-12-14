@@ -209,7 +209,10 @@ export default class XAxis {
     if (dataPoints === 0 && labelsLen > dataPoints) dataPoints = labelsLen
 
     if (isXNumeric) {
-      let len = dataPoints > 1 ? dataPoints - 1 : dataPoints
+      let len = Math.max(
+        Number(w.config.xaxis.tickAmount) || 1,
+        dataPoints > 1 ? dataPoints - 1 : dataPoints
+      )
       colWidth = w.globals.gridWidth / Math.min(len, labelsLen - 1)
 
       xPos = xPos + colWidthCb(0, colWidth) / 2 + w.config.xaxis.labels.offsetX

@@ -159,6 +159,10 @@ class Intersect {
       e,
       opt,
     })
+    if (barXY.j === null && barXY.barHeight === 0 && barXY.barWidth === 0) {
+      return // bar was not hovered and didn't receive correct coords
+    }
+
     i = barXY.i
     let j = barXY.j
 
@@ -191,10 +195,6 @@ class Intersect {
       opt.paths.parentNode.getAttribute('data:realIndex'),
       10
     )
-
-    const isReversed = w.globals.isMultipleYAxis
-      ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed
-      : w.config.yaxis[0].reversed
 
     if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
       x = x - ttCtx.tooltipRect.ttWidth

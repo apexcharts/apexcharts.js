@@ -645,7 +645,7 @@ class Line {
       }
 
       // push current X
-      xArrj.push(x)
+      xArrj.push(series[i][j + 1] === null ? null : x)
 
       // push current Y that will be used as next series's bottom position
       if (
@@ -705,6 +705,7 @@ class Line {
 
       if (
         this.appendPathFrom &&
+        !w.globals.hasNullValues &&
         !(curve === 'monotoneCubic' && type === 'rangeArea')
       ) {
         pathFromLine += graphics.line(x, this.areaBottomY)

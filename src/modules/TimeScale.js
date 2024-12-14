@@ -545,6 +545,10 @@ class TimeScale {
       val = firstTickValue
       // in case it's the last date of month, we need to check it
       month = changeMonth(date, currentMonth, currentYear)
+
+      if (val !== 1) {
+        unit = 'day'
+      }
     }
 
     // push the first tick in the array
@@ -635,12 +639,20 @@ class TimeScale {
       hour = 0
       date += 1
       unit = 'day'
+      // Unit changed to day , Value should align unit
+      firstTickValue = date
     }
 
     const checkNextMonth = changeDate(date, currentMonth)
 
     let month = checkNextMonth.month
     month = changeMonth(date, month)
+
+    // Check if date is greater than 31 and change month if it is
+    if (firstTickValue > 31) {
+      date = 1
+      firstTickValue = date
+    }
 
     // push the first tick in the array
     this.timeScaleArray.push({

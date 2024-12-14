@@ -191,18 +191,16 @@ export default class Helpers {
 
     let fillColor = null
     let seriesNumber = this.barCtx.barOptions.distributed ? j : i
+    let useRangeColor = false
 
     if (this.barCtx.barOptions.colors.ranges.length > 0) {
       const colorRange = this.barCtx.barOptions.colors.ranges
       colorRange.map((range) => {
         if (series[i][j] >= range.from && series[i][j] <= range.to) {
           fillColor = range.color
+          useRangeColor = true
         }
       })
-    }
-
-    if (w.config.series[i].data[j]?.fillColor) {
-      fillColor = w.config.series[i].data[j].fillColor
     }
 
     let pathFill = fill.fillPath({
@@ -220,7 +218,10 @@ export default class Helpers {
         : w.config.fill.type,
     })
 
-    return pathFill
+    return {
+      color: pathFill,
+      useRangeColor,
+    }
   }
 
   getStrokeWidth(i, j, realIndex) {
@@ -752,7 +753,7 @@ export default class Helpers {
       stroke: 'none',
       strokeWidth: 0,
       fillOpacity: 1,
-      classes: 'apexcharts-bar-shadows',
+      classes: 'apexcharts-bar-shadow apexcharts-decoration-element',
     })
   }
 

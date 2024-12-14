@@ -42,28 +42,28 @@ p {
   <div class="actions">
     <button
         {% if format == 'vanilla-js' %}id="add"{% endif %}
-        {% if format == 'react' %}onClick={() => this.appendData()}{% endif %}
+        {% if format == 'react' %}onClick={() => appendData()}{% endif %}
         {% if format == 'vue' %}@click="appendData"{% endif %}>
       + ADD
     </button>
     {% if format == 'react' %}&nbsp;{% endif %}
     <button
         {% if format == 'vanilla-js' %}id="remove"{% endif %}
-        {% if format == 'react' %}onClick={() => this.removeData()}{% endif %}
+        {% if format == 'react' %}onClick={() => removeData()}{% endif %}
         {% if format == 'vue' %}@click="removeData"{% endif %}>
       - REMOVE
     </button>
     {% if format == 'react' %}&nbsp;{% endif %}
     <button
         {% if format == 'vanilla-js' %}id="randomize"{% endif %}
-        {% if format == 'react' %}onClick={() => this.randomize()}{% endif %}
+        {% if format == 'react' %}onClick={() => randomize()}{% endif %}
         {% if format == 'vue' %}@click="randomize"{% endif %}>
       RANDOMIZE
     </button>
     {% if format == 'react' %}&nbsp;{% endif %}
     <button
         {% if format == 'vanilla-js' %}id="reset"{% endif %}
-        {% if format == 'react' %}onClick={() => this.reset()}{% endif %}
+        {% if format == 'react' %}onClick={() => reset()}{% endif %}
         {% if format == 'vue' %}@click="reset"{% endif %}>
       RESET
     </button>
@@ -144,36 +144,40 @@ document.querySelector("#reset").addEventListener("click", function() {
 </vanilla-js-script>
 
 <react-script>
-appendData() {
-  var arr = this.state.series.slice()
+function appendData() {
+  var arr = state.series.slice()
   arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
 
-  this.setState({
+  setState({
+    ...state,
     series: arr
   })
 }
 
-removeData() {
-  if(this.state.series.length === 1) return
+function removeData() {
+  if(state.series.length === 1) return
   
-  var arr = this.state.series.slice()
+  var arr = state.series.slice()
   arr.pop()
 
-  this.setState({
+  setState({
+    ...state,
     series: arr
   })
 }
 
-randomize() {
-  this.setState({
-    series: this.state.series.map(function() {
+function randomize() {
+  setState({
+    ...state,
+    series: state.series.map(function() {
       return Math.floor(Math.random() * (100 - 1 + 1)) + 1
     })
   })
 }
 
-reset() {
-  this.setState({
+function reset() {
+  setState({
+    ...state,
     series: [44, 55, 13, 33]
   })
 }

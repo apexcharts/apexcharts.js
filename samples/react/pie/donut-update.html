@@ -59,12 +59,12 @@
     </script>
 
     
-    <script src="https://cdn.jsdelivr.net/npm/react@16.12/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@16.12/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.7.2/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.3.6/dist/react-apexcharts.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
     
 
     <script>
@@ -88,35 +88,35 @@
       &lt;div&gt;
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={this.state.options} series={this.state.series} type=&quot;donut&quot; width={380} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; width={380} /&gt;
 &lt;/div&gt;
   &lt;/div&gt;
 
   &lt;div class=&quot;actions&quot;&gt;
     &lt;button
         
-        onClick={() =&gt; this.appendData()}
+        onClick={() =&gt; appendData()}
         &gt;
       + ADD
     &lt;/button&gt;
     &amp;nbsp;
     &lt;button
         
-        onClick={() =&gt; this.removeData()}
+        onClick={() =&gt; removeData()}
         &gt;
       - REMOVE
     &lt;/button&gt;
     &amp;nbsp;
     &lt;button
         
-        onClick={() =&gt; this.randomize()}
+        onClick={() =&gt; randomize()}
         &gt;
       RANDOMIZE
     &lt;/button&gt;
     &amp;nbsp;
     &lt;button
         
-        onClick={() =&gt; this.reset()}
+        onClick={() =&gt; reset()}
         &gt;
       RESET
     &lt;/button&gt;
@@ -125,11 +125,8 @@
     </div>
 
     <script type="text/babel">
-      class ApexChart extends React.Component {
-        constructor(props) {
-          super(props);
-
-          this.state = {
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
           
             series: [44, 55, 13, 33],
             options: {
@@ -159,93 +156,94 @@
             },
           
           
-          };
-        }
+        });
 
-      
-        appendData() {
-          var arr = this.state.series.slice()
+        
+          function appendData() {
+          var arr = state.series.slice()
           arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
         
-          this.setState({
+          setState({
+            ...state,
             series: arr
           })
         }
         
-        removeData() {
-          if(this.state.series.length === 1) return
+        function removeData() {
+          if(state.series.length === 1) return
           
-          var arr = this.state.series.slice()
+          var arr = state.series.slice()
           arr.pop()
         
-          this.setState({
+          setState({
+            ...state,
             series: arr
           })
         }
         
-        randomize() {
-          this.setState({
-            series: this.state.series.map(function() {
+        function randomize() {
+          setState({
+            ...state,
+            series: state.series.map(function() {
               return Math.floor(Math.random() * (100 - 1 + 1)) + 1
             })
           })
         }
         
-        reset() {
-          this.setState({
+        function reset() {
+          setState({
+            ...state,
             series: [44, 55, 13, 33]
           })
         }
-      
+        
 
-        render() {
-          return (
+        return (
+          <div>
             <div>
-              <div>
                 <div class="chart-wrap">
                   <div id="chart">
-                <ReactApexChart options={this.state.options} series={this.state.series} type="donut" width={380} />
+                <ReactApexChart options={state.options} series={state.series} type="donut" width={380} />
               </div>
                 </div>
               
                 <div class="actions">
                   <button
                       
-                      onClick={() => this.appendData()}
+                      onClick={() => appendData()}
                       >
                     + ADD
                   </button>
                   &nbsp;
                   <button
                       
-                      onClick={() => this.removeData()}
+                      onClick={() => removeData()}
                       >
                     - REMOVE
                   </button>
                   &nbsp;
                   <button
                       
-                      onClick={() => this.randomize()}
+                      onClick={() => randomize()}
                       >
                     RANDOMIZE
                   </button>
                   &nbsp;
                   <button
                       
-                      onClick={() => this.reset()}
+                      onClick={() => reset()}
                       >
                     RESET
                   </button>
                 </div>
               </div>
-              <div id="html-dist"></div>
-            </div>
-          );
-        }
+            <div id="html-dist"></div>
+          </div>
+        );
       }
 
       const domContainer = document.querySelector('#app');
-      ReactDOM.render(React.createElement(ApexChart), domContainer);
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
 
     

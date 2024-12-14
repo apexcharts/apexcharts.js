@@ -151,7 +151,7 @@ class Bar {
       xDivision = initPositions.xDivision
       zeroH = initPositions.zeroH
 
-      if (!this.horizontal) {
+      if (!this.isHorizontal) {
         xArrj.push(x + barWidth / 2)
       }
 
@@ -224,15 +224,19 @@ class Bar {
         ) {
           const barShadow = this.barHelpers.drawBarShadow({
             color:
-              typeof pathFill === 'string' && pathFill?.indexOf('url') === -1
-                ? pathFill
+              typeof pathFill.color === 'string' &&
+              pathFill.color?.indexOf('url') === -1
+                ? pathFill.color
                 : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
           })
 
-          if (barShadow) {
-            elBarShadows.add(barShadow)
+          elBarShadows.add(barShadow)
+
+          if (w.config.chart.dropShadow.enabled) {
+            const filters = new Filters(this.ctx)
+            filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex)
           }
         }
         this.pathArr.push(paths)
@@ -262,7 +266,8 @@ class Bar {
 
         this.renderSeries({
           realIndex,
-          pathFill,
+          pathFill: pathFill.color,
+          ...(pathFill.useRangeColor ? { lineFill: pathFill.color } : {}),
           j,
           i,
           columnGroupIndex,
@@ -633,7 +638,7 @@ class Bar {
     if (!w.globals.seriesX[realIndex].length) {
       sxI = w.globals.maxValsInArrayIndex
     }
-    if (w.globals.seriesX[sxI][j]) {
+    if (Utils.isNumber(w.globals.seriesX[sxI][j])) {
       x =
         (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
         (barWidth * this.seriesLen) / 2

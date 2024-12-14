@@ -43,7 +43,7 @@ declare class ApexCharts {
   clearAnnotations(options?: any): void
   dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
   static exec(chartID: string, fn: string, ...args: Array<any>): any
-  static getChartByID(chartID: string): ApexCharts|undefined
+  static getChartByID(chartID: string): ApexCharts | undefined
   static initOnLoad(): void
   exports: {
     cleanup(): string
@@ -101,22 +101,22 @@ type ApexChart = {
   width?: string | number
   height?: string | number
   type?:
-    | 'line'
-    | 'area'
-    | 'bar'
-    | 'pie'
-    | 'donut'
-    | 'radialBar'
-    | 'scatter'
-    | 'bubble'
-    | 'heatmap'
-    | 'candlestick'
-    | 'boxPlot'
-    | 'radar'
-    | 'polarArea'
-    | 'rangeBar'
-    | 'rangeArea'
-    | 'treemap'
+  | 'line'
+  | 'area'
+  | 'bar'
+  | 'pie'
+  | 'donut'
+  | 'radialBar'
+  | 'scatter'
+  | 'bubble'
+  | 'heatmap'
+  | 'candlestick'
+  | 'boxPlot'
+  | 'radar'
+  | 'polarArea'
+  | 'rangeBar'
+  | 'rangeArea'
+  | 'treemap'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -260,23 +260,15 @@ type ApexChart = {
 }
 
 type ApexStates = {
-  normal?: {
-    filter?: {
-      type?: string
-      value?: number
-    }
-  }
   hover?: {
     filter?: {
       type?: string
-      value?: number
     }
   }
   active?: {
     allowMultipleDataPointsSelection?: boolean
     filter?: {
       type?: string
-      value?: number
     }
   }
 }
@@ -322,21 +314,29 @@ type ApexAxisChartSeries = {
   hidden?: boolean
   zIndex?: number
   data:
-    | (number | null)[]
-    | {
-        x: any;
-        y: any;
-        fill?: ApexFill;
-        fillColor?: string;
-        strokeColor?: string;
-        meta?: any;
-        goals?: any;
-        barHeightOffset?: number;
-        columnWidthOffset?: number;
-      }[]
-    | [number, number | null][]
-    | [number, (number | null)[]][]
-    | number[][];
+  | (number | null)[]
+  | {
+    x: any;
+    y: any;
+    fill?: ApexFill;
+    fillColor?: string;
+    strokeColor?: string;
+    meta?: any;
+    goals?: {
+      name?: string,
+      value: number,
+      strokeHeight?: number;
+      strokeWidth?: number;
+      strokeColor?: string;
+      strokeDashArray?: number;
+      strokeLineCap?: 'butt' | 'square' | 'round'
+    }[];
+    barHeightOffset?: number;
+    columnWidthOffset?: number;
+  }[]
+  | [number, number | null][]
+  | [number, (number | null)[]][]
+  | number[][];
 }[]
 
 type ApexNonAxisChartSeries = number[]
@@ -514,6 +514,11 @@ type ApexLocale = {
 type ApexPlotOptions = {
   line?: {
     isSlopeChart?: boolean
+    colors?: {
+      threshold?: number,
+      colorAboveThreshold?: string,
+      colorBelowThreshold?: string,
+    },
   }
   area?: {
     fillTo?: 'origin' | 'end'
@@ -569,8 +574,8 @@ type ApexPlotOptions = {
   }
   candlestick?: {
     colors?: {
-      upward?: string
-      downward?: string
+      upward?: string | string[]
+      downward?: string | string[]
     }
     wick?: {
       useFillColor?: boolean
@@ -578,8 +583,8 @@ type ApexPlotOptions = {
   }
   boxPlot?: {
     colors?: {
-      upper?: string,
-      lower?: string
+      upper?: string | string[]
+      lower?: string | string[]
     }
   }
   heatmap?: {
@@ -822,6 +827,8 @@ type ApexLegend = {
   formatter?(legendName: string, opts?: any): string
   tooltipHoverFormatter?(legendName: string, opts?: any): string
   customLegendItems?: string[]
+  clusterGroupedSeries?: boolean;
+  clusterGroupedSeriesOrientation?: string;
   labels?: {
     colors?: string | string[]
     useSeriesColors?: boolean
@@ -923,7 +930,7 @@ type ApexDataLabels = {
     dropShadow?: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
-  formatter?(val: string | number | number[], opts?: any): string | number | string[]
+  formatter?(val: string | number | number[], opts?: any): string | number | (string | string)[]
 }
 
 type ApexResponsive = {
@@ -1016,7 +1023,7 @@ type ApexXAxis = {
     offsetX?: number
     offsetY?: number
     format?: string
-    formatter?(value: string, timestamp?: number, opts?:any): string | string[]
+    formatter?(value: string, timestamp?: number, opts?: any): string | string[]
     datetimeUTC?: boolean
     datetimeFormatter?: {
       year?: string
@@ -1028,14 +1035,14 @@ type ApexXAxis = {
     }
   }
   group?: {
-      groups?: { title: string, cols: number }[],
-      style?:  {
-        colors?: string | string[]
-        fontSize?: string
-        fontFamily?: string
-        fontWeight?: string | number
-        cssClass?: string
-      }
+    groups?: { title: string, cols: number }[],
+    style?: {
+      colors?: string | string[]
+      fontSize?: string
+      fontFamily?: string
+      fontWeight?: string | number
+      cssClass?: string
+    }
   }
   axisBorder?: {
     show?: boolean
