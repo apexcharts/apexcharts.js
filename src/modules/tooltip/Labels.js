@@ -238,7 +238,7 @@ export default class Labels {
     if (typeof yLbTitleFormatter !== 'function') {
       yLbTitleFormatter = function (label) {
         // refrence used from line: 966 in Options.js
-         return label ? label + ': ' : ''
+        return label ? label + ': ' : ''
       }
     }
 
@@ -523,8 +523,7 @@ export default class Labels {
       fn = fn[i]
     }
 
-    // override everything with a custom html tooltip and replace it
-    tooltipEl.innerHTML = fn({
+    const customTooltip = fn({
       ctx: this.ctx,
       series: w.globals.series,
       seriesIndex: i,
@@ -533,5 +532,15 @@ export default class Labels {
       y2,
       w,
     })
+
+    if (typeof customTooltip === 'string') {
+      tooltipEl.innerHTML = customTooltip
+    } else if (
+      customTooltip instanceof Element ||
+      typeof customTooltip.nodeName === 'string'
+    ) {
+      tooltipEl.innerHTML = ''
+      tooltipEl.appendChild(customTooltip)
+    }
   }
 }
