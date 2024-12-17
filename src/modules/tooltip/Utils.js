@@ -127,6 +127,27 @@ export default class Utils {
     }
   }
 
+  getFirstActiveXArray(Xarrays) {
+    const w = this.w
+    let activeIndex = 0
+
+    let firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
+      return xarr.length > 0 ? index : -1
+    })
+
+    for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
+      if (
+        firstActiveSeriesIndex[a] !== -1 &&
+        w.globals.collapsedSeriesIndices.indexOf(a) === -1 &&
+        w.globals.ancillaryCollapsedSeriesIndices.indexOf(a) === -1
+      ) {
+        activeIndex = firstActiveSeriesIndex[a]
+        break
+      }
+    }
+    return activeIndex
+  }
+
   closestInMultiArray(hoverX, hoverY, Xarrays, Yarrays) {
     const w = this.w
 

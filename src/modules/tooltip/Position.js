@@ -309,6 +309,9 @@ export default class Position {
       cx = pointsArr[activeSeries][j][0]
       cy = pointsArr[activeSeries][j][1]
     }
+    if (isNaN(cx)) {
+      return
+    }
 
     let points = ttCtx.tooltipUtil.getAllMarkers()
 
