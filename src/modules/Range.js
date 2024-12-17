@@ -565,31 +565,34 @@ class Range {
     if (gl.isXNumeric) {
       // get the least x diff if numeric x axis is present
       gl.seriesX.forEach((sX, i) => {
-        if (sX.length === 1) {
-          // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
-          // fix #811
-          sX.push(
-            gl.seriesX[gl.maxValsInArrayIndex][
-              gl.seriesX[gl.maxValsInArrayIndex].length - 1
-            ]
-          )
-        }
-
-        // fix #983 (clone the array to avoid side effects)
-        const seriesX = sX.slice()
-        seriesX.sort((a, b) => a - b)
-
-        seriesX.forEach((s, j) => {
-          if (j > 0) {
-            let xDiff = s - seriesX[j - 1]
-            if (xDiff > 0) {
-              gl.minXDiff = Math.min(xDiff, gl.minXDiff)
-            }
+        if (sX.length) {
+          if (sX.length === 1) {
+            // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
+            // fix #811
+            sX.push(
+              gl.seriesX[gl.maxValsInArrayIndex][
+                gl.seriesX[gl.maxValsInArrayIndex].length - 1
+              ]
+            )
           }
-        })
-        if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
-          // fixes apexcharts.js #1221
-          gl.minXDiff = 0.5
+
+          // fix #983 (clone the array to avoid side effects)
+          const seriesX = sX.slice()
+          seriesX.sort((a, b) => a - b)
+
+          seriesX.forEach((s, j) => {
+            if (j > 0) {
+              let xDiff = s - seriesX[j - 1]
+              if (xDiff > 0) {
+                gl.minXDiff = Math.min(xDiff, gl.minXDiff)
+              }
+            }
+          })
+
+          if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
+            // fixes apexcharts.js #1221
+            gl.minXDiff = 0.5
+          }
         }
       })
     }
