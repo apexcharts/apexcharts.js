@@ -79,7 +79,8 @@ export default class HeatMap {
       let j = 0
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
         // Recognize gaps and align values based on x axis
-        if (w.globals.seriesX.length) {
+
+        if (w.globals.seriesX.length && !w.globals.allSeriesHasEqualX) {
           if (
             w.globals.minX + w.globals.minXDiff * dIndex <
             w.globals.seriesX[i][j]
