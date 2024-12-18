@@ -148,23 +148,12 @@ class Utils {
     return (Math.random() + 1).toString(36).substring(4)
   }
 
-  static noExponents(val) {
-    let data = String(val).split(/[eE]/)
-    if (data.length === 1) return data[0]
-
-    let z = '',
-      sign = val < 0 ? '-' : '',
-      str = data[0].replace('.', ''),
-      mag = Number(data[1]) + 1
-
-    if (mag < 0) {
-      z = sign + '0.'
-      while (mag++) z += '0'
-      return z + str.replace(/^-/, '')
+  static noExponents(num) {
+    // Check if the number contains 'e' (exponential notation)
+    if (num.toString().includes('e')) {
+      return Math.round(num) // Round the number
     }
-    mag -= str.length
-    while (mag--) z += '0'
-    return str + z
+    return num // Return as-is if no exponential notation
   }
 
   static elementExists(element) {

@@ -138,7 +138,7 @@ export default class Helpers {
 
       x =
         w.globals.padHorizontal +
-        (xDivision - barWidth * this.barCtx.seriesLen) / 2
+        Utils.noExponents(xDivision - barWidth * this.barCtx.seriesLen) / 2
     }
 
     w.globals.barHeight = barHeight
