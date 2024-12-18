@@ -138,7 +138,7 @@ export default class Helpers {
 
       x =
         w.globals.padHorizontal +
-        (xDivision - barWidth * this.barCtx.seriesLen) / 2
+        this.roundTooSmallerValue(xDivision - barWidth * this.barCtx.seriesLen) / 2
     }
 
     w.globals.barHeight = barHeight
@@ -801,5 +801,10 @@ export default class Helpers {
       columnGroupIndex = cGI.length - 1
     }
     return { groupIndex, columnGroupIndex }
+  }
+
+  roundTooSmallerValue(value) {
+    if (value < 0.000001) return 0;
+    return value;
   }
 }
