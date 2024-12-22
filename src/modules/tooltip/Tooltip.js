@@ -149,8 +149,6 @@ export default class Tooltip {
       point.classList.add('apexcharts-tooltip-marker')
       point.style.color = w.globals.colors[i]
 
-      console.log(w.globals.colors)
-
       let mShape = w.config.markers.shape
       let shape = mShape
       if (Array.isArray(mShape)) {
