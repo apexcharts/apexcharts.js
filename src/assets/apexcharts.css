@@ -696,6 +696,10 @@ rect.legend-mouseover-inactive,
   transition: .15s ease all
 }
 
+.apexcharts-radar-series .apexcharts-yaxis {
+  pointer-events: none;
+}
+
 .resize-triggers {
   animation: 1ms resizeanim;
   visibility: hidden;
