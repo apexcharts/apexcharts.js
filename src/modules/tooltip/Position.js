@@ -370,6 +370,10 @@ export default class Position {
       ? w.globals.columnSeries.length
       : w.globals.series.length
 
+    if (w.config.chart.stacked) {
+      barLen = w.globals.barGroups.length
+    }
+
     let i =
       barLen >= 2 && barLen % 2 === 0
         ? Math.floor(barLen / 2)
