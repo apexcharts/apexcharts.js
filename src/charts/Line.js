@@ -297,6 +297,25 @@ class Line {
       'data:realIndex': realIndex,
     })
 
+    if (w.globals.hasNullValues) {
+      // fixes https://github.com/apexcharts/apexcharts.js/issues/3641
+      const firstPoint = this.markers.plotChartMarkers(
+        {
+          x: [w.globals.minX - 100],
+          y: [w.globals.minY - 100],
+        },
+        i,
+        0,
+        0.1,
+        true
+      )
+
+      if (firstPoint !== null) {
+        // firstPoint is rendered for cases where there are null values and when dynamic markers are required
+        this.elPointsMain.add(firstPoint)
+      }
+    }
+
     // eldatalabels
     this.elDataLabelsWrap = graphics.group({
       class: 'apexcharts-datalabels',
@@ -587,7 +606,7 @@ class Line {
     let segmentStartX
 
     for (let j = 0; j < iterations; j++) {
-      if (series[i].length === 0) break;
+      if (series[i].length === 0) break
 
       const isNull =
         typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
@@ -956,7 +975,10 @@ class Line {
               areaPath = graphics.move(pX, pY)
 
               // Check for single isolated point
-              if (series[i][j + 1] === null || typeof series[i][j + 1] === 'undefined') {
+              if (
+                series[i][j + 1] === null ||
+                typeof series[i][j + 1] === 'undefined'
+              ) {
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
                 // Stay in pathState = 0;
@@ -1045,7 +1067,10 @@ class Line {
               areaPath = graphics.move(pX, pY)
 
               // Check for single isolated point
-              if (series[i][j + 1] === null || typeof series[i][j + 1] === 'undefined') {
+              if (
+                series[i][j + 1] === null ||
+                typeof series[i][j + 1] === 'undefined'
+              ) {
                 linePaths.push(linePath)
                 areaPaths.push(areaPath)
                 // Stay in pathState = 0
