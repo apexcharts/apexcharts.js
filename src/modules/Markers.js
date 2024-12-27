@@ -34,7 +34,14 @@ export default class Markers {
     }
   }
 
-  plotChartMarkers(pointsPos, seriesIndex, j, pSize, alwaysDrawMarker = false) {
+  plotChartMarkers({
+    pointsPos,
+    seriesIndex,
+    j,
+    pSize,
+    alwaysDrawMarker = false,
+    isVirtualPoint = false,
+  }) {
     let w = this.w
 
     let i = seriesIndex
@@ -51,7 +58,11 @@ export default class Markers {
         let markerElement
 
         let dataPointIndex = j
-        const invalidMarker = !Utils.isNumber(p.y[q])
+        let invalidMarker = !Utils.isNumber(p.y[q])
+
+        if (w.globals.series[i][j + 1] !== null && !isVirtualPoint) {
+          invalidMarker = true
+        }
 
         // a small hack as we have 2 points for the first val to connect it
         if (j === 1 && q === 0) dataPointIndex = 0

@@ -299,16 +299,17 @@ class Line {
 
     if (w.globals.hasNullValues) {
       // fixes https://github.com/apexcharts/apexcharts.js/issues/3641
-      const firstPoint = this.markers.plotChartMarkers(
-        {
+      const firstPoint = this.markers.plotChartMarkers({
+        pointsPos: {
           x: [w.globals.minX - 100],
           y: [w.globals.minY - 100],
         },
-        i,
-        0,
-        0.1,
-        true
-      )
+        seriesIndex: i,
+        j: 0,
+        pSize: 0.1,
+        alwaysDrawMarker: true,
+        isVirtualPoint: true,
+      })
 
       if (firstPoint !== null) {
         // firstPoint is rendered for cases where there are null values and when dynamic markers are required
@@ -764,11 +765,11 @@ class Line {
         this.elPointsMain.node.classList.add('apexcharts-element-hidden')
       }
 
-      let elPointsWrap = this.markers.plotChartMarkers(
+      let elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
-        realIndex,
-        j + 1
-      )
+        seriesIndex: realIndex,
+        j: j + 1,
+      })
       if (elPointsWrap !== null) {
         this.elPointsMain.add(elPointsWrap)
       }
@@ -1150,14 +1151,15 @@ class Line {
       if (!(pSize > 0)) {
         pSize = 0
       }
+
       // fixes apexcharts.js#1282, #1252
-      let elPointsWrap = this.markers.plotChartMarkers(
+      let elPointsWrap = this.markers.plotChartMarkers({
         pointsPos,
-        realIndex,
-        j + 1,
+        seriesIndex: realIndex,
+        j: j + 1,
         pSize,
-        true
-      )
+        alwaysDrawMarker: true,
+      })
       if (elPointsWrap !== null) {
         this.elPointsMain.add(elPointsWrap)
       }
