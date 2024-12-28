@@ -60,7 +60,11 @@ export default class Markers {
         let dataPointIndex = j
         let invalidMarker = !Utils.isNumber(p.y[q])
 
-        if (w.globals.series[i][j + 1] !== null && !isVirtualPoint) {
+        if (
+          w.globals.hasNullValues &&
+          w.globals.series[i][j + 1] !== null &&
+          !isVirtualPoint
+        ) {
           invalidMarker = true
         }
 
