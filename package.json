@@ -8,6 +8,7 @@
   },
   "main": "dist/apexcharts.common.js",
   "es2020": "dist/apexcharts.esm.js",
+  "module": "dist/apexcharts.esm.js",
   "unpkg": "dist/apexcharts.js",
   "jsdelivr": "dist/apexcharts.js",
   "typings": "types/apexcharts.d.ts",
