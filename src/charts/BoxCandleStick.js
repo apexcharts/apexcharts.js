@@ -74,7 +74,7 @@ class BoxCandleStick extends Bar {
         translationsIndex = realIndex
       }
 
-      let initPositions = this.barHelpers.initialPositions()
+      let initPositions = this.barHelpers.initialPositions(realIndex)
 
       y = initPositions.y
       barHeight = initPositions.barHeight

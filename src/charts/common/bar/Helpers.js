@@ -50,7 +50,7 @@ export default class Helpers {
     }
   }
 
-  initialPositions() {
+  initialPositions(realIndex) {
     let w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
 
@@ -136,9 +136,19 @@ export default class Helpers {
           ? this.barCtx.baseLineY[this.barCtx.translationsIndex] * 2
           : 0)
 
-      x =
-        w.globals.padHorizontal +
-        Utils.noExponents(xDivision - barWidth * this.barCtx.seriesLen) / 2
+      if (w.globals.isXNumeric) {
+        const xForNumericX = this.barCtx.getBarXForNumericXAxis({
+          x,
+          j: 0,
+          realIndex,
+          barWidth,
+        })
+        x = xForNumericX.x
+      } else {
+        x =
+          w.globals.padHorizontal +
+          Utils.noExponents(xDivision - barWidth * this.barCtx.seriesLen) / 2
+      }
     }
 
     w.globals.barHeight = barHeight

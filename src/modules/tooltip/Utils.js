@@ -172,16 +172,18 @@ export default class Utils {
       const xArr = Xarrays[i]
       const yArr = Yarrays[i]
 
-      // Ensure both xArr and yArr have equal lengths and valid data
       const len = Math.min(xArr.length, yArr.length)
 
       for (let j = 0; j < len; j++) {
         const xVal = xArr[j]
-        const yVal = yArr[j]
-
         const distX = hoverX - xVal
-        const distY = hoverY - yVal
-        const dist = Math.sqrt(distX * distX + distY * distY)
+        let dist = Math.sqrt(distX * distX)
+
+        if (!w.globals.allSeriesHasEqualX) {
+          const yVal = yArr[j]
+          const distY = hoverY - yVal
+          dist = Math.sqrt(distX * distX + distY * distY)
+        }
 
         if (dist < closestDist) {
           closestDist = dist

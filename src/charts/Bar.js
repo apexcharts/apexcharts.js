@@ -139,7 +139,7 @@ class Bar {
         w.config.yaxis[this.yaxisIndex] &&
         w.config.yaxis[this.yaxisIndex].reversed
 
-      let initPositions = this.barHelpers.initialPositions()
+      let initPositions = this.barHelpers.initialPositions(realIndex)
 
       y = initPositions.y
       barHeight = initPositions.barHeight

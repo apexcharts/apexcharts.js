@@ -59,7 +59,7 @@ class RangeBar extends Bar {
         translationsIndex = realIndex
       }
 
-      let initPositions = this.barHelpers.initialPositions()
+      let initPositions = this.barHelpers.initialPositions(realIndex)
 
       y = initPositions.y
       zeroW = initPositions.zeroW
