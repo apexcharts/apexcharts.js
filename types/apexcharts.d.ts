@@ -627,6 +627,28 @@ type ApexPlotOptions = {
       min?: number
       max?: number
     };
+    seriesTitle?: {
+      show?: boolean,
+      offsetY?: number,
+      offsetX?: number,
+      borderColor?: string,
+      borderWidth?: number,
+      borderRadius?: number,
+      style?: {
+        background?: string,
+        color?: string,
+        fontSize?: string,
+        fontFamily?: string,
+        fontWeight?: number | string,
+        cssClass?: string,
+        padding?: {
+          left?: number,
+          right?: number,
+          top?: number,
+          bottom?: number,
+        },
+      },
+    }
   }
   pie?: {
     startAngle?: number

@@ -505,6 +505,28 @@ export default class Options {
             min: undefined,
             max: undefined,
           },
+          seriesTitle: {
+            show: true,
+            offsetY: 1,
+            offsetX: 1,
+            borderColor: '#000',
+            borderWidth: 1,
+            borderRadius: 2,
+            style: {
+              background: 'rgba(0, 0, 0, 0.6)',
+              color: '#fff',
+              fontSize: '12px',
+              fontFamily: undefined,
+              fontWeight: 400,
+              cssClass: '',
+              padding: {
+                left: 6,
+                right: 6,
+                top: 2,
+                bottom: 2,
+              },
+            },
+          },
         },
         radialBar: {
           inverseOrder: false,

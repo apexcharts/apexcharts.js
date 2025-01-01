@@ -80,60 +80,99 @@
               name: 'Desktops',
               data: [
                 {
-                  x: 'ABC',
-                  y: 10
+                  x: 'Apple',
+                  y: 50,
                 },
                 {
-                  x: 'DEF',
-                  y: 60
+                  x: 'Acer',
+                  y: 30,
                 },
                 {
-                  x: 'XYZ',
-                  y: 41
-                }
-              ]
+                  x: 'Asus',
+                  y: 21,
+                },
+              ],
+            },
+            {
+              name: 'Laptops',
+              data: [
+                {
+                  x: 'Dell',
+                  y: 21,
+                },
+                {
+                  x: 'HP',
+                  y: 16,
+                },
+                {
+                  x: 'Lenovo',
+                  y: 20,
+                },
+              ],
+            },
+            {
+              name: 'Tablets',
+              data: [
+                {
+                  x: 'Samsung',
+                  y: 4,
+                },
+                {
+                  x: 'Huawei',
+                  y: 7,
+                },
+                {
+                  x: 'Microsoft',
+                  y: 11,
+                },
+                {
+                  x: 'Amazon',
+                  y: 31,
+                },
+                {
+                  x: 'Lenovo',
+                  y: 13,
+                },
+              ],
             },
             {
               name: 'Mobile',
               data: [
                 {
-                  x: 'ABCD',
-                  y: 10
+                  x: 'Apple',
+                  y: 10,
                 },
                 {
-                  x: 'DEFG',
-                  y: 20
+                  x: 'Samsung',
+                  y: 20,
                 },
                 {
-                  x: 'WXYZ',
-                  y: 51
+                  x: 'Huawei',
+                  y: 51,
                 },
                 {
-                  x: 'PQR',
-                  y: 30
+                  x: 'Xiaomi',
+                  y: 30,
                 },
-                {
-                  x: 'MNO',
-                  y: 20
-                },
-                {
-                  x: 'CDE',
-                  y: 30
-                }
-              ]
-            }
+              ],
+            },
           ],
           chartOptions: {
             legend: {
-              show: false
+              show: true,
+              offsetY: 10,
+              height: 30,
             },
             chart: {
               height: 350,
-              type: 'treemap'
+              type: 'treemap',
             },
             title: {
               text: 'Multi-dimensional Treemap',
-              align: 'center'
+              align: 'center',
+            },
+            plotOptions: {
+              treemap: {},
             }
           },
           

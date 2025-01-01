@@ -76,33 +76,23 @@ export default class TreemapChart {
         class: 'apexcharts-data-labels',
       })
 
+      let bounds = {
+        xMin: Infinity,
+        yMin: Infinity,
+        xMax: -Infinity,
+        yMax: -Infinity,
+      }
+
       node.forEach((r, j) => {
         const x1 = r[0]
         const y1 = r[1]
         const x2 = r[2]
         const y2 = r[3]
-        let elRect = graphics.drawRect(
-          x1,
-          y1,
-          x2 - x1,
-          y2 - y1,
-          w.config.plotOptions.treemap.borderRadius,
-          '#fff',
-          1,
-          this.strokeWidth,
-          w.config.plotOptions.treemap.useFillColorAsStroke
-            ? color
-            : w.globals.stroke.colors[i]
-        )
-        elRect.attr({
-          cx: x1,
-          cy: y1,
-          index: i,
-          i,
-          j,
-          width: x2 - x1,
-          height: y2 - y1,
-        })
+
+        bounds.xMin = Math.min(bounds.xMin, x1)
+        bounds.yMin = Math.min(bounds.yMin, y1)
+        bounds.xMax = Math.max(bounds.xMax, x2)
+        bounds.yMax = Math.max(bounds.yMax, y2)
 
         let colorProps = this.helpers.getShadeColor(
           w.config.chart.type,
@@ -118,11 +108,32 @@ export default class TreemapChart {
           dataPointIndex: j,
         })
 
-        elRect.node.classList.add('apexcharts-treemap-rect')
+        let elRect = graphics.drawRect(
+          x1,
+          y1,
+          x2 - x1,
+          y2 - y1,
+          w.config.plotOptions.treemap.borderRadius,
+          '#fff',
+          1,
+          this.strokeWidth,
+          w.config.plotOptions.treemap.useFillColorAsStroke
+            ? color
+            : w.globals.stroke.colors[i]
+        )
 
         elRect.attr({
+          cx: x1,
+          cy: y1,
+          index: i,
+          i,
+          j,
+          width: x2 - x1,
+          height: y2 - y1,
           fill: pathFill,
         })
+
+        elRect.node.classList.add('apexcharts-treemap-rect')
 
         this.helpers.addListeners(elRect)
 
@@ -183,7 +194,6 @@ export default class TreemapChart {
           )
         }
         let dataLabels = null
-
         if (w.globals.series[i][j]) {
           dataLabels = this.helpers.calculateDataLabels({
             text: formattedText,
@@ -208,13 +218,75 @@ export default class TreemapChart {
           )
         }
         elSeries.add(elRect)
-
         if (dataLabels !== null) {
           elSeries.add(dataLabels)
         }
       })
-      elSeries.add(elDataLabelWrap)
 
+      const seriesTitle = w.config.plotOptions.treemap.seriesTitle
+      if (w.config.series.length > 1 && seriesTitle && seriesTitle.show) {
+        const sName = w.config.series[i].name || ''
+
+        if (sName && bounds.xMin < Infinity && bounds.yMin < Infinity) {
+          const {
+            offsetX,
+            offsetY,
+            borderColor,
+            borderWidth,
+            borderRadius,
+            style,
+          } = seriesTitle
+
+          const textColor = style.color || w.config.chart.foreColor
+          const padding = {
+            left: style.padding.left,
+            right: style.padding.right,
+            top: style.padding.top,
+            bottom: style.padding.bottom,
+          }
+
+          const textSize = graphics.getTextRects(
+            sName,
+            style.fontSize,
+            style.fontFamily
+          )
+          const labelRectWidth = textSize.width + padding.left + padding.right
+          const labelRectHeight = textSize.height + padding.top + padding.bottom
+
+          // Position
+          const labelX = bounds.xMin + (offsetX || 0)
+          const labelY = bounds.yMin + (offsetY || 0)
+
+          // Draw background rect
+          const elLabelRect = graphics.drawRect(
+            labelX,
+            labelY,
+            labelRectWidth,
+            labelRectHeight,
+            borderRadius,
+            style.background,
+            1,
+            borderWidth,
+            borderColor
+          )
+
+          const elLabelText = graphics.drawText({
+            x: labelX + padding.left,
+            y: labelY + padding.top + textSize.height * 0.75,
+            text: sName,
+            fontSize: style.fontSize,
+            fontFamily: style.fontFamily,
+            fontWeight: style.fontWeight,
+            foreColor: textColor,
+            cssClass: style.cssClass || '',
+          })
+
+          elSeries.add(elLabelRect)
+          elSeries.add(elLabelText)
+        }
+      }
+
+      elSeries.add(elDataLabelWrap)
       ret.add(elSeries)
     })
 
@@ -222,8 +294,7 @@ export default class TreemapChart {
   }
 
   // This calculates a font-size based upon
-  // average label length and the size of the box the label is
-  // going into. The maximum font size is set in chart config.
+  // average label length and the size of the box
   getFontSize(coordinates) {
     const w = this.w
 
@@ -258,14 +329,11 @@ export default class TreemapChart {
       }
       return total
     }
+
     let averagelabelsize =
       totalLabelLength(this.labels) / countLabels(this.labels)
 
     function fontSize(width, height) {
-      // the font size should be proportional to the size of the box (and the value)
-      // otherwise you can end up creating a visual distortion where two boxes of identical
-      // size have different sized labels, and thus make it look as if the two boxes
-      // represent different sizes
       let area = width * height
       let arearoot = Math.pow(area, 0.5)
       return Math.min(
@@ -284,7 +352,7 @@ export default class TreemapChart {
     const graphics = new Graphics(this.ctx)
     const textRect = graphics.getTextRects(text, fontSize)
 
-    //if the label fits better sideways then rotate it
+    // if the label fits better sideways then rotate it
     if (
       textRect.width + this.w.config.stroke.width + 5 > x2 - x1 &&
       textRect.width <= y2 - y1
@@ -328,24 +396,8 @@ export default class TreemapChart {
 
   animateTreemap(el, fromRect, toRect, speed) {
     const animations = new Animations(this.ctx)
-    animations.animateRect(
-      el,
-      {
-        x: fromRect.x,
-        y: fromRect.y,
-        width: fromRect.width,
-        height: fromRect.height,
-      },
-      {
-        x: toRect.x,
-        y: toRect.y,
-        width: toRect.width,
-        height: toRect.height,
-      },
-      speed,
-      () => {
-        animations.animationCompleted(el)
-      }
-    )
+    animations.animateRect(el, fromRect, toRect, speed, () => {
+      animations.animationCompleted(el)
+    })
   }
 }
