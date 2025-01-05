@@ -2,8 +2,8 @@
 
 ROOT_DIR=$(pwd)
 
-echo "Adding upstream to apexcharts.js..."
-cd ./packages/apexcharts.js
+echo "Adding upstream to apexcharts..."
+cd ./packages/apexcharts
 git remote add upstream https://github.com/apexcharts/apexcharts.js.git || echo "upstream already exists for apexcharts"
 echo "Done."
 

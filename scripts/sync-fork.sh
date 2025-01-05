@@ -2,8 +2,8 @@
 
 ROOT_DIR=$(pwd)
 
-echo "Syncing apexcharts.js..."
-cd ./packages/apexcharts.js
+echo "Syncing apexcharts..."
+cd ./packages/apexcharts
 git fetch upstream
 git merge --no-edit upstream/main
 git push origin main

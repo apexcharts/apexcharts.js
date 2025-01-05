@@ -4256,9 +4256,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"apexcharts@workspace:packages/apexcharts.js":
+"apexcharts@workspace:packages/apexcharts":
   version: 0.0.0-use.local
-  resolution: "apexcharts@workspace:packages/apexcharts.js"
+  resolution: "apexcharts@workspace:packages/apexcharts"
   dependencies:
     "@babel/core": "npm:^7.8.7"
     "@babel/plugin-proposal-class-properties": "npm:^7.8.3"
