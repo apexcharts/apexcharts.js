@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "add-upstream": "./scripts/add-upstream.sh",
+    "add-remote": "./scripts/add-remote.sh",
     "sync-fork": "./scripts/sync-fork.sh",
     "package-change-watch": "./shell/package-change-watch.sh",
     "run": "yarn workspace react-test dev",
