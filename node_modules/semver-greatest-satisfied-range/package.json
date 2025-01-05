@@ -1,0 +1,53 @@
+{
+  "name": "semver-greatest-satisfied-range",
+  "version": "2.0.0",
+  "description": "Find the greatest satisfied semver range from an array of ranges.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/semver-greatest-satisfied-range",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10.13.0"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "LICENSE"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "nyc mocha --async-only"
+  },
+  "dependencies": {
+    "sver": "^1.8.3"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-gulp": "^5.0.1",
+    "eslint-plugin-node": "^11.1.0",
+    "expect": "^27.4.2",
+    "mocha": "^8.4.0",
+    "nyc": "^15.1.0"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "keywords": [
+    "semver",
+    "range",
+    "max",
+    "satisfied",
+    "range",
+    "array",
+    "greatest"
+  ]
+}

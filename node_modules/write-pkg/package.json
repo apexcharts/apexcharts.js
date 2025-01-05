@@ -1,0 +1,43 @@
+{
+	"name": "write-pkg",
+	"version": "4.0.0",
+	"description": "Write a package.json file",
+	"license": "MIT",
+	"repository": "sindresorhus/write-pkg",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=8"
+	},
+	"scripts": {
+		"test": "xo && ava && tsd"
+	},
+	"files": [
+		"index.js",
+		"index.d.ts"
+	],
+	"keywords": [
+		"json",
+		"write",
+		"stringify",
+		"file",
+		"fs",
+		"graceful",
+		"package"
+	],
+	"dependencies": {
+		"sort-keys": "^2.0.0",
+		"type-fest": "^0.4.1",
+		"write-json-file": "^3.2.0"
+	},
+	"devDependencies": {
+		"ava": "^1.4.1",
+		"read-pkg": "^5.1.1",
+		"tempfile": "^3.0.0",
+		"tsd": "^0.7.2",
+		"xo": "^0.24.0"
+	}
+}

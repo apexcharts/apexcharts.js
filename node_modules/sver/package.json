@@ -1,0 +1,29 @@
+{
+  "name": "sver",
+  "version": "1.8.4",
+  "description": "Simple Semver and SemverRange classes",
+  "main": "sver.js",
+  "scripts": {
+    "test": "mocha -u tdd -R dot"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/guybedford/sver.git"
+  },
+  "keywords": [
+    "semver"
+  ],
+  "author": "Guy Bedford",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/guybedford/sver/issues"
+  },
+  "homepage": "https://github.com/guybedford/sver#readme",
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "semver": "^6.3.0"
+  },
+  "optionalDependencies": {
+    "semver": "^6.3.0"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "name": "is-valid-glob",
+  "description": "Return true if a value is a valid glob pattern or patterns.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/is-valid-glob",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "contra (http://contra.io)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/is-valid-glob",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-valid-glob/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.4.2"
+  },
+  "keywords": [
+    "array",
+    "check",
+    "glob",
+    "is",
+    "match",
+    "pattern",
+    "patterns",
+    "read",
+    "test",
+    "valid",
+    "validate"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "is-glob",
+        "micromatch",
+        "vinyl-fs",
+        "vinyl"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

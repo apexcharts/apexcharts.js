@@ -1,0 +1,68 @@
+{
+  "name": "is-negated-glob",
+  "description": "Returns an object with a `negated` boolean and the `!` stripped from negation patterns. Also respects extglobs.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/is-negated-glob",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/is-negated-glob",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-negated-glob/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.10",
+    "mocha": "^3.0.2"
+  },
+  "keywords": [
+    "extglob",
+    "glob",
+    "inverse",
+    "inverted",
+    "is",
+    "is-glob",
+    "match",
+    "micromatch",
+    "negate",
+    "negated",
+    "negation",
+    "negative",
+    "pattern",
+    "test"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "is-extglob",
+        "is-glob",
+        "to-absolute-glob"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

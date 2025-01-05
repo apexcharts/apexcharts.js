@@ -1,0 +1,71 @@
+{
+  "name": "async-done",
+  "version": "2.0.0",
+  "description": "Allows libraries to handle various caller provided asynchronous functions uniformly. Maps promises, observables, child processes and streams, and callbacks to callback style.",
+  "author": "Gulp Team <team@gulpjs.com> (https://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>",
+    "Pawel Kozlowski <pkozlowski.opensource@gmail.com>",
+    "Matthew Podwysocki <matthew.podwysocki@gmail.com>",
+    "Charles Samborski <demurgos@demurgos.net>"
+  ],
+  "repository": "gulpjs/async-done",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10.13.0"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "nyc mocha --async-only",
+    "test-types": "tsc -p test/types"
+  },
+  "dependencies": {
+    "end-of-stream": "^1.4.4",
+    "once": "^1.4.0",
+    "stream-exhaust": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.7",
+    "eslint": "^7.32.0",
+    "eslint-config-gulp": "^5.0.1",
+    "eslint-plugin-node": "^11.1.0",
+    "expect": "^27.3.1",
+    "mocha": "^8.4.0",
+    "nyc": "^15.1.0",
+    "pumpify": "^2.0.1",
+    "rxjs": "^7.4.0",
+    "streamx": "^2.12.0",
+    "through2": "^4.0.2",
+    "typescript": "^4.4.4"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "keywords": [
+    "promises",
+    "callbacks",
+    "observables",
+    "streams",
+    "end",
+    "completion",
+    "complete",
+    "finish",
+    "done",
+    "async",
+    "error handling"
+  ]
+}

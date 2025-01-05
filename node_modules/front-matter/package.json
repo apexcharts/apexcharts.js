@@ -1,0 +1,46 @@
+{
+  "author": "Jason Campbell <jasoncampbell@google.com> (http://twitter.com/jxson)",
+  "name": "front-matter",
+  "description": "Extract YAML front matter from a string",
+  "keywords": [
+    "yaml",
+    "front matter",
+    "meta data"
+  ],
+  "license": "MIT",
+  "version": "4.0.2",
+  "homepage": "https://github.com/jxson/front-matter",
+  "bugs": "https://github.com/jxson/front-matter/issues",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jxson/front-matter.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "make test && check-dts"
+  },
+  "dependencies": {
+    "js-yaml": "^3.13.1"
+  },
+  "devDependencies": {
+    "brfs": "^2.0.2",
+    "check-dts": "^0.3.0",
+    "coveralls": "^3.0.9",
+    "istanbul": "^0.4.5",
+    "standard": "^14.3.4",
+    "tape": "^4.4.0",
+    "zuul": "^3.12.0"
+  },
+  "files": [
+    "index.d.ts"
+  ],
+  "contributors": [
+    "Jason Campbell <jason@js.la> (http://twitter.com/jxson)",
+    "Jordan Santell <jsantell@gmail.com> (https://github.com/jsantell)",
+    "Kai Davenport <kaiyadavenport@gmail.com> (https://github.com/binocarlos)",
+    "Jean-Philippe Monette <contact@jpmonette.net> (https://github.com/jpmonette)",
+    "Marc-André Arseneault <marc-andre@arsnl.ca> (https://github.com/arsnl)",
+    "Bret Comnes <bcomnes@gmail.com> (http://bret.io)",
+    "Peter Bengtsson <mail@peterbe.com> (https://github.com/peterbe)"
+  ]
+}

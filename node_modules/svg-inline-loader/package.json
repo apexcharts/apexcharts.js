@@ -1,0 +1,47 @@
+{
+  "name": "svg-inline-loader",
+  "version": "0.8.2",
+  "description": "Cleans up and inlines your SVG files into Webpack module.",
+  "author": "Jaeho Lee <me@jaeholee.org>",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "test": "karma start",
+    "release": "standard-version"
+  },
+  "dependencies": {
+    "loader-utils": "^1.1.0",
+    "object-assign": "^4.0.1",
+    "simple-html-tokenizer": "^0.1.1"
+  },
+  "devDependencies": {
+    "chai": "^3.0.0",
+    "chai-spies": "^0.7.1",
+    "json-loader": "^0.5.4",
+    "karma": "^1.0.0",
+    "karma-chrome-launcher": "^1.0.1",
+    "karma-mocha": "^1.0.1",
+    "karma-spec-reporter": "0.0.26",
+    "karma-webpack": "^1.5.1",
+    "lodash": "^4.6.1",
+    "mocha": "^2.5.3",
+    "node-libs-browser": "^1.0.0",
+    "raw-loader": "^0.5.1",
+    "standard-version": "^4.2.0",
+    "webpack": "^1.13.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:sairion/svg-inline-loader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sairion/svg-inline-loader/issues"
+  },
+  "homepage": "https://github.com/sairion/svg-inline-loader",
+  "keywords": [
+    "svg",
+    "webpack",
+    "react",
+    "loader"
+  ]
+}

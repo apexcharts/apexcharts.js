@@ -1,0 +1,70 @@
+{
+  "name": "vinyl-fs",
+  "version": "4.0.0",
+  "description": "Vinyl adapter for the file system.",
+  "author": "Gulp Team <team@gulpjs.com> (https://gulpjs.com/)",
+  "contributors": [
+    "Eric Schoffstall <yo@contra.io>",
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/vinyl-fs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.13.0"
+  },
+  "main": "index.js",
+  "files": [
+    "LICENSE",
+    "index.js",
+    "lib"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "nyc mocha --async-only"
+  },
+  "dependencies": {
+    "fs-mkdirp-stream": "^2.0.1",
+    "glob-stream": "^8.0.0",
+    "graceful-fs": "^4.2.11",
+    "iconv-lite": "^0.6.3",
+    "is-valid-glob": "^1.0.0",
+    "lead": "^4.0.0",
+    "normalize-path": "3.0.0",
+    "resolve-options": "^2.0.0",
+    "stream-composer": "^1.0.2",
+    "streamx": "^2.14.0",
+    "to-through": "^3.0.0",
+    "value-or-function": "^4.0.0",
+    "vinyl": "^3.0.0",
+    "vinyl-sourcemap": "^2.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-gulp": "^5.0.1",
+    "expect": "^27.5.1",
+    "mocha": "^8.4.0",
+    "nyc": "^15.1.0",
+    "readable-stream": "3.6.0",
+    "rimraf": "^3.0.2",
+    "sinon": "^15.0.2"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "keywords": [
+    "gulp",
+    "vinyl-adapter",
+    "vinyl",
+    "file",
+    "file system",
+    "fs",
+    "streams"
+  ]
+}

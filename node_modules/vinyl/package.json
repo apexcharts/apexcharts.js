@@ -1,0 +1,60 @@
+{
+  "name": "vinyl",
+  "version": "3.0.0",
+  "description": "Virtual file format.",
+  "author": "Gulp Team <team@gulpjs.com> (https://gulpjs.com/)",
+  "contributors": [
+    "Eric Schoffstall <yo@contra.io>",
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/vinyl",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.13.0"
+  },
+  "main": "index.js",
+  "files": [
+    "LICENSE",
+    "index.js",
+    "lib"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "nyc mocha --async-only"
+  },
+  "dependencies": {
+    "clone": "^2.1.2",
+    "clone-stats": "^1.0.0",
+    "remove-trailing-separator": "^1.1.0",
+    "replace-ext": "^2.0.0",
+    "teex": "^1.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-gulp": "^5.0.1",
+    "eslint-plugin-node": "^11.1.0",
+    "expect": "^27.4.6",
+    "mocha": "^8.4.0",
+    "nyc": "^15.1.0",
+    "readable-stream": "^3.6.0",
+    "streamx": "^2.12.5"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "keywords": [
+    "virtual",
+    "filesystem",
+    "file",
+    "directory",
+    "stat",
+    "path"
+  ]
+}

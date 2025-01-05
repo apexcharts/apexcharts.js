@@ -1,0 +1,48 @@
+{
+  "name": "value-or-function",
+  "version": "4.0.0",
+  "description": "Normalize a value or function, applying extra args to the function",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>",
+    "Hugo Wood <hx4.5@free.fr>"
+  ],
+  "repository": "gulpjs/value-or-function",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10.13.0"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "nyc mocha --async-only"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-gulp": "^5.0.1",
+    "eslint-plugin-node": "^11.1.0",
+    "expect": "^27.4.2",
+    "mocha": "^8.4.0",
+    "nyc": "^15.1.0",
+    "sinon": "^12.0.1"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "keywords": [
+    "options",
+    "normalize",
+    "value",
+    "function"
+  ]
+}

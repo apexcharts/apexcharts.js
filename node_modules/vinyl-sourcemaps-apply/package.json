@@ -1,0 +1,22 @@
+{
+  "name": "vinyl-sourcemaps-apply",
+  "version": "0.2.1",
+  "description": "Apply a source map to a vinyl file, merging it with preexisting source maps",
+  "homepage": "http://github.com/floridoo/vinyl-sourcemaps-apply",
+  "repository": "git://github.com/floridoo/vinyl-sourcemaps-apply.git",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "vinyl",
+    "sourcemaps",
+    "source maps",
+    "gulp"
+  ],
+  "author": "Florian Reiterer <me@florianreiterer.com>",
+  "license": "ISC",
+  "dependencies": {
+    "source-map": "^0.5.1"
+  }
+}

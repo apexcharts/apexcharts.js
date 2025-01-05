@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "target": "es2016",
+        "lib": [ "es2017" ],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "types": [
+            "node",
+            "jest"
+        ],
+
+        "rootDir": "./src",
+        "outDir": "./dist",
+
+        "strict": true,
+        "inlineSourceMap": true,
+        "noImplicitReturns": true,
+
+        "declaration": true,
+        "skipLibCheck": true
+    },
+    "include": [
+        "./src/**/*"
+    ]
+}

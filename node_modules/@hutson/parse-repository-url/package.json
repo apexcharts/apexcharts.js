@@ -1,0 +1,48 @@
+{
+  "author": {
+    "name": "Hutson Betts",
+    "email": "hutson@hyper-expanse.net",
+    "url": "https://gitlab.com/hutson"
+  },
+  "bin": {},
+  "bugs": {
+    "url": "https://gitlab.com/hyper-expanse/open-source/parse-repository-url/issues"
+  },
+  "description": "Parse repository URLs to extract, SCM platform, domain, user, and project information.",
+  "engines": {
+    "node": ">=6.9.0"
+  },
+  "files": [
+    "src/**/!(*.spec).js"
+  ],
+  "homepage": "https://gitlab.com/hyper-expanse/open-source/parse-repository-url#readme",
+  "keywords": [
+    "parser",
+    "repository-url"
+  ],
+  "license": "Apache-2.0",
+  "main": "src/index.js",
+  "name": "@hutson/parse-repository-url",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/hyper-expanse/open-source/parse-repository-url.git"
+  },
+  "scripts": {
+    "test": "semistandard 'src/**/*.js' && nyc mocha --opts mocha.opts src/**/*.spec.js"
+  },
+  "version": "3.0.2",
+  "devDependencies": {
+    "@hutson/conventional-changelog-config": "^2.0.0",
+    "@hutson/nyc-config": "^2.0.0",
+    "chai": "^4.2.0",
+    "codecov": "^3.1.0",
+    "debug": "^4.1.0",
+    "mocha": "^5.2.0",
+    "npm-publish-git-tag": "^3.0.0",
+    "nyc": "^13.1.0",
+    "semantic-release-gitlab": "^7.0.10",
+    "semistandard": "^13.0.1"
+  },
+  "readme": "ERROR: No README data found!",
+  "_id": "@hutson/parse-repository-url@1.0.0"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@octokit/tsconfig",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "1.0.2",
+  "description": "TypeScript configuration for Octokit packages",
+  "scripts": {
+    "test": "node -p 'require(\".\")'"
+  },
+  "main": "tsconfig.json",
+  "files": [
+    "tsconfig.json"
+  ],
+  "repository": "https://github.com/octokit/tsconfig",
+  "author": "Gregor Martynus (https://dev.to/gr2m)",
+  "license": "MIT",
+  "release": {
+    "branches": [
+      "main"
+    ]
+  },
+  "renovate": {
+    "extends": [
+      "github>octokit/.github"
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "name": "parse-url",
+  "version": "8.1.0",
+  "description": "An advanced url parser supporting git urls too.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./index.d.ts",
+  "exports": {
+    "types": "./index.d.ts",
+    "require": "./dist/index.js",
+    "import": "./dist/index.mjs"
+  },
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node test/index.mjs",
+    "build": "pkgroll"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IonicaBizau/parse-url.git"
+  },
+  "keywords": [
+    "parse",
+    "url",
+    "node",
+    "git",
+    "advanced"
+  ],
+  "author": "Ionică Bizău <bizauionica@gmail.com> (https://ionicabizau.net)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/IonicaBizau/parse-url/issues"
+  },
+  "homepage": "https://github.com/IonicaBizau/parse-url",
+  "devDependencies": {
+    "normalize-url": "^7.0.3",
+    "pkgroll": "^1.4.0",
+    "tester": "^1.3.1"
+  },
+  "dependencies": {
+    "parse-path": "^7.0.0"
+  },
+  "files": [
+    "bin/",
+    "app/",
+    "lib/",
+    "dist/",
+    "src/",
+    "scripts/",
+    "resources/",
+    "menu/",
+    "cli.js",
+    "index.js",
+    "index.d.ts",
+    "bloggify.js",
+    "bloggify.json",
+    "bloggify/"
+  ],
+  "blah": {
+    "description": [
+      "For low-level path parsing, check out [`parse-path`](https://github.com/IonicaBizau/parse-path). This very module is designed to parse urls. By default the urls are normalized."
+    ]
+  }
+}

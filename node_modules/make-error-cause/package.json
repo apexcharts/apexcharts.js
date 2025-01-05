@@ -1,0 +1,53 @@
+{
+  "name": "make-error-cause",
+  "version": "1.2.2",
+  "description": "Make your own nested error types!",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "lint": "tslint \"src/**/*.ts\"",
+    "build": "rm -rf dist/ && tsc",
+    "test-spec": "ts-node node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-spec",
+    "test-cov": "ts-node node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" blue-tape -- \"src/**/*.spec.ts\" | tap-spec",
+    "test": "npm run lint && npm run test-cov",
+    "prepublish": "typings install && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/blakeembrey/make-error-cause.git"
+  },
+  "keywords": [
+    "nested",
+    "error",
+    "cause",
+    "extend",
+    "inherit",
+    "custom"
+  ],
+  "author": {
+    "name": "Blake Embrey",
+    "email": "hello@blakeembrey.com",
+    "url": "http://blakeembrey.me"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/blakeembrey/make-error-cause/issues"
+  },
+  "homepage": "https://github.com/blakeembrey/make-error-cause",
+  "devDependencies": {
+    "blue-tape": "^1.0.0",
+    "istanbul": "1.0.0-alpha.2",
+    "tap-spec": "^4.1.1",
+    "ts-node": "^1.1.0",
+    "tslint": "^3.10.2",
+    "tslint-config-standard": "^1.0.0",
+    "typescript": "^2.0.3",
+    "typings": "^1.3.1"
+  },
+  "dependencies": {
+    "make-error": "^1.2.0"
+  }
+}

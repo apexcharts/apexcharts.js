@@ -1,0 +1,112 @@
+{
+  "name": "nunjucks",
+  "description": "A powerful templating engine with inheritance, asynchronous control, and more (jinja2 inspired)",
+  "version": "3.2.4",
+  "author": "James Long <longster@gmail.com>",
+  "dependencies": {
+    "a-sync-waterfall": "^1.0.0",
+    "asap": "^2.0.3",
+    "commander": "^5.1.0"
+  },
+  "browser": "./browser/nunjucks.js",
+  "devDependencies": {
+    "@babel/cli": "^7.0.0-beta.38",
+    "@babel/core": "^7.0.0-beta.38",
+    "@babel/preset-env": "^7.0.0-beta.38",
+    "@babel/register": "^7.0.0-beta.38",
+    "babel-loader": "^8.0.0-beta.0",
+    "babel-plugin-istanbul": "^4.1.5",
+    "babel-plugin-module-resolver": "3.0.0-beta.5",
+    "connect": "^3.6.5",
+    "core-js": "^2.5.3",
+    "cross-env": "^5.1.3",
+    "eslint": "^4.13.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "expect.js": "*",
+    "express": "4.x",
+    "fs-extra": "^5.0.0",
+    "get-port": "^3.2.0",
+    "mocha": "< 8.x",
+    "mocha-phantomjs-core": "^2.1.2",
+    "mocha-phantomjs-istanbul": "0.0.2",
+    "module-alias": "^2.0.3",
+    "node-libs-browser": "^0.7.0",
+    "nyc": "^11.4.1",
+    "phantomjs-prebuilt": "^2.1.16",
+    "serve-static": "^1.13.1",
+    "supertest": "*",
+    "uglify-js": "^2.8.29",
+    "uglifyjs-webpack-plugin": "^1.1.6",
+    "webpack": "^3.10.0"
+  },
+  "buildDependencies": {
+    "@babel/cli": "^7.0.0-beta.38",
+    "@babel/core": "^7.0.0-beta.38",
+    "@babel/preset-env": "^7.0.0-beta.38",
+    "@babel/register": "^7.0.0-beta.38",
+    "babel-loader": "^8.0.0-beta.0",
+    "babel-plugin-istanbul": "^4.1.5",
+    "babel-plugin-module-resolver": "3.0.0-beta.5",
+    "core-js": "^2.5.3",
+    "module-alias": "^2.0.3",
+    "node-libs-browser": "^0.7.0",
+    "uglify-js": "^2.8.29",
+    "uglifyjs-webpack-plugin": "^1.1.6",
+    "webpack": "^3.10.0"
+  },
+  "peerDependencies": {
+    "chokidar": "^3.3.0"
+  },
+  "peerDependenciesMeta": {
+    "chokidar": {
+      "optional": true
+    }
+  },
+  "_moduleAliases": {
+    "babel-register": "@babel/register"
+  },
+  "engines": {
+    "node": ">= 6.9.0"
+  },
+  "scripts": {
+    "build:transpile": "babel nunjucks --out-dir .",
+    "build:bundle": "node scripts/bundle.js",
+    "build": "npm run build:transpile && npm run build:bundle",
+    "codecov": "codecov",
+    "mocha": "mocha -R spec tests",
+    "lint": "eslint nunjucks scripts tests",
+    "prepare": "npm run build",
+    "test:instrument": "cross-env NODE_ENV=test scripts/bundle.js",
+    "test:runner": "cross-env NODE_ENV=test NODE_PATH=tests/test-node-pkgs scripts/testrunner.js",
+    "test": "npm run lint && npm run test:instrument && npm run test:runner"
+  },
+  "bin": {
+    "nunjucks-precompile": "./bin/precompile"
+  },
+  "main": "index.js",
+  "files": [
+    "bin/**",
+    "browser/**",
+    "src/**"
+  ],
+  "nyc": {
+    "require": [
+      "babel-register"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mozilla/nunjucks.git"
+  },
+  "keywords": [
+    "template",
+    "templating"
+  ],
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/mozilla/nunjucks/issues"
+  }
+}

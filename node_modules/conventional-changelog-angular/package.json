@@ -1,0 +1,35 @@
+{
+  "name": "conventional-changelog-angular",
+  "version": "7.0.0",
+  "description": "conventional-changelog angular preset",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/conventional-changelog/conventional-changelog.git"
+  },
+  "keywords": [
+    "conventional-changelog",
+    "angular",
+    "preset"
+  ],
+  "files": [
+    "conventionalChangelog.js",
+    "conventionalRecommendedBump.js",
+    "index.js",
+    "parserOpts.js",
+    "writerOpts.js",
+    "templates"
+  ],
+  "author": "Steve Mao",
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/conventional-changelog/conventional-changelog/issues"
+  },
+  "homepage": "https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-angular#readme",
+  "dependencies": {
+    "compare-func": "^2.0.0"
+  }
+}

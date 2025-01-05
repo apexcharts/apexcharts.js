@@ -1,0 +1,61 @@
+{
+  "author": {
+    "name": "Steve Mao",
+    "email": "maochenyan@gmail.com",
+    "url": "https://github.com/stevemao"
+  },
+  "bin": "./src/cli.js",
+  "bugs": "https://github.com/conventional-changelog/get-pkg-repo/issues",
+  "description": "Get repository user and project information from package.json file contents.",
+  "engines": {
+    "node": ">=6.9.0"
+  },
+  "files": [
+    "src/"
+  ],
+  "homepage": "https://github.com/conventional-changelog/get-pkg-repo#readme",
+  "keywords": [
+    "repository-url"
+  ],
+  "license": "MIT",
+  "main": "src/index.js",
+  "name": "get-pkg-repo",
+  "renovate": {
+    "extends": [
+      "config:base",
+      ":maintainLockFilesWeekly",
+      ":rebaseStalePrs",
+      ":automergeDigest",
+      ":gitSignOff",
+      ":preserveSemverRanges"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/conventional-changelog/get-pkg-repo.git"
+  },
+  "scripts": {
+    "dev": "docker run --rm --user node -v \"$(pwd)\":/app -w /app -it node:6 sh -c \"yarn install; yarn test; bash\"",
+    "test": "eslint src/ && nyc mocha --opts mocha.opts src/**/*.spec.js"
+  },
+  "version": "4.2.1",
+  "dependencies": {
+    "@hutson/parse-repository-url": "^3.0.0",
+    "hosted-git-info": "^4.0.0",
+    "through2": "^2.0.0",
+    "yargs": "^16.2.0"
+  },
+  "devDependencies": {
+    "@hutson/conventional-changelog-config": "^2.0.0",
+    "@hutson/eslint-config": "^3.0.0",
+    "@hutson/nyc-config": "^2.0.0",
+    "chai": "^4.0.2",
+    "codecov": "^3.0.0",
+    "debug": "^4.0.0",
+    "eslint": "^5.3.0",
+    "mocha": "^6.0.0",
+    "npm-publish-git-tag": "^3.0.0",
+    "nyc": "^13.0.0",
+    "semantic-release-github": "^4.0.17"
+  }
+}

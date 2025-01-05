@@ -1,0 +1,138 @@
+{
+  "name": "ansi-colors",
+  "description": "Collection of ansi colors and styles.",
+  "version": "1.1.0",
+  "homepage": "https://github.com/doowb/ansi-colors",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "doowb/ansi-colors",
+  "bugs": {
+    "url": "https://github.com/doowb/ansi-colors/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "types/index.d.ts"
+  ],
+  "main": "index.js",
+  "types": "./types/index.d.ts",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha && tsc --project types"
+  },
+  "dependencies": {
+    "ansi-wrap": "^0.1.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.5.3",
+    "typescript": "^2.7.1"
+  },
+  "keywords": [
+    "ansi-bgblack",
+    "ansi-bgblue",
+    "ansi-bgcyan",
+    "ansi-bggreen",
+    "ansi-bgmagenta",
+    "ansi-bgred",
+    "ansi-bgwhite",
+    "ansi-bgyellow",
+    "ansi-black",
+    "ansi-blue",
+    "ansi-bold",
+    "ansi-cyan",
+    "ansi-dim",
+    "ansi-gray",
+    "ansi-green",
+    "ansi-grey",
+    "ansi-hidden",
+    "ansi-inverse",
+    "ansi-italic",
+    "ansi-magenta",
+    "ansi-red",
+    "ansi-reset",
+    "ansi-strikethrough",
+    "ansi-underline",
+    "ansi-white",
+    "ansi-yellow",
+    "bgblack",
+    "bgblue",
+    "bgcyan",
+    "bggreen",
+    "bgmagenta",
+    "bgred",
+    "bgwhite",
+    "bgyellow",
+    "black",
+    "blue",
+    "bold",
+    "cyan",
+    "dim",
+    "gray",
+    "green",
+    "grey",
+    "hidden",
+    "inverse",
+    "italic",
+    "magenta",
+    "red",
+    "reset",
+    "strikethrough",
+    "underline",
+    "white",
+    "yellow"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb-readme-generator",
+      "verb"
+    ],
+    "related": {
+      "list": [
+        "ansi-bgblack",
+        "ansi-bgblue",
+        "ansi-bgcyan",
+        "ansi-bggreen",
+        "ansi-bgmagenta",
+        "ansi-bgred",
+        "ansi-bgwhite",
+        "ansi-bgyellow",
+        "ansi-black",
+        "ansi-blue",
+        "ansi-bold",
+        "ansi-cyan",
+        "ansi-dim",
+        "ansi-gray",
+        "ansi-green",
+        "ansi-grey",
+        "ansi-hidden",
+        "ansi-inverse",
+        "ansi-italic",
+        "ansi-magenta",
+        "ansi-red",
+        "ansi-reset",
+        "ansi-strikethrough",
+        "ansi-underline",
+        "ansi-white",
+        "ansi-wrap",
+        "ansi-yellow"
+      ]
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "@svgdotjs/svg.select.js",
+  "version": "4.0.2",
+  "description": "An extension of svg.js which allows to select elements with mouse",
+  "type": "module",
+  "keywords": [
+    "svg.js",
+    "select",
+    "mouse"
+  ],
+  "bugs": "https://github.com/svgdotjs/svg.select.js/issues",
+  "license": "MIT",
+  "author": "Ulrich-Matthias Schäfer",
+  "homepage": "https://github.com/svgdotjs/svg.select.js",
+  "main": "dist/svg.select.umd.cjs",
+  "unpkg": "dist/svg.select.iife.js",
+  "jsdelivr": "dist/svg.select.iife.js",
+  "browser": "dist/svg.select.js",
+  "module": "dist/svg.select.js",
+  "typings": "./svg.select.js.d.ts",
+  "exports": {
+    ".": {
+      "types": "./svg.select.js.d.ts",
+      "import": "./dist/svg.select.js",
+      "require": "./dist/svg.select.umd.cjs"
+    },
+    "./src/*": "./src/"
+  },
+  "files": [
+    "/dist",
+    "/src",
+    "/svg.select.js.d.ts"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && prettier --write . && eslint ./src && vite build",
+    "zip": "zip -j dist/svg.select.js.zip -- LICENSE README.md dist/svg.select.css  dist/svg.select.iife.js  dist/svg.select.iife.js.map  dist/svg.select.js  dist/svg.select.js.map  dist/svg.select.umd.cjs  dist/svg.select.umd.cjs.map",
+    "prepublishOnly": "rm -rf ./dist && npm run build",
+    "postpublish": "npm run zip"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/svgdotjs/svg.select.js.git"
+  },
+  "engines": {
+    "node": ">= 14.18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.7",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "eslint-plugin-import-x": "^0.5.2",
+    "prettier": "^3.3.2",
+    "terser": "^5.31.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "eslint": "^9.6.0"
+  },
+  "peerDependencies": {
+    "@svgdotjs/svg.js": "^3.2.4"
+  }
+}

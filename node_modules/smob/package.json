@@ -1,0 +1,71 @@
+{
+    "name": "smob",
+    "version": "1.5.0",
+    "description": "Zero dependency library to safe merge objects.",
+    "main": "dist/index.cjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "build:types": "tsc --emitDeclarationOnly",
+        "build:js": "rollup -c",
+        "build": "rimraf dist && npm run build:types && npm run build:js",
+        "commit": "npx git-cz",
+        "lint": "eslint --ext .js,.ts ./src",
+        "lint:fix": "npm run lint -- --fix",
+        "test": "cross-env NODE_ENV=test jest --config ./test/jest.config.js",
+        "test:coverage": "npm run test -- --coverage",
+        "prepare": "npx husky install",
+        "prepublishOnly": "npm run build"
+    },
+    "author": {
+        "name": "Peter Placzek",
+        "email": "contact@tada5hi.net",
+        "url": "https://github.com/tada5hi"
+    },
+    "license": "MIT",
+    "keywords": [
+        "object",
+        "object-merge",
+        "merge",
+        "safe",
+        "deep-merge",
+        "merge-deep"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Tada5hi/smob.git"
+    },
+    "bugs": {
+        "url": "https://github.com/Tada5hi/smob/issues"
+    },
+    "homepage": "https://github.com/Tada5hi/smob#readme",
+    "devDependencies": {
+        "@rollup/plugin-node-resolve": "^15.2.3",
+        "@swc/core": "^1.4.11",
+        "@swc/jest": "^0.2.29",
+        "@tada5hi/commitlint-config": "^1.2.0",
+        "@tada5hi/eslint-config-typescript": "^1.2.10",
+        "@tada5hi/semantic-release": "^0.3.1",
+        "@tada5hi/tsconfig": "^0.5.1",
+        "@types/jest": "^29.5.3",
+        "@types/node": "^20.10.4",
+        "cross-env": "^7.0.3",
+        "eslint": "^8.57.0",
+        "husky": "^9.0.11",
+        "jest": "^29.6.1",
+        "rollup": "^4.13.2",
+        "semantic-release": "^23.0.6",
+        "typescript": "^5.4.3"
+    }
+}

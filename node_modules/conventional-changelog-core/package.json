@@ -1,0 +1,47 @@
+{
+  "name": "conventional-changelog-core",
+  "version": "5.0.1",
+  "description": "conventional-changelog core",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/conventional-changelog/conventional-changelog.git"
+  },
+  "keywords": [
+    "conventional-changelog",
+    "conventional",
+    "changelog",
+    "log"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib",
+    "hosts"
+  ],
+  "bugs": {
+    "url": "https://github.com/conventional-changelog/conventional-changelog/issues"
+  },
+  "homepage": "https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-core#readme",
+  "dependencies": {
+    "add-stream": "^1.0.0",
+    "conventional-changelog-writer": "^6.0.0",
+    "conventional-commits-parser": "^4.0.0",
+    "dateformat": "^3.0.3",
+    "get-pkg-repo": "^4.2.1",
+    "git-raw-commits": "^3.0.0",
+    "git-remote-origin-url": "^2.0.0",
+    "git-semver-tags": "^5.0.0",
+    "normalize-package-data": "^3.0.3",
+    "read-pkg": "^3.0.0",
+    "read-pkg-up": "^3.0.0"
+  },
+  "devDependencies": {
+    "conventional-changelog-angular": "^6.0.0"
+  },
+  "scripts": {
+    "test-windows": "mocha --timeout 30000"
+  }
+}

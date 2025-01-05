@@ -1,0 +1,77 @@
+{
+  "name": "eslint-plugin-promise",
+  "version": "4.2.1",
+  "description": "Enforce best practices for JavaScript promises",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "promise",
+    "promises"
+  ],
+  "author": "jden <jason@denizac.org>",
+  "repository": "git@github.com:xjamundx/eslint-plugin-promise.git",
+  "scripts": {
+    "precommit": "lint-staged",
+    "test": "jest",
+    "lint": "eslint rules __tests__ index.js"
+  },
+  "devDependencies": {
+    "doctoc": "^1.3.0",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^3.0.1",
+    "eslint-plugin-eslint-plugin": "^1.4.0",
+    "eslint-plugin-jest": "^21.21.0",
+    "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-prettier": "^2.6.2",
+    "husky": "^0.14.3",
+    "jest": "^24.5.0",
+    "jest-runner-eslint": "^0.7.3",
+    "lint-staged": "^7.2.2",
+    "prettier": "^1.14.2"
+  },
+  "engines": {
+    "node": ">=6"
+  },
+  "license": "ISC",
+  "lint-staged": {
+    "concurrent": false,
+    "linters": {
+      "{README.md,CONTRIBUTING.md}": [
+        "doctoc --maxlevel 3 --notitle",
+        "git add"
+      ],
+      "*.js": [
+        "prettier --write",
+        "eslint --fix",
+        "git add"
+      ],
+      "*.+(json|md)": [
+        "prettier --write",
+        "git add"
+      ]
+    }
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "proseWrap": "always"
+  },
+  "jest": {
+    "projects": [
+      {
+        "displayName": "test",
+        "testEnvironment": "node"
+      },
+      {
+        "runner": "jest-runner-eslint",
+        "displayName": "lint",
+        "testMatch": [
+          "<rootDir>/rules/**/*.js",
+          "<rootDir>/__tests__/**/*.js",
+          "<rootDir>/index.js"
+        ]
+      }
+    ]
+  }
+}

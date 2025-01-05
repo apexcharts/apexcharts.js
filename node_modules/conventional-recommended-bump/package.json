@@ -1,0 +1,49 @@
+{
+  "name": "conventional-recommended-bump",
+  "version": "7.0.1",
+  "description": "Get a recommended version bump based on conventional commits",
+  "bugs": {
+    "url": "https://github.com/conventional-changelog/conventional-changelog/issues"
+  },
+  "homepage": "https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-recommended-bump#readme",
+  "author": {
+    "name": "Steve Mao",
+    "email": "maochenyan@gmail.com",
+    "url": "https://github.com/stevemao"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/conventional-changelog/conventional-changelog.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "index.js",
+    "cli.js",
+    "preset-resolver.js"
+  ],
+  "keywords": [
+    "conventional-recommended-bump",
+    "recommend",
+    "conventional",
+    "bump"
+  ],
+  "dependencies": {
+    "concat-stream": "^2.0.0",
+    "conventional-changelog-preset-loader": "^3.0.0",
+    "conventional-commits-filter": "^3.0.0",
+    "conventional-commits-parser": "^4.0.0",
+    "git-raw-commits": "^3.0.0",
+    "git-semver-tags": "^5.0.0",
+    "meow": "^8.1.2"
+  },
+  "bin": "cli.js",
+  "devDependencies": {
+    "conventional-changelog-conventionalcommits": "^6.0.0"
+  },
+  "scripts": {
+    "test-windows": "mocha --timeout 30000 ./test/preset-resolver.spec.js"
+  }
+}

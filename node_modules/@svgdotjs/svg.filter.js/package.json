@@ -1,0 +1,84 @@
+{
+  "name": "@svgdotjs/svg.filter.js",
+  "version": "3.0.8",
+  "description": "A plugin for svg.js adding filter functionality",
+  "keywords": [
+    "svg.js",
+    "filter",
+    "effect"
+  ],
+  "bugs": "https://github.com/svgdotjs/svg.filter.js/issues",
+  "license": "MIT",
+  "typings": "./svg.filter.js.d.ts",
+  "author": {
+    "name": "Wout Fierens"
+  },
+  "maintainers": [
+    {
+      "name": "Wout Fierens",
+      "email": "wout@mick-wout.com",
+      "web": "https://svgdotjs.github.io/"
+    },
+    {
+      "name": "Ulrich-Matthias Schäfer",
+      "email": "ulima.ums@googlemail.com"
+    },
+    {
+      "name": "Robert Friedl"
+    }
+  ],
+  "homepage": "https://github.com/svgdotjs/svg.filter.js",
+  "main": "dist/svg.filter.node.js",
+  "unpkg": "dist/svg.filter.min.js",
+  "jsdelivr": "dist/svg.filter.min.js",
+  "browser": "src/svg.filter.js",
+  "module": "src/svg.filter.js",
+  "files": [
+    "/dist",
+    "/src",
+    "/svg.filter.js.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/svgdotjs/svg.filter.js.git"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "build": "npm run fix && npm run rollup",
+    "fix": "npx eslint ./src --fix",
+    "lint": "npx eslint ./src",
+    "rollup": "npx rollup -c .config/rollup.config.js",
+    "zip": "zip -j dist/svg.filter.js.zip -- LICENSE README.md dist/svg.filter.js dist/svg.filter.js.map dist/svg.filter.min.js dist/svg.filter.min.js.map",
+    "prepublishOnly": "rm -rf ./dist && npm run build",
+    "postpublish": "npm run zip"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.15.8",
+    "@babel/plugin-transform-runtime": "^7.15.8",
+    "@babel/preset-env": "^7.15.8",
+    "@rollup/plugin-babel": "^5.3.0",
+    "@rollup/plugin-commonjs": "^21.0.0",
+    "@rollup/plugin-multi-entry": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.0.5",
+    "babel-eslint": "^10.1.0",
+    "core-js": "^3.18.3",
+    "eslint": "^8.0.1",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.1.0",
+    "eslint-plugin-standard": "^5.0.0",
+    "jasmine": "^3.10.0",
+    "jasmine-core": "^3.10.0",
+    "rollup": "^2.58.0",
+    "rollup-plugin-filesize": "^9.1.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "babel-plugin-polyfill-corejs3": "^0.2.5"
+  },
+  "dependencies": {
+    "@svgdotjs/svg.js": "^3.1.1"
+  },
+  "browserslist": "last 2 version and > 0.25% and not op_mini all and not ie 11"
+}

@@ -1,0 +1,74 @@
+{
+  "name": "gulp",
+  "version": "5.0.0",
+  "description": "The streaming build system.",
+  "homepage": "https://gulpjs.com",
+  "author": "Gulp Team <team@gulpjs.com> (https://gulpjs.com/)",
+  "contributors": [
+    "Eric Schoffstall <yo@contra.io>",
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/gulp",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.13.0"
+  },
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js"
+    }
+  },
+  "files": [
+    "LICENSE",
+    "index.js",
+    "index.mjs",
+    "bin"
+  ],
+  "bin": {
+    "gulp": "./bin/gulp.js"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "nyc mocha --async-only"
+  },
+  "dependencies": {
+    "glob-watcher": "^6.0.0",
+    "gulp-cli": "^3.0.0",
+    "undertaker": "^2.0.0",
+    "vinyl-fs": "^4.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.0.0",
+    "eslint-config-gulp": "^5.0.0",
+    "eslint-plugin-node": "^11.1.0",
+    "expect": "^27.0.0",
+    "mkdirp": "^3.0.1",
+    "mocha": "^8.0.0",
+    "nyc": "^15.0.0",
+    "rimraf": "^3.0.0"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "keywords": [
+    "build",
+    "stream",
+    "system",
+    "make",
+    "tool",
+    "asset",
+    "pipeline",
+    "series",
+    "parallel",
+    "streaming"
+  ]
+}

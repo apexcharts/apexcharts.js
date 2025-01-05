@@ -1,0 +1,19 @@
+{
+  "name": "apexchart-contribution",
+  "packageManager": "yarn@4.6.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "add-upstream": "./scripts/add-upstream.sh",
+    "sync-fork": "./scripts/sync-fork.sh",
+    "package-change-watch": "./shell/package-change-watch.sh",
+    "run": "yarn workspace react-test dev",
+    "run-with-watch": "yarn package-change-watch && yarn run"
+  },
+  "devDependencies": {
+    "lerna": "^8.1.9"
+  }
+}
