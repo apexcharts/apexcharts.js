@@ -1,8 +1,0 @@
-blank_issues_enabled: false
-contact_links:
-    - name: Ask a Question
-      url: https://github.com/apexcharts/apexcharts.js/discussions/new
-      about: Please ask and answer questions for ApexCharts here.
-    - name: Read the Docs
-      url: https://apexcharts.com/docs/
-      about: Be sure you've read the docs!

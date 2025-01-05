@@ -1,1 +1,0 @@
-requirejs(['app/main'])
