@@ -1,0 +1,33 @@
+<title>Basic Radar</title>
+
+<style>
+#chart {
+  max-width: 450px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'radar',
+},
+title: {
+  text: 'Basic Radar Chart'
+},
+yaxis: {
+  stepSize: 20
+},
+xaxis: {
+  categories: ['January', 'February', 'March', 'April', 'May', 'June']
+}
+</options>
+
+<series>
+[{
+  name: 'Series 1',
+  data: [80, 50, 30, 40, 100, 20],
+}]
+</series>
+</chart>

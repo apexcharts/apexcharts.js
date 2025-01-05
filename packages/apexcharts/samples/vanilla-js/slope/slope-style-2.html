@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Slope Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [
+          {
+            name: 'Blue',
+            data: [
+              {
+                x: 'Category 1',
+                y: 503,
+              },
+              {
+                x: 'Category 2',
+                y: 580,
+              },
+              {
+                x: 'Category 3',
+                y: 135,
+              },
+            ],
+          },
+          {
+            name: 'Green',
+            data: [
+              {
+                x: 'Category 1',
+                y: 733,
+              },
+              {
+                x: 'Category 2',
+                y: 385,
+              },
+              {
+                x: 'Category 3',
+                y: 715,
+              },
+            ],
+          },
+          {
+            name: 'Orange',
+            data: [
+              {
+                x: 'Category 1',
+                y: 255,
+              },
+              {
+                x: 'Category 2',
+                y: 211,
+              },
+              {
+                x: 'Category 3',
+                y: 441,
+              },
+            ],
+          },
+          {
+            name: 'Red',
+            data: [
+              {
+                x: 'Category 1',
+                y: 428,
+              },
+              {
+                x: 'Category 2',
+                y: 749,
+              },
+              {
+                x: 'Category 3',
+                y: 559,
+              },
+            ],
+          },
+        ],
+          chart: {
+          height: 350,
+          width: 600,
+          type: 'line',
+        },
+        plotOptions: {
+          line: {
+            isSlopeChart: true,
+          },
+        },
+        tooltip: {
+          followCursor: true,
+          intersect: false,
+          shared: true,
+        },
+        dataLabels: {
+          background: {
+            enabled: true,
+          },
+          formatter(val, opts) {
+            const seriesName = opts.w.config.series[opts.seriesIndex].name
+            return val !== null ? seriesName : ''
+          },
+        },
+        yaxis: {
+          show: true,
+          labels: {
+            show: true,
+          },
+        },
+        xaxis: {
+          position: 'bottom',
+        },
+        legend: {
+          show: true,
+          position: 'top',
+          horizontalAlign: 'left',
+        },
+        stroke: {
+          width: [2, 3, 4, 2],
+          dashArray: [0, 0, 5, 2],
+          curve: 'smooth',
+        }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
+
+    
+  </body>
+</html>

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Sparklines</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        .row {
+      overflow: hidden;
+      max-width: 890px;
+      margin: 30px auto;
+      display: flex;
+    }
+    
+    .col-md-4 {
+      width: 33.33%;
+      padding: 0 25px;
+      box-sizing: border-box;
+    }
+    
+    table {
+      width: 100%;
+    }
+    
+    tbody tr {
+      border-top: 1px solid #e7e7e7;
+    }
+    
+    th {
+      font-weight: bold;
+      font-family: Helvetica;
+      padding-bottom: 20px;
+    }
+    td, th {
+      width: 25%;
+      text-align: center;
+      height: 65px;
+    }
+    
+    td div {
+      margin: 0 auto;
+    }
+    
+    .left {
+      float: left;
+    }
+    
+    .right {
+      float: right;
+    }
+    
+    @media only screen and (max-width: 480px) {
+      th:first-child, td:first-child {
+        display: none;
+      }
+      .row {
+        display: block;
+      }
+      .col-md-4 {
+        padding: 0;
+        width: 100%;
+      }
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    <script>
+  window.Apex = {
+    stroke: {
+      width: 3
+    },
+    markers: {
+      size: 0
+    },
+    tooltip: {
+      fixed: {
+        enabled: true,
+      }
+    }
+  };
+  
+  var randomizeArray = function (arg) {
+    var array = arg.slice();
+    var currentIndex = array.length,
+      temporaryValue, randomIndex;
+  
+    while (0 !== currentIndex) {
+  
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+  
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+  
+    return array;
+  }
+  
+  // data for the sparklines that appear below header area
+  var sparklineData = [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51, 35, 41, 35, 27, 93, 53, 61, 27, 54, 43, 19, 46];
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app">
+      <div>
+      <div class="row">
+        <div class="col-md-4">
+          <div id="chart-spark1">
+      <apexchart type="area" height="160" :options="chartOptions" :series="series"></apexchart>
+    </div>
+        </div>
+        <div class="col-md-4">
+          <div id="chart-spark2">
+      <apexchart type="area" height="160" :options="chartOptionsSpark2" :series="seriesSpark2"></apexchart>
+    </div>
+        </div>
+        <div class="col-md-4">
+          <div id="chart-spark3">
+      <apexchart type="area" height="160" :options="chartOptionsSpark3" :series="seriesSpark3"></apexchart>
+    </div>
+        </div>
+      </div>
+    
+      <div class="row">
+        <table>
+          <thead>
+            <th>Total Value</th>
+            <th>Percentage of Portfolio</th>
+            <th>Last 10 days</th>
+            <th>Volume</th>
+          </thead>
+          <tbody>
+            <tr>
+              <td>$32,554</td>
+              <td>15%</td>
+              <td>
+                <div id="chart-1">
+      <apexchart type="line" height="35" width="100" :options="chartOptions1" :series="series1"></apexchart>
+    </div>
+              </td>
+              <td>
+                <div id="chart-5">
+      <apexchart type="bar" height="35" width="100" :options="chartOptions5" :series="series5"></apexchart>
+    </div>
+              </td>
+            </tr>
+            <tr>
+              <td>$23,533</td>
+              <td>7%</td>
+              <td>
+                <div id="chart-2">
+      <apexchart type="line" height="35" width="100" :options="chartOptions2" :series="series2"></apexchart>
+    </div>
+              </td>
+              <td>
+                <div id="chart-6">
+      <apexchart type="bar" height="35" width="100" :options="chartOptions6" :series="series6"></apexchart>
+    </div>
+              </td>
+            </tr>
+            <tr>
+              <td>$54,276</td>
+              <td>9%</td>
+              <td>
+                <div id="chart-3">
+      <apexchart type="pie" height="40" width="40" :options="chartOptions3" :series="series3"></apexchart>
+    </div>
+              </td>
+              <td>
+                <div id="chart-7">
+      <apexchart type="radialBar" height="50" width="50" :options="chartOptions7" :series="series7"></apexchart>
+    </div>
+              </td>
+            </tr>
+            <tr>
+              <td>$11,533</td>
+              <td>2%</td>
+              <td>
+                <div id="chart-4">
+      <apexchart type="donut" height="40" width="40" :options="chartOptions4" :series="series4"></apexchart>
+    </div>
+              </td>
+              <td>
+                <div id="chart-8">
+      <apexchart type="radialBar" height="40" width="40" :options="chartOptions8" :series="series8"></apexchart>
+    </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">
+      &lt;div&gt;
+        &lt;div class=&quot;row&quot;&gt;
+          &lt;div class=&quot;col-md-4&quot;&gt;
+            &lt;div id=&quot;chart-spark1&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;col-md-4&quot;&gt;
+            &lt;div id=&quot;chart-spark2&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; :options=&quot;chartOptionsSpark2&quot; :series=&quot;seriesSpark2&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;col-md-4&quot;&gt;
+            &lt;div id=&quot;chart-spark3&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; :options=&quot;chartOptionsSpark3&quot; :series=&quot;seriesSpark3&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;row&quot;&gt;
+          &lt;table&gt;
+            &lt;thead&gt;
+              &lt;th&gt;Total Value&lt;/th&gt;
+              &lt;th&gt;Percentage of Portfolio&lt;/th&gt;
+              &lt;th&gt;Last 10 days&lt;/th&gt;
+              &lt;th&gt;Volume&lt;/th&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;
+                &lt;td&gt;$32,554&lt;/td&gt;
+                &lt;td&gt;15%&lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-1&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions1&quot; :series=&quot;series1&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-5&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions5&quot; :series=&quot;series5&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;$23,533&lt;/td&gt;
+                &lt;td&gt;7%&lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-2&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions2&quot; :series=&quot;series2&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-6&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;35&quot; width=&quot;100&quot; :options=&quot;chartOptions6&quot; :series=&quot;series6&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;$54,276&lt;/td&gt;
+                &lt;td&gt;9%&lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-3&quot;&gt;
+        &lt;apexchart type=&quot;pie&quot; height=&quot;40&quot; width=&quot;40&quot; :options=&quot;chartOptions3&quot; :series=&quot;series3&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-7&quot;&gt;
+        &lt;apexchart type=&quot;radialBar&quot; height=&quot;50&quot; width=&quot;50&quot; :options=&quot;chartOptions7&quot; :series=&quot;series7&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;$11,533&lt;/td&gt;
+                &lt;td&gt;2%&lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-4&quot;&gt;
+        &lt;apexchart type=&quot;donut&quot; height=&quot;40&quot; width=&quot;40&quot; :options=&quot;chartOptions4&quot; :series=&quot;series4&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                  &lt;div id=&quot;chart-8&quot;&gt;
+        &lt;apexchart type=&quot;radialBar&quot; height=&quot;40&quot; width=&quot;40&quot; :options=&quot;chartOptions8&quot; :series=&quot;series8&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+                &lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+            data: randomizeArray(sparklineData)
+          }],
+          chartOptions: {
+            chart: {
+              type: 'area',
+              height: 160,
+              sparkline: {
+                enabled: true
+              },
+            },
+            stroke: {
+              curve: 'straight'
+            },
+            fill: {
+              opacity: 0.3,
+            },
+            yaxis: {
+              min: 0
+            },
+            colors: ['#DCE6EC'],
+            title: {
+              text: '$424,652',
+              offsetX: 0,
+              style: {
+                fontSize: '24px',
+              }
+            },
+            subtitle: {
+              text: 'Sales',
+              offsetX: 0,
+              style: {
+                fontSize: '14px',
+              }
+            }
+          },
+          
+          seriesSpark2: [{
+            data: randomizeArray(sparklineData)
+          }],
+          chartOptionsSpark2: {
+            chart: {
+              type: 'area',
+              height: 160,
+              sparkline: {
+                enabled: true
+              },
+            },
+            stroke: {
+              curve: 'straight'
+            },
+            fill: {
+              opacity: 0.3,
+            },
+            yaxis: {
+              min: 0
+            },
+            colors: ['#DCE6EC'],
+            title: {
+              text: '$235,312',
+              offsetX: 0,
+              style: {
+                fontSize: '24px',
+              }
+            },
+            subtitle: {
+              text: 'Expenses',
+              offsetX: 0,
+              style: {
+                fontSize: '14px',
+              }
+            }
+          },
+          
+          seriesSpark3: [{
+            data: randomizeArray(sparklineData)
+          }],
+          chartOptionsSpark3: {
+            chart: {
+              type: 'area',
+              height: 160,
+              sparkline: {
+                enabled: true
+              },
+            },
+            stroke: {
+              curve: 'straight'
+            },
+            fill: {
+              opacity: 0.3
+            },
+            xaxis: {
+              crosshairs: {
+                width: 1
+              },
+            },
+            yaxis: {
+              min: 0
+            },
+            title: {
+              text: '$135,965',
+              offsetX: 0,
+              style: {
+                fontSize: '24px',
+              }
+            },
+            subtitle: {
+              text: 'Profits',
+              offsetX: 0,
+              style: {
+                fontSize: '14px',
+              }
+            }
+          },
+          
+          series1: [{
+            data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
+          }],
+          chartOptions1: {
+            chart: {
+              type: 'line',
+              width: 100,
+              height: 35,
+              sparkline: {
+                enabled: true
+              }
+            },
+            tooltip: {
+              fixed: {
+                enabled: false
+              },
+              x: {
+                show: false
+              },
+              y: {
+                title: {
+                  formatter: function (seriesName) {
+                    return ''
+                  }
+                }
+              },
+              marker: {
+                show: false
+              }
+            }
+          },
+          
+          series2: [{
+            data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14]
+          }],
+          chartOptions2: {
+            chart: {
+              type: 'line',
+              width: 100,
+              height: 35,
+              sparkline: {
+                enabled: true
+              }
+            },
+            tooltip: {
+              fixed: {
+                enabled: false
+              },
+              x: {
+                show: false
+              },
+              y: {
+                title: {
+                  formatter: function (seriesName) {
+                    return ''
+                  }
+                }
+              },
+              marker: {
+                show: false
+              }
+            }
+          },
+          
+          series3: [43, 32, 12, 9],
+          chartOptions3: {
+            chart: {
+              type: 'pie',
+              width: 40,
+              height: 40,
+              sparkline: {
+                enabled: true
+              }
+            },
+            stroke: {
+              width: 1
+            },
+            tooltip: {
+              fixed: {
+                enabled: false
+              },
+            }
+          },
+          
+          series4: [43, 32, 12, 9],
+          chartOptions4: {
+            chart: {
+              type: 'donut',
+              width: 40,
+              height: 40,
+              sparkline: {
+                enabled: true
+              }
+            },
+            stroke: {
+              width: 1
+            },
+            tooltip: {
+              fixed: {
+                enabled: false
+              },
+            }
+          },
+          
+          series5: [{
+            data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54]
+          }],
+          chartOptions5: {
+            chart: {
+              type: 'bar',
+              width: 100,
+              height: 35,
+              sparkline: {
+                enabled: true
+              }
+            },
+            plotOptions: {
+              bar: {
+                columnWidth: '80%'
+              }
+            },
+            labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            xaxis: {
+              crosshairs: {
+                width: 1
+              },
+            },
+            tooltip: {
+              fixed: {
+                enabled: false
+              },
+              x: {
+                show: false
+              },
+              y: {
+                title: {
+                  formatter: function (seriesName) {
+                    return ''
+                  }
+                }
+              },
+              marker: {
+                show: false
+              }
+            }
+          },
+          
+          series6: [{
+            data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14]
+          }],
+          chartOptions6: {
+            chart: {
+              type: 'bar',
+              width: 100,
+              height: 35,
+              sparkline: {
+                enabled: true
+              }
+            },
+            plotOptions: {
+              bar: {
+                columnWidth: '80%'
+              }
+            },
+            labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            xaxis: {
+              crosshairs: {
+                width: 1
+              },
+            },
+            tooltip: {
+              fixed: {
+                enabled: false
+              },
+              x: {
+                show: false
+              },
+              y: {
+                title: {
+                  formatter: function (seriesName) {
+                    return ''
+                  }
+                }
+              },
+              marker: {
+                show: false
+              }
+            }
+          },
+          
+          series7: [45],
+          chartOptions7: {
+            chart: {
+              type: 'radialBar',
+              width: 50,
+              height: 50,
+              sparkline: {
+                enabled: true
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            plotOptions: {
+              radialBar: {
+                hollow: {
+                  margin: 0,
+                  size: '50%'
+                },
+                track: {
+                  margin: 0
+                },
+                dataLabels: {
+                  show: false
+                }
+              }
+            }
+          },
+          
+          series8: [53, 67],
+          chartOptions8: {
+            chart: {
+              type: 'radialBar',
+              width: 40,
+              height: 40,
+              sparkline: {
+                enabled: true
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            plotOptions: {
+              radialBar: {
+                hollow: {
+                  margin: 0,
+                  size: '50%'
+                },
+                track: {
+                  margin: 1
+                },
+                dataLabels: {
+                  show: false
+                }
+              }
+            }
+          },
+          
+          
+        },
+        
+      })
+    </script>
+    
+  </body>
+</html>
