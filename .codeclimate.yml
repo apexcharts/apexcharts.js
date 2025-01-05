@@ -1,0 +1,43 @@
+checks:
+  argument-count:
+    config:
+      threshold: 4
+  complex-logic:
+    config:
+      threshold: 4
+  file-lines:
+    config:
+      threshold: 700
+  method-complexity:
+    config:
+      threshold: 20
+  method-count:
+    config:
+      threshold: 20
+  method-lines:
+    config:
+      threshold: 100
+  nested-control-flow:
+    config:
+      threshold: 4
+  return-statements:
+    config:
+      threshold: 4
+exclude_patterns:
+  - 'config/'
+  - 'db/'
+  - 'dist/'
+  - 'features/'
+  - '**/node_modules/'
+  - 'script/'
+  - 'samples/'
+  - '**/samples/'
+  - '**/spec/'
+  - '**/test/'
+  - '**/tests/'
+  - 'Tests/'
+  - '**/vendor/'
+  - '**/*_test.go'
+  - '**/*.d.ts'
+  - 'src/svgjs/'
+  - 'src/modules/settings/Options.js'

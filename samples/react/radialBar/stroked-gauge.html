@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Stroked Gauge</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      padding: 0;
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;radialBar&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          
+            series: [67],
+            options: {
+              chart: {
+                height: 350,
+                type: 'radialBar',
+                offsetY: -10
+              },
+              plotOptions: {
+                radialBar: {
+                  startAngle: -135,
+                  endAngle: 135,
+                  dataLabels: {
+                    name: {
+                      fontSize: '16px',
+                      color: undefined,
+                      offsetY: 120
+                    },
+                    value: {
+                      offsetY: 76,
+                      fontSize: '22px',
+                      color: undefined,
+                      formatter: function (val) {
+                        return val + "%";
+                      }
+                    }
+                  }
+                }
+              },
+              fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'dark',
+                    shadeIntensity: 0.15,
+                    inverseColors: false,
+                    opacityFrom: 1,
+                    opacityTo: 1,
+                    stops: [0, 50, 65, 91]
+                },
+              },
+              stroke: {
+                dashArray: 4
+              },
+              labels: ['Median Ratio'],
+            },
+          
+          
+        });
+
+        
+
+        return (
+          <div>
+            <div id="chart">
+                <ReactApexChart options={state.options} series={state.series} type="radialBar" height={350} />
+              </div>
+            <div id="html-dist"></div>
+          </div>
+        );
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
+    </script>
+
+    
+  </body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Stacked Column</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          
+            series: [{
+              name: 'PRODUCT A',
+              data: [44, 55, 41, 67, 22, 43, 21, 49]
+            }, {
+              name: 'PRODUCT B',
+              data: [13, 23, 20, 8, 13, 27, 33, 12]
+            }, {
+              name: 'PRODUCT C',
+              data: [11, 17, 15, 15, 21, 14, 15, 13]
+            }],
+            options: {
+              chart: {
+                type: 'bar',
+                height: 350,
+                stacked: true,
+                stackType: '100%'
+              },
+              responsive: [{
+                breakpoint: 480,
+                options: {
+                  legend: {
+                    position: 'bottom',
+                    offsetX: -10,
+                    offsetY: 0
+                  }
+                }
+              }],
+              xaxis: {
+                categories: ['2011 Q1', '2011 Q2', '2011 Q3', '2011 Q4', '2012 Q1', '2012 Q2',
+                  '2012 Q3', '2012 Q4'
+                ],
+              },
+              fill: {
+                opacity: 1
+              },
+              legend: {
+                position: 'right',
+                offsetX: 0,
+                offsetY: 50
+              },
+            },
+          
+          
+        });
+
+        
+
+        return (
+          <div>
+            <div id="chart">
+                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
+              </div>
+            <div id="html-dist"></div>
+          </div>
+        );
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
+    </script>
+
+    
+  </body>
+</html>

@@ -1,0 +1,16 @@
+language: node_js
+node_js:
+  - 'lts/*'
+cache:
+  directories:
+    - node_modules
+env:
+  global: CC_TEST_REPORTER_ID=a539db9d908999d7afec256d2270175bd9334f97e33649fa62f762afd168f46b
+install:
+  - npm install
+before_script:
+  - npm run test
+script:
+  - npm run build
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT

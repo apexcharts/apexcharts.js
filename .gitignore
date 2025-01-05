@@ -1,17 +1,11 @@
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-
-# Swap the comments on the following lines if you wish to use zero-installs
-# In that case, don't forget to run `yarn config set enableGlobalCache false`!
-# Documentation here: https://yarnpkg.com/features/caching#zero-installs
-
-#!.yarn/cache
-.pnp.*
-
-# Ignore modified package.json for apexcharts and react-apexcharts
-packages/apexcharts/package.json
-packages/react-apexcharts/package.json
+coverage
+issues/
+node_modules/
+samples/e2e
+tests/e2e/diffs
+.DS_Store
+.idea
+.nyc_output
+.vscode
+bundle-analysis.html
+/nbproject/private/

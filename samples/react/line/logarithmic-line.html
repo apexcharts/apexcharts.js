@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Chart with Logarithmic Scale</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    <script>
+  var data = [{
+      x: 1994,
+      y: 2543763
+    },
+    {
+      x: 1995,
+      y: 4486659
+    },
+    {
+      x: 1996,
+      y: 7758386
+    },
+    {
+      x: 1997,
+      y: 12099221
+    },
+    {
+      x: 1998,
+      y: 18850762
+    },
+    {
+      x: 1999,
+      y: 28153765
+    },
+    {
+      x: 2000,
+      y: 41479495
+    },
+    {
+      x: 2001,
+      y: 50229224
+    },
+    {
+      x: 2002,
+      y: 66506501
+    },
+    {
+      x: 2003,
+      y: 78143598
+    },
+    {
+      x: 2004,
+      y: 91332777
+    },
+    {
+      x: 2005,
+      y: 103010128
+    },
+    {
+      x: 2006,
+      y: 116291681
+    },
+    {
+      x: 2007,
+      y: 137322698
+    },
+    {
+      x: 2008,
+      y: 157506752
+    },
+    {
+      x: 2009,
+      y: 176640381
+    },
+    {
+      x: 2010,
+      y: 202320297
+    },
+    {
+      x: 2011,
+      y: 223195735
+    },
+    {
+      x: 2012,
+      y: 249473624
+    },
+    {
+      x: 2013,
+      y: 272842810
+    },
+    {
+      x: 2014,
+      y: 295638556
+    },
+    {
+      x: 2015,
+      y: 318599615
+    },
+    {
+      x: 2016,
+      y: 342497123
+    }
+  ]
+  
+  var labelFormatter = function (value) {
+    var val = Math.abs(value)
+    if (val >= 100000) {
+      return (val / 1000000).toFixed(1) + ' M';
+    }
+    return val.toFixed(0);
+  }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;line&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          
+            series: [{
+              name: "Logarithmic",
+              data: data
+            }, {
+              name: "Linear",
+              data: data
+            }],
+            options: {
+              chart: {
+                height: 350,
+                type: 'line',
+                zoom: {
+                  enabled: false
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              stroke: {
+                curve: 'monotoneCubic',
+              },
+              title: {
+                text: 'Logarithmic Scale',
+                align: 'left'
+              },
+              xaxis: {
+                type: 'datetime'
+              },
+              yaxis: [
+                {
+                  min: 1000000,
+                  max: 500000000,
+                  tickAmount: 4,
+                  logarithmic: true,
+                  seriesName: 'Logarithmic',
+                  labels: {
+                    formatter: labelFormatter,
+                    style: {
+                      fontWeight: 900,
+                      colors: 'rgb(0, 143, 251)'
+                    }
+                  },
+                  title: {
+                    text: 'Logarithmic',
+                    style: {
+                      fontWeight: 900,
+                      color: 'rgb(0, 143, 251)'
+                    }
+                  }
+                },
+                {
+                  min: 1000000,
+                  max: 500000000,
+                  opposite: true,
+                  tickAmount: 4,
+                  seriesName: 'Linear',
+                  labels: {
+                    formatter: labelFormatter,
+                    style: {
+                      fontWeight: 900,
+                      colors: 'rgb(0, 227, 150)'
+                    }
+                  },
+                  title: {
+                    text: 'Linear',
+                    style: {
+                      fontWeight: 900,
+                      color: 'rgb(0, 227, 150)'
+                    }
+                  }
+                }
+              ]
+            },
+          
+          
+        });
+
+        
+
+        return (
+          <div>
+            <div id="chart">
+                <ReactApexChart options={state.options} series={state.series} type="line" height={350} />
+              </div>
+            <div id="html-dist"></div>
+          </div>
+        );
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
+    </script>
+
+    
+  </body>
+</html>

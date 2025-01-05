@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Gradient Line</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;line&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          
+            series: [{
+              name: 'Sales',
+              data: [4, 3, 10, 9, 29, 19, 22, 9, 12, 7, 19, 5, 13, 9, 17, 2, 7, 5]
+            }],
+            options: {
+              chart: {
+                height: 350,
+                type: 'line',
+              },
+              forecastDataPoints: {
+                count: 7
+              },
+              stroke: {
+                width: 5,
+                curve: 'smooth'
+              },
+              xaxis: {
+                type: 'datetime',
+                categories: ['1/11/2000', '2/11/2000', '3/11/2000', '4/11/2000', '5/11/2000', '6/11/2000', '7/11/2000', '8/11/2000', '9/11/2000', '10/11/2000', '11/11/2000', '12/11/2000', '1/11/2001', '2/11/2001', '3/11/2001','4/11/2001' ,'5/11/2001' ,'6/11/2001'],
+                tickAmount: 10,
+                labels: {
+                  formatter: function(value, timestamp, opts) {
+                    return opts.dateFormatter(new Date(timestamp), 'dd MMM')
+                  }
+                }
+              },
+              title: {
+                text: 'Forecast',
+                align: 'left',
+                style: {
+                  fontSize: "16px",
+                  color: '#666'
+                }
+              },
+              fill: {
+                type: 'gradient',
+                gradient: {
+                  shade: 'dark',
+                  gradientToColors: [ '#FDD835'],
+                  shadeIntensity: 1,
+                  type: 'horizontal',
+                  opacityFrom: 1,
+                  opacityTo: 1,
+                  stops: [0, 100, 100, 100]
+                },
+              }
+            },
+          
+          
+        });
+
+        
+
+        return (
+          <div>
+            <div id="chart">
+                <ReactApexChart options={state.options} series={state.series} type="line" height={350} />
+              </div>
+            <div id="html-dist"></div>
+          </div>
+        );
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
+    </script>
+
+    
+  </body>
+</html>

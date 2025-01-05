@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Basic BoxPlot Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;boxPlot&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          
+            series: [
+              {
+                type: 'boxPlot',
+                data: [
+                  {
+                    x: 'Jan 2015',
+                    y: [54, 66, 69, 75, 88]
+                  },
+                  {
+                    x: 'Jan 2016',
+                    y: [43, 65, 69, 76, 81]
+                  },
+                  {
+                    x: 'Jan 2017',
+                    y: [31, 39, 45, 51, 59]
+                  },
+                  {
+                    x: 'Jan 2018',
+                    y: [39, 46, 55, 65, 71]
+                  },
+                  {
+                    x: 'Jan 2019',
+                    y: [29, 31, 35, 39, 44]
+                  },
+                  {
+                    x: 'Jan 2020',
+                    y: [41, 49, 58, 61, 67]
+                  },
+                  {
+                    x: 'Jan 2021',
+                    y: [54, 59, 66, 71, 88]
+                  }
+                ]
+              }
+            ],
+            options: {
+              chart: {
+                type: 'boxPlot',
+                height: 350
+              },
+              title: {
+                text: 'Basic BoxPlot Chart',
+                align: 'left'
+              },
+              plotOptions: {
+                boxPlot: {
+                  colors: {
+                    upper: '#5C4742',
+                    lower: '#A5978B'
+                  }
+                }
+              }
+            },
+          
+          
+        });
+
+        
+
+        return (
+          <div>
+            <div id="chart">
+                <ReactApexChart options={state.options} series={state.series} type="boxPlot" height={350} />
+              </div>
+            <div id="html-dist"></div>
+          </div>
+        );
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
+    </script>
+
+    
+  </body>
+</html>

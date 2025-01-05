@@ -1,0 +1,98 @@
+<title>Horizontal BoxPlot with Outliers</title>
+
+<chart>
+<options>
+chart: {
+  type: 'boxPlot',
+  height: 350
+},
+title: {
+  text: 'Horizontal BoxPlot with Outliers',
+  align: 'left'
+},
+plotOptions: {
+  bar: {
+    horizontal: true,
+    barHeight: '40%'
+  },
+  boxPlot: {
+    colors: {
+      upper: '#B6C454',
+      lower: '#EDBFB7'
+    }
+  }
+},
+stroke: {
+  colors: ['#333']
+}
+</options>
+
+<series>
+[
+  {
+    data: [
+      {
+        x: 'Category A',
+        y: [54, 66, 69, 75, 88],
+        goals: [
+          {
+            value: 90,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+          {
+            value: 93,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+        ],
+      },
+      {
+        x: 'Category B',
+        y: [43, 65, 69, 76, 81],
+      },
+      {
+        x: 'Category C',
+        y: [31, 39, 45, 51, 59],
+      },
+      {
+        x: 'Category D',
+        y: [39, 46, 55, 65, 71],
+        goals: [
+          {
+            value: 30,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+          {
+            value: 32,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+          {
+            value: 76,
+            strokeWidth: 10,
+            strokeHeight: 0,
+            strokeLineCap: 'round',
+            strokeColor: '#F283B6',
+          },
+        ],
+      },
+      {
+        x: 'Category E',
+        y: [41, 49, 58, 61, 67],
+      },
+      
+    ],
+  },
+]
+</series>
+</chart>
