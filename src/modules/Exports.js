@@ -19,12 +19,13 @@ class Exports {
     svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight)
   }
 
-  getSvgString() {
+  getSvgString(_scale) {
     return new Promise((resolve) => {
       const w = this.w
-      const width = w.config.chart.toolbar.export.width
       let scale =
-        w.config.chart.toolbar.export.scale || width / w.globals.svgWidth
+        _scale ||
+        w.config.chart.toolbar.export.scale ||
+        w.config.chart.toolbar.export.width / w.globals.svgWidth
 
       if (!scale) {
         scale = 1 // if no scale is specified, don't scale...
@@ -146,7 +147,7 @@ class Exports {
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
 
-      this.getSvgString().then((svgData) => {
+      this.getSvgString(scale).then((svgData) => {
         const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
         let img = new Image()
         img.crossOrigin = 'anonymous'

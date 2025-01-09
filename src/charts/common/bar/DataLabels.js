@@ -312,7 +312,7 @@ export default class BarDataLabels {
 
     let lowestPrevY = newY
     w.globals.seriesGroups.forEach((sg) => {
-      this.barCtx[sg.join(',')].prevY.forEach((arr) => {
+      this.barCtx[sg.join(',')]?.prevY.forEach((arr) => {
         if (valIsNegative) {
           lowestPrevY = Math.max(arr[j], lowestPrevY)
         } else {
@@ -452,7 +452,7 @@ export default class BarDataLabels {
 
     let lowestPrevX = newX
     w.globals.seriesGroups.forEach((sg) => {
-      this.barCtx[sg.join(',')].prevX.forEach((arr) => {
+      this.barCtx[sg.join(',')]?.prevX.forEach((arr) => {
         if (valIsNegative) {
           lowestPrevX = Math.min(arr[j], lowestPrevX)
         } else {
