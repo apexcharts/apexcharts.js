@@ -27,21 +27,21 @@ const builds = {
     dest: resolvePath('dist/apexcharts.common.js'),
     format: 'cjs',
     env: 'production',
-    banner
+    banner,
   },
   'web-esm': {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist/apexcharts.esm.js'),
     format: 'es',
     env: 'production',
-    banner
+    banner,
   },
   'web-umd-dev': {
     entry: resolvePath('src/apexcharts.js'),
     dest: resolvePath('dist/apexcharts.js'),
     format: 'umd',
     env: 'development',
-    banner
+    banner,
   },
   'web-umd-prod': {
     entry: resolvePath('src/apexcharts.js'),
@@ -49,8 +49,8 @@ const builds = {
     format: 'umd',
     env: 'production',
     banner,
-    assets: true
-  }
+    assets: true,
+  },
 }
 
 /**
@@ -63,42 +63,42 @@ function rollupConfig(opts) {
     plugins: [
       resolve(),
       json({
-        preferConst: true
+        preferConst: true,
       }),
       postcss({
         inject: false,
-        plugins: []
+        plugins: [],
       }),
       svgo({
-        raw: true
+        raw: true,
       }),
       babel.babel({
         exclude: 'node_modules/**',
         plugins: ['@babel/plugin-proposal-class-properties'].concat(
           opts.istanbul ? ['istanbul'] : []
-        )
+        ),
       }),
-      replace({ 'process.env.NODE_ENV': JSON.stringify(opts.env) })
+      replace({ 'process.env.NODE_ENV': JSON.stringify(opts.env) }),
     ],
     output: {
       file: opts.dest,
       format: opts.format,
       banner: opts.banner,
-      name: 'ApexCharts'
-    }
+      name: 'ApexCharts',
+    },
   }
 
   if (opts.env === 'production') {
     config.plugins.push(
       strip({
         debugger: true,
-        functions: ['console.log', 'debug', 'alert'],
-        sourceMap: false
+        functions: ['debug', 'alert'],
+        sourceMap: false,
       }),
       terser({
         output: {
-          ascii_only: true
-        }
+          ascii_only: true,
+        },
       })
     )
   }
@@ -109,16 +109,16 @@ function rollupConfig(opts) {
         [
           {
             files: 'src/assets/apexcharts.css',
-            dest: 'dist'
+            dest: 'dist',
           },
           {
             files: 'src/locales/*.*',
-            dest: 'dist/locales'
-          }
+            dest: 'dist/locales',
+          },
         ],
         {
           verbose: true,
-          watch: false
+          watch: false,
         }
       )
     )
@@ -139,7 +139,7 @@ async function executeBuildEntry(options) {
   return {
     path: config.output.file,
     code: generated.output[0].code,
-    isDev: /apexcharts\.js$/.test(config.output.file)
+    isDev: /apexcharts\.js$/.test(config.output.file),
   }
 }
 
