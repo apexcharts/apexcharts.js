@@ -167,8 +167,8 @@ class Range {
           }
           highestY = maxY
 
+          val = Utils.noExponents(val)
           if (Utils.isFloat(val)) {
-            val = Utils.noExponents(val)
             gl.yValueDecimal = Math.max(
               gl.yValueDecimal,
               val.toString().split('.')[1].length
