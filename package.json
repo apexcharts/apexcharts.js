@@ -20,7 +20,7 @@
     "types/*.d.ts"
   ],
   "scripts": {
-    "dev": "rollup -w -c build/config.js --environment TARGET:web-esm",
+    "dev": "rollup -w -c build/config.js --environment TARGET:web-umd-dev",
     "dev:cjs": "rollup -w -c build/config.js --environment TARGET:web-cjs",
     "bundle": "node build/build.js",
     "build": "npm run bundle && webpack",
