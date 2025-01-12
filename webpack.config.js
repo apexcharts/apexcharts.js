@@ -10,9 +10,8 @@ module.exports = {
     libraryTarget: 'umd',
     umdNamedDefine: false,
     path: path.resolve(__dirname, 'dist/'),
-    filename: 'apexcharts.amd.js',
+    filename: 'apexcharts.amd.js'
   },
-
   module: {
     rules: [
       {
@@ -20,42 +19,38 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env'],
-          },
-        },
+            presets: ['@babel/preset-env']
+          }
+        }
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        use: ['style-loader', 'css-loader']
       },
       {
         test: /\.svg$/,
-        loader: 'svg-inline-loader',
-      },
-    ],
+        loader: 'svg-inline-loader'
+      }
+    ]
   },
   watchOptions: {
-    poll: true,
+    poll: true
   },
   resolve: {
-    modules: [
-      path.resolve(__dirname, '../../node_modules'),
-      path.resolve(__dirname, 'node_modules'),
-      'node_modules',
-    ],
-    extensions: ['.js', '.json'],
+    modules: [__dirname, 'src', 'node_modules'],
+    extensions: ['.js', '.json']
   },
   performance: {
     hints: false,
     maxEntrypointSize: 512000,
-    maxAssetSize: 512000,
+    maxAssetSize: 512000
   },
   plugins: [
     new ESLintPlugin(),
     new BundleAnalyzerPlugin({
       analyzerMode: 'static',
       reportFilename: path.join('..', 'bundle-analysis.html'),
-      openAnalyzer: false,
-    }),
-  ],
+      openAnalyzer: false
+    })
+  ]
 }
