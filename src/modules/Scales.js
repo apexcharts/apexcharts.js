@@ -619,7 +619,7 @@ export default class Scales {
     axisSeriesMap.forEach((axisSeries, ai) => {
       let groupNames = []
       axisSeries.forEach((as) => {
-        let group = cnf.series[as].group
+        let group = cnf.series[as]?.group
         if (groupNames.indexOf(group) < 0) {
           groupNames.push(group)
         }
