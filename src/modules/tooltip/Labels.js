@@ -540,7 +540,7 @@ export default class Labels {
       typeof customTooltip.nodeName === 'string'
     ) {
       tooltipEl.innerHTML = ''
-      tooltipEl.appendChild(customTooltip)
+      tooltipEl.appendChild(customTooltip.cloneNode(true))
     }
   }
 }
