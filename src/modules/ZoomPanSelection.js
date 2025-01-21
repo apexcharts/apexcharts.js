@@ -682,7 +682,9 @@ export default class ZoomPanSelection extends Toolbar {
     const toolbar = this.ctx.toolbar
 
     // Use boundingRect for final selection area
-    const selRect = me.selectionRect.node.getBoundingClientRect()
+    const selRect = w.globals.zoomEnabled
+      ? me.zoomRect.node.getBoundingClientRect()
+      : me.selectionRect.node.getBoundingClientRect()
     const gridRectDim = me.gridRect.getBoundingClientRect()
 
     // Local coords in the chart's grid
