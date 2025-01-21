@@ -355,15 +355,11 @@ export default class ZoomPanSelection extends Toolbar {
         })
         .resize()
         .on('resize', () => {
-          // clearTimeout(this.w.globals.selectionResizeTimer)
-          // this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-          // timer commented for now as performance drop is negligible
           let zoomtype = w.globals.zoomEnabled
             ? w.config.chart.zoom.type
             : w.config.chart.selection.type
 
           this.handleMouseUp({ zoomtype, isResized: true })
-          //}, 50)
         })
     }
   }
@@ -397,7 +393,7 @@ export default class ZoomPanSelection extends Toolbar {
             x
           if (w.globals.isRangeBar) {
             // rangebars put datetime data in y axis
-            x = // calculation: (selection left time - chart left time) / milliseconds per pixel = selection X value in pixels
+            x =
               (w.config.chart.selection.xaxis.min -
                 w.globals.yAxisScale[0].niceMin) /
               xyRatios.invertedYRatio
@@ -630,7 +626,7 @@ export default class ZoomPanSelection extends Toolbar {
         let minX, maxX, minY, maxY
 
         if (!w.globals.isRangeBar) {
-          // original code is in the IF. rangeBar exception is in the ELSE.
+          // normal XY charts
           minX =
             w.globals.xAxisScale.niceMin +
             (selectionRect.left - gridRectDim.left) * xyRatios.xRatio
@@ -645,7 +641,7 @@ export default class ZoomPanSelection extends Toolbar {
             w.globals.yAxisScale[0].niceMax -
             (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0]
         } else {
-          // rangeBars use x as the category, and y as the datetime data. // find data in y axis and use Y ratio
+          // rangeBars use y for datetime
           minX =
             w.globals.yAxisScale[0].niceMin +
             (selectionRect.left - gridRectDim.left) * xyRatios.invertedYRatio
@@ -653,7 +649,7 @@ export default class ZoomPanSelection extends Toolbar {
             w.globals.yAxisScale[0].niceMin +
             (selectionRect.right - gridRectDim.left) * xyRatios.invertedYRatio
 
-          minY = 0 // there is no y min/max with rangebars (it uses categories, not numeric data), so use dummy values
+          minY = 0
           maxY = 1
         }
 
@@ -685,48 +681,51 @@ export default class ZoomPanSelection extends Toolbar {
     const xyRatios = this.xyRatios
     const toolbar = this.ctx.toolbar
 
-    if (me.startX > me.endX) {
-      let tempX = me.startX
-      me.startX = me.endX
-      me.endX = tempX
-    }
-    if (me.startY > me.endY) {
-      let tempY = me.startY
-      me.startY = me.endY
-      me.endY = tempY
-    }
+    // Use boundingRect for final selection area
+    const selRect = me.selectionRect.node.getBoundingClientRect()
+    const gridRectDim = me.gridRect.getBoundingClientRect()
 
-    let xLowestValue = undefined
-    let xHighestValue = undefined
+    // Local coords in the chart's grid
+    const localStartX =
+      selRect.left - gridRectDim.left - w.globals.barPadForNumericAxis
+    const localEndX =
+      selRect.right - gridRectDim.left - w.globals.barPadForNumericAxis
+    const localStartY = selRect.top - gridRectDim.top
+    const localEndY = selRect.bottom - gridRectDim.top
+
+    // Convert those local coords to actual data values
+    let xLowestValue, xHighestValue
 
     if (!w.globals.isRangeBar) {
-      xLowestValue = w.globals.xAxisScale.niceMin + me.startX * xyRatios.xRatio
-      xHighestValue = w.globals.xAxisScale.niceMin + me.endX * xyRatios.xRatio
+      xLowestValue =
+        w.globals.xAxisScale.niceMin + localStartX * xyRatios.xRatio
+      xHighestValue = w.globals.xAxisScale.niceMin + localEndX * xyRatios.xRatio
     } else {
       xLowestValue =
-        w.globals.yAxisScale[0].niceMin + me.startX * xyRatios.invertedYRatio
+        w.globals.yAxisScale[0].niceMin + localStartX * xyRatios.invertedYRatio
       xHighestValue =
-        w.globals.yAxisScale[0].niceMin + me.endX * xyRatios.invertedYRatio
+        w.globals.yAxisScale[0].niceMin + localEndX * xyRatios.invertedYRatio
     }
 
-    // TODO: we will consider the 1st y axis values here for getting highest and lowest y
+    // For Y values, pick from the first y-axis, but handle multi-axis
     let yHighestValue = []
     let yLowestValue = []
 
     w.config.yaxis.forEach((yaxe, index) => {
-      // We can use the index of any series referenced by the Yaxis
-      // because they will all return the same value, so we choose the first.
+      // pick whichever series is mapped to this y-axis
       let seriesIndex = w.globals.seriesYAxisMap[index][0]
-      yHighestValue.push(
+      let highestVal =
         w.globals.yAxisScale[index].niceMax -
-          xyRatios.yRatio[seriesIndex] * me.startY
-      )
-      yLowestValue.push(
+        xyRatios.yRatio[seriesIndex] * localStartY
+      let lowestVal =
         w.globals.yAxisScale[index].niceMax -
-          xyRatios.yRatio[seriesIndex] * me.endY
-      )
+        xyRatios.yRatio[seriesIndex] * localEndY
+
+      yHighestValue.push(highestVal)
+      yLowestValue.push(lowestVal)
     })
 
+    // Only apply if user actually dragged far enough to consider it a selection
     if (
       me.dragged &&
       (me.dragX > 10 || me.dragY > 10) &&
@@ -828,7 +827,7 @@ export default class ZoomPanSelection extends Toolbar {
       const deltaX = w.globals.lastClientPosition.x - me.clientX
       const deltaY = w.globals.lastClientPosition.y - me.clientY
 
-      // check which direction had the highest amplitude and then figure out direction by checking if the value is greater or less than zero
+      // check which direction had the highest amplitude
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
         this.moveDirection = 'left'
       } else if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0) {
@@ -850,7 +849,7 @@ export default class ZoomPanSelection extends Toolbar {
 
     let xHighestValue = w.globals.isRangeBar ? w.globals.maxY : w.globals.maxX
 
-    // on a category, we don't pan continuosly as it causes bugs
+    // on a category, we don't pan continuously as it causes bugs
     if (!w.config.xaxis.convertedCatToNumeric) {
       me.panScrolled(xLowestValue, xHighestValue)
     }
