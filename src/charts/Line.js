@@ -301,8 +301,8 @@ class Line {
       // fixes https://github.com/apexcharts/apexcharts.js/issues/3641
       const firstPoint = this.markers.plotChartMarkers({
         pointsPos: {
-          x: [w.globals.minX - 100],
-          y: [w.globals.minY - 100],
+          x: [0],
+          y: [w.globals.gridHeight + w.globals.markers.largestSize],
         },
         seriesIndex: i,
         j: 0,
