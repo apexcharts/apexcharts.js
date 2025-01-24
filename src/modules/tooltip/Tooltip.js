@@ -529,7 +529,7 @@ export default class Tooltip {
       syncedCharts = this.ctx.getSyncedCharts()
     }
 
-    let isStickyTooltip =
+    const isStickyTooltip =
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
         !w.globals.isBarHorizontal &&
@@ -537,14 +537,11 @@ export default class Tooltip {
         this.tConfig.shared) ||
       (w.globals.comboCharts && this.tooltipUtil.hasBars())
 
-    let isChartContextTarget = w.globals.dom.baseEl.contains(e.relatedTarget)
-    let isInteractionEnd = (e.type === 'mouseout' || e.type === 'touchend')
+    const isInteractionInProcess = (e.type === 'mousemove' || e.type === 'touchmove' || e.type === 'mouseup')
+    const isInteractionEnd = (e.type === 'mouseout' || e.type === 'touchend')
+    const isChartContextTarget = w.globals.dom.baseEl.contains(e.relatedTarget)
     
-    if (
-      e.type === 'mousemove' ||
-      e.type === 'touchmove' ||
-      e.type === 'mouseup'
-    ) {
+    if (isInteractionInProcess) {
       // there is no series to hover over
       if (
         w.globals.collapsedSeries.length +
