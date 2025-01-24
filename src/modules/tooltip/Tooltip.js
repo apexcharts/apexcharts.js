@@ -581,8 +581,8 @@ export default class Tooltip {
           x = markerXY.x
           y = markerXY.y
 
-          tooltipEl.style.left = x + 'px'
-          tooltipEl.style.top = y + 'px'
+          tooltipEl.style.left = `${x}px`
+          tooltipEl.style.top = `${y}px`
         } else {
           if (this.tooltipUtil.hasBars()) {
             this.intersect.handleBarTooltip({
