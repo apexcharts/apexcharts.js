@@ -555,10 +555,9 @@ export default class Tooltip {
         xcrosshairs.classList.add('apexcharts-active')
       }
 
-      const hasYAxisTooltip = this.yaxisTooltips.filter((b) => {
-        return b === true
-      })
-      if (this.ycrosshairs !== null && hasYAxisTooltip.length) {
+      const hasYAxisTooltip = this.yaxisTooltips.includes(true)
+
+      if (this.ycrosshairs !== null && hasYAxisTooltip) {
         this.ycrosshairs.classList.add('apexcharts-active')
       }
 
