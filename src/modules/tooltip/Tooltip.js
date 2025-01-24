@@ -537,6 +537,9 @@ export default class Tooltip {
         this.tConfig.shared) ||
       (w.globals.comboCharts && this.tooltipUtil.hasBars())
 
+    let isChartContextTarget = w.globals.dom.baseEl.contains(e.relatedTarget)
+    let isInteractionEnd = (e.type === 'mouseout' || e.type === 'touchend')
+    
     if (
       e.type === 'mousemove' ||
       e.type === 'touchmove' ||
@@ -612,7 +615,7 @@ export default class Tooltip {
 
       w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
       opt.tooltipEl.classList.add('apexcharts-active')
-    } else if (!w.globals.dom.baseEl.contains(e.relatedTarget) && (e.type === 'mouseout' || e.type === 'touchend')) {
+    } else if (!isChartContextTarget && isInteractionEnd) {
       this.handleMouseOut(opt)
     }
   }
