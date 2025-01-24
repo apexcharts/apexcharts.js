@@ -567,10 +567,10 @@ export default class Tooltip {
       ) {
         this.handleStickyTooltip(e, clientX, clientY, opt)
       } else {
-        if (
-          w.config.chart.type === 'heatmap' ||
-          w.config.chart.type === 'treemap'
-        ) {
+        const isHeatmap = w.config.chart.type === 'heatmap'
+        const isTreemap = w.config.chart.type === 'treemap'
+
+        if (isHeatmap || isTreemap) {
           let markerXY = this.intersect.handleHeatTreeTooltip({
             e,
             opt,
