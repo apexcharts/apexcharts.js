@@ -529,7 +529,7 @@ export default class Tooltip {
       syncedCharts = this.ctx.getSyncedCharts()
     }
 
-    let isStickyTooltip =
+    const isStickyTooltip =
       w.globals.xyCharts ||
       (w.config.chart.type === 'bar' &&
         !w.globals.isBarHorizontal &&
@@ -537,11 +537,11 @@ export default class Tooltip {
         this.tConfig.shared) ||
       (w.globals.comboCharts && this.tooltipUtil.hasBars())
 
-    if (
-      e.type === 'mousemove' ||
-      e.type === 'touchmove' ||
-      e.type === 'mouseup'
-    ) {
+    const isInteractionInProcess = (e.type === 'mousemove' || e.type === 'touchmove' || e.type === 'mouseup')
+    const isInteractionEnd = (e.type === 'mouseout' || e.type === 'touchend')
+    const isChartContextTarget = w.globals.dom.baseEl.contains(e.relatedTarget)
+    
+    if (isInteractionInProcess) {
       // there is no series to hover over
       if (
         w.globals.collapsedSeries.length +
@@ -555,10 +555,9 @@ export default class Tooltip {
         xcrosshairs.classList.add('apexcharts-active')
       }
 
-      const hasYAxisTooltip = this.yaxisTooltips.filter((b) => {
-        return b === true
-      })
-      if (this.ycrosshairs !== null && hasYAxisTooltip.length) {
+      const hasYAxisTooltip = this.yaxisTooltips.includes(true)
+
+      if (this.ycrosshairs !== null && hasYAxisTooltip) {
         this.ycrosshairs.classList.add('apexcharts-active')
       }
 
@@ -568,10 +567,10 @@ export default class Tooltip {
       ) {
         this.handleStickyTooltip(e, clientX, clientY, opt)
       } else {
-        if (
-          w.config.chart.type === 'heatmap' ||
-          w.config.chart.type === 'treemap'
-        ) {
+        const isHeatmap = w.config.chart.type === 'heatmap'
+        const isTreemap = w.config.chart.type === 'treemap'
+
+        if (isHeatmap || isTreemap) {
           let markerXY = this.intersect.handleHeatTreeTooltip({
             e,
             opt,
@@ -582,8 +581,8 @@ export default class Tooltip {
           x = markerXY.x
           y = markerXY.y
 
-          tooltipEl.style.left = x + 'px'
-          tooltipEl.style.top = y + 'px'
+          tooltipEl.style.left = `${x}px`
+          tooltipEl.style.top = `${y}px`
         } else {
           if (this.tooltipUtil.hasBars()) {
             this.intersect.handleBarTooltip({
@@ -612,7 +611,7 @@ export default class Tooltip {
 
       w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
       opt.tooltipEl.classList.add('apexcharts-active')
-    } else if (e.type === 'mouseout' || e.type === 'touchend') {
+    } else if (!isChartContextTarget && isInteractionEnd) {
       this.handleMouseOut(opt)
     }
   }
