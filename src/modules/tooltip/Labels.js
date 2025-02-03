@@ -268,7 +268,7 @@ export default class Labels {
     ttItemsChildren = ttItems[t].children
 
     if (w.config.tooltip.fillSeriesColor) {
-      ttItems[t].style.color = pColor
+      ttItems[t].style.backgroundColor = pColor
       ttItemsChildren[0].style.display = 'none'
     }
 
@@ -309,7 +309,11 @@ export default class Labels {
         pColor = w.config.tooltip.marker.fillColors[t]
       }
 
-      ttItemsChildren[0].style.color = pColor
+      if (w.config.tooltip.fillSeriesColor) {
+        ttItemsChildren[0].style.backgroundColor = pColor
+      } else {
+        ttItemsChildren[0].style.color = pColor
+      }
     }
 
     if (!w.config.tooltip.marker.show) {

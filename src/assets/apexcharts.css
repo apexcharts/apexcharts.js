@@ -170,6 +170,7 @@ rect.legend-mouseover-inactive,
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   font-size: 26px;
+  font-family: Arial, Helvetica, sans-serif;
   line-height: 14px;
   font-weight: 900;
 }
