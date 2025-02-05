@@ -1,5 +1,3 @@
-import { SVG } from '@svgdotjs/svg.js'
-
 import CoreUtils from '../CoreUtils'
 import Dimensions from '../dimensions/Dimensions'
 import Graphics from '../Graphics'
