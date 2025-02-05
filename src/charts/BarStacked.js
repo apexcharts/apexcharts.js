@@ -329,7 +329,9 @@ class BarStacked extends Bar {
     }
 
     let gsi = i // an index to keep track of the series inside a group
-    gsi = seriesGroup.indexOf(w.config.series[realIndex].name)
+    if (w.config.series[realIndex].name) {
+      gsi = seriesGroup.indexOf(w.config.series[realIndex].name)
+    }
 
     if (gsi > 0) {
       let bXP = zeroW
