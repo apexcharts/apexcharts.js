@@ -71,9 +71,9 @@ class Grid {
     const gl = w.globals
     const graphics = new Graphics(this.ctx)
 
-    const strokeSize = Array.isArray(w.config.stroke.width)
-      ? Math.max(...w.config.stroke.width)
-      : w.config.stroke.width
+    // const strokeSize = Array.isArray(w.config.stroke.width)
+    //   ? Math.max(...w.config.stroke.width)
+    //   : w.config.stroke.width
 
     const createClipPath = (id) => {
       const clipPath = document.createElementNS(gl.SVGNS, 'clipPath')
@@ -87,24 +87,6 @@ class Grid {
     gl.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`)
     gl.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
 
-    const hasBar =
-      ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(
-        w.config.chart.type
-      ) || w.globals.comboBarCount > 0
-
-    let barWidthLeft = 0
-    let barWidthRight = 0
-    if (hasBar && w.globals.isXNumeric && !w.globals.isBarHorizontal) {
-      barWidthLeft = Math.max(
-        w.config.grid.padding.left,
-        gl.barPadForNumericAxis
-      )
-      barWidthRight = Math.max(
-        w.config.grid.padding.right,
-        gl.barPadForNumericAxis
-      )
-    }
-
     gl.dom.elGridRect = graphics.drawRect(
       -strokeSize / 2 - 2,
       -strokeSize / 2 - 2,
@@ -114,14 +96,54 @@ class Grid {
       '#fff'
     )
 
+    const hasBar =
+      ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(
+        w.config.chart.type
+      ) || w.globals.comboBarCount > 0
+
+    // let barWidthLeft = 0
+    // let barWidthRight = 0
+    let elGridRectBarSide = 0
+    if (hasBar && w.globals.isXNumeric && !w.globals.isBarHorizontal) {
+      let barWidth = 0
+
+      if (typeof w.config.plotOptions.bar.columnWidth === 'number') {
+        barWidth = w.config.plotOptions.bar.columnWidth
+      } else {
+        const { width: xAxisWidth } = gl.dom.elGridRect.node.getBBox()
+        const xTickAmount = gl.xAxisScale.result.length
+        barWidth = (xAxisWidth / xTickAmount) * 0.7
+      }
+
+      elGridRectBarSide = barWidth / 2
+
+      // barWidthLeft = Math.max(
+      //   w.config.grid.padding.left,
+      //   gl.barPadForNumericAxis
+      // )
+      // barWidthRight = Math.max(
+      //   w.config.grid.padding.right,
+      //   gl.barPadForNumericAxis
+      // )
+    }
+
     gl.dom.elGridRectBar = graphics.drawRect(
-      -strokeSize / 2 - barWidthLeft - 2,
-      -strokeSize / 2 - 2,
-      gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
-      gl.gridHeight + strokeSize + 4,
+      0 - elGridRectBarSide,
+      0,
+      gl.gridWidth + elGridRectBarSide * 2,
+      gl.gridHeight,
       0,
       '#fff'
     )
+
+    // gl.dom.elGridRectBar = graphics.drawRect(
+    //   -strokeSize / 2 - barWidthLeft - 2,
+    //   -strokeSize / 2 - 2,
+    //   gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
+    //   gl.gridHeight + strokeSize + 4,
+    //   0,
+    //   '#fff'
+    // )
 
     const markerSize = w.globals.markers.largestSize
 
