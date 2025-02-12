@@ -426,7 +426,7 @@ class Range {
           ticks = gl.series[gl.maxValsInArrayIndex].length - 1
         }
         if (gl.isXNumeric) {
-          const diff = gl.maxX - gl.minX
+          const diff = Math.round(gl.maxX - gl.minX)
           if (diff < 30) {
             ticks = diff - 1
           }
