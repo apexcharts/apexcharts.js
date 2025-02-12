@@ -140,7 +140,11 @@ export default class Core {
     let comboCount = 0
 
     gl.series.forEach((serie, st) => {
-      const seriesType = ser[st].type || chartType
+      const seriesType =
+        ser[st].type === 'bar'
+          ? 'column'
+          : ser[st].type || (chartType === 'bar' ? 'column' : chartType)
+
       if (seriesTypes[seriesType]) {
         if (seriesType === 'rangeArea') {
           seriesTypes[seriesType].series.push(gl.seriesRangeStart[st])
