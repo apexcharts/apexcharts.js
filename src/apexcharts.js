@@ -751,6 +751,10 @@ export default class ApexCharts {
     return exp.dataURI(options)
   }
 
+  getSvgString(scale) {
+    return new Exports(this.ctx).getSvgString(scale)
+  }
+
   exportToCSV(options = {}) {
     const exp = new Exports(this.ctx)
     return exp.exportToCSV(options)
