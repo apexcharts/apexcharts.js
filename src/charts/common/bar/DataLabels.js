@@ -240,6 +240,7 @@ export default class BarDataLabels {
         dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
       }
       if (
+        !w.config.chart.stacked &&
         zeroEncounters > 0 &&
         w.config.plotOptions.bar.hideZeroBarsWhenGrouped
       ) {
@@ -402,6 +403,10 @@ export default class BarDataLabels {
     } = opts
 
     let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
+    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
+      i,
+      j,
+    })
 
     barWidth = Math.abs(barWidth)
 
@@ -413,6 +418,13 @@ export default class BarDataLabels {
       offY -
       3
 
+    if (
+      !w.config.chart.stacked &&
+      zeroEncounters > 0 &&
+      w.config.plotOptions.bar.hideZeroBarsWhenGrouped
+    ) {
+      dataLabelsY -= barHeight * zeroEncounters
+    }
     let totalDataLabelsX
     let totalDataLabelsY
     let totalDataLabelsAnchor = 'start'

@@ -128,7 +128,7 @@ export default class Core {
       area: { series: [], i: [] },
       scatter: { series: [], i: [] },
       bubble: { series: [], i: [] },
-      column: { series: [], i: [] },
+      bar: { series: [], i: [] },
       candlestick: { series: [], i: [] },
       boxPlot: { series: [], i: [] },
       rangeBar: { series: [], i: [] },
@@ -141,9 +141,9 @@ export default class Core {
 
     gl.series.forEach((serie, st) => {
       const seriesType =
-        ser[st].type === 'bar'
-          ? 'column'
-          : ser[st].type || (chartType === 'bar' ? 'column' : chartType)
+        ser[st].type === 'column'
+          ? 'bar'
+          : ser[st].type || (chartType === 'column' ? 'bar' : chartType)
 
       if (seriesTypes[seriesType]) {
         if (seriesType === 'rangeArea') {
@@ -154,8 +154,7 @@ export default class Core {
         }
         seriesTypes[seriesType].i.push(st)
 
-        if (seriesType === 'column' || seriesType === 'bar')
-          w.globals.columnSeries = seriesTypes.column
+        if (seriesType === 'bar') w.globals.columnSeries = seriesTypes.bar
       } else if (
         [
           'heatmap',
@@ -168,9 +167,6 @@ export default class Core {
         ].includes(seriesType)
       ) {
         nonComboType = seriesType
-      } else if (seriesType === 'bar') {
-        seriesTypes['column'].series.push(serie)
-        seriesTypes['column'].i.push(st)
       } else {
         console.warn(
           `You have specified an unrecognized series type (${seriesType}).`
@@ -185,12 +181,9 @@ export default class Core {
           `Chart or series type ${nonComboType} cannot appear with other chart or series types.`
         )
       }
-      if (
-        seriesTypes.column.series.length > 0 &&
-        cnf.plotOptions.bar.horizontal
-      ) {
-        comboCount -= seriesTypes.column.series.length
-        seriesTypes.column = { series: [], i: [] }
+      if (seriesTypes.bar.series.length > 0 && cnf.plotOptions.bar.horizontal) {
+        comboCount -= seriesTypes.bar.series.length
+        seriesTypes.bar = { series: [], i: [] }
         w.globals.columnSeries = { series: [], i: [] }
         console.warn(
           'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
@@ -219,17 +212,15 @@ export default class Core {
           )
         )
       }
-      if (seriesTypes.column.series.length > 0) {
+      if (seriesTypes.bar.series.length > 0) {
         if (cnf.chart.stacked) {
           const barStacked = new BarStacked(ctx, xyRatios)
           elGraph.push(
-            barStacked.draw(seriesTypes.column.series, seriesTypes.column.i)
+            barStacked.draw(seriesTypes.bar.series, seriesTypes.bar.i)
           )
         } else {
           ctx.bar = new Bar(ctx, xyRatios)
-          elGraph.push(
-            ctx.bar.draw(seriesTypes.column.series, seriesTypes.column.i)
-          )
+          elGraph.push(ctx.bar.draw(seriesTypes.bar.series, seriesTypes.bar.i))
         }
       }
       if (seriesTypes.rangeArea.series.length > 0) {
