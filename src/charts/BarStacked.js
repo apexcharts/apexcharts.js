@@ -2,6 +2,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
+import DateTime from '../utils/DateTime'
 
 /**
  * ApexCharts BarStacked Class responsible for drawing both Stacked Columns and Bars.
@@ -266,14 +267,40 @@ class BarStacked extends Bar {
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
       } else if (String(userColumnWidth).indexOf('%') === -1) {
         barWidth = parseInt(userColumnWidth, 10)
-      } else if (
-        w.config.xaxis.type === 'datetime' &&
-        w.globals.dataPoints == 1
-      ) {
+      } else if (w.config.xaxis.type === 'datetime') {
+        const dateTimeUtil = new DateTime(this.ctx)
+        const timescaleTimestamps = w.globals.timescaleLabels.map((label) =>
+          dateTimeUtil.getTimeStamp(label.dateString)
+        )
+
+        const seriesTimestamps = w.globals.initialSeries.reduce(
+          (timestamps, series) => {
+            if (series.data && series.data.length > 0) {
+              series.data.forEach((dataPoint) => {
+                timestamps.push(dateTimeUtil.getTimeStamp(dataPoint.x))
+              })
+            }
+            return timestamps
+          },
+          []
+        )
+
+        const allTimestamps = [...timescaleTimestamps, ...seriesTimestamps]
+
+        allTimestamps.sort((a, b) => a - b)
+
+        let minimumInterval = Infinity
+        for (let i = 1; i < allTimestamps.length; i++) {
+          const interval = allTimestamps[i] - allTimestamps[i - 1]
+          if (interval < minimumInterval && interval !== 0) {
+            minimumInterval = interval
+          }
+        }
+
+        const intervalRatio =
+          minimumInterval / (w.globals.maxX - w.globals.minX)
         barWidth =
-          ((xDivision / w.globals.timescaleLabels.length) *
-            parseInt(userColumnWidth, 10)) /
-          100
+          (xDivision * intervalRatio * parseInt(userColumnWidth, 10)) / 100
       } else {
         barWidth *= parseInt(userColumnWidth, 10) / 100
       }
