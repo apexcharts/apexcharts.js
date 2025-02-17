@@ -266,6 +266,14 @@ class BarStacked extends Bar {
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
       } else if (String(userColumnWidth).indexOf('%') === -1) {
         barWidth = parseInt(userColumnWidth, 10)
+      } else if (
+        w.config.xaxis.type === 'datetime' &&
+        w.globals.dataPoints == 1
+      ) {
+        barWidth =
+          ((xDivision / w.globals.timescaleLabels.length) *
+            parseInt(userColumnWidth, 10)) /
+          100
       } else {
         barWidth *= parseInt(userColumnWidth, 10) / 100
       }
