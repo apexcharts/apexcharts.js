@@ -436,7 +436,7 @@ export default class Scales {
       step = range / ticks
     }
 
-    step = Math.round((step + Number.EPSILON) * 10) / 10
+    step = Math.round((step + Number.EPSILON) * 100) / 100
 
     if (ticks === Number.MAX_VALUE) {
       ticks = 5
@@ -582,16 +582,13 @@ export default class Scales {
   setXScale(minX, maxX) {
     const w = this.w
     const gl = w.globals
-    let diff = Math.abs(maxX - minX)
+    let diff = Math.round(Math.abs(maxX - minX))
     if (maxX === -Number.MAX_VALUE || !Utils.isNumber(maxX)) {
       // no data in the chart. Either all series collapsed or user passed a blank array
       gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
       let ticks = gl.xTickAmount
 
-      if (diff < 10 && diff > 1) {
-        ticks = diff
-      }
       gl.xAxisScale = this.linearScale(
         minX,
         maxX,
@@ -619,7 +616,7 @@ export default class Scales {
     axisSeriesMap.forEach((axisSeries, ai) => {
       let groupNames = []
       axisSeries.forEach((as) => {
-        let group = cnf.series[as].group
+        let group = cnf.series[as]?.group
         if (groupNames.indexOf(group) < 0) {
           groupNames.push(group)
         }

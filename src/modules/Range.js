@@ -167,8 +167,8 @@ class Range {
           }
           highestY = maxY
 
+          val = Utils.noExponents(val)
           if (Utils.isFloat(val)) {
-            val = Utils.noExponents(val)
             gl.yValueDecimal = Math.max(
               gl.yValueDecimal,
               val.toString().split('.')[1].length
@@ -426,7 +426,7 @@ class Range {
           ticks = gl.series[gl.maxValsInArrayIndex].length - 1
         }
         if (gl.isXNumeric) {
-          const diff = gl.maxX - gl.minX
+          const diff = Math.round(gl.maxX - gl.minX)
           if (diff < 30) {
             ticks = diff - 1
           }

@@ -240,6 +240,7 @@ export default class BarDataLabels {
         dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
       }
       if (
+        !w.config.chart.stacked &&
         zeroEncounters > 0 &&
         w.config.plotOptions.bar.hideZeroBarsWhenGrouped
       ) {
@@ -310,6 +311,17 @@ export default class BarDataLabels {
         break
     }
 
+    let lowestPrevY = newY
+    w.globals.seriesGroups.forEach((sg) => {
+      this.barCtx[sg.join(',')]?.prevY.forEach((arr) => {
+        if (valIsNegative) {
+          lowestPrevY = Math.max(arr[j], lowestPrevY)
+        } else {
+          lowestPrevY = Math.min(arr[j], lowestPrevY)
+        }
+      })
+    })
+
     if (
       this.barCtx.lastActiveBarSerieIndex === realIndex &&
       barTotalDataLabelsConfig.enabled
@@ -324,14 +336,14 @@ export default class BarDataLabels {
 
       if (valIsNegative) {
         totalDataLabelsY =
-          newY -
+          lowestPrevY -
           totalLabeltextRects.height / 2 -
           offY -
           barTotalDataLabelsConfig.offsetY +
           ADDITIONAL_OFFY
       } else {
         totalDataLabelsY =
-          newY +
+          lowestPrevY +
           totalLabeltextRects.height +
           offY +
           barTotalDataLabelsConfig.offsetY -
@@ -391,6 +403,10 @@ export default class BarDataLabels {
     } = opts
 
     let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
+    const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
+      i,
+      j,
+    })
 
     barWidth = Math.abs(barWidth)
 
@@ -402,6 +418,13 @@ export default class BarDataLabels {
       offY -
       3
 
+    if (
+      !w.config.chart.stacked &&
+      zeroEncounters > 0 &&
+      w.config.plotOptions.bar.hideZeroBarsWhenGrouped
+    ) {
+      dataLabelsY -= barHeight * zeroEncounters
+    }
     let totalDataLabelsX
     let totalDataLabelsY
     let totalDataLabelsAnchor = 'start'
@@ -439,6 +462,17 @@ export default class BarDataLabels {
         break
     }
 
+    let lowestPrevX = newX
+    w.globals.seriesGroups.forEach((sg) => {
+      this.barCtx[sg.join(',')]?.prevX.forEach((arr) => {
+        if (valIsNegative) {
+          lowestPrevX = Math.min(arr[j], lowestPrevX)
+        } else {
+          lowestPrevX = Math.max(arr[j], lowestPrevX)
+        }
+      })
+    })
+
     if (
       this.barCtx.lastActiveBarSerieIndex === realIndex &&
       barTotalDataLabelsConfig.enabled
@@ -450,12 +484,12 @@ export default class BarDataLabels {
       )
       if (valIsNegative) {
         totalDataLabelsX =
-          newX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX
+          lowestPrevX - strokeWidth - offX - barTotalDataLabelsConfig.offsetX
 
         totalDataLabelsAnchor = 'end'
       } else {
         totalDataLabelsX =
-          newX +
+          lowestPrevX +
           offX +
           barTotalDataLabelsConfig.offsetX +
           (this.barCtx.isReversed ? -(barWidth + strokeWidth) : strokeWidth)
@@ -466,6 +500,11 @@ export default class BarDataLabels {
         totalLabeltextRects.height / 2 +
         barTotalDataLabelsConfig.offsetY +
         strokeWidth
+
+      if (w.globals.barGroups.length > 1) {
+        totalDataLabelsY =
+          totalDataLabelsY - (w.globals.barGroups.length / 2) * (barHeight / 2)
+      }
     }
 
     if (!w.config.chart.stacked) {

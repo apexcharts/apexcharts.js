@@ -46,32 +46,30 @@ export default class XAnnotations {
       let result = this.helpers.getX1X2('x2', anno)
       x2 = result.x
       clipX2 = result.clipped
-      
-      if (!(clipX1 && clipX2)) {
-        if (x2 < x1) {
-          let temp = x1
-          x1 = x2
-          x2 = temp
-        }
 
-        let rect = this.annoCtx.graphics.drawRect(
-          x1 + anno.offsetX, // x1
-          0 + anno.offsetY, // y1
-          x2 - x1, // x2
-          w.globals.gridHeight + anno.offsetY, // y2
-          0, // radius
-          anno.fillColor, // color
-          anno.opacity, // opacity,
-          1, // strokeWidth
-          anno.borderColor, // strokeColor
-          strokeDashArray // stokeDashArray
-        )
-        rect.node.classList.add('apexcharts-annotation-rect')
-        rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
-        parent.appendChild(rect.node)
-        if (anno.id) {
-          rect.node.classList.add(anno.id)
-        }
+      if (x2 < x1) {
+        let temp = x1
+        x1 = x2
+        x2 = temp
+      }
+
+      let rect = this.annoCtx.graphics.drawRect(
+        x1 + anno.offsetX, // x1
+        0 + anno.offsetY, // y1
+        x2 - x1, // x2
+        w.globals.gridHeight + anno.offsetY, // y2
+        0, // radius
+        anno.fillColor, // color
+        anno.opacity, // opacity,
+        1, // strokeWidth
+        anno.borderColor, // strokeColor
+        strokeDashArray // stokeDashArray
+      )
+      rect.node.classList.add('apexcharts-annotation-rect')
+      rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
+      parent.appendChild(rect.node)
+      if (anno.id) {
+        rect.node.classList.add(anno.id)
       }
     }
 
@@ -106,11 +104,11 @@ export default class XAnnotations {
         foreColor: anno.label.style.color,
         cssClass: `apexcharts-xaxis-annotation-label ${
           anno.label.style.cssClass
-        } ${anno.id ? anno.id : ''}`
+        } ${anno.id ? anno.id : ''}`,
       })
 
       elText.attr({
-        rel: index
+        rel: index,
       })
 
       parent.appendChild(elText.node)
@@ -123,7 +121,7 @@ export default class XAnnotations {
     let w = this.w
 
     let elg = this.annoCtx.graphics.group({
-      class: 'apexcharts-xaxis-annotations'
+      class: 'apexcharts-xaxis-annotations',
     })
 
     w.config.annotations.xaxis.map((anno, index) => {

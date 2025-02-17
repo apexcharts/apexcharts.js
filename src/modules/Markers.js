@@ -61,6 +61,7 @@ export default class Markers {
         let invalidMarker = !Utils.isNumber(p.y[q])
 
         if (
+          w.globals.markers.largestSize === 0 &&
           w.globals.hasNullValues &&
           w.globals.series[i][j + 1] !== null &&
           !isVirtualPoint
