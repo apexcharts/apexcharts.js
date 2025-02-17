@@ -301,6 +301,8 @@ class BarStacked extends Bar {
           minimumInterval / (w.globals.maxX - w.globals.minX)
         barWidth =
           (xDivision * intervalRatio * parseInt(userColumnWidth, 10)) / 100
+
+        barWidth = Math.max(barWidth, 1)
       } else {
         barWidth *= parseInt(userColumnWidth, 10) / 100
       }
