@@ -71,10 +71,6 @@ class Grid {
     const gl = w.globals
     const graphics = new Graphics(this.ctx)
 
-    const strokeSize = Array.isArray(w.config.stroke.width)
-      ? Math.max(...w.config.stroke.width)
-      : w.config.stroke.width
-
     const createClipPath = (id) => {
       const clipPath = document.createElementNS(gl.SVGNS, 'clipPath')
       clipPath.setAttribute('id', id)
@@ -87,11 +83,15 @@ class Grid {
     gl.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`)
     gl.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
 
+    const strokeSize = Array.isArray(w.config.stroke.width)
+      ? Math.max(...w.config.stroke.width)
+      : w.config.stroke.width
+
     gl.dom.elGridRect = graphics.drawRect(
       0,
-      0,
+      -strokeSize / 2,
       gl.gridWidth,
-      gl.gridHeight + strokeSize / 2,
+      gl.gridHeight + strokeSize,
       0,
       '#fff'
     )
@@ -120,7 +120,7 @@ class Grid {
       0 - elGridRectBarSide,
       0,
       gl.gridWidth + elGridRectBarSide * 2,
-      gl.gridHeight + strokeSize / 2,
+      gl.gridHeight,
       0,
       '#fff'
     )
