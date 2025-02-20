@@ -125,7 +125,10 @@ class Pie {
         sectorAngleArr[i] = this.fullAngle / series.length
         this.sliceSizes.push((w.globals.radialSize * series[i]) / this.maxY)
       } else {
-        this.sliceSizes.push(w.globals.radialSize)
+        let ratio = w.config.plotOptions.pie.donut.thickness?.[i] || 1
+        let adjustment = (w.globals.radialSize - this.donutSize) * ratio
+        let sliceSize = this.donutSize + adjustment
+        this.sliceSizes.push(sliceSize)
       }
     }
 
