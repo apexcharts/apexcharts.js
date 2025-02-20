@@ -170,7 +170,7 @@ class Pie {
       elSeries.add(circle)
     }
 
-    let elG = self.drawArcs(sectorAngleArr, series)
+    let elG = self.drawArcs(sectorAngleArr, this.sliceSizes, series)
 
     // add slice dataLabels at the end
     this.sliceLabels.forEach((s) => {
@@ -208,7 +208,7 @@ class Pie {
   }
 
   // core function for drawing pie arcs
-  drawArcs(sectorAngleArr, series) {
+  drawArcs(sectorAngleArr, sliceSizes, series) {
     let w = this.w
     const filters = new Filters(this.ctx)
 
@@ -303,7 +303,7 @@ class Pie {
         labelPosition = Utils.polarToCartesian(
           this.centerX,
           this.centerY,
-          (w.globals.radialSize + this.donutSize) / 2 +
+          (sliceSizes[i] + this.donutSize) / 2 +
             w.config.plotOptions.pie.dataLabels.offset,
           (startAngle + angle / 2) % this.fullAngle
         )
