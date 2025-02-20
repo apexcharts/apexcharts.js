@@ -56,6 +56,20 @@ export default class BarDataLabels {
       bcy = y + parseFloat(barHeight * visibleSeries)
     }
 
+    const xAxisScale = w.globals.xAxisScale
+    const seriesX = w.globals.seriesX[realIndex]
+    const seriesY =
+      w.config.chart.stackType === '100%'
+        ? series[realIndex]
+        : w.globals.series[realIndex]
+
+    const valY = this.barCtx.isRangeBar
+      ? [y1, y2]
+      : w.config.chart.stackType === '100%'
+      ? series[realIndex][j]
+      : w.globals.series[realIndex][j]
+    const valX = seriesX[seriesY.indexOf(valY)]
+
     let dataLabels = null
     let totalDataLabels = null
     let dataLabelsX = x
@@ -86,11 +100,9 @@ export default class BarDataLabels {
       height: 0,
     }
     if (w.config.dataLabels.enabled) {
-      const yLabel = w.globals.series[i][j]
-
       textRects = graphics.getTextRects(
         w.config.dataLabels.formatter
-          ? w.config.dataLabels.formatter(yLabel, {
+          ? w.config.dataLabels.formatter(valY, {
               ...w,
               seriesIndex: i,
               dataPointIndex: j,
@@ -139,20 +151,24 @@ export default class BarDataLabels {
       barWidth,
     })
 
+    const isHidden = !(
+      (w.globals.isXNumeric &&
+        valX >= xAxisScale.niceMin &&
+        valX <= xAxisScale.niceMax) ||
+      (!w.globals.isXNumeric && xAxisScale.result.includes(valX))
+    )
+
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: this.barCtx.isRangeBar
-        ? [y1, y2]
-        : w.config.chart.stackType === '100%'
-        ? series[realIndex][j]
-        : w.globals.series[realIndex][j],
+      val: valY,
       i: realIndex,
       j,
       barWidth,
       barHeight,
       textRects,
       dataLabelsConfig,
+      isHidden,
     })
 
     if (w.config.chart.stacked && barTotalDataLabelsConfig.enabled) {
@@ -554,6 +570,7 @@ export default class BarDataLabels {
     barHeight,
     barWidth,
     dataLabelsConfig,
+    isHidden,
   }) {
     const w = this.w
     let rotate = 'rotate(0)'
@@ -576,7 +593,7 @@ export default class BarDataLabels {
       })
 
       let text = ''
-      if (typeof val !== 'undefined') {
+      if (typeof val !== 'undefined' && !isHidden) {
         text = formatter(val, {
           ...w,
           seriesIndex: i,
