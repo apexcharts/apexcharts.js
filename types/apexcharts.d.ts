@@ -664,6 +664,7 @@ type ApexPlotOptions = {
     donut?: {
       size?: string
       background?: string
+      thickness?: number[]
       labels?: {
         show?: boolean
         name?: {
