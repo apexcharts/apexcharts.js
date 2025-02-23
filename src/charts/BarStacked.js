@@ -262,11 +262,11 @@ class BarStacked extends Bar {
       barWidth = xDivision
 
       let userColumnWidth = w.config.plotOptions.bar.columnWidth
-      if (w.globals.isXNumeric && w.globals.dataPoints > 1) {
+      if (String(userColumnWidth).indexOf('%') === -1) {
+        barWidth = parseInt(userColumnWidth, 10)
+      } else if (w.globals.isXNumeric && w.globals.dataPoints > 1) {
         xDivision = w.globals.minXDiff / this.xRatio
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
-      } else if (String(userColumnWidth).indexOf('%') === -1) {
-        barWidth = parseInt(userColumnWidth, 10)
       } else if (w.config.xaxis.type === 'datetime') {
         const dateTimeUtil = new DateTime(this.ctx)
         const timescaleTimestamps = w.globals.timescaleLabels.map((label) =>
