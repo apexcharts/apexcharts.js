@@ -153,6 +153,9 @@ export default class AxesUtils {
 
     if (w.config.xaxis.labels.hideOverlappingLabels && drawnLabels.length > 0) {
       const prev = drawnLabelsRects[drawnLabelsRects.length - 1]
+      if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
+        return label
+      }
       if (
         label.x <
         prev.textRect.width /
