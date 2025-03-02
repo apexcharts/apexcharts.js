@@ -238,7 +238,10 @@ export default class Helpers {
     let strokeWidth = 0
     const w = this.w
 
-    if (!this.barCtx.series[i][j]) {
+    if (
+      typeof this.barCtx.series[i][j] === 'undefined' ||
+      this.barCtx.series[i][j] === null
+    ) {
       this.barCtx.isNullValue = true
     } else {
       this.barCtx.isNullValue = false
