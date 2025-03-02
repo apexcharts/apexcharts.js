@@ -59,11 +59,20 @@ export default class Events {
       clickableArea.addEventListener(
         event,
         (e) => {
-          const opts = Object.assign({}, w, {
-            seriesIndex: w.globals.axisCharts
+          let capturedSeriesIndex =
+            e.target.getAttribute('i') === null &&
+            w.globals.capturedSeriesIndex !== -1
               ? w.globals.capturedSeriesIndex
-              : 0,
-            dataPointIndex: w.globals.capturedDataPointIndex,
+              : e.target.getAttribute('i')
+          let capturedDataPointIndex =
+            e.target.getAttribute('j') === null &&
+            w.globals.capturedDataPointIndex !== -1
+              ? w.globals.capturedDataPointIndex
+              : e.target.getAttribute('j')
+
+          const opts = Object.assign({}, w, {
+            seriesIndex: w.globals.axisCharts ? capturedSeriesIndex : 0,
+            dataPointIndex: capturedDataPointIndex,
           })
 
           if (e.type === 'mousemove' || e.type === 'touchmove') {
