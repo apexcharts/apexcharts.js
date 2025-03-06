@@ -744,3 +744,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-rangebar-goals-markers {
   pointer-events: none
 }
+
+.apexcharts-disable-transitions * {
+  transition: none !important;
+}

@@ -243,6 +243,10 @@ export default class ApexCharts {
     // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
     this.core.shiftGraphPosition()
 
+    if (w.globals.dataPoints > 50) {
+      w.globals.dom.elWrap.classList.add('apexcharts-disable-transitions')
+    }
+
     const dim = {
       plot: {
         left: w.globals.translateX,
