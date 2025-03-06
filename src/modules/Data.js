@@ -207,10 +207,10 @@ export default class Data {
     }
 
     // Fix: RangeArea Chart: hide all series results in a crash #3984
-    gl.seriesRangeStart.push(range.start === undefined ? [] : range.start)
-    gl.seriesRangeEnd.push(range.end === undefined ? [] : range.end)
+    gl.seriesRangeStart[i] = range.start === undefined ? [] : range.start
+    gl.seriesRangeEnd[i] = range.end === undefined ? [] : range.end
 
-    gl.seriesRange.push(range.rangeUniques)
+    gl.seriesRange[i] = range.rangeUniques
 
     // check for overlaps to avoid clashes in a timeline chart
     gl.seriesRange.forEach((sr, si) => {
@@ -465,9 +465,7 @@ export default class Data {
         ser[i].type === 'rangeArea'
       ) {
         gl.isRangeData = true
-        if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea') {
-          this.handleRangeData(ser, i)
-        }
+        this.handleRangeData(ser, i)
       }
 
       if (this.isMultiFormat()) {
