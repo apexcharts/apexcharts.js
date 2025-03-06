@@ -71,7 +71,7 @@ export default class Tooltip {
     if (w.config.tooltip.cssClass) {
       tooltipEl.classList.add(w.config.tooltip.cssClass)
     }
-    tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme}`)
+    tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme || 'light'}`)
     w.globals.dom.elWrap.appendChild(tooltipEl)
 
     if (w.globals.axisCharts) {
@@ -897,13 +897,13 @@ export default class Tooltip {
 
           // de-activate first
           this.deactivateHoverFilter()
-
-          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
           let points = ttCtx.tooltipUtil.getAllMarkers(true)
 
-          if (points.length) {
+          if (points.length && !this.barSeriesHeight) {
             handlePoints()
           }
+
+          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
 
           for (let b = 0; b < paths.length; b++) {
             graphics.pathMouseEnter(paths[b])

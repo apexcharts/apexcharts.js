@@ -46,7 +46,7 @@ export default class Theme {
     const utils = new Utils()
 
     w.globals.dom.elWrap.classList.add(
-      `apexcharts-theme-${w.config.theme.mode}`
+      `apexcharts-theme-${w.config.theme.mode || 'light'}`
     )
 
     // Create a copy of config.colors array to avoid mutating the original config.colors
