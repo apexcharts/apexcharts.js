@@ -224,7 +224,6 @@ export default class Labels {
   getFormatters(i) {
     const w = this.w
 
-    // let yLbFormatter = w.globals.yLabelFormatters[i]
     let yLbFormatter = this.getFormatterBySeriesName(i, w)
     let yLbTitleFormatter
 
