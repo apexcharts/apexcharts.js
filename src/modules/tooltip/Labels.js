@@ -202,10 +202,30 @@ export default class Labels {
     }
   }
 
+  getFormatterBySeriesName(seriesIndex, w) {
+    const seriesName = w.config.series[seriesIndex].name
+    const yAxis = w.config.yaxis
+
+    for (let i = 0; i < yAxis.length; i++) {
+      const yAxisItem = yAxis[i]
+
+      if (Array.isArray(yAxisItem.seriesName)) {
+        if (yAxisItem.seriesName.includes(seriesName)) {
+          return yAxisItem.labels.formatter
+        }
+      } else if (yAxisItem.seriesName === seriesName) {
+        return yAxisItem.labels.formatter
+      }
+    }
+
+    return (val) => val
+  }
+
   getFormatters(i) {
     const w = this.w
 
-    let yLbFormatter = w.globals.yLabelFormatters[i]
+    // let yLbFormatter = w.globals.yLabelFormatters[i]
+    let yLbFormatter = this.getFormatterBySeriesName(i, w)
     let yLbTitleFormatter
 
     if (w.globals.ttVal !== undefined) {
