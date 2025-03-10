@@ -131,7 +131,6 @@ export default class ApexCharts {
 
     if (!Utils.elementExists(this.el)) {
       gl.animationEnded = true
-      this.destroy()
       return null
     }
 
