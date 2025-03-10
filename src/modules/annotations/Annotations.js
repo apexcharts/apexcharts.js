@@ -317,6 +317,15 @@ export default class Annotations {
         }
       })
 
+      Object.keys(w.config.annotations).forEach((key) => {
+        const annotationArray = w.config.annotations[key]
+
+        if (Array.isArray(annotationArray)) {
+          // remove entry from the config, so on the next update it doesn't come back
+          w.config.annotations[key] = annotationArray.filter((m) => m.id !== id)
+        }
+      })
+
       Array.prototype.forEach.call(annos, (a) => {
         a.parentElement.removeChild(a)
       })
