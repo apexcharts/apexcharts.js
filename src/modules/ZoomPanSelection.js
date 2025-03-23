@@ -239,9 +239,9 @@ export default class ZoomPanSelection extends Toolbar {
         })
       }
 
-      if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
-        this.delayedPanScrolled()
-      }
+      // if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
+      //   this.delayedPanScrolled()
+      // }
     }
 
     if (w.globals.zoomEnabled) {
@@ -851,35 +851,35 @@ export default class ZoomPanSelection extends Toolbar {
 
     let xHighestValue = w.globals.isRangeBar ? w.globals.maxY : w.globals.maxX
 
-    // on a category, we don't pan continuously as it causes bugs
-    if (!w.config.xaxis.convertedCatToNumeric) {
-      me.panScrolled(xLowestValue, xHighestValue)
-    }
+    // removed delayedPanScrolled as it doesn't seem to cause bugs anymore in convertedCatToNumeric
+    // if (!w.config.xaxis.convertedCatToNumeric) {
+    me.panScrolled(xLowestValue, xHighestValue)
+    // }
   }
 
-  delayedPanScrolled() {
-    const w = this.w
+  // delayedPanScrolled() {
+  //   const w = this.w
 
-    let newMinX = w.globals.minX
-    let newMaxX = w.globals.maxX
-    const centerX = (w.globals.maxX - w.globals.minX) / 2
+  //   let newMinX = w.globals.minX
+  //   let newMaxX = w.globals.maxX
+  //   const centerX = (w.globals.maxX - w.globals.minX) / 2
 
-    if (this.moveDirection === 'left') {
-      newMinX = w.globals.minX + centerX
-      newMaxX = w.globals.maxX + centerX
-    } else if (this.moveDirection === 'right') {
-      newMinX = w.globals.minX - centerX
-      newMaxX = w.globals.maxX - centerX
-    }
+  //   if (this.moveDirection === 'left') {
+  //     newMinX = w.globals.minX + centerX
+  //     newMaxX = w.globals.maxX + centerX
+  //   } else if (this.moveDirection === 'right') {
+  //     newMinX = w.globals.minX - centerX
+  //     newMaxX = w.globals.maxX - centerX
+  //   }
 
-    newMinX = Math.floor(newMinX)
-    newMaxX = Math.floor(newMaxX)
-    this.updateScrolledChart(
-      { xaxis: { min: newMinX, max: newMaxX } },
-      newMinX,
-      newMaxX
-    )
-  }
+  //   newMinX = Math.floor(newMinX)
+  //   newMaxX = Math.floor(newMaxX)
+  //   this.updateScrolledChart(
+  //     { xaxis: { min: newMinX, max: newMaxX } },
+  //     newMinX,
+  //     newMaxX
+  //   )
+  // }
 
   panScrolled(xLowestValue, xHighestValue) {
     const w = this.w
