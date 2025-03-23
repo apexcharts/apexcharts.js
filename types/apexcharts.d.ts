@@ -367,7 +367,7 @@ type AnnotationLabel = {
   borderColor?: string
   borderWidth?: number
   borderRadius?: number
-  text?: string
+  text?: string | string[]
   textAnchor?: string
   offsetX?: number
   offsetY?: number
@@ -953,7 +953,7 @@ type ApexDataLabels = {
     dropShadow?: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
-  formatter?(val: string | number | number[], opts?: any): string | number | (string | string)[]
+  formatter?(val: string | number | number[], opts?: any): string | number | (string | number)[]
 }
 
 type ApexResponsive = {
