@@ -20,6 +20,9 @@ class BoxCandleStick extends Bar {
     this.candlestickOptions = this.w.config.plotOptions.candlestick
     this.boxOptions = this.w.config.plotOptions.boxPlot
     this.isHorizontal = w.config.plotOptions.bar.horizontal
+    // Add new property to check if we're using OHLC type
+    this.isOHLC =
+      this.candlestickOptions && this.candlestickOptions.type === 'ohlc'
 
     const coreUtils = new CoreUtils(this.ctx, w)
     series = coreUtils.getLogSeries(series)
@@ -270,7 +273,20 @@ class BoxCandleStick extends Bar {
       pathFrom = this.getPreviousPath(realIndex, j, true)
     }
 
-    if (this.isBoxPlot) {
+    if (this.isOHLC) {
+      const centerX = barXPosition + barWidth / 2
+      const openY = zeroH - ohlc.o / yRatio
+      const closeY = zeroH - ohlc.c / yRatio
+
+      pathTo = [
+        graphics.move(centerX, l1) +
+          graphics.line(centerX, l2) +
+          graphics.move(centerX, openY) +
+          graphics.line(barXPosition, openY) +
+          graphics.move(centerX, closeY) +
+          graphics.line(barXPosition + barWidth, closeY),
+      ]
+    } else if (this.isBoxPlot) {
       pathTo = [
         graphics.move(barXPosition, y1) +
           graphics.line(barXPosition + barWidth / 2, y1) +
@@ -297,7 +313,7 @@ class BoxCandleStick extends Bar {
           'z',
       ]
     } else {
-      // candlestick
+      // Regular candlestick
       pathTo = [
         graphics.move(barXPosition, y2) +
           graphics.line(barXPosition + barWidth / 2, y2) +

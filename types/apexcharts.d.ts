@@ -573,6 +573,7 @@ type ApexPlotOptions = {
     maxBubbleRadius?: number
   }
   candlestick?: {
+    type?: string,
     colors?: {
       upward?: string | string[]
       downward?: string | string[]
