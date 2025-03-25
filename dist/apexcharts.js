@@ -23720,6 +23720,9 @@
           i: i,
           j: j
         });
+        if (typeof window.reorderApexChartTooltips === 'function') {
+          ttItems = window.reorderApexChartTooltips(ttItems);
+        }
         this.printLabels({
           i: i,
           j: j,

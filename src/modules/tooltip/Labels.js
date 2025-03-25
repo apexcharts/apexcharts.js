@@ -32,6 +32,10 @@ export default class Labels {
       j,
     })
 
+    if (typeof window.reorderApexChartTooltips === 'function') {
+      ttItems = window.reorderApexChartTooltips(ttItems)
+    }
+
     this.printLabels({
       i,
       j,
