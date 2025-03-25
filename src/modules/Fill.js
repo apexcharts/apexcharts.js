@@ -56,8 +56,8 @@ class Fill {
       patternUnits: params.patternUnits
         ? params.patternUnits
         : 'userSpaceOnUse',
-      width: imgWidth + 'px',
-      height: imgHeight + 'px',
+      width: 1,
+      height: 1,
     })
 
     let elImage = document.createElementNS(w.globals.SVGNS, 'image')
@@ -361,12 +361,12 @@ class Fill {
   }
 
   handlePatternFill({
-    fillConfig,
-    patternFill,
-    fillColor,
-    fillOpacity,
-    defaultColor,
-  }) {
+                      fillConfig,
+                      patternFill,
+                      fillColor,
+                      fillOpacity,
+                      defaultColor,
+                    }) {
     let fillCnf = this.w.config.fill
 
     if (fillConfig) {
@@ -409,13 +409,13 @@ class Fill {
   }
 
   handleGradientFill({
-    type,
-    fillColor,
-    fillOpacity,
-    fillConfig,
-    colorStops,
-    i,
-  }) {
+                       type,
+                       fillColor,
+                       fillOpacity,
+                       fillConfig,
+                       colorStops,
+                       i,
+                     }) {
     let fillCnf = this.w.config.fill
 
     if (fillConfig) {
@@ -435,8 +435,8 @@ class Fill {
       fillCnf.gradient.opacityFrom === undefined
         ? fillOpacity
         : Array.isArray(fillCnf.gradient.opacityFrom)
-        ? fillCnf.gradient.opacityFrom[i]
-        : fillCnf.gradient.opacityFrom
+          ? fillCnf.gradient.opacityFrom[i]
+          : fillCnf.gradient.opacityFrom
 
     if (gradientFrom.indexOf('rgba') > -1) {
       opacityFrom = Utils.getOpacityFromRGBA(gradientFrom)
@@ -445,8 +445,8 @@ class Fill {
       fillCnf.gradient.opacityTo === undefined
         ? fillOpacity
         : Array.isArray(fillCnf.gradient.opacityTo)
-        ? fillCnf.gradient.opacityTo[i]
-        : fillCnf.gradient.opacityTo
+          ? fillCnf.gradient.opacityTo[i]
+          : fillCnf.gradient.opacityTo
 
     if (
       fillCnf.gradient.gradientToColors === undefined ||

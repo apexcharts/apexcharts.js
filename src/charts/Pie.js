@@ -80,6 +80,7 @@ class Pie {
     let w = this.w
 
     const graphics = new Graphics(this.ctx)
+    let fill = new Fill(this.ctx)
 
     let elPie = graphics.group({
       class: 'apexcharts-pie',
@@ -155,13 +156,24 @@ class Pie {
     if (this.chartType === 'donut') {
       // draw the inner circle and add some text to it
       const circle = graphics.drawCircle(this.donutSize)
+      const randID = Utils.randomId()
+      const patternId = `pattern${w.globals.cuid}${randID}`
+
+      if (w.config.plotOptions.pie.donut.background) {
+        fill.clippedImgArea({
+          opacity: 1,
+          image: w.config.plotOptions.pie.donut.background,
+          patternUnits: 'objectBoundingBox',
+          patternID: patternId,
+          width: 86,
+          height: 86
+        })
+      }
 
       circle.attr({
         cx: this.centerX,
         cy: this.centerY,
-        fill: w.config.plotOptions.pie.donut.background
-          ? w.config.plotOptions.pie.donut.background
-          : 'transparent',
+        fill: w.config.plotOptions.pie.donut.background ? `url(#${patternId})` : 'transparent'
       })
 
       elSeries.add(circle)
@@ -293,7 +305,7 @@ class Pie {
           this.centerX,
           this.centerY,
           w.globals.radialSize / 1.25 +
-            w.config.plotOptions.pie.dataLabels.offset,
+          w.config.plotOptions.pie.dataLabels.offset,
           (startAngle + angle / 2) % this.fullAngle
         )
       } else if (this.chartType === 'donut') {
@@ -301,7 +313,7 @@ class Pie {
           this.centerX,
           this.centerY,
           (w.globals.radialSize + this.donutSize) / 2 +
-            w.config.plotOptions.pie.dataLabels.offset,
+          w.config.plotOptions.pie.dataLabels.offset,
           (startAngle + angle / 2) % this.fullAngle
         )
       }
@@ -368,7 +380,7 @@ class Pie {
         if (
           angle !== 0 &&
           w.config.plotOptions.pie.dataLabels.minAngleToShowLabel <
-            sectorAngleArr[i]
+          sectorAngleArr[i]
         ) {
           let formatter = w.config.dataLabels.formatter
           if (formatter !== undefined) {
@@ -666,7 +678,7 @@ class Pie {
     if (
       Math.ceil(endDeg) >=
       this.fullAngle +
-        (this.w.config.plotOptions.pie.startAngle % this.fullAngle)
+      (this.w.config.plotOptions.pie.startAngle % this.fullAngle)
     ) {
       endDeg =
         this.fullAngle +
@@ -763,8 +775,8 @@ class Pie {
         const yLabel = helpers.drawYAxisTexts(
           this.centerX,
           this.centerY -
-            circleSize +
-            parseInt(w.config.yaxis[0].labels.style.fontSize, 10) / 2,
+          circleSize +
+          parseInt(w.config.yaxis[0].labels.style.fontSize, 10) / 2,
           i,
           yTexts[i]
         )
