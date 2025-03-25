@@ -158,8 +158,9 @@ class Pie {
       const circle = graphics.drawCircle(this.donutSize)
       const randID = Utils.randomId()
       const patternId = `pattern${w.globals.cuid}${randID}`
+      const backgroundIsImage = Utils.isImage(w.config.plotOptions.pie.donut.background)
 
-      if (w.config.plotOptions.pie.donut.background) {
+      if (backgroundIsImage) {
         fill.clippedImgArea({
           opacity: 1,
           image: w.config.plotOptions.pie.donut.background,
@@ -173,7 +174,7 @@ class Pie {
       circle.attr({
         cx: this.centerX,
         cy: this.centerY,
-        fill: w.config.plotOptions.pie.donut.background ? `url(#${patternId})` : 'transparent'
+        fill: backgroundIsImage ? `url(#${patternId})` : 'transparent'
       })
 
       elSeries.add(circle)
