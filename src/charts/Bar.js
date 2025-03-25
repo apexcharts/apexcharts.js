@@ -489,7 +489,7 @@ class Bar {
         (this.barHelpers.getXForValue(this.series[i][j], zeroW) - zeroW) / 2
     }
 
-    x = this.barHelpers.getXForValue(this.series[i][j], zeroW)
+    x = this.barHelpers.getXForValue(this.series[i][j] < 3 ? 3 : this.series[i][j], zeroW)
 
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
