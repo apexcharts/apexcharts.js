@@ -25554,6 +25554,7 @@
         }
         var isStickyTooltip = w.globals.xyCharts || w.config.chart.type === 'bar' && !w.globals.isBarHorizontal && this.tooltipUtil.hasBars() && this.tConfig.shared || w.globals.comboCharts && this.tooltipUtil.hasBars();
         if (e.type === 'mousemove' || e.type === 'touchmove' || e.type === 'mouseup') {
+          var _w$config$tooltip$sho;
           // there is no series to hover over
           if (w.globals.collapsedSeries.length + w.globals.ancillaryCollapsedSeries.length === w.globals.series.length) {
             return;
@@ -25605,8 +25606,10 @@
               this.axesTooltip.drawYaxisTooltipText(yt, clientY, this.xyRatios);
             }
           }
-          w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active');
-          opt.tooltipEl.classList.add('apexcharts-active');
+          if (!w.config.tooltip.showOnEvents || (_w$config$tooltip$sho = w.config.tooltip.showOnEvents) !== null && _w$config$tooltip$sho !== void 0 && _w$config$tooltip$sho.includes(e.type)) {
+            w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active');
+            opt.tooltipEl.classList.add('apexcharts-active');
+          }
         } else if (e.type === 'mouseout' || e.type === 'touchend') {
           this.handleMouseOut(opt);
         }

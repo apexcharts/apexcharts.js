@@ -615,8 +615,10 @@ export default class Tooltip {
         }
       }
 
-      w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
-      opt.tooltipEl.classList.add('apexcharts-active')
+      if (!w.config.tooltip.showOnEvents || w.config.tooltip.showOnEvents?.includes(e.type)) {
+        w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
+        opt.tooltipEl.classList.add('apexcharts-active')
+      }
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       this.handleMouseOut(opt)
     }
