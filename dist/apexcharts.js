@@ -9703,11 +9703,16 @@
         var text = _ref3.text,
           maxWidth = _ref3.maxWidth,
           fontSize = _ref3.fontSize,
-          fontFamily = _ref3.fontFamily;
-        var tRects = this.getTextRects(text, fontSize, fontFamily);
+          fontFamily = _ref3.fontFamily,
+          fontWeight = _ref3.fontWeight;
+        var tRects = this.getTextRects(text, fontSize, fontFamily, fontWeight);
         var wordWidth = tRects.width / text.length;
         var wordsBasedOnWidth = Math.floor(maxWidth / wordWidth);
         if (maxWidth < tRects.width) {
+          while (maxWidth < tRects.width) {
+            tRects = this.getTextRects(text.slice(0, wordsBasedOnWidth - 3) + '...', fontSize, fontFamily, fontWeight);
+            wordsBasedOnWidth--;
+          }
           return text.slice(0, wordsBasedOnWidth - 3) + '...';
         }
         return text;
@@ -9747,7 +9752,8 @@
         var commonProps = {
           maxWidth: maxWidth,
           fontSize: fontSize,
-          fontFamily: fontFamily
+          fontFamily: fontFamily,
+          fontWeight: fontWeight
         };
         var elText;
         if (Array.isArray(text)) {
@@ -9819,25 +9825,25 @@
             d += 'Z';
             break;
           case 'triangle':
-            d = "M ".concat(x, " ").concat(y - size, " \n             L ").concat(x + size, " ").concat(y + size, " \n             L ").concat(x - size, " ").concat(y + size, " \n             Z");
+            d = "M ".concat(x, " ").concat(y - size, "\n             L ").concat(x + size, " ").concat(y + size, "\n             L ").concat(x - size, " ").concat(y + size, "\n             Z");
             break;
           case 'square':
           case 'rect':
             size = size / 1.125;
-            d = "M ".concat(x - size, " ").concat(y - size, " \n           L ").concat(x + size, " ").concat(y - size, " \n           L ").concat(x + size, " ").concat(y + size, " \n           L ").concat(x - size, " ").concat(y + size, " \n           Z");
+            d = "M ".concat(x - size, " ").concat(y - size, "\n           L ").concat(x + size, " ").concat(y - size, "\n           L ").concat(x + size, " ").concat(y + size, "\n           L ").concat(x - size, " ").concat(y + size, "\n           Z");
             break;
           case 'diamond':
             size = size * 1.05;
-            d = "M ".concat(x, " ").concat(y - size, " \n             L ").concat(x + size, " ").concat(y, " \n             L ").concat(x, " ").concat(y + size, " \n             L ").concat(x - size, " ").concat(y, " \n            Z");
+            d = "M ".concat(x, " ").concat(y - size, "\n             L ").concat(x + size, " ").concat(y, "\n             L ").concat(x, " ").concat(y + size, "\n             L ").concat(x - size, " ").concat(y, "\n            Z");
             break;
           case 'line':
             size = size / 1.1;
-            d = "M ".concat(x - size, " ").concat(y, " \n           L ").concat(x + size, " ").concat(y);
+            d = "M ".concat(x - size, " ").concat(y, "\n           L ").concat(x + size, " ").concat(y);
             break;
           case 'circle':
           default:
             size = size * 2;
-            d = "M ".concat(x, ", ").concat(y, " \n           m -").concat(size / 2, ", 0 \n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 ").concat(size, ",0 \n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 -").concat(size, ",0");
+            d = "M ".concat(x, ", ").concat(y, "\n           m -").concat(size / 2, ", 0\n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 ").concat(size, ",0\n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 -").concat(size, ",0");
             break;
         }
         return d;
@@ -10035,8 +10041,9 @@
       }
     }, {
       key: "getTextRects",
-      value: function getTextRects(text, fontSize, fontFamily, transform) {
-        var useBBox = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
+      value: function getTextRects(text, fontSize, fontFamily, fontWeight) {
+        var transform = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
+        var useBBox = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : true;
         var w = this.w;
         var virtualText = this.drawText({
           x: -200,
@@ -10045,6 +10052,7 @@
           textAnchor: 'start',
           fontSize: fontSize,
           fontFamily: fontFamily,
+          fontWeight: fontWeight,
           foreColor: '#fff',
           opacity: 0
         });

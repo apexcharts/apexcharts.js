@@ -636,11 +636,15 @@ class Graphics {
     return g
   }
 
-  getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily }) {
-    const tRects = this.getTextRects(text, fontSize, fontFamily)
+  getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily, fontWeight }) {
+    let tRects = this.getTextRects(text, fontSize, fontFamily, fontWeight)
     const wordWidth = tRects.width / text.length
-    const wordsBasedOnWidth = Math.floor(maxWidth / wordWidth)
+    let wordsBasedOnWidth = Math.floor(maxWidth / wordWidth)
     if (maxWidth < tRects.width) {
+      while (maxWidth < tRects.width) {
+        tRects = this.getTextRects(text.slice(0, wordsBasedOnWidth - 3) + '...', fontSize, fontFamily, fontWeight)
+        wordsBasedOnWidth--
+      }
       return text.slice(0, wordsBasedOnWidth - 3) + '...'
     }
     return text
@@ -681,6 +685,7 @@ class Graphics {
       maxWidth,
       fontSize,
       fontFamily,
+      fontWeight
     }
     let elText
     if (Array.isArray(text)) {
@@ -764,39 +769,39 @@ class Graphics {
         d += 'Z'
         break
       case 'triangle':
-        d = `M ${x} ${y - size} 
-             L ${x + size} ${y + size} 
-             L ${x - size} ${y + size} 
+        d = `M ${x} ${y - size}
+             L ${x + size} ${y + size}
+             L ${x - size} ${y + size}
              Z`
         break
       case 'square':
       case 'rect':
         size = size / 1.125
-        d = `M ${x - size} ${y - size} 
-           L ${x + size} ${y - size} 
-           L ${x + size} ${y + size} 
-           L ${x - size} ${y + size} 
+        d = `M ${x - size} ${y - size}
+           L ${x + size} ${y - size}
+           L ${x + size} ${y + size}
+           L ${x - size} ${y + size}
            Z`
         break
       case 'diamond':
         size = size * 1.05
-        d = `M ${x} ${y - size} 
-             L ${x + size} ${y} 
-             L ${x} ${y + size} 
-             L ${x - size} ${y} 
+        d = `M ${x} ${y - size}
+             L ${x + size} ${y}
+             L ${x} ${y + size}
+             L ${x - size} ${y}
             Z`
         break
       case 'line':
         size = size / 1.1
-        d = `M ${x - size} ${y} 
+        d = `M ${x - size} ${y}
            L ${x + size} ${y}`
         break
       case 'circle':
       default:
         size = size * 2
-        d = `M ${x}, ${y} 
-           m -${size / 2}, 0 
-           a ${size / 2},${size / 2} 0 1,0 ${size},0 
+        d = `M ${x}, ${y}
+           m -${size / 2}, 0
+           a ${size / 2},${size / 2} 0 1,0 ${size},0
            a ${size / 2},${size / 2} 0 1,0 -${size},0`
         break
     }
@@ -1038,7 +1043,7 @@ class Graphics {
     }
   }
 
-  getTextRects(text, fontSize, fontFamily, transform, useBBox = true) {
+  getTextRects(text, fontSize, fontFamily, fontWeight, transform = undefined, useBBox = true) {
     let w = this.w
     let virtualText = this.drawText({
       x: -200,
@@ -1047,6 +1052,7 @@ class Graphics {
       textAnchor: 'start',
       fontSize,
       fontFamily,
+      fontWeight,
       foreColor: '#fff',
       opacity: 0,
     })
