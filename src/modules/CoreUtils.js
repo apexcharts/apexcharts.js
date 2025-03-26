@@ -481,7 +481,7 @@ class CoreUtils {
         let yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i]]
         let sign = y < 0 ? -1 : 1
         y = Math.abs(y)
-        if (yAxis.logarithmic) {
+        if (yAxis?.logarithmic) {
           y = this.getBaseLog(yAxis.logBase, y)
         }
         return (-sign * y) / yRatio[i]
