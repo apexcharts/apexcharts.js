@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.5.0-c1
+ * ApexCharts v4.5.0-c2
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -10372,7 +10372,7 @@
           });
         } else {
           // axis charts - supporting multiple series
-          r = this.w.config.series[index].data.filter(function (d) {
+          r = (this.w.config.series[index].data || []).filter(function (d) {
             return d !== null;
           });
         }
