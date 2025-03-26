@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.5.0-c2
+ * ApexCharts v4.5.0-c3
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -10550,7 +10550,7 @@
             var yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i]];
             var sign = y < 0 ? -1 : 1;
             y = Math.abs(y);
-            if (yAxis.logarithmic) {
+            if (yAxis !== null && yAxis !== void 0 && yAxis.logarithmic) {
               y = _this2.getBaseLog(yAxis.logBase, y);
             }
             return -sign * y / yRatio[i];
@@ -19090,8 +19090,9 @@
                     }));
                   });
                   var _loop = function _loop(i) {
+                    var _cnf$series$axisSerie;
                     // Assume chart type but the first series that has a type overrides.
-                    if (!seriesType && cnf.series[axisSeries[i]].type) {
+                    if (!seriesType && (_cnf$series$axisSerie = cnf.series[axisSeries[i]]) !== null && _cnf$series$axisSerie !== void 0 && _cnf$series$axisSerie.type) {
                       seriesType = cnf.series[axisSeries[i]].type;
                     }
                     // Sum all series for this yaxis at each corresponding datapoint
