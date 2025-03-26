@@ -659,6 +659,13 @@
         b = Math.round(Math.abs(b) * big);
         return a % b / big;
       }
+    }, {
+      key: "isImage",
+      value: function isImage(filePath) {
+        var extensions = new Set(['3dv', 'ai', 'amf', 'art', 'ase', 'awg', 'blp', 'bmp', 'bw', 'cd5', 'cdr', 'cgm', 'cit', 'cmx', 'cpt', 'cr2', 'cur', 'cut', 'dds', 'dib', 'djvu', 'dxf', 'e2d', 'ecw', 'egt', 'emf', 'eps', 'exif', 'fs', 'gbr', 'gif', 'gpl', 'grf', 'hdp', 'heic', 'heif', 'icns', 'ico', 'iff', 'int', 'inta', 'jfif', 'jng', 'jp2', 'jpeg', 'jpg', 'jps', 'jxr', 'lbm', 'liff', 'max', 'miff', 'mng', 'msp', 'nef', 'nitf', 'nrrd', 'odg', 'ota', 'pam', 'pbm', 'pc1', 'pc2', 'pc3', 'pcf', 'pct', 'pcx', 'pdd', 'pdn', 'pgf', 'pgm', 'PI1', 'PI2', 'PI3', 'pict', 'png', 'pnm', 'pns', 'ppm', 'psb', 'psd', 'psp', 'px', 'pxm', 'pxr', 'qfx', 'ras', 'raw', 'rgb', 'rgba', 'rle', 'sct', 'sgi', 'sid', 'stl', 'sun', 'svg', 'sxd', 'tga', 'tif', 'tiff', 'v2d', 'vnd', 'vrml', 'vtf', 'wdp', 'webp', 'wmf', 'x3d', 'xar', 'xbm', 'xcf', 'xpm']);
+        console.log(filePath);
+        return extensions.has(filePath.split('.').pop().toLowerCase());
+      }
     }]);
     return Utils;
   }();
@@ -20067,6 +20074,9 @@
           var yaxe = w.config.yaxis[index];
           if (yaxe && !yaxe.floating && yaxe.labels.align !== undefined) {
             var yAxisInner = w.globals.dom.baseEl.querySelector(".apexcharts-yaxis[rel='".concat(index, "'] .apexcharts-yaxis-texts-g"));
+            if (!yAxisInner) {
+              return;
+            }
             var yAxisTexts = Utils$1.listToArray(w.globals.dom.baseEl.querySelectorAll(".apexcharts-yaxis[rel='".concat(index, "'] .apexcharts-yaxis-label")));
             var rect = yAxisInner.getBoundingClientRect();
             yAxisTexts.forEach(function (label) {
@@ -28951,7 +28961,8 @@
           var circle = graphics.drawCircle(this.donutSize);
           var randID = Utils$1.randomId();
           var patternId = "pattern".concat(w.globals.cuid).concat(randID);
-          if (w.config.plotOptions.pie.donut.background) {
+          var backgroundIsImage = Utils$1.isImage(w.config.plotOptions.pie.donut.background);
+          if (backgroundIsImage) {
             fill.clippedImgArea({
               opacity: 1,
               image: w.config.plotOptions.pie.donut.background,
@@ -28964,7 +28975,7 @@
           circle.attr({
             cx: this.centerX,
             cy: this.centerY,
-            fill: w.config.plotOptions.pie.donut.background ? "url(#".concat(patternId, ")") : 'transparent'
+            fill: backgroundIsImage ? "url(#".concat(patternId, ")") : 'transparent'
           });
           elSeries.add(circle);
         }
