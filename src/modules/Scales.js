@@ -642,7 +642,7 @@ export default class Scales {
           })
           for (let i = 0; i < axisSeries.length; i++) {
             // Assume chart type but the first series that has a type overrides.
-            if (!seriesType && cnf.series[axisSeries[i]].type) {
+            if (!seriesType && cnf.series[axisSeries[i]]?.type) {
               seriesType = cnf.series[axisSeries[i]].type
             }
             // Sum all series for this yaxis at each corresponding datapoint

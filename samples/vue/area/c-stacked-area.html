@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Stacked Area</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+
+    #chart {
+      max-width: 950px;
+      margin: 35px auto;
+    }
+
+  </style>
+
+  <script>
+    window.Promise ||
+    document.write(
+      '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+    )
+    window.Promise ||
+    document.write(
+      '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+    )
+    window.Promise ||
+    document.write(
+      '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+    )
+  </script>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+  <script src="../../../dist/apexcharts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+
+
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function() {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <script src="../../assets/stock-prices.js"></script>
+</head>
+
+<body>
+
+<div id="app">
+  <div id="chart">
+    <apexchart type="area" height="350" :options="chartOptions" :series="series"></apexchart>
+  </div>
+</div>
+
+<!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+<div id="html">
+  &lt;div id=&quot;chart&quot;&gt;
+  &lt;apexchart type=&quot;area&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+  &lt;/div&gt;
+</div>
+
+<script>
+  new Vue({
+    el: '#app',
+    components: {
+      apexchart: VueApexCharts,
+    },
+    data: {
+
+      series: [
+        {
+          name: "A",
+          data: [
+            "0.10915008",
+            "2.2908944",
+            "2.2908944",
+            "2.41263872",
+            "2.41263872",
+            "2.41263872",
+            "2.4966003199999998",
+            "2.6015523199999997",
+            "2.71490048",
+            "2.71490048",
+            "2.8366447999999997",
+            "2.8702294399999997",
+            "2.9835776",
+            "2.9835776",
+            "2.9835776",
+            "3.0478603186216153",
+            "5.208614238621616",
+            "5.375213111251513",
+            "5.3794111912515135",
+            "5.501155511251514",
+            "5.501155511251514",
+            "5.501155511251514",
+            "5.501155511251514",
+            "5.501155511251514",
+            "5.501155511251514",
+            "5.501155511251514"
+          ],
+          color: "#6FA8DC"
+        },
+        {
+          name: "B",
+          data: [
+            "0",
+            "2.06",
+            "2.06",
+            "2.1439616",
+            "2.1733481599999998",
+            "2.1733481599999998",
+            "2.1901404799999997",
+            "2.1901404799999997",
+            "2.1901404799999997",
+            "2.1901404799999997",
+            "2.1901404799999997",
+            "2.1901404799999997",
+            "2.2950924799999997",
+            "2.2950924799999997",
+            "2.2950924799999997",
+            "2.2950924799999997",
+            "4.408961466350414",
+            "4.522309626350414",
+            "4.522309626350414",
+            "4.522309626350414",
+            "4.522309626350414",
+            "4.522309626350414",
+            "4.522309626350414",
+            "4.522309626350414",
+            "4.522309626350414",
+            "4.522309626350414"
+          ],
+          color: "#4C1130"
+        },
+        {
+          name: "C",
+          data: [
+            "0",
+            "2.11037696",
+            "2.11037696",
+            "2.25730976",
+            "2.25730976",
+            "2.25730976",
+            "2.374856",
+            "2.374856",
+            "2.374856",
+            "2.441492411303676",
+            "2.441492411303676",
+            "2.441492411303676",
+            "2.550642491303676",
+            "2.550642491303676",
+            "2.550642491303676",
+            "2.6065833617444905",
+            "4.6665833617444905",
+            "4.79672384174449",
+            "4.79672384174449",
+            "4.9184681617444905",
+            "4.9184681617444905",
+            "4.9184681617444905",
+            "4.9184681617444905",
+            "4.9184681617444905",
+            "4.9184681617444905",
+            "4.9184681617444905"
+          ],
+          color: "#ea9999"
+        },
+        {
+          name: "D",
+          data: [
+            "2.06",
+            "2.06",
+            "2.06",
+            "2.1943385600000003",
+            "2.1943385600000003",
+            "2.1943385600000003",
+            "2.3244790400000004",
+            "2.3244790400000004",
+            "2.3244790400000004",
+            "2.3244790400000004",
+            "2.3244790400000004",
+            "2.3244790400000004",
+            "2.4546195200000005",
+            "2.4546195200000005",
+            "2.4546195200000005",
+            "2.518847926802417",
+            "4.578847926802418",
+            "4.713186486802417",
+            "4.7551672868024175",
+            "4.910496246802418",
+            "4.910496246802418",
+            "4.910496246802418",
+            "4.910496246802418",
+            "4.910496246802418",
+            "4.910496246802418",
+            "4.910496246802418"
+          ],
+          color: "#0B5394"
+        },
+        {
+          name: "E",
+          data: [
+            "0",
+            "2.06",
+            "2.16915008",
+            "2.27830016",
+            "2.27830016",
+            "2.27830016",
+            "2.38745024",
+            "2.38745024",
+            "2.38745024",
+            "2.38745024",
+            "2.38745024",
+            "2.38745024",
+            "2.5889580800000003",
+            "2.5889580800000003",
+            "2.5973542400000005",
+            "2.6512232263504143",
+            "4.711223226350414",
+            "4.8245713863504145",
+            "4.937919546350415",
+            "5.047069626350415",
+            "5.047069626350415",
+            "5.047069626350415",
+            "5.047069626350415",
+            "5.047069626350415",
+            "5.047069626350415",
+            "5.047069626350415"
+          ],
+          color: "#990000"
+        },
+        {
+          name: "F",
+          data: [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95",
+            "1.95"
+          ],
+          color: "#F1C232"
+        }
+      ],
+      chartOptions: {
+        chart: {
+          animations: {
+            enabled: false
+          },
+          fontFamily: "Inter",
+          toolbar: {
+            show: false
+          },
+          parentHeightOffset: 0,
+          events: {},
+          id: "area-chart",
+          type: "area",
+          stacked: true
+        },
+        dataLabels: {
+          enabled: false
+        },
+        legend: {
+          markers: {
+            radius: 12,
+            offsetX: -10
+          },
+          itemMargin: {
+            horizontal: 24
+          },
+          show: false,
+          labels: {
+            colors: [
+              "#151515"
+            ]
+          }
+        },
+        grid: {
+          show: true,
+          borderColor: "#E4E4E4",
+          xaxis: {
+            lines: {
+              show: false
+            }
+          },
+          padding: {
+            left: 11,
+            right: 0,
+            bottom: 60
+          }
+        },
+        yaxis: [
+          {
+            show: true,
+            showAlways: false,
+            showForNullSeries: false,
+            seriesName: "A",
+            opposite: false,
+            reversed: false,
+            logarithmic: false,
+            logBase: 10,
+            tickAmount: 6,
+            forceNiceScale: true,
+            max: 27,
+            min: 0,
+            floating: false,
+            labels: {
+              show: true,
+              showDuplicates: false,
+              minWidth: 0,
+              maxWidth: 160,
+              offsetX: -16,
+              offsetY: 0,
+              align: "left",
+              rotate: 0,
+              padding: 20,
+              style: {
+                colors: [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                fontSize: "14px",
+                fontWeight: 400,
+                cssClass: ""
+              }
+            },
+            axisBorder: {
+              show: false,
+              color: "#e0e0e0",
+              width: 1,
+              offsetX: 0,
+              offsetY: 0
+            },
+            axisTicks: {
+              show: false,
+              color: "#e0e0e0",
+              width: 6,
+              offsetX: 0,
+              offsetY: 0
+            },
+            title: {
+              rotate: -90,
+              offsetY: 0,
+              offsetX: 0,
+              style: {
+                fontSize: "11px",
+                fontWeight: 900,
+                cssClass: ""
+              }
+            },
+            tooltip: {
+              enabled: false,
+              offsetX: 0
+            },
+            crosshairs: {
+              show: true,
+              position: "front",
+              stroke: {
+                color: "#b6b6b6",
+                width: 1,
+                dashArray: 0
+              }
+            }
+          },
+          {
+            show: false,
+            showAlways: false,
+            showForNullSeries: false,
+            seriesName: "B",
+            opposite: false,
+            reversed: false,
+            logarithmic: false,
+            logBase: 10,
+            tickAmount: 6,
+            forceNiceScale: true,
+            max: 27,
+            min: 0,
+            floating: false,
+            labels: {
+              show: true,
+              showDuplicates: false,
+              minWidth: 0,
+              maxWidth: 160,
+              offsetX: -16,
+              offsetY: 0,
+              align: "left",
+              rotate: 0,
+              padding: 20,
+              style: {
+                colors: [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                fontSize: "14px",
+                fontWeight: 400,
+                cssClass: ""
+              }
+            },
+            axisBorder: {
+              show: false,
+              color: "#e0e0e0",
+              width: 1,
+              offsetX: 0,
+              offsetY: 0
+            },
+            axisTicks: {
+              show: false,
+              color: "#e0e0e0",
+              width: 6,
+              offsetX: 0,
+              offsetY: 0
+            },
+            title: {
+              rotate: -90,
+              offsetY: 0,
+              offsetX: 0,
+              style: {
+                fontSize: "11px",
+                fontWeight: 900,
+                cssClass: ""
+              }
+            },
+            tooltip: {
+              enabled: false,
+              offsetX: 0
+            },
+            crosshairs: {
+              show: true,
+              position: "front",
+              stroke: {
+                color: "#b6b6b6",
+                width: 1,
+                dashArray: 0
+              }
+            }
+          },
+          {
+            show: false,
+            showAlways: false,
+            showForNullSeries: false,
+            seriesName: "C",
+            opposite: false,
+            reversed: false,
+            logarithmic: false,
+            logBase: 10,
+            tickAmount: 6,
+            forceNiceScale: true,
+            max: 27,
+            min: 0,
+            floating: false,
+            labels: {
+              show: true,
+              showDuplicates: false,
+              minWidth: 0,
+              maxWidth: 160,
+              offsetX: -16,
+              offsetY: 0,
+              align: "left",
+              rotate: 0,
+              padding: 20,
+              style: {
+                colors: [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                fontSize: "14px",
+                fontWeight: 400,
+                cssClass: ""
+              }
+            },
+            axisBorder: {
+              show: false,
+              color: "#e0e0e0",
+              width: 1,
+              offsetX: 0,
+              offsetY: 0
+            },
+            axisTicks: {
+              show: false,
+              color: "#e0e0e0",
+              width: 6,
+              offsetX: 0,
+              offsetY: 0
+            },
+            title: {
+              rotate: -90,
+              offsetY: 0,
+              offsetX: 0,
+              style: {
+                fontSize: "11px",
+                fontWeight: 900,
+                cssClass: ""
+              }
+            },
+            tooltip: {
+              enabled: false,
+              offsetX: 0
+            },
+            crosshairs: {
+              show: true,
+              position: "front",
+              stroke: {
+                color: "#b6b6b6",
+                width: 1,
+                dashArray: 0
+              }
+            }
+          },
+          {
+            show: false,
+            showAlways: false,
+            showForNullSeries: false,
+            seriesName: "D",
+            opposite: false,
+            reversed: false,
+            logarithmic: false,
+            logBase: 10,
+            tickAmount: 6,
+            forceNiceScale: true,
+            max: 27,
+            min: 0,
+            floating: false,
+            labels: {
+              show: true,
+              showDuplicates: false,
+              minWidth: 0,
+              maxWidth: 160,
+              offsetX: -16,
+              offsetY: 0,
+              align: "left",
+              rotate: 0,
+              padding: 20,
+              style: {
+                colors: [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                fontSize: "14px",
+                fontWeight: 400,
+                cssClass: ""
+              }
+            },
+            axisBorder: {
+              show: false,
+              color: "#e0e0e0",
+              width: 1,
+              offsetX: 0,
+              offsetY: 0
+            },
+            axisTicks: {
+              show: false,
+              color: "#e0e0e0",
+              width: 6,
+              offsetX: 0,
+              offsetY: 0
+            },
+            title: {
+              rotate: -90,
+              offsetY: 0,
+              offsetX: 0,
+              style: {
+                fontSize: "11px",
+                fontWeight: 900,
+                cssClass: ""
+              }
+            },
+            tooltip: {
+              enabled: false,
+              offsetX: 0
+            },
+            crosshairs: {
+              show: true,
+              position: "front",
+              stroke: {
+                color: "#b6b6b6",
+                width: 1,
+                dashArray: 0
+              }
+            }
+          },
+          {
+            show: false,
+            showAlways: false,
+            showForNullSeries: false,
+            seriesName: "E",
+            opposite: false,
+            reversed: false,
+            logarithmic: false,
+            logBase: 10,
+            tickAmount: 6,
+            forceNiceScale: true,
+            max: 27,
+            min: 0,
+            floating: false,
+            labels: {
+              show: true,
+              showDuplicates: false,
+              minWidth: 0,
+              maxWidth: 160,
+              offsetX: -16,
+              offsetY: 0,
+              align: "left",
+              rotate: 0,
+              padding: 20,
+              style: {
+                colors: [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                fontSize: "14px",
+                fontWeight: 400,
+                cssClass: ""
+              }
+            },
+            axisBorder: {
+              show: false,
+              color: "#e0e0e0",
+              width: 1,
+              offsetX: 0,
+              offsetY: 0
+            },
+            axisTicks: {
+              show: false,
+              color: "#e0e0e0",
+              width: 6,
+              offsetX: 0,
+              offsetY: 0
+            },
+            title: {
+              rotate: -90,
+              offsetY: 0,
+              offsetX: 0,
+              style: {
+                fontSize: "11px",
+                fontWeight: 900,
+                cssClass: ""
+              }
+            },
+            tooltip: {
+              enabled: false,
+              offsetX: 0
+            },
+            crosshairs: {
+              show: true,
+              position: "front",
+              stroke: {
+                color: "#b6b6b6",
+                width: 1,
+                dashArray: 0
+              }
+            }
+          },
+          {
+            show: true,
+            showAlways: false,
+            showForNullSeries: false,
+            seriesName: "F",
+            opposite: true,
+            reversed: false,
+            logarithmic: false,
+            logBase: 10,
+            tickAmount: 6,
+            forceNiceScale: true,
+            max: 27,
+            min: 0,
+            floating: false,
+            labels: {
+              show: true,
+              showDuplicates: false,
+              minWidth: 0,
+              maxWidth: 160,
+              offsetX: -16,
+              offsetY: 0,
+              align: "left",
+              rotate: 0,
+              padding: 20,
+              style: {
+                colors: [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                fontSize: "14px",
+                fontWeight: 400,
+                cssClass: ""
+              }
+            },
+            axisBorder: {
+              show: false,
+              color: "#e0e0e0",
+              width: 1,
+              offsetX: 0,
+              offsetY: 0
+            },
+            axisTicks: {
+              show: false,
+              color: "#e0e0e0",
+              width: 6,
+              offsetX: 0,
+              offsetY: 0
+            },
+            title: {
+              rotate: -90,
+              offsetY: 0,
+              offsetX: 0,
+              style: {
+                fontSize: "11px",
+                fontWeight: 900,
+                cssClass: ""
+              }
+            },
+            tooltip: {
+              enabled: false,
+              offsetX: 0
+            },
+            crosshairs: {
+              show: true,
+              position: "front",
+              stroke: {
+                color: "#b6b6b6",
+                width: 1,
+                dashArray: 0
+              }
+            }
+          }
+        ],
+        xaxis: {
+          labels: {
+            style: {
+              fontSize: "12px",
+              fontWeight: 500
+            }
+          },
+          axisTicks: {
+            show: false
+          },
+          categories: [],
+          type: "numeric",
+          tickAmount: "dataPoints"
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          style: {
+            fontSize: "14px",
+            fontFamily: "Inter"
+          },
+          y: {},
+          x: {}
+        },
+        noData: {
+          text: "Loading...",
+          align: "center",
+          verticalAlign: "middle",
+          offsetX: 0,
+          offsetY: -10
+        },
+        stroke: {
+          curve: "straight",
+          width: 2
+        },
+        fill: {
+          type: "gradient",
+          gradient: {
+            opacityFrom: 0.85,
+            opacityTo: 1
+          }
+        },
+        colors: [
+          "#6FA8DC",
+          "#4C1130",
+          "#ea9999",
+          "#0B5394",
+          "#990000",
+          "#F1C232"
+        ],
+        labels: []
+      }
+
+
+    },
+
+  })
+</script>
+
+</body>
+</html>
