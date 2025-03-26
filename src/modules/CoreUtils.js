@@ -294,7 +294,7 @@ class CoreUtils {
       r = this.w.config.series.filter((d) => d !== null)
     } else {
       // axis charts - supporting multiple series
-      r = this.w.config.series[index].data.filter((d) => d !== null)
+      r = (this.w.config.series[index].data || []).filter((d) => d !== null)
     }
 
     return r.length === 0
