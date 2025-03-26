@@ -479,6 +479,10 @@ export default class YAxis {
         const yAxisInner = w.globals.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
         )
+        if (!yAxisInner) {
+          return
+        }
+
         const yAxisTexts = Utils.listToArray(
           w.globals.dom.baseEl.querySelectorAll(
             `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`
