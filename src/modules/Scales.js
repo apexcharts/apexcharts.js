@@ -649,7 +649,7 @@ export default class Scales {
             // For bar and column charts we need to keep positive and negative
             // values separate, for each group separately.
             let si = axisSeries[i]
-            if (cnf.series[si].group) {
+            if (cnf.series[si]?.group) {
               seriesGroupName = cnf.series[si].group
             } else {
               seriesGroupName = 'axis-'.concat(ai)
