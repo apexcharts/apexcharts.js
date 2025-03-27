@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.5.0-c3
+ * ApexCharts v4.5.0-c4
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -19090,7 +19090,7 @@
                     }));
                   });
                   var _loop = function _loop(i) {
-                    var _cnf$series$axisSerie;
+                    var _cnf$series$axisSerie, _cnf$series$si;
                     // Assume chart type but the first series that has a type overrides.
                     if (!seriesType && (_cnf$series$axisSerie = cnf.series[axisSeries[i]]) !== null && _cnf$series$axisSerie !== void 0 && _cnf$series$axisSerie.type) {
                       seriesType = cnf.series[axisSeries[i]].type;
@@ -19099,7 +19099,7 @@
                     // For bar and column charts we need to keep positive and negative
                     // values separate, for each group separately.
                     var si = axisSeries[i];
-                    if (cnf.series[si].group) {
+                    if ((_cnf$series$si = cnf.series[si]) !== null && _cnf$series$si !== void 0 && _cnf$series$si.group) {
                       seriesGroupName = cnf.series[si].group;
                     } else {
                       seriesGroupName = 'axis-'.concat(ai);
