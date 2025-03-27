@@ -126,6 +126,7 @@ type ApexChart = {
     enabledOnSeries?: undefined | number[]
     color?: string | string[]
   }
+  nonce?: string
   events?: {
     animationEnd?(chart: any, options?: any): void
     beforeMount?(chart: any, options?: any): void
