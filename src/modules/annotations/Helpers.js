@@ -219,7 +219,9 @@ export default class Helpers {
         w.globals.barWidth * anno.seriesIndex
     }
 
-    if (xP.toFixed(10) > w.globals.gridWidth.toFixed(10)) {
+    if (
+      parseFloat(xP.toFixed(10)) > parseFloat(w.globals.gridWidth.toFixed(10))
+    ) {
       xP = w.globals.gridWidth
       clipped = true
     } else if (xP < 0) {
