@@ -136,6 +136,13 @@ export default class ApexCharts {
 
     this.responsive.checkResponsiveConfig(opts)
 
+    if (w.config.chart.duplicateYAxis && w.config.yaxis.length === 1) {
+      w.config.yaxis.push({
+        ...w.config.yaxis[0],
+        opposite: true
+      })
+    }
+
     if (w.config.xaxis.convertedCatToNumeric) {
       const defaults = new Defaults(w.config)
       defaults.convertCatToNumericXaxis(w.config, this.ctx)
