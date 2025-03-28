@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.5.0-c4
+ * ApexCharts v4.5.0-c5
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -20044,9 +20044,8 @@
         var w = this.w;
         var xLeft = 0;
         var xRight = 0;
-        var leftOffsetX = 18;
-        var rightOffsetX = 1;
-        if (w.config.yaxis.length > 1) this.multipleYs = true;
+        var leftOffsetX = 0;
+        var rightOffsetX = 0;
         w.config.yaxis.forEach(function (yaxe, index) {
           var shouldNotDrawAxis = w.globals.ignoreYAxisIndexes.includes(index) || !yaxe.show || yaxe.floating || yaxisLabelCoords[index].width === 0;
           var axisWidth = yaxisLabelCoords[index].width + yTitleCoords[index].width;
@@ -20061,7 +20060,7 @@
             } else {
               xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX;
               if (!shouldNotDrawAxis) rightOffsetX += axisWidth + 20;
-              w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20;
+              w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX;
             }
           }
         });
@@ -21309,7 +21308,7 @@
         w.config.yaxis.forEach(function (yaxe, index) {
           if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1 && !yaxe.floating && !axesUtils.isYAxisHidden(index)) {
             if (yaxe.opposite) {
-              w.globals.translateX -= yaxisLabelCoords[index].width + yTitleCoords[index].width + parseInt(yaxe.labels.style.fontSize, 10) / 1.2 + 12;
+              w.globals.translateX -= Math.floor(yaxisLabelCoords[index].width + yTitleCoords[index].width);
             }
 
             // fixes apexcharts.js#1599
@@ -35653,6 +35652,11 @@
           return null;
         }
         this.responsive.checkResponsiveConfig(opts);
+        if (w.config.chart.duplicateYAxis && w.config.yaxis.length === 1) {
+          w.config.yaxis.push(_objectSpread2(_objectSpread2({}, w.config.yaxis[0]), {}, {
+            opposite: true
+          }));
+        }
         if (w.config.xaxis.convertedCatToNumeric) {
           var defaults = new Defaults(w.config);
           defaults.convertCatToNumericXaxis(w.config, this.ctx);
