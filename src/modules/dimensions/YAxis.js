@@ -163,8 +163,6 @@ export default class DimYAxis {
     let yAxisWidth = 0
     let yAxisWidthLeft = 0
     let yAxisWidthRight = 0
-    let padding = w.globals.yAxisScale.length > 1 ? 10 : 0
-    const axesUtils = new AxesUtils(this.dCtx.ctx)
 
     const isHiddenYAxis = function (index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
@@ -175,12 +173,12 @@ export default class DimYAxis {
       let width = 0
 
       if (coord.width > 0 && !floating) {
-        width = coord.width + padding
+        width = coord.width
         if (isHiddenYAxis(index)) {
-          width = width - coord.width - padding
+          width = width - coord.width
         }
       } else {
-        width = floating || axesUtils.isYAxisHidden(index) ? 0 : 5
+        width = 0
       }
 
       w.config.yaxis[index].opposite
