@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.5.0-c5
+ * ApexCharts v4.5.0-c6
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -21182,8 +21182,6 @@
         var yAxisWidth = 0;
         var yAxisWidthLeft = 0;
         var yAxisWidthRight = 0;
-        var padding = w.globals.yAxisScale.length > 1 ? 10 : 0;
-        var axesUtils = new AxesUtils(this.dCtx.ctx);
         var isHiddenYAxis = function isHiddenYAxis(index) {
           return w.globals.ignoreYAxisIndexes.indexOf(index) > -1;
         };
@@ -21191,12 +21189,12 @@
           var floating = w.config.yaxis[index].floating;
           var width = 0;
           if (coord.width > 0 && !floating) {
-            width = coord.width + padding;
+            width = coord.width;
             if (isHiddenYAxis(index)) {
-              width = width - coord.width - padding;
+              width = width - coord.width;
             }
           } else {
-            width = floating || axesUtils.isYAxisHidden(index) ? 0 : 5;
+            width = 0;
           }
           w.config.yaxis[index].opposite ? yAxisWidthRight = yAxisWidthRight + width : yAxisWidthLeft = yAxisWidthLeft + width;
           yAxisWidth = yAxisWidth + width;
