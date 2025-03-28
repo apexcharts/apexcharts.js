@@ -436,10 +436,8 @@ export default class YAxis {
     const w = this.w
     let xLeft = 0
     let xRight = 0
-    let leftOffsetX = 18
-    let rightOffsetX = 1
-
-    if (w.config.yaxis.length > 1) this.multipleYs = true
+    let leftOffsetX = 0
+    let rightOffsetX = 0
 
     w.config.yaxis.forEach((yaxe, index) => {
       const shouldNotDrawAxis =
@@ -461,7 +459,7 @@ export default class YAxis {
         } else {
           xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX
           if (!shouldNotDrawAxis) rightOffsetX += axisWidth + 20
-          w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20
+          w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX
         }
       }
     })

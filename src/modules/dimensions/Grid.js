@@ -126,11 +126,7 @@ export default class DimGrid {
         !axesUtils.isYAxisHidden(index)
       ) {
         if (yaxe.opposite) {
-          w.globals.translateX -=
-            yaxisLabelCoords[index].width +
-            yTitleCoords[index].width +
-            parseInt(yaxe.labels.style.fontSize, 10) / 1.2 +
-            12
+          w.globals.translateX -= Math.floor(yaxisLabelCoords[index].width + yTitleCoords[index].width)
         }
 
         // fixes apexcharts.js#1599
