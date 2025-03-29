@@ -89,7 +89,7 @@ export default class Core {
 
     gl.dom.Paper.node.style.background =
       cnf.theme.mode === 'dark' && !cnf.chart.background
-        ? '#424242'
+        ? '#343A3F'
         : cnf.theme.mode === 'light' && !cnf.chart.background
         ? '#fff'
         : cnf.chart.background
