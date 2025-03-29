@@ -148,7 +148,11 @@ export default class Position {
 
     cy = cy - yAxisTTHeight / 2
 
-    if (w.globals.ignoreYAxisIndexes.indexOf(index) === -1) {
+    if (
+      w.globals.ignoreYAxisIndexes.indexOf(index) === -1 &&
+      cy > 0 &&
+      cy < w.globals.gridHeight
+    ) {
       ttCtx.yaxisTTEls[index].classList.add('apexcharts-active')
       ttCtx.yaxisTTEls[index].style.top = cy + 'px'
       ttCtx.yaxisTTEls[index].style.left =
