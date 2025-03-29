@@ -143,7 +143,7 @@ export default class Position {
     let cx = w.globals.translateYAxisX[index] - 2
 
     if (w.config.yaxis[index].opposite) {
-      cx = cx - 26
+      cx = cx - yAxisTTRect.width
     }
 
     cy = cy - yAxisTTHeight / 2
