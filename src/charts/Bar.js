@@ -327,6 +327,7 @@ class Bar {
   }) {
     const w = this.w
     const graphics = new Graphics(this.ctx)
+    let skipDrawing = false
 
     if (!lineFill) {
       // if user provided a function in colors, we need to eval here
@@ -359,56 +360,6 @@ class Bar {
         : checkAvailableColor
     }
 
-    if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
-      lineFill = w.config.series[i].data[j].strokeColor
-    }
-
-    if (this.isNullValue) {
-      pathFill = 'none'
-    }
-
-    let delay =
-      ((j / w.config.chart.animations.animateGradually.delay) *
-        (w.config.chart.animations.speed / w.globals.dataPoints)) /
-      2.4
-
-    let renderedPath = graphics.renderPaths({
-      i,
-      j,
-      realIndex,
-      pathFrom,
-      pathTo,
-      stroke: lineFill,
-      strokeWidth,
-      strokeLineCap: w.config.stroke.lineCap,
-      fill: pathFill,
-      animationDelay: delay,
-      initialSpeed: w.config.chart.animations.speed,
-      dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-      className: `apexcharts-${type}-area ${classes}`,
-      chartType: type,
-    })
-
-    renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
-
-    const forecast = w.config.forecastDataPoints
-    if (forecast.count > 0) {
-      if (j >= w.globals.dataPoints - forecast.count) {
-        renderedPath.node.setAttribute('stroke-dasharray', forecast.dashArray)
-        renderedPath.node.setAttribute('stroke-width', forecast.strokeWidth)
-        renderedPath.node.setAttribute('fill-opacity', forecast.fillOpacity)
-      }
-    }
-
-    if (typeof y1 !== 'undefined' && typeof y2 !== 'undefined') {
-      renderedPath.attr('data-range-y1', y1)
-      renderedPath.attr('data-range-y2', y2)
-    }
-
-    const filters = new Filters(this.ctx)
-    filters.setSelectionFilter(renderedPath, realIndex, j)
-    elSeries.add(renderedPath)
-
     let barDataLabels = new BarDataLabels(this)
     let dataLabelsObj = barDataLabels.handleBarDataLabels({
       x,
@@ -424,26 +375,97 @@ class Bar {
       barWidth,
       barXPosition,
       barYPosition,
-      renderedPath,
       visibleSeries,
     })
-    if (dataLabelsObj.dataLabels !== null) {
-      elDataLabelsWrap.add(dataLabelsObj.dataLabels)
+
+    if (!w.globals.isBarHorizontal) {
+      if (
+        dataLabelsObj.dataLabelsPos.dataLabelsX + barWidth < 0 ||
+        dataLabelsObj.dataLabelsPos.dataLabelsX - barWidth > w.globals.gridWidth
+      ) {
+        skipDrawing = true
+      }
     }
 
-    if (dataLabelsObj.totalDataLabels) {
-      elDataLabelsWrap.add(dataLabelsObj.totalDataLabels)
+    if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
+      lineFill = w.config.series[i].data[j].strokeColor
     }
 
-    elSeries.add(elDataLabelsWrap)
-
-    if (elGoalsMarkers) {
-      elSeries.add(elGoalsMarkers)
+    if (this.isNullValue) {
+      pathFill = 'none'
     }
 
-    if (elBarShadows) {
-      elSeries.add(elBarShadows)
+    let delay =
+      ((j / w.config.chart.animations.animateGradually.delay) *
+        (w.config.chart.animations.speed / w.globals.dataPoints)) /
+      2.4
+
+    if (!skipDrawing) {
+      let renderedPath = graphics.renderPaths({
+        i,
+        j,
+        realIndex,
+        pathFrom,
+        pathTo,
+        stroke: lineFill,
+        strokeWidth,
+        strokeLineCap: w.config.stroke.lineCap,
+        fill: pathFill,
+        animationDelay: delay,
+        initialSpeed: w.config.chart.animations.speed,
+        dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+        className: `apexcharts-${type}-area ${classes}`,
+        chartType: type,
+      })
+
+      renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
+
+      const forecast = w.config.forecastDataPoints
+      if (forecast.count > 0) {
+        if (j >= w.globals.dataPoints - forecast.count) {
+          renderedPath.node.setAttribute('stroke-dasharray', forecast.dashArray)
+          renderedPath.node.setAttribute('stroke-width', forecast.strokeWidth)
+          renderedPath.node.setAttribute('fill-opacity', forecast.fillOpacity)
+        }
+      }
+
+      if (typeof y1 !== 'undefined' && typeof y2 !== 'undefined') {
+        renderedPath.attr('data-range-y1', y1)
+        renderedPath.attr('data-range-y2', y2)
+      }
+
+      const filters = new Filters(this.ctx)
+      filters.setSelectionFilter(renderedPath, realIndex, j)
+      elSeries.add(renderedPath)
+
+      renderedPath.attr({
+        cy: dataLabelsObj.dataLabelsPos.bcy,
+        cx: dataLabelsObj.dataLabelsPos.bcx,
+        j,
+        val: w.globals.series[i][j],
+        barHeight,
+        barWidth,
+      })
+
+      if (dataLabelsObj.dataLabels !== null) {
+        elDataLabelsWrap.add(dataLabelsObj.dataLabels)
+      }
+
+      if (dataLabelsObj.totalDataLabels) {
+        elDataLabelsWrap.add(dataLabelsObj.totalDataLabels)
+      }
+
+      elSeries.add(elDataLabelsWrap)
+
+      if (elGoalsMarkers) {
+        elSeries.add(elGoalsMarkers)
+      }
+
+      if (elBarShadows) {
+        elSeries.add(elBarShadows)
+      }
     }
+
     return elSeries
   }
 

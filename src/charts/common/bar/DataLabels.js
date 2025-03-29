@@ -37,7 +37,6 @@ export default class BarDataLabels {
       barXPosition,
       barYPosition,
       visibleSeries,
-      renderedPath,
     } = opts
     let w = this.w
     let graphics = new Graphics(this.barCtx.ctx)
@@ -108,7 +107,6 @@ export default class BarDataLabels {
       j,
       realIndex,
       columnGroupIndex,
-      renderedPath,
       bcx,
       bcy,
       barHeight,
@@ -129,15 +127,6 @@ export default class BarDataLabels {
     } else {
       dataLabelsPos = this.calculateColumnsDataLabelsPosition(params)
     }
-
-    renderedPath.attr({
-      cy: dataLabelsPos.bcy,
-      cx: dataLabelsPos.bcx,
-      j,
-      val: w.globals.series[i][j],
-      barHeight,
-      barWidth,
-    })
 
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
@@ -170,6 +159,7 @@ export default class BarDataLabels {
     }
 
     return {
+      dataLabelsPos,
       dataLabels,
       totalDataLabels,
     }
