@@ -537,7 +537,10 @@ export default class Labels {
       w,
     })
 
-    if (typeof customTooltip === 'string') {
+    if (
+      typeof customTooltip === 'string' ||
+      typeof customTooltip === 'number'
+    ) {
       tooltipEl.innerHTML = customTooltip
     } else if (
       customTooltip instanceof Element ||

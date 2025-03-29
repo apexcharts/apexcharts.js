@@ -110,11 +110,11 @@ class Range {
       ) {
         let val = series[i][j]
         if (val !== null && Utils.isNumber(val)) {
-          if (typeof seriesMax[i][j] !== 'undefined') {
+          if (typeof seriesMax[i]?.[j] !== 'undefined') {
             maxY = Math.max(maxY, seriesMax[i][j])
             lowestY = Math.min(lowestY, seriesMax[i][j])
           }
-          if (typeof seriesMin[i][j] !== 'undefined') {
+          if (typeof seriesMin[i]?.[j] !== 'undefined') {
             lowestY = Math.min(lowestY, seriesMin[i][j])
             highestY = Math.max(highestY, seriesMin[i][j])
           }
@@ -174,7 +174,7 @@ class Range {
               val.toString().split('.')[1].length
             )
           }
-          if (minY > seriesMin[i][j] && seriesMin[i][j] < 0) {
+          if (minY > seriesMin[i]?.[j] && seriesMin[i]?.[j] < 0) {
             minY = seriesMin[i][j]
           }
         } else {

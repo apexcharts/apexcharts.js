@@ -938,12 +938,14 @@ export default class ZoomPanSelection extends Toolbar {
     this.ctx.updateHelpers._updateOptions(options, false, false)
 
     if (typeof w.config.chart.events.scrolled === 'function') {
-      w.config.chart.events.scrolled(this.ctx, {
+      const args = {
         xaxis: {
           min: xLowestValue,
           max: xHighestValue,
         },
-      })
+      }
+      w.config.chart.events.scrolled(this.ctx, args)
+      this.ctx.events.fireEvent('scrolled', args)
     }
   }
 }

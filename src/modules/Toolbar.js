@@ -423,6 +423,7 @@ export default class Toolbar {
   zoomCallback(xaxis, yaxis) {
     if (typeof this.ev.zoomed === 'function') {
       this.ev.zoomed(this.ctx, { xaxis, yaxis })
+      this.ctx.events.fireEvent('zoomed', { xaxis, yaxis })
     }
   }
 

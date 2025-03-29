@@ -394,7 +394,6 @@ export default class Defaults {
     return {
       stroke: {
         width: 1,
-        colors: ['#333'],
       },
       fill: {
         opacity: 1,
