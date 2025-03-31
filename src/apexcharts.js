@@ -137,10 +137,10 @@ export default class ApexCharts {
     this.responsive.checkResponsiveConfig(opts)
 
     if (w.config.chart.duplicateYAxis && w.config.yaxis.length === 1) {
-      w.config.yaxis.push({
+      w.config.yaxis.push(Object.freeze({
         ...w.config.yaxis[0],
         opposite: true
-      })
+      }))
     }
 
     if (w.config.xaxis.convertedCatToNumeric) {
