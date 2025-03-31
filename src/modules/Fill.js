@@ -163,7 +163,11 @@ class Fill {
 
     const drawMultiColorLine =
       cnf.plotOptions.line.colors.colorAboveThreshold &&
-      cnf.plotOptions.line.colors.colorBelowThreshold
+      cnf.plotOptions.line.colors.colorBelowThreshold &&
+      // undefined enabledOnnSeries means enabled on all series.
+      (!cnf.plotOptions.line.enabledOnSeries ||
+        (Array.isArray(cnf.plotOptions.line.enabledOnSeries) &&
+          cnf.plotOptions.line.enabledOnSeries.indexOf(this.seriesIndex) >= 0))
 
     let fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
