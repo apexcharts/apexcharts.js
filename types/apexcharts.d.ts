@@ -514,6 +514,7 @@ type ApexLocale = {
  */
 type ApexPlotOptions = {
   line?: {
+    enabledOnSeries?: undefined | number[]
     isSlopeChart?: boolean
     colors?: {
       threshold?: number,
