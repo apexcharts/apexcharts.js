@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.5.0-c6
+ * ApexCharts v4.5.0-c7
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -35651,9 +35651,9 @@
         }
         this.responsive.checkResponsiveConfig(opts);
         if (w.config.chart.duplicateYAxis && w.config.yaxis.length === 1) {
-          w.config.yaxis.push(_objectSpread2(_objectSpread2({}, w.config.yaxis[0]), {}, {
+          w.config.yaxis.push(Object.freeze(_objectSpread2(_objectSpread2({}, w.config.yaxis[0]), {}, {
             opposite: true
-          }));
+          })));
         }
         if (w.config.xaxis.convertedCatToNumeric) {
           var defaults = new Defaults(w.config);
