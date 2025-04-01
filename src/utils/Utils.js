@@ -20,6 +20,10 @@ class Utils {
     return Object.prototype.toString.call(val) === '[object ' + type + ']'
   }
 
+  static isSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  }
+
   static listToArray(list) {
     let i,
       array = []

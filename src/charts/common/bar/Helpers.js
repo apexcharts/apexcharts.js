@@ -39,6 +39,14 @@ export default class Helpers {
 
     this.arrBorderRadius = this.createBorderRadiusArr(w.globals.series)
 
+    if (Utils.isSafari()) {
+      // https://github.com/apexcharts/apexcharts.js/issues/4996
+      // to temporarily fix the above issue, border radius is disabled
+      this.arrBorderRadius = this.arrBorderRadius.map((brArr) =>
+        brArr.map((_) => 'none')
+      )
+    }
+
     if (this.barCtx.seriesLen === 0) {
       // A small adjustment when combo charts are used
       this.barCtx.seriesLen = 1
