@@ -946,6 +946,7 @@ type ApexDataLabels = {
   background?: {
     enabled?: boolean
     foreColor?: string
+    backgroundColor?: string
     borderRadius?: number
     padding?: number
     opacity?: number

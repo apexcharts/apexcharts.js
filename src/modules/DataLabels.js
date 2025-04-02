@@ -373,7 +373,7 @@ class DataLabels {
       }
       if (elRect) {
         el.parentNode.insertBefore(elRect.node, el)
-        const background = el.getAttribute('fill')
+        const background = w.config.dataLabels.background.backgroundColor
 
         const shouldAnim =
           w.config.chart.animations.enabled &&
