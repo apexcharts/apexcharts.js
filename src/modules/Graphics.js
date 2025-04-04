@@ -84,7 +84,7 @@ class Graphics {
 
     // Split apart the path, handing concatonated letters and numbers
     var pathParts = pathString.split(/[,\s]/).reduce(function (parts, part) {
-      var match = part.match(/^([a-zA-Z])(.+)/);
+      var match = part.match(/^([a-zA-Z])(.+)/)
       if (match) {
         parts.push(match[1])
         parts.push(match[2])
@@ -404,6 +404,14 @@ class Graphics {
     let initialAnim = this.w.config.chart.animations.enabled
     let dynamicAnim =
       initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled
+
+    // Fix for paths starting with M 0 0
+    if (pathFrom && pathFrom.startsWith('M 0 0') && pathTo) {
+      const moveCommand = pathTo.match(/^M\s+[\d.-]+\s+[\d.-]+/)
+      if (moveCommand) {
+        pathFrom = pathFrom.replace(/^M\s+0\s+0/, moveCommand[0])
+      }
+    }
 
     let d
     let shouldAnimate = !!(

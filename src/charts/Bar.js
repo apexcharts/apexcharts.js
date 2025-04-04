@@ -671,7 +671,7 @@ class Bar {
    **/
   getPreviousPath(realIndex, j) {
     let w = this.w
-    let pathFrom
+    let pathFrom = 'M 0 0'
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
       let gpp = w.globals.previousPaths[pp]
 
