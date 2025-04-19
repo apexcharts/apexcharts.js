@@ -138,7 +138,7 @@ export default class Helpers {
       yP = xLabel
         ? parseFloat(xLabel.getAttribute('y'))
         : (w.globals.gridHeight / labels.length - 1) * (catIndex + 1) -
-        w.globals.barHeight
+          w.globals.barHeight
 
       if (anno.seriesIndex !== undefined && w.globals.barHeight) {
         yP -=
@@ -149,12 +149,12 @@ export default class Helpers {
       const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
       const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic
         ? new CoreUtils(this.annoCtx.ctx).getLogVal(
-          w.config.yaxis[anno.yAxisIndex].logBase,
-          y,
-          seriesIndex
-        ) / w.globals.yLogRatio[seriesIndex]
+            w.config.yaxis[anno.yAxisIndex].logBase,
+            y,
+            seriesIndex
+          ) / w.globals.yLogRatio[seriesIndex]
         : (y - w.globals.minYArr[seriesIndex]) /
-        (w.globals.yRange[seriesIndex] / w.globals.gridHeight)
+          (w.globals.yRange[seriesIndex] / w.globals.gridHeight)
 
       yP =
         w.globals.gridHeight - Math.min(Math.max(yPos, 0), w.globals.gridHeight)
@@ -219,6 +219,10 @@ export default class Helpers {
         w.globals.barWidth * anno.seriesIndex
     }
 
+    if (typeof xP !== 'number') {
+      xP = 0
+      clipped = true
+    }
     if (
       parseFloat(xP.toFixed(10)) > parseFloat(w.globals.gridWidth.toFixed(10))
     ) {
