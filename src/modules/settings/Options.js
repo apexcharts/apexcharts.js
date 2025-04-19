@@ -725,7 +725,7 @@ export default class Options {
         background: {
           enabled: true,
           foreColor: '#fff',
-          backgroundColor: '#323232',
+          backgroundColor: undefined,
           borderRadius: 2,
           padding: 4,
           opacity: 0.9,
