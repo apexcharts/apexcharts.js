@@ -38,6 +38,8 @@ export default class ApexCharts {
     const initCtx = new InitCtxVariables(this)
     initCtx.initModules()
 
+    this.lastUpdateOptions = null
+
     this.create = Utils.bind(this.create, this)
     this.windowResizeHandler = this._windowResizeHandler.bind(this)
     this.parentResizeHandler = this._parentResizeCallback.bind(this)
@@ -429,6 +431,16 @@ export default class ApexCharts {
     // fixes apexcharts.js#1488
     w.globals.selection = undefined
 
+    if (
+      this.lastUpdateOptions &&
+      JSON.stringify(this.lastUpdateOptions) === JSON.stringify(options)
+    ) {
+      // Options are identical, skip the update
+      return resolve(this)
+    }
+
+    this.lastUpdateOptions = Utils.clone(options)
+
     if (options.series) {
       this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
@@ -527,6 +539,16 @@ export default class ApexCharts {
 
   update(options) {
     return new Promise((resolve, reject) => {
+      if (
+        this.lastUpdateOptions &&
+        JSON.stringify(this.lastUpdateOptions) === JSON.stringify(options)
+      ) {
+        // Options are identical, skip the update
+        return resolve(this)
+      }
+
+      this.lastUpdateOptions = Utils.clone(options)
+
       new Destroy(this.ctx).clear({ isUpdating: true })
 
       const graphData = this.create(this.w.config.series, options)
