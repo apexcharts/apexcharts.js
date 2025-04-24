@@ -436,7 +436,7 @@ export default class ApexCharts {
       JSON.stringify(this.lastUpdateOptions) === JSON.stringify(options)
     ) {
       // Options are identical, skip the update
-      return resolve(this)
+      return this
     }
 
     this.lastUpdateOptions = Utils.clone(options)
