@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.5.0
+ * ApexCharts v4.7.0
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -35902,7 +35902,7 @@
         w.globals.selection = undefined;
         if (this.lastUpdateOptions && JSON.stringify(this.lastUpdateOptions) === JSON.stringify(options)) {
           // Options are identical, skip the update
-          return resolve(this);
+          return this;
         }
         this.lastUpdateOptions = Utils$1.clone(options);
         if (options.series) {
