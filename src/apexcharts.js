@@ -439,8 +439,6 @@ export default class ApexCharts {
       return this
     }
 
-    this.lastUpdateOptions = Utils.clone(options)
-
     if (options.series) {
       this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
