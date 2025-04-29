@@ -838,6 +838,7 @@ export default class Options {
         labels: {
           colors: undefined,
           useSeriesColors: false,
+          customClass: undefined,
         },
         markers: {
           size: 7,

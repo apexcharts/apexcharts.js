@@ -856,6 +856,7 @@ type ApexLegend = {
   labels?: {
     colors?: string | string[]
     useSeriesColors?: boolean
+    customClass?: string
   }
   markers?: {
     size?: number
