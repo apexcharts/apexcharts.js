@@ -77,7 +77,7 @@
     "pngjs": "3.4.0",
     "postcss": "^8.4.21",
     "prettier": "2.8.5",
-    "puppeteer": "22.12.1",
+    "puppeteer": "22.15.0",
     "puppeteer-cluster": "0.24.0",
     "rollup": "3.29.5",
     "rollup-plugin-babel": "4.4.0",
