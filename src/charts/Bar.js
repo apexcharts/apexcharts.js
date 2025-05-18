@@ -380,8 +380,12 @@ class Bar {
 
     if (!w.globals.isBarHorizontal) {
       if (
-        dataLabelsObj.dataLabelsPos.dataLabelsX + barWidth < 0 ||
-        dataLabelsObj.dataLabelsPos.dataLabelsX - barWidth > w.globals.gridWidth
+        dataLabelsObj.dataLabelsPos.dataLabelsX +
+          Math.max(barWidth, w.globals.barPadForNumericAxis) <
+          0 ||
+        dataLabelsObj.dataLabelsPos.dataLabelsX -
+          Math.max(barWidth, w.globals.barPadForNumericAxis) >
+          w.globals.gridWidth
       ) {
         skipDrawing = true
       }
