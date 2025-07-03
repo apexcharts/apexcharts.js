@@ -37,7 +37,9 @@ export default class Helpers {
   appendToForeignObject() {
     const gl = this.w.globals
 
-    gl.dom.elLegendForeign.appendChild(this.getLegendStyles())
+    if (this.lgCtx.ctx?.opts?.legend?.injectStyleSheet === true) {
+      gl.dom.elLegendForeign.appendChild(this.getLegendStyles())
+    }
   }
 
   toggleDataSeries(seriesCnt, isHidden) {
