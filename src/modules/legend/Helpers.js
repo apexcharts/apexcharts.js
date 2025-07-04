@@ -17,7 +17,8 @@ export default class Helpers {
       stylesheet.setAttribute('nonce', nonce)
     }
 
-    stylesheet.textContent = apexchartsLegendCSS
+    const rule = document.createTextNode(apexchartsLegendCSS)
+    stylesheet.appendChild(rule)
     return stylesheet
   }
 
@@ -37,7 +38,7 @@ export default class Helpers {
   appendToForeignObject() {
     const gl = this.w.globals
 
-    if (this.lgCtx.ctx?.opts?.legend?.injectStyleSheet === true) {
+    if (this.w.config.legend.injectStyleSheet !== false) {
       gl.dom.elLegendForeign.appendChild(this.getLegendStyles())
     }
   }
