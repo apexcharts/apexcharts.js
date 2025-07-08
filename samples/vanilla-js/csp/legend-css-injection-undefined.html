@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Legend CSS Injection Control Demo</title>
+
+    <link
+      href="../../assets/styles.css"
+      rel="stylesheet"
+      nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
+    />
+
+    <link
+      href="../../../src/assets/apexcharts.css"
+      rel="stylesheet"
+      nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
+      id="apexcharts-css"
+    />
+
+    <style
+      nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
+    >
+      .chart-container {
+        max-width: 650px;
+        margin: 35px auto;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+      }
+
+      .chart-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        text-align: center;
+        color: #333;
+      }
+
+      .chart-description {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      .main-title {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 20px 0;
+        color: #333;
+      }
+
+      .info-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px auto;
+        max-width: 650px;
+      }
+
+      .info-box h3 {
+        margin: 0 0 10px 0;
+        color: #495057;
+      }
+
+      .info-box p {
+        margin: 5px 0;
+        color: #6c757d;
+      }
+
+      .warning {
+        color: #d74a0e;
+      }
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    <script src="../../../dist/apexcharts.js"></script>
+  </head>
+
+  <body>
+    <div class="main-title">Legend CSS Injection Control Demo</div>
+
+    <div class="info-box">
+      <h3>About this demo</h3>
+      <p>
+        This demo shows the <code>legend.injectStyleSheet</code> option in
+        action.
+      </p>
+      <p>
+        • <strong>true</strong>: Legend styles are injected into the SVG's
+        foreign object. <br />
+        <label class="warning">
+          If csp policy is set, you can see csp error message in browser
+          console.
+        </label>
+      </p>
+      <p>
+        • <strong>false</strong>: Legend styles are not injected, relying on
+        external CSS or import apexcharts-legend.css manually. <br />
+        <label class="warning">
+          It will resolve the csp error if csp policy is set.
+        </label>
+      </p>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-title">Chart with CSS Injection Undefined</div>
+      <div class="chart-description">legend.injectStyleSheet: undefined</div>
+      <div id="chart"></div>
+    </div>
+
+    <script>
+      // Common chart configuration
+      var baseOptions = {
+        series: [
+          {
+            name: 'Revenue',
+            type: 'column',
+            data: [440, 505, 414, 671, 227, 413, 201, 352, 752, 320, 257, 160],
+          },
+          {
+            name: 'Profit',
+            type: 'area',
+            data: [23, 42, 35, 27, 43, 22, 17, 31, 22, 22, 12, 16],
+          },
+          {
+            name: 'Free Cash Flow',
+            type: 'line',
+            data: [35, 41, 36, 26, 45, 48, 52, 53, 41, 35, 25, 18],
+          },
+        ],
+        chart: {
+          height: 350,
+          type: 'line',
+          stacked: false,
+        },
+        stroke: {
+          width: [0, 2, 2],
+          curve: 'smooth',
+        },
+        plotOptions: {
+          bar: {
+            columnWidth: '50%',
+          },
+        },
+        fill: {
+          opacity: [0.85, 0.25, 1],
+          gradient: {
+            inverseColors: false,
+            shade: 'light',
+            type: 'vertical',
+            opacityFrom: 0.85,
+            opacityTo: 0.55,
+            stops: [0, 100, 100, 100],
+          },
+        },
+        labels: [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ],
+        markers: {
+          size: 0,
+        },
+        xaxis: {
+          type: 'category',
+        },
+        yaxis: {
+          title: {
+            text: 'Amount ($)',
+          },
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: function (y) {
+              if (typeof y !== 'undefined') {
+                return '$' + y.toFixed(0) + 'k'
+              }
+              return y
+            },
+          },
+        },
+        legend: {
+          position: 'bottom',
+          horizontalAlign: 'left',
+          floating: true,
+          offsetY: 25,
+          offsetX: -5,
+        },
+      }
+
+      // CSS injection undefined
+      var options = JSON.parse(JSON.stringify(baseOptions))
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+  </body>
+</html>
