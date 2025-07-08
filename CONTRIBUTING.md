@@ -33,6 +33,38 @@ cd apexcharts.js
 npx browser-sync start --server --files "." --directory --startPath "/samples"
 ```
 
+To test Content Security Policy (CSP) related features, you should use a specific configuration file. Run `browser-sync` with the `--config` flag:
+
+```bash
+npx browser-sync start --config browser-sync-config.js
+```
+
+This command uses the `browser-sync-config.js` file to set up the necessary `Content-Security-Policy` headers. Here is the content of the configuration file:
+
+`browser-sync-config.js`
+
+```js
+const TEST_NONCE =
+  '47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5'
+
+const cspPolicies = [`style-src 'self' 'nonce-${TEST_NONCE}'`]
+
+module.exports = {
+  server: {
+    baseDir: '.',
+    directory: true,
+  },
+  files: ['.'],
+  startPath: '/samples',
+  middleware: [
+    function (req, res, next) {
+      res.setHeader('Content-Security-Policy', cspPolicies.join('; '))
+      next()
+    },
+  ],
+}
+```
+
 And start working on a feature or fix. Changes in source code should be immediately visible in the browser due to automatic reload on changes.
 
 ### Start a dependent new project
@@ -125,16 +157,4 @@ This way, when later working on a feature or fix, `npm run test` command will de
 
 We'd love for you to contribute your changes back to `apexcharts.js`! To do that, it would be great if you could commit your changes to a separate feature branch and open a Pull Request for those changes.
 
-Point your feature branch to use the `main` branch as the base of this PR. The exact commands used depends on how you've setup your local git copy, but the flow could look like this:
-
-```sh
-# Inside your own copy of `apexcharts.js` package...
-git checkout --branch feature/branch-name-here upstream/main
-# Then hack away, and commit your changes:
-git add -A
-git commit -m "Few words about the changes I did"
-# Push your local changes back to your fork
-git push --set-upstream origin feature/branch-name-here
-```
-
-After these steps, you should be able to create a new Pull Request for this repository. If you hit any issues following these instructions, please open an issue and we'll see if we can improve these instructions even further.
+Point your feature branch to use the `main`
