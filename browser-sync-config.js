@@ -1,7 +1,7 @@
 const TEST_NONCE =
   '47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5'
 
-const cspPolicies = [`style-src 'self' 'unsafe-inline' 'nonce-${TEST_NONCE}'`]
+const cspPolicies = [`style-src 'self' 'nonce-${TEST_NONCE}'`]
 
 module.exports = {
   server: {
