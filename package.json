@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "5.1.0",
+  "version": "5.0.0",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -96,11 +96,10 @@
   "bugs": {
     "url": "https://github.com/apexcharts/apexcharts.js/issues"
   },
-  "license": "MIT",
   "licenses": [
     {
-      "type": "MIT",
-      "url": "http://www.opensource.org/licenses/mit-license.php"
+      "type": "ApexCharts License",
+      "url": "https://www.apexcharts.com/license/"
     }
   ],
   "homepage": "https://apexcharts.com",
