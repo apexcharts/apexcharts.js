@@ -96,12 +96,7 @@
   "bugs": {
     "url": "https://github.com/apexcharts/apexcharts.js/issues"
   },
-  "licenses": [
-    {
-      "type": "ApexCharts License",
-      "url": "https://www.apexcharts.com/license/"
-    }
-  ],
+  "license": "ApexCharts License",
   "homepage": "https://apexcharts.com",
   "keywords": [
     "charts",
