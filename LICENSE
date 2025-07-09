@@ -1,21 +1,80 @@
-The MIT License (MIT)
+## 📄 License Options for ApexCharts
 
-Copyright (c) 2018 ApexCharts
+ApexCharts is offered under a **dual-license model** to support individuals, startups, and commercial products of all sizes.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+---
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+### 🔓 Community License (Free)
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+For individuals, non-profits, educators, and small businesses with **less than $2 million USD in annual revenue**.
+
+✅ What’s allowed:
+
+- Personal, educational, or non-profit use
+- Commercial use by small orgs (< $2M annual revenue)
+- Modifications and redistribution (with attribution)
+
+🚫 Not allowed:
+
+- Use by companies or entities over $2M/year revenue
+- Use in competing charting products
+- Sublicensing under different terms
+
+➡ By using ApexCharts under this license, you confirm that **you qualify as a Small Organization**.
+
+---
+
+### 💼 Commercial License (Paid)
+
+Required if **you or your affiliated organization earns $2 million USD or more per year**.
+
+✅ What's included:
+
+- Use in internal tools and commercial applications
+- Modifications and app-level distribution
+- 12-month subscription with updates & support
+
+🚫 Not allowed:
+
+- Redistribution in toolkits, SDKs, or platforms
+- Use by unlicensed developers
+- Competing charting products
+
+---
+
+### 🔄 OEM / Redistribution License (Paid)
+
+Required if you are **embedding ApexCharts into a product or platform used by other people**, such as:
+
+- No-code dashboards
+- Developer platforms
+- Embedded BI tools
+- White-labeled apps or SDKs
+
+✅ What's included:
+
+- Redistribution rights for 1 application or product
+- 12-month subscription with updates & support
+
+✅ OEM **not required** if your app simply renders static charts and users **cannot** configure or interact with them.
+
+---
+
+### ⚠️ License Acceptance
+
+By installing ApexCharts (e.g., via `npm install apexcharts`), you are agreeing to the applicable license based on your usage:
+
+- Community License (if under $2M revenue)
+- Commercial License (if over $2M revenue)
+- OEM License (if redistributing to third-party users)
+
+---
+
+### 🛠 Need a License or Have Questions?
+
+📧 Contact us at [sales@apexcharts.com](mailto:sales@apexcharts.com)  
+📚 Read full license agreements here: [https://apexcharts.com/license](https://apexcharts.com/license)
+
+---
+
+Thank you for supporting ApexCharts! Your licensing helps keep it free and open for individuals and small teams.

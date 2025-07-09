@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.7.0
+ * ApexCharts v5.0.0
  * (c) 2018-2025 ApexCharts
  * Released under the MIT License.
  */
@@ -11542,6 +11542,9 @@
         }
         if (w.config.xaxis.labels.hideOverlappingLabels && drawnLabels.length > 0) {
           var prev = drawnLabelsRects[drawnLabelsRects.length - 1];
+          if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
+            return label;
+          }
           if (label.x < prev.textRect.width / (w.globals.rotateXLabels ? Math.abs(w.config.xaxis.labels.rotate) / 12 : 1.01) + prev.x) {
             label.text = '';
           }
@@ -16067,6 +16070,13 @@
           }
         }
         if (correctedLabels.drawnextLabel) {
+          if (textAnchor === 'middle') {
+            if (x === w.globals.gridWidth) {
+              // last label - might get cropped
+              // fixes https://github.com/apexcharts/apexcharts.js/issues/5036
+              textAnchor = 'end';
+            }
+          }
           dataLabelText = graphics.drawText({
             width: 100,
             height: parseInt(dataLabelsConfig.style.fontSize, 10),
@@ -18141,7 +18151,7 @@
         gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2 - 2, -strokeSize / 2 - 2, gl.gridWidth + strokeSize + 4, gl.gridHeight + strokeSize + 4, 0, '#fff');
         gl.dom.elGridRectBar = graphics.drawRect(-strokeSize / 2 - barWidthLeft - 2, -strokeSize / 2 - 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize + 4, 0, '#fff');
         var markerSize = w.globals.markers.largestSize;
-        gl.dom.elGridRectMarker = graphics.drawRect(-markerSize, -markerSize, gl.gridWidth + markerSize * 2, gl.gridHeight + markerSize * 2, 0, '#fff');
+        gl.dom.elGridRectMarker = graphics.drawRect(Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize), -markerSize, gl.gridWidth + Math.max(strokeSize + barWidthRight + barWidthLeft + 4, markerSize * 2), gl.gridHeight + markerSize * 2, 0, '#fff');
         gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node);
         gl.dom.elGridRectBarMask.appendChild(gl.dom.elGridRectBar.node);
         gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node);
@@ -27421,7 +27431,7 @@
           visibleSeries: visibleSeries
         });
         if (!w.globals.isBarHorizontal) {
-          if (dataLabelsObj.dataLabelsPos.dataLabelsX + barWidth < 0 || dataLabelsObj.dataLabelsPos.dataLabelsX - barWidth > w.globals.gridWidth) {
+          if (dataLabelsObj.dataLabelsPos.dataLabelsX + Math.max(barWidth, w.globals.barPadForNumericAxis) < 0 || dataLabelsObj.dataLabelsPos.dataLabelsX - Math.max(barWidth, w.globals.barPadForNumericAxis) > w.globals.gridWidth) {
             skipDrawing = true;
           }
         }
@@ -35904,7 +35914,6 @@
           // Options are identical, skip the update
           return this;
         }
-        this.lastUpdateOptions = Utils$1.clone(options);
         if (options.series) {
           this.series.resetSeries(false, true, false);
           if (options.series.length && options.series[0].data) {
