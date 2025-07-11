@@ -428,7 +428,8 @@ class Range {
         if (gl.isXNumeric) {
           const diff = Math.round(gl.maxX - gl.minX)
           if (diff < 30) {
-            ticks = diff - 1
+            // When numeric range is small, show a tick for every integer
+            ticks = diff
           }
         }
       } else {
