@@ -399,15 +399,9 @@ export default class ApexCharts {
     window.removeEventListener('resize', this.windowResizeHandler)
 
     removeResizeListener(this.el.parentNode, this.parentResizeHandler)
-    // remove the chart's instance from the global Apex._chartInstances
-    const chartID = this.w.config.chart.id
-    if (chartID) {
-      Apex._chartInstances.forEach((c, i) => {
-        if (c.id === Utils.escapeString(chartID)) {
-          Apex._chartInstances.splice(i, 1)
-        }
-      })
-    }
+
+    this._removeOldChartInstance()
+
     new Destroy(this.ctx).clear({ isUpdating: false })
   }
 
@@ -544,6 +538,8 @@ export default class ApexCharts {
         // Options are identical, skip the update
         return resolve(this)
       }
+
+      this._removeOldChartInstance()
 
       this.lastUpdateOptions = Utils.clone(options)
 
@@ -795,7 +791,19 @@ export default class ApexCharts {
       this._windowResize()
     }
   }
-
+  /**
+   * Remove the chart's old instance from the global Apex._chartInstances
+   */
+  _removeOldChartInstance() {
+    const chartID = this.w.config.chart.id
+    if (chartID) {
+      Apex._chartInstances.forEach((c, i) => {
+        if (c.id === Utils.escapeString(chartID)) {
+          Apex._chartInstances.splice(i, 1)
+        }
+      })
+    }
+  }
   /**
    * Handle window resize and re-draw the whole chart.
    */
