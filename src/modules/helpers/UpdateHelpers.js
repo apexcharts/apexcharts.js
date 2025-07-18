@@ -255,6 +255,22 @@ export default class UpdateHelpers {
     return options
   }
 
+  resetParsingFlags() {
+    const gl = this.w.globals
+
+    // Reset parsing flags
+    gl.dataWasParsed = false
+    gl.originalSeries = null
+
+    if (this.w.config.series) {
+      this.w.config.series.forEach((serie) => {
+        if (serie.__apexParsed) {
+          delete serie.__apexParsed
+        }
+      })
+    }
+  }
+
   /**
    * This function reverts the yaxis and xaxis min/max values to what it was when the chart was defined.
    * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max

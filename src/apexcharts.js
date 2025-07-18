@@ -440,6 +440,8 @@ export default class ApexCharts {
     }
 
     if (options.series) {
+      this.updateHelpers.resetParsingFlags()
+
       this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
         options.series = options.series.map((s, i) => {
@@ -480,6 +482,8 @@ export default class ApexCharts {
    * @param {array} series - New series which will override the existing
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
+    this.updateHelpers.resetParsingFlags()
+
     this.series.resetSeries(false)
     this.updateHelpers.revertDefaultAxisMinMax()
     return this.updateHelpers._updateSeries(

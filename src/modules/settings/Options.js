@@ -403,6 +403,10 @@ export default class Options {
           },
         },
       },
+      parsing: {
+        x: undefined,
+        y: undefined,
+      },
       plotOptions: {
         line: {
           isSlopeChart: false,

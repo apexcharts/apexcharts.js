@@ -657,11 +657,118 @@ export default class Data {
     gl.noLabelsProvided = true
   }
 
+  parseRawDataIfNeeded(series) {
+    const cnf = this.w.config
+    const gl = this.w.globals
+    const globalParsing = cnf.parsing
+
+    // If data was already parsed, don't parse again
+    if (gl.dataWasParsed) {
+      return series
+    }
+
+    // If no global parsing config and no series-level parsing, return as-is
+    if (!globalParsing && !series.some((s) => s.parsing)) {
+      return series
+    }
+
+    const processedSeries = series.map((serie, index) => {
+      if (
+        !serie.data ||
+        !Array.isArray(serie.data) ||
+        serie.data.length === 0
+      ) {
+        return serie
+      }
+
+      // Resolve effective parsing config for this series
+      const effectiveParsing = {
+        x: serie.parsing?.x || globalParsing?.x,
+        y: serie.parsing?.y || globalParsing?.y,
+      }
+
+      // If no effective parsing config, return as-is
+      if (!effectiveParsing.x && !effectiveParsing.y) {
+        return serie
+      }
+
+      // Check if data is already in {x, y} format or 2D array format
+      const firstDataPoint = serie.data[0]
+
+      if (
+        (typeof firstDataPoint === 'object' &&
+          firstDataPoint !== null &&
+          (firstDataPoint.hasOwnProperty('x') ||
+            firstDataPoint.hasOwnProperty('y'))) ||
+        Array.isArray(firstDataPoint)
+      ) {
+        return serie
+      }
+
+      // Validate that we have both x and y parsing config
+      if (!effectiveParsing.x || !effectiveParsing.y) {
+        console.warn(
+          `ApexCharts: Series ${index} has parsing config but missing x or y field specification`
+        )
+        return serie
+      }
+
+      // Transform raw data to {x, y} format
+      const transformedData = serie.data.map((item, itemIndex) => {
+        if (typeof item !== 'object' || item === null) {
+          console.warn(
+            `ApexCharts: Series ${index}, data point ${itemIndex} is not an object, skipping parsing`
+          )
+          return item
+        }
+
+        const x = item[effectiveParsing.x]
+        const y = item[effectiveParsing.y]
+
+        // Warn if fields don't exist
+        if (x === undefined) {
+          console.warn(
+            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.x}'`
+          )
+        }
+        if (y === undefined) {
+          console.warn(
+            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`
+          )
+        }
+
+        const result = { x, y }
+
+        return result
+      })
+
+      return {
+        ...serie,
+        data: transformedData,
+        __apexParsed: true,
+      }
+    })
+
+    // Mark that data was parsed
+    gl.dataWasParsed = true
+
+    if (!gl.originalSeries) {
+      gl.originalSeries = Utils.clone(series)
+    }
+
+    return processedSeries
+  }
+
   // Segregate user provided data into appropriate vars
   parseData(ser) {
     let w = this.w
     let cnf = w.config
     let gl = w.globals
+
+    ser = this.parseRawDataIfNeeded(ser)
+
+    cnf.series = ser
+
     this.excludeCollapsedSeriesInYAxis()
 
     // If we detected string in X prop of series, we fallback to category x-axis

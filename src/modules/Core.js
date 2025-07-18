@@ -480,9 +480,20 @@ export default class Core {
     const globalObj = new Globals()
 
     const { globals: gl } = this.w
+
+    const parsingFlags = {
+      dataWasParsed: gl.dataWasParsed,
+      originalSeries: gl.originalSeries,
+    }
+
     globalObj.initGlobalVars(gl)
     gl.seriesXvalues = resetxyValues()
     gl.seriesYvalues = resetxyValues()
+
+    if (parsingFlags.dataWasParsed) {
+      gl.dataWasParsed = parsingFlags.dataWasParsed
+      gl.originalSeries = parsingFlags.originalSeries
+    }
   }
 
   isMultipleY() {
