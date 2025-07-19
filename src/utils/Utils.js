@@ -140,7 +140,7 @@ class Utils {
   }
 
   static parseNumber(val) {
-    if (val === null) return val
+    if (typeof val === 'number' || val === null) return val
     return parseFloat(val)
   }
 

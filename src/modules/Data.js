@@ -531,8 +531,66 @@ export default class Data {
     const gl = this.w.globals
     const cnf = this.w.config
 
-    gl.series = ser.slice()
-    gl.seriesNames = cnf.labels.slice()
+    // Check if we have both old format (numeric series + labels) and new format
+    const hasOldFormat =
+      Array.isArray(ser) &&
+      ser.every((s) => typeof s === 'number') &&
+      cnf.labels.length > 0
+    const hasNewFormat =
+      Array.isArray(ser) &&
+      ser.some(
+        (s) =>
+          (s && typeof s === 'object' && s.data) ||
+          (s && typeof s === 'object' && s.parsing)
+      )
+
+    if (hasOldFormat && hasNewFormat) {
+      console.warn(
+        'ApexCharts: Both old format (numeric series + labels) and new format (series objects with data/parsing) detected. Using old format for backward compatibility.'
+      )
+    }
+
+    // If old format exists, use it (backward compatibility priority)
+    if (hasOldFormat) {
+      gl.series = ser.slice()
+      gl.seriesNames = cnf.labels.slice()
+      for (let i = 0; i < gl.series.length; i++) {
+        if (gl.seriesNames[i] === undefined) {
+          gl.seriesNames.push('series-' + (i + 1))
+        }
+      }
+      return this.w
+    }
+
+    // Check if it's just a plain numeric array without labels (radialBar common case)
+    if (Array.isArray(ser) && ser.every((s) => typeof s === 'number')) {
+      gl.series = ser.slice()
+      gl.seriesNames = []
+      for (let i = 0; i < gl.series.length; i++) {
+        gl.seriesNames.push(cnf.labels[i] || `series-${i + 1}`)
+      }
+      return this.w
+    }
+
+    const processedData = this.extractPieDataFromSeries(ser)
+
+    gl.series = processedData.values
+    gl.seriesNames = processedData.labels
+
+    // Special handling for radialBar - ensure percentages are valid
+    if (cnf.chart.type === 'radialBar') {
+      gl.series = gl.series.map((val) => {
+        const numVal = Utils.parseNumber(val)
+        if (numVal > 100) {
+          console.warn(
+            `ApexCharts: RadialBar value ${numVal} > 100, consider using percentage values (0-100)`
+          )
+        }
+        return numVal
+      })
+    }
+
+    // Ensure we have proper fallback names
     for (let i = 0; i < gl.series.length; i++) {
       if (gl.seriesNames[i] === undefined) {
         gl.seriesNames.push('series-' + (i + 1))
@@ -540,6 +598,68 @@ export default class Data {
     }
 
     return this.w
+  }
+
+  extractPieDataFromSeries(ser) {
+    const values = []
+    const labels = []
+
+    if (!Array.isArray(ser)) {
+      console.warn('ApexCharts: Expected array for series data')
+      return { values: [], labels: [] }
+    }
+
+    if (ser.length === 0) {
+      console.warn('ApexCharts: Empty series array')
+      return { values: [], labels: [] }
+    }
+
+    // Handle only series objects with data property
+    const firstItem = ser[0]
+
+    if (typeof firstItem === 'object' && firstItem !== null && firstItem.data) {
+      // Format: [{ data: [{x: 'A', y: 10}] }] or [{ data: rawData, parsing: {...} }]
+      this.extractPieDataFromSeriesObjects(ser, values, labels)
+    } else {
+      // Unsupported format
+      console.warn(
+        'ApexCharts: Unsupported series format for pie/donut/radialBar. Expected series objects with data property.'
+      )
+      return { values: [], labels: [] }
+    }
+
+    return { values, labels }
+  }
+
+  // Extract data from series objects: [{ data: [...], parsing: {...} }]
+  extractPieDataFromSeriesObjects(seriesArray, values, labels) {
+    seriesArray.forEach((serie, serieIndex) => {
+      if (!serie.data || !Array.isArray(serie.data)) {
+        console.warn(`ApexCharts: Series ${serieIndex} has no valid data array`)
+        return
+      }
+
+      // If series was already parsed by parseRawDataIfNeeded, data should be in {x, y} format
+      serie.data.forEach((dataPoint) => {
+        if (typeof dataPoint === 'object' && dataPoint !== null) {
+          if (dataPoint.x !== undefined && dataPoint.y !== undefined) {
+            // Already in {x, y} format
+            labels.push(String(dataPoint.x))
+            values.push(Utils.parseNumber(dataPoint.y))
+          } else {
+            console.warn(
+              'ApexCharts: Invalid data point format for pie chart. Expected {x, y} format:',
+              dataPoint
+            )
+          }
+        } else {
+          console.warn(
+            'ApexCharts: Expected object data point, got:',
+            typeof dataPoint
+          )
+        }
+      })
+    })
   }
 
   /** User possibly set string categories in xaxis.categories or labels prop

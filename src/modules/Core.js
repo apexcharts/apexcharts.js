@@ -141,9 +141,9 @@ export default class Core {
 
     gl.series.forEach((serie, st) => {
       const seriesType =
-        ser[st].type === 'column'
+        ser[st]?.type === 'column'
           ? 'bar'
-          : ser[st].type || (chartType === 'column' ? 'bar' : chartType)
+          : ser[st]?.type || (chartType === 'column' ? 'bar' : chartType)
 
       if (seriesTypes[seriesType]) {
         if (seriesType === 'rangeArea') {
