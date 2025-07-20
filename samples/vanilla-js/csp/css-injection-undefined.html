@@ -4,23 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Legend CSS Injection Control Demo</title>
+    <title>CSS Injection Control Demo</title>
 
     <link
       href="../../assets/styles.css"
-      rel="stylesheet"
-      nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
-    />
-
-    <link
-      href="../../../src/assets/apexcharts.css"
-      rel="stylesheet"
-      nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
-      id="apexcharts-css"
-    />
-
-    <link
-      href="../../../src/assets/apexcharts-legend.css"
       rel="stylesheet"
       nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
     />
@@ -102,25 +89,24 @@
   </head>
 
   <body>
-    <div class="main-title">Legend CSS Injection Control Demo</div>
+    <div class="main-title">CSS Injection Control Demo</div>
 
     <div class="info-box">
       <h3>About this demo</h3>
+      <p>This demo shows the <code>injectStyleSheet</code> option in action.</p>
       <p>
-        This demo shows the <code>legend.injectStyleSheet</code> option in
-        action.
-      </p>
-      <p>
-        • <strong>true</strong>: Legend styles are injected into the SVG's
-        foreign object. <br />
+        • <strong>true</strong>: Styles are injected into the SVG's foreign
+        object. <br />
         <label class="warning">
-          If csp policy is set, you can see csp error message in browser
+          And if csp policy is set, you can see csp error message in browser
           console.
         </label>
       </p>
+      <br />
       <p>
-        • <strong>false</strong>: Legend styles are not injected. <br />
-        Relying on external CSS or import apexcharts-legend.css manually. <br />
+        • <strong>false</strong>: Styles are not injected. <br />
+        Relying on external CSS or import apexcharts.css, apexcharts-legend.css
+        manually. <br />
         <label class="warning">
           It will resolve the csp error if csp policy is set.
         </label>
@@ -128,8 +114,8 @@
     </div>
 
     <div class="chart-container">
-      <div class="chart-title">Chart with CSS Injection Disabled</div>
-      <div class="chart-description">legend.injectStyleSheet: false</div>
+      <div class="chart-title">Chart with CSS Injection Undefined</div>
+      <div class="chart-description">injectStyleSheet: undefined</div>
       <div id="chart"></div>
     </div>
 
@@ -224,13 +210,8 @@
         },
       }
 
-      /**
-       * CSS injection disabled.
-       * apexcharts-legend.css is not injected into the SVG's foreign object automatically,
-       * it make the legend style broken, so we need to import it manually.
-       */
+      // CSS injection undefined
       var options = JSON.parse(JSON.stringify(baseOptions))
-      options.legend.injectStyleSheet = false
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
     </script>

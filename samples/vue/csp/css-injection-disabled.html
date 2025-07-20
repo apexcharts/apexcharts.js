@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Legend CSS Injection Control Demo - Vue</title>
+    <title>CSS Injection Control Demo - Vue</title>
 
     <link
       href="../../assets/styles.css"
@@ -89,26 +89,27 @@
 
   <body>
     <div id="app">
-      <div class="main-title">Legend CSS Injection Control Demo - Vue</div>
+      <div class="main-title">CSS Injection Control Demo - Vue</div>
 
       <div class="info-box">
         <h3>About this demo</h3>
         <p>
-          This demo shows the <code>legend.injectStyleSheet</code> option in
-          action using Vue.js.
+          This demo shows the <code>injectStyleSheet</code> option in action
+          using Vue.js.
         </p>
         <p>
-          • <strong>true</strong>: Legend styles are injected into the SVG's
-          foreign object. <br />
+          • <strong>true</strong>: Styles are injected into the SVG's foreign
+          object. <br />
           <label class="warning">
-            If csp policy is set, you can see csp error message in browser
+            And if csp policy is set, you can see csp error message in browser
             console.
           </label>
         </p>
+        <br />
         <p>
-          • <strong>false</strong>: Legend styles are not injected. <br />
-          Relying on external CSS or import apexcharts-legend.css manually.
-          <br />
+          • <strong>false</strong>: Styles are not injected. <br />
+          Relying on external CSS or import apexcharts.css,
+          apexcharts-legend.css manually. <br />
           <label class="warning">
             It will resolve the csp error if csp policy is set.
           </label>
@@ -116,7 +117,7 @@
       </div>
       <div class="chart-container">
         <div class="chart-title">Chart with CSS Injection Disabled</div>
-        <div class="chart-description">legend.injectStyleSheet: false</div>
+        <div class="chart-description">injectStyleSheet: false</div>
         <div ref="chart"></div>
       </div>
     </div>
@@ -221,12 +222,11 @@
         mounted() {
           /**
            * CSS injection disabled.
-           * apexcharts-legend.css is not injected into the SVG's foreign object automatically,
-           * it make the legend style broken, so we need to import it manually.
-           * check the line 9 in apexcharts-legend.css
+           * apexcharts.css and apexcharts-legend.css will not be injected into the SVG's foreign object automatically,
+           * it make the style broken, so we need to import css files manually.
            */
           const options = JSON.parse(JSON.stringify(this.baseOptions))
-          options.legend.injectStyleSheet = false
+          options.injectStyleSheet = false
           this.chart = new ApexCharts(this.$refs.chart, options)
           this.chart.render()
         },

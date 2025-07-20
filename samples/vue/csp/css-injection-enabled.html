@@ -4,19 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Legend CSS Injection Control Demo - React</title>
+    <title>CSS Injection Control Demo - Vue</title>
 
     <link
       href="../../assets/styles.css"
       rel="stylesheet"
       nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
-    />
-
-    <link
-      href="../../../src/assets/apexcharts.css"
-      rel="stylesheet"
-      nonce="47ebaa88ef82ffb86e4ccb0eab1c5ec6bd76767642358e8cf99487673d5904b5"
-      id="apexcharts-css"
     />
 
     <style
@@ -77,27 +70,50 @@
       }
     </style>
 
-    <script
-      crossorigin
-      src="https://unpkg.com/react@16/umd/react.development.js"
-    ></script>
-    <script
-      crossorigin
-      src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"
-    ></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
   </head>
 
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="main-title">CSS Injection Control Demo - Vue</div>
 
-    <script type="text/babel">
-      class LegendCSSInjectionDemo extends React.Component {
-        constructor(props) {
-          super(props)
+      <div class="info-box">
+        <h3>About this demo</h3>
+        <p>
+          This demo shows the <code>injectStyleSheet</code> option in action
+          using Vue.js.
+        </p>
+        <p>
+          • <strong>true</strong>: Styles are injected into the SVG's foreign
+          object. <br />
+          <label class="warning">
+            And if csp policy is set, you can see csp error message in browser
+            console.
+          </label>
+        </p>
+        <br />
+        <p>
+          • <strong>false</strong>: Styles are not injected. <br />
+          Relying on external CSS or import apexcharts.css,
+          apexcharts-legend.css manually. <br />
+          <label class="warning">
+            It will resolve the csp error if csp policy is set.
+          </label>
+        </p>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Chart with CSS Injection Enabled</div>
+        <div class="chart-description">injectStyleSheet: true</div>
+        <div ref="chart"></div>
+      </div>
+    </div>
 
-          this.state = {
+    <script>
+      new Vue({
+        el: '#app',
+        data() {
+          return {
             baseOptions: {
               series: [
                 {
@@ -189,71 +205,20 @@
               },
             },
           }
-        }
-
-        componentDidMount() {
+        },
+        mounted() {
           // CSS injection enabled
-          const options = JSON.parse(JSON.stringify(this.state.baseOptions))
-          options.legend.injectStyleSheet = true
-          this.chart = new ApexCharts(this.refs.chart, options)
+          const options = JSON.parse(JSON.stringify(this.baseOptions))
+          options.injectStyleSheet = true
+          this.chart = new ApexCharts(this.$refs.chart, options)
           this.chart.render()
-        }
-
-        componentWillUnmount() {
+        },
+        beforeDestroy() {
           if (this.chart) {
             this.chart.destroy()
           }
-        }
-
-        render() {
-          return (
-            <div>
-              <div className="main-title">
-                Legend CSS Injection Control Demo - React
-              </div>
-
-              <div className="info-box">
-                <h3>About this demo</h3>
-                <p>
-                  This demo shows the <code>legend.injectStyleSheet</code>{' '}
-                  option in action using React.
-                </p>
-                <p>
-                  • <strong>true</strong>: Legend styles are injected into the
-                  SVG's foreign object. <br />
-                  <label className="warning">
-                    If csp policy is set, you can see csp error message in
-                    browser console.
-                  </label>
-                </p>
-                <p>
-                  • <strong>false</strong>: Legend styles are not injected,
-                  relying on external CSS or import apexcharts-legend.css
-                  manually. <br />
-                  <label className="warning">
-                    It will resolve the csp error if csp policy is set.
-                  </label>
-                </p>
-              </div>
-
-              <div className="chart-container">
-                <div className="chart-title">
-                  Chart with CSS Injection Enabled
-                </div>
-                <div className="chart-description">
-                  legend.injectStyleSheet: true
-                </div>
-                <div ref="chart"></div>
-              </div>
-            </div>
-          )
-        }
-      }
-
-      ReactDOM.render(
-        <LegendCSSInjectionDemo />,
-        document.getElementById('app')
-      )
+        },
+      })
     </script>
   </body>
 </html>

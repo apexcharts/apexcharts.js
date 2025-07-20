@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Legend CSS Injection Control Demo - React</title>
+    <title>CSS Injection Control Demo - React</title>
 
     <link
       href="../../assets/styles.css"
@@ -99,7 +99,7 @@
     <div id="app"></div>
 
     <script type="text/babel">
-      class LegendCSSInjectionDemo extends React.Component {
+      class CSSInjectionDemo extends React.Component {
         constructor(props) {
           super(props)
 
@@ -200,11 +200,11 @@
         componentDidMount() {
           /**
            * CSS injection disabled.
-           * apexcharts-legend.css is not injected into the SVG's foreign object automatically,
-           * it make the legend style broken, so we need to import it manually.
+           * apexcharts.css and apexcharts-legend.css will not be injected into the SVG's foreign object automatically,
+           * it make the style broken, so we need to import css files manually.
            */
           const options = JSON.parse(JSON.stringify(this.state.baseOptions))
-          options.legend.injectStyleSheet = false
+          options.injectStyleSheet = false
           this.chart = new ApexCharts(this.refs.chart, options)
           this.chart.render()
         }
@@ -219,27 +219,28 @@
           return (
             <div>
               <div className="main-title">
-                Legend CSS Injection Control Demo - React
+                CSS Injection Control Demo - React
               </div>
 
               <div className="info-box">
                 <h3>About this demo</h3>
                 <p>
-                  This demo shows the <code>legend.injectStyleSheet</code>{' '}
-                  option in action using React.
+                  This demo shows the <code>injectStyleSheet</code> option in
+                  action using React.
                 </p>
                 <p>
-                  • <strong>true</strong>: Legend styles are injected into the
-                  SVG's foreign object. <br />
+                  • <strong>true</strong>: Styles are injected into the SVG's
+                  foreign object. <br />
                   <label className="warning">
-                    If csp policy is set, you can see csp error message in
+                    And if csp policy is set, you can see csp error message in
                     browser console.
                   </label>
                 </p>
+                <br />
                 <p>
-                  • <strong>false</strong>: Legend styles are not injected,
-                  relying on external CSS or import apexcharts-legend.css
-                  manually. <br />
+                  • <strong>false</strong>: Styles are not injected. <br />
+                  Relying on external CSS or import apexcharts.css,
+                  apexcharts-legend.css manually. <br />
                   <label className="warning">
                     It will resolve the csp error if csp policy is set.
                   </label>
@@ -250,9 +251,7 @@
                 <div className="chart-title">
                   Chart with CSS Injection Disabled
                 </div>
-                <div className="chart-description">
-                  legend.injectStyleSheet: false
-                </div>
+                <div className="chart-description">injectStyleSheet: false</div>
                 <div ref="chart"></div>
               </div>
             </div>
@@ -260,10 +259,7 @@
         }
       }
 
-      ReactDOM.render(
-        <LegendCSSInjectionDemo />,
-        document.getElementById('app')
-      )
+      ReactDOM.render(<CSSInjectionDemo />, document.getElementById('app'))
     </script>
   </body>
 </html>
