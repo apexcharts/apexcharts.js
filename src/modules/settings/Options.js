@@ -859,8 +859,8 @@ export default class Options {
         onItemHover: {
           highlightDataSeries: true,
         },
-        injectStyleSheet: true,
       },
+      injectStyleSheet: true,
       markers: {
         discrete: [],
         size: 0,
