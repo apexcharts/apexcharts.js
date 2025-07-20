@@ -94,7 +94,7 @@ export default class ApexCharts {
           if (inShadowRoot) {
             // We are in Shadow DOM, add to shadow root
             rootNode.prepend(css)
-          } else {
+          } else if (this.w.config.injectStyleSheet !== false) {
             // Add to <head> of element's document
             doc.head.appendChild(css)
           }
