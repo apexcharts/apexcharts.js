@@ -33,6 +33,8 @@ cd apexcharts.js
 npx browser-sync start --server --files "." --directory --startPath "/samples"
 ```
 
+#### Test Content Security Policy (CSP) related features
+
 To test Content Security Policy (CSP) related features, you should use a specific configuration file. Run `browser-sync` with the `--config` flag:
 
 ```bash
