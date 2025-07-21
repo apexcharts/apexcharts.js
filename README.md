@@ -1,7 +1,6 @@
 <p align="center"><img src="https://apexcharts.com/media/apexcharts-logo.png"></p>
 
 <p align="center">
-  <a href="https://github.com/apexcharts/apexcharts.js/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen.svg" alt="License"></a>
   <a href="https://travis-ci.com/apexcharts/apexcharts.js"><img src="https://api.travis-ci.com/apexcharts/apexcharts.js.svg?branch=master" alt="build" /></a>
   <img alt="downloads" src="https://img.shields.io/npm/dm/apexcharts.svg"/>
   <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="ver"></a>
@@ -9,15 +8,13 @@
   <a href="https://cdn.jsdelivr.net/npm/apexcharts@3.12.0/types/apexcharts.d.ts"><img src="https://badgen.net/npm/types/apexcharts"/></a>
   <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square" alt="prettier"></a>
   <a href="https://www.jsdelivr.com/package/npm/apexcharts"><img src="https://data.jsdelivr.com/v1/package/npm/apexcharts/badge" alt="jsdelivr" /></a>
-  <a href="https://codeclimate.com/github/apexcharts/apexcharts.js"><img src="https://badgen.net/codeclimate/maintainability/apexcharts/apexcharts.js" /></a>
-  <img src="https://badgen.net/codeclimate/tech-debt/apexcharts/apexcharts.js"/>
 </p>
 
 <p align="center">
   <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
 </p>
 
-<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with the features that you expect, ApexCharts includes over a dozen chart types that deliver beautiful, responsive visualizations in your apps and dashboards. ApexCharts is an MIT-licensed open-source project that can be used in commercial and non-commercial projects.</p>
+<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with the features that you expect, ApexCharts includes over a dozen chart types that deliver beautiful, responsive visualizations in your apps and dashboards.</p>
 
 <p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
       src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
@@ -211,4 +208,5 @@ ApexCharts uses <a href="https://svgdotjs.github.io/" target="_blank">SVG.js</a>
 
 ## License
 
-ApexCharts is released under MIT license. You are free to use, modify and distribute this software, as long as the copyright header is left intact.
+ApexCharts is offered under a **dual-license model** to support individuals, startups, and commercial products of all sizes.
+Read full license agreements here: [https://apexcharts.com/license](https://apexcharts.com/license)
