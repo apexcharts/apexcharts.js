@@ -643,7 +643,6 @@ export default class Data {
       serie.data.forEach((dataPoint) => {
         if (typeof dataPoint === 'object' && dataPoint !== null) {
           if (dataPoint.x !== undefined && dataPoint.y !== undefined) {
-            // Already in {x, y} format
             labels.push(String(dataPoint.x))
             values.push(Utils.parseNumber(dataPoint.y))
           } else {
@@ -842,8 +841,8 @@ export default class Data {
           return item
         }
 
-        const x = item[effectiveParsing.x]
-        const y = item[effectiveParsing.y]
+        const x = this.getNestedValue(item, effectiveParsing.x)
+        const y = this.getNestedValue(item, effectiveParsing.y)
 
         // Warn if fields don't exist
         if (x === undefined) {
@@ -877,6 +876,40 @@ export default class Data {
     }
 
     return processedSeries
+  }
+
+  /**
+   * Get nested object value using dot notation path
+   * @param {Object} obj - The object to search in
+   * @param {string} path - Dot notation path (e.g., 'user.profile.name')
+   * @returns {*} The value at the path, or undefined if not found
+   */
+  getNestedValue(obj, path) {
+    if (!obj || typeof obj !== 'object' || !path) {
+      return undefined
+    }
+
+    // Handle simple property access (no dots)
+    if (path.indexOf('.') === -1) {
+      return obj[path]
+    }
+
+    // Handle nested property access
+    const keys = path.split('.')
+    let current = obj
+
+    for (let i = 0; i < keys.length; i++) {
+      if (
+        current === null ||
+        current === undefined ||
+        typeof current !== 'object'
+      ) {
+        return undefined
+      }
+      current = current[keys[i]]
+    }
+
+    return current
   }
 
   // Segregate user provided data into appropriate vars
