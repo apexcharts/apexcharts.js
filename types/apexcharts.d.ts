@@ -72,6 +72,10 @@ declare module ApexCharts {
     noData?: ApexNoData
     plotOptions?: ApexPlotOptions
     responsive?: ApexResponsive[]
+    parsing?: {
+      x?: string;
+      y?: string;
+    };
     series?: ApexAxisChartSeries | ApexNonAxisChartSeries
     states?: ApexStates
     stroke?: ApexStroke
@@ -295,49 +299,44 @@ type ApexTitleSubtitle = {
 
 /**
  * Chart Series options.
- * Use ApexNonAxisChartSeries for Pie and Donut charts.
  * See https://apexcharts.com/docs/options/series/
- *
- * According to the documentation at
- * https://apexcharts.com/docs/series/
- * Section 1: data can be a list of single numbers
- * Sections 2.1 and 3.1: data can be a list of tuples of two numbers
- * Sections 2.2 and 3.2: data can be a list of objects where x is a string
- * and y is a number
- * And according to the demos, data can contain null.
- * https://apexcharts.com/javascript-chart-demos/line-charts/null-values/
  */
 type ApexAxisChartSeries = {
-  name?: string
-  type?: string
-  color?: string
-  group?: string
-  hidden?: boolean
-  zIndex?: number
-  data:
-  | (number | null)[]
-  | {
-    x: any;
-    y: any;
-    fill?: ApexFill;
-    fillColor?: string;
-    strokeColor?: string;
-    meta?: any;
-    goals?: {
-      name?: string,
-      value: number,
-      strokeHeight?: number;
-      strokeWidth?: number;
-      strokeColor?: string;
-      strokeDashArray?: number;
-      strokeLineCap?: 'butt' | 'square' | 'round'
-    }[];
-    barHeightOffset?: number;
-    columnWidthOffset?: number;
-  }[]
-  | [number, number | null][]
-  | [number, (number | null)[]][]
-  | number[][];
+ name?: string
+ type?: string
+ color?: string
+ group?: string
+ hidden?: boolean
+ zIndex?: number
+ parsing?: {
+   x?: string;
+   y?: string;
+ };
+ data:
+ | (number | null)[]
+ | {
+   x: any;
+   y: any;
+   fill?: ApexFill;
+   fillColor?: string;
+   strokeColor?: string;
+   meta?: any;
+   goals?: {
+     name?: string,
+     value: number,
+     strokeHeight?: number;
+     strokeWidth?: number;
+     strokeColor?: string;
+     strokeDashArray?: number;
+     strokeLineCap?: 'butt' | 'square' | 'round'
+   }[];
+   barHeightOffset?: number;
+   columnWidthOffset?: number;
+ }[]
+ | [number, number | null][]
+ | [number, (number | null)[]][]
+ | number[][]
+ | Record<string, any>[];
 }[]
 
 type ApexNonAxisChartSeries = number[]
