@@ -339,7 +339,9 @@ type ApexAxisChartSeries = {
  | Record<string, any>[];
 }[]
 
-type ApexNonAxisChartSeries = number[]
+type ApexNonAxisChartSeries = 
+  | number[]
+  | ApexAxisChartSeries
 
 /**
  * Options for the line drawn on line and area charts.
