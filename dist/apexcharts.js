@@ -1,7 +1,6 @@
 /*!
- * ApexCharts v5.3.0
+ * ApexCharts v5.3.1
  * (c) 2018-2025 ApexCharts
- * Released under the MIT License.
  */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
