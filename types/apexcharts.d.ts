@@ -878,6 +878,7 @@ type ApexLegend = {
   onItemHover?: {
     highlightDataSeries?: boolean
   }
+  injectStyleSheet?: boolean
 }
 
 type MarkerShapeOptions = "circle" | "square" | "rect" | "line" | 'cross' | 'plus' | 'star' | 'sparkle' | 'diamond' | 'triangle'

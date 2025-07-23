@@ -864,6 +864,7 @@ export default class Options {
           highlightDataSeries: true,
         },
       },
+      injectStyleSheet: true,
       markers: {
         discrete: [],
         size: 0,

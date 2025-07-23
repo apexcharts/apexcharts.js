@@ -111,6 +111,10 @@ function rollupConfig(opts) {
             dest: 'dist',
           },
           {
+            files: 'src/assets/apexcharts-legend.css',
+            dest: 'dist',
+          },
+          {
             files: 'src/locales/*.*',
             dest: 'dist/locales',
           },
