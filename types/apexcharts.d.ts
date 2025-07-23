@@ -1074,9 +1074,9 @@ type ApexXAxis = {
   axisBorder?: {
     show?: boolean
     color?: string
+    height?: number
     offsetX?: number
     offsetY?: number
-    strokeWidth?: number
   }
   axisTicks?: {
     show?: boolean
