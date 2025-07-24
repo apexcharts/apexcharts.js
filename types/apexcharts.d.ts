@@ -72,10 +72,7 @@ declare module ApexCharts {
     noData?: ApexNoData
     plotOptions?: ApexPlotOptions
     responsive?: ApexResponsive[]
-    parsing?: {
-      x?: string;
-      y?: string;
-    };
+    parsing?: ApexParsing;
     series?: ApexAxisChartSeries | ApexNonAxisChartSeries
     states?: ApexStates
     stroke?: ApexStroke
@@ -925,6 +922,11 @@ type ApexNoData = {
     fontSize?: string
     fontFamily?: string
   }
+}
+
+type ApexParsing = {
+  x?: string;
+  y?: string | string[];
 }
 
 /**

@@ -825,7 +825,11 @@ export default class Data {
       }
 
       // Validate that we have both x and y parsing config
-      if (!effectiveParsing.x || !effectiveParsing.y) {
+      if (
+        !effectiveParsing.x ||
+        !effectiveParsing.y ||
+        (Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 0)
+      ) {
         console.warn(
           `ApexCharts: Series ${index} has parsing config but missing x or y field specification`
         )
@@ -842,18 +846,36 @@ export default class Data {
         }
 
         const x = this.getNestedValue(item, effectiveParsing.x)
-        const y = this.getNestedValue(item, effectiveParsing.y)
 
+        let y
+        if (Array.isArray(effectiveParsing.y)) {
+          y = effectiveParsing.y.map((fieldName) =>
+            this.getNestedValue(item, fieldName)
+          )
+        } else {
+          y = this.getNestedValue(item, effectiveParsing.y)
+        }
         // Warn if fields don't exist
         if (x === undefined) {
           console.warn(
             `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.x}'`
           )
         }
-        if (y === undefined) {
-          console.warn(
-            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`
-          )
+
+        if (Array.isArray(effectiveParsing.y)) {
+          effectiveParsing.y.forEach((fieldName, idx) => {
+            if (y[idx] === undefined) {
+              console.warn(
+                `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${fieldName}'`
+              )
+            }
+          })
+        } else {
+          if (y === undefined) {
+            console.warn(
+              `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`
+            )
+          }
         }
 
         const result = { x, y }
@@ -921,6 +943,7 @@ export default class Data {
     ser = this.parseRawDataIfNeeded(ser)
 
     cnf.series = ser
+    gl.initialSeries = Utils.clone(ser)
 
     this.excludeCollapsedSeriesInYAxis()
 
