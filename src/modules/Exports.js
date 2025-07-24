@@ -1,5 +1,6 @@
-import Data from '../modules/Data'
+import apexchartsLegendCSS from '../assets/apexcharts-legend.css'
 import AxesUtils from '../modules/axes/AxesUtils'
+import Data from '../modules/Data'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 
@@ -45,6 +46,24 @@ class Exports {
       clonedNode.style.height = height + 'px'
       const serializedNode = new XMLSerializer().serializeToString(clonedNode)
 
+      // Check if legend is shown and should be included in export
+      const shouldIncludeLegendStyles =
+        w.config.legend.show &&
+        w.globals.dom.elLegendWrap &&
+        w.globals.dom.elLegendWrap.children.length > 0
+
+      // Base styles for export
+      let exportStyles = `
+        .apexcharts-tooltip, .apexcharts-toolbar, .apexcharts-xaxistooltip, .apexcharts-yaxistooltip, .apexcharts-xcrosshairs, .apexcharts-ycrosshairs, .apexcharts-zoom-rect, .apexcharts-selection-rect {
+          display: none;
+        }
+      `
+
+      // Add legend styles if legend is shown
+      if (shouldIncludeLegendStyles) {
+        exportStyles += apexchartsLegendCSS
+      }
+
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -56,9 +75,7 @@ class Exports {
           <foreignObject width="100%" height="100%">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; height:${height}px;">
             <style type="text/css">
-              .apexcharts-tooltip, .apexcharts-toolbar, .apexcharts-xaxistooltip, .apexcharts-yaxistooltip, .apexcharts-xcrosshairs, .apexcharts-ycrosshairs, .apexcharts-zoom-rect, .apexcharts-selection-rect {
-                display: none;
-              }
+              ${exportStyles}
             </style>
               ${serializedNode}
             </div>

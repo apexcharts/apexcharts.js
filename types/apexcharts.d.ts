@@ -875,6 +875,7 @@ type ApexLegend = {
   onItemHover?: {
     highlightDataSeries?: boolean
   }
+  injectStyleSheet?: boolean
 }
 
 type MarkerShapeOptions = "circle" | "square" | "rect" | "line" | 'cross' | 'plus' | 'star' | 'sparkle' | 'diamond' | 'triangle'
@@ -1075,9 +1076,9 @@ type ApexXAxis = {
   axisBorder?: {
     show?: boolean
     color?: string
+    height?: number
     offsetX?: number
     offsetY?: number
-    strokeWidth?: number
   }
   axisTicks?: {
     show?: boolean
