@@ -804,6 +804,7 @@ export default class Data {
       const effectiveParsing = {
         x: serie.parsing?.x || globalParsing?.x,
         y: serie.parsing?.y || globalParsing?.y,
+        z: serie.parsing?.z || globalParsing?.z,
       }
 
       // If no effective parsing config, return as-is
@@ -848,13 +849,27 @@ export default class Data {
         const x = this.getNestedValue(item, effectiveParsing.x)
 
         let y
+        let z = undefined
         if (Array.isArray(effectiveParsing.y)) {
-          y = effectiveParsing.y.map((fieldName) =>
+          const yValues = effectiveParsing.y.map((fieldName) =>
             this.getNestedValue(item, fieldName)
           )
+
+          if (this.w.config.chart.type === 'bubble' && yValues.length === 2) {
+            // For bubble: [y-value, z-value] → y = yValues[0], z = yValues[1]
+            y = yValues[0]
+          } else {
+            y = yValues
+          }
         } else {
           y = this.getNestedValue(item, effectiveParsing.y)
         }
+
+        // explicit z field for bubble charts
+        if (effectiveParsing.z) {
+          z = this.getNestedValue(item, effectiveParsing.z)
+        }
+
         // Warn if fields don't exist
         if (x === undefined) {
           console.warn(
@@ -879,6 +894,21 @@ export default class Data {
         }
 
         const result = { x, y }
+
+        if (
+          this.w.config.chart.type === 'bubble' &&
+          Array.isArray(effectiveParsing.y) &&
+          effectiveParsing.y.length === 2
+        ) {
+          const zValue = this.getNestedValue(item, effectiveParsing.y[1])
+          if (zValue !== undefined) {
+            result.z = zValue
+          }
+        }
+
+        if (z !== undefined) {
+          result.z = z
+        }
 
         return result
       })
