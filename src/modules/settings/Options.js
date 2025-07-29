@@ -314,6 +314,7 @@ export default class Options {
         nonce: undefined,
         offsetX: 0,
         offsetY: 0,
+        injectStyleSheet: true,
         selection: {
           enabled: false,
           type: 'x',
@@ -864,7 +865,6 @@ export default class Options {
           highlightDataSeries: true,
         },
       },
-      injectStyleSheet: true,
       markers: {
         discrete: [],
         size: 0,

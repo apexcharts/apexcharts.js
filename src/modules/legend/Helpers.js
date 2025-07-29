@@ -38,7 +38,7 @@ export default class Helpers {
   appendToForeignObject() {
     const gl = this.w.globals
 
-    if (this.w.config.injectStyleSheet !== false) {
+    if (this.w.config.chart.injectStyleSheet !== false) {
       gl.dom.elLegendForeign.appendChild(this.getLegendStyles())
     }
   }
