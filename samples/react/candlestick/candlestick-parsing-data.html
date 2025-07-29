@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Candlestick - Parsing Data</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    <script>
+  function generateDateRange(days, startDate = new Date()) {
+    const dates = [];
+    const currentDate = new Date(startDate);
+    
+    currentDate.setDate(currentDate.getDate() - days + 1);
+    
+    for (let i = 0; i < days; i++) {
+      dates.push(new Date(currentDate).toISOString());
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return dates;
+  }
+  
+  function getRandomRecentDate() {
+    const start2025 = new Date('2025-01-01');
+    const now = new Date();
+    const timeDiff = now.getTime() - start2025.getTime();
+    const randomTime = Math.random() * timeDiff;
+    
+    return new Date(start2025.getTime() + randomTime);
+  }
+  
+  function generatePriceChange(currentPrice, minPrice, maxPrice, volatility = 0.03) {
+    const changePercent = (Math.random() - 0.5) * 2 * volatility;
+    let newPrice = currentPrice * (1 + changePercent);
+    
+    newPrice = Math.max(minPrice, Math.min(maxPrice, newPrice));
+    
+    return Math.round(newPrice * 100) / 100;
+  }
+  
+  function generateHighLow(open, close, minPrice, maxPrice) {
+    const min = Math.min(open, close);
+    const max = Math.max(open, close);
+    
+    const volatilityRange = Math.max(1, (max - min) * 2);
+    
+    const low = Math.max(
+      minPrice,
+      min - Math.random() * volatilityRange * 0.5
+    );
+    
+    const high = Math.min(
+      maxPrice,
+      max + Math.random() * volatilityRange * 0.5
+    );
+    
+    return {
+      high: Math.round(high * 100) / 100,
+      low: Math.round(low * 100) / 100
+    };
+  }
+  
+  function generateSingleCandlestick(date, previousClose, minPrice = 120, maxPrice = 180) {
+    const gapPercent = (Math.random() - 0.5) * 0.02;
+    let open = previousClose * (1 + gapPercent);
+    open = Math.max(minPrice, Math.min(maxPrice, open));
+    open = Math.round(open * 100) / 100;
+    
+    const close = generatePriceChange(open, minPrice, maxPrice, 0.04);
+    const { high, low } = generateHighLow(open, close, minPrice, maxPrice);
+    
+    return {
+      date: date,
+      open: open,
+      high: high,
+      low: low,
+      close: close
+    };
+  }
+  
+  function generateCandlestickData(days, options = {}) {
+    const {
+      startingPrice = 150,
+      minPrice = 120,
+      maxPrice = 180,
+      startDate = getRandomRecentDate()
+    } = options;
+    
+    if (!Number.isInteger(days) || days <= 0) {
+      throw new Error('Days must be a positive integer');
+    }
+    
+    if (startingPrice < minPrice || startingPrice > maxPrice) {
+      throw new Error('Starting price must be within min and max price range');
+    }
+    
+    const dates = generateDateRange(days, startDate);
+    const candlesticks = [];
+    let previousClose = startingPrice;
+    
+    for (const date of dates) {
+      const candlestick = generateSingleCandlestick(date, previousClose, minPrice, maxPrice);
+      candlesticks.push(candlestick);
+      previousClose = candlestick.close;
+    }
+    
+    return candlesticks;
+  }
+  
+  const stockData = generateCandlestickData(30);
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;candlestick&quot; height={350} /&gt;
+&lt;/div&gt;
+    </div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          
+            series: [{
+              data: stockData,
+              parsing: {
+                x: "date",
+                y: ["open", "high", "low", "close"]
+              }
+            }],
+            options: {
+              chart: {
+                type: 'candlestick',
+                height: 350
+              },
+              xaxis: {
+                type: "datetime"
+              },
+            },
+          
+          
+        });
+
+        
+
+        return (
+          <div>
+            <div id="chart">
+                <ReactApexChart options={state.options} series={state.series} type="candlestick" height={350} />
+              </div>
+            <div id="html-dist"></div>
+          </div>
+        );
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
+    </script>
+
+    
+  </body>
+</html>

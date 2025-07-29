@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Column - Parsing Data</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    <script>
+  const PRODUCT_NAMES = [
+    'Apple', 'Orange', 'Berry', 'Grape', 'Peach', 'Cherry',
+    'Chocolate', 'Vanilla', 'Honey', 'Caramel', 'Coconut', 'Almond', 'Hazelnut',
+    'Coffee', 'Tea', 'Spice', 'Herb', 'Mint'
+  ];
+  
+  const PRODUCT_TYPES = [
+    'Juice', 'Syrup', 'Sauce', 'Powder', 'Extract', 'Oil', 'Cream', 'Cake',
+    'Cookie', 'Candy', 'Drink', 'Smoothie', 'Soup', 'Spread', 'Jam',
+    'Butter', 'Bars', 'Mix'
+  ];
+  
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  
+  function randomDecimal(min, max, decimals = 2) {
+    const random = Math.random() * (max - min) + min;
+    return Math.round(random * Math.pow(10, decimals)) / Math.pow(10, decimals);
+  }
+  
+  function generateProductName() {
+    const baseName = PRODUCT_NAMES[Math.floor(Math.random() * PRODUCT_NAMES.length)];
+    const productType = PRODUCT_TYPES[Math.floor(Math.random() * PRODUCT_TYPES.length)];
+    return `${baseName} ${productType}`;
+  }
+  
+  function generateSingleProduct(productId) {
+    return {
+      productId: productId,
+      productName: generateProductName(),
+      unitPrice: randomDecimal(10, 99),
+      unitsInStock: randomInt(0, 500),
+      unitsOnOrder: randomInt(0, 500)
+    };
+  }
+  
+  function generateRandomProducts(n) {
+    const products = [];
+    
+    for (let i = 1; i <= n; i++) {
+      products.push(generateSingleProduct(i));
+    }
+    
+    return products;
+  }
+  
+  const productsList = generateRandomProducts(5);
+  </script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [{
+          name: 'Price',
+          data: productsList,
+          parsing: {
+            x: "productName",
+            y: "unitPrice"
+          }
+        }, {
+          name: 'Stock',
+          data: productsList,
+          parsing: {
+            x: "productName",
+            y: "unitsInStock"
+          }
+        }],
+          chart: {
+          type: 'bar',
+          height: 350
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            borderRadius: 0,
+          },
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          show: true,
+          width: 2,
+        },
+        fill: {
+          opacity: 1
+        },
+        yaxis: [{
+          seriesName: 'Price',
+          min: 0,
+          title: {
+            text: "Price"
+          },
+          labels: {
+            formatter: (val) => {
+              return "$" + val.toFixed(2)
+            }
+          }
+        }, {
+          opposite: true,
+          seriesName: 'Stock',
+          title: {
+            text: "Stock"
+          },
+          labels: {
+            formatter: (val) => {
+              return val
+            }
+          }
+        }]
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
+
+    
+  </body>
+</html>
