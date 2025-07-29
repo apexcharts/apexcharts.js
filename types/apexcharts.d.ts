@@ -156,6 +156,7 @@ type ApexChart = {
     targets?: string[]
   }
   id?: string
+  injectStyleSheet?: boolean
   group?: string
   locales?: ApexLocale[]
   defaultLocale?: string
@@ -875,7 +876,6 @@ type ApexLegend = {
   onItemHover?: {
     highlightDataSeries?: boolean
   }
-  injectStyleSheet?: boolean
 }
 
 type MarkerShapeOptions = "circle" | "square" | "rect" | "line" | 'cross' | 'plus' | 'star' | 'sparkle' | 'diamond' | 'triangle'

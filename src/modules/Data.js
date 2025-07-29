@@ -877,20 +877,10 @@ export default class Data {
           )
         }
 
-        if (Array.isArray(effectiveParsing.y)) {
-          effectiveParsing.y.forEach((fieldName, idx) => {
-            if (y[idx] === undefined) {
-              console.warn(
-                `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${fieldName}'`
-              )
-            }
-          })
-        } else {
-          if (y === undefined) {
-            console.warn(
-              `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`
-            )
-          }
+        if (y === undefined) {
+          console.warn(
+            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`
+          )
         }
 
         const result = { x, y }
