@@ -157,4 +157,16 @@ This way, when later working on a feature or fix, `npm run test` command will de
 
 We'd love for you to contribute your changes back to `apexcharts.js`! To do that, it would be great if you could commit your changes to a separate feature branch and open a Pull Request for those changes.
 
-Point your feature branch to use the `main`
+Point your feature branch to use the `main` branch as the base of this PR. The exact commands used depends on how you've setup your local git copy, but the flow could look like this:
+
+```sh
+# Inside your own copy of `apexcharts.js` package...
+git checkout --branch feature/branch-name-here upstream/main
+# Then hack away, and commit your changes:
+git add -A
+git commit -m "Few words about the changes I did"
+# Push your local changes back to your fork
+git push --set-upstream origin feature/branch-name-here
+```
+
+After these steps, you should be able to create a new Pull Request for this repository. If you hit any issues following these instructions, please open an issue and we'll see if we can improve these instructions even further.
