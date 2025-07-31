@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Area Chart with Single Data Point - Vue</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .chart-container {
+        max-width: 650px;
+        margin: 35px auto;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+      }
+
+      .chart-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        text-align: center;
+        color: #333;
+      }
+
+      .chart-description {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      .main-title {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 20px 0;
+        color: #333;
+      }
+
+      .info-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px auto;
+        max-width: 650px;
+      }
+
+      .info-box h3 {
+        margin: 0 0 10px 0;
+        color: #495057;
+      }
+
+      .info-box p {
+        margin: 5px 0;
+        color: #6c757d;
+      }
+    </style>
+
+    <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="main-title">Area Chart with Single Data Point - Vue</div>
+
+      <div class="info-box">
+        <h3>About this demo</h3>
+        <p>
+          This demo shows the
+          <code>plotOptions.area.forceSingleDataAsArea</code> option in action
+          using Vue.js.
+        </p>
+        <p>• <strong>true</strong>: Single data point is shown as an area</p>
+        <p>• <strong>false</strong>: Single data point is shown as a marker</p>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Chart with forceSingleDataAsArea = true</div>
+        <div class="chart-description">
+          plotOptions.area.forceSingleDataAsArea: true
+        </div>
+        <div ref="chart1"></div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Chart with forceSingleDataAsArea = false</div>
+        <div class="chart-description">
+          plotOptions.area.forceSingleDataAsArea: false
+        </div>
+        <div ref="chart2"></div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">
+          Chart with forceSingleDataAsArea = undefined
+        </div>
+        <div class="chart-description">
+          plotOptions.area.forceSingleDataAsArea: undefined
+        </div>
+        <div ref="chart3"></div>
+      </div>
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        data() {
+          return {
+            baseOptions: {
+              series: [
+                {
+                  name: 'Revenue',
+                  type: 'column',
+                  data: [
+                    440, 505, 414, 671, 227, 413, 201, 352, 752, 320, 257, 160,
+                  ],
+                },
+                {
+                  name: 'Profit',
+                  type: 'area',
+                  data: [23, 42, 35, 27, 43, 22, 17, 31, 22, 22, 12, 16],
+                },
+                {
+                  name: 'Single data Area chart',
+                  type: 'area',
+                  data: [223],
+                },
+                {
+                  name: 'Two data Area chart',
+                  type: 'area',
+                  data: [453, 120],
+                },
+                {
+                  name: 'Free Cash Flow',
+                  type: 'line',
+                  data: [35, 41, 36, 26, 45, 48, 52, 53, 41, 35, 25, 18],
+                },
+              ],
+              chart: {
+                height: 350,
+                type: 'line',
+                stacked: false,
+              },
+              stroke: {
+                width: [0, 2, 2, 2, 2],
+                curve: 'smooth',
+              },
+              plotOptions: {
+                bar: {
+                  columnWidth: '50%',
+                },
+                area: {},
+              },
+              fill: {
+                type: 'gradient',
+                opacity: [0.85, 0.25, 1],
+                gradient: {
+                  inverseColors: false,
+                  shade: 'light',
+                  type: 'vertical',
+                  opacityFrom: 0.85,
+                  opacityTo: 0.55,
+                  stops: [0, 100, 100, 100],
+                },
+              },
+              labels: [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec',
+              ],
+              markers: {
+                size: 4,
+              },
+              xaxis: {
+                type: 'category',
+              },
+              yaxis: {
+                title: {
+                  text: 'Amount ($)',
+                },
+              },
+              tooltip: {
+                shared: true,
+                intersect: false,
+                y: {
+                  formatter: function (y) {
+                    if (typeof y !== 'undefined') {
+                      return '$' + y.toFixed(0) + 'k'
+                    }
+                    return y
+                  },
+                },
+              },
+              legend: {
+                position: 'bottom',
+                horizontalAlign: 'left',
+                floating: true,
+                offsetY: 25,
+                offsetX: -5,
+              },
+            },
+          }
+        },
+        mounted() {
+          // Chart 1: With forceSingleDataAsArea = true
+          const options1 = JSON.parse(JSON.stringify(this.baseOptions))
+          options1.plotOptions.area.forceSingleDataAsArea = true
+          this.chart1 = new ApexCharts(this.$refs.chart1, options1)
+          this.chart1.render()
+
+          // Chart 2: With forceSingleDataAsArea = false
+          const options2 = JSON.parse(JSON.stringify(this.baseOptions))
+          options2.plotOptions.area.forceSingleDataAsArea = false
+          this.chart2 = new ApexCharts(this.$refs.chart2, options2)
+          this.chart2.render()
+
+          // Chart 3: With forceSingleDataAsArea = undefined
+          const options3 = JSON.parse(JSON.stringify(this.baseOptions))
+          this.chart3 = new ApexCharts(this.$refs.chart3, options3)
+          this.chart3.render()
+        },
+        beforeDestroy() {
+          if (this.chart1) {
+            this.chart1.destroy()
+          }
+          if (this.chart2) {
+            this.chart2.destroy()
+          }
+          if (this.chart3) {
+            this.chart3.destroy()
+          }
+        },
+      })
+    </script>
+  </body>
+</html>
