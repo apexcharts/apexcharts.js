@@ -600,6 +600,23 @@ export default class Data {
     return this.w
   }
 
+  /**
+   * Reset parsing flags to allow re-parsing of data during updates
+   */
+  resetParsingFlags() {
+    const w = this.w
+    w.globals.dataWasParsed = false
+    w.globals.originalSeries = null
+
+    if (w.config.series) {
+      w.config.series.forEach((serie) => {
+        if (serie.__apexParsed) {
+          delete serie.__apexParsed
+        }
+      })
+    }
+  }
+
   extractPieDataFromSeries(ser) {
     const values = []
     const labels = []

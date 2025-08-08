@@ -440,7 +440,7 @@ export default class ApexCharts {
     }
 
     if (options.series) {
-      this.updateHelpers.resetParsingFlags()
+      this.data.resetParsingFlags()
 
       this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
@@ -482,7 +482,7 @@ export default class ApexCharts {
    * @param {array} series - New series which will override the existing
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
-    this.updateHelpers.resetParsingFlags()
+    this.data.resetParsingFlags()
 
     this.series.resetSeries(false)
     this.updateHelpers.revertDefaultAxisMinMax()
@@ -499,6 +499,8 @@ export default class ApexCharts {
    * @param {array} newSerie - New serie which will be appended to the existing series
    */
   appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
+    this.data.resetParsingFlags()
+
     const newSeries = this.w.config.series.slice()
     newSeries.push(newSerie)
     this.series.resetSeries(false)
@@ -518,8 +520,8 @@ export default class ApexCharts {
   appendData(newData, overwriteInitialSeries = true) {
     let me = this
 
+    me.data.resetParsingFlags()
     me.w.globals.dataChanged = true
-
     me.series.getPreviousPaths()
 
     let newSeries = me.w.config.series.slice()

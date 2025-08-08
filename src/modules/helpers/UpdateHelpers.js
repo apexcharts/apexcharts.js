@@ -134,22 +134,8 @@ export default class UpdateHelpers {
         this.ctx.series.getPreviousPaths()
       }
 
-      let existingSeries
-
-      // axis charts
-      if (w.globals.axisCharts) {
-        existingSeries = newSeries.map((s, i) => {
-          return this._extendSeries(s, i)
-        })
-
-        if (existingSeries.length === 0) {
-          existingSeries = [{ data: [] }]
-        }
-        w.config.series = existingSeries
-      } else {
-        // non-axis chart (pie/radialbar)
-        w.config.series = newSeries.slice()
-      }
+      this.ctx.data.resetParsingFlags()
+      this.ctx.data.parseData(newSeries)
 
       if (overwriteInitialSeries) {
         w.globals.initialConfig.series = Utils.clone(w.config.series)
@@ -253,22 +239,6 @@ export default class UpdateHelpers {
       }
     }
     return options
-  }
-
-  resetParsingFlags() {
-    const gl = this.w.globals
-
-    // Reset parsing flags
-    gl.dataWasParsed = false
-    gl.originalSeries = null
-
-    if (this.w.config.series) {
-      this.w.config.series.forEach((serie) => {
-        if (serie.__apexParsed) {
-          delete serie.__apexParsed
-        }
-      })
-    }
   }
 
   /**
