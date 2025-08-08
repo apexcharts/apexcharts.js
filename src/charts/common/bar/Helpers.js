@@ -248,7 +248,8 @@ export default class Helpers {
 
     if (
       typeof this.barCtx.series[i][j] === 'undefined' ||
-      this.barCtx.series[i][j] === null
+      this.barCtx.series[i][j] === null ||
+      (w.config.chart.type === 'bar' && !this.barCtx.series[i][j])
     ) {
       this.barCtx.isNullValue = true
     } else {
