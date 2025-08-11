@@ -24,21 +24,38 @@ For individuals, non-profits, educators, and small businesses with **less than $
 
 ---
 
-### 💼 Commercial License (Paid)
+**💼 Commercial License (Paid)**
 
-Required if **you or your affiliated organization earns $2 million USD or more per year**.
+The Commercial License applies to all paid SKUs (Pro, Premium, and OEM/Embedded).
+
+The **Community License** is available at no cost **only** to organizations with **annual revenue under \$2M USD**.
+If your organization earns \$2M USD or more annually, you must purchase one of our paid licenses.
 
 ✅ What's included:
 
-- Use in internal tools and commercial applications
-- Modifications and app-level distribution
-- 12-month subscription with updates & support
+* Use in internal tools and commercial applications
+* Modifications and app-level distribution
+* 12-month subscription with updates & support
 
 🚫 Not allowed:
 
-- Redistribution in toolkits, SDKs, or platforms
-- Use by unlicensed developers
-- Competing charting products
+* Redistribution in toolkits, SDKs, or platforms
+* Use by unlicensed developers
+* Competing charting products
+
+---
+
+#### 🏛 Non-Profit Tiers
+
+Non-Profits are treated like commercial entities:
+
+  * Annual operating budget **less than \$2 million USD**
+  * *Eligible free Community licenses*
+
+or
+
+  * Annual operating budget **greater than \$2 million USD**
+  * *Commerical license with possible discounts for Community, Pro, Premium and OEM products*
 
 ---
 
@@ -49,7 +66,7 @@ Required if you are **embedding ApexCharts into a product or platform used by ot
 - No-code dashboards
 - Developer platforms
 - Embedded BI tools
-- White-labeled apps or SDKs
+- SDKs
 
 ✅ What's included:
 
