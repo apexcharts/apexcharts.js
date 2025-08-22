@@ -1,12 +1,12 @@
+import { spline, svgPath } from '../libs/monotone-cubic'
 import CoreUtils from '../modules/CoreUtils'
-import Graphics from '../modules/Graphics'
-import Fill from '../modules/Fill'
 import DataLabels from '../modules/DataLabels'
+import Fill from '../modules/Fill'
+import Graphics from '../modules/Graphics'
 import Markers from '../modules/Markers'
-import Scatter from './Scatter'
 import Utils from '../utils/Utils'
 import Helpers from './common/line/Helpers'
-import { svgPath, spline } from '../libs/monotone-cubic'
+import Scatter from './Scatter'
 /**
  * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
  * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
@@ -574,6 +574,97 @@ class Line {
         w.globals.dataPoints > 1
           ? w.globals.dataPoints - 1
           : w.globals.dataPoints
+    }
+
+    const isSinglePointSeries = series[i].length === 1
+
+    // force show single data point area series (covers both iterations === 0 and
+    // the common case where global iterations>0 but current series length == 1)
+    if (
+      isSinglePointSeries &&
+      type === 'area' &&
+      w.config.plotOptions.area.forceSingleDataAsArea
+    ) {
+      const startX = xArrj[0]
+      const startY = yArrj[0] !== null ? yArrj[0] : this.zeroY
+
+      // Use xDivision for category axis, and a fraction of the x-ratio for numeric axis
+      const areaWidth = w.globals.isXNumeric
+        ? (1 / this.xRatio) * 0.5
+        : this.xDivision * 0.5
+      const endX = startX + areaWidth
+
+      // A small drop towards the baseline for better gradient visibility
+      const dropRatio = 0.12
+      const endY = startY + (this.areaBottomY - startY) * dropRatio
+
+      // Build complete paths overriding previous partial ones.
+      // Respect stroke.curve option for visual consistency.
+
+      let topSegment = ''
+      const curveStyle = w.config.stroke.curve
+      if (curveStyle === 'smooth' || curveStyle === 'monotoneCubic') {
+        const cLen = (endX - startX) * 0.5
+        // Cubic Bézier curve from (startX,startY) to (endX,areaBottomY)
+        topSegment =
+          graphics.move(startX, startY) +
+          graphics.curve(startX + cLen, startY, endX - cLen, endY, endX, endY)
+      } else if (curveStyle === 'stepline') {
+        topSegment =
+          graphics.move(startX, startY) +
+          graphics.line(null, endY, 'V') +
+          graphics.line(endX, null, 'H')
+      } else if (curveStyle === 'linestep') {
+        topSegment =
+          graphics.move(startX, startY) +
+          graphics.line(endX, null, 'H') +
+          graphics.line(null, endY, 'V')
+      } else {
+        // straight
+        topSegment = graphics.move(startX, startY) + graphics.line(endX, endY)
+      }
+
+      const singleLinePath = topSegment
+
+      const singleAreaPath =
+        topSegment +
+        graphics.line(endX, this.areaBottomY) +
+        graphics.line(startX, this.areaBottomY) +
+        'z'
+
+      linePaths.push(singleLinePath)
+      areaPaths.push(singleAreaPath)
+
+      // a single point chart still needs to have markers and labels
+      let pointsPos = this.lineHelpers.calculatePoints({
+        series,
+        x: startX,
+        y: startY,
+        realIndex,
+        i,
+        j: 0,
+        prevY,
+      })
+
+      this._handleMarkersAndLabels({
+        type,
+        pointsPos,
+        i,
+        j: 0,
+        realIndex,
+        isRangeStart,
+      })
+
+      return {
+        yArrj,
+        xArrj,
+        pathFromArea,
+        areaPaths,
+        pathFromLine,
+        linePaths,
+        linePath,
+        areaPath,
+      }
     }
 
     const getY = (_y, lineYPos) => {
