@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.3.3
+ * ApexCharts v5.3.4
  * (c) 2018-2025 ApexCharts
  */
 (function (global, factory) {
