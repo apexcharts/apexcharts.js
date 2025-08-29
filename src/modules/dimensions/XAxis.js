@@ -1,5 +1,5 @@
 import Formatters from '../Formatters'
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 
@@ -78,14 +78,15 @@ export default class DimXAxis {
         valArr = val
       }
 
-      let graphics = new Graphics(this.dCtx.ctx)
-      let xLabelrect = graphics.getTextRects(
+      let xLabelrect = Graphics.getTextRects(
+        this.dCtx.ctx,
         val,
         w.config.xaxis.labels.style.fontSize
       )
       let xArrLabelrect = xLabelrect
       if (val !== valArr) {
-        xArrLabelrect = graphics.getTextRects(
+        xArrLabelrect = Graphics.getTextRects(
+          this.dCtx.ctx,
           valArr,
           w.config.xaxis.labels.style.fontSize
         )
@@ -115,7 +116,8 @@ export default class DimXAxis {
         if (!w.globals.isBarHorizontal) {
           w.globals.rotateXLabels = true
           const getRotatedTextRects = (text) => {
-            return graphics.getTextRects(
+            return Graphics.getTextRects(
+              this.dCtx.ctx,
               text,
               w.config.xaxis.labels.style.fontSize,
               w.config.xaxis.labels.style.fontFamily,
@@ -182,11 +184,10 @@ export default class DimXAxis {
       xaxisLabels
     )
 
-    let graphics = new Graphics(this.dCtx.ctx)
-    let xLabelrect = graphics.getTextRects(val, fontSize)
+    let xLabelrect = Graphics.getTextRects(this.dCtx.ctx, val, fontSize)
     let xArrLabelrect = xLabelrect
     if (val !== valArr) {
-      xArrLabelrect = graphics.getTextRects(valArr, fontSize)
+      xArrLabelrect = Graphics.getTextRects(this.dCtx.ctx, valArr, fontSize)
     }
 
     rect = {
@@ -224,9 +225,8 @@ export default class DimXAxis {
     let height = 0
 
     if (w.config.xaxis.title.text !== undefined) {
-      let graphics = new Graphics(this.dCtx.ctx)
-
-      let rect = graphics.getTextRects(
+      let rect = Graphics.getTextRects(
+        this.dCtx.ctx,
         w.config.xaxis.title.text,
         w.config.xaxis.title.style.fontSize
       )
@@ -262,8 +262,11 @@ export default class DimXAxis {
       }
     }, 0)
 
-    let graphics = new Graphics(this.dCtx.ctx)
-    rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
+    rect = Graphics.getTextRects(
+      this.dCtx.ctx,
+      val,
+      w.config.xaxis.labels.style.fontSize
+    )
 
     let totalWidthRotated = rect.width * 1.05 * labels.length
 

@@ -1,4 +1,4 @@
-import Graphics from './Graphics.js'
+import * as Graphics from './Graphics.js'
 import Utils from '../utils/Utils.js'
 
 /**
@@ -359,7 +359,6 @@ function handlePatternFill(
     fillCnf = fillConfig
   }
 
-  let graphics = new Graphics(ctx)
   const seriesIndex = getSeriesIndex(ctx, opts)
 
   let patternStrokeWidth = Array.isArray(fillCnf.pattern.strokeWidth)
@@ -369,7 +368,8 @@ function handlePatternFill(
 
   if (Array.isArray(fillCnf.pattern.style)) {
     if (typeof fillCnf.pattern.style[opts.seriesNumber] !== 'undefined') {
-      let pf = graphics.drawPattern(
+      let pf = Graphics.drawPattern(
+        ctx,
         fillCnf.pattern.style[opts.seriesNumber],
         fillCnf.pattern.width,
         fillCnf.pattern.height,
@@ -382,7 +382,8 @@ function handlePatternFill(
       patternFill = defaultColor
     }
   } else {
-    patternFill = graphics.drawPattern(
+    patternFill = Graphics.drawPattern(
+      ctx,
       fillCnf.pattern.style,
       fillCnf.pattern.width,
       fillCnf.pattern.height,
@@ -408,7 +409,6 @@ function handleGradientFill(
       ...fillConfig,
     }
   }
-  let graphics = new Graphics(ctx)
   let utils = new Utils()
 
   type = type || fillCnf.gradient.type
@@ -478,7 +478,8 @@ function handleGradientFill(
     gradientTo = Utils.rgb2hex(gradientTo)
   }
 
-  return graphics.drawGradient(
+  return Graphics.drawGradient(
+    ctx,
     type,
     gradientFrom,
     gradientTo,

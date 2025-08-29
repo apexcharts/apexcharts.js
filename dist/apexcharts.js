@@ -15146,7 +15146,7 @@
       imgHeight = params.height;
     }
     var elPattern = document.createElementNS(w.globals.SVGNS, 'pattern');
-    Graphics.setAttrs(elPattern, {
+    setAttrs(elPattern, {
       id: params.patternID,
       patternUnits: params.patternUnits ? params.patternUnits : 'userSpaceOnUse',
       width: imgWidth + 'px',
@@ -15155,7 +15155,7 @@
     var elImage = document.createElementNS(w.globals.SVGNS, 'image');
     elPattern.appendChild(elImage);
     elImage.setAttributeNS(window.SVG.xlink, 'href', fillImg);
-    Graphics.setAttrs(elImage, {
+    setAttrs(elImage, {
       x: 0,
       y: 0,
       preserveAspectRatio: 'none',
@@ -15403,19 +15403,18 @@
     if (fillConfig) {
       fillCnf = fillConfig;
     }
-    var graphics = new Graphics(ctx);
     var seriesIndex = getSeriesIndex(ctx, opts);
     var patternStrokeWidth = Array.isArray(fillCnf.pattern.strokeWidth) ? fillCnf.pattern.strokeWidth[seriesIndex] : fillCnf.pattern.strokeWidth;
     var patternLineColor = fillColor;
     if (Array.isArray(fillCnf.pattern.style)) {
       if (typeof fillCnf.pattern.style[opts.seriesNumber] !== 'undefined') {
-        var pf = graphics.drawPattern(fillCnf.pattern.style[opts.seriesNumber], fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
+        var pf = drawPattern(ctx, fillCnf.pattern.style[opts.seriesNumber], fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
         patternFill = pf;
       } else {
         patternFill = defaultColor;
       }
     } else {
-      patternFill = graphics.drawPattern(fillCnf.pattern.style, fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
+      patternFill = drawPattern(ctx, fillCnf.pattern.style, fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
     }
     return patternFill;
   }
@@ -15431,7 +15430,6 @@
     if (fillConfig) {
       fillCnf = _objectSpread2(_objectSpread2({}, fillCnf), fillConfig);
     }
-    var graphics = new Graphics(ctx);
     var utils = new Utils$1();
     type = type || fillCnf.gradient.type;
     var gradientFrom = fillColor;
@@ -15475,7 +15473,7 @@
     if (gradientTo.indexOf('rgb') > -1) {
       gradientTo = Utils$1.rgb2hex(gradientTo);
     }
-    return graphics.drawGradient(type, gradientFrom, gradientTo, opacityFrom, opacityTo, opts.size, fillCnf.gradient.stops, colorStops, i);
+    return drawGradient(ctx, type, gradientFrom, gradientTo, opacityFrom, opacityTo, opts.size, fillCnf.gradient.stops, colorStops, i);
   }
   var Fill = {
     fillPath: fillPath
@@ -18343,14 +18341,13 @@
       value: function drawGridArea() {
         var elGrid = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         if (!elGrid) {
-          elGrid = graphics.group({
+          elGrid = group(this.ctx, {
             class: 'apexcharts-grid'
           });
         }
-        var elVerticalLine = graphics.drawLine(w.globals.padHorizontal, 1, w.globals.padHorizontal, w.globals.gridHeight, 'transparent');
-        var elHorzLine = graphics.drawLine(w.globals.padHorizontal, w.globals.gridHeight, w.globals.gridWidth, w.globals.gridHeight, 'transparent');
+        var elVerticalLine = drawLine(this.ctx, w.globals.padHorizontal, 1, w.globals.padHorizontal, w.globals.gridHeight, 'transparent');
+        var elHorzLine = drawLine(this.ctx, w.globals.padHorizontal, w.globals.gridHeight, w.globals.gridWidth, w.globals.gridHeight, 'transparent');
         elGrid.add(elHorzLine);
         elGrid.add(elVerticalLine);
         return elGrid;
@@ -18371,7 +18368,6 @@
       value: function createGridMask() {
         var w = this.w;
         var gl = w.globals;
-        var graphics = new Graphics(this.ctx);
         var strokeSize = Array.isArray(w.config.stroke.width) ? Math.max.apply(Math, _toConsumableArray(w.config.stroke.width)) : w.config.stroke.width;
         var createClipPath = function createClipPath(id) {
           var clipPath = document.createElementNS(gl.SVGNS, 'clipPath');
@@ -18390,10 +18386,10 @@
           barWidthLeft = Math.max(w.config.grid.padding.left, gl.barPadForNumericAxis);
           barWidthRight = Math.max(w.config.grid.padding.right, gl.barPadForNumericAxis);
         }
-        gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2 - 2, -strokeSize / 2 - 2, gl.gridWidth + strokeSize + 4, gl.gridHeight + strokeSize + 4, 0, '#fff');
-        gl.dom.elGridRectBar = graphics.drawRect(-strokeSize / 2 - barWidthLeft - 2, -strokeSize / 2 - 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize + 4, 0, '#fff');
+        gl.dom.elGridRect = drawRect(this.ctx, -strokeSize / 2 - 2, -strokeSize / 2 - 2, gl.gridWidth + strokeSize + 4, gl.gridHeight + strokeSize + 4, 0, '#fff');
+        gl.dom.elGridRectBar = drawRect(this.ctx, -strokeSize / 2 - barWidthLeft - 2, -strokeSize / 2 - 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize + 4, 0, '#fff');
         var markerSize = w.globals.markers.largestSize;
-        gl.dom.elGridRectMarker = graphics.drawRect(Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize), -markerSize, gl.gridWidth + Math.max(strokeSize + barWidthRight + barWidthLeft + 4, markerSize * 2), gl.gridHeight + markerSize * 2, 0, '#fff');
+        gl.dom.elGridRectMarker = drawRect(this.ctx, Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize), -markerSize, gl.gridWidth + Math.max(strokeSize + barWidthRight + barWidthLeft + 4, markerSize * 2), gl.gridHeight + markerSize * 2, 0, '#fff');
         gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node);
         gl.dom.elGridRectBarMask.appendChild(gl.dom.elGridRectBar.node);
         gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node);
@@ -18464,8 +18460,7 @@
         var isHorzLine = parent.node.classList.contains('apexcharts-gridlines-horizontal');
         var offX = w.globals.barPadForNumericAxis;
         var excludeBorders = y1 === 0 && y2 === 0 || x1 === 0 && x2 === 0 || y1 === w.globals.gridHeight && y2 === w.globals.gridHeight || w.globals.isBarHorizontal && (i === 0 || i === xCount - 1);
-        var graphics = new Graphics(this);
-        var line = graphics.drawLine(x1 - (isHorzLine ? offX : 0), y1, x2 + (isHorzLine ? offX : 0), y2, w.config.grid.borderColor, w.config.grid.strokeDashArray);
+        var line = drawLine(this, x1 - (isHorzLine ? offX : 0), y1, x2 + (isHorzLine ? offX : 0), y2, w.config.grid.borderColor, w.config.grid.strokeDashArray);
         line.node.classList.add('apexcharts-gridline');
         if (excludeBorders && w.config.grid.show) {
           this.elGridBorders.add(line);
@@ -18483,10 +18478,9 @@
           y2 = _ref3.y2,
           type = _ref3.type;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var offX = w.globals.barPadForNumericAxis;
         var color = w.config.grid[type].colors[c];
-        var rect = graphics.drawRect(x1 - (type === 'row' ? offX : 0), y1, x2 + (type === 'row' ? offX * 2 : 0), y2, 0, color, w.config.grid[type].opacity);
+        var rect = drawRect(this.ctx, x1 - (type === 'row' ? offX : 0), y1, x2 + (type === 'row' ? offX * 2 : 0), y2, 0, color, w.config.grid[type].opacity);
         this.elg.add(rect);
         rect.attr('clip-path', "url(#gridRectMask".concat(w.globals.cuid, ")"));
         rect.node.classList.add("apexcharts-grid-".concat(type));
@@ -18645,17 +18639,16 @@
       value: function renderGrid() {
         var w = this.w;
         var gl = w.globals;
-        var graphics = new Graphics(this.ctx);
-        this.elg = graphics.group({
+        this.elg = group(this.ctx, {
           class: 'apexcharts-grid'
         });
-        this.elgridLinesH = graphics.group({
+        this.elgridLinesH = group(this.ctx, {
           class: 'apexcharts-gridlines-horizontal'
         });
-        this.elgridLinesV = graphics.group({
+        this.elgridLinesV = group(this.ctx, {
           class: 'apexcharts-gridlines-vertical'
         });
-        this.elGridBorders = graphics.group({
+        this.elGridBorders = group(this.ctx, {
           class: 'apexcharts-grid-borders'
         });
         this.elg.add(this.elgridLinesH);
@@ -20540,8 +20533,6 @@
       key: "drawXCrosshairs",
       value: function drawXCrosshairs() {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        var filters = new Filters(this.ctx);
         var crosshairGradient = w.config.xaxis.crosshairs.fill.gradient;
         var crosshairShadow = w.config.xaxis.crosshairs.dropShadow;
         var fillType = w.config.xaxis.crosshairs.fill.type;
@@ -20551,7 +20542,7 @@
         var opacityTo = crosshairGradient.opacityTo;
         var stops = crosshairGradient.stops;
         var shadow = 'none';
-        var dropShadow = crosshairShadow.enabled;
+        var dropShadow$1 = crosshairShadow.enabled;
         var shadowLeft = crosshairShadow.left;
         var shadowTop = crosshairShadow.top;
         var shadowBlur = crosshairShadow.blur;
@@ -20560,12 +20551,12 @@
         var xcrosshairsFill = w.config.xaxis.crosshairs.fill.color;
         if (w.config.xaxis.crosshairs.show) {
           if (fillType === 'gradient') {
-            xcrosshairsFill = graphics.drawGradient('vertical', gradientFrom, gradientTo, opacityFrom, opacityTo, null, stops, null);
+            xcrosshairsFill = drawGradient(this.ctx, 'vertical', gradientFrom, gradientTo, opacityFrom, opacityTo, null, stops, null);
           }
-          var xcrosshairs = graphics.drawRect();
+          var xcrosshairs = drawRect(this.ctx);
           if (w.config.xaxis.crosshairs.width === 1) {
             // to prevent drawing 2 lines, convert rect to line
-            xcrosshairs = graphics.drawLine();
+            xcrosshairs = drawLine(this.ctx, 0, 0, 0, 0);
           }
           var gridHeight = w.globals.gridHeight;
           if (!Utils$1.isNumber(gridHeight) || gridHeight < 0) {
@@ -20589,8 +20580,8 @@
             'stroke-width': w.config.xaxis.crosshairs.stroke.width,
             'stroke-dasharray': w.config.xaxis.crosshairs.stroke.dashArray
           });
-          if (dropShadow) {
-            xcrosshairs = filters.dropShadow(xcrosshairs, {
+          if (dropShadow$1) {
+            xcrosshairs = dropShadow(this.ctx, xcrosshairs, {
               left: shadowLeft,
               top: shadowTop,
               blur: shadowBlur,
@@ -20605,11 +20596,10 @@
       key: "drawYCrosshairs",
       value: function drawYCrosshairs() {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var crosshair = w.config.yaxis[0].crosshairs;
         var offX = w.globals.barPadForNumericAxis;
         if (w.config.yaxis[0].crosshairs.show) {
-          var ycrosshairs = graphics.drawLine(-offX, 0, w.globals.gridWidth + offX, 0, crosshair.stroke.color, crosshair.stroke.dashArray, crosshair.stroke.width);
+          var ycrosshairs = drawLine(this.ctx, -offX, 0, w.globals.gridWidth + offX, 0, crosshair.stroke.color, crosshair.stroke.dashArray, crosshair.stroke.width);
           ycrosshairs.attr({
             class: 'apexcharts-ycrosshairs'
           });
@@ -20617,7 +20607,7 @@
         }
 
         // draw an invisible crosshair to help in positioning the yaxis tooltip
-        var ycrosshairsHidden = graphics.drawLine(-offX, 0, w.globals.gridWidth + offX, 0, crosshair.stroke.color, 0, 0);
+        var ycrosshairsHidden = drawLine(this.ctx, -offX, 0, w.globals.gridWidth + offX, 0, crosshair.stroke.color, 0, 0);
         ycrosshairsHidden.attr({
           class: 'apexcharts-ycrosshairs-hidden'
         });
@@ -21063,6 +21053,7 @@
     _createClass(DimXAxis, [{
       key: "getxAxisLabelsCoords",
       value: function getxAxisLabelsCoords() {
+        var _this = this;
         var w = this.w;
         var xaxisLabels = w.globals.labels.slice();
         if (w.config.xaxis.convertedCatToNumeric && xaxisLabels.length === 0) {
@@ -21108,11 +21099,10 @@
             val = '1';
             valArr = val;
           }
-          var graphics = new Graphics(this.dCtx.ctx);
-          var xLabelrect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
+          var xLabelrect = getTextRects(this.dCtx.ctx, val, w.config.xaxis.labels.style.fontSize);
           var xArrLabelrect = xLabelrect;
           if (val !== valArr) {
-            xArrLabelrect = graphics.getTextRects(valArr, w.config.xaxis.labels.style.fontSize);
+            xArrLabelrect = getTextRects(this.dCtx.ctx, valArr, w.config.xaxis.labels.style.fontSize);
           }
           rect = {
             width: xLabelrect.width >= xArrLabelrect.width ? xLabelrect.width : xArrLabelrect.width,
@@ -21122,7 +21112,7 @@
             if (!w.globals.isBarHorizontal) {
               w.globals.rotateXLabels = true;
               var getRotatedTextRects = function getRotatedTextRects(text) {
-                return graphics.getTextRects(text, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, "rotate(".concat(w.config.xaxis.labels.rotate, " 0 0)"), false);
+                return getTextRects(_this.dCtx.ctx, text, w.config.xaxis.labels.style.fontSize, w.config.xaxis.labels.style.fontFamily, "rotate(".concat(w.config.xaxis.labels.rotate, " 0 0)"), false);
               };
               xLabelrect = getRotatedTextRects(val);
               if (val !== valArr) {
@@ -21172,11 +21162,10 @@
         // prevent changing xaxisLabels to avoid issues in multi-yaxes - fix #522
         var val = Utils$1.getLargestStringFromArr(xaxisLabels);
         var valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(val, xaxisLabels);
-        var graphics = new Graphics(this.dCtx.ctx);
-        var xLabelrect = graphics.getTextRects(val, fontSize);
+        var xLabelrect = getTextRects(this.dCtx.ctx, val, fontSize);
         var xArrLabelrect = xLabelrect;
         if (val !== valArr) {
-          xArrLabelrect = graphics.getTextRects(valArr, fontSize);
+          xArrLabelrect = getTextRects(this.dCtx.ctx, valArr, fontSize);
         }
         rect = {
           width: xLabelrect.width >= xArrLabelrect.width ? xLabelrect.width : xArrLabelrect.width,
@@ -21206,8 +21195,7 @@
         var width = 0;
         var height = 0;
         if (w.config.xaxis.title.text !== undefined) {
-          var graphics = new Graphics(this.dCtx.ctx);
-          var rect = graphics.getTextRects(w.config.xaxis.title.text, w.config.xaxis.title.style.fontSize);
+          var rect = getTextRects(this.dCtx.ctx, w.config.xaxis.title.text, w.config.xaxis.title.style.fontSize);
           width = rect.width;
           height = rect.height;
         }
@@ -21236,8 +21224,7 @@
             return a.length > b.length ? a : b;
           }
         }, 0);
-        var graphics = new Graphics(this.dCtx.ctx);
-        rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize);
+        rect = getTextRects(this.dCtx.ctx, val, w.config.xaxis.labels.style.fontSize);
         var totalWidthRotated = rect.width * 1.05 * labels.length;
         if (totalWidthRotated > w.globals.gridWidth && w.config.xaxis.labels.rotate !== 0) {
           w.globals.overlappingXLabels = true;
@@ -21250,7 +21237,7 @@
     }, {
       key: "additionalPaddingXLabels",
       value: function additionalPaddingXLabels(xaxisLabelCoords) {
-        var _this = this;
+        var _this2 = this;
         var w = this.w;
         var gl = w.globals;
         var cnf = w.config;
@@ -21263,13 +21250,13 @@
           return gl.collapsedSeriesIndices.indexOf(i) !== -1;
         };
         var rightPad = function rightPad(yaxe) {
-          if (_this.dCtx.timescaleLabels && _this.dCtx.timescaleLabels.length) {
+          if (_this2.dCtx.timescaleLabels && _this2.dCtx.timescaleLabels.length) {
             // for timeline labels, we take the last label and check if it exceeds gridWidth
-            var firstimescaleLabel = _this.dCtx.timescaleLabels[0];
-            var lastTimescaleLabel = _this.dCtx.timescaleLabels[_this.dCtx.timescaleLabels.length - 1];
-            var lastLabelPosition = lastTimescaleLabel.position + lbWidth / 1.75 - _this.dCtx.yAxisWidthRight;
-            var firstLabelPosition = firstimescaleLabel.position - lbWidth / 1.75 + _this.dCtx.yAxisWidthLeft;
-            var lgRightRectWidth = w.config.legend.position === 'right' && _this.dCtx.lgRect.width > 0 ? _this.dCtx.lgRect.width : 0;
+            var firstimescaleLabel = _this2.dCtx.timescaleLabels[0];
+            var lastTimescaleLabel = _this2.dCtx.timescaleLabels[_this2.dCtx.timescaleLabels.length - 1];
+            var lastLabelPosition = lastTimescaleLabel.position + lbWidth / 1.75 - _this2.dCtx.yAxisWidthRight;
+            var firstLabelPosition = firstimescaleLabel.position - lbWidth / 1.75 + _this2.dCtx.yAxisWidthLeft;
+            var lgRightRectWidth = w.config.legend.position === 'right' && _this2.dCtx.lgRect.width > 0 ? _this2.dCtx.lgRect.width : 0;
             if (lastLabelPosition > gl.svgWidth - gl.translateX - lgRightRectWidth) {
               gl.skipLastTimelinelabel = true;
             }
@@ -21278,12 +21265,12 @@
             }
           } else if (xtype === 'datetime') {
             // If user has enabled DateTime, but uses own's formatter
-            if (_this.dCtx.gridPad.right < lbWidth && !gl.rotateXLabels) {
+            if (_this2.dCtx.gridPad.right < lbWidth && !gl.rotateXLabels) {
               gl.skipLastTimelinelabel = true;
             }
           } else if (xtype !== 'datetime') {
-            if (_this.dCtx.gridPad.right < lbWidth / 2 - _this.dCtx.yAxisWidthRight && !gl.rotateXLabels && !w.config.xaxis.labels.trim) {
-              _this.dCtx.xPadRight = lbWidth / 2 + 1;
+            if (_this2.dCtx.gridPad.right < lbWidth / 2 - _this2.dCtx.yAxisWidthRight && !gl.rotateXLabels && !w.config.xaxis.labels.trim) {
+              _this2.dCtx.xPadRight = lbWidth / 2 + 1;
             }
           }
         };
@@ -21293,10 +21280,10 @@
         };
         cnf.yaxis.forEach(function (yaxe, i) {
           if (isBarOpposite) {
-            if (_this.dCtx.gridPad.left < lbWidth) {
-              _this.dCtx.xPadLeft = lbWidth / 2 + 1;
+            if (_this2.dCtx.gridPad.left < lbWidth) {
+              _this2.dCtx.xPadLeft = lbWidth / 2 + 1;
             }
-            _this.dCtx.xPadRight = lbWidth / 2 + 1;
+            _this2.dCtx.xPadRight = lbWidth / 2 + 1;
           } else {
             padYAxe(yaxe, i);
           }
@@ -29823,7 +29810,6 @@
       this.dynamicAnim = this.initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
       this.animDur = 0;
       var w = this.w;
-      this.graphics = new Graphics(this.ctx);
       this.lineColorArr = w.globals.stroke.colors !== undefined ? w.globals.stroke.colors : w.globals.colors;
       this.defaultSize = w.globals.svgHeight < w.globals.svgWidth ? w.globals.gridHeight : w.globals.gridWidth;
       this.isLog = w.config.yaxis[0].logarithmic;
@@ -29850,7 +29836,6 @@
       value: function draw(series) {
         var _this = this;
         var w = this.w;
-        var fill = new Fill(this.ctx);
         var allSeries = [];
         var dataLabels = new DataLabels(this.ctx);
         if (series.length) {
@@ -29861,21 +29846,21 @@
         var halfH = w.globals.gridHeight / 2;
         var translateX = halfW + w.config.plotOptions.radar.offsetX;
         var translateY = halfH + w.config.plotOptions.radar.offsetY;
-        var ret = this.graphics.group({
+        var ret = group(this.ctx, {
           class: 'apexcharts-radar-series apexcharts-plot-series',
           transform: "translate(".concat(translateX || 0, ", ").concat(translateY || 0, ")")
         });
         var dataPointsPos = [];
         var elPointsMain = null;
         var elDataPointsMain = null;
-        this.yaxisLabels = this.graphics.group({
+        this.yaxisLabels = group(this.ctx, {
           class: 'apexcharts-yaxis'
         });
         series.forEach(function (s, i) {
           var longestSeries = s.length === w.globals.dataPoints;
 
           // el to which series will be drawn
-          var elSeries = _this.graphics.group().attr({
+          var elSeries = group(_this.ctx).attr({
             class: "apexcharts-series",
             'data:longestSeries': longestSeries,
             seriesName: Utils$1.escapeString(w.globals.seriesNames[i]),
@@ -29902,12 +29887,12 @@
           });
 
           // points
-          elPointsMain = _this.graphics.group({
+          elPointsMain = group(_this.ctx, {
             class: 'apexcharts-series-markers-wrap apexcharts-element-hidden'
           });
 
           // datapoints
-          elDataPointsMain = _this.graphics.group({
+          elDataPointsMain = group(_this.ctx, {
             class: "apexcharts-datalabels",
             'data:realIndex': i
           });
@@ -29932,7 +29917,7 @@
             pathFrom = _this.getPreviousPath(i);
           }
           for (var p = 0; p < paths.linePathsTo.length; p++) {
-            var renderedLinePath = _this.graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
+            var renderedLinePath = renderPaths(_this.ctx, _objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
               pathTo: paths.linePathsTo[p],
               strokeWidth: Array.isArray(_this.strokeWidth) ? _this.strokeWidth[i] : _this.strokeWidth,
@@ -29940,10 +29925,10 @@
               drawShadow: false
             }));
             elSeries.add(renderedLinePath);
-            var pathFill = fill.fillPath({
+            var pathFill = fillPath(_this.ctx, {
               seriesNumber: i
             });
-            var renderedAreaPath = _this.graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
+            var renderedAreaPath = renderPaths(_this.ctx, _objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
               pathTo: paths.areaPathsTo[p],
               strokeWidth: 0,
@@ -29951,9 +29936,8 @@
               drawShadow: false
             }));
             if (w.config.chart.dropShadow.enabled) {
-              var filters = new Filters(_this.ctx);
               var shadow = w.config.chart.dropShadow;
-              filters.dropShadow(renderedAreaPath, Object.assign({}, shadow, {
+              dropShadow(_this.ctx, renderedAreaPath, Object.assign({}, shadow, {
                 noUserSpaceOnUse: true
               }), i);
             }
@@ -29965,12 +29949,12 @@
               seriesIndex: i,
               dataPointIndex: j
             });
-            var point = _this.graphics.drawMarker(dataPointsPos[j].x, dataPointsPos[j].y, opts);
+            var point = drawMarker(_this.ctx, dataPointsPos[j].x, dataPointsPos[j].y, opts);
             point.attr('rel', j);
             point.attr('j', j);
             point.attr('index', i);
             point.node.setAttribute('default-marker-size', opts.pSize);
-            var elPointsWrap = _this.graphics.group({
+            var elPointsWrap = group(_this.ctx, {
               class: 'apexcharts-series-markers'
             });
             if (elPointsWrap) {
@@ -30036,7 +30020,7 @@
           var string = '';
           polygon.forEach(function (p, i) {
             if (r === 0) {
-              var line = _this2.graphics.drawLine(p.x, p.y, 0, 0, Array.isArray(_this2.polygons.connectorColors) ? _this2.polygons.connectorColors[i] : _this2.polygons.connectorColors);
+              var line = drawLine(_this2.ctx, p.x, p.y, 0, 0, Array.isArray(_this2.polygons.connectorColors) ? _this2.polygons.connectorColors[i] : _this2.polygons.connectorColors);
               lines.push(line);
             }
             if (i === 0) {
@@ -30052,7 +30036,7 @@
         polygonStrings.forEach(function (p, i) {
           var strokeColors = _this2.polygons.strokeColors;
           var strokeWidth = _this2.polygons.strokeWidth;
-          var polygon = _this2.graphics.drawPolygon(p, Array.isArray(strokeColors) ? strokeColors[i] : strokeColors, Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth, w.globals.radarPolygons.fill.colors[i]);
+          var polygon = drawPolygon(_this2.ctx, p, Array.isArray(strokeColors) ? strokeColors[i] : strokeColors, Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth, w.globals.radarPolygons.fill.colors[i]);
           parent.add(polygon);
         });
         lines.forEach(function (l) {
@@ -30071,7 +30055,7 @@
         var _this3 = this;
         var w = this.w;
         var xaxisLabelsConfig = w.config.xaxis.labels;
-        var elXAxisWrap = this.graphics.group({
+        var elXAxisWrap = group(this.ctx, {
           class: 'apexcharts-xaxis'
         });
         var polygonPos = Utils$1.getPolygonPos(this.size, this.dataPointsLen);
@@ -30124,13 +30108,13 @@
         var areaPathsTo = [];
         var areaPathsFrom = [];
         if (pos.length) {
-          linePathsFrom = [this.graphics.move(origin.x, origin.y)];
-          areaPathsFrom = [this.graphics.move(origin.x, origin.y)];
-          var linePathTo = this.graphics.move(pos[0].x, pos[0].y);
-          var areaPathTo = this.graphics.move(pos[0].x, pos[0].y);
+          linePathsFrom = [move(this.ctx, origin.x, origin.y)];
+          areaPathsFrom = [move(this.ctx, origin.x, origin.y)];
+          var linePathTo = move(this.ctx, pos[0].x, pos[0].y);
+          var areaPathTo = move(this.ctx, pos[0].x, pos[0].y);
           pos.forEach(function (p, i) {
-            linePathTo += _this4.graphics.line(p.x, p.y);
-            areaPathTo += _this4.graphics.line(p.x, p.y);
+            linePathTo += line(_this4.ctx, p.x, p.y);
+            areaPathTo += line(_this4.ctx, p.x, p.y);
             if (i === pos.length - 1) {
               linePathTo += 'Z';
               areaPathTo += 'Z';
@@ -31319,9 +31303,8 @@
       value: function draw(series, ctype, seriesIndex, seriesRangeEnd) {
         var _w$config$series$;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var type = w.globals.comboCharts ? ctype : w.config.chart.type;
-        var ret = graphics.group({
+        var ret = group(this.ctx, {
           class: "apexcharts-".concat(type, "-series apexcharts-plot-series")
         });
         var coreUtils = new CoreUtils(this.ctx, w);
@@ -31501,7 +31484,6 @@
       key: "_initSerieVariables",
       value: function _initSerieVariables(series, i, realIndex) {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
 
         // width divided into equal parts
         this.xDivision = w.globals.gridWidth / (w.globals.dataPoints - (w.config.xaxis.tickPlacement === 'on' ? 1 : 0));
@@ -31522,14 +31504,14 @@
         this.categoryAxisCorrection = this.xDivision / 2;
 
         // el to which series will be drawn
-        this.elSeries = graphics.group({
+        this.elSeries = group(this.ctx, {
           class: "apexcharts-series",
           zIndex: typeof w.config.series[realIndex].zIndex !== 'undefined' ? w.config.series[realIndex].zIndex : realIndex,
           seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex])
         });
 
         // points
-        this.elPointsMain = graphics.group({
+        this.elPointsMain = group(this.ctx, {
           class: 'apexcharts-series-markers-wrap',
           'data:realIndex': realIndex
         });
@@ -31553,7 +31535,7 @@
         }
 
         // eldatalabels
-        this.elDataLabelsWrap = graphics.group({
+        this.elDataLabelsWrap = group(this.ctx, {
           class: 'apexcharts-datalabels',
           'data:realIndex': realIndex
         });
@@ -31574,10 +31556,9 @@
           realIndex = _ref.realIndex,
           translationsIndex = _ref.translationsIndex,
           prevX = _ref.prevX,
-          prevY = _ref.prevY,
-          prevY2 = _ref.prevY2;
+          prevY = _ref.prevY;
+          _ref.prevY2;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var linePath, areaPath, pathFromLine, pathFromArea;
         if (series[i][0] === null) {
           // when the first value itself is null, we need to move the pointer to a location where a null value is not found
@@ -31585,20 +31566,20 @@
             if (series[i][s] !== null) {
               prevX = this.xDivision * s;
               prevY = this.zeroY - series[i][s] / this.yRatio[translationsIndex];
-              linePath = graphics.move(prevX, prevY);
-              areaPath = graphics.move(prevX, this.areaBottomY);
+              linePath = move(this.ctx, prevX);
+              areaPath = move(this.ctx, prevX, this.areaBottomY);
               break;
             }
           }
         } else {
-          linePath = graphics.move(prevX, prevY);
+          linePath = move(this.ctx, prevX);
           if (type === 'rangeArea') {
-            linePath = graphics.move(prevX, prevY2) + graphics.line(prevX, prevY);
+            linePath = move(this.ctx, prevX) + line(this.ctx, prevX, prevY);
           }
-          areaPath = graphics.move(prevX, this.areaBottomY) + graphics.line(prevX, prevY);
+          areaPath = move(this.ctx, prevX, this.areaBottomY) + line(this.ctx, prevX, prevY);
         }
-        pathFromLine = graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY);
-        pathFromArea = graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY);
+        pathFromLine = move(this.ctx, 0, this.areaBottomY) + line(this.ctx, 0, this.areaBottomY);
+        pathFromArea = move(this.ctx, 0, this.areaBottomY) + line(this.ctx, 0, this.areaBottomY);
         if (w.globals.previousPaths.length > 0) {
           var pathFrom = this.lineHelpers.checkPreviousPaths({
             pathFromLine: pathFromLine,
@@ -31625,8 +31606,6 @@
           i = _ref2.i,
           paths = _ref2.paths;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        var fill = new Fill(this.ctx);
 
         // push all current y values array to main PrevY Array
         this.prevSeriesY.push(paths.yArrj);
@@ -31637,9 +31616,9 @@
         var forecast = w.config.forecastDataPoints;
         if (forecast.count > 0 && type !== 'rangeArea') {
           var forecastCutoff = w.globals.seriesXvalues[realIndex][w.globals.seriesXvalues[realIndex].length - forecast.count - 1];
-          var elForecastMask = graphics.drawRect(forecastCutoff, 0, w.globals.gridWidth, w.globals.gridHeight, 0);
+          var elForecastMask = drawRect(this.ctx, forecastCutoff, 0, w.globals.gridWidth, w.globals.gridHeight, 0);
           w.globals.dom.elForecastMask.appendChild(elForecastMask.node);
-          var elNonForecastMask = graphics.drawRect(0, 0, forecastCutoff, w.globals.gridHeight, 0);
+          var elNonForecastMask = drawRect(this.ctx, 0, 0, forecastCutoff, w.globals.gridHeight, 0);
           w.globals.dom.elNonForecastMask.appendChild(elNonForecastMask.node);
         }
 
@@ -31659,11 +31638,11 @@
           className: "apexcharts-".concat(type)
         };
         if (type === 'area') {
-          var pathFill = fill.fillPath({
+          var pathFill = fillPath(this.ctx, {
             seriesNumber: realIndex
           });
           for (var p = 0; p < paths.areaPaths.length; p++) {
-            var renderedPath = graphics.renderPaths(_objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
+            var renderedPath = renderPaths(this.ctx, _objectSpread2(_objectSpread2({}, defaultRenderedPathOptions), {}, {
               pathFrom: paths.pathFromArea,
               pathTo: paths.areaPaths[p],
               stroke: 'none',
@@ -31677,7 +31656,7 @@
         if (w.config.stroke.show && !this.pointsChart) {
           var lineFill = null;
           if (type === 'line') {
-            lineFill = fill.fillPath({
+            lineFill = fillPath(this.ctx, {
               seriesNumber: realIndex,
               i: i
             });
@@ -31687,7 +31666,7 @@
             } else {
               var prevFill = w.config.fill;
               w.config.fill = w.config.stroke.fill;
-              lineFill = fill.fillPath({
+              lineFill = fillPath(this.ctx, {
                 seriesNumber: realIndex,
                 i: i
               });
@@ -31699,7 +31678,7 @@
           for (var _p = 0; _p < paths.linePaths.length; _p++) {
             var _pathFill = lineFill;
             if (type === 'rangeArea') {
-              _pathFill = fill.fillPath({
+              _pathFill = fillPath(this.ctx, {
                 seriesNumber: realIndex
               });
             }
@@ -31711,11 +31690,11 @@
               strokeLineCap: w.config.stroke.lineCap,
               fill: type === 'rangeArea' ? _pathFill : 'none'
             });
-            var _renderedPath = graphics.renderPaths(linePathCommonOpts);
+            var _renderedPath = renderPaths(this.ctx, linePathCommonOpts);
             this.elSeries.add(_renderedPath);
             _renderedPath.attr('fill-rule', "evenodd");
             if (forecast.count > 0 && type !== 'rangeArea') {
-              var renderedForecastPath = graphics.renderPaths(linePathCommonOpts);
+              var renderedForecastPath = renderPaths(this.ctx, linePathCommonOpts);
               renderedForecastPath.node.setAttribute('stroke-dasharray', forecast.dashArray);
               if (forecast.strokeWidth) {
                 renderedForecastPath.node.setAttribute('stroke-width', forecast.strokeWidth);
@@ -31754,7 +31733,6 @@
           isRangeStart = _ref3.isRangeStart,
           seriesRangeEnd = _ref3.seriesRangeEnd;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var yRatio = this.yRatio;
         var prevY = pathsFrom.prevY,
           linePath = pathsFrom.linePath,
@@ -31877,8 +31855,8 @@
           areaPath = calculatedPaths.areaPath;
           linePath = calculatedPaths.linePath;
           if (this.appendPathFrom && !w.globals.hasNullValues && !(curve === 'monotoneCubic' && type === 'rangeArea')) {
-            pathFromLine += graphics.line(x, this.areaBottomY);
-            pathFromArea += graphics.line(x, this.areaBottomY);
+            pathFromLine += line(this.ctx, x, this.areaBottomY);
+            pathFromArea += line(this.ctx, x, this.areaBottomY);
           }
           this.handleNullDataPoints(series, pointsPos, i, j, realIndex);
           this._handleMarkersAndLabels({
@@ -31947,6 +31925,7 @@
     }, {
       key: "_createPaths",
       value: function _createPaths(_ref5) {
+        var _this2 = this;
         var type = _ref5.type,
           series = _ref5.series,
           i = _ref5.i;
@@ -31966,13 +31945,12 @@
           areaPath = _ref5.areaPath,
           linePaths = _ref5.linePaths,
           areaPaths = _ref5.areaPaths,
-          curve = _ref5.curve,
+          curve$1 = _ref5.curve,
           isRangeStart = _ref5.isRangeStart;
-        var graphics = new Graphics(this.ctx);
         var areaBottomY = this.areaBottomY;
         var rangeArea = type === 'rangeArea';
         var isLowerRangeAreaPath = type === 'rangeArea' && isRangeStart;
-        switch (curve) {
+        switch (curve$1) {
           case 'monotoneCubic':
             var yAj = isRangeStart ? yArrj : y2Arrj;
             var getSmoothInputs = function getSmoothInputs(xArr, yArr) {
@@ -32050,12 +32028,12 @@
                   smoothInputsIndex += _.length;
                   var _end = smoothInputsIndex - 1;
                   if (isLowerRangeAreaPath) {
-                    linePath = graphics.move(smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints;
+                    linePath = move(_this2.ctx, smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints;
                   } else if (rangeArea) {
-                    linePath = graphics.move(smoothInputsLower[_start][0], smoothInputsLower[_start][1]) + graphics.line(smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints + graphics.line(smoothInputsLower[_end][0], smoothInputsLower[_end][1]);
+                    linePath = move(_this2.ctx, smoothInputsLower[_start][0], smoothInputsLower[_start][1]) + line(_this2.ctx, smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints + line(_this2.ctx, smoothInputsLower[_end][0], smoothInputsLower[_end][1]);
                   } else {
-                    linePath = graphics.move(smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints;
-                    areaPath = linePath + graphics.line(smoothInputs[_end][0], areaBottomY) + graphics.line(smoothInputs[_start][0], areaBottomY) + 'z';
+                    linePath = move(_this2.ctx, smoothInputs[_start][0], smoothInputs[_start][1]) + svgPoints;
+                    areaPath = linePath + line(_this2.ctx, smoothInputs[_end][0], areaBottomY) + line(_this2.ctx, smoothInputs[_start][0], areaBottomY) + 'z';
                     areaPaths.push(areaPath);
                   }
                   linePaths.push(linePath);
@@ -32083,11 +32061,11 @@
                   segmentStartX = pX;
                   if (isLowerRangeAreaPath) {
                     // Need to add path portion that will join to the upper path
-                    linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
+                    linePath = move(this.ctx, pX, y2Arrj[j]) + line(this.ctx, pX, pY);
                   } else {
-                    linePath = graphics.move(pX, pY);
+                    linePath = move(this.ctx, pX);
                   }
-                  areaPath = graphics.move(pX, pY);
+                  areaPath = move(this.ctx, pX);
 
                   // Check for single isolated point
                   if (series[i][j + 1] === null || typeof series[i][j + 1] === 'undefined') {
@@ -32098,7 +32076,7 @@
                   }
                   pathState = 1;
                   if (j < series[i].length - 2) {
-                    var p = graphics.curve(pX + length, pY, x - length, y, x, y);
+                    var p = curve(this.ctx, pX + length, pY, x - length, y, x);
                     linePath += p;
                     areaPath += p;
                     break;
@@ -32109,24 +32087,24 @@
                   if (series[i][j + 1] === null) {
                     // Segment ends here
                     if (isLowerRangeAreaPath) {
-                      linePath += graphics.line(pX, y2);
+                      linePath += line(this.ctx, pX, y2);
                     } else {
-                      linePath += graphics.move(pX, pY);
+                      linePath += move(this.ctx, pX);
                     }
-                    areaPath += graphics.line(pX, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                    areaPath += line(this.ctx, pX, areaBottomY) + line(this.ctx, segmentStartX, areaBottomY) + 'z';
                     linePaths.push(linePath);
                     areaPaths.push(areaPath);
                     pathState = -1;
                   } else {
-                    var _p2 = graphics.curve(pX + length, pY, x - length, y, x, y);
+                    var _p2 = curve(this.ctx, pX + length, pY, x - length, y, x);
                     linePath += _p2;
                     areaPath += _p2;
                     if (j >= series[i].length - 2) {
                       if (isLowerRangeAreaPath) {
                         // Need to add path portion that will join to the upper path
-                        linePath += graphics.curve(x, y, x, y, x, y2) + graphics.move(x, y2);
+                        linePath += curve(this.ctx, x, y, x, y, x) + move(this.ctx, x);
                       }
-                      areaPath += graphics.curve(x, y, x, y, x, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                      areaPath += curve(this.ctx, x, y, x, y, x) + line(this.ctx, segmentStartX, areaBottomY) + 'z';
                       linePaths.push(linePath);
                       areaPaths.push(areaPath);
                       pathState = -1;
@@ -32143,13 +32121,13 @@
               var path = [];
               switch (curve) {
                 case 'stepline':
-                  path = graphics.line(x, null, 'H') + graphics.line(null, y, 'V');
+                  path = line(_this2.ctx, x, null, 'H') + line(_this2.ctx, null, y, 'V');
                   break;
                 case 'linestep':
-                  path = graphics.line(null, y, 'V') + graphics.line(x, null, 'H');
+                  path = line(_this2.ctx, null, y, 'V') + line(_this2.ctx, x, null, 'H');
                   break;
                 case 'straight':
-                  path = graphics.line(x, y);
+                  path = line(_this2.ctx, x, y);
                   break;
               }
               return path;
@@ -32163,11 +32141,11 @@
                   segmentStartX = pX;
                   if (isLowerRangeAreaPath) {
                     // Need to add path portion that will join to the upper path
-                    linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
+                    linePath = move(this.ctx, pX, y2Arrj[j]) + line(this.ctx, pX, pY);
                   } else {
-                    linePath = graphics.move(pX, pY);
+                    linePath = move(this.ctx, pX);
                   }
-                  areaPath = graphics.move(pX, pY);
+                  areaPath = move(this.ctx, pX);
 
                   // Check for single isolated point
                   if (series[i][j + 1] === null || typeof series[i][j + 1] === 'undefined') {
@@ -32178,7 +32156,7 @@
                   }
                   pathState = 1;
                   if (j < series[i].length - 2) {
-                    var _p3 = pathToPoint(curve, x, y);
+                    var _p3 = pathToPoint(curve$1, x, y);
                     linePath += _p3;
                     areaPath += _p3;
                     break;
@@ -32189,24 +32167,24 @@
                   if (series[i][j + 1] === null) {
                     // Segment ends here
                     if (isLowerRangeAreaPath) {
-                      linePath += graphics.line(pX, y2);
+                      linePath += line(this.ctx, pX, y2);
                     } else {
-                      linePath += graphics.move(pX, pY);
+                      linePath += move(this.ctx, pX);
                     }
-                    areaPath += graphics.line(pX, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                    areaPath += line(this.ctx, pX, areaBottomY) + line(this.ctx, segmentStartX, areaBottomY) + 'z';
                     linePaths.push(linePath);
                     areaPaths.push(areaPath);
                     pathState = -1;
                   } else {
-                    var _p4 = pathToPoint(curve, x, y);
+                    var _p4 = pathToPoint(curve$1, x, y);
                     linePath += _p4;
                     areaPath += _p4;
                     if (j >= series[i].length - 2) {
                       if (isLowerRangeAreaPath) {
                         // Need to add path portion that will join to the upper path
-                        linePath += graphics.line(x, y2);
+                        linePath += line(this.ctx, x, y2);
                       }
-                      areaPath += graphics.line(x, areaBottomY) + graphics.line(segmentStartX, areaBottomY) + 'z';
+                      areaPath += line(this.ctx, x, areaBottomY) + line(this.ctx, segmentStartX, areaBottomY) + 'z';
                       linePaths.push(linePath);
                       areaPaths.push(areaPath);
                       pathState = -1;

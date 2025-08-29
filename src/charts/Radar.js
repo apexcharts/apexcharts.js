@@ -1,8 +1,8 @@
-import Fill from '../modules/Fill'
-import Graphics from '../modules/Graphics'
+import * as Fill from '../modules/Fill'
+import * as Graphics from '../modules/Graphics'
 import * as Markers from '../modules/Markers.js'
 import DataLabels from '../modules/DataLabels'
-import Filters from '../modules/Filters'
+import * as Filters from '../modules/Filters'
 import Utils from '../utils/Utils'
 import Helpers from './common/circle/Helpers'
 import CoreUtils from '../modules/CoreUtils'
@@ -27,7 +27,6 @@ export class Radar {
     this.animDur = 0
 
     const w = this.w
-    this.graphics = new Graphics(this.ctx)
 
     this.lineColorArr =
       w.globals.stroke.colors !== undefined
@@ -74,7 +73,6 @@ export class Radar {
 
   draw(series) {
     let w = this.w
-    const fill = new Fill(this.ctx)
 
     const allSeries = []
     const dataLabels = new DataLabels(this.ctx)
@@ -89,7 +87,7 @@ export class Radar {
     let translateX = halfW + w.config.plotOptions.radar.offsetX
     let translateY = halfH + w.config.plotOptions.radar.offsetY
 
-    let ret = this.graphics.group({
+    let ret = Graphics.group(this.ctx, {
       class: 'apexcharts-radar-series apexcharts-plot-series',
       transform: `translate(${translateX || 0}, ${translateY || 0})`,
     })
@@ -98,7 +96,7 @@ export class Radar {
     let elPointsMain = null
     let elDataPointsMain = null
 
-    this.yaxisLabels = this.graphics.group({
+    this.yaxisLabels = Graphics.group(this.ctx, {
       class: 'apexcharts-yaxis',
     })
 
@@ -106,7 +104,7 @@ export class Radar {
       let longestSeries = s.length === w.globals.dataPoints
 
       // el to which series will be drawn
-      let elSeries = this.graphics.group().attr({
+      let elSeries = Graphics.group(this.ctx).attr({
         class: `apexcharts-series`,
         'data:longestSeries': longestSeries,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
@@ -142,12 +140,12 @@ export class Radar {
       })
 
       // points
-      elPointsMain = this.graphics.group({
+      elPointsMain = Graphics.group(this.ctx, {
         class: 'apexcharts-series-markers-wrap apexcharts-element-hidden',
       })
 
       // datapoints
-      elDataPointsMain = this.graphics.group({
+      elDataPointsMain = Graphics.group(this.ctx, {
         class: `apexcharts-datalabels`,
         'data:realIndex': i,
       })
@@ -177,7 +175,7 @@ export class Radar {
       }
 
       for (let p = 0; p < paths.linePathsTo.length; p++) {
-        let renderedLinePath = this.graphics.renderPaths({
+        let renderedLinePath = Graphics.renderPaths(this.ctx, {
           ...defaultRenderedPathOptions,
           pathFrom: pathFrom === null ? paths.linePathsFrom[p] : pathFrom,
           pathTo: paths.linePathsTo[p],
@@ -190,11 +188,11 @@ export class Radar {
 
         elSeries.add(renderedLinePath)
 
-        let pathFill = fill.fillPath({
+        let pathFill = Fill.fillPath(this.ctx, {
           seriesNumber: i,
         })
 
-        let renderedAreaPath = this.graphics.renderPaths({
+        let renderedAreaPath = Graphics.renderPaths(this.ctx, {
           ...defaultRenderedPathOptions,
           pathFrom: pathFrom === null ? paths.areaPathsFrom[p] : pathFrom,
           pathTo: paths.areaPathsTo[p],
@@ -204,10 +202,9 @@ export class Radar {
         })
 
         if (w.config.chart.dropShadow.enabled) {
-          const filters = new Filters(this.ctx)
-
           const shadow = w.config.chart.dropShadow
-          filters.dropShadow(
+          Filters.dropShadow(
+            this.ctx,
             renderedAreaPath,
             Object.assign({}, shadow, { noUserSpaceOnUse: true }),
             i
@@ -224,7 +221,8 @@ export class Radar {
           dataPointIndex: j,
         })
 
-        let point = this.graphics.drawMarker(
+        let point = Graphics.drawMarker(
+          this.ctx,
           dataPointsPos[j].x,
           dataPointsPos[j].y,
           opts
@@ -235,7 +233,7 @@ export class Radar {
         point.attr('index', i)
         point.node.setAttribute('default-marker-size', opts.pSize)
 
-        let elPointsWrap = this.graphics.group({
+        let elPointsWrap = Graphics.group(this.ctx, {
           class: 'apexcharts-series-markers',
         })
 
@@ -318,7 +316,8 @@ export class Radar {
 
       polygon.forEach((p, i) => {
         if (r === 0) {
-          const line = this.graphics.drawLine(
+          const line = Graphics.drawLine(
+            this.ctx,
             p.x,
             p.y,
             0,
@@ -347,7 +346,8 @@ export class Radar {
     polygonStrings.forEach((p, i) => {
       const strokeColors = this.polygons.strokeColors
       const strokeWidth = this.polygons.strokeWidth
-      const polygon = this.graphics.drawPolygon(
+      const polygon = Graphics.drawPolygon(
+        this.ctx,
         p,
         Array.isArray(strokeColors) ? strokeColors[i] : strokeColors,
         Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth,
@@ -372,7 +372,7 @@ export class Radar {
     const w = this.w
 
     const xaxisLabelsConfig = w.config.xaxis.labels
-    let elXAxisWrap = this.graphics.group({
+    let elXAxisWrap = Graphics.group(this.ctx, {
       class: 'apexcharts-xaxis',
     })
 
@@ -435,15 +435,15 @@ export class Radar {
     let areaPathsFrom = []
 
     if (pos.length) {
-      linePathsFrom = [this.graphics.move(origin.x, origin.y)]
-      areaPathsFrom = [this.graphics.move(origin.x, origin.y)]
+      linePathsFrom = [Graphics.move(this.ctx, origin.x, origin.y)]
+      areaPathsFrom = [Graphics.move(this.ctx, origin.x, origin.y)]
 
-      let linePathTo = this.graphics.move(pos[0].x, pos[0].y)
-      let areaPathTo = this.graphics.move(pos[0].x, pos[0].y)
+      let linePathTo = Graphics.move(this.ctx, pos[0].x, pos[0].y)
+      let areaPathTo = Graphics.move(this.ctx, pos[0].x, pos[0].y)
 
       pos.forEach((p, i) => {
-        linePathTo += this.graphics.line(p.x, p.y)
-        areaPathTo += this.graphics.line(p.x, p.y)
+        linePathTo += Graphics.line(this.ctx, p.x, p.y)
+        areaPathTo += Graphics.line(this.ctx, p.x, p.y)
         if (i === pos.length - 1) {
           linePathTo += 'Z'
           areaPathTo += 'Z'
