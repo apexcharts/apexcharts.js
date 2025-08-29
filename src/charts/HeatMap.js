@@ -1,16 +1,16 @@
-import Animations from '../modules/Animations'
-import Graphics from '../modules/Graphics'
-import Fill from '../modules/Fill'
+import * as Animations from '../modules/Animations.js'
+import * as Graphics from '../modules/Graphics.js'
+import * as Fill from '../modules/Fill.js'
 import Utils from '../utils/Utils'
 import Helpers from './common/treemap/Helpers'
-import Filters from '../modules/Filters'
+import * as Filters from '../modules/Filters.js'
 
 /**
  * ApexCharts HeatMap Class.
  * @module HeatMap
  **/
 
-export default class HeatMap {
+export class HeatMap {
   constructor(ctx, xyRatios) {
     this.ctx = ctx
     this.w = ctx.w
@@ -29,9 +29,8 @@ export default class HeatMap {
 
   draw(series) {
     let w = this.w
-    const graphics = new Graphics(this.ctx)
 
-    let ret = graphics.group({
+    let ret = Graphics.group(this.ctx, {
       class: 'apexcharts-heatmap',
     })
 
@@ -59,7 +58,7 @@ export default class HeatMap {
       rev ? i++ : i--
     ) {
       // el to which series will be drawn
-      let elSeries = graphics.group({
+      let elSeries = Graphics.group(this.ctx, {
         class: `apexcharts-series apexcharts-heatmap-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         rel: i + 1,
@@ -69,8 +68,8 @@ export default class HeatMap {
 
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
-        const filters = new Filters(this.ctx)
-        filters.dropShadow(elSeries, shadow, i)
+        // const filters = new Filters(this.ctx) // Удалено
+        Filters.dropShadow(this.ctx, elSeries, shadow, i)
       }
 
       let x1 = 0
@@ -103,9 +102,9 @@ export default class HeatMap {
         let heatColorProps = heatColor.colorProps
 
         if (w.config.fill.type === 'image') {
-          const fill = new Fill(this.ctx)
+          // const fill = new Fill(this.ctx) // Удалено
 
-          color = fill.fillPath({
+          color = Fill.fillPath(this.ctx, {
             seriesNumber: i,
             dataPointIndex: j,
             opacity: w.globals.hasNegs
@@ -125,7 +124,14 @@ export default class HeatMap {
 
         let radius = this.rectRadius
 
-        let rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius)
+        let rect = Graphics.drawRect(
+          this.ctx,
+          x1,
+          y1,
+          xDivision,
+          yDivision,
+          radius
+        )
         rect.attr({
           cx: x1,
           cy: y1,
@@ -222,8 +228,7 @@ export default class HeatMap {
   }
 
   animateHeatMap(el, x, y, width, height, speed) {
-    const animations = new Animations(this.ctx)
-    animations.animateRect(
+    Animations.animateRect(
       el,
       {
         x: x + width / 2,
@@ -239,7 +244,7 @@ export default class HeatMap {
       },
       speed,
       () => {
-        animations.animationCompleted(el)
+        Animations.animationCompleted(this.ctx, el)
       }
     )
   }
@@ -254,3 +259,5 @@ export default class HeatMap {
       })
   }
 }
+
+export default HeatMap

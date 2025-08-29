@@ -1,15 +1,15 @@
-import Animations from '../modules/Animations'
-import Fill from '../modules/Fill'
-import Filters from '../modules/Filters'
-import Graphics from '../modules/Graphics'
-import Markers from '../modules/Markers'
+import * as Animations from '../modules/Animations.js'
+import * as Fill from '../modules/Fill.js'
+import * as Filters from '../modules/Filters.js'
+import * as Graphics from '../modules/Graphics.js'
+import * as Markers from '../modules/Markers.js'
 
 /**
  * ApexCharts Scatter Class.
  * This Class also handles bubbles chart as currently there is no major difference in drawing them,
  * @module Scatter
  **/
-export default class Scatter {
+export class Scatter {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -20,14 +20,12 @@ export default class Scatter {
   draw(elSeries, j, opts) {
     let w = this.w
 
-    let graphics = new Graphics(this.ctx)
-
     let realIndex = opts.realIndex
     let pointsPos = opts.pointsPos
     let zRatio = opts.zRatio
     let elPointsMain = opts.elParent
 
-    let elPointsWrap = graphics.group({
+    let elPointsWrap = Graphics.group(this.ctx, {
       class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`,
     })
 
@@ -93,15 +91,11 @@ export default class Scatter {
 
   drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
     const w = this.w
+    const ctx = this.ctx
 
     let i = realIndex
-    let anim = new Animations(this.ctx)
-    let filters = new Filters(this.ctx)
-    let fill = new Fill(this.ctx)
-    let markers = new Markers(this.ctx)
-    const graphics = new Graphics(this.ctx)
 
-    const markerConfig = markers.getMarkerConfig({
+    const markerConfig = Markers.getMarkerConfig(ctx, {
       cssClass: 'apexcharts-marker',
       seriesIndex: i,
       dataPointIndex,
@@ -114,7 +108,8 @@ export default class Scatter {
           : null,
     })
 
-    let pathFillCircle = fill.fillPath({
+    // Вызываем функции напрямую, передавая контекст
+    let pathFillCircle = Fill.fillPath(ctx, {
       seriesNumber: realIndex,
       dataPointIndex,
       color: markerConfig.pointFillColor,
@@ -122,7 +117,7 @@ export default class Scatter {
       value: w.globals.series[realIndex][j],
     })
 
-    let el = graphics.drawMarker(x, y, markerConfig)
+    let el = Graphics.drawMarker(ctx, x, y, markerConfig)
 
     if (w.config.series[i].data[dataPointIndex]) {
       if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -136,15 +131,17 @@ export default class Scatter {
 
     if (w.config.chart.dropShadow.enabled) {
       const dropShadow = w.config.chart.dropShadow
-      filters.dropShadow(el, dropShadow, realIndex)
+      // Вызываем функцию напрямую
+      Filters.dropShadow(ctx, el, dropShadow, realIndex)
     }
 
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
       let speed = w.config.chart.animations.speed
 
-      anim.animateMarker(el, speed, w.globals.easing, () => {
+      // Вызываем функции напрямую
+      Animations.animateMarker(el, speed, w.globals.easing, () => {
         window.setTimeout(() => {
-          anim.animationCompleted(el)
+          Animations.animationCompleted(ctx, el)
         }, 100)
       })
     } else {
@@ -158,8 +155,10 @@ export default class Scatter {
       'default-marker-size': markerConfig.pSize,
     })
 
-    filters.setSelectionFilter(el, realIndex, dataPointIndex)
-    markers.addEvents(el)
+    // Вызываем функции напрямую
+    Filters.setSelectionFilter(ctx, el, realIndex, dataPointIndex)
+
+    Markers.addMarkerEvents(ctx, el)
 
     el.node.classList.add('apexcharts-marker')
 
@@ -175,3 +174,4 @@ export default class Scatter {
     }
   }
 }
+export default Scatter

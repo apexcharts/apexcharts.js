@@ -1,8 +1,8 @@
-import Animations from '../modules/Animations'
-import Fill from '../modules/Fill'
+import * as Animations from '../modules/Animations'
+import * as Fill from '../modules/Fill'
 import Utils from '../utils/Utils'
-import Graphics from '../modules/Graphics'
-import Filters from '../modules/Filters'
+import * as Graphics from '../modules/Graphics'
+import * as Filters from '../modules/Filters'
 import Scales from '../modules/Scales'
 import Helpers from './common/circle/Helpers'
 /**
@@ -10,7 +10,7 @@ import Helpers from './common/circle/Helpers'
  * @module Pie
  **/
 
-class Pie {
+export class Pie {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -63,7 +63,7 @@ class Pie {
     this.translateX = halfW - halfW * scaleSize
     this.translateY = halfH - halfH * scaleSize
 
-    this.dataLabelsGroup = new Graphics(this.ctx).group({
+    this.dataLabelsGroup = Graphics.group(this.ctx, {
       class: 'apexcharts-datalabels-group',
       transform: `translate(${this.translateX}, ${this.translateY}) scale(${scaleSize})`,
     })
@@ -79,9 +79,7 @@ class Pie {
     let self = this
     let w = this.w
 
-    const graphics = new Graphics(this.ctx)
-
-    let elPie = graphics.group({
+    let elPie = Graphics.group(this.ctx, {
       class: 'apexcharts-pie',
     })
 
@@ -96,7 +94,7 @@ class Pie {
     let sectorAngleArr = []
 
     // el to which series will be drawn
-    let elSeries = graphics.group()
+    let elSeries = Graphics.group(this.ctx)
 
     // prevent division by zero error if there is no data
     if (total === 0) {
@@ -154,7 +152,7 @@ class Pie {
 
     if (this.chartType === 'donut') {
       // draw the inner circle and add some text to it
-      const circle = graphics.drawCircle(this.donutSize)
+      const circle = Graphics.drawCircle(this.ctx, this.donutSize)
 
       circle.attr({
         cx: this.centerX,
@@ -207,11 +205,8 @@ class Pie {
   // core function for drawing pie arcs
   drawArcs(sectorAngleArr, series) {
     let w = this.w
-    const filters = new Filters(this.ctx)
 
-    let graphics = new Graphics(this.ctx)
-    let fill = new Fill(this.ctx)
-    let g = graphics.group({
+    let g = Graphics.group(this.ctx, {
       class: 'apexcharts-slices',
     })
 
@@ -223,7 +218,7 @@ class Pie {
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
 
     for (let i = 0; i < sectorAngleArr.length; i++) {
-      let elPieArc = graphics.group({
+      let elPieArc = Graphics.group(this.ctx, {
         class: `apexcharts-series apexcharts-pie-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         rel: i + 1,
@@ -243,7 +238,7 @@ class Pie {
           ? this.fullAngle + endAngle - startAngle
           : endAngle - startAngle
 
-      let pathFill = fill.fillPath({
+      let pathFill = Fill.fillPath(this.ctx, {
         seriesNumber: i,
         size: this.sliceSizes[i],
         value: series[i],
@@ -251,7 +246,7 @@ class Pie {
 
       let path = this.getChangedPath(prevStartAngle, prevEndAngle)
 
-      let elPath = graphics.drawPath({
+      let elPath = Graphics.drawPath(this.ctx, {
         d: path,
         stroke: Array.isArray(this.lineColorArr)
           ? this.lineColorArr[i]
@@ -267,11 +262,11 @@ class Pie {
         j: i,
       })
 
-      filters.setSelectionFilter(elPath, 0, i)
+      Filters.setSelectionFilter(this.ctx, elPath, 0, i)
 
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
-        filters.dropShadow(elPath, shadow, i)
+        Filters.dropShadow(this.ctx, elPath, shadow, i)
       }
 
       this.addListeners(elPath, this.donutDataLabels)
@@ -379,10 +374,10 @@ class Pie {
           }
           let foreColor = w.globals.dataLabels.style.colors[i]
 
-          const elPieLabelWrap = graphics.group({
+          const elPieLabelWrap = Graphics.group(this.ctx, {
             class: `apexcharts-datalabels`,
           })
-          let elPieLabel = graphics.drawText({
+          let elPieLabel = Graphics.drawText(this.ctx, {
             x: xPos,
             y: yPos,
             text,
@@ -396,7 +391,7 @@ class Pie {
           elPieLabelWrap.add(elPieLabel)
           if (w.config.dataLabels.dropShadow.enabled) {
             const textShadow = w.config.dataLabels.dropShadow
-            filters.dropShadow(elPieLabel, textShadow)
+            Filters.dropShadow(this.ctx, elPieLabel, textShadow)
           }
 
           elPieLabel.node.classList.add('apexcharts-pie-label')
@@ -418,24 +413,17 @@ class Pie {
   }
 
   addListeners(elPath, dataLabels) {
-    const graphics = new Graphics(this.ctx)
     // append filters on mouseenter and mouseleave
-    elPath.node.addEventListener(
-      'mouseenter',
-      graphics.pathMouseEnter.bind(this, elPath)
+    elPath.node.addEventListener('mouseenter', (e) =>
+      Graphics.pathMouseEnter(this.ctx, elPath, e)
     )
 
-    elPath.node.addEventListener(
-      'mouseleave',
-      graphics.pathMouseLeave.bind(this, elPath)
-    )
-    elPath.node.addEventListener(
-      'mouseleave',
-      this.revertDataLabelsInner.bind(this, elPath.node, dataLabels)
-    )
-    elPath.node.addEventListener(
-      'mousedown',
-      graphics.pathMouseDown.bind(this, elPath)
+    elPath.node.addEventListener('mouseleave', (e) => {
+      Graphics.pathMouseLeave(this.ctx, elPath, e)
+      this.revertDataLabelsInner(elPath.node, dataLabels)
+    })
+    elPath.node.addEventListener('mousedown', (e) =>
+      Graphics.pathMouseDown(this.ctx, elPath, e)
     )
 
     if (!this.donutDataLabels.total.showAlways) {
@@ -490,7 +478,6 @@ class Pie {
   animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
     let me = this
     const w = this.w
-    const animations = new Animations(this.ctx)
 
     let size = opts.size
 
@@ -541,7 +528,7 @@ class Pie {
           }
 
           if (opts.i === w.config.series.length - 1) {
-            animations.animationCompleted(el)
+            Animations.animationCompleted(me.ctx, el)
           }
         })
         .during((pos) => {
@@ -656,7 +643,6 @@ class Pie {
 
   getPiePath({ me, startAngle, angle, size }) {
     let path
-    const graphics = new Graphics(this.ctx)
 
     let startDeg = startAngle
     let startRadians = (Math.PI * (startDeg - 90)) / 180
@@ -726,17 +712,16 @@ class Pie {
       path = [...pathBeginning].join(' ')
     }
 
-    return graphics.roundPathCorners(path, this.strokeWidth * 2)
+    return Graphics.roundPathCorners(this.ctx, path, this.strokeWidth * 2)
   }
 
   drawPolarElements(parent) {
     const w = this.w
     const scale = new Scales(this.ctx)
-    const graphics = new Graphics(this.ctx)
     const helpers = new Helpers(this.ctx)
 
-    const gCircles = graphics.group()
-    const gYAxis = graphics.group()
+    const gCircles = Graphics.group(this.ctx)
+    const gYAxis = Graphics.group(this.ctx)
 
     const yScale = scale.niceScale(0, Math.ceil(this.maxY), 0)
 
@@ -749,7 +734,7 @@ class Pie {
     let diff = circleSize / (len - 1)
 
     for (let i = 0; i < len - 1; i++) {
-      const circle = graphics.drawCircle(circleSize)
+      const circle = Graphics.drawCircle(this.ctx, circleSize)
 
       circle.attr({
         cx: this.centerX,
@@ -785,7 +770,6 @@ class Pie {
 
   renderInnerDataLabels(dataLabelsGroup, dataLabelsConfig, opts) {
     let w = this.w
-    const graphics = new Graphics(this.ctx)
 
     const showTotal = dataLabelsConfig.total.show
 
@@ -843,7 +827,7 @@ class Pie {
     }
 
     if (dataLabelsConfig.name.show) {
-      let elLabel = graphics.drawText({
+      let elLabel = Graphics.drawText(this.ctx, {
         x,
         y: y + parseFloat(dataLabelsConfig.name.offsetY),
         text: name,
@@ -862,7 +846,7 @@ class Pie {
         ? parseFloat(dataLabelsConfig.value.offsetY) + 16
         : dataLabelsConfig.value.offsetY
 
-      let elValue = graphics.drawText({
+      let elValue = Graphics.drawText(this.ctx, {
         x,
         y: y + valOffset,
         text: val,
@@ -958,7 +942,6 @@ class Pie {
 
   drawSpokes(parent) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
     const spokeConfig = w.config.plotOptions.polarArea.spokes
 
     if (spokeConfig.strokeWidth === 0) return
@@ -978,7 +961,8 @@ class Pie {
     }
 
     spokes.forEach((p, i) => {
-      const line = graphics.drawLine(
+      const line = Graphics.drawLine(
+        this.ctx,
         p.x,
         p.y,
         this.centerX,

@@ -10,7 +10,7 @@ import Utils from '../utils/Utils'
  * @module BoxCandleStick
  **/
 
-class BoxCandleStick extends Bar {
+export class BoxCandleStick extends Bar {
   draw(series, ctype, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)

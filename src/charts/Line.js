@@ -2,7 +2,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'
 import DataLabels from '../modules/DataLabels'
-import Markers from '../modules/Markers'
+import * as Markers from '../modules/Markers.js'
 import Scatter from './Scatter'
 import Utils from '../utils/Utils'
 import Helpers from './common/line/Helpers'
@@ -13,7 +13,7 @@ import { svgPath, spline } from '../libs/monotone-cubic'
  * @module Line
  **/
 
-class Line {
+export class Line {
   constructor(ctx, xyRatios, isPointsChart) {
     this.ctx = ctx
     this.w = ctx.w
@@ -31,7 +31,6 @@ class Line {
     this.noNegatives = this.w.globals.minX === Number.MAX_VALUE
 
     this.lineHelpers = new Helpers(this)
-    this.markers = new Markers(this.ctx)
 
     this.prevSeriesY = []
     this.categoryAxisCorrection = 0
@@ -299,7 +298,7 @@ class Line {
 
     if (w.globals.hasNullValues) {
       // fixes https://github.com/apexcharts/apexcharts.js/issues/3641
-      const firstPoint = this.markers.plotChartMarkers({
+      const firstPoint = Markers.plotChartMarkers(this.ctx, {
         pointsPos: {
           x: [0],
           y: [w.globals.gridHeight + w.globals.markers.largestSize],
@@ -765,7 +764,7 @@ class Line {
         this.elPointsMain.node.classList.add('apexcharts-element-hidden')
       }
 
-      let elPointsWrap = this.markers.plotChartMarkers({
+      let elPointsWrap = Markers.plotChartMarkers(this.ctx, {
         pointsPos,
         seriesIndex: realIndex,
         j: j + 1,
@@ -1153,7 +1152,7 @@ class Line {
       }
 
       // fixes apexcharts.js#1282, #1252
-      let elPointsWrap = this.markers.plotChartMarkers({
+      let elPointsWrap = Markers.plotChartMarkers(this.ctx, {
         pointsPos,
         seriesIndex: realIndex,
         j: j + 1,

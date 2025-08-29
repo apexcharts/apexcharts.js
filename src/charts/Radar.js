@@ -1,6 +1,6 @@
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
-import Markers from '../modules/Markers'
+import * as Markers from '../modules/Markers.js'
 import DataLabels from '../modules/DataLabels'
 import Filters from '../modules/Filters'
 import Utils from '../utils/Utils'
@@ -12,7 +12,7 @@ import CoreUtils from '../modules/CoreUtils'
  * @module Radar
  **/
 
-class Radar {
+export class Radar {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -218,9 +218,7 @@ class Radar {
       }
 
       s.forEach((sj, j) => {
-        let markers = new Markers(this.ctx)
-
-        let opts = markers.getMarkerConfig({
+        let opts = Markers.getMarkerConfig(this.ctx, {
           cssClass: 'apexcharts-marker',
           seriesIndex: i,
           dataPointIndex: j,

@@ -9,7 +9,7 @@ import Filters from '../modules/Filters'
  * @module Radial
  **/
 
-class Radial extends Pie {
+export class Radial extends Pie {
   constructor(ctx) {
     super(ctx)
 

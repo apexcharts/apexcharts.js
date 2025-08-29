@@ -1,6 +1,6 @@
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics.js'
 import Position from './Position'
-import Markers from '../../modules/Markers'
+import * as Markers from '../Markers.js'
 import Utils from '../../utils/Utils'
 
 /**
@@ -22,9 +22,6 @@ export default class Marker {
 
   drawDynamicPoints() {
     let w = this.w
-
-    let graphics = new Graphics(this.ctx)
-    let marker = new Markers(this.ctx)
 
     let elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series')
 
@@ -59,12 +56,12 @@ export default class Marker {
           PointClasses += ' no-pointer-events'
         }
 
-        let elPointOptions = marker.getMarkerConfig({
+        let elPointOptions = Markers.getMarkerConfig(w, {
           cssClass: PointClasses,
           seriesIndex: Number(pointsMain.getAttribute('data:realIndex')), // fixes apexcharts/apexcharts.js #1427
         })
 
-        point = graphics.drawMarker(0, 0, elPointOptions)
+        point = Graphics.drawMarker(w, 0, 0, elPointOptions)
 
         point.node.setAttribute('default-marker-size', 0)
 

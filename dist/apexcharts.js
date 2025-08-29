@@ -668,140 +668,126 @@
   }();
 
   /**
-   * ApexCharts Animation Class.
+   * ApexCharts Animation Module.
    *
    * @module Animations
    **/
-  var Animations = /*#__PURE__*/function () {
-    function Animations(ctx) {
-      _classCallCheck(this, Animations);
-      this.ctx = ctx;
-      this.w = ctx.w;
+  function animateLine(el, from, to, speed) {
+    el.attr(from).animate(speed).attr(to);
+  }
+
+  /*
+   ** Animate radius of a circle element
+   */
+  function animateMarker(el, speed, easing, cb) {
+    el.attr({
+      opacity: 0
+    }).animate(speed).attr({
+      opacity: 1
+    }).after(function () {
+      cb();
+    });
+  }
+
+  /*
+   ** Animate rect properties
+   */
+  function animateRect(el, from, to, speed, fn) {
+    el.attr(from).animate(speed).attr(to).after(function () {
+      return fn();
+    });
+  }
+  function animatePathsGradually(ctx, params) {
+    var el = params.el,
+      realIndex = params.realIndex,
+      j = params.j,
+      fill = params.fill,
+      pathFrom = params.pathFrom,
+      pathTo = params.pathTo,
+      speed = params.speed,
+      delay = params.delay;
+    var w = ctx.w;
+    var delayFactor = 0;
+    if (w.config.chart.animations.animateGradually.enabled) {
+      delayFactor = w.config.chart.animations.animateGradually.delay;
     }
-    _createClass(Animations, [{
-      key: "animateLine",
-      value: function animateLine(el, from, to, speed) {
-        el.attr(from).animate(speed).attr(to);
-      }
+    if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.config.chart.type !== 'bar') {
+      // disabled due to this bug - https://github.com/apexcharts/vue-apexcharts/issues/75
+      delayFactor = 0;
+    }
+    morphSVG(ctx, el, realIndex, j, w.config.chart.type === 'line' && !w.globals.comboCharts ? 'stroke' : fill, pathFrom, pathTo, speed, delay * delayFactor);
+  }
+  function showDelayedElements(w) {
+    w.globals.delayedElements.forEach(function (d) {
+      var ele = d.el;
+      ele.classList.remove('apexcharts-element-hidden');
+      ele.classList.add('apexcharts-hidden-element-shown');
+    });
+  }
+  function animationCompleted(ctx, el) {
+    var w = ctx.w;
+    if (w.globals.animationEnded) return;
+    w.globals.animationEnded = true;
+    showDelayedElements(w);
+    if (typeof w.config.chart.events.animationEnd === 'function') {
+      w.config.chart.events.animationEnd(ctx, {
+        el: el,
+        w: w
+      });
+    }
+  }
 
-      /*
-       ** Animate radius of a circle element
-       */
-    }, {
-      key: "animateMarker",
-      value: function animateMarker(el, speed, easing, cb) {
-        el.attr({
-          opacity: 0
-        }).animate(speed).attr({
-          opacity: 1
-        }).after(function () {
-          cb();
-        });
+  // SVG.js animation for morphing one path to another
+  function morphSVG(ctx, el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
+    var w = ctx.w;
+    if (!pathFrom) {
+      pathFrom = el.attr('pathFrom');
+    }
+    if (!pathTo) {
+      pathTo = el.attr('pathTo');
+    }
+    var disableAnimationForCorrupPath = function disableAnimationForCorrupPath(path) {
+      if (w.config.chart.type === 'radar') {
+        // radar chart drops the path to bottom and hence a corrup path looks ugly
+        // therefore, disable animation for such a case
+        speed = 1;
       }
+      return "M 0 ".concat(w.globals.gridHeight);
+    };
+    if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
+      pathFrom = disableAnimationForCorrupPath();
+    }
+    if (!pathTo.trim() || pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
+      pathTo = disableAnimationForCorrupPath();
+    }
+    if (!w.globals.shouldAnimate) {
+      speed = 1;
+    }
+    el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo).after(function () {
+      // a flag to indicate that the original mount function can return true now as animation finished here
+      if (Utils$1.isNumber(j)) {
+        if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
+          animationCompleted(ctx, el);
+        }
+      } else if (fill !== 'none' && w.globals.shouldAnimate) {
+        if (!w.globals.comboCharts && realIndex === w.globals.series.length - 1 || w.globals.comboCharts) {
+          animationCompleted(ctx, el);
+        }
+      }
+      showDelayedElements(w);
+    });
+  }
 
-      /*
-       ** Animate rect properties
-       */
-    }, {
-      key: "animateRect",
-      value: function animateRect(el, from, to, speed, fn) {
-        el.attr(from).animate(speed).attr(to).after(function () {
-          return fn();
-        });
-      }
-    }, {
-      key: "animatePathsGradually",
-      value: function animatePathsGradually(params) {
-        var el = params.el,
-          realIndex = params.realIndex,
-          j = params.j,
-          fill = params.fill,
-          pathFrom = params.pathFrom,
-          pathTo = params.pathTo,
-          speed = params.speed,
-          delay = params.delay;
-        var me = this;
-        var w = this.w;
-        var delayFactor = 0;
-        if (w.config.chart.animations.animateGradually.enabled) {
-          delayFactor = w.config.chart.animations.animateGradually.delay;
-        }
-        if (w.config.chart.animations.dynamicAnimation.enabled && w.globals.dataChanged && w.config.chart.type !== 'bar') {
-          // disabled due to this bug - https://github.com/apexcharts/vue-apexcharts/issues/75
-          delayFactor = 0;
-        }
-        me.morphSVG(el, realIndex, j, w.config.chart.type === 'line' && !w.globals.comboCharts ? 'stroke' : fill, pathFrom, pathTo, speed, delay * delayFactor);
-      }
-    }, {
-      key: "showDelayedElements",
-      value: function showDelayedElements() {
-        this.w.globals.delayedElements.forEach(function (d) {
-          var ele = d.el;
-          ele.classList.remove('apexcharts-element-hidden');
-          ele.classList.add('apexcharts-hidden-element-shown');
-        });
-      }
-    }, {
-      key: "animationCompleted",
-      value: function animationCompleted(el) {
-        var w = this.w;
-        if (w.globals.animationEnded) return;
-        w.globals.animationEnded = true;
-        this.showDelayedElements();
-        if (typeof w.config.chart.events.animationEnd === 'function') {
-          w.config.chart.events.animationEnd(this.ctx, {
-            el: el,
-            w: w
-          });
-        }
-      }
-
-      // SVG.js animation for morphing one path to another
-    }, {
-      key: "morphSVG",
-      value: function morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
-        var _this = this;
-        var w = this.w;
-        if (!pathFrom) {
-          pathFrom = el.attr('pathFrom');
-        }
-        if (!pathTo) {
-          pathTo = el.attr('pathTo');
-        }
-        var disableAnimationForCorrupPath = function disableAnimationForCorrupPath(path) {
-          if (w.config.chart.type === 'radar') {
-            // radar chart drops the path to bottom and hence a corrup path looks ugly
-            // therefore, disable animation for such a case
-            speed = 1;
-          }
-          return "M 0 ".concat(w.globals.gridHeight);
-        };
-        if (!pathFrom || pathFrom.indexOf('undefined') > -1 || pathFrom.indexOf('NaN') > -1) {
-          pathFrom = disableAnimationForCorrupPath();
-        }
-        if (!pathTo.trim() || pathTo.indexOf('undefined') > -1 || pathTo.indexOf('NaN') > -1) {
-          pathTo = disableAnimationForCorrupPath();
-        }
-        if (!w.globals.shouldAnimate) {
-          speed = 1;
-        }
-        el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo).after(function () {
-          // a flag to indicate that the original mount function can return true now as animation finished here
-          if (Utils$1.isNumber(j)) {
-            if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
-              _this.animationCompleted(el);
-            }
-          } else if (fill !== 'none' && w.globals.shouldAnimate) {
-            if (!w.globals.comboCharts && realIndex === w.globals.series.length - 1 || w.globals.comboCharts) {
-              _this.animationCompleted(el);
-            }
-          }
-          _this.showDelayedElements();
-        });
-      }
-    }]);
-    return Animations;
-  }();
+  var Animations = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    animateLine: animateLine,
+    animateMarker: animateMarker,
+    animatePathsGradually: animatePathsGradually,
+    animateRect: animateRect,
+    animationCompleted: animationCompleted,
+    morphSVG: morphSVG,
+    showDelayedElements: showDelayedElements
+  });
 
   const methods$1 = {};
   const names = [];
@@ -5867,7 +5853,7 @@
   }
 
   // Move by left top corner
-  function move$2(x, y) {
+  function move$3(x, y) {
     return this.attr('points', this.array().move(x, y))
   }
 
@@ -5891,7 +5877,7 @@
     __proto__: null,
     array: array,
     clear: clear,
-    move: move$2,
+    move: move$3,
     plot: plot,
     size: size$1
   });
@@ -7646,7 +7632,7 @@
     return this.attr('y', this.attr('y') + y - box.y)
   }
 
-  function move$1(x, y, box = this.bbox()) {
+  function move$2(x, y, box = this.bbox()) {
     return this.x(x, box).y(y, box)
   }
 
@@ -7700,7 +7686,7 @@
     cx: cx,
     cy: cy,
     length: length,
-    move: move$1,
+    move: move$2,
     plain: plain,
     x: x$1,
     y: y$1
@@ -8089,7 +8075,7 @@
     return this.size(box.width, height, box)
   }
 
-  function move(x = 0, y = 0, box = this.bbox()) {
+  function move$1(x = 0, y = 0, box = this.bbox()) {
     const dx = x - box.x;
     const dy = y - box.y;
 
@@ -8130,7 +8116,7 @@
     dx: dx,
     dy: dy,
     height: height,
-    move: move,
+    move: move$1,
     size: size,
     width: width,
     x: x,
@@ -8973,1143 +8959,1129 @@
   };
 
   /**
-   * ApexCharts Filters Class for setting hover/active states on the paths.
+   * ApexCharts Filters Module for setting hover/active states on the paths.
    *
    * @module Formatters
    **/
-  var Filters = /*#__PURE__*/function () {
-    function Filters(ctx) {
-      _classCallCheck(this, Filters);
-      this.ctx = ctx;
-      this.w = ctx.w;
+
+  // create a re-usable filter which can be appended other filter effects and applied to multiple elements
+  function getDefaultFilter(ctx, el, i) {
+    var w = ctx.w;
+    el.unfilter(true);
+    var filter = new Filter();
+    filter.size('120%', '180%', '-5%', '-40%');
+    if (w.config.chart.dropShadow.enabled) {
+      dropShadow(ctx, el, w.config.chart.dropShadow, i);
+    }
+  }
+  function applyFilter(ctx, el, i, filterType) {
+    var _el$filterer2;
+    var w = ctx.w;
+    el.unfilter(true);
+    if (filterType === 'none') {
+      getDefaultFilter(ctx, el, i);
+      return;
+    }
+    var shadowAttr = w.config.chart.dropShadow;
+    var brightnessFactor = filterType === 'lighten' ? 2 : 0.3;
+    el.filterWith(function (add) {
+      add.colorMatrix({
+        type: 'matrix',
+        values: "\n        ".concat(brightnessFactor, " 0 0 0 0\n        0 ").concat(brightnessFactor, " 0 0 0\n        0 0 ").concat(brightnessFactor, " 0 0\n        0 0 0 1 0\n      "),
+        in: 'SourceGraphic',
+        result: 'brightness'
+      });
+      if (shadowAttr.enabled) {
+        addShadow(ctx, add, i, shadowAttr, 'brightness');
+      }
+    });
+    if (!shadowAttr.noUserSpaceOnUse) {
+      var _el$filterer, _el$filterer$node;
+      (_el$filterer = el.filterer()) === null || _el$filterer === void 0 ? void 0 : (_el$filterer$node = _el$filterer.node) === null || _el$filterer$node === void 0 ? void 0 : _el$filterer$node.setAttribute('filterUnits', 'userSpaceOnUse');
     }
 
-    // create a re-usable filter which can be appended other filter effects and applied to multiple elements
-    _createClass(Filters, [{
-      key: "getDefaultFilter",
-      value: function getDefaultFilter(el, i) {
-        var w = this.w;
-        el.unfilter(true);
-        var filter = new Filter();
-        filter.size('120%', '180%', '-5%', '-40%');
-        if (w.config.chart.dropShadow.enabled) {
-          this.dropShadow(el, w.config.chart.dropShadow, i);
-        }
+    // this scales the filter to a bigger size so that the dropshadow doesn't crops
+    scaleFilterSize((_el$filterer2 = el.filterer()) === null || _el$filterer2 === void 0 ? void 0 : _el$filterer2.node);
+  }
+
+  // appends dropShadow to the filter object which can be chained with other filter effects
+  function addShadow(ctx, add, i, attrs, source) {
+    var _w$config$chart$dropS;
+    var w = ctx.w;
+    var blur = attrs.blur,
+      top = attrs.top,
+      left = attrs.left,
+      color = attrs.color,
+      opacity = attrs.opacity;
+    color = Array.isArray(color) ? color[i] : color;
+    if (((_w$config$chart$dropS = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS === void 0 ? void 0 : _w$config$chart$dropS.length) > 0) {
+      if (w.config.chart.dropShadow.enabledOnSeries.indexOf(i) === -1) {
+        return add;
       }
-    }, {
-      key: "applyFilter",
-      value: function applyFilter(el, i, filterType) {
-        var _this = this,
-          _el$filterer2;
-        var w = this.w;
-        el.unfilter(true);
-        if (filterType === 'none') {
-          this.getDefaultFilter(el, i);
-          return;
-        }
-        var shadowAttr = w.config.chart.dropShadow;
-        var brightnessFactor = filterType === 'lighten' ? 2 : 0.3;
-        el.filterWith(function (add) {
-          add.colorMatrix({
-            type: 'matrix',
-            values: "\n          ".concat(brightnessFactor, " 0 0 0 0\n          0 ").concat(brightnessFactor, " 0 0 0\n          0 0 ").concat(brightnessFactor, " 0 0\n          0 0 0 1 0\n        "),
-            in: 'SourceGraphic',
-            result: 'brightness'
-          });
-          if (shadowAttr.enabled) {
-            _this.addShadow(add, i, shadowAttr, 'brightness');
-          }
-        });
-        if (!shadowAttr.noUserSpaceOnUse) {
-          var _el$filterer, _el$filterer$node;
-          (_el$filterer = el.filterer()) === null || _el$filterer === void 0 ? void 0 : (_el$filterer$node = _el$filterer.node) === null || _el$filterer$node === void 0 ? void 0 : _el$filterer$node.setAttribute('filterUnits', 'userSpaceOnUse');
-        }
+    }
+    add.offset({
+      in: source,
+      dx: left,
+      dy: top,
+      result: 'offset'
+    });
+    add.gaussianBlur({
+      in: 'offset',
+      stdDeviation: blur,
+      result: 'blur'
+    });
+    add.flood({
+      'flood-color': color,
+      'flood-opacity': opacity,
+      result: 'flood'
+    });
+    add.composite({
+      in: 'flood',
+      in2: 'blur',
+      operator: 'in',
+      result: 'shadow'
+    });
+    add.merge(['shadow', source]);
+  }
 
-        // this scales the filter to a bigger size so that the dropshadow doesn't crops
-        this._scaleFilterSize((_el$filterer2 = el.filterer()) === null || _el$filterer2 === void 0 ? void 0 : _el$filterer2.node);
-      }
-
-      // appends dropShadow to the filter object which can be chained with other filter effects
-    }, {
-      key: "addShadow",
-      value: function addShadow(add, i, attrs, source) {
-        var _w$config$chart$dropS;
-        var w = this.w;
-        var blur = attrs.blur,
-          top = attrs.top,
-          left = attrs.left,
-          color = attrs.color,
-          opacity = attrs.opacity;
-        color = Array.isArray(color) ? color[i] : color;
-        if (((_w$config$chart$dropS = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS === void 0 ? void 0 : _w$config$chart$dropS.length) > 0) {
-          if (w.config.chart.dropShadow.enabledOnSeries.indexOf(i) === -1) {
-            return add;
-          }
-        }
-        add.offset({
-          in: source,
-          dx: left,
-          dy: top,
-          result: 'offset'
-        });
-        add.gaussianBlur({
-          in: 'offset',
-          stdDeviation: blur,
-          result: 'blur'
-        });
-        add.flood({
-          'flood-color': color,
-          'flood-opacity': opacity,
-          result: 'flood'
-        });
-        add.composite({
-          in: 'flood',
-          in2: 'blur',
-          operator: 'in',
-          result: 'shadow'
-        });
-        add.merge(['shadow', source]);
-      }
-
-      // directly adds dropShadow to the element and returns the same element.
-    }, {
-      key: "dropShadow",
-      value: function dropShadow(el, attrs) {
-        var _w$config$chart$dropS2,
-          _this2 = this,
-          _el$filterer4;
-        var i = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
-        var w = this.w;
-        el.unfilter(true);
-        if (Utils$1.isMsEdge() && w.config.chart.type === 'radialBar') {
-          // in radialbar charts, dropshadow is clipping actual drawing in IE
-          return el;
-        }
-        if (((_w$config$chart$dropS2 = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS2 === void 0 ? void 0 : _w$config$chart$dropS2.length) > 0) {
-          var _w$config$chart$dropS3;
-          if (((_w$config$chart$dropS3 = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS3 === void 0 ? void 0 : _w$config$chart$dropS3.indexOf(i)) === -1) {
-            return el;
-          }
-        }
-        el.filterWith(function (add) {
-          _this2.addShadow(add, i, attrs, 'SourceGraphic');
-        });
-        if (!attrs.noUserSpaceOnUse) {
-          var _el$filterer3, _el$filterer3$node;
-          (_el$filterer3 = el.filterer()) === null || _el$filterer3 === void 0 ? void 0 : (_el$filterer3$node = _el$filterer3.node) === null || _el$filterer3$node === void 0 ? void 0 : _el$filterer3$node.setAttribute('filterUnits', 'userSpaceOnUse');
-        }
-
-        // this scales the filter to a bigger size so that the dropshadow doesn't crops
-        this._scaleFilterSize((_el$filterer4 = el.filterer()) === null || _el$filterer4 === void 0 ? void 0 : _el$filterer4.node);
+  // directly adds dropShadow to the element and returns the same element.
+  function dropShadow(ctx, el, attrs) {
+    var _w$config$chart$dropS2, _el$filterer4;
+    var i = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+    var w = ctx.w;
+    el.unfilter(true);
+    if (Utils$1.isMsEdge() && w.config.chart.type === 'radialBar') {
+      // in radialbar charts, dropshadow is clipping actual drawing in IE
+      return el;
+    }
+    if (((_w$config$chart$dropS2 = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS2 === void 0 ? void 0 : _w$config$chart$dropS2.length) > 0) {
+      var _w$config$chart$dropS3;
+      if (((_w$config$chart$dropS3 = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS3 === void 0 ? void 0 : _w$config$chart$dropS3.indexOf(i)) === -1) {
         return el;
       }
-    }, {
-      key: "setSelectionFilter",
-      value: function setSelectionFilter(el, realIndex, dataPointIndex) {
-        var w = this.w;
-        if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
-          if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
-            el.node.setAttribute('selected', true);
-            var activeFilter = w.config.states.active.filter;
-            if (activeFilter !== 'none') {
-              this.applyFilter(el, realIndex, activeFilter.type);
-            }
-          }
+    }
+    el.filterWith(function (add) {
+      addShadow(ctx, add, i, attrs, 'SourceGraphic');
+    });
+    if (!attrs.noUserSpaceOnUse) {
+      var _el$filterer3, _el$filterer3$node;
+      (_el$filterer3 = el.filterer()) === null || _el$filterer3 === void 0 ? void 0 : (_el$filterer3$node = _el$filterer3.node) === null || _el$filterer3$node === void 0 ? void 0 : _el$filterer3$node.setAttribute('filterUnits', 'userSpaceOnUse');
+    }
+
+    // this scales the filter to a bigger size so that the dropshadow doesn't crops
+    scaleFilterSize((_el$filterer4 = el.filterer()) === null || _el$filterer4 === void 0 ? void 0 : _el$filterer4.node);
+    return el;
+  }
+  function setSelectionFilter(ctx, el, realIndex, dataPointIndex) {
+    var w = ctx.w;
+    if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
+      if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
+        el.node.setAttribute('selected', true);
+        var activeFilter = w.config.states.active.filter;
+        if (activeFilter !== 'none') {
+          applyFilter(ctx, el, realIndex, activeFilter.type);
         }
       }
-    }, {
-      key: "_scaleFilterSize",
-      value: function _scaleFilterSize(el) {
-        if (!el) return;
-        var setAttributes = function setAttributes(attrs) {
-          for (var key in attrs) {
-            if (attrs.hasOwnProperty(key)) {
-              el.setAttribute(key, attrs[key]);
-            }
-          }
-        };
-        setAttributes({
-          width: '200%',
-          height: '200%',
-          x: '-50%',
-          y: '-50%'
-        });
+    }
+  }
+
+  // ex `_scaleFilterSize`
+  function scaleFilterSize(el) {
+    if (!el) return;
+    var setAttributes = function setAttributes(attrs) {
+      for (var key in attrs) {
+        if (attrs.hasOwnProperty(key)) {
+          el.setAttribute(key, attrs[key]);
+        }
       }
-    }]);
-    return Filters;
-  }();
+    };
+    setAttributes({
+      width: '200%',
+      height: '200%',
+      x: '-50%',
+      y: '-50%'
+    });
+  }
+  // Default export for backward compatibility
+  var Filters = {
+    getDefaultFilter: getDefaultFilter,
+    applyFilter: applyFilter,
+    addShadow: addShadow,
+    dropShadow: dropShadow,
+    setSelectionFilter: setSelectionFilter
+  };
 
   /**
-   * ApexCharts Graphics Class for all drawing operations.
+   * ApexCharts Graphics Module for all drawing operations.
    *
    * @module Graphics
    **/
-  var Graphics = /*#__PURE__*/function () {
-    function Graphics(ctx) {
-      _classCallCheck(this, Graphics);
-      this.ctx = ctx;
-      this.w = ctx.w;
+
+  /*****************************************************************************
+   *                                                                            *
+   *  SVG Path Rounding Function                                                *
+   *  Copyright (C) 2014 Yona Appletree                                         *
+   *                                                                            *
+   *  Licensed under the Apache License, Version 2.0 (the "License");           *
+   *  you may not use this file except in compliance with the License.          *
+   *  You may obtain a copy of the License at                                   *
+   *                                                                            *
+   *      http://www.apache.org/licenses/LICENSE-2.0                            *
+   *                                                                            *
+   *  Unless required by applicable law or agreed to in writing, software       *
+   *  distributed under the License is distributed on an "AS IS" BASIS,         *
+   *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
+   *  See the License for the specific language governing permissions and       *
+   *  limitations under the License.                                            *
+   *                                                                            *
+   *****************************************************************************/
+
+  /**
+   * SVG Path rounding function. Takes an input path string and outputs a path
+   * string where all line-line corners have been rounded. Only supports absolute
+   * commands at the moment.
+   *
+   * @param pathString The SVG input path
+   * @param radius The amount to round the corners, either a value in the SVG
+   *               coordinate space, or, if useFractionalRadius is true, a value
+   *               from 0 to 1.
+   * @returns A new SVG path string with the rounding
+   */
+  function roundPathCorners(pathString, radius) {
+    if (pathString.indexOf('NaN') > -1) pathString = '';
+    function moveTowardsLength(movingPoint, targetPoint, amount) {
+      var width = targetPoint.x - movingPoint.x;
+      var height = targetPoint.y - movingPoint.y;
+      var distance = Math.sqrt(width * width + height * height);
+      return moveTowardsFractional(movingPoint, targetPoint, Math.min(1, amount / distance));
+    }
+    function moveTowardsFractional(movingPoint, targetPoint, fraction) {
+      return {
+        x: movingPoint.x + (targetPoint.x - movingPoint.x) * fraction,
+        y: movingPoint.y + (targetPoint.y - movingPoint.y) * fraction
+      };
     }
 
-    /*****************************************************************************
-     *                                                                            *
-     *  SVG Path Rounding Function                                                *
-     *  Copyright (C) 2014 Yona Appletree                                         *
-     *                                                                            *
-     *  Licensed under the Apache License, Version 2.0 (the "License");           *
-     *  you may not use this file except in compliance with the License.          *
-     *  You may obtain a copy of the License at                                   *
-     *                                                                            *
-     *      http://www.apache.org/licenses/LICENSE-2.0                            *
-     *                                                                            *
-     *  Unless required by applicable law or agreed to in writing, software       *
-     *  distributed under the License is distributed on an "AS IS" BASIS,         *
-     *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
-     *  See the License for the specific language governing permissions and       *
-     *  limitations under the License.                                            *
-     *                                                                            *
-     *****************************************************************************/
+    // Adjusts the ending position of a command
+    function adjustCommand(cmd, newPoint) {
+      if (cmd.length > 2) {
+        cmd[cmd.length - 2] = newPoint.x;
+        cmd[cmd.length - 1] = newPoint.y;
+      }
+    }
 
-    /**
-     * SVG Path rounding function. Takes an input path string and outputs a path
-     * string where all line-line corners have been rounded. Only supports absolute
-     * commands at the moment.
-     *
-     * @param pathString The SVG input path
-     * @param radius The amount to round the corners, either a value in the SVG
-     *               coordinate space, or, if useFractionalRadius is true, a value
-     *               from 0 to 1.
-     * @returns A new SVG path string with the rounding
-     */
-    _createClass(Graphics, [{
-      key: "roundPathCorners",
-      value: function roundPathCorners(pathString, radius) {
-        if (pathString.indexOf('NaN') > -1) pathString = '';
-        function moveTowardsLength(movingPoint, targetPoint, amount) {
-          var width = targetPoint.x - movingPoint.x;
-          var height = targetPoint.y - movingPoint.y;
-          var distance = Math.sqrt(width * width + height * height);
-          return moveTowardsFractional(movingPoint, targetPoint, Math.min(1, amount / distance));
-        }
-        function moveTowardsFractional(movingPoint, targetPoint, fraction) {
-          return {
-            x: movingPoint.x + (targetPoint.x - movingPoint.x) * fraction,
-            y: movingPoint.y + (targetPoint.y - movingPoint.y) * fraction
-          };
-        }
+    // Gives an {x, y} object for a command's ending position
+    function pointForCommand(cmd) {
+      return {
+        x: parseFloat(cmd[cmd.length - 2]),
+        y: parseFloat(cmd[cmd.length - 1])
+      };
+    }
 
-        // Adjusts the ending position of a command
-        function adjustCommand(cmd, newPoint) {
-          if (cmd.length > 2) {
-            cmd[cmd.length - 2] = newPoint.x;
-            cmd[cmd.length - 1] = newPoint.y;
-          }
-        }
+    // Split apart the path, handing concatonated letters and numbers
+    var pathParts = pathString.split(/[,\s]/).reduce(function (parts, part) {
+      var match = part.match(/^([a-zA-Z])(.+)/);
+      if (match) {
+        parts.push(match[1]);
+        parts.push(match[2]);
+      } else {
+        parts.push(part);
+      }
+      return parts;
+    }, []);
 
-        // Gives an {x, y} object for a command's ending position
-        function pointForCommand(cmd) {
-          return {
-            x: parseFloat(cmd[cmd.length - 2]),
-            y: parseFloat(cmd[cmd.length - 1])
-          };
-        }
+    // Group the commands with their arguments for easier handling
+    var commands = pathParts.reduce(function (commands, part) {
+      if (parseFloat(part) == part && commands.length) {
+        commands[commands.length - 1].push(part);
+      } else {
+        commands.push([part]);
+      }
+      return commands;
+    }, []);
 
-        // Split apart the path, handing concatonated letters and numbers
-        var pathParts = pathString.split(/[,\s]/).reduce(function (parts, part) {
-          var match = part.match(/^([a-zA-Z])(.+)/);
-          if (match) {
-            parts.push(match[1]);
-            parts.push(match[2]);
-          } else {
-            parts.push(part);
-          }
-          return parts;
-        }, []);
+    // The resulting commands, also grouped
+    var resultCommands = [];
+    if (commands.length > 1) {
+      var startPoint = pointForCommand(commands[0]);
 
-        // Group the commands with their arguments for easier handling
-        var commands = pathParts.reduce(function (commands, part) {
-          if (parseFloat(part) == part && commands.length) {
-            commands[commands.length - 1].push(part);
-          } else {
-            commands.push([part]);
-          }
-          return commands;
-        }, []);
+      // Handle the close path case with a "virtual" closing line
+      var virtualCloseLine = null;
+      if (commands[commands.length - 1][0] == 'Z' && commands[0].length > 2) {
+        virtualCloseLine = ['L', startPoint.x, startPoint.y];
+        commands[commands.length - 1] = virtualCloseLine;
+      }
 
-        // The resulting commands, also grouped
-        var resultCommands = [];
-        if (commands.length > 1) {
-          var startPoint = pointForCommand(commands[0]);
+      // We always use the first command (but it may be mutated)
+      resultCommands.push(commands[0]);
+      for (var cmdIndex = 1; cmdIndex < commands.length; cmdIndex++) {
+        var prevCmd = resultCommands[resultCommands.length - 1];
+        var curCmd = commands[cmdIndex];
 
-          // Handle the close path case with a "virtual" closing line
-          var virtualCloseLine = null;
-          if (commands[commands.length - 1][0] == 'Z' && commands[0].length > 2) {
-            virtualCloseLine = ['L', startPoint.x, startPoint.y];
-            commands[commands.length - 1] = virtualCloseLine;
-          }
+        // Handle closing case
+        var nextCmd = curCmd == virtualCloseLine ? commands[1] : commands[cmdIndex + 1];
 
-          // We always use the first command (but it may be mutated)
-          resultCommands.push(commands[0]);
-          for (var cmdIndex = 1; cmdIndex < commands.length; cmdIndex++) {
-            var prevCmd = resultCommands[resultCommands.length - 1];
-            var curCmd = commands[cmdIndex];
+        // Nasty logic to decide if this path is a candidite.
+        if (nextCmd && prevCmd && prevCmd.length > 2 && curCmd[0] == 'L' && nextCmd.length > 2 && nextCmd[0] == 'L') {
+          // Calc the points we're dealing with
+          var prevPoint = pointForCommand(prevCmd);
+          var curPoint = pointForCommand(curCmd);
+          var nextPoint = pointForCommand(nextCmd);
 
-            // Handle closing case
-            var nextCmd = curCmd == virtualCloseLine ? commands[1] : commands[cmdIndex + 1];
+          // The start and end of the cuve are just our point moved towards the previous and next points, respectivly
+          var curveStart, curveEnd;
+          curveStart = moveTowardsLength(curPoint, prevPoint, radius);
+          curveEnd = moveTowardsLength(curPoint, nextPoint, radius);
 
-            // Nasty logic to decide if this path is a candidite.
-            if (nextCmd && prevCmd && prevCmd.length > 2 && curCmd[0] == 'L' && nextCmd.length > 2 && nextCmd[0] == 'L') {
-              // Calc the points we're dealing with
-              var prevPoint = pointForCommand(prevCmd);
-              var curPoint = pointForCommand(curCmd);
-              var nextPoint = pointForCommand(nextCmd);
+          // Adjust the current command and add it
+          adjustCommand(curCmd, curveStart);
+          curCmd.origPoint = curPoint;
+          resultCommands.push(curCmd);
 
-              // The start and end of the cuve are just our point moved towards the previous and next points, respectivly
-              var curveStart, curveEnd;
-              curveStart = moveTowardsLength(curPoint, prevPoint, radius);
-              curveEnd = moveTowardsLength(curPoint, nextPoint, radius);
+          // The curve control points are halfway between the start/end of the curve and
+          // the original point
+          var startControl = moveTowardsFractional(curveStart, curPoint, 0.5);
+          var endControl = moveTowardsFractional(curPoint, curveEnd, 0.5);
 
-              // Adjust the current command and add it
-              adjustCommand(curCmd, curveStart);
-              curCmd.origPoint = curPoint;
-              resultCommands.push(curCmd);
-
-              // The curve control points are halfway between the start/end of the curve and
-              // the original point
-              var startControl = moveTowardsFractional(curveStart, curPoint, 0.5);
-              var endControl = moveTowardsFractional(curPoint, curveEnd, 0.5);
-
-              // Create the curve
-              var curveCmd = ['C', startControl.x, startControl.y, endControl.x, endControl.y, curveEnd.x, curveEnd.y];
-              // Save the original point for fractional calculations
-              curveCmd.origPoint = curPoint;
-              resultCommands.push(curveCmd);
-            } else {
-              // Pass through commands that don't qualify
-              resultCommands.push(curCmd);
-            }
-          }
-
-          // Fix up the starting point and restore the close path if the path was orignally closed
-          if (virtualCloseLine) {
-            var newStartPoint = pointForCommand(resultCommands[resultCommands.length - 1]);
-            resultCommands.push(['Z']);
-            adjustCommand(resultCommands[0], newStartPoint);
-          }
+          // Create the curve
+          var curveCmd = ['C', startControl.x, startControl.y, endControl.x, endControl.y, curveEnd.x, curveEnd.y];
+          // Save the original point for fractional calculations
+          curveCmd.origPoint = curPoint;
+          resultCommands.push(curveCmd);
         } else {
-          resultCommands = commands;
+          // Pass through commands that don't qualify
+          resultCommands.push(curCmd);
         }
-        return resultCommands.reduce(function (str, c) {
-          return str + c.join(' ') + ' ';
-        }, '');
-      }
-    }, {
-      key: "drawLine",
-      value: function drawLine(x1, y1, x2, y2) {
-        var lineColor = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : '#a8a8a8';
-        var dashArray = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
-        var strokeWidth = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
-        var strokeLineCap = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : 'butt';
-        var w = this.w;
-        var line = w.globals.dom.Paper.line().attr({
-          x1: x1,
-          y1: y1,
-          x2: x2,
-          y2: y2,
-          stroke: lineColor,
-          'stroke-dasharray': dashArray,
-          'stroke-width': strokeWidth,
-          'stroke-linecap': strokeLineCap
-        });
-        return line;
-      }
-    }, {
-      key: "drawRect",
-      value: function drawRect() {
-        var x1 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        var y1 = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-        var x2 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
-        var y2 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
-        var radius = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 0;
-        var color = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : '#fefefe';
-        var opacity = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 1;
-        var strokeWidth = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : null;
-        var strokeColor = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : null;
-        var strokeDashArray = arguments.length > 9 && arguments[9] !== undefined ? arguments[9] : 0;
-        var w = this.w;
-        var rect = w.globals.dom.Paper.rect();
-        rect.attr({
-          x: x1,
-          y: y1,
-          width: x2 > 0 ? x2 : 0,
-          height: y2 > 0 ? y2 : 0,
-          rx: radius,
-          ry: radius,
-          opacity: opacity,
-          'stroke-width': strokeWidth !== null ? strokeWidth : 0,
-          stroke: strokeColor !== null ? strokeColor : 'none',
-          'stroke-dasharray': strokeDashArray
-        });
-
-        // fix apexcharts.js#1410
-        rect.node.setAttribute('fill', color);
-        return rect;
-      }
-    }, {
-      key: "drawPolygon",
-      value: function drawPolygon(polygonString) {
-        var stroke = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '#e1e1e1';
-        var strokeWidth = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-        var fill = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 'none';
-        var w = this.w;
-        var polygon = w.globals.dom.Paper.polygon(polygonString).attr({
-          fill: fill,
-          stroke: stroke,
-          'stroke-width': strokeWidth
-        });
-        return polygon;
-      }
-    }, {
-      key: "drawCircle",
-      value: function drawCircle(radius) {
-        var attrs = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
-        var w = this.w;
-        if (radius < 0) radius = 0;
-        var c = w.globals.dom.Paper.circle(radius * 2);
-        if (attrs !== null) {
-          c.attr(attrs);
-        }
-        return c;
-      }
-    }, {
-      key: "drawPath",
-      value: function drawPath(_ref) {
-        var _ref$d = _ref.d,
-          d = _ref$d === void 0 ? '' : _ref$d,
-          _ref$stroke = _ref.stroke,
-          stroke = _ref$stroke === void 0 ? '#a8a8a8' : _ref$stroke,
-          _ref$strokeWidth = _ref.strokeWidth,
-          strokeWidth = _ref$strokeWidth === void 0 ? 1 : _ref$strokeWidth,
-          fill = _ref.fill,
-          _ref$fillOpacity = _ref.fillOpacity,
-          fillOpacity = _ref$fillOpacity === void 0 ? 1 : _ref$fillOpacity,
-          _ref$strokeOpacity = _ref.strokeOpacity,
-          strokeOpacity = _ref$strokeOpacity === void 0 ? 1 : _ref$strokeOpacity,
-          classes = _ref.classes,
-          _ref$strokeLinecap = _ref.strokeLinecap,
-          strokeLinecap = _ref$strokeLinecap === void 0 ? null : _ref$strokeLinecap,
-          _ref$strokeDashArray = _ref.strokeDashArray,
-          strokeDashArray = _ref$strokeDashArray === void 0 ? 0 : _ref$strokeDashArray;
-        var w = this.w;
-        if (strokeLinecap === null) {
-          strokeLinecap = w.config.stroke.lineCap;
-        }
-        if (d.indexOf('undefined') > -1 || d.indexOf('NaN') > -1) {
-          d = "M 0 ".concat(w.globals.gridHeight);
-        }
-        var p = w.globals.dom.Paper.path(d).attr({
-          fill: fill,
-          'fill-opacity': fillOpacity,
-          stroke: stroke,
-          'stroke-opacity': strokeOpacity,
-          'stroke-linecap': strokeLinecap,
-          'stroke-width': strokeWidth,
-          'stroke-dasharray': strokeDashArray,
-          class: classes
-        });
-        return p;
-      }
-    }, {
-      key: "group",
-      value: function group() {
-        var attrs = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
-        var w = this.w;
-        var g = w.globals.dom.Paper.group();
-        if (attrs !== null) {
-          g.attr(attrs);
-        }
-        return g;
-      }
-    }, {
-      key: "move",
-      value: function move(x, y) {
-        var move = ['M', x, y].join(' ');
-        return move;
-      }
-    }, {
-      key: "line",
-      value: function line(x, y) {
-        var hORv = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
-        var line = null;
-        if (hORv === null) {
-          line = [' L', x, y].join(' ');
-        } else if (hORv === 'H') {
-          line = [' H', x].join(' ');
-        } else if (hORv === 'V') {
-          line = [' V', y].join(' ');
-        }
-        return line;
-      }
-    }, {
-      key: "curve",
-      value: function curve(x1, y1, x2, y2, x, y) {
-        var curve = ['C', x1, y1, x2, y2, x, y].join(' ');
-        return curve;
-      }
-    }, {
-      key: "quadraticCurve",
-      value: function quadraticCurve(x1, y1, x, y) {
-        var curve = ['Q', x1, y1, x, y].join(' ');
-        return curve;
-      }
-    }, {
-      key: "arc",
-      value: function arc(rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y) {
-        var relative = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : false;
-        var coord = 'A';
-        if (relative) coord = 'a';
-        var arc = [coord, rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y].join(' ');
-        return arc;
       }
 
-      /**
-       * @memberof Graphics
-       * @param {object}
-       *  i = series's index
-       *  realIndex = realIndex is series's actual index when it was drawn time. After several redraws, the iterating "i" may change in loops, but realIndex doesn't
-       *  pathFrom = existing pathFrom to animateTo
-       *  pathTo = new Path to which d attr will be animated from pathFrom to pathTo
-       *  stroke = line Color
-       *  strokeWidth = width of path Line
-       *  fill = it can be gradient, single color, pattern or image
-       *  animationDelay = how much to delay when starting animation (in milliseconds)
-       *  dataChangeSpeed = for dynamic animations, when data changes
-       *  className = class attribute to add
-       * @return {object} svg.js path object
-       **/
-    }, {
-      key: "renderPaths",
-      value: function renderPaths(_ref2) {
-        var j = _ref2.j,
-          realIndex = _ref2.realIndex,
-          pathFrom = _ref2.pathFrom,
-          pathTo = _ref2.pathTo,
-          stroke = _ref2.stroke,
-          strokeWidth = _ref2.strokeWidth,
-          strokeLinecap = _ref2.strokeLinecap,
-          fill = _ref2.fill,
-          animationDelay = _ref2.animationDelay,
-          initialSpeed = _ref2.initialSpeed,
-          dataChangeSpeed = _ref2.dataChangeSpeed,
-          className = _ref2.className,
-          chartType = _ref2.chartType,
-          _ref2$shouldClipToGri = _ref2.shouldClipToGrid,
-          shouldClipToGrid = _ref2$shouldClipToGri === void 0 ? true : _ref2$shouldClipToGri,
-          _ref2$bindEventsOnPat = _ref2.bindEventsOnPaths,
-          bindEventsOnPaths = _ref2$bindEventsOnPat === void 0 ? true : _ref2$bindEventsOnPat,
-          _ref2$drawShadow = _ref2.drawShadow,
-          drawShadow = _ref2$drawShadow === void 0 ? true : _ref2$drawShadow;
-        var w = this.w;
-        var filters = new Filters(this.ctx);
-        var anim = new Animations(this.ctx);
-        var initialAnim = this.w.config.chart.animations.enabled;
-        var dynamicAnim = initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
+      // Fix up the starting point and restore the close path if the path was orignally closed
+      if (virtualCloseLine) {
+        var newStartPoint = pointForCommand(resultCommands[resultCommands.length - 1]);
+        resultCommands.push(['Z']);
+        adjustCommand(resultCommands[0], newStartPoint);
+      }
+    } else {
+      resultCommands = commands;
+    }
+    return resultCommands.reduce(function (str, c) {
+      return str + c.join(' ') + ' ';
+    }, '');
+  }
+  function drawLine(ctx, x1, y1, x2, y2) {
+    var lineColor = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : '#a8a8a8';
+    var dashArray = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 0;
+    var strokeWidth = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : null;
+    var strokeLineCap = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : 'butt';
+    var w = ctx.w;
+    var line = w.globals.dom.Paper.line().attr({
+      x1: x1,
+      y1: y1,
+      x2: x2,
+      y2: y2,
+      stroke: lineColor,
+      'stroke-dasharray': dashArray,
+      'stroke-width': strokeWidth,
+      'stroke-linecap': strokeLineCap
+    });
+    return line;
+  }
+  function drawRect(ctx) {
+    var x1 = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+    var y1 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+    var x2 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+    var y2 = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 0;
+    var radius = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
+    var color = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : '#fefefe';
+    var opacity = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : 1;
+    var strokeWidth = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : null;
+    var strokeColor = arguments.length > 9 && arguments[9] !== undefined ? arguments[9] : null;
+    var strokeDashArray = arguments.length > 10 && arguments[10] !== undefined ? arguments[10] : 0;
+    var w = ctx.w;
+    var rect = w.globals.dom.Paper.rect();
+    rect.attr({
+      x: x1,
+      y: y1,
+      width: x2 > 0 ? x2 : 0,
+      height: y2 > 0 ? y2 : 0,
+      rx: radius,
+      ry: radius,
+      opacity: opacity,
+      'stroke-width': strokeWidth !== null ? strokeWidth : 0,
+      stroke: strokeColor !== null ? strokeColor : 'none',
+      'stroke-dasharray': strokeDashArray
+    });
 
-        // Fix for paths starting with M 0 0
-        if (pathFrom && pathFrom.startsWith('M 0 0') && pathTo) {
-          var moveCommand = pathTo.match(/^M\s+[\d.-]+\s+[\d.-]+/);
-          if (moveCommand) {
-            pathFrom = pathFrom.replace(/^M\s+0\s+0/, moveCommand[0]);
-          }
-        }
-        var d;
-        var shouldAnimate = !!(initialAnim && !w.globals.resized || dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate);
-        if (shouldAnimate) {
-          d = pathFrom;
-        } else {
-          d = pathTo;
-          w.globals.animationEnded = true;
-        }
-        var strokeDashArrayOpt = w.config.stroke.dashArray;
-        var strokeDashArray = 0;
-        if (Array.isArray(strokeDashArrayOpt)) {
-          strokeDashArray = strokeDashArrayOpt[realIndex];
-        } else {
-          strokeDashArray = w.config.stroke.dashArray;
-        }
-        var el = this.drawPath({
-          d: d,
-          stroke: stroke,
-          strokeWidth: strokeWidth,
-          fill: fill,
-          fillOpacity: 1,
-          classes: className,
-          strokeLinecap: strokeLinecap,
-          strokeDashArray: strokeDashArray
-        });
-        el.attr('index', realIndex);
-        if (shouldClipToGrid) {
-          if (chartType === 'bar' && !w.globals.isHorizontal || w.globals.comboCharts) {
-            el.attr({
-              'clip-path': "url(#gridRectBarMask".concat(w.globals.cuid, ")")
-            });
-          } else {
-            el.attr({
-              'clip-path': "url(#gridRectMask".concat(w.globals.cuid, ")")
-            });
-          }
-        }
-        if (w.config.chart.dropShadow.enabled && drawShadow) {
-          filters.dropShadow(el, w.config.chart.dropShadow, realIndex);
-        }
-        if (bindEventsOnPaths) {
-          el.node.addEventListener('mouseenter', this.pathMouseEnter.bind(this, el));
-          el.node.addEventListener('mouseleave', this.pathMouseLeave.bind(this, el));
-          el.node.addEventListener('mousedown', this.pathMouseDown.bind(this, el));
-        }
+    // fix apexcharts.js#1410
+    rect.node.setAttribute('fill', color);
+    return rect;
+  }
+  function drawPolygon(ctx, polygonString) {
+    var stroke = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '#e1e1e1';
+    var strokeWidth = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1;
+    var fill = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 'none';
+    var w = ctx.w;
+    var polygon = w.globals.dom.Paper.polygon(polygonString).attr({
+      fill: fill,
+      stroke: stroke,
+      'stroke-width': strokeWidth
+    });
+    return polygon;
+  }
+  function drawCircle(ctx, radius) {
+    var attrs = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+    var w = ctx.w;
+    if (radius < 0) radius = 0;
+    var c = w.globals.dom.Paper.circle(radius * 2);
+    if (attrs !== null) {
+      c.attr(attrs);
+    }
+    return c;
+  }
+  function drawPath(ctx, _ref) {
+    var _ref$d = _ref.d,
+      d = _ref$d === void 0 ? '' : _ref$d,
+      _ref$stroke = _ref.stroke,
+      stroke = _ref$stroke === void 0 ? '#a8a8a8' : _ref$stroke,
+      _ref$strokeWidth = _ref.strokeWidth,
+      strokeWidth = _ref$strokeWidth === void 0 ? 1 : _ref$strokeWidth,
+      fill = _ref.fill,
+      _ref$fillOpacity = _ref.fillOpacity,
+      fillOpacity = _ref$fillOpacity === void 0 ? 1 : _ref$fillOpacity,
+      _ref$strokeOpacity = _ref.strokeOpacity,
+      strokeOpacity = _ref$strokeOpacity === void 0 ? 1 : _ref$strokeOpacity,
+      classes = _ref.classes,
+      _ref$strokeLinecap = _ref.strokeLinecap,
+      strokeLinecap = _ref$strokeLinecap === void 0 ? null : _ref$strokeLinecap,
+      _ref$strokeDashArray = _ref.strokeDashArray,
+      strokeDashArray = _ref$strokeDashArray === void 0 ? 0 : _ref$strokeDashArray;
+    var w = ctx.w;
+    if (strokeLinecap === null) {
+      strokeLinecap = w.config.stroke.lineCap;
+    }
+    if (d.indexOf('undefined') > -1 || d.indexOf('NaN') > -1) {
+      d = "M 0 ".concat(w.globals.gridHeight);
+    }
+    var p = w.globals.dom.Paper.path(d).attr({
+      fill: fill,
+      'fill-opacity': fillOpacity,
+      stroke: stroke,
+      'stroke-opacity': strokeOpacity,
+      'stroke-linecap': strokeLinecap,
+      'stroke-width': strokeWidth,
+      'stroke-dasharray': strokeDashArray,
+      class: classes
+    });
+    return p;
+  }
+  function group(ctx) {
+    var attrs = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    var w = ctx.w;
+    var g = w.globals.dom.Paper.group();
+    if (attrs !== null) {
+      g.attr(attrs);
+    }
+    return g;
+  }
+  function move(x, y) {
+    var move = ['M', x, y].join(' ');
+    return move;
+  }
+  function line(x, y) {
+    var hORv = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+    var line = null;
+    if (hORv === null) {
+      line = [' L', x, y].join(' ');
+    } else if (hORv === 'H') {
+      line = [' H', x].join(' ');
+    } else if (hORv === 'V') {
+      line = [' V', y].join(' ');
+    }
+    return line;
+  }
+  function curve(x1, y1, x2, y2, x, y) {
+    var curve = ['C', x1, y1, x2, y2, x, y].join(' ');
+    return curve;
+  }
+  function quadraticCurve(x1, y1, x, y) {
+    var curve = ['Q', x1, y1, x, y].join(' ');
+    return curve;
+  }
+  function arc(rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y) {
+    var relative = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : false;
+    var coord = 'A';
+    if (relative) coord = 'a';
+    var arc = [coord, rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y].join(' ');
+    return arc;
+  }
+
+  /**
+   * @memberof Graphics
+   * @param {object}
+   *  i = series's index
+   *  realIndex = realIndex is series's actual index when it was drawn time. After several redraws, the iterating "i" may change in loops, but realIndex doesn't
+   *  pathFrom = existing pathFrom to animateTo
+   *  pathTo = new Path to which d attr will be animated from pathFrom to pathTo
+   *  stroke = line Color
+   *  strokeWidth = width of path Line
+   *  fill = it can be gradient, single color, pattern or image
+   *  animationDelay = how much to delay when starting animation (in milliseconds)
+   *  dataChangeSpeed = for dynamic animations, when data changes
+   *  className = class attribute to add
+   * @return {object} svg.js path object
+   **/
+  function renderPaths(ctx, _ref2) {
+    var j = _ref2.j,
+      realIndex = _ref2.realIndex,
+      pathFrom = _ref2.pathFrom,
+      pathTo = _ref2.pathTo,
+      stroke = _ref2.stroke,
+      strokeWidth = _ref2.strokeWidth,
+      strokeLinecap = _ref2.strokeLinecap,
+      fill = _ref2.fill,
+      animationDelay = _ref2.animationDelay,
+      initialSpeed = _ref2.initialSpeed,
+      dataChangeSpeed = _ref2.dataChangeSpeed,
+      className = _ref2.className,
+      chartType = _ref2.chartType,
+      _ref2$shouldClipToGri = _ref2.shouldClipToGrid,
+      shouldClipToGrid = _ref2$shouldClipToGri === void 0 ? true : _ref2$shouldClipToGri,
+      _ref2$bindEventsOnPat = _ref2.bindEventsOnPaths,
+      bindEventsOnPaths = _ref2$bindEventsOnPat === void 0 ? true : _ref2$bindEventsOnPat,
+      _ref2$drawShadow = _ref2.drawShadow,
+      drawShadow = _ref2$drawShadow === void 0 ? true : _ref2$drawShadow;
+    var w = ctx.w;
+    var initialAnim = w.config.chart.animations.enabled;
+    var dynamicAnim = initialAnim && w.config.chart.animations.dynamicAnimation.enabled;
+
+    // Fix for paths starting with M 0 0
+    if (pathFrom && pathFrom.startsWith('M 0 0') && pathTo) {
+      var moveCommand = pathTo.match(/^M\s+[\d.-]+\s+[\d.-]+/);
+      if (moveCommand) {
+        pathFrom = pathFrom.replace(/^M\s+0\s+0/, moveCommand[0]);
+      }
+    }
+    var d;
+    var shouldAnimate = !!(initialAnim && !w.globals.resized || dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate);
+    if (shouldAnimate) {
+      d = pathFrom;
+    } else {
+      d = pathTo;
+      w.globals.animationEnded = true;
+    }
+    var strokeDashArrayOpt = w.config.stroke.dashArray;
+    var strokeDashArray = 0;
+    if (Array.isArray(strokeDashArrayOpt)) {
+      strokeDashArray = strokeDashArrayOpt[realIndex];
+    } else {
+      strokeDashArray = w.config.stroke.dashArray;
+    }
+    var el = drawPath(ctx, {
+      d: d,
+      stroke: stroke,
+      strokeWidth: strokeWidth,
+      fill: fill,
+      fillOpacity: 1,
+      classes: className,
+      strokeLinecap: strokeLinecap,
+      strokeDashArray: strokeDashArray
+    });
+    el.attr('index', realIndex);
+    if (shouldClipToGrid) {
+      if (chartType === 'bar' && !w.globals.isHorizontal || w.globals.comboCharts) {
         el.attr({
-          pathTo: pathTo,
-          pathFrom: pathFrom
+          'clip-path': "url(#gridRectBarMask".concat(w.globals.cuid, ")")
         });
-        var defaultAnimateOpts = {
-          el: el,
-          j: j,
-          realIndex: realIndex,
-          pathFrom: pathFrom,
-          pathTo: pathTo,
-          fill: fill,
-          strokeWidth: strokeWidth,
-          delay: animationDelay
-        };
-        if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-          anim.animatePathsGradually(_objectSpread2(_objectSpread2({}, defaultAnimateOpts), {}, {
-            speed: initialSpeed
-          }));
-        } else {
-          if (w.globals.resized || !w.globals.dataChanged) {
-            anim.showDelayedElements();
-          }
-        }
-        if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
-          anim.animatePathsGradually(_objectSpread2(_objectSpread2({}, defaultAnimateOpts), {}, {
-            speed: dataChangeSpeed
-          }));
-        }
-        return el;
-      }
-    }, {
-      key: "drawPattern",
-      value: function drawPattern(style, width, height) {
-        var stroke = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '#a8a8a8';
-        var strokeWidth = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 0;
-        var w = this.w;
-        var p = w.globals.dom.Paper.pattern(width, height, function (add) {
-          if (style === 'horizontalLines') {
-            add.line(0, 0, height, 0).stroke({
-              color: stroke,
-              width: strokeWidth + 1
-            });
-          } else if (style === 'verticalLines') {
-            add.line(0, 0, 0, width).stroke({
-              color: stroke,
-              width: strokeWidth + 1
-            });
-          } else if (style === 'slantedLines') {
-            add.line(0, 0, width, height).stroke({
-              color: stroke,
-              width: strokeWidth
-            });
-          } else if (style === 'squares') {
-            add.rect(width, height).fill('none').stroke({
-              color: stroke,
-              width: strokeWidth
-            });
-          } else if (style === 'circles') {
-            add.circle(width).fill('none').stroke({
-              color: stroke,
-              width: strokeWidth
-            });
-          }
+      } else {
+        el.attr({
+          'clip-path': "url(#gridRectMask".concat(w.globals.cuid, ")")
         });
-        return p;
       }
-    }, {
-      key: "drawGradient",
-      value: function drawGradient(style, gfrom, gto, opacityFrom, opacityTo) {
-        var size = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : null;
-        var stops = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
-        var colorStops = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : [];
-        var i = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : 0;
-        var w = this.w;
-        var g;
-        if (gfrom.length < 9 && gfrom.indexOf('#') === 0) {
-          // if the hex contains alpha and is of 9 digit, skip the opacity
-          gfrom = Utils$1.hexToRgba(gfrom, opacityFrom);
-        }
-        if (gto.length < 9 && gto.indexOf('#') === 0) {
-          gto = Utils$1.hexToRgba(gto, opacityTo);
-        }
-        var stop1 = 0;
-        var stop2 = 1;
-        var stop3 = 1;
-        var stop4 = null;
-        if (stops !== null) {
-          stop1 = typeof stops[0] !== 'undefined' ? stops[0] / 100 : 0;
-          stop2 = typeof stops[1] !== 'undefined' ? stops[1] / 100 : 1;
-          stop3 = typeof stops[2] !== 'undefined' ? stops[2] / 100 : 1;
-          stop4 = typeof stops[3] !== 'undefined' ? stops[3] / 100 : null;
-        }
-        var radial = !!(w.config.chart.type === 'donut' || w.config.chart.type === 'pie' || w.config.chart.type === 'polarArea' || w.config.chart.type === 'bubble');
-        if (!colorStops || colorStops.length === 0) {
-          g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function (add) {
-            add.stop(stop1, gfrom, opacityFrom);
-            add.stop(stop2, gto, opacityTo);
-            add.stop(stop3, gto, opacityTo);
-            if (stop4 !== null) {
-              add.stop(stop4, gfrom, opacityFrom);
-            }
-          });
-        } else {
-          g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function (add) {
-            var gradientStops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops;
-            gradientStops.forEach(function (s) {
-              add.stop(s.offset / 100, s.color, s.opacity);
-            });
-          });
-        }
-        if (!radial) {
-          if (style === 'vertical') {
-            g.from(0, 0).to(0, 1);
-          } else if (style === 'diagonal') {
-            g.from(0, 0).to(1, 1);
-          } else if (style === 'horizontal') {
-            g.from(0, 1).to(1, 1);
-          } else if (style === 'diagonal2') {
-            g.from(1, 0).to(0, 1);
-          }
-        } else {
-          var offx = w.globals.gridWidth / 2;
-          var offy = w.globals.gridHeight / 2;
-          if (w.config.chart.type !== 'bubble') {
-            g.attr({
-              gradientUnits: 'userSpaceOnUse',
-              cx: offx,
-              cy: offy,
-              r: size
-            });
-          } else {
-            g.attr({
-              cx: 0.5,
-              cy: 0.5,
-              r: 0.8,
-              fx: 0.2,
-              fy: 0.2
-            });
-          }
-        }
-        return g;
+    }
+    if (w.config.chart.dropShadow.enabled && drawShadow) {
+      dropShadow(ctx, el, w.config.chart.dropShadow, realIndex);
+    }
+    if (bindEventsOnPaths) {
+      el.node.addEventListener('mouseenter', function (e) {
+        return pathMouseEnter(ctx, el, e);
+      });
+      el.node.addEventListener('mouseleave', function (e) {
+        return pathMouseLeave(ctx, el, e);
+      });
+      el.node.addEventListener('mousedown', function (e) {
+        return pathMouseDown(ctx, el, e);
+      });
+    }
+    el.attr({
+      pathTo: pathTo,
+      pathFrom: pathFrom
+    });
+    var defaultAnimateOpts = {
+      el: el,
+      j: j,
+      realIndex: realIndex,
+      pathFrom: pathFrom,
+      pathTo: pathTo,
+      fill: fill,
+      strokeWidth: strokeWidth,
+      delay: animationDelay
+    };
+    if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+      animatePathsGradually(ctx, _objectSpread2(_objectSpread2({}, defaultAnimateOpts), {}, {
+        speed: initialSpeed
+      }));
+    } else {
+      if (w.globals.resized || !w.globals.dataChanged) {
+        showDelayedElements(w);
       }
-    }, {
-      key: "getTextBasedOnMaxWidth",
-      value: function getTextBasedOnMaxWidth(_ref3) {
-        var text = _ref3.text,
-          maxWidth = _ref3.maxWidth,
-          fontSize = _ref3.fontSize,
-          fontFamily = _ref3.fontFamily;
-        var tRects = this.getTextRects(text, fontSize, fontFamily);
-        var wordWidth = tRects.width / text.length;
-        var wordsBasedOnWidth = Math.floor(maxWidth / wordWidth);
-        if (maxWidth < tRects.width) {
-          return text.slice(0, wordsBasedOnWidth - 3) + '...';
-        }
-        return text;
+    }
+    if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
+      animatePathsGradually(ctx, _objectSpread2(_objectSpread2({}, defaultAnimateOpts), {}, {
+        speed: dataChangeSpeed
+      }));
+    }
+    return el;
+  }
+  function drawPattern(ctx, style, width, height) {
+    var stroke = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : '#a8a8a8';
+    var strokeWidth = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
+    var w = ctx.w;
+    var p = w.globals.dom.Paper.pattern(width, height, function (add) {
+      if (style === 'horizontalLines') {
+        add.line(0, 0, height, 0).stroke({
+          color: stroke,
+          width: strokeWidth + 1
+        });
+      } else if (style === 'verticalLines') {
+        add.line(0, 0, 0, width).stroke({
+          color: stroke,
+          width: strokeWidth + 1
+        });
+      } else if (style === 'slantedLines') {
+        add.line(0, 0, width, height).stroke({
+          color: stroke,
+          width: strokeWidth
+        });
+      } else if (style === 'squares') {
+        add.rect(width, height).fill('none').stroke({
+          color: stroke,
+          width: strokeWidth
+        });
+      } else if (style === 'circles') {
+        add.circle(width).fill('none').stroke({
+          color: stroke,
+          width: strokeWidth
+        });
       }
-    }, {
-      key: "drawText",
-      value: function drawText(_ref4) {
-        var _this = this;
-        var x = _ref4.x,
-          y = _ref4.y,
-          text = _ref4.text,
-          textAnchor = _ref4.textAnchor,
-          fontSize = _ref4.fontSize,
-          fontFamily = _ref4.fontFamily,
-          fontWeight = _ref4.fontWeight,
-          foreColor = _ref4.foreColor,
-          opacity = _ref4.opacity,
-          maxWidth = _ref4.maxWidth,
-          _ref4$cssClass = _ref4.cssClass,
-          cssClass = _ref4$cssClass === void 0 ? '' : _ref4$cssClass,
-          _ref4$isPlainText = _ref4.isPlainText,
-          isPlainText = _ref4$isPlainText === void 0 ? true : _ref4$isPlainText,
-          _ref4$dominantBaselin = _ref4.dominantBaseline,
-          dominantBaseline = _ref4$dominantBaselin === void 0 ? 'auto' : _ref4$dominantBaselin;
-        var w = this.w;
-        if (typeof text === 'undefined') text = '';
-        var truncatedText = text;
-        if (!textAnchor) {
-          textAnchor = 'start';
+    });
+    return p;
+  }
+  function drawGradient(ctx, style, gfrom, gto, opacityFrom, opacityTo) {
+    var size = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
+    var stops = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : null;
+    var colorStops = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : [];
+    var i = arguments.length > 9 && arguments[9] !== undefined ? arguments[9] : 0;
+    var w = ctx.w;
+    var g;
+    if (gfrom.length < 9 && gfrom.indexOf('#') === 0) {
+      // if the hex contains alpha and is of 9 digit, skip the opacity
+      gfrom = Utils$1.hexToRgba(gfrom, opacityFrom);
+    }
+    if (gto.length < 9 && gto.indexOf('#') === 0) {
+      gto = Utils$1.hexToRgba(gto, opacityTo);
+    }
+    var stop1 = 0;
+    var stop2 = 1;
+    var stop3 = 1;
+    var stop4 = null;
+    if (stops !== null) {
+      stop1 = typeof stops[0] !== 'undefined' ? stops[0] / 100 : 0;
+      stop2 = typeof stops[1] !== 'undefined' ? stops[1] / 100 : 1;
+      stop3 = typeof stops[2] !== 'undefined' ? stops[2] / 100 : 1;
+      stop4 = typeof stops[3] !== 'undefined' ? stops[3] / 100 : null;
+    }
+    var radial = !!(w.config.chart.type === 'donut' || w.config.chart.type === 'pie' || w.config.chart.type === 'polarArea' || w.config.chart.type === 'bubble');
+    if (!colorStops || colorStops.length === 0) {
+      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function (add) {
+        add.stop(stop1, gfrom, opacityFrom);
+        add.stop(stop2, gto, opacityTo);
+        add.stop(stop3, gto, opacityTo);
+        if (stop4 !== null) {
+          add.stop(stop4, gfrom, opacityFrom);
         }
-        if (!foreColor || !foreColor.length) {
-          foreColor = w.config.chart.foreColor;
-        }
-        fontFamily = fontFamily || w.config.chart.fontFamily;
-        fontSize = fontSize || '11px';
-        fontWeight = fontWeight || 'regular';
-        var commonProps = {
-          maxWidth: maxWidth,
-          fontSize: fontSize,
-          fontFamily: fontFamily
-        };
-        var elText;
-        if (Array.isArray(text)) {
-          elText = w.globals.dom.Paper.text(function (add) {
-            for (var i = 0; i < text.length; i++) {
-              truncatedText = text[i];
-              if (maxWidth) {
-                truncatedText = _this.getTextBasedOnMaxWidth(_objectSpread2({
-                  text: text[i]
-                }, commonProps));
-              }
-              i === 0 ? add.tspan(truncatedText) : add.tspan(truncatedText).newLine();
-            }
-          });
-        } else {
+      });
+    } else {
+      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', function (add) {
+        var gradientStops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops;
+        gradientStops.forEach(function (s) {
+          add.stop(s.offset / 100, s.color, s.opacity);
+        });
+      });
+    }
+    if (!radial) {
+      if (style === 'vertical') {
+        g.from(0, 0).to(0, 1);
+      } else if (style === 'diagonal') {
+        g.from(0, 0).to(1, 1);
+      } else if (style === 'horizontal') {
+        g.from(0, 1).to(1, 1);
+      } else if (style === 'diagonal2') {
+        g.from(1, 0).to(0, 1);
+      }
+    } else {
+      var offx = w.globals.gridWidth / 2;
+      var offy = w.globals.gridHeight / 2;
+      if (w.config.chart.type !== 'bubble') {
+        g.attr({
+          gradientUnits: 'userSpaceOnUse',
+          cx: offx,
+          cy: offy,
+          r: size
+        });
+      } else {
+        g.attr({
+          cx: 0.5,
+          cy: 0.5,
+          r: 0.8,
+          fx: 0.2,
+          fy: 0.2
+        });
+      }
+    }
+    return g;
+  }
+  function getTextBasedOnMaxWidth(ctx, _ref3) {
+    var text = _ref3.text,
+      maxWidth = _ref3.maxWidth,
+      fontSize = _ref3.fontSize,
+      fontFamily = _ref3.fontFamily;
+    var tRects = getTextRects(ctx, text, fontSize, fontFamily);
+    var wordWidth = tRects.width / text.length;
+    var wordsBasedOnWidth = Math.floor(maxWidth / wordWidth);
+    if (maxWidth < tRects.width) {
+      return text.slice(0, wordsBasedOnWidth - 3) + '...';
+    }
+    return text;
+  }
+  function drawText(ctx, _ref4) {
+    var x = _ref4.x,
+      y = _ref4.y,
+      text = _ref4.text,
+      textAnchor = _ref4.textAnchor,
+      fontSize = _ref4.fontSize,
+      fontFamily = _ref4.fontFamily,
+      fontWeight = _ref4.fontWeight,
+      foreColor = _ref4.foreColor,
+      opacity = _ref4.opacity,
+      maxWidth = _ref4.maxWidth,
+      _ref4$cssClass = _ref4.cssClass,
+      cssClass = _ref4$cssClass === void 0 ? '' : _ref4$cssClass,
+      _ref4$isPlainText = _ref4.isPlainText,
+      isPlainText = _ref4$isPlainText === void 0 ? true : _ref4$isPlainText,
+      _ref4$dominantBaselin = _ref4.dominantBaseline,
+      dominantBaseline = _ref4$dominantBaselin === void 0 ? 'auto' : _ref4$dominantBaselin;
+    var w = ctx.w;
+    if (typeof text === 'undefined') text = '';
+    var truncatedText = text;
+    if (!textAnchor) {
+      textAnchor = 'start';
+    }
+    if (!foreColor || !foreColor.length) {
+      foreColor = w.config.chart.foreColor;
+    }
+    fontFamily = fontFamily || w.config.chart.fontFamily;
+    fontSize = fontSize || '11px';
+    fontWeight = fontWeight || 'regular';
+    var commonProps = {
+      maxWidth: maxWidth,
+      fontSize: fontSize,
+      fontFamily: fontFamily
+    };
+    var elText;
+    if (Array.isArray(text)) {
+      elText = w.globals.dom.Paper.text(function (add) {
+        for (var i = 0; i < text.length; i++) {
+          truncatedText = text[i];
           if (maxWidth) {
-            truncatedText = this.getTextBasedOnMaxWidth(_objectSpread2({
-              text: text
+            truncatedText = getTextBasedOnMaxWidth(ctx, _objectSpread2({
+              text: text[i]
             }, commonProps));
           }
-          elText = isPlainText ? w.globals.dom.Paper.plain(text) : w.globals.dom.Paper.text(function (add) {
-            return add.tspan(truncatedText);
-          });
+          i === 0 ? add.tspan(truncatedText) : add.tspan(truncatedText).newLine();
         }
-        elText.attr({
-          x: x,
-          y: y,
-          'text-anchor': textAnchor,
-          'dominant-baseline': dominantBaseline,
-          'font-size': fontSize,
-          'font-family': fontFamily,
-          'font-weight': fontWeight,
-          fill: foreColor,
-          class: 'apexcharts-text ' + cssClass
-        });
-        elText.node.style.fontFamily = fontFamily;
-        elText.node.style.opacity = opacity;
-        return elText;
+      });
+    } else {
+      if (maxWidth) {
+        truncatedText = getTextBasedOnMaxWidth(ctx, _objectSpread2({
+          text: text
+        }, commonProps));
       }
-    }, {
-      key: "getMarkerPath",
-      value: function getMarkerPath(x, y, type, size) {
-        var d = '';
-        switch (type) {
-          case 'cross':
-            size = size / 1.4;
-            d = "M ".concat(x - size, " ").concat(y - size, " L ").concat(x + size, " ").concat(y + size, "  M ").concat(x - size, " ").concat(y + size, " L ").concat(x + size, " ").concat(y - size);
-            break;
-          case 'plus':
-            size = size / 1.12;
-            d = "M ".concat(x - size, " ").concat(y, " L ").concat(x + size, " ").concat(y, "  M ").concat(x, " ").concat(y - size, " L ").concat(x, " ").concat(y + size);
-            break;
-          case 'star':
-          case 'sparkle':
-            var points = 5;
-            size = size * 1.15;
-            if (type === 'sparkle') {
-              size = size / 1.1;
-              points = 4;
-            }
-            var step = Math.PI / points;
-            for (var i = 0; i <= 2 * points; i++) {
-              var angle = i * step;
-              var radius = i % 2 === 0 ? size : size / 2;
-              var xPos = x + radius * Math.sin(angle);
-              var yPos = y - radius * Math.cos(angle);
-              d += (i === 0 ? 'M' : 'L') + xPos + ',' + yPos;
-            }
-            d += 'Z';
-            break;
-          case 'triangle':
-            d = "M ".concat(x, " ").concat(y - size, " \n             L ").concat(x + size, " ").concat(y + size, " \n             L ").concat(x - size, " ").concat(y + size, " \n             Z");
-            break;
-          case 'square':
-          case 'rect':
-            size = size / 1.125;
-            d = "M ".concat(x - size, " ").concat(y - size, " \n           L ").concat(x + size, " ").concat(y - size, " \n           L ").concat(x + size, " ").concat(y + size, " \n           L ").concat(x - size, " ").concat(y + size, " \n           Z");
-            break;
-          case 'diamond':
-            size = size * 1.05;
-            d = "M ".concat(x, " ").concat(y - size, " \n             L ").concat(x + size, " ").concat(y, " \n             L ").concat(x, " ").concat(y + size, " \n             L ").concat(x - size, " ").concat(y, " \n            Z");
-            break;
-          case 'line':
-            size = size / 1.1;
-            d = "M ".concat(x - size, " ").concat(y, " \n           L ").concat(x + size, " ").concat(y);
-            break;
-          case 'circle':
-          default:
-            size = size * 2;
-            d = "M ".concat(x, ", ").concat(y, " \n           m -").concat(size / 2, ", 0 \n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 ").concat(size, ",0 \n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 -").concat(size, ",0");
-            break;
+      elText = isPlainText ? w.globals.dom.Paper.plain(text) : w.globals.dom.Paper.text(function (add) {
+        return add.tspan(truncatedText);
+      });
+    }
+    elText.attr({
+      x: x,
+      y: y,
+      'text-anchor': textAnchor,
+      'dominant-baseline': dominantBaseline,
+      'font-size': fontSize,
+      'font-family': fontFamily,
+      'font-weight': fontWeight,
+      fill: foreColor,
+      class: 'apexcharts-text ' + cssClass
+    });
+    elText.node.style.fontFamily = fontFamily;
+    elText.node.style.opacity = opacity;
+    return elText;
+  }
+  function getMarkerPath(x, y, type, size) {
+    var d = '';
+    switch (type) {
+      case 'cross':
+        size = size / 1.4;
+        d = "M ".concat(x - size, " ").concat(y - size, " L ").concat(x + size, " ").concat(y + size, "  M ").concat(x - size, " ").concat(y + size, " L ").concat(x + size, " ").concat(y - size);
+        break;
+      case 'plus':
+        size = size / 1.12;
+        d = "M ".concat(x - size, " ").concat(y, " L ").concat(x + size, " ").concat(y, "  M ").concat(x, " ").concat(y - size, " L ").concat(x, " ").concat(y + size);
+        break;
+      case 'star':
+      case 'sparkle':
+        var points = 5;
+        size = size * 1.15;
+        if (type === 'sparkle') {
+          size = size / 1.1;
+          points = 4;
         }
-        return d;
-      }
+        var step = Math.PI / points;
+        for (var i = 0; i <= 2 * points; i++) {
+          var angle = i * step;
+          var radius = i % 2 === 0 ? size : size / 2;
+          var xPos = x + radius * Math.sin(angle);
+          var yPos = y - radius * Math.cos(angle);
+          d += (i === 0 ? 'M' : 'L') + xPos + ',' + yPos;
+        }
+        d += 'Z';
+        break;
+      case 'triangle':
+        d = "M ".concat(x, " ").concat(y - size, " \n             L ").concat(x + size, " ").concat(y + size, " \n             L ").concat(x - size, " ").concat(y + size, " \n             Z");
+        break;
+      case 'square':
+      case 'rect':
+        size = size / 1.125;
+        d = "M ".concat(x - size, " ").concat(y - size, " \n           L ").concat(x + size, " ").concat(y - size, " \n           L ").concat(x + size, " ").concat(y + size, " \n           L ").concat(x - size, " ").concat(y + size, " \n           Z");
+        break;
+      case 'diamond':
+        size = size * 1.05;
+        d = "M ".concat(x, " ").concat(y - size, " \n             L ").concat(x + size, " ").concat(y, " \n             L ").concat(x, " ").concat(y + size, " \n             L ").concat(x - size, " ").concat(y, " \n            Z");
+        break;
+      case 'line':
+        size = size / 1.1;
+        d = "M ".concat(x - size, " ").concat(y, " \n           L ").concat(x + size, " ").concat(y);
+        break;
+      case 'circle':
+      default:
+        size = size * 2;
+        d = "M ".concat(x, ", ").concat(y, " \n           m -").concat(size / 2, ", 0 \n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 ").concat(size, ",0 \n           a ").concat(size / 2, ",").concat(size / 2, " 0 1,0 -").concat(size, ",0");
+        break;
+    }
+    return d;
+  }
 
-      /**
-       * @param {number} x - The x-coordinate of the marker
-       * @param {number} y - The y-coordinate of the marker.
-       * @param {number} size - The size of the marker
-       * @param {Object} opts - The options for the marker.
-       * @returns {Object} The created marker.
-       */
-    }, {
-      key: "drawMarkerShape",
-      value: function drawMarkerShape(x, y, type, size, opts) {
-        var path = this.drawPath({
-          d: this.getMarkerPath(x, y, type, size, opts),
-          stroke: opts.pointStrokeColor,
-          strokeDashArray: opts.pointStrokeDashArray,
-          strokeWidth: opts.pointStrokeWidth,
-          fill: opts.pointFillColor,
-          fillOpacity: opts.pointFillOpacity,
-          strokeOpacity: opts.pointStrokeOpacity
-        });
-        path.attr({
-          cx: x,
-          cy: y,
-          shape: opts.shape,
-          class: opts.class ? opts.class : ''
-        });
-        return path;
+  /**
+   * @param {number} x - The x-coordinate of the marker
+   * @param {number} y - The y-coordinate of the marker.
+   * @param {number} size - The size of the marker
+   * @param {Object} opts - The options for the marker.
+   * @returns {Object} The created marker.
+   */
+  function drawMarkerShape(ctx, x, y, type, size, opts) {
+    var path = drawPath(ctx, {
+      d: getMarkerPath(x, y, type, size),
+      stroke: opts.pointStrokeColor,
+      strokeDashArray: opts.pointStrokeDashArray,
+      strokeWidth: opts.pointStrokeWidth,
+      fill: opts.pointFillColor,
+      fillOpacity: opts.pointFillOpacity,
+      strokeOpacity: opts.pointStrokeOpacity
+    });
+    path.attr({
+      cx: x,
+      cy: y,
+      shape: opts.shape,
+      class: opts.class ? opts.class : ''
+    });
+    return path;
+  }
+  function drawMarker(ctx, x, y, opts) {
+    x = x || 0;
+    var size = opts.pSize || 0;
+    if (!Utils$1.isNumber(y)) {
+      size = 0;
+      y = 0;
+    }
+    return drawMarkerShape(ctx, x, y, opts === null || opts === void 0 ? void 0 : opts.shape, size, _objectSpread2(_objectSpread2({}, opts), opts.shape === 'line' || opts.shape === 'plus' || opts.shape === 'cross' ? {
+      pointStrokeColor: opts.pointFillColor,
+      pointStrokeOpacity: opts.pointFillOpacity
+    } : {}));
+  }
+  function pathMouseEnter(ctx, path, e) {
+    var w = ctx.w;
+    var i = parseInt(path.node.getAttribute('index'), 10);
+    var j = parseInt(path.node.getAttribute('j'), 10);
+    if (typeof w.config.chart.events.dataPointMouseEnter === 'function') {
+      w.config.chart.events.dataPointMouseEnter(e, ctx, {
+        seriesIndex: i,
+        dataPointIndex: j,
+        w: w
+      });
+    }
+    ctx.events.fireEvent('dataPointMouseEnter', [e, ctx, {
+      seriesIndex: i,
+      dataPointIndex: j,
+      w: w
+    }]);
+    if (w.config.states.active.filter.type !== 'none') {
+      if (path.node.getAttribute('selected') === 'true') {
+        return;
       }
-    }, {
-      key: "drawMarker",
-      value: function drawMarker(x, y, opts) {
-        x = x || 0;
-        var size = opts.pSize || 0;
-        if (!Utils$1.isNumber(y)) {
-          size = 0;
-          y = 0;
-        }
-        return this.drawMarkerShape(x, y, opts === null || opts === void 0 ? void 0 : opts.shape, size, _objectSpread2(_objectSpread2({}, opts), opts.shape === 'line' || opts.shape === 'plus' || opts.shape === 'cross' ? {
-          pointStrokeColor: opts.pointFillColor,
-          pointStrokeOpacity: opts.pointFillOpacity
-        } : {}));
+    }
+    if (w.config.states.hover.filter.type !== 'none') {
+      if (!w.globals.isTouchDevice) {
+        var hoverFilter = w.config.states.hover.filter;
+        applyFilter(ctx, path, i, hoverFilter.type);
       }
-    }, {
-      key: "pathMouseEnter",
-      value: function pathMouseEnter(path, e) {
-        var w = this.w;
-        var filters = new Filters(this.ctx);
-        var i = parseInt(path.node.getAttribute('index'), 10);
-        var j = parseInt(path.node.getAttribute('j'), 10);
-        if (typeof w.config.chart.events.dataPointMouseEnter === 'function') {
-          w.config.chart.events.dataPointMouseEnter(e, this.ctx, {
-            seriesIndex: i,
-            dataPointIndex: j,
-            w: w
+    }
+  }
+  function pathMouseLeave(ctx, path, e) {
+    var w = ctx.w;
+    var i = parseInt(path.node.getAttribute('index'), 10);
+    var j = parseInt(path.node.getAttribute('j'), 10);
+    if (typeof w.config.chart.events.dataPointMouseLeave === 'function') {
+      w.config.chart.events.dataPointMouseLeave(e, ctx, {
+        seriesIndex: i,
+        dataPointIndex: j,
+        w: w
+      });
+    }
+    ctx.events.fireEvent('dataPointMouseLeave', [e, ctx, {
+      seriesIndex: i,
+      dataPointIndex: j,
+      w: w
+    }]);
+    if (w.config.states.active.filter.type !== 'none') {
+      if (path.node.getAttribute('selected') === 'true') {
+        return;
+      }
+    }
+    if (w.config.states.hover.filter.type !== 'none') {
+      getDefaultFilter(ctx, path, i);
+    }
+  }
+  function pathMouseDown(ctx, path, e) {
+    var w = ctx.w;
+    var i = parseInt(path.node.getAttribute('index'), 10);
+    var j = parseInt(path.node.getAttribute('j'), 10);
+    var selected = 'false';
+    if (path.node.getAttribute('selected') === 'true') {
+      path.node.setAttribute('selected', 'false');
+      if (w.globals.selectedDataPoints[i].indexOf(j) > -1) {
+        var index = w.globals.selectedDataPoints[i].indexOf(j);
+        w.globals.selectedDataPoints[i].splice(index, 1);
+      }
+    } else {
+      if (!w.config.states.active.allowMultipleDataPointsSelection && w.globals.selectedDataPoints.length > 0) {
+        w.globals.selectedDataPoints = [];
+        var elPaths = w.globals.dom.Paper.find('.apexcharts-series path:not(.apexcharts-decoration-element)');
+        var elCircles = w.globals.dom.Paper.find('.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)');
+        var deSelect = function deSelect(els) {
+          Array.prototype.forEach.call(els, function (el) {
+            el.node.setAttribute('selected', 'false');
+            getDefaultFilter(ctx, el, i);
           });
-        }
-        this.ctx.events.fireEvent('dataPointMouseEnter', [e, this.ctx, {
-          seriesIndex: i,
-          dataPointIndex: j,
-          w: w
-        }]);
-        if (w.config.states.active.filter.type !== 'none') {
-          if (path.node.getAttribute('selected') === 'true') {
-            return;
-          }
-        }
-        if (w.config.states.hover.filter.type !== 'none') {
+        };
+        deSelect(elPaths);
+        deSelect(elCircles);
+      }
+      path.node.setAttribute('selected', 'true');
+      selected = 'true';
+      if (typeof w.globals.selectedDataPoints[i] === 'undefined') {
+        w.globals.selectedDataPoints[i] = [];
+      }
+      w.globals.selectedDataPoints[i].push(j);
+    }
+    if (selected === 'true') {
+      var activeFilter = w.config.states.active.filter;
+      if (activeFilter !== 'none') {
+        applyFilter(ctx, path, i, activeFilter.type);
+      } else {
+        // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
+        if (w.config.states.hover.filter !== 'none') {
           if (!w.globals.isTouchDevice) {
             var hoverFilter = w.config.states.hover.filter;
-            filters.applyFilter(path, i, hoverFilter.type);
+            applyFilter(ctx, path, i, hoverFilter.type);
           }
         }
       }
-    }, {
-      key: "pathMouseLeave",
-      value: function pathMouseLeave(path, e) {
-        var w = this.w;
-        var filters = new Filters(this.ctx);
-        var i = parseInt(path.node.getAttribute('index'), 10);
-        var j = parseInt(path.node.getAttribute('j'), 10);
-        if (typeof w.config.chart.events.dataPointMouseLeave === 'function') {
-          w.config.chart.events.dataPointMouseLeave(e, this.ctx, {
-            seriesIndex: i,
-            dataPointIndex: j,
-            w: w
-          });
+    } else {
+      // If the item was deselected, apply hover state filter if it is not a touch device
+      if (w.config.states.active.filter.type !== 'none') {
+        if (w.config.states.hover.filter.type !== 'none' && !w.globals.isTouchDevice) {
+          var hoverFilter = w.config.states.hover.filter;
+          applyFilter(ctx, path, i, hoverFilter.type);
+        } else {
+          getDefaultFilter(ctx, path, i);
         }
-        this.ctx.events.fireEvent('dataPointMouseLeave', [e, this.ctx, {
-          seriesIndex: i,
-          dataPointIndex: j,
-          w: w
-        }]);
-        if (w.config.states.active.filter.type !== 'none') {
-          if (path.node.getAttribute('selected') === 'true') {
+      }
+    }
+    if (typeof w.config.chart.events.dataPointSelection === 'function') {
+      w.config.chart.events.dataPointSelection(e, ctx, {
+        selectedDataPoints: w.globals.selectedDataPoints,
+        seriesIndex: i,
+        dataPointIndex: j,
+        w: w
+      });
+    }
+    if (e) {
+      ctx.events.fireEvent('dataPointSelection', [e, ctx, {
+        selectedDataPoints: w.globals.selectedDataPoints,
+        seriesIndex: i,
+        dataPointIndex: j,
+        w: w
+      }]);
+    }
+  }
+  function rotateAroundCenter(el) {
+    var coord = {};
+    if (el && typeof el.getBBox === 'function') {
+      coord = el.getBBox();
+    }
+    var x = coord.x + coord.width / 2;
+    var y = coord.y + coord.height / 2;
+    return {
+      x: x,
+      y: y
+    };
+  }
+  function setAttrs(el, attrs) {
+    for (var key in attrs) {
+      if (attrs.hasOwnProperty(key)) {
+        el.setAttribute(key, attrs[key]);
+      }
+    }
+  }
+  function getTextRects(ctx, text, fontSize, fontFamily, transform) {
+    var useBBox = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : true;
+    var w = ctx.w;
+    var virtualText = drawText(ctx, {
+      x: -200,
+      y: -200,
+      text: text,
+      textAnchor: 'start',
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+      foreColor: '#fff',
+      opacity: 0
+    });
+    if (transform) {
+      virtualText.attr('transform', transform);
+    }
+    w.globals.dom.Paper.add(virtualText);
+    var rect = virtualText.bbox();
+    if (!useBBox) {
+      rect = virtualText.node.getBoundingClientRect();
+    }
+    virtualText.remove();
+    return {
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  /**
+   * append ... to long text
+   * http://stackoverflow.com/questions/9241315/trimming-text-to-a-given-pixel-width-in-svg
+   * @memberof Graphics
+   **/
+  function placeTextWithEllipsis(textObj, textString, width) {
+    if (typeof textObj.getComputedTextLength !== 'function') return;
+    textObj.textContent = textString;
+    if (textString.length > 0) {
+      // ellipsis is needed
+      if (textObj.getComputedTextLength() >= width / 1.1) {
+        for (var x = textString.length - 3; x > 0; x -= 3) {
+          if (textObj.getSubStringLength(0, x) <= width / 1.1) {
+            textObj.textContent = textString.substring(0, x) + '...';
             return;
           }
         }
-        if (w.config.states.hover.filter.type !== 'none') {
-          filters.getDefaultFilter(path, i);
-        }
+        textObj.textContent = '.'; // can't place at all
       }
-    }, {
-      key: "pathMouseDown",
-      value: function pathMouseDown(path, e) {
-        var w = this.w;
-        var filters = new Filters(this.ctx);
-        var i = parseInt(path.node.getAttribute('index'), 10);
-        var j = parseInt(path.node.getAttribute('j'), 10);
-        var selected = 'false';
-        if (path.node.getAttribute('selected') === 'true') {
-          path.node.setAttribute('selected', 'false');
-          if (w.globals.selectedDataPoints[i].indexOf(j) > -1) {
-            var index = w.globals.selectedDataPoints[i].indexOf(j);
-            w.globals.selectedDataPoints[i].splice(index, 1);
-          }
-        } else {
-          if (!w.config.states.active.allowMultipleDataPointsSelection && w.globals.selectedDataPoints.length > 0) {
-            w.globals.selectedDataPoints = [];
-            var elPaths = w.globals.dom.Paper.find('.apexcharts-series path:not(.apexcharts-decoration-element)');
-            var elCircles = w.globals.dom.Paper.find('.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)');
-            var deSelect = function deSelect(els) {
-              Array.prototype.forEach.call(els, function (el) {
-                el.node.setAttribute('selected', 'false');
-                filters.getDefaultFilter(el, i);
-              });
-            };
-            deSelect(elPaths);
-            deSelect(elCircles);
-          }
-          path.node.setAttribute('selected', 'true');
-          selected = 'true';
-          if (typeof w.globals.selectedDataPoints[i] === 'undefined') {
-            w.globals.selectedDataPoints[i] = [];
-          }
-          w.globals.selectedDataPoints[i].push(j);
-        }
-        if (selected === 'true') {
-          var activeFilter = w.config.states.active.filter;
-          if (activeFilter !== 'none') {
-            filters.applyFilter(path, i, activeFilter.type);
-          } else {
-            // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
-            if (w.config.states.hover.filter !== 'none') {
-              if (!w.globals.isTouchDevice) {
-                var hoverFilter = w.config.states.hover.filter;
-                filters.applyFilter(path, i, hoverFilter.type);
-              }
-            }
-          }
-        } else {
-          // If the item was deselected, apply hover state filter if it is not a touch device
-          if (w.config.states.active.filter.type !== 'none') {
-            if (w.config.states.hover.filter.type !== 'none' && !w.globals.isTouchDevice) {
-              var hoverFilter = w.config.states.hover.filter;
-              filters.applyFilter(path, i, hoverFilter.type);
-            } else {
-              filters.getDefaultFilter(path, i);
-            }
-          }
-        }
-        if (typeof w.config.chart.events.dataPointSelection === 'function') {
-          w.config.chart.events.dataPointSelection(e, this.ctx, {
-            selectedDataPoints: w.globals.selectedDataPoints,
-            seriesIndex: i,
-            dataPointIndex: j,
-            w: w
-          });
-        }
-        if (e) {
-          this.ctx.events.fireEvent('dataPointSelection', [e, this.ctx, {
-            selectedDataPoints: w.globals.selectedDataPoints,
-            seriesIndex: i,
-            dataPointIndex: j,
-            w: w
-          }]);
-        }
-      }
-    }, {
-      key: "rotateAroundCenter",
-      value: function rotateAroundCenter(el) {
-        var coord = {};
-        if (el && typeof el.getBBox === 'function') {
-          coord = el.getBBox();
-        }
-        var x = coord.x + coord.width / 2;
-        var y = coord.y + coord.height / 2;
-        return {
-          x: x,
-          y: y
-        };
-      }
-    }, {
-      key: "getTextRects",
-      value: function getTextRects(text, fontSize, fontFamily, transform) {
-        var useBBox = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
-        var w = this.w;
-        var virtualText = this.drawText({
-          x: -200,
-          y: -200,
-          text: text,
-          textAnchor: 'start',
-          fontSize: fontSize,
-          fontFamily: fontFamily,
-          foreColor: '#fff',
-          opacity: 0
-        });
-        if (transform) {
-          virtualText.attr('transform', transform);
-        }
-        w.globals.dom.Paper.add(virtualText);
-        var rect = virtualText.bbox();
-        if (!useBBox) {
-          rect = virtualText.node.getBoundingClientRect();
-        }
-        virtualText.remove();
-        return {
-          width: rect.width,
-          height: rect.height
-        };
-      }
+    }
+  }
 
-      /**
-       * append ... to long text
-       * http://stackoverflow.com/questions/9241315/trimming-text-to-a-given-pixel-width-in-svg
-       * @memberof Graphics
-       **/
-    }, {
-      key: "placeTextWithEllipsis",
-      value: function placeTextWithEllipsis(textObj, textString, width) {
-        if (typeof textObj.getComputedTextLength !== 'function') return;
-        textObj.textContent = textString;
-        if (textString.length > 0) {
-          // ellipsis is needed
-          if (textObj.getComputedTextLength() >= width / 1.1) {
-            for (var x = textString.length - 3; x > 0; x -= 3) {
-              if (textObj.getSubStringLength(0, x) <= width / 1.1) {
-                textObj.textContent = textString.substring(0, x) + '...';
-                return;
-              }
-            }
-            textObj.textContent = '.'; // can't place at all
-          }
-        }
-      }
-    }], [{
-      key: "setAttrs",
-      value: function setAttrs(el, attrs) {
-        for (var key in attrs) {
-          if (attrs.hasOwnProperty(key)) {
-            el.setAttribute(key, attrs[key]);
-          }
-        }
-      }
-    }]);
-    return Graphics;
-  }();
+  // Default export for backward compatibility
+  var Graphics = {
+    roundPathCorners: roundPathCorners,
+    drawLine: drawLine,
+    drawRect: drawRect,
+    drawPolygon: drawPolygon,
+    drawCircle: drawCircle,
+    drawPath: drawPath,
+    group: group,
+    move: move,
+    line: line,
+    curve: curve,
+    quadraticCurve: quadraticCurve,
+    arc: arc,
+    renderPaths: renderPaths,
+    drawPattern: drawPattern,
+    drawGradient: drawGradient,
+    getTextBasedOnMaxWidth: getTextBasedOnMaxWidth,
+    drawText: drawText,
+    getMarkerPath: getMarkerPath,
+    drawMarkerShape: drawMarkerShape,
+    drawMarker: drawMarker,
+    pathMouseEnter: pathMouseEnter,
+    pathMouseLeave: pathMouseLeave,
+    pathMouseDown: pathMouseDown,
+    rotateAroundCenter: rotateAroundCenter,
+    setAttrs: setAttrs,
+    getTextRects: getTextRects,
+    placeTextWithEllipsis: placeTextWithEllipsis
+  };
+
+  var Graphics$1 = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    arc: arc,
+    curve: curve,
+    default: Graphics,
+    drawCircle: drawCircle,
+    drawGradient: drawGradient,
+    drawLine: drawLine,
+    drawMarker: drawMarker,
+    drawMarkerShape: drawMarkerShape,
+    drawPath: drawPath,
+    drawPattern: drawPattern,
+    drawPolygon: drawPolygon,
+    drawRect: drawRect,
+    drawText: drawText,
+    getMarkerPath: getMarkerPath,
+    getTextBasedOnMaxWidth: getTextBasedOnMaxWidth,
+    getTextRects: getTextRects,
+    group: group,
+    line: line,
+    move: move,
+    pathMouseDown: pathMouseDown,
+    pathMouseEnter: pathMouseEnter,
+    pathMouseLeave: pathMouseLeave,
+    placeTextWithEllipsis: placeTextWithEllipsis,
+    quadraticCurve: quadraticCurve,
+    renderPaths: renderPaths,
+    rotateAroundCenter: rotateAroundCenter,
+    roundPathCorners: roundPathCorners,
+    setAttrs: setAttrs
+  });
 
   /*
    ** Util functions which are dependent on ApexCharts instance
@@ -15151,574 +15123,544 @@
    *
    * @module Fill
    **/
-  var Fill = /*#__PURE__*/function () {
-    function Fill(ctx) {
-      _classCallCheck(this, Fill);
-      this.ctx = ctx;
-      this.w = ctx.w;
-      this.opts = null;
-      this.seriesIndex = 0;
-      this.patternIDs = [];
+
+  function clippedImgArea(ctx, params) {
+    var w = ctx.w;
+    var cnf = w.config;
+    var svgW = parseInt(w.globals.gridWidth, 10);
+    var svgH = parseInt(w.globals.gridHeight, 10);
+    var size = svgW > svgH ? svgW : svgH;
+    var fillImg = params.image;
+    var imgWidth = 0;
+    var imgHeight = 0;
+    if (typeof params.width === 'undefined' && typeof params.height === 'undefined') {
+      if (cnf.fill.image.width !== undefined && cnf.fill.image.height !== undefined) {
+        imgWidth = cnf.fill.image.width + 1;
+        imgHeight = cnf.fill.image.height;
+      } else {
+        imgWidth = size + 1;
+        imgHeight = size;
+      }
+    } else {
+      imgWidth = params.width;
+      imgHeight = params.height;
     }
-    _createClass(Fill, [{
-      key: "clippedImgArea",
-      value: function clippedImgArea(params) {
-        var w = this.w;
-        var cnf = w.config;
-        var svgW = parseInt(w.globals.gridWidth, 10);
-        var svgH = parseInt(w.globals.gridHeight, 10);
-        var size = svgW > svgH ? svgW : svgH;
-        var fillImg = params.image;
-        var imgWidth = 0;
-        var imgHeight = 0;
-        if (typeof params.width === 'undefined' && typeof params.height === 'undefined') {
-          if (cnf.fill.image.width !== undefined && cnf.fill.image.height !== undefined) {
-            imgWidth = cnf.fill.image.width + 1;
-            imgHeight = cnf.fill.image.height;
-          } else {
-            imgWidth = size + 1;
-            imgHeight = size;
+    var elPattern = document.createElementNS(w.globals.SVGNS, 'pattern');
+    Graphics.setAttrs(elPattern, {
+      id: params.patternID,
+      patternUnits: params.patternUnits ? params.patternUnits : 'userSpaceOnUse',
+      width: imgWidth + 'px',
+      height: imgHeight + 'px'
+    });
+    var elImage = document.createElementNS(w.globals.SVGNS, 'image');
+    elPattern.appendChild(elImage);
+    elImage.setAttributeNS(window.SVG.xlink, 'href', fillImg);
+    Graphics.setAttrs(elImage, {
+      x: 0,
+      y: 0,
+      preserveAspectRatio: 'none',
+      width: imgWidth + 'px',
+      height: imgHeight + 'px'
+    });
+    elImage.style.opacity = params.opacity;
+    w.globals.dom.elDefs.node.appendChild(elPattern);
+  }
+  function getSeriesIndex(ctx, opts) {
+    var w = ctx.w;
+    var cType = w.config.chart.type;
+    var seriesIndex;
+    if ((cType === 'bar' || cType === 'rangeBar') && w.config.plotOptions.bar.distributed || cType === 'heatmap' || cType === 'treemap') {
+      seriesIndex = opts.seriesNumber;
+    } else {
+      seriesIndex = opts.seriesNumber % w.globals.series.length;
+    }
+    return seriesIndex;
+  }
+  function computeColorStops(ctx, data, multiColorConfig) {
+    var w = ctx.w;
+    var maxPositive = null;
+    var minNegative = null;
+    var _iterator = _createForOfIteratorHelper(data),
+      _step;
+    try {
+      for (_iterator.s(); !(_step = _iterator.n()).done;) {
+        var value = _step.value;
+        if (value >= multiColorConfig.threshold) {
+          if (maxPositive === null || value > maxPositive) {
+            maxPositive = value;
           }
         } else {
-          imgWidth = params.width;
-          imgHeight = params.height;
+          if (minNegative === null || value < minNegative) {
+            minNegative = value;
+          }
         }
-        var elPattern = document.createElementNS(w.globals.SVGNS, 'pattern');
-        Graphics.setAttrs(elPattern, {
-          id: params.patternID,
-          patternUnits: params.patternUnits ? params.patternUnits : 'userSpaceOnUse',
-          width: imgWidth + 'px',
-          height: imgHeight + 'px'
+      }
+    } catch (err) {
+      _iterator.e(err);
+    } finally {
+      _iterator.f();
+    }
+    if (maxPositive === null) {
+      maxPositive = multiColorConfig.threshold;
+    }
+    if (minNegative === null) {
+      minNegative = multiColorConfig.threshold;
+    }
+    var totalRange = maxPositive - multiColorConfig.threshold + (multiColorConfig.threshold - minNegative);
+    if (totalRange === 0) {
+      totalRange = 1;
+    }
+    var negativePercentage = (multiColorConfig.threshold - minNegative) / totalRange * 100;
+    var offset = 100 - negativePercentage;
+    offset = Math.max(0, Math.min(offset, 100));
+    return [{
+      offset: offset,
+      color: multiColorConfig.colorAboveThreshold,
+      opacity: w.config.fill.opacity
+    }, {
+      offset: 0,
+      color: multiColorConfig.colorBelowThreshold,
+      opacity: w.config.fill.opacity
+    }];
+  }
+  function fillPath(ctx, opts) {
+    var _w$config$series$seri, _w$config$series$seri2, _w$config$series$seri3;
+    var w = ctx.w;
+    var cnf = w.config;
+    var pathFill;
+    var patternFill, gradientFill;
+    var seriesIndex = getSeriesIndex(ctx, opts);
+    var drawMultiColorLine = cnf.plotOptions.line.colors.colorAboveThreshold && cnf.plotOptions.line.colors.colorBelowThreshold;
+    var fillColors = getFillColors(ctx, opts);
+    var fillColor = fillColors[seriesIndex];
+
+    //override fillcolor if user inputted color with data
+    if (w.globals.seriesColors[seriesIndex] !== undefined) {
+      fillColor = w.globals.seriesColors[seriesIndex];
+    }
+    if (typeof fillColor === 'function') {
+      fillColor = fillColor({
+        seriesIndex: seriesIndex,
+        dataPointIndex: opts.dataPointIndex,
+        value: opts.value,
+        w: w
+      });
+    }
+    var fillType = opts.fillType ? opts.fillType : getFillType(ctx, seriesIndex);
+    var fillOpacity = Array.isArray(cnf.fill.opacity) ? cnf.fill.opacity[seriesIndex] : cnf.fill.opacity;
+
+    // when line colors needs to be different based on values, we use gradient config to achieve this
+    var useGradient = fillType === 'gradient' || drawMultiColorLine;
+    if (opts.color) {
+      fillColor = opts.color;
+    }
+    if ((_w$config$series$seri = w.config.series[seriesIndex]) !== null && _w$config$series$seri !== void 0 && (_w$config$series$seri2 = _w$config$series$seri.data) !== null && _w$config$series$seri2 !== void 0 && (_w$config$series$seri3 = _w$config$series$seri2[opts.dataPointIndex]) !== null && _w$config$series$seri3 !== void 0 && _w$config$series$seri3.fillColor) {
+      var _w$config$series$seri4, _w$config$series$seri5, _w$config$series$seri6;
+      fillColor = (_w$config$series$seri4 = w.config.series[seriesIndex]) === null || _w$config$series$seri4 === void 0 ? void 0 : (_w$config$series$seri5 = _w$config$series$seri4.data) === null || _w$config$series$seri5 === void 0 ? void 0 : (_w$config$series$seri6 = _w$config$series$seri5[opts.dataPointIndex]) === null || _w$config$series$seri6 === void 0 ? void 0 : _w$config$series$seri6.fillColor;
+    }
+
+    // in case a color is undefined, fallback to white color to prevent runtime error
+    if (!fillColor) {
+      fillColor = '#fff';
+      console.warn('undefined color - ApexCharts');
+    }
+    var defaultColor = fillColor;
+    if (fillColor.indexOf('rgb') === -1) {
+      if (fillColor.indexOf('#') === -1) {
+        defaultColor = fillColor;
+      } else if (fillColor.length < 9) {
+        // if the hex contains alpha and is of 9 digit, skip the opacity
+        defaultColor = Utils$1.hexToRgba(fillColor, fillOpacity);
+      }
+    } else {
+      if (fillColor.indexOf('rgba') > -1) {
+        fillOpacity = Utils$1.getOpacityFromRGBA(fillColor);
+      } else {
+        defaultColor = Utils$1.hexToRgba(Utils$1.rgb2hex(fillColor), fillOpacity);
+      }
+    }
+    if (opts.opacity) fillOpacity = opts.opacity;
+    if (fillType === 'pattern') {
+      patternFill = handlePatternFill(ctx, opts, {
+        fillConfig: opts.fillConfig,
+        patternFill: patternFill,
+        fillColor: fillColor,
+        fillOpacity: fillOpacity,
+        defaultColor: defaultColor
+      });
+    }
+    if (useGradient) {
+      var colorStops = _toConsumableArray(cnf.fill.gradient.colorStops) || [];
+      var type = cnf.fill.gradient.type;
+      if (drawMultiColorLine) {
+        colorStops[seriesIndex] = computeColorStops(ctx, w.globals.series[seriesIndex], cnf.plotOptions.line.colors);
+        type = 'vertical';
+      }
+      gradientFill = handleGradientFill(ctx, opts, {
+        type: type,
+        fillConfig: opts.fillConfig,
+        fillColor: fillColor,
+        fillOpacity: fillOpacity,
+        colorStops: colorStops,
+        i: seriesIndex
+      });
+    }
+    if (fillType === 'image') {
+      if (!w.globals.patternIDs) {
+        w.globals.patternIDs = [];
+      }
+      var imgSrc = cnf.fill.image.src;
+      var patternID = opts.patternID ? opts.patternID : '';
+      var patternKey = "pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1).concat(patternID);
+      if (w.globals.patternIDs.indexOf(patternKey) === -1) {
+        clippedImgArea(ctx, {
+          opacity: fillOpacity,
+          image: Array.isArray(imgSrc) ? opts.seriesNumber < imgSrc.length ? imgSrc[opts.seriesNumber] : imgSrc[0] : imgSrc,
+          width: opts.width ? opts.width : undefined,
+          height: opts.height ? opts.height : undefined,
+          patternUnits: opts.patternUnits,
+          patternID: patternKey
         });
-        var elImage = document.createElementNS(w.globals.SVGNS, 'image');
-        elPattern.appendChild(elImage);
-        elImage.setAttributeNS(window.SVG.xlink, 'href', fillImg);
-        Graphics.setAttrs(elImage, {
-          x: 0,
-          y: 0,
-          preserveAspectRatio: 'none',
-          width: imgWidth + 'px',
-          height: imgHeight + 'px'
-        });
-        elImage.style.opacity = params.opacity;
-        w.globals.dom.elDefs.node.appendChild(elPattern);
+        w.globals.patternIDs.push(patternKey);
       }
-    }, {
-      key: "getSeriesIndex",
-      value: function getSeriesIndex(opts) {
-        var w = this.w;
-        var cType = w.config.chart.type;
-        if ((cType === 'bar' || cType === 'rangeBar') && w.config.plotOptions.bar.distributed || cType === 'heatmap' || cType === 'treemap') {
-          this.seriesIndex = opts.seriesNumber;
-        } else {
-          this.seriesIndex = opts.seriesNumber % w.globals.series.length;
-        }
-        return this.seriesIndex;
-      }
-    }, {
-      key: "computeColorStops",
-      value: function computeColorStops(data, multiColorConfig) {
-        var w = this.w;
-        var maxPositive = null;
-        var minNegative = null;
-        var _iterator = _createForOfIteratorHelper(data),
-          _step;
-        try {
-          for (_iterator.s(); !(_step = _iterator.n()).done;) {
-            var value = _step.value;
-            if (value >= multiColorConfig.threshold) {
-              if (maxPositive === null || value > maxPositive) {
-                maxPositive = value;
-              }
-            } else {
-              if (minNegative === null || value < minNegative) {
-                minNegative = value;
-              }
-            }
-          }
-        } catch (err) {
-          _iterator.e(err);
-        } finally {
-          _iterator.f();
-        }
-        if (maxPositive === null) {
-          maxPositive = multiColorConfig.threshold;
-        }
-        if (minNegative === null) {
-          minNegative = multiColorConfig.threshold;
-        }
-        var totalRange = maxPositive - multiColorConfig.threshold + (multiColorConfig.threshold - minNegative);
-        if (totalRange === 0) {
-          totalRange = 1;
-        }
-        var negativePercentage = (multiColorConfig.threshold - minNegative) / totalRange * 100;
-        var offset = 100 - negativePercentage;
-        offset = Math.max(0, Math.min(offset, 100));
-        return [{
-          offset: offset,
-          color: multiColorConfig.colorAboveThreshold,
-          opacity: w.config.fill.opacity
-        }, {
-          offset: 0,
-          color: multiColorConfig.colorBelowThreshold,
-          opacity: w.config.fill.opacity
-        }];
-      }
-    }, {
-      key: "fillPath",
-      value: function fillPath(opts) {
-        var _w$config$series$this, _w$config$series$this2, _w$config$series$this3;
-        var w = this.w;
-        this.opts = opts;
-        var cnf = this.w.config;
-        var pathFill;
-        var patternFill, gradientFill;
-        this.seriesIndex = this.getSeriesIndex(opts);
-        var drawMultiColorLine = cnf.plotOptions.line.colors.colorAboveThreshold && cnf.plotOptions.line.colors.colorBelowThreshold;
-        var fillColors = this.getFillColors();
-        var fillColor = fillColors[this.seriesIndex];
+      pathFill = "url(#".concat(patternKey, ")");
+    } else if (useGradient) {
+      pathFill = gradientFill;
+    } else if (fillType === 'pattern') {
+      pathFill = patternFill;
+    } else {
+      pathFill = defaultColor;
+    }
 
-        //override fillcolor if user inputted color with data
-        if (w.globals.seriesColors[this.seriesIndex] !== undefined) {
-          fillColor = w.globals.seriesColors[this.seriesIndex];
+    // override pattern/gradient if opts.solid is true
+    if (opts.solid) {
+      pathFill = defaultColor;
+    }
+    return pathFill;
+  }
+  function getFillType(ctx, seriesIndex) {
+    var w = ctx.w;
+    if (Array.isArray(w.config.fill.type)) {
+      return w.config.fill.type[seriesIndex];
+    } else {
+      return w.config.fill.type;
+    }
+  }
+  function getFillColors(ctx, opts) {
+    var w = ctx.w;
+    var cnf = w.config;
+    var seriesIndex = getSeriesIndex(ctx, opts);
+    var fillColors = [];
+    if (w.globals.comboCharts) {
+      if (w.config.series[seriesIndex].type === 'line') {
+        if (Array.isArray(w.globals.stroke.colors)) {
+          fillColors = w.globals.stroke.colors;
+        } else {
+          fillColors.push(w.globals.stroke.colors);
         }
-        if (typeof fillColor === 'function') {
-          fillColor = fillColor({
-            seriesIndex: this.seriesIndex,
-            dataPointIndex: opts.dataPointIndex,
-            value: opts.value,
-            w: w
-          });
+      } else {
+        if (Array.isArray(w.globals.fill.colors)) {
+          fillColors = w.globals.fill.colors;
+        } else {
+          fillColors.push(w.globals.fill.colors);
         }
-        var fillType = opts.fillType ? opts.fillType : this.getFillType(this.seriesIndex);
-        var fillOpacity = Array.isArray(cnf.fill.opacity) ? cnf.fill.opacity[this.seriesIndex] : cnf.fill.opacity;
+      }
+    } else {
+      if (cnf.chart.type === 'line') {
+        if (Array.isArray(w.globals.stroke.colors)) {
+          fillColors = w.globals.stroke.colors;
+        } else {
+          fillColors.push(w.globals.stroke.colors);
+        }
+      } else {
+        if (Array.isArray(w.globals.fill.colors)) {
+          fillColors = w.globals.fill.colors;
+        } else {
+          fillColors.push(w.globals.fill.colors);
+        }
+      }
+    }
 
-        // when line colors needs to be different based on values, we use gradient config to achieve this
-        var useGradient = fillType === 'gradient' || drawMultiColorLine;
-        if (opts.color) {
-          fillColor = opts.color;
+    // colors passed in arguments
+    if (typeof opts.fillColors !== 'undefined') {
+      fillColors = [];
+      if (Array.isArray(opts.fillColors)) {
+        fillColors = opts.fillColors.slice();
+      } else {
+        fillColors.push(opts.fillColors);
+      }
+    }
+    return fillColors;
+  }
+  function handlePatternFill(ctx, opts, _ref) {
+    var fillConfig = _ref.fillConfig,
+      patternFill = _ref.patternFill,
+      fillColor = _ref.fillColor,
+      fillOpacity = _ref.fillOpacity,
+      defaultColor = _ref.defaultColor;
+    var w = ctx.w;
+    var fillCnf = w.config.fill;
+    if (fillConfig) {
+      fillCnf = fillConfig;
+    }
+    var graphics = new Graphics(ctx);
+    var seriesIndex = getSeriesIndex(ctx, opts);
+    var patternStrokeWidth = Array.isArray(fillCnf.pattern.strokeWidth) ? fillCnf.pattern.strokeWidth[seriesIndex] : fillCnf.pattern.strokeWidth;
+    var patternLineColor = fillColor;
+    if (Array.isArray(fillCnf.pattern.style)) {
+      if (typeof fillCnf.pattern.style[opts.seriesNumber] !== 'undefined') {
+        var pf = graphics.drawPattern(fillCnf.pattern.style[opts.seriesNumber], fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
+        patternFill = pf;
+      } else {
+        patternFill = defaultColor;
+      }
+    } else {
+      patternFill = graphics.drawPattern(fillCnf.pattern.style, fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
+    }
+    return patternFill;
+  }
+  function handleGradientFill(ctx, opts, _ref2) {
+    var type = _ref2.type,
+      fillColor = _ref2.fillColor,
+      fillOpacity = _ref2.fillOpacity,
+      fillConfig = _ref2.fillConfig,
+      colorStops = _ref2.colorStops,
+      i = _ref2.i;
+    var w = ctx.w;
+    var fillCnf = w.config.fill;
+    if (fillConfig) {
+      fillCnf = _objectSpread2(_objectSpread2({}, fillCnf), fillConfig);
+    }
+    var graphics = new Graphics(ctx);
+    var utils = new Utils$1();
+    type = type || fillCnf.gradient.type;
+    var gradientFrom = fillColor;
+    var gradientTo;
+    var opacityFrom = fillCnf.gradient.opacityFrom === undefined ? fillOpacity : Array.isArray(fillCnf.gradient.opacityFrom) ? fillCnf.gradient.opacityFrom[i] : fillCnf.gradient.opacityFrom;
+    if (gradientFrom.indexOf('rgba') > -1) {
+      opacityFrom = Utils$1.getOpacityFromRGBA(gradientFrom);
+    }
+    var opacityTo = fillCnf.gradient.opacityTo === undefined ? fillOpacity : Array.isArray(fillCnf.gradient.opacityTo) ? fillCnf.gradient.opacityTo[i] : fillCnf.gradient.opacityTo;
+    if (fillCnf.gradient.gradientToColors === undefined || fillCnf.gradient.gradientToColors.length === 0) {
+      if (fillCnf.gradient.shade === 'dark') {
+        gradientTo = utils.shadeColor(parseFloat(fillCnf.gradient.shadeIntensity) * -1, fillColor.indexOf('rgb') > -1 ? Utils$1.rgb2hex(fillColor) : fillColor);
+      } else {
+        gradientTo = utils.shadeColor(parseFloat(fillCnf.gradient.shadeIntensity), fillColor.indexOf('rgb') > -1 ? Utils$1.rgb2hex(fillColor) : fillColor);
+      }
+    } else {
+      if (fillCnf.gradient.gradientToColors[opts.seriesNumber]) {
+        var gToColor = fillCnf.gradient.gradientToColors[opts.seriesNumber];
+        gradientTo = gToColor;
+        if (gToColor.indexOf('rgba') > -1) {
+          opacityTo = Utils$1.getOpacityFromRGBA(gToColor);
         }
-        if ((_w$config$series$this = w.config.series[this.seriesIndex]) !== null && _w$config$series$this !== void 0 && (_w$config$series$this2 = _w$config$series$this.data) !== null && _w$config$series$this2 !== void 0 && (_w$config$series$this3 = _w$config$series$this2[opts.dataPointIndex]) !== null && _w$config$series$this3 !== void 0 && _w$config$series$this3.fillColor) {
-          var _w$config$series$this4, _w$config$series$this5, _w$config$series$this6;
-          fillColor = (_w$config$series$this4 = w.config.series[this.seriesIndex]) === null || _w$config$series$this4 === void 0 ? void 0 : (_w$config$series$this5 = _w$config$series$this4.data) === null || _w$config$series$this5 === void 0 ? void 0 : (_w$config$series$this6 = _w$config$series$this5[opts.dataPointIndex]) === null || _w$config$series$this6 === void 0 ? void 0 : _w$config$series$this6.fillColor;
-        }
+      } else {
+        gradientTo = fillColor;
+      }
+    }
+    if (fillCnf.gradient.gradientFrom) {
+      gradientFrom = fillCnf.gradient.gradientFrom;
+    }
+    if (fillCnf.gradient.gradientTo) {
+      gradientTo = fillCnf.gradient.gradientTo;
+    }
+    if (fillCnf.gradient.inverseColors) {
+      var t = gradientFrom;
+      gradientFrom = gradientTo;
+      gradientTo = t;
+    }
+    if (gradientFrom.indexOf('rgb') > -1) {
+      gradientFrom = Utils$1.rgb2hex(gradientFrom);
+    }
+    if (gradientTo.indexOf('rgb') > -1) {
+      gradientTo = Utils$1.rgb2hex(gradientTo);
+    }
+    return graphics.drawGradient(type, gradientFrom, gradientTo, opacityFrom, opacityTo, opts.size, fillCnf.gradient.stops, colorStops, i);
+  }
+  var Fill = {
+    fillPath: fillPath
+  };
 
-        // in case a color is undefined, fallback to white color to prevent runtime error
-        if (!fillColor) {
-          fillColor = '#fff';
-          console.warn('undefined color - ApexCharts');
-        }
-        var defaultColor = fillColor;
-        if (fillColor.indexOf('rgb') === -1) {
-          if (fillColor.indexOf('#') === -1) {
-            defaultColor = fillColor;
-          } else if (fillColor.length < 9) {
-            // if the hex contains alpha and is of 9 digit, skip the opacity
-            defaultColor = Utils$1.hexToRgba(fillColor, fillOpacity);
-          }
-        } else {
-          if (fillColor.indexOf('rgba') > -1) {
-            fillOpacity = Utils$1.getOpacityFromRGBA(fillColor);
-          } else {
-            defaultColor = Utils$1.hexToRgba(Utils$1.rgb2hex(fillColor), fillOpacity);
-          }
-        }
-        if (opts.opacity) fillOpacity = opts.opacity;
-        if (fillType === 'pattern') {
-          patternFill = this.handlePatternFill({
-            fillConfig: opts.fillConfig,
-            patternFill: patternFill,
-            fillColor: fillColor,
-            fillOpacity: fillOpacity,
-            defaultColor: defaultColor
-          });
-        }
-        if (useGradient) {
-          var colorStops = _toConsumableArray(cnf.fill.gradient.colorStops) || [];
-          var type = cnf.fill.gradient.type;
-          if (drawMultiColorLine) {
-            colorStops[this.seriesIndex] = this.computeColorStops(w.globals.series[this.seriesIndex], cnf.plotOptions.line.colors);
-            type = 'vertical';
-          }
-          gradientFill = this.handleGradientFill({
-            type: type,
-            fillConfig: opts.fillConfig,
-            fillColor: fillColor,
-            fillOpacity: fillOpacity,
-            colorStops: colorStops,
-            i: this.seriesIndex
-          });
-        }
-        if (fillType === 'image') {
-          var imgSrc = cnf.fill.image.src;
-          var patternID = opts.patternID ? opts.patternID : '';
-          var patternKey = "pattern".concat(w.globals.cuid).concat(opts.seriesNumber + 1).concat(patternID);
-          if (this.patternIDs.indexOf(patternKey) === -1) {
-            this.clippedImgArea({
-              opacity: fillOpacity,
-              image: Array.isArray(imgSrc) ? opts.seriesNumber < imgSrc.length ? imgSrc[opts.seriesNumber] : imgSrc[0] : imgSrc,
-              width: opts.width ? opts.width : undefined,
-              height: opts.height ? opts.height : undefined,
-              patternUnits: opts.patternUnits,
-              patternID: patternKey
-            });
-            this.patternIDs.push(patternKey);
-          }
-          pathFill = "url(#".concat(patternKey, ")");
-        } else if (useGradient) {
-          pathFill = gradientFill;
-        } else if (fillType === 'pattern') {
-          pathFill = patternFill;
-        } else {
-          pathFill = defaultColor;
-        }
-
-        // override pattern/gradient if opts.solid is true
-        if (opts.solid) {
-          pathFill = defaultColor;
-        }
-        return pathFill;
-      }
-    }, {
-      key: "getFillType",
-      value: function getFillType(seriesIndex) {
-        var w = this.w;
-        if (Array.isArray(w.config.fill.type)) {
-          return w.config.fill.type[seriesIndex];
-        } else {
-          return w.config.fill.type;
-        }
-      }
-    }, {
-      key: "getFillColors",
-      value: function getFillColors() {
-        var w = this.w;
-        var cnf = w.config;
-        var opts = this.opts;
-        var fillColors = [];
-        if (w.globals.comboCharts) {
-          if (w.config.series[this.seriesIndex].type === 'line') {
-            if (Array.isArray(w.globals.stroke.colors)) {
-              fillColors = w.globals.stroke.colors;
-            } else {
-              fillColors.push(w.globals.stroke.colors);
-            }
-          } else {
-            if (Array.isArray(w.globals.fill.colors)) {
-              fillColors = w.globals.fill.colors;
-            } else {
-              fillColors.push(w.globals.fill.colors);
-            }
-          }
-        } else {
-          if (cnf.chart.type === 'line') {
-            if (Array.isArray(w.globals.stroke.colors)) {
-              fillColors = w.globals.stroke.colors;
-            } else {
-              fillColors.push(w.globals.stroke.colors);
-            }
-          } else {
-            if (Array.isArray(w.globals.fill.colors)) {
-              fillColors = w.globals.fill.colors;
-            } else {
-              fillColors.push(w.globals.fill.colors);
-            }
-          }
-        }
-
-        // colors passed in arguments
-        if (typeof opts.fillColors !== 'undefined') {
-          fillColors = [];
-          if (Array.isArray(opts.fillColors)) {
-            fillColors = opts.fillColors.slice();
-          } else {
-            fillColors.push(opts.fillColors);
-          }
-        }
-        return fillColors;
-      }
-    }, {
-      key: "handlePatternFill",
-      value: function handlePatternFill(_ref) {
-        var fillConfig = _ref.fillConfig,
-          patternFill = _ref.patternFill,
-          fillColor = _ref.fillColor,
-          fillOpacity = _ref.fillOpacity,
-          defaultColor = _ref.defaultColor;
-        var fillCnf = this.w.config.fill;
-        if (fillConfig) {
-          fillCnf = fillConfig;
-        }
-        var opts = this.opts;
-        var graphics = new Graphics(this.ctx);
-        var patternStrokeWidth = Array.isArray(fillCnf.pattern.strokeWidth) ? fillCnf.pattern.strokeWidth[this.seriesIndex] : fillCnf.pattern.strokeWidth;
-        var patternLineColor = fillColor;
-        if (Array.isArray(fillCnf.pattern.style)) {
-          if (typeof fillCnf.pattern.style[opts.seriesNumber] !== 'undefined') {
-            var pf = graphics.drawPattern(fillCnf.pattern.style[opts.seriesNumber], fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
-            patternFill = pf;
-          } else {
-            patternFill = defaultColor;
-          }
-        } else {
-          patternFill = graphics.drawPattern(fillCnf.pattern.style, fillCnf.pattern.width, fillCnf.pattern.height, patternLineColor, patternStrokeWidth, fillOpacity);
-        }
-        return patternFill;
-      }
-    }, {
-      key: "handleGradientFill",
-      value: function handleGradientFill(_ref2) {
-        var type = _ref2.type,
-          fillColor = _ref2.fillColor,
-          fillOpacity = _ref2.fillOpacity,
-          fillConfig = _ref2.fillConfig,
-          colorStops = _ref2.colorStops,
-          i = _ref2.i;
-        var fillCnf = this.w.config.fill;
-        if (fillConfig) {
-          fillCnf = _objectSpread2(_objectSpread2({}, fillCnf), fillConfig);
-        }
-        var opts = this.opts;
-        var graphics = new Graphics(this.ctx);
-        var utils = new Utils$1();
-        type = type || fillCnf.gradient.type;
-        var gradientFrom = fillColor;
-        var gradientTo;
-        var opacityFrom = fillCnf.gradient.opacityFrom === undefined ? fillOpacity : Array.isArray(fillCnf.gradient.opacityFrom) ? fillCnf.gradient.opacityFrom[i] : fillCnf.gradient.opacityFrom;
-        if (gradientFrom.indexOf('rgba') > -1) {
-          opacityFrom = Utils$1.getOpacityFromRGBA(gradientFrom);
-        }
-        var opacityTo = fillCnf.gradient.opacityTo === undefined ? fillOpacity : Array.isArray(fillCnf.gradient.opacityTo) ? fillCnf.gradient.opacityTo[i] : fillCnf.gradient.opacityTo;
-        if (fillCnf.gradient.gradientToColors === undefined || fillCnf.gradient.gradientToColors.length === 0) {
-          if (fillCnf.gradient.shade === 'dark') {
-            gradientTo = utils.shadeColor(parseFloat(fillCnf.gradient.shadeIntensity) * -1, fillColor.indexOf('rgb') > -1 ? Utils$1.rgb2hex(fillColor) : fillColor);
-          } else {
-            gradientTo = utils.shadeColor(parseFloat(fillCnf.gradient.shadeIntensity), fillColor.indexOf('rgb') > -1 ? Utils$1.rgb2hex(fillColor) : fillColor);
-          }
-        } else {
-          if (fillCnf.gradient.gradientToColors[opts.seriesNumber]) {
-            var gToColor = fillCnf.gradient.gradientToColors[opts.seriesNumber];
-            gradientTo = gToColor;
-            if (gToColor.indexOf('rgba') > -1) {
-              opacityTo = Utils$1.getOpacityFromRGBA(gToColor);
-            }
-          } else {
-            gradientTo = fillColor;
-          }
-        }
-        if (fillCnf.gradient.gradientFrom) {
-          gradientFrom = fillCnf.gradient.gradientFrom;
-        }
-        if (fillCnf.gradient.gradientTo) {
-          gradientTo = fillCnf.gradient.gradientTo;
-        }
-        if (fillCnf.gradient.inverseColors) {
-          var t = gradientFrom;
-          gradientFrom = gradientTo;
-          gradientTo = t;
-        }
-        if (gradientFrom.indexOf('rgb') > -1) {
-          gradientFrom = Utils$1.rgb2hex(gradientFrom);
-        }
-        if (gradientTo.indexOf('rgb') > -1) {
-          gradientTo = Utils$1.rgb2hex(gradientTo);
-        }
-        return graphics.drawGradient(type, gradientFrom, gradientTo, opacityFrom, opacityTo, opts.size, fillCnf.gradient.stops, colorStops, i);
-      }
-    }]);
-    return Fill;
-  }();
+  var Fill$1 = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    default: Fill,
+    fillPath: fillPath
+  });
 
   /**
    * ApexCharts Markers Class for drawing markers on y values in axes charts.
    *
    * @module Markers
    **/
-  var Markers = /*#__PURE__*/function () {
-    function Markers(ctx, opts) {
-      _classCallCheck(this, Markers);
-      this.ctx = ctx;
-      this.w = ctx.w;
+
+  function setGlobalMarkerSize(w) {
+    w.globals.markers.size = Array.isArray(w.config.markers.size) ? w.config.markers.size : [w.config.markers.size];
+    if (w.globals.markers.size.length > 0) {
+      if (w.globals.markers.size.length < w.globals.series.length + 1) {
+        for (var i = 0; i <= w.globals.series.length; i++) {
+          if (typeof w.globals.markers.size[i] === 'undefined') {
+            w.globals.markers.size.push(w.globals.markers.size[0]);
+          }
+        }
+      }
+    } else {
+      w.globals.markers.size = w.config.series.map(function (s) {
+        return w.config.markers.size;
+      });
     }
-    _createClass(Markers, [{
-      key: "setGlobalMarkerSize",
-      value: function setGlobalMarkerSize() {
-        var w = this.w;
-        w.globals.markers.size = Array.isArray(w.config.markers.size) ? w.config.markers.size : [w.config.markers.size];
-        if (w.globals.markers.size.length > 0) {
-          if (w.globals.markers.size.length < w.globals.series.length + 1) {
-            for (var i = 0; i <= w.globals.series.length; i++) {
-              if (typeof w.globals.markers.size[i] === 'undefined') {
-                w.globals.markers.size.push(w.globals.markers.size[0]);
-              }
+  }
+  function plotChartMarkers(ctx, _ref) {
+    var pointsPos = _ref.pointsPos,
+      seriesIndex = _ref.seriesIndex,
+      j = _ref.j,
+      pSize = _ref.pSize,
+      _ref$alwaysDrawMarker = _ref.alwaysDrawMarker,
+      alwaysDrawMarker = _ref$alwaysDrawMarker === void 0 ? false : _ref$alwaysDrawMarker,
+      _ref$isVirtualPoint = _ref.isVirtualPoint,
+      isVirtualPoint = _ref$isVirtualPoint === void 0 ? false : _ref$isVirtualPoint;
+    var w = ctx.w;
+    var i = seriesIndex;
+    var p = pointsPos;
+    var elMarkersWrap = null;
+    var hasDiscreteMarkers = w.config.markers.discrete && w.config.markers.discrete.length;
+    if (Array.isArray(p.x)) {
+      for (var q = 0; q < p.x.length; q++) {
+        var markerElement = void 0;
+        var dataPointIndex = j;
+        var invalidMarker = !Utils$1.isNumber(p.y[q]);
+        if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.globals.series[i][j + 1] !== null && !isVirtualPoint) {
+          invalidMarker = true;
+        }
+
+        // a small hack as we have 2 points for the first val to connect it
+        if (j === 1 && q === 0) dataPointIndex = 0;
+        if (j === 1 && q === 1) dataPointIndex = 1;
+        var markerClasses = 'apexcharts-marker';
+        if ((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts && !w.config.tooltip.intersect) {
+          markerClasses += ' no-pointer-events';
+        }
+        var shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0;
+        if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
+          if (!invalidMarker) {
+            markerClasses += " w".concat(Utils$1.randomId());
+          }
+          var opts = getMarkerConfig(ctx, {
+            cssClass: markerClasses,
+            seriesIndex: seriesIndex,
+            dataPointIndex: dataPointIndex
+          });
+          if (w.config.series[i].data[dataPointIndex]) {
+            if (w.config.series[i].data[dataPointIndex].fillColor) {
+              opts.pointFillColor = w.config.series[i].data[dataPointIndex].fillColor;
+            }
+            if (w.config.series[i].data[dataPointIndex].strokeColor) {
+              opts.pointStrokeColor = w.config.series[i].data[dataPointIndex].strokeColor;
+            }
+          }
+          if (typeof pSize !== 'undefined') {
+            opts.pSize = pSize;
+          }
+          if (p.x[q] < -w.globals.markers.largestSize || p.x[q] > w.globals.gridWidth + w.globals.markers.largestSize || p.y[q] < -w.globals.markers.largestSize || p.y[q] > w.globals.gridHeight + w.globals.markers.largestSize) {
+            opts.pSize = 0;
+          }
+          if (!invalidMarker) {
+            var shouldCreateMarkerWrap = w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers;
+            if (shouldCreateMarkerWrap && !elMarkersWrap) {
+              elMarkersWrap = group(ctx, {
+                class: alwaysDrawMarker || hasDiscreteMarkers ? '' : 'apexcharts-series-markers'
+              });
+              elMarkersWrap.attr('clip-path', "url(#gridRectMarkerMask".concat(w.globals.cuid, ")"));
+            }
+            markerElement = drawMarker(ctx, p.x[q], p.y[q], opts);
+            markerElement.attr('rel', dataPointIndex);
+            markerElement.attr('j', dataPointIndex);
+            markerElement.attr('index', seriesIndex);
+            markerElement.node.setAttribute('default-marker-size', opts.pSize);
+            setSelectionFilter(ctx, markerElement, seriesIndex, dataPointIndex);
+            addMarkerEvents(ctx, markerElement);
+            if (elMarkersWrap) {
+              elMarkersWrap.add(markerElement);
             }
           }
         } else {
-          w.globals.markers.size = w.config.series.map(function (s) {
-            return w.config.markers.size;
-          });
+          // dynamic array creation - multidimensional
+          if (typeof w.globals.pointsArray[seriesIndex] === 'undefined') w.globals.pointsArray[seriesIndex] = [];
+          w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]]);
         }
       }
-    }, {
-      key: "plotChartMarkers",
-      value: function plotChartMarkers(_ref) {
-        var pointsPos = _ref.pointsPos,
-          seriesIndex = _ref.seriesIndex,
-          j = _ref.j,
-          pSize = _ref.pSize,
-          _ref$alwaysDrawMarker = _ref.alwaysDrawMarker,
-          alwaysDrawMarker = _ref$alwaysDrawMarker === void 0 ? false : _ref$alwaysDrawMarker,
-          _ref$isVirtualPoint = _ref.isVirtualPoint,
-          isVirtualPoint = _ref$isVirtualPoint === void 0 ? false : _ref$isVirtualPoint;
-        var w = this.w;
-        var i = seriesIndex;
-        var p = pointsPos;
-        var elMarkersWrap = null;
-        var graphics = new Graphics(this.ctx);
-        var hasDiscreteMarkers = w.config.markers.discrete && w.config.markers.discrete.length;
-        if (Array.isArray(p.x)) {
-          for (var q = 0; q < p.x.length; q++) {
-            var markerElement = void 0;
-            var dataPointIndex = j;
-            var invalidMarker = !Utils$1.isNumber(p.y[q]);
-            if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.globals.series[i][j + 1] !== null && !isVirtualPoint) {
-              invalidMarker = true;
-            }
+    }
+    return elMarkersWrap;
+  }
+  function getMarkerConfig(ctx, _ref2) {
+    var cssClass = _ref2.cssClass,
+      seriesIndex = _ref2.seriesIndex,
+      _ref2$dataPointIndex = _ref2.dataPointIndex,
+      dataPointIndex = _ref2$dataPointIndex === void 0 ? null : _ref2$dataPointIndex,
+      _ref2$radius = _ref2.radius,
+      radius = _ref2$radius === void 0 ? null : _ref2$radius,
+      _ref2$size = _ref2.size,
+      size = _ref2$size === void 0 ? null : _ref2$size,
+      _ref2$strokeWidth = _ref2.strokeWidth,
+      strokeWidth = _ref2$strokeWidth === void 0 ? null : _ref2$strokeWidth;
+    var w = ctx.w;
+    var pStyle = getMarkerStyle(w, seriesIndex);
+    var pSize = size === null ? w.globals.markers.size[seriesIndex] : size;
+    var m = w.config.markers;
 
-            // a small hack as we have 2 points for the first val to connect it
-            if (j === 1 && q === 0) dataPointIndex = 0;
-            if (j === 1 && q === 1) dataPointIndex = 1;
-            var markerClasses = 'apexcharts-marker';
-            if ((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts && !w.config.tooltip.intersect) {
-              markerClasses += ' no-pointer-events';
-            }
-            var shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0;
-            if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
-              if (!invalidMarker) {
-                markerClasses += " w".concat(Utils$1.randomId());
-              }
-              var opts = this.getMarkerConfig({
-                cssClass: markerClasses,
-                seriesIndex: seriesIndex,
-                dataPointIndex: dataPointIndex
-              });
-              if (w.config.series[i].data[dataPointIndex]) {
-                if (w.config.series[i].data[dataPointIndex].fillColor) {
-                  opts.pointFillColor = w.config.series[i].data[dataPointIndex].fillColor;
-                }
-                if (w.config.series[i].data[dataPointIndex].strokeColor) {
-                  opts.pointStrokeColor = w.config.series[i].data[dataPointIndex].strokeColor;
-                }
-              }
-              if (typeof pSize !== 'undefined') {
-                opts.pSize = pSize;
-              }
-              if (p.x[q] < -w.globals.markers.largestSize || p.x[q] > w.globals.gridWidth + w.globals.markers.largestSize || p.y[q] < -w.globals.markers.largestSize || p.y[q] > w.globals.gridHeight + w.globals.markers.largestSize) {
-                opts.pSize = 0;
-              }
-              if (!invalidMarker) {
-                var shouldCreateMarkerWrap = w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers;
-                if (shouldCreateMarkerWrap && !elMarkersWrap) {
-                  elMarkersWrap = graphics.group({
-                    class: alwaysDrawMarker || hasDiscreteMarkers ? '' : 'apexcharts-series-markers'
-                  });
-                  elMarkersWrap.attr('clip-path', "url(#gridRectMarkerMask".concat(w.globals.cuid, ")"));
-                }
-                markerElement = graphics.drawMarker(p.x[q], p.y[q], opts);
-                markerElement.attr('rel', dataPointIndex);
-                markerElement.attr('j', dataPointIndex);
-                markerElement.attr('index', seriesIndex);
-                markerElement.node.setAttribute('default-marker-size', opts.pSize);
-                var filters = new Filters(this.ctx);
-                filters.setSelectionFilter(markerElement, seriesIndex, dataPointIndex);
-                this.addEvents(markerElement);
-                if (elMarkersWrap) {
-                  elMarkersWrap.add(markerElement);
-                }
-              }
-            } else {
-              // dynamic array creation - multidimensional
-              if (typeof w.globals.pointsArray[seriesIndex] === 'undefined') w.globals.pointsArray[seriesIndex] = [];
-              w.globals.pointsArray[seriesIndex].push([p.x[q], p.y[q]]);
-            }
-          }
+    // discrete markers is an option where user can specify a particular marker with different shape, size and color
+    if (dataPointIndex !== null && m.discrete.length) {
+      m.discrete.map(function (marker) {
+        if (marker.seriesIndex === seriesIndex && marker.dataPointIndex === dataPointIndex) {
+          pStyle.pointStrokeColor = marker.strokeColor;
+          pStyle.pointFillColor = marker.fillColor;
+          pSize = marker.size;
+          pStyle.pointShape = marker.shape;
         }
-        return elMarkersWrap;
-      }
+      });
+    }
+    return {
+      pSize: radius === null ? pSize : radius,
+      pRadius: radius !== null ? radius : m.radius,
+      pointStrokeWidth: strokeWidth !== null ? strokeWidth : Array.isArray(m.strokeWidth) ? m.strokeWidth[seriesIndex] : m.strokeWidth,
+      pointStrokeColor: pStyle.pointStrokeColor,
+      pointFillColor: pStyle.pointFillColor,
+      shape: pStyle.pointShape || (Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape),
+      class: cssClass,
+      pointStrokeOpacity: Array.isArray(m.strokeOpacity) ? m.strokeOpacity[seriesIndex] : m.strokeOpacity,
+      pointStrokeDashArray: Array.isArray(m.strokeDashArray) ? m.strokeDashArray[seriesIndex] : m.strokeDashArray,
+      pointFillOpacity: Array.isArray(m.fillOpacity) ? m.fillOpacity[seriesIndex] : m.fillOpacity,
+      seriesIndex: seriesIndex
+    };
+  }
+  function addMarkerEvents(ctx, marker) {
+    var w = ctx.w;
+    marker.node.addEventListener('mouseenter', function (e) {
+      return pathMouseEnter(ctx, marker, e);
+    });
+    marker.node.addEventListener('mouseleave', function (e) {
+      return pathMouseLeave(ctx, marker, e);
+    });
+    marker.node.addEventListener('mousedown', function (e) {
+      return pathMouseDown(ctx, marker, e);
+    });
+    marker.node.addEventListener('click', w.config.markers.onClick);
+    marker.node.addEventListener('dblclick', w.config.markers.onDblClick);
+    marker.node.addEventListener('touchstart', function (e) {
+      return pathMouseDown(ctx, marker, e);
     }, {
-      key: "getMarkerConfig",
-      value: function getMarkerConfig(_ref2) {
-        var cssClass = _ref2.cssClass,
-          seriesIndex = _ref2.seriesIndex,
-          _ref2$dataPointIndex = _ref2.dataPointIndex,
-          dataPointIndex = _ref2$dataPointIndex === void 0 ? null : _ref2$dataPointIndex,
-          _ref2$radius = _ref2.radius,
-          radius = _ref2$radius === void 0 ? null : _ref2$radius,
-          _ref2$size = _ref2.size,
-          size = _ref2$size === void 0 ? null : _ref2$size,
-          _ref2$strokeWidth = _ref2.strokeWidth,
-          strokeWidth = _ref2$strokeWidth === void 0 ? null : _ref2$strokeWidth;
-        var w = this.w;
-        var pStyle = this.getMarkerStyle(seriesIndex);
-        var pSize = size === null ? w.globals.markers.size[seriesIndex] : size;
-        var m = w.config.markers;
-
-        // discrete markers is an option where user can specify a particular marker with different shape, size and color
-
-        if (dataPointIndex !== null && m.discrete.length) {
-          m.discrete.map(function (marker) {
-            if (marker.seriesIndex === seriesIndex && marker.dataPointIndex === dataPointIndex) {
-              pStyle.pointStrokeColor = marker.strokeColor;
-              pStyle.pointFillColor = marker.fillColor;
-              pSize = marker.size;
-              pStyle.pointShape = marker.shape;
-            }
-          });
-        }
-        return {
-          pSize: radius === null ? pSize : radius,
-          pRadius: radius !== null ? radius : m.radius,
-          pointStrokeWidth: strokeWidth !== null ? strokeWidth : Array.isArray(m.strokeWidth) ? m.strokeWidth[seriesIndex] : m.strokeWidth,
-          pointStrokeColor: pStyle.pointStrokeColor,
-          pointFillColor: pStyle.pointFillColor,
-          shape: pStyle.pointShape || (Array.isArray(m.shape) ? m.shape[seriesIndex] : m.shape),
-          class: cssClass,
-          pointStrokeOpacity: Array.isArray(m.strokeOpacity) ? m.strokeOpacity[seriesIndex] : m.strokeOpacity,
-          pointStrokeDashArray: Array.isArray(m.strokeDashArray) ? m.strokeDashArray[seriesIndex] : m.strokeDashArray,
-          pointFillOpacity: Array.isArray(m.fillOpacity) ? m.fillOpacity[seriesIndex] : m.fillOpacity,
-          seriesIndex: seriesIndex
-        };
-      }
-    }, {
-      key: "addEvents",
-      value: function addEvents(marker) {
-        var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        marker.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this.ctx, marker));
-        marker.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this.ctx, marker));
-        marker.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this.ctx, marker));
-        marker.node.addEventListener('click', w.config.markers.onClick);
-        marker.node.addEventListener('dblclick', w.config.markers.onDblClick);
-        marker.node.addEventListener('touchstart', graphics.pathMouseDown.bind(this.ctx, marker), {
-          passive: true
-        });
-      }
-    }, {
-      key: "getMarkerStyle",
-      value: function getMarkerStyle(seriesIndex) {
-        var w = this.w;
-        var colors = w.globals.markers.colors;
-        var strokeColors = w.config.markers.strokeColor || w.config.markers.strokeColors;
-        var pointStrokeColor = Array.isArray(strokeColors) ? strokeColors[seriesIndex] : strokeColors;
-        var pointFillColor = Array.isArray(colors) ? colors[seriesIndex] : colors;
-        return {
-          pointStrokeColor: pointStrokeColor,
-          pointFillColor: pointFillColor
-        };
-      }
-    }]);
-    return Markers;
-  }();
+      passive: true
+    });
+  }
+  function getMarkerStyle(w, seriesIndex) {
+    var colors = w.globals.markers.colors;
+    var strokeColors = w.config.markers.strokeColor || w.config.markers.strokeColors;
+    var pointStrokeColor = Array.isArray(strokeColors) ? strokeColors[seriesIndex] : strokeColors;
+    var pointFillColor = Array.isArray(colors) ? colors[seriesIndex] : colors;
+    return {
+      pointStrokeColor: pointStrokeColor,
+      pointFillColor: pointFillColor
+    };
+  }
 
   /**
    * ApexCharts Scatter Class.
@@ -15736,12 +15678,11 @@
       key: "draw",
       value: function draw(elSeries, j, opts) {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var realIndex = opts.realIndex;
         var pointsPos = opts.pointsPos;
         var zRatio = opts.zRatio;
         var elPointsMain = opts.elParent;
-        var elPointsWrap = graphics.group({
+        var elPointsWrap = group(this.ctx, {
           class: "apexcharts-series-markers apexcharts-series-".concat(w.config.chart.type)
         });
         elPointsWrap.attr('clip-path', "url(#gridRectMarkerMask".concat(w.globals.cuid, ")"));
@@ -15786,26 +15727,24 @@
       key: "drawPoint",
       value: function drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
         var w = this.w;
+        var ctx = this.ctx;
         var i = realIndex;
-        var anim = new Animations(this.ctx);
-        var filters = new Filters(this.ctx);
-        var fill = new Fill(this.ctx);
-        var markers = new Markers(this.ctx);
-        var graphics = new Graphics(this.ctx);
-        var markerConfig = markers.getMarkerConfig({
+        var markerConfig = getMarkerConfig(ctx, {
           cssClass: 'apexcharts-marker',
           seriesIndex: i,
           dataPointIndex: dataPointIndex,
           radius: w.config.chart.type === 'bubble' || w.globals.comboCharts && w.config.series[realIndex] && w.config.series[realIndex].type === 'bubble' ? radius : null
         });
-        var pathFillCircle = fill.fillPath({
+
+        // Вызываем функции напрямую, передавая контекст
+        var pathFillCircle = fillPath(ctx, {
           seriesNumber: realIndex,
           dataPointIndex: dataPointIndex,
           color: markerConfig.pointFillColor,
           patternUnits: 'objectBoundingBox',
           value: w.globals.series[realIndex][j]
         });
-        var el = graphics.drawMarker(x, y, markerConfig);
+        var el = drawMarker(ctx, x, y, markerConfig);
         if (w.config.series[i].data[dataPointIndex]) {
           if (w.config.series[i].data[dataPointIndex].fillColor) {
             pathFillCircle = w.config.series[i].data[dataPointIndex].fillColor;
@@ -15815,14 +15754,17 @@
           fill: pathFillCircle
         });
         if (w.config.chart.dropShadow.enabled) {
-          var dropShadow = w.config.chart.dropShadow;
-          filters.dropShadow(el, dropShadow, realIndex);
+          var dropShadow$1 = w.config.chart.dropShadow;
+          // Вызываем функцию напрямую
+          dropShadow(ctx, el, dropShadow$1, realIndex);
         }
         if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
           var speed = w.config.chart.animations.speed;
-          anim.animateMarker(el, speed, w.globals.easing, function () {
+
+          // Вызываем функции напрямую
+          animateMarker(el, speed, w.globals.easing, function () {
             window.setTimeout(function () {
-              anim.animationCompleted(el);
+              animationCompleted(ctx, el);
             }, 100);
           });
         } else {
@@ -15834,8 +15776,10 @@
           index: realIndex,
           'default-marker-size': markerConfig.pSize
         });
-        filters.setSelectionFilter(el, realIndex, dataPointIndex);
-        markers.addEvents(el);
+
+        // Вызываем функции напрямую
+        setSelectionFilter(ctx, el, realIndex, dataPointIndex);
+        addMarkerEvents(ctx, el);
         el.node.classList.add('apexcharts-marker');
         return el;
       }
@@ -21422,12 +21366,11 @@
               });
               valArr = _this.dCtx.dimHelpers.getLargestStringFromMultiArr(val, barYaxisLabels);
             }
-            var graphics = new Graphics(_this.dCtx.ctx);
             var rotateStr = 'rotate('.concat(yaxe.labels.rotate, ' 0 0)');
-            var rect = graphics.getTextRects(val, yaxe.labels.style.fontSize, yaxe.labels.style.fontFamily, rotateStr, false);
+            var rect = getTextRects(_this.dCtx.ctx, val, yaxe.labels.style.fontSize, yaxe.labels.style.fontFamily, rotateStr, false);
             var arrLabelrect = rect;
             if (val !== valArr) {
-              arrLabelrect = graphics.getTextRects(valArr, yaxe.labels.style.fontSize, yaxe.labels.style.fontFamily, rotateStr, false);
+              arrLabelrect = getTextRects(_this.dCtx.ctx, valArr, yaxe.labels.style.fontSize, yaxe.labels.style.fontFamily, rotateStr, false);
             }
             ret.push({
               width: (yAxisMinWidth > arrLabelrect.width || yAxisMinWidth > rect.width ? yAxisMinWidth : arrLabelrect.width > rect.width ? arrLabelrect.width : rect.width) + labelPad,
@@ -21456,9 +21399,8 @@
         var ret = [];
         w.config.yaxis.map(function (yaxe, index) {
           if (yaxe.show && yaxe.title.text !== undefined) {
-            var graphics = new Graphics(_this2.dCtx.ctx);
             var rotateStr = 'rotate('.concat(yaxe.title.rotate, ' 0 0)');
-            var rect = graphics.getTextRects(yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, rotateStr, false);
+            var rect = getTextRects(_this2.dCtx.ctx, yaxe.title.text, yaxe.title.style.fontSize, yaxe.title.style.fontFamily, rotateStr, false);
             ret.push({
               width: rect.width,
               height: rect.height
@@ -22145,15 +22087,14 @@
             elMarker.innerHTML = w.config.legend.markers.customHTML();
           }
         } else {
-          var markers = new Markers(this.ctx);
-          var markerConfig = markers.getMarkerConfig({
+          var markerConfig = getMarkerConfig(this.ctx, {
             cssClass: "apexcharts-legend-marker apexcharts-marker apexcharts-marker-".concat(shape),
             seriesIndex: i,
             strokeWidth: mBorderWidth,
             size: mSize
           });
           var SVGMarker = window.SVG().addTo(elMarker).size('100%', '100%');
-          var marker = new Graphics(this.ctx).drawMarker(0, 0, _objectSpread2(_objectSpread2({}, markerConfig), {}, {
+          var marker = drawMarker(this.ctx, 0, 0, _objectSpread2(_objectSpread2({}, markerConfig), {}, {
             pointFillColor: Array.isArray(fillcolor) ? fillcolor[i] : markerConfig.pointFillColor,
             shape: shape
           }));
@@ -22232,7 +22173,7 @@
             i: i,
             fillcolor: fillcolor
           });
-          Graphics.setAttrs(elMarker, {
+          setAttrs(elMarker, {
             rel: i + 1,
             'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
           });
@@ -22251,7 +22192,7 @@
           elLegendText.style.fontSize = parseFloat(w.config.legend.fontSize) + 'px';
           elLegendText.style.fontWeight = w.config.legend.fontWeight;
           elLegendText.style.fontFamily = fontFamily || w.config.chart.fontFamily;
-          Graphics.setAttrs(elLegendText, {
+          setAttrs(elLegendText, {
             rel: i + 1,
             i: i,
             'data:default-text': encodeURIComponent(text),
@@ -22288,7 +22229,7 @@
           elLegend.style.margin = "".concat(w.config.legend.itemMargin.vertical, "px ").concat(w.config.legend.itemMargin.horizontal, "px");
           w.globals.dom.elLegendWrap.style.width = w.config.legend.width ? w.config.legend.width + 'px' : '';
           w.globals.dom.elLegendWrap.style.height = w.config.legend.height ? w.config.legend.height + 'px' : '';
-          Graphics.setAttrs(elLegend, {
+          setAttrs(elLegend, {
             rel: i + 1,
             seriesName: Utils$1.escapeString(legendNames[i]),
             'data:collapsed': collapsedSeries || ancillaryCollapsedSeries
@@ -22889,7 +22830,6 @@
       _this.ctx = ctx;
       _this.w = ctx.w;
       _this.dragged = false;
-      _this.graphics = new Graphics(_this.ctx);
       _this.eventList = ['mousedown', 'mouseleave', 'mousemove', 'touchstart', 'touchmove', 'mouseup', 'touchend', 'wheel'];
       _this.clientX = 0;
       _this.clientY = 0;
@@ -22913,8 +22853,8 @@
         var w = this.w;
         var me = this;
         this.xyRatios = xyRatios;
-        this.zoomRect = this.graphics.drawRect(0, 0, 0, 0);
-        this.selectionRect = this.graphics.drawRect(0, 0, 0, 0);
+        this.zoomRect = drawRect(this.ctx, 0, 0, 0, 0);
+        this.selectionRect = drawRect(this.ctx, 0, 0, 0, 0);
         this.gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid');
         this.constraints = new Box(0, 0, w.globals.gridWidth, w.globals.gridHeight);
         this.zoomRect.node.classList.add('apexcharts-zoom-rect');
@@ -23243,7 +23183,7 @@
               'stroke-width': w.config.chart.zoom.zoomedArea.stroke.width,
               'stroke-opacity': w.config.chart.zoom.zoomedArea.stroke.opacity
             });
-            Graphics.setAttrs(zoomRect.node, scalingAttrs);
+            setAttrs(zoomRect.node, scalingAttrs);
           }
 
           // selection is enabled
@@ -23260,7 +23200,7 @@
               'stroke-dasharray': w.config.chart.selection.stroke.dashArray,
               'stroke-opacity': w.config.chart.selection.stroke.opacity
             });
-            Graphics.setAttrs(selectionRect.node, scalingAttrs);
+            setAttrs(selectionRect.node, scalingAttrs);
           }
         }
       }
@@ -24859,8 +24799,6 @@
       key: "drawDynamicPoints",
       value: function drawDynamicPoints() {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        var marker = new Markers(this.ctx);
         var elsSeries = w.globals.dom.baseEl.querySelectorAll('.apexcharts-series');
         elsSeries = _toConsumableArray(elsSeries);
         if (w.config.chart.stacked) {
@@ -24877,11 +24815,11 @@
             if ((w.config.chart.type === 'line' || w.config.chart.type === 'area') && !w.globals.comboCharts && !w.config.tooltip.intersect) {
               PointClasses += ' no-pointer-events';
             }
-            var elPointOptions = marker.getMarkerConfig({
+            var elPointOptions = getMarkerConfig(w, {
               cssClass: PointClasses,
               seriesIndex: Number(pointsMain.getAttribute('data:realIndex')) // fixes apexcharts/apexcharts.js #1427
             });
-            point = graphics.drawMarker(0, 0, elPointOptions);
+            point = drawMarker(w, 0, 0, elPointOptions);
             point.node.setAttribute('default-marker-size', 0);
             var elPointsG = document.createElementNS(w.globals.SVGNS, 'g');
             elPointsG.classList.add('apexcharts-series-markers');
@@ -27416,6 +27354,7 @@
    *
    * @module Bar
    **/
+
   var Bar = /*#__PURE__*/function () {
     function Bar(ctx, xyRatios) {
       _classCallCheck(this, Bar);
@@ -27465,13 +27404,12 @@
       key: "draw",
       value: function draw(series, seriesIndex) {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var coreUtils = new CoreUtils(this.ctx, w);
         series = coreUtils.getLogSeries(series);
         this.series = series;
         this.yRatio = coreUtils.getLogYRatios(this.yRatio);
         this.barHelpers.initVariables(series);
-        var ret = graphics.group({
+        var ret = group(this.ctx, {
           class: 'apexcharts-bar-series apexcharts-plot-series'
         });
         if (w.config.dataLabels.enabled) {
@@ -27498,7 +27436,7 @@
             columnGroupIndex = _this$barHelpers$getG.columnGroupIndex;
 
           // el to which series will be drawn
-          var elSeries = graphics.group({
+          var elSeries = group(this.ctx, {
             class: "apexcharts-series",
             rel: i + 1,
             seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex]),
@@ -27530,7 +27468,7 @@
           }
 
           // eldatalabels
-          var elDataLabelsWrap = graphics.group({
+          var elDataLabelsWrap = group(this.ctx, {
             class: 'apexcharts-datalabels',
             'data:realIndex': realIndex
           });
@@ -27538,10 +27476,10 @@
             el: elDataLabelsWrap.node
           });
           elDataLabelsWrap.node.classList.add('apexcharts-element-hidden');
-          var elGoalsMarkers = graphics.group({
+          var elGoalsMarkers = group(this.ctx, {
             class: 'apexcharts-bar-goals-markers'
           });
-          var elBarShadows = graphics.group({
+          var elBarShadows = group(this.ctx, {
             class: 'apexcharts-bar-shadows'
           });
           w.globals.delayedElements.push({
@@ -27589,8 +27527,7 @@
               });
               elBarShadows.add(barShadow);
               if (w.config.chart.dropShadow.enabled) {
-                var filters = new Filters(this.ctx);
-                filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex);
+                dropShadow(this.ctx, barShadow, w.config.chart.dropShadow, realIndex);
               }
             }
             this.pathArr.push(paths);
@@ -27675,7 +27612,6 @@
           type = _ref.type,
           classes = _ref.classes;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var skipDrawing = false;
         if (!lineFill) {
           // if user provided a function in colors, we need to eval here
@@ -27731,7 +27667,7 @@
         }
         var delay = j / w.config.chart.animations.animateGradually.delay * (w.config.chart.animations.speed / w.globals.dataPoints) / 2.4;
         if (!skipDrawing) {
-          var renderedPath = graphics.renderPaths({
+          var renderedPath = renderPaths(this.ctx, {
             i: i,
             j: j,
             realIndex: realIndex,
@@ -27760,8 +27696,7 @@
             renderedPath.attr('data-range-y1', y1);
             renderedPath.attr('data-range-y2', y2);
           }
-          var filters = new Filters(this.ctx);
-          filters.setSelectionFilter(renderedPath, realIndex, j);
+          setSelectionFilter(this.ctx, renderedPath, realIndex, j);
           elSeries.add(renderedPath);
           renderedPath.attr({
             cy: dataLabelsObj.dataLabelsPos.bcy,
@@ -27992,6 +27927,7 @@
    * The whole calculation for stacked bar/column is different from normal bar/column,
    * hence it makes sense to derive a new class for it extending most of the props of Parent Bar
    **/
+
   var BarStacked = /*#__PURE__*/function (_Bar) {
     _inherits(BarStacked, _Bar);
     var _super = _createSuper(BarStacked);
@@ -28456,6 +28392,7 @@
    *
    * @module BoxCandleStick
    **/
+
   var BoxCandleStick = /*#__PURE__*/function (_Bar) {
     _inherits(BoxCandleStick, _Bar);
     var _super = _createSuper(BoxCandleStick);
@@ -28955,6 +28892,7 @@
    * ApexCharts HeatMap Class.
    * @module HeatMap
    **/
+
   var HeatMap = /*#__PURE__*/function () {
     function HeatMap(ctx, xyRatios) {
       _classCallCheck(this, HeatMap);
@@ -28971,8 +28909,7 @@
       key: "draw",
       value: function draw(series) {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        var ret = graphics.group({
+        var ret = group(this.ctx, {
           class: 'apexcharts-heatmap'
         });
         ret.attr('clip-path', "url(#gridRectMask".concat(w.globals.cuid, ")"));
@@ -28990,7 +28927,7 @@
         }
         for (var i = rev ? 0 : heatSeries.length - 1; rev ? i < heatSeries.length : i >= 0; rev ? i++ : i--) {
           // el to which series will be drawn
-          var elSeries = graphics.group({
+          var elSeries = group(this.ctx, {
             class: "apexcharts-series apexcharts-heatmap-series",
             seriesName: Utils$1.escapeString(w.globals.seriesNames[i]),
             rel: i + 1,
@@ -28999,8 +28936,8 @@
           this.ctx.series.addCollapsedClassToSeries(elSeries, i);
           if (w.config.chart.dropShadow.enabled) {
             var shadow = w.config.chart.dropShadow;
-            var filters = new Filters(this.ctx);
-            filters.dropShadow(elSeries, shadow, i);
+            // const filters = new Filters(this.ctx) // Удалено
+            dropShadow(this.ctx, elSeries, shadow, i);
           }
           var x1 = 0;
           var shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
@@ -29021,8 +28958,9 @@
             var color = heatColor.color;
             var heatColorProps = heatColor.colorProps;
             if (w.config.fill.type === 'image') {
-              var fill = new Fill(this.ctx);
-              color = fill.fillPath({
+              // const fill = new Fill(this.ctx) // Удалено
+
+              color = fillPath(this.ctx, {
                 seriesNumber: i,
                 dataPointIndex: j,
                 opacity: w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100,
@@ -29032,7 +28970,7 @@
               });
             }
             var radius = this.rectRadius;
-            var rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius);
+            var rect = drawRect(this.ctx, x1, y1, xDivision, yDivision, radius);
             rect.attr({
               cx: x1,
               cy: y1
@@ -29105,8 +29043,8 @@
     }, {
       key: "animateHeatMap",
       value: function animateHeatMap(el, x, y, width, height, speed) {
-        var animations = new Animations(this.ctx);
-        animations.animateRect(el, {
+        var _this = this;
+        animateRect(el, {
           x: x + width / 2,
           y: y + height / 2,
           width: 0,
@@ -29117,7 +29055,7 @@
           width: width,
           height: height
         }, speed, function () {
-          animations.animationCompleted(el);
+          animationCompleted(_this.ctx, el);
         });
       }
     }, {
@@ -29165,6 +29103,7 @@
    * ApexCharts Pie Class for drawing Pie / Donut Charts.
    * @module Pie
    **/
+
   var Pie = /*#__PURE__*/function () {
     function Pie(ctx) {
       _classCallCheck(this, Pie);
@@ -29194,7 +29133,7 @@
       var halfH = w.globals.gridHeight / 2;
       this.translateX = halfW - halfW * scaleSize;
       this.translateY = halfH - halfH * scaleSize;
-      this.dataLabelsGroup = new Graphics(this.ctx).group({
+      this.dataLabelsGroup = group(this.ctx, {
         class: 'apexcharts-datalabels-group',
         transform: "translate(".concat(this.translateX, ", ").concat(this.translateY, ") scale(").concat(scaleSize, ")")
       });
@@ -29209,8 +29148,7 @@
         var _this = this;
         var self = this;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        var elPie = graphics.group({
+        var elPie = group(this.ctx, {
           class: 'apexcharts-pie'
         });
         if (w.globals.noData) return elPie;
@@ -29222,7 +29160,7 @@
         var sectorAngleArr = [];
 
         // el to which series will be drawn
-        var elSeries = graphics.group();
+        var elSeries = group(this.ctx);
 
         // prevent division by zero error if there is no data
         if (total === 0) {
@@ -29270,7 +29208,7 @@
         }
         if (this.chartType === 'donut') {
           // draw the inner circle and add some text to it
-          var circle = graphics.drawCircle(this.donutSize);
+          var circle = drawCircle(this.ctx, this.donutSize);
           circle.attr({
             cx: this.centerX,
             cy: this.centerY,
@@ -29309,10 +29247,7 @@
       key: "drawArcs",
       value: function drawArcs(sectorAngleArr, series) {
         var w = this.w;
-        var filters = new Filters(this.ctx);
-        var graphics = new Graphics(this.ctx);
-        var fill = new Fill(this.ctx);
-        var g = graphics.group({
+        var g = group(this.ctx, {
           class: 'apexcharts-slices'
         });
         var startAngle = this.initialAngle;
@@ -29321,7 +29256,7 @@
         var prevEndAngle = this.initialAngle;
         this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0;
         for (var i = 0; i < sectorAngleArr.length; i++) {
-          var elPieArc = graphics.group({
+          var elPieArc = group(this.ctx, {
             class: "apexcharts-series apexcharts-pie-series",
             seriesName: Utils$1.escapeString(w.globals.seriesNames[i]),
             rel: i + 1,
@@ -29333,14 +29268,14 @@
           endAngle = startAngle + sectorAngleArr[i];
           prevEndAngle = prevStartAngle + this.prevSectorAngleArr[i];
           var angle = endAngle < startAngle ? this.fullAngle + endAngle - startAngle : endAngle - startAngle;
-          var pathFill = fill.fillPath({
+          var pathFill = fillPath(this.ctx, {
             seriesNumber: i,
             size: this.sliceSizes[i],
             value: series[i]
           }); // additionally, pass size for gradient drawing in the fillPath function
 
           var path = this.getChangedPath(prevStartAngle, prevEndAngle);
-          var elPath = graphics.drawPath({
+          var elPath = drawPath(this.ctx, {
             d: path,
             stroke: Array.isArray(this.lineColorArr) ? this.lineColorArr[i] : this.lineColorArr,
             strokeWidth: 0,
@@ -29352,13 +29287,13 @@
             index: 0,
             j: i
           });
-          filters.setSelectionFilter(elPath, 0, i);
+          setSelectionFilter(this.ctx, elPath, 0, i);
           if (w.config.chart.dropShadow.enabled) {
             var shadow = w.config.chart.dropShadow;
-            filters.dropShadow(elPath, shadow, i);
+            dropShadow(this.ctx, elPath, shadow, i);
           }
           this.addListeners(elPath, this.donutDataLabels);
-          Graphics.setAttrs(elPath.node, {
+          setAttrs(elPath.node, {
             'data:angle': angle,
             'data:startAngle': startAngle,
             'data:strokeWidth': this.strokeWidth,
@@ -29430,10 +29365,10 @@
                 });
               }
               var foreColor = w.globals.dataLabels.style.colors[i];
-              var elPieLabelWrap = graphics.group({
+              var elPieLabelWrap = group(this.ctx, {
                 class: "apexcharts-datalabels"
               });
-              var elPieLabel = graphics.drawText({
+              var elPieLabel = drawText(this.ctx, {
                 x: xPos,
                 y: yPos,
                 text: text,
@@ -29446,7 +29381,7 @@
               elPieLabelWrap.add(elPieLabel);
               if (w.config.dataLabels.dropShadow.enabled) {
                 var textShadow = w.config.dataLabels.dropShadow;
-                filters.dropShadow(elPieLabel, textShadow);
+                dropShadow(this.ctx, elPieLabel, textShadow);
               }
               elPieLabel.node.classList.add('apexcharts-pie-label');
               if (w.config.chart.animations.animate && w.globals.resized === false) {
@@ -29462,12 +29397,18 @@
     }, {
       key: "addListeners",
       value: function addListeners(elPath, dataLabels) {
-        var graphics = new Graphics(this.ctx);
+        var _this2 = this;
         // append filters on mouseenter and mouseleave
-        elPath.node.addEventListener('mouseenter', graphics.pathMouseEnter.bind(this, elPath));
-        elPath.node.addEventListener('mouseleave', graphics.pathMouseLeave.bind(this, elPath));
-        elPath.node.addEventListener('mouseleave', this.revertDataLabelsInner.bind(this, elPath.node, dataLabels));
-        elPath.node.addEventListener('mousedown', graphics.pathMouseDown.bind(this, elPath));
+        elPath.node.addEventListener('mouseenter', function (e) {
+          return pathMouseEnter(_this2.ctx, elPath, e);
+        });
+        elPath.node.addEventListener('mouseleave', function (e) {
+          pathMouseLeave(_this2.ctx, elPath, e);
+          _this2.revertDataLabelsInner(elPath.node, dataLabels);
+        });
+        elPath.node.addEventListener('mousedown', function (e) {
+          return pathMouseDown(_this2.ctx, elPath, e);
+        });
         if (!this.donutDataLabels.total.showAlways) {
           elPath.node.addEventListener('mouseenter', this.printDataLabelsInner.bind(this, elPath.node, dataLabels));
           elPath.node.addEventListener('mousedown', this.printDataLabelsInner.bind(this, elPath.node, dataLabels));
@@ -29504,7 +29445,6 @@
       value: function animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
         var me = this;
         var w = this.w;
-        var animations = new Animations(this.ctx);
         var size = opts.size;
         var path;
         if (isNaN(fromStartAngle) || isNaN(prevAngle)) {
@@ -29537,7 +29477,7 @@
               });
             }
             if (opts.i === w.config.series.length - 1) {
-              animations.animationCompleted(el);
+              animationCompleted(me.ctx, el);
             }
           }).during(function (pos) {
             currAngle = fromAngle + (angle - fromAngle) * pos;
@@ -29637,7 +29577,6 @@
           angle = _ref.angle,
           size = _ref.size;
         var path;
-        var graphics = new Graphics(this.ctx);
         var startDeg = startAngle;
         var startRadians = Math.PI * (startDeg - 90) / 180;
         var endDeg = angle + startAngle;
@@ -29662,17 +29601,16 @@
         } else {
           path = [].concat(pathBeginning).join(' ');
         }
-        return graphics.roundPathCorners(path, this.strokeWidth * 2);
+        return roundPathCorners(this.ctx, path, this.strokeWidth * 2);
       }
     }, {
       key: "drawPolarElements",
       value: function drawPolarElements(parent) {
         var w = this.w;
         var scale = new Scales(this.ctx);
-        var graphics = new Graphics(this.ctx);
         var helpers = new CircularChartsHelpers(this.ctx);
-        var gCircles = graphics.group();
-        var gYAxis = graphics.group();
+        var gCircles = group(this.ctx);
+        var gYAxis = group(this.ctx);
         var yScale = scale.niceScale(0, Math.ceil(this.maxY), 0);
         var yTexts = yScale.result.reverse();
         var len = yScale.result.length;
@@ -29680,7 +29618,7 @@
         var circleSize = w.globals.radialSize;
         var diff = circleSize / (len - 1);
         for (var i = 0; i < len - 1; i++) {
-          var circle = graphics.drawCircle(circleSize);
+          var circle = drawCircle(this.ctx, circleSize);
           circle.attr({
             cx: this.centerX,
             cy: this.centerY,
@@ -29703,7 +29641,6 @@
       key: "renderInnerDataLabels",
       value: function renderInnerDataLabels(dataLabelsGroup, dataLabelsConfig, opts) {
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var showTotal = dataLabelsConfig.total.show;
         dataLabelsGroup.node.innerHTML = '';
         dataLabelsGroup.node.style.opacity = opts.opacity;
@@ -29743,7 +29680,7 @@
           name = dataLabelsConfig.name.formatter(name, dataLabelsConfig.total.show, w);
         }
         if (dataLabelsConfig.name.show) {
-          var elLabel = graphics.drawText({
+          var elLabel = drawText(this.ctx, {
             x: x,
             y: y + parseFloat(dataLabelsConfig.name.offsetY),
             text: name,
@@ -29758,7 +29695,7 @@
         }
         if (dataLabelsConfig.value.show) {
           var valOffset = dataLabelsConfig.name.show ? parseFloat(dataLabelsConfig.value.offsetY) + 16 : dataLabelsConfig.value.offsetY;
-          var elValue = graphics.drawText({
+          var elValue = drawText(this.ctx, {
             x: x,
             y: y + valOffset,
             text: val,
@@ -29837,9 +29774,8 @@
     }, {
       key: "drawSpokes",
       value: function drawSpokes(parent) {
-        var _this2 = this;
+        var _this3 = this;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
         var spokeConfig = w.config.plotOptions.polarArea.spokes;
         if (spokeConfig.strokeWidth === 0) return;
         var spokes = [];
@@ -29848,7 +29784,7 @@
           spokes.push(Utils$1.polarToCartesian(this.centerX, this.centerY, w.globals.radialSize, w.config.plotOptions.pie.startAngle + angleDivision * i));
         }
         spokes.forEach(function (p, i) {
-          var line = graphics.drawLine(p.x, p.y, _this2.centerX, _this2.centerY, Array.isArray(spokeConfig.connectorColors) ? spokeConfig.connectorColors[i] : spokeConfig.connectorColors);
+          var line = drawLine(_this3.ctx, p.x, p.y, _this3.centerX, _this3.centerY, Array.isArray(spokeConfig.connectorColors) ? spokeConfig.connectorColors[i] : spokeConfig.connectorColors);
           parent.add(line);
         });
       }
@@ -29876,6 +29812,7 @@
    * ApexCharts Radar Class for Spider/Radar Charts.
    * @module Radar
    **/
+
   var Radar = /*#__PURE__*/function () {
     function Radar(ctx) {
       _classCallCheck(this, Radar);
@@ -30023,8 +29960,7 @@
             elSeries.add(renderedAreaPath);
           }
           s.forEach(function (sj, j) {
-            var markers = new Markers(_this.ctx);
-            var opts = markers.getMarkerConfig({
+            var opts = getMarkerConfig(_this.ctx, {
               cssClass: 'apexcharts-marker',
               seriesIndex: i,
               dataPointIndex: j
@@ -30279,6 +30215,7 @@
    * ApexCharts Radial Class for drawing Circle / Semi Circle Charts.
    * @module Radial
    **/
+
   var Radial = /*#__PURE__*/function (_Pie) {
     _inherits(Radial, _Pie);
     var _super = _createSuper(Radial);
@@ -30680,6 +30617,7 @@
    *
    * @module RangeBar
    **/
+
   var RangeBar = /*#__PURE__*/function (_Bar) {
     _inherits(RangeBar, _Bar);
     var _super = _createSuper(RangeBar);
@@ -31361,6 +31299,7 @@
    * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
    * @module Line
    **/
+
   var Line = /*#__PURE__*/function () {
     function Line(ctx, xyRatios, isPointsChart) {
       _classCallCheck(this, Line);
@@ -31371,7 +31310,6 @@
       this.scatter = new Scatter(this.ctx);
       this.noNegatives = this.w.globals.minX === Number.MAX_VALUE;
       this.lineHelpers = new Helpers(this);
-      this.markers = new Markers(this.ctx);
       this.prevSeriesY = [];
       this.categoryAxisCorrection = 0;
       this.yaxisIndex = 0;
@@ -31597,7 +31535,7 @@
         });
         if (w.globals.hasNullValues) {
           // fixes https://github.com/apexcharts/apexcharts.js/issues/3641
-          var firstPoint = this.markers.plotChartMarkers({
+          var firstPoint = plotChartMarkers(this.ctx, {
             pointsPos: {
               x: [0],
               y: [w.globals.gridHeight + w.globals.markers.largestSize]
@@ -31978,7 +31916,7 @@
           if (w.globals.series[i].length > 1) {
             this.elPointsMain.node.classList.add('apexcharts-element-hidden');
           }
-          var elPointsWrap = this.markers.plotChartMarkers({
+          var elPointsWrap = plotChartMarkers(this.ctx, {
             pointsPos: pointsPos,
             seriesIndex: realIndex,
             j: j + 1
@@ -32303,7 +32241,7 @@
           }
 
           // fixes apexcharts.js#1282, #1252
-          var elPointsWrap = this.markers.plotChartMarkers({
+          var elPointsWrap = plotChartMarkers(this.ctx, {
             pointsPos: pointsPos,
             seriesIndex: realIndex,
             j: j + 1,
@@ -32548,6 +32486,7 @@
    * ApexCharts TreemapChart Class.
    * @module TreemapChart
    **/
+
   var TreemapChart = /*#__PURE__*/function () {
     function TreemapChart(ctx, xyRatios) {
       _classCallCheck(this, TreemapChart);
@@ -32563,9 +32502,7 @@
       value: function draw(series) {
         var _this = this;
         var w = this.w;
-        var graphics = new Graphics(this.ctx);
-        var fill = new Fill(this.ctx);
-        var ret = graphics.group({
+        var ret = group(this.ctx, {
           class: 'apexcharts-treemap'
         });
         if (w.globals.noData) return ret;
@@ -32585,7 +32522,7 @@
         });
         var nodes = window.TreemapSquared.generate(ser, w.globals.gridWidth, w.globals.gridHeight);
         nodes.forEach(function (node, i) {
-          var elSeries = graphics.group({
+          var elSeries = group(_this.ctx, {
             class: "apexcharts-series apexcharts-treemap-series",
             seriesName: Utils$1.escapeString(w.globals.seriesNames[i]),
             rel: i + 1,
@@ -32593,10 +32530,10 @@
           });
           if (w.config.chart.dropShadow.enabled) {
             var shadow = w.config.chart.dropShadow;
-            var filters = new Filters(_this.ctx);
-            filters.dropShadow(ret, shadow, i);
+            // const filters = new Filters(this.ctx) // Удалено
+            dropShadow(_this.ctx, elSeries, shadow, i);
           }
-          var elDataLabelWrap = graphics.group({
+          var elDataLabelWrap = group(_this.ctx, {
             class: 'apexcharts-data-labels'
           });
           var bounds = {
@@ -32616,12 +32553,12 @@
             bounds.yMax = Math.max(bounds.yMax, y2);
             var colorProps = _this.helpers.getShadeColor(w.config.chart.type, i, j, _this.negRange);
             var color = colorProps.color;
-            var pathFill = fill.fillPath({
+            var pathFill = fillPath(_this.ctx, {
               color: color,
               seriesNumber: i,
               dataPointIndex: j
             });
-            var elRect = graphics.drawRect(x1, y1, x2 - x1, y2 - y1, w.config.plotOptions.treemap.borderRadius, '#fff', 1, _this.strokeWidth, w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]);
+            var elRect = drawRect(_this.ctx, x1, y1, x2 - x1, y2 - y1, w.config.plotOptions.treemap.borderRadius, '#fff', 1, _this.strokeWidth, w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]);
             elRect.attr({
               cx: x1,
               cy: y1,
@@ -32712,7 +32649,7 @@
                 top: style.padding.top,
                 bottom: style.padding.bottom
               };
-              var textSize = graphics.getTextRects(sName, style.fontSize, style.fontFamily);
+              var textSize = getTextRects(_this.ctx, sName, style.fontSize, style.fontFamily);
               var labelRectWidth = textSize.width + padding.left + padding.right;
               var labelRectHeight = textSize.height + padding.top + padding.bottom;
 
@@ -32721,8 +32658,8 @@
               var labelY = bounds.yMin + (offsetY || 0);
 
               // Draw background rect
-              var elLabelRect = graphics.drawRect(labelX, labelY, labelRectWidth, labelRectHeight, borderRadius, style.background, 1, borderWidth, borderColor);
-              var elLabelText = graphics.drawText({
+              var elLabelRect = drawRect(_this.ctx, labelX, labelY, labelRectWidth, labelRectHeight, borderRadius, style.background, 1, borderWidth, borderColor);
+              var elLabelText = drawText(_this.ctx, {
                 x: labelX + padding.left,
                 y: labelY + padding.top + textSize.height * 0.75,
                 text: sName,
@@ -32791,12 +32728,11 @@
     }, {
       key: "rotateToFitLabel",
       value: function rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
-        var graphics = new Graphics(this.ctx);
-        var textRect = graphics.getTextRects(text, fontSize);
+        var textRect = getTextRects(this.ctx, text, fontSize);
 
         // if the label fits better sideways then rotate it
         if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
-          var labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
+          var labelRotatingCenter = rotateAroundCenter(elText.node);
           elText.node.setAttribute('transform', "rotate(-90 ".concat(labelRotatingCenter.x, " ").concat(labelRotatingCenter.y, ") translate(").concat(textRect.height / 3, ")"));
         }
       }
@@ -32806,12 +32742,11 @@
     }, {
       key: "truncateLabels",
       value: function truncateLabels(text, fontSize, x1, y1, x2, y2) {
-        var graphics = new Graphics(this.ctx);
-        var textRect = graphics.getTextRects(text, fontSize);
+        var textRect = getTextRects(this.ctx, text, fontSize);
 
         // Determine max width based on ideal orientation of text
         var labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
-        var truncatedText = graphics.getTextBasedOnMaxWidth({
+        var truncatedText = getTextBasedOnMaxWidth(this.ctx, {
           text: text,
           maxWidth: labelMaxWidth,
           fontSize: fontSize
@@ -32827,9 +32762,9 @@
     }, {
       key: "animateTreemap",
       value: function animateTreemap(el, fromRect, toRect, speed) {
-        var animations = new Animations(this.ctx);
-        animations.animateRect(el, fromRect, toRect, speed, function () {
-          animations.animationCompleted(el);
+        var _this2 = this;
+        animateRect(el, fromRect, toRect, speed, function () {
+          animationCompleted(_this2.ctx, el);
         });
       }
     }]);
@@ -35152,13 +35087,13 @@
 
   /*!
   * @svgdotjs/svg.resize.js - An extension for svg.js which allows to resize elements which are selected
-  * @version 2.0.4
+  * @version 2.0.2
   * https://github.com/svgdotjs/svg.resize.js
   *
   * @copyright [object Object]
   * @license MIT
   *
-  * BUILT: Fri Sep 13 2024 12:43:14 GMT+0200 (Central European Summer Time)
+  * BUILT: Mon Jul 01 2024 15:05:58 GMT+0200 (Central European Summer Time)
   */
   /*!
   * @svgdotjs/svg.select.js - An extension of svg.js which allows to select elements with mouse
@@ -35435,6 +35370,7 @@
       this.lastCoordinates = null;
       this.eventType = "";
       this.lastEvent = null;
+      this.angle = 0;
       this.handleResize = this.handleResize.bind(this);
       this.resize = this.resize.bind(this);
       this.endResize = this.endResize.bind(this);
@@ -35504,6 +35440,7 @@
       const endPoint = this.snapToGrid(this.el.point(getCoordsFromEvent(e)));
       let dx = endPoint.x - this.startPoint.x;
       let dy = endPoint.y - this.startPoint.y;
+      console.log("endPoint", endPoint, "startPoint", this.startPoint, dx, dy);
       if (this.preserveAspectRatio && this.aroundCenter) {
         dx *= 2;
         dy *= 2;
@@ -35550,7 +35487,7 @@
       }).defaultPrevented) {
         return;
       }
-      this.el.size(box.width, box.height).move(box.x, box.y);
+      this.el.move(box.x, box.y).size(box.width, box.height);
     }
     movePoint(e) {
       this.lastEvent = e;
@@ -35570,11 +35507,11 @@
     }
     rotate(e) {
       this.lastEvent = e;
-      const startPoint = this.startPoint;
       const endPoint = this.el.point(getCoordsFromEvent(e));
-      const { cx, cy } = this.box;
-      const dx1 = startPoint.x - cx;
-      const dy1 = startPoint.y - cy;
+      const cx = this.box.cx;
+      const cy = this.box.cy;
+      const dx1 = this.startPoint.x - cx;
+      const dy1 = this.startPoint.y - cy;
       const dx2 = endPoint.x - cx;
       const dy2 = endPoint.y - cy;
       const c = Math.sqrt(dx1 * dx1 + dy1 * dy1) * Math.sqrt(dx2 * dx2 + dy2 * dy2);
@@ -35582,24 +35519,20 @@
         return;
       }
       let angle = Math.acos((dx1 * dx2 + dy1 * dy2) / c) / Math.PI * 180;
-      if (!angle) return;
-      if (endPoint.x < startPoint.x) {
+      if (endPoint.x < this.startPoint.x) {
         angle = -angle;
       }
-      const matrix = new Matrix(this.el);
-      const { x: ox, y: oy } = new Point(cx, cy).transformO(matrix);
-      const { rotate } = matrix.decompose();
-      const resultAngle = this.snapToAngle(rotate + angle) - rotate;
+      this.angle = this.snapToAngle(this.angle + angle);
       if (this.el.dispatch("resize", {
-        box: this.box,
-        angle: resultAngle,
+        box: this.startBox,
+        angle: this.angle,
         eventType: this.eventType,
         event: e,
         handler: this
       }).defaultPrevented) {
         return;
       }
-      this.el.transform(matrix.rotateO(resultAngle, ox, oy));
+      this.el.transform({ rotate: this.angle });
     }
     endResize(ev) {
       if (this.eventType !== "rot" && this.eventType !== "point") {
@@ -35665,18 +35598,18 @@
       value: function initModules() {
         this.ctx.publicMethods = ['updateOptions', 'updateSeries', 'appendData', 'appendSeries', 'isSeriesHidden', 'highlightSeries', 'toggleSeries', 'showSeries', 'hideSeries', 'setLocale', 'resetSeries', 'zoomX', 'toggleDataPointSelection', 'dataURI', 'exportToCSV', 'addXaxisAnnotation', 'addYaxisAnnotation', 'addPointAnnotation', 'clearAnnotations', 'removeAnnotation', 'paper', 'destroy'];
         this.ctx.eventList = ['click', 'mousedown', 'mousemove', 'mouseleave', 'touchstart', 'touchmove', 'touchleave', 'mouseup', 'touchend'];
-        this.ctx.animations = new Animations(this.ctx);
+        this.ctx.animations = Animations;
         this.ctx.axes = new Axes(this.ctx);
         this.ctx.core = new Core(this.ctx.el, this.ctx);
         this.ctx.config = new Config({});
         this.ctx.data = new Data(this.ctx);
         this.ctx.grid = new Grid(this.ctx);
-        this.ctx.graphics = new Graphics(this.ctx);
+        this.ctx.graphics = Graphics$1;
         this.ctx.coreUtils = new CoreUtils(this.ctx);
         this.ctx.crosshairs = new Crosshairs(this.ctx);
         this.ctx.events = new Events(this.ctx);
         this.ctx.exports = new Exports(this.ctx);
-        this.ctx.fill = new Fill(this.ctx);
+        this.ctx.fill = Fill$1;
         this.ctx.localization = new Localization(this.ctx);
         this.ctx.options = new Options();
         this.ctx.responsive = new Responsive(this.ctx);
@@ -35986,8 +35919,7 @@
         this.theme.init();
 
         // as markers accepts array, we need to setup global markers for easier access
-        var markers = new Markers(this);
-        markers.setGlobalMarkerSize();
+        setGlobalMarkerSize(this.w);
 
         // labelFormatters should be called before dimensions as in dimensions we need text labels width
         this.formatters.setLabelFormatters();

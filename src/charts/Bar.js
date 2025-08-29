@@ -2,8 +2,8 @@ import BarDataLabels from './common/bar/DataLabels'
 import BarHelpers from './common/bar/Helpers'
 import CoreUtils from '../modules/CoreUtils'
 import Utils from '../utils/Utils'
-import Filters from '../modules/Filters'
-import Graphics from '../modules/Graphics'
+import * as Filters from '../modules/Filters'
+import * as Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
 
 /**
@@ -12,7 +12,7 @@ import Series from '../modules/Series'
  * @module Bar
  **/
 
-class Bar {
+export class Bar {
   constructor(ctx, xyRatios) {
     this.ctx = ctx
     this.w = ctx.w
@@ -76,7 +76,6 @@ class Bar {
    **/
   draw(series, seriesIndex) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     const coreUtils = new CoreUtils(this.ctx, w)
     series = coreUtils.getLogSeries(series)
@@ -85,7 +84,7 @@ class Bar {
 
     this.barHelpers.initVariables(series)
 
-    let ret = graphics.group({
+    let ret = Graphics.group(this.ctx, {
       class: 'apexcharts-bar-series apexcharts-plot-series',
     })
 
@@ -113,7 +112,7 @@ class Bar {
       let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex)
 
       // el to which series will be drawn
-      let elSeries = graphics.group({
+      let elSeries = Graphics.group(this.ctx, {
         class: `apexcharts-series`,
         rel: i + 1,
         seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
@@ -156,7 +155,7 @@ class Bar {
       }
 
       // eldatalabels
-      let elDataLabelsWrap = graphics.group({
+      let elDataLabelsWrap = Graphics.group(this.ctx, {
         class: 'apexcharts-datalabels',
         'data:realIndex': realIndex,
       })
@@ -166,11 +165,11 @@ class Bar {
       })
       elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
 
-      let elGoalsMarkers = graphics.group({
+      let elGoalsMarkers = Graphics.group(this.ctx, {
         class: 'apexcharts-bar-goals-markers',
       })
 
-      let elBarShadows = graphics.group({
+      let elBarShadows = Graphics.group(this.ctx, {
         class: 'apexcharts-bar-shadows',
       })
 
@@ -235,8 +234,12 @@ class Bar {
           elBarShadows.add(barShadow)
 
           if (w.config.chart.dropShadow.enabled) {
-            const filters = new Filters(this.ctx)
-            filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex)
+            Filters.dropShadow(
+              this.ctx,
+              barShadow,
+              w.config.chart.dropShadow,
+              realIndex
+            )
           }
         }
         this.pathArr.push(paths)
@@ -326,7 +329,6 @@ class Bar {
     classes,
   }) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
     let skipDrawing = false
 
     if (!lineFill) {
@@ -405,7 +407,7 @@ class Bar {
       2.4
 
     if (!skipDrawing) {
-      let renderedPath = graphics.renderPaths({
+      let renderedPath = Graphics.renderPaths(this.ctx, {
         i,
         j,
         realIndex,
@@ -438,8 +440,7 @@ class Bar {
         renderedPath.attr('data-range-y2', y2)
       }
 
-      const filters = new Filters(this.ctx)
-      filters.setSelectionFilter(renderedPath, realIndex, j)
+      Filters.setSelectionFilter(this.ctx, renderedPath, realIndex, j)
       elSeries.add(renderedPath)
 
       renderedPath.attr({

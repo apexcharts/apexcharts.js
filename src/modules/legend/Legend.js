@@ -1,10 +1,10 @@
 import CoreUtils from '../CoreUtils'
 import Dimensions from '../dimensions/Dimensions'
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics.js'
 import Series from '../Series'
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
-import Markers from '../Markers'
+import * as Markers from '../Markers.js'
 
 /**
  * ApexCharts Legend Class to draw legend.
@@ -101,9 +101,7 @@ class Legend {
         elMarker.innerHTML = w.config.legend.markers.customHTML()
       }
     } else {
-      let markers = new Markers(this.ctx)
-
-      const markerConfig = markers.getMarkerConfig({
+      const markerConfig = Markers.getMarkerConfig(this.ctx, {
         cssClass: `apexcharts-legend-marker apexcharts-marker apexcharts-marker-${shape}`,
         seriesIndex: i,
         strokeWidth: mBorderWidth,
@@ -111,7 +109,7 @@ class Legend {
       })
 
       const SVGMarker = window.SVG().addTo(elMarker).size('100%', '100%')
-      const marker = new Graphics(this.ctx).drawMarker(0, 0, {
+      const marker = Graphics.drawMarker(this.ctx, 0, 0, {
         ...markerConfig,
         pointFillColor: Array.isArray(fillcolor)
           ? fillcolor[i]
