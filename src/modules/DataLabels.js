@@ -1,6 +1,6 @@
 import Scatter from './../charts/Scatter'
-import Graphics from './Graphics'
-import Filters from './Filters'
+import * as Graphics from './Graphics'
+import * as Filters from './Filters'
 
 /**
  * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
@@ -26,10 +26,9 @@ class DataLabels {
     fontSize
   ) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
     let drawnextLabel = false //
 
-    let textRects = graphics.getTextRects(val, fontSize)
+    let textRects = Graphics.getTextRects(this.ctx, val, fontSize)
     let width = textRects.width
     let height = textRects.height
 
@@ -82,8 +81,6 @@ class DataLabels {
     // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
     let w = this.w
 
-    const graphics = new Graphics(this.ctx)
-
     let dataLabelsConfig = w.config.dataLabels
 
     let x = 0
@@ -99,7 +96,7 @@ class DataLabels {
       return elDataLabelsWrap
     }
 
-    elDataLabelsWrap = graphics.group({
+    elDataLabelsWrap = Graphics.group(this.ctx, {
       class: 'apexcharts-data-labels',
     })
 
@@ -182,7 +179,6 @@ class DataLabels {
 
   plotDataLabelsText(opts) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
     let {
       x,
       y,
@@ -292,7 +288,7 @@ class DataLabels {
         }
       }
 
-      dataLabelText = graphics.drawText({
+      dataLabelText = Graphics.drawText(this.ctx, {
         width: 100,
         height: parseInt(dataLabelsConfig.style.fontSize, 10),
         x: x + offX,
@@ -313,8 +309,7 @@ class DataLabels {
 
       if (dataLabelsConfig.dropShadow.enabled) {
         const textShadow = dataLabelsConfig.dropShadow
-        const filters = new Filters(this.ctx)
-        filters.dropShadow(dataLabelText, textShadow)
+        Filters.dropShadow(this.ctx, dataLabelText, textShadow)
       }
 
       parent.add(dataLabelText)
@@ -339,8 +334,8 @@ class DataLabels {
 
     const width = coords.width
     const height = coords.height
-    const graphics = new Graphics(this.ctx)
-    const elRect = graphics.drawRect(
+    const elRect = Graphics.drawRect(
+      this.ctx,
       coords.x - paddingH,
       coords.y - paddingV / 2,
       width + paddingH * 2,
@@ -355,8 +350,7 @@ class DataLabels {
     )
 
     if (bCnf.dropShadow.enabled) {
-      const filters = new Filters(this.ctx)
-      filters.dropShadow(elRect, bCnf.dropShadow)
+      Filters.dropShadow(this.ctx, elRect, bCnf.dropShadow)
     }
 
     return elRect

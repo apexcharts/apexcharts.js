@@ -1,4 +1,4 @@
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics'
 import Series from '../Series'
 
 /**
@@ -112,8 +112,10 @@ export default class Position {
         cx = cx + w.globals.translateX
 
         let textRect = 0
-        const graphics = new Graphics(this.ctx)
-        textRect = graphics.getTextRects(ttCtx.xaxisTooltipText.innerHTML)
+        textRect = Graphics.getTextRects(
+          this.ctx,
+          ttCtx.xaxisTooltipText.innerHTML
+        )
 
         ttCtx.xaxisTooltipText.style.minWidth = textRect.width + 'px'
         ttCtx.xaxisTooltip.style.left = cx + 'px'
@@ -248,7 +250,6 @@ export default class Position {
     let ttCtx = this.ttCtx
     let cx = 0
     let cy = 0
-    const graphics = new Graphics(this.ctx)
 
     let pointsArr = w.globals.pointsArray
 
@@ -275,7 +276,13 @@ export default class Position {
     if (point && cy < w.globals.gridHeight && cy > 0) {
       const shape = point.getAttribute('shape')
 
-      const path = graphics.getMarkerPath(cx, cy, shape, hoverSize * 1.5)
+      const path = Graphics.getMarkerPath(
+        this.ctx,
+        cx,
+        cy,
+        shape,
+        hoverSize * 1.5
+      )
       point.setAttribute('d', path)
     }
 
@@ -298,7 +305,6 @@ export default class Position {
     let pointsArr = w.globals.pointsArray
 
     let series = new Series(this.ctx)
-    const graphics = new Graphics(this.ctx)
 
     activeSeries = series.getActiveConfigSeriesIndex('asc', [
       'line',
@@ -350,7 +356,13 @@ export default class Position {
             pcy < w.globals.gridHeight + hoverSize &&
             pcy + hoverSize > 0
           ) {
-            const path = graphics.getMarkerPath(cx, pcy, shape, hoverSize)
+            const path = Graphics.getMarkerPath(
+              this.ctx,
+              cx,
+              pcy,
+              shape,
+              hoverSize
+            )
             points[p].setAttribute('d', path)
           } else {
             points[p].setAttribute('d', '')

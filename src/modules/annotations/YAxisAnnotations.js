@@ -1,5 +1,6 @@
 import Helpers from './Helpers'
 import AxesUtils from '../axes/AxesUtils'
+import * as Graphics from '../Graphics.js'
 
 export default class YAnnotations {
   constructor(annoCtx) {
@@ -8,7 +9,6 @@ export default class YAnnotations {
 
     this.helpers = new Helpers(this.annoCtx)
     this.axesUtils = new AxesUtils(this.annoCtx)
-
   }
 
   addYaxisAnnotation(anno, parent, index) {
@@ -28,7 +28,8 @@ export default class YAnnotations {
     if (anno.y2 === null || typeof anno.y2 === 'undefined') {
       if (!clipY1) {
         drawn = true
-        let line = this.annoCtx.graphics.drawLine(
+        let line = Graphics.drawLine(
+          this.annoCtx,
           0 + anno.offsetX, // x1
           y1 + anno.offsetY, // y1
           this._getYAxisAnnotationWidth(anno), // x2
@@ -55,7 +56,8 @@ export default class YAnnotations {
 
       if (!(clipY1 && clipY2)) {
         drawn = true
-        let rect = this.annoCtx.graphics.drawRect(
+        let rect = Graphics.drawRect(
+          this.annoCtx,
           0 + anno.offsetX, // x1
           y2 + anno.offsetY, // y1
           this._getYAxisAnnotationWidth(anno), // x2
@@ -84,7 +86,7 @@ export default class YAnnotations {
           ? w.globals.gridWidth / 2
           : 0
 
-      let elText = this.annoCtx.graphics.drawText({
+      let elText = Graphics.drawText(this.annoCtx, {
         x: textX + anno.label.offsetX,
         y: (y2 != null ? y2 : y1) + anno.label.offsetY - 3,
         text,
@@ -95,11 +97,11 @@ export default class YAnnotations {
         foreColor: anno.label.style.color,
         cssClass: `apexcharts-yaxis-annotation-label ${
           anno.label.style.cssClass
-        } ${anno.id ? anno.id : ''}`
+        } ${anno.id ? anno.id : ''}`,
       })
 
       elText.attr({
-        rel: index
+        rel: index,
       })
 
       parent.appendChild(elText.node)
@@ -121,15 +123,17 @@ export default class YAnnotations {
   drawYAxisAnnotations() {
     const w = this.w
 
-    let elg = this.annoCtx.graphics.group({
-      class: 'apexcharts-yaxis-annotations'
+    let elg = Graphics.group(this.annoCtx, {
+      class: 'apexcharts-yaxis-annotations',
     })
 
     w.config.annotations.yaxis.forEach((anno, index) => {
       anno.yAxisIndex = this.axesUtils.translateYAxisIndex(anno.yAxisIndex)
       if (
-            !(this.axesUtils.isYAxisHidden(anno.yAxisIndex)
-            && this.axesUtils.yAxisAllSeriesCollapsed(anno.yAxisIndex))
+        !(
+          this.axesUtils.isYAxisHidden(anno.yAxisIndex) &&
+          this.axesUtils.yAxisAllSeriesCollapsed(anno.yAxisIndex)
+        )
       ) {
         this.addYaxisAnnotation(anno, elg.node, index)
       }

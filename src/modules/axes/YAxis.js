@@ -1,4 +1,4 @@
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 import AxesUtils from './AxesUtils'
 
@@ -28,7 +28,6 @@ export default class YAxis {
 
   drawYaxis(realIndex) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
     const yaxisStyle = w.config.yaxis[realIndex].labels.style
     const {
       fontSize: yaxisFontSize,
@@ -36,7 +35,7 @@ export default class YAxis {
       fontWeight: yaxisFontWeight,
     } = yaxisStyle
 
-    const elYaxis = graphics.group({
+    const elYaxis = Graphics.group(this.ctx, {
       class: 'apexcharts-yaxis',
       rel: realIndex,
       transform: `translate(${w.globals.translateYAxisX[realIndex]}, 0)`,
@@ -44,7 +43,9 @@ export default class YAxis {
 
     if (this.axesUtils.isYAxisHidden(realIndex)) return elYaxis
 
-    const elYaxisTexts = graphics.group({ class: 'apexcharts-yaxis-texts-g' })
+    const elYaxisTexts = Graphics.group(this.ctx, {
+      class: 'apexcharts-yaxis-texts-g',
+    })
     elYaxis.add(elYaxisTexts)
 
     const tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
@@ -83,7 +84,7 @@ export default class YAxis {
           )
         ).map((label) => label.textContent)
 
-        const label = graphics.drawText({
+        const label = Graphics.drawText(this.ctx, {
           x: xPad,
           y: lY,
           text:
@@ -106,7 +107,6 @@ export default class YAxis {
 
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {
           this.rotateLabel(
-            graphics,
             label,
             firstLabel,
             w.config.yaxis[realIndex].labels.rotate
@@ -117,8 +117,8 @@ export default class YAxis {
       }
     }
 
-    this.addYAxisTitle(graphics, elYaxis, realIndex)
-    this.addAxisBorder(graphics, elYaxis, realIndex, tickAmount, labelsDivider)
+    this.addYAxisTitle(elYaxis, realIndex)
+    this.addAxisBorder(elYaxis, realIndex, tickAmount, labelsDivider)
 
     return elYaxis
   }
@@ -139,23 +139,28 @@ export default class YAxis {
     label.node.appendChild(elTooltipTitle)
   }
 
-  rotateLabel(graphics, label, firstLabel, rotate) {
-    const firstLabelCenter = graphics.rotateAroundCenter(firstLabel.node)
-    const labelCenter = graphics.rotateAroundCenter(label.node)
+  rotateLabel(label, firstLabel, rotate) {
+    const firstLabelCenter = Graphics.rotateAroundCenter(
+      this.ctx,
+      firstLabel.node
+    )
+    const labelCenter = Graphics.rotateAroundCenter(label.node)
     label.node.setAttribute(
       'transform',
       `rotate(${rotate} ${firstLabelCenter.x} ${labelCenter.y})`
     )
   }
 
-  addYAxisTitle(graphics, elYaxis, realIndex) {
+  addYAxisTitle(elYaxis, realIndex) {
     const w = this.w
     if (w.config.yaxis[realIndex].title.text !== undefined) {
-      const elYaxisTitle = graphics.group({ class: 'apexcharts-yaxis-title' })
+      const elYaxisTitle = Graphics.group(this.ctx, {
+        class: 'apexcharts-yaxis-title',
+      })
       const x = w.config.yaxis[realIndex].opposite
         ? w.globals.translateYAxisX[realIndex]
         : 0
-      const elYAxisTitleText = graphics.drawText({
+      const elYAxisTitleText = Graphics.drawText(this.ctx, {
         x,
         y:
           w.globals.gridHeight / 2 +
@@ -174,14 +179,15 @@ export default class YAxis {
     }
   }
 
-  addAxisBorder(graphics, elYaxis, realIndex, tickAmount, labelsDivider) {
+  addAxisBorder(elYaxis, realIndex, tickAmount, labelsDivider) {
     const w = this.w
     const axisBorder = w.config.yaxis[realIndex].axisBorder
     let x = 31 + axisBorder.offsetX
     if (w.config.yaxis[realIndex].opposite) x = -31 - axisBorder.offsetX
 
     if (axisBorder.show) {
-      const elVerticalLine = graphics.drawLine(
+      const elVerticalLine = Graphics.drawLine(
+        this.ctx,
         x,
         w.globals.translateY + axisBorder.offsetY - 2,
         x,
@@ -208,13 +214,12 @@ export default class YAxis {
 
   drawYaxisInversed(realIndex) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
 
-    const elXaxis = graphics.group({
+    const elXaxis = Graphics.group(this.ctx, {
       class: 'apexcharts-xaxis apexcharts-yaxis-inversed',
     })
 
-    const elXaxisTexts = graphics.group({
+    const elXaxisTexts = Graphics.group(this.ctx, {
       class: 'apexcharts-xaxis-texts-g',
       transform: `translate(${w.globals.translateXAxisX}, ${w.globals.translateXAxisY})`,
     })
@@ -266,7 +271,7 @@ export default class YAxis {
             val = ''
         }
 
-        const elTick = graphics.drawText({
+        const elTick = Graphics.drawText(this.ctx, {
           x,
           y:
             this.xAxisoffX +
@@ -302,7 +307,6 @@ export default class YAxis {
 
   inversedYAxisBorder(parent) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
     const axisBorder = w.config.xaxis.axisBorder
 
     if (axisBorder.show) {
@@ -310,7 +314,8 @@ export default class YAxis {
       if (w.config.chart.type === 'bar' && w.globals.isXNumeric)
         lineCorrection -= 15
 
-      const elHorzLine = graphics.drawLine(
+      const elHorzLine = Graphics.drawLine(
+        this.ctx,
         w.globals.padHorizontal + lineCorrection + axisBorder.offsetX,
         this.xAxisoffX,
         w.globals.gridWidth,
@@ -330,13 +335,12 @@ export default class YAxis {
 
   inversedYAxisTitleText(parent) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
 
     if (w.config.xaxis.title.text !== undefined) {
-      const elYaxisTitle = graphics.group({
+      const elYaxisTitle = Graphics.group(this.ctx, {
         class: 'apexcharts-xaxis-title apexcharts-yaxis-title-inversed',
       })
-      const elYAxisTitleText = graphics.drawText({
+      const elYAxisTitleText = Graphics.drawText(this.ctx, {
         x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
         y:
           this.xAxisoffX +
@@ -360,7 +364,6 @@ export default class YAxis {
 
   yAxisTitleRotate(realIndex, yAxisOpposite) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
     const elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(
       `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-texts-g`
     )
@@ -382,7 +385,10 @@ export default class YAxis {
         yAxisOpposite
       )
       yAxisTitle.setAttribute('x', x.xPos - (yAxisOpposite ? 10 : 0))
-      const titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle)
+      const titleRotatingCenter = Graphics.rotateAroundCenter(
+        this.ctx,
+        yAxisTitle
+      )
       yAxisTitle.setAttribute(
         'transform',
         `rotate(${

@@ -3,7 +3,7 @@ import Position from './Position'
 import Marker from './Marker'
 import Intersect from './Intersect'
 import AxesTooltip from './AxesTooltip'
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics.js'
 import Series from '../Series'
 import XAxis from './../axes/XAxis'
 import Utils from './Utils'
@@ -742,12 +742,11 @@ export default class Tooltip {
 
   deactivateHoverFilter() {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     let allPaths = w.globals.dom.Paper.find(`.apexcharts-bar-area`)
 
     for (let b = 0; b < allPaths.length; b++) {
-      graphics.pathMouseLeave(allPaths[b])
+      Graphics.pathMouseLeave(this.ctx, allPaths[b])
     }
   }
 
@@ -892,7 +891,6 @@ export default class Tooltip {
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars)
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
-          let graphics = new Graphics(this.ctx)
           let paths = w.globals.dom.Paper.find(`.apexcharts-bar-area[j='${j}']`)
 
           // de-activate first
@@ -906,7 +904,7 @@ export default class Tooltip {
           ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
 
           for (let b = 0; b < paths.length; b++) {
-            graphics.pathMouseEnter(paths[b])
+            Graphics.pathMouseEnter(this.ctx, paths[b])
           }
         }
       }

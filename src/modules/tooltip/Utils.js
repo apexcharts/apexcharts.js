@@ -1,5 +1,5 @@
 import Utilities from '../../utils/Utils'
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics.js'
 
 /**
  * ApexCharts Tooltip.Utils Class to support Tooltip functionality.
@@ -326,7 +326,7 @@ export default class Utils {
     let cx = Number(point.getAttribute('cx'))
     let cy = Number(point.getAttribute('cy'))
     let shape = point.getAttribute('shape')
-    return new Graphics(this.ctx).getMarkerPath(cx, cy, shape, size)
+    return Graphics.getMarkerPath(this.ctx, cx, cy, shape, size)
   }
 
   getElBars() {

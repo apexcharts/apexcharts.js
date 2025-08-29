@@ -1,4 +1,4 @@
-import Graphics from '../../modules/Graphics'
+import * as Graphics from '../../modules/Graphics.js'
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
 import XAxisAnnotations from './XAxisAnnotations'
@@ -15,7 +15,6 @@ export default class Annotations {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
-    this.graphics = new Graphics(this.ctx)
 
     if (this.w.globals.isBarHorizontal) {
       this.invertAxis = true
@@ -122,7 +121,7 @@ export default class Annotations {
 
     const w = this.w
 
-    let elText = this.graphics.drawText({
+    let elText = Graphics.drawText(this.ctx, {
       x,
       y,
       text,
@@ -142,7 +141,8 @@ export default class Annotations {
     const textRect = elText.bbox()
 
     if (text) {
-      const elRect = this.graphics.drawRect(
+      const elRect = Graphics.drawRect(
+        this.ctx,
         textRect.x - paddingLeft,
         textRect.y - paddingTop,
         textRect.width + paddingLeft + paddingRight,
