@@ -1,4 +1,4 @@
-import Graphics from './Graphics'
+import * as Graphics from '../modules/Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
 import { Box } from '@svgdotjs/svg.js'
@@ -17,7 +17,6 @@ export default class ZoomPanSelection extends Toolbar {
     this.w = ctx.w
 
     this.dragged = false
-    this.graphics = new Graphics(this.ctx)
 
     this.eventList = [
       'mousedown',
@@ -51,8 +50,8 @@ export default class ZoomPanSelection extends Toolbar {
 
     this.xyRatios = xyRatios
 
-    this.zoomRect = this.graphics.drawRect(0, 0, 0, 0)
-    this.selectionRect = this.graphics.drawRect(0, 0, 0, 0)
+    this.zoomRect = Graphics.drawRect(this.ctx, 0, 0, 0, 0)
+    this.selectionRect = Graphics.drawRect(this.ctx, 0, 0, 0, 0)
 
     this.gridRect = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
     this.constraints = new Box(0, 0, w.globals.gridWidth, w.globals.gridHeight)

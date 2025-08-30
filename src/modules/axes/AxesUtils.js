@@ -1,5 +1,5 @@
 import Formatters from '../Formatters'
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics'
 import CoreUtils from '../CoreUtils'
 import DateTime from '../../utils/DateTime'
 
@@ -77,10 +77,10 @@ export default class AxesUtils {
 
     label = Array.isArray(label) ? label : label.toString()
 
-    let graphics = new Graphics(this.ctx)
     let textRect = {}
     if (w.globals.rotateXLabels && isLeafGroup) {
-      textRect = graphics.getTextRects(
+      textRect = Graphics.getTextRects(
+        this.ctx,
         label,
         parseInt(fontSize, 10),
         null,
@@ -88,7 +88,7 @@ export default class AxesUtils {
         false
       )
     } else {
-      textRect = graphics.getTextRects(label, parseInt(fontSize, 10))
+      textRect = Graphics.getTextRects(this.ctx, label, parseInt(fontSize, 10))
     }
 
     const allowDuplicatesInTimeScale =
@@ -178,16 +178,15 @@ export default class AxesUtils {
     }
     return labels
   }
-  
+
   yAxisAllSeriesCollapsed(index) {
     const gl = this.w.globals
 
     return !gl.seriesYAxisMap[index].some((si) => {
       return gl.collapsedSeriesIndices.indexOf(si) === -1
     })
-    
   }
-  
+
   // Method to translate annotation.yAxisIndex values from
   // seriesName-as-a-string values to seriesName-as-an-array values (old style
   // series mapping to new style).
@@ -196,8 +195,8 @@ export default class AxesUtils {
     const gl = w.globals
     const yaxis = w.config.yaxis
     let newStyle =
-          gl.series.length > yaxis.length
-          || yaxis.some((a) => Array.isArray(a.seriesName))
+      gl.series.length > yaxis.length ||
+      yaxis.some((a) => Array.isArray(a.seriesName))
     if (newStyle) {
       return index
     } else {
@@ -209,8 +208,7 @@ export default class AxesUtils {
     const w = this.w
     const yaxis = w.config.yaxis[index]
 
-    if (!yaxis.show || this.yAxisAllSeriesCollapsed(index) 
-    ) {
+    if (!yaxis.show || this.yAxisAllSeriesCollapsed(index)) {
       return true
     }
     if (!yaxis.showForNullSeries) {
@@ -245,7 +243,6 @@ export default class AxesUtils {
     elYaxis
   ) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     // initial label position = 0;
     let tY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY
@@ -259,7 +256,8 @@ export default class AxesUtils {
       if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width
 
       for (let i = tickAmount; i >= 0; i--) {
-        let elTick = graphics.drawLine(
+        let elTick = Graphics.drawLine(
+          this.ctx,
           x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX,
           tY + axisTicks.offsetY,
           x + axisBorder.offsetX + axisTicks.offsetX,

@@ -11,7 +11,7 @@ import Utils from '../utils/Utils'
  * hence it makes sense to derive a new class for it extending most of the props of Parent Bar
  **/
 
-class BarStacked extends Bar {
+export class BarStacked extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     this.graphics = new Graphics(this.ctx)

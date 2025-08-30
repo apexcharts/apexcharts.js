@@ -1,5 +1,6 @@
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
+import * as Graphics from '../Graphics.js'
 
 export default class PointAnnotations {
   constructor(annoCtx) {
@@ -37,7 +38,8 @@ export default class PointAnnotations {
         }`,
       }
 
-      let point = this.annoCtx.graphics.drawMarker(
+      let point = Graphics.drawMarker(
+        this.annoCtx,
         x + anno.marker.offsetX,
         y + anno.marker.offsetY,
         optsPoints
@@ -47,7 +49,7 @@ export default class PointAnnotations {
 
       const text = anno.label.text ? anno.label.text : ''
 
-      let elText = this.annoCtx.graphics.drawText({
+      let elText = Graphics.drawText(this.annoCtx, {
         x: x + anno.label.offsetX,
         y:
           y +
@@ -73,9 +75,10 @@ export default class PointAnnotations {
 
       // TODO: deprecate this as we will use custom
       if (anno.customSVG.SVG) {
-        let g = this.annoCtx.graphics.group({
+        let g = Graphics.group(this.annoCtx, {
           class:
-            'apexcharts-point-annotations-custom-svg ' + anno.customSVG.cssClass,
+            'apexcharts-point-annotations-custom-svg ' +
+            anno.customSVG.cssClass,
         })
 
         g.attr({
@@ -123,7 +126,7 @@ export default class PointAnnotations {
   drawPointAnnotations() {
     let w = this.w
 
-    let elg = this.annoCtx.graphics.group({
+    let elg = Graphics.group(this.annoCtx, {
       class: 'apexcharts-point-annotations',
     })
 

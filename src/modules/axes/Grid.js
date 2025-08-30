@@ -1,4 +1,4 @@
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics.js'
 import XAxis from './XAxis'
 import AxesUtils from './AxesUtils'
 
@@ -27,13 +27,13 @@ class Grid {
 
   drawGridArea(elGrid = null) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
 
     if (!elGrid) {
-      elGrid = graphics.group({ class: 'apexcharts-grid' })
+      elGrid = Graphics.group(this.ctx, { class: 'apexcharts-grid' })
     }
 
-    const elVerticalLine = graphics.drawLine(
+    const elVerticalLine = Graphics.drawLine(
+      this.ctx,
       w.globals.padHorizontal,
       1,
       w.globals.padHorizontal,
@@ -41,7 +41,8 @@ class Grid {
       'transparent'
     )
 
-    const elHorzLine = graphics.drawLine(
+    const elHorzLine = Graphics.drawLine(
+      this.ctx,
       w.globals.padHorizontal,
       w.globals.gridHeight,
       w.globals.gridWidth,
@@ -69,7 +70,6 @@ class Grid {
   createGridMask() {
     const w = this.w
     const gl = w.globals
-    const graphics = new Graphics(this.ctx)
 
     const strokeSize = Array.isArray(w.config.stroke.width)
       ? Math.max(...w.config.stroke.width)
@@ -105,7 +105,8 @@ class Grid {
       )
     }
 
-    gl.dom.elGridRect = graphics.drawRect(
+    gl.dom.elGridRect = Graphics.drawRect(
+      this.ctx,
       -strokeSize / 2 - 2,
       -strokeSize / 2 - 2,
       gl.gridWidth + strokeSize + 4,
@@ -114,7 +115,8 @@ class Grid {
       '#fff'
     )
 
-    gl.dom.elGridRectBar = graphics.drawRect(
+    gl.dom.elGridRectBar = Graphics.drawRect(
+      this.ctx,
       -strokeSize / 2 - barWidthLeft - 2,
       -strokeSize / 2 - 2,
       gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
@@ -125,7 +127,8 @@ class Grid {
 
     const markerSize = w.globals.markers.largestSize
 
-    gl.dom.elGridRectMarker = graphics.drawRect(
+    gl.dom.elGridRectMarker = Graphics.drawRect(
+      this.ctx,
       Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize),
       -markerSize,
       gl.gridWidth +
@@ -202,8 +205,8 @@ class Grid {
       (y1 === w.globals.gridHeight && y2 === w.globals.gridHeight) ||
       (w.globals.isBarHorizontal && (i === 0 || i === xCount - 1))
 
-    const graphics = new Graphics(this)
-    const line = graphics.drawLine(
+    const line = Graphics.drawLine(
+      this,
       x1 - (isHorzLine ? offX : 0),
       y1,
       x2 + (isHorzLine ? offX : 0),
@@ -222,12 +225,12 @@ class Grid {
 
   _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
     const offX = w.globals.barPadForNumericAxis
 
     const color = w.config.grid[type].colors[c]
 
-    const rect = graphics.drawRect(
+    const rect = Graphics.drawRect(
+      this.ctx,
       x1 - (type === 'row' ? offX : 0),
       y1,
       x2 + (type === 'row' ? offX * 2 : 0),
@@ -380,16 +383,17 @@ class Grid {
   renderGrid() {
     const w = this.w
     const gl = w.globals
-    const graphics = new Graphics(this.ctx)
 
-    this.elg = graphics.group({ class: 'apexcharts-grid' })
-    this.elgridLinesH = graphics.group({
+    this.elg = Graphics.group(this.ctx, { class: 'apexcharts-grid' })
+    this.elgridLinesH = Graphics.group(this.ctx, {
       class: 'apexcharts-gridlines-horizontal',
     })
-    this.elgridLinesV = graphics.group({
+    this.elgridLinesV = Graphics.group(this.ctx, {
       class: 'apexcharts-gridlines-vertical',
     })
-    this.elGridBorders = graphics.group({ class: 'apexcharts-grid-borders' })
+    this.elGridBorders = Graphics.group(this.ctx, {
+      class: 'apexcharts-grid-borders',
+    })
 
     this.elg.add(this.elgridLinesH)
     this.elg.add(this.elgridLinesV)

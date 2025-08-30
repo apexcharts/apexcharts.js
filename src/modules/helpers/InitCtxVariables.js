@@ -1,14 +1,14 @@
 import Events from '../Events'
 import Localization from './Localization'
-import Animations from '../Animations'
+import * as Animations from '../Animations'
 import Axes from '../axes/Axes'
 import Config from '../settings/Config'
 import CoreUtils from '../CoreUtils'
 import Crosshairs from '../Crosshairs'
 import Grid from '../axes/Grid'
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics'
 import Exports from '../Exports'
-import Fill from '../Fill.js'
+import * as Fill from '../Fill.js'
 import Options from '../settings/Options'
 import Responsive from '../Responsive'
 import Series from '../Series'
@@ -83,19 +83,18 @@ export default class InitCtxVariables {
       'mouseup',
       'touchend',
     ]
-
-    this.ctx.animations = new Animations(this.ctx)
+    this.ctx.animations = Animations
     this.ctx.axes = new Axes(this.ctx)
     this.ctx.core = new Core(this.ctx.el, this.ctx)
     this.ctx.config = new Config({})
     this.ctx.data = new Data(this.ctx)
     this.ctx.grid = new Grid(this.ctx)
-    this.ctx.graphics = new Graphics(this.ctx)
+    this.ctx.graphics = Graphics
     this.ctx.coreUtils = new CoreUtils(this.ctx)
     this.ctx.crosshairs = new Crosshairs(this.ctx)
     this.ctx.events = new Events(this.ctx)
     this.ctx.exports = new Exports(this.ctx)
-    this.ctx.fill = new Fill(this.ctx)
+    this.ctx.fill = Fill
     this.ctx.localization = new Localization(this.ctx)
     this.ctx.options = new Options()
     this.ctx.responsive = new Responsive(this.ctx)

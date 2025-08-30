@@ -8,7 +8,7 @@ import Utils from '../utils/Utils'
  * @module RangeBar
  **/
 
-class RangeBar extends Bar {
+export class RangeBar extends Bar {
   draw(series, seriesIndex) {
     let w = this.w
     let graphics = new Graphics(this.ctx)

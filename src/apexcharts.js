@@ -5,7 +5,7 @@ import DataLabels from './modules/DataLabels'
 import Defaults from './modules/settings/Defaults'
 import Exports from './modules/Exports'
 import Grid from './modules/axes/Grid'
-import Markers from './modules/Markers'
+import * as Markers from './modules/Markers.js'
 import Range from './modules/Range'
 import Utils from './utils/Utils'
 import XAxis from './modules/axes/XAxis'
@@ -187,8 +187,7 @@ export default class ApexCharts {
     this.theme.init()
 
     // as markers accepts array, we need to setup global markers for easier access
-    const markers = new Markers(this)
-    markers.setGlobalMarkerSize()
+    Markers.setGlobalMarkerSize(this.w)
 
     // labelFormatters should be called before dimensions as in dimensions we need text labels width
     this.formatters.setLabelFormatters()

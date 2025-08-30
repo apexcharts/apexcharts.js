@@ -1,4 +1,4 @@
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics'
 import AxesUtils from './AxesUtils'
 
 /**
@@ -60,14 +60,13 @@ export default class XAxis {
 
   drawXaxis() {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
-    let elXaxis = graphics.group({
+    let elXaxis = Graphics.group(this.ctx, {
       class: 'apexcharts-xaxis',
       transform: `translate(${w.config.xaxis.offsetX}, ${w.config.xaxis.offsetY})`,
     })
 
-    let elXaxisTexts = graphics.group({
+    let elXaxisTexts = Graphics.group(this.ctx, {
       class: 'apexcharts-xaxis-texts-g',
       transform: `translate(${w.globals.translateXAxisX}, ${w.globals.translateXAxisY})`,
     })
@@ -82,7 +81,6 @@ export default class XAxis {
 
     this.drawXAxisLabelAndGroup(
       true,
-      graphics,
       elXaxisTexts,
       labels,
       w.globals.isXNumeric,
@@ -108,7 +106,6 @@ export default class XAxis {
 
       this.drawXAxisLabelAndGroup(
         false,
-        graphics,
         elXaxisTexts,
         labels,
         false,
@@ -118,11 +115,15 @@ export default class XAxis {
     }
 
     if (w.config.xaxis.title.text !== undefined) {
-      let elXaxisTitle = graphics.group({
-        class: 'apexcharts-xaxis-title',
-      })
+      let elXaxisTitle = Graphics.group(
+        this.ctx,
 
-      let elXAxisTitleText = graphics.drawText({
+        {
+          class: 'apexcharts-xaxis-title',
+        }
+      )
+
+      let elXAxisTitleText = Graphics.drawText(this.ctx, {
         x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
         y:
           this.offY +
@@ -148,7 +149,8 @@ export default class XAxis {
 
     if (w.config.xaxis.axisBorder.show) {
       const offX = w.globals.barPadForNumericAxis
-      let elHorzLine = graphics.drawLine(
+      let elHorzLine = Graphics.drawLine(
+        this.ctx,
         w.globals.padHorizontal + w.config.xaxis.axisBorder.offsetX - offX,
         this.offY,
         this.xaxisBorderWidth + offX,
@@ -169,7 +171,6 @@ export default class XAxis {
 
   drawXAxisLabelAndGroup(
     isLeafGroup,
-    graphics,
     elXaxisTexts,
     labels,
     isXNumeric,
@@ -284,7 +285,7 @@ export default class XAxis {
       }
 
       if (w.config.xaxis.labels.show) {
-        let elText = graphics.drawText({
+        let elText = Graphics.drawText(this.ctx, {
           x: label.x,
           y:
             this.offY +
@@ -343,18 +344,17 @@ export default class XAxis {
   // this actually becomes the vertical axis (for bar charts)
   drawXaxisInversed(realIndex) {
     let w = this.w
-    let graphics = new Graphics(this.ctx)
 
     let translateYAxisX = w.config.yaxis[0].opposite
       ? w.globals.translateYAxisX[realIndex]
       : 0
 
-    let elYaxis = graphics.group({
+    let elYaxis = Graphics.group(this.ctx, {
       class: 'apexcharts-yaxis apexcharts-xaxis-inversed',
       rel: realIndex,
     })
 
-    let elYaxisTexts = graphics.group({
+    let elYaxisTexts = Graphics.group(this.ctx, {
       class: 'apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g',
       transform: 'translate(' + translateYAxisX + ', 0)',
     })
@@ -418,7 +418,7 @@ export default class XAxis {
           textAnchor = 'end'
         }
 
-        let elLabel = graphics.drawText({
+        let elLabel = Graphics.drawText(this.ctx, {
           x: offsetX,
           y: yPos + colHeight + ylabels.offsetY - multiY,
           text: label,
@@ -451,7 +451,10 @@ export default class XAxis {
         elLabel.node.appendChild(elTooltipTitle)
 
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {
-          let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
+          let labelRotatingCenter = Graphics.rotateAroundCenter(
+            this.ctx,
+            elLabel.node
+          )
           elLabel.node.setAttribute(
             'transform',
             `rotate(${w.config.yaxis[realIndex].labels.rotate} 0 ${labelRotatingCenter.y})`
@@ -462,12 +465,12 @@ export default class XAxis {
     }
 
     if (w.config.yaxis[0].title.text !== undefined) {
-      let elXaxisTitle = graphics.group({
+      let elXaxisTitle = Graphics.group(this.ctx, {
         class: 'apexcharts-yaxis-title apexcharts-xaxis-title-inversed',
         transform: 'translate(' + translateYAxisX + ', 0)',
       })
 
-      let elXAxisTitleText = graphics.drawText({
+      let elXAxisTitleText = Graphics.drawText(this.ctx, {
         x: w.config.yaxis[0].title.offsetX,
         y: w.globals.gridHeight / 2 + w.config.yaxis[0].title.offsetY,
         text: w.config.yaxis[0].title.text,
@@ -492,7 +495,8 @@ export default class XAxis {
     }
     const axisBorder = w.config.xaxis.axisBorder
     if (axisBorder.show) {
-      let elVerticalLine = graphics.drawLine(
+      let elVerticalLine = Graphics.drawLine(
+        this.ctx,
         w.globals.padHorizontal + axisBorder.offsetX + offX,
         1 + axisBorder.offsetY,
         w.globals.padHorizontal + axisBorder.offsetX + offX,
@@ -536,9 +540,8 @@ export default class XAxis {
     }
 
     if (w.config.xaxis.axisTicks.show) {
-      let graphics = new Graphics(this.ctx)
-
-      let line = graphics.drawLine(
+      let line = Graphics.drawLine(
+        this.ctx,
         x1 + w.config.xaxis.axisTicks.offsetX,
         y1 + w.config.xaxis.offsetY,
         x2 + w.config.xaxis.axisTicks.offsetX,
@@ -583,8 +586,6 @@ export default class XAxis {
   xAxisLabelCorrections() {
     let w = this.w
 
-    let graphics = new Graphics(this.ctx)
-
     let xAxis = w.globals.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g')
 
     let xAxisTexts = w.globals.dom.baseEl.querySelectorAll(
@@ -599,7 +600,10 @@ export default class XAxis {
 
     if (w.globals.rotateXLabels || w.config.xaxis.labels.rotateAlways) {
       for (let xat = 0; xat < xAxisTexts.length; xat++) {
-        let textRotatingCenter = graphics.rotateAroundCenter(xAxisTexts[xat])
+        let textRotatingCenter = Graphics.rotateAroundCenter(
+          this.ctx,
+          xAxisTexts[xat]
+        )
         textRotatingCenter.y = textRotatingCenter.y - 1 // + tickWidth/4;
         textRotatingCenter.x = textRotatingCenter.x + 1
 
@@ -618,7 +622,8 @@ export default class XAxis {
 
         if (w.config.xaxis.labels.trim) {
           Array.prototype.forEach.call(tSpan, (ts) => {
-            graphics.placeTextWithEllipsis(
+            Graphics.placeTextWithEllipsis(
+              this.ctx,
               ts,
               ts.textContent,
               w.globals.xAxisLabelsHeight -
@@ -635,7 +640,7 @@ export default class XAxis {
 
         if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
           Array.prototype.forEach.call(tSpan, (ts) => {
-            graphics.placeTextWithEllipsis(ts, ts.textContent, width)
+            Graphics.placeTextWithEllipsis(this.ctx, ts, ts.textContent, width)
           })
         }
       }
@@ -664,7 +669,8 @@ export default class XAxis {
 
       // truncate rotated x axis in bar chart (y axis)
       for (let xat = 0; xat < xAxisTextsInversed.length; xat++) {
-        graphics.placeTextWithEllipsis(
+        Graphics.placeTextWithEllipsis(
+          this.ctx,
           xAxisTextsInversed[xat],
           xAxisTextsInversed[xat].textContent,
           w.config.yaxis[0].labels.maxWidth -

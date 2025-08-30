@@ -1,4 +1,4 @@
-import Graphics from './Graphics'
+import * as Graphics from './Graphics'
 import Utils from '../utils/Utils'
 
 /**
@@ -397,7 +397,6 @@ export default class Series {
     const me = this
 
     const noDataOpts = w.config.noData
-    const graphics = new Graphics(me.ctx)
 
     let x = w.globals.svgWidth / 2
     let y = w.globals.svgHeight / 2
@@ -424,7 +423,7 @@ export default class Series {
     y = y + parseInt(noDataOpts.style.fontSize, 10) + 2 + noDataOpts.offsetY
 
     if (noDataOpts.text !== undefined && noDataOpts.text !== '') {
-      let titleText = graphics.drawText({
+      let titleText = Graphics.drawText(me.ctx, {
         x,
         y,
         text: noDataOpts.text,

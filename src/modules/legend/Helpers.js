@@ -1,6 +1,6 @@
 import apexchartsLegendCSS from '../../assets/apexcharts-legend.css'
 import Utils from '../../utils/Utils'
-import Graphics from '../Graphics'
+import * as Graphics from '../Graphics'
 
 export default class Helpers {
   constructor(lgCtx) {
@@ -94,8 +94,7 @@ export default class Helpers {
       if (type === 'pie' || type === 'polarArea' || type === 'donut') {
         let dataLabels = w.config.plotOptions.pie.donut.labels
 
-        const graphics = new Graphics(this.lgCtx.ctx)
-        graphics.pathMouseDown(seriesEl, null)
+        Graphics.pathMouseDown(this.lgCtx.ctx, seriesEl, null)
         this.lgCtx.ctx.pie.printDataLabelsInner(seriesEl.node, dataLabels)
       }
 

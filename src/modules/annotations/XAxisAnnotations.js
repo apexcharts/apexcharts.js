@@ -1,5 +1,6 @@
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
+import * as Graphics from '../Graphics.js'
 
 export default class XAnnotations {
   constructor(annoCtx) {
@@ -28,7 +29,8 @@ export default class XAnnotations {
 
     if (anno.x2 === null || typeof anno.x2 === 'undefined') {
       if (!clipX1) {
-        let line = this.annoCtx.graphics.drawLine(
+        let line = Graphics.drawLine(
+          this.annoCtx,
           x1 + anno.offsetX, // x1
           0 + anno.offsetY, // y1
           x1 + anno.offsetX, // x2
@@ -53,7 +55,8 @@ export default class XAnnotations {
         x2 = temp
       }
 
-      let rect = this.annoCtx.graphics.drawRect(
+      let rect = Graphics.drawRect(
+        this.annoCtx,
         x1 + anno.offsetX, // x1
         0 + anno.offsetY, // y1
         x2 - x1, // x2
@@ -74,7 +77,8 @@ export default class XAnnotations {
     }
 
     if (!(clipX1 && clipX2)) {
-      let textRects = this.annoCtx.graphics.getTextRects(
+      let textRects = Graphics.getTextRects(
+        this.annoCtx,
         text,
         parseFloat(anno.label.style.fontSize)
       )
@@ -86,7 +90,7 @@ export default class XAnnotations {
             (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
           : w.globals.gridHeight
 
-      let elText = this.annoCtx.graphics.drawText({
+      let elText = Graphics.drawText(this.annoCtx, {
         x: x1 + anno.label.offsetX,
         y:
           textY +
@@ -120,7 +124,7 @@ export default class XAnnotations {
   drawXAxisAnnotations() {
     let w = this.w
 
-    let elg = this.annoCtx.graphics.group({
+    let elg = Graphics.group(this.annoCtx, {
       class: 'apexcharts-xaxis-annotations',
     })
 
