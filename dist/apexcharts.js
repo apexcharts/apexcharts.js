@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.3.4
+ * ApexCharts v5.3.5
  * (c) 2018-2025 ApexCharts
  */
 (function (global, factory) {
@@ -10350,15 +10350,9 @@
           axisSeries.forEach(function (si) {
             // series may be bare until loaded in realtime
             if (cnf.series[si] && cnf.series[si].group === undefined) {
-              if (cnf.series[si].__apexParsed) {
-                // For parsed series, use sequential counter to avoid duplicates
-                cnf.series[si].group = 'apexcharts-axis-'.concat(si.toString());
-              } else {
-                // For non-parsed series,
-                // A series with no group defined will be named after the axis that
-                // referenced it and thus form a group automatically.
-                cnf.series[si].group = 'apexcharts-axis-'.concat(ai.toString());
-              }
+              // A series with no group defined will be named after the axis that
+              // referenced it and thus form a group automatically.
+              cnf.series[si].group = 'apexcharts-axis-'.concat(ai.toString());
             }
           });
         });
