@@ -2,7 +2,7 @@ const chalk = require('chalk')
 const { spawnSync } = require('child_process')
 const fs = require('fs-extra')
 const path = require('path')
-const pixelmatch = require('pixelmatch')
+const blazediff = require('@blazediff/core')
 const { PNG } = require('pngjs')
 const { Cluster } = require('puppeteer-cluster')
 const os = require('os')
@@ -100,7 +100,7 @@ async function processSample(page, sample, command) {
 
   await page.goto(`file://${htmlPath}`)
 
-  let wait;
+  let wait
   do {
     //Wait for all intervals in the page to have been cleared
     await page.waitForFunction(() => window.activeIntervalCount === 0)
@@ -117,7 +117,11 @@ async function processSample(page, sample, command) {
     //After the network requests, timers, and intervals finish, if another request, timer, or interval is created then we need
     //to wait for that to finish before continuing on.
     wait = await page.evaluate(() => {
-      return !(window.activeIntervalCount === 0 && window.activeTimerCount === 0 && chart.w.globals.animationEnded)
+      return !(
+        window.activeIntervalCount === 0 &&
+        window.activeTimerCount === 0 &&
+        chart.w.globals.animationEnded
+      )
     })
   } while (wait)
 
@@ -151,7 +155,7 @@ async function processSample(page, sample, command) {
     // Compare screenshot to the original and throw error on differences
     const testImg = PNG.sync.read(testImgBuffer)
     // BUG: copy if original image doesn't exist and report in test results?
-    let originalImg;
+    let originalImg
     try {
       originalImg = PNG.sync.read(fs.readFileSync(originalImgPath))
     } catch (e) {
@@ -168,7 +172,7 @@ async function processSample(page, sample, command) {
     let err
 
     try {
-      numDiffs = pixelmatch(
+      numDiffs = blazediff(
         originalImg.data,
         testImg.data,
         diffImg.data,
@@ -180,7 +184,7 @@ async function processSample(page, sample, command) {
       err = e
     }
 
-    // Save screenshot even if pixelmatch failed (due to image size mismatch)
+    // Save screenshot even if blazediff failed (due to image size mismatch)
     if (numDiffs !== 0) {
       await fs.ensureDir(`${e2eDir}/diffs/${sample.dirName}`)
       fs.writeFileSync(`${e2eDir}/diffs/${relPath}.png`, testImgBuffer)
@@ -331,7 +335,11 @@ async function processSamples(command, paths, isCI) {
     )
 
     if (testsMissingSnapshots.length > 0) {
-      console.log(chalk.yellow.bold(`${testsMissingSnapshots.length} tests were missing snapshots to compare against. Those tests are:`))
+      console.log(
+        chalk.yellow.bold(
+          `${testsMissingSnapshots.length} tests were missing snapshots to compare against. Those tests are:`
+        )
+      )
       for (const testMissingSnapshot of testsMissingSnapshots) {
         console.log(chalk.yellow.bold(`${testMissingSnapshot}\n`))
       }
