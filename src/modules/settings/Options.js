@@ -419,6 +419,7 @@ export default class Options {
         },
         area: {
           fillTo: 'origin',
+          forceSingleDataAsArea: false,
         },
         bar: {
           horizontal: false,
