@@ -48,7 +48,7 @@
     "@babel/core": "^7.8.7",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
     "@babel/preset-env": "^7.8.7",
-    "@blazediff/core": "0.7.1",
+    "@blazediff/core": "1.0.0",
     "@rollup/plugin-babel": "^5.2.1",
     "@rollup/plugin-json": "4.0.1",
     "@rollup/plugin-node-resolve": "6.0.0",
