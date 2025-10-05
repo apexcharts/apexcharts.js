@@ -43,6 +43,7 @@
       "exportToSVG": "Сохранить SVG",
       "exportToPNG": "Сохранить PNG",
       "exportToCSV": "Сохранить CSV",
+      "exportToXLS": "Сохранить XLS",
       "menu": "Меню",
       "selection": "Выбор",
       "selectionZoom": "Выбор с увеличением",

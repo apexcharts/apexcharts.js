@@ -177,6 +177,10 @@ export default class Toolbar {
         name: 'exportCSV',
         title: this.localeValues.exportToCSV,
       },
+      {
+        name: 'exportXLS',
+        title: this.localeValues.exportToXLS,
+      },
     ]
 
     for (let i = 0; i < menuItems.length; i++) {
@@ -211,6 +215,8 @@ export default class Toolbar {
         m.addEventListener('click', this.handleDownload.bind(this, 'png'))
       } else if (m.classList.contains('exportCSV')) {
         m.addEventListener('click', this.handleDownload.bind(this, 'csv'))
+      } else if (m.classList.contains('exportXLS')) {
+        m.addEventListener('click', this.handleDownload.bind(this, 'xls'))
       }
     })
     for (let i = 0; i < this.t.customIcons.length; i++) {
@@ -456,6 +462,11 @@ export default class Toolbar {
         exprt.exportToCSV({
           series: w.config.series,
           columnDelimiter: w.config.chart.toolbar.export.csv.columnDelimiter,
+        })
+        break
+      case 'xls':
+        exprt.exportToXLS({
+          series: w.config.series,
         })
         break
     }

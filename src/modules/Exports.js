@@ -3,6 +3,7 @@ import AxesUtils from '../modules/axes/AxesUtils'
 import Data from '../modules/Data'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
+import * as XLSX from 'xlsx'
 
 class Exports {
   constructor(ctx) {
@@ -501,6 +502,125 @@ class Exports {
       fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
       '.csv'
     )
+  }
+
+  exportToXLS({ series, fileName }) {
+    const w = this.w
+    if (!series) series = w.config.series;
+    const data = []
+    const gSeries = w.globals.series.map((s, i) => {
+      return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
+    })
+    const seriesMaxDataLength = Math.max(...series.map((s) => (s.data ? s.data.length : 0)))
+    const dataFormat = new Data(this.ctx)
+    const axesUtils = new AxesUtils(this.ctx)
+
+    const getCat = (i) => {
+      let cat = ''
+      if (!w.globals.axisCharts) {
+        cat = w.config.labels[i]
+      } else {
+        if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
+          if (w.globals.isBarHorizontal) {
+            let lbFormatter = w.globals.yLabelFormatters[0]
+            let sr = new Series(this.ctx)
+            let activeSeries = sr.getActiveConfigSeriesIndex()
+            cat = lbFormatter(w.globals.labels[i], { seriesIndex: activeSeries, dataPointIndex: i, w })
+          } else {
+            cat = axesUtils.getLabel(w.globals.labels, w.globals.timescaleLabels, 0, i).text
+          }
+        }
+        if (w.config.xaxis.type === 'datetime') {
+          if (w.config.xaxis.categories.length) {
+            cat = w.config.xaxis.categories[i]
+          } else if (w.config.labels.length) {
+            cat = w.config.labels[i]
+          }
+        }
+      }
+      if (cat === null) return 'nullvalue'
+      if (Array.isArray(cat)) cat = cat.join(' ')
+      return cat
+    }
+
+    const getEmptyDataForColumn = () => [...Array(seriesMaxDataLength)].map(() => '')
+
+    const handleAxisRows = (s, sI) => {
+      if (s.data) {
+        s.data = (s.data.length && s.data) || getEmptyDataForColumn()
+        for (let i = 0; i < s.data.length; i++) {
+          let cat = getCat(i)
+          if (cat === 'nullvalue') continue
+          if (!cat) {
+            if (dataFormat.isFormatXY()) {
+              cat = series[sI].data[i].x
+            } else if (dataFormat.isFormat2DArray()) {
+              cat = series[sI].data[i] ? series[sI].data[i][0] : ''
+            }
+          }
+          if (sI === 0) {
+            const row = {}
+            row[w.config.chart.toolbar.export.csv.headerCategory] = cat
+            for (let ci = 0; ci < w.globals.series.length; ci++) {
+              const sname = (series[ci].name ? series[ci].name : `series-${ci}`)
+              row[sname] = dataFormat.isFormatXY() ? series[ci].data[i]?.y : gSeries[ci][i]
+            }
+            data.push(row)
+          }
+        }
+      }
+    }
+
+    const handleUnequalXValues = () => {
+      const categories = new Set()
+      const seriesData = {}
+      series.forEach((s, sI) => {
+        s?.data.forEach((dataItem) => {
+          let cat, value
+          if (dataFormat.isFormatXY()) {
+            cat = dataItem.x
+            value = dataItem.y
+          } else if (dataFormat.isFormat2DArray()) {
+            cat = dataItem[0]
+            value = dataItem[1]
+          } else {
+            return
+          }
+          if (!seriesData[cat]) seriesData[cat] = Array(series.length).fill('')
+          seriesData[cat][sI] = value
+          categories.add(cat)
+        })
+      })
+      Array.from(categories).sort().forEach((cat) => {
+        const row = {}
+        row[w.config.chart.toolbar.export.csv.headerCategory] = cat
+        series.forEach((s, sI) => {
+          row[s.name || `series-${sI}`] = seriesData[cat][sI]
+        })
+        data.push(row)
+      })
+    }
+
+    if (!w.globals.allSeriesHasEqualX && w.globals.axisCharts && !w.config.xaxis.categories.length && !w.config.labels.length) {
+      handleUnequalXValues()
+    } else {
+      series.forEach((s, sI) => {
+        if (w.globals.axisCharts) {
+          handleAxisRows(s, sI)
+        } else {
+          const row = {}
+          row[w.config.chart.toolbar.export.csv.headerCategory] = w.globals.labels[sI]
+          row[s.name || `series-${sI}`] = gSeries[sI]
+          data.push(row)
+        }
+      })
+    }
+
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'sheet1')
+    const fileNameExt = (fileName ? fileName : w.globals.chartID) + '.xlsx'
+    XLSX.writeFile(wb, fileNameExt)
   }
 
   triggerDownload(href, filename, ext) {

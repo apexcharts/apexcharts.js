@@ -51,6 +51,7 @@
 "exportToSVG": "تحميل بصيغة SVG",
 "exportToPNG": "تحميل بصيغة PNG",
 "exportToCSV": "تحميل بصيغة CSV",
+"exportToXLS": "تحميل بصيغة XLS",
 "menu": "القائمة",
 "selection": "تحديد",
 "selectionZoom": "تكبير التحديد",

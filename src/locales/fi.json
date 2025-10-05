@@ -43,6 +43,7 @@
       "exportToSVG": "Lataa SVG",
       "exportToPNG": "Lataa PNG",
       "exportToCSV": "Lataa CSV",
+      "exportToXLS": "Lataa XLS",
       "menu": "Valikko",
       "selection": "Valinta",
       "selectionZoom": "Valinnan zoomaus",

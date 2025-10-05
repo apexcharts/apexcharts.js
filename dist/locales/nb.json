@@ -43,6 +43,7 @@
       "exportToSVG": "Last ned SVG",
       "exportToPNG": "Last ned PNG",
       "exportToCSV": "Last ned CSV",
+      "exportToXLS": "Last ned XLS",
       "menu": "Menu",
       "selection": "Velg",
       "selectionZoom": "Zoom: Velg",
