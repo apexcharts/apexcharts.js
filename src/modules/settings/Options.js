@@ -379,6 +379,7 @@ export default class Options {
             svg: {
               filename: undefined,
             },
+            showXLS: false,
             scale: undefined,
             width: undefined,
           },

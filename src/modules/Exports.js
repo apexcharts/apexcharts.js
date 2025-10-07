@@ -504,32 +504,81 @@ class Exports {
     )
   }
 
-  exportToXLS({ series, fileName }) {
+  buildCSVMatrix({ series, columnDelimiter = ',' }) {
     const w = this.w
-    if (!series) series = w.config.series;
-    const data = []
-    const gSeries = w.globals.series.map((s, i) => {
+
+    if (!series) series = w.config.series
+
+    let columns = []
+    let rows = []
+    let gSeries = w.globals.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
     })
-    const seriesMaxDataLength = Math.max(...series.map((s) => (s.data ? s.data.length : 0)))
-    const dataFormat = new Data(this.ctx)
-    const axesUtils = new AxesUtils(this.ctx)
 
+    const getFormattedCategory = (cat) => {
+      if (
+        typeof w.config.chart.toolbar.export.csv.categoryFormatter ===
+        'function'
+      ) {
+        return w.config.chart.toolbar.export.csv.categoryFormatter(cat)
+      }
+
+      if (w.config.xaxis.type === 'datetime' && String(cat).length >= 10) {
+        return new Date(cat).toDateString()
+      }
+      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
+    }
+
+    const getFormattedValue = (value) => {
+      return typeof w.config.chart.toolbar.export.csv.valueFormatter ===
+        'function'
+        ? w.config.chart.toolbar.export.csv.valueFormatter(value)
+        : value
+    }
+
+    const seriesMaxDataLength = Math.max(
+      ...series.map((s) => {
+        return s.data ? s.data.length : 0
+      })
+    )
+    const dataFormat = new Data(this.ctx)
+
+    const axesUtils = new AxesUtils(this.ctx)
     const getCat = (i) => {
       let cat = ''
+
+      // pie / donut/ radial
       if (!w.globals.axisCharts) {
         cat = w.config.labels[i]
       } else {
-        if (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) {
+        // xy charts
+
+        // non datetime
+        if (
+          w.config.xaxis.type === 'category' ||
+          w.config.xaxis.convertedCatToNumeric
+        ) {
           if (w.globals.isBarHorizontal) {
             let lbFormatter = w.globals.yLabelFormatters[0]
             let sr = new Series(this.ctx)
             let activeSeries = sr.getActiveConfigSeriesIndex()
-            cat = lbFormatter(w.globals.labels[i], { seriesIndex: activeSeries, dataPointIndex: i, w })
+
+            cat = lbFormatter(w.globals.labels[i], {
+              seriesIndex: activeSeries,
+              dataPointIndex: i,
+              w,
+            })
           } else {
-            cat = axesUtils.getLabel(w.globals.labels, w.globals.timescaleLabels, 0, i).text
+            cat = axesUtils.getLabel(
+              w.globals.labels,
+              w.globals.timescaleLabels,
+              0,
+              i
+            ).text
           }
         }
+
+        // datetime, but labels specified in categories or labels
         if (w.config.xaxis.type === 'datetime') {
           if (w.config.xaxis.categories.length) {
             cat = w.config.xaxis.categories[i]
@@ -538,19 +587,41 @@ class Exports {
           }
         }
       }
+
+      // let the caller know the current category is null. this can happen for example
+      // when dealing with line charts having inconsistent time series data
       if (cat === null) return 'nullvalue'
-      if (Array.isArray(cat)) cat = cat.join(' ')
-      return cat
+
+      if (Array.isArray(cat)) {
+        cat = cat.join(' ')
+      }
+
+      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
     }
 
-    const getEmptyDataForColumn = () => [...Array(seriesMaxDataLength)].map(() => '')
+    // Fix https://github.com/apexcharts/apexcharts.js/issues/3365
+    const getEmptyDataForCsvColumn = () => {
+      return [...Array(seriesMaxDataLength)].map(() => '')
+    }
 
-    const handleAxisRows = (s, sI) => {
+    const handleAxisRowsColumns = (s, sI) => {
+      if (columns.length && sI === 0) {
+        // It's the first series.  Go ahead and create the first row with header information.
+        rows.push(columns)
+      }
+
       if (s.data) {
-        s.data = (s.data.length && s.data) || getEmptyDataForColumn()
+        // Use the data we have, or generate a properly sized empty array with empty data if some data is missing.
+        s.data = (s.data.length && s.data) || getEmptyDataForCsvColumn()
         for (let i = 0; i < s.data.length; i++) {
+          // Reset the columns array so that we can start building columns for this row.
+          columns = []
+
           let cat = getCat(i)
+
+          // current category is null, let's move on to the next one
           if (cat === 'nullvalue') continue
+
           if (!cat) {
             if (dataFormat.isFormatXY()) {
               cat = series[sI].data[i].x
@@ -558,14 +629,50 @@ class Exports {
               cat = series[sI].data[i] ? series[sI].data[i][0] : ''
             }
           }
+
           if (sI === 0) {
-            const row = {}
-            row[w.config.chart.toolbar.export.csv.headerCategory] = cat
+            // It's the first series.  Also handle the category.
+            columns.push(getFormattedCategory(cat))
+
             for (let ci = 0; ci < w.globals.series.length; ci++) {
-              const sname = (series[ci].name ? series[ci].name : `series-${ci}`)
-              row[sname] = dataFormat.isFormatXY() ? series[ci].data[i]?.y : gSeries[ci][i]
+              const value = dataFormat.isFormatXY()
+                ? series[ci].data[i]?.y
+                : gSeries[ci][i]
+              columns.push(getFormattedValue(value))
             }
-            data.push(row)
+          }
+
+          if (
+            w.config.chart.type === 'candlestick' ||
+            (s.type && s.type === 'candlestick')
+          ) {
+            columns.pop()
+            columns.push(w.globals.seriesCandleO[sI][i])
+            columns.push(w.globals.seriesCandleH[sI][i])
+            columns.push(w.globals.seriesCandleL[sI][i])
+            columns.push(w.globals.seriesCandleC[sI][i])
+          }
+
+          if (
+            w.config.chart.type === 'boxPlot' ||
+            (s.type && s.type === 'boxPlot')
+          ) {
+            columns.pop()
+            columns.push(w.globals.seriesCandleO[sI][i])
+            columns.push(w.globals.seriesCandleH[sI][i])
+            columns.push(w.globals.seriesCandleM[sI][i])
+            columns.push(w.globals.seriesCandleL[sI][i])
+            columns.push(w.globals.seriesCandleC[sI][i])
+          }
+
+          if (w.config.chart.type === 'rangeBar') {
+            columns.pop()
+            columns.push(w.globals.seriesRangeStart[sI][i])
+            columns.push(w.globals.seriesRangeEnd[sI][i])
+          }
+
+          if (columns.length) {
+            rows.push(columns)
           }
         }
       }
@@ -573,7 +680,8 @@ class Exports {
 
     const handleUnequalXValues = () => {
       const categories = new Set()
-      const seriesData = {}
+      const data = {}
+
       series.forEach((s, sI) => {
         s?.data.forEach((dataItem) => {
           let cat, value
@@ -586,41 +694,97 @@ class Exports {
           } else {
             return
           }
-          if (!seriesData[cat]) seriesData[cat] = Array(series.length).fill('')
-          seriesData[cat][sI] = value
+          if (!data[cat]) {
+            data[cat] = Array(series.length).fill('')
+          }
+          data[cat][sI] = getFormattedValue(value)
           categories.add(cat)
         })
       })
-      Array.from(categories).sort().forEach((cat) => {
-        const row = {}
-        row[w.config.chart.toolbar.export.csv.headerCategory] = cat
-        series.forEach((s, sI) => {
-          row[s.name || `series-${sI}`] = seriesData[cat][sI]
+
+      if (columns.length) {
+        rows.push(columns)
+      }
+
+      Array.from(categories)
+        .sort()
+        .forEach((cat) => {
+          rows.push([
+            getFormattedCategory(cat),
+            data[cat],
+          ])
         })
-        data.push(row)
-      })
     }
 
-    if (!w.globals.allSeriesHasEqualX && w.globals.axisCharts && !w.config.xaxis.categories.length && !w.config.labels.length) {
-      handleUnequalXValues()
+    columns.push(w.config.chart.toolbar.export.csv.headerCategory)
+
+    if (w.config.chart.type === 'boxPlot') {
+      columns.push('minimum')
+      columns.push('q1')
+      columns.push('median')
+      columns.push('q3')
+      columns.push('maximum')
+    } else if (w.config.chart.type === 'candlestick') {
+      columns.push('open')
+      columns.push('high')
+      columns.push('low')
+      columns.push('close')
+    } else if (w.config.chart.type === 'rangeBar') {
+      columns.push('minimum')
+      columns.push('maximum')
     } else {
-      series.forEach((s, sI) => {
+      series.map((s, sI) => {
+        const sname = (s.name ? s.name : `series-${sI}`) + ''
         if (w.globals.axisCharts) {
-          handleAxisRows(s, sI)
-        } else {
-          const row = {}
-          row[w.config.chart.toolbar.export.csv.headerCategory] = w.globals.labels[sI]
-          row[s.name || `series-${sI}`] = gSeries[sI]
-          data.push(row)
+          columns.push(
+            sname.split(columnDelimiter).join('')
+              ? sname.split(columnDelimiter).join('')
+              : `series-${sI}`
+          )
         }
       })
     }
 
-    const ws = XLSX.utils.json_to_sheet(data)
+    if (!w.globals.axisCharts) {
+      columns.push(w.config.chart.toolbar.export.csv.headerValue)
+      rows.push(columns)
+    }
+
+    if (
+      !w.globals.allSeriesHasEqualX &&
+      w.globals.axisCharts &&
+      !w.config.xaxis.categories.length &&
+      !w.config.labels.length
+    ) {
+      handleUnequalXValues()
+    } else {
+      series.map((s, sI) => {
+        if (w.globals.axisCharts) {
+          handleAxisRowsColumns(s, sI)
+        } else {
+          columns = []
+
+          columns.push(getFormattedCategory(w.globals.labels[sI]))
+          columns.push(getFormattedValue(gSeries[sI]))
+          rows.push(columns)
+        }
+      })
+    }
+    return rows
+  }
+
+  exportToXLS({ series, fileName, sheetName = 'Sheet1' }) {
+    let result = this.buildCSVMatrix({ series })
+    const ws = XLSX.utils.aoa_to_sheet(result)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'sheet1')
-    const fileNameExt = (fileName ? fileName : w.globals.chartID) + '.xlsx'
-    XLSX.writeFile(wb, fileNameExt)
+    XLSX.utils.book_append_sheet(wb, ws, sheetName)
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = URL.createObjectURL(blob)
+    this.triggerDownload(url, fileName, '.xlsx')
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
   }
 
   triggerDownload(href, filename, ext) {

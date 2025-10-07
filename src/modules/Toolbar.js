@@ -157,6 +157,7 @@ export default class Toolbar {
   }
 
   _createHamburgerMenu(parent) {
+    const w = this.w;
     this.elMenuItems = []
     parent.appendChild(this.elMenu)
 
@@ -177,11 +178,14 @@ export default class Toolbar {
         name: 'exportCSV',
         title: this.localeValues.exportToCSV,
       },
-      {
+    ]
+
+    if (w.config.chart.toolbar.export.showXLS) {
+      menuItems.push({
         name: 'exportXLS',
         title: this.localeValues.exportToXLS,
-      },
-    ]
+      });
+    }
 
     for (let i = 0; i < menuItems.length; i++) {
       this.elMenuItems.push(document.createElement('div'))
