@@ -35146,13 +35146,13 @@
 
   /*!
   * @svgdotjs/svg.resize.js - An extension for svg.js which allows to resize elements which are selected
-  * @version 2.0.4
+  * @version 2.0.2
   * https://github.com/svgdotjs/svg.resize.js
   *
   * @copyright [object Object]
   * @license MIT
   *
-  * BUILT: Fri Sep 13 2024 12:43:14 GMT+0200 (Central European Summer Time)
+  * BUILT: Mon Jul 01 2024 15:05:58 GMT+0200 (Central European Summer Time)
   */
   /*!
   * @svgdotjs/svg.select.js - An extension of svg.js which allows to select elements with mouse
@@ -35429,6 +35429,7 @@
       this.lastCoordinates = null;
       this.eventType = "";
       this.lastEvent = null;
+      this.angle = 0;
       this.handleResize = this.handleResize.bind(this);
       this.resize = this.resize.bind(this);
       this.endResize = this.endResize.bind(this);
@@ -35498,6 +35499,7 @@
       const endPoint = this.snapToGrid(this.el.point(getCoordsFromEvent(e)));
       let dx = endPoint.x - this.startPoint.x;
       let dy = endPoint.y - this.startPoint.y;
+      console.log("endPoint", endPoint, "startPoint", this.startPoint, dx, dy);
       if (this.preserveAspectRatio && this.aroundCenter) {
         dx *= 2;
         dy *= 2;
@@ -35544,7 +35546,7 @@
       }).defaultPrevented) {
         return;
       }
-      this.el.size(box.width, box.height).move(box.x, box.y);
+      this.el.move(box.x, box.y).size(box.width, box.height);
     }
     movePoint(e) {
       this.lastEvent = e;
@@ -35564,11 +35566,11 @@
     }
     rotate(e) {
       this.lastEvent = e;
-      const startPoint = this.startPoint;
       const endPoint = this.el.point(getCoordsFromEvent(e));
-      const { cx, cy } = this.box;
-      const dx1 = startPoint.x - cx;
-      const dy1 = startPoint.y - cy;
+      const cx = this.box.cx;
+      const cy = this.box.cy;
+      const dx1 = this.startPoint.x - cx;
+      const dy1 = this.startPoint.y - cy;
       const dx2 = endPoint.x - cx;
       const dy2 = endPoint.y - cy;
       const c = Math.sqrt(dx1 * dx1 + dy1 * dy1) * Math.sqrt(dx2 * dx2 + dy2 * dy2);
@@ -35576,24 +35578,20 @@
         return;
       }
       let angle = Math.acos((dx1 * dx2 + dy1 * dy2) / c) / Math.PI * 180;
-      if (!angle) return;
-      if (endPoint.x < startPoint.x) {
+      if (endPoint.x < this.startPoint.x) {
         angle = -angle;
       }
-      const matrix = new Matrix(this.el);
-      const { x: ox, y: oy } = new Point(cx, cy).transformO(matrix);
-      const { rotate } = matrix.decompose();
-      const resultAngle = this.snapToAngle(rotate + angle) - rotate;
+      this.angle = this.snapToAngle(this.angle + angle);
       if (this.el.dispatch("resize", {
-        box: this.box,
-        angle: resultAngle,
+        box: this.startBox,
+        angle: this.angle,
         eventType: this.eventType,
         event: e,
         handler: this
       }).defaultPrevented) {
         return;
       }
-      this.el.transform(matrix.rotateO(resultAngle, ox, oy));
+      this.el.transform({ rotate: this.angle });
     }
     endResize(ev) {
       if (this.eventType !== "rot" && this.eventType !== "point") {
@@ -36316,15 +36314,9 @@
     }, {
       key: "getSyncedCharts",
       value: function getSyncedCharts() {
-        var chartGroups = this.getGroupedCharts();
-        var allCharts = [this];
-        if (chartGroups.length) {
-          allCharts = [];
-          chartGroups.forEach(function (ch) {
-            allCharts.push(ch);
-          });
-        }
-        return allCharts;
+        var group = this.getGroupedCharts();
+        group.splice(0, 0, this);
+        return group;
       }
 
       /**
@@ -36335,11 +36327,9 @@
       value: function getGroupedCharts() {
         var _this6 = this;
         return Apex._chartInstances.filter(function (ch) {
-          if (ch.group) {
-            return true;
-          }
+          return _this6 !== ch.chart && _this6.w.config.chart.group === ch.group;
         }).map(function (ch) {
-          return _this6.w.config.chart.group === ch.group ? ch.chart : _this6;
+          return ch.chart;
         });
       }
     }, {
