@@ -1,0 +1,63 @@
+{
+  "name": "gl",
+  "options": {
+    "months": [
+      "Xaneiro",
+      "Febreiro",
+      "Marzo",
+      "Abril",
+      "Maio",
+      "Xuño",
+      "Xullo",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Decembro"
+    ],
+    "shortMonths": [
+      "Xan",
+      "Feb",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Xuñ",
+      "Xul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dec"
+    ],
+    "days": [
+      "Domingo",
+      "Luns",
+      "Martes",
+      "Mércores",
+      "Xoves",
+      "Venres",
+      "Sábado"
+    ],
+    "shortDays": [
+      "Dom",
+      "Lun",
+      "Mar",
+      "Mér",
+      "Xov",
+      "Ven",
+      "Sáb"
+    ],
+    "toolbar": {
+      "exportToSVG": "Descargar SVG",
+      "exportToPNG": "Descargar PNG",
+      "exportToCSV": "Descargar CSV",
+      "menu": "Menu",
+      "selection": "Seleccionar",
+      "selectionZoom": "Seleccionar Zoom",
+      "zoomIn": "Aumentar",
+      "zoomOut": "Disminuír",
+      "pan": "Navegación",
+      "reset": "Reiniciar Zoom"
+    }
+  }
+}
