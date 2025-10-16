@@ -43,6 +43,7 @@
       "exportToSVG": "SVG speichern",
       "exportToPNG": "PNG speichern",
       "exportToCSV": "CSV speichern",
+      "exportToXLS": "XLS speichern",
       "menu": "Menü",
       "selection": "Auswahl",
       "selectionZoom": "Auswahl vergrößern",

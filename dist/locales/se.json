@@ -43,6 +43,7 @@
       "exportToSVG": "Ladda SVG",
       "exportToPNG": "Ladda PNG",
       "exportToCSV": "Ladda CSV",
+      "exportToXLS": "Ladda XLS",
       "menu": "Meny",
       "selection": "Selektion",
       "selectionZoom": "Val av zoom",

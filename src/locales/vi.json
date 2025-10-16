@@ -51,6 +51,7 @@
       "exportToSVG": "Tải xuống SVG",
       "exportToPNG": "Tải xuống PNG",
       "exportToCSV": "Tải xuống CSV",
+      "exportToXLS": "Tải xuống XLS",
       "menu": "Tuỳ chọn",
       "selection": "Vùng chọn",
       "selectionZoom": "Vùng chọn phóng to",

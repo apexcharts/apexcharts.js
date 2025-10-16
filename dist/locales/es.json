@@ -43,6 +43,7 @@
       "exportToSVG": "Descargar SVG",
       "exportToPNG": "Descargar PNG",
       "exportToCSV": "Descargar CSV",
+      "exportToXLS": "Descargar XLS",
       "menu": "Menu",
       "selection": "Seleccionar",
       "selectionZoom": "Seleccionar Zoom",
