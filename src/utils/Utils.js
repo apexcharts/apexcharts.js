@@ -167,8 +167,53 @@ class Utils {
     return true
   }
 
+  /**
+   * detects if an element is inside a Shadow DOM
+   */
+  static isInShadowDOM(el) {
+    if (!el || !el.getRootNode) {
+      return false
+    }
+
+    const rootNode = el.getRootNode()
+
+    // check if root node is a ShadowRoot
+    return rootNode && rootNode !== document && Utils.is('ShadowRoot', rootNode)
+  }
+
+  /**
+   * gets the shadow root host element
+   */
+  static getShadowRootHost(el) {
+    if (!Utils.isInShadowDOM(el)) {
+      return null
+    }
+
+    const rootNode = el.getRootNode()
+    return rootNode.host || null
+  }
+
   static getDimensions(el) {
-    const computedStyle = getComputedStyle(el, null)
+    if (!el) return [0, 0]
+
+    // check if in shadow DOM
+    const rootNode = el.getRootNode && el.getRootNode()
+    const inShadowDOM = rootNode && rootNode !== document
+
+    if (inShadowDOM && rootNode.host) {
+      // in shadow DOM: use host container dimensions
+      const hostRect = rootNode.host.getBoundingClientRect()
+      return [hostRect.width, hostRect.height]
+    }
+
+    // regular DOM
+    let computedStyle
+    try {
+      computedStyle = getComputedStyle(el, null)
+    } catch (e) {
+      // fallback to clientWidth/Height
+      return [el.clientWidth || 0, el.clientHeight || 0]
+    }
 
     let elementHeight = el.clientHeight
     let elementWidth = el.clientWidth
@@ -183,6 +228,19 @@ class Utils {
   }
 
   static getBoundingClientRect(element) {
+    if (!element) {
+      return {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        width: 0,
+        height: 0,
+        x: 0,
+        y: 0,
+      }
+    }
+
     const rect = element.getBoundingClientRect()
     return {
       top: rect.top,
