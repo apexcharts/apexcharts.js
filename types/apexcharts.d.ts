@@ -195,8 +195,8 @@ type ApexChart = {
         columnDelimiter?: string
         headerCategory?: string
         headerValue?: string
-        categoryFormatter?(value?: number): any
-        valueFormatter?(value?: number): any
+        categoryFormatter?(value?: string | number): any
+        valueFormatter?(value?: string | number): any
       },
       svg?: {
         filename?: undefined | string
@@ -680,7 +680,7 @@ type ApexPlotOptions = {
           fontWeight?: string | number
           color?: string
           offsetY?: number
-          formatter?(val: string): string
+          formatter?(val: number | string): string
         }
         total?: {
           show?: boolean
@@ -998,7 +998,7 @@ type ApexTooltip = {
   x?: {
     show?: boolean
     format?: string
-    formatter?(val: number, opts?: any): string
+    formatter?(val: string | number, opts?: any): string
   }
   y?: ApexTooltipY | ApexTooltipY[]
   z?: {
@@ -1050,7 +1050,7 @@ type ApexXAxis = {
     offsetX?: number
     offsetY?: number
     format?: string
-    formatter?(value: string, timestamp?: number, opts?: any): string | string[]
+    formatter?(value: string | number, timestamp?: number, opts?: any): string | string[]
     datetimeUTC?: boolean
     datetimeFormatter?: {
       year?: string
@@ -1133,7 +1133,7 @@ type ApexXAxis = {
   tooltip?: {
     enabled?: boolean
     offsetY?: number
-    formatter?(value: string, opts?: object): string
+    formatter?(value: string | number, opts?: object): string
     style?: {
       fontSize?: string
       fontFamily?: string
