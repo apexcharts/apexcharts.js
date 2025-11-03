@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import pixelmatch from 'pixelmatch'
+import blazediff from '@blazediff/core'
 import { PNG } from 'pngjs'
 import puppeteer from 'puppeteer'
 import { setTimeout as promisifiedTimeout } from 'timers/promises'
@@ -36,7 +36,7 @@ export function chartVisualTest(type, filename, imageFilename, validate) {
           const diffImg = new PNG({ width, height })
 
           // BUG: fix threshold
-          const numDiffs = pixelmatch(
+          const numDiffs = blazediff(
             originalImg.data,
             testImg.data,
             diffImg.data,

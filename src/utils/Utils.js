@@ -448,16 +448,20 @@ class Utils {
   // Find the Greatest Common Divisor of two numbers
   //
   static getGCD(a, b, p = 7) {
-    let big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))))
-    a = Math.round(Math.abs(a) * big)
-    b = Math.round(Math.abs(b) * big)
+    let factor = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))))
+    if (factor > 1) {
+      a = Math.round(Math.abs(a) * factor)
+      b = Math.round(Math.abs(b) * factor)
+    } else {
+      factor = 1
+    }
 
     while (b) {
       let t = b
       b = a % b
       a = t
     }
-    return a / big
+    return a / factor
   }
 
   static getPrimeFactors(n) {
