@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.3.5
+ * ApexCharts v5.3.6
  * (c) 2018-2025 ApexCharts
  */
 (function (global, factory) {
@@ -451,10 +451,56 @@
         }
         return true;
       }
+
+      /**
+       * detects if an element is inside a Shadow DOM
+       */
+    }, {
+      key: "isInShadowDOM",
+      value: function isInShadowDOM(el) {
+        if (!el || !el.getRootNode) {
+          return false;
+        }
+        var rootNode = el.getRootNode();
+
+        // check if root node is a ShadowRoot
+        return rootNode && rootNode !== document && Utils.is('ShadowRoot', rootNode);
+      }
+
+      /**
+       * gets the shadow root host element
+       */
+    }, {
+      key: "getShadowRootHost",
+      value: function getShadowRootHost(el) {
+        if (!Utils.isInShadowDOM(el)) {
+          return null;
+        }
+        var rootNode = el.getRootNode();
+        return rootNode.host || null;
+      }
     }, {
       key: "getDimensions",
       value: function getDimensions(el) {
-        var computedStyle = getComputedStyle(el, null);
+        if (!el) return [0, 0];
+
+        // check if in shadow DOM
+        var rootNode = el.getRootNode && el.getRootNode();
+        var inShadowDOM = rootNode && rootNode !== document;
+        if (inShadowDOM && rootNode.host) {
+          // in shadow DOM: use host container dimensions
+          var hostRect = rootNode.host.getBoundingClientRect();
+          return [hostRect.width, hostRect.height];
+        }
+
+        // regular DOM
+        var computedStyle;
+        try {
+          computedStyle = getComputedStyle(el, null);
+        } catch (e) {
+          // fallback to clientWidth/Height
+          return [el.clientWidth || 0, el.clientHeight || 0];
+        }
         var elementHeight = el.clientHeight;
         var elementWidth = el.clientWidth;
         elementHeight -= parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
@@ -464,6 +510,18 @@
     }, {
       key: "getBoundingClientRect",
       value: function getBoundingClientRect(element) {
+        if (!element) {
+          return {
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            width: 0,
+            height: 0,
+            x: 0,
+            y: 0
+          };
+        }
         var rect = element.getBoundingClientRect();
         return {
           top: rect.top,
@@ -629,15 +687,19 @@
       key: "getGCD",
       value: function getGCD(a, b) {
         var p = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 7;
-        var big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))));
-        a = Math.round(Math.abs(a) * big);
-        b = Math.round(Math.abs(b) * big);
+        var factor = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))));
+        if (factor > 1) {
+          a = Math.round(Math.abs(a) * factor);
+          b = Math.round(Math.abs(b) * factor);
+        } else {
+          factor = 1;
+        }
         while (b) {
           var t = b;
           b = a % b;
           a = t;
         }
-        return a / big;
+        return a / factor;
       }
     }, {
       key: "getPrimeFactors",
