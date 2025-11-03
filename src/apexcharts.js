@@ -578,29 +578,19 @@ export default class ApexCharts {
    * Get all charts in the same "group" (including the instance which is called upon) to sync them when user zooms in/out or pan.
    */
   getSyncedCharts() {
-    const chartGroups = this.getGroupedCharts()
-    let allCharts = [this]
-    if (chartGroups.length) {
-      allCharts = []
-      chartGroups.forEach((ch) => {
-        allCharts.push(ch)
-      })
-    }
-
-    return allCharts
+    const group = this.getGroupedCharts()
+    group.splice(0,0,this)
+    return group
   }
 
   /**
    * Get charts in the same "group" (excluding the instance which is called upon) to perform operations on the other charts of the same group (eg., tooltip hovering)
    */
   getGroupedCharts() {
-    return Apex._chartInstances
-      .filter((ch) => {
-        if (ch.group) {
-          return true
-        }
-      })
-      .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
+    return Apex._chartInstances.filter(ch =>
+      this !== ch.chart &&
+      this.w.config.chart.group === ch.group
+    ).map(ch => ch.chart)
   }
 
   static getChartByID(id) {
