@@ -19280,9 +19280,17 @@
         // Dynamically determine rounding precision based on step magnitude
         // For very small values (e.g., 0.001), we need more decimal places
         // to prevent rounding to zero and ensure unique labels
+        //
+        // Formula: precision = max(MIN_PRECISION, -magnitude + MIN_PRECISION)
+        // Examples:
+        //   step = 0.001  -> magnitude = -3 -> precision = 5 (keeps 5 decimals: 0.00100)
+        //   step = 0.01   -> magnitude = -2 -> precision = 4 (keeps 4 decimals: 0.0100)
+        //   step = 1      -> magnitude = 0  -> precision = 2 (keeps 2 decimals: 1.00)
         var MIN_PRECISION = 2;
         if (step !== 0 && isFinite(step)) {
+          // Calculate the order of magnitude (e.g., 0.001 -> -3, 10 -> 1)
           var magnitude = Math.floor(Math.log10(Math.abs(step)));
+          // Increase precision for smaller magnitudes to avoid losing significant digits
           var precision = Math.max(MIN_PRECISION, -magnitude + MIN_PRECISION);
           var multiplier = Math.pow(10, precision);
           step = Math.round((step + Number.EPSILON) * multiplier) / multiplier;

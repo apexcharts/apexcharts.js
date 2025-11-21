@@ -1,5 +1,8 @@
 import { createChartWithOptions } from './utils/utils.js'
 
+// Precision for decimal comparison in tests
+const DECIMAL_PRECISION = 6
+
 describe('x-axis with very small numeric values', () => {
   it('should generate unique labels for x-axis values between 0.001 and 0.009', () => {
     const chart = createChartWithOptions({
@@ -25,7 +28,7 @@ describe('x-axis with very small numeric values', () => {
         type: 'numeric',
         labels: {
           formatter: function (val) {
-            return val.toFixed(6) + ' s'
+            return val.toFixed(DECIMAL_PRECISION) + ' s'
           },
         },
       },
@@ -37,7 +40,7 @@ describe('x-axis with very small numeric values', () => {
     expect(xAxisScale.length).toBeGreaterThan(0)
     
     // Check that all values are unique (convert to fixed strings for comparison)
-    const uniqueValues = new Set(xAxisScale.map(v => v.toFixed(6)))
+    const uniqueValues = new Set(xAxisScale.map(v => v.toFixed(DECIMAL_PRECISION)))
     expect(uniqueValues.size).toBe(xAxisScale.length)
     
     // Check that values are within the expected range
@@ -69,7 +72,7 @@ describe('x-axis with very small numeric values', () => {
         type: 'numeric',
         labels: {
           formatter: function (val) {
-            return val.toFixed(6) + ' s'
+            return val.toFixed(DECIMAL_PRECISION) + ' s'
           },
         },
       },
@@ -81,7 +84,7 @@ describe('x-axis with very small numeric values', () => {
     expect(xAxisScale.length).toBeGreaterThan(0)
     
     // Check that all values are unique (convert to fixed strings for comparison)
-    const uniqueValues = new Set(xAxisScale.map(v => v.toFixed(6)))
+    const uniqueValues = new Set(xAxisScale.map(v => v.toFixed(DECIMAL_PRECISION)))
     expect(uniqueValues.size).toBe(xAxisScale.length)
     
     // Check that values are within the expected range
@@ -119,8 +122,8 @@ describe('x-axis with very small numeric values', () => {
     // Check that we have generated scale values
     expect(xAxisScale.length).toBeGreaterThan(0)
     
-    // Check that all values are unique
-    const uniqueValues = new Set(xAxisScale)
+    // Check that all values are unique (use higher precision for very small values)
+    const uniqueValues = new Set(xAxisScale.map(v => v.toFixed(DECIMAL_PRECISION + 1)))
     expect(uniqueValues.size).toBe(xAxisScale.length)
     
     // Check that values are within the expected range
