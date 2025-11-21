@@ -438,9 +438,11 @@ export default class Scales {
 
     // Dynamically determine rounding precision based on step magnitude
     // For very small values (e.g., 0.001), we need more decimal places
-    if (step !== 0) {
+    // to prevent rounding to zero and ensure unique labels
+    const MIN_PRECISION = 2
+    if (step !== 0 && isFinite(step)) {
       const magnitude = Math.floor(Math.log10(Math.abs(step)))
-      const precision = Math.max(2, -magnitude + 2)
+      const precision = Math.max(MIN_PRECISION, -magnitude + MIN_PRECISION)
       const multiplier = Math.pow(10, precision)
       step = Math.round((step + Number.EPSILON) * multiplier) / multiplier
     }
