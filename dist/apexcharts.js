@@ -19276,7 +19276,15 @@
         if (!step) {
           step = range / ticks;
         }
-        step = Math.round((step + Number.EPSILON) * 100) / 100;
+
+        // Dynamically determine rounding precision based on step magnitude
+        // For very small values (e.g., 0.001), we need more decimal places
+        if (step !== 0) {
+          var magnitude = Math.floor(Math.log10(Math.abs(step)));
+          var precision = Math.max(2, -magnitude + 2);
+          var multiplier = Math.pow(10, precision);
+          step = Math.round((step + Number.EPSILON) * multiplier) / multiplier;
+        }
         if (ticks === Number.MAX_VALUE) {
           ticks = 5;
           step = 1;
