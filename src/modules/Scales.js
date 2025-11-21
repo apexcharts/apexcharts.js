@@ -436,8 +436,15 @@ export default class Scales {
       step = range / ticks
     }
 
-    step = Math.round((step + Number.EPSILON) * 100) / 100
-
+    const MIN_PRECISION = 2
+    if (step !== 0 && isFinite(step)) {
+      // calculate the order of magnitude (e.g., 0.001 -> -3, 10 -> 1)
+      const magnitude = Math.floor(Math.log10(Math.abs(step)))
+      // increase precision for smaller magnitudes to avoid losing significant digits
+      const precision = Math.max(MIN_PRECISION, -magnitude + MIN_PRECISION)
+      const multiplier = Math.pow(10, precision)
+      step = Math.round((step + Number.EPSILON) * multiplier) / multiplier
+    }
     if (ticks === Number.MAX_VALUE) {
       ticks = 5
       step = 1
