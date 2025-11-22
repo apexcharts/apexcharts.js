@@ -43,6 +43,8 @@ export default class ApexCharts {
     this.create = Utils.bind(this.create, this)
     this.windowResizeHandler = this._windowResizeHandler.bind(this)
     this.parentResizeHandler = this._parentResizeCallback.bind(this)
+    this.beforePrintHandler = this._beforePrintHandler.bind(this)
+    this.afterPrintHandler = this._afterPrintHandler.bind(this)
   }
 
   /**
@@ -73,6 +75,8 @@ export default class ApexCharts {
 
         this.events.fireEvent('beforeMount', [this, this.w])
         window.addEventListener('resize', this.windowResizeHandler)
+        window.addEventListener('beforeprint', this.beforePrintHandler)
+        window.addEventListener('afterprint', this.afterPrintHandler)
         addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
         let rootNode = this.el.getRootNode && this.el.getRootNode()
@@ -397,6 +401,8 @@ export default class ApexCharts {
    */
   destroy() {
     window.removeEventListener('resize', this.windowResizeHandler)
+    window.removeEventListener('beforeprint', this.beforePrintHandler)
+    window.removeEventListener('afterprint', this.afterPrintHandler)
 
     removeResizeListener(this.el.parentNode, this.parentResizeHandler)
     // remove the chart's instance from the global Apex._chartInstances
@@ -839,5 +845,22 @@ export default class ApexCharts {
     }
 
     redraw && this._windowResize()
+  }
+
+  /**
+   * Handle print events to resize chart for print media
+   */
+  _beforePrintHandler() {
+    // Trigger immediate resize when entering print mode
+    this.w.globals.resized = true
+    this.w.globals.dataChanged = false
+    this.ctx.update()
+  }
+
+  _afterPrintHandler() {
+    // Trigger resize after exiting print mode to restore original size
+    this.w.globals.resized = true
+    this.w.globals.dataChanged = false
+    this.ctx.update()
   }
 }

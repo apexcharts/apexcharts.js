@@ -748,3 +748,9 @@ rect.legend-mouseover-inactive,
 .apexcharts-disable-transitions * {
   transition: none !important;
 }
+
+@media print {
+  .apexcharts-canvas {
+    width: 100% !important;
+  }
+}
