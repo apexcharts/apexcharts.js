@@ -35570,12 +35570,23 @@
       const y2 = this.box.y2 + dy;
       let box = new Box(this.box);
       if (this.eventType.includes("l")) {
-        box.x = Math.min(x, this.box.x2);
+        box.x = Math.max(Math.min(x, this.box.x2), 0);
         box.x2 = Math.max(x, this.box.x2);
       }
       if (this.eventType.includes("r")) {
+        // Calculating max x2 value based on brush chart width
+        const chartInstances = window?.Apex?._chartInstances || []
+        const bottomChart = chartInstances?.find((cI) => cI?.id === 'chart1')
+        
+        const { lgRect, xAxisWidth, gridPad } =
+          bottomChart?.chart?.dimensions ?? {}
+        const { width: lgRectWidth = 0 } = lgRect
+        const { left: leftPadding = 0, right: rightPadding = 0 } = gridPad ?? {}
+       
+        const MaxDragValue = lgRectWidth - (leftPadding + rightPadding + xAxisWidth)
+        
         box.x = Math.min(x2, this.box.x);
-        box.x2 = Math.max(x2, this.box.x);
+        box.x2 = Math.min(Math.max(x2, this.box.x), MaxDragValue);
       }
       if (this.eventType.includes("t")) {
         box.y = Math.min(y, this.box.y2);
