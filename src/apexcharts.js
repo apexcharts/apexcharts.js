@@ -1,19 +1,19 @@
-import apexCSS from './assets/apexcharts.css'
 import Annotations from './modules/annotations/Annotations'
-import Grid from './modules/axes/Grid'
-import XAxis from './modules/axes/XAxis'
-import YAxis from './modules/axes/YAxis'
 import Base from './modules/Base'
 import CoreUtils from './modules/CoreUtils'
 import DataLabels from './modules/DataLabels'
+import Defaults from './modules/settings/Defaults'
 import Exports from './modules/Exports'
-import Destroy from './modules/helpers/Destroy'
-import InitCtxVariables from './modules/helpers/InitCtxVariables'
+import Grid from './modules/axes/Grid'
 import Markers from './modules/Markers'
 import Range from './modules/Range'
-import Defaults from './modules/settings/Defaults'
-import { addResizeListener, removeResizeListener } from './utils/Resize'
 import Utils from './utils/Utils'
+import XAxis from './modules/axes/XAxis'
+import YAxis from './modules/axes/YAxis'
+import InitCtxVariables from './modules/helpers/InitCtxVariables'
+import Destroy from './modules/helpers/Destroy'
+import { addResizeListener, removeResizeListener } from './utils/Resize'
+import apexCSS from './assets/apexcharts.css'
 
 /**
  *
@@ -140,7 +140,9 @@ export default class ApexCharts {
 
         return {
           ...series,
-          data: series?.data?.filter((vals) => !vals?.some((val) => val == null)),
+          data: series?.data?.filter(
+            (vals) => !vals?.some((val) => val == null)
+          ),
         }
       })
     }
