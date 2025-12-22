@@ -255,10 +255,11 @@ export default class Utils {
   isInitialSeriesSameLen() {
     let sameLen = true
 
-    const initialSeries = this.w.globals.initialSeries?.filter(
-      (s, i) => this.w.globals.collapsedSeriesIndices?.indexOf(i) === -1
-    )
-    
+    const initialSeries =
+      this.w.globals.initialSeries?.filter(
+        (s, i) => !this.w.globals.collapsedSeriesIndices?.includes(i)
+      ) || []
+
     for (let i = 0; i < initialSeries.length - 1; i++) {
       if (initialSeries[i].data.length !== initialSeries[i + 1].data.length) {
         sameLen = false
