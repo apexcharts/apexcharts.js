@@ -349,6 +349,25 @@ class Utils {
     return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)|(^#[0-9A-F]{8}$)/i.test(color)
   }
 
+  static isCSSVariable(color) {
+    return color && color.includes('var(')
+  }
+
+  static getThemeColor(color) {
+    if (!Utils.isCSSVariable(color)) return color
+
+    const tempElem = document.createElement('div')
+    tempElem.style.cssText = 'position:fixed; left: -9999px; visibility:hidden;'
+    tempElem.style.color = color
+    document.body.appendChild(tempElem)
+    
+    const computedColor = window.getComputedStyle(tempElem).color
+    
+    document.body.removeChild(tempElem)
+    
+    return computedColor
+  }
+
   static getPolygonPos(size, dataPointsLen) {
     let dotsArray = []
     let angle = (Math.PI * 2) / dataPointsLen
