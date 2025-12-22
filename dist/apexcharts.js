@@ -271,8 +271,6 @@
       value: function shadeColor(p, color) {
         if (Utils.isColorHex(color)) {
           return this.shadeHexColor(p, color);
-        } else if(color.includes('var(--')){
-          return color;
         } else {
           return this.shadeRGBColor(p, color);
         }
