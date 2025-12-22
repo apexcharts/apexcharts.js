@@ -1,19 +1,19 @@
+import apexCSS from './assets/apexcharts.css'
 import Annotations from './modules/annotations/Annotations'
+import Grid from './modules/axes/Grid'
+import XAxis from './modules/axes/XAxis'
+import YAxis from './modules/axes/YAxis'
 import Base from './modules/Base'
 import CoreUtils from './modules/CoreUtils'
 import DataLabels from './modules/DataLabels'
-import Defaults from './modules/settings/Defaults'
 import Exports from './modules/Exports'
-import Grid from './modules/axes/Grid'
+import Destroy from './modules/helpers/Destroy'
+import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import Markers from './modules/Markers'
 import Range from './modules/Range'
-import Utils from './utils/Utils'
-import XAxis from './modules/axes/XAxis'
-import YAxis from './modules/axes/YAxis'
-import InitCtxVariables from './modules/helpers/InitCtxVariables'
-import Destroy from './modules/helpers/Destroy'
+import Defaults from './modules/settings/Defaults'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
-import apexCSS from './assets/apexcharts.css'
+import Utils from './utils/Utils'
 
 /**
  *
@@ -123,6 +123,27 @@ export default class ApexCharts {
 
   create(ser, opts) {
     let w = this.w
+    // Null values are filtered below for array series
+    let newSer = [...(ser || [])]
+    const chartType = this.opts.chart.type
+
+    // To handle the 'null' value case
+    if (chartType === 'area' && Array.isArray(newSer)) {
+      newSer = newSer?.map((series) => {
+        if (!Array.isArray(series?.data)) return series
+
+        const hasNulls = series?.data?.some(
+          (vals) => Array.isArray(vals) && vals?.some((val) => val == null)
+        )
+
+        if (!hasNulls) return series
+
+        return {
+          ...series,
+          data: series?.data?.filter((vals) => !vals?.some((val) => val == null)),
+        }
+      })
+    }
 
     const initCtx = new InitCtxVariables(this)
     initCtx.initModules()
@@ -156,8 +177,8 @@ export default class ApexCharts {
       return null
     }
 
-    let series = ser
-    ser.forEach((s, realIndex) => {
+    let series = newSer
+    newSer.forEach((s, realIndex) => {
       if (s.hidden) {
         series = this.legend.legendHelpers.getSeriesAfterCollapsing({
           realIndex,

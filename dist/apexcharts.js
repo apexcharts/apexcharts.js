@@ -35990,32 +35990,8 @@
     }, {
       key: "create",
       value: function create(ser, opts) {
-        // Null values are filtered below for array series
-        let newSer = Array.isArray(ser) ? [...ser] : ser
         var _this2 = this;
         var w = this.w;
-        const chartType = this.opts.chart.type;
-        
-        // To handle the 'null' value case
-        if (chartType === 'area' && Array.isArray(newSer)) {
-          newSer = newSer.map((series) => {
-            if (!Array.isArray(series?.data)) return series
-
-            const hasNulls = series.data.some(
-              (vals) => Array.isArray(vals) && vals.some((val) => val == null)
-            )
-
-            if (!hasNulls) return series
-
-            return {
-              ...series,
-              data: series.data.filter(
-                (vals) => !vals?.some((val) => val == null)
-              ),
-            }
-          })
-        }
-
         var initCtx = new InitCtxVariables(this);
         initCtx.initModules();
         var gl = this.w.globals;
@@ -36040,8 +36016,8 @@
           gl.animationEnded = true;
           return null;
         }
-        var series = newSer;
-        newSer.forEach(function (s, realIndex) {
+        var series = ser;
+        ser.forEach(function (s, realIndex) {
           if (s.hidden) {
             series = _this2.legend.legendHelpers.getSeriesAfterCollapsing({
               realIndex: realIndex
