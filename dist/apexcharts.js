@@ -27030,7 +27030,7 @@
             // Only positive values in this column
             if (positiveIndices.length === 1) {
               // Single positive value
-              output[positiveIndices[0]][_j2] = 'top';
+              output[positiveIndices[0]][_j2] = 'both'
             } else {
               // Multiple positive values
               var firstPositiveIndex = positiveIndices[0];
@@ -27041,7 +27041,7 @@
                 for (_iterator.s(); !(_step = _iterator.n()).done;) {
                   var _i2 = _step.value;
                   if (_i2 === firstPositiveIndex) {
-                    output[_i2][_j2] = 'top';
+                    output[_i2][_j2] = 'bottom'
                   } else if (_i2 === lastPositiveIndex) {
                     output[_i2][_j2] = 'top';
                   } else {

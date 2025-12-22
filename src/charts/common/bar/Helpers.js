@@ -278,6 +278,8 @@ export default class Helpers {
     )
 
     if (alwaysApplyRadius) return output
+    
+    const chartType = this.w.config.chart.type;
 
     for (let j = 0; j < numColumns; j++) {
       let positiveIndices = []
@@ -300,14 +302,14 @@ export default class Helpers {
         // Only positive values in this column
         if (positiveIndices.length === 1) {
           // Single positive value
-          output[positiveIndices[0]][j] = 'both'
+          output[positiveIndices[0]][j] = chartType === 'bar' ? 'top' : 'both'
         } else {
           // Multiple positive values
           const firstPositiveIndex = positiveIndices[0]
           const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
           for (let i of positiveIndices) {
             if (i === firstPositiveIndex) {
-              output[i][j] = 'bottom'
+              output[i][j] = chartType === 'bar' ? 'top' : 'bottom'
             } else if (i === lastPositiveIndex) {
               output[i][j] = 'top'
             } else {
