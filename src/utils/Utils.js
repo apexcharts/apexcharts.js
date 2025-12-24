@@ -350,7 +350,10 @@ class Utils {
   }
 
   static isCSSVariable(color) {
-    return color && color.includes('var(')
+    if (typeof color !== 'string') return false
+
+    const value = color.trim()
+    return value.startsWith('var(') && value.endsWith(')')
   }
 
   static getThemeColor(color) {
@@ -360,11 +363,16 @@ class Utils {
     tempElem.style.cssText = 'position:fixed; left: -9999px; visibility:hidden;'
     tempElem.style.color = color
     document.body.appendChild(tempElem)
-    
-    const computedColor = window.getComputedStyle(tempElem).color
-    
-    document.body.removeChild(tempElem)
-    
+
+    let computedColor
+    try {
+      computedColor = window.getComputedStyle(tempElem).color
+    } finally {
+      if (tempElem.parentNode) {
+        tempElem.parentNode.removeChild(tempElem)
+      }
+    }
+
     return computedColor
   }
 
