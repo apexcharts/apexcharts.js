@@ -302,14 +302,15 @@ export default class Helpers {
         // Only positive values in this column
         if (positiveIndices.length === 1) {
           // Single positive value
-          output[positiveIndices[0]][j] = chartType === 'bar' ? 'top' : 'both'
+          output[positiveIndices[0]][j] = (chartType === 'bar' && numColumns === 1) ? 'top' : 'both'
         } else {
           // Multiple positive values
           const firstPositiveIndex = positiveIndices[0]
           const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
           for (let i of positiveIndices) {
             if (i === firstPositiveIndex) {
-              output[i][j] = chartType === 'bar' ? 'top' : 'bottom'
+
+              output[i][j] = (chartType === 'bar' && numColumns === 1) ? 'top' : 'bottom'
             } else if (i === lastPositiveIndex) {
               output[i][j] = 'top'
             } else {
