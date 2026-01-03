@@ -209,6 +209,10 @@ class Fill {
       console.warn('undefined color - ApexCharts')
     }
 
+    if (Utils.isCSSVariable(fillColor)) {
+      fillColor = Utils.getThemeColor(fillColor)
+    }
+
     let defaultColor = fillColor
 
     if (fillColor.indexOf('rgb') === -1) {
