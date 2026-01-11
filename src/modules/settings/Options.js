@@ -786,6 +786,7 @@ export default class Options {
         fillOpacity: 0.5,
         strokeWidth: undefined,
         dashArray: 4,
+        strokeColor: undefined,
       },
       grid: {
         show: true,
