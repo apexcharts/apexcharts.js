@@ -189,7 +189,7 @@ export default class Position {
       x = w.globals.gridWidth - tooltipRect.ttWidth
     }
 
-    if (x < -20) {
+    if (x < -20 && !ttCtx.w.config.tooltip.keepInBoundary) {
       x = -20
     }
 
@@ -215,6 +215,12 @@ export default class Position {
 
     if (!isNaN(x)) {
       x = x + w.globals.translateX
+
+      if (ttCtx.w.config.tooltip.keepInBoundary) {
+        // Avoid going out of the boundaries of the chart
+        y = Math.max(0, y);
+        x = Math.max(0, x);
+      }
 
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
