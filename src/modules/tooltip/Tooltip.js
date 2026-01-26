@@ -376,8 +376,8 @@ export default class Tooltip {
         txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
         gValText.appendChild(txtValue)
 
-        gYZ.appendChild(gValText)
-      })
+          gYZ.appendChild(gValText)
+        })
 
       gTxt.appendChild(gYZ)
 
@@ -920,6 +920,12 @@ export default class Tooltip {
           seriesBound.top -
           tooltipRect.ttHeight -
           10
+      }
+
+      if (w.config.tooltip.keepInBoundary) {
+        // Avoid going out of the boundaries of the chart
+        y = Math.max(0, y);
+        x = Math.max(0, x);
       }
 
       tooltipEl.style.left = x + 'px'
