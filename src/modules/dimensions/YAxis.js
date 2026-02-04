@@ -61,6 +61,10 @@ export default class DimYAxis {
           val = yS.niceMax
         }
 
+        if (String(val).length === 1) {
+          val = val + '.0'
+          valArr = val
+        }
         if (w.globals.isBarHorizontal) {
           labelPad = 0
 
