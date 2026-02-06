@@ -14,10 +14,10 @@ describe('Parse Data', () => {
 
     expect(w.globals.series).toEqual([[300, 230, 210]])
     expect(w.globals.seriesX).toEqual([
-      [1262304000000, 1262390400000, 1262476800000]
+      [1262304000000, 1262390400000, 1262476800000],
     ])
     expect(w.globals.labels).toEqual([
-      [1262304000000, 1262390400000, 1262476800000]
+      [1262304000000, 1262390400000, 1262476800000],
     ])
   })
 
@@ -36,7 +36,7 @@ describe('Parse Data', () => {
       'series-1',
       'series-2',
       'series-3',
-      'series-4'
+      'series-4',
     ])
   })
 })

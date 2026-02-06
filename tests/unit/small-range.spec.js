@@ -151,6 +151,8 @@ describe('yaxis scale to ignore duplication if fractions are present in series',
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.yAxisScale[0].result).toEqual([1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2])
+    expect(yRange.yAxisScale[0].result).toEqual([
+      1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2,
+    ])
   })
 })

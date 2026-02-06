@@ -18,7 +18,7 @@ describe('user defined Y-axis options priority', () => {
       yaxis: {
         min: 3.4,
         max: 4.8,
-        tickAmount: 7
+        tickAmount: 7,
       },
     })
 
@@ -41,8 +41,8 @@ describe('user defined Y-axis options priority', () => {
         },
       ],
       yaxis: {
-        stepSize: 3000
-      }
+        stepSize: 3000,
+      },
     })
 
     const range = new Range(chart)
@@ -50,7 +50,9 @@ describe('user defined Y-axis options priority', () => {
 
     expect(yRange.minY).toEqual(0)
     expect(yRange.maxY).toEqual(24000)
-    expect(yRange.yAxisScale[0].result).toEqual([0,3000,6000,9000,12000,15000,18000,21000,24000])
+    expect(yRange.yAxisScale[0].result).toEqual([
+      0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000,
+    ])
   })
 })
 
@@ -69,12 +71,12 @@ describe('user defined Y-axis options priority', () => {
         min: 0,
         max: 24000,
         tickAmount: 5, // overridden by stepSize but will determine magnitude,
-                       // as: largest (stepSize*10^n) < (range / ticks).
-                       // min, max, tickAmount only required here for this
-                       // unit test to work.
+        // as: largest (stepSize*10^n) < (range / ticks).
+        // min, max, tickAmount only required here for this
+        // unit test to work.
         stepSize: 3,
-        forceNiceScale: true
-      }
+        forceNiceScale: true,
+      },
     })
 
     const range = new Range(chart)
@@ -101,8 +103,8 @@ describe('user defined Y-axis options priority', () => {
       yaxis: {
         min: 0,
         max: 24000,
-        stepSize: 4000
-      }
+        stepSize: 4000,
+      },
     })
 
     const range = new Range(chart)
@@ -129,8 +131,8 @@ describe('user defined Y-axis options priority', () => {
       yaxis: {
         min: 0,
         max: 24000,
-        tickAmount: 5
-      }
+        tickAmount: 5,
+      },
     })
 
     const range = new Range(chart)
@@ -139,7 +141,9 @@ describe('user defined Y-axis options priority', () => {
     expect(yRange.minY).toEqual(0)
     expect(yRange.maxY).toEqual(24000)
     expect(yRange.yAxisScale[0].result.length - 1).toEqual(5) // ticks
-    expect(yRange.yAxisScale[0].result).toEqual([0,4800,9600,14400,19200,24000])
+    expect(yRange.yAxisScale[0].result).toEqual([
+      0, 4800, 9600, 14400, 19200, 24000,
+    ])
   })
 })
 
@@ -156,8 +160,8 @@ describe('user defined Y-axis options priority', () => {
       ],
       yaxis: {
         min: 0,
-        stepSize: 3000
-      }
+        stepSize: 3000,
+      },
     })
 
     const range = new Range(chart)
@@ -184,8 +188,8 @@ describe('user defined Y-axis options priority', () => {
         min: 0,
         max: 23000,
         stepSize: 3000,
-        tickAmount: 10
-      }
+        tickAmount: 10,
+      },
     })
 
     const range = new Range(chart)
@@ -193,7 +197,9 @@ describe('user defined Y-axis options priority', () => {
 
     expect(yRange.minY).toEqual(0)
     expect(yRange.maxY).toEqual(23000)
-    expect(yRange.yAxisScale[0].result).toEqual([0,2300,4600,6900,9200,11500,13800,16100,18400,20700,23000])
+    expect(yRange.yAxisScale[0].result).toEqual([
+      0, 2300, 4600, 6900, 9200, 11500, 13800, 16100, 18400, 20700, 23000,
+    ])
     expect(yRange.yAxisScale[0].result.length - 1).toEqual(10) // ticks
   })
 })
@@ -202,9 +208,9 @@ describe('user defined Y-axis options priority', () => {
   it('tickAmount overridden then prime number ticks kept at 23', () => {
     const chart = createChartWithOptions({
       chart: {
-        height: "200",
+        height: '200',
         width: '100%',
-        type: 'line'
+        type: 'line',
       },
       series: [
         {
@@ -215,8 +221,8 @@ describe('user defined Y-axis options priority', () => {
         min: 0,
         max: 23000,
         stepSize: 1000,
-        tickAmount: 10
-      }
+        tickAmount: 10,
+      },
     })
 
     const range = new Range(chart)
@@ -232,7 +238,7 @@ describe('user defined Y-axis options priority', () => {
   it('tickAmount overridden then prime number ticks reduced by forceNiceScale to 1 to fit svg', () => {
     const chart = createChartWithOptions({
       chart: {
-        height: "200",
+        height: '200',
         width: '100%',
         type: 'line',
       },
@@ -245,8 +251,8 @@ describe('user defined Y-axis options priority', () => {
         min: 0,
         max: 23000,
         stepSize: 1000,
-        forceNiceScale: true
-      }
+        forceNiceScale: true,
+      },
     })
 
     const range = new Range(chart)

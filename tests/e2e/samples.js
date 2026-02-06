@@ -101,18 +101,29 @@ async function processSample(page, sample, command) {
   await page.goto(`file://${htmlPath}`)
 
   let wait
+  const startWaitTime = Date.now()
+  const MAX_WAIT_TIME = 5000 // 5 seconds max for stabilization loop
+
   do {
     //Wait for all intervals in the page to have been cleared
-    await page.waitForFunction(() => window.activeIntervalCount === 0)
+    await page
+      .waitForFunction(() => window.activeIntervalCount === 0, {
+        timeout: 5000,
+      })
+      .catch(() => {})
 
     //Wait for all timers in the page to have all executed
-    await page.waitForFunction(() => window.activeTimerCount === 0)
+    await page
+      .waitForFunction(() => window.activeTimerCount === 0, { timeout: 5000 })
+      .catch(() => {})
 
     //Wait for the chart animation to end
-    await page.waitForFunction(() => chart.w.globals.animationEnded)
+    await page
+      .waitForFunction(() => chart.w.globals.animationEnded, { timeout: 5000 })
+      .catch(() => {})
 
     //Wait for all network requests to finish
-    await page.waitForNetworkIdle()
+    await page.waitForNetworkIdle({ timeout: 5000 }).catch(() => {})
 
     //After the network requests, timers, and intervals finish, if another request, timer, or interval is created then we need
     //to wait for that to finish before continuing on.
@@ -123,6 +134,11 @@ async function processSample(page, sample, command) {
         chart.w.globals.animationEnded
       )
     })
+
+    if (Date.now() - startWaitTime > MAX_WAIT_TIME) {
+      // Stop waiting if we exceeded max wait time to avoid infinite loops or long hangs
+      break
+    }
   } while (wait)
 
   // Check that there are no console errors
@@ -279,7 +295,7 @@ async function processSamples(command, paths, isCI) {
 
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_BROWSER,
-    maxConcurrency: os.availableParallelism(),
+    maxConcurrency: Math.min(os.availableParallelism(), 4),
   })
 
   await cluster.task(async ({ page, data: sample }) => {

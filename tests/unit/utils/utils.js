@@ -6,12 +6,15 @@ export function createChart(type, series, xtype = 'category') {
 
   const chart = new ApexCharts(document.querySelector('#chart'), {
     chart: {
-      type
+      type,
+      animations: {
+        enabled: false,
+      },
     },
     xaxis: {
-      type: xtype
+      type: xtype,
     },
-    series
+    series,
   })
   chart.render()
 
@@ -20,6 +23,10 @@ export function createChart(type, series, xtype = 'category') {
 
 export function createChartWithOptions(options) {
   document.body.innerHTML = '<div id="chart" />'
+
+  options.chart = options.chart || {}
+  options.chart.animations = options.chart.animations || {}
+  options.chart.animations.enabled = false
 
   const chart = new ApexCharts(document.querySelector('#chart'), options)
   chart.render()

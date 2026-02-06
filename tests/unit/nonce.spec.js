@@ -2,8 +2,8 @@ import { createChartWithOptions } from './utils/utils.js'
 
 describe('chart.nonce option', () => {
   beforeEach(() => {
-    window.Apex = {};
-  });
+    window.Apex = {}
+  })
   afterEach(() => {
     document.getElementsByTagName('html')[0].innerHTML = ''
   })
@@ -12,7 +12,7 @@ describe('chart.nonce option', () => {
     createChartWithOptions({
       series: [
         {
-          name: "A",
+          name: 'A',
           data: [
             [1, 1],
             [4, 4],
@@ -20,7 +20,7 @@ describe('chart.nonce option', () => {
           ],
         },
         {
-          name: "B",
+          name: 'B',
           data: [
             [2, 2],
             [5, 5],
@@ -65,9 +65,9 @@ describe('chart.nonce option', () => {
   it('will render a nonce attribute when defined as a global config', () => {
     window.Apex = {
       chart: {
-        nonce: 'noncevalue2'
-      }
-    };
+        nonce: 'noncevalue2',
+      },
+    }
     createChartWithOptions({
       series: [
         {

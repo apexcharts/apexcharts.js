@@ -9,13 +9,13 @@ describe('Bar chart', () => {
           data: [
             [1, 1],
             [4, 4],
-            [3, 3]
-          ]
-        }
+            [3, 3],
+          ],
+        },
       ],
       chart: {
-        type: 'bar'
-      }
+        type: 'bar',
+      },
     })
 
     const range = new Range(chart)

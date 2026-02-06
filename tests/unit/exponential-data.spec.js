@@ -4,7 +4,7 @@ describe('Exponential values should parse', () => {
   it('should correctly set the min/max for small exponential values', () => {
     const chart = createChartWithOptions({
       chart: {
-        type: 'line'
+        type: 'line',
       },
       series: [
         {
@@ -68,16 +68,16 @@ describe('Exponential values should parse', () => {
             [1556064000000, 2.3e-7],
             [1556150400000, 2.3e-7],
             [1556236800000, 2.4e-7],
-            [1556323200000, 2.4e-7]
-          ]
-        }
+            [1556323200000, 2.4e-7],
+          ],
+        },
       ],
       yaxis: {
-        tickAmount: 10
+        tickAmount: 10,
       },
       xaxis: {
-        type: 'datetime'
-      }
+        type: 'datetime',
+      },
     })
 
     const minY = chart.w.globals.minY

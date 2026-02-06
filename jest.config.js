@@ -6,6 +6,10 @@ module.exports = {
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 
+  moduleNameMapper: {
+    '\\.(css|less|scss|sass)$': '<rootDir>/tests/unit/mocks/styleMock.js',
+  },
+
   // Indicates whether the coverage information should be collected while executing the test
   // collectCoverage: true,
 
@@ -32,7 +36,7 @@ module.exports = {
   // ],
 
   // The paths to modules that run some code to configure or set up the testing environment before each test
-  // setupFiles: [],
+  setupFiles: ['<rootDir>/tests/unit/setup.js'],
   testTimeout: 20000,
 
   // The test environment that will be used for testing
