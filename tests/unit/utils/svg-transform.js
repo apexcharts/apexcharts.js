@@ -1,6 +1,8 @@
 module.exports = {
   process(code) {
-    return `module.exports = ${JSON.stringify(code)}`
+    return {
+      code: `module.exports = ${JSON.stringify(code)}`
+    }
   },
   getCacheKey() {
     return 'svg-transform'
