@@ -1,21 +1,23 @@
-import Bar from '../charts/Bar'
-import BarStacked from '../charts/BarStacked'
-import BoxCandleStick from '../charts/BoxCandleStick'
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
-import HeatMap from '../charts/HeatMap'
 import Globals from '../modules/settings/Globals'
-import Pie from '../charts/Pie'
-import Radar from '../charts/Radar'
-import Radial from '../charts/Radial'
-import RangeBar from '../charts/RangeBar'
 import Legend from './legend/Legend'
-import Line from '../charts/Line'
-import Treemap from '../charts/Treemap'
 import Graphics from './Graphics'
 import Range from './Range'
 import Utils from '../utils/Utils'
 import TimeScale from './TimeScale'
+import {
+  Line,
+  Bar,
+  BarStacked,
+  BoxCandleStick,
+  Pie,
+  Radar,
+  Radial,
+  RangeBar,
+  HeatMap,
+  Treemap,
+} from './ChartFactory'
 
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.

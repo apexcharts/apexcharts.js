@@ -98,6 +98,11 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://apexcharts.com",
+  "sideEffects": [
+    "*.css",
+    "./src/svgjs/*.js",
+    "./src/modules/helpers/InitCtxVariables.js"
+  ],
   "keywords": [
     "charts",
     "graphs",
