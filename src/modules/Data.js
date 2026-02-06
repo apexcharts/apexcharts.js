@@ -16,84 +16,77 @@ export default class Data {
     this.coreUtils = new CoreUtils(this.ctx)
   }
 
+  // Helper to get the first valid data point from the active series
+  getFirstDataPoint() {
+    const series = this.w.config.series
+    const sr = new Series(this.ctx)
+    this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+
+    if (
+      series[this.activeSeriesIndex] &&
+      series[this.activeSeriesIndex].data &&
+      series[this.activeSeriesIndex].data.length > 0 &&
+      series[this.activeSeriesIndex].data[0] !== null &&
+      typeof series[this.activeSeriesIndex].data[0] !== 'undefined'
+    ) {
+      return series[this.activeSeriesIndex].data[0]
+    }
+    return null
+  }
+
   isMultiFormat() {
     return this.isFormatXY() || this.isFormat2DArray()
   }
 
   // given format is [{x, y}, {x, y}]
   isFormatXY() {
-    const series = this.w.config.series.slice()
-
-    const sr = new Series(this.ctx)
-    this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
-
-    if (
-      typeof series[this.activeSeriesIndex].data !== 'undefined' &&
-      series[this.activeSeriesIndex].data.length > 0 &&
-      series[this.activeSeriesIndex].data[0] !== null &&
-      typeof series[this.activeSeriesIndex].data[0].x !== 'undefined' &&
-      series[this.activeSeriesIndex].data[0] !== null
-    ) {
-      return true
-    }
+    const firstDataPoint = this.getFirstDataPoint()
+    return firstDataPoint && typeof firstDataPoint.x !== 'undefined'
   }
 
   // given format is [[x, y], [x, y]]
   isFormat2DArray() {
-    const series = this.w.config.series.slice()
-
-    const sr = new Series(this.ctx)
-    this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
-
-    if (
-      typeof series[this.activeSeriesIndex].data !== 'undefined' &&
-      series[this.activeSeriesIndex].data.length > 0 &&
-      typeof series[this.activeSeriesIndex].data[0] !== 'undefined' &&
-      series[this.activeSeriesIndex].data[0] !== null &&
-      series[this.activeSeriesIndex].data[0].constructor === Array
-    ) {
-      return true
-    }
+    const firstDataPoint = this.getFirstDataPoint()
+    return firstDataPoint && Array.isArray(firstDataPoint)
   }
 
   handleFormat2DArray(ser, i) {
     const cnf = this.w.config
     const gl = this.w.globals
+    const data = ser[i].data
 
     const isBoxPlot =
       cnf.chart.type === 'boxPlot' || cnf.series[i].type === 'boxPlot'
 
-    for (let j = 0; j < ser[i].data.length; j++) {
-      if (typeof ser[i].data[j][1] !== 'undefined') {
-        if (
-          Array.isArray(ser[i].data[j][1]) &&
-          ser[i].data[j][1].length === 4 &&
-          !isBoxPlot
-        ) {
+    for (let j = 0; j < data.length; j++) {
+      const point = data[j]
+      const x = point[0]
+      const y = point[1]
+      const z = point[2]
+
+      if (typeof y !== 'undefined') {
+        if (Array.isArray(y) && y.length === 4 && !isBoxPlot) {
           // candlestick nested ohlc format
-          this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1][3]))
-        } else if (ser[i].data[j].length >= 5) {
+          this.twoDSeries.push(Utils.parseNumber(y[3]))
+        } else if (point.length >= 5) {
           // candlestick non-nested ohlc format
-          this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][4]))
+          this.twoDSeries.push(Utils.parseNumber(point[4]))
         } else {
-          this.twoDSeries.push(Utils.parseNumber(ser[i].data[j][1]))
+          this.twoDSeries.push(Utils.parseNumber(y))
         }
         gl.dataFormatXNumeric = true
       }
       if (cnf.xaxis.type === 'datetime') {
         // if timestamps are provided and xaxis type is datetime,
-
-        let ts = new Date(ser[i].data[j][0])
-        ts = new Date(ts).getTime()
+        let ts = new Date(x)
+        ts = ts.getTime()
         this.twoDSeriesX.push(ts)
       } else {
-        this.twoDSeriesX.push(ser[i].data[j][0])
+        this.twoDSeriesX.push(x)
       }
-    }
 
-    for (let j = 0; j < ser[i].data.length; j++) {
-      if (typeof ser[i].data[j][2] !== 'undefined') {
-        this.threeDSeries.push(ser[i].data[j][2])
+      if (typeof z !== 'undefined') {
+        this.threeDSeries.push(z)
         gl.isDataXYZ = true
       }
     }
@@ -102,48 +95,50 @@ export default class Data {
   handleFormatXY(ser, i) {
     const cnf = this.w.config
     const gl = this.w.globals
-
     const dt = new DateTime(this.ctx)
+    const data = ser[i].data
 
     let activeI = i
     if (gl.collapsedSeriesIndices.indexOf(i) > -1) {
       // fix #368
       activeI = this.activeSeriesIndex
     }
+    const activeData = ser[activeI].data
 
-    // get series
-    for (let j = 0; j < ser[i].data.length; j++) {
-      if (typeof ser[i].data[j].y !== 'undefined') {
-        if (Array.isArray(ser[i].data[j].y)) {
-          this.twoDSeries.push(
-            Utils.parseNumber(ser[i].data[j].y[ser[i].data[j].y.length - 1])
-          )
-        } else {
-          this.twoDSeries.push(Utils.parseNumber(ser[i].data[j].y))
-        }
+    // get series, goals, z
+    for (let j = 0; j < data.length; j++) {
+      const point = data[j]
+
+      if (typeof point.y !== 'undefined') {
+        const val = Array.isArray(point.y)
+          ? Utils.parseNumber(point.y[point.y.length - 1])
+          : Utils.parseNumber(point.y)
+        this.twoDSeries.push(val)
       }
 
-      if (
-        typeof ser[i].data[j].goals !== 'undefined' &&
-        Array.isArray(ser[i].data[j].goals)
-      ) {
-        if (typeof this.seriesGoals[i] === 'undefined') {
-          this.seriesGoals[i] = []
-        }
-        this.seriesGoals[i].push(ser[i].data[j].goals)
+      if (typeof this.seriesGoals[i] === 'undefined') {
+        this.seriesGoals[i] = []
+      }
+      if (typeof point.goals !== 'undefined' && Array.isArray(point.goals)) {
+        this.seriesGoals[i].push(point.goals)
       } else {
-        if (typeof this.seriesGoals[i] === 'undefined') {
-          this.seriesGoals[i] = []
-        }
         this.seriesGoals[i].push(null)
+      }
+
+      if (typeof point.z !== 'undefined') {
+        this.threeDSeries.push(point.z)
+        gl.isDataXYZ = true
       }
     }
 
     // get seriesX
-    for (let j = 0; j < ser[activeI].data.length; j++) {
-      const isXString = typeof ser[activeI].data[j].x === 'string'
-      const isXArr = Array.isArray(ser[activeI].data[j].x)
-      const isXDate = !isXArr && !!dt.isValidDate(ser[activeI].data[j].x)
+    for (let j = 0; j < activeData.length; j++) {
+      const point = activeData[j]
+      const x = point.x
+
+      const isXString = typeof x === 'string'
+      const isXArr = Array.isArray(x)
+      const isXDate = !isXArr && !!dt.isValidDate(x)
 
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
@@ -151,48 +146,39 @@ export default class Data {
           const isRangeColumn = gl.isBarHorizontal && gl.isRangeData
 
           if (cnf.xaxis.type === 'datetime' && !isRangeColumn) {
-            this.twoDSeriesX.push(dt.parseDate(ser[activeI].data[j].x))
+            this.twoDSeriesX.push(dt.parseDate(x))
           } else {
             // a category and not a numeric x value
             this.fallbackToCategory = true
-            this.twoDSeriesX.push(ser[activeI].data[j].x)
+            this.twoDSeriesX.push(x)
 
             if (
-              !isNaN(ser[activeI].data[j].x) &&
+              !isNaN(x) &&
               this.w.config.xaxis.type !== 'category' &&
-              typeof ser[activeI].data[j].x !== 'string'
+              typeof x !== 'string'
             ) {
               gl.isXNumeric = true
             }
           }
         } else {
           if (cnf.xaxis.type === 'datetime') {
-            this.twoDSeriesX.push(
-              dt.parseDate(ser[activeI].data[j].x.toString())
-            )
+            this.twoDSeriesX.push(dt.parseDate(x.toString()))
           } else {
             gl.dataFormatXNumeric = true
             gl.isXNumeric = true
-            this.twoDSeriesX.push(parseFloat(ser[activeI].data[j].x))
+            this.twoDSeriesX.push(parseFloat(x))
           }
         }
       } else if (isXArr) {
         // a multiline label described in array format
         this.fallbackToCategory = true
-        this.twoDSeriesX.push(ser[activeI].data[j].x)
+        this.twoDSeriesX.push(x)
       } else {
         // a numeric value in x property
         gl.isXNumeric = true
         gl.dataFormatXNumeric = true
-        this.twoDSeriesX.push(ser[activeI].data[j].x)
+        this.twoDSeriesX.push(x)
       }
-    }
-
-    if (ser[i].data[0] && typeof ser[i].data[0].z !== 'undefined') {
-      for (let t = 0; t < ser[i].data.length; t++) {
-        this.threeDSeries.push(ser[i].data[t].z)
-      }
-      gl.isDataXYZ = true
     }
   }
 
@@ -327,53 +313,35 @@ export default class Data {
     const serL = []
     const serC = []
 
-    if (format === 'array') {
-      if (
-        (isBoxPlot && ser[i].data[0].length === 6) ||
-        (!isBoxPlot && ser[i].data[0].length === 5)
-      ) {
-        for (let j = 0; j < ser[i].data.length; j++) {
-          serO.push(ser[i].data[j][1])
-          serH.push(ser[i].data[j][2])
+    const data = ser[i].data
+    let getVals
 
-          if (isBoxPlot) {
-            serM.push(ser[i].data[j][3])
-            serL.push(ser[i].data[j][4])
-            serC.push(ser[i].data[j][5])
-          } else {
-            serL.push(ser[i].data[j][3])
-            serC.push(ser[i].data[j][4])
-          }
-        }
+    if (format === 'array') {
+      const isFlat =
+        (isBoxPlot && data[0].length === 6) ||
+        (!isBoxPlot && data[0].length === 5)
+      if (isFlat) {
+        getVals = (d) => d.slice(1)
       } else {
-        for (let j = 0; j < ser[i].data.length; j++) {
-          if (Array.isArray(ser[i].data[j][1])) {
-            serO.push(ser[i].data[j][1][0])
-            serH.push(ser[i].data[j][1][1])
-            if (isBoxPlot) {
-              serM.push(ser[i].data[j][1][2])
-              serL.push(ser[i].data[j][1][3])
-              serC.push(ser[i].data[j][1][4])
-            } else {
-              serL.push(ser[i].data[j][1][2])
-              serC.push(ser[i].data[j][1][3])
-            }
-          }
-        }
+        getVals = (d) => (Array.isArray(d[1]) ? d[1] : [])
       }
-    } else if (format === 'xy') {
-      for (let j = 0; j < ser[i].data.length; j++) {
-        if (Array.isArray(ser[i].data[j].y)) {
-          serO.push(ser[i].data[j].y[0])
-          serH.push(ser[i].data[j].y[1])
-          if (isBoxPlot) {
-            serM.push(ser[i].data[j].y[2])
-            serL.push(ser[i].data[j].y[3])
-            serC.push(ser[i].data[j].y[4])
-          } else {
-            serL.push(ser[i].data[j].y[2])
-            serC.push(ser[i].data[j].y[3])
-          }
+    } else {
+      // format === 'xy'
+      getVals = (d) => (Array.isArray(d.y) ? d.y : [])
+    }
+
+    for (let j = 0; j < data.length; j++) {
+      const vals = getVals(data[j])
+      if (vals && vals.length >= 2) {
+        serO.push(vals[0])
+        serH.push(vals[1])
+        if (isBoxPlot) {
+          serM.push(vals[2])
+          serL.push(vals[3])
+          serC.push(vals[4])
+        } else {
+          serL.push(vals[2])
+          serC.push(vals[3])
         }
       }
     }
