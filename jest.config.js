@@ -14,15 +14,26 @@ module.exports = {
   // collectCoverage: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-  // collectCoverageFrom: null,
+  collectCoverageFrom: [
+    'src/**/*.js',
+    '!src/**/*.spec.js',
+    '!src/**/__tests__/**',
+  ],
 
   // The directory where Jest should output its coverage files
-  // coverageDirectory: '.coverage',
+  coverageDirectory: 'coverage',
+
+  // Coverage reporters to generate different output formats
+  coverageReporters: ['html', 'lcov', 'text', 'clover'],
 
   // An array of regexp pattern strings used to skip coverage collection
-  // coveragePathIgnorePatterns: [
-  //   "/node_modules/"
-  // ],
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/build/',
+    '/tests/',
+    '/coverage/',
+  ],
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],

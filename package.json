@@ -28,7 +28,7 @@
     "build:amd": "webpack",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "npm run e2e && npm run unit",
+    "test": "npm run e2e && npm run unit  -- --coverage",
     "test:ci": "npm run e2e:ci && npm run unit",
     "unit": "jest tests/unit/",
     "e2e": "node tests/e2e/samples.js test",

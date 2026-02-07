@@ -263,7 +263,9 @@ describe('Utils', () => {
       })
 
       it('should handle nested arrays', () => {
-        expect(Utils.getLargestStringFromArr(['short', ['medium', 'longest']])).toBe('longest')
+        expect(
+          Utils.getLargestStringFromArr(['short', ['medium', 'longest']])
+        ).toBe('longest')
       })
 
       it('should handle empty array', () => {
@@ -334,7 +336,7 @@ describe('Utils', () => {
         const result = Utils.extendArray(arr, { c: 3 })
         expect(result).toEqual([
           { a: 1, c: 3 },
-          { b: 2, c: 3 }
+          { b: 2, c: 3 },
         ])
       })
     })

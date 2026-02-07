@@ -15,12 +15,18 @@ describe('DateTime', () => {
       chart: { type: 'line' },
       series: [{ data: [1, 2, 3] }],
     })
-    ctx.render()
+    // Don't render - DateTime only needs the config structure
     datetime = new DateTime(ctx)
   })
 
   afterEach(() => {
-    if (ctx && ctx.w && ctx.w.globals && ctx.w.globals.dom && ctx.w.globals.dom.baseEl) {
+    if (
+      ctx &&
+      ctx.w &&
+      ctx.w.globals &&
+      ctx.w.globals.dom &&
+      ctx.w.globals.dom.baseEl
+    ) {
       const el = ctx.w.globals.dom.baseEl.parentElement
       if (el && el.parentElement) {
         el.parentElement.removeChild(el)
