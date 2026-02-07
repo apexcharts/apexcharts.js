@@ -78,7 +78,7 @@ class Bar {
     let w = this.w
     let graphics = new Graphics(this.ctx)
 
-    const coreUtils = new CoreUtils(this.ctx, w)
+    const coreUtils = new CoreUtils(this.ctx)
     series = coreUtils.getLogSeries(series)
     this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)

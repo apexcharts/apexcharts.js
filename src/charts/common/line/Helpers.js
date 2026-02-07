@@ -14,7 +14,7 @@ export default class Helpers {
       w.config.fill.type === 'gradient' ||
       w.config.fill.type[i] === 'gradient'
     ) {
-      const coreUtils = new CoreUtils(this.lineCtx.ctx, w)
+      const coreUtils = new CoreUtils(this.lineCtx.ctx)
 
       // applied only to LINE chart
       // a small adjustment to allow gradient line to draw correctly for all same values

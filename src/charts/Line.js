@@ -46,7 +46,7 @@ class Line {
       class: `apexcharts-${type}-series apexcharts-plot-series`,
     })
 
-    const coreUtils = new CoreUtils(this.ctx, w)
+    const coreUtils = new CoreUtils(this.ctx)
     this.yRatio = this.xyRatios.yRatio
     this.zRatio = this.xyRatios.zRatio
     this.xRatio = this.xyRatios.xRatio

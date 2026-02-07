@@ -24,7 +24,7 @@ class BoxCandleStick extends Bar {
     this.isOHLC =
       this.candlestickOptions && this.candlestickOptions.type === 'ohlc'
 
-    const coreUtils = new CoreUtils(this.ctx, w)
+    const coreUtils = new CoreUtils(this.ctx)
     series = coreUtils.getLogSeries(series)
     this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
@@ -458,7 +458,7 @@ class BoxCandleStick extends Bar {
   }
   getOHLCValue(i, j) {
     const w = this.w
-    const coreUtils = new CoreUtils(this.ctx, w)
+    const coreUtils = new CoreUtils(this.ctx)
     const h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i)
     const o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i)
     const m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i)
