@@ -81,21 +81,6 @@
       
     </style>
 
-    <script>
-      window.Promise ||
-        document.write(
-          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
-        )
-      window.Promise ||
-        document.write(
-          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
-        )
-      window.Promise ||
-        document.write(
-          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
-        )
-    </script>
-
     
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
@@ -105,11 +90,11 @@
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
       // Based on https://gist.github.com/blixt/f17b47c62508be59987b
-      var _seed = 42;
-      Math.random = function() {
-        _seed = _seed * 16807 % 2147483647;
-        return (_seed - 1) / 2147483646;
-      };
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
     </script>
 
     <script>
@@ -308,8 +293,7 @@
 
   <body>
     
-    <div id="app">
-      <div id="wrap">
+    <div id="app"><div id="wrap">
       <select id="model" class="flat-select"
           
           @change="changeData">
@@ -323,12 +307,10 @@
       <div id="chart-quarter">
       <apexchart type="bar" height="400" ref="chartQuarter" :options="chartOptionsQuarter" :series="seriesQuarter"></apexchart>
     </div>
-    </div>
-    </div>
+    </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-    <div id="html">
-      &lt;div id=&quot;wrap&quot;&gt;
+    <div id="html">&lt;div id=&quot;wrap&quot;&gt;
         &lt;select id=&quot;model&quot; class=&quot;flat-select&quot;
             
             @change=&quot;changeData&quot;&gt;
@@ -342,8 +324,7 @@
         &lt;div id=&quot;chart-quarter&quot;&gt;
         &lt;apexchart type=&quot;bar&quot; height=&quot;400&quot; ref=&quot;chartQuarter&quot; :options=&quot;chartOptionsQuarter&quot; :series=&quot;seriesQuarter&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
-      &lt;/div&gt;
-    </div>
+      &lt;/div&gt;</div>
 
     <script>
       new Vue({
