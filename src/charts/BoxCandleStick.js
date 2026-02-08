@@ -12,26 +12,25 @@ import Utils from '../utils/Utils'
 
 class BoxCandleStick extends Bar {
   draw(series, ctype, seriesIndex) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
-    let type = w.globals.comboCharts ? ctype : w.config.chart.type
-    let fill = new Fill(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
+    const type = w.globals.comboCharts ? ctype : w.config.chart.type
+    const fill = new Fill(this.ctx)
 
     this.candlestickOptions = this.w.config.plotOptions.candlestick
     this.boxOptions = this.w.config.plotOptions.boxPlot
     this.isHorizontal = w.config.plotOptions.bar.horizontal
-    // Add new property to check if we're using OHLC type
     this.isOHLC =
       this.candlestickOptions && this.candlestickOptions.type === 'ohlc'
 
-    const coreUtils = new CoreUtils(this.ctx)
-    series = coreUtils.getLogSeries(series)
+    this.coreUtils = new CoreUtils(this.ctx)
+    series = this.coreUtils.getLogSeries(series)
     this.series = series
-    this.yRatio = coreUtils.getLogYRatios(this.yRatio)
+    this.yRatio = this.coreUtils.getLogYRatios(this.yRatio)
 
     this.barHelpers.initVariables(series)
 
-    let ret = graphics.group({
+    const ret = graphics.group({
       class: `apexcharts-${type}-series apexcharts-plot-series`,
     })
 
@@ -47,15 +46,13 @@ class BoxCandleStick extends Bar {
         zeroH, // zeroH is the baseline where 0 meets y axis
         zeroW // zeroW is the baseline where 0 meets x axis
 
-      let yArrj = [] // hold y values of current iterating series
-      let xArrj = [] // hold x values of current iterating series
+      const yArrj = [] // hold y values of current iterating series
+      const xArrj = [] // hold x values of current iterating series
 
-      let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
-      // As BoxCandleStick derives from Bar, we need this to render.
-      let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex)
+      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex)
 
-      // el to which series will be drawn
-      let elSeries = graphics.group({
+      const elSeries = graphics.group({
         class: `apexcharts-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
         rel: i + 1,
@@ -77,7 +74,7 @@ class BoxCandleStick extends Bar {
         translationsIndex = realIndex
       }
 
-      let initPositions = this.barHelpers.initialPositions(realIndex)
+      const initPositions = this.barHelpers.initialPositions(realIndex)
 
       y = initPositions.y
       barHeight = initPositions.barHeight
@@ -91,13 +88,12 @@ class BoxCandleStick extends Bar {
 
       xArrj.push(x + barWidth / 2)
 
-      // eldatalabels
-      let elDataLabelsWrap = graphics.group({
+      const elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels',
         'data:realIndex': realIndex,
       })
 
-      let elGoalsMarkers = graphics.group({
+      const elGoalsMarkers = graphics.group({
         class: 'apexcharts-bar-goals-markers',
       })
 
@@ -158,12 +154,12 @@ class BoxCandleStick extends Bar {
         yArrj.push(y)
 
         paths.pathTo.forEach((pathTo, pi) => {
-          let lineFill =
+          const lineFill =
             !this.isBoxPlot && this.candlestickOptions.wick.useFillColor
               ? paths.color[pi]
               : w.globals.stroke.colors[i]
 
-          let pathFill = fill.fillPath({
+          const pathFill = fill.fillPath({
             seriesNumber: realIndex,
             dataPointIndex: j,
             color: paths.color[pi],
@@ -213,11 +209,11 @@ class BoxCandleStick extends Bar {
     zeroH,
     strokeWidth,
   }) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
 
-    let i = indexes.i
-    let j = indexes.j
+    const i = indexes.i
+    const j = indexes.j
 
     const { colors: candleColors } = w.config.plotOptions.candlestick
     const { colors: boxColors } = this.boxOptions
@@ -251,7 +247,7 @@ class BoxCandleStick extends Bar {
         barWidth / 2
     }
 
-    let barXPosition = x + barWidth * this.visibleI
+    const barXPosition = x + barWidth * this.visibleI
 
     if (
       typeof this.series[i][j] === 'undefined' ||
@@ -267,7 +263,7 @@ class BoxCandleStick extends Bar {
       m = zeroH - ohlc.m / yRatio
     }
 
-    let pathTo = graphics.move(barXPosition, zeroH)
+    let pathTo
     let pathFrom = graphics.move(barXPosition + barWidth / 2, y1)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, true)
@@ -362,22 +358,30 @@ class BoxCandleStick extends Bar {
     zeroW,
     strokeWidth,
   }) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.ctx)
 
-    let i = indexes.i
-    let j = indexes.j
+    const i = indexes.i
+    const j = indexes.j
+    const realIndex = indexes.realIndex
 
-    let color = this.boxOptions.colors.lower
+    const { colors: candleColors } = w.config.plotOptions.candlestick
+    const { colors: boxColors } = this.boxOptions
 
-    if (this.isBoxPlot) {
-      color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper]
-    }
+    const getColor = (color) =>
+      Array.isArray(color) ? color[realIndex] : color
 
     const yRatio = this.invertedYRatio
-    let realIndex = indexes.realIndex
-
     const ohlc = this.getOHLCValue(realIndex, j)
+
+    let color = ohlc.o < ohlc.c
+      ? [getColor(candleColors.upward)]
+      : [getColor(candleColors.downward)]
+
+    if (this.isBoxPlot) {
+      color = [getColor(boxColors.lower), getColor(boxColors.upper)]
+    }
+
     let l1 = zeroW
     let l2 = zeroW
 
@@ -392,7 +396,7 @@ class BoxCandleStick extends Bar {
         barHeight / 2
     }
 
-    let barYPosition = y + barHeight * this.visibleI
+    const barYPosition = y + barHeight * this.visibleI
 
     if (
       typeof this.series[i][j] === 'undefined' ||
@@ -408,7 +412,7 @@ class BoxCandleStick extends Bar {
       m = zeroW + ohlc.m / yRatio
     }
 
-    let pathTo = graphics.move(zeroW, barYPosition)
+    let pathTo
     let pathFrom = graphics.move(x1, barYPosition + barHeight / 2)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, true)
@@ -456,18 +460,28 @@ class BoxCandleStick extends Bar {
       color,
     }
   }
+
   getOHLCValue(i, j) {
     const w = this.w
-    const coreUtils = new CoreUtils(this.ctx)
-    const h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i)
-    const o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i)
-    const m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i)
-    const c = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleC[i][j], i)
-    const l = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleL[i][j], i)
+    const coreUtils = this.coreUtils
+    const getCandleVal = (arr) =>
+      arr[i] && arr[i][j] != null
+        ? coreUtils.getLogValAtSeriesIndex(arr[i][j], i)
+        : 0
+
+    const h = getCandleVal(w.globals.seriesCandleH)
+    const o = getCandleVal(w.globals.seriesCandleO)
+    const m = getCandleVal(w.globals.seriesCandleM)
+    const c = getCandleVal(w.globals.seriesCandleC)
+    const l = getCandleVal(w.globals.seriesCandleL)
+
+    // BoxPlot data arrives as [min, q1, median, q3, max] and is stored in
+    // H=min, O=q1, M=median, C=q3, L=max — remap to OHLC semantics:
+    // o=q1(O), h=min(H), m=median(M), l=q3(C), c=max(L)
     return {
       o: this.isBoxPlot ? h : o,
       h: this.isBoxPlot ? o : h,
-      m: m,
+      m,
       l: this.isBoxPlot ? c : l,
       c: this.isBoxPlot ? l : c,
     }
