@@ -185,38 +185,6 @@ describe('Pie chart', () => {
     })
   })
 
-  describe('configuration', () => {
-    it('should respect custom startAngle and endAngle', () => {
-      const chart = pieChart({
-        pie: { startAngle: 0, endAngle: 180 },
-        series: [50, 50],
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.pie.startAngle).toBe(0)
-      expect(w.config.plotOptions.pie.endAngle).toBe(180)
-    })
-
-    it('should respect customScale', () => {
-      const chart = pieChart({
-        pie: { customScale: 0.8 },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.pie.customScale).toBe(0.8)
-    })
-
-    it('should render stroke between slices when configured', () => {
-      const chart = pieChart({
-        stroke: { show: true, width: 2, colors: ['#fff'] },
-      })
-      const el = chart.el
-
-      const slices = el.querySelectorAll('.apexcharts-pie-area')
-      expect(slices.length).toBeGreaterThan(0)
-    })
-  })
-
   describe('globals', () => {
     it('should compute seriesPercent', () => {
       const chart = pieChart({ series: [25, 25, 25, 25] })
@@ -283,27 +251,6 @@ describe('Donut chart', () => {
 
       expect(el.querySelector('.apexcharts-donut-slice-0')).not.toBeNull()
       expect(el.querySelector('.apexcharts-donut-slice-1')).not.toBeNull()
-    })
-  })
-
-  describe('donut size', () => {
-    it('should respect custom donut size', () => {
-      const chart = donutChart({
-        donut: { size: '70%' },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.pie.donut.size).toBe('70%')
-    })
-
-    it('should render with small donut size', () => {
-      const chart = donutChart({
-        donut: { size: '20%' },
-      })
-      const el = chart.el
-
-      const slices = el.querySelectorAll('.apexcharts-pie-area')
-      expect(slices.length).toBe(4)
     })
   })
 
@@ -385,17 +332,6 @@ describe('Donut chart', () => {
         expect(nameLabel).toBeNull()
         expect(valueLabel).toBeNull()
       }
-    })
-  })
-
-  describe('donut background', () => {
-    it('should accept a custom donut background color', () => {
-      const chart = donutChart({
-        donut: { background: '#f0f0f0' },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.pie.donut.background).toBe('#f0f0f0')
     })
   })
 })

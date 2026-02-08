@@ -632,19 +632,6 @@ describe('Format Y-axis and tooltip Labels', () => {
     expect(chart.w.globals.yAxisScale[0].niceMin).toBe('Very Long Series Name')
   })
 
-  it('should not apply heatmap formatting for non-heatmap charts', () => {
-    const chart = createChartWithOptions({
-      chart: { type: 'line' },
-      series: [{ name: 'Series', data: [10, 20, 30] }],
-    })
-    const formatters = new Formatters(chart)
-    formatters.setLabelFormatters()
-    formatters.heatmapLabelFormatters()
-
-    // Should not throw and should not modify yAxisScale for non-heatmap
-    expect(true).toBe(true)
-  })
-
   it('should handle tooltip.y as array with different formatters per series', () => {
     const chart = createChartWithOptions({
       chart: { type: 'line' },

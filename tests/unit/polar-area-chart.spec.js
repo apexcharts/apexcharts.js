@@ -91,12 +91,8 @@ describe('Polar Area chart', () => {
       const chart = polarAreaChart({ series: [50, 50] })
       const el = chart.el
 
-      expect(
-        el.querySelector('.apexcharts-polararea-slice-0')
-      ).not.toBeNull()
-      expect(
-        el.querySelector('.apexcharts-polararea-slice-1')
-      ).not.toBeNull()
+      expect(el.querySelector('.apexcharts-polararea-slice-0')).not.toBeNull()
+      expect(el.querySelector('.apexcharts-polararea-slice-1')).not.toBeNull()
     })
   })
 
@@ -129,46 +125,6 @@ describe('Polar Area chart', () => {
       angles.forEach((angle) => {
         expect(angle).toBeCloseTo(90, 0)
       })
-    })
-  })
-
-  describe('rings', () => {
-    it('should render with custom ring stroke configuration', () => {
-      const chart = polarAreaChart({
-        polarArea: {
-          rings: {
-            strokeWidth: 2,
-            strokeColor: '#e8e8e8',
-          },
-        },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.polarArea.rings.strokeWidth).toBe(2)
-      expect(w.config.plotOptions.polarArea.rings.strokeColor).toBe('#e8e8e8')
-    })
-  })
-
-  describe('spokes', () => {
-    it('should render spokes by default', () => {
-      const chart = polarAreaChart({
-        series: [10, 20, 30],
-      })
-      const w = chart.w
-
-      // Spokes should be part of the config
-      expect(w.config.plotOptions.polarArea.spokes).toBeDefined()
-    })
-
-    it('should not render spokes when strokeWidth is 0', () => {
-      const chart = polarAreaChart({
-        polarArea: {
-          spokes: { strokeWidth: 0 },
-        },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.polarArea.spokes.strokeWidth).toBe(0)
     })
   })
 

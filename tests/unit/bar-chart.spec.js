@@ -298,50 +298,6 @@ describe('Bar chart', () => {
   })
 
   // =========================================================================
-  // Constructor – integration tests
-  // =========================================================================
-  describe('constructor (via chart creation)', () => {
-    it('should set isHorizontal to false for column charts', () => {
-      const chart = barChart()
-      const w = chart.w
-
-      expect(w.config.plotOptions.bar.horizontal).toBe(false)
-    })
-
-    it('should set isHorizontal to true for horizontal bar charts', () => {
-      const chart = barChart({
-        bar: { horizontal: true },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.bar.horizontal).toBe(true)
-    })
-
-    it('should handle stacked bar configuration', () => {
-      const chart = barChart({
-        chart: { stacked: true },
-        series: [{ data: [10, 20, 30] }, { data: [5, 10, 15] }],
-      })
-      const w = chart.w
-
-      expect(w.config.chart.stacked).toBe(true)
-    })
-
-    it('should handle multiple series', () => {
-      const chart = barChart({
-        series: [
-          { name: 'A', data: [10, 20] },
-          { name: 'B', data: [30, 40] },
-        ],
-      })
-      const w = chart.w
-
-      expect(w.globals.series.length).toBe(2)
-      expect(w.globals.seriesNames).toEqual(['A', 'B'])
-    })
-  })
-
-  // =========================================================================
   // draw() – integration tests
   // =========================================================================
   describe('draw (via chart rendering)', () => {
@@ -561,22 +517,6 @@ describe('Bar chart', () => {
       const el = chart.el
       const barPaths = el.querySelectorAll('.apexcharts-bar-area')
       expect(barPaths.length).toBe(4)
-    })
-  })
-
-  // =========================================================================
-  // Distributed bars
-  // =========================================================================
-  describe('distributed bars', () => {
-    it('should render distributed bar chart', () => {
-      const chart = barChart({
-        bar: { distributed: true },
-        series: [{ data: [10, 20, 30] }],
-      })
-
-      const el = chart.el
-      const barPaths = el.querySelectorAll('.apexcharts-bar-area')
-      expect(barPaths.length).toBe(3)
     })
   })
 

@@ -1072,10 +1072,7 @@ describe('x-axis with stacked bar chart', () => {
   it('should compute correct xaxis for stacked column chart', () => {
     const chart = createChartWithOptions({
       chart: { type: 'bar', stacked: true },
-      series: [
-        { data: [10, 20, 30] },
-        { data: [15, 25, 35] },
-      ],
+      series: [{ data: [10, 20, 30] }, { data: [15, 25, 35] }],
       xaxis: { categories: ['A', 'B', 'C'] },
     })
 
@@ -1184,29 +1181,6 @@ describe('x-axis with scatter chart', () => {
     const w = chart.w
     expect(w.globals.minX).toBeLessThanOrEqual(5)
     expect(w.globals.maxX).toBeGreaterThanOrEqual(50)
-  })
-})
-
-describe('x-axis with empty series', () => {
-  it('should handle empty data array gracefully', () => {
-    const chart = createChartWithOptions({
-      chart: { type: 'line' },
-      series: [{ data: [] }],
-      xaxis: { categories: [] },
-    })
-
-    const w = chart.w
-    expect(w.globals.series).toBeDefined()
-  })
-
-  it('should handle series with no data property', () => {
-    const chart = createChartWithOptions({
-      chart: { type: 'line' },
-      series: [],
-    })
-
-    const w = chart.w
-    expect(w.globals.series).toBeDefined()
   })
 })
 

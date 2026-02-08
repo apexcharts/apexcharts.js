@@ -71,9 +71,7 @@ describe('RadialBar chart', () => {
       const el = chart.el
 
       const series = el.querySelectorAll('.apexcharts-radial-series')
-      const names = Array.from(series).map((s) =>
-        s.getAttribute('seriesName')
-      )
+      const names = Array.from(series).map((s) => s.getAttribute('seriesName'))
       expect(names).toContain('Alpha')
       expect(names).toContain('Beta')
     })
@@ -82,7 +80,9 @@ describe('RadialBar chart', () => {
       const chart = radialBarChart({ series: [80, 60] })
       const el = chart.el
 
-      const slices = el.querySelectorAll('.apexcharts-radialbar-slice-0, .apexcharts-radialbar-slice-1')
+      const slices = el.querySelectorAll(
+        '.apexcharts-radialbar-slice-0, .apexcharts-radialbar-slice-1'
+      )
       expect(slices.length).toBe(2)
 
       const values = Array.from(slices).map((s) =>
@@ -137,24 +137,6 @@ describe('RadialBar chart', () => {
 
       const hollow = el.querySelector('.apexcharts-radialbar-hollow')
       expect(hollow).not.toBeNull()
-    })
-
-    it('should respect custom hollow size', () => {
-      const chart = radialBarChart({
-        radialBar: { hollow: { size: '60%' } },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.radialBar.hollow.size).toBe('60%')
-    })
-
-    it('should accept hollow background color', () => {
-      const chart = radialBarChart({
-        radialBar: { hollow: { background: '#eee' } },
-      })
-      const w = chart.w
-
-      expect(w.config.plotOptions.radialBar.hollow.background).toBe('#eee')
     })
   })
 

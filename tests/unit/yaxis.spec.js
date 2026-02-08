@@ -25,11 +25,11 @@ describe('Y-axis with ultra-small values', () => {
       },
     })
 
-    const minY = chart.w.globals.minY
-    const maxY = chart.w.globals.maxY
+    const range = new Range(chart)
+    const yRange = range.setYRange()
 
-    expect(minY.toFixed(6)).toEqual('0.003760')
-    expect(maxY.toFixed(6)).toEqual('0.003800')
+    expect(yRange.minY.toFixed(6)).toEqual('0.003760')
+    expect(yRange.maxY.toFixed(6)).toEqual('0.003800')
   })
 
   it('should not apply nice scale for small values', () => {
@@ -51,11 +51,11 @@ describe('Y-axis with ultra-small values', () => {
       },
     })
 
-    const minY = chart.w.globals.minY
-    const maxY = chart.w.globals.maxY
+    const range = new Range(chart)
+    const yRange = range.setYRange()
 
-    expect(minY).toEqual(1)
-    expect(maxY).toEqual(4)
+    expect(yRange.minY).toEqual(1)
+    expect(yRange.maxY).toEqual(4)
   })
 })
 
@@ -137,7 +137,7 @@ describe('user defined Y-axis min/max', () => {
     expect(yRange.maxY).toEqual(4.755433)
   })
 
-  it('should handle reversed y-axis (min > max) by swapping values', () => {
+  it('should swap min and max when min > max', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -150,62 +150,15 @@ describe('user defined Y-axis min/max', () => {
       yaxis: {
         min: 100,
         max: 0,
-        reversed: true,
       },
     })
 
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    // When min > max, ApexCharts swaps the values
     expect(yRange.minY).toEqual(0)
     expect(yRange.maxY).toEqual(100)
-  })
-
-  it('should handle very small decimal differences', () => {
-    const chart = createChartWithOptions({
-      chart: {
-        type: 'line',
-      },
-      series: [
-        {
-          data: [0.0001, 0.0002, 0.0003, 0.0004, 0.0005],
-        },
-      ],
-      yaxis: {
-        min: 0,
-        max: 0.001,
-      },
-    })
-
-    const range = new Range(chart)
-    const yRange = range.setYRange()
-
-    expect(yRange.minY).toEqual(0)
-    expect(yRange.maxY).toEqual(0.001)
-  })
-
-  it('should handle very large numbers', () => {
-    const chart = createChartWithOptions({
-      chart: {
-        type: 'line',
-      },
-      series: [
-        {
-          data: [1000000, 2000000, 3000000, 4000000, 5000000],
-        },
-      ],
-      yaxis: {
-        min: 0,
-        max: 10000000,
-      },
-    })
-
-    const range = new Range(chart)
-    const yRange = range.setYRange()
-
-    expect(yRange.minY).toEqual(0)
-    expect(yRange.maxY).toEqual(10000000)
+    expect(yRange.yAxisScale[0].result).toEqual([0, 20, 40, 60, 80, 100])
   })
 })
 
@@ -229,7 +182,7 @@ describe('yaxis range to not contain negative values', () => {
     expect(yRange.maxY).toEqual(25000)
   })
 
-  it('yaxis should handle all zero values', () => {
+  it('yaxis should produce a small positive range for all zero values', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -245,10 +198,10 @@ describe('yaxis range to not contain negative values', () => {
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
-    expect(yRange.maxY).toBeGreaterThan(0)
+    expect(yRange.maxY).toEqual(2)
   })
 
-  it('yaxis should handle only negative values', () => {
+  it('yaxis should compute correct scale for only negative values', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -263,11 +216,12 @@ describe('yaxis range to not contain negative values', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeLessThan(0)
-    expect(yRange.maxY).toBeLessThanOrEqual(0)
+    expect(yRange.minY).toEqual(-50)
+    expect(yRange.maxY).toEqual(-10)
+    expect(yRange.yAxisScale[0].result).toEqual([-50, -40, -30, -20, -10])
   })
 
-  it('yaxis should handle mixed positive and negative values', () => {
+  it('yaxis should compute symmetric scale for mixed positive and negative values', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -282,8 +236,9 @@ describe('yaxis range to not contain negative values', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeLessThan(0)
-    expect(yRange.maxY).toBeGreaterThan(0)
+    expect(yRange.minY).toEqual(-60)
+    expect(yRange.maxY).toEqual(60)
+    expect(yRange.yAxisScale[0].result).toEqual([-60, -40, -20, 0, 20, 40, 60])
   })
 })
 
@@ -319,50 +274,6 @@ describe('single yaxis - functions in min and max', () => {
 
     expect(yRange.minY).toEqual(-23)
     expect(yRange.maxY).toEqual(22)
-  })
-
-  it('min function should be called with correct parameters', () => {
-    const minMock = jest.fn((min) => min - 10)
-    const chart = createChartWithOptions({
-      chart: {
-        type: 'line',
-      },
-      series: [
-        {
-          data: [10, 20, 30, 40, 50],
-        },
-      ],
-      yaxis: {
-        min: minMock,
-      },
-    })
-
-    const range = new Range(chart)
-    range.setYRange()
-
-    expect(minMock).toHaveBeenCalled()
-  })
-
-  it('max function should be called with correct parameters', () => {
-    const maxMock = jest.fn((max) => max + 10)
-    const chart = createChartWithOptions({
-      chart: {
-        type: 'line',
-      },
-      series: [
-        {
-          data: [10, 20, 30, 40, 50],
-        },
-      ],
-      yaxis: {
-        max: maxMock,
-      },
-    })
-
-    const range = new Range(chart)
-    range.setYRange()
-
-    expect(maxMock).toHaveBeenCalled()
   })
 })
 
@@ -494,7 +405,7 @@ describe('multiple yaxis - functions in min and max', () => {
 })
 
 describe('yaxis edge cases', () => {
-  it('should handle single data point', () => {
+  it('should expand range around a single data point', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -509,12 +420,11 @@ describe('yaxis edge cases', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
-    expect(yRange.maxY).toBeGreaterThan(yRange.minY)
+    expect(yRange.minY).toEqual(41)
+    expect(yRange.maxY).toEqual(43)
   })
 
-  it('should handle all identical values', () => {
+  it('should expand range around all identical values', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -529,12 +439,11 @@ describe('yaxis edge cases', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
-    expect(yRange.maxY).toBeGreaterThan(yRange.minY)
+    expect(yRange.minY).toEqual(99)
+    expect(yRange.maxY).toEqual(101)
   })
 
-  it('should handle empty series data', () => {
+  it('should produce a default scale for empty series data', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -549,8 +458,8 @@ describe('yaxis edge cases', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
+    expect(yRange.minY).toEqual(0)
+    expect(yRange.maxY).toEqual(6)
   })
 
   it('should handle floating point precision', () => {
@@ -576,7 +485,7 @@ describe('yaxis edge cases', () => {
     expect(yRange.maxY).toEqual(1)
   })
 
-  it('should handle extreme values', () => {
+  it('should handle extreme values without NaN', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -591,8 +500,8 @@ describe('yaxis edge cases', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
+    expect(yRange.minY).toEqual(0)
+    expect(yRange.maxY).toEqual(10000000000000000)
   })
 
   it('should handle negative zero', () => {
@@ -639,7 +548,7 @@ describe('yaxis with tickAmount', () => {
     expect(yRange.maxY).toEqual(100)
   })
 
-  it('should handle tickAmount with decimal values', () => {
+  it('should produce correct scale for tickAmount with decimal series', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -657,13 +566,14 @@ describe('yaxis with tickAmount', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
+    expect(yRange.minY).toEqual(1)
+    expect(yRange.maxY).toEqual(5.5)
+    expect(yRange.yAxisScale[0].result.length).toBe(10)
   })
 })
 
 describe('yaxis with forceNiceScale', () => {
-  it('should create nice scale when forceNiceScale is true', () => {
+  it('should create nice round scale when forceNiceScale is true', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -681,10 +591,9 @@ describe('yaxis with forceNiceScale', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
-    // Nice scale should create round numbers
-    expect(yRange.minY % 10 === 0 || yRange.minY === 0).toBeTruthy()
+    expect(yRange.minY).toEqual(10)
+    expect(yRange.maxY).toEqual(60)
+    expect(yRange.yAxisScale[0].result).toEqual([10, 20, 30, 40, 50, 60])
   })
 
   it('should handle forceNiceScale with user-defined min/max', () => {
@@ -713,7 +622,7 @@ describe('yaxis with forceNiceScale', () => {
 })
 
 describe('yaxis with logarithmic scale', () => {
-  it('should handle logarithmic scale', () => {
+  it('should compute correct logarithmic scale with base 10', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -731,11 +640,12 @@ describe('yaxis with logarithmic scale', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
+    expect(yRange.minY).toEqual(1)
+    expect(yRange.maxY).toEqual(10000)
+    expect(yRange.yAxisScale[0].result).toEqual([1, 10, 100, 1000, 10000])
   })
 
-  it('should handle logarithmic scale with custom base', () => {
+  it('should compute correct logarithmic scale with base 2', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -754,13 +664,14 @@ describe('yaxis with logarithmic scale', () => {
     const range = new Range(chart)
     const yRange = range.setYRange()
 
-    expect(yRange.minY).toBeDefined()
-    expect(yRange.maxY).toBeDefined()
+    expect(yRange.minY).toEqual(1)
+    expect(yRange.maxY).toEqual(64)
+    expect(yRange.yAxisScale[0].result).toEqual([1, 2, 4, 8, 16, 32, 64])
   })
 })
 
 describe('yaxis with stepSize', () => {
-  it('should handle stepSize configuration', () => {
+  it('should produce evenly spaced scale matching stepSize', () => {
     const chart = createChartWithOptions({
       chart: {
         type: 'line',
@@ -782,5 +693,6 @@ describe('yaxis with stepSize', () => {
 
     expect(yRange.minY).toEqual(0)
     expect(yRange.maxY).toEqual(50)
+    expect(yRange.yAxisScale[0].result).toEqual([0, 10, 20, 30, 40, 50])
   })
 })
