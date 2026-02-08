@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 700px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 700px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -37,7 +33,7 @@
     </script>
 
     <script>
-  /*
+      /*
   // this function will generate output in this format
   // data = [
       [timestamp, 23],
@@ -46,222 +42,223 @@
       ...
   ]
   */
-  function generateDayWiseTimeSeries(baseval, count, yrange) {
-    var i = 0;
-    var series = [];
-    while (i < count) {
-      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-  
-      series.push([baseval, y]);
-      baseval += 86400000;
-      i++;
-    }
-    return series;
-  }
-  </script>
+      function generateDayWiseTimeSeries(baseval, count, yrange) {
+        var i = 0
+        var series = []
+        while (i < count) {
+          var y =
+            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) +
+            yrange.min
+
+          series.push([baseval, y])
+          baseval += 86400000
+          i++
+        }
+        return series
+      }
+    </script>
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;scatter&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;scatter&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                name: 'DIAMOND',
-                data: generateDayWiseTimeSeries(
-                  new Date('01 Feb 2017 GMT').getTime(),
-                  10,
-                  {
-                    min: 5,
-                    max: 60,
-                  }
-                ),
-              },
-              {
-                name: 'TRIANGLE',
-                data: generateDayWiseTimeSeries(
-                  new Date('11 Feb 2017 GMT').getTime(),
-                  10,
-                  {
-                    min: 54,
-                    max: 90,
-                  }
-                ),
-              },
-              {
-                name: 'CROSS',
-                data: generateDayWiseTimeSeries(
-                  new Date('20 Feb 2017 GMT').getTime(),
-                  8,
-                  {
-                    min: 10,
-                    max: 50,
-                  }
-                ),
-              },
-              {
-                name: 'PLUS',
-                data: generateDayWiseTimeSeries(
-                  new Date('28 Feb 2017 GMT').getTime(),
-                  16,
-                  {
-                    min: 30,
-                    max: 99,
-                  }
-                ),
-              },
-            
-              {
-                name: 'SQUARE',
-                data: generateDayWiseTimeSeries(
-                  new Date('20 Mar 2017 GMT').getTime(),
-                  10,
-                  {
-                    min: 0,
-                    max: 59,
-                  }
-                ),
-              },
-              {
-                name: 'LINE',
-                data: generateDayWiseTimeSeries(
-                  new Date('29 Mar 2017 GMT').getTime(),
-                  10,
-                  {
-                    min: 0,
-                    max: 90,
-                  }
-                ),
-              },
-              {
-                name: 'CIRCLE',
-                data: generateDayWiseTimeSeries(
-                  new Date('10 Apr 2017 GMT').getTime(),
-                  10,
-                  {
-                    min: 5,
-                    max: 35,
-                  }
-                ),
-              },
-            
-              {
-                name: 'STAR',
-                data: generateDayWiseTimeSeries(
-                  new Date('20 Apr 2017 GMT').getTime(),
-                  10,
-                  {
-                    min: 15,
-                    max: 60,
-                  }
-                ),
-              },
-              {
-                name: 'SPARKLE',
-                data: generateDayWiseTimeSeries(
-                  new Date('29 Apr 2017 GMT').getTime(),
-                  10,
-                  {
-                    min: 45,
-                    max: 99,
-                  }
-                ),
-              },
-            ],
-            options: {
-              chart: {
-                height: 350,
-                type: 'scatter',
-                zoom: {
-                  type: 'xy',
-                },
-              },
-              colors: [
-                '#FF5733',
-                '#33FF57',
-                '#3357FF',
-                '#FF33A1',
-                '#33FFF6', 
-                '#1E90FF', 
-                '#FFFF33',
-                '#A133FF',
-                '#FF9933',
-                '#FF3388',
-              ],
-              dataLabels: {
-                enabled: false,
-              },
-              grid: {
-                xaxis: {
-                  lines: {
-                    show: true,
-                  },
-                },
-                yaxis: {
-                  lines: {
-                    show: true,
-                  },
-                },
-              },
-              xaxis: {
-                type: 'datetime',
-              },
-              yaxis: {},
-              legend: {
-                markers: {
-                  strokeWidth: [1, 1, 3, 3, 1, 4, 1, 1, 1],
-                },
-              },
-              markers: {
-                shape: [
-                  'diamond',
-                  'triangle',
-                  'cross',
-                  'plus',
-                  'square',
-                  'line',
-                  'circle',
-                  'star',
-                  'sparkle',
-                ],
-                size: 10,
-                fillOpacity: 0.8,
-                strokeColors: '#333',
-                strokeWidth: [1, 1, 3, 3, 1, 4, 1, 1, 1],
-              },
-              tooltip: {
-                shared: true,
-                intersect: false
+          series: [
+            {
+              name: 'DIAMOND',
+              data: generateDayWiseTimeSeries(
+                new Date('01 Feb 2017 GMT').getTime(),
+                10,
+                {
+                  min: 5,
+                  max: 60,
+                }
+              ),
+            },
+            {
+              name: 'TRIANGLE',
+              data: generateDayWiseTimeSeries(
+                new Date('11 Feb 2017 GMT').getTime(),
+                10,
+                {
+                  min: 54,
+                  max: 90,
+                }
+              ),
+            },
+            {
+              name: 'CROSS',
+              data: generateDayWiseTimeSeries(
+                new Date('20 Feb 2017 GMT').getTime(),
+                8,
+                {
+                  min: 10,
+                  max: 50,
+                }
+              ),
+            },
+            {
+              name: 'PLUS',
+              data: generateDayWiseTimeSeries(
+                new Date('28 Feb 2017 GMT').getTime(),
+                16,
+                {
+                  min: 30,
+                  max: 99,
+                }
+              ),
+            },
+
+            {
+              name: 'SQUARE',
+              data: generateDayWiseTimeSeries(
+                new Date('20 Mar 2017 GMT').getTime(),
+                10,
+                {
+                  min: 0,
+                  max: 59,
+                }
+              ),
+            },
+            {
+              name: 'LINE',
+              data: generateDayWiseTimeSeries(
+                new Date('29 Mar 2017 GMT').getTime(),
+                10,
+                {
+                  min: 0,
+                  max: 90,
+                }
+              ),
+            },
+            {
+              name: 'CIRCLE',
+              data: generateDayWiseTimeSeries(
+                new Date('10 Apr 2017 GMT').getTime(),
+                10,
+                {
+                  min: 5,
+                  max: 35,
+                }
+              ),
+            },
+
+            {
+              name: 'STAR',
+              data: generateDayWiseTimeSeries(
+                new Date('20 Apr 2017 GMT').getTime(),
+                10,
+                {
+                  min: 15,
+                  max: 60,
+                }
+              ),
+            },
+            {
+              name: 'SPARKLE',
+              data: generateDayWiseTimeSeries(
+                new Date('29 Apr 2017 GMT').getTime(),
+                10,
+                {
+                  min: 45,
+                  max: 99,
+                }
+              ),
+            },
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'scatter',
+              zoom: {
+                type: 'xy',
               },
             },
-          
-          
-        });
-
-        
+            colors: [
+              '#FF5733',
+              '#33FF57',
+              '#3357FF',
+              '#FF33A1',
+              '#33FFF6',
+              '#1E90FF',
+              '#FFFF33',
+              '#A133FF',
+              '#FF9933',
+              '#FF3388',
+            ],
+            dataLabels: {
+              enabled: false,
+            },
+            grid: {
+              xaxis: {
+                lines: {
+                  show: true,
+                },
+              },
+              yaxis: {
+                lines: {
+                  show: true,
+                },
+              },
+            },
+            xaxis: {
+              type: 'datetime',
+            },
+            yaxis: {},
+            legend: {
+              markers: {
+                strokeWidth: [1, 1, 3, 3, 1, 4, 1, 1, 1],
+              },
+            },
+            markers: {
+              shape: [
+                'diamond',
+                'triangle',
+                'cross',
+                'plus',
+                'square',
+                'line',
+                'circle',
+                'star',
+                'sparkle',
+              ],
+              size: 10,
+              fillOpacity: 0.8,
+              strokeColors: '#333',
+              strokeWidth: [1, 1, 3, 3, 1, 4, 1, 1, 1],
+            },
+            tooltip: {
+              shared: true,
+              intersect: false,
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="scatter" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="scatter"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

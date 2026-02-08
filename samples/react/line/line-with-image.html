@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,110 +31,121 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;line&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;line&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              // {
-              //     name: 'Dataset 1',
-              //     data: [20, 31, 14, 40, 12, 55, 13, 13, 9, 19, 20, 41, 36, 62, 60]
-              // },
-              {
-                  name: 'Dataset 2',
-                  data: [10, 5, 20, 13, 15, 12, 13, 24, 24, 34, 7, 15, 10, 9, 26]
-               }
-            ],
-            options: {
-              chart: {
-                height: 350,
-                type: 'line',
-              },
-              stroke: {
-                width: 5,
-                curve: 'smooth'
-              },
-              colors: ['#2e93fa'],
-              xaxis: {
-                categories: ['1990', '1992', '1993', '1994', '1995', '1996', '1997', '1998', '1999', '2000', '2001', '2002', '2003', '2004', '2005'],
-                labels: {
-                  formatter: function(val) {
-                    return val
-                  }
-                }
-              },
-              title: {
-                text: 'Line Chart - Image fill',
-                align: 'left',
-                style: {
-                  fontSize: "16px",
-                }
-              },
-              fill: {
-              type: 'image',
-              image: {
-                src: [
-                  '../../assets/images/abstract.jpg'
-                ],
-                width: 800,
-                height: 800
-              },
-              },
-              markers: {
-                size: 0,
-                opacity: 0,
-                colors: ['#fff'],
-                strokeColor: "#2e93fa",
-                strokeWidth: 2,
-                hover: {
-                  size: 8,
-                }
-              },
-              yaxis: {
-                title: {
-                  text: '$ (million)',
+          series: [
+            // {
+            //     name: 'Dataset 1',
+            //     data: [20, 31, 14, 40, 12, 55, 13, 13, 9, 19, 20, 41, 36, 62, 60]
+            // },
+            {
+              name: 'Dataset 2',
+              data: [10, 5, 20, 13, 15, 12, 13, 24, 24, 34, 7, 15, 10, 9, 26],
+            },
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'line',
+            },
+            stroke: {
+              width: 5,
+              curve: 'smooth',
+            },
+            colors: ['#2e93fa'],
+            xaxis: {
+              categories: [
+                '1990',
+                '1992',
+                '1993',
+                '1994',
+                '1995',
+                '1996',
+                '1997',
+                '1998',
+                '1999',
+                '2000',
+                '2001',
+                '2002',
+                '2003',
+                '2004',
+                '2005',
+              ],
+              labels: {
+                formatter: function (val) {
+                  return val
                 },
               },
-              legend: {
-                position: 'top',
-                horizontalAlign: 'right',
-                floating: true,
-                offsetY: -25,
-                offsetX: -5
-              }
             },
-          
-          
-        });
-
-        
+            title: {
+              text: 'Line Chart - Image fill',
+              align: 'left',
+              style: {
+                fontSize: '16px',
+              },
+            },
+            fill: {
+              type: 'image',
+              image: {
+                src: ['../../assets/images/abstract.jpg'],
+                width: 800,
+                height: 800,
+              },
+            },
+            markers: {
+              size: 0,
+              opacity: 0,
+              colors: ['#fff'],
+              strokeColor: '#2e93fa',
+              strokeWidth: 2,
+              hover: {
+                size: 8,
+              },
+            },
+            yaxis: {
+              title: {
+                text: '$ (million)',
+              },
+            },
+            legend: {
+              position: 'top',
+              horizontalAlign: 'right',
+              floating: true,
+              offsetY: -25,
+              offsetX: -5,
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="line" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="line"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,133 +31,129 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;boxPlot&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;boxPlot&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                data: [
-                  {
-                    x: 'Category A',
-                    y: [54, 66, 69, 75, 88],
-                    goals: [
-                      {
-                        value: 90,
-                        strokeWidth: 10,
-                        strokeHeight: 0,
-                        strokeLineCap: 'round',
-                        strokeColor: '#F283B6',
-                      },
-                      {
-                        value: 93,
-                        strokeWidth: 10,
-                        strokeHeight: 0,
-                        strokeLineCap: 'round',
-                        strokeColor: '#F283B6',
-                      },
-                    ],
-                  },
-                  {
-                    x: 'Category B',
-                    y: [43, 65, 69, 76, 81],
-                  },
-                  {
-                    x: 'Category C',
-                    y: [31, 39, 45, 51, 59],
-                  },
-                  {
-                    x: 'Category D',
-                    y: [39, 46, 55, 65, 71],
-                    goals: [
-                      {
-                        value: 30,
-                        strokeWidth: 10,
-                        strokeHeight: 0,
-                        strokeLineCap: 'round',
-                        strokeColor: '#F283B6',
-                      },
-                      {
-                        value: 32,
-                        strokeWidth: 10,
-                        strokeHeight: 0,
-                        strokeLineCap: 'round',
-                        strokeColor: '#F283B6',
-                      },
-                      {
-                        value: 76,
-                        strokeWidth: 10,
-                        strokeHeight: 0,
-                        strokeLineCap: 'round',
-                        strokeColor: '#F283B6',
-                      },
-                    ],
-                  },
-                  {
-                    x: 'Category E',
-                    y: [41, 49, 58, 61, 67],
-                  },
-                  
-                ],
-              },
-            ],
-            options: {
-              chart: {
-                type: 'boxPlot',
-                height: 350
-              },
-              title: {
-                text: 'Horizontal BoxPlot with Outliers',
-                align: 'left'
-              },
-              plotOptions: {
-                bar: {
-                  horizontal: true,
-                  barHeight: '40%'
+          series: [
+            {
+              data: [
+                {
+                  x: 'Category A',
+                  y: [54, 66, 69, 75, 88],
+                  goals: [
+                    {
+                      value: 90,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#F283B6',
+                    },
+                    {
+                      value: 93,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#F283B6',
+                    },
+                  ],
                 },
-                boxPlot: {
-                  colors: {
-                    upper: '#B6C454',
-                    lower: '#EDBFB7'
-                  }
-                }
-              },
-              stroke: {
-                colors: ['#333']
-              }
+                {
+                  x: 'Category B',
+                  y: [43, 65, 69, 76, 81],
+                },
+                {
+                  x: 'Category C',
+                  y: [31, 39, 45, 51, 59],
+                },
+                {
+                  x: 'Category D',
+                  y: [39, 46, 55, 65, 71],
+                  goals: [
+                    {
+                      value: 30,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#F283B6',
+                    },
+                    {
+                      value: 32,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#F283B6',
+                    },
+                    {
+                      value: 76,
+                      strokeWidth: 10,
+                      strokeHeight: 0,
+                      strokeLineCap: 'round',
+                      strokeColor: '#F283B6',
+                    },
+                  ],
+                },
+                {
+                  x: 'Category E',
+                  y: [41, 49, 58, 61, 67],
+                },
+              ],
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              type: 'boxPlot',
+              height: 350,
+            },
+            title: {
+              text: 'Horizontal BoxPlot with Outliers',
+              align: 'left',
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                barHeight: '40%',
+              },
+              boxPlot: {
+                colors: {
+                  upper: '#B6C454',
+                  lower: '#EDBFB7',
+                },
+              },
+            },
+            stroke: {
+              colors: ['#333'],
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="boxPlot" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="boxPlot"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

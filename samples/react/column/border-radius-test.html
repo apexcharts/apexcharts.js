@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,123 +31,120 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;bar&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                name: 'PRODUCT A',
-                data: [0, 0, 41, 67, 22, 0],
+          series: [
+            {
+              name: 'PRODUCT A',
+              data: [0, 0, 41, 67, 22, 0],
+            },
+            {
+              name: 'PRODUCT B',
+              data: [20, 0, -20, 0, 13, 0],
+            },
+            {
+              name: 'PRODUCT C',
+              data: [20, 17, -15, 0, 21, 14],
+            },
+            {
+              name: 'PRODUCT D',
+              data: [30, 7, 25, 13, 10, 8],
+            },
+          ],
+          options: {
+            chart: {
+              type: 'bar',
+              height: 350,
+              stacked: true,
+              toolbar: {
+                show: true,
               },
-              {
-                name: 'PRODUCT B',
-                data: [20, 0, -20, 0, 13, 0],
-              },
-              {
-                name: 'PRODUCT C',
-                data: [20, 17, -15, 0, 21, 14],
-              },
-              {
-                name: 'PRODUCT D',
-                data: [30, 7, 25, 13, 10, 8],
-              },
-            ],
-            options: {
-              chart: {
-                type: 'bar',
-                height: 350,
-                stacked: true,
-                toolbar: {
-                  show: true,
-                },
-              },
-              stroke: {
-                width: 4,
-              },
-              plotOptions: {
-                bar: {
-                  horizontal: false,
-                  borderRadius: 10,
-                  borderRadiusApplication: 'end',
-                  borderRadiusWhenStacked: 'last', 
-                  dataLabels: {
-                    total: {
-                      enabled: true,
-                      style: {
-                        fontSize: '13px',
-                        fontWeight: 900,
-                      },
+            },
+            stroke: {
+              width: 4,
+            },
+            plotOptions: {
+              bar: {
+                horizontal: false,
+                borderRadius: 10,
+                borderRadiusApplication: 'end',
+                borderRadiusWhenStacked: 'last',
+                dataLabels: {
+                  total: {
+                    enabled: true,
+                    style: {
+                      fontSize: '13px',
+                      fontWeight: 900,
                     },
                   },
                 },
               },
+            },
+            xaxis: {
+              stepSize: 11,
+              categories: [
+                '01/01/2011',
+                '01/02/2011',
+                '01/03/2011',
+                '01/04/2011',
+                '01/05/2011',
+                '01/06/2011',
+              ],
+            },
+            yaxis: {
+              stepSize: 11,
+            },
+            legend: {
+              position: 'right',
+              offsetY: 40,
+            },
+            fill: {
+              opacity: 0.4,
+            },
+            grid: {
               xaxis: {
-                stepSize: 11,
-                categories: [
-                  '01/01/2011',
-                  '01/02/2011',
-                  '01/03/2011',
-                  '01/04/2011',
-                  '01/05/2011',
-                  '01/06/2011',
-                ],
+                lines: {
+                  show: true,
+                },
               },
               yaxis: {
-                stepSize: 11,
-              },
-              legend: {
-                position: 'right',
-                offsetY: 40,
-              },
-              fill: {
-                opacity: 0.4,
-              },
-              grid: {
-                xaxis: {
-                  lines: {
-                    show: true,
-                  },
+                lines: {
+                  show: true,
                 },
-                yaxis: {
-                  lines: {
-                    show: true,
-                  },
-                },
-              }
+              },
             },
-          
-          
-        });
-
-        
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,83 +31,83 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;area&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;area&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
+          series: [
+            {
               name: 'Network',
-              data: [{
+              data: [
+                {
                   x: 'Dec 23 2017',
-                  y: null
+                  y: null,
                 },
                 {
                   x: 'Dec 24 2017',
-                  y: 44
+                  y: 44,
                 },
                 {
                   x: 'Dec 25 2017',
-                  y: 31
+                  y: 31,
                 },
                 {
                   x: 'Dec 26 2017',
-                  y: 38
+                  y: 38,
                 },
                 {
                   x: 'Dec 27 2017',
-                  y: null
+                  y: null,
                 },
                 {
                   x: 'Dec 28 2017',
-                  y: 32
+                  y: 32,
                 },
                 {
                   x: 'Dec 29 2017',
-                  y: 55
+                  y: 55,
                 },
                 {
                   x: 'Dec 30 2017',
-                  y: 51
+                  y: 51,
                 },
                 {
                   x: 'Dec 31 2017',
-                  y: 67
+                  y: 67,
                 },
                 {
                   x: 'Jan 01 2018',
-                  y: 22
+                  y: 22,
                 },
                 {
                   x: 'Jan 02 2018',
-                  y: 34
+                  y: 34,
                 },
                 {
                   x: 'Jan 03 2018',
-                  y: null
+                  y: null,
                 },
                 {
                   x: 'Jan 04 2018',
-                  y: null
+                  y: null,
                 },
                 {
                   x: 'Jan 05 2018',
-                  y: 11
+                  y: 11,
                 },
                 {
                   x: 'Jan 06 2018',
-                  y: 4
+                  y: 4,
                 },
                 {
                   x: 'Jan 07 2018',
@@ -119,105 +115,105 @@
                 },
                 {
                   x: 'Jan 08 2018',
-                  y: null
+                  y: null,
                 },
                 {
                   x: 'Jan 09 2018',
-                  y: 9
+                  y: 9,
                 },
                 {
                   x: 'Jan 10 2018',
-                  y: 34
+                  y: 34,
                 },
                 {
                   x: 'Jan 11 2018',
-                  y: null
+                  y: null,
                 },
                 {
                   x: 'Jan 12 2018',
-                  y: null
+                  y: null,
                 },
                 {
                   x: 'Jan 13 2018',
-                  y: 13
+                  y: 13,
                 },
                 {
                   x: 'Jan 14 2018',
-                  y: null
-                }
+                  y: null,
+                },
               ],
-            }],
-            options: {
-              chart: {
-                type: 'area',
-                height: 350,
-                animations: {
-                  enabled: false
-                },
-                zoom: {
-                  enabled: false
-                },
-              },
-              dataLabels: {
-                enabled: false
-              },
-              stroke: {
-                curve: 'straight'
-              },
-              fill: {
-                opacity: 0.8,
-                type: 'pattern',
-                pattern: {
-                  style: ['verticalLines', 'horizontalLines'],
-                  width: 5,
-                  height: 6
-                },
-              },
-              markers: {
-                size: 5,
-                hover: {
-                  size: 9
-                }
-              },
-              title: {
-                text: 'Network Monitoring',
-              },
-              tooltip: {
-                intersect: true,
-                shared: false
-              },
-              theme: {
-                palette: 'palette1'
-              },
-              xaxis: {
-                type: 'datetime',
-              },
-              yaxis: {
-                title: {
-                  text: 'Bytes Received'
-                }
-              }
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              type: 'area',
+              height: 350,
+              animations: {
+                enabled: false,
+              },
+              zoom: {
+                enabled: false,
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              curve: 'straight',
+            },
+            fill: {
+              opacity: 0.8,
+              type: 'pattern',
+              pattern: {
+                style: ['verticalLines', 'horizontalLines'],
+                width: 5,
+                height: 6,
+              },
+            },
+            markers: {
+              size: 5,
+              hover: {
+                size: 9,
+              },
+            },
+            title: {
+              text: 'Network Monitoring',
+            },
+            tooltip: {
+              intersect: true,
+              shared: false,
+            },
+            theme: {
+              palette: 'palette1',
+            },
+            xaxis: {
+              type: 'datetime',
+            },
+            yaxis: {
+              title: {
+                text: 'Bytes Received',
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="area" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="area"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

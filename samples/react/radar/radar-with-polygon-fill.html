@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 450px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 450px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,97 +31,104 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;radar&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;radar&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
+          series: [
+            {
               name: 'Series 1',
               data: [20, 100, 40, 30, 50, 80, 33],
-            }],
-            options: {
-              chart: {
-                height: 350,
-                type: 'radar',
-              },
-              dataLabels: {
-                enabled: true
-              },
-              plotOptions: {
-                radar: {
-                  size: 140,
-                  polygons: {
-                    strokeColors: '#e9e9e9',
-                    fill: {
-                      colors: ['#f8f8f8', '#fff']
-                    }
-                  }
-                }
-              },
-              title: {
-                text: 'Radar with Polygon Fill'
-              },
-              colors: ['#FF4560'],
-              markers: {
-                size: 4,
-                colors: ['#fff'],
-                strokeColor: '#FF4560',
-                strokeWidth: 2,
-              },
-              tooltip: {
-                y: {
-                  formatter: function(val) {
-                    return val
-                  }
-                }
-              },
-              xaxis: {
-                categories: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-              },
-              yaxis: {
-                labels: {
-                  formatter: function(val, i) {
-                    if (i % 2 === 0) {
-                      return val
-                    } else {
-                      return ''
-                    }
-                  }
-                }
-              }
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'radar',
+            },
+            dataLabels: {
+              enabled: true,
+            },
+            plotOptions: {
+              radar: {
+                size: 140,
+                polygons: {
+                  strokeColors: '#e9e9e9',
+                  fill: {
+                    colors: ['#f8f8f8', '#fff'],
+                  },
+                },
+              },
+            },
+            title: {
+              text: 'Radar with Polygon Fill',
+            },
+            colors: ['#FF4560'],
+            markers: {
+              size: 4,
+              colors: ['#fff'],
+              strokeColor: '#FF4560',
+              strokeWidth: 2,
+            },
+            tooltip: {
+              y: {
+                formatter: function (val) {
+                  return val
+                },
+              },
+            },
+            xaxis: {
+              categories: [
+                'Sunday',
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+              ],
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val, i) {
+                  if (i % 2 === 0) {
+                    return val
+                  } else {
+                    return ''
+                  }
+                },
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="radar" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="radar"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

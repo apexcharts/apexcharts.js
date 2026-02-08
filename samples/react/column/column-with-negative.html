@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,98 +31,129 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;bar&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
+          series: [
+            {
               name: 'Cash Flow',
-              data: [1.45, 5.42, 5.9, -0.42, -12.6, -18.1, -18.2, -14.16, -11.1, -6.09, 0.34, 3.88, 13.07,
-                5.8, 2, 7.37, 8.1, 13.57, 15.75, 17.1, 19.8, -27.03, -54.4, -47.2, -43.3, -18.6, -
-                48.6, -41.1, -39.6, -37.6, -29.4, -21.4, -2.4
-              ]
-            }],
-            options: {
-              chart: {
-                type: 'bar',
-                height: 350
-              },
-              plotOptions: {
-                bar: {
-                  colors: {
-                    ranges: [{
+              data: [
+                1.45, 5.42, 5.9, -0.42, -12.6, -18.1, -18.2, -14.16, -11.1,
+                -6.09, 0.34, 3.88, 13.07, 5.8, 2, 7.37, 8.1, 13.57, 15.75, 17.1,
+                19.8, -27.03, -54.4, -47.2, -43.3, -18.6, -48.6, -41.1, -39.6,
+                -37.6, -29.4, -21.4, -2.4,
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              type: 'bar',
+              height: 350,
+            },
+            plotOptions: {
+              bar: {
+                colors: {
+                  ranges: [
+                    {
                       from: -100,
                       to: -46,
-                      color: '#F15B46'
-                    }, {
+                      color: '#F15B46',
+                    },
+                    {
                       from: -45,
                       to: 0,
-                      color: '#FEB019'
-                    }]
-                  },
-                  columnWidth: '80%',
-                }
-              },
-              dataLabels: {
-                enabled: false,
-              },
-              yaxis: {
-                title: {
-                  text: 'Growth',
+                      color: '#FEB019',
+                    },
+                  ],
                 },
-                labels: {
-                  formatter: function (y) {
-                    return y.toFixed(0) + "%";
-                  }
-                }
+                columnWidth: '80%',
               },
-              xaxis: {
-                type: 'datetime',
-                categories: [
-                  '2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01', '2011-05-01', '2011-06-01',
-                  '2011-07-01', '2011-08-01', '2011-09-01', '2011-10-01', '2011-11-01', '2011-12-01',
-                  '2012-01-01', '2012-02-01', '2012-03-01', '2012-04-01', '2012-05-01', '2012-06-01',
-                  '2012-07-01', '2012-08-01', '2012-09-01', '2012-10-01', '2012-11-01', '2012-12-01',
-                  '2013-01-01', '2013-02-01', '2013-03-01', '2013-04-01', '2013-05-01', '2013-06-01',
-                  '2013-07-01', '2013-08-01', '2013-09-01'
-                ],
-                labels: {
-                  rotate: -90
-                }
-              }
             },
-          
-          
-        });
-
-        
+            dataLabels: {
+              enabled: false,
+            },
+            yaxis: {
+              title: {
+                text: 'Growth',
+              },
+              labels: {
+                formatter: function (y) {
+                  return y.toFixed(0) + '%'
+                },
+              },
+            },
+            xaxis: {
+              type: 'datetime',
+              categories: [
+                '2011-01-01',
+                '2011-02-01',
+                '2011-03-01',
+                '2011-04-01',
+                '2011-05-01',
+                '2011-06-01',
+                '2011-07-01',
+                '2011-08-01',
+                '2011-09-01',
+                '2011-10-01',
+                '2011-11-01',
+                '2011-12-01',
+                '2012-01-01',
+                '2012-02-01',
+                '2012-03-01',
+                '2012-04-01',
+                '2012-05-01',
+                '2012-06-01',
+                '2012-07-01',
+                '2012-08-01',
+                '2012-09-01',
+                '2012-10-01',
+                '2012-11-01',
+                '2012-12-01',
+                '2013-01-01',
+                '2013-02-01',
+                '2013-03-01',
+                '2013-04-01',
+                '2013-05-01',
+                '2013-06-01',
+                '2013-07-01',
+                '2013-08-01',
+                '2013-09-01',
+              ],
+              labels: {
+                rotate: -90,
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

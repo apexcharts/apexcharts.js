@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,103 +31,111 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;bar&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
+          series: [
+            {
               name: 'Yearly Profit',
-              data: [{
-                x: '2011',
-                y: 1292
-              }, {
-                x: '2012',
-                y: 4432
-              }, {
-                x: '2013',
-                y: 5423
-              }, {
-                x: '2014',
-                y: 6653
-              }, {
-                x: '2015',
-                y: 8133,
-                fillColor: '#EB8C87',
-                strokeColor: '#C23829'
-              }, {
-                x: '2016',
-                y: 7132
-              }, {
-                x: '2017',
-                y: 7332
-              }, {
-                x: '2018',
-                y: 6553
-              }]
-            }],
-            options: {
-              chart: {
-                height: 350,
-                type: 'bar',
+              data: [
+                {
+                  x: '2011',
+                  y: 1292,
+                },
+                {
+                  x: '2012',
+                  y: 4432,
+                },
+                {
+                  x: '2013',
+                  y: 5423,
+                },
+                {
+                  x: '2014',
+                  y: 6653,
+                },
+                {
+                  x: '2015',
+                  y: 8133,
+                  fillColor: '#EB8C87',
+                  strokeColor: '#C23829',
+                },
+                {
+                  x: '2016',
+                  y: 7132,
+                },
+                {
+                  x: '2017',
+                  y: 7332,
+                },
+                {
+                  x: '2018',
+                  y: 6553,
+                },
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'bar',
+            },
+            plotOptions: {
+              bar: {
+                horizontal: false,
+                columnWidth: '60%',
               },
-              plotOptions: {
-                bar: {
-                  horizontal: false,
-                  columnWidth: '60%'
+            },
+            stroke: {
+              width: 0,
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val) {
+                  return val / 1000 + 'K $'
                 },
               },
-              stroke: {
-                width: 0,
-              },
-              dataLabels: {
-                enabled: false
-              },
-              yaxis: {
-                labels: {
-                  formatter: function(val) {
-                    return val / 1000 + 'K $'
-                  }
-                }
-              },
-              fill: {
-                opacity: 1,
-              },
-              xaxis: {
-                type: 'datetime'
-              }
             },
-          
-          
-        });
-
-        
+            fill: {
+              opacity: 1,
+            },
+            xaxis: {
+              type: 'datetime',
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>

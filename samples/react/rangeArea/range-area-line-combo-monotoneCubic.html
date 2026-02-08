@@ -9,22 +9,18 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,251 +31,248 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-    
     <div id="app"></div>
 
-    <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;rangeArea&quot; height={350} /&gt;
-&lt;/div&gt;</div>
+    <div id="html">
+      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
+      options={state.options} series={state.series} type=&quot;rangeArea&quot;
+      height={350} /&gt; &lt;/div&gt;
+    </div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                type: 'rangeArea',
-                name: 'Team B Range',
-            
-                data: [
-                  {
-                    x: 'Jan',
-                    y: [null, null]
-                  },
-                  {
-                    x: 'Feb',
-                    y: [1200, 1800]
-                  },
-                  {
-                    x: 'Mar',
-                    y: [900, 2900]
-                  },
-                  {
-                    x: 'Apr',
-                    y: [1400, 2700]
-                  },
-                  {
-                    x: 'May',
-                    y: [2600, 3900]
-                  },
-                  {
-                    x: 'Jun',
-                    y: [500, 1700]
-                  },
-                  {
-                    x: 'Jul',
-                    y: [1900, 2300]
-                  },
-                  {
-                    x: 'Aug',
-                    y: [1000, 1500]
-                  }
-                ]
-              },
-            
-              {
-                type: 'rangeArea',
-                name: 'Team A Range',
-                data: [
-                  {
-                    x: 'Jan',
-                    y: [3100, 3400]
-                  },
-                  {
-                    x: 'Feb',
-                    y: [4200, 5200]
-                  },
-                  {
-                    x: 'Mar',
-                    y: [null, null]
-                  },
-                  {
-                    x: 'Apr',
-                    y: [3400, 3900]
-                  },
-                  {
-                    x: 'May',
-                    y: [5100, 5900]
-                  },
-                  {
-                    x: 'Jun',
-                    y: [5400, 6700]
-                  },
-                  {
-                    x: 'Jul',
-                    y: [4300, 4600]
-                  },
-                  {
-                    x: 'Aug',
-                    y: [null, null]
-                  }
-                ]
-              },
-            
-              {
-                type: 'line',
-                name: 'Team B Median',
-                data: [
-                  {
-                    x: 'Jan',
-                    y: 1500
-                  },
-                  {
-                    x: 'Feb',
-                    y: 1700
-                  },
-                  {
-                    x: 'Mar',
-                    y: 1900
-                  },
-                  {
-                    x: 'Apr',
-                    y: 2200
-                  },
-                  {
-                    x: 'May',
-                    y: 3000
-                  },
-                  {
-                    x: 'Jun',
-                    y: 1000
-                  },
-                  {
-                    x: 'Jul',
-                    y: 2100
-                  },
-                  {
-                    x: 'Aug',
-                    y: 1200
-                  },
-                  {
-                    x: 'Sep',
-                    y: 1800
-                  },
-                  {
-                    x: 'Oct',
-                    y: 2000
-                  }
-                ]
-              },
-              {
-                type: 'line',
-                name: 'Team A Median',
-                data: [
-                  {
-                    x: 'Jan',
-                    y: 3300
-                  },
-                  {
-                    x: 'Feb',
-                    y: 4900
-                  },
-                  {
-                    x: 'Mar',
-                    y: 4300
-                  },
-                  {
-                    x: 'Apr',
-                    y: 3700
-                  },
-                  {
-                    x: 'May',
-                    y: 5500
-                  },
-                  {
-                    x: 'Jun',
-                    y: 5900
-                  },
-                  {
-                    x: 'Jul',
-                    y: 4500
-                  },
-                  {
-                    x: 'Aug',
-                    y: 2400
-                  },
-                  {
-                    x: 'Sep',
-                    y: 2100
-                  },
-                  {
-                    x: 'Oct',
-                    y: 1500
-                  }
-                ]
-              }
-            ],
-            options: {
-              chart: {
-                height: 350,
-                type: 'rangeArea',
-                animations: {
-                  speed: 500
-                }
-              },
-              colors: ['#d4526e', '#33b2df', '#d4526e', '#33b2df'],
-              dataLabels: {
-                enabled: false
-              },
-              fill: {
-                opacity: [0.24, 0.24, 1, 1]
-              },
-              forecastDataPoints: {
-                count: 2
-              },
-              stroke: {
-                curve: 'monotoneCubic',
-                width: [0, 0, 2, 2]
-              },
-              legend: {
-                show: true,
-                customLegendItems: ['Team B', 'Team A'],
-                inverseOrder: true
-              },
-              title: {
-                text: 'MonotoneCubic Range Area, Forecast Line, Missing Data'
-              },
-              markers: {
-                hover: {
-                  sizeOffset: 5
-                }
-              }
-            },
-          
-          
-        });
+          series: [
+            {
+              type: 'rangeArea',
+              name: 'Team B Range',
 
-        
+              data: [
+                {
+                  x: 'Jan',
+                  y: [null, null],
+                },
+                {
+                  x: 'Feb',
+                  y: [1200, 1800],
+                },
+                {
+                  x: 'Mar',
+                  y: [900, 2900],
+                },
+                {
+                  x: 'Apr',
+                  y: [1400, 2700],
+                },
+                {
+                  x: 'May',
+                  y: [2600, 3900],
+                },
+                {
+                  x: 'Jun',
+                  y: [500, 1700],
+                },
+                {
+                  x: 'Jul',
+                  y: [1900, 2300],
+                },
+                {
+                  x: 'Aug',
+                  y: [1000, 1500],
+                },
+              ],
+            },
+
+            {
+              type: 'rangeArea',
+              name: 'Team A Range',
+              data: [
+                {
+                  x: 'Jan',
+                  y: [3100, 3400],
+                },
+                {
+                  x: 'Feb',
+                  y: [4200, 5200],
+                },
+                {
+                  x: 'Mar',
+                  y: [null, null],
+                },
+                {
+                  x: 'Apr',
+                  y: [3400, 3900],
+                },
+                {
+                  x: 'May',
+                  y: [5100, 5900],
+                },
+                {
+                  x: 'Jun',
+                  y: [5400, 6700],
+                },
+                {
+                  x: 'Jul',
+                  y: [4300, 4600],
+                },
+                {
+                  x: 'Aug',
+                  y: [null, null],
+                },
+              ],
+            },
+
+            {
+              type: 'line',
+              name: 'Team B Median',
+              data: [
+                {
+                  x: 'Jan',
+                  y: 1500,
+                },
+                {
+                  x: 'Feb',
+                  y: 1700,
+                },
+                {
+                  x: 'Mar',
+                  y: 1900,
+                },
+                {
+                  x: 'Apr',
+                  y: 2200,
+                },
+                {
+                  x: 'May',
+                  y: 3000,
+                },
+                {
+                  x: 'Jun',
+                  y: 1000,
+                },
+                {
+                  x: 'Jul',
+                  y: 2100,
+                },
+                {
+                  x: 'Aug',
+                  y: 1200,
+                },
+                {
+                  x: 'Sep',
+                  y: 1800,
+                },
+                {
+                  x: 'Oct',
+                  y: 2000,
+                },
+              ],
+            },
+            {
+              type: 'line',
+              name: 'Team A Median',
+              data: [
+                {
+                  x: 'Jan',
+                  y: 3300,
+                },
+                {
+                  x: 'Feb',
+                  y: 4900,
+                },
+                {
+                  x: 'Mar',
+                  y: 4300,
+                },
+                {
+                  x: 'Apr',
+                  y: 3700,
+                },
+                {
+                  x: 'May',
+                  y: 5500,
+                },
+                {
+                  x: 'Jun',
+                  y: 5900,
+                },
+                {
+                  x: 'Jul',
+                  y: 4500,
+                },
+                {
+                  x: 'Aug',
+                  y: 2400,
+                },
+                {
+                  x: 'Sep',
+                  y: 2100,
+                },
+                {
+                  x: 'Oct',
+                  y: 1500,
+                },
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'rangeArea',
+              animations: {
+                speed: 500,
+              },
+            },
+            colors: ['#d4526e', '#33b2df', '#d4526e', '#33b2df'],
+            dataLabels: {
+              enabled: false,
+            },
+            fill: {
+              opacity: [0.24, 0.24, 1, 1],
+            },
+            forecastDataPoints: {
+              count: 2,
+            },
+            stroke: {
+              curve: 'monotoneCubic',
+              width: [0, 0, 2, 2],
+            },
+            legend: {
+              show: true,
+              customLegendItems: ['Team B', 'Team A'],
+              inverseOrder: true,
+            },
+            title: {
+              text: 'MonotoneCubic Range Area, Forecast Line, Missing Data',
+            },
+            markers: {
+              hover: {
+                sizeOffset: 5,
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="rangeArea" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="rangeArea"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
-
-    
   </body>
 </html>
